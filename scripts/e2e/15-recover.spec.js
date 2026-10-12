@@ -126,7 +126,8 @@ async function noticeInfo(page) {
   return page.evaluate(() => {
     const els = document.querySelectorAll('[data-testid="write-persist-notice"]');
     const el = els[0];
-    return { count: els.length, kind: el ? el.dataset.kind : null, text: el ? el.textContent.trim() : null,
+    const txt = el ? el.querySelector('[data-testid="write-persist-text"]') : null; // 三段式卡片（S1）：说明句 + [先不保存 | 再试一次]
+    return { count: els.length, kind: el ? el.dataset.kind : null, text: txt ? txt.textContent.trim() : null,
       role: el ? el.getAttribute('role') : null };
   });
 }
@@ -360,13 +361,11 @@ export default async function recover(page, ctx) {
   assert.deepEqual([n.count, n.kind, n.text, n.role], [1, 'generic', COPY.saveFailed, 'status'], 'top notice with the generic sentence');
   assert.equal((await writeSnapshot(page)).done.disabled, false, 'writing is not blocked (写好了 enabled)');
 
-  ctx.step('next lift rewrites everything; the notice leaves by itself (~5s)');
+  ctx.step('next lift rewrites everything; the three-part card goes away at once (S1: a successful save shows nothing, P1-26)');
   await write(page, VERTICAL, 2);
   assert.equal((await facts(page)).storedStrokes, 2, 'next lift saved both strokes');
-  const shownAt = Date.now();
   await page.waitForFunction(() => !document.querySelector('[data-testid="write-persist-notice"]'), null, { timeout: 8000 });
   assert.equal((await noticeInfo(page)).count, 0, 'notice gone');
-  assert.ok(Date.now() - shownAt > 3000, 'notice stayed a few seconds');
 
   ctx.step('failing again: no second notice; visibilitychange(hidden) rewrites');
   await page.evaluate(() => window.__shiziTest.failNextWrite(2));

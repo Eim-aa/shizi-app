@@ -239,7 +239,7 @@ export default async function gesture(page, ctx) {
   assert.equal(L.depth, 1, 'one page popped by the flick');
   assert.deepEqual(L.names, ['home', '_demo/sub'], 'stack: home → demo 1');
 
-  step('overlay open: began closes the top overlay first; the page does not move');
+  step('overlay open: the swipe moves the top overlay only (follows, cancellable — N3-6 / N4, P1-06); the page does not move');
   await page.click(topSel('demo-open-sheet'));
   await waitNavIdle(page);
   assert.ok(await page.locator(tid('demo-sheet')).isVisible(), 'sheet is open');
@@ -247,9 +247,10 @@ export default async function gesture(page, ctx) {
   await swift(page, 'began', 4);
   L = await layers(page);
   assert.ok(L.navAnim !== 'drag', 'page is not dragged');
-  assert.deepEqual(L.inline, [], 'no layer transformed');
+  assert.deepEqual(L.inline, [], 'no page layer transformed');
   await swift(page, 'changed', 250, 900);
-  assert.deepEqual((await layers(page)).inline, [], 'rest of the gesture is not followed');
+  assert.deepEqual((await layers(page)).inline, [], 'the page layers stay put');
+  assert.ok(/translateX/.test(await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] .sz-overlay:not(.sz-exit) .sz-sheet').style.transform)), 'the sheet follows the finger');
   assert.equal(await swift(page, 'ended', 250, 900), true, 'Swift fires shizi-native-back at the end');
   await waitNavIdle(page);
   L = await layers(page);
@@ -263,8 +264,13 @@ export default async function gesture(page, ctx) {
   await swift(page, 'began', 0);
   await swift(page, 'ended', 20, 100);
   await waitNavIdle(page);
+  assert.ok(await page.locator(tid('demo-confirm')).isVisible(), 'a short swipe springs the confirm dialog back (P1-06: no longer closed on touch-down)');
+  await swift(page, 'began', 0);
+  await swift(page, 'changed', 200);
+  await swift(page, 'ended', 200, 0);
+  await waitNavIdle(page);
   L = await layers(page);
-  assert.equal(await page.locator(tid('demo-confirm')).count(), 0, 'began closes the confirm dialog even for a short swipe');
+  assert.equal(await page.locator(tid('demo-confirm')).count(), 0, 'past the threshold the confirm dialog closes');
   assert.equal(L.depth, 1, 'page kept under the confirm');
 
   step('prefers-reduced-motion: no following; commit only by threshold (cross-fade)');

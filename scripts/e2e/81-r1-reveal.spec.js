@@ -70,7 +70,7 @@ export default async function revealSpec(page, ctx) {
   await judge(page);
   await page.waitForSelector(topSel('result-screen'));
   const atEntry = (await hapticsNow(page)).slice(hapticBase);
-  assert.deepEqual(atEntry, ['stamp'], 'entering the result page sends no finish haptic: only the judgment’s own stamp so far (I2-03)');
+  assert.deepEqual(atEntry, ['light', 'judge'], 'entering the result page sends no finish haptic: only 写好了 (light) and the judgment’s own judge haptic so far (I2-03; F1, D58 ③)');
   await page.waitForFunction(() => (window.__rev.starts || []).length >= 2, null, { timeout: 5000 });
   const r1 = await rev(page);
   const j1 = r1.starts.find(s => s.ms === 150);
@@ -83,7 +83,7 @@ export default async function revealSpec(page, ctx) {
   assert.ok(s1.seal.opacity === '1', `at s1 the seal is fully opaque: it has touched the paper (${s1.seal.opacity})`);
   assert.ok(s1.cells.length === 2 && s1.cells.every(c => c.opacity === '1'), 'at s1 every cell is fully shown');
   const afterLand = (await hapticsNow(page)).slice(hapticBase);
-  assert.deepEqual(afterLand, ['stamp', 'seal'], 'exactly one more haptic, the rigid seal, sent at the landing');
+  assert.deepEqual(afterLand, ['light', 'judge', 'seal'], 'exactly one more haptic, the rigid seal, sent at the landing');
   await page.waitForTimeout(500);
   assert.equal((await rev(page)).starts.filter(s => s.ms === 320).length, 1, 's1 once');
   assert.equal(await page.locator(`${topSel('work-cell')}.sz-wcell--in, ${topSel('work-seal')}.sz-seal--land`).count(), 0, 'after landing no animation class is left on the page');

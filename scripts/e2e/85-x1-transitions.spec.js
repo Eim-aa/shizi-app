@@ -2,9 +2,9 @@
 //
 //   1. 阶段间 150ms 交叉淡化：回忆 → 判断 → 接着写 → 看答案 → 描一遍 → 自己写 → 判断后换下一字，每次切换，旧状态的快照（[data-testid="write-phase-snapshot"]，
 //      aria-hidden、不可点）盖在新状态上 150ms 线性淡出，只淡化——快照与新内容都没有位移 / 缩放；结束后快照移除，终态不留任何痕迹。
-//      减少动态效果：直接切换，快照从不出现。
+//      减少动态效果（D58 ②，审计 P1-10）：不再直接切换——快照照样 150ms 线性淡出，只是不做 FLIP 缩放。
 //   2. 判断页参考格去掉 8px 上滑（szCmpIn 只淡入）。
-//   3. 判断两键：0–320ms 不显示、320ms 起 60% 且不可点（pointer-events:none）、440ms 变实可点；减少动态效果下 150ms 起可点、不淡入。
+//   3. 判断两键：0–320ms 不显示、320ms 起 60% 且不可点（pointer-events:none）、440ms 变实可点；减少动态效果下直接可点、不淡入（P1-41：不留看不见的锁）。
 //   4. 换字后 250ms 内早到的落笔缓存、到点补画，不丢笔。
 //
 // 时间轴取页面里的 requestAnimationFrame 采样（t = 触发点击那一帧起算），容差 ±45ms（无头浏览器的帧间隔）。
@@ -151,15 +151,16 @@ export default async function x1Transitions(page, ctx) {
   assert.equal(frames.find(f => f.t > 300).phase, 'recall', 'the next card is in recall');
 
   // ------------------------------------------------------------------ 减少动态效果
-  step('reduced motion: every switch is direct — the snapshot never appears, the end state is the same, judge buttons are tappable from ~150ms without a fade-in');
+  step('reduced motion: every switch is a 150ms cross-fade (not a hard cut, D58 ②), the end state is the same, judge buttons are tappable at once without a fade-in');
   await open(page, ctx, { reduced: true });
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(200);
   frames = await timeline(page, 'write-done');
-  assert.equal(frames.some(f => f.snap), false, 'no snapshot at all under reduced motion');
+  const rsp = snapSpan(frames);
+  assert.ok(rsp && rsp.to <= 150 + 60, 'a 150ms snapshot cross-fade under reduced motion (not a hard cut)');
   assert.equal(frames[frames.length - 1].phase, 'compare', 'the end state is the judge page');
-  const late = frames.find(f => f.t >= 170);
-  assert.ok(late.btnsOpacity === 1 && late.btnsReady === 'true', `the judge buttons are solid and live by ${late.t.toFixed(0)}ms (no fade-in, no 320 / 440ms)`);
+  const late = frames.find(f => f.btns && f.t >= 50);
+  assert.ok(late.btnsOpacity === 1 && late.btnsReady === 'true', `the judge buttons are solid and live by ${late.t.toFixed(0)}ms (no fade-in, no invisible lock, P1-41)`);
   const firstBtn = frames.find(f => f.btns);
   assert.ok(firstBtn.btnsOpacity === 1, 'they are never faded');
   assert.ok(frames.filter(f => f.refTransform).every(f => f.refTransform === 'none'), 'no movement in the reference cell');

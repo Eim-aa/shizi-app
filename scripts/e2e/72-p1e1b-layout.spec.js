@@ -309,7 +309,7 @@ export default async function p1e1bLayout(page, ctx) {
 
   // ------------------------------------------------------------------ G Toast
   step('G: toast — min height 48, no dot, 2px timer line, gutter 20');
-  await page.evaluate(async () => { (await import('/src/ui/components/Toast.js')).showToast('测试一条提示'); });
+  await page.evaluate(async () => { (await import('/src/ui/components/Toast.js')).showToast('测试一条提示', { kind: 'failure' }); });
   await page.waitForSelector('[data-testid="toast"]');
   const toast = await page.evaluate(() => {
     const el = document.querySelector('[data-testid="toast"]');

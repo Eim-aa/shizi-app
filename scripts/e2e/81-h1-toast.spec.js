@@ -58,7 +58,7 @@ export default async function run(page0, ctx) {
     await waitNavIdle(page);
 
     step(`${v.tag}: 首页：别的 Toast 出现时仍让开主按钮「继续写字」（P222 的放置规则不变）`);
-    await page.evaluate(async () => (await import('/src/ui/components/Toast.js')).showToast('测试提示'));
+    await page.evaluate(async () => (await import('/src/ui/components/Toast.js')).showToast('测试提示', { kind: 'failure' }));
     await page.waitForSelector(tid('toast'));
     await page.waitForTimeout(450); // 过了 Toast 淡入
     const r = await rects(page, topSel('home-start'));
@@ -74,7 +74,7 @@ export default async function run(page0, ctx) {
     await seedHomeSpec(page, { entries: [...'疆酱肆'].map((c, i2) => ({ char: c, at: `2026-10-0${1 + i2}T20:00:00` })), clock: '2026-10-05T19:30:00' });
     await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('detail', { char: '疆' }));
     await waitNavIdle(page);
-    await page.evaluate(async () => (await import('/src/ui/components/Toast.js')).showToast('测试提示'));
+    await page.evaluate(async () => (await import('/src/ui/components/Toast.js')).showToast('测试提示', { kind: 'failure' }));
     await page.waitForSelector(tid('toast'));
     await page.waitForTimeout(300);
     const d = await rects(page, topSel('detail-practice'));
@@ -84,7 +84,7 @@ export default async function run(page0, ctx) {
     await waitNavIdle(page);
     await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
     await waitNavIdle(page);
-    await page.evaluate(async () => (await import('/src/ui/components/Toast.js')).showToast('测试提示二'));
+    await page.evaluate(async () => (await import('/src/ui/components/Toast.js')).showToast('测试提示二', { kind: 'failure' }));
     await page.waitForSelector(tid('toast'));
     await page.waitForTimeout(300);
     const l = await page.evaluate(() => {

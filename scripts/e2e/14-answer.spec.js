@@ -177,15 +177,20 @@ export default async function answer(page, ctx) {
   assert.ok(inkRecall.solid > 200 && inkRecall.px[3] > 200, `solid ink on the grid (${inkRecall.solid} px)`);
 
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.strokes.length === 2); // 抬笔写回会话现场已落盘，免得注入的失败被它吃掉
-  ctx.step('failNextWrite(1,{generic}) → 看答案 write fails → three-part failure dialog (先不保存 / 再试一次); nothing recorded, ink untouched');
+  ctx.step('failNextWrite(1,{generic}) → 看答案 write fails → in-page three-part failure (S1, P1-24: no modal): sentence in the note slot, 先不保存 in the help row, 再试一次 as the primary; nothing recorded, ink untouched');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
   await tap(page, 'write-show-answer');
-  await page.waitForSelector(tid('write-answer-confirm'));
+  await page.waitForSelector(topSel('write-show-answer-retry'));
   await waitNavIdle(page);
-  let c = await confirmState(page);
-  assert.equal(c.body, COPY.saveFailed, 'body 「没保存上，你写的字还在。」 (R-W16 / R-G04)');
-  assert.deepEqual([c.cancel, c.ok], [COPY.notNow, COPY.retry], 'buttons 先不保存 / 再试一次');
-  assert.deepEqual(CHARS.filter(ch => c.html.includes(ch)), [], 'no answer character in the failure dialog (D16)');
+  assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no modal dialog any more');
+  const fail = await page.evaluate(() => {
+    const top = document.querySelector('.sz-layer[data-top="true"]');
+    const txt = id => (top.querySelector(`[data-testid="${id}"]`) || {}).textContent;
+    return { note: txt('write-note'), cancel: txt('write-show-answer-cancel'), retry: txt('write-show-answer-retry'), html: top.querySelector('.sz-page__foot').outerHTML };
+  });
+  assert.ok(fail.note.includes(COPY.saveFailed), 'note 「没保存上，你写的字还在。」 (R-W16 / S1)');
+  assert.deepEqual([fail.cancel.trim(), fail.retry.trim()], [COPY.notNow, COPY.retry], 'buttons 先不保存 / 再试一次');
+  assert.deepEqual(CHARS.filter(ch => fail.html.includes(ch)), [], 'no answer character in the failure footer (D16)');
   let f = await facts(page);
   assert.equal(f.records.length, 0, 'failed write recorded nothing');
   assert.equal(f.session.current.phase, 'recall', 'failed write did not change the session');
@@ -195,9 +200,10 @@ export default async function answer(page, ctx) {
   assert.equal(recordWrites, 0, 'no records key was written (rolled back / never published)');
   assert.deepEqual((await inkProbe(page)).px, inkRecall.px, 'own ink unchanged after the failure');
 
-  ctx.step('先不保存 → dialog closes, still recall, two strokes still there');
-  await page.click(topSel('confirm-cancel'));
-  await confirmClosed(page);
+  ctx.step('先不保存 → the failure goes away, still recall, two strokes still there');
+  await page.click(topSel('write-show-answer-cancel'));
+  await page.waitForSelector(topSel('write-show-answer'));
+  await waitNavIdle(page);
   s = await track();
   assert.deepEqual([s.phase, s.strokes], ['recall', 2], 'still recall with the ink');
   f = await facts(page);

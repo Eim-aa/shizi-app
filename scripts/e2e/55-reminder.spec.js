@@ -292,17 +292,17 @@ async function scenarioFeedback(page, ctx) {
   await page.click(topSel('write-done'));
   await page.waitForSelector(topSel('write-judge-correct'));
   await waitNavIdle(page);
-  assert.deepEqual(await hapticsSince(page, n0), [], 'drawing / entering compare: no feedback');
+  assert.deepEqual(await hapticsSince(page, n0), ['haptic:light'], 'drawing is silent; 写好了 sends one light haptic as the grid starts to shrink (F1, D58)');
   await page.click(topSel('write-judge-correct'));
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.cursor === '1');
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:stamp', 'sound:j1_page_settle'], 'judge: haptic stamp + j1 page-settle (P24 / P200)');
+  assert.deepEqual(await hapticsSince(page, n0), ['haptic:light', 'haptic:judge', 'sound:j1_page_settle'], 'judge: haptic judge (soft 0.7) + j1 page-settle (P24 / P200; F1)');
   await waitNavIdle(page);
 
   n0 = (await nativeMessages(page)).length;
   await tap(page, 'write-show-answer');
   await page.waitForSelector(topSel('write-answer-trace'));
   await waitNavIdle(page);
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:action'], '看答案: action');
+  assert.deepEqual(await hapticsSince(page, n0), ['haptic:light'], '看答案: light (F1)');
   n0 = (await nativeMessages(page)).length;
   await page.click(topSel('write-answer-trace'));
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.phase === 'trace');
@@ -318,7 +318,7 @@ async function scenarioFeedback(page, ctx) {
   await tap(page, 'write-answer-next');
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
-  assert.deepEqual((await hapticsSince(page, n0)).sort(), ['haptic:seal', 'sound:s1_wood_muted'], 'last char done → result page: the rigid seal haptic + the seal sound (once, same frame; C3-R)');
+  assert.deepEqual((await hapticsSince(page, n0)).sort(), ['haptic:seal', 'haptic:select', 'sound:s1_wood_muted'], 'last char done → result page: 下一个 is a select (F1), then the rigid seal haptic + the seal sound (once, same frame; C3-R)');
   assert.equal(await topScreen(page), 'result', 'on the result page');
 
   step('key sound off (settings.sound=false): judge gives the haptic only');
@@ -343,7 +343,7 @@ async function scenarioFeedback(page, ctx) {
   await waitNavIdle(page);
   await page.click(topSel('write-judge-wrong'));
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.cursor === '1');
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:stamp'], 'no key sound when 按键音 is off');
+  assert.deepEqual(await hapticsSince(page, n0), ['haptic:light', 'haptic:judge'], 'no key sound when 按键音 is off (haptics unchanged)');
   await page.evaluate(() => window.__shiziTest.reset());
 }
 

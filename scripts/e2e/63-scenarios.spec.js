@@ -733,12 +733,18 @@ export default async function run(page, ctx) {
   assert.equal(shares.length, 1, 'export in the native shell posts shareBackup');
   const accepted = await page.evaluate(() => window.shiziShareFailed({ kind: 'backup', reason: 'activity' }));
   assert.equal(accepted, true, 'global returns true (accepted)');
-  await waitToast(page, await copy(page, 'X-SHARE.backupFailed'));
-  assert.equal(await toastText(page), await copy(page, 'X-SHARE.backupFailed'), 'toast X-SHARE.backupFailed');
+  // 备份页还在屏上：就地三段式（S1 / F3 ①，审计 P1-30），不再出提示条
+  await page.waitForSelector(topSel('backup-export-fail'));
+  assert.equal((await page.textContent(topSel('backup-export-fail-note'))).trim(), await copy(page, 'X-BACKUP.exportFailed'), 'in-place three-part failure X-BACKUP.exportFailed');
+  assert.equal(await page.locator(tid('toast')).count(), 0, 'no toast while the failure is shown in place');
   f = await facts(page);
   assert.ok(!f.backupMeta || !f.backupMeta.lastExportAt, 'export not recorded (lastExportAt unset)');
 
-  step('遗留 P96: card / link / unknown kinds → their sentences; nothing written');
+  step('遗留 P96: card / link / unknown kinds (nothing on screen handles them) → a failure toast with their sentences; nothing written');
+  await page.waitForTimeout(450);
+  await page.click(topSel('backup-export-fail-cancel'));
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
+  await waitNavIdle(page);
   base = await logLen(page);
   for (const [kind, key] of [['card', 'X-SHARE.cardFailed'], ['link', 'X-SHARE.linkFailed'], ['other', 'X-SHARE.failed']]) {
     await page.evaluate(k => window.shiziShareFailed({ kind: k, reason: 'write' }), kind);

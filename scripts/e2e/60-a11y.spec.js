@@ -488,10 +488,16 @@ export default async function a11y(page, realCtx) {
   }
   await audit(page, cdp, ctx, 'write/recall');
 
-  ctx.step('write page: 看答案 has no confirm; only a failed write opens the 先不保存 / 再试一次 dialog (alertdialog, focus trap, focus return)');
+  ctx.step('write page: 看答案 has no confirm; a failed write gives the in-page three-part failure (S1, P1-24): the sentence is spoken through the persistent live region');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
   await tap(page, 'write-show-answer');
-  await dialogCheck(page, cdp, ctx, { label: 'write/answer-save-failed', panel: tid('write-answer-confirm'), opener: 'write-show-answer' }); // D55：看答案是文字行里的按钮，弹层关闭后焦点回到它
+  await page.waitForSelector(topSel('write-show-answer-retry'));
+  const said = await page.waitForFunction(() => (document.querySelector('[data-testid="sr-announce"]') || {}).textContent || '', null, { timeout: 3000 }).then(h => h.jsonValue()).catch(() => '');
+  assert.ok(String(said).includes('没保存上'), `write/answer-save-failed: announced via the polite live region (${said})`);
+  assert.equal(await page.locator('[role="alertdialog"]').count(), 0, 'write/answer-save-failed: no modal any more');
+  await page.waitForTimeout(450);
+  await page.click(topSel('write-show-answer-cancel'));
+  await page.waitForSelector(topSel('write-show-answer'));
 
   ctx.step('write page: compare');
   await drawStroke(page, HORIZONTAL);

@@ -170,10 +170,11 @@ export default async function run(page, ctx) {
   frames = await sample(page, 'write-answer-next');
   assertSingle(assert, frames, 'retrace → next card');
 
-  step('reduced motion: the switch is immediate — no snapshot, no FLIP canvas, the judge page is there at once');
+  step('reduced motion: a 150ms cross-fade (not a hard cut, D58 ② / P1-10) — the snapshot fades, but no FLIP canvas (no scaling); still one ink, no text clash');
   await open(page, ctx, { current: { strokes: STROKES }, reduced: true });
   frames = await sample(page, 'write-done');
-  assert.ok(frames.every(f => !f.overlay && !f.flip), 'no snapshot overlay and no FLIP canvas in any frame');
+  assert.ok(frames.every(f => !f.flip), 'no FLIP canvas in any frame (no scaling under reduced motion)');
+  assert.ok(frames.some(f => f.overlay), 'the snapshot cross-fade is there (not a 0ms hard cut)');
   assertSingle(assert, frames, 'reduced motion');
   const hiddenLeft = await page.evaluate(() => [...document.querySelectorAll('[data-fade-in], [data-flip-hide]')].length);
   assert.equal(hiddenLeft, 0, 'nothing is left hidden');

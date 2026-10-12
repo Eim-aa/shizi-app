@@ -2,7 +2,7 @@
 // 在本人墨下层，本人墨任何时候都不变暗（像素取样断言），整组 150ms 淡入，没有图例说明句。
 // 完成定义：3 画字（大）与 14 画字（聚）的提示笔数与按钮文案序列与 core/hints.js 一致；无笔顺数据的字显示
 // 「暂时没有提示」且没有可点的提示按钮；提示次数经 store.commit 写进 sessions[slot].current.hints（M0-6 形状）；
-// R-W05 文案。另覆盖：无分组数据的字前 1 / 前 2 笔；写过哪笔收哪笔（D53 ⑧；笔迹始终 100%）；减少动态效果 120ms 淡化；
+// R-W05 文案。另覆盖：无分组数据的字前 1 / 前 2 笔；写过哪笔收哪笔（D53 ⑧；笔迹始终 100%）；减少动态效果 150ms 淡化（D58 ②）；
 // 写入失败不阻断且下次写入补上次数；会话现场里 hintRange 还在时静态恢复；无绕过 storage.js 的写入；回忆阶段 DOM 不含答案字。
 
 import {
@@ -362,7 +362,7 @@ export default async function hint(page, ctx) {
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 
   // ---------------------------------------------------------------- 减少动态效果
-  ctx.step('reduced motion: 120ms fade (02 §3 M1-3 / R-G01)');
+  ctx.step('reduced motion: 150ms fade (D58 ②: the one reduced-motion duration)');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await open(page, ctx, ['大']);
   await waitButton(page, 'available');
@@ -376,7 +376,7 @@ export default async function hint(page, ctx) {
     const cs = getComputedStyle(g);
     return { name: cs.animationName, dur: cs.animationDuration };
   }, LAYER);
-  assert.deepEqual([group.name, group.dur], ['szHintFadeIn', '0.12s'], 'group fades in over 120ms (the stroke taken in fades out over 120ms: unit test HintLayer reduced)');
+  assert.deepEqual([group.name, group.dur], ['szHintFadeIn', '0.15s'], 'group fades in over 150ms (the stroke taken in fades out over 150ms: unit test HintLayer reduced)');
   assert.equal(h.inkOpacity, 1, 'ink is not dimmed in reduced motion either');
   await drawStroke(page, HORIZONTAL);
   await waitLayer(page, 'none');

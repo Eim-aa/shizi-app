@@ -199,7 +199,7 @@ async function view(page) {
       date: txt('backup-last-date'),
       line: txt('backup-status-note'),
       intro: txt('backup-intro'),
-      note: txt('backup-note'),
+      note: q('backup-note-text') ? txt('backup-note-text') : txt('backup-note'), // 可再试的失败是三段式（S1）：说明句单独一段
       noteKind: q('backup-note') ? q('backup-note').dataset.kind : null,
       noteTone: q('backup-note') ? q('backup-note').dataset.tone : null,
       retry: btn('backup-note-retry'),
@@ -431,8 +431,9 @@ export default async function run(page, { baseURL, assert, step }) {
   await confirmOk(page);
   await waitNote(page, 'protectFailed');
   v = await view(page);
-  assert.equal(v.note, T.protectFailed + '再试一次', 'R-B04 note + retry link');
-  assert.equal(v.retry && v.retry.text, '再试一次', 'retry link is a button');
+  assert.equal(v.note, T.protectFailed, 'R-B04 note (three-part failure, S1)');
+  assert.equal(v.retry && v.retry.text, '再试一次', 'retry is a button');
+  assert.ok(await page.isVisible(topSel('backup-note-cancel')), '「先不恢复」 is there too (S1, P1-28)');
   assert.equal(v.undo, null, 'no undo bar');
   assert.equal(S(await raw(page)), S(S0raw), 'quota x2 (1st): all v2 keys deep-equal, no recovery folding');
   assert.equal(S(await state(page)), S(S0), 'quota x2 (1st): getState deep-equal');
@@ -462,7 +463,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await waitNote(page, 'restoreFailed');
   v = await view(page);
   assert.equal(v.note, T.restoreFailed, 'R-B06 restoreFailed');
-  assert.equal(v.retry, null, 'no retry link after a failed replace');
+  assert.equal(v.retry && v.retry.text, '再试一次', 'a failed replace can be retried (S1 three-part, P1-28)');
   assert.equal(S(await raw(page)), S(S0raw), 'rolled back: all v2 keys deep-equal (safety removed)');
   assert.equal(S(await state(page)), S(S0), 'rolled back: getState deep-equal');
   assert.ok(await page.evaluate(() => localStorage.getItem('shizi.corrupt.shizi.v2.custom') !== null), 'corrupt key untouched when the import failed');

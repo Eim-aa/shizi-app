@@ -377,9 +377,11 @@ export default async function run(page, ctx) {
   await page.waitForFunction(() => document.querySelector('[data-testid="image-preview"]').dataset.save === 'failed');
   await page.waitForTimeout(PRESS_SETTLE_MS);
   v = await preview(page);
-  assert.equal(v.note, COPY.denied, 'failure note R-B10.albumDenied');
+  // 三段式（S1，审计 P1-29）：说明按原因写（原生没写进相册 → R-B10.albumDenied），[先不保存 | 再试一次] 就地换掉两键
+  assert.equal((await page.textContent(tid('image-fail-note'))).trim(), COPY.denied, 'failure sentence R-B10.albumDenied (native album write failed)');
   assert.equal(v.save, null, '保存图片 replaced');
-  assert.deepEqual([v.share.text, v.retry.text, v.retry.disabled], [COPY.share, COPY.retry, false], '分享 / 再试一次');
+  assert.deepEqual([v.retry.text, v.retry.disabled], [COPY.retry, false], '再试一次');
+  assert.equal((await page.textContent(tid('image-fail-cancel'))).trim(), '先不保存', '先不保存');
   await page.click(tid('image-retry'));
   await page.waitForFunction(() => (window.__nativeMsgs || []).filter(m => m.type === 'savePracticeCard').length === 2);
   await page.evaluate(() => window.shiziCardSaved({ success: true }));

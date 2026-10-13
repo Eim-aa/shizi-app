@@ -53,7 +53,7 @@ export function defaultRemindTime(p = policy) {
 /**
  * settings（可为 null）→ 页面要显示的值（补缺省）。
  * @returns {{library:string, libraryName:string, remind:{enabled:boolean, hour:number, minute:number, permission:string},
- *   denied:boolean, appearance:'auto'|'light'|'dark', appearanceSwitch:boolean}}
+ *   denied:boolean, on:boolean, appearance:'auto'|'light'|'dark', appearanceSwitch:boolean}}
  */
 export function settingsView(settings, { p = policy } = {}) {
   const s = settings || {};
@@ -72,8 +72,10 @@ export function settingsView(settings, { p = policy } = {}) {
     library,
     libraryName: libraryName(library),
     remind,
-    // 原型 settingsDenied：只要手机关了通知就显示 R-S02（开关照旧表示用户的选择）。
+    // 手机关了通知就显示 R-S02；开关按 iOS 习惯如实显示「现在收不收得到」：on = 用户选了开 且 通知没被手机关掉（E3）。
+    // remind.enabled 仍是用户存下的选择——手机里重新允许通知后，开关自己回到开。
     denied: permission === 'denied',
+    on: r.enabled === true && permission !== 'denied',
     appearance: appearanceOf(settings, { features }).theme,
     appearanceSwitch: features.appearanceSwitch !== false,
   };

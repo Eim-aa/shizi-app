@@ -95,6 +95,11 @@ test('settingsView: defaults — P73 library, remind off at policy.remindDefault
   assert.equal(w.libraryName, '课本字');
   assert.deepEqual(w.remind, { enabled: true, hour: 7, minute: 5, permission: 'denied' });
   assert.equal(w.denied, true);
+  assert.equal(w.on, false, 'E3: denied by the phone → the switch shows off even though the stored choice is on');
+  assert.equal(v.on, false);
+  assert.equal(settingsView({ remind: { enabled: true, permission: 'granted' } }).on, true);
+  assert.equal(settingsView({ remind: { enabled: true } }).on, true, 'unknown permission (not asked yet) → shows the choice');
+  assert.equal(settingsView({ remind: { enabled: false, permission: 'granted' } }).on, false);
   assert.ok(!('large' in w), 'a stored large=true is read without error but has no effect (D29)');
   assert.equal(w.appearance, 'dark');
   assert.equal(settingsView({ library: 'nope' }).library, policy.defaultLibrary, 'unknown library → P73 default');
@@ -274,9 +279,20 @@ test('P132 / D58: if clearing fails the flag stays and is cleared at the next st
   assert.equal(commitTextSizeNoticeShown(store).ok, true, 'clearing again is harmless');
 });
 
+test('RemindBody (E3): denied → switch shows off and no time row, with R-S02 subtext, body and 手机设置', () => {
+  const v = settingsView({ remind: { enabled: true, hour: 7, minute: 5, permission: 'denied' } });
+  const ids = allByTestid(remindBody(v));
+  assert.equal(ids['remind-switch'][0].props['aria-checked'], 'false');
+  assert.ok(!ids['remind-time'], 'no time row while the switch shows off');
+  assert.equal(textOf(ids['remind-sub'][0]), '通知没开');
+  assert.equal(textOf(ids['remind-open-system'][0]), '手机设置 ›');
+  const granted = allByTestid(remindBody(settingsView({ remind: { enabled: true, hour: 7, minute: 5, permission: 'granted' } })));
+  assert.equal(granted['remind-switch'][0].props['aria-checked'], 'true');
+});
+
 test('RemindBody: reminders on → time row; denied → R-S02 subtext, body and 手机设置; failure block under the rows', () => {
-  const v = settingsView({ remind: { enabled: true, hour: 7, minute: 5, permission: 'denied' }, appearance: 'dark', large: true });
-  const ids = allByTestid(remindBody(v, { fail: { field: 'time' } }));
+  const v = settingsView({ remind: { enabled: true, hour: 7, minute: 5, permission: 'unknown' }, appearance: 'dark', large: true });
+  const ids = allByTestid(remindBody({ ...v, denied: true }, { fail: { field: 'time' } }));
   assert.equal(ids['remind-time'][0].props.value, '07:05');
   assert.equal(ids['remind-time'][0].props.type, 'time');
   assert.equal(textOf(ids['remind-sub'][0]), '通知没开');

@@ -123,8 +123,8 @@ function Sheet({ model, state }) {
   </section>`;
 }
 
-function remindValue(remind) {
-  return remind.enabled ? timeText(remind.hour, remind.minute) : t('R-M03.remindOff');
+function remindValue(remind, on) {
+  return on ? timeText(remind.hour, remind.minute) : t('R-M03.remindOff');
 }
 
 function MineScreen() {
@@ -141,8 +141,8 @@ function MineScreen() {
             testids: { root: 'mine-empty', title: 'mine-empty-title', body: 'mine-empty-body' } })}</div>`
         : html`<${Sheet} model=${model} state=${state} />`}
       <${RowBlock}>
-        <${Row} testid="mine-remind" name=${t('R-M03.remind')} value=${remindValue(view.remind)} valueTestid="mine-remind-value"
-          extra=${{ 'data-on': view.remind.enabled ? 'true' : 'false' }} onClick=${() => go(MINE_ROUTES.remind)} />
+        <${Row} testid="mine-remind" name=${t('R-M03.remind')} value=${remindValue(view.remind, view.on)} valueTestid="mine-remind-value"
+          extra=${{ 'data-on': view.on ? 'true' : 'false' }} onClick=${() => go(MINE_ROUTES.remind)} />
         <${Row} testid="mine-library" name=${t('R-S01.library')} value=${view.libraryName} valueTestid="mine-library-value"
           extra=${{ 'data-library': view.library }} onClick=${() => go(MINE_ROUTES.library)} />
         ${view.appearanceSwitch ? html`<${AppearanceRow} current=${view.appearance} />` : null}

@@ -75,7 +75,7 @@ export function RemindBody({ view, fail = null, on }) {
   const remind = view.remind;
   const sub = view.denied ? t('R-S02.title') : t('R-S01.remindNote');
   return html`<div class="sz-remind" data-testid="remind-body">
-    <${Button} variant="plain" class="sz-remind__row" role="switch" aria-checked=${remind.enabled ? 'true' : 'false'}
+    <${Button} variant="plain" class="sz-remind__row" role="switch" aria-checked=${view.on ? 'true' : 'false'}
       aria-labelledby="sz-remind-title" aria-describedby="sz-remind-sub" data-testid="remind-switch" onClick=${on.toggle}>
       <span class="sz-remind__main">
         <span class="sz-remind__title" id="sz-remind-title">${t('X-SETTINGS.remindLabel')}</span>
@@ -83,7 +83,7 @@ export function RemindBody({ view, fail = null, on }) {
       </span>
       <span class="sz-remind__switch" aria-hidden="true"><span class="sz-remind__knob"></span></span>
     </${Button}>
-    ${remind.enabled ? html`<div class="sz-remind__row">
+    ${view.on ? html`<div class="sz-remind__row">
       <label class="sz-remind__main" for="sz-remind-time"><span class="sz-remind__title">${t('X-SETTINGS.remindTime')}</span></label>
       <input class="sz-remind__time" id="sz-remind-time" type="time" step="60" required value=${timeText(remind.hour, remind.minute)}
         data-value=${timeText(remind.hour, remind.minute)} data-testid="remind-time" onChange=${on.time} />
@@ -122,7 +122,18 @@ function RemindScreen() {
   const store = () => getStore();
   const on = {
     toggle: () => {
-      const next = !view.remind.enabled;
+      // 开关显示的是「现在收不收得到」（view.on）。通知被手机关掉时（denied）开关显示关：再点一下 = 记下「要开」、
+      // 重新向系统要一次权限（系统已拒绝时不会再弹窗，原生立刻回 denied）并带去手机设置——iOS 只能在那里重新打开（E3）。
+      if (view.denied && !view.on) {
+        run('remind', () => commitRemindEnabled(store(), true), () => {
+          const remind = remindOf(store());
+          requestReminderPermission(remind);
+          syncReminder(remind);
+          postNative('openAppSettings', {});
+        });
+        return;
+      }
+      const next = !view.on;
       run('remind', () => commitRemindEnabled(store(), next), () => {
         const remind = remindOf(store());
         if (next) requestReminderPermission(remind);

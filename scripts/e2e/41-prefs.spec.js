@@ -390,13 +390,38 @@ export default async function prefsSpec(page, ctx) {
   await reloadToRemind(page);
   assert.equal((await snapshot(page)).remindSub, '通知没开', 'denied state persists');
 
+  step('E3: notifications denied by the phone → the switch shows OFF (stored choice kept), no time row; tapping it re-requests + opens phone settings');
+  s = await snapshot(page);
+  assert.equal(s.remind.checked, 'false', 'E3: denied → switch shows off, consistent with 「通知没开」');
+  assert.equal(s.time, null, 'E3: no time row while the switch shows off');
+  assert.ok(s.denied && s.denied.includes('手机设置 ›'), 'E3: the explanation and 「手机设置 ›」 stay');
+  assert.equal((await state(page)).settings.remind.enabled, true, 'E3: the user\'s stored choice is kept');
+  const reqBefore = (await nativeMessages(page, 'requestReminderPermission')).length;
+  const openBefore = (await nativeMessages(page, 'openAppSettings')).length;
+  await clickSettle(page, 'remind-switch');
+  assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, reqBefore + 1, 'E3: tapping asks the system again');
+  assert.equal((await nativeMessages(page, 'openAppSettings')).length, openBefore + 1, 'E3: … and leads to the phone settings');
+  s = await snapshot(page);
+  assert.equal(s.remind.checked, 'false', 'E3: still off until the phone allows notifications');
+  assert.equal((await state(page)).settings.remind.enabled, true, 'E3: choice recorded as on');
+  await page.evaluate(async mod => {
+    const m = await import(mod);
+    const { getStore } = await import('/src/store/store.js');
+    m.applyReminderStatus(getStore(), { permission: 'granted' });
+  }, PREFS_MOD);
+  await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="remind-switch"]').getAttribute('aria-checked') === 'true');
+  s = await snapshot(page);
+  assert.equal(s.time, '09:15', 'E3: allowed in phone settings → switch back on with the time row');
+  assert.equal(s.denied, null, 'E3: explanation gone');
+
   step('turning reminders off syncs enabled:false; settings survive a reload');
+  const reqMid = (await nativeMessages(page, 'requestReminderPermission')).length;
   await clickSettle(page, 'remind-switch');
   msgs = await nativeMessages(page, 'syncReminder');
   assert.equal(msgs[msgs.length - 1].enabled, false, 'sync enabled:false');
-  assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 0, 'no permission request when turning off');
+  assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, reqMid, 'no permission request when turning off');
   const final = (await state(page)).settings;
-  assert.deepEqual(final, { appearance: 'auto', remind: { enabled: false, hour: 9, minute: 15, permission: 'denied' } }, 'final settings');
+  assert.deepEqual(final, { appearance: 'auto', remind: { enabled: false, hour: 9, minute: 15, permission: 'granted' } }, 'final settings');
   await reloadToRemind(page);
   s = await snapshot(page);
   assert.equal(s.remind.checked, 'false', 'remind off after reload');

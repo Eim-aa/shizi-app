@@ -9,29 +9,29 @@ export default Object.freeze({
   'R-M01.practiceLog': '练习记录',
   // R-M03（已定）
   'R-M03.settings': '设置',
-  'R-M03.backup': '备份与恢复',
+  'R-M03.backup': '备份',
   'R-M03.backupSub': '记录只存在这台手机上',
   'R-M03.lastBackup': '上次备份 {date}',
   'R-M03.noBackup': '还没有备份',
   // R-M04（已定）
   'R-M04.emptyTitle': '还没有记录',
-  'R-M04.emptyBody': '写一个字并判断对错，这里就会有记录。',
+  'R-M04.emptyBody': '写字并点写对或写错，这里就有记录。',
   // R-M05（边开发边改）
   'R-M05.sheetAll': '全部 ›',
   // R-M06（已定；导出放以后版本）
-  'R-M06.section1': '一 · 今年有记录的字',
+  'R-M06.section1': '一 · 写过的字',
   'R-M06.charCount': '{n} 个字',
-  'R-M06.section1Note': '写完并判断过对错的字，写对写错都算。',
-  'R-M06.monthDays': '{month}月有记录 {n} 天',
-  'R-M06.monthNote': '只看哪天有记录，不分对错。',
+  'R-M06.section1Note': '写完并选过对错的字都算。',
+  'R-M06.monthDays': '{month}月写了 {n} 天',
+  'R-M06.monthNote': '只看哪天写了，不分对错。',
   'R-M06.monthNone': '还没有记录',
-  'R-M06.rareNote': '今年有记录的字里，它最不常用。',
+  'R-M06.rareNote': '今年写过的字里，它最少见。',
   'R-M06.inkDate': '{date}的笔迹',
   'R-M06.footer': '只算今年的记录。这一页不能保存成图片。',
   'R-M06.emptyTitle': '今年还没有记录',
-  'R-M06.emptyBody': '写字并判断对错后，这里会汇总你今年的记录。',
+  'R-M06.emptyBody': '写几个字，这里就会汇总今年。',
   // R-P01（已定）
-  'R-P01.monthDays': '{month}月有记录 {n} 天',
+  'R-P01.monthDays': '{month}月写了 {n} 天',
   'R-P01.legend': '墨点表示这天有记录，不分对错。',
   // R-P02（已定）
   'R-P02.sheetTitle': '{month}月字帖',
@@ -39,9 +39,9 @@ export default Object.freeze({
   'R-P02.historyNote': '这里只能保存本月的字帖。',
   // R-P03（已定）
   'R-P03.todayChars': '{date}写的字',
-  'R-P03.todayImage': '这次的图片 · 保存图片',
+  'R-P03.todayImage': '本次图片 · 保存',
   // R-P04（已定）
-  'R-P04.empty': '写一个字并判断对错，这天就会有一个墨点。',
+  'R-P04.empty': '写字并点写对或写错，这天就有墨点。',
   // X-MINE（extra：M4-1 我的首页与练习记录里 04 没有收录的原型字样与读屏名，见 copy-source.json extra.X-MINE）
   'X-MINE.annual': '年度报告',
   'X-MINE.about': '关于拾字',
@@ -54,18 +54,18 @@ export default Object.freeze({
   'X-MINE.nextMonth': '下个月',
   'X-MINE.cellLabel': '{char} · {date}',
   // AX 档次级页（R2-A1 / A2-03，03 P233）：月历改成每天一行的列表、周条改成一句话；字帖格的日期角标不画，日期在格的读屏名称里（X-MINE.cellLabel）
-  'X-MINE.axDayRow': '{date} · 记了 {n} 个字',
+  'X-MINE.axDayRow': '{date} · 写了 {n} 个字',
   'X-MINE.axDayRowPaper': '{date} · 有记录',
   'X-MINE.weekSummary': '写了 {n} 天',
   'X-MINE.weekSummaryNone': '还没有记录',
-  'X-MINE.sheetOrder': '按第一次写下的先后排列',
-  'X-MINE.sheetEmpty': '这个月还没有可以放进图片的字',
+  'X-MINE.sheetOrder': '按第一次写的先后排',
+  'X-MINE.sheetEmpty': '这个月还没有可做图的字',
   // 只在纸上写过的一天（日历有点、没有字帖）；阶段 1 P1-E2，过渡文案，03 P172
   'X-MINE.paperDayNote': '这一天的字都写在纸上。',
   // X-ANNUAL（extra：M4-2 年度报告里 04 R-M06 没有收录的原型字样与读屏名，见 copy-source.json extra.X-ANNUAL）
-  'X-ANNUAL.section2': '二 · 有记录天数最多的月份',
-  'X-ANNUAL.section3': '三 · 较少见的字',
-  'X-ANNUAL.section4': '四 · 这一年第一个有记录的字',
+  'X-ANNUAL.section2': '二 · 写得最勤',
+  'X-ANNUAL.section3': '三 · 少见的字',
+  'X-ANNUAL.section4': '四 · 第一个字',
   'X-ANNUAL.emptyGlyph': '年',
   'X-ANNUAL.rareGlyph': '「{char}」的标准字形',
   'X-ANNUAL.firstInk': '「{char}」当时的笔迹',

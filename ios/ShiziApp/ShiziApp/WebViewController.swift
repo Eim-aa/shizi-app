@@ -979,7 +979,7 @@ extension WebViewController {
 // MARK: - 声音：判断「收进」的纸页落定（三个变体，页面轮换）与落款的木印盖章（S1，D50 ⑦）
 // 素材是打进包里的 CAF（线性 PCM 16bit，无编码、无 priming 补零，起音从第 0 个采样开始；assets/sound/，scripts/sound/gen.mjs 程序合成）。
 // AVAudioSession 用 .ambient + .mixWithOthers：遵守静音键（静音时完全无声），与后台音乐混音——不打断、不压低（不用 duckOthers）。
-// 书写与描红没有声音；设置里「按键音」关着时页面根本不发 sound 消息。页面决定播哪个文件（kind = 文件名，不含扩展名）与增益 gain。
+// 书写与描红没有声音；页面决定播哪个文件（kind = 文件名，不含扩展名）与增益 gain。
 extension WebViewController {
     private static let soundNames = ["j1_page_settle", "j1_page_settle_b", "j1_page_settle_c", "s1_wood_muted"]
 

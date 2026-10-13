@@ -1,10 +1,10 @@
-// 声音（04 R-S01「按键音」开关；03 P24 / P200 / P201；D50 ⑦ / D46 ⑮ / D30；决定见 assets/sound/README.md）。
+// 声音（03 P24 / P200 / P201；D50 ⑦ / D46 ⑮ / D30；决定见 assets/sound/README.md）。D63：不再有开关，按这里的缺省行为播放；静音键与系统音量照旧管着它。
 //
 // 只有两种声音（程序合成的素材，scripts/sound/gen.mjs 可复跑）：
 //   judge  判断「收进」（写对了 / 写错了 / 修改判断，每字一次，两种判断同一声，无奖惩感）→ j1「纸页落定」，三个变体按顺序轮换
 //   seal   落款盖章（结果页作品首次呈现落款时，每组一次）                               → s1「木印·闷实」
 // 书写与描红不出声（policy.keySoundEvents 里没有 trace-stroke；旧的 82Hz 盖章声与高频纸声已删除）。
-// 开关：settings.sound（缺省开，与设置页 DEFAULT_SOUND 同口径）。关着时什么都不发（触觉另算，照常）。
+// 没有开关（D63 删掉了设置里的「声音」；旧数据里的 settings.sound 读到也不再生效）。静音键：原生走 AVAudioSession.ambient，网页走 audioSession 'ambient'，都遵守。
 //
 // 播放：
 //   原生壳内：postNative('sound', {kind: 文件名, gain})，原生播放包里的 CAF（预载的 AVAudioPlayer，AVAudioSession 为 ambient +
@@ -23,18 +23,10 @@ export const SOUND_FILES = Object.freeze({
   judge: Object.freeze(['j1_page_settle', 'j1_page_settle_b', 'j1_page_settle_c']),
   seal: Object.freeze(['s1_wood_muted']),
 });
-/** 按键音缺省开（原型 SD.sound=true；设置页 settings.js DEFAULT_SOUND 同值）。 */
-export const DEFAULT_SOUND = true;
-
 const SOUND_DIR = '../../assets/sound/';
 
 function globalWin() {
   return typeof window !== 'undefined' ? window : null;
-}
-
-/** settings → 按键音开没开。 */
-export function soundEnabled(settings) {
-  return settings && typeof settings.sound === 'boolean' ? settings.sound : DEFAULT_SOUND;
 }
 
 /** 某事件的播放增益（dB → 线性）。policy.soundGainDb 缺项按 0dB。 */
@@ -55,10 +47,6 @@ export function soundUrl(name) {
 
 function enabledEvents(policy) {
   return Array.isArray(policy.keySoundEvents) ? policy.keySoundEvents.filter(e => Object.prototype.hasOwnProperty.call(SOUND_FILES, e)) : [];
-}
-
-function settingsOf(o) {
-  return o.settings !== undefined ? o.settings : o.state ? o.state.settings : null;
 }
 
 // ---------------------------------------------------------------- Web Audio
@@ -111,14 +99,13 @@ function loadOne(name, win) {
 }
 
 /**
- * 预载并解码网页要用的素材（原生壳内不需要：原生自己预载 CAF）。settings.sound 关着时一个请求都不发。
+ * 预载并解码网页要用的素材（原生壳内不需要：原生自己预载 CAF）。
  * 缺省预载 policy.keySoundEvents 里的全部事件（判断三个变体 + 落款），可用 events 缩小。返回 Promise<boolean>（是否全部就绪）。
- * @param {{state?:object, settings?:object, policy?:object, bridge?:object, win?:object, events?:string[]}} [o]
+ * @param {{policy?:object, bridge?:object, win?:object, events?:string[]}} [o]
  */
 export function warmSounds(o = {}) {
   const policy = o.policy || defaultPolicy;
   const win = o.win === undefined ? globalWin() : o.win;
-  if (!soundEnabled(settingsOf(o))) return Promise.resolve(false);
   const b = o.bridge || bridge;
   if (b && typeof b.isNative === 'function' && b.isNative()) return Promise.resolve(false);
   const wanted = enabledEvents(policy).filter(e => !o.events || o.events.indexOf(e) >= 0);
@@ -163,17 +150,15 @@ export function soundLog() {
 
 /**
  * 声音。event 是 policy.keySoundEvents 里的事件名（'judge' | 'seal'）；书写 / 描红没有声音。
- * 返回 'native' | 'web' | false（关着 / 不在触发点 / 同一 key 已响过 / 放不出来）。
+ * 返回 'native' | 'web' | false（不在触发点 / 同一 key 已响过 / 放不出来）。
  * @param {string} event
- * @param {{state?:object, settings?:object, policy?:object, bridge?:object, win?:object, key?:string}} [o]
- *   state / settings：调用方手上的状态（commit 通知带来的新状态 / 页面订阅的状态）；都不给时按缺省（开）。
+ * @param {{policy?:object, bridge?:object, win?:object, key?:string}} [o]
  *   key：同一个 key 只响一次（落款：一组结果页一次，页面重绘 / 回到本页不再响）。
  */
 export function keySound(event, o = {}) {
   const policy = o.policy || defaultPolicy;
   const files = Object.prototype.hasOwnProperty.call(SOUND_FILES, event) ? SOUND_FILES[event] : null;
   if (!files || enabledEvents(policy).indexOf(event) < 0) return false;
-  if (!soundEnabled(settingsOf(o))) return false;
   const id = o.key !== undefined ? `${event}:${o.key}` : null;
   if (id && sealed.has(id)) return false;
   // 判断：三个变体顺序轮换（连续多字不像同一段录音在机关枪）；落款只有一个

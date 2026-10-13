@@ -103,14 +103,14 @@ export function feedbackFor(info) {
   return Object.prototype.hasOwnProperty.call(COMMIT_FEEDBACK, info.label) ? COMMIT_FEEDBACK[info.label] : null;
 }
 
-/** 按一条 store 通知发触觉与判断声；state 是通知带来的新状态（声音读 settings.sound，关着只发触觉）。 */
+/** 按一条 store 通知发触觉与判断声。 */
 export function applyFeedback(info, state, deps = {}) {
   const fb = feedbackFor(info);
   if (!fb) return null;
   const out = { haptic: false, sound: false };
   try {
     if (fb.haptic) out.haptic = (deps.haptic || haptic)(fb.haptic);
-    if (fb.sound) out.sound = (deps.keySound || keySound)(fb.sound, { state });
+    if (fb.sound) out.sound = (deps.keySound || keySound)(fb.sound);
   } catch (error) {
     if (typeof console !== 'undefined') console.warn('[shizi] feedback failed:', error);
   }

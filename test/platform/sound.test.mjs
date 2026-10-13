@@ -1,5 +1,5 @@
 // 阶段 1 S1（03 P200 / P201；D50 ⑦ / D46 ⑮ / D30）：声音只有两种——判断「收进」的纸页落定 j1（三个变体轮换）、落款盖章 s1；
-// 书写与描红不出声。静音开关 / 设置「按键音」关着时完全无声。素材由 scripts/sound/gen.mjs 程序合成（可复跑、逐字节一致）。
+// 书写与描红不出声。静音键由系统管（原生 ambient / 网页 audioSession ambient）；D63 起没有声音开关。素材由 scripts/sound/gen.mjs 程序合成（可复跑、逐字节一致）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -65,18 +65,13 @@ test('书写与描红不出声：trace-stroke / 未知事件什么都不发', ()
   assert.equal(sound.keySound('trace-stroke', { bridge: b, policy: { keySoundEvents: ['trace-stroke'] } }), false);
 });
 
-test('设置里「按键音」关着：判断与落款都完全无声（触觉另算）', () => {
+test('D63 没有声音开关：旧数据里的 settings.sound=false 不再让声音消失；policy.keySoundEvents 不含该事件时无声', () => {
   sound.resetSound();
   const { b, sent } = nativeBridge();
-  assert.equal(sound.keySound('judge', { bridge: b, settings: { sound: false } }), false);
-  assert.equal(sound.keySound('seal', { bridge: b, settings: { sound: false }, key: 'k' }), false);
-  assert.equal(sound.keySound('judge', { bridge: b, state: { settings: { sound: false } } }), false);
-  assert.deepEqual(sent, []);
-  // 关着时不占用 key / 不推进轮换：打开后第一声仍是 j1，落款照响
-  assert.equal(sound.keySound('judge', { bridge: b, settings: { sound: true } }), 'native');
-  assert.equal(sound.keySound('seal', { bridge: b, settings: { sound: true }, key: 'k' }), 'native');
+  assert.equal(sound.keySound('judge', { bridge: b, settings: { sound: false } }), 'native');
+  assert.equal(sound.keySound('seal', { bridge: b, settings: { sound: false }, key: 'k' }), 'native');
   assert.deepEqual(sent.map(m => m.kind), [JUDGE[0], SEAL]);
-  // policy.keySoundEvents 不含该事件时也无声
+  assert.equal(sound.soundEnabled, undefined, '没有 soundEnabled 开关函数了');
   assert.equal(sound.keySound('judge', { bridge: b, policy: { keySoundEvents: ['seal'] } }), false);
 });
 
@@ -84,10 +79,10 @@ test('commit 反馈：判断类 commit 发判断声 + judge 触觉（soft 0.7，
   for (const label of ['write:judge', 'write:correct', 'result:correct']) assert.equal(COMMIT_FEEDBACK[label].sound, 'judge', label);
   assert.ok(!Object.values(COMMIT_FEEDBACK).some(fb => fb.sound && fb.sound !== 'judge'));
   const calls = [];
-  applyFeedback({ type: 'commit', label: 'write:judge' }, { settings: { sound: false } }, {
-    haptic: k => calls.push(['h', k]) && 'native', keySound: (e, o) => calls.push(['s', e, o.state.settings.sound]) && false,
+  applyFeedback({ type: 'commit', label: 'write:judge' }, {}, {
+    haptic: k => calls.push(['h', k]) && 'native', keySound: e => calls.push(['s', e]) && 'native',
   });
-  assert.deepEqual(calls, [['h', 'judge'], ['s', 'judge', false]], '关声音：触觉照发，声音函数被问到但自己返回无声');
+  assert.deepEqual(calls, [['h', 'judge'], ['s', 'judge']], '判断：触觉与声音各发一次');
 });
 
 test('响度关系：判断声比落款低约 6–8dB（差已在文件里；播放增益 0dB，不在播放端放大）', () => {
@@ -212,12 +207,8 @@ function fakeAudioWindow({ audioSession = true } = {}) {
   return { win, log };
 }
 
-test('网页：warm 只取判断三个变体（settings.sound 开）；关着一个请求都不发；播放走 GainNode，audioSession 设为 ambient', async () => {
+test('网页：warm 只取判断三个变体；播放走 GainNode，audioSession 设为 ambient（遵守静音键）', async () => {
   sound.resetSound();
-  const off = fakeAudioWindow();
-  await sound.warmSounds({ win: off.win, settings: { sound: false }, bridge: createBridge({}) });
-  assert.deepEqual(off.log.fetched, [], '关着不预载');
-
   const { win, log } = fakeAudioWindow();
   const web = createBridge({});
   assert.equal(sound.keySound('judge', { bridge: web, win, settings: null }), false, '还没预载好：不拖延、不出声');
@@ -231,8 +222,6 @@ test('网页：warm 只取判断三个变体（settings.sound 开）；关着一
   assert.equal(log.started[0].to, log.gains.at(-1), 'source → gain');
   assert.equal(log.gains.at(-1).to, log.ctx.destination, 'gain → destination');
   assert.deepEqual(sound.soundLog(), [JUDGE[0]]);
-  assert.equal(sound.keySound('judge', { bridge: web, win, settings: { sound: false } }), false);
-  assert.equal(log.started.length, 1, '关着没有新播放');
 });
 
 test('网页：原生壳内不预载（原生自己预载 CAF）；原生消息通道可用时不走 Web Audio', async () => {

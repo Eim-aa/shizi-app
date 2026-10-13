@@ -136,7 +136,7 @@ test('importing bridge.js in a page defines every global immediately (before any
   }
 });
 
-test('haptic and sound messages: {type:"haptic", kind} for the F1 kinds judge / seal / light / select (D58 ③), {type:"sound", kind:<file stem>, gain} (S1, D50 ⑦); settings.sound gates sound', async () => {
+test('haptic and sound messages: {type:"haptic", kind} for the F1 kinds judge / seal / light / select (D58 ③), {type:"sound", kind:<file stem>, gain} (S1, D50 ⑦); no sound switch (D63)', async () => {
   const { haptic, applyFeedback, feedbackFor, installCommitFeedback, resetCommitFeedback, COMMIT_FEEDBACK, HAPTIC_KINDS } = await import('../../src/platform/haptics.js');
   const { keySound, resetSound, SOUND_FILES } = await import('../../src/platform/sound.js');
   const { win, sent } = fakeWin();
@@ -157,7 +157,6 @@ test('haptic and sound messages: {type:"haptic", kind} for the F1 kinds judge / 
   sent.length = 0;
   assert.deepEqual(Object.keys(SOUND_FILES), ['judge', 'seal']);
   assert.equal(keySound('judge', { bridge: b, settings: null }), 'native', 'default on');
-  assert.equal(keySound('judge', { bridge: b, settings: { sound: false } }), false, 'settings.sound=false');
   assert.equal(keySound('trace-stroke', { bridge: b }), false, 'writing / tracing is silent (D50 ⑦)');
   assert.equal(keySound('tap', { bridge: b }), false, 'not a sound event');
   assert.equal(keySound('judge', { bridge: b, policy: { keySoundEvents: ['seal'] } }), false, 'policy.keySoundEvents gates');
@@ -173,10 +172,10 @@ test('haptic and sound messages: {type:"haptic", kind} for the F1 kinds judge / 
   assert.equal(feedbackFor({ type: 'commit', label: 'write:strokes' }), null);
   for (const fb of Object.values(COMMIT_FEEDBACK)) assert.ok(HAPTIC_KINDS.includes(fb.haptic));
   const calls = [];
-  const deps = { haptic: k => calls.push(['h', k]) && 'native', keySound: (e, o) => calls.push(['s', e, o.state.settings.sound]) && 'native' };
-  applyFeedback({ type: 'commit', label: 'write:judge' }, { settings: { sound: true } }, deps);
-  applyFeedback({ type: 'commit', label: 'write:skip-undo' }, { settings: { sound: true } }, deps);
-  assert.deepEqual(calls, [['h', 'judge'], ['s', 'judge', true], ['h', 'select']], 'undoing a skip is a select (F1)');
+  const deps = { haptic: k => calls.push(['h', k]) && 'native', keySound: e => calls.push(['s', e]) && 'native' };
+  applyFeedback({ type: 'commit', label: 'write:judge' }, {}, deps);
+  applyFeedback({ type: 'commit', label: 'write:skip-undo' }, {}, deps);
+  assert.deepEqual(calls, [['h', 'judge'], ['s', 'judge'], ['h', 'select']], 'undoing a skip is a select (F1)');
 
   // installCommitFeedback：同一个 store 只订阅一次
   const subs = [];

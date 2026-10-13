@@ -87,8 +87,8 @@ export function shouldPlayReveal({ work, key, session = null }) {
 /** 印着纸的那一帧：盖章声 s1 与 rigid 触觉 seal 同帧发（I3-04：最后一字的 j1 在判断时已经响过；s1 不再等回弹结束，不叠在 j1 上）。 */
 function sealMoment(settings, key) {
   haptic('seal');
-  const play = () => keySound('seal', { settings, key });
-  if (!play()) warmSounds({ settings, events: ['seal'] }).then(play, play); // 素材还没解码好：解码后补响，不占 key
+  const play = () => keySound('seal', { key });
+  if (!play()) warmSounds({ events: ['seal'] }).then(play, play); // 素材还没解码好：解码后补响，不占 key
 }
 
 injectStyles('result-work', `
@@ -217,7 +217,7 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
   // 在「印着纸」那一帧（缩放最小值，不等 animationend）同帧发，总时长 ≤ 750ms。
   // 点一下直接到终态（印立刻落下、s1 与触觉立刻同发）；减少动态效果只显示终态并立即同发；同一组（sealKey）只响一次，回到本页 / 重绘不再重演；
   // 会话上记着 sealedAt（落印时 commit）的组，冷启动 / 刷新恢复时直接是终态，不发声、不发触觉（I3-05）；
-  // 没有墨（衬底一行、无落款）不响；settings.sound 关着完全无声。onLanded：作品落定（印回弹到位 / 点掉；邀请块的 600ms 从这时算起，文字与底栏也从这时淡入）。
+  // 没有墨（衬底一行、无落款）不响。onLanded：作品落定（印回弹到位 / 点掉；邀请块的 600ms 从这时算起，文字与底栏也从这时淡入）。
   const hasSeal = !work.empty;
   const key = sealKey || 'work';
   const plan = revealPlan(work.empty ? 1 : work.cells.length);
@@ -274,7 +274,7 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
     else setTimeout(() => { contactRaf.current = requestAnimationFrame(fire); }, plan.contactMs);
   };
   useEffect(() => {
-    if (hasSeal) warmSounds({ settings, events: ['seal'] }); // 预解码，印着纸时马上能响
+    if (hasSeal) warmSounds({ events: ['seal'] }); // 预解码，印着纸时马上能响
     if (phase === 'done') {
       land();
       return undefined;

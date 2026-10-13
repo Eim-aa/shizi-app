@@ -2409,7 +2409,8 @@
         },
         "conclusionRestore": {
           "raw": "已换成 {日期}备份里的记录，一共 {N} 个字。",
-          "text": "已换成 {date}备份里的记录，一共 {n} 个字。"
+          "text": "已恢复 {date}的备份，共 {n} 个字。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "conclusionClear": {
           "raw": "记录已清空。现在没有记录。",
@@ -2449,15 +2450,18 @@
         },
         "allBackedUp": {
           "raw": "现在的记录都已经备份了。",
-          "text": "现在的记录都已经备份了。"
+          "text": "记录都已备份。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "changedSince": {
           "raw": "上次备份以后记录有改动，还没有备份。",
-          "text": "上次备份以后记录有改动，还没有备份。"
+          "text": "上次备份后又有新记录，还没备份。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "export": {
           "raw": "导出备份文件",
-          "text": "导出备份文件"
+          "text": "导出备份",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -2469,18 +2473,19 @@
       "slots": {
         "replaceBody": {
           "raw": "这份备份是 {日期} 的，里面有 {N} 个字的记录。现在 {M} 个字的记录会被替换。离开这一页前可以撤销。",
-          "text": "这份备份是 {date}的，里面有 {n} 个字的记录。现在 {m} 个字的记录会被替换。离开这一页前可以撤销。",
-          "note": "「{日期} 的」去掉空格：{date} 展开为「9 月 1 日」，按同格下例「9 月 1 日的」与 R-B01「{日期}备份」不留空",
+          "text": "备份有 {n} 个字，现有 {m} 个字将被替换。",
+          "note": "「{日期} 的」去掉空格：{date} 展开为「9 月 1 日」，按同格下例「9 月 1 日的」与 R-B01「{日期}备份」不留空；r7-C1 / D61 文案重写",
           "override": true
         },
         "restoreTitle": {
           "raw": "用这份备份恢复记录？",
-          "text": "用这份备份恢复记录？"
+          "text": "恢复备份",
+          "note": "r7-C1 / D61 文案重写"
         },
         "restoreBody": {
           "raw": "这份备份是 9 月 1 日的，里面有 23 个字的记录。",
-          "text": "这份备份是 {date}的，里面有 {n} 个字的记录。",
-          "note": "例 → {date}/{n}（无记录时的恢复措辞）",
+          "text": "{date}的备份，共 {n} 个字。",
+          "note": "例 → {date}/{n}（无记录时的恢复措辞）；r7-C1 / D61 文案重写",
           "override": true
         },
         "restoreBtn": {
@@ -2489,7 +2494,8 @@
         },
         "clearBody": {
           "raw": "{N} 个字的记录都会被删掉。离开这一页前可以撤销。",
-          "text": "{n} 个字的记录都会被删掉。离开这一页前可以撤销。"
+          "text": "{n} 个字的记录会删掉，离开前可撤销。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "restoreRowSub": {
           "raw": "离开这一页前可以撤销",
@@ -2505,7 +2511,8 @@
       "slots": {
         "protectFailed": {
           "raw": "没能换成备份，你现在的记录没有变。可以再试一次。",
-          "text": "没能换成备份，你现在的记录没有变。可以再试一次。"
+          "text": "没换成，现有记录没变。可以再试。",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -2537,7 +2544,8 @@
       "slots": {
         "notBackup": {
           "raw": "这个文件不是拾字的备份，没法恢复。你的记录没有变。",
-          "text": "这个文件不是拾字的备份，没法恢复。你的记录没有变。"
+          "text": "这不是拾字的备份，记录没有变。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "restoreFailed": {
           "raw": "没能恢复，你的记录还是原来的。",
@@ -2559,14 +2567,16 @@
       "slots": {
         "title": {
           "raw": "现在存不了记录",
-          "text": "现在存不了记录"
+          "text": "无法保存",
+          "note": "r7-C1 / D61 文案重写"
         },
         "body": {
           "raw": "可能是存储空间不够，或者浏览器不允许保存。<br>解决之前先不能写字，免得写了存不下。",
           "text": [
-            "可能是存储空间不够，或者浏览器不允许保存。",
-            "解决之前先不能写字，免得写了存不下。"
-          ]
+            "可能是空间不够，或浏览器不让保存。",
+            "解决前暂不能写字，免得白写。"
+          ],
+          "note": "r7-C1 / D61 文案重写"
         },
         "retry": {
           "raw": "再试一次",
@@ -2586,7 +2596,8 @@
         },
         "albumDenied": {
           "raw": "没能存进相册。请到手机设置里允许拾字添加照片。",
-          "text": "没能存进相册。请到手机设置里允许拾字添加照片。"
+          "text": "没存进相册。请在手机设置允许添加照片。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "share": {
           "raw": "分享",
@@ -4412,9 +4423,9 @@
       "slots": {
         "intro": {
           "raw": null,
-          "text": "记录只存在这台手机上。换手机、清理浏览器或删掉拾字之前，先导出一份备份文件。",
+          "text": "记录只在这台手机上，换手机前先导出备份。",
           "origin": "extra",
-          "note": "有记录时状态块下的段落；原型 ShiziScreen L166 bkCanExp 段（J §2.3.20）；替换 / 清空后（撤销底栏在时）不显示（L169 backupDone 无此段）",
+          "note": "有记录时状态块下的段落；原型 ShiziScreen L166 bkCanExp 段（J §2.3.20）；替换 / 清空后（撤销底栏在时）不显示（L169 backupDone 无此段）；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "introEmpty": {
@@ -4426,23 +4437,23 @@
         },
         "restoreRow": {
           "raw": null,
-          "text": "从备份文件恢复",
+          "text": "恢复备份",
           "origin": "extra",
-          "note": "恢复行标题；原型 L166 data-nav=restore 行",
+          "note": "恢复行标题；原型 L166 data-nav=restore 行；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "restoreRowSub": {
           "raw": null,
-          "text": "会替换现在的记录，离开这一页前可以撤销",
+          "text": "会替换现有记录，离开前可撤销",
           "origin": "extra",
-          "note": "有记录时恢复行副标题；原型 L166 bkCanExp 分支（无记录时用 R-B03.restoreRowSub「离开这一页前可以撤销」，X07）；撤销底栏在时不显示（L169）",
+          "note": "有记录时恢复行副标题；原型 L166 bkCanExp 分支（无记录时用 R-B03.restoreRowSub「离开这一页前可以撤销」，X07）；撤销底栏在时不显示（L169）；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "clearRow": {
           "raw": null,
-          "text": "清空所有记录",
+          "text": "清空记录",
           "origin": "extra",
-          "note": "清空行（红字；无记录时灰、disabled + aria-disabled）；原型 L166 data-nav=clearAll",
+          "note": "清空行（红字；无记录时灰、disabled + aria-disabled）；原型 L166 data-nav=clearAll；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "retry": {
@@ -4454,9 +4465,9 @@
         },
         "replaceTitle": {
           "raw": null,
-          "text": "用备份替换现在的记录？",
+          "text": "替换记录？",
           "origin": "extra",
-          "note": "有记录时替换确认框标题；原型 L205 rcHas（J §2.3.27）；无记录时用 R-B03.restoreTitle（Y04）",
+          "note": "有记录时替换确认框标题；原型 L205 rcHas（J §2.3.27）；无记录时用 R-B03.restoreTitle（Y04）；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "confirmCancel": {
@@ -4475,23 +4486,23 @@
         },
         "lossRange": {
           "raw": null,
-          "text": "{from}到 {to}的记录会丢失，建议先导出备份文件。",
+          "text": "{from}到 {to}的记录会丢失，建议先导出。",
           "origin": "extra",
-          "note": "替换确认正文后的丢失日期范围（03 P26 / policy.replaceConfirmShowsLostRange；边改 K04 例句「9 月 2 日到 24 日的记录会丢失，建议先导出」）：{from}/{to} = 现在的记录里晚于备份日期的第一天 / 最后一天，按 R-H02.dateFormat（「到」后留空格：{to} 以数字开头，与 R-B01「已换成 {date}」同一排法）。「导出」→「导出备份文件」（按钮名；T07「导出」改说「备份」、按钮除外）",
+          "note": "替换确认正文后的丢失日期范围（03 P26 / policy.replaceConfirmShowsLostRange；边改 K04 例句「9 月 2 日到 24 日的记录会丢失，建议先导出」）：{from}/{to} = 现在的记录里晚于备份日期的第一天 / 最后一天，按 R-H02.dateFormat（「到」后留空格：{to} 以数字开头，与 R-B01「已换成 {date}」同一排法）。「导出」→「导出备份文件」（按钮名；T07「导出」改说「备份」、按钮除外）；r7-C1 / D61 文案重写",
           "decision": "P26"
         },
         "lossDay": {
           "raw": null,
-          "text": "{date}的记录会丢失，建议先导出备份文件。",
+          "text": "{date}的记录会丢失，建议先导出。",
           "origin": "extra",
-          "note": "同 lossRange，备份日期以后只有一天有记录时",
+          "note": "同 lossRange，备份日期以后只有一天有记录时；r7-C1 / D61 文案重写",
           "decision": "P26"
         },
         "clearTitle": {
           "raw": null,
-          "text": "清空所有记录？",
+          "text": "清空记录？",
           "origin": "extra",
-          "note": "清空确认底部弹层标题；原型 L208（J §2.3.28）",
+          "note": "清空确认底部弹层标题；原型 L208（J §2.3.28）；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "clearOk": {

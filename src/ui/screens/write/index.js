@@ -33,9 +33,7 @@
 // （nav.replace('result')，决定-D20 无中间页）；跳过最后一字的 3 秒撤销机会交给结果页（handoffSkipUndo）。
 // M2 验收 H1：槽里没有会话（且不是刚交给结果页）→ 回本 tab 根，不留空页（刷新从 history 恢复 / reset / 跨天作废）。
 //
-// P1-E8（paper.js，D46 ⑬）：这一字在纸上写时，书写格换成同样大小的纸面格（提示照常画在里面）、格下说明换成「纸上」说明、
-// 「写好了」不要求笔画、判断页只有参考字形。写字方式只在设置里选（D56，P275）：写字页底栏没有「在纸上写」，也没有逐字切换到纸上写的入口；
-// 纸面格里的「改回在屏幕上写」（只改这一个字）是纸上写页面本身的操作，保留。读屏开启后第一次进写字页，格下一条建议指向设置（P276）。
+// D63：写字页只有屏幕上写（原「在纸上写」写字方式与它的设置、纸面格、读屏建议已删；历史上的纸上记录仍照常显示，见 result/work.js、detail/records.js）。
 //
 // data-testid：write-screen、write-progress、write-steps、write-line-slot、write-prompt、write-grid（及
 // write-grid-ink / write-grid-live / write-glyph-layer）、write-tools、write-undo、write-clear、write-note、
@@ -65,10 +63,7 @@ import { useAxLevel, useCompact, useFootHairline, useWriteLayout } from './compa
 import { storedStrokes, usePersist } from './persist.js';
 import { useEndGroup } from './end.js';
 import { commitFinish, handoffSkipUndo, openResult } from '../result/index.js';
-import { PaperNote, PaperStage, usePaperMode, usePaperSuggest } from './paper.js';
 import { useFirstTip } from './first-tip.js';
-import { assistiveTechActive } from '../../../platform/accessibility.js';
-import { openWriteModeSettings } from '../mine/settings.js';
 import { LinkButton, Slot, WriteFoot } from './foot.js';
 import { usePhaseFade } from './phase-fade.js';
 import { gridLabel, useWriteAnnounce } from './sr-live.js';
@@ -119,7 +114,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s4} calc(-1 * var(--bleed)) 0}
 .sz-write__below{position:relative;box-sizing:border-box;max-width:100%;display:flex;flex-direction:column;align-items:stretch;margin:0 auto} /* 格下 = 撤销 / 清空行 + 说明位（A7，D57） */
 .sz-write__note{flex:1;min-width:0;min-height:40px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-.sz-write__firsttip,.sz-hintnote,.sz-paper__note{padding:3px 0} /* 单行时仍是 40 高的一行（文字居中，离格子 10）；两行说明（提示说明、纸上脚注）46 高，文字离格子 ≥ 3、不被按钮行挡住（最矮的屏上书写格组只剩 4 的余量） */
+.sz-write__firsttip,.sz-hintnote{padding:3px 0} /* 单行时仍是 40 高的一行（文字居中，离格子 10）；两行说明（提示说明）46 高，文字离格子 ≥ 3、不被按钮行挡住（最矮的屏上书写格组只剩 4 的余量） */
 .sz-write__firsttip{display:block}
 .sz-write__headtools{display:flex;align-items:center}
 .sz-write__headact{display:flex;align-items:center}
@@ -128,7 +123,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__headact .sz-btn--text{font-size:${T.fs17};line-height:${T.lh17};color:${T.ink2}}
 /* 格下工具行（A7，D57，P280）：离格 4、撤销贴格左沿、清空贴格右沿，图标加文字、无底、常规字重；看答案阶段 / 纸上那一字没有墨可撤：整行收起（书写格 g 与组顶按名义版式算，不跟着挪） */
 .sz-write__tools{flex:none;box-sizing:border-box;max-width:100%;height:${TOOL_ROW_H - 4}px;margin:4px auto 0;display:flex;align-items:center;justify-content:space-between}
-.sz-write__tools[data-shown="false"],.sz-write__tools[data-paper="true"]{display:none} /* 没有墨可撤的阶段不占位（说明贴着格子；书写格的大小与顶边不受影响：g 与组顶按名义版式固定，layout.js） */
+.sz-write__tools[data-shown="false"]{display:none} /* 没有墨可撤的阶段不占位（说明贴着格子；书写格的大小与顶边不受影响：g 与组顶按名义版式固定，layout.js） */
 .sz-write__tool{position:relative;min-height:${T.hit};padding:0 ${T.s1};margin-inline:calc(-1 * ${T.s1});display:inline-flex;align-items:center;gap:6px;
   font-family:${T.hei};font-size:${T.fs17};line-height:${T.lh17};font-weight:400;color:${T.ink2};white-space:nowrap}
 .sz-write__tool svg{flex:none;width:20px;height:20px}
@@ -140,10 +135,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__dot[data-on="true"]{border:0;background:${T.ink1}}
 :root[data-ax] ${W} .sz-write__below{width:100%;min-height:${AX_BELOW_H}px;margin:0}
 :root[data-ax] ${W} .sz-write__below *,:root[data-ax] ${W} .sz-write__progress{font-size:calc(17px * 1);line-height:24px}
-:root[data-ax] ${W} .sz-paper__title,:root[data-ax] ${W} .sz-paper__text,:root[data-ax] ${W} .sz-paper__back{font-size:calc(22px * 1);line-height:30px}
 ${AX_HI(`${W} .sz-write__below *`)},${AX_HI(`${W} .sz-write__progress`)}{font-size:calc(22px * 1);line-height:30px}
-${AX_HI(`${W} .sz-paper__title`)},${AX_HI(`${W} .sz-paper__text`)},${AX_HI(`${W} .sz-paper__back`)}{font-size:calc(28px * 1);line-height:36px}
-:root[data-ax] ${W} .sz-write[data-gfit] .sz-paper__title,:root[data-ax] ${W} .sz-write[data-gfit] .sz-paper__text,:root[data-ax] ${W} .sz-write[data-gfit] .sz-paper__back{font-size:calc(22px * 1);line-height:30px} /* P299：格子让步到 220 以下时（SE AX3–AX5），纸上写的格内文字回到 22 一档，不出格 */
 :root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
 ${AX_HI(`${W} .sz-write__note`)}{min-height:${AX_NOTE_H_HI}px} /* 两行 22pt 辅助字 2 × 30 + 上内边距 8 */
 ${AX_HI(`${W} .sz-write__below`)}{min-height:${AX_BELOW_H_HI}px}
@@ -250,7 +242,7 @@ function WriteScreen({ params, entry }) {
   const { state, epoch } = useStoreState();
   const isTop = useIsTop(entry);
   useEffect(() => { installCommitFeedback(getStore); }, []); // M5-5：判断 / 提示 / 看答案 / 撤销等 commit 成功后发触觉与判断声（platform/haptics.js）
-  useEffect(() => { warmSounds({ state }); }, []); // S1：网页预载判断声三个变体与落款声，判断时直接播（settings.sound 关着不请求）
+  useEffect(() => { warmSounds(); }, []); // S1：网页预载判断声三个变体与落款声，判断时直接播
   const epochRef = useRef(epoch);
   epochRef.current = epoch;
   return html`<${WriteBody} key=${`e${epoch}`} slot=${slot} state=${state} epoch=${epoch} isTop=${isTop} entry=${entry}
@@ -293,16 +285,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const view = ink.key === localKey ? ink : hydrate(keyRef.current);
   const update = fn => setInk(prev => fn(prev.key === keyRef.current.localKey ? prev : hydrate(keyRef.current)));
 
-  // P1-E8（D46 ⑬）：这一字在纸上写还是屏幕上写（本字切换 current.paper 优先，否则设置 settings.writeMode；只管 recall / compare）。
-  const paperMode = usePaperMode({ slot, session, cardKey, settings: state ? state.settings : null, storedPhase, getStore });
-  // M1-5：有效阶段 = 存下的阶段 + 进 / 出判断页的本地覆盖（写入不阻断，P52）；compare 且没有本人笔画按 recall（01 §3.3），纸上那一字除外。
-  const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length, paper: paperMode.paper });
+  // M1-5：有效阶段 = 存下的阶段 + 进 / 出判断页的本地覆盖（写入不阻断，P52）；compare 且没有本人笔画按 recall（01 §3.3）。
+  const cmpPhase = useComparePhase({ slot, session, cardKey, storedPhase, strokeCount: view.strokes.length });
   const phase = cmpPhase.phase;
-  const paper = paperMode.paper && (phase === 'recall' || phase === 'compare');
-  // P1-E8（P168 → P276，D56）：读屏开启后第一次进写字页，格下一条指向设置的非阻断建议（「去设置」直达写字方式；只出现一次）。写字页自己不切换写字方式。
-  const suggest = usePaperSuggest({
-    settings: state ? state.settings : null, phase, paper, cardKey, strokeCount: view.strokes.length, assistive: assistiveTechActive, onSettings: openWriteModeSettings, getStore,
-  });
   // M1-6 会话现场：本地笔画一变就写回 sessions（P52 不阻断 + 一次性提示）、visibilitychange 重写、打开时恢复幂等。
   // M2-2：只有顶层写字页写回现场（抬笔 / visibilitychange / pagehide / 离开）；被压在下面时不写（cardKey 传 null = 不写）。
   const persist = usePersist({ slot, session, state, cardKey: isTop ? cardKey : null, inkKey, strokes: view.strokes, phase, isStale });
@@ -320,13 +305,13 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // M1-3 提示：当前字的笔顺数据（M1-4 看答案 / 描一遍共用 strokeData）与提示控制器（hint-layer.js）。
   const strokeData = useStrokeData(charOfCardKey(cardKey));
   const hint = useHint({
-    slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: paper ? 0 : view.strokes.length, ownStrokes: view.strokes, strokes: strokeData, getStore,
+    slot, session, cardKey, char: charOfCardKey(cardKey), phase, written: view.strokes.length, ownStrokes: view.strokes, strokes: strokeData, getStore,
     onHinted: endSkipUndo,
   });
   // Q2-1（03 P181）：首练第 1 字格下一次性提示「凭记忆写；想不起来，点下面的「提示」。」（settings.firstTipSeen；首次落笔 / 用提示后收起）。
   const firstTip = useFirstTip({
-    settings: state ? state.settings : null, session, phase, paper, strokeCount: view.strokes.length, hinted: hint.used > 0,
-    blocked: !!suggest.node, getStore,
+    settings: state ? state.settings : null, session, phase, strokeCount: view.strokes.length, hinted: hint.used > 0,
+    getStore,
   });
   // 版式（compact.js useWriteLayout → layout.js，D49 实现交接 §13.2）：题面 + 书写格 + 格下工具行作为一组在页头与按钮行之间居中（空余 40% 在上）；书写格边长按
   // 可用高度算（258–400，D36 / P118，与字号、阶段、提示无关）；判断页上下两格（AX 档可能并排）与书写格同一顶边、同一中线。内部坐标恒为 345 单位，这里只是显示尺寸。
@@ -351,7 +336,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   // M1-5 判断页、结果行、跳过。判断页两格边长 layout.pair（D46 ⑪ / D49：上下排，AX 档取上下排与并排里格子更大的一种）。
   const compare = useCompareFlow({
     slot, session, cardKey, char: charOfCardKey(cardKey), phase, strokes: view.strokes, hints: hint.used, strokeData,
-    onLeave: cmpPhase.leave, size: layout.pair.s || gridSize, layout: layout.pair.layout, paper, paperSize: gridSize,
+    onLeave: cmpPhase.leave, size: layout.pair.s || gridSize, layout: layout.pair.layout,
   });
   const row = useResultRow({ slot, session, state, phase, strokeCount: view.strokes.length });
   const skip = useSkip({ slot, session, cardKey, phase, hints: hint.used, strokes: view.strokes });
@@ -369,7 +354,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const announce = useWriteAnnounce({
     key: cardKey ? `${cardKey}|${phase}` : null,
     strokeCount: view.strokes.length,
-    drawable: !paper && (phase === 'recall' || phase === 'trace' || phase === 'retrace'),
+    drawable: (phase === 'recall' || phase === 'trace' || phase === 'retrace'),
     hintView: hint.view,
     trace: { active: phase === 'trace', status: strokeData ? strokeData.status : 'loading', total: strokeData && strokeData.data && strokeData.data.medians ? strokeData.data.medians.length : 0 },
   });
@@ -430,8 +415,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   });
   const onClear = () => update(prev => (prev.strokes.length ? { ...prev, strokes: EMPTY, cleared: prev.strokes } : prev));
   const onDone = () => {
-    // 进判断页（compare）；空格子不进（01 §6.6：按钮 disabled 之外再挡一次；判断 commit 前还会再断言有本人笔画）。纸上那一字不要求笔画（P1-E8）。
-    if (!view.strokes.length && !paper) return;
+    // 进判断页（compare）；空格子不进（01 §6.6：按钮 disabled 之外再挡一次；判断 commit 前还会再断言有本人笔画）。
+    if (!view.strokes.length) return;
     haptic('light'); // F1：「写好了」书写格开始收缩（不写记录的操作随用户动作发，P1-35）
     cmpPhase.enter(view.strokes);
   };
@@ -461,9 +446,9 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
     total: session.queue.length,
   })}</span>`;
 
-  // 撤销 / 清空（R-W18，A7 / D57 / P280）：格下一行，撤销贴格左沿、清空贴格右沿，图标加文字；无墨时 ink4 且不可点（P226 / I2-06）；纸上那一字与看答案 / 判断阶段 visibility:hidden 占位。
-  const toolRow = html`<div class="sz-write__tools" data-testid="write-tools" data-shown=${drawable && !paper ? 'true' : 'false'}
-          data-paper=${paper ? 'true' : null} style=${{ width: `${gridSize}px` }}>
+  // 撤销 / 清空（R-W18，A7 / D57 / P280）：格下一行，撤销贴格左沿、清空贴格右沿，图标加文字；无墨时 ink4 且不可点（P226 / I2-06）；看答案 / 判断阶段 visibility:hidden 占位。
+  const toolRow = html`<div class="sz-write__tools" data-testid="write-tools" data-shown=${drawable ? 'true' : 'false'}
+          style=${{ width: `${gridSize}px` }}>
           <${Button} variant="plain" class="sz-write__tool" data-testid="write-undo" aria-label=${t('R-W18.btnUndo')} disabled=${!canUndo} rapid
             onClick=${onUndo}>${Icons.undo()}<span>${t('R-W18.btnUndo')}</span></${Button}>
           <${Button} variant="plain" class="sz-write__tool" data-testid="write-clear" aria-label=${t('R-W18.btnClear')} disabled=${!hasStrokes} rapid
@@ -471,16 +456,16 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
         </div>`;
 
   const noteBody = answer.active ? answer.note
-    : skip.failed ? skip.note : paper ? html`<${PaperNote} />` : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
-  // 格下说明位的内容（结果行 / 读屏的纸上写建议 / 说明）。
-  const noteNodes = html`<span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${suggest.node}${noteBody}`;
-  const hasNote = !!(row.node || suggest.node || noteBody);
+    : skip.failed ? skip.note : hint.note ? html`<${HintNote} note=${hint.note} />` : firstTip.node;
+  // 格下说明位的内容（结果行 / 说明）。
+  const noteNodes = html`<span class="sz-write__lineslot" data-testid="write-line-slot">${row.node}</span>${noteBody}`;
+  const hasNote = !!(row.node || noteBody);
   // 底栏（A7，D57，P280）：求助行（主按钮正上方 20）+ 主按钮「写好了」——左 提示 / 看答案，一次点击直达，没有菜单；跳过、结束这组在页头右上（write/index.js 下面的 trailing）。
   // 保存失败（跳过写失败）时主按钮是「再试一次」，「先不保存」是求助行里的按钮。
   const footer = skip.failed
     ? html`<${WriteFoot} primary=${{ testid: 'write-skip-fail-retry', label: t('R-W16.retry'), onClick: skip.run }} testid="write-foot" stage="recall" failed=${true} compact=${footCompact}
         left=${html`<${Slot} testid="write-fail-slot"><${LinkButton} testid="write-skip-fail-cancel" label=${t('R-W16.cancel')} onClick=${skip.cancelFail} /></${Slot}>`} />`
-    : html`<${WriteFoot} primary=${{ testid: 'write-done', label: t('R-W29.btnDone'), disabled: !hasStrokes && !paper, onClick: onDone }} testid="write-foot" stage=${phase} compact=${footCompact}
+    : html`<${WriteFoot} primary=${{ testid: 'write-done', label: t('R-W29.btnDone'), disabled: !hasStrokes, onClick: onDone }} testid="write-foot" stage=${phase} compact=${footCompact}
         left=${html`<${Slot} testid="write-hint-slot" cls="sz-write__hint">${hint.button}</${Slot}>
           <${Slot} testid="write-answer-slot">${answer.link}</${Slot}>`} />`;
 
@@ -501,8 +486,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
       <${StepDots} phase=${phase} />
       <${Prompt} cardKey=${cardKey} queue=${session.queue} phase=${phase} />
       <div class="sz-write__gridwrap">
-        ${answer.stage || compare.stage || (paper ? html`<${PaperStage} size=${gridSize} glyphLayer=${hint.layer}
-          hinted=${hint.used > 0} onBack=${() => paperMode.toggle(false)} />` : null) || html`<${InkGrid}
+        ${answer.stage || compare.stage || html`<${InkGrid}
           strokes=${view.strokes}
           onStrokeEnd=${onStrokeEnd}
           drawable=${drawable}

@@ -27,15 +27,15 @@ export function commitFirstTipSeen(store) {
 }
 
 /**
- * @param {{settings:object|null, session:object|null, phase:string, paper:boolean, strokeCount:number, hinted:boolean, blocked:boolean, getStore:()=>object}} o
+ * @param {{settings:object|null, session:object|null, phase:string, strokeCount:number, hinted:boolean, blocked:boolean, getStore:()=>object}} o
  *   blocked：格下说明位已被别的非阻断建议占着（读屏的「改为在纸上写」）。
  * @returns {{node:*}}
  */
-export function useFirstTip({ settings, session, phase, paper, strokeCount, hinted, blocked, getStore }) {
+export function useFirstTip({ settings, session, phase, strokeCount, hinted, blocked = false, getStore }) {
   const [due] = useState(() => firstTipDue({ settings, session, phase }));
   const [gone, setGone] = useState(false);
   const recorded = useRef(false);
-  const visible = due && !gone && !blocked && !paper && phase === 'recall' && strokeCount === 0 && !hinted;
+  const visible = due && !gone && !blocked && phase === 'recall' && strokeCount === 0 && !hinted;
   useEffect(() => {
     if (!visible || recorded.current) return;
     recorded.current = true;

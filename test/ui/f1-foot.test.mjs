@@ -44,13 +44,14 @@ test('写字页回忆阶段（A7）：求助行 提示 / 看答案，页头右�
   assert.ok(!src.replace(/\/\/[^\n]*/g, '').includes('policy.mainButtonLine'), 'the write page no longer uses the single-row main-button line');
 });
 
-test('D56（P275）：写字页底栏与格下没有「在纸上写」入口——没有 write-paper-slot / write-to-paper / ToPaperButton / paperEntry / 文案 X-PAPER.toPaper', () => {
+test('D63：「在纸上写」整个功能已删——写字页没有纸面格 / 切换 / 读屏建议，没有 write/paper.js、core/paper.js，文案没有 X-PAPER', () => {
   const code = file => read(file).replace(/\/\/[^\n]*/g, '');
-  for (const file of ['src/ui/screens/write/index.js', 'src/ui/screens/write/paper.js', 'src/ui/screens/write/foot.js']) {
-    assert.doesNotMatch(code(file), /write-paper-slot|write-to-paper|ToPaperButton|paperEntry|toggle\(true\)/, `${file}: no way to switch one character to paper from the write page`);
+  for (const file of ['src/ui/screens/write/index.js', 'src/ui/screens/write/foot.js', 'src/ui/screens/write/compare.js']) {
+    assert.doesNotMatch(code(file), /write-paper|write-to-paper|ToPaperButton|paperEntry|toggle\(true\)|PaperStage|PaperCompareStage|usePaperMode|usePaperSuggest/, `${file}: no paper mode on the write page`);
   }
-  assert.doesNotMatch(read('src/config/copy/write.js'), /X-PAPER\.toPaper/);
-  assert.match(code('src/ui/screens/write/paper.js'), /data-testid="write-paper-back"/, 'the paper page keeps its own 改回在屏幕上写');
+  assert.doesNotMatch(read('src/config/copy/write.js'), /X-PAPER/);
+  assert.equal(existsSync(new URL('../../src/ui/screens/write/paper.js', import.meta.url)), false);
+  assert.equal(existsSync(new URL('../../src/core/paper.js', import.meta.url)), false);
 });
 
 test('D56：03 里 P226 / P260 / P261 的取值写「已决定 D56：在纸上写移到设置」，新增 P275–P278，copy-source 同步', () => {

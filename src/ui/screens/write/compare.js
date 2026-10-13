@@ -20,8 +20,7 @@
 //      失败留在判断页：两键上方出现「没保存上，你写的字还在。」、两键换成 [先不保存 / 再试一次]（R-W16 三段式）；
 //      重试成功才推进；commit 是原子事务，失败不留半条记录，重试不重复计数。
 //   同一会话同一字已有 judged 记录（中断恢复路径）时不再新增记录、不再评级，只补推进（D07 不重复计数）。
-//   4. 纸上写的这一字（阶段 1 P1-E8，D46 ⑬；write/paper.js）：「写好了」不要求笔画，进判断页时写 current.paper=true；对照区只有参考字形、
-//      放到书写格大小（PaperCompareStage）；判断记 source:'paper'、不写墨迹，判断 / FSRS / 推进 / 结果行照常。
+//   （D63：「在纸上写」写字方式已删，不再有不带笔画的判断页；历史上 source:'paper' 的记录由结果页 / 字详情照常显示。）
 //
 // 规则：只经 store.commit 写存储；记录用 core/records.makeRecord，会话用 core/sessions，调度用 core/fsrs。
 //
@@ -89,7 +88,6 @@ injectStyles('write-compare', `
 .sz-compare__empty{aspect-ratio:1/1;box-sizing:border-box;border:${T.frameW} dashed ${T.frame};border-radius:${T.rWork};display:grid;
   place-items:center;font-size:${T.fs13};color:${T.ink3};text-align:center;padding:8px}
 .sz-compare__label{text-align:center;font-size:${T.fs13};color:${T.ink3}}
-.sz-compare__paperaside{margin:0;min-height:40px;display:flex;align-items:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-align:left}
 .sz-judge__note{margin:0 0 6px;width:100%;text-align:center;font-size:${T.fs15};line-height:${T.lh15};
   color:${T.ink2}}
 .sz-judge__btns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
@@ -151,15 +149,13 @@ function inkEnabled(opts) {
  * @param {(prefix:string) => string} o.nextId
  * @param {boolean} [o.perRecordInk]  缺省读 policy.features.perRecordInk
  * @param {object} [o.policy]
- * @param {boolean} [o.paper]  在纸上写的这一字（阶段 1 P1-E8，D46 ⑬）：不要求本人笔画，记录 source:'paper'、不写墨迹，其余照常
  * @returns {{record, reused:boolean, inkWritten:boolean, inkRecycled:Array<{id, month, recordId}>}}
  */
 export function judgeInDraft(draft, o) {
   const { slot, cardKey, judgment, strokes, at, nextId } = o;
-  const paper = o.paper === true;
   const policy = o.policy || defaultPolicy;
   if (!JUDGMENTS.includes(judgment)) throw new RangeError('judge: judgment must be correct or wrong');
-  if (!paper && !hasInk(strokes)) throw new RangeError('judge: no strokes of the learner');
+  if (!hasInk(strokes)) throw new RangeError('judge: no strokes of the learner');
   const s = sessionOf(draft, slot);
   if (!s || currentCardKey(s) !== cardKey) throw new Error('judge: not the current card');
   const existing = findJudged(draft, s.id, cardKey);
@@ -177,12 +173,10 @@ export function judgeInDraft(draft, o) {
     judgment,
     at,
     help: { hints: clampHints(Math.max(stored, Number(o.hints) || 0)), answerSeen: false, traced: false },
-    source: paper ? 'paper' : undefined,
   });
   appendRecordToDraft(draft, record);
   let inkWritten = false;
-  // 纸上记录 ink = null：不写墨迹（判断、FSRS、会话推进照常）；D27 留存不让它占「最近一次」（store/budget.js indexRecords）。
-  if (!paper && inkEnabled(o)) {
+  if (inkEnabled(o)) {
     const built = strokes.filter(x => Array.isArray(x) && x.length).map(raw => buildStroke(raw, { final: true }));
     setInk(draft, record, encodeInk(built, { policy }));
     inkWritten = true;
@@ -203,22 +197,21 @@ const EMPTY = Object.freeze({ ok: false, error: Object.freeze({ kind: 'empty-str
  * 判断 commit。空笔画直接拒绝（{ok:false, error:{kind:'empty-strokes'}}，不调用 commit）；
  * 当前字已不是 cardKey 时 {ok:false, error:{kind:'stale'}}；否则返回 store.commit 的结果，成功时另带 record。
  */
-export function commitJudgment(store, { slot, cardKey, judgment, strokes, hints = 0, perRecordInk, policy, paper = false } = {}) {
-  if (!paper && !hasInk(strokes)) return EMPTY;
+export function commitJudgment(store, { slot, cardKey, judgment, strokes, hints = 0, perRecordInk, policy } = {}) {
+  if (!hasInk(strokes)) return EMPTY;
   const s = sessionOf(store.getState(), slot);
   if (!s || currentCardKey(s) !== cardKey) return STALE;
   let out = null;
   const result = store.commit('write:judge', (draft, ctx) => {
-    out = judgeInDraft(draft, { slot, cardKey, judgment, strokes, hints, at: ctx.now, nextId: ctx.nextId, perRecordInk, policy, paper });
+    out = judgeInDraft(draft, { slot, cardKey, judgment, strokes, hints, at: ctx.now, nextId: ctx.nextId, perRecordInk, policy });
   });
   return result && result.ok && out ? { ...result, record: out.record, reused: out.reused } : result;
 }
 
 /**
  * 进 / 出判断页的会话现场写入（phase；进判断页时连同原始笔画）。按 P52 不阻断：返回 commit 结果，调用方可忽略失败。
- * paper（P1-E8）：纸上写的这一字进判断页——不带笔画，把 current.paper=true 一并写下（刷新后仍是纸上的判断页）。
  */
-export function commitComparePhase(store, { slot, cardKey, phase, strokes, paper = false }) {
+export function commitComparePhase(store, { slot, cardKey, phase, strokes }) {
   if (phase !== 'compare' && phase !== 'recall') throw new RangeError('commitComparePhase: compare or recall only');
   const s = sessionOf(store.getState(), slot);
   if (!s || currentCardKey(s) !== cardKey) return STALE;
@@ -226,8 +219,7 @@ export function commitComparePhase(store, { slot, cardKey, phase, strokes, paper
     const cur = sessionOf(draft, slot);
     if (!cur || currentCardKey(cur) !== cardKey) throw new Error('compare phase: not the current card');
     const patch = { phase };
-    if (phase === 'compare' && paper) patch.paper = true;
-    else if (phase === 'compare' && Array.isArray(strokes)) patch.strokes = encodeRawStrokes(strokes);
+    if (phase === 'compare' && Array.isArray(strokes)) patch.strokes = encodeRawStrokes(strokes);
     setSession(draft, slot, withCurrent(cur, patch, ctx.now));
   });
 }
@@ -425,19 +417,6 @@ export function CompareStage({ char, py = '', strokes, strokeData, size = 234, l
 }
 
 /**
- * 纸上写的这一字的对照区（阶段 1 P1-E8，D46 ⑬；实现交接 §10.2）：没有本人书写，只有参考字形，放到书写格大小（size = 书写格边长），
- * 格下说明位「和你纸上的字对照」（13 墨三）；读屏先读「你的书写：写在纸上」（§9.5），再读参考字形。
- */
-export function PaperCompareStage({ char, py = '', strokeData, size = 345 }) {
-  return html`<div class="sz-compare sz-compare--paper" data-testid="write-compare" data-paper="true" data-size=${size}
-    style=${{ width: `${size}px` }}>
-    <span class="sr-only" data-testid="write-compare-paper">${t('X-JUDGE.paperMineLabel')}</span>
-    <${RefMini} char=${char} strokeData=${strokeData} testid="write-compare-ref" label=${refCardLabel({ char, py, strokeData })} side=${size} />
-    <p class="sz-compare__paperaside" data-testid="write-compare-aside-ref" aria-hidden="true">${t('X-JUDGE.paperRefAside')}</p>
-  </div>`;
-}
-
-/**
  * 判断两键：同一组件同一组类名（同样式、同尺寸、同字重），不带 aria-pressed / autofocus / 任何判定修饰（决定-D03）。
  * 纯视图（无 hook），单测直接调用。
  */
@@ -503,24 +482,24 @@ export function forgetRecentInk() {
 
 /**
  * 判断页的阶段：store 里的 phase 加本地覆盖（进 / 出判断页的写入按 P52 不阻断，写失败时本页照样切换）。
- * compare 且没有本人笔画 → 按 recall 处理（01 §3.3；也挡住注入的空笔画判断页）；纸上写的这一字（paper，P1-E8）不要求笔画。
+ * compare 且没有本人笔画 → 按 recall 处理（01 §3.3；也挡住注入的空笔画判断页）。
  * @returns {{phase, enter(strokes), leave()}}
  */
-export function useComparePhase({ slot, session, cardKey, storedPhase, strokeCount, paper = false }) {
+export function useComparePhase({ slot, session, cardKey, storedPhase, strokeCount }) {
   const [local, setLocal] = useState(null); // {key, phase}
   const key = session && cardKey ? `${session.id}|${session.cursor}|${cardKey}` : null;
   let phase = storedPhase;
   if (local && local.key === key && (storedPhase === 'recall' || storedPhase === 'compare')) phase = local.phase;
-  if (phase === 'compare' && !(strokeCount > 0) && !paper) phase = 'recall';
+  if (phase === 'compare' && !(strokeCount > 0)) phase = 'recall';
   const persist = (p, strokes) => {
     const store = storeOrNull();
     if (!store || !cardKey) return;
-    commitComparePhase(store, { slot, cardKey, phase: p, strokes, paper }); // P52：失败不阻断
+    commitComparePhase(store, { slot, cardKey, phase: p, strokes }); // P52：失败不阻断
   };
   return {
     phase,
     enter(strokes) {
-      if (!key || (!paper && !hasInk(strokes))) return;
+      if (!key || !hasInk(strokes)) return;
       setLocal({ key, phase: 'compare' });
       persist('compare', strokes);
     },
@@ -546,12 +525,10 @@ export function useComparePhase({ slot, session, cardKey, storedPhase, strokeCou
  * @param {() => void} o.onLeave  「接着写」
  * @param {number} [o.size=234]  每格边长（layout.js judgePairSize / judgeAxLayout，经 useWriteLayout 的 pair.s）
  * @param {'stack'|'side'} [o.layout='stack']  上下排 / 并排（AX 档，pair.layout）
- * @param {boolean} [o.paper=false]  在纸上写的这一字（P1-E8）：只有参考字形、放到书写格大小（paperSize），判断记 source:'paper'
- * @param {number} [o.paperSize]  纸上判断页参考字形的边长（= 书写格边长）
  * @returns {{active, stage, footer, lead, back}}  stage = 上下两格（替代书写格）；footer = 两键 + 留空的文字行（进页底栏，替代写字页底栏）；
  *   back = 左上「‹ 接着写」的动作（写字页交给 Page 的 onLead，左缘右滑执行同一个函数，N3-4）
  */
-export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 234, layout = 'stack', paper = false, paperSize }) {
+export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, hints = 0, strokeData, onLeave, size = 234, layout = 'stack' }) {
   const active = !!cardKey && phase === 'compare';
   const [fail, setFail] = useState(null); // {key, judgment}
   const key = session && cardKey ? `${session.id}|${session.cursor}|${cardKey}` : null;
@@ -590,11 +567,11 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
   const judge = judgment => {
     const store = storeOrNull();
     const result = store
-      ? commitJudgment(store, { slot, cardKey, judgment, strokes, hints, paper })
+      ? commitJudgment(store, { slot, cardKey, judgment, strokes, hints })
       : { ok: false, error: { kind: 'unavailable' } };
     if (result.ok) {
       setFail(null);
-      if (result.record && !paper) rememberInk(result.record.id, strokes);
+      if (result.record) rememberInk(result.record.id, strokes);
       return;
     }
     if (result.error && (result.error.kind === 'stale' || result.error.kind === 'empty-strokes')) {
@@ -609,9 +586,7 @@ export function useCompareFlow({ slot, session, cardKey, char, phase, strokes, h
 
   // D46 ⑪、D49：对照区只有上下两格（AX 档可能并排），占书写格的位置；两键进页底栏（与写字页「写好了」同一行位置）。
   const stage = html`<div class="sz-cmpstage">
-    ${paper
-    ? html`<${PaperCompareStage} char=${char} py=${pyOf(cardKey)} strokeData=${strokeData} size=${paperSize || size} />`
-    : html`<${CompareStage} char=${char} py=${pyOf(cardKey)} strokes=${strokes} strokeData=${strokeData} size=${size} layout=${layout} />`}
+    <${CompareStage} char=${char} py=${pyOf(cardKey)} strokes=${strokes} strokeData=${strokeData} size=${size} layout=${layout} />
   </div>`;
   const footer = html`<${JudgeFooter} failed=${!!failNow} onJudge=${judge} ready=${ready} guard=${!reducedNow}
       onRetry=${() => failNow && judge(failNow.judgment)} onCancelFail=${() => { setFail(null); markStateChange(); }} />`;

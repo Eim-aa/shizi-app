@@ -282,7 +282,7 @@ function expiryRuleOf(kind, policy) {
 /**
  * 恢复幂等（§3.3，决定-D07 不重复计数）：
  * - records 里已有 sessionId===会话 && cardKey===当前字 的 judged 记录（items 里还没有）→ 补写 item、推进 cursor；
- * - phase==='compare' 且笔画为空 → 回退 recall（纸上写的这一字 current.paper===true 除外，阶段 1 P1-E8）。
+ * - phase==='compare' 且笔画为空 → 回退 recall（D63：「在纸上写」已删，旧会话里存着的 current.paper===true 也按这条回到 recall、去掉 paper 标记）。
  * @returns {{session, recovered: boolean}}
  */
 export function recoverSession(session, records) {
@@ -298,9 +298,13 @@ export function recoverSession(session, records) {
       recovered = true;
     }
   }
-  // 纸上写的这一字（current.paper，P1-E8）进判断页本来就没有笔画，不退回 recall。
-  if (s.current && s.current.phase === 'compare' && s.current.paper !== true && (!s.current.strokes || s.current.strokes.length === 0)) {
+  if (s.current && s.current.phase === 'compare' && (!s.current.strokes || s.current.strokes.length === 0)) {
     s = { ...s, current: { ...s.current, phase: 'recall' } };
+    recovered = true;
+  }
+  if (s.current && s.current.paper === true) {
+    const { paper, ...rest } = s.current; // eslint-disable-line no-unused-vars
+    s = { ...s, current: rest };
     recovered = true;
   }
   return { session: s, recovered };

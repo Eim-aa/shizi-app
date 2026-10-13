@@ -44,7 +44,7 @@ test('write page wires it: noteKey per card + phase, note measured from .sz-writ
   assert.match(compact, /el\.querySelector\('\.sz-write__below'\)/);
   const index = readFileSync(new URL('../../src/ui/screens/write/index.js', import.meta.url), 'utf8');
   assert.match(index, /noteKey: cardKey \? `\$\{cardKey\}\|\$\{phase\}` : null/);
-  assert.match(index, /const hasNote = !!\(row\.node \|\| suggest\.node \|\| noteBody\);/);
+  assert.match(index, /const hasNote = !!\(row\.node \|\| noteBody\);/);
   assert.match(index, /if \(ax > 0 && layout\.tight && !footCompact\) setFootCompactKey\(viewKey\);/, 'tight: the main button is capped at 34pt straight away (P261 ②; nothing else gives way first)');
   const code = src => src.replace(/\/\/[^\n]*/g, '');
   assert.doesNotMatch(code(index), /paperGone|paperCollapsed|setPaperGone|linksWrapped/, 'D56 / P278: no 在纸上写 to collapse any more');

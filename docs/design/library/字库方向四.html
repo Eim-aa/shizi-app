@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>字库方向四</title>
+<link rel="stylesheet" href="shizi.css">
+<style>
+/* 字库方向四 · 2026-10-13 · 在第三版乙上：搜索在上、设置式行、白话说法、三档记忆
+ * 只引用 shizi.css 的令牌与组件；前半段样式沿用字库方向三（用于「之前」对照）。不新增颜色令牌。
+ * 画框 390 × 844。字是 hanzi-writer 轮廓；「本人笔迹」是 shizi.js 生成的示意墨。数据是示意数据。 */
+
+/* ───────── 文档页（同 字库方向.html） ───────── */
+body { margin: 0; background: #E9E5DD; color: #26211D; font: 400 15px/1.6 var(--hei); -webkit-font-smoothing: antialiased; }
+.doc { padding: 48px 44px 120px; }
+.intro { max-width: 1240px; display: grid; gap: 10px; }
+.intro h1 { margin: 0; font: 500 34px/42px var(--song); }
+.intro p { margin: 0; color: #564E46; max-width: 64em; text-wrap: pretty; }
+.intro .meta { font-size: 13px; color: #6E655B; }
+.toc { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 13px; margin-top: 6px; }
+.toc a { color: #564E46; text-decoration: none; }
+.verdict { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; max-width: 1400px; }
+.verdict .q { background: #F4EFE6; border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.verdict .q b { font: 500 15px/22px var(--song); color: #26211D; }
+.verdict .q p { margin: 0; font-size: 13.5px; color: #564E46; line-height: 1.65; text-wrap: pretty; }
+.verdict .q p strong { color: #26211D; font-weight: 500; }
+h3.sub { margin: 30px 0 8px; font: 500 22px/30px var(--song); }
+section.dir { padding: 56px 0 8px; border-top: 0.5px solid #CFC6B7; margin-top: 44px; scroll-margin-top: 12px; }
+section.dir > header { display: flex; gap: 14px; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; }
+section.dir > header h2 { margin: 0; font: 500 28px/36px var(--song); }
+section.dir > header .tag { font: 600 12px/18px ui-monospace, Menlo, monospace; padding: 2px 8px; border-radius: 6px; background: #26211D; color: #F4EFE6; align-self: center; }
+section.dir > header .tag.rec { background: #3F5A3A; }
+section.dir > .lede { margin: 0 0 26px; color: #564E46; max-width: 66em; font-size: 16px; text-wrap: pretty; }
+.row { display: flex; gap: 36px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: grid; gap: 10px; align-content: start; }
+.lab { font: 500 12px/16px var(--hei); color: #564E46; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lab i { font-style: normal; font-weight: 400; color: #6E655B; }
+.lab b { display: inline-block; padding: 1px 7px; border-radius: 6px; background: #26211D; color: #F4EFE6; font-weight: 500; }
+.lab b.was { background: #B9AE9C; color: #26211D; }
+.lab b.dk { background: #564E46; }
+.pair { display: flex; gap: 20px; align-items: flex-start; }
+.pair.dim > .col:last-child { opacity: .92; }
+.thumbs { display: flex; gap: 22px 30px; flex-wrap: wrap; margin-top: 26px; }
+.thumbs .st { display: grid; gap: 6px; }
+.thumbs .st .pair { gap: 8px; }
+.mini { width: calc(390px * var(--s)); height: calc(844px * var(--s)); flex: none; }
+.mini > .phone { transform: scale(var(--s)); transform-origin: 0 0; }
+.notes { width: 520px; font-size: 13.5px; color: #564E46; display: grid; gap: 0; align-content: start; }
+.notes table { border-collapse: collapse; width: 100%; background: #F4EFE6; }
+.notes td { padding: 8px 10px; border-bottom: 0.5px solid #D6CDBE; vertical-align: top; line-height: 1.6; text-wrap: pretty; }
+.notes td:first-child { width: 22px; text-align: center; font-weight: 600; color: #3F5A3A; background: #E6EDE0; }
+.notes td:nth-child(2) { width: 132px; font-weight: 500; color: #26211D; background: #EDE7DC; }
+.notes tr.idea td { background: #EDE4D6; } .notes tr.idea td:first-child { background: #E6DACA; color: #8A4A3C; }
+.notes h4 { margin: 18px 0 6px; font: 500 15px/22px var(--hei); color: #26211D; }
+.notes p { margin: 0; text-wrap: pretty; }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+q { quotes: "「" "」"; color: #26211D; }
+table.cmp { border-collapse: collapse; font-size: 13px; background: #F4EFE6; margin-top: 22px; width: 100%; max-width: 1240px; }
+table.cmp th, table.cmp td { padding: 8px 10px; border-bottom: 0.5px solid #D6CDBE; text-align: left; vertical-align: top; line-height: 1.55; text-wrap: pretty; }
+table.cmp th { font-weight: 500; color: #26211D; background: #EDE7DC; white-space: nowrap; }
+table.cmp td:first-child { font-weight: 500; color: #26211D; white-space: nowrap; background: #EDE7DC; }
+.ov { display: flex; gap: 34px; flex-wrap: wrap; align-items: flex-start; }
+.ov .o { display: grid; gap: 8px; }
+.ov .o p { margin: 0; font-size: 13px; line-height: 1.55; color: #564E46; max-width: 420px; text-wrap: pretty; }
+.ov .o p strong { color: #26211D; font-weight: 500; }
+.recb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px 44px; max-width: 1240px; }
+.recb h4 { margin: 0 0 6px; font: 500 17px/26px var(--hei); color: #26211D; }
+.recb p, .recb li { color: #564E46; text-wrap: pretty; }
+.recb ol, .recb ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.recb .big { grid-column: 1 / -1; font: 500 22px/34px var(--song); color: #26211D; margin: 0; max-width: 48em; }
+
+/* ───────── 画框 390 × 844（同 字库方向.html） ───────── */
+.phone.p390 { width: 390px; height: 844px; border-radius: 50px; }
+.phone.p390 .sb { height: 47px; padding: 4px 32px 0 46px; position: relative; z-index: 2; }
+.phone.p390 .sb .island { top: 11px; width: 120px; height: 34px; margin-left: -60px; }
+.phone .sb .icons i.sig { width: 18px; height: 11px; clip-path: polygon(0 100%, 100% 0, 100% 100%); border-radius: 1px; }
+.phone .sb .icons i.wifi { width: 16px; height: 11px; border-radius: 8px 8px 2px 2px; clip-path: polygon(50% 100%, 0 20%, 100% 20%); }
+.phone .sb .icons i.bat { width: 26px; height: 12px; border-radius: 4px; background: none; box-shadow: inset 0 0 0 1.2px currentColor; position: relative; }
+.phone .sb .icons i.bat::after { content: ""; position: absolute; left: 2.5px; top: 2.5px; bottom: 2.5px; right: 6px; border-radius: 2px; background: currentColor; }
+.phone .home { z-index: 3; }
+.phone .scr { position: absolute; left: 0; right: 0; top: 47px; bottom: 83px; display: flex; flex-direction: column; overflow: hidden; padding: 0 var(--gutter); }
+.phone .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 83px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: start; background: var(--paper); border-top: var(--hair) solid var(--line); z-index: 2; }
+.phone .tabs .tb { height: 49px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--ink3); }
+.phone .tabs .tb svg { width: 24px; height: 24px; }
+.phone .tabs .tb span { font: 500 11px/13px var(--hei); }
+.phone .tabs .tb.on { color: var(--ink1); }
+.phone .num { font-variant-numeric: tabular-nums; }
+.phone svg.hz { overflow: visible; }
+.phone .sz-btn.text { height: 44px; padding: 0 2px; font: 400 var(--fs15)/var(--lh15) var(--hei); color: var(--ink2); text-decoration: none; flex: none; white-space: nowrap; }
+.phone .sz-btn.text.go::after { content: " ›"; color: var(--ink3); }
+.phone .lh { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; min-height: 44px; }
+.phone .lh .ttl { font: 500 var(--fs28)/var(--lh28) var(--song); color: var(--ink1); }
+.phone .q { flex: none; height: calc(44px * max(1, var(--k) * .8)); border-radius: var(--r-ctl); background: var(--field); display: flex; align-items: center; gap: 8px; padding: 0 14px; color: var(--ink2); font: 400 var(--fs17)/var(--lh17s) var(--hei); }
+.phone .q svg { width: calc(18px * var(--k)); height: calc(18px * var(--k)); flex: none; }
+.phone .g { position: relative; width: var(--c); height: var(--c); flex: none; display: block; }
+.phone .g svg.hz { position: absolute; inset: 10%; width: 80%; height: 80%; }
+.phone .g.fr { box-shadow: inset 0 0 0 var(--frame-w) var(--frame); }
+.phone .g svg.guides { position: absolute; inset: 0; width: 100%; height: 100%; }
+.phone .strip { display: flex; gap: 0; align-items: center; flex-wrap: nowrap; }
+.phone .strip .more { font: 400 var(--fs13)/var(--lh13) var(--hei); color: var(--ink3); margin-left: 6px; white-space: nowrap; }
+.phone .cnt { font: 400 var(--fs15)/var(--lh15) var(--hei); color: var(--ink3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.phone .nm { font: 500 var(--fs17)/var(--lh17s) var(--hei); color: var(--ink1); white-space: nowrap; }
+.phone .cap { font: 400 var(--fs13)/var(--lh13) var(--hei); color: var(--ink3); text-wrap: pretty; }
+.phone .sp { flex: 1; }
+.phone .chev { color: var(--ink4); font: 400 var(--fs17)/1 var(--hei); flex: none; }
+.phone .sec { font: 500 var(--fs13)/var(--lh13) var(--hei); color: var(--ink3); display: flex; align-items: baseline; gap: 8px; }
+.phone .sec .r { margin-left: auto; font-weight: 400; }
+.phone .sec .r b { font-weight: 500; color: var(--ink1); }
+
+/* AX5 缩略：字号按层级放大（示意：正文约 ×2，标题 ×1.5）；同 字库方向.html */
+.phone.ax { --k: 1.9; --fs13: 30px; --lh13: 38px; --fs15: 38px; --lh15: 48px; --fs17: 46px; --lh17: 56px; --lh17s: 54px; --fs22: 48px; --lh22: 58px; }
+.phone.ax .q { height: 64px; }
+.phone.ax .lh .ttl { font-size: 40px; line-height: 50px; }
+.phone.ax .sz-btn.primary, .phone.ax .sz-btn.secondary { height: auto; min-height: 64px; padding: 6px 16px; }
+
+/* ═════════ 第三版：一个行模板 ═════════
+ * 全页只有一种行：行标题（黑 17/500 墨一）+ 数（黑 15 墨三）+ 至多三个样字（楷 · 本人墨）+ ›。
+ * 四块之间只用留白分开（28），块内多行用发丝线分开；没有区块标题、没有说明行、没有图例和比例条。 */
+.phone .k-blk { flex: none; margin-top: 28px; }
+.phone .k-blk.first { margin-top: 14px; }
+.phone .k-r { display: flex; align-items: center; gap: 8px; min-height: 56px; position: relative; }
+.phone .k-list .k-r { border-bottom: var(--hair) solid var(--line); }
+.phone .k-list .k-r:first-child { border-top: var(--hair) solid var(--line); }
+.phone .k-blk.k-list + .k-blk.k-list { margin-top: 24px; }
+.phone .k-r .nm { flex: none; }
+.phone .k-r .cnt { min-width: 0; }
+.phone .k-r.zero .nm { color: var(--ink3); font-weight: 400; }
+.phone .k-r .strip { gap: 0; margin-right: 2px; }
+.phone .k-end { flex: none; display: flex; align-items: center; gap: 12px; }
+.phone .k-end .q { flex: 1; }
+.phone .k-end .sz-btn.text { margin-right: -2px; }
+/* AX5：先折行（行标题 / 数），不画样字；仍不叠、不滚 */
+.phone.ax .k-blk { margin-top: 14px; }
+.phone.ax .k-blk.k-list + .k-blk.k-list { margin-top: 14px; }
+.phone.ax .k-r .tsub { display: none; }
+.phone.ax .k-blk.first { margin-top: 6px; }
+.phone.ax .k-r { flex-wrap: wrap; min-height: 60px; padding: 4px 0; column-gap: 12px; row-gap: 0; }
+.phone.ax .k-r .strip { display: none; }
+.phone.ax .k-r .chev { position: absolute; right: 0; top: 50%; margin-top: -.5em; }
+.phone.ax .k-r .nm, .phone.ax .k-r .cnt { white-space: normal; padding-right: 30px; box-sizing: border-box; }
+.phone.ax .k-r.wrap .cnt { flex: 1 0 100%; }
+.phone.ax .k-end .q { height: 60px; }
+
+/* ═════════ 第四版：搜索在上 + 设置式行 + 白话 ═════════ */
+.phone .q4 { flex: none; margin-top: 8px; }
+.phone .k4-blk { flex: none; margin-top: 26px; }
+.phone .k4-blk.first { margin-top: 18px; }
+.phone .k4-h { display: flex; align-items: baseline; gap: 8px; min-height: 32px; padding-bottom: 4px; }
+.phone .k4-h .ht { font: 500 var(--fs15)/var(--lh15) var(--hei); color: var(--ink2); }
+.phone .k4-h .hn { font: 400 var(--fs15)/var(--lh15) var(--hei); color: var(--ink3); font-variant-numeric: tabular-nums; }
+.phone .k4-h .sz-btn.text { margin-left: auto; height: 32px; }
+.phone .k4-l > .k4-r { border-bottom: var(--hair) solid var(--line); }
+.phone .k4-l > .k4-r:first-child { border-top: var(--hair) solid var(--line); }
+.phone .k4-r { display: flex; align-items: center; gap: 8px; min-height: 56px; position: relative; }
+.phone .k4-r .tx { display: grid; gap: 1px; min-width: 0; }
+.phone .k4-r .tx .cap { white-space: nowrap; }
+.phone .k4-r .val { font: 400 var(--fs17)/var(--lh17s) var(--hei); color: var(--ink2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.phone .k4-r.zero .nm { color: var(--ink3); font-weight: 400; }
+.phone .k4-r.two { min-height: 64px; }
+.phone.ax .k4-blk { margin-top: 14px; }
+.phone.ax .k4-blk.first { margin-top: 8px; }
+.phone.ax .k4-r { flex-wrap: wrap; min-height: 60px; padding: 4px 30px 4px 0; column-gap: 12px; }
+.phone.ax .k4-r .strip, .phone.ax .k4-r .cap { display: none; }
+.phone.ax .k4-r .chev { position: absolute; right: 0; top: 50%; margin-top: -.5em; }
+.phone.ax .k4-h { flex-wrap: wrap; }
+.phone.ax .q4 { height: 64px; margin-top: 14px; }
+.phone .q4 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.wt { border-collapse: collapse; font-size: 14px; background: #F4EFE6; margin-top: 18px; width: 100%; max-width: 1240px; }
+.wt th, .wt td { padding: 9px 12px; border-bottom: 0.5px solid #D6CDBE; text-align: left; vertical-align: top; line-height: 1.6; text-wrap: pretty; }
+.wt th { font-weight: 500; background: #EDE7DC; }
+.wt td:nth-child(1) { white-space: nowrap; color: #26211D; font-weight: 500; background: #EDE7DC; }
+.wt td:nth-child(2) { color: #8A4A3C; text-decoration: line-through; text-decoration-thickness: .5px; white-space: nowrap; }
+.wt td:nth-child(3) { color: #26211D; font-weight: 500; white-space: nowrap; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path></symbol>
+  <symbol id="i-book-f" viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path><path d="M12 6.5v13" stroke="var(--paper)" stroke-width="1.2"></path></symbol>
+  <symbol id="i-me" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.5"></circle><path d="M4.5 20c.8-4 3.8-6 7.5-6s6.7 2 7.5 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></symbol>
+  <symbol id="i-search" viewBox="0 0 20 20"><circle cx="8.6" cy="8.6" r="5.6" fill="none" stroke="currentColor" stroke-width="1.6"></circle><path d="m12.8 12.8 4.2 4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></path></symbol>
+  <symbol id="guides" viewBox="0 0 345 345"><path d="M172.5 0V345M0 172.5H345" stroke="var(--guide)" stroke-width="0.75" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" fill="none"></path></symbol>
+</svg>
+<div class="doc">
+  <div class="intro">
+    <h1>字库方向四</h1>
+    <p>2026-10-13。负责人看第三版：「搜索框必须在上面，这是符合用户习惯的，其他也有点别扭，尤其是语言表述。」这一版只做三件事：<b>搜索放到大标题正下方</b>（iOS 通讯录、备忘录、设置都这样）；<b>每一行都写成「名称 …… 值 ›」的设置式句子</b>，一看就知道点下去是什么；<b>所有说法换成白话</b>，四个记忆档收成三个人人听得懂的状态。第三版的减法全部保留：没有按钮、没有标签、没有比例条，样字的墨仍然从淡到浓。</p>
+    <p class="meta">只用 shizi.css 令牌。示意数据。左边是第四版，右边是第三版乙（之前）。</p>
+  </div>
+
+  <section class="dir">
+    <header><h2>主画面</h2><span class="lab"><i>一个月后 · 写过 98 字 · 今天还没写</i></span></header>
+    <div class="pair">
+      <div class="col"><div class="lab"><b>第四版</b></div><div id="main"></div></div>
+      <div class="col"><div class="lab"><b class="was">之前 · 第三版乙</b></div><div id="old"></div></div>
+      <div class="notes" style="width:440px">
+        <h4 style="margin-top:0">从上到下</h4>
+        <ul>
+          <li><b>搜索汉字或拼音</b>：大标题正下方，和系统 App 同一个位置。点进去就是现在的查字弹层。</li>
+          <li><b>练习范围 …… 常用字 ›</b>：和「我的 › 设置 › 练习范围」同名、同值、同一页。新字从这里来。</li>
+          <li><b>今天要写 …… 5 个字 ›</b>，下面一行小字「3 个复习，2 个新字」。点一下开写，和首页主按钮是同一组。</li>
+          <li><b>写过的字 98</b>（小标题，右边「全部 ›」），下面三行是这 98 个字现在的状态：<b>该复习了 / 还不太熟 / 记住了</b>，每行一个数、三个样字，点进去看这些字、练这些字。</li>
+        </ul>
+        <h4>为什么三档</h4>
+        <p>第三版的「该写了」和「快忘了」用户分不清，「正在记」读起来像一个进度。现在三档各说一件事：该复习了 = 今天到期或上次写错；还不太熟 = 没到期、但还没记牢；记住了 = 三周以上才回来一次。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="dir">
+    <header><h2>说法对照</h2></header>
+    <table class="wt">
+      <thead><tr><th>位置</th><th>第三版</th><th>第四版</th><th>为什么</th></tr></thead>
+      <tbody id="wt"></tbody>
+    </table>
+  </section>
+
+  <section class="dir">
+    <header><h2>其他状态</h2><span class="lab"><i>刚开始 · 一年后 · 今天写了一半 · 今天写完 · 夜间 · AX5</i></span></header>
+    <div class="thumbs" id="states"></div>
+  </section>
+</div>
+<script>
+(function () {
+  const ic = (id) => `<svg><use href="#${id}"></use></svg>`;
+  const sb = () => `<div class="sb"><span>9:41</span><span class="island"></span><span class="icons"><i class="sig"></i><i class="wifi"></i><i class="bat"></i></span></div>`;
+  const tabs = () => `<div class="tabs">${[['i-home', '习字'], ['i-book-f', '字库', 1], ['i-me', '我的']].map(([i, l, on]) => `<div class="tb${on ? ' on' : ''}">${ic(i)}<span>${l}</span></div>`).join('')}</div>`;
+  const phone = (th, inner, ax) => `<div class="phone p390 t-${th}${ax ? ' ax' : ''}">${sb()}<div class="scr">${inner}</div>${tabs()}<div class="home"></div></div>`;
+  const nf = (n) => n >= 1000 ? n.toLocaleString('en-US') : String(n);
+  const g = (ch, c, o = {}) => `<span class="g" style="--c:${c}px${o.tone ? `;--hand:var(--wall${o.tone})` : ''}"><svg class="hz" data-ch="${ch}" data-mode="hand" data-w="72" data-seed="${o.seed || 'k' + ch}"></svg></span>`;
+  const strip = (s, o) => `<div class="strip">${[...s].map(ch => g(ch, 34, o)).join('')}</div>`;
+  const head = () => `<div class="lh"><span class="ttl">字库</span></div><div class="q q4">${ic('i-search')}<span>搜索汉字或拼音</span></div>`;
+  const chev = '<span class="chev">›</span>';
+
+  const TOTAL = { few: 3, month: 98, year: 1268 };
+  const TODAY = {
+    todo: { few: ['5 个字', '1 个复习，4 个新字'], month: ['5 个字', '3 个复习，2 个新字'], year: ['5 个字', '4 个复习，1 个新字'] },
+    half: { month: ['还剩 2 个', '接着写'] },
+    done: { month: ['写完了', '想多写，再写一组'] }
+  };
+  const ZONES = {
+    few: [0, 3, 0], month: [9, 63, 26], year: [31, 260, 977]
+  };
+  const SAMP = { few: ['', '尴赢拾', ''], month: ['缀嚼惦', '记路色', '真像即'], year: ['痒挠衅', '鬓璨踱', '记路色'] };
+  const ZN = ['该复习了', '还不太熟', '记住了'];
+  const TONE = [4, 2, 1];
+
+  function P(th, vol, ax, st = 'todo') {
+    const [tv, tc] = (TODAY[st][vol] || TODAY[st].month);
+    const range = `<div class="k4-blk k4-l first"><div class="k4-r"><span class="nm">练习范围</span><span class="sp"></span><span class="val">常用字</span>${chev}</div></div>`;
+    const today = `<div class="k4-blk k4-l"><div class="k4-r two"><span class="tx"><span class="nm">今天要写</span><span class="cap">${tc}</span></span><span class="sp"></span><span class="val">${tv}</span>${chev}</div></div>`;
+    const zs = ZONES[vol].map((n, i) => n
+      ? `<div class="k4-r"><span class="nm">${ZN[i]}</span><span class="cnt">${nf(n)}</span><span class="sp"></span>${strip(SAMP[vol][i], { tone: TONE[i], seed: 'm' + vol })}${chev}</div>`
+      : `<div class="k4-r zero"><span class="nm">${ZN[i]}</span><span class="cnt">0</span></div>`).join('');
+    const mem = `<div class="k4-blk"><div class="k4-h"><span class="ht">写过的字</span><span class="hn">${nf(TOTAL[vol])}</span><button class="sz-btn text go">全部</button></div><div class="k4-l">${zs}</div></div>`;
+    return phone(th, head() + range + today + mem, ax);
+  }
+
+  function OLD() {
+    const row = (t, n, sm, tone) => `<div class="k-r"><span class="nm">${t}</span><span class="cnt">${n}</span><span class="sp"></span>${sm ? strip(sm, { tone, seed: 'mmonth' }) : ''}<span class="chev">›</span></div>`;
+    const zones = [['该写了', 9, '缀思权', 4], ['快忘了', 12, '嚼惦憋', 3], ['正在记', 51, '记路色', 2], ['记牢了', 26, '真像即', 1]].map(z => row(...z)).join('');
+    const end = `<div class="k-blk k-end"><div class="q">${ic('i-search')}<span>查字</span></div><button class="sz-btn text go">全部</button></div>`;
+    return phone('light', `<div class="lh"><span class="ttl">字库</span></div><div class="k-blk k-list first">${row('常用字', '写过 98')}</div><div class="k-blk k-list"><div class="k-r"><span class="nm">今天</span><span class="cnt">5 个字 · 3 个该写了，2 个新字</span><span class="sp"></span><span class="chev">›</span></div></div><div class="k-blk k-list">${zones}</div>` + end);
+  }
+  document.getElementById('main').innerHTML = P('light', 'month');
+  document.getElementById('old').innerHTML = OLD();
+  const W = [
+    ['搜索', '查字（在最下面）', '搜索汉字或拼音（在最上面）', '用户找东西先往上看；占位字说清能搜什么——拼音也能搜。'],
+    ['字库那一行', '常用字　写过 98', '练习范围　常用字', '「名称 + 值」是设置的说法，一看就知道点了能换；和设置里同名。「写过 98」挪到下面的小标题。'],
+    ['今天那一行', '今天　5 个字 · 3 个该写了，2 个新字', '今天要写　5 个字 ／ 3 个复习，2 个新字', '「今天」只是时间，「今天要写」才是一件事；构成拆到第二行小字，主行只留一个数。'],
+    ['写了一半', '今天　还剩 2 个字', '今天要写　还剩 2 个 ／ 接着写', '小字直接说点了会怎样。'],
+    ['写完', '今天　写完了 5 个字', '今天要写　写完了 ／ 想多写，再写一组', '同上。'],
+    ['记忆档', '该写了 · 快忘了 · 正在记 · 记牢了', '该复习了 · 还不太熟 · 记住了', '「该写了」和「快忘了」分不清，「正在记」像进度条；三档各说一件事，都是平常说话的口气。'],
+    ['全部', '全部 ›（没有数）', '写过的字　98　　全部 ›', '先说这是什么（写过的字）、有多少，再给「全部」；三个状态成了它的分类，层级一眼清楚。']
+  ];
+  document.getElementById('wt').innerHTML = W.map(r => `<tr>${r.map(x => `<td>${x}</td>`).join('')}</tr>`).join('');
+  const mini = (h, s) => `<div class="mini" style="--s:${s}">${h}</div>`;
+  const S = [['few', 'light', 0, 'todo', '刚开始 · 3 字'], ['year', 'light', 0, 'todo', '一年后 · 1268 字'], ['month', 'light', 0, 'half', '今天写了一半'], ['month', 'light', 0, 'done', '今天写完'], ['month', 'dark', 0, 'todo', '夜间纸'], ['month', 'light', 1, 'todo', 'AX5']];
+  document.getElementById('states').innerHTML = S.map(([v, th, ax, st, l]) => `<div class="st"><div class="lab"><b class="dk">${l}</b></div>${mini(P(th, v, ax, st), .44)}</div>`).join('');
+  window.__P = P;
+})();
+</script>
+<script src="shizi.js"></script>
+</body>
+</html>

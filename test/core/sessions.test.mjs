@@ -238,6 +238,14 @@ test('sessions: compare with no strokes falls back to recall on restore', () => 
   assert.equal(session.current.phase, 'recall');
 });
 
+test('sessions (D63): a stored current.paper=true (the removed 在纸上写 mode) is dropped on restore and the card goes back to recall', () => {
+  const s = withCurrent(daily('s1', '静'), { phase: 'compare', strokes: [], paper: true });
+  const { session, recovered } = recoverSession(s, []);
+  assert.equal(recovered, true);
+  assert.equal(session.current.phase, 'recall');
+  assert.equal('paper' in session.current, false);
+});
+
 test('sessions: first practice is the fixed 3 chars 尴 赢 拾 (D38 / P09; was 5 chars in D17)', () => {
   const q = selectFirst();
   assert.equal(q.length, 3);

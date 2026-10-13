@@ -17,7 +17,7 @@
 //   7. 旧词表（json.bannedWords）同样扫 src/ 源码字面量。
 //   8. 数字口径（04 §3.1 T10）：copy 里汉字数字只许 json.numeralAllow 登记的键（R-M06 节号、落款等）；
 //      汉字数字转换函数只许落款代码 import（CN_HELPER_FILES）。
-//   9. 「导出」只作按钮名「导出备份文件」出现（04 §4.2 D24），其余登记在 json.exportWordAllow。
+//   9. 「导出」只作按钮名「导出备份」（D61 前叫「导出备份文件」，两者都认）出现（04 §4.2 D24），其余登记在 json.exportWordAllow。
 //  10. 占位符：copy 与 json 值里的花括号全部是登记过的 {name}；登记表里没人用的占位符报错。
 //  11. TODO：json.todo 的键须在 json.todoRegistry 登记 P 编号且属于 json.todoDecisions（P55/P66/P76/P90）；
 //      汇总为 warning 按 P 编号列出。
@@ -648,12 +648,12 @@ export const HARDCODE_ALLOW = Object.freeze([
   },
   {
     file: 'src/core/cards.js',
-    texts: ['空格里是同一个字，只写一次。', '这个字暂时没有常用词，按拼音写就好', '同一目标字的另一处空格', '？'],
+    texts: ['空格里是同一个字，只写一次。', '这个字暂时没有常用词，按拼音写就好', '同一个字的另一处空格', '？'],
     why: 'PROMPT_COPY 默认值：内容门禁（verify_content_corpus）要求与 #175 逐字一致；UI 一律从 copy 传入同值，本脚本 checkMirrors 核对与 R-W28 / X-PROMPT 逐字相等',
   },
   {
     file: 'src/core/cards.js',
-    texts: ['规范常用字', '规范次常用字', '规范专门用字', '小学初中常用字'],
+    texts: ['常用字', '次常用字', '少见字', '课本字'],
     why: 'LIBRARIES.label：库身份标签（内容门禁 identitySha256 依赖），界面库名一律取 R-L06.lib.*.name；checkMirrors 核对逐字相等',
   },
   { file: 'src/core/cards.js', texts: ['一级', '二级', '三级', '表一', '综合', '进阶'], why: 'SEED 题库字段取值（norm / edu / topic / band），数据不是文案' },
@@ -773,7 +773,7 @@ export function checkNumeralHelpers(root = ROOT) {
   return errors;
 }
 
-/** 9. 「导出」只作按钮名「导出备份文件」出现（04 §4.2 D24：「导出」→「备份」，按钮除外）；其余登记在 exportWordAllow。 */
+/** 9. 「导出」只作按钮名「导出备份」（D61 前叫「导出备份文件」，两者都认）出现（04 §4.2 D24：「导出」→「备份」，按钮除外）；其余登记在 exportWordAllow。 */
 export function checkExportWord(copyModules, source) {
   const errors = [];
   const allow = source.exportWordAllow || {};
@@ -782,7 +782,7 @@ export function checkExportWord(copyModules, source) {
     for (const [key, value] of Object.entries(table)) {
       for (const t of Array.isArray(value) ? value : [value]) {
         if (typeof t !== 'string') continue;
-        if (!t.replace(/导出备份文件/g, '').includes('导出')) continue;
+        if (!t.replace(/导出备份(文件)?/g, '').includes('导出')) continue;
         if (Object.prototype.hasOwnProperty.call(allow, key)) used.add(key);
         else errors.push(key + ' (' + screen + '): 「导出」 outside the button name 「导出备份文件」 — say 「备份」 (04 §4.2 D24) or list it in copy-source.json exportWordAllow');
       }

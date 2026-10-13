@@ -100,11 +100,11 @@
     "X-WORK.annualTwiceTitle": "设计稿「作品出口」年报卷尾原句「同一个字，两次」：口语里的「两次」，不是统计数字（阶段 1 P1-E7，P160）"
   },
   "exportWordAllow": {
-    "X-BACKUP.intro": "P55 原型 ShiziScreen L166 bkCanExp 段逐字「先导出一份备份文件」；指的是按钮「导出备份文件」这一动作",
-    "X-PERSIST.saveFailed": "P66 旧 index.html L1067 通用句逐字；03 P66 已登记「建议改写」，待文案",
-    "X-PERSIST.quotaFailed": "P66 旧 index.html L1067 配额句逐字；03 P66 已登记「建议改写」，待文案",
     "X-BACKUP.exportFailed": "P290 三段式（S1）：失败说明指的是按钮「导出备份文件」这一动作",
-    "X-BACKUP.exportStay": "P290 三段式（S1）：「先不导出」= 不再点「导出备份文件」"
+    "X-BACKUP.exportStay": "P290 三段式（S1）：「先不导出」= 不再点「导出备份文件」",
+    "X-BACKUP.lossRange": "r7-C1 / D61：按钮改名「导出备份」后，「先导出」「请先导出」指的是这个按钮的动作",
+    "X-BACKUP.lossDay": "r7-C1 / D61：按钮改名「导出备份」后，「先导出」「请先导出」指的是这个按钮的动作",
+    "X-ABOUT.privacy4": "r7-C1 / D61：按钮改名「导出备份」后，「先导出」「请先导出」指的是这个按钮的动作"
   },
   "nonRuntimeDecisions": {
     "P295": "跳过的撤销窗口跟人走（R5-I2，交互规范 S4）：交接与宿主组件 src/ui/screens/write/skip.js handoffLeaveUndo / LeaveUndoHost、root.js 挂载；不是运行时开关",

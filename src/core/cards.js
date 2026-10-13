@@ -14,7 +14,7 @@ export const PROMPT_COPY = Object.freeze({
   // 仅拼音题（ctx === 'fallback'）的可见提示（#175 沿旧版）
   fallbackHint: '这个字暂时没有常用词，按拼音写就好',
   // 其余目标位 □ 的读屏标签（role=img）
-  repeatBlankLabel: '同一目标字的另一处空格',
+  repeatBlankLabel: '同一个字的另一处空格',
   // 缺拼音时原目标位的占位
   missingPinyin: '？',
   // 非原目标位的遮字符号
@@ -24,10 +24,10 @@ export const PROMPT_COPY = Object.freeze({
 // 四库。id 沿旧值（存储键 shizi.library.v1 与内容门禁 identitySha256 都依赖它）；
 // label 为第十稿四库名（R-L01 / 文案 D4，原「义教」库更名）；officialTotal 为官方字表总数（可练数由 test 计）。
 export const LIBRARIES = Object.freeze([
-  Object.freeze({ id: 'core3500', label: '规范常用字', officialTotal: 3500, test: card => card.norm === '一级' }),
-  Object.freeze({ id: 'adv3000', label: '规范次常用字', officialTotal: 3000, test: card => card.norm === '二级' }),
-  Object.freeze({ id: 'rare', label: '规范专门用字', officialTotal: 1605, test: card => card.norm === '三级' }),
-  Object.freeze({ id: 'curriculum2500', label: '小学初中常用字', officialTotal: 2500, test: card => card.edu === '表一' }),
+  Object.freeze({ id: 'core3500', label: '常用字', officialTotal: 3500, test: card => card.norm === '一级' }),
+  Object.freeze({ id: 'adv3000', label: '次常用字', officialTotal: 3000, test: card => card.norm === '二级' }),
+  Object.freeze({ id: 'rare', label: '少见字', officialTotal: 1605, test: card => card.norm === '三级' }),
+  Object.freeze({ id: 'curriculum2500', label: '课本字', officialTotal: 2500, test: card => card.edu === '表一' }),
 ]);
 
 const hasOwn = (object, key) => object != null && Object.prototype.hasOwnProperty.call(object, key);

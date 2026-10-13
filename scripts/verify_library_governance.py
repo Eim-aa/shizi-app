@@ -85,10 +85,10 @@ def load_groups():
 CARDS_MODULE = ROOT / "src" / "core" / "cards.js"
 EXPECTED_LIBRARIES = [
     # (id, label, officialTotal, practice-ready count)
-    ("core3500", "规范常用字", 3500, 3500),
-    ("adv3000", "规范次常用字", 3000, 2974),
-    ("rare", "规范专门用字", 1605, 744),
-    ("curriculum2500", "小学初中常用字", 2500, 2500),
+    ("core3500", "常用字", 3500, 3500),
+    ("adv3000", "次常用字", 3000, 2974),
+    ("rare", "少见字", 1605, 744),
+    ("curriculum2500", "课本字", 2500, 2500),
 ]
 RETIRED_LIBRARY_LABEL = "义教基础字"
 SCHOOL_STAGE_NAMES = ("小学", "初中", "高中")

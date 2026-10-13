@@ -15,7 +15,7 @@
 //
 // 去处：点格子 → 单字详情（'detail' {char}，M3-6）；「练这些字」：自选了还没写 → session startPicked(keys,
 //   {source:{view:'allWritten'}})（旧 B 没写完由它弹 S02；写入失败留在本页、筛选不变，说明 X-ALL.startFailed，可再点）；
-//   写错过 / 快忘了 → 推入对应清单页（'library-list' {kind}，M3-2；原型 filterGo）。目标屏没注册时不跳转（console.warn）。
+//   三档（该复习了 / 还不太熟 / 记住了）→ 推入对应清单页（'library-list' {kind: due|shaky|known}，M3-2；r7-C1 D61 Q5）。目标屏没注册时不跳转（console.warn）。
 // 只读 store；本页不写入。文案只取 copy/。
 //
 // data-testid（前缀 all-）：all-screen（页面）、all-body（data-sort / data-filter / data-find-mode / data-found / data-total /
@@ -242,7 +242,7 @@ export function AllMenuSheet({ close, active = true }) {
       ? html`<div class="sz-all__chips" data-testid="all-chips">
           ${m.chips.map(c => html`<${Button} key=${c.key} variant="plain" class="sz-all__chip" data-testid="all-chip" data-key=${c.key}
             data-n=${c.n} aria-pressed=${c.active ? 'true' : 'false'} disabled=${c.disabled} rapid=${true}
-            onClick=${() => m.onChip(c.key)}>${c.key === 'wrong' ? html`<span class="sz-lib__dot" aria-hidden="true"></span>` : null}${c.label}</${Button}>`)}
+            onClick=${() => m.onChip(c.key)}>${c.label}</${Button}>`)}
         </div>`
       : null}
     ${m && m.showLegend ? html`<${Legend} />` : null}
@@ -319,7 +319,7 @@ function AllScreen({ params, entry }) {
   const onGo = () => {
     const go = model.go;
     if (!go) return;
-    // 写错过 / 快忘了：一次点击直接开始一组（默认勾选的那些字，I3 · P0-06）；要先看清单走旁边的「看这些字 ›」
+    // 该复习了 / 还不太熟 / 记住了：一次点击直接开始一组（默认勾选的那些字，I3 · P0-06）；要先看清单走旁边的「看这些字 ›」
     const r = go.kind === 'list' ? startListDefault(go.listKind) : startPicked(go.keys, { source: { view: ALL_SOURCE_VIEW } });
     if (!r || !r.ok) {
       setFailed(true);

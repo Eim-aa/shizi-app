@@ -54,8 +54,6 @@ export default Object.freeze({
   'R-A02.filterCustom': '自选字 {n}',
   'R-A02.customNote': '你自己挑来常练的字。还没写的排在前面。',
   'R-A02.customUnwrittenNote': '加入自选字，还没写过。',
-  'R-A02.filterWrong': '写错过',
-  'R-A02.filterForget': '快忘了',
   'R-A02.filterCustomUnwritten': '自选未写',
   'R-A02.practiceThese': '练这些字',
   // R-A03（已定）
@@ -99,8 +97,9 @@ export default Object.freeze({
   'X-LIST.startFailed': '没保存上，刚才的选择没记下。',
   // X-ALL（extra；M3-4「有记录的字」完整页，原型 字库墨墙屏-第十稿交接版 L85–L114 / L367–L402 里 04 R-A01–R-A04 没有收录的字样；
   // 跨年月份名、开组失败为工程补，P55 / P76 待文案）
-  'X-ALL.chipWrong': '写错过 {n}',
-  'X-ALL.chipForget': '快忘了 {n}',
+  'X-ALL.chipDue': '该复习了 {n}',
+  'X-ALL.chipShaky': '还不太熟 {n}',
+  'X-ALL.chipKnown': '记住了 {n}',
   'X-ALL.chipUnwritten': '自选未写 {n}',
   'X-ALL.ageNote': '离上次写越久，排得越前。',
   'X-ALL.groupRecorded': '写过的',

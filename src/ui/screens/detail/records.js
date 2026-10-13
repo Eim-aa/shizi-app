@@ -15,8 +15,8 @@
 //
 // 口径（01 §3.2）：记录 = kind==='judged'；看过答案 / 跳过不算、不进格子。旧版本照片（photos[字]）不算有记录（P10b，
 // policy.legacyPhotoCountsAsRecord=false），只在旧记录页看（photos.js）。
-// 「写错过」= 最近一次 judged 为 wrong；「快忘了」= core/records forgetList（最近一次写对且 FSRS 到期，policy.forgetCap 内），
-// 与清单页（M3-2）同一口径，两者互斥（K16）。
+// 「该复习了」（r7-C1 D61 Q5）= 字库首页三档的 memoryZoneOf === 'due'（最近一次写错 ∪ 已到期）；list 仍分两种原因 wrong / forget，
+// 只用来配这一行的说明句（上次写错了 / 到时间再写一遍了），两者互斥（K16）。
 // 「下次练习」（P12 features.nextReviewLine）：只在有 judged 记录且 sched 有 due 时显示，日期取 sched.due。
 // 「做成图片」（R-D04）：没有记录 → noRecord；最近一次 judged 没有笔迹 → noInk；否则 ok（入口本身由 M4-5 注册后才显示）。
 //
@@ -34,8 +34,9 @@ import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { monthDayParts } from '../../../core/dates.js';
-import { compareRecordIds, forgetList, isJudged, isPaperRecord, sortById } from '../../../core/records.js';
+import { compareRecordIds, isJudged, isPaperRecord, sortById } from '../../../core/records.js';
 import { flattenRecords } from '../../../core/query.js';
+import { memoryZoneOf } from '../library/model.js';
 import { promptModel } from '../../../core/cards.js';
 import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
 import { inkHasStrokes } from '../../../core/ink-pick.js';
@@ -128,8 +129,11 @@ export function cellCopy(record) {
   };
 }
 
-/** 写错过 / 快忘了 / 都不在（K15 / K16 / D23）。records 为全部记录（平铺）。 */
-export function listOf({ records, sched, today, cardKey, policy = defaultPolicy }) {
+/**
+ * 「该复习了」的两种原因 / 不在（K15 / K16 / D23；r7-C1 D61 Q5）：'wrong' = 最近一次写错，'forget' = 最近一次写对但已到期，null = 不在。
+ * 与字库首页三档同一函数（memoryZoneOf：写错过 ∪ 到期 = 该复习了），详情页这一行点进去的就是「该复习了」清单。records 为全部记录（平铺）。
+ */
+export function listOf({ records, sched, today, cardKey }) {
   let latest = null;
   for (const r of records) {
     if (!isJudged(r) || r.cardKey !== cardKey) continue;
@@ -137,13 +141,8 @@ export function listOf({ records, sched, today, cardKey, policy = defaultPolicy 
   }
   if (!latest) return null;
   if (latest.judgment === 'wrong') return 'wrong';
-  let forget = null;
-  try {
-    forget = forgetList({ records, sched, today, policy });
-  } catch (error) {
-    forget = null;
-  }
-  return forget && forget.items.some(item => item.cardKey === cardKey) ? 'forget' : null;
+  const entry = sched && typeof sched === 'object' ? sched[cardKey] : undefined;
+  return memoryZoneOf(latest, entry, today) === 'due' ? 'forget' : null;
 }
 
 /**

@@ -44,8 +44,8 @@ export default Object.freeze({
   'R-H11.title': '现在没有要写的字',
   'R-H11.body': '想接着写，可以自己选几个字。',
   'R-H11.backHome': '回到首页 ›',
-  'R-H11.noCharsBody': '可以换练习范围，或练写错过的字。',
-  'R-H11.noCharsLink': '写错过 ›',
+  'R-H11.noCharsBody': '可以换练习范围，或先复习旧字。',
+  'R-H11.noCharsLink': '该复习了 ›',
   // X-HOME（原型首页壳 L217 ctaLabel（K 报告 §1-3）；01 M2-3「继续写字 · 今天的练习」）
   'X-HOME.start': '开始写字',
   'X-HOME.continue': '继续写字',

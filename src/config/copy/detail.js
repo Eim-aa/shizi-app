@@ -5,7 +5,7 @@
 export default Object.freeze({
   // R-D01（已定）
   'R-D01.wrongLine': '上次写错了',
-  'R-D01.forgetLine': '有一阵没写，可能快忘了',
+  'R-D01.forgetLine': '到时间再写一遍了',
   // R-D02（待定-工程确认（算不出就删行））
   'R-D02.nextReview': '下次复习 · 大约 {date}',
   // R-D03（已定；L12/L13 边开发边改）

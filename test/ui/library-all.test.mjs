@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
+import { t } from '../../src/config/copy/index.js';
 import {
   allModel, parseFind, pyKey, pyInitial, monthName, takeCells, toggleFold, normalizeFold, normalizeSort, normalizeFilter,
   RENDER_BATCH,
@@ -57,7 +58,8 @@ test('counts match the library home (recorded, custom unwritten) and judged-only
   const home = libraryHomeModel(S, TODAY);
   assert.equal(m.recorded, 7, 'skipped / answer-seen 波 is not recorded');
   assert.equal(m.recorded, home.recorded, 'same number as the library home big number');
-  assert.deepEqual(m.counts, { wrong: 1, forget: 1, unw: 2, custom: 3 }, 'wrong = latest wrong only (绿 corrected); 静 due but wrong → not forget (K16)');
+  assert.deepEqual(m.counts, { due: 2, shaky: 5, known: 0, unw: 2, custom: 3 }, 'r7-C1 D61 Q5: 三档同字库首页（静 写错 + 惊 到期 = 该复习了；绿 已改对、没有调度项 → 还不太熟）');
+  assert.equal(m.counts.due + m.counts.shaky + m.counts.known, m.recorded, '三档合计 = 写过的字');
   assert.equal(m.empty, false);
   assert.equal(allModel(null, opts()).empty, true);
   assert.equal(allModel(state({ custom: CUSTOM }), opts()).empty, true, 'custom only → empty like the home page');
@@ -66,13 +68,13 @@ test('counts match the library home (recorded, custom unwritten) and judged-only
 test('recent (default): hollow first, months new → old, two open by default, rest closed; fold overrides; cross-year label', () => {
   const m = allModel(S, opts());
   assert.equal(m.sort, 'recent');
-  assert.equal(m.note, '按最近一次写的月份排。每格是你最近一次的笔迹。', 'D27: default perRecordInk=true → original slot (latest ink is always kept)');
+  assert.equal(m.note, t('R-A01.sortRecentNote'), 'D27: default perRecordInk=true → original slot (latest ink is always kept)');
   const off = allModel(S, opts({ policy: { ...policy, features: { ...policy.features, perRecordInk: false } } }));
-  assert.equal(off.note, '按最近一次写的月份排。点一个字，看它的记录。', 'F4: perRecordInk=false → no promise of 你的笔迹');
+  assert.equal(off.note, t('R-A01.sortRecentNoteGlyph'), 'F4: perRecordInk=false → no promise of 你的笔迹');
   const on = allModel(S, opts({ policy: { ...policy, features: { ...policy.features, perRecordInk: true } } }));
-  assert.equal(on.note, '按最近一次写的月份排。每格是你最近一次的笔迹。', 'perRecordInk=true → original slot')
+  assert.equal(on.note, t('R-A01.sortRecentNote'), 'perRecordInk=true → original slot');
   assert.deepEqual(m.groups.map(g => [g.key, g.name, g.count]), [
-    ['hollow', '自选了还没写', '2 个字'],
+    ['hollow', t('R-A02.filterCustomUnwritten'), '2 个字'],
     ['m:2026-09', '9月', '3 个字'],
     ['m:2026-08', '8月', '1 个字'],
   ]);
@@ -97,7 +99,7 @@ test('pinyin: initial groups (tones stripped, ü → u), each cell labelled with
   const extra = state({ records: [...RECORDS, rec(11, '龘', { day: TODAY })], custom: CUSTOM, sched: SCHED });
   const m = allModel(extra, opts({ sort: 'py' }));
   assert.equal(m.note, '按拼音首字母排。多音字按第一个读音。');
-  assert.deepEqual(m.groups.map(g => g.name), ['自选了还没写', 'A', 'J', 'L', '其他']);
+  assert.deepEqual(m.groups.map(g => g.name), [t('R-A02.filterCustomUnwritten'), 'A', 'J', 'L', '其他']);
   const a = m.groups.find(g => g.name === 'A');
   assert.deepEqual(a.cells.map(c => [c.char, c.py]), [['爱', 'ài'], ['安', 'ān']], 'ai < an');
   const j = m.groups.find(g => g.name === 'J');
@@ -115,42 +117,54 @@ test('age: hollow, then oldest tone first, oldest first inside a tone (P56)', ()
   const m = allModel(S, opts({ sort: 'age' }));
   assert.equal(m.note, '离上次写越久，排得越前。');
   assert.deepEqual(m.groups.map(g => [g.name, g.tone, g.cells.map(c => c.char).join('')]), [
-    ['自选了还没写', null, '馨鼎'],
-    ['三个月以上', 3, '安惊'],
-    ['三个月内', 2, '爱京'],
-    ['一个月内', 1, '境'],
-    ['一周内写过', 0, '静绿'],
+    [t('R-A02.filterCustomUnwritten'), null, '馨鼎'],
+    [t('R-L03.toneOldest'), 3, '安惊'],
+    [t('X-LIBHOME.tone2'), 2, '爱京'],
+    [t('X-LIBHOME.tone1'), 1, '境'],
+    [t('X-LIBHOME.tone0'), 0, '静绿'],
   ]);
 });
 
-test('filters: wrong / forget / unw / custom; sort collapses; 0-count chips disabled unless active; practice go', () => {
-  const w = allModel(S, opts({ filter: 'wrong' }));
-  assert.equal(w.showSort, false, 'R-A04: filter on → sort collapsed');
-  assert.equal(w.showChips, true);
-  assert.deepEqual(w.groups.map(g => [g.head, g.cells.map(c => c.char).join('')]), [[false, '静']]);
-  assert.equal(w.note, '你判断写错的字。');
-  assert.deepEqual(w.go, { kind: 'list', listKind: 'wrong' });
-  const f = allModel(S, opts({ filter: 'forget' }));
-  assert.deepEqual(f.groups[0].cells.map(c => c.char), ['惊'], 'forget = latest correct & due (K16), capped by policy');
-  assert.equal(f.note, '有一阵没写、可能快忘了的字。');
-  assert.deepEqual(f.go, { kind: 'list', listKind: 'forget' });
+test('filters: due / shaky / known (the library-home three zones) / unw / custom; sort collapses; 0-count chips disabled unless active; practice go', () => {
+  const d = allModel(S, opts({ filter: 'due' }));
+  assert.equal(d.showSort, false, 'R-A04: filter on → sort collapsed');
+  assert.equal(d.showChips, true);
+  assert.deepEqual(d.groups.map(g => [g.head, g.cells.map(c => c.char).join('')]), [[false, '静惊']], 'wrong first (静), then overdue (惊)');
+  assert.deepEqual(d.groups[0].cells.map(c => c.kind), ['wrong', 'ink'], 'the red mark still only means 最近一次写错');
+  assert.equal(d.note, t('X-LIBFOUR.zoneTop.due'));
+  assert.deepEqual(d.go, { kind: 'list', listKind: 'due' });
+  const sh = allModel(S, opts({ filter: 'shaky' }));
+  assert.equal(sh.groups[0].cells.length, 5);
+  assert.equal(sh.note, t('X-LIBFOUR.zoneTop.shaky'));
+  assert.deepEqual(sh.go, { kind: 'list', listKind: 'shaky' });
+  const kn = allModel(S, opts({ filter: 'known' }));
+  assert.deepEqual(kn.groups.map(g => g.cells.length), [0], 'nothing known yet');
+  assert.equal(kn.go, null, 'no practice button on an empty filter');
+  // 旧的 wrong / forget（旧路由参数、旧状态）并入 due：写错过 ∪ 快忘了 = 该复习了
+  assert.equal(normalizeFilter('wrong'), 'due');
+  assert.equal(normalizeFilter('forget'), 'due');
+  assert.equal(allModel(S, opts({ filter: 'wrong' })).filter, 'due');
   const u = allModel(S, opts({ filter: 'unw' }));
   assert.deepEqual(u.groups[0].cells.map(c => [c.char, c.kind]), [['馨', 'hollow'], ['鼎', 'hollow']]);
-  assert.equal(u.note, '加入了自选的字，还没有记录。');
+  assert.equal(u.note, t('R-A02.customUnwrittenNote'));
   assert.deepEqual(u.go, { kind: 'start', keys: ['base:馨'] }, 'only practicable chars are handed to startPicked');
   const c = allModel(S, opts({ filter: 'custom' }));
   assert.deepEqual(c.groups.map(g => [g.name, g.count, g.cells.map(x => x.char).join('')]), [
-    ['自选了还没写', '2 个字', '馨鼎'], ['有记录', '1 个字', '境'],
+    [t('R-A02.filterCustomUnwritten'), '2 个字', '馨鼎'], [t('X-ALL.groupRecorded'), '1 个字', '境'],
   ]);
-  assert.equal(c.note, '你自己挑来常练的字。还没写的排在前面。');
+  assert.equal(c.note, t('R-A02.customNote'));
   assert.equal(c.go, null, 'custom filter has no practice button (prototype L401)');
-  assert.deepEqual(c.chips.map(x => x.label), ['写错过 1', '快忘了 1', '自选了还没写 2', '自选的字 3']);
+  assert.deepEqual(c.chips.map(x => x.label), [
+    t('X-ALL.chipDue', { n: 2 }), t('X-ALL.chipShaky', { n: 5 }), t('X-ALL.chipKnown', { n: 0 }),
+    t('X-ALL.chipUnwritten', { n: 2 }), t('R-A02.filterCustom', { n: 3 }),
+  ]);
+  assert.deepEqual(c.chips.map(x => x.key), ['due', 'shaky', 'known', 'unw', 'custom']);
   const bare = state({ records: [rec(1, '安')] });
   const b = allModel(bare, opts());
   assert.deepEqual(b.chips.map(x => [x.key, x.n, x.disabled]), [
-    ['wrong', 0, true], ['forget', 0, true], ['unw', 0, true], ['custom', 0, true],
+    ['due', 0, true], ['shaky', 1, false], ['known', 0, true], ['unw', 0, true], ['custom', 0, true],
   ], 'R-A04: 0-count filters greyed');
-  const stuck = allModel(bare, opts({ filter: 'wrong' }));
+  const stuck = allModel(bare, opts({ filter: 'due' }));
   assert.equal(stuck.chips[0].disabled, false, 'an active chip stays clickable to cancel');
   assert.equal(stuck.go, null, 'no practice button on an empty filter');
   assert.equal(allModel(state({ records: [rec(1, '安')], custom: { added: [{ char: '鼎', at: 1 }] } }), opts({ filter: 'unw' })).go, null,
@@ -158,7 +172,7 @@ test('filters: wrong / forget / unw / custom; sort collapses; 0-count chips disa
 });
 
 test('find by char (R-A03): only that month, ring, where; miss keeps the page', () => {
-  const m = allModel(S, opts({ find: '静', filter: 'wrong', sort: 'age' }));
+  const m = allModel(S, opts({ find: '静', filter: 'due', sort: 'age' }));
   assert.equal(m.find.mode, 'char');
   assert.equal(m.find.found, true);
   assert.equal(m.find.where, '在 9月');
@@ -173,7 +187,7 @@ test('find by char (R-A03): only that month, ring, where; miss keeps the page', 
   assert.equal(y.find.where, '在 2025年9月', 'cross-year found label');
   const miss = allModel(S, opts({ find: '馨' }));
   assert.equal(miss.find.found, false);
-  assert.equal(miss.find.miss, '「馨」还没有记录。', 'custom unwritten char is not recorded');
+  assert.equal(miss.find.miss, t('R-A03.notFound', { char: '馨' }), 'custom unwritten char is not recorded');
   assert.equal(miss.showSort, true);
   assert.ok(miss.groups.length > 1, 'page stays as it was');
   assert.deepEqual(parseFind('a静b'), { mode: 'char', char: '静', query: '静' }, 'first Han char wins');
@@ -198,7 +212,7 @@ test('find by pinyin (R-A04): exact syllable (tones ignored), else prefix; rings
   assert.deepEqual(prefix.find.chars.sort(), ['安', '爱'].sort(), 'no exact match → prefix');
   const miss = allModel(S, opts({ find: 'zzz' }));
   assert.equal(miss.find.found, false);
-  assert.equal(miss.find.miss, '「zzz」还没有记录。');
+  assert.equal(miss.find.miss, t('R-A03.notFound', { char: 'zzz' }));
 });
 
 test('batch rendering: takeCells keeps group order and ≤ limit cells (01 §10: ≤ 72 at once)', () => {

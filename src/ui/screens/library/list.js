@@ -97,7 +97,7 @@ export function startListDefault(kind, { state = null, today = localDay(envNow()
 }
 
 // 「现在没有要写的字」页的次入口（R-H11 noChars「看写错过的字 ›」）：把那一页换成写错过清单。
-setNoneActions({ wrongList: () => nav.replace(LIST_SCREEN, { kind: 'wrong' }) });
+setNoneActions({ wrongList: () => nav.replace(LIST_SCREEN, { kind: 'due' }) }); // r7-C1 D61 Q5：「写错过」并入「该复习了」
 
 // ---------------------------------------------------------------- 样式
 

@@ -7,13 +7,13 @@
 //     sort, filter,                      // 生效的排序 / 筛选（查字命中时两者都不生效）
 //     sorts: [{key, label, active}],     // R-A01 三种
 //     showSort,                          // R-A04：选了筛选后排序收起；查字命中时也收起（原型 ctlOn = !found）
-//     chips: [{key, label, n, active, disabled}],   // R-A02 四种；R-A04：0 个的筛选变灰（当前选中的仍可点来取消）
+//     chips: [{key, label, n, active, disabled}],   // R-A02 五种（该复习了 / 还不太熟 / 记住了 / 自选未写 / 自选字，r7-C1 D61 Q5）；R-A04：0 个的筛选变灰（当前选中的仍可点来取消）
 //     showChips, showLegend,
 //     note,                              // 排序 / 筛选说明句（R-A01 / R-A02；原型 allNote）
 //     find: {text, mode:'none'|'char'|'pinyin', query, found, chars, where, miss},   // R-A03 / R-A04
 //     groups: [{key, head, name, count, tone, fold:'open'|null, month, cells:[cell]}],
 //     closed: [{month, name, count}],    // 按月排时收起的月份（点开）
-//     go: null | {kind:'list', listKind:'wrong'|'forget'} | {kind:'start', keys:[cardKey]},  // 「练这些字 →」
+//     go: null | {kind:'list', listKind:'due'|'shaky'|'known'} | {kind:'start', keys:[cardKey]},  // 「练这些字 →」
 //     total,                             // 所有分组的格数（页面分批画，01 §10 一次 ≤ 72 格）
 //   }
 //   cell = {char, kind:'hollow'|'wrong'|'ink', tone, record, py, hit}
@@ -21,8 +21,8 @@
 // 口径：
 // - 「有记录」只看 judged，同字取最近一次（按 id 序号；与字库首页 model.js 同一函数，数字两页一致）；折叠月份只算 kept
 //   （与字库首页一致）。
-// - 写错过 = 最近一次 judged 为 wrong（最近写错的排前）；快忘了 = core/records.forgetList（policy.forgetRule / forgetCap，
-//   与字库首页卡片、快忘了清单同一口径）；自选了还没写 = 自选的字里没有 judged 记录的（custom.added 顺序）；
+// - 筛选三档 = 字库首页的 memoryZones（该复习了 = 最近一次写错 ∪ 到期；还不太熟；记住了），同一口径同一顺序；格子上的红点（kind
+//   'wrong'）仍只表示「最近一次写错」这个事实；自选了还没写 = 自选的字里没有 judged 记录的（custom.added 顺序）；
 //   自选的字 N = 全部自选的字（K19，原型 L376 D.added.length，含已写的）。
 // - 排序（R-A01）：最近写的 = 按最近一次记录的月份分组（新 → 旧），默认展开最近两个月（fold 覆盖），其余收在下面；
 //   拼音 = 按拼音首字母分组（去声调；没有拼音的在「其他」），每格标拼音（R-A04）；多久没写 = 四档（P56），最久的排前，
@@ -33,16 +33,19 @@
 //   （R-A04）：先找读音（去声调）完全相同的字，没有再按前缀找；命中的字按月显示并描圈，只在一个月里时右侧写「在 {month} 月」；
 //   一个也没有 →「「{输入}」还没有记录。」。
 // - 「练这些字 →」（R-A02）：自选了还没写（有能练的字时）→ 开这次选的字（来源 allWritten，由页面调 session startPicked）；
-//   写错过 / 快忘了 → 推入对应清单页（原型 filterGo：wrong/forget 推清单页，在那里勾选再练）；自选的字不显示（原型 L401）。
+//   三档 → 推入对应的区清单页（kind due / shaky / known，在那里勾选再练）；自选的字不显示（原型 L401）。
 
 import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { isValidDay, monthOf } from '../../../core/dates.js';
-import { compareRecordIds, forgetList } from '../../../core/records.js';
-import { customCharsOf, latestJudgedByChar, recordsOfState, toneOf, wallColumns } from './model.js';
+import { compareRecordIds } from '../../../core/records.js';
+import { customCharsOf, latestJudgedByChar, memoryZones, recordsOfState, toneOf, wallColumns } from './model.js';
 
 export const SORTS = Object.freeze(['recent', 'py', 'age']);
-export const FILTERS = Object.freeze(['wrong', 'forget', 'unw', 'custom']);
+/** 筛选（r7-C1 / D61 Q5）：字库首页三档（该复习了 / 还不太熟 / 记住了）+ 自选未写 + 自选字；旧的 wrong / forget 并入 due（写错过 ∪ 快忘了 = 该复习了）。 */
+export const FILTERS = Object.freeze(['due', 'shaky', 'known', 'unw', 'custom']);
+const LEGACY_FILTERS = Object.freeze({ wrong: 'due', forget: 'due' });
+const ZONE_FILTERS = Object.freeze(['due', 'shaky', 'known']);
 /** 按月排时默认展开最近几个月（R-A01）。 */
 export const DEFAULT_OPEN_MONTHS = 2;
 /** 一次最多画多少格（01 §10「有记录的字完整页按月折叠，一次 ≤ 72 格」；原型 budget=72）。页面按这个数分批画。 */
@@ -51,7 +54,7 @@ export const RENDER_BATCH = 72;
 const SORT_KEYS = Object.freeze({ recent: 'R-A01.sortRecent', py: 'R-A01.sortPinyin', age: 'R-A01.sortAge' });
 /** 筛选项「{名} {N}」（R-A02 只给了「自选的字 {n}」一种带数的写法，另三种按原型 L376 拼成同一格式，X-ALL.chip*）。 */
 const CHIP_KEYS = Object.freeze({
-  wrong: 'X-ALL.chipWrong', forget: 'X-ALL.chipForget', unw: 'X-ALL.chipUnwritten', custom: 'R-A02.filterCustom',
+  due: 'X-ALL.chipDue', shaky: 'X-ALL.chipShaky', known: 'X-ALL.chipKnown', unw: 'X-ALL.chipUnwritten', custom: 'R-A02.filterCustom',
 });
 const TONE_NAME_KEYS = Object.freeze(['X-LIBHOME.tone0', 'X-LIBHOME.tone1', 'X-LIBHOME.tone2', 'R-L03.toneOldest']);
 const HAN = /\p{Script=Han}/u;
@@ -61,6 +64,7 @@ export function normalizeSort(sort) {
 }
 
 export function normalizeFilter(filter) {
+  if (Object.prototype.hasOwnProperty.call(LEGACY_FILTERS, filter)) return LEGACY_FILTERS[filter];
   return FILTERS.includes(filter) ? filter : '';
 }
 
@@ -147,14 +151,12 @@ export function allModel(state, {
   const members = recorded + hollow.length;
   const cols = wallColumns(members, compact, width);
 
-  const wrongRecs = byNew.filter(r => r.judgment === 'wrong');
-  const wrongSet = new Set(wrongRecs.map(r => r.char));
-  const fl = forgetList({ records, sched: state && state.sched, today, policy });
-  const forgetRecs = fl.items.map(item => item.record).filter(r => !wrongSet.has(r.char));
+  const wrongSet = new Set(byNew.filter(r => r.judgment === 'wrong').map(r => r.char));
+  const { zones } = memoryZones(state, today, {});
 
   const sort = normalizeSort(sortIn);
   const fold = normalizeFold(foldIn);
-  const counts = { wrong: wrongRecs.length, forget: forgetRecs.length, unw: hollow.length, custom: custom.length };
+  const counts = { due: zones.due.n, shaky: zones.shaky.n, known: zones.known.n, unw: hollow.length, custom: custom.length };
   const requested = normalizeFilter(filterIn);
   const pyCache = new Map();
   const py = c => {
@@ -217,12 +219,9 @@ export function allModel(state, {
       ];
       note = t('R-A02.customNote');
     } else {
-      const cells = filter === 'wrong' ? wrongRecs.map(r => ink(r))
-        : filter === 'forget' ? forgetRecs.map(r => ink(r))
-          : hollow.map(c => hol(c));
+      const cells = ZONE_FILTERS.includes(filter) ? zones[filter].items.map(item => ink(item.record)) : hollow.map(c => hol(c));
       groups = [{ key: `f:${filter}`, head: false, name: '', count: '', tone: null, fold: null, month: null, cells }];
-      note = filter === 'wrong' ? t('X-LIBHOME.wrongCardNote')
-        : filter === 'forget' ? t('R-L07.forgetCardNote') : t('R-A02.customUnwrittenNote');
+      note = ZONE_FILTERS.includes(filter) ? t(`X-LIBFOUR.zoneTop.${filter}`) : t('R-A02.customUnwrittenNote');
     }
   } else if (sort === 'age') {
     groups = [hollowGroup(false)].concat([3, 2, 1, 0].map(tone => {
@@ -273,7 +272,7 @@ export function allModel(state, {
   if (!found && filter === 'unw') {
     const keys = hollow.map(c => `base:${c}`).filter(k => practicable(k));
     if (keys.length) go = { kind: 'start', keys };
-  } else if (!found && (filter === 'wrong' || filter === 'forget') && counts[filter] > 0) {
+  } else if (!found && ZONE_FILTERS.includes(filter) && counts[filter] > 0) {
     go = { kind: 'list', listKind: filter };
   }
 

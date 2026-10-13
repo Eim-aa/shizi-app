@@ -136,7 +136,7 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
   if (model.list) {
     const wrong = model.list === 'wrong';
     rows.push(html`<${Row} key="list" testid="detail-list-row" tall=${true} dot=${wrong}
-      title=${t(wrong ? 'R-E04.titleWrong' : 'R-E04.titleForget')}
+      title=${t('X-LIBFOUR.zone.due')}
       sub=${t(wrong ? 'R-D01.wrongLine' : 'R-D01.forgetLine')} arrow=${!!onList}
       onClick=${onList ? () => onList(model.list) : null} extra=${{ 'data-list': model.list }} />`);
   }

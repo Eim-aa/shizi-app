@@ -563,13 +563,13 @@
         },
         "noCharsBody": {
           "raw": "可以换一个字库，或者先练写错过的字。",
-          "text": "可以换练习范围，或练写错过的字。",
-          "note": "r7-C1 / D61 文案重写"
+          "text": "可以换练习范围，或先复习旧字。",
+          "note": "r7-C1 / D61 文案重写；r7-C1 / D61 Q5"
         },
         "noCharsLink": {
           "raw": "看写错过的字 ›",
-          "text": "写错过 ›",
-          "note": "r7-C1 / D61 文案重写"
+          "text": "该复习了 ›",
+          "note": "r7-C1 / D61 文案重写；r7-C1 / D61 Q5"
         }
       }
     },
@@ -1580,18 +1580,6 @@
           "text": "加入自选字，还没写过。",
           "note": "r7-C1 / D61 文案重写"
         },
-        "filterWrong": {
-          "raw": null,
-          "text": "写错过",
-          "origin": "04 R-A02 规则列：筛选「写错过」",
-          "note": "筛选项"
-        },
-        "filterForget": {
-          "raw": null,
-          "text": "快忘了",
-          "origin": "04 R-A02 规则列：筛选「快忘了」",
-          "note": "筛选项"
-        },
         "filterCustomUnwritten": {
           "raw": null,
           "text": "自选未写",
@@ -1844,7 +1832,8 @@
         },
         "forgetLine": {
           "raw": "有一阵没写，可能快忘了",
-          "text": "有一阵没写，可能快忘了"
+          "text": "到时间再写一遍了",
+          "note": "r7-C1 / D61 Q5"
         }
       }
     },
@@ -3828,18 +3817,6 @@
       "milestone": "M3",
       "source": "M3-4「有记录的字」完整页（src/ui/screens/library/all.js / all-model.js）：原型 字库墨墙屏-第十稿交接版 L85–L114、L367–L402 里 04 R-A01–R-A04 没有收录的字样（筛选项带数、多久没写说明、分组名与计数、收起月份行）；跨年月份名与开组失败说明为工程补（reference/K-proto-home-lib.md「有记录的字完整页」、附录 A）",
       "slots": {
-        "chipWrong": {
-          "raw": null,
-          "text": "写错过 {n}",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L376 chipDefs",
-          "note": "M3-4：筛选项「写错过 {N}」（R-A02 规则列只写了「写错过」，带数的写法同 R-A02.filterCustom「自选的字 {n}」）"
-        },
-        "chipForget": {
-          "raw": null,
-          "text": "快忘了 {n}",
-          "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L376 chipDefs",
-          "note": "M3-4：筛选项「快忘了 {N}」（N = 快忘了清单同一口径，policy.forgetCap）"
-        },
         "chipUnwritten": {
           "raw": null,
           "text": "自选未写 {n}",
@@ -3916,6 +3893,24 @@
           "origin": "extra",
           "note": "D58 ⑤ / I3 P0-06：有记录的字筛选写错过 / 快忘了后，进清单页的去处（「练这些字」在底栏，一次点击直接开组）",
           "decision": "P76"
+        },
+        "chipDue": {
+          "raw": null,
+          "text": "该复习了 {n}",
+          "origin": "r7-C1 D61 Q5：「全部」页筛选换成字库首页三档名",
+          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法"
+        },
+        "chipShaky": {
+          "raw": null,
+          "text": "还不太熟 {n}",
+          "origin": "r7-C1 D61 Q5：「全部」页筛选换成字库首页三档名",
+          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法"
+        },
+        "chipKnown": {
+          "raw": null,
+          "text": "记住了 {n}",
+          "origin": "r7-C1 D61 Q5：「全部」页筛选换成字库首页三档名",
+          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法"
         }
       }
     },

@@ -93,7 +93,7 @@ export function setDetailListActions(next = {}) {
 function listOpener(kind) {
   const fn = hooks.list[kind];
   if (fn) return fn;
-  if (getScreen(LIST_SCREEN_NAME)) return k => nav.push(LIST_SCREEN_NAME, { kind: k });
+  if (getScreen(LIST_SCREEN_NAME)) return () => nav.push(LIST_SCREEN_NAME, { kind: 'due' }); // r7-C1 D61 Q5：写错过 ∪ 快忘了 = 该复习了，两种原因都去「该复习了」清单
   return null;
 }
 

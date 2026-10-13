@@ -170,7 +170,7 @@ test('resultModel picked (R2-R1 / V2-04 / T2-03): the same work layout as the da
 
 test('leaveOf: every source view (R-R06); unknown and detail without char fall back to 回到首页', () => {
   assert.deepEqual(['wrongList', 'forgetList', 'allWritten', 'mine', 'library', 'home'].map(view => leaveOf({ view }).label),
-    ['回到写错过', '回到快忘了', '回到写过的字', '回到我的', '回到字库', '回到首页']);
+    ['回到写错过', '回到快忘了', '回到已练汉字', '回到我的', '回到字库', '回到首页']);
   assert.equal(leaveOf({ view: 'againList' }).view, 'wrongList', 'old key againList → wrongList');
   assert.equal(leaveOf({ view: 'detail', char: '静' }).label, '回到「静」');
   assert.equal(leaveOf({ view: 'detail' }).label, '回到首页');

@@ -568,8 +568,8 @@
         },
         "noCharsLink": {
           "raw": "看写错过的字 ›",
-          "text": "该复习了 ›",
-          "note": "r7-C1 / D61 文案重写；r7-C1 / D61 Q5"
+          "text": "待复习 ›",
+          "note": "r7-C1 / D61 文案重写；r7-C1 / D61 Q5；r7-F2 / D62 说法改正式"
         }
       }
     },
@@ -1254,8 +1254,8 @@
         },
         "leaveAll": {
           "raw": "回到有记录的字",
-          "text": "回到写过的字",
-          "note": "r7-C1 / D61 文案重写"
+          "text": "回到已练汉字",
+          "note": "r7-C1 / D61 文案重写；r7-F2 / D62 说法改正式"
         },
         "leaveMine": {
           "raw": "回到我的",
@@ -1613,8 +1613,8 @@
         },
         "searchAria": {
           "raw": "在有记录的字里查字",
-          "text": "在写过的字里查字",
-          "note": "r7-C1 / D61 文案重写"
+          "text": "在已练汉字里查字",
+          "note": "r7-C1 / D61 文案重写；r7-F2 / D62 说法改正式"
         }
       }
     },
@@ -3753,9 +3753,9 @@
       "slots": {
         "recordedLabel": {
           "raw": null,
-          "text": "写过的字",
+          "text": "已练汉字",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L39",
-          "note": "M3-1：大数字上方的小标签（整块是进「有记录的字」完整页的按钮，R-L02）；也用作墙的读屏分组名；r7-C1 / D61 文案重写"
+          "note": "M3-1：大数字上方的小标签（整块是进「有记录的字」完整页的按钮，R-L02）；也用作墙的读屏分组名；r7-C1 / D61 文案重写；r7-F2 / D62 说法改正式"
         },
         "wrongCardNote": {
           "raw": null,
@@ -3896,21 +3896,21 @@
         },
         "chipDue": {
           "raw": null,
-          "text": "该复习了 {n}",
+          "text": "待复习 {n}",
           "origin": "r7-C1 D61 Q5：「全部」页筛选换成字库首页三档名",
-          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法"
+          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法；r7-F2 / D62 说法改正式"
         },
         "chipShaky": {
           "raw": null,
-          "text": "还不太熟 {n}",
+          "text": "未熟悉 {n}",
           "origin": "r7-C1 D61 Q5：「全部」页筛选换成字库首页三档名",
-          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法"
+          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法；r7-F2 / D62 说法改正式"
         },
         "chipKnown": {
           "raw": null,
-          "text": "记住了 {n}",
+          "text": "已熟悉 {n}",
           "origin": "r7-C1 D61 Q5：「全部」页筛选换成字库首页三档名",
-          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法"
+          "note": "筛选项「{名} {N}」，同 X-ALL.chipUnwritten 的写法；r7-F2 / D62 说法改正式"
         }
       }
     },
@@ -5360,9 +5360,9 @@
         },
         "todayLabel": {
           "raw": null,
-          "text": "今天要写",
+          "text": "今日练习",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "「今天要写 …… 值 ›」一行的名称"
+          "note": "「今天要写 …… 值 ›」一行的名称；r7-F2 / D62 说法改正式"
         },
         "todayValue": {
           "raw": null,
@@ -5420,9 +5420,9 @@
         },
         "writtenHeading": {
           "raw": null,
-          "text": "写过的字",
+          "text": "已练汉字",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "小标题「写过的字 N」；N = 有记录的字数"
+          "note": "小标题「写过的字 N」；N = 有记录的字数；r7-F2 / D62 说法改正式"
         },
         "writtenAll": {
           "raw": null,
@@ -5432,45 +5432,45 @@
         },
         "writtenAllAria": {
           "raw": null,
-          "text": "全部写过的字",
+          "text": "全部已练汉字",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "「全部 ›」的读屏名称"
+          "note": "「全部 ›」的读屏名称；r7-F2 / D62 说法改正式"
         },
         "zone.due": {
           "raw": null,
-          "text": "该复习了",
+          "text": "待复习",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "三档之一：今天到期，或最近一次写错"
+          "note": "三档之一：今天到期，或最近一次写错；r7-F2 / D62 说法改正式"
         },
         "zone.shaky": {
           "raw": null,
-          "text": "还不太熟",
+          "text": "未熟悉",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "三档之二：未到期且稳定度不足 21 天"
+          "note": "三档之二：未到期且稳定度不足 21 天；r7-F2 / D62 说法改正式"
         },
         "zone.known": {
           "raw": null,
-          "text": "记住了",
+          "text": "已熟悉",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "三档之三：稳定度 ≥ 21 天"
+          "note": "三档之三：稳定度 ≥ 21 天；r7-F2 / D62 说法改正式"
         },
         "zoneTop.due": {
           "raw": null,
-          "text": "该复习的字，包括上次写错的。",
+          "text": "待复习的字，包括上次写错的。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页（该复习了）标题下的一句；r7-C1 / D61 文案重写"
+          "note": "区详情页（该复习了）标题下的一句；r7-C1 / D61 文案重写；r7-F2 / D62 说法改正式"
         },
         "zoneTop.shaky": {
           "raw": null,
-          "text": "还没记牢的字，过几天会回来。",
+          "text": "未熟悉的字，过几天会回来。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页（还不太熟）标题下的一句"
+          "note": "区详情页（还不太熟）标题下的一句；r7-F2 / D62 说法改正式"
         },
         "zoneTop.known": {
           "raw": null,
-          "text": "已经记住的字，隔很久才会回来。",
+          "text": "已熟悉的字，隔很久才会回来。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页（记住了）标题下的一句"
+          "note": "区详情页（记住了）标题下的一句；r7-F2 / D62 说法改正式"
         },
         "zoneEmptyTitle": {
           "raw": null,
@@ -5480,21 +5480,21 @@
         },
         "zoneEmptyBody.due": {
           "raw": null,
-          "text": "该复习的字会放在这里。",
+          "text": "待复习的字会放在这里。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页空态正文（该复习了）；r7-C1 / D61 文案重写"
+          "note": "区详情页空态正文（该复习了）；r7-C1 / D61 文案重写；r7-F2 / D62 说法改正式"
         },
         "zoneEmptyBody.shaky": {
           "raw": null,
-          "text": "还没记牢的字会放在这里。",
+          "text": "未熟悉的字会放在这里。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页空态正文（还不太熟）"
+          "note": "区详情页空态正文（还不太熟）；r7-F2 / D62 说法改正式"
         },
         "zoneEmptyBody.known": {
           "raw": null,
-          "text": "已经记住的字会放在这里。",
+          "text": "已熟悉的字会放在这里。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页空态正文（记住了）"
+          "note": "区详情页空态正文（记住了）；r7-F2 / D62 说法改正式"
         },
         "emptyGlyph.due": {
           "raw": null,
@@ -5504,33 +5504,69 @@
         },
         "emptyGlyph.shaky": {
           "raw": null,
-          "text": "熟",
+          "text": "生",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页空态的虚框装饰字（还不太熟）"
+          "note": "区详情页空态的虚框装饰字（还不太熟）；r7-F2 / D62 说法改正式"
         },
         "emptyGlyph.known": {
           "raw": null,
-          "text": "记",
+          "text": "熟",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页空态的虚框装饰字（记住了）"
+          "note": "区详情页空态的虚框装饰字（记住了）；r7-F2 / D62 说法改正式"
         },
         "leave.due": {
           "raw": null,
-          "text": "回到该复习了",
+          "text": "回到待复习",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "结果页离开按钮：从「该复习了」区详情页开的组"
+          "note": "结果页离开按钮：从「该复习了」区详情页开的组；r7-F2 / D62 说法改正式"
         },
         "leave.shaky": {
           "raw": null,
-          "text": "回到还不太熟",
+          "text": "回到未熟悉",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "结果页离开按钮：从「还不太熟」区详情页开的组"
+          "note": "结果页离开按钮：从「还不太熟」区详情页开的组；r7-F2 / D62 说法改正式"
         },
         "leave.known": {
           "raw": null,
-          "text": "回到记住了",
+          "text": "回到已熟悉",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "结果页离开按钮：从「记住了」区详情页开的组"
+          "note": "结果页离开按钮：从「记住了」区详情页开的组；r7-F2 / D62 说法改正式"
+        },
+        "zone.skipped": {
+          "raw": null,
+          "text": "已跳过",
+          "origin": "r7-F2 / D62（产品负责人真机反馈）",
+          "note": "字库首页第四行 / 区详情页：写字时点过「跳过」、之后还没有判断记录的字（D62；不计入已练汉字数）"
+        },
+        "zoneTop.skipped": {
+          "raw": null,
+          "text": "写字时点过「跳过」、还没写的字。",
+          "origin": "r7-F2 / D62（产品负责人真机反馈）",
+          "note": "区详情页（已跳过）标题下的一句"
+        },
+        "zoneEmptyBody.skipped": {
+          "raw": null,
+          "text": "跳过后还没写的字会放在这里。",
+          "origin": "r7-F2 / D62（产品负责人真机反馈）",
+          "note": "区详情页空态正文（已跳过）"
+        },
+        "emptyGlyph.skipped": {
+          "raw": null,
+          "text": "跳",
+          "origin": "r7-F2 / D62（产品负责人真机反馈）",
+          "note": "区详情页空态的虚框装饰字（已跳过）"
+        },
+        "leave.skipped": {
+          "raw": null,
+          "text": "回到已跳过",
+          "origin": "r7-F2 / D62（产品负责人真机反馈）",
+          "note": "结果页离开按钮：从「已跳过」区详情页开的组"
+        },
+        "skippedMeta": {
+          "raw": null,
+          "text": "{date}跳过",
+          "origin": "r7-F2 / D62（产品负责人真机反馈）",
+          "note": "已跳过区详情页每行第二行小字：最近一次跳过的日期"
         }
       }
     }

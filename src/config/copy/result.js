@@ -34,7 +34,7 @@ export default Object.freeze({
   // R-R06（已定；S05 边开发边改）
   'R-R06.leaveWrong': '回到写错过',
   'R-R06.leaveForget': '回到快忘了',
-  'R-R06.leaveAll': '回到写过的字',
+  'R-R06.leaveAll': '回到已练汉字',
   'R-R06.leaveMine': '回到我的',
   'R-R06.leaveDetail': '回到「{char}」',
   'R-R06.leaveLibrary': '回到字库',

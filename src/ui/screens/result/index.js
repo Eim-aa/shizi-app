@@ -85,6 +85,7 @@ const LEAVE_KEYS = Object.freeze({
   dueList: 'X-LIBFOUR.leave.due',
   shakyList: 'X-LIBFOUR.leave.shaky',
   knownList: 'X-LIBFOUR.leave.known',
+  skippedList: 'X-LIBFOUR.leave.skipped',
   allWritten: 'R-R06.leaveAll',
   mine: 'R-R06.leaveMine',
   library: 'R-R06.leaveLibrary',

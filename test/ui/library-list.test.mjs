@@ -34,7 +34,9 @@ function stateOf(records, sched = {}, sessions = { A: null, B: null, lastEnded: 
 const due = (day, stability = 3) => ({ fsrs: { stability }, due: day, lastJudgedAt: 0 });
 
 test('kinds and views: wrong → wrongList, forget → forgetList; legacy againList accepted', () => {
-  assert.deepEqual(LIST_KINDS, ['wrong', 'forget', 'due', 'shaky', 'known']);
+  assert.deepEqual(LIST_KINDS, ['wrong', 'forget', 'due', 'shaky', 'known', 'skipped']);
+  assert.equal(VIEW_OF_KIND.skipped, 'skippedList');
+  assert.equal(normalizeKind('skippedList'), 'skipped');
   assert.equal(VIEW_OF_KIND.due, 'dueList');
   assert.equal(normalizeKind('knownList'), 'known');
   assert.equal(normalizeKind('shaky'), 'shaky');

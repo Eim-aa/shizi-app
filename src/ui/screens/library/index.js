@@ -4,17 +4,18 @@
 //   1 大标题「字库」
 //   2 搜索框（library-search；紧接大标题；占位「搜索汉字或拼音」；点开 = M3-3 查字弹层，query-entry.js LibraryQueryBox）
 //   3 「练习范围 …… {库名} ›」（library-range；整行一个按钮 → 换库页 library-switch，与「我的 › 设置 › 练习范围」同一页、同一个值 settings.library）
-//   4 「今天要写 …… {值} ›」+ 第二行小字（library-today，data-phase = fresh | half | done）：整行一次点击 = 首页主按钮在该状态下的同一动作
+//   4 「今日练习 …… {值} ›」+ 第二行小字（library-today，data-phase = fresh | half | done）：整行一次点击 = 首页主按钮在该状态下的同一动作
 //     （home/index.js startMain：开始写字 / 继续写字 / 再写一组；数与状态取自 model.js todayPlanModel，它内部用首页自己的 homeModel 与 planDaily，不另算）。
 //     进写字页的转场是 T0-6：被点的行就是 B1 的来源（root.js 捕获阶段 noteTap → paper-transition）。
-//   5 小标题「写过的字 N」（library-written，data-n）+ 右侧文字按钮「全部 ›」（library-all-open → library-all，墨墙留在那里）
+//   5 小标题「已练汉字 N」（library-written，data-n）+ 右侧文字按钮「全部 ›」（library-all-open → library-all，墨墙留在那里）
 //     下面三行记忆状态（library-zone，data-kind = due | shaky | known，data-n）：名称 + 数 + 至多三个样字（本人墨，墨色 wall4 / wall2 / wall1）+ ›，
 //     点进区详情页（library-list，params {kind}，list.js「练这些字」）；0 个字的档只写名称与 0、墨三、不可点、不画 ›。
-//   没有记录时 1–4 照常，第 5 块写「写过的字 0」、三档都是 0（不另做空状态插画与说明句）。
+//     三档下面还有第四行「已跳过」（D62，library-skipped；同一行模板；点过「跳过」、至今没有判断记录的字，不计入已练汉字数；点进 library-list {kind:'skipped'}）。
+//   没有记录时 1–4 照常，第 5 块写「已练汉字 0」、三档都是 0（不另做空状态插画与说明句）。
 //   去掉的：写错过 / 快忘了两块、页内「练这些字」、墨墙与图例说明、「还有 N 个字」。
 //   AX（:root[data-ax]）：行内折行（名称与值上下排），不画样字与第二行小字；整页不滚动、不重叠。
 // 文案全部在 copy/library.js 的 X-LIBFOUR.*（措辞由负责人最后统一改，所以集中在这一组键里）。
-// 数据全部从记录与调度表算（model.js 纯函数）；本页不写入（点「今天要写」开组的写入在 core/session-start 经 store.commit）。
+// 数据全部从记录与调度表算（model.js 纯函数）；本页不写入（点「今日练习」开组的写入在 core/session-start 经 store.commit）。
 //
 // data-testid：screen-library、library-home（data-state = empty|records / data-recorded / data-today）、library-search、
 //   library-query-slot / library-query-open（查字框按钮）、library-range（library-range-value）、library-today（data-phase / data-n；
@@ -33,7 +34,7 @@ import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
 import { currentLibraryId, deckAdapter } from '../../../data/deck.js';
-import { MEMORY_ZONES, memoryZones, todayPlanModel, zoneSamples } from './model.js';
+import { MEMORY_ZONES, memoryZones, skippedZone, todayPlanModel, zoneSamples } from './model.js';
 import { normalizeKind } from './list-model.js';
 import { Glyph } from './wall.js';
 import { startMain } from '../home/index.js';
@@ -54,7 +55,7 @@ export const LIBRARY_ROUTES = Object.freeze({
   detail: 'detail', // M3-6 单字详情，params {char}
 });
 
-/** 从字库「今天要写」开的组，写完结果页的离开按钮是「回到字库」（R-R06 leaveLibrary）。 */
+/** 从字库「今日练习」开的组，写完结果页的离开按钮是「回到字库」（R-R06 leaveLibrary）。 */
 export const LIBRARY_TODAY_SOURCE = Object.freeze({ view: LIBRARY_TAB });
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
@@ -79,11 +80,11 @@ injectStyles('library', `
 .sz-libr__sp{flex:1;min-width:0}
 .sz-libr__val{min-width:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink2};font-variant-numeric:tabular-nums;text-align:right}
 .sz-libr__row--zero{cursor:default}
-.sz-libr__row--zero .sz-libr__nm{font-weight:400;color:${T.ink3}}
-/* 小标题「写过的字 N」+ 右侧「全部 ›」 */
+.sz-libr__row--zero .sz-libr__nm{color:${T.ink3}} /* 0 个字的行只变灰，名称字号 / 字重与其他行同级（D62） */
+/* 小标题「已练汉字 N」+ 右侧「全部 ›」：小标题与各行名称同一级（17 / 500 墨一，D62），数同「数」（15 墨三） */
 .sz-libr__wr{flex:none;margin-top:26px}
 .sz-libr__h{display:flex;align-items:center;gap:${T.s2};min-height:32px;padding-bottom:${T.s1}}
-.sz-libr__ht{font-size:${T.fs15};line-height:${T.lh15};font-weight:500;color:${T.ink2}}
+.sz-libr__ht{font-size:${T.fs17};line-height:${T.lh17s};font-weight:500;color:${T.ink1}}
 .sz-libr__hn{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
 .sz-libr__h .sz-btn--text{margin-left:auto;flex:none;white-space:nowrap}
 .sz-libr__samples{display:flex;gap:${T.s1};margin:0 2px 0 0;padding:0;flex:none}
@@ -95,14 +96,14 @@ injectStyles('library', `
 :root[data-ax] .sz-libr__blk--first{margin-top:8px}
 :root[data-ax] .sz-libr__blk--flush{margin-top:0}
 :root[data-ax] .sz-libr__wr{margin-top:10px}
-:root[data-ax] .sz-libr__row{flex-wrap:wrap;min-height:56px;padding:2px 30px 2px 0;column-gap:${T.s3};row-gap:0}
+:root[data-ax] .sz-libr__row{flex-wrap:wrap;min-height:56px;padding:0 30px 0 0;column-gap:${T.s3};row-gap:0}
 :root[data-ax] .sz-libr__row .sz-chev{position:absolute;right:0;top:50%;margin-top:-6.5px}
 :root[data-ax] .sz-libr__sp,:root[data-ax] .sz-libr__samples,:root[data-ax] .sz-libr__cap{display:none}
 :root[data-ax] .sz-libr__val{flex:1 0 100%;text-align:left}
-:root[data-ax] .sz-libr__h{min-height:0;flex-wrap:wrap;row-gap:0;column-gap:${T.s1}}
-:root[data-ax] .sz-libr__h .sz-btn--text{margin-right:0}
+:root[data-ax] .sz-libr__h{min-height:0;flex-wrap:nowrap;row-gap:0;column-gap:2px;padding-bottom:0} /* 小标题与各行名称同一级后仍占一行（AX 不滚） */
+:root[data-ax] .sz-libr__h .sz-btn--text{margin-right:0;padding-left:0;padding-right:0;font-size:${T.fs11};line-height:${T.lh11}}
+:root[data-ax] .sz-libr__ht{white-space:nowrap}
 :root[data-ax] .sz-libq__text{font-size:${T.fs13};line-height:${T.lh13}}
-:root[data-ax] .sz-libr__ht,:root[data-ax] .sz-libr__hn{font-size:${T.fs13};line-height:${T.lh13}}
 :root[data-ax] .sz-libr__val{font-size:${T.fs15};line-height:${T.lh15}}
 :root[data-ax] .sz-libq.sz-btn{min-height:56px}
 `);
@@ -144,7 +145,7 @@ function useStoreState() {
   return state;
 }
 
-/** 回前台时重算「今天」（今天要写 / 到期按天算）。 */
+/** 回前台时重算「今天」（今日练习 / 到期按天算）。 */
 function useToday() {
   const [today, setToday] = useState(() => localDay(envNow()));
   useEffect(() => {
@@ -189,7 +190,7 @@ export function libraryName(libraryId) {
 
 // ---------------------------------------------------------------- 视图
 
-/** 「今天要写」的值与第二行小字（文案键都在 X-LIBFOUR.*）。 */
+/** 「今日练习」的值与第二行小字（文案键都在 X-LIBFOUR.*）。 */
 export function todayTexts(plan) {
   if (plan.phase === 'half') return { value: t('X-LIBFOUR.todayHalfValue', { n: plan.n }), sub: t('X-LIBFOUR.todayHalfSub') };
   if (plan.phase === 'done') return { value: t('X-LIBFOUR.todayDoneValue'), sub: t('X-LIBFOUR.todayDoneSub') };
@@ -255,20 +256,21 @@ function TodayRow({ plan }) {
 /** 三档里的一行（D60）：有字 = 一个按钮（名称 + 数 + 样字 + ›）；0 个字 = 只写名称与 0（墨三、不可点、不画 ›）。 */
 function ZoneRow({ zone, getInk }) {
   const name = t(`X-LIBFOUR.zone.${zone.kind}`);
+  const id = zone.kind === 'skipped' ? 'library-skipped' : 'library-zone'; // 已跳过（D62）同一行模板，testid 单列，不混进三档的计数
   if (!zone.n) {
-    return html`<div class="sz-libr__row sz-libr__row--zero" data-testid="library-zone" data-kind=${zone.kind} data-n="0">
-      <span class="sz-libr__nm" data-testid="library-zone-name">${name}</span>
-      <span class="sz-libr__cnt" data-testid="library-zone-count">0</span>
+    return html`<div class="sz-libr__row sz-libr__row--zero" data-testid=${id} data-kind=${zone.kind} data-n="0">
+      <span class="sz-libr__nm" data-testid=${`${id}-name`}>${name}</span>
+      <span class="sz-libr__cnt" data-testid=${`${id}-count`}>0</span>
     </div>`;
   }
   const cells = zoneSamples(zone);
-  return html`<${Button} variant="plain" class="sz-libr__row sz-libr__row--zone" data-testid="library-zone" data-kind=${zone.kind}
+  return html`<${Button} variant="plain" class="sz-libr__row sz-libr__row--zone" data-testid=${id} data-kind=${zone.kind}
     data-n=${String(zone.n)} onClick=${() => openList(zone.kind)}>
-    <span class="sz-libr__nm" data-testid="library-zone-name">${name}</span>
-    <span class="sz-libr__cnt" data-testid="library-zone-count">${zone.n}</span>
+    <span class="sz-libr__nm" data-testid=${`${id}-name`}>${name}</span>
+    <span class="sz-libr__cnt" data-testid=${`${id}-count`}>${zone.n}</span>
     <span class="sz-libr__sp"></span>
     <span class="sz-libr__samples" aria-hidden="true">
-      ${cells.map(cell => html`<span key=${cell.char} class="sz-libr__sample" data-testid="library-zone-sample" data-char=${cell.char}
+      ${cells.map(cell => html`<span key=${cell.char} class="sz-libr__sample" data-testid=${`${id}-sample`} data-char=${cell.char}
         data-tone=${cell.tone}><${Glyph} cell=${cell} getInk=${getInk} /></span>`)}
     </span>
     <${Chevron} />
@@ -279,6 +281,7 @@ function LibraryScreen() {
   const state = useStoreState();
   const today = useToday();
   const mem = useMemo(() => memoryZones(state, today), [state, today]);
+  const skipped = useMemo(() => skippedZone(state), [state]);
   const plan = useMemo(() => todayPlanModel(state, envNow(), { deck: deckAdapter }), [state, today]);
   const getInk = useMemo(() => record => {
     try {
@@ -306,6 +309,7 @@ function LibraryScreen() {
         </div>
         <div class="sz-libr__blk sz-libr__blk--flush">
           ${MEMORY_ZONES.map(kind => html`<${ZoneRow} key=${kind} zone=${mem.zones[kind]} getInk=${getInk} />`)}
+          <${ZoneRow} zone=${skipped} getInk=${getInk} />
         </div>
       </div>
     </div>

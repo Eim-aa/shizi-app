@@ -178,10 +178,12 @@ const node = (rect, { text = '', bg = 'rgb(35, 31, 27)', testid = null, parent =
     matches: () => tag === 'BUTTON',
     closest(sel) {
       if (sel === '.sz-exit') return null;
+      if (typeof sel === 'string' && sel.includes('role="dialog"')) { for (let e = this; e; e = e.parentElement) if (e.dialog) return e; return null; }
       for (let e = this; e; e = e.parentElement) if (e.tagName === 'BUTTON') return e;
       return null;
     },
     _bg: bg,
+    dialog: false,
   };
   return n;
 };
@@ -226,23 +228,47 @@ test('noteTap: the tapped control (closest button) becomes the source — solid 
   assert.deepEqual([alphaOf('rgba(0, 0, 0, 0)'), alphaOf('transparent'), alphaOf('rgb(1, 2, 3)'), alphaOf('rgba(1, 2, 3, 0.5)'), alphaOf('rgb(1 2 3 / 40%)')], [0, 0, 1, 0.5, 0.4]);
 });
 
-test('planPaper replace (result 「再写一组」 / undo-skip → write): B1 from the tapped element, remembered under the page below the result; a programmatic replace keeps the T-phase fade', () => {
+test('planPaper replace (result 「再写一组」 / undo-skip → write), D62: a tapped replace is a plain push-in (mode S) and returns by a plain slide; a programmatic replace keeps the T-phase fade', () => {
   resetPaperSources();
   const result = { id: 'r5', n: 'result' };
   const write = { id: 'w5', n: 'write' };
   markPaperSource(el({ x: 20, y: 780, w: 353, h: 54 }, '再写一组'), 'result-again');
   const open = planPaper({ kind: 'replace', from: result, to: write }, { reduced: false, root: null, underId: 'home5' });
-  assert.deepEqual([open.mode, open.dir, open.source.rect.y], ['B1', 'open', 780]);
-  assert.ok(hasPaperSource('home5'), 'the return path is remembered under home');
-  const back = planPaper({ kind: 'pop', from: write, to: { id: 'home5', n: 'home' } }, { reduced: false, root: null });
-  assert.deepEqual([back.mode, back.dir], ['B1', 'close'], 'returning shrinks back along the same path');
+  assert.deepEqual([open.mode, open.dir], ['S', 'open'], 'not a home entry: pushed in from the right, no paper');
+  assert.deepEqual(paperSourceOf('home5'), { pushed: true }, 'remembered as pushed, so the way back is a plain slide');
+  assert.equal(planPaper({ kind: 'pop', from: write, to: { id: 'home5', n: 'home' } }, { reduced: false, root: null }), null, 'returning slides out (no B1 / B3)');
   assert.equal(planPaper({ kind: 'replace', from: result, to: write }, { reduced: false, root: null, underId: 'home5' }), null, 'no tap: T-phase');
   markPaperSource(el({ x: 1, y: 1, w: 10, h: 10 }), 'x');
-  assert.equal(planPaper({ kind: 'replace', from: result, to: write }, { reduced: true, root: null, underId: 'home5' }).mode, 'R');
+  assert.equal(planPaper({ kind: 'replace', from: result, to: write }, { reduced: true, root: null, underId: 'home5' }), null, 'reduced motion: the generic 150 ms fade');
   assert.equal(planPaper({ kind: 'replace', from: write, to: write }, { reduced: false, root: null }), null, 'write → write is a content change, not an entry');
   resetPaperSources();
 });
 
+
+test('planPaper D62: only an entry on the home page itself is B1; library / detail / list / sheet-over-home entries are plain pushes and return by a plain slide; B3 (no tap) is unchanged', () => {
+  resetPaperSources();
+  const write = { id: 'w6', n: 'write' };
+  const tapped = (rect, overlay = false) => {
+    const n = el(rect, '练这些字');
+    if (overlay) n.closest = sel => (typeof sel === 'string' && sel.includes('role="dialog"') ? n : null);
+    markPaperSource(n, 'x');
+  };
+  for (const from of [{ id: 'lib', n: 'library' }, { id: 'det', n: 'detail' }, { id: 'lst', n: 'library-list' }, { id: 'all', n: 'library-all' }]) {
+    tapped({ x: 20, y: 700, w: 353, h: 54 });
+    assert.equal(planPaper({ kind: 'push', from, to: write }, { reduced: false, root: null }), null, `${from.n}: plain push`);
+    assert.deepEqual(paperSourceOf(from.id), { pushed: true });
+    assert.equal(planPaperDrag(write, from, null), null, `${from.n}: edge swipe slides`);
+    assert.equal(planPaper({ kind: 'pop', from: write, to: from }, { reduced: false, root: null }), null, `${from.n}: pop slides`);
+  }
+  const home = { id: 'h6', n: 'home' };
+  tapped({ x: 20, y: 700, w: 353, h: 54 }, true);
+  assert.equal(planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null }), null, 'a sheet over home (查字「练这个字」) is not a home entry');
+  tapped({ x: 20, y: 700, w: 353, h: 54 });
+  assert.equal(planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null }).mode, 'B1', 'a home button is B1');
+  planPaper({ kind: 'pop', from: write, to: home }, { reduced: false, root: null });
+  assert.equal(planPaper({ kind: 'push', from: { id: 'lib', n: 'library' }, to: write }, { reduced: false, root: null }).mode, 'B3', 'no tap (notification / deep link) stays B3');
+  resetPaperSources();
+});
 
 test('03 / copy-source: P282–P284 are registered (D57), P280 / P281 too; P260 / P261 / P278 point at D57', () => {
   const md = read('docs/engineering/v10/03-待产品决定.md');

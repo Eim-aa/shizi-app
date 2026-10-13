@@ -21,7 +21,7 @@ const BODY = `${TOP} [data-testid="all-body"]`;
 const HOLLOW = ['馨', '鼎'];
 
 const COPY = {
-  title: '写过的字',
+  title: '已练汉字',
   recentNote: '按最近写的月份排，每格是最近的笔迹。', // D27：perRecordInk 默认开启 → 原槽；关闭态见 47-ink-promises
   pyNote: '按拼音首字母排。多音字按第一个读音。',
   ageNote: '离上次写越久，排得越前。',
@@ -29,13 +29,13 @@ const COPY = {
   hollowGroup: '自选未写',
   recordedGroup: '写过的',
   tones: ['一周内', '一个月内', '三个月内', '超三个月'],
-  dueNote: '该复习的字，包括上次写错的。', // r7-C1 D61 Q5：三档同字库首页（X-LIBFOUR.zoneTop.*）
-  shakyNote: '还没记牢的字，过几天会回来。',
-  zones: ['该复习了', '还不太熟', '记住了'],
+  dueNote: '待复习的字，包括上次写错的。', // r7-C1 D61 Q5：三档同字库首页（X-LIBFOUR.zoneTop.*）
+  shakyNote: '未熟悉的字，过几天会回来。',
+  zones: ['待复习', '未熟悉', '已熟悉'],
   unwNote: '加入自选字，还没写过。',
   customNote: '你自己挑来常练的字。还没写的排在前面。',
   go: '练这些字',
-  searchAria: '在写过的字里查字',
+  searchAria: '在已练汉字里查字',
   foundIn: m => `在 ${m}月`,
   notFound: c => `「${c}」还没写过。`,
   startFailed: '没保存上，刚才的选择没记下。',
@@ -320,11 +320,11 @@ export default async function run(page, ctx) {
   await backToAllRoot();
   await openAll(page);
   let v = await view(page);
-  assert.equal(v.title, COPY.title, 'page title 写过的字');
+  assert.equal(v.title, COPY.title, 'page title 已练汉字');
   assert.equal(v.recorded, 300, 'recorded 300 (same as the home big number)');
   assert.equal(v.rendered, v.total, `all ${v.total} cells rendered after batching`);
   assert.equal(v.cols, 8, '8 columns (same as the wall)');
-  assert.equal(v.findAria, COPY.searchAria, 'find box aria-label 「在写过的字里查字」 (R-A03)');
+  assert.equal(v.findAria, COPY.searchAria, 'find box aria-label 「在已练汉字里查字」 (R-A03)');
 
   // ------------------------------------------------------------------ 2. 最近写的
   step('recent (default): hollow group first, two latest months open, older months folded (cross-year label)');
@@ -405,8 +405,8 @@ export default async function run(page, ctx) {
   assert.deepEqual(v.chips.map(c => c.key), ['due', 'shaky', 'known', 'unw', 'custom'], 'r7-C1 D61 Q5: 三档（同字库首页）+ 自选未写 + 自选字');
   const nOf = Object.fromEntries(v.chips.map(c => [c.key, c.n]));
   const dueSet = new Set([...wrongChars, ...forgetChars]);
-  assert.equal(nOf.due, dueSet.size, '该复习了 = 写错过 ∪ 到期（旧的「写错过」「快忘了」两档的并集）');
-  assert.equal(nOf.due + nOf.shaky + nOf.known, 300, '三档互斥、合计 = 写过的字');
+  assert.equal(nOf.due, dueSet.size, '待复习 = 写错过 ∪ 到期（旧的「写错过」「快忘了」两档的并集）');
+  assert.equal(nOf.due + nOf.shaky + nOf.known, 300, '三档互斥、合计 = 已练汉字');
   assert.deepEqual(v.chips.map(c => [c.text, c.disabled]), [
     [`${COPY.zones[0]} ${nOf.due}`, false],
     [`${COPY.zones[1]} ${nOf.shaky}`, nOf.shaky === 0],

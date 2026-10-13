@@ -293,7 +293,7 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.list && v.list.kind, 'wrong', 'wrong list row');
   assert.equal(v.list.dot, true, 'wrong row has the red dot');
-  assert.ok(v.list.text.includes('该复习了') && v.list.text.includes(await copy(page, 'R-D01.wrongLine')), 'R-D01 「上次写错了」');
+  assert.ok(v.list.text.includes('待复习') && v.list.text.includes(await copy(page, 'R-D01.wrongLine')), 'R-D01 「上次写错了」');
   assert.equal(v.rowTestids[0], 'detail-list-row', 'status row sits above the practice schedule');
   const hasList = await page.evaluate(async () => !!(await import('/src/ui/router.js')).getScreen('library-list'));
   if (hasList) {
@@ -301,7 +301,7 @@ export default async function detailSpec(page, ctx) {
     await clickTop(page, 'detail-list-row');
     await waitTop(page, 'library-list');
     const p = await page.evaluate(() => history.state.params);
-    assert.deepEqual(p && p.kind, 'due', 'opened the 该复习了 list (r7-C1 D61 Q5)');
+    assert.deepEqual(p && p.kind, 'due', 'opened the 待复习 list (r7-C1 D61 Q5)');
     await back(page);
     await waitTop(page, 'detail');
   } else {
@@ -330,7 +330,7 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.list && v.list.kind, 'forget', 'due correct char → forget row');
   assert.equal(v.list.dot, false, 'forget row has no red dot');
-  assert.ok(v.list.text.includes('该复习了') && v.list.text.includes(await copy(page, 'R-D01.forgetLine')), 'R-D01 「到时间再写一遍了」');
+  assert.ok(v.list.text.includes('待复习') && v.list.text.includes(await copy(page, 'R-D01.forgetLine')), 'R-D01 「到时间再写一遍了」');
   await back(page);
   await waitTop(page, 'home');
   await openDetailPage(page, '欤');

@@ -1,11 +1,11 @@
-// r7-L1（D60）：字库首页三档记忆状态与「今天要写」的纯函数。
+// r7-L1（D60）：字库首页三档记忆状态与「今日练习」的纯函数。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  KNOWN_STABILITY_DAYS, MEMORY_ZONES, ZONE_TONE, memoryZoneOf, memoryZones, todayPlanModel, zoneSamples,
+  KNOWN_STABILITY_DAYS, MEMORY_ZONES, ZONE_TONE, memoryZoneOf, memoryZones, skippedZone, todayPlanModel, zoneSamples,
 } from '../../src/ui/screens/library/model.js';
 import { planDaily } from '../../src/core/session-start.js';
-import { normalizeKind, listEntries } from '../../src/ui/screens/library/list-model.js';
+import { normalizeKind, listEntries, listModel } from '../../src/ui/screens/library/list-model.js';
 
 const TODAY = '2026-09-24';
 const at = day => new Date(`${day}T09:00:00`).getTime();
@@ -64,6 +64,34 @@ test('zone list entries follow the same zones (library-list kind = due | shaky |
   assert.deepEqual(listEntries(s, { kind: 'shaky', today: TODAY }).map(e => e.char), ['和']);
   assert.deepEqual(listEntries(s, { kind: 'due', today: TODAY }), []);
   assert.equal(normalizeKind('dueList'), 'due');
+});
+
+test('skippedZone (D62): skipped and still no judged record; not counted in recorded; newest skip first; written later → leaves; undo (record removed) → leaves', () => {
+  const skip = (n, char, day) => ({ ...rec(n, char, null, day), kind: 'skipped' });
+  const rows = [
+    skip(1, '甲', '2026-09-01'), skip(2, '乙', '2026-09-08'), skip(3, '甲', '2026-09-09'), // 甲 skipped twice → newest record
+    skip(4, '丙', '2026-09-10'), rec(5, '丙', 'correct', '2026-09-11'), // 丙 written afterwards → not skipped any more
+    rec(6, '丁', 'correct', '2026-08-01'), skip(7, '丁', '2026-09-12'), // 丁 judged before, skipped later → has a judged record → not here
+    { ...rec(8, '戊', 'correct'), kind: 'answer-seen', judgment: null }, skip(9, '戊', '2026-09-13'), // answer-seen is not a judged record
+  ];
+  const s = stateOf(rows, {});
+  const z = skippedZone(s);
+  assert.deepEqual([z.kind, z.n], ['skipped', 3]);
+  assert.deepEqual(z.items.map(i => i.char), ['戊', '甲', '乙'], 'newest skip first');
+  assert.equal(z.items[1].record.id, 'r3', 'a char keeps its latest skip record');
+  assert.ok(z.items.every(i => i.tone === 3));
+  assert.equal(memoryZones(s, TODAY).recorded, 2, '丙 and 丁 only: skipped chars are not 已练汉字');
+  assert.equal(zoneSamples(z).length, 3);
+  assert.deepEqual(skippedZone(null), { kind: 'skipped', n: 0, items: [] });
+  assert.deepEqual(listEntries(s, { kind: 'skipped', today: TODAY }).map(e => [e.char, e.count, e.day]), [['戊', 0, '2026-09-13'], ['甲', 0, '2026-09-09'], ['乙', 0, '2026-09-08']]);
+  assert.equal(normalizeKind('skippedList'), 'skipped');
+  const m = listModel(s, { kind: 'skipped', today: TODAY });
+  assert.deepEqual([m.title, m.view, m.rows.length, m.button.label], ['已跳过', 'skippedList', 3, '练这些字']);
+  assert.ok(m.rows.every(r => r.noThumb && r.thumbCaption === ''), 'no 没有笔迹 thumbnail on skipped rows');
+  assert.equal(m.rows[0].meta, '9月13日跳过');
+  assert.equal(listModel(stateOf([], {}), { kind: 'skipped', today: TODAY }).empty, true);
+  const undone = stateOf(rows.filter(r => r.id !== 'r2'), {});
+  assert.deepEqual(skippedZone(undone).items.map(i => i.char), ['戊', '甲']);
 });
 
 const DECK = { newCandidates: () => ['base:新', 'base:字', 'base:词', 'base:句', 'base:文'], practicable: key => key.startsWith('base:'), currentLibraryId: () => 'core3500' };

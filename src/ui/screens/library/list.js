@@ -1,7 +1,7 @@
 // 写错过 / 快忘了清单页（02 M3-2；04 R-E01–R-E04；决定-D23；K15 / K16；边改 S06 / Z02 / S05；03 P04 / P31；
 // 原型 字库墨墙屏-第十稿交接版 L116–L136（结构）、L404–L414（数据与文案）；reference/K-proto-home-lib.md「写错过 / 快忘了清单」）。
 //
-// registerScreen('library-list')，params {kind:'wrong'|'forget', off?:string[]}。进入：openList(kind)（字库首页卡片、
+// registerScreen('library-list')，params {kind:'wrong'|'forget'|'due'|'shaky'|'known'|'skipped', off?:string[]}。进入：openList(kind)（字库首页卡片、
 // 「现在没有要写的字」页的「看写错过的字 ›」）。
 //
 // 版式：页头「写错过 / 快忘了」+ 右侧「全选 / 全不选」（S06）；正文标题「先练这 {N} 个」+ 顶部说明（R-E04）；逐行
@@ -216,7 +216,7 @@ function Row({ row, ink, onToggle, onDetail }) {
       ${w.has ? html`<span class="sz-lrow__word" data-testid="list-row-word">${w.pre}${w.tg ? html`<b>${w.tg}</b>` : null}${w.post}</span>` : null}
       <span class="sz-lrow__meta" data-testid="list-row-meta">${row.metaParts.map((part, i) => html`${i ? ' ' : ''}<span key=${i}>${part}</span>`)}</span>
     </span>
-    <${Thumb} row=${row} ink=${ink} />`;
+    ${row.noThumb ? null : html`<${Thumb} row=${row} ink=${ink} />`}`;
   return html`<li class="sz-lrow" data-testid="list-row" data-char=${row.char} data-selectable=${row.selectable ? 'true' : 'false'}
     data-selected=${row.selected ? 'true' : 'false'} data-group=${row.group} data-record=${row.recordId}>
     ${sel}

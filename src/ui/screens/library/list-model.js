@@ -15,15 +15,15 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { monthDayParts } from '../../../core/dates.js';
 import { forgetList, judgedCountOfCard, wrongCountOfCard, wrongList } from '../../../core/records.js';
-import { memoryZones } from './model.js';
+import { memoryZones, skippedZone } from './model.js';
 
 // wrong / forget：全部字页「写错过 / 快忘了」筛选的去处（M3-4）；due / shaky / known：字库首页三档记忆状态的区详情页（r7-L1，D60）。
-export const LIST_KINDS = Object.freeze(['wrong', 'forget', 'due', 'shaky', 'known']);
+export const LIST_KINDS = Object.freeze(['wrong', 'forget', 'due', 'shaky', 'known', 'skipped']);
 /** 字库首页三档（D60）。 */
 export const ZONE_KINDS = Object.freeze(['due', 'shaky', 'known']);
 
 /** 清单种类 → 会话来源 view（R-R06 离开按钮、S05 来源说明；旧键 againList 兼容为 wrongList）。 */
-export const VIEW_OF_KIND = Object.freeze({ wrong: 'wrongList', forget: 'forgetList', due: 'dueList', shaky: 'shakyList', known: 'knownList' });
+export const VIEW_OF_KIND = Object.freeze({ wrong: 'wrongList', forget: 'forgetList', due: 'dueList', shaky: 'shakyList', known: 'knownList', skipped: 'skippedList' });
 
 /** params.kind 规整：'forget' / 'forgetList' → forget；其余（含旧键 againList / wrongList）→ wrong。 */
 /**
@@ -40,12 +40,16 @@ export function normalizeKind(kind) {
   if (kind === 'due' || kind === 'dueList') return 'due';
   if (kind === 'shaky' || kind === 'shakyList') return 'shaky';
   if (kind === 'known' || kind === 'knownList') return 'known';
+  if (kind === 'skipped' || kind === 'skippedList') return 'skipped';
   return 'wrong';
 }
 
-/** 三档的区详情页？ */
+/** 字库首页的区详情页种类：三档 + 已跳过（D62）。 */
+export const ZONE_PAGE_KINDS = Object.freeze([...ZONE_KINDS, 'skipped']);
+
+/** 区详情页？（三档 + 已跳过） */
 export function isZoneKind(kind) {
-  return ZONE_KINDS.includes(normalizeKind(kind));
+  return ZONE_PAGE_KINDS.includes(normalizeKind(kind));
 }
 
 /** 状态里的全部记录（含折叠月份的 kept）。 */
@@ -87,12 +91,13 @@ export function wordParts(word, char) {
 export function listEntries(state, { kind, today, policy = defaultPolicy }) {
   const records = recordsOfState(state);
   if (isZoneKind(kind)) {
-    const zone = memoryZones(state, today, {}).zones[normalizeKind(kind)];
+    const zoneKind = normalizeKind(kind);
+    const zone = zoneKind === 'skipped' ? skippedZone(state) : memoryZones(state, today, {}).zones[zoneKind];
     return zone.items.map(({ cardKey, char, record }) => ({
       cardKey,
       char,
       record,
-      count: judgedCountOfCard(records, cardKey),
+      count: judgedCountOfCard(records, cardKey), // 已跳过：0（没有判断记录）
       day: record.localDay,
     }));
   }
@@ -189,7 +194,8 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
     const date = dateText(e.day);
     // 区详情页「该复习了」里最近一次写错的字按写错的说法（带「写错那次」小图说明），其余按「最近一次 · 记录了 N 次」
     const rowWrong = isWrong || (zone && e.record.judgment === 'wrong');
-    const meta = rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
+    const skipped = kind === 'skipped';
+    const meta = skipped ? t('X-LIBFOUR.skippedMeta', { date }) : rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
     return {
       char: e.char,
       cardKey: e.cardKey,
@@ -201,6 +207,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
       meta,
       metaParts: listRowMetaParts(meta),
       thumbCaption: rowWrong ? t('R-E03.wrongThumb') : '',
+      noThumb: skipped, // 已跳过的字没有笔迹，不画「没有笔迹」小图
       selectable,
       selected,
       group: inTop ? 'top' : 'rest',

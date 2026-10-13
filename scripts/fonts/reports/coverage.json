@@ -23,7 +23,7 @@
     ]
   },
   "ShiziSerifSC-Regular": {
-    "required": 953,
+    "required": 952,
     "source_missing": [
       {
         "cp": "U+0302",
@@ -36,7 +36,7 @@
         "name": "COMBINING DIAERESIS"
       }
     ],
-    "supported": 951,
+    "supported": 950,
     "missing": [
       {
         "cp": "U+0302",
@@ -72,7 +72,7 @@
     ]
   },
   "ShiziSerifSC-Medium": {
-    "required": 953,
+    "required": 952,
     "source_missing": [
       {
         "cp": "U+0302",
@@ -85,7 +85,7 @@
         "name": "COMBINING DIAERESIS"
       }
     ],
-    "supported": 951,
+    "supported": 950,
     "missing": [
       {
         "cp": "U+0302",

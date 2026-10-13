@@ -413,7 +413,7 @@ export default async function listsSpec(page, ctx) {
   assert.equal(n.today, 1, 'getState: today N = 1');
   assert.equal(n.lastB, null, 'lastEnded.B cleared after leaving the result page');
   let tabs = await tabNumbers(page);
-  assert.equal(tabs.dueZone, n.wrong.length + n.forget.length, 'library home 该复习了 (r7-L1 D60: 写错过 + 到期) count = getState');
+  assert.equal(tabs.dueZone, n.wrong.length + n.forget.length, 'library home 待复习 (r7-L1 D60: 写错过 + 到期) count = getState');
   await openList(page, 'forget');
   v = await listView(page);
   assert.ok(!v.rows.some(r2 => r2.char === '永'), '快忘了 page does not list 永');
@@ -463,7 +463,7 @@ export default async function listsSpec(page, ctx) {
   v = await listView(page);
   assert.deepEqual(v.empty && v.empty.title, COPY.wrongEmpty, 'back on the list: empty state');
   tabs = await tabNumbers(page);
-  assert.equal(tabs.dueZone, n.forget.length, 'library home 该复习了 = 到期的（没有写错的了）= getState');
+  assert.equal(tabs.dueZone, n.forget.length, 'library home 待复习 = 到期的（没有写错的了）= getState');
 
   // ------------------------------------------------------------------ 5. 从快忘了开 B → 结束 → 回本页
   step('from 快忘了: 练这个字 → 写对 → result 回到快忘了 / 从快忘了 → back to the list, 春 gone');
@@ -489,7 +489,7 @@ export default async function listsSpec(page, ctx) {
   assert.deepEqual(n.wrong, ['和', '永'], 'getState: 写错过 unchanged');
 
   // ------------------------------------------------------------------ 6. 「现在没有要写的字」→ 看写错过的字
-  step('nothing to write (library exhausted) → 该复习了 › → 该复习了 list (registered via setNoneActions)');
+  step('nothing to write (library exhausted) → 待复习 › → 待复习 list (registered via setNoneActions)');
   await setup(page, { records: [rec(1, '永', 'wrong', '2026-09-20'), rec(2, '和', 'correct', '2026-09-20')],
     due: { 'base:永': '2026-10-10', 'base:和': '2026-10-10' } });
   await page.evaluate(async () => {
@@ -505,12 +505,12 @@ export default async function listsSpec(page, ctx) {
   await page.click(tid('home-start'));
   await page.waitForSelector(topSel('session-none'));
   await waitNavIdle(page);
-  assert.ok(await page.$(topSel('session-none-wrong')), '该复习了 › shown (registered by M3-2)');
+  assert.ok(await page.$(topSel('session-none-wrong')), '待复习 › shown (registered by M3-2)');
   await page.click(topSel('session-none-wrong'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library-list');
   await waitNavIdle(page);
   v = await listView(page);
-  assert.deepEqual([v.title, v.rows.map(r2 => r2.char)], ['该复习了', ['永']], '该复习了 list with 永 (r7-C1 D61 Q5: 写错过并入该复习了)');
+  assert.deepEqual([v.title, v.rows.map(r2 => r2.char)], ['待复习', ['永']], '待复习 list with 永 (r7-C1 D61 Q5: 写错过并入待复习)');
   await page.click(topSel('page-back'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);

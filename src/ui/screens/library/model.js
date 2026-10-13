@@ -241,6 +241,30 @@ export function memoryZones(state, today, { knownDays = KNOWN_STABILITY_DAYS } =
   return { recorded: latest.size, zones };
 }
 
+/** 已跳过样字的本人墨档位：最淡一档（wall4），和「待复习」同一档——都是还没好好写的字。 */
+export const SKIPPED_TONE = 3;
+
+/**
+ * 「已跳过」一档（D62）：写字页点过「跳过」（一条 kind='skipped' 记录，写字页 skip.js 经 store.commit 追加；撤销会删掉它）、
+ * 并且这个字至今没有任何 judged 记录的字。已经写过（有 judged 记录）的字回到三档里，不再出现在这里；不计入 recorded（已练汉字数）。
+ * 每个字取最近一次跳过的那条记录，最近跳过的排前（按 id 序号）。
+ * 注意：最旧月份折叠（store/budget.js fold）只保留 judged 记录，所以折叠月份里的跳过记录不再计入。
+ * @returns {{kind:'skipped', n:number, items:[{char, cardKey, record, tone}]}}
+ */
+export function skippedZone(state) {
+  const { records } = recordsOfState(state);
+  const judged = latestJudgedByChar(records);
+  const latest = new Map();
+  for (const r of records) {
+    if (!r || r.kind !== 'skipped' || typeof r.char !== 'string' || judged.has(r.char)) continue;
+    const prev = latest.get(r.char);
+    if (!prev || compareRecordIds(prev.id, r.id) < 0) latest.set(r.char, r);
+  }
+  const items = [...latest.values()].sort((a, b) => compareRecordIds(b.id, a.id))
+    .map(record => ({ char: record.char, cardKey: record.cardKey, record, tone: SKIPPED_TONE }));
+  return { kind: 'skipped', n: items.length, items };
+}
+
 /** 区行的样字（最多三个，本人墨：kind 'ink' 取最近一次笔迹，没有笔迹时画标准字形；墨色档位按区）。 */
 export function zoneSamples(zone) {
   return (zone.items || []).slice(0, ZONE_SAMPLE_MAX).map(item => ({ char: item.char, kind: 'ink', tone: item.tone, record: item.record }));

@@ -20,6 +20,56 @@
 import * as defaultPolicy from '../config/policy.js';
 import { isJudged, judgedCountOfCard, latestJudged } from './records.js';
 
+/** 拼音比较键：去声调（NFD 去组合符号，ü → u）、小写、只留字母（v 当 ü 处理，也成 u）。字库「全部」页与查字弹层共用。 */
+export function pyKey(py) {
+  return String(py || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/v/g, 'u')
+    .replace(/[^a-z]/g, '');
+}
+
+/** 拼音查找上限（弹层不做虚拟列表，短前缀如「s」会命中上千字）。 */
+export const PINYIN_MAX = 100;
+
+/**
+ * 输入是不是「只有拼音字母」（可带声调、空格、撇号，v 当 ü；没有任何汉字）→ {raw, query}，否则 null。
+ * 与「全部」页 parseFind 的拼音分支同一条规则。
+ */
+export function parsePinyinInput(text) {
+  const s = typeof text === 'string' ? text.trim() : '';
+  if (!s || HAN_RE.test(s)) return null;
+  if (!/^[\p{Script=Latin}\p{M}\s']+$/u.test(s)) return null;
+  const query = pyKey(s);
+  return query ? { raw: s, query } : null;
+}
+
+/**
+ * 拼音匹配的字：先找读音完全相同的，没有再找以它开头的（与「全部」页一致）。
+ * 排序：本人写过的在前，再按 entries 的顺序（题库字频序 = 常用度）。
+ * @param {string} query  pyKey 之后的查询
+ * @param {Array<{char:string, key:string}>} entries  按字频序的 {字, pyKey(拼音)}
+ * @param {{written?: Set<string>|null, max?: number}} [o]
+ * @returns {string[]}
+ */
+export function pinyinMatches(query, entries, { written = null, max = PINYIN_MAX } = {}) {
+  if (!query) return [];
+  const list = (entries || []).filter(e => e && e.char && e.key);
+  let hits = list.filter(e => e.key === query);
+  if (!hits.length) hits = list.filter(e => e.key.startsWith(query));
+  const seen = new Set();
+  const uniq = hits.filter(e => (seen.has(e.char) ? false : (seen.add(e.char), true)));
+  const w = written instanceof Set ? written : new Set();
+  const out = uniq.filter(e => w.has(e.char)).concat(uniq.filter(e => !w.has(e.char))).map(e => e.char);
+  return Number.isInteger(max) && max > 0 ? out.slice(0, max) : out;
+}
+
+/** 本人写过（有 judged 记录）的字集合。 */
+export function writtenChars(records) {
+  const out = new Set();
+  for (const r of records || []) {
+    if (r && isJudged(r) && typeof r.cardKey === 'string' && r.cardKey.startsWith('base:')) out.add(r.cardKey.slice(5));
+  }
+  return out;
+}
+
 /** 汉字判定（与原型 字库墨墙屏 L249 `HAN` 同一条件）。 */
 export const HAN_RE = /\p{Script=Han}/u;
 

@@ -116,6 +116,18 @@ export default async function queryImeSpec(page, ctx) {
     s = await typedState(page);
     assert.deepEqual([s.value, s.view, s.rows], ['春夏', 'rows', 2], `${name}: 真实输入法选字后立即有 2 行`);
 
+    step(`${name}: 拼音查字（r7-Q1）：组字中不出结果也不出提示；组字以拼音字母收尾（没选字）→ 按拼音列字`);
+    await clearInput(page);
+    await fire(page, [['start'], ['value', 'c'], ['input', true], ['value', 'chun'], ['input', true]]);
+    s = await typedState(page);
+    assert.deepEqual([s.view, s.notes], ['hint', 0], `${name}: 组字中（拼音字母）既不列字也不提示`);
+    await fire(page, [['end']]);
+    await page.waitForFunction(() => document.querySelector('[data-testid="query-body"]').dataset.view !== 'hint', null, { timeout: 1500 });
+    s = await typedState(page);
+    assert.equal(s.value, 'chun', `${name}: 字母原样留在框里`);
+    assert.ok(s.rows > 0 || s.cards > 0, `${name}: 组字结束后按拼音列出读 chun 的字`);
+    assert.equal(s.notes, 0, `${name}: 拼音查字不出「只能输入汉字」`);
+
     step(`${name}: 普通键入仍然逐字更新`);
     await clearInput(page);
     await page.focus(INPUT);

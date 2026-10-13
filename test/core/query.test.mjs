@@ -193,3 +193,42 @@ test('copy: every R-Q key the component uses exists (R-Q01–R-Q06 filled)', () 
   ];
   for (const k of keys) assert.ok(has(k), `copy key ${k}`);
 });
+
+// ---------------------------------------------------------------- 拼音查字（r7-Q1 / D3）
+import { pyKey, parsePinyinInput, pinyinMatches, writtenChars, PINYIN_MAX } from '../../src/core/query.js';
+
+const PY_ENTRIES = [
+  { char: '是', key: pyKey('shì') }, { char: '时', key: pyKey('shí') }, { char: '十', key: pyKey('shí') },
+  { char: '事', key: pyKey('shì') }, { char: '女', key: pyKey('nǚ') }, { char: '宋', key: pyKey('sòng') },
+];
+
+test('pyKey / parsePinyinInput: strip tones, v = ü, letters only; Han or digits are not pinyin', () => {
+  assert.equal(pyKey('nǚ'), 'nu');
+  assert.equal(pyKey('nv'), 'nu');
+  assert.equal(pyKey('Shí'), 'shi');
+  assert.deepEqual(parsePinyinInput(' shí '), { raw: 'shí', query: 'shi' });
+  assert.deepEqual(parsePinyinInput("xi'an"), { raw: "xi'an", query: 'xian' });
+  assert.equal(parsePinyinInput('永'), null);
+  assert.equal(parsePinyinInput('shi永'), null);
+  assert.equal(parsePinyinInput('a1'), null);
+  assert.equal(parsePinyinInput(''), null);
+  assert.equal(parsePinyinInput('  '), null);
+});
+
+test('pinyinMatches: exact reading first else prefix; written chars first, then deck (frequency) order', () => {
+  assert.deepEqual(pinyinMatches('shi', PY_ENTRIES), ['是', '时', '十', '事']);
+  assert.deepEqual(pinyinMatches('shi', PY_ENTRIES, { written: new Set(['十', '事']) }), ['十', '事', '是', '时']);
+  assert.deepEqual(pinyinMatches('s', PY_ENTRIES), ['是', '时', '十', '事', '宋'], 'no exact reading → prefix');
+  assert.deepEqual(pinyinMatches('nu', PY_ENTRIES), ['女']);
+  assert.deepEqual(pinyinMatches('zzz', PY_ENTRIES), []);
+  const many = Array.from({ length: PINYIN_MAX + 20 }, (_, i) => ({ char: String.fromCodePoint(0x4e00 + i), key: 'shi' }));
+  assert.equal(pinyinMatches('shi', many).length, PINYIN_MAX, 'capped');
+});
+
+test('writtenChars: chars with a judged record', () => {
+  const recs = [
+    { cardKey: 'base:十', kind: 'judged', judgment: 'correct', char: '十' },
+    { cardKey: 'base:是', kind: 'other', char: '是' },
+  ];
+  assert.deepEqual([...writtenChars(recs)], ['十']);
+});

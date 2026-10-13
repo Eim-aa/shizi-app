@@ -36,10 +36,11 @@ import { injectStyles, SCROLL_Y, T } from '../styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import {
-  charSummary, filterInput, filterNotes, flattenRecords, isPracticable, pickBar, queryView, selectedChars, withCustomAdded,
+  charSummary, filterInput, filterNotes, flattenRecords, isPracticable, parsePinyinInput, pickBar, pinyinMatches, pyKey,
+  queryView, selectedChars, withCustomAdded, writtenChars,
 } from '../../../core/query.js';
 import { libraryById } from '../../../core/cards.js';
-import { cardForKey, currentLibraryId } from '../../../data/deck.js';
+import { allCards, cardForKey, currentLibraryId } from '../../../data/deck.js';
 import { getStore } from '../../../store/store.js';
 import { useStrokeData } from '../../screens/write/hint-layer.js';
 import { CharRow } from './CharRow.js';
@@ -89,7 +90,29 @@ export function deckPredicates(settings, lookup = cardForKey) {
       return !!(k && lib && lib.test(k));
     },
     card,
+    pinyinEntries: () => pinyinEntriesOf(allCards(), lookup),
   };
+}
+
+// 拼音索引：题库卡数组（同一份）只建一次。字频序 = 题库顺序；每个字取它自己的 base 卡的拼音。
+const pinyinMemo = new WeakMap();
+function pinyinEntriesOf(cards, lookup) {
+  if (!Array.isArray(cards) || !cards.length) return [];
+  const memo = pinyinMemo.get(cards);
+  if (memo && memo.lookup === lookup) return memo.list;
+  const seen = new Set();
+  const list = [];
+  for (const c of cards) {
+    const ch = c && c.target;
+    if (!ch || seen.has(ch)) continue;
+    const card = lookup(`base:${ch}`);
+    if (!card) continue;
+    seen.add(ch);
+    const key = pyKey(card.py);
+    if (key) list.push({ char: ch, key });
+  }
+  pinyinMemo.set(cards, { lookup, list });
+  return list;
 }
 
 /** 加入自选的字：一次 commit（决定-D21）。已在自选里时不写。返回 store.commit 的结果。 */
@@ -113,10 +136,18 @@ export async function isFailure(result) {
 
 /** 模型：给定输入与状态，算出视图、提示、逐字摘要、pick 底栏。纯函数。 */
 export function sheetModel({ mode, text, cur, selected, state, predicates, policy = defaultPolicy }) {
-  const filtered = filterInput(text, { max: policy.queryInputMax });
+  const records = flattenRecords(state && state.records);
+  let filtered = filterInput(text, { max: policy.queryInputMax });
+  // 只有拼音字母（可带声调，v 当 ü）：列出读音匹配的字（本人写过的在前，再按常用度）；与输入汉字同一套行 / 卡片 / 勾选。
+  const py = filtered.hanCount === 0 && typeof predicates.pinyinEntries === 'function' ? parsePinyinInput(text) : null;
+  let pinyin = null;
+  if (py) {
+    const chars = pinyinMatches(py.query, predicates.pinyinEntries(), { written: writtenChars(records) });
+    pinyin = { raw: py.raw, count: chars.length };
+    filtered = { chars, removed: 0, duplicates: [], hanCount: 0, overLimit: 0, total: filtered.total };
+  }
   const practicable = c => isPracticable(c, predicates);
   const v = queryView({ chars: filtered.chars, cur, practicable });
-  const records = flattenRecords(state && state.records);
   const ctx = { records, sched: state ? state.sched : null, custom: state ? state.custom : null };
   const summaries = filtered.chars.map(c => charSummary(c, { ...ctx, practicable: practicable(c) }));
   const chosen = mode === 'pick' ? selectedChars(filtered.chars, selected, practicable) : [];
@@ -124,7 +155,8 @@ export function sheetModel({ mode, text, cur, selected, state, predicates, polic
     filtered,
     view: v.view,
     cur: v.cur,
-    notes: filterNotes(filtered, v.view),
+    notes: pinyin ? (pinyin.count ? [] : [{ key: 'X-QUERY.pinyinNone', vars: { char: pinyin.raw } }]) : filterNotes(filtered, v.view),
+    pinyin: !!pinyin,
     summaries,
     summary: v.cur ? summaries.find(s => s.char === v.cur) : null,
     multi: filtered.chars.length > 1,

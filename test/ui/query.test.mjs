@@ -394,3 +394,43 @@ test('BadCard: three can\'t-practise lines; 查看记录 only with records, grey
   const enabled = byTestid(BadCard({ summary: { char: '龘', count: 1 }, canDetail: true, onDetail: () => {} }));
   assert.equal(enabled['query-card-detail'][0].props.disabled, false);
 });
+
+// ---------------------------------------------------------------- 拼音查字（r7-Q1 / D3）
+
+const PY_DECK = { 是: { py: 'shì' }, 时: { py: 'shí' }, 十: { py: 'shí' }, 女: { py: 'nǚ' } };
+const pyPredicates = {
+  inDeck: c => !!PY_DECK[c],
+  inLibrary: c => !!PY_DECK[c],
+  card: c => PY_DECK[c] || null,
+  pinyinEntries: () => Object.keys(PY_DECK).map(ch => ({
+    char: ch, key: PY_DECK[ch].py.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/v/g, 'u'),
+  })),
+};
+
+test('sheetModel: pinyin letters list matching chars (written first), no「只能输入汉字」, same rows / pick / bar as Han input', () => {
+  const state = { records: { '2026-09': [rec('r1', '十')] }, sched: {}, custom: null };
+  const m = sheetModel({ mode: 'pick', text: 'shi', cur: '', selected: new Set(['时', '女']), state, predicates: pyPredicates });
+  assert.equal(m.pinyin, true);
+  assert.equal(m.view, 'rows');
+  assert.deepEqual(m.summaries.map(s => s.char), ['十', '是', '时'], 'written first, then deck order');
+  assert.deepEqual(m.notes, []);
+  assert.deepEqual(m.chosen, ['时'], 'selection restricted to listed chars');
+  assert.equal(m.bar.key, 'R-Q05.btnPractice');
+  const tone = sheetModel({ mode: 'lookup', text: 'Shí', cur: '', selected: new Set(), state: null, predicates: pyPredicates });
+  assert.deepEqual(tone.summaries.map(s => s.char), ['是', '时', '十'], 'tones are ignored');
+  const single = sheetModel({ mode: 'lookup', text: 'nv', cur: '', selected: new Set(), state: null, predicates: pyPredicates });
+  assert.equal(single.view, 'card', 'one match → card, like one Han char');
+  assert.equal(single.cur, '女');
+});
+
+test('sheetModel: pinyin with no match → one note; digits / symbols stay「只能输入汉字」; Han input unaffected', () => {
+  const none = sheetModel({ mode: 'lookup', text: 'zzz', cur: '', selected: new Set(), state: null, predicates: pyPredicates });
+  assert.equal(none.view, 'hint');
+  assert.deepEqual(none.notes, [{ key: 'X-QUERY.pinyinNone', vars: { char: 'zzz' } }]);
+  const digits = sheetModel({ mode: 'lookup', text: 'a1', cur: '', selected: new Set(), state: null, predicates: pyPredicates });
+  assert.deepEqual(digits.notes, [{ key: 'R-Q03.onlyHanzi' }]);
+  const han = sheetModel({ mode: 'lookup', text: '是shi', cur: '', selected: new Set(), state: null, predicates: pyPredicates });
+  assert.equal(han.pinyin, false);
+  assert.deepEqual(han.summaries.map(s => s.char), ['是']);
+  assert.deepEqual(han.notes, [{ key: 'R-Q03.removed', vars: { n: 3 } }]);
+});

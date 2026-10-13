@@ -39,6 +39,7 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { isValidDay, monthOf } from '../../../core/dates.js';
 import { compareRecordIds } from '../../../core/records.js';
+import { pyKey } from '../../../core/query.js';
 import { customCharsOf, latestJudgedByChar, memoryZones, recordsOfState, toneOf, wallColumns } from './model.js';
 
 export const SORTS = Object.freeze(['recent', 'py', 'age']);
@@ -77,11 +78,7 @@ export function normalizeFold(fold) {
   return out;
 }
 
-/** 拼音比较键：去声调（NFD 去组合符号，ü → u）、小写、只留字母（v 当 ü 处理，也成 u）。 */
-export function pyKey(py) {
-  return String(py || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/v/g, 'u')
-    .replace(/[^a-z]/g, '');
-}
+export { pyKey };
 
 /** 拼音分组的组名：首字母大写；没有拼音 → null（「其他」）。 */
 export function pyInitial(py) {

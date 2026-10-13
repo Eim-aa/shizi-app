@@ -43,4 +43,5 @@ export default Object.freeze({
   'X-QUERY.rowAriaNoPinyin': '{char}，{status}',
   'X-QUERY.cardMeta': '{pinyin} · {n} 画',
   'X-QUERY.duplicateMany': '重复的{chars}只算一次。',
+  'X-QUERY.pinyinNone': '没有读音是「{char}」的字。',
 });

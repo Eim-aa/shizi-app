@@ -3389,6 +3389,12 @@
           "origin": "extra",
           "note": "R-Q03.duplicate 的多字形态：两个以上的字重复时一句列出（{chars} 拼成「X」「Y」）；原型 L428 dups.map(c=>'「'+c+'」').join('')"
         },
+        "pinyinNone": {
+          "raw": null,
+          "text": "没有读音是「{char}」的字。",
+          "origin": "extra",
+          "note": "查字弹层输入拼音字母（r7-Q1 / D3）没有匹配的字时的一句提示；{char} = 输入原文"
+        },
         "rowAria": {
           "raw": null,
           "text": "{char} {pinyin}，{status}",

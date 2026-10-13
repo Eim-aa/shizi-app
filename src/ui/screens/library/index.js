@@ -10,7 +10,7 @@
 //   5 小标题「已练汉字 N」（library-written，data-n）+ 右侧文字按钮「全部 ›」（library-all-open → library-all，墨墙留在那里）
 //     下面三行记忆状态（library-zone，data-kind = due | shaky | known，data-n）：名称 + 数 + 至多三个样字（本人墨，墨色 wall4 / wall2 / wall1）+ ›，
 //     点进区详情页（library-list，params {kind}，list.js「练这些字」）；0 个字的档只写名称与 0、墨三、不可点、不画 ›。
-//     三档下面还有第四行「已跳过」（D62，library-skipped；同一行模板；点过「跳过」、至今没有判断记录的字，不计入已练汉字数；点进 library-list {kind:'skipped'}）。
+//     三档下面空一段（与块间距同为 26）、单独成一块：「已跳过」（D62 / D63，library-skipped-block > library-skipped；同一行模板；点过「跳过」、至今没有判断记录的字，不计入已练汉字数；点进 library-list {kind:'skipped'}）。
 //   没有记录时 1–4 照常，第 5 块写「已练汉字 0」、三档都是 0（不另做空状态插画与说明句）。
 //   去掉的：写错过 / 快忘了两块、页内「练这些字」、墨墙与图例说明、「还有 N 个字」。
 //   AX（:root[data-ax]）：行内折行（名称与值上下排），不画样字与第二行小字；整页不滚动、不重叠。
@@ -309,6 +309,8 @@ function LibraryScreen() {
         </div>
         <div class="sz-libr__blk sz-libr__blk--flush">
           ${MEMORY_ZONES.map(kind => html`<${ZoneRow} key=${kind} zone=${mem.zones[kind]} getInk=${getInk} />`)}
+        </div>
+        <div class="sz-libr__blk" data-testid="library-skipped-block">
           <${ZoneRow} zone=${skipped} getInk=${getInk} />
         </div>
       </div>

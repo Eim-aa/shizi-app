@@ -233,7 +233,7 @@ export default async function (page, ctx) {
   assert.ok(more && more.queue.length > 0 && more.cursor === 0, 'a fresh group was started');
 
   // ------------------------------------------------------------------ 4. 练习范围
-  step('range row: shows the current library name, same value as settings, opens the switch page');
+  step('range row: shows the current library name, same value as the 我的 page row (D63), opens the switch page');
   await seed(page, { ...seedOf(), settings: { library: 'core3500' } });
   await toTab(page, 'library');
   await page.waitForSelector(topSel('library-range'));
@@ -246,12 +246,11 @@ export default async function (page, ctx) {
   assert.equal((await routerTop(page)).name, 'library-switch', 'range row pushes library-switch');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await waitNavIdle(page);
-  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('settings'));
-  await page.waitForSelector(topSel('settings-library-value'));
-  const setValue = (await page.textContent(topSel('settings-library-value'))).trim();
-  assert.equal(setValue, rangeValue, 'settings 练习范围 shows the same value');
-  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
-  await waitNavIdle(page);
+  await toTab(page, 'mine');
+  await page.waitForSelector(topSel('mine-library-value'));
+  const setValue = (await page.textContent(topSel('mine-library-value'))).trim();
+  assert.equal(setValue, rangeValue, '我的 练习范围 shows the same value');
+  await toTab(page, 'library');
 
   // ------------------------------------------------------------------ 5. 区详情页
   step('zone row pushes the zone page (library-list kind=due|shaky|known) with one primary 练这些字 that starts the group in one tap');

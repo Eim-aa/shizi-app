@@ -118,12 +118,10 @@ export default async function s1SoundSpec(page, ctx) {
   assert.equal((await log(page)).length, logBefore, 'trace strokes: nothing logged');
   assert.equal(requests.length, reqBefore, 'trace strokes: no audio request');
 
-  step('按键音 off: judging and the result page request and play nothing');
+  step('D63: no sound switch — an old settings.sound=false is not read: judging and the result page play as usual');
   await page.evaluate(() => window.__shiziTest.reset());
-  const offReq = requests.length;
   const offStarts = (await starts(page)).length;
   const offLog = (await log(page)).length;
-  // 新页面（模块缓存里的预载已有也不该播放）：关着时判断与落款完全无声
   seeded = await seedSession(page, { id: 's82', kind: 'daily', slot: 'A', chars: ['永'], extraState: { settings: { sound: false } } });
   assert.ok(seeded.ok, 'seeded');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
@@ -133,9 +131,8 @@ export default async function s1SoundSpec(page, ctx) {
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
   await page.waitForTimeout(400);
-  assert.equal((await starts(page)).length, offStarts, 'sound off: nothing played');
-  assert.equal((await log(page)).length, offLog, 'sound off: nothing logged');
-  assert.equal(requests.length, offReq, 'sound off: no audio request');
+  assert.ok((await starts(page)).length > offStarts, 'legacy sound=false: the judge sound still plays');
+  assert.ok((await log(page)).length > offLog, 'legacy sound=false: the sound is logged');
 
   step('the seal: once per result page; not when the group has no ink (plain row, no seal); sounds when the result page is opened directly');
   await page.evaluate(() => window.__shiziTest.reset());

@@ -589,35 +589,31 @@ export default async function a11y(page, realCtx) {
   await audit(page, cdp, ctx, 'detail');
 
   // ================================================================ 我的 / 设置 / 备份
-  ctx.step('mine tab: menu rows are named by their title only; subtitle and value are descriptions');
+  ctx.step('mine tab (D63): rows are named by their title only; the value is the description');
   await switchTab(page, 'mine');
   await audit(page, cdp, ctx, 'mine');
   const rows = {};
-  for (const id of ['mine-menu-settings', 'mine-menu-backup', 'mine-menu-annual', 'mine-menu-about']) {
+  for (const id of ['mine-remind', 'mine-library', 'mine-menu-backup', 'mine-menu-annual', 'mine-menu-about']) {
     rows[id] = await axOf(cdp, `${topSel(id)}`);
   }
-  const titleOf = id => page.evaluate(sel => document.querySelector(sel).querySelector('.sz-mine__rowt').textContent.trim(), topSel(id));
+  const titleOf = id => page.evaluate(sel => document.querySelector(sel).querySelector('.sz-rrow__nm').textContent.trim(), topSel(id));
   for (const id of Object.keys(rows)) {
     assert.equal(rows[id] && rows[id].name, await titleOf(id), `${id}: accessible name is exactly the row title`);
   }
-  const backupSub = await page.textContent(topSel('mine-backup-sub'));
-  const backupValue = (await page.textContent(topSel('mine-backup-value'))).replace(/\s*›\s*$/, '').trim();
-  assert.ok(rows['mine-menu-backup'].description.includes(backupSub.trim()) && rows['mine-menu-backup'].description.includes(backupValue),
-    `mine-menu-backup: subtitle and value are read as the description (${rows['mine-menu-backup'].description})`);
+  const backupValue = (await page.textContent(topSel('mine-backup-value'))).trim();
+  assert.ok(rows['mine-menu-backup'].description.includes(backupValue), `mine-menu-backup: the value is read as the description (${rows['mine-menu-backup'].description})`);
   assert.ok(rows['mine-menu-annual'].description.trim().length > 0, 'mine-menu-annual: the year is read as the description');
+  const seg = await axOf(cdp, topSel('mine-appearance-seg'));
+  assert.ok(seg && seg.role === 'radiogroup' && seg.name === '外观', `appearance segments: a radiogroup named 外观 (${seg && seg.role}, ${seg && seg.name})`);
 
-  ctx.step('settings (+ 外观 sheet)');
-  await page.click(topSel('mine-menu-settings'));
-  await page.waitForSelector(topSel('settings-screen'));
+  ctx.step('remind page');
+  await page.click(topSel('mine-remind'));
+  await page.waitForSelector(topSel('remind-screen'));
   await waitNavIdle(page);
-  await audit(page, cdp, ctx, 'settings');
+  await audit(page, cdp, ctx, 'remind');
   const switches = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [role="switch"]')]
     .map(el => el.getAttribute('aria-checked')));
-  assert.ok(switches.length >= 2 && switches.every(v => v === 'true' || v === 'false'), `switches expose aria-checked (${switches.join(',')})`);
-  if (await page.locator(topSel('settings-appearance')).count()) {
-    await page.click(topSel('settings-appearance'));
-    await dialogCheck(page, cdp, ctx, { label: 'settings/appearance-sheet', panel: tid('settings-appearance-sheet'), opener: 'settings-appearance' });
-  }
+  assert.ok(switches.length >= 1 && switches.every(v => v === 'true' || v === 'false'), `switches expose aria-checked (${switches.join(',')})`);
   await page.goBack();
   await waitTop(page, 'mine');
 

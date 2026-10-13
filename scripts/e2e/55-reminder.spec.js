@@ -12,14 +12,14 @@
 //   3. 冷启动深链（有未完成 B）：走 S02「上一组还有…没写」→「结束那组，开新的」→ B 换成「额」；热启动再点一次通知（「境」，
 //      就绪后直接交付）→ 又一次 S02 →「接着写那组」回到「额」。
 //   4. 触觉 / 声音点位（S1，D50 ⑦）：判断落定 haptic stamp + sound j1 纸页落定（三个变体轮换）；看答案 action；描一遍 select；
-//      描一遍落笔**不出声**（书写 / 描红无声）；写完最后一字进结果页 action + 落款盖章声 s1；按键音关（settings.sound=false）时判断只有触觉没有声音。
+//      描一遍落笔**不出声**（书写 / 描红无声）；写完最后一字进结果页 action + 落款盖章声 s1；旧数据里 settings.sound=false 也照常出声（D63：没有声音开关）时判断只有触觉没有声音。
 
 import {
   HORIZONTAL, bootTestHost, drawStroke, installNativeStub, localDayOf, makeSession, nativeMessages, tid, topSel, waitNavIdle, tap,
 } from './helpers.mjs';
 
 const DAY = 24 * 3600 * 1000;
-const SETTINGS_MOD = '/src/ui/screens/mine/settings.js';
+const SETTINGS_MOD = '/src/ui/screens/mine/remind.js';
 
 function rec(serial, char, judgment, at) {
   return {
@@ -96,7 +96,7 @@ async function lastSync(page) {
 
 async function scenarioSettings(page, ctx) {
   const { assert, step, baseURL } = ctx;
-  step('reminder content: enabling in settings syncs P48 questions (word + pinyin + user time)');
+  step('reminder content: enabling on the reminder page syncs P48 questions (word + pinyin + user time)');
   await installNativeStub(page);
   await bootTestHost(page, baseURL);
   const fx = await seedFixture(page);
@@ -104,12 +104,12 @@ async function scenarioSettings(page, ctx) {
   const jing = await cardInfo(page, '境');
   assert.ok(xian && xian.hasWord && jing && jing.hasWord, 'fixture chars have context words in the deck');
   await page.evaluate(() => { window.__nativeMsgs.length = 0; });
-  await page.evaluate(async mod => (await import(mod)).openSettings(), SETTINGS_MOD);
-  await page.waitForSelector(topSel('settings-screen'));
+  await page.evaluate(async mod => (await import(mod)).openRemind(), SETTINGS_MOD);
+  await page.waitForSelector(topSel('remind-screen'));
   await waitNavIdle(page);
-  assert.equal((await nativeMessages(page, 'syncReminder')).length, 0, 'opening settings does not sync');
+  assert.equal((await nativeMessages(page, 'syncReminder')).length, 0, 'opening the reminder page does not sync');
 
-  await clickSettle(page, 'settings-remind');
+  await clickSettle(page, 'remind-switch');
   const types = (await nativeMessages(page)).map(m => m.type).filter(x => x !== 'backGestureEnabled');
   assert.deepEqual(types, ['requestReminderPermission', 'syncReminder'], 'permission requested, then synced');
   let sync = await lastSync(page);
@@ -127,7 +127,7 @@ async function scenarioSettings(page, ctx) {
   assert.ok(sync.questions.every(q => q.day && q.title && q.body && q.targetCardKey), 'no empty fields (native drops them)');
 
   step('changing the time re-syncs with the user time');
-  await page.fill(topSel('settings-remind-time'), '21:15');
+  await page.fill(topSel('remind-time'), '21:15');
   await page.waitForFunction(() => {
     const s = window.__shiziTest.getState().settings;
     return s && s.remind && s.remind.hour === 21;
@@ -135,7 +135,7 @@ async function scenarioSettings(page, ctx) {
   sync = await lastSync(page);
   assert.deepEqual([sync.hour, sync.minute, sync.questions[1].targetCardKey], [21, 15, 'base:鲜'], 'synced at 21:15, same questions');
 
-  step('native reports granted → stored by the settings page, synced again');
+  step('native reports granted → stored by the reminder logic, synced again');
   const before = (await nativeMessages(page, 'syncReminder')).length;
   assert.equal(await page.evaluate(() => window.shiziReminderStatus({ permission: 'granted' })), true, 'global returns true');
   await page.waitForFunction(() => window.__shiziTest.getState().settings.remind.permission === 'granted');
@@ -321,7 +321,7 @@ async function scenarioFeedback(page, ctx) {
   assert.deepEqual((await hapticsSince(page, n0)).sort(), ['haptic:seal', 'haptic:select', 'sound:s1_wood_muted'], 'last char done → result page: 下一个 is a select (F1), then the rigid seal haptic + the seal sound (once, same frame; C3-R)');
   assert.equal(await topScreen(page), 'result', 'on the result page');
 
-  step('key sound off (settings.sound=false): judge gives the haptic only');
+  step('D63: no sound switch — an old settings.sound=false is not read: judge still gives the haptic and the sound');
   await page.evaluate(() => window.__shiziTest.reset());
   const s2 = makeSession({ id: 's6', slot: 'A', kind: 'daily', chars: ['永', '和'] });
   await page.evaluate(s => window.__shiziTest.seed({ sessions: { A: s, B: null, lastEnded: {} }, settings: { sound: false } }), s2);
@@ -343,7 +343,9 @@ async function scenarioFeedback(page, ctx) {
   await waitNavIdle(page);
   await page.click(topSel('write-judge-wrong'));
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.cursor === '1');
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:light', 'haptic:judge'], 'no key sound when 按键音 is off (haptics unchanged)');
+  const legacy = await hapticsSince(page, n0);
+  assert.deepEqual(legacy.slice(0, 2), ['haptic:light', 'haptic:judge'], 'haptics unchanged');
+  assert.ok(legacy.length === 3 && /^sound:j1_page_settle/.test(legacy[2]), `the old settings.sound=false no longer silences the judge sound (${legacy.join(',')})`);
   await page.evaluate(() => window.__shiziTest.reset());
 }
 

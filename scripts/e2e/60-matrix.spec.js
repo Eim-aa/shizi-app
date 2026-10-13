@@ -172,11 +172,11 @@ const PAGES = [
     keyboard: true,
     primary: ['query-input', 'query-go'],
   },
-  { id: 'mine', go: page => switchTab(page, 'mine'), primary: ['mine-records'] },
+  { id: 'mine', go: page => switchTab(page, 'mine'), primary: ['mine-sheet-head'] },
   { id: 'records', go: page => push(page, 'records'), primary: ['records-prev'] },
   // 阶段 1 P1-E7：月字帖页（本月，长文本种子里有 300 字一年量级的记录）
   { id: 'month', go: page => push(page, 'month'), ready: `${TOP} [data-testid="month-cell"]`, primary: ['month-save'] },
-  { id: 'settings', go: page => push(page, 'settings'), primary: ['.sz-set__row'] },
+  { id: 'remind', go: page => push(page, 'remind'), primary: ['remind-switch'] },
   { id: 'backup', go: page => push(page, 'backup'), primary: ['backup-export'] },
   { id: 'annual', go: page => push(page, 'annual'), primary: ['page-back'] },
   { id: 'about', go: page => push(page, 'about'), primary: ['about-rows'], primaryDeep: true },

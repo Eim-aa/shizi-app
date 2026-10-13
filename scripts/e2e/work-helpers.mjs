@@ -3,7 +3,7 @@
 //   seedWork(page, {kind, chars, steps, ...})   造一组（真实 mutator）并 seed 成「已结束、停在 lastEnded」的会话；返回 {sessionId, slot, records}
 //        steps[i] 对应 chars[i]：'correct' | 'wrong'（有墨）、'correct-noink' | 'wrong-noink'（判断了但没墨）、'skip'、
 //        'seen'（看过答案没写）、'seen-ink'（看过答案后自己写了一遍，墨存在 answer-seen 记录上）、
-//        'paper-correct' | 'paper-wrong'（在纸上写、回来自判：记录 source:'paper'、没有墨，P1-E78）
+//        'paper-correct' | 'paper-wrong'（历史上在纸上写、回来自判的记录：source:'paper'、没有墨，P1-E78；D63 起 App 不再产生，这里手写一条旧记录，用来核对历史展示仍照常）
 //   openResultPage(page, {slot, sessionId})     push 结果页并等 idle
 //   resultSnapshot(page)                        作品 / 行 / 页头分享的现状
 //   seedMonthRecords(page, {month, entries})    往某月塞若干天的有墨 / 无墨记录（月字帖、年报用）
@@ -16,6 +16,7 @@ export async function seedWork(page, { id = 's40', kind = 'daily', slot = 'A', c
     const { appendRecordToDraft } = await import('/src/ui/screens/write/answer.js');
     const { makeRecord } = await import('/src/core/records.js');
     const { advance, createSession, endSlot } = await import('/src/core/sessions.js');
+    const { applyJudgment } = await import('/src/core/fsrs.js');
     const { buildStroke, encodeInk } = await import('/src/core/ink-math.js');
     const { setInk } = await import('/src/store/store.js');
     window.__shiziTest.reset();
@@ -40,7 +41,13 @@ export async function seedWork(page, { id = 's40', kind = 'daily', slot = 'A', c
       } else if (step === 'correct-noink' || step === 'wrong-noink') {
         ids.push(judgeInDraft(draft, { slot: o.slot, cardKey: key, judgment: step.split('-')[0], strokes, at, nextId, perRecordInk: false }).record.id);
       } else if (step === 'paper-correct' || step === 'paper-wrong') {
-        ids.push(judgeInDraft(draft, { slot: o.slot, cardKey: key, judgment: step.split('-')[1], strokes: [], at, nextId, perRecordInk: true, paper: true }).record.id);
+        const rec = makeRecord({ id: nextId('r'), cardKey: key, sessionId: cur.id, kind: 'judged', judgment: step.split('-')[1], at, source: 'paper',
+          help: { hints: 0, answerSeen: false, traced: false } });
+        appendRecordToDraft(draft, rec);
+        const { entry, fsrsBefore } = applyJudgment(draft.sched ? draft.sched[key] : undefined, rec, {});
+        draft.sched = { ...(draft.sched || {}), [key]: entry };
+        draft.sessions[o.slot] = advance(cur, { cardKey: key, recordId: rec.id, kind: 'judged', fsrsBefore, at });
+        ids.push(rec.id);
       } else if (step === 'skip') {
         ids.push(skipInDraft(draft, { slot: o.slot, cardKey: key, at, nextId }).record.id);
       } else {

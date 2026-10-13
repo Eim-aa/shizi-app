@@ -57,8 +57,8 @@ const PAGES = [
   },
   { id: 'result', go: (page, info) => push(page, 'result', { slot: 'B', sessionId: info.resultSessionId }), primary: ['result-leave'] },
   {
-    id: 'settings', go: page => push(page, 'settings'),
-    primary: ['page-back', 'settings-library', 'settings-sound', 'settings-remind', 'settings-appearance', 'settings-backup'],
+    id: 'remind', go: page => push(page, 'remind'),
+    primary: ['page-back', 'remind-switch'],
   },
 ];
 

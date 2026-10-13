@@ -68,7 +68,7 @@ export default async function p1e1bLayout(page, ctx) {
   const near = (a, b, tol = 0.75) => Math.abs(a - b) <= tol;
 
   // ------------------------------------------------------------------ A 页边 20
-  step('A: page gutter is 20 (write, library, mine, settings) and the grid sits on the same edge');
+  step('A: page gutter is 20 (write, library, mine, remind) and the grid sits on the same edge');
   await openWriteAt(page, ctx, { width: 393, height: 852 });
   const pad = await page.evaluate(() => {
     const cs = getComputedStyle(document.querySelector('.sz-layer[data-top="true"] .sz-page__body'));
@@ -99,14 +99,14 @@ export default async function p1e1bLayout(page, ctx) {
     });
     assert.deepEqual(tp, ['20px', '20px'], `${name} tab page: left / right padding 20`);
   }
-  await page.evaluate(async () => { (await import('/src/ui/screens/mine/settings.js')).openSettings(); });
+  await page.evaluate(async () => { (await import('/src/ui/screens/mine/remind.js')).openRemind(); });
   await page.waitForTimeout(700);
   await waitNavIdle(page, { settleMs: 250 });
   const sp = await page.evaluate(() => {
     const cs = getComputedStyle(document.querySelector('.sz-layer[data-top="true"] .sz-page__body'));
     return [cs.paddingLeft, cs.paddingRight];
   });
-  assert.deepEqual(sp, ['20px', '20px'], 'settings page: left / right padding 20');
+  assert.deepEqual(sp, ['20px', '20px'], 'remind page: left / right padding 20');
 
   // ------------------------------------------------------------------ B 判断页上下两格
   // R5M / P298：按钮行下内边距 8 → 24（全 App 主按钮底线），主区矮 16，组顶与两格边长随之变

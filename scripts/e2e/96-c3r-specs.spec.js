@@ -56,32 +56,11 @@ export default async function c3rSpecs(page0, ctx) {
       { char: '酱', at: '2026-10-03T20:00:00' }, { char: '永', at: '2026-10-04T20:30:00' },
     ], clock: '2026-10-05T19:30:00' });
 
-    step(`${v.tag}: 设置的分组标题黑体 13、ink3，下面没有线；比页面标题小`);
-    await go(page, async () => (await import('/src/ui/router.js')).nav.push('settings', {}));
-    await page.waitForSelector(topSel('settings-group-title'));
-    let f = await probe(page);
-    assert.ok(f.settings.length >= 3, `${v.tag}: settings groups`);
-    for (const g of f.settings) {
-      assert.equal(g.size, '13px', `${v.tag}: 「${g.text}」 13px`);
-      assert.ok(!/Songti|STSong|Noto Serif|宋/i.test(g.family) && /apple-system|PingFang/i.test(g.family), `${v.tag}: 「${g.text}」 in the 黑体 stack (${g.family})`);
-      assert.equal(g.color, f.ink3, `${v.tag}: 「${g.text}」 ink3`);
-      assert.equal(g.nextTop, '0px', `${v.tag}: 「${g.text}」 has no rule under it`);
-    }
-    assert.ok(Number.parseFloat(f.pageTitle) >= 15 || f.pageTitle === null, `${v.tag}: the page title is bigger than the group titles (${f.pageTitle})`);
-    assert.deepEqual(f.strokes.filter(s => s !== '1.5'), [], `${v.tag}: settings icons are 1.5`);
-    assert.deepEqual(f.underlined, [], `${v.tag}: nothing underlined on settings`);
-    await go(page, async () => (await import('/src/ui/router.js')).nav.back());
-
-    step(`${v.tag}: 「我的」的分组标题同一规格`);
+    step(`${v.tag}: 「我的」（D63 起没有分组小标题）：图标线宽 1.5，没有下划线`);
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
-    await page.waitForSelector(topSel('mine-week-title'));
-    f = await probe(page);
-    assert.ok(f.mine.length >= 1, `${v.tag}: mine headings`);
-    for (const g of f.mine) {
-      assert.equal(g.size, '13px', `${v.tag}: 「${g.text}」 13px`);
-      assert.ok(!/Songti|STSong|Noto Serif|宋/i.test(g.family), `${v.tag}: 「${g.text}」 not serif (${g.family})`);
-      assert.equal(g.color, f.ink3, `${v.tag}: 「${g.text}」 ink3`);
-    }
+    await page.waitForSelector(topSel('mine-overview'));
+    let f = await probe(page);
+    assert.equal(f.mine.length, 0, `${v.tag}: no small group headings on 我的`);
     assert.deepEqual(f.strokes.filter(s => s !== '1.5'), [], `${v.tag}: mine icons are 1.5`);
     assert.deepEqual(f.underlined, [], `${v.tag}: nothing underlined on mine`);
 

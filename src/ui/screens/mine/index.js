@@ -29,6 +29,7 @@ import { Button } from '../../components/Button.js';
 import { Chevron } from '../../components/Chevron.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { Row, RowBlock } from '../../components/Rows.js';
+import { useAxLevel } from '../../components/ax.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
@@ -56,9 +57,9 @@ injectStyles('mine', `
 .sz-tabpage[data-testid="screen-mine"]{gap:${T.s2}}
 .sz-mine{display:flex;flex-direction:column;min-height:0}
 .sz-mine__ov{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:${T.s3};border-top:${T.hair} solid ${T.line};border-bottom:${T.hair} solid ${T.line}}
-.sz-mine__stat{display:flex;flex-direction:column;gap:2px;min-width:0;padding:${T.s4} 0 ${T.s3} ${T.s4};border-left:${T.hair} solid ${T.line}}
+.sz-mine__stat{display:flex;flex-direction:column;gap:2px;min-width:0;padding:${T.s4} 0 ${T.s3} ${T.s3};border-left:${T.hair} solid ${T.line}}
 .sz-mine__stat:first-child{padding-left:0;border-left:0}
-.sz-mine__val{display:flex;align-items:baseline;gap:${T.s1};font-variant-numeric:tabular-nums;color:${T.ink1}}
+.sz-mine__val{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:${T.s1};font-variant-numeric:tabular-nums;color:${T.ink1}}
 .sz-mine__num{font-size:${T.fs34};line-height:${T.lh34};font-weight:500}
 .sz-mine__unit{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3}}
 .sz-mine__cap{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
@@ -96,9 +97,9 @@ function Overview({ overview }) {
   </div>`;
 }
 
-/** 整月字数 → 「我的」页放几个字：两行（列数按整月字数定，月字帖页同一个规则 sheetColumns）。 */
-export function mineSheetRows(n) {
-  const cols = sheetColumns(n);
+/** 整月字数 → 「我的」页放几个字：两行（列数按整月字数定，月字帖页同一个规则 sheetColumns；AX 档四列，格子随字号放大，设计稿 AX5）。 */
+export function mineSheetRows(n, ax = 0) {
+  const cols = ax > 0 && n > 0 ? Math.min(4, sheetColumns(n)) : sheetColumns(n);
   return { cols, max: cols * 2 };
 }
 
@@ -108,7 +109,8 @@ function Sheet({ model, state }) {
   const title = t('R-P02.sheetTitle', { month: monthNum });
   // D57 · C1：字帖就是月字帖页那一块（MonthBody → MonthPaper：一层框、有几个字几格、日期骑线）；这里只放最近两行，整个标题行进练习记录本月。
   const monthView = useMemo(() => monthModel(state, model.month), [state, model.month]);
-  const { cols, max } = mineSheetRows(monthView.n);
+  const ax = useAxLevel();
+  const { cols, max } = mineSheetRows(monthView.n, ax);
   const { model: shown, truncated } = useMemo(() => mineSheetModel(monthView, max || 1), [monthView, max]);
   return html`<section class="sz-mine__sheetblock" data-testid="mine-sheet" data-month=${sheet.month} data-count=${monthView.n}
     data-shown=${shown.n} data-truncated=${truncated ? 'true' : 'false'} data-days=${sheet.days}>
@@ -117,7 +119,7 @@ function Sheet({ model, state }) {
       <span class="sz-mine__sall" data-testid="mine-sheet-all">${monthView.n ? t('R-M05.sheetAll', { n: monthView.n }) : null}<${Chevron} /></span>
     </${Button}>
     <${MonthBody} model=${shown} testid="mine-sheet-grid" cellTestid="mine-sheet-cell" emptyTestid="mine-sheet-empty"
-      kuanTestid="mine-sheet-sign" sealTestid="mine-sheet-seal" sign=${!truncated} cols=${truncated ? cols : 0} />
+      kuanTestid="mine-sheet-sign" sealTestid="mine-sheet-seal" sign=${!truncated} cols=${truncated || ax > 0 ? cols : 0} />
   </section>`;
 }
 

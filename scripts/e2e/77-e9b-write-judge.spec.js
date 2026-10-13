@@ -462,25 +462,11 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(near(c.wrong.left, 20, 1) && near(c.wrong.right, W - 20, 1), `${tag}: full width`);
   }
 
-  // ------------------------------------------------------------------ 纸上写
-  step('Paper: 在纸上写 — the paper cell and the judge page\'s reference glyph are the writing grid\'s size and place; the slot under it says 「和你纸上的字对照」');
+  // ------------------------------------------------------------------ 旧数据：纸上写（D63 删除功能）
+  step('D63: old settings.writeMode = paper is read as writing on the screen — the usual writing grid, no paper cell, 写好了 needs strokes');
   await boot(page, ctx, { view: { width: 402, height: 874 }, extraState: { settings: { writeMode: 'paper' } } });
-  await page.waitForSelector(topSel('write-paper'));
-  const paperRecall = await geo(page);
-  const gridSize = (await page.$eval(topSel('write-paper'), el => el.getBoundingClientRect())).width;
-  assert.ok(near(gridSize, 362, 1), `the paper cell is the writing grid size (${gridSize})`);
-  const pn = await page.$eval(topSel('write-paper-note'), el => ({ text: el.textContent.trim(), top: el.getBoundingClientRect().top }));
-  assert.equal(pn.text, '这个字记下时会标注「纸上」，不留笔迹。', 'the footnote under the paper cell');
-  await page.click(topSel('write-done'));
-  await page.waitForSelector(topSel('write-compare'));
-  await page.waitForFunction(() => {
-    const r = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-compare-ref"]');
-    return !!r && r.dataset.state === 'ready';
-  });
-  await waitNavIdle(page, { settleMs: 450 });
-  const pj = await geo(page);
-  assert.ok(near(pj.ref.width, 362, 1) && near(pj.ref.top, paperRecall.prompt.bottom + 16, 1.5), `the reference glyph is the writing-grid size, at the writing grid's place (${pj.ref.width}, top ${pj.ref.top.toFixed(1)})`);
-  const aside = await page.$eval(topSel('write-compare-aside-ref'), el => ({ text: el.textContent.trim(), top: el.getBoundingClientRect().top, h: el.getBoundingClientRect().height, fs: parseFloat(getComputedStyle(el).fontSize), color: getComputedStyle(el).color }));
-  assert.deepEqual([aside.text, aside.fs, aside.color], ['和你纸上的字对照', 13, tokenRgb('light', 'ink3')], 'the slot under the reference reads 「和你纸上的字对照」 (13, ink3); no 「标准写法 · 」 side note');
-  assert.ok(near(aside.top, pj.ref.bottom, 1.5) && near(aside.h, 40, 1), 'it sits in the 40-high tools-row place right under the glyph');
+  await page.waitForSelector(topSel('write-grid-live'));
+  assert.equal(await page.locator(topSel('write-paper')).count(), 0, 'no paper cell');
+  assert.equal(await page.locator(topSel('write-paper-note')).count(), 0, 'no 「纸上」 footnote');
+  assert.equal(await page.$eval(topSel('write-done'), el => el.disabled), true, '写好了 is disabled until the learner draws');
 }

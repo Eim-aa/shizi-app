@@ -1,7 +1,7 @@
 // 「名称 …… 值 ›」行与块（D60 字库首页行模板；D63「我的」页用同一套，数值与 library/index.js 的 sz-libr__row 一致）。
 // 字号层级：名称 17 / 500 墨一 · 值 17 墨二 · 数 15 墨三 · 小字 13 墨三。块 = 顶一条发丝线、块内每行底下一条；块与块之间 26。
 // 整行一个 <button>（Button plain：按压反馈、防连点）；AX（:root[data-ax]）：名称与值上下排、箭头靠右居中。
-// 读屏：名称 + 值读成一句（按钮内容顺序）；箭头是装饰。
+// 读屏（M6-1）：按钮的名字只读名称（aria-label），右边的值作为描述（aria-describedby）读在名字之后；箭头是装饰。
 import { html } from '../../../vendor/ui.js';
 import { Button } from './Button.js';
 import { Chevron } from './Chevron.js';
@@ -30,10 +30,12 @@ export function RowBlock({ children, first = false, testid }) {
 
 /** 一行：名称 …… 值 ›。整行一次点击。 */
 export function Row({ testid, name, nameTestid, value = null, valueTestid, onClick, extra = {} }) {
-  return html`<${Button} variant="plain" class="sz-rrow" data-testid=${testid} onClick=${onClick} ...${extra}>
+  const valueId = `sz-${testid}-value`;
+  return html`<${Button} variant="plain" class="sz-rrow" data-testid=${testid} onClick=${onClick} aria-label=${name}
+    aria-describedby=${value === null ? undefined : valueId} ...${extra}>
     <span class="sz-rrow__nm" data-testid=${nameTestid}>${name}</span>
     <span class="sz-rrow__sp"></span>
-    ${value === null ? null : html`<span class="sz-rrow__val" data-testid=${valueTestid}>${value}</span>`}
+    ${value === null ? null : html`<span class="sz-rrow__val" id=${valueId} data-testid=${valueTestid}>${value}</span>`}
     <${Chevron} />
   </${Button}>`;
 }

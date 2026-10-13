@@ -2,7 +2,7 @@
 // 说明位按量到的实际高度算进可用高度（格子缩，不低于 220）。R4-F1（P260 / P261）：底栏回到「写好了」+ 文字行，「⋯」菜单取消，说明始终在格下；
 // R4-P1（D56）：「在纸上写」移到设置，文字行没有它了；读屏建议改成一句话 + 「去设置」。
 // 375×667（SE 3）× AX3 / AX5：
-//   - 读屏开启时第一次进写字页：格下「去设置」建议整块可见（在格子之下、底栏之上）；
+//   - （读屏建议「去设置」随「在纸上写」一并删除，D63）
 //   - 看答案页：后果说明整块可见；
 //   - 判断「写错了」后的下一个字：结果行「修改」可见。
 // 新旧对照：旧实现说明位固定 56，读屏建议（一句话 + 两个 44 高的按钮）下半截落到底栏下面。
@@ -78,11 +78,6 @@ export default async function run(page, ctx) {
   const { assert, step } = ctx;
   for (const size of ['AX3', 'AX5']) {
     const tag = `375×667 ${size}`;
-    step(`${tag}: screen-reader suggestion (text + 去设置) is whole above the foot`);
-    await open(page, ctx, { size, voiceOver: true });
-    await page.waitForSelector(topSel('write-paper-suggest'));
-    await noteVisible(page, ctx, tag, '[data-testid="write-paper-suggest-go"]', { scrollOk: true });
-
     step(`${tag}: the answer note is whole above the foot`);
     await open(page, ctx, { size, current: { phase: 'answer', answerSeen: true } });
     await noteVisible(page, ctx, tag, '');

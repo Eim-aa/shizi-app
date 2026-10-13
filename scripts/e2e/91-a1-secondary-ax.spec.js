@@ -1,5 +1,5 @@
 // R2-A1（A2-03；03 P233）：次级页在 AX 档不叠字。AX5 × 375×667（浅 / 深）+ AX3 × 390×844：
-//   - 「我的」：周条换成一句话（mine-week-summary「写了 n 天」），7 格周条（mine-week-day）不画；「这一周」标题不被挤成一字一行；
+//   - 「我的」（D63）：概览三个数 AX 纵排、标准档并排；外观三段 AX 改成一行 + 弹层；
 //   - 练习记录：月历换成每天一行的列表（records-calendar[data-mode=list]，每个有记录的日子一行「10月3日 · 记了 n 个字」，行数 = 有记录的天数），
 //     点一行把那天写的字展开在该行紧下面、再点收起；没有 7 列月历格；
 //   - 单字详情 / 练习记录当天字的 .sz-scell__tag 不显示；月字帖（D57 · C1）的 .sz-mcell__tag 骑在格线上、不进格内，AX 下照常画；日期也在格的读屏名称里（aria-label 含「10月3日」）；
@@ -83,27 +83,25 @@ export default async function run(page0, ctx) {
     await seedHomeSpec(page, SPEC);
     if (ax) await setTextSize(page, v.size);
 
-    step(`${v.tag}: 「我的」周条`);
+    step(`${v.tag}: 「我的」（D63）：概览与外观行`);
     await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
-    await page.waitForSelector('[data-testid="mine-week-title"]');
+    await page.waitForSelector('[data-testid="mine-overview"]');
     await waitNavIdle(page);
     const mine = await page.evaluate(() => {
       const q = id => document.querySelector(`[data-testid="${id}"]`);
-      const title = q('mine-week-title');
-      const lh = parseFloat(getComputedStyle(title).lineHeight);
+      const stats = ['streak', 'total', 'chars'].map(id => q(`mine-stat-${id}`).getBoundingClientRect());
       return {
-        summary: q('mine-week-summary') ? { text: q('mine-week-summary').textContent.trim(), n: q('mine-week-summary').dataset.n } : null,
-        days: document.querySelectorAll('[data-testid="mine-week-day"]').length,
-        titleLines: Math.round(title.getBoundingClientRect().height / lh),
+        stacked: stats[1].top >= stats[0].bottom - 1 && stats[2].top >= stats[1].bottom - 1, // 纵排
+        mode: q('mine-appearance').dataset.mode || 'seg',
+        hasSeg: !!q('mine-appearance-seg'),
       };
     });
     if (ax) {
-      assert.ok(mine.summary && /^写了 \d+ 天$/.test(mine.summary.text), `${v.tag}: the week strip is one sentence (${mine.summary && mine.summary.text})`);
-      assert.equal(mine.days, 0, `${v.tag}: no 7-cell week strip in AX`);
-      assert.equal(mine.titleLines, 1, `${v.tag}: 「这一周」 is one line, not one character per line (${mine.titleLines})`);
+      assert.equal(mine.stacked, true, `${v.tag}: the three numbers stack in AX`);
+      assert.deepEqual([mine.mode, mine.hasSeg], ['pick', false], `${v.tag}: the segmented control becomes a one-line row in AX`);
     } else {
-      assert.equal(mine.summary, null, `${v.tag}: no sentence at standard size`);
-      assert.equal(mine.days, 7, `${v.tag}: the 7-cell week strip is unchanged at standard size`);
+      assert.equal(mine.stacked, false, `${v.tag}: the three numbers sit side by side at standard size`);
+      assert.deepEqual([mine.mode, mine.hasSeg], ['seg', true], `${v.tag}: the segmented control at standard size`);
     }
     let rep = await page.evaluate(overlapReport);
     assert.deepEqual(rep.bad, [], `${v.tag}: mine page has no overlapping text (${rep.nTexts} text boxes)`);

@@ -64,26 +64,6 @@ export default async function run(page, ctx) {
       assert.equal(title.fs, AUX.title[tier], `${tag}: title 「${title.text}」 ${title.fs}`);
       assert.ok(title.sh <= title.h + 1 && title.sw <= title.cw + 1, `${tag}: the title is not cut off (${title.sw}×${title.sh} in ${title.cw}×${title.h})`);
       assert.ok(title.h <= 2 * title.lh + 1, `${tag}: at most two lines`);
-
-      step(`${tag} paper: the in-grid text is ${AUX.paper[tier]} and stays inside the paper cell`);
-      await open(page, ctx, { view, size, current: { paper: true } });
-      const p = await page.evaluate(() => {
-        const top = document.querySelector('.sz-layer[data-top="true"]');
-        const paper = top.querySelector('[data-testid="write-paper"]').getBoundingClientRect();
-        const els = [...top.querySelectorAll('.sz-paper__title, .sz-paper__text, .sz-paper__back')];
-        return {
-          fs: els.map(e => parseFloat(getComputedStyle(e).fontSize)),
-          gfit: !!top.querySelector('.sz-write[data-gfit]'),
-          inside: els.every(e => {
-            const r = e.getBoundingClientRect();
-            return r.top >= paper.top - 0.5 && r.bottom <= paper.bottom + 0.5 && r.left >= paper.left - 0.5 && r.right <= paper.right + 0.5;
-          }),
-        };
-      });
-      // P299（R5M）：格子让步到 220 以下（SE AX3–AX5）时格内文字回到 22 一档
-      const want = p.gfit ? AUX.paper[0] : AUX.paper[tier];
-      assert.ok(p.fs.length >= 2 && p.fs.every(v => v === want), `${tag}: paper text ${p.fs.join(' / ')} (want ${want}${p.gfit ? ', the grid gave way' : ''})`);
-      assert.ok(p.inside, `${tag}: the paper text stays inside the paper cell`);
     }
   }
 }

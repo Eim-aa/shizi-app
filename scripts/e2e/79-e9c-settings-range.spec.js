@@ -37,33 +37,26 @@ export default async function (page, ctx) {
   assert.ok(!/更换字库/.test(await page.textContent(topSel('library-home'))), 'no 更换字库 text');
   const wallBefore = await zoneCounts(page);
 
-  ctx.step('设置 › 练习 › 练习范围: first row of the group, shows the library name; opens the switch page; the switch returns to settings with the new name');
+  ctx.step('我的 › 练习范围 (D63): a row of its own, shows the library name; opens the switch page; the switch returns to 我的 with the new name');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'mine');
   await waitNavIdle(page);
-  await page.click(topSel('mine-menu-settings'));
-  await page.waitForSelector(topSel('settings-screen'));
-  await waitNavIdle(page);
   const rows = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
-    const group = top.querySelector('[data-testid="settings-group"][data-group="practice"]');
-    const first = group.querySelector('.sz-set__row');
-    return {
-      groupTitle: group.querySelector('[data-testid="settings-group-title"]').textContent.trim(), firstTestid: first.dataset.testid,
-      text: first.innerText.replace(/\s+/g, ' ').trim(), lib: first.dataset.library, tag: first.tagName, h: first.getBoundingClientRect().height,
-    };
+    const row = top.querySelector('[data-testid="mine-library"]');
+    return { text: row.innerText.replace(/\s+/g, ' ').trim(), lib: row.dataset.library, tag: row.tagName, h: row.getBoundingClientRect().height };
   });
-  assert.deepEqual([rows.groupTitle, rows.firstTestid, rows.lib, rows.tag], ['练习', 'settings-library', 'core3500', 'BUTTON'], 'the 练习 group starts with the 练习范围 row (a button)');
+  assert.deepEqual([rows.lib, rows.tag], ['core3500', 'BUTTON'], 'the 练习范围 row is a button');
   assert.equal(rows.text, '练习范围 常用字', 'the row reads 练习范围 + the library name');
   assert.ok(rows.h >= 44, `the row is at least 44 high (${rows.h})`);
-  await page.click(topSel('settings-library'));
+  await page.click(topSel('mine-library'));
   await page.waitForSelector(topSel('libswitch-screen'));
   await waitNavIdle(page);
   await page.click(`${topSel('libswitch-row')}[data-lib="rare"]`);
-  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'settings');
+  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'mine');
   await waitNavIdle(page);
-  assert.equal(await page.textContent(topSel('settings-library-value')), '少见字', 'back in settings the row shows the new library');
-  assert.equal(await page.getAttribute(topSel('settings-library'), 'data-library'), 'rare', 'data-library follows');
+  assert.equal(await page.textContent(topSel('mine-library-value')), '少见字', 'back on 我的 the row shows the new library');
+  assert.equal(await page.getAttribute(topSel('mine-library'), 'data-library'), 'rare', 'data-library follows');
   assert.equal(await page.evaluate(() => window.__shiziTest.getState().settings.library), 'rare', 'settings.library written through the existing switch flow');
 
   ctx.step('the library page follows the switch: the range row shows the new library, the zones are unchanged');

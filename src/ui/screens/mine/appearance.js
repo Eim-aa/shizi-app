@@ -25,7 +25,7 @@ export const APPEARANCE_OVERLAY = 'mine-appearance';
 
 injectStyles('mine-appearance', `
 .sz-seg{flex:none;display:flex;padding:2px;border-radius:${T.rCtl};background:${T.field};min-width:0}
-.sz-seg__opt.sz-btn{flex:none;min-height:44px;padding:0 ${T.s3};border-radius:calc(${T.rCtl} - 2px);display:flex;align-items:center;justify-content:center;
+.sz-seg__opt.sz-btn{flex:none;min-height:44px;padding:0 ${T.s3};border-radius:calc(${T.rCtl} - 3px);display:flex;align-items:center;justify-content:center;
   font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2};white-space:nowrap}
 .sz-seg__opt[aria-checked="true"]{background:${T.sheet};color:${T.ink1};font-weight:500;box-shadow:0 0 0 ${T.hair} ${T.line}}
 .sz-rrow--seg{padding:${T.s1} 0}

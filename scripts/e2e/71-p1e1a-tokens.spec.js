@@ -222,7 +222,7 @@ async function visitPages(page, scheme, ctx) {
   await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.back(); });
   await page.waitForTimeout(600);
 
-  step(`${scheme}: library, mine, settings`);
+  step(`${scheme}: library, mine, remind`);
   await page.evaluate(({ iso, s }) => { window.__shiziTest.reset(); window.__shiziTest.setClock(iso); const r = window.__shiziTest.seed(s); if (!r.ok) throw new Error(JSON.stringify(r)); }, { iso: `${TODAY}T09:00:00`, s: seedLibrary() });
   await page.waitForTimeout(300);
   await tab(page, 'library');
@@ -240,10 +240,10 @@ async function visitPages(page, scheme, ctx) {
   await tab(page, 'mine');
   await page.waitForTimeout(500);
   await check('mine', { sheets: '.sz-month__sheet' }); // D57 · C1：字帖格是一张笺面（没有 .sz-mine__paper 卡片了）
-  await page.evaluate(async () => { (await import('/src/ui/screens/mine/settings.js')).openSettings(); });
+  await page.evaluate(async () => { (await import('/src/ui/screens/mine/remind.js')).openRemind(); });
   await page.waitForTimeout(700);
   await waitNavIdle(page, { settleMs: 250 });
-  await check('settings');
+  await check('remind');
   await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.back(); });
   await page.waitForTimeout(500);
 }

@@ -35,9 +35,9 @@ async function textButtons(page) {
   });
 }
 
-async function checkPage(page, assert, label) {
+async function checkPage(page, assert, label, { allowNone = false } = {}) {
   const r = await textButtons(page);
-  assert.ok(r.rows.length > 0, `${label}: at least one text button on screen`);
+  if (!allowNone) assert.ok(r.rows.length > 0, `${label}: at least one text button on screen`);
   for (const row of r.rows) {
     assert.ok(row.ok, `${label} · ${row.id}: 15px / ink2 / no underline (got ${row.size} ${row.color} ${row.underline})`);
   }
@@ -91,13 +91,13 @@ export default async function run(page0, ctx) {
     await checkPage(page, assert, `${scheme} library-all`);
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
-    await page.waitForSelector(topSel('mine-records'));
-    await checkPage(page, assert, `${scheme} mine`);
-    await go(page, async () => (await import('/src/ui/router.js')).nav.push('settings', {}));
-    await page.waitForSelector(tid('settings-body') + ', ' + topSel('settings-open-system') + ', .sz-layer[data-top="true"] .sz-page');
-    // 设置页（通知没被关时）可能没有文字按钮——有就核对，没有不算失败
+    await page.waitForSelector(topSel('mine-sheet-head'));
+    await checkPage(page, assert, `${scheme} mine`, { allowNone: true }); // D63：我的页没有文字按钮了（整行是按钮）
+    await go(page, async () => (await import('/src/ui/router.js')).nav.push('remind', {}));
+    await page.waitForSelector(tid('remind-body') + ', ' + topSel('remind-open-system') + ', .sz-layer[data-top="true"] .sz-page');
+    // 提醒页（通知没被关时）可能没有文字按钮——有就核对，没有不算失败
     const set = await textButtons(page);
-    for (const row of set.rows) assert.ok(row.ok, `${scheme} settings · ${row.id}: 15px / ink2 / no underline`);
+    for (const row of set.rows) assert.ok(row.ok, `${scheme} remind · ${row.id}: 15px / ink2 / no underline`);
     if (page !== page0) await page.close();
   }
 }

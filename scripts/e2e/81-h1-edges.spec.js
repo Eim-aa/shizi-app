@@ -1,7 +1,7 @@
 // H1-2（T2-01、D51 ⑥、设计说明「页边 20」）：页头尾端、文字按钮、内容的右边线统一落在 20pt 页边线（右 = 屏宽 − 20）；左边线 20。
 // 逐页量「可见字形的外缘」（文字用 Range 的行盒，图标用 path 几何盒，加 / 减描边半宽 0.75）：
 //   写字页：页头尾端（跳过）右缘、提示 / 看答案整行的左 / 右缘（A7 起是凹面按钮盒）、页头返回箭头左缘（在纸上写已移到设置，D56）；
-//   清单页：页头尾端「全选 / 全不选」右缘；字库：「练这些字」右缘；我的：「练习记录 ›」「保存图片」右缘；
+//   清单页：页头尾端「全选 / 全不选」右缘；字库：「练这些字」右缘；我的：字帖标题行「全部 N 字 ›」右缘（D63）；
 //   有记录的字：「练这些字」左缘；详情 / 设置：返回箭头左缘、主按钮 20..W−20。
 // 393×852 与 375×667 各一遍。
 import { bootTestHost, openWrite, seedSession, topSel, waitNavIdle } from './helpers.mjs';
@@ -102,10 +102,10 @@ export default async function run(page0, ctx) {
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
     await rightOf(`${tag} library 全部 ›`, topSel('library-all-open'));
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
-    await rightOf(`${tag} mine 练习记录 ›`, topSel('mine-records'));
-    await rightOf(`${tag} mine 保存图片`, topSel('mine-sheet-save'));
-    await go(page, async () => (await import('/src/ui/router.js')).nav.push('settings', {}));
-    await leftOf(`${tag} settings 返回箭头`, topSel('page-back'));
+    const headRight = await page.evaluate(sel => ({ r: document.querySelector(sel).getBoundingClientRect().right, w: window.innerWidth }), topSel('mine-sheet-head'));
+    assert.ok(near(headRight.r, headRight.w - 20), `${tag} mine 字帖标题行（含 ›）右缘 ${headRight.r.toFixed(1)} = ${headRight.w - 20}`);
+    await go(page, async () => (await import('/src/ui/router.js')).nav.push('remind', {}));
+    await leftOf(`${tag} remind 返回箭头`, topSel('page-back'));
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());
     await go(page, async () => (await import('/src/ui/router.js')).nav.push('library-all', { filter: 'wrong' }));
     await leftOf(`${tag} all 看这些字 ›`, topSel('all-list'));

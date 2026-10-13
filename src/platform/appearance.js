@@ -9,7 +9,7 @@
 //
 // 启动：app.js 在 store 建好、挂 UI 之前调用 startAppearance()（一行接入），先按存下的设置应用一次，
 // 再订阅 store：只有 appearance 的值真变了才改属性——seed / reset 等不涉及它的通知不碰 <html>
-// （测试里手动设的 data-theme 不会被冲掉）。设置页（ui/screens/mine/settings.js）只写 store，不碰 DOM。
+// （测试里手动设的 data-theme 不会被冲掉）。设置页（ui/screens/mine/prefs.js）只写 store，不碰 DOM。
 import * as policy from '../config/policy.js';
 
 export const APPEARANCES = Object.freeze(['light', 'dark', 'auto']);

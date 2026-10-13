@@ -67,7 +67,7 @@ async function mountApp() {
   await mountRoot(container);
   mark('mounted');
   requestAnimationFrame(() => requestAnimationFrame(() => mark('first-frame')));
-  await import('./ui/screens/mine/settings.js').then(m => m.clearLegacyLargeFlag()).catch(error => console.warn('[shizi] legacy large flag failed:', error)); // P1-E6 / D29 / P132 / D58：v1 迁移带来的 large=true 静默去掉，不弹说明
+  await import('./ui/screens/mine/prefs.js').then(m => m.clearLegacyLargeFlag()).catch(error => console.warn('[shizi] legacy large flag failed:', error)); // P1-E6 / D29 / P132 / D58：v1 迁移带来的 large=true 静默去掉，不弹说明
   await import('./platform/accessibility.js').catch(error => console.warn('[shizi] accessibility status setup failed:', error)); // 阶段 0 B2 / P116：注册读屏状态的桥实现（markReady 之前，pageReady 时原生才发状态）
   await import('./platform/reminder.js').then(m => m.startReminder()).catch(error => console.warn('[shizi] reminder setup failed:', error)); // M5-5：注册提醒桥实现 → bridge.markReady(store) 回放积压调用（冷启动深链）→ 提醒同步（01 §8.1）
   await import('./platform/bridge.js').then(async b => { try { b.markReady((await import('./store/store.js')).getStore()); } finally { mark('ready'); b.postNative('pageReady', {}); } }).catch(error => console.warn('[shizi] native pageReady failed:', error)); // M5-3：markReady（幂等，回放积压的原生调用）之后 postMessage pageReady，原生这时才派发提醒深链（01 §2、§8.2）

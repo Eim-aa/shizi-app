@@ -40,8 +40,6 @@ ${W} .sz-write__hint .sz-hintbtn{white-space:normal}
 ${W} .sz-judge__btns,${W} .sz-judge__fail{grid-template-columns:minmax(0,1fr)}
 ${W} .sz-judge__btn{min-height:calc(1.3em + 28px)}
 ${A} .sz-home .sz-home__date,${A} .sz-home .sz-home__line,${A} .sz-home .sz-home__other.sz-btn{white-space:normal}
-${A} .sz-set__row.sz-set__row--value{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
-${A} .sz-set__row--value .sz-set__value{flex-wrap:wrap;max-width:100%}
 `;
 
 /** 当前 AX 档位 1–5（不在 AX 档为 0）；系统字号变化时更新。需要 JS 改结构的页面用它（首页首次打开的横排题跋、AX 档字帖格宽）；纯样式差异用 :root[data-ax]。 */

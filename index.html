@@ -8,7 +8,7 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4EFE6">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1B1814">
 <meta name="description" content="每天练几个容易提笔忘掉的汉字，把这些字重新写熟。">
-<meta name="shizi-asset-build" content="20261013-03abef72d64a">
+<meta name="shizi-asset-build" content="20261013-3aaa828bcb0b">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,7 +36,7 @@
 <link rel="modulepreload" href="src/ui/screens/block/index.js">
 <link rel="modulepreload" href="src/platform/appearance.js">
 <link rel="modulepreload" href="src/ui/root.js">
-<link rel="modulepreload" href="src/ui/screens/mine/settings.js">
+<link rel="modulepreload" href="src/ui/screens/mine/prefs.js">
 <link rel="modulepreload" href="src/platform/accessibility.js">
 <link rel="modulepreload" href="src/platform/reminder.js">
 <link rel="modulepreload" href="src/platform/sw.js">
@@ -69,18 +69,14 @@
 <link rel="modulepreload" href="src/ui/screens/detail/index.js">
 <link rel="modulepreload" href="src/ui/images-entry.js">
 <link rel="modulepreload" href="src/ui/screens/mine/about.js">
+<link rel="modulepreload" href="src/ui/screens/mine/remind.js">
 <link rel="modulepreload" href="src/ui/screens/mine/backup.js">
 <link rel="modulepreload" href="src/ui/screens/mine/annual.js">
 <link rel="modulepreload" href="src/ui/components/corrupt-notice.js">
 <link rel="modulepreload" href="src/ui/screens/write/skip.js">
 <link rel="modulepreload" href="src/ui/components/ax.js">
 <link rel="modulepreload" href="src/ui/route-memory.js">
-<link rel="modulepreload" href="src/ui/components/Page.js">
-<link rel="modulepreload" href="src/ui/components/icons.js">
-<link rel="modulepreload" href="src/ui/components/Chevron.js">
-<link rel="modulepreload" href="src/ui/components/Sheet.js">
 <link rel="modulepreload" href="src/data/deck.js">
-<link rel="modulepreload" href="src/core/paper.js">
 <link rel="modulepreload" href="src/core/records.js">
 <link rel="modulepreload" href="src/core/session-start.js">
 <link rel="modulepreload" href="src/build-info.js">
@@ -115,6 +111,8 @@
 <link rel="modulepreload" href="src/ui/screens/home/today.js">
 <link rel="modulepreload" href="src/ui/screens/home/copybook.js">
 <link rel="modulepreload" href="src/ui/screens/write/index.js">
+<link rel="modulepreload" href="src/ui/components/Page.js">
+<link rel="modulepreload" href="src/ui/components/Chevron.js">
 <link rel="modulepreload" href="src/ui/screens/library/model.js">
 <link rel="modulepreload" href="src/ui/screens/library/list-model.js">
 <link rel="modulepreload" href="src/ui/screens/library/wall.js">
@@ -123,9 +121,12 @@
 <link rel="modulepreload" href="src/ui/screens/library/all.js">
 <link rel="modulepreload" href="src/ui/screens/library/query-entry.js">
 <link rel="modulepreload" href="src/ui/components/EmptyState.js">
+<link rel="modulepreload" href="src/ui/components/Rows.js">
+<link rel="modulepreload" href="src/core/images/layout.js">
 <link rel="modulepreload" href="src/ui/screens/mine/model.js">
 <link rel="modulepreload" href="src/ui/screens/mine/records.js">
 <link rel="modulepreload" href="src/ui/screens/mine/month.js">
+<link rel="modulepreload" href="src/ui/screens/mine/appearance.js">
 <link rel="modulepreload" href="src/ui/components/PracticeGlyph.js">
 <link rel="modulepreload" href="src/ui/components/UndoBar.js">
 <link rel="modulepreload" href="src/core/query.js">
@@ -136,7 +137,6 @@
 <link rel="modulepreload" href="src/ui/screens/detail/photos.js">
 <link rel="modulepreload" href="src/core/images/pick.js">
 <link rel="modulepreload" href="src/core/images/glyph-layout.js">
-<link rel="modulepreload" href="src/core/images/layout.js">
 <link rel="modulepreload" href="src/core/images/render.js">
 <link rel="modulepreload" href="src/data/strokes.js">
 <link rel="modulepreload" href="src/ui/canvas/brush.js">
@@ -150,6 +150,7 @@
 <link rel="modulepreload" href="src/ui/image-quick.js">
 <link rel="modulepreload" href="src/ui/components/work.js">
 <link rel="modulepreload" href="src/ui/screens/mine/annual-model.js">
+<link rel="modulepreload" href="src/ui/components/icons.js">
 <link rel="modulepreload" href="src/core/sessions.js">
 <link rel="modulepreload" href="src/ui/screens/write/answer.js">
 <link rel="modulepreload" href="src/core/new-order.js">
@@ -166,12 +167,12 @@
 <link rel="modulepreload" href="src/ui/screens/write/result-row.js">
 <link rel="modulepreload" href="src/ui/screens/write/persist.js">
 <link rel="modulepreload" href="src/ui/screens/write/end.js">
-<link rel="modulepreload" href="src/ui/screens/write/paper.js">
 <link rel="modulepreload" href="src/ui/screens/write/first-tip.js">
 <link rel="modulepreload" href="src/ui/screens/write/foot.js">
 <link rel="modulepreload" href="src/ui/screens/write/phase-fade.js">
 <link rel="modulepreload" href="src/ui/screens/write/sr-live.js">
 <link rel="modulepreload" href="src/ui/screens/home/ink-row.js">
+<link rel="modulepreload" href="src/ui/components/Sheet.js">
 <link rel="modulepreload" href="src/ui/screens/library/all-model.js">
 <link rel="modulepreload" href="src/core/ink-pick.js">
 <link rel="modulepreload" href="src/core/work-members.js">

@@ -69,7 +69,7 @@ test('every former failure shape now goes through FailBlock (P1-24 – P1-32)', 
   const users = [
     'src/ui/screens/write/end.js', 'src/ui/screens/write/result-row.js', 'src/ui/screens/write/persist.js', 'src/ui/screens/session/s02.js',
     'src/ui/screens/library/switch.js', 'src/ui/screens/library/list.js', 'src/ui/screens/library/all.js', 'src/ui/screens/result/index.js',
-    'src/ui/screens/result/first.js', 'src/ui/screens/mine/settings.js', 'src/ui/screens/mine/backup.js', 'src/ui/screens/block/index.js',
+    'src/ui/screens/result/first.js', 'src/ui/screens/mine/remind.js', 'src/ui/screens/mine/appearance.js', 'src/ui/screens/mine/backup.js', 'src/ui/screens/block/index.js',
     'src/ui/screens/detail/actions.js', 'src/ui/components/image-preview.js', 'src/ui/components/query/CharCard.js', 'src/ui/components/query/QuerySheet.js',
   ];
   for (const f of users) assert.match(read(f), /components\/FailBlock\.js|\.\.\/FailBlock\.js|'\.\/FailBlock\.js'/, `${f} imports the shared FailBlock`);

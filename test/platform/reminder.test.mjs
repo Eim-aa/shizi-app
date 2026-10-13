@@ -261,7 +261,7 @@ test('inviteReminder (点「好」): one settings commit turns the reminder on a
   const { createStorage } = await import('../../src/store/storage.js');
   const { MemoryStorage } = await import('../store/helpers.mjs');
   const { inviteReminder, inviteChangeTime } = await import('../../src/platform/reminder.js');
-  const settings = await import('../../src/ui/screens/mine/settings.js');
+  const settings = await import('../../src/ui/screens/mine/prefs.js');
   const syncs = [];
   settings.setReminderSync(remind => syncs.push({ ...remind }));
   try {

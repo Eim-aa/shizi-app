@@ -27,7 +27,7 @@ import { cardForKey } from '../../../data/deck.js';
 import {
   commitInviteAnswer, commitInviteShown, daysLaterLine, daysLaterText, inviteDecision, inviteTime, inviteTimeText, reviewDays,
 } from '../../../core/first-result.js';
-import { parseTime, settingsView } from '../mine/settings.js';
+import { parseTime, settingsView } from '../mine/prefs.js';
 
 /** 提醒邀请在作品落定（印落下）后多久淡入（ms，设计稿 §三；motion.moment.inviteDelay）。 */
 export const INVITE_DELAY_MS = M.moment.inviteDelay;

@@ -610,7 +610,7 @@ extension WebViewController {
           result.reject.noReload = window.__shiziSmokeNoReload === progress.token;
 
           step('reminder');
-          const settings = await import('/src/ui/screens/mine/settings.js');
+          const settings = await import('/src/ui/screens/mine/prefs.js');
           n = events().length;
           const sent = settings.syncReminder({ enabled: true, hour: 20, minute: 30, permission: 'granted' });
           const synced = await nativeEvent('syncReminder', n);
@@ -887,7 +887,7 @@ extension WebViewController {
         if (STAGE === 'cleanup') {
           step('cleanup');
           await booted();
-          const settings = await import('/src/ui/screens/mine/settings.js');
+          const settings = await import('/src/ui/screens/mine/prefs.js');
           const n = events().length;
           const sent = settings.syncReminder({ enabled: false, hour: 20, minute: 30, permission: 'granted' });
           const synced = await nativeEvent('syncReminder', n);

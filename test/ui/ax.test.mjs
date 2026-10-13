@@ -15,11 +15,10 @@ test('every AX rule is scoped to :root[data-ax][data-text-large] (never touches 
   }
 });
 
-test('AX rules cover the card list: page title wraps, write / judge buttons stack, settings value rows stack, buttons take --btn-h (D49)', () => {
+test('AX rules cover the card list: page title wraps, write / judge buttons stack, buttons take --btn-h (D49)', () => {
   assert.match(AX_CSS, /\.sz-page__title\{[^}]*white-space:normal/);
   assert.match(AX_CSS, /\.sz-btn--text\{min-height:max\(44px, calc\(1\.3em \+ 12px\)\);white-space:normal;line-break:strict/);
   assert.match(AX_CSS, /\.sz-judge__btns,[^{]*\{grid-template-columns:minmax\(0,1fr\)/);
-  assert.match(AX_CSS, /\.sz-set__row--value\{flex-direction:column/);
   assert.match(AX_CSS, /\.sz-btn--primary,[^{]*\{min-height:var\(--btn-h\)/, 'D49: button min height = --btn-h (AX tier: max(54, lh17 + 26), 88 at AX5)');
 });
 
@@ -33,7 +32,7 @@ test('D49: the tab bar does not grow in AX — no AX rule touches .sz-tabs and T
   assert.ok(!/::after/.test(tabs), 'no selected dot (D49)');
 });
 
-test('ax.js is loaded once by the root and the settings value rows carry the AX hook class', () => {
+test('ax.js is loaded once by the root; the shared 名称 …… 值 › rows (D63) carry their own AX rule', () => {
   assert.match(readFileSync(new URL('../../src/ui/root.js', import.meta.url), 'utf8'), /import '\.\/components\/ax\.js';/);
-  assert.match(readFileSync(new URL('../../src/ui/screens/mine/settings.js', import.meta.url), 'utf8'), /class="sz-set__row sz-set__row--value"/);
+  assert.match(readFileSync(new URL('../../src/ui/components/Rows.js', import.meta.url), 'utf8'), /:root\[data-ax\] \.sz-rrow\{flex-wrap:wrap/);
 });

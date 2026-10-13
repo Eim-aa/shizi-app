@@ -301,7 +301,7 @@ export async function startReminder({ win = globalWin(), bridge: b = defaultBrid
   if (running) return running.controller;
   const [{ getStore }, settings, session, routeMemory] = await Promise.all([
     import('../store/store.js'),
-    import('../ui/screens/mine/settings.js'),
+    import('../ui/screens/mine/prefs.js'),
     import('../ui/screens/session/index.js'),
     import('../ui/route-memory.js'),
   ]);
@@ -371,7 +371,7 @@ export function reminderController() {
  * @returns {Promise<{ok:true, requested:boolean} | {ok:false, error}>}  requested = 这次真的发出了系统权限请求（原生壳内且还没授权）
  */
 export async function inviteReminder(store, { hour, minute }) {
-  const settings = await import('../ui/screens/mine/settings.js');
+  const settings = await import('../ui/screens/mine/prefs.js');
   const result = settings.commitSettings(store, settings.LABELS.remind, { remind: { enabled: true, hour, minute } });
   if (!result.ok) return result;
   const remind = settings.settingsView(store.getState().settings).remind;
@@ -382,7 +382,7 @@ export async function inviteReminder(store, { hour, minute }) {
 
 /** 邀请块里的「改时间」。 */
 export async function inviteChangeTime(store, { hour, minute }) {
-  const settings = await import('../ui/screens/mine/settings.js');
+  const settings = await import('../ui/screens/mine/prefs.js');
   const result = settings.commitRemindTime(store, hour, minute);
   if (!result.ok) return result;
   settings.syncReminder(settings.settingsView(store.getState().settings).remind);

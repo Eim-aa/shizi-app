@@ -16,7 +16,7 @@ const REMOVED = [
   ['P0-10', 'R-H05.oldGroupSavedToast', ['src/ui/screens/session/index.js']],
   ['P0-11', 'R-W15.zeroToast', ['src/ui/screens/write/end.js']],
   ['P0-12', 'R-B06.cancelled', ['src/ui/screens/mine/backup.js']],
-  ['P0-13', 'X-SETTINGS.textSizeNotice', ['src/ui/screens/mine/settings.js', 'src/app.js']],
+  ['P0-13', 'X-SETTINGS.textSizeNotice', ['src/ui/screens/mine/prefs.js', 'src/app.js']],
   ['P0-14', 'R-Q05.added', ['src/ui/components/query/QuerySheet.js']],
 ];
 
@@ -50,5 +50,5 @@ test('P0-08 / P0-09 / P0-10 / P0-11 / P0-14: the screens no longer import the to
 });
 
 test('P0-13: no start-up notice about text size; the legacy large flag is still cleared silently', () => {
-  assert.ok(!/showTextSizeNoticeOnce|TEXT_SIZE_NOTICE_MS/.test(read('src/app.js') + read('src/ui/screens/mine/settings.js')));
+  assert.ok(!/showTextSizeNoticeOnce|TEXT_SIZE_NOTICE_MS/.test(read('src/app.js') + read('src/ui/screens/mine/prefs.js')));
 });

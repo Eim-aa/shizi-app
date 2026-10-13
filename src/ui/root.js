@@ -57,7 +57,7 @@ import './screens/mine/index.js';
 import './screens/detail/index.js'; // M3-6 单字详情（'detail' / 'detail-photo'）：各入口按屏名 push，刷新时也要能恢复
 import './images-entry.js'; // M4-5 图片：向结果页 / 单字详情 / 我的注册「做图片」去处（没注册时入口不显示）
 import './screens/mine/about.js'; // M4-6 关于（'about' 与三个子页）：「我的」菜单按屏名 push，刷新时也要能恢复
-import './screens/mine/settings.js'; // M4-3 设置（'settings'）：「我的」菜单按屏名 push，刷新时也要能恢复
+import './screens/mine/remind.js'; // D63 提醒页（'remind'）：「我的」提醒行按屏名 push，刷新时也要能恢复
 import './screens/mine/backup.js'; // M4-4 备份与恢复（'backup'）：菜单 / 设置按屏名 push；刷新后仍在本页要能恢复撤销（P32）；原生备份桥注册
 import './screens/mine/annual.js'; // M4-2 年度报告（'annual'）：「我的」菜单按屏名 push，刷新时也要能恢复
 import { BlockScreen, useBlockReason } from './screens/block/index.js'; // M5-6 R-B09：存储不可用 / 阻断 / 迁移失败时只画阻断页

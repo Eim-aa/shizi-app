@@ -30,7 +30,7 @@ test('只有弹层自己已有等价可见出口的决策弹层才传 dismiss="o
   for (const [f, id] of own) assert.match(read(f), new RegExp(`testid="${id}" dismiss="own"`), `${f}`);
   const withDone = [
     'src/ui/screens/library/all.js', 'src/ui/screens/detail/records.js',
-    'src/ui/screens/mine/settings.js', 'src/ui/components/query/QuerySheet.js', 'src/ui/components/image-preview.js',
+    'src/ui/screens/mine/appearance.js', 'src/ui/components/query/QuerySheet.js', 'src/ui/components/image-preview.js',
   ];
   for (const f of withDone) assert.doesNotMatch(read(f), /dismiss="own"/, `${f}: 沿用默认的「完成」`);
 });

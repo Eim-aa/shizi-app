@@ -60,14 +60,14 @@
     },
     {
       "path": "assets/ShiziSerifSC-Regular.ttf",
-      "bytes": 415116,
-      "KiB": 405.387,
-      "MiB": 0.395885,
-      "sha256": "59db3d73c0c80f93a6f4a6f220d7b21afd81d2b459a2fda0c9a0aa67870cdff7",
+      "bytes": 413560,
+      "KiB": 403.867,
+      "MiB": 0.394402,
+      "sha256": "c73b0e9727a236e7680f7c806edb838c07ec04ba810eafec2661f1702e14cb59",
       "family": "ShiziSerifSC",
       "weight": 400,
-      "glyphs": 1377,
-      "cmap_count": 954,
+      "glyphs": 1374,
+      "cmap_count": 951,
       "GSUB": [
         "aalt",
         "ccmp",
@@ -92,14 +92,14 @@
     },
     {
       "path": "assets/ShiziSerifSC-Regular.woff2",
-      "bytes": 185024,
-      "KiB": 180.688,
-      "MiB": 0.176453,
-      "sha256": "ecc6f448447b6ff581c398055e4f2e49f9eeceb2f0eadfa249c2354608e33d9f",
+      "bytes": 184232,
+      "KiB": 179.914,
+      "MiB": 0.175697,
+      "sha256": "835de4b441e800ef488e1dfe844cd116b2d41aa1d2fccee15846b8d32a11ed04",
       "family": "ShiziSerifSC",
       "weight": 400,
-      "glyphs": 1377,
-      "cmap_count": 954,
+      "glyphs": 1374,
+      "cmap_count": 951,
       "GSUB": [
         "aalt",
         "ccmp",
@@ -124,14 +124,14 @@
     },
     {
       "path": "assets/ShiziSerifSC-Medium.ttf",
-      "bytes": 415152,
-      "KiB": 405.422,
-      "MiB": 0.39592,
-      "sha256": "f7d3d6d00a18c639ba1072447e692f215494ea1476936faa061f0199d9bcd7a6",
+      "bytes": 413596,
+      "KiB": 403.902,
+      "MiB": 0.394436,
+      "sha256": "0e5f3cd8f53e33689efd52b7b3ebb48153ef9409bd6114374ec32428fdacd48f",
       "family": "ShiziSerifSC",
       "weight": 500,
-      "glyphs": 1377,
-      "cmap_count": 954,
+      "glyphs": 1374,
+      "cmap_count": 951,
       "GSUB": [
         "aalt",
         "ccmp",
@@ -156,14 +156,14 @@
     },
     {
       "path": "assets/ShiziSerifSC-Medium.woff2",
-      "bytes": 186324,
-      "KiB": 181.957,
-      "MiB": 0.177692,
-      "sha256": "786a41182475aaafaaf17a1ad47a8de6020d0778bcfefa1561fbc51cb4aef982",
+      "bytes": 185736,
+      "KiB": 181.383,
+      "MiB": 0.177132,
+      "sha256": "a65165110aec42ab309883a99f8cf419a3cc4a637d57c5ffcf5083f72a51bd09",
       "family": "ShiziSerifSC",
       "weight": 500,
-      "glyphs": 1377,
-      "cmap_count": 954,
+      "glyphs": 1374,
+      "cmap_count": 951,
       "GSUB": [
         "aalt",
         "ccmp",
@@ -188,7 +188,7 @@
     }
   ],
   "totals": {
-    "ttf": 4889648,
-    "woff2": 2153096
+    "ttf": 4886536,
+    "woff2": 2151716
   }
 }

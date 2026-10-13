@@ -7,12 +7,12 @@ export default Object.freeze({
   'R-S01.title': '设置',
   'R-S01.library': '练习范围',
   'R-S01.keySound': '声音',
-  'X-SETTINGS.soundSub': '判断和落款时的轻声，书写时不出声。', // 副标题（D53，N2-12）：说清它管哪两处
-  'R-S01.remindNote': '通知会给一个词语和拼音，让你想想是哪个字。',
+  'X-SETTINGS.soundSub': '点写对写错时有轻声，写字时无声。', // 副标题（D53，N2-12）：说清它管哪两处
+  'R-S01.remindNote': '通知给一个词和拼音，想想是哪个字。',
   // R-S02（已定）
-  'R-S02.title': '手机关了拾字的通知，收不到提醒',
-  'R-S02.body': '想收到提醒，请到手机设置里打开拾字的通知。',
-  'R-S02.link': '去手机设置 ›',
+  'R-S02.title': '通知没开',
+  'R-S02.body': '要收提醒，请到手机设置打开通知。',
+  'R-S02.link': '手机设置 ›',
   // R-S03（已定 + 边开发边改）
   'R-S03.appearance': '外观',
   'R-S03.appearance.light': '浅色',
@@ -32,12 +32,12 @@ export default Object.freeze({
   'X-SETTINGS.retry': '再试一次',
   // 写字方式（阶段 1 P1-E8，D46 ⑬；实现交接 §10.3，过渡文案；03 P165；D56 起行内带一句说明 P277，写字页不再有「在纸上写」入口）
   'X-SETTINGS.writeMode': '写字方式',
-  'X-SETTINGS.writeModeSub': '在纸上写，回来对照判断',
-  'X-SETTINGS.writeScreen': '在屏幕上写',
-  'X-SETTINGS.writeScreenSub': '用手指或 Apple Pencil 写在书写格里',
+  'X-SETTINGS.writeModeSub': '在纸上写，回来对照',
+  'X-SETTINGS.writeScreen': '屏幕上写',
+  'X-SETTINGS.writeScreenSub': '用手指或 Apple Pencil 写',
   'X-SETTINGS.writePaper': '在纸上写',
-  'X-SETTINGS.writePaperSub': '题面、提示、看答案照常；写好后点「写好了」，自己对照',
-  'X-SETTINGS.writeModeNote': '选「在纸上写」时，判断照常记下、标注「纸上」，不留笔迹，所以不会出现在这次的图片和年报里。随时可以改回来。',
+  'X-SETTINGS.writePaperSub': '照常看题和提示；写好后自己对照。',
+  'X-SETTINGS.writeModeNote': '纸上写的标「纸上」，不留笔迹，不进图片。',
   // X-REMIND（M5-5 提醒通知的标题与正文，P48；R-S01 只给了设置页说明，通知字样沿旧版，见 copy-source.json extra）
   'X-REMIND.title': '{word}（{pinyin}）',
   'X-REMIND.body': '还记得这个字怎么写吗？点开试试。',

@@ -1,9 +1,9 @@
 // M1（D57）：「我的」页字帖改为方案 C1「字帖格 · 按字数排」。
 //   · 只有一层框（阶梯形外框一条 path，格间只有 guide 线，没有框中框）；有几个字几格、没有空格；
 //   · 3 字：一行三个大格（110pt）；72 字：8 列 × 9 行；
-//   · 标题（宋 22）与「保存图片」同一行；AX5 下两者不叠；
+//   · （D63）「我的」页只放最近两行（列数按整月字数定），标题（宋 22）与右侧「全部 N 字 ›」同一行（整行进练习记录）；AX5 下两者不叠；
 //   · 日期骑在该格上边线上（纸色衬底），只标每天的第一个字，整页只有一天时不标；
-//   · 屏上与「保存图片」导出图同一版式（列数 / 行数 / 字 / 日期 / 阶梯形）——月字帖页也一样。
+//   · 月字帖页与「保存图片」导出图是整月同一版式（列数 / 行数 / 字 / 日期 / 阶梯形）；「我的」页是它最近两行的一段。
 // 浅 / 深 × 390×844 / 375×667。环境变量 M1_SHOTS_DIR 给了就顺手截图（自查用）。
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -98,15 +98,16 @@ export default async function m1SheetC1(page0, ctx) {
         await page.waitForTimeout(200);
 
         step(`${tag}: 「我的」页字帖 = C1`);
-        const mine = await probe(page, { grid: 'mine-sheet-grid', cell: 'mine-sheet-cell', save: 'mine-sheet-save', title: 'mine-sheet-title' });
+        const mine = await probe(page, { grid: 'mine-sheet-grid', cell: 'mine-sheet-cell', save: 'mine-sheet-all', title: 'mine-sheet-title' });
         const cols = expectCols(n);
-        const rows = Math.ceil(n / cols);
-        assert.equal(mine.n, n, `${tag}: n`);
-        assert.equal(mine.cellRects.length, n, `${tag}: 有几个字几格`);
+        const shown = Math.min(n, 2 * cols); // D63：只放最近两行
+        const rows = Math.ceil(shown / cols);
+        assert.equal(mine.n, shown, `${tag}: n`);
+        assert.equal(mine.cellRects.length, shown, `${tag}: 有几个字几格`);
         assert.equal(mine.cols, cols, `${tag}: 列数`);
         assert.equal(mine.rows, rows, `${tag}: 行数`);
         const uniq = new Set(mine.cellRects.map(r => `${Math.round(r.x)},${Math.round(r.y)}`));
-        assert.equal(uniq.size, n, `${tag}: 格子位置互不重叠`);
+        assert.equal(uniq.size, shown, `${tag}: 格子位置互不重叠`);
         assert.ok(mine.cellRects.every(r => Math.abs(r.w - mine.c) < 0.6 && Math.abs(r.h - mine.c) < 0.6), `${tag}: 格子等大 (${mine.c}; ${JSON.stringify(mine.cellRects.find(r => Math.abs(r.w - mine.c) >= 0.6))})`);
         assert.ok(Math.abs(mine.stage.h - rows * mine.c) < 0.6 && Math.abs(mine.stage.w - cols * mine.c) < 0.6, `${tag}: 网格正好是 列×行 个格，没有空格`);
         assert.equal(mine.frames, 1, `${tag}: 只有一层框`);
@@ -114,40 +115,39 @@ export default async function m1SheetC1(page0, ctx) {
         assert.equal(mine.bordered, 0, `${tag}: 字帖里没有任何 CSS 边框（框中框）`);
         if (n === 3) assert.ok(mine.c >= 108 && mine.c <= 110, `${tag}: 3 字约 110pt 一行 (${mine.c})`);
         else assert.ok(mine.c >= 40 && mine.c <= 44, `${tag}: 72 字 8 列 (${mine.c})`);
-        const lastN = n - (rows - 1) * cols;
+        const lastN = shown - (rows - 1) * cols;
         assert.equal(mine.full, lastN === cols ? 'true' : 'false', `${tag}: 末行满否`);
-        // 落款与印紧跟末字
-        const last = mine.cellRects[n - 1];
-        if (lastN === cols) assert.ok(mine.seal.y >= last.b - 1 && mine.seal.y - last.b <= 14 && Math.abs(mine.seal.r - last.r) < 1.5, `${tag}: 印在末格正下方、右沿对齐`);
+        // 落款与印紧跟末字（只放一段时不画落款与印）
+        const last = mine.cellRects[shown - 1];
+        if (shown < n) assert.equal(mine.seal, null, `${tag}: 只放最近两行时没有落款与印`);
+        else if (lastN === cols) assert.ok(mine.seal.y >= last.b - 1 && mine.seal.y - last.b <= 14 && Math.abs(mine.seal.r - last.r) < 1.5, `${tag}: 印在末格正下方、右沿对齐`);
         else assert.ok(Math.abs(mine.seal.b - last.b) < 1.5 && mine.seal.x - last.r <= 10 && mine.seal.x >= last.r, `${tag}: 印在末格右侧、底边齐`);
-        // 标题与保存图片同一行
+        // 标题与「全部 N 字 ›」同一行
         assert.ok(mine.head.save && mine.head.title, `${tag}: 有标题与保存图片`);
         assert.ok(Math.abs((mine.head.save.y + mine.head.save.h / 2) - (mine.head.title.y + mine.head.title.h / 2)) <= 4, `${tag}: 标题与保存图片同一行`);
         assert.ok(mine.head.title.r <= mine.head.save.x + 1, `${tag}: 标题在左、保存图片在右，不叠`);
         assert.ok(/Songti|STSong|Noto Serif|Serif/i.test(mine.head.titleFont) && mine.head.titleSize === '22px', `${tag}: 标题宋 22 (${mine.head.titleFont} ${mine.head.titleSize})`);
-        assert.equal(mine.head.saveSize, '15px', `${tag}: 保存图片 15`);
+        assert.equal(mine.head.saveSize, '15px', `${tag}: 全部 N 字 15`);
         // 日期
         if (n === 3) assert.equal(mine.tags.length, 0, `${tag}: 整页只有一天，不标日期`);
         else {
           const days = mine.cellTags.filter(Boolean);
-          assert.equal(days.length, 18, `${tag}: 18 天各标第一个字`);
+          assert.ok(days.length === 0 || mine.cellTags[0], `${tag}: 最近一段跨多天时第一格重标日期，之后每天标第一个字；只有一天不标 (${days.length})`);
           assert.ok(mine.tags.every(t => Math.abs(t.mid) <= 1.5), `${tag}: 日期骑在格的上边线上 (${mine.tags.map(t => t.mid.toFixed(1))})`);
           assert.ok(mine.tags.every(t => t.bg === mine.paper), `${tag}: 日期用纸色衬底断开格线`);
         }
         assert.equal(mine.hScroll, false, `${tag}: 不横向溢出`);
         if (shots) await page.screenshot({ path: `${shots}/mine-${n}-${scheme}-${vp.width}x${vp.height}.png`, fullPage: false });
 
-        step(`${tag}: 屏上与「保存图片」导出图同一版式`);
+        step(`${tag}: 月字帖页与「保存图片」导出图是整月同一版式`);
         const ex = await exportOf(page, '2026-09', !!shots && scheme === 'light' && vp.width === 390);
         if (shots && ex['3:4'].url) for (const ratio of ['3:4', '1:1']) writeFileSync(`${shots}/export-${n}-${ratio.replace(':', 'x')}.png`, Buffer.from(ex[ratio].url.split(',')[1], 'base64'));
         for (const ratio of ['3:4', '1:1']) {
           const e = ex[ratio];
           assert.equal(e.layout, 'sheet', `${tag} ${ratio}: 字帖格版式`);
           assert.equal(e.n, n, `${tag} ${ratio}: 字数`);
-          assert.equal(e.members, mine.chars, `${tag} ${ratio}: 成员与顺序和屏上一致`);
-          assert.equal(e.columns, mine.cols, `${tag} ${ratio}: 列数和屏上一致`);
-          assert.equal(e.rows, mine.rows, `${tag} ${ratio}: 行数和屏上一致`);
-          assert.equal(e.tags.split('|').map(x => x || '').join('|'), mine.cellTags.join('|'), `${tag} ${ratio}: 日期位置和屏上一致`);
+          assert.equal(e.columns, mine.cols, `${tag} ${ratio}: 列数和「我的」页一致`);
+          assert.equal(e.rows, Math.ceil(n / cols), `${tag} ${ratio}: 行数 = 整月`);
         }
         if (n === 3) assert.ok(Math.abs(ex['3:4'].cell / 2.69 - 110) <= 1.5, `${tag}: 导出图 3 字格宽约 110pt 当量`);
 
@@ -159,10 +159,14 @@ export default async function m1SheetC1(page0, ctx) {
         const month = await probe(page, { grid: 'month-paper', cell: 'month-cell' });
         assert.equal(month.cols, mine.cols, `${tag}: 月字帖页列数和「我的」页一致`);
         assert.equal(month.c, mine.c, `${tag}: 月字帖页格宽和「我的」页一致`);
-        assert.equal(month.chars, mine.chars, `${tag}: 月字帖页成员一致`);
+        assert.ok(month.chars.endsWith(mine.chars) && month.n === n, `${tag}: 「我的」页是月字帖最近两行的一段`);
+        for (const ratio of ['3:4', '1:1']) {
+          assert.equal(ex[ratio].members, month.chars, `${tag} ${ratio}: 导出图成员与顺序和月字帖页一致`);
+          assert.equal(ex[ratio].tags.split('|').map(x => x || '').join('|'), month.cellTags.join('|'), `${tag} ${ratio}: 导出图日期位置和月字帖页一致`);
+        }
         assert.equal(month.frames, 1, `${tag}: 月字帖页只有一层框`);
         assert.equal(month.bordered, 0, `${tag}: 月字帖页没有框中框`);
-        assert.equal(month.cellTags.join('|'), mine.cellTags.join('|'), `${tag}: 月字帖页日期一致`);
+        if (shown === n) assert.equal(month.cellTags.join('|'), mine.cellTags.join('|'), `${tag}: 月字帖页日期一致`);
         if (shots) await page.screenshot({ path: `${shots}/month-${n}-${scheme}-${vp.width}x${vp.height}.png`, fullPage: false });
       }
     }
@@ -183,13 +187,13 @@ export default async function m1SheetC1(page0, ctx) {
     await waitNavIdle(page);
     await page.waitForTimeout(300);
     step(`${tag}: 不叠字`);
-    const a = await probe(page, { grid: 'mine-sheet-grid', cell: 'mine-sheet-cell', save: 'mine-sheet-save', title: 'mine-sheet-title' });
+    const a = await probe(page, { grid: 'mine-sheet-grid', cell: 'mine-sheet-cell', save: 'mine-sheet-all', title: 'mine-sheet-title' });
     const t = a.head.title;
     const s = a.head.save;
     const overlap = !(t.r <= s.x + 0.5 || s.r <= t.x + 0.5 || t.b <= s.y + 0.5 || s.b <= t.y + 0.5);
     assert.equal(overlap, false, `${tag}: 标题与保存图片不重叠`);
     assert.equal(a.hScroll, false, `${tag}: 不横向溢出`);
-    assert.equal(a.cellRects.length, n, `${tag}: 格数仍等于字数`);
+    assert.equal(a.cellRects.length, n === 3 ? 3 : 8, `${tag}: AX 档四列两行：放得下就是字数，放不下是 8 格`);
     assert.equal(a.bordered, 0, `${tag}: 没有框中框`);
     // 日期角标之间不叠、不压到别的格的字（角标在上边线，只与邻格角标比）
     const tagRects = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="month-tag"]')].map(e => { const r = e.getBoundingClientRect(); return [r.x, r.y, r.right, r.bottom]; }));

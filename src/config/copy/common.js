@@ -6,7 +6,7 @@ export default Object.freeze({
   // X-APP（M0-1 src/app.js SKELETON_TEXT（骨架期临时文案，M0-4 router 接手后删除））
   'X-APP.skeleton': '拾字 v10 骨架',
   // X-TABS（01-架构设计 §1「习字 / 字库 / 我的」三个 tab；04 R-L05「去「习字」…」）
-  'X-TABS.write': '习字',
+  'X-TABS.write': '写字',
   'X-TABS.library': '字库',
   'X-TABS.mine': '我的',
   // X-COMMON（通用组件：Page.js 页头 aria-label、UndoBar.js 撤销底栏（R-G05））

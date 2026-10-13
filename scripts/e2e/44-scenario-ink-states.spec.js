@@ -180,7 +180,7 @@ export default async function run(page, ctx) {
   await nav(page, 'back');
 
   // ------------------------------------------------------------------ 2 查字卡片
-  ctx.step('2 query card 「你的书写」: latest judged ink (P19); missing → 没有笔迹');
+  ctx.step('2 query card 「你写的」: latest judged ink (P19); missing → 没有笔迹');
   await page.click(topSel('library-query-open'));
   await page.waitForSelector('[data-testid="query-input"]');
   const probe = [chars[0], chars[2], chars[40], chars[7]];

@@ -195,14 +195,14 @@ export default async function detailSpec(page, ctx) {
   await bootTestHost(page, ctx.baseURL);
 
   // ------------------------------------------------------------------ 1. 无记录
-  step('no records: 「还没有记录」 without empty cells; char card, source row; no next / list rows; opening writes nothing');
+  step('no records: 「还没写过」 without empty cells; char card, source row; no next / list rows; opening writes nothing');
   await seed(page, {});
   // M4-5（src/ui/images-entry.js）启动时已注册真去处；先卸掉，断言「没注册时这一行不显示」。
   await setImageHook(page, false);
   const log0 = (await page.evaluate(() => window.__shiziTest.getWriteLog())).length;
   await openDetailPage(page, '永');
   let v = await view(page);
-  assert.equal(v.count, await copy(page, 'R-D03.none'), 'R-D03 「还没有记录」');
+  assert.equal(v.count, await copy(page, 'R-D03.none'), 'R-D03 「还没写过」');
   assert.equal(v.empty, await copy(page, 'X-DETAIL.emptyNote'), 'empty note');
   assert.equal(v.cells.length, 0, 'no empty placeholder cells (R-D03)');
   assert.equal(v.pinyin, 'yǒng', 'pinyin');
@@ -239,7 +239,7 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   let st = await state(page);
   const heRecs = st.flat.filter(r => r.char === '和').sort((a, b) => Number(a.id.slice(1)) - Number(b.id.slice(1)));
-  assert.equal(v.count, '记录了 3 次', 'R-D03 「记录了 3 次」');
+  assert.equal(v.count, '写过 3 次', 'R-D03 「写过 3 次」');
   assert.equal(v.first, null, 'C3-R / N3-09: no 「首次记录」 line any more (the hero already says 第一次 · date)');
   assert.deepEqual(v.hero.map(h => [h.kind, h.record]), [['first', heRecs[0].id], ['latest', heRecs[2].id]], 'the hero shows the first and the latest record');
   assert.deepEqual(v.hero.map(h => h.ink), ['true', 'false'], 'first has stored ink, the latest none');
@@ -255,7 +255,7 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.cells[0].caption, '写错', 'caption: the judgment on its own line');
   assert.equal(v.cells[0].date, `${m0}月${d0}日`, 'date line 「M月D日」 (H1 / P224: no 「M·D」)');
   assert.ok(v.cells.every(c => c.tag === 'BUTTON' && c.aria), 'cells are buttons with accessible names');
-  assert.equal(v.next, `下次练习 · 大约 ${await dateText(page, st.sched['base:和'].due)}再练到`, 'R-D02 next review = sched.due');
+  assert.equal(v.next, `下次复习 · 大约 ${await dateText(page, st.sched['base:和'].due)}`, 'R-D02 next review = sched.due');
   assert.equal(v.list, null, 'latest correct, not due → no list row');
   assert.equal(v.image && v.image.state, 'noInk', 'latest record has no ink → image entry greyed');
   // D27（阶段 1 P1-E3）：perRecordInk 默认开启，再写一次就存下墨迹、最近一次永不回收——原槽的承诺成立；
@@ -293,7 +293,7 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.list && v.list.kind, 'wrong', 'wrong list row');
   assert.equal(v.list.dot, true, 'wrong row has the red dot');
-  assert.ok(v.list.text.includes('写错过') && v.list.text.includes(await copy(page, 'R-D01.wrongLine')), 'R-D01 「上次你判断写错了」');
+  assert.ok(v.list.text.includes('该复习了') && v.list.text.includes(await copy(page, 'R-D01.wrongLine')), 'R-D01 「上次写错了」');
   assert.equal(v.rowTestids[0], 'detail-list-row', 'status row sits above the practice schedule');
   const hasList = await page.evaluate(async () => !!(await import('/src/ui/router.js')).getScreen('library-list'));
   if (hasList) {
@@ -301,7 +301,7 @@ export default async function detailSpec(page, ctx) {
     await clickTop(page, 'detail-list-row');
     await waitTop(page, 'library-list');
     const p = await page.evaluate(() => history.state.params);
-    assert.deepEqual(p && p.kind, 'wrong', 'opened the wrong list');
+    assert.deepEqual(p && p.kind, 'due', 'opened the 该复习了 list (r7-C1 D61 Q5)');
     await back(page);
     await waitTop(page, 'detail');
   } else {
@@ -330,13 +330,13 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.list && v.list.kind, 'forget', 'due correct char → forget row');
   assert.equal(v.list.dot, false, 'forget row has no red dot');
-  assert.ok(v.list.text.includes('快忘了') && v.list.text.includes(await copy(page, 'R-D01.forgetLine')), 'R-D01 「有一阵没写，可能快忘了」');
+  assert.ok(v.list.text.includes('该复习了') && v.list.text.includes(await copy(page, 'R-D01.forgetLine')), 'R-D01 「到时间再写一遍了」');
   await back(page);
   await waitTop(page, 'home');
   await openDetailPage(page, '欤');
   v = await view(page);
   assert.equal(v.source, null, 'R-D09: no etymology → the whole source block is hidden');
-  assert.equal(v.wordLabel, '释义', 'pinyin-only card (欤字) → 释义 label');
+  assert.equal(v.wordLabel, '意思', 'pinyin-only card (欤字) → 释义 label');
   assert.equal(v.gloss, await copy(page, 'X-PROMPT.fallbackHint'), 'gloss = the prompt hint line');
   assert.equal(v.swap, null, 'no context word → no swap-word row');
 
@@ -348,8 +348,8 @@ export default async function detailSpec(page, ctx) {
   const custom0 = (await state(page)).custom;
   await openDetailPage(page, '木');
   v = await view(page);
-  assert.equal(v.count, '还没有记录', 'custom unwritten → no records');
-  assert.ok(v.remove && v.remove.includes('从自选的字移除') && v.remove.includes(await copy(page, 'R-D06.rowSub')), 'remove row + sub line');
+  assert.equal(v.count, '还没写过', 'custom unwritten → no records');
+  assert.ok(v.remove && v.remove.includes('移出自选') && v.remove.includes(await copy(page, 'R-D06.rowSub')), 'remove row + sub line');
   await clickTop(page, 'detail-remove');
   await waitView(page, () => !!document.querySelector('.sz-layer[data-top="true"] [data-testid="undo-bar"]'));
   assert.equal(await page.locator(tid('detail-remove-confirm')).count(), 0, 'I3 P0-15: no confirm dialog — one tap removes, the undo bar is the only protection');
@@ -359,7 +359,7 @@ export default async function detailSpec(page, ctx) {
   v = await view(page);
   assert.equal(v.remove, null, 'remove row gone');
   assert.equal(v.undo && v.undo.state, 'on', 'undo bar shown');
-  assert.ok(v.undo.text.includes('「木」已从自选的字移除') && v.undo.text.includes('离开这一页前可以撤销'), 'undo bar lines (R-D06)');
+  assert.ok(v.undo.text.includes('「木」已移出自选') && v.undo.text.includes('离开这一页前可以撤销'), 'undo bar lines (R-D06)');
   const geo = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const bar = top.querySelector('[data-testid="undo-bar"]').getBoundingClientRect();
@@ -441,15 +441,15 @@ export default async function detailSpec(page, ctx) {
   assert.deepEqual(st.custom, custom1, 'second undo restored it');
 
   // ------------------------------------------------------------------ 5. 旧照片
-  step('legacy photo: not a record (P10b); 「旧版本的记录」 → read-only 「「人」的旧记录」 page');
+  step('legacy photo: not a record (P10b); 「旧记录」 → read-only 「「人」的旧记录」 page');
   await back(page);
   await waitTop(page, 'home');
   await seed(page, { photos: ['人'] });
   await openDetailPage(page, '人');
   v = await view(page);
-  assert.equal(v.count, '还没有记录', 'photo does not count as a record (P10b)');
+  assert.equal(v.count, '还没写过', 'photo does not count as a record (P10b)');
   assert.equal(v.dataCount, '0', 'data-count 0');
-  assert.equal(v.legacy, await copy(page, 'X-DETAIL.legacyEntry'), 'legacy row 「旧版本的记录」 (+ svg chevron, P1-E1b)');
+  assert.equal(v.legacy, await copy(page, 'X-DETAIL.legacyEntry'), 'legacy row 「旧记录」 (+ svg chevron, P1-E1b)');
   await clickTop(page, 'detail-legacy');
   await waitTop(page, 'detail-photo');
   const photo = await page.evaluate(() => {
@@ -468,8 +468,8 @@ export default async function detailSpec(page, ctx) {
   assert.equal(photo.title, '「人」的旧记录', 'R-D10 title');
   assert.equal(photo.src, PNG, 'the stored photo is shown');
   assert.equal(photo.alt, '旧版本拍下的照片', 'photo alt text');
-  assert.equal(photo.caption, '旧版本的记录', 'caption');
-  assert.equal(photo.body, '旧版本拍照留下的记录，只能看，不能做成图片。<br>备份时会一起存下。', 'R-D10 body (two lines)');
+  assert.equal(photo.caption, '旧记录', 'caption');
+  assert.equal(photo.body, '旧版本拍照的记录，只能看，不能做图。<br>备份时会一起存下。', 'R-D10 body (two lines)');
   assert.deepEqual(photo.buttons, ['返回'], 'read-only: only the 「‹」 (D58 ④: pushed pages use ‹, not ×), no make-image');
   // D43：旧记录照片页永远是深色，页上加 .t-dark，底色 = 深色 --paper（原来写死 #1F1B18，读设计令牌）
   assert.equal(photo.bg, tokenRgb('dark', 'paper'), 'dark page = dark --paper (.t-dark)');
@@ -500,7 +500,7 @@ export default async function detailSpec(page, ctx) {
   assert.equal(v.banner.text, '「平静」以后不会再出现', 'R-D05 banner');
   assert.equal(v.banner.undo, true, 'banner undo');
   assert.ok(v.banner.bottom <= v.banner.main, 'I3 P1-19: the word-swap undo is the same bottom undo bar as the remove one, above 练这个字 (no more top banner)');
-  assert.equal(v.wordLabel, '释义', 'card label → 释义');
+  assert.equal(v.wordLabel, '意思', 'card label → 释义');
   assert.equal(v.gloss, await copy(page, 'X-PROMPT.fallbackHint'), 'gloss = prompt hint line');
   assert.equal(v.swap, null, 'swap row gone');
   assert.equal(v.swapFail, false, 'failure block gone');
@@ -569,7 +569,7 @@ export default async function detailSpec(page, ctx) {
   await waitTop(page, 'detail');
   v = await view(page);
   assert.equal(v.char, '静', 'back on the detail page of 静');
-  assert.equal(v.count, '记录了 1 次', 'the new record shows up');
+  assert.equal(v.count, '写过 1 次', 'the new record shows up');
   assert.equal(v.banner, null, 'banner expired (left the page for the write page)');
 
   // ------------------------------------------------------------------ 7. B 没写完

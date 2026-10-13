@@ -22,8 +22,8 @@ import {
 const CHARS = ['永', '和', '春', '大', '中'];
 const DIAG = [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]];
 const COPY = {
-  saveFailed: '这次进度没有保存。请立即导出备份后重新打开 App。',
-  quotaFailed: '本地空间已满，这次进度没有保存。请立即导出备份并清理空间。',
+  saveFailed: '进度没存上。请先导出备份，再重开拾字。',
+  quotaFailed: '空间满了，没存上。请导出备份并清理。',
 };
 // 一笔横（encodeRawStrokes 行：stride 3，x×10、y×10、dt）。
 const ROW_H = [3, 700, 1720, 0, 1200, 1722, 16, 1720, 1725, 16, 2240, 1722, 16, 2760, 1720, 16];
@@ -203,9 +203,9 @@ export default async function recover(page, ctx) {
   await waitPhase(page, 'compare');
   assert.ok(await present(page, 'write-compare'), 'refresh: judge page shown');
   assert.equal(await present(page, 'write-compare-noink'), false, 'refresh: not 「这次没写」');
-  assert.ok((await pixelsIn(page, 'write-compare-mine')) > 0, 'refresh: 你的书写 card has ink');
-  assert.equal(await waitAttr(page, 'write-compare-ref', 'data-state', ['ready', 'missing']), 'ready', 'refresh: 参考字形 ready');
-  assert.ok((await pixelsIn(page, 'write-compare-ref')) > 0, 'refresh: 参考字形 painted');
+  assert.ok((await pixelsIn(page, 'write-compare-mine')) > 0, 'refresh: 你写的 card has ink');
+  assert.equal(await waitAttr(page, 'write-compare-ref', 'data-state', ['ready', 'missing']), 'ready', 'refresh: 标准写法 ready');
+  assert.ok((await pixelsIn(page, 'write-compare-ref')) > 0, 'refresh: 标准写法 painted');
 
   ctx.step('接着写 → recall keeps the strokes; refresh keeps them too');
   await page.click(topSel('write-continue'));

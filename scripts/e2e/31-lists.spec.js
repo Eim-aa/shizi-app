@@ -20,26 +20,26 @@ const COPY = {
   titleWrong: '写错过',
   titleForget: '快忘了',
   wrongTop: '下次写对了，就会从这里移走',
-  forgetTop: '有一阵没写、可能快忘了的字。写一遍，就会从这里移走。',
+  forgetTop: '有一阵没写的字。写一遍就会移走。',
   head: n => `先练这 ${n} 个`, // B4（D36）：默认只选最该练的 5 个，不足 5 个按实际数
   restShow: n => `其余 ${n} 个字 ›`,
   restHide: n => `收起其余 ${n} 个字`,
-  wrongMeta: (m, d, n) => `${m}月${d}日写错 · 一共写错 ${n} 次`,
-  forgetMeta: (m, d, n) => `最近一次 ${m}月${d}日 · 记录了 ${n} 次`,
+  wrongMeta: (m, d, n) => `${m}月${d}日写错 · 共 ${n} 次`,
+  forgetMeta: (m, d, n) => `最近 ${m}月${d}日 · 写过 ${n} 次`,
   wrongThumb: '写错那次',
   noInk: '没有笔迹',
   // D27（阶段 1 P1-E3）：perRecordInk 默认开启 → 原槽（最近一次的墨迹永不回收，承诺成立）；关闭态的 …Glyph 见 47-ink-promises
-  wrongNote: '右边小图是你写错的那一次。点圆圈选字，点这一行看记录。',
-  forgetNote: '格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。',
+  wrongNote: '点圆圈选字，点这一行看记录。',
+  forgetNote: '点圆圈选字，点这一行看记录。',
   selected: n => `选了 ${n} 个字 · 写完会回到这里。`,
   selectedZero: '写完会回到这里。',
   btnMany: '练这些字',
   btnOne: '练这个字',
-  btnNone: '先选一个字',
+  btnNone: '先选字',
   selectAll: '全选',
   selectNone: '全不选',
   wrongEmpty: '现在没有写错过的字',
-  wrongEmptyBody: '你判断写错的字会放在这里。',
+  wrongEmptyBody: '你写错的字会放在这里。',
   forgetEmptyTitle: '现在没有快忘了的字',
   forgetEmpty: '可能快忘了的字会放在这里。',
   leaveWrong: '回到写错过',
@@ -258,7 +258,7 @@ export default async function listsSpec(page, ctx) {
   let n = await numbers(page);
   assert.deepEqual(n.wrong, v.rows.map(r => r.char), 'list = records.wrongList(getState)');
 
-  step('click the circle → 练这个字; 全选; 全不选 → 先选一个字 disabled + aria-disabled, clicking does nothing');
+  step('click the circle → 练这个字; 全选; 全不选 → 先选字 disabled + aria-disabled, clicking does nothing');
   await clickRowSelect(page, '和');
   v = await listView(page);
   assert.deepEqual(v.rows.map(r => r.selected), [false, true], '和 unselected');
@@ -274,7 +274,7 @@ export default async function listsSpec(page, ctx) {
   v = await listView(page);
   assert.deepEqual(v.rows.map(r => r.selected), [false, false], '全不选');
   assert.equal(v.hint, COPY.selectedZero, 'Y05 zero hint');
-  assert.deepEqual(v.go, { text: COPY.btnNone, disabled: true, aria: 'true' }, 'Z02: 先选一个字 really disabled');
+  assert.deepEqual(v.go, { text: COPY.btnNone, disabled: true, aria: 'true' }, 'Z02: 先选字 really disabled');
   assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('.sz-layer[data-top="true"] [data-testid="list-go"]')).cursor), 'default',
     'Z02: no hand cursor');
   await page.click(topSel('list-go'), { force: true });
@@ -489,7 +489,7 @@ export default async function listsSpec(page, ctx) {
   assert.deepEqual(n.wrong, ['和', '永'], 'getState: 写错过 unchanged');
 
   // ------------------------------------------------------------------ 6. 「现在没有要写的字」→ 看写错过的字
-  step('nothing to write (library exhausted) → 看写错过的字 › → 写错过 list (registered via setNoneActions)');
+  step('nothing to write (library exhausted) → 该复习了 › → 该复习了 list (registered via setNoneActions)');
   await setup(page, { records: [rec(1, '永', 'wrong', '2026-09-20'), rec(2, '和', 'correct', '2026-09-20')],
     due: { 'base:永': '2026-10-10', 'base:和': '2026-10-10' } });
   await page.evaluate(async () => {
@@ -505,12 +505,12 @@ export default async function listsSpec(page, ctx) {
   await page.click(tid('home-start'));
   await page.waitForSelector(topSel('session-none'));
   await waitNavIdle(page);
-  assert.ok(await page.$(topSel('session-none-wrong')), '看写错过的字 › shown (registered by M3-2)');
+  assert.ok(await page.$(topSel('session-none-wrong')), '该复习了 › shown (registered by M3-2)');
   await page.click(topSel('session-none-wrong'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library-list');
   await waitNavIdle(page);
   v = await listView(page);
-  assert.deepEqual([v.title, v.rows.map(r2 => r2.char)], [COPY.titleWrong, ['永']], '写错过 list with 永');
+  assert.deepEqual([v.title, v.rows.map(r2 => r2.char)], ['该复习了', ['永']], '该复习了 list with 永 (r7-C1 D61 Q5: 写错过并入该复习了)');
   await page.click(topSel('page-back'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);

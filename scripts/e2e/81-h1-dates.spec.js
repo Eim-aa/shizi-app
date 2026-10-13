@@ -26,7 +26,7 @@ export default async function run(page, ctx) {
   const date = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="home-date"]').textContent);
   assert.equal(date, '10月5日 · 晚上', 'home date line');
 
-  step('有记录的字：月分组「10月」「9月」「8月」，没有空格写法');
+  step('写过的字：月分组「10月」「9月」「8月」，没有空格写法');
   await go(page, async () => (await import('/src/ui/router.js')).nav.push('library-all', {}));
   await page.waitForSelector(topSel('all-group'));
   const groups = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="all-group-name"]')].map(el => el.textContent.trim()));
@@ -51,7 +51,7 @@ export default async function run(page, ctx) {
   assert.ok(d.cells.every(c => c.capRect.top >= c.dateRect.bottom - 0.5), 'the judgment line sits under the date line');
   assert.deepEqual(d.hero, ['第一次 · 8月4日', '最近一次 · 10月4日'], 'hero captions use the same date style');
   assert.equal(d.first, false, 'no 「首次记录」 line (C3-R / N3-09): the hero says 第一次 · 8月4日');
-  assert.ok(!SPACED.test(d.next) && /大约 \d+月\d+日再练到/.test(d.next), `next review line (${d.next})`);
+  assert.ok(!SPACED.test(d.next) && /大约 \d+月\d+日/.test(d.next), `next review line (${d.next})`);
   if (d.supported) assert.equal(d.trim, 'trim-start', 'text-spacing-trim: trim-start on the body container');
   assert.ok(!SPACED.test(await text(page)), 'no spaced date on the detail page');
 

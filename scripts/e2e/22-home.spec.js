@@ -33,14 +33,14 @@ const SHEET = '[data-testid="query-sheet"]';
 const inSheet = id => `${SHEET} ${tid(id)}`;
 
 const COPY = {
-  title: '今天写几个字',
+  title: '今天写字',
   start: '开始写字',
   continue: '继续写字',
   firstVisit: '先写三个大家常忘的字。',
   picked: n => `这一组还有 ${n} 个字`,
   daily: n => `这一组还有 ${n} 个字`,
-  dailyOther: '今天的练习 · 接着写', // E9d（P196，D49 ⑦）：可见文字不带计数
-  dailyOtherAria: n => `今天的练习 · 接着写，还有 ${n} 个字没写`, // 计数只在读屏名称里
+  dailyOther: '今天的字 · 接着写', // E9d（P196，D49 ⑦）：可见文字不带计数
+  dailyOtherAria: n => `今天的字 · 接着写，还剩 ${n} 个`, // 计数只在读屏名称里
   first: n => `这一组还有 ${n} 个字`,
   count: n => `今天写了 ${n} 个字`,
   pick: '自己选字',
@@ -201,7 +201,7 @@ export default async function run(page, ctx) {
   let h = await home(page);
   assert.equal(h.records, 'first', 'data-records=first');
   assert.equal(h.resume, 'none', 'data-resume=none');
-  assert.equal(h.title, null, 'P1-E5: the first open has no 「今天写几个字」 title (design §一: the 「拾」 is the title; 72 covers the screen)');
+  assert.equal(h.title, null, 'P1-E5: the first open has no 「今天写字」 title (design §一: the 「拾」 is the title; 72 covers the screen)');
   assert.equal(h.cta, COPY.start, 'main entry reads 开始写字');
   assert.equal(h.ctaText, COPY.start, 'P1-E5: the main button is a plain 240 ink button (no 「拾」 block any more)');
   assert.equal(h.firstTip, COPY.firstVisit, 'R-H03 「先写三个大家常忘的字。」 (stage-1 design)');
@@ -232,7 +232,7 @@ export default async function run(page, ctx) {
     assert.deepEqual(h.otherLine, expectOther, `other-line ${expectOther ? `「${expectOther.text}」, count only in the name: ${expectOther.aria}` : 'absent'}`);
   }
 
-  step('first group in progress: 第一次练习 · 还有 N 个字没写, no 第一次来 tip');
+  step('first group in progress: 首次练习 · 还有 N 个字没写, no 第一次来 tip');
   await setup(page, { seed: { sessions: { A: sess({ id: 's803', slot: 'A', kind: 'first', chars: FIRST, cursor: 1 }), B: null, lastEnded: {} } } });
   h = await home(page);
   assert.equal(h.records, 'first', 'records=first (no judged record yet)');
@@ -383,10 +383,10 @@ export default async function run(page, ctx) {
   await page.locator(inSheet('query-go')).click();
   await waitWrite(page, 'B');
   st = await state(page);
-  assert.equal(st.sessions.B.kind, 'picked', 'B is 这次选的字');
+  assert.equal(st.sessions.B.kind, 'picked', 'B is 自己选的');
   assert.deepEqual(st.sessions.B.queue, ['base:永', 'base:和'], 'queue in input order');
   assert.deepEqual(st.sessions.B.source, { view: 'home' }, 'source = home');
-  assert.equal(st.custom || null, null, 'picking does not add to 自选的字 (D21)');
+  assert.equal(st.custom || null, null, 'picking does not add to 自选字 (D21)');
   const writes = await page.evaluate(n => window.__shiziTest.getWriteLog().slice(n), log0);
   assert.ok(writes.length > 0 && writes.every(w => w.via === 'storage'), 'writes go through storage.js');
   assert.equal(await page.locator(SHEET).count(), 0, 'sheet closed (prototype lkGo closes it)');
@@ -472,7 +472,7 @@ export default async function run(page, ctx) {
   await page.evaluate(() => history.back());
   await page.waitForSelector(SHEET, { state: 'detached' });
   await waitNavIdle(page);
-  await page.click(topSel('page-back')); // D58 ④：「没有要写的字」页的出口只有左上「‹」
+  await page.click(topSel('page-back')); // D58 ④：「没有」页的出口只有左上「‹」
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
   assert.equal(await topScreen(page), 'home', 'back on home');

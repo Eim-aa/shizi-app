@@ -32,8 +32,8 @@ export default async function (page, ctx) {
   }, seed());
   await page.waitForSelector(topSel('library-zone'));
   await waitNavIdle(page);
-  ctx.step('the library page has the 练习范围 row (D60) with the same value as settings; no 「更换字库 ›」 text');
-  assert.equal((await page.textContent(topSel('library-range-value'))).trim(), '规范常用字', 'range row value = the current library');
+  ctx.step('the library page has the 练习范围 row (D60) with the same value as settings; no 「换范围 ›」 text');
+  assert.equal((await page.textContent(topSel('library-range-value'))).trim(), '常用字', 'range row value = the current library');
   assert.ok(!/更换字库/.test(await page.textContent(topSel('library-home'))), 'no 更换字库 text');
   const wallBefore = await zoneCounts(page);
 
@@ -54,7 +54,7 @@ export default async function (page, ctx) {
     };
   });
   assert.deepEqual([rows.groupTitle, rows.firstTestid, rows.lib, rows.tag], ['练习', 'settings-library', 'core3500', 'BUTTON'], 'the 练习 group starts with the 练习范围 row (a button)');
-  assert.equal(rows.text, '练习范围 规范常用字', 'the row reads 练习范围 + the library name');
+  assert.equal(rows.text, '练习范围 常用字', 'the row reads 练习范围 + the library name');
   assert.ok(rows.h >= 44, `the row is at least 44 high (${rows.h})`);
   await page.click(topSel('settings-library'));
   await page.waitForSelector(topSel('libswitch-screen'));
@@ -62,7 +62,7 @@ export default async function (page, ctx) {
   await page.click(`${topSel('libswitch-row')}[data-lib="rare"]`);
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'settings');
   await waitNavIdle(page);
-  assert.equal(await page.textContent(topSel('settings-library-value')), '规范专门用字', 'back in settings the row shows the new library');
+  assert.equal(await page.textContent(topSel('settings-library-value')), '少见字', 'back in settings the row shows the new library');
   assert.equal(await page.getAttribute(topSel('settings-library'), 'data-library'), 'rare', 'data-library follows');
   assert.equal(await page.evaluate(() => window.__shiziTest.getState().settings.library), 'rare', 'settings.library written through the existing switch flow');
 
@@ -70,6 +70,6 @@ export default async function (page, ctx) {
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library');
   await waitNavIdle(page);
-  assert.equal((await page.textContent(topSel('library-range-value'))).trim(), '规范专门用字', 'one value, two places: the range row follows settings.library');
+  assert.equal((await page.textContent(topSel('library-range-value'))).trim(), '少见字', 'one value, two places: the range row follows settings.library');
   assert.deepEqual(await zoneCounts(page), wallBefore, 'the three zones (records) are unchanged by switching the practice range');
 }

@@ -40,7 +40,7 @@ export default async function run(page, ctx) {
     assert.ok(s, `${scheme}: status region exists`);
     assert.deepEqual([s.role, s.live, s.atomic], ['status', 'polite', 'true'], `${scheme}: polite live region`);
     assert.equal(s.text, '', `${scheme}: nothing announced on open`);
-    assert.equal(await gridName(page), '书写格', `${scheme}: no strokes → plain name`);
+    assert.equal(await gridName(page), '写字格', `${scheme}: no strokes → plain name`);
 
     // 书写过程中不播报：观察播报区，落笔到抬笔之间一次变化都没有，抬笔后恰好一次
     await page.evaluate(sel => {
@@ -54,19 +54,19 @@ export default async function run(page, ctx) {
     assert.equal(during, 0, `${scheme}: no live-region change between pen-down and pen-up (${during})`);
     assert.equal(await page.evaluate(() => window.__srMut), 1, `${scheme}: exactly one live-region update after the stroke`);
     assert.equal((await status(page)).text, '已写 1 笔', `${scheme}: stroke 1 announced`);
-    assert.equal(await gridName(page), '书写格，已写 1 笔', `${scheme}: grid name carries the count`);
+    assert.equal(await gridName(page), '写字格，已写 1 笔', `${scheme}: grid name carries the count`);
 
     await drawStroke(page, VERTICAL);
     await page.waitForFunction(sel => document.querySelector(sel).textContent.includes('已写 2 笔'), STATUS);
-    assert.equal(await gridName(page), '书写格，已写 2 笔', `${scheme}: grid name 2`);
+    assert.equal(await gridName(page), '写字格，已写 2 笔', `${scheme}: grid name 2`);
 
     await page.click(topSel('write-undo'));
     await page.waitForFunction(sel => document.querySelector(sel).textContent.includes('撤销了一笔，还有 1 笔'), STATUS);
-    assert.equal(await gridName(page), '书写格，已写 1 笔', `${scheme}: undo → name 1`);
+    assert.equal(await gridName(page), '写字格，已写 1 笔', `${scheme}: undo → name 1`);
     await page.waitForTimeout(450);
     await page.click(topSel('write-undo'));
     await page.waitForFunction(sel => document.querySelector(sel).textContent.includes('撤销了一笔，格子是空的'), STATUS);
-    assert.equal(await gridName(page), '书写格', `${scheme}: undo to empty → plain name`);
+    assert.equal(await gridName(page), '写字格', `${scheme}: undo to empty → plain name`);
 
     // 再写 2 笔、清空
     await page.waitForTimeout(450);
@@ -77,12 +77,12 @@ export default async function run(page, ctx) {
     await page.waitForTimeout(450);
     await page.click(topSel('write-clear'));
     await page.waitForFunction(sel => document.querySelector(sel).textContent.includes('已清空'), STATUS);
-    assert.equal(await gridName(page), '书写格', `${scheme}: clear → plain name`);
+    assert.equal(await gridName(page), '写字格', `${scheme}: clear → plain name`);
 
     await page.waitForTimeout(450);
     await page.click(topSel('write-undo')); // 撤销清空 → 一次恢复两笔
     await page.waitForFunction(sel => document.querySelector(sel).textContent.includes('恢复了，现在是 2 笔'), STATUS);
-    assert.equal(await gridName(page), '书写格，已写 2 笔', `${scheme}: restore → name 2`);
+    assert.equal(await gridName(page), '写字格，已写 2 笔', `${scheme}: restore → name 2`);
 
     // 视觉隐藏：占 1px、不可见
     const box = await page.evaluate(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.width, r.height]; }, STATUS);
@@ -106,7 +106,7 @@ export default async function run(page, ctx) {
     step(`${scheme}: 进入描一遍播报全部笔序`);
     await open(page, ctx, ['大', '聚'], { current: { phase: 'trace', answerSeen: true } }, scheme);
     await page.waitForFunction(sel => document.querySelector(sel).textContent.startsWith('描一遍'), STATUS, { timeout: 15000 });
-    assert.equal((await status(page)).text, '描一遍：参考字形画出了第 1 到第 3 笔', `${scheme}: trace announced (大 = 3 strokes)`);
+    assert.equal((await status(page)).text, '描一遍：已画出第 1 到第 3 笔', `${scheme}: trace announced (大 = 3 strokes)`);
 
     step(`${scheme}: 换字后基线重置：新字不播旧字的笔数`);
     await open(page, ctx, ['大', '聚'], {}, scheme);
@@ -114,8 +114,8 @@ export default async function run(page, ctx) {
     await page.waitForFunction(sel => document.querySelector(sel).textContent.includes('已写 1 笔'), STATUS);
     await tap(page, 'write-skip');
     await waitNavIdle(page);
-    await page.waitForFunction(sel => document.querySelector('[data-testid="write-grid"]') && document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid"]').getAttribute('aria-label') === '书写格', GRID);
-    assert.equal(await gridName(page), '书写格', `${scheme}: next char starts from the plain name`);
+    await page.waitForFunction(sel => document.querySelector('[data-testid="write-grid"]') && document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid"]').getAttribute('aria-label') === '写字格', GRID);
+    assert.equal(await gridName(page), '写字格', `${scheme}: next char starts from the plain name`);
     assert.equal((await status(page)).text, '', `${scheme}: the previous announcement is cleared on a new character`);
   }
 }

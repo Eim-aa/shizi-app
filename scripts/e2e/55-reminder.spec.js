@@ -224,7 +224,7 @@ async function scenarioColdStart(page, ctx) {
     await context.close();
   }
 
-  step('cold-start deep link with an unfinished B → S02; 结束那组，开新的 → B = 额; warm link → S02 again, 接着写那组');
+  step('cold-start deep link with an unfinished B → S02; 开新一组 → B = 额; warm link → S02 again, 接着写');
   const second = await newNativePage({ ...ctx, page });
   try {
     const q = second.p;
@@ -251,7 +251,7 @@ async function scenarioColdStart(page, ctx) {
     await q.click(tid('s02-continue'));
     await waitWriteB(q);
     st = await state(q);
-    assert.deepEqual(st.sessions.B.queue, ['base:额'], '接着写那组 → still 额');
+    assert.deepEqual(st.sessions.B.queue, ['base:额'], '接着写 → still 额');
     assert.equal(await q.evaluate(() => window.shiziOpenReminderTarget('base:鲜鲜')), true, 'bad key: still received');
     await q.waitForTimeout(300);
     assert.deepEqual((await state(q)).sessions.B.queue, ['base:额'], 'bad key opens nothing');

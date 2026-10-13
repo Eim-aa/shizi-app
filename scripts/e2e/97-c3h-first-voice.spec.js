@@ -71,10 +71,10 @@ export default async function run(page, ctx) {
     step(`${scheme}: 首练页标题之外两句话加一句锁屏隐私说明，邀请按钮写出结果`);
     await page.waitForSelector(`${topSel('result-invite')}[data-state="invite"]`, { timeout: 4000 });
     f = await firstPageFacts(page);
-    assert.ok(f.inviteBody && f.inviteBody.startsWith('锁屏上只出现词语和拼音'), `D54: the lock-screen privacy line stays on the first-practice invitation: ${f.inviteBody}`);
+    assert.ok(f.inviteBody && f.inviteBody.startsWith('锁屏只显示词语和拼音'), `D54: the lock-screen privacy line stays on the first-practice invitation: ${f.inviteBody}`);
     const sentences = [f.preview, f.inviteTitle].filter(Boolean);
     assert.equal(sentences.length, 2, `two sentences besides the title: 「${sentences.join('」「')}」`);
-    assert.deepEqual([f.yes, f.no], ['好，明天给我一个词', '先不用'], 'the buttons say what happens');
+    assert.deepEqual([f.yes, f.no], ['开启提醒', '先不用'], 'the buttons say what happens');
     // 邀请出现以后红点仍是 ≤ 2
     assert.ok((await redCount(page)).length <= 2, 'still ≤ 2 red marks with the invitation shown');
 

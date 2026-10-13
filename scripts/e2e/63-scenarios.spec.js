@@ -302,7 +302,7 @@ export default async function run(page, ctx) {
   assert.equal(f.todayN, 0, 'answer-seen is not a valid attempt: today N 0');
   // Q1（QA simB D1）：描一遍的笔迹仍不存；「自己写一遍」的那一竖存成这条看过答案记录的墨迹（作品「看后写的」，D31），kind 不变
   const inkIds = Object.values(f.ink || {}).flatMap(table => Object.keys(table));
-  assert.deepEqual(inkIds, [rec.id], 'trace strokes are not stored; the 自己写一遍 stroke is stored as the answer-seen record\'s ink (Q1)');
+  assert.deepEqual(inkIds, [rec.id], 'trace strokes are not stored; the 自己写 stroke is stored as the answer-seen record\'s ink (Q1)');
   assert.ok(!f.sched || !f.sched['base:大'], 'no FSRS entry for answer-seen');
   assert.deepEqual(f.sessions.A.items, [{ cardKey: 'base:大', kind: 'answer-seen', recordId: rec.id }], 'item answer-seen');
 
@@ -430,7 +430,7 @@ export default async function run(page, ctx) {
   rows = await sheetRows(page);
   assert.deepEqual(rows.map(r => r.checked), ['false', 'false'], 'reopen: nothing remembered as selected');
 
-  step('场景 5: explicit start → B with the checked chars; the 自选的字 list is not touched by picking');
+  step('场景 5: explicit start → B with the checked chars; the 自选字 list is not touched by picking');
   const custom0 = (await facts(page)).custom;
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="永"] [data-testid="query-row-select"]`).click();
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="和"] [data-testid="query-row-select"]`).click();
@@ -612,7 +612,7 @@ export default async function run(page, ctx) {
   await backToHome(page);
 
   // --------------------------------------------------------------- 8. 清空一并清 lastEnded
-  step('遗留: 清空所有记录 also clears sessions.lastEnded (and A/B, P79); undo restores every v2 key');
+  step('遗留: 清空记录 also clears sessions.lastEnded (and A/B, P79); undo restores every v2 key');
   await resetAt(page);
   await page.evaluate(async () => {
     const { makeRecord } = await import('/src/core/records.js');
@@ -651,7 +651,7 @@ export default async function run(page, ctx) {
   // --------------------------------------------------------------- 10. 边改 Z03（04 §4.3，checklist-M6）
   for (const large of [false, true]) {
     const tag = `360×640${large ? ' + system text XXXL' : ''}`; // P1-E6 / D29：大字 = 系统字号（模拟原生 shiziContentSize），不再是 data-large
-    step(`边改 Z03 (${tag}): compact detail — 「已撤销」 does not cover the 「从自选的字移除」 sub line`);
+    step(`边改 Z03 (${tag}): compact detail — 「已撤销」 does not cover the 「移出自选」 sub line`);
     await page.setViewportSize({ width: 360, height: 640 });
     await resetAt(page);
     await page.evaluate(async () => {

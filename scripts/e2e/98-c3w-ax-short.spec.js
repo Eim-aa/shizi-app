@@ -44,8 +44,8 @@ export default async function run(page, ctx) {
     [{ width: 375, height: 667 }, 'AX5', '自己写', 1],
     [{ width: 375, height: 667 }, 'AX3', '自己写', 1],
     [{ width: 390, height: 844 }, 'AX5', '自己写', 1],
-    [{ width: 390, height: 844 }, 'AX2', '描好了，自己写', 0],
-    [{ width: 390, height: 844 }, 'L', '描好了，自己写', 0],
+    [{ width: 390, height: 844 }, 'AX2', '自己写', 0],
+    [{ width: 390, height: 844 }, 'L', '自己写', 0],
   ]) {
     const tag = `${view.width}×${view.height} ${size}`;
     step(`${tag}: trace-phase main button reads 「${want}」`);

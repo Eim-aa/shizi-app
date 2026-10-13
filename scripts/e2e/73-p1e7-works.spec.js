@@ -173,7 +173,7 @@ export default async function (page, ctx) {
   v = await resultSnapshot(page);
   assert.deepEqual(v.cells.map(c => [c.ch, c.hasDot]), [['疆', false], ['酱', false], ['痒', true], ['酝', false]], 'after a reload the added char is still in the work with its dot');
   ctx.step('读屏: the work is one element with its chars / count / date; cells are named by result; rows read 「字，状态」');
-  assert.equal(v.work.label, '作品：疆、酱、痒、酝，4 个字，10月5日', 'the work reads as one element');
+  assert.equal(v.work.label, '这次的字：疆、酱、痒、酝，4 个，10月5日', 'the work reads as one element');
   assert.deepEqual(v.cells.map(c => c.label), ['疆，写对，点两下对照和修改', '酱，写对，点两下对照和修改', '痒，写错，点两下对照和修改', '酝，看后写的，点两下对照和修改'], 'cells are named by result');
   assert.deepEqual(v.rows.map(r => r.aria), ['嚷，跳过了', '醋，看过答案'], 'rows are named 「字，状态」');
   // 拿出来：结果页的行没有了，从分享弹层「也放进来」里取（72-p1e5 走弹层）；这里直接用同一个写入
@@ -360,14 +360,14 @@ export default async function (page, ctx) {
     };
   });
   assert.equal(m.title, '9月字帖');
-  assert.equal(m.sub, '按第一次写下的先后排列');
+  assert.equal(m.sub, '按第一次写的先后排');
   assert.deepEqual([m.cols, m.cell, m.firstRowN, m.widths], [6, 60, 6, [60]], '6 columns of ⌊(402 − 40) / 6⌋ = 60');
   assert.equal(m.chars, '永山水田和静日月星风云雨雪', 'the 纸上 char 纸 is not on the page');
   assert.equal(m.modes, 'hhhhhhhhhuuuu', 'chars with no ink all month are under cells');
   assert.equal(m.tags, '2||||||4|||10|||', 'a day tag on the first char of each day only (day number, no month)');
   assert.ok(m.tagEls.every(t => t.size === '11px' && Number(t.weight) >= 500), 'tag 11pt / 500');
   assert.ok(m.tagEls.every(t => t.top >= -8 && t.top <= -6), 'D57 · C1: the tag rides the cell\'s top line (centred on it, paper-coloured backing), not inside the cell');
-  assert.equal(m.note, '浅色的字，这个月没有留下笔迹。点一个字看详情。');
+  assert.equal(m.note, '浅色的字这个月没有笔迹，点字看详情。');
   assert.equal(m.kuan, '二〇二六年九月　十三字', '纸上 not counted');
   assert.ok(!m.text.includes('没有笔迹') && m.noInkLabel === 0, 'no 「没有笔迹」 written inside the cells');
   assert.deepEqual(m.underAria, ['风，这个月没有留下笔迹', '云，这个月没有留下笔迹', '雨，这个月没有留下笔迹', '雪，这个月没有留下笔迹']);
@@ -409,7 +409,7 @@ export default async function (page, ctx) {
   await closeShare(page);
 
   // ---------------------------------------------------------------- 4. 超过 80 字分张
-  ctx.step('> 80 chars: split by date into pages ≤ 80, 其一 / 其二, each page its own count and layout; the sheet pages horizontally with dots; 保存 2 张图片 downloads two files');
+  ctx.step('> 80 chars: split by date into pages ≤ 80, 其一 / 其二, each page its own count and layout; the sheet pages horizontally with dots; 保存 2 张 downloads two files');
   const many = [{ day: '2026-09-10', chars: '' }];
   const pool = [...'酱疆酝嚷痒酿罐履尬醋嗽贷膝颤截屉鼎嚼鲍撤蹭嘱憋馒阁龄戴趟馅腐囊遣梳厦馨痪祥橡燥舔痕寓躁搓碗赡琢逢鬓嘀症撕鹰毯凌谨赠碱峻澈籍旗匙榴噪颜渊翠腻鹿塌燕酪瘩辫彰陵翼辖剪魅蟹樱浆鉴辨褥疲馍壤锋疤滥瓢竣疹寨辙憔啸痰膏饺瘫阐瘤檬蜂痘雕骏嗦癣隧焰蹋憎袍裳灌馋桨裙臀禄峰'];
   many[0].chars = pool.slice(0, 96).join('');
@@ -431,7 +431,7 @@ export default async function (page, ctx) {
   assert.equal(p.canvases[1].ds.tags.split('|')[0], '10', 'a new page starts with the day tag');
   assert.equal(p.dots, 2, 'page dots');
   assert.equal(p.note, '100 个字，存成 2 张，每张不超过 80 字。');
-  assert.equal(p.saveBtn.text, '保存 2 张图片');
+  assert.equal(p.saveBtn.text, '保存 2 张');
   assert.equal(p.canvases.length, 2);
   const files = [];
   page.on('download', async d => { files.push(d); });
@@ -482,7 +482,7 @@ export default async function (page, ctx) {
   });
   assert.equal(a.year, '二〇二六');
   assert.equal(a.head, '这一年，你拾回一百一十九个字。', 'N2-14: Chinese numerals, the same sentence as the album cover');
-  assert.deepEqual([a.first.char, a.first.ink, a.first.label, a.first.date, Math.round(a.first.size)], ['春', 'true', '今年第一个字', '4月26日的笔迹', 132]);
+  assert.deepEqual([a.first.char, a.first.ink, a.first.label, a.first.date, Math.round(a.first.size)], ['春', 'true', '今年首字', '4月26日的笔迹', 132]);
   assert.deepEqual(a.months.map(x => [x.month, x.n, x.name, x.count]), [['2026-04', 5, '4月', '5 字'], ['2026-05', 18, '5月', '18 字'], ['2026-09', 96, '9月', '96 字'], ['2026-10', 1, '10月', '1 字']]);
   assert.ok(a.months.every(x => x.cols === 8 && Math.round(x.cell) === 45), 'month sections: 8 columns of 45');
   assert.equal(a.months[1].under, 9, 'chars without ink are under cells');
@@ -504,11 +504,11 @@ export default async function (page, ctx) {
   p = await preview(page);
   // 卷首 1 + 四月 1 + 五月 1 + 九月 2（96 字 → 80 + 16）+ 十月 1 + 卷尾 1 = 7
   assert.equal(p.pages, 7, 'album: cover + 4 months (9月 split in two) + tail');
-  assert.equal(p.saveBtn.text, '保存 7 张图片');
+  assert.equal(p.saveBtn.text, '保存 7 张');
   assert.deepEqual(p.canvases.map(c => c.ds.kind), ['annual-cover', 'annual-month', 'annual-month', 'annual-month', 'annual-month', 'annual-month', 'annual-tail']);
   assert.deepEqual(p.ratios, [], 'the album is always 3:4: no ratio segment');
-  assert.equal(p.long.text, '存成一张长图');
-  assert.ok(p.all.includes('存成册页：卷首、每个月、卷尾，每张 3:4。'));
+  assert.equal(p.long.text, '存成长图');
+  assert.ok(p.all.includes('分成封面、每月、封底，每张 3:4。'));
   assert.ok(!p.all.includes('这一页不能保存成图片'));
   const long = await downloadFile(page, () => page.click('[data-testid="image-long"]'));
   const lsz = jpegSize(long.buf);

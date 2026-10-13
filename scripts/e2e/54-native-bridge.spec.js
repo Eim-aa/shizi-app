@@ -224,7 +224,7 @@ export default async function nativeBridge(page, ctx) {
   n = await waitNote(page, 'notBackup');
   assert.equal(n.text, copy.notBackup, 'invalid → R-B06「不是拾字的备份」');
 
-  ctx.step('ready: 从备份文件恢复 → pickBackup only; each rejection / non-backup text shows R-B06 and writes nothing');
+  ctx.step('ready: 恢复备份 → pickBackup only; each rejection / non-backup text shows R-B06 and writes nothing');
   await boot(page, baseURL, null);
   const rawBefore = await page.evaluate(() => JSON.stringify(window.__shiziTest.getRawKeys('shizi.')));
   await page.evaluate(async () => {

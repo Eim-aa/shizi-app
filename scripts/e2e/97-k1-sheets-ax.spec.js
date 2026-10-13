@@ -62,7 +62,7 @@ export default async function run(page, ctx) {
       const { ImagePreview } = await import('/src/ui/components/image-preview.js');
       const { nav } = await import('/src/ui/router.js');
       const job = {
-        kind: 'test', title: '这次的图片', ratios: ['3:4', '1:1'], initialRatio: '1:1',
+        kind: 'test', title: '本次图片', ratios: ['3:4', '1:1'], initialRatio: '1:1',
         status: () => 'ready', pageCount: () => 1,
         renderPage: async () => { const c = document.createElement('canvas'); c.width = 270; c.height = 270; return { status: 'ready', canvas: c }; },
         fileName: () => 'test.jpg',

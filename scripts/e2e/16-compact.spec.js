@@ -247,7 +247,7 @@ async function compactWalk(page, ctx, { large }) {
   await waitPhase(page, 'compare');
   await page.mouse.move(1, 1);
   g = await geometry(page, `${large ? 'L' : 'N'}-compare`);
-  assert.equal(g.title.text, '写对了吗？', `${tag}: judge title (D49)`);
+  assert.equal(g.title.text, '写对了吗', `${tag}: judge title (D49)`);
   assert.ok(g.title.whiteSpace !== 'nowrap' && !g.title.ellipsis, `${tag}: judge title may wrap (no nowrap / ellipsis)`);
   assert.ok(g.title.sw <= g.title.cw + 0.5, `${tag}: judge title not cut (${g.title.sw} ≤ ${g.title.cw})`);
   assert.ok(g.lead && g.title.rect && g.lead.right <= g.title.rect.left + 8.5, `${tag}: the ‹ (接着写) icon does not overlap the title text box`);

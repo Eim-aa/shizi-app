@@ -54,7 +54,7 @@ export default async function run(page, ctx) {
     const tag = `${view.width}×${view.height} ${size}`;
     await page.setViewportSize(view);
 
-    step(`${tag} 描一遍: the main button label (「自己写」 from AX3, P259; it used to be 「描好了，自己写」 in three lines) wraps only between words, stays inside its button; nothing on the page is keep-all`);
+    step(`${tag} 描一遍: the main button label (「自己写」 from AX3, P259; it used to be 「自己写」 in three lines) wraps only between words, stays inside its button; nothing on the page is keep-all`);
     await openWrite(page, ctx, { size, current: { phase: 'trace', answerSeen: true } });
     const b = await page.evaluate(buttonText, 'write-trace-done');
     assert.deepEqual(b.words, ['自己', '写'], `${tag}: the short label is segmented into words`);

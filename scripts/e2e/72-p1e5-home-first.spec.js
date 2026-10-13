@@ -233,7 +233,7 @@ export default async function run(page, ctx) {
   assert.equal(r.variant, 'first');
   assert.equal(r.title, '这三个字，很多人提笔就忘。', 'C3-H / N3-07 (D53): the title is fixed — the three chars of the first practice (the work holds two, the signature says so), D28: it is not a headline count');
   assert.equal(r.titleSize, 22, 'title is 宋 22 (design §三)');
-  assert.ok(!/记录了/.test(r.title) && r.sub === null, 'no 「这次记录了 N 个字」 and no sentence under the title');
+  assert.ok(!/记录了/.test(r.title) && r.sub === null, 'no 「写了 N 个字」 and no sentence under the title');
   assert.deepEqual(r.cells, ['尴:in', '拾:in'], 'P1-E7: the work holds the right chars only (赢 was wrong → not in by default, it is the row below)');
   assert.equal(r.cols, '2', 'two chars in the work → one row of two (the same layout function as the share image)');
   const st1 = await stateOf(page);
@@ -262,12 +262,12 @@ export default async function run(page, ctx) {
   await waitInvite(page);
   r = await resultView(page);
   assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'time 9:41 is inside 7:00–22:00');
-  assert.ok(/^锁屏上只出现词语和拼音，比如「.+（.+）」，你先在心里写一遍。$/.test(r.invite.body), 'example from the first char, same shape as the lock screen 「词语（拼音）」: ' + r.invite.body);
+  assert.ok(/^锁屏只显示词语和拼音，如「.+（.+）」，先在心里写一遍。$/.test(r.invite.body), 'example from the first char, same shape as the lock screen 「词语（拼音）」: ' + r.invite.body);
   assert.ok(r.invite.body.includes('尬（gān）') && !r.invite.body.includes('□') && !r.invite.body.includes('＿'), 'example is 尴 masked: an outlined box (no text glyph) + 尬（gān） (N2-13, D53)');
   assert.ok(r.invite.blank && r.invite.blank.text === '' && r.invite.blank.border === '1px solid', `the masked char is an outlined box (1pt frame), not a glyph: ${JSON.stringify(r.invite.blank)}`);
   assert.ok(Math.abs(r.invite.blank.wEm - 0.9) < 0.03 && Math.abs(r.invite.blank.hEm - 0.9) < 0.03, `0.9em square (${r.invite.blank.wEm.toFixed(2)} × ${r.invite.blank.hEm.toFixed(2)})`);
   assert.deepEqual([r.invite.blank.role, r.invite.blank.label], ['img', '空着的字'], 'read aloud as 空着的字');
-  assert.deepEqual([r.invite.yes, r.invite.no], ['好，明天给我一个词', '先不用'], 'the buttons say what happens (C3-H / T3-12, D53)');
+  assert.deepEqual([r.invite.yes, r.invite.no], ['开启提醒', '先不用'], 'the buttons say what happens (C3-H / T3-12, D53)');
   let st = await stateOf(page);
   assert.equal(st.settings.remindInvite.shown, 1, 'counted when it appeared');
   assert.equal(st.settings.remindInvite.last, st.sessions.lastEnded.A.id, 'remembers the session it was shown on');
@@ -432,7 +432,7 @@ export default async function run(page, ctx) {
   await page.evaluate(() => window.shiziReminderStatus({ permission: 'denied' }));
   await waitInvite(page, 'denied');
   r = await resultView(page);
-  assert.equal(r.invite.denied, '没打开通知。想要提醒，可以在手机设置里打开。');
+  assert.equal(r.invite.denied, '通知没打开。请到手机设置里打开。');
   st = await stateOf(page);
   assert.equal(st.settings.remindInvite.answered, 'denied');
   assert.equal(st.settings.remind.permission, 'denied');
@@ -496,17 +496,17 @@ export default async function run(page, ctx) {
     groups: [{ at: `${D(5)}T12:00:00`, slot: 'B', kind: 'picked', chars: [...'鲜境'], steps: [] }, { at: `${D(5)}T12:00:00`, slot: 'A', kind: 'daily', chars: [...'一二三四五'], steps: ['correct'] }],
   });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.resume, h.cta, h.otherLine], ['progress', 'A+B', '继续写字', '今天的练习 · 接着写']);
+  assert.deepEqual([h.view, h.resume, h.cta, h.otherLine], ['progress', 'A+B', '继续写字', '今天的字 · 接着写']);
   step('③c 首练写到一半: 仍没有「自己选字」');
   await seedWorld(page, { entries: [], groups: [{ at: `${D(5)}T12:00:00`, kind: 'first', chars: [...'尴赢拾'], steps: ['correct'] }], clock: `${D(5)}T12:30:00` });
   h = await homeView(page);
   assert.deepEqual([h.view, h.pick, h.cta], ['progress', null, '继续写字']);
 
-  step('五态 ④大写数字特别组那天: 一句提示；「自己选字」仍在，旁边文字按钮「这次先写平常的字」（D55 / P269，原来代替它）；点了顺延到下一个合适的日子');
+  step('五态 ④大写数字特别组那天: 一句提示；「自己选字」仍在，旁边文字按钮「写平常字」（D55 / P269，原来代替它）；点了顺延到下一个合适的日子');
   const history10 = ['09-28', '09-28', '09-29', '09-30', '10-01', '10-01', '10-02', '10-03', '10-04', '10-04'].map((d, i) => ({ char: String.fromCodePoint(0x6100 + i), at: `2026-${d}T20:0${i % 10}:00` }));
   await seedWorld(page, { entries: history10, clock: `${D(5)}T21:00:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.capBody, h.defer, h.pick, h.cta], ['special', '今天写两组大写数字，借条、红包上用得着。', '这次先写平常的字', '自己选字', '开始写字']);
+  assert.deepEqual([h.view, h.capBody, h.defer, h.pick, h.cta], ['special', '今天写两组大写数字，借条、红包上用得着。', '写平常字', '自己选字', '开始写字']);
   assert.deepEqual(h.removedNodes, [], 'the lead sentence node is gone');
   check('special', h);
   await page.click(tid('home-capital-defer'));
@@ -526,10 +526,10 @@ export default async function run(page, ctx) {
   st = await stateOf(page);
   assert.equal(st.sessions.A, null, 'yesterday’s unfinished daily group expired');
   assert.equal(st.settings.capitalDeferredDay, D(5), 'the deferral only covered the day it was tapped');
-  step('④b 特别组那天已经写过字: 按钮「再写一组」，一句提示与「这次先写平常的字」仍在（D55）');
+  step('④b 特别组那天已经写过字: 按钮「再写一组」，一句提示与「写平常字」仍在（D55）');
   await seedWorld(page, { entries: [...history10, { char: '壹', at: `${D(5)}T08:00:00` }], clock: `${D(5)}T21:00:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.cta, h.capBody, h.defer], ['special', '再写一组', '今天写两组大写数字，借条、红包上用得着。', '这次先写平常的字']);
+  assert.deepEqual([h.view, h.cta, h.capBody, h.defer], ['special', '再写一组', '今天写两组大写数字，借条、红包上用得着。', '写平常字']);
 
   step('五态 ⑤离开 ≥7 天回来: 「拾」与题记下面一句「你写过的 N 个字都还在。」（D55，N = 5）；不提缺了几天');
   await seedWorld(page, { entries: [...'醋膝屉鼎窗'].map((c, i) => ({ char: c, at: `2026-09-2${i}T20:00:00` })), clock: `${D(14)}T09:30:00` });

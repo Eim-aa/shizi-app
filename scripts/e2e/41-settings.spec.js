@@ -175,10 +175,10 @@ export default async function settingsSpec(page, ctx) {
   assert.ok(!s.text.includes('背景音'), 'no 练字背景音 row (P07)');
   assert.ok(!s.text.includes('写完提示做成图片'), 'no 写完提示做成图片 row (P13)');
   assert.equal(s.library, 'core3500', 'practice range = P73 default');
-  assert.equal(s.libraryValue, '规范常用字', 'library name');
+  assert.equal(s.libraryValue, '常用字', 'library name');
   assert.deepEqual(s.sound, { checked: 'true', role: 'switch', tag: 'BUTTON' }, '按键音 switch on by default');
   assert.deepEqual(s.remind, { checked: 'false', role: 'switch', tag: 'BUTTON' }, '练习提醒 switch off');
-  assert.equal(s.remindSub, '通知会给一个词语和拼音，让你想想是哪个字。', 'R-S01.remindNote');
+  assert.equal(s.remindSub, '通知给一个词和拼音，想想是哪个字。', 'R-S01.remindNote');
   assert.equal(s.time, null, 'no time row while off');
   assert.equal(s.denied, null, 'no denied note');
   assert.equal(s.large, null, 'no 更大字体 switch (D29: text size follows the phone, P130)');
@@ -461,13 +461,13 @@ export default async function settingsSpec(page, ctx) {
   }, SETTINGS_MOD);
   await page.waitForSelector(topSel('settings-remind-denied'));
   s = await snapshot(page);
-  assert.equal(s.remindSub, '手机关了拾字的通知，收不到提醒', 'subtext R-S02.title');
-  assert.equal(s.denied, '想收到提醒，请到手机设置里打开拾字的通知。去手机设置 ›', 'note R-S02.body + link');
+  assert.equal(s.remindSub, '通知没开', 'subtext R-S02.title');
+  assert.equal(s.denied, '要收提醒，请到手机设置打开通知。手机设置 ›', 'note R-S02.body + link');
   assert.equal((await state(page)).settings.remind.permission, 'denied', 'permission stored');
   await clickSettle(page, 'settings-open-system');
   assert.equal((await nativeMessages(page, 'openAppSettings')).length, 1, 'openAppSettings posted');
   await reloadToSettings(page);
-  assert.equal((await snapshot(page)).remindSub, '手机关了拾字的通知，收不到提醒', 'denied state persists');
+  assert.equal((await snapshot(page)).remindSub, '通知没开', 'denied state persists');
 
   step('turning reminders off syncs enabled:false; settings survive a reload');
   await clickSettle(page, 'settings-remind');

@@ -317,7 +317,7 @@ export default async function run(page, ctx) {
   }
   const allMax = Math.max(...allRuns.map(r => r.ms));
   console.log(`    library-all: ${allRuns.map(r => `${fmtRun(r)}`).join(' / ')}`);
-  row('有记录的字完整页首屏（3 次最大）', fmtMs(allMax), '≤ 200ms', allMax <= LIMITS.firstPaintMs);
+  row('写过的字完整页首屏（3 次最大）', fmtMs(allMax), '≤ 200ms', allMax <= LIMITS.firstPaintMs);
   assert.ok(allRuns[0].canvases > 0, 'library-all draws real ink minis');
 
   // ------------------------------------------------------------------ 4. 练习记录（本月 200 条）

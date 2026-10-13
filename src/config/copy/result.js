@@ -84,7 +84,7 @@ export default Object.freeze({
   // X-INVITE（阶段 1 P1-E5，D35 / D46 ③：首练结果页内嵌的提醒邀请；点「好」才请求系统权限；过渡文案）
   'X-INVITE.title': '明天这个时候，给你一个词？',
   'X-INVITE.titleEvening': '明天晚上八点半，给你一个词？',
-  'X-INVITE.body': '锁屏只显示词语和拼音，先在心里写一遍。',
+  'X-INVITE.body': '锁屏只显示词语和拼音，如「{word}（{pinyin}）」，先在心里写一遍。',
   'X-INVITE.blankLabel': '空着的字', // 示例里被遮住那一位的读屏名称（页面上画成描边小方框，N2-13）
   'X-INVITE.bodyPlain': '锁屏只显示词语和拼音，先在心里写一遍。',
   // 按钮写出结果（C3-H / T3-12、D53，03 P248）：「好」离开上下文不知道在好什么；首练页最多两句话，首练那次不再放说明 body（今天的练习那次仍放）

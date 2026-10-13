@@ -94,7 +94,7 @@ export default async function run(page0, ctx) {
     assert.ok(tools && tools.l >= 20 - 0.5 && tools.r <= tools.w - 20 + 0.5, `${tag} write 撤销 / 清空 row stays inside the 20pt margin`);
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());
 
-    step(`${tag} 清单 / 字库 / 我的 / 有记录的字 / 详情 / 设置`);
+    step(`${tag} 清单 / 字库 / 我的 / 写过的字 / 详情 / 设置`);
     await seedHomeSpec(page, { entries: [...'疆酱肆酝春'].map((c, i) => ({ char: c, at: `2026-10-0${1 + i}T20:00:00`, judgment: i < 2 ? 'wrong' : 'correct' })), clock: '2026-10-05T19:30:00' });
     await go(page, async () => (await import('/src/ui/router.js')).nav.push('library-list', { kind: 'wrong' }));
     await rightOf(`${tag} list 页头尾端`, `${topSel('list-screen')} .sz-page__trail`);

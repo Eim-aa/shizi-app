@@ -30,27 +30,27 @@ const BACKUP_MOD = '/src/ui/screens/mine/backup.js';
 const T = {
   noBackup: '还没有备份',
   noRecords: '现在没有记录。',
-  allBacked: '现在的记录都已经备份了。',
-  changed: '上次备份以后记录有改动，还没有备份。',
-  intro: '记录只存在这台手机上。换手机、清理浏览器或删掉拾字之前，先导出一份备份文件。',
+  allBacked: '记录都已备份。',
+  changed: '上次备份后又有新记录，还没备份。',
+  intro: '记录只在这台手机上，换手机前先导出备份。',
   introEmpty: '记录只存在这台手机上。',
-  restoreSubHas: '会替换现在的记录，离开这一页前可以撤销',
-  notBackup: '这个文件不是拾字的备份，没法恢复。你的记录没有变。',
+  restoreSubHas: '会替换现有记录，离开前可撤销',
+  notBackup: '这不是拾字的备份，记录没有变。',
   restoreFailed: '没能恢复，你的记录还是原来的。',
-  protectFailed: '没能换成备份，你现在的记录没有变。可以再试一次。',
-  replaceTitle: '用备份替换现在的记录？',
-  replaceBody: '这份备份是 9月1日的，里面有 23 个字的记录。现在 300 个字的记录会被替换。离开这一页前可以撤销。',
-  loss: '9月2日到 9月24日的记录会丢失，建议先导出备份文件。',
-  restoreTitle: '用这份备份恢复记录？',
-  restoreBody: '这份备份是 9月1日的，里面有 23 个字的记录。',
+  protectFailed: '没换成，现有记录没变。可以再试。',
+  replaceTitle: '替换记录？',
+  replaceBody: '备份有 23 个字，现有 300 个字将被替换。',
+  loss: '9月2日到 9月24日的记录会丢失，建议先导出。',
+  restoreTitle: '恢复备份',
+  restoreBody: '9月1日的备份，共 23 个字。',
   undoL1: '已换成备份里的记录',
   undoL2: '离开这一页前可以撤销',
-  conclusion: '已换成 9月1日备份里的记录，一共 23 个字。',
+  conclusion: '已恢复 9月1日的备份，共 23 个字。',
   undoFailRestore: '没能撤销，现在还是备份里的记录',
   undoFailClear: '没能撤销，记录还是空的',
   undoAgain: '可以再点一次撤销',
-  clearTitle: '清空所有记录？',
-  clearBody: '300 个字的记录都会被删掉。离开这一页前可以撤销。',
+  clearTitle: '清空记录？',
+  clearBody: '300 个字的记录会删掉，离开前可撤销。',
   clearFailed: '没保存上，记录都还在。',
   clearUndoL1: '记录已清空',
   clearConclusion: '记录已清空。现在没有记录。',
@@ -289,19 +289,19 @@ export default async function run(page, { baseURL, assert, step }) {
     await page.click(topSel('mine-menu-backup'));
     await page.waitForSelector(topSel('backup-screen'));
     await waitNavIdle(page);
-    assert.ok(true, 'mine menu row 备份与恢复 opens the backup screen');
+    assert.ok(true, 'mine menu row 备份 opens the backup screen');
   } else {
     await openBackup(page);
   }
   let v = await view(page);
   assert.equal(v.screen, 'backup', 'top screen is backup');
-  assert.equal(await page.textContent(topSel('backup-screen') + ' [data-page-title]'), '备份与恢复', 'page title');
+  assert.equal(await page.textContent(topSel('backup-screen') + ' [data-page-title]'), '备份', 'page title');
   assert.equal(v.label, '上次备份', 'status label');
   assert.equal(v.date, T.noBackup, 'never backed up');
   assert.equal(v.line, T.noRecords, 'no records → 现在没有记录。');
   assert.equal(v.intro, T.introEmpty, 'intro without records');
-  assert.deepEqual([v.export.disabled, v.export.aria, v.export.text, v.export.tag], [true, 'true', '导出备份文件', 'BUTTON'], 'export disabled (V07)');
-  assert.deepEqual([v.clear.disabled, v.clear.aria, v.clear.text], [true, 'true', '清空所有记录'], 'clear disabled + aria-disabled (Y06)');
+  assert.deepEqual([v.export.disabled, v.export.aria, v.export.text, v.export.tag], [true, 'true', '导出备份', 'BUTTON'], 'export disabled (V07)');
+  assert.deepEqual([v.clear.disabled, v.clear.aria, v.clear.text], [true, 'true', '清空记录'], 'clear disabled + aria-disabled (Y06)');
   assert.equal(v.restore.disabled, false, 'restore row usable without records');
   // Q2-8（P183，复测 simA S3）：没有记录时「从备份文件恢复」下面不再放孤零零的「离开这一页前可以撤销」（那是上一次清空留下的措辞，此时没有可撤销的东西）。
   assert.equal(v.restoreSub, null, 'no restore sub without records (Q2-8; was X07 「离开这一页前可以撤销」)');
@@ -335,7 +335,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.ok('shizi.v2.meta' in objA.data, 'meta synthesized');
   v = await view(page);
   assert.equal(v.date, '9月1日', 'last backup date');
-  assert.equal(v.line, T.allBacked, '现在的记录都已经备份了。');
+  assert.equal(v.line, T.allBacked, '记录都已备份。');
   assert.equal(v.toast, null, 'I3 P0-09: exporting shows no toast — the last-backup date and the status line above are the feedback');
   let st = await state(page);
   assert.equal(st.backupMeta.lastExportAt > 0 && typeof st.backupMeta.lastExportSig === 'string', true, 'backupMeta recorded');
@@ -348,7 +348,7 @@ export default async function run(page, { baseURL, assert, step }) {
   v = await view(page);
   assert.equal(v.records, 300, '300 chars with records');
   assert.equal(v.date, '9月10日', 'last backup from backupMeta');
-  assert.equal(v.line, T.changed, '上次备份以后记录有改动，还没有备份。');
+  assert.equal(v.line, T.changed, '上次备份后又有新记录，还没备份。');
   const rawBeforeExport = await raw(page);
   await settle(page);
   const fileB = await download(page);

@@ -131,7 +131,7 @@ export default async function glyph(page, ctx) {
   ctx.step('永: 描一遍 without data → light whole-character fallback, no colour legend (R-W08.traceNote deleted)');
   await click(page, 'write-glyph-mode-trace');
   assert.equal(await page.locator(tid('write-glyph-fallback')).getAttribute('data-variant'), 'trace');
-  assert.equal(await page.locator(tid('write-glyph-note')).count(), 0, 'no 「浅色是参考字形。」 note any more');
+  assert.equal(await page.locator(tid('write-glyph-note')).count(), 0, 'no 「浅色是标准写法。」 note any more');
   assert.equal((await animInfo(page)).svg, false, 'no hanzi-writer without data');
   await click(page, 'write-glyph-mode-play');
   assert.equal(await text(page, 'write-glyph-note'), '这个字记为看过答案，后面再写只算练习。', 'answer note (R-W08.answerNote)');

@@ -19,27 +19,27 @@ const COPY = {
   titlePick: '自己选字',
   placeholder: '输入一个字或一个词',
   hintEmpty: '输入一个字或一个词，再点你要的那个字。',
-  hintRows: '点一个字，看参考字形、练这个字或加入自选的字。',
+  hintRows: '点一个字，看标准写法、练它或加入自选字。',
   onlyHanzi: '只能输入汉字。',
-  removed: n => `只能输入汉字，已去掉 ${n} 个字母或符号。`,
+  removed: n => `只能输入汉字，已去掉 ${n} 个其他字符。`,
   dup: c => `重复的「${c}」只算一次。`,
-  none: '先选一个字',
+  none: '先选字',
   one: '练这个字',
-  many: n => `练这 ${n} 个字`,
-  rowCount: n => `记录了 ${n} 次`,
-  rowNone: '还没有记录',
-  rowBad: '暂时不能练',
-  rowCustomNone: '自选的字 · 还没有记录',
-  rowCustomCount: n => `自选的字 · 记录了 ${n} 次`,
-  add: '加入自选的字',
-  inCustom: '已在自选的字里',
-  addFailed: '没加进自选的字，输入的字还在。',
+  many: n => `练这些字`,
+  rowCount: n => `写过 ${n} 次`,
+  rowNone: '还没写过',
+  rowBad: '暂不能练',
+  rowCustomNone: '自选字 · 还没写过',
+  rowCustomCount: n => `自选字 · 写过 ${n} 次`,
+  add: '加入自选',
+  inCustom: '已自选',
+  addFailed: '没加进自选，输入的字还在。',
   addRetry: '再试一次',
   addCancel: '先不加',
   back: n => `‹ 回到这 ${n} 个字`,
   badTitle: c => `「${c}」暂时不能练。`,
-  badReason: '拾字还没有这个字的参考字形。',
-  badSource: '能练的字参考教育部《通用规范汉字表》，个别字暂时还不能练。',
+  badReason: '拾字还没收录这个字的标准写法。',
+  badSource: '字表参考《通用规范汉字表》，个别字未收。',
   viewRecords: '查看记录',
   saveFailed: '没保存上，输入的字还在。',
   notSave: '先不保存',
@@ -213,7 +213,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.inputLabel, COPY.titlePick, 'input aria-label = title');
   assert.equal(info.hint, COPY.hintEmpty, 'hint 「输入一个字或一个词，再点你要的那个字。」');
   assert.equal(info.bar, 0, 'selected count 0');
-  assert.deepEqual(info.go, { text: COPY.none, disabled: true, aria: 'true' }, 'bottom 「先选一个字」 disabled + aria-disabled');
+  assert.deepEqual(info.go, { text: COPY.none, disabled: true, aria: 'true' }, 'bottom 「先选字」 disabled + aria-disabled');
   await page.locator(inSheet('query-go')).click({ force: true });
   await page.waitForTimeout(100);
   log = await demoLog(page);
@@ -234,7 +234,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.ok(info.rows.every(r => r.select && r.select.checked === 'false' && r.select.tag === 'BUTTON'),
     'typing selects nothing: every checkbox aria-checked=false (a <button role=checkbox>)');
   assert.deepEqual(info.rows.map(r => r.select.label), [COPY.select('永'), COPY.select('和')], 'checkbox aria-labels');
-  assert.deepEqual(info.rows.map(r => r.status), [COPY.rowCount(2), COPY.rowNone], 'row tail: 记录了 2 次 / 还没有记录');
+  assert.deepEqual(info.rows.map(r => r.status), [COPY.rowCount(2), COPY.rowNone], 'row tail: 写过 2 次 / 还没写过');
   assert.ok(info.rows.every(r => r.py), 'rows show pinyin');
   assert.deepEqual(info.rows.map(r => r.openAria), info.rows.map(r => `${r.char} ${r.py}，${r.status}`),
     'H3: row open buttons are named 「字 拼音，记录情况」');
@@ -242,7 +242,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.bar, 0, 'still 0 selected after typing');
   assert.equal(info.go.disabled, true, 'bottom still disabled');
 
-  step('pick: select 1 → 「练这个字」, 2 → 「练这 2 个字」 → onPick in input order');
+  step('pick: select 1 → 「练这个字」, 2 → 「练这些字」 → onPick in input order');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="和"] [data-testid="query-row-select"]`).click();
   info = await sheetInfo(page);
   assert.equal(info.bar, 1, '1 selected');
@@ -250,7 +250,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.rows[1].select.label, COPY.unselect('和'), 'selected checkbox label 「取消选择「和」」');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="永"] [data-testid="query-row-select"]`).click();
   info = await sheetInfo(page);
-  assert.deepEqual(info.go, { text: COPY.many(2), disabled: false, aria: null }, '「练这 2 个字」');
+  assert.deepEqual(info.go, { text: COPY.many(2), disabled: false, aria: null }, '「练这些字」');
   await page.evaluate(() => { window.__shiziQueryDemo.nextResult = { ok: false }; });
   await page.locator(inSheet('query-go')).click();
   await page.waitForSelector(inSheet('query-go-fail'));
@@ -266,11 +266,11 @@ export default async function run(page, { baseURL, assert, step }) {
   log = await demoLog(page);
   assert.deepEqual(log.picks, [['永', '和'], ['永', '和']], 'retry calls onPick again with the same chars');
 
-  step('pick: unpracticable char has no checkbox, 「暂时不能练」, opens the can\'t-practise state');
+  step('pick: unpracticable char has no checkbox, 「暂不能练」, opens the can\'t-practise state');
   await typeInto(page, '永龘');
   info = await sheetInfo(page);
   const bad = info.rows.find(r => r.char === '龘');
-  assert.ok(bad && bad.practicable === 'false' && bad.select === null && bad.status === COPY.rowBad, '龘: no checkbox, 「暂时不能练」');
+  assert.ok(bad && bad.practicable === 'false' && bad.select === null && bad.status === COPY.rowBad, '龘: no checkbox, 「暂不能练」');
   assert.equal(bad.openAria, bad.py ? `龘 ${bad.py}，${COPY.rowBad}` : `龘，${COPY.rowBad}`, 'H3: unpracticable row still named');
   assert.equal(info.bar, 1, 'selection kept for chars still in the input (永)');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="龘"] [data-testid="query-row-open"]`).click();
@@ -305,9 +305,9 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.view, 'card', 'one char → card');
   assert.equal(info.card.char, '永', 'card for 永');
   assert.equal(info.card.custom, 'false', 'not in custom');
-  assert.equal(info.card.stat, '记录了 2 次 · 最近一次 9月24日', 'card record line');
+  assert.equal(info.card.stat, '写过 2 次 · 最近 9月24日', 'card record line');
   assert.equal(info.card.practice, COPY.one, '「练这个字」');
-  assert.deepEqual(info.card.add, { text: COPY.add, disabled: false }, '「加入自选的字」 enabled');
+  assert.deepEqual(info.card.add, { text: COPY.add, disabled: false }, '「加入自选」 enabled');
   assert.deepEqual(info.card.detail, { text: COPY.viewRecords, disabled: true, aria: 'true' }, '「查看记录」 greyed before M3-6 (no onDetail)');
   assert.ok(info.card.mineEmpty && info.card.ref, 'your writing (no ink, P31) + reference glyph');
   let st = await page.evaluate(() => window.__shiziTest.getState());
@@ -320,7 +320,7 @@ export default async function run(page, { baseURL, assert, step }) {
   w = await writesSince(page, baseLog);
   assert.deepEqual(w, [], 'opening, typing and viewing wrote nothing');
 
-  step('lookup: 「加入自选的字」 writes only on click, once, via storage.js');
+  step('lookup: 「加入自选」 writes only on click, once, via storage.js');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="永"] [data-testid="query-row-open"]`).click();
   await page.waitForSelector(inSheet('query-card'));
   info = await sheetInfo(page);
@@ -338,14 +338,14 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.deepEqual(st.custom.added.map(e => e.char), ['永'], 'custom.added = [永]');
   assert.equal(typeof st.custom.added[0].at, 'number', 'added entry has at');
   info = await sheetInfo(page);
-  assert.deepEqual(info.card.inCustom, { text: COPY.inCustom, disabled: true, aria: 'true' }, '「已在自选的字里」 disabled');
+  assert.deepEqual(info.card.inCustom, { text: COPY.inCustom, disabled: true, aria: 'true' }, '「已自选」 disabled');
   assert.equal(info.card.custom, 'true', 'card marked custom');
-  assert.equal(await toastText(page), null, 'I3 P0-14: adding shows no toast — the card button itself became 「已在自选的字里」');
+  assert.equal(await toastText(page), null, 'I3 P0-14: adding shows no toast — the card button itself became 「已自选」');
 
   step('lookup: add failure → 三段式, custom unchanged, retry succeeds');
   await page.locator(inSheet('query-back')).click();
   info = await sheetInfo(page);
-  assert.deepEqual(info.rows.map(r => r.status), [COPY.rowCustomCount(2), COPY.rowNone], 'row tail 「自选的字 · 记录了 2 次」 (P43)');
+  assert.deepEqual(info.rows.map(r => r.status), [COPY.rowCustomCount(2), COPY.rowNone], 'row tail 「自选字 · 写过 2 次」 (P43)');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="和"] [data-testid="query-row-open"]`).click();
   await page.waitForSelector(inSheet('query-card-add'));
   await page.waitForTimeout(PRESS_SETTLE_MS);
@@ -354,7 +354,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await page.waitForSelector(inSheet('query-card-add-fail'));
   info = await sheetInfo(page);
   assert.ok(info.card.addFail.includes(COPY.addFailed) && info.card.addFail.includes(COPY.addCancel) && info.card.addFail.includes(COPY.addRetry),
-    'add failure: 「没加进自选的字，输入的字还在。」［先不加 / 再试一次］');
+    'add failure: 「没加进自选，输入的字还在。」［先不加 / 再试一次］');
   assert.equal(info.inputValue, '永和', 'input kept');
   st = await page.evaluate(() => window.__shiziTest.getState());
   assert.deepEqual(st.custom.added.map(e => e.char), ['永'], 'custom unchanged after the failed add');
@@ -373,7 +373,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.deepEqual(st.custom.added.map(e => e.char), ['永', '和'], 'retry adds 和 once');
   await page.locator(inSheet('query-back')).click();
   info = await sheetInfo(page);
-  assert.deepEqual(info.rows.map(r => r.status), [COPY.rowCustomCount(2), COPY.rowCustomNone], 'row tail 「自选的字 · 还没有记录」');
+  assert.deepEqual(info.rows.map(r => r.status), [COPY.rowCustomCount(2), COPY.rowCustomNone], 'row tail 「自选字 · 还没写过」');
 
   step('lookup: 练这个字 → onPractice; sheet stays with the same input');
   await page.locator(`${SHEET} [data-testid="query-row"][data-char="永"] [data-testid="query-row-open"]`).click();

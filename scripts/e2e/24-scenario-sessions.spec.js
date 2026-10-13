@@ -137,7 +137,7 @@ export default async function scenario(page, ctx) {
   await waitTop(page, 'home');
   assert.equal(await noToastFor(page), true, 'no toast within 1.5s of coming back (R4-F1 / P262)');
   let h = await homeLines(page);
-  assert.equal(h.dataResume, 'A+B', 'B (这次选的字) is the main entry, A is the other-line (D05)');
+  assert.equal(h.dataResume, 'A+B', 'B (自己选的) is the main entry, A is the other-line (D05)');
   assert.deepEqual([h.other && h.other.slot, h.other && h.other.kind], ['A', 'daily'], 'other-line is A (今天的练习)');
   assert.equal(h.dataResume, 'A+B', 'home resume state A+B');
 
@@ -149,7 +149,7 @@ export default async function scenario(page, ctx) {
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
-  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 1 个字没写，结束后就不写了。判断过的 1 个字已经记下。', 'S04 body');
+  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 1 个字没写。已写的 1 个已记下。', 'S04 body');
   await page.click(tid('write-end-confirm'));
   await waitTop(page, 'result');
   assert.equal(await page.locator(topSel('result-title')).count(), 0, 'B result: no visible heading any more (R2-R1: the picked page is the work layout)');

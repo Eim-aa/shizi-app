@@ -20,13 +20,13 @@ const COPY = {
   self: '自己写',
   trace: '描一遍',
   next: '下一个',
-  traceDone: '描好了，自己写',
+  traceDone: '自己写',
   retrace: '再描一遍',
   selfNote: '这个字看过答案了，再写只算练习。',
-  titleRecall: '凭记忆写出这个字',
-  titleAnswer: '这个字这样写',
+  titleRecall: '凭记忆写',
+  titleAnswer: '正确写法',
   titleTrace: '描一遍',
-  titleSelf: '自己写一遍',
+  titleSelf: '自己写',
   stepTrace: '第 1 步，共 2 步：描一遍',
   stepSelf: '第 2 步，共 2 步：自己写',
 };
@@ -278,7 +278,7 @@ export default async function answer(page, ctx) {
   assert.equal(((await page.evaluate(() => window.__shiziTest.getState().settings)) || {}).answerNoteSeen, undefined, 'settings.answerNoteSeen is no longer written by the UI (the flag stays in the schema only)');
   assert.equal(await present0(page, 'write-answer-note'), false, 'no separate note above the buttons any more (single row footer)');
   // R2-A1（A2-09）：名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数
-  assert.ok(/^参考字形：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
+  assert.ok(/^标准写法：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
   assert.deepEqual([await menuLabel(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
     'main button 描一遍, text button 自己写 in the text row');
   assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the text row');
@@ -300,7 +300,7 @@ export default async function answer(page, ctx) {
   assert.equal(await page.getAttribute(topSel('write-steps'), 'aria-label'), COPY.stepTrace, 'step dots R-W04.stepTrace');
   assert.equal(await text(page, 'write-note'), '', 'no note under the grid in trace (R-W08.traceNote deleted: the trace explains itself)');
   assert.equal(s.strokes, 0, 'trace starts with an empty grid');
-  assert.equal(await label(page, 'write-trace-done'), COPY.traceDone, 'main button 描好了，自己写');
+  assert.equal(await label(page, 'write-trace-done'), COPY.traceDone, 'main button 自己写');
   assert.deepEqual(s.done, null, 'no 「写好了」 in trace');
   const traceDone0 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);
   assert.equal(traceDone0, true, '描好了 disabled before writing');
@@ -348,11 +348,11 @@ export default async function answer(page, ctx) {
   const traceDone1 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);
   assert.equal(traceDone1, false, '描好了 enabled after writing');
 
-  ctx.step('描好了，自己写 → retrace: empty grid, R-W07 self note, 再描一遍 / 下一个, no skip link');
+  ctx.step('自己写 → retrace: empty grid, R-W07 self note, 再描一遍 / 下一个, no skip link');
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
   s = await track();
-  assert.equal(s.title, COPY.titleSelf, 'title 自己写一遍');
+  assert.equal(s.title, COPY.titleSelf, 'title 自己写');
   assert.equal(await page.getAttribute(topSel('write-steps'), 'aria-label'), COPY.stepSelf, 'step dots R-W04.stepSelf');
   assert.equal(s.strokes, 0, 'retrace starts empty');
   assert.equal(await text(page, 'write-note'), COPY.selfNote, 'grid note R-W07.selfNote');

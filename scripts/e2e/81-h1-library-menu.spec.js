@@ -1,6 +1,6 @@
 // H1-8（T2-11）：「有记录的字」页只留字墙——排序分段控件、筛选胶囊、图例、说明句都收进页头尾端一个「排序 · 筛选」菜单（底部弹层）。
 //   - 页面本体（all-body）里没有 all-sorts / all-chips / library-legend / all-note；第一个字出现在屏高 30% 以内（旧版在约 55% 处）；
-//   - 页头尾端有文字按钮 all-menu-open「排序 · 筛选」（文字按钮规格、右缘在 20pt 线上）；点开是弹层 all-menu，里面有排序三键、筛选四项、图例、说明句；
+//   - 页头尾端有文字按钮 all-menu-open「排序 · 筛选」（文字按钮规格、右缘在 20pt 线上）；点开是弹层 all-menu，里面有排序三键、筛选五项、图例、说明句；
 //   - 选一个排序 / 筛选后弹层关闭，页面照常变化（data-sort / data-filter），按钮在有筛选时标 data-active；
 //   - 查字命中时（排序 / 筛选 / 图例都收起）按钮也收起。
 //   393×852 浅 / 深，375×667。
@@ -63,14 +63,14 @@ export default async function run(page0, ctx) {
     assert.deepEqual([f.btn.text, f.btn.isText, f.btn.inTrail, f.btn.active], ['排序 · 筛选', true, true, null], `${v.tag}: the menu button is a header-trailing text button`);
     assert.ok(Math.abs(f.btn.inkRight - (v.width - 20)) <= 0.6, `${v.tag}: its text ends on the 20pt line (${f.btn.inkRight})`);
 
-    step(`${v.tag}: 点开 → 弹层里有排序三键、筛选四项、图例、说明句；选排序后弹层关闭`);
+    step(`${v.tag}: 点开 → 弹层里有排序三键、筛选五项、图例、说明句；选排序后弹层关闭`);
     await page.click(topSel('all-menu-open'));
     await page.waitForSelector(topSel('all-menu'));
     await waitNavIdle(page);
     f = await pageFacts(page);
     assert.equal(f.menu.title, '排序 · 筛选', `${v.tag}: sheet title`);
     assert.deepEqual(f.menu.sorts, [['recent', 'true'], ['py', 'false'], ['age', 'false']], `${v.tag}: three sorts, recent pressed`);
-    assert.deepEqual(f.menu.chips, ['wrong', 'forget', 'unw', 'custom'], `${v.tag}: four filters`);
+    assert.deepEqual(f.menu.chips, ['due', 'shaky', 'known', 'unw', 'custom'], `${v.tag}: five filters (r7-C1 D61 Q5)`);
     assert.equal(f.menu.legend, true, `${v.tag}: legend inside the menu`);
     assert.ok(f.menu.note && f.menu.note.length > 0, `${v.tag}: the explanation sentence is inside the menu`);
     await page.click(`${topSel('all-menu')} [data-testid="all-sort"][data-key="py"]`);
@@ -85,17 +85,17 @@ export default async function run(page0, ctx) {
     await page.click(topSel('all-menu-open'));
     await page.waitForSelector(topSel('all-menu'));
     await waitNavIdle(page);
-    await page.click(`${topSel('all-menu')} [data-testid="all-chip"][data-key="wrong"]`);
+    await page.click(`${topSel('all-menu')} [data-testid="all-chip"][data-key="due"]`);
     await page.waitForFunction(() => !document.querySelector('[data-testid="all-menu"]'));
     await waitNavIdle(page);
     f = await pageFacts(page);
-    assert.deepEqual([f.filter, f.btn.active], ['wrong', 'true'], `${v.tag}: filter on, button marked`);
+    assert.deepEqual([f.filter, f.btn.active], ['due', 'true'], `${v.tag}: filter on, button marked`);
     await page.click(topSel('all-menu-open'));
     await page.waitForSelector(topSel('all-menu'));
     await waitNavIdle(page);
     f = await pageFacts(page);
     assert.equal(f.menu.sorts.length, 0, `${v.tag}: R-A04 sort collapsed while a filter is on (also inside the menu)`);
-    await page.click(`${topSel('all-menu')} [data-testid="all-chip"][data-key="wrong"]`);
+    await page.click(`${topSel('all-menu')} [data-testid="all-chip"][data-key="due"]`);
     await page.waitForFunction(() => !document.querySelector('[data-testid="all-menu"]'));
     await waitNavIdle(page);
     f = await pageFacts(page);

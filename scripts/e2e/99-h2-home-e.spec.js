@@ -160,7 +160,7 @@ export default async function run(page, ctx) {
         assert.ok(midGroup > m.date.b && midGroup < m.start.y, `${t}: the 「拾」 group sits between the date and the buttons`);
         assert.ok(near((m.shi.x + m.epi.r) / 2, view.width / 2, 14), `${t}: the 「拾」 + epigraph group is centred horizontally (${m.shi.x}…${m.epi.r})`);
         // 标题只给读屏
-        assert.ok(m.title && m.title.text === '今天写几个字' && m.title.tag === 'H1' && m.title.visible === false, `${t}: the title 「今天写几个字」 is only an h1 for the screen reader, not on the page`);
+        assert.ok(m.title && m.title.text === '今天写字' && m.title.tag === 'H1' && m.title.visible === false, `${t}: the title 「今天写字」 is only an h1 for the screen reader, not on the page`);
         // 屏上的文字：只有日期、题记、一句（五 / 六态）、按钮
         const texts = m.visibleText.map(x => x.text);
         const allowed = new Set([m.dateText, ...EPIGRAPHS.flatMap(e => e), 'x']);
@@ -175,9 +175,9 @@ export default async function run(page, ctx) {
         // 按钮与那一句
         if (name === 'special') {
           assert.equal(m.noteText, CAPITAL, `${t}: the special group's one line (existing copy)`);
-          assert.equal(m.deferText, '这次先写平常的字', `${t}: 「这次先写平常的字」`);
+          assert.equal(m.deferText, '写平常字', `${t}: 「写平常字」`);
         } else {
-          assert.equal(m.defer, null, `${t}: no 「这次先写平常的字」`);
+          assert.equal(m.defer, null, `${t}: no 「写平常字」`);
           assert.equal(m.pickText, '自己选字', `${t}: 「自己选字」 above the main button`);
         }
         if (name === 'back') {
@@ -192,7 +192,7 @@ export default async function run(page, ctx) {
           assert.equal(m.noteText, null, `${t}: no extra line`);
         }
         if (name === 'special') {
-          assert.ok(m.pick && m.defer && near(m.pick.y, m.defer.y, 1) && m.pick.x < m.defer.x, `${t}: 「自己选字」 and 「这次先写平常的字」 side by side, pick on the left`);
+          assert.ok(m.pick && m.defer && near(m.pick.y, m.defer.y, 1) && m.pick.x < m.defer.x, `${t}: 「自己选字」 and 「写平常字」 side by side, pick on the left`);
           assert.equal(m.pickText, '自己选字', `${t}: 「自己选字」 stays`);
         }
         if (m.pick) assert.ok(m.pick.b <= m.start.y + 0.5, `${t}: the text buttons sit above the main button`);
@@ -207,7 +207,7 @@ export default async function run(page, ctx) {
   await page.setViewportSize({ width: 390, height: 844 });
 
   // ---- 主操作都是一次点击
-  step('主操作一次点击：开始写字 → 写字页；自己选字 → 查字；这次先写平常的字 → 写字页（顺延）；继续写字 / 再写一组各一次');
+  step('主操作一次点击：开始写字 → 写字页；自己选字 → 查字；写平常字 → 写字页（顺延）；继续写字 / 再写一组各一次');
   const fresh = async name => {
     await page.goto('about:blank');
     await bootTestHost(page, ctx.baseURL);
@@ -234,5 +234,5 @@ export default async function run(page, ctx) {
   await fresh('special');
   await page.click(topSel('home-capital-defer'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'write');
-  assert.equal(await topScreen(), 'write', 'special: one tap on 这次先写平常的字 opens the (ordinary) write page');
+  assert.equal(await topScreen(), 'write', 'special: one tap on 写平常字 opens the (ordinary) write page');
 }

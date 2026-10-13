@@ -19,7 +19,7 @@ const TOP = '.sz-layer[data-top="true"]';
 const COPY = {
   title: '年度报告', // I3 P2-24: the page title is the menu row's name (one name for the report)
   emptyTitle: '今年还没有记录',
-  emptyBody: '写字并判断对错后，这里会汇总你今年的记录。',
+  emptyBody: '写几个字，这里就会汇总今年。',
   head: n => `这一年，你拾回${['零', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十'][n]}个字。`, // 汉字数字，与册页卷首同一句（D53，N2-14；本用例的数都在 10 以内）
   inkLine: d => `${d}的笔迹`,
 };
@@ -234,11 +234,11 @@ export default async function run(page, ctx) {
     await seed(page, spec);
     await waitState(page, 'empty');
     v = await view(page);
-    assert.equal(v.empty && v.empty.title, COPY.emptyTitle, `${label} → 今年还没有记录`);
+    assert.equal(v.empty && v.empty.title, COPY.emptyTitle, `${label} → 今年还没写过`);
   }
 
   // ------------------------------------------------------------------ 2. 一卷
-  step('the scroll: 卷首 (二〇二六, the one number, 今年第一个字) → monthly sections → no statistics sections');
+  step('the scroll: 卷首 (二〇二六, the one number, 今年首字) → monthly sections → no statistics sections');
   await seed(page, RICH);
   await waitState(page, 'report');
   const o = await oracle(page, 2026);
@@ -251,7 +251,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(v.months.map(m => [m.name, m.count]), o.months.map(([m, n]) => [`${Number(m.slice(5))}月`, `${n} 字`]), 'month name + 「N 字」');
   assert.ok(v.months.every(m => m.cols === 8 && m.cell === Math.min(45, Math.floor((ctx.viewport.width - 40) / 8))), 'every month: 8 columns, cell min(45, ⌊(W − 40) / 8⌋) (45 at 402; 44 at the runner\'s 393)');
   assert.deepEqual([v.first.char, v.first.day, v.first.record], [o.first.char, o.first.day, o.first.record], 'the first char of the year (oracle)');
-  assert.deepEqual([v.first.label, v.first.line], ['今年第一个字', COPY.inkLine(md(o.first.day))], '「今年第一个字」 / 「{M月D日} 的笔迹」 (D45)');
+  assert.deepEqual([v.first.label, v.first.line], ['今年首字', COPY.inkLine(md(o.first.day))], '「今年首字」 / 「{M月D日} 的笔迹」 (D45)');
   assert.equal(v.first.canvasMode, 'hand', 'the first char is drawn with its ink');
   assert.ok(!/最忙|较少见|有记录天数|只算今年的记录/.test(v.bodyText), 'no statistics sections / footer (the model keeps one number)');
 
@@ -275,7 +275,7 @@ export default async function run(page, ctx) {
   assert.equal(v.months[0].under, 3, 'folded month: no kept ink → all under cells (still counted)');
 
   // ------------------------------------------------------------------ 4. 分享（保存年报）与月段
-  step('the 卷尾 「同一个字，两次」; share → 保存年报 sheet (album page count, 保存 N 张图片, 存成一张长图); a month section opens the month page');
+  step('the 卷尾 「同字两次」; share → 保存年报 sheet (album page count, 保存 N 张, 存成长图); a month section opens the month page');
   await seed(page, RICH2);
   await waitState(page, 'report');
   v = await view(page);
@@ -294,10 +294,10 @@ export default async function run(page, ctx) {
       kinds: [...r.querySelectorAll('[data-testid="image-canvas"]')].map(c => c.dataset.kind), ratios: r.querySelectorAll('[data-testid="image-ratio"]').length,
     };
   });
-  assert.deepEqual([sh.title, sh.long, sh.note, sh.ratios], ['保存年报', '存成一张长图', '存成册页：卷首、每个月、卷尾，每张 3:4。', 0], 'sheet copy; the album is always 3:4 (no ratio segment)');
+  assert.deepEqual([sh.title, sh.long, sh.note, sh.ratios], ['保存年报', '存成长图', '分成封面、每月、封底，每张 3:4。', 0], 'sheet copy; the album is always 3:4 (no ratio segment)');
   assert.deepEqual(sh.kinds, ['annual-cover', 'annual-month', 'annual-month', 'annual-month', 'annual-tail'], 'cover + 3 months (4, 5, 10) + tail');
   assert.equal(sh.pages, 5, 'album pages');
-  assert.equal(sh.save, '保存 5 张图片', 'primary button 「保存 N 张图片」');
+  assert.equal(sh.save, '保存 5 张', 'primary button 「保存 N 张」');
   await page.waitForTimeout(450);
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
   await page.waitForFunction(() => !document.querySelector('[data-testid="image-preview"]'));
@@ -332,7 +332,7 @@ export default async function run(page, ctx) {
   assert.equal(await writes(page) - wReload, 0, 'no writes while on annual after reload and going back');
   assert.deepEqual(raw1, raw0, 'every shizi.* storage key byte-equal before / after viewing + reload');
 
-  step('year boundary: clock 2027-01-02 → 今年还没有记录');
+  step('year boundary: clock 2027-01-02 → 今年还没写过');
   await page.click(`${TOP} ${tid('mine-menu-annual')}`);
   await waitTop(page, 'annual');
   const wBefore = await writes(page);

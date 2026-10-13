@@ -19,15 +19,15 @@ const SESSION_MOD = '/src/ui/screens/session/index.js';
 const DAY = '2026-09-24';
 const YDAY = '2026-09-23';
 const LIBS = ['core3500', 'adv3000', 'rare', 'curriculum2500'];
-const NAMES = ['规范常用字', '规范次常用字', '规范专门用字', '小学初中常用字'];
+const NAMES = ['常用字', '次常用字', '少见字', '课本字'];
 const DESCS = [
   '日常最常用的字。大多数人从这里开始。',
-  '看书看报会碰到的字。常用字写熟了，可以换这个。',
-  '人名、地名和古文里的少见字。目前能练的大约一半。',
-  '小学到初中语文课要求会写的字。适合陪孩子一起练。',
+  '看书看报会碰到的字。常用字写熟再换。',
+  '人名、地名、古文里的少见字。',
+  '小学到初中语文课要会写的字。',
 ];
 const TOTALS = [3500, 2974, 744, 2500];
-const SOURCE_NOTE = '字表参考教育部《通用规范汉字表》。有些字拾字还没收进来，暂时不能练，所以能练的字比原表少。';
+const SOURCE_NOTE = '参考《通用规范汉字表》，部分字暂未收录。';
 const FAILED = '没保存上，刚才的选择没记下。';
 
 const row = lib => `${topSel('libswitch-row')}[data-lib="${lib}"]`;
@@ -210,13 +210,13 @@ export default async function librarySwitch(page, ctx) {
   await waitNavIdle(page);
   const entry = topSel('settings-library');
   assert.equal(await page.getAttribute(entry, 'data-library'), 'core3500', 'settings shows the P73 default range');
-  assert.equal(await page.textContent(topSel('settings-library-value')), '规范常用字', 'with its library name');
+  assert.equal(await page.textContent(topSel('settings-library-value')), '常用字', 'with its library name');
   await page.click(entry);
   await page.waitForSelector(topSel('libswitch-screen'));
   await waitNavIdle(page);
   assert.equal((await routerTop(page)).top, 'library-switch', 'the settings row pushes library-switch');
   const title = await page.locator(`${topSel('libswitch-screen')} [data-page-title]`).textContent();
-  assert.equal(title, '更换字库', 'page title');
+  assert.equal(title, '练习范围', 'page title');
   let list = await rows(page);
   assert.deepEqual(list.map(r => r.lib), LIBS, 'four rows in LIBRARIES order');
   assert.deepEqual(list.map(r => r.tag), ['BUTTON', 'BUTTON', 'BUTTON', 'BUTTON'], 'each row is a button');
@@ -227,7 +227,7 @@ export default async function librarySwitch(page, ctx) {
   assert.equal(expectRecorded[0], 2, 'core3500 has 的 一');
   assert.equal(expectRecorded[1], 1, 'adv3000 has 耶');
   assert.equal(expectRecorded[2], 0, 'rare has none');
-  assert.deepEqual(list.map(r => r.count), LIBS.map((_, i) => `可以练 ${TOTALS[i]} 个字 · 有记录 ${expectRecorded[i]} 个`), 'count lines');
+  assert.deepEqual(list.map(r => r.count), LIBS.map((_, i) => `可练 ${TOTALS[i]} 个 · 写过 ${expectRecorded[i]} 个`), 'count lines');
   assert.deepEqual(list.map(r => r.current), ['true', 'false', 'false', 'false'], 'core3500 is current (P73)');
   assert.equal(list[0].ariaCurrent, 'true', 'aria-current on the current row');
   assert.deepEqual(list.map(r => r.mark), ['正在用', '›', '›', '›'], 'marks');
@@ -290,7 +290,7 @@ export default async function librarySwitch(page, ctx) {
     const el = document.querySelector(sel);
     return !!el && el.dataset.library === 'adv3000';
   }, entry);
-  assert.equal(await page.textContent(topSel('settings-library-value')), '规范次常用字', 'the settings row follows settings.library');
+  assert.equal(await page.textContent(topSel('settings-library-value')), '次常用字', 'the settings row follows settings.library');
   await waitNavIdle(page);
   const after = await state(page);
   assert.deepEqual(after.settings, { library: 'adv3000' }, 'settings.library = adv3000');
@@ -328,15 +328,15 @@ export default async function librarySwitch(page, ctx) {
   const adv = await page.evaluate(async () => (await import('/src/data/deck.js')).deckAdapter.newCandidates('adv3000'));
   const expected = adv.filter(k => !before.sched[k]).slice(0, newInQueue.length);
   assert.ok(queue.length > 0 && newInQueue.length > 0, 'queue not empty, has new chars');
-  assert.ok(newInQueue.every(k => members.adv3000.includes(k)), 'every new char is in 规范次常用字');
-  assert.ok(newInQueue.every(k => !members.core3500.includes(k)), 'no new char from 规范常用字');
+  assert.ok(newInQueue.every(k => members.adv3000.includes(k)), 'every new char is in 次常用字');
+  assert.ok(newInQueue.every(k => !members.core3500.includes(k)), 'no new char from 常用字');
   assert.deepEqual(newInQueue, expected, 'new chars follow the adv3000 order (易忘度 list first, then SEED), skipping chars already scheduled (耶)');
   assert.ok(!queue.includes('base:耶') || before.sched['base:耶'], '耶 already has a schedule → never counted as a new char');
   assert.deepEqual(pick(st, ['records', 'sched', 'custom']), pick(before, ['records', 'sched', 'custom']), 'records / sched / custom unchanged after startA');
   assert.deepEqual(st.sessions.B, before.sessions.B, 'the picked group B is untouched');
 
   // ------------------------------------------------------------ 5. 再打开
-  ctx.step('reopen: 规范次常用字 is current, M unchanged; tapping the current library goes back');
+  ctx.step('reopen: 次常用字 is current, M unchanged; tapping the current library goes back');
   await goTab(page, 'home');
   await openSwitchFromSettings(page);
   list = await rows(page);

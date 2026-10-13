@@ -31,7 +31,7 @@ export default async function c3rN2(page, ctx) {
     };
   });
   assert.equal(s.name, '声音', 'the switch is named 「声音」');
-  assert.equal(s.sub, '判断和落款时的轻声，书写时不出声。', 'subtitle');
+  assert.equal(s.sub, '点写对写错时有轻声，写字时无声。', 'subtitle');
   assert.ok(s.describedBy, 'the subtitle is the switch’s description for screen readers');
   assert.ok(!s.text.includes('按键音'), 'no 「按键音」 anywhere on the page');
   assert.equal(s.role, 'switch', 'still a switch');

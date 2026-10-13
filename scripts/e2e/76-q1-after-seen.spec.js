@@ -110,7 +110,7 @@ export default async function q1AfterSeen(page, ctx) {
   f = await facts(page);
   const seen = f.records.find(r => r.char === '永');
   assert.equal(seen.kind, 'answer-seen', 'the record is still 看过答案 (D18)');
-  assert.deepEqual(Object.keys(f.ink), [seen.id], 'leaving 自己写一遍 (再描一遍) stores the self-written ink on the answer-seen record');
+  assert.deepEqual(Object.keys(f.ink), [seen.id], 'leaving 自己写 (再描一遍) stores the self-written ink on the answer-seen record');
   assert.equal(f.ink[seen.id].strokes, 2, 'two strokes (vertical + horizontal)');
   await drawStroke(page, HORIZONTAL);
   await page.click(topSel('write-trace-done'));
@@ -120,7 +120,7 @@ export default async function q1AfterSeen(page, ctx) {
   await waitPhase(page, 'recall');
   f = await facts(page);
   assert.deepEqual(Object.keys(f.ink), [seen.id], 'still one ink entry for 永');
-  assert.equal(f.ink[seen.id].strokes, 1, 'only the last 自己写一遍 is kept (one vertical stroke)');
+  assert.equal(f.ink[seen.id].strokes, 1, 'only the last 自己写 is kept (one vertical stroke)');
   assert.ok(Math.abs(f.ink[seen.id].first[0] - f.ink[seen.id].last[0]) < 20 && f.ink[seen.id].last[1] > f.ink[seen.id].first[1] + 100, 'it is the vertical stroke');
   const yong = f.records.find(r => r.char === '永');
   assert.deepEqual([yong.kind, yong.judgment, !!f.sched['base:永']], ['answer-seen', undefined, false], 'no judgment, no FSRS entry (D18)');

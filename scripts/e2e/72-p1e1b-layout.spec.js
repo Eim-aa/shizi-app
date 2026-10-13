@@ -132,11 +132,11 @@ export default async function p1e1bLayout(page, ctx) {
         mAria: mineCard.getAttribute('aria-label'), rAria: refCard.getAttribute('aria-label'), mRole: mineCard.getAttribute('role'), rRole: refCard.getAttribute('role'), note: !!top.querySelector('[data-testid="write-judge-note"]') };
     });
     assert.equal(aside.asides, 0, `${w}×${h}: no side notes (D49)`);
-    assert.ok(!aside.text.includes('你的书写') && !aside.text.includes('参考字形') && !aside.text.includes('你来判断'), `${w}×${h}: neither the notes nor the instruction sentence is on the page`);
+    assert.ok(!aside.text.includes('你写的') && !aside.text.includes('标准写法') && !aside.text.includes('你来判断'), `${w}×${h}: neither the notes nor the instruction sentence is on the page`);
     assert.equal(aside.note, false, `${w}×${h}: no sentence above the buttons`);
     assert.deepEqual([aside.mRole, aside.rRole], ['img', 'img'], `${w}×${h}: the cards keep role=img`);
-    assert.equal(aside.mAria, '你的书写，1 笔', `${w}×${h}: screen-reader name of my card unchanged`);
-    assert.ok(/^参考字形：永，yǒng，\d+ 画(，[^，]+)?$/.test(aside.rAria), `${w}×${h}: screen-reader name of the reference card unchanged (${aside.rAria})`);
+    assert.equal(aside.mAria, '你写的，1 笔', `${w}×${h}: screen-reader name of my card unchanged`);
+    assert.ok(/^标准写法：永，yǒng，\d+ 画(，[^，]+)?$/.test(aside.rAria), `${w}×${h}: screen-reader name of the reference card unchanged (${aside.rAria})`);
     const btns = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
       const a = top.querySelector('[data-testid="write-judge-wrong"]').getBoundingClientRect();

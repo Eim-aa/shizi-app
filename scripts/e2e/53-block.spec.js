@@ -92,7 +92,7 @@ async function scenarioDenied(page, ctx) {
     assert.equal(snap.kind, 'unavailable', 'block kind is unavailable');
     assert.equal(snap.blocked, 'unavailable', '.sz-app carries data-blocked=unavailable');
     assert.equal(snap.title, await copyOf(p, 'R-B09.title'), 'title matches R-B09.title');
-    assert.equal(snap.title, '现在存不了记录', 'title text is 现在存不了记录');
+    assert.equal(snap.title, '无法保存', 'title text is 无法保存');
     assert.deepEqual(snap.lines, await copyOf(p, 'R-B09.body'), 'body lines match R-B09.body');
     assert.equal(snap.retry, await copyOf(p, 'R-B09.retry'), 'retry button reads R-B09.retry');
     assert.equal(snap.retry, '再试一次', 'retry text is 再试一次');
@@ -266,7 +266,7 @@ async function scenarioBlockedAndMigration(page, ctx) {
   await page.waitForSelector(tid('block-screen'));
   const snap = await blockSnapshot(page);
   assert.equal(snap.kind, 'blocked', 'block page kind is blocked');
-  assert.equal(snap.title, '现在存不了记录', 'blocked variant uses R-B09 title');
+  assert.equal(snap.title, '无法保存', 'blocked variant uses R-B09 title');
   assert.ok(snap.exportBtn, 'export entry offered when storage is readable and there are judged characters');
   assert.equal(await page.textContent(tid('block-export')), await copyOf(page, 'R-B02.export'), 'export button reads R-B02.export');
   assert.equal(snap.tabs, false, 'no tab bar while blocked');

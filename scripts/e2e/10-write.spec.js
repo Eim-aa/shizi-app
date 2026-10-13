@@ -22,7 +22,7 @@ export default async function write(page, ctx) {
   await openWrite(page, { slot: 'A' });
   let s = await writeSnapshot(page);
   assert.equal(s.screen, 'write', 'write screen is on top');
-  assert.equal(s.title, '凭记忆写出这个字', 'title R-W03.titleRecall');
+  assert.equal(s.title, '凭记忆写', 'title R-W03.titleRecall');
   assert.equal(s.progress, '1 / 3', 'progress R-W01 = cursor + 1 / queue length');
   assert.equal(s.strokes, 0, 'no strokes yet');
   assert.deepEqual(s.done, { disabled: true, ariaDisabled: 'true' }, '「写好了」 disabled + aria-disabled with an empty grid');

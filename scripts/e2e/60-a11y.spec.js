@@ -392,8 +392,8 @@ export default async function a11y(page, realCtx) {
   assert.deepEqual([styleState.tabsRadius, styleState.tabsBg, styleState.tabsBorder[0]], ['0px', tokenRgb('light', 'paper'), 'solid'], 'component styles are live (tab bar: flat, paper, hairline top)');
   assert.equal(styleState.btnCursor, 'pointer', 'component styles are live (.sz-btn cursor)');
   const homeAria = await page.locator('[role="tablist"]').ariaSnapshot();
-  assert.ok(/- tab "习字" \[selected\]/.test(homeAria) && /- tab "字库"/.test(homeAria) && /- tab "我的"/.test(homeAria),
-    'ariaSnapshot: tablist with 习字 [selected] / 字库 / 我的');
+  assert.ok(/- tab "写字" \[selected\]/.test(homeAria) && /- tab "字库"/.test(homeAria) && /- tab "我的"/.test(homeAria),
+    'ariaSnapshot: tablist with 写字 [selected] / 字库 / 我的');
   assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('[role="tab"]')].map(el => el.getAttribute('tabindex'))),
     ['0', '-1', '-1'], 'roving tabindex: only the selected tab is in the Tab order');
   // P1-E5：首次打开没有题记（首页是书家「拾」+ 题跋）；下面「今天还没写」的首页才有题记，先 seed 一条昨天的判断
@@ -422,7 +422,7 @@ export default async function a11y(page, realCtx) {
     });
     const titleAx = await axOf(cdp, tid('home-title'));
     assert.equal(titleAx && titleAx.description, epi.expected, 'A9: the title is described by the full epigraph (one sentence + 《source》)');
-    assert.equal(titleAx && titleAx.name, '今天写几个字', 'the title keeps its own name');
+    assert.equal(titleAx && titleAx.name, '今天写字', 'the title keeps its own name');
     assert.ok(/^.+。.+《.+》$|^.+，.+。.+$/.test(epi.expected), 'epigraph label has the quote and its source');
     assert.deepEqual([epi.hidden, epi.describedby === epi.figId], ['true', true], 'A9: the on-screen epigraph line is aria-hidden (read once, as the title’s description)');
     // AX1–AX5：题记改横排（放不下时收起），读屏描述仍在
@@ -484,7 +484,7 @@ export default async function a11y(page, realCtx) {
     const cellAx = await axOf(cdp, '.sz-layer[data-top="true"] [data-testid="write-prompt-cell"][data-kind="blank"]');
     assert.equal(cell.role, 'img', 'A9: blank cell role=img');
     assert.deepEqual(cellAx && { role: cellAx.role, name: cellAx.name }, { role: 'image', name: expected }, `A9: blank cell name is "${expected}"`);
-    assert.ok(cell.others.every(l => l === null || l === '同一目标字的另一处空格'), 'A9: other cells keep their names');
+    assert.ok(cell.others.every(l => l === null || l === '同一个字的另一处空格'), 'A9: other cells keep their names');
   }
   await audit(page, cdp, ctx, 'write/recall');
 
@@ -519,9 +519,9 @@ export default async function a11y(page, realCtx) {
     // A9：对照卡读「参考字形：字，拼音，N 画」「你的书写，N 笔」
     const refAx = await axOf(cdp, topSel('write-compare-ref'));
     const mineAx = await axOf(cdp, topSel('write-compare-mine'));
-    assert.ok(refAx && /^参考字形：永，yǒng，\d+ 画(，[^，]+)?$/.test(refAx.name), `A9: reference card name "${refAx && refAx.name}"`);
+    assert.ok(refAx && /^标准写法：永，yǒng，\d+ 画(，[^，]+)?$/.test(refAx.name), `A9: reference card name "${refAx && refAx.name}"`);
     assert.equal(refAx.role, 'image', 'A9: reference card is an image');
-    assert.deepEqual(mineAx && { role: mineAx.role, name: mineAx.name }, { role: 'image', name: '你的书写，1 笔' }, 'A9: my card reads the stroke count (one stroke drawn)');
+    assert.deepEqual(mineAx && { role: mineAx.role, name: mineAx.name }, { role: 'image', name: '你写的，1 笔' }, 'A9: my card reads the stroke count (one stroke drawn)');
   }
   await audit(page, cdp, ctx, 'write/compare');
   await page.click(topSel('write-judge-correct'));
@@ -566,7 +566,7 @@ export default async function a11y(page, realCtx) {
   await page.focus(`${tid('query-sheet')} ${tid('query-input')}`);
   await dialogCheck(page, cdp, ctx, { label: 'query-sheet', panel: tid('query-sheet'), opener: 'library-query-open' });
 
-  ctx.step('写错过清单 (list): 0 selected → 先选一个字 disabled + aria-disabled');
+  ctx.step('写错过清单 (list): 0 selected → 先选字 disabled + aria-disabled');
   await page.evaluate(async () => (await import('/src/ui/screens/library/list.js')).openList('wrong'));
   await page.waitForSelector(topSel('list-screen'));
   await waitNavIdle(page);

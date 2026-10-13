@@ -26,13 +26,13 @@ async function openWritePage(page, ctx, { chars, current, size, scheme }) {
 export default async function run(page, ctx) {
   const { assert, step } = ctx;
   const cases = [
-    { char: '的', label: '参考字形：的，dì，8 画，左右结构' },
-    { char: '思', label: '参考字形：思，sī，9 画，上下结构' },
-    { char: '大', label: '参考字形：大，dà，3 画，2 个部件' },
+    { char: '的', label: '标准写法：的，dì，8 画，左右结构' },
+    { char: '思', label: '标准写法：思，sī，9 画，上下结构' },
+    { char: '大', label: '标准写法：大，dà，3 画，2 个部件' },
   ];
   for (const scheme of ['light', 'dark']) {
     for (const size of ['L', 'AX5']) {
-      step(`${scheme} ${size}: 看答案页的隐藏答案字 = 参考字形名称（含结构 / 部件）`);
+      step(`${scheme} ${size}: 看答案页的隐藏答案字 = 标准写法名称（含结构 / 部件）`);
       for (const c of cases) {
         await openWritePage(page, ctx, { chars: [c.char, '和'], current: { phase: 'answer', answerSeen: true }, size, scheme });
         await page.waitForSelector(topSel('write-answer-char'));
@@ -52,7 +52,7 @@ export default async function run(page, ctx) {
       await page.waitForSelector(topSel('write-compare-ref'));
       await page.waitForFunction(() => /画/.test(document.querySelector('.sz-layer[data-top="true"] [data-testid="write-compare-ref"]').getAttribute('aria-label')), null, { timeout: 15000 });
       assert.equal(await aria(page, 'write-compare-ref'), c.label, `${scheme}: compare page label for ${c.char}`);
-      assert.equal(await aria(page, 'write-compare-mine'), '你的书写，1 笔', `${scheme}: my card still reads the stroke count`);
+      assert.equal(await aria(page, 'write-compare-mine'), '你写的，1 笔', `${scheme}: my card still reads the stroke count`);
       assert.equal(await aria(page, 'write-progress'), '第 1 个字，共 2 个', `${scheme}: progress read as Chinese on the compare page`);
     }
     step(`${scheme} AX5: 判断页（AX 档）参考卡名称`);
@@ -63,6 +63,6 @@ export default async function run(page, ctx) {
     await page.click(topSel('write-done'));
     await page.waitForSelector(topSel('write-compare-ref'));
     await page.waitForFunction(() => /画/.test(document.querySelector('.sz-layer[data-top="true"] [data-testid="write-compare-ref"]').getAttribute('aria-label')), null, { timeout: 15000 });
-    assert.equal(await aria(page, 'write-compare-ref'), '参考字形：的，dì，8 画，左右结构', `${scheme} AX5: compare page label`);
+    assert.equal(await aria(page, 'write-compare-ref'), '标准写法：的，dì，8 画，左右结构', `${scheme} AX5: compare page label`);
   }
 }

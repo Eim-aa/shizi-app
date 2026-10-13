@@ -16,8 +16,8 @@ import { bootTestHost, installNativeStub, nativeMessages, PRESS_SETTLE_MS, tid, 
 
 const CLOCK = '2026-09-24T20:00:00';
 const COPY = {
-  kindSession: '这次的图片',
-  kindGlyph: '手写字图片',
+  kindSession: '本次图片',
+  kindGlyph: '单字图片',
   kindMonth: '9月字帖',
   sessionSign: '二〇二六年九月二十四日　一字',
   dayDoneSign: '二〇二六年九月二十四日　一字',
@@ -25,7 +25,7 @@ const COPY = {
   share: '分享',
   save: '保存图片',
   retry: '再试一次',
-  denied: '没能存进相册。请到手机设置里允许拾字添加照片。',
+  denied: '没存进相册。请在手机设置允许添加照片。',
   saved: '已存好',
   noInk: '最近一次没有笔迹，再写一次就能做图片。', // R-D04.noInkNote（D27 起 perRecordInk 默认开启：再写一次就存下墨迹；关闭态 A5 见 ink-copy 单测）
   brand: '拾字',
@@ -252,7 +252,7 @@ export default async function run(page, ctx) {
   assert.equal(await page.locator(`${topSel('work-cell')}[data-char="永"] [data-testid="work-dot"]`).count(), 1, 'the result page shows 永 in the work with its dot');
 
   // ------------------------------------------------------------------ 3. 单字详情 → 手写字图片
-  ctx.step('detail 「把这个字做成图片」: ink → 手写字图片 (A05); latest without ink → greyed + R-D04');
+  ctx.step('detail 「做成图片」: ink → 单字图片 (A05); latest without ink → greyed + R-D04');
   await goHome(page);
   await openDetail(page, '静');
   w0 = await writeCount(page);
@@ -327,7 +327,7 @@ export default async function run(page, ctx) {
   assert.equal(v.note, '', 'no note');
   await closeOverlay(page);
 
-  ctx.step('day image (「这次的图片 · 保存图片 ›」 on 练习记录): that day\'s chars with ink, latest each');
+  ctx.step('day image (「本次图片 · 保存图片 ›」 on 练习记录): that day\'s chars with ink, latest each');
   await page.evaluate(async () => {
     const m = await import('/src/ui/screens/mine/records.js');
     m.getMineImageActions().today({ day: '2026-09-24' });

@@ -16,16 +16,16 @@ import { bootTestHost, localDayOf, PRESS_SETTLE_MS, tid, waitNavIdle } from './h
 
 const COPY = {
   box: '搜索汉字或拼音', // r7-L1（D60）：占位改为「搜索汉字或拼音」，弹层标题仍是「查字」
-  note: '查到的字可以直接练，也可以加入自选的字。',
+  note: '查到的字可直接练，或加入自选字。',
   title: '查字',
   practice: '练这个字',
-  add: '加入自选的字',
-  inCustom: '已在自选的字里',
+  add: '加入自选',
+  inCustom: '已自选',
   viewRecords: '查看记录',
   saveFailed: '没保存上，输入的字还在。',
   s02Body: chars => `上一组还有${chars.map(c => `「${c}」`).join('')}没写。`,
-  s02Continue: '接着写那组',
-  s02EndStart: '结束那组，开新的',
+  s02Continue: '接着写',
+  s02EndStart: '开新一组',
   s02Cancel: '取消',
 };
 
@@ -292,7 +292,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(e.name, COPY.box, 'accessible name 「搜索汉字或拼音」');
   assert.equal(e.mode, 'lookup', 'data-mode=lookup');
   assert.equal(e.haspopup, 'dialog', 'aria-haspopup=dialog');
-  assert.equal(e.note, null, 'D49: the sentence under the box (R-L04 「查到的字可以直接练，也可以加入自选的字。」) is gone');
+  assert.equal(e.note, null, 'D49: the sentence under the box (R-L04 「查到的字可直接练，或加入自选字。」) is gone');
   assert.ok(e.height >= 44 && e.height <= 56, `box is 48-ish tall (sz-input, ${Math.round(e.height)})`);
   assert.equal(e.hscroll, false, 'no horizontal scroll on the library page');
 
@@ -320,7 +320,7 @@ export default async function run(page, { baseURL, assert, step }) {
   info = await sheetInfo(page);
   assert.equal(info.view, 'card', 'card view');
   assert.deepEqual(info.practice, { text: COPY.practice, disabled: false }, '「练这个字」 enabled');
-  assert.deepEqual(info.add, { text: COPY.add, disabled: false }, '「加入自选的字」 enabled (not auto-added)');
+  assert.deepEqual(info.add, { text: COPY.add, disabled: false }, '「加入自选」 enabled (not auto-added)');
   assert.deepEqual(info.detail, { text: COPY.viewRecords, disabled: false }, '「查看记录」 enabled (onDetail wired)');
   assert.deepEqual(await writesSince(page, base), [], 'open / type / rows / card: zero writes');
   assert.deepEqual(await rawKeys(page), keys0, 'storage keys deep-equal');
@@ -344,7 +344,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.card, '永', 'back → same card');
 
   // ---------------------------------------------------------------- 3. 加入自选 + 轻提示
-  step('加入自选的字 (和) → one commit (custom + txn only) → 无提示，按钮原地变 已在自选的字里');
+  step('加入自选字 (和) → one commit (custom + txn only) → 无提示，按钮原地变 已自选');
   await clickSheet(page, 'query-back');
   await page.waitForSelector(inSheet('query-rows'));
   await page.waitForTimeout(PRESS_SETTLE_MS);
@@ -359,7 +359,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await page.waitForSelector(inSheet('query-card-in-custom'));
   assert.equal(await toastText(page), null, 'I3 P0-14: no success toast');
   info = await sheetInfo(page);
-  assert.deepEqual(info.inCustom, { text: COPY.inCustom, disabled: true }, 'button becomes disabled 「已在自选的字里」');
+  assert.deepEqual(info.inCustom, { text: COPY.inCustom, disabled: true }, 'button becomes disabled 「已自选」');
   let w = await writesSince(page, base);
   assert.ok(w.length > 0 && w.every(x => x.key === 'shizi.v2.custom' || x.key === 'shizi.v2.txn'),
     `only custom (+ txn journal) written: ${[...new Set(w.map(x => x.key))].join(', ')}`);
@@ -441,7 +441,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await waitNavIdle(page);
   let s02 = await s02Info(page);
   assert.deepEqual(s02, { state: 'ask', body: COPY.s02Body(B_CHARS), cont: COPY.s02Continue, end: COPY.s02EndStart, cancel: COPY.s02Cancel },
-    'S02: 「上一组还有「大」「中」没写。」 + 接着写那组 / 结束那组，开新的 / 取消');
+    'S02: 「上一组还有「大」「中」没写。」 + 接着写 / 开新一组 / 取消');
   assert.deepEqual(await routerStack(page), ['library', 'o:query', 'o:s02'], 'S02 on top of the sheet');
   await page.click(tid('s02-cancel'));
   await waitStack(page, ['library', 'o:query']);
@@ -452,7 +452,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.deepEqual(await writesSince(page, base), [], 'cancel: zero writes');
   assert.deepEqual(await rawKeys(page), keys0, 'cancel: all v2 keys deep-equal');
 
-  step('「接着写那组」 → B original scene (大, 2 strokes, recall), zero writes; back → the lookup card');
+  step('「接着写」 → B original scene (大, 2 strokes, recall), zero writes; back → the lookup card');
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await clickSheet(page, 'query-card-practice');
   await page.waitForSelector(tid('s02-dialog'));
@@ -478,7 +478,7 @@ export default async function run(page, { baseURL, assert, step }) {
   assert.equal(info.card, '永', 'back from B → the lookup card (R-Q07)');
   assert.deepEqual((await getState(page)).sessions.B, B0, 'B still deep-equal');
 
-  step('「结束那组，开新的」 → new B = [永] from the library, old B ended early into lastEnded.B');
+  step('「开新一组」 → new B = [永] from the library, old B ended early into lastEnded.B');
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await clickSheet(page, 'query-card-practice');
   await page.waitForSelector(tid('s02-dialog'));

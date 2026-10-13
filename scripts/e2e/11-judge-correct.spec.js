@@ -19,20 +19,20 @@ import {
 } from './helpers.mjs';
 
 const COPY = {
-  titleRecall: '凭记忆写出这个字',
-  titleCompare: '写对了吗？', // D49：判断页页头只问一次
+  titleRecall: '凭记忆写',
+  titleCompare: '写对了吗', // D49：判断页页头只问一次
   wrong: '写错了',
   correct: '写对了',
-  mine: '你的书写',
-  ref: '参考字形',
+  mine: '你写的',
+  ref: '标准写法',
   cont: '接着写',
   saveFailed: '没保存上，你写的字还在。',
   retry: '再试一次',
   notNow: '先不保存',
-  changeTitle: c => `修改「${c}」的判断`,
-  changeBodyCorrect: '刚才记的是写对。改了只换掉这一次，不会多算一次。',
-  changeBodyWrong: '刚才记的是写错。改了只换掉这一次，不会多算一次。',
-  changeFailed: '没改成，还是原来的判断。',
+  changeTitle: c => `改「${c}」`,
+  changeBodyCorrect: '刚才记为写对，改后不多算一次。',
+  changeBodyWrong: '刚才记为写错，改后不多算一次。',
+  changeFailed: '没改成，还是原来的结果。',
   changeRetry: '再试一次',
   changeCancel: '先不改',
   toWrong: '改为写错',
@@ -214,7 +214,7 @@ export default async function judgeCorrect(page, ctx) {
   assert.deepEqual(s.done, { disabled: false, ariaDisabled: null }, '写好了 enabled after a stroke');
   await toCompare(page);
   s = await writeSnapshot(page);
-  assert.equal(s.title, COPY.titleCompare, 'title 写对了吗？ (R-W03, D49: 去掉「对照一下，」)');
+  assert.equal(s.title, COPY.titleCompare, 'title 写对了吗 (R-W03, D49: 去掉「对照一下，」)');
   assert.equal(await present(page, 'write-judge-note'), false, 'D49: no 「你来判断，点一下就记下。」 sentence on the judge page');
   assert.equal(await present(page, 'write-grid'), false, 'grid replaced by the compare cards');
   assert.equal(await present(page, 'write-skip'), false, 'no skip on the judge page');
@@ -274,12 +274,12 @@ export default async function judgeCorrect(page, ctx) {
   assert.equal(cmp.activeTag, 'H1[data-page-title]', 'focus moved to the page title');
   assert.equal(VERDICT_CLASS.test(cmp.classes), false, `compare area has no verdict class names (${cmp.classes})`);
   assert.equal(cmp.attrs.some(a => VERDICT_CLASS.test(a.split('=')[1] || '')), false, 'compare area has no verdict data / aria values');
-  assert.ok(cmp.mineAbove, '你的书写 above, 参考字形 below (D46 ⑪)');
-  assert.deepEqual(cmp.labels, [], 'D49: no 「你的书写 / 参考字形」 side notes (the names live on the cards)');
+  assert.ok(cmp.mineAbove, '你写的 above, 标准写法 below (D46 ⑪)');
+  assert.deepEqual(cmp.labels, [], 'D49: no 「你写的 / 标准写法」 side notes (the names live on the cards)');
   assert.ok(!cmp.pageText.includes(COPY.mine) && !cmp.pageText.includes(COPY.ref), 'D49: neither label is rendered as text anywhere on the judge page');
   // A9：读屏名称带上信息——本人卡「你的书写，N 笔」，参考卡「参考字形：字，拼音，N 画[，结构 / 部件数]」（视觉标签不变；R2-A1 起补结构，A2-09）
-  assert.equal(cmp.mineAria, `${COPY.mine}，1 笔`, 'my card is role=img: 「你的书写，1 笔」 (one stroke drawn)');
-  assert.ok(new RegExp(`^${COPY.ref}：${CHARS[0]}，[^，]+，\\d+ 画(，[^，]+)?$`).test(cmp.refAria), `reference card is role=img: 「参考字形：字，拼音，N 画」 (${cmp.refAria})`);
+  assert.equal(cmp.mineAria, `${COPY.mine}，1 笔`, 'my card is role=img: 「你写的，1 笔」 (one stroke drawn)');
+  assert.ok(new RegExp(`^${COPY.ref}：${CHARS[0]}，[^，]+，\\d+ 画(，[^，]+)?$`).test(cmp.refAria), `reference card is role=img: 「标准写法：字，拼音，N 画」 (${cmp.refAria})`);
   assert.deepEqual(cmp.cont, { text: '', aria: COPY.cont, icon: true }, 'top-left is the ‹ icon (same as the write page), screen-reader name 接着写 (R-W09, D49)');
   assert.equal(cmp.pageBack, false, 'the default back button is replaced by the continue icon on the judge page (same icon, different action)');
   assert.equal(cmp.toolsPresent, false, 'no undo / clear row on the judge page (the stacked cards take the grid\'s place)');
@@ -289,8 +289,8 @@ export default async function judgeCorrect(page, ctx) {
     return !!r && r.dataset.state === 'ready';
   });
   await page.waitForTimeout(80);
-  assert.ok(await canvasPixels(page, '.sz-layer[data-top="true"] [data-testid="write-compare-mine"] canvas') > 50, '你的书写 card shows the learner ink');
-  assert.ok(await canvasPixels(page, '.sz-layer[data-top="true"] [data-testid="write-compare-ref"] canvas') > 500, '参考字形 card shows the reference glyph');
+  assert.ok(await canvasPixels(page, '.sz-layer[data-top="true"] [data-testid="write-compare-mine"] canvas') > 50, '你写的 card shows the learner ink');
+  assert.ok(await canvasPixels(page, '.sz-layer[data-top="true"] [data-testid="write-compare-ref"] canvas') > 500, '标准写法 card shows the reference glyph');
   f = await facts(page);
   assert.equal(f.session.current.phase, 'compare', 'entering compare is written to the session (phase)');
   assert.equal(f.session.current.strokes.length, 1, '…together with the raw strokes (encodeRawStrokes)');
@@ -387,16 +387,16 @@ export default async function judgeCorrect(page, ctx) {
   await openSheet(page);
   let sheet = await sheetInfo(page);
   assert.equal(sheet.role, 'dialog', 'bottom sheet role=dialog');
-  assert.equal(sheet.title, COPY.changeTitle(CHARS[0]), 'sheet title 修改「永」的判断');
+  assert.equal(sheet.title, COPY.changeTitle(CHARS[0]), 'sheet title 改「永」');
   assert.equal(sheet.note, COPY.changeBodyCorrect, 'sheet note 刚才记的是写对。…');
   assert.equal(sheet.flip, COPY.toWrong, 'main button 改为写错');
-  assert.ok(sheet.mine && !sheet.noink && sheet.ref, 'mini cards: 你的书写 (in-page memory) and 参考字形');
+  assert.ok(sheet.mine && !sheet.noink && sheet.ref, 'mini cards: 你写的 (in-page memory) and 标准写法');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
   await page.click(tid('write-change-flip'));
   await page.waitForSelector(tid('write-change-fail-retry'));
   await waitNavIdle(page);
   sheet = await sheetInfo(page);
-  assert.equal(sheet.note, COPY.changeFailed, 'failure note 没改成，还是原来的判断。');
+  assert.equal(sheet.note, COPY.changeFailed, 'failure note 没改成，还是原来的结果。');
   assert.deepEqual([sheet.failCancel, sheet.failRetry], [COPY.changeCancel, COPY.changeRetry], '[先不改 / 再试一次]');
   f = await facts(page);
   assert.equal(f.judged[0].judgment, 'correct', 'record unchanged after the failed correction');

@@ -21,22 +21,23 @@ const BODY = `${TOP} [data-testid="all-body"]`;
 const HOLLOW = ['馨', '鼎'];
 
 const COPY = {
-  title: '有记录的字',
-  recentNote: '按最近一次写的月份排。每格是你最近一次的笔迹。', // D27：perRecordInk 默认开启 → 原槽；关闭态见 47-ink-promises
+  title: '写过的字',
+  recentNote: '按最近写的月份排，每格是最近的笔迹。', // D27：perRecordInk 默认开启 → 原槽；关闭态见 47-ink-promises
   pyNote: '按拼音首字母排。多音字按第一个读音。',
   ageNote: '离上次写越久，排得越前。',
   sorts: ['最近写的', '拼音', '多久没写'],
-  hollowGroup: '自选了还没写',
-  recordedGroup: '有记录',
-  tones: ['一周内写过', '一个月内', '三个月内', '三个月以上'],
-  wrongNote: '你判断写错的字。',
-  forgetNote: '有一阵没写、可能快忘了的字。',
-  unwNote: '加入了自选的字，还没有记录。',
+  hollowGroup: '自选未写',
+  recordedGroup: '写过的',
+  tones: ['一周内', '一个月内', '三个月内', '超三个月'],
+  dueNote: '该复习的字，包括上次写错的。', // r7-C1 D61 Q5：三档同字库首页（X-LIBFOUR.zoneTop.*）
+  shakyNote: '还没记牢的字，过几天会回来。',
+  zones: ['该复习了', '还不太熟', '记住了'],
+  unwNote: '加入自选字，还没写过。',
   customNote: '你自己挑来常练的字。还没写的排在前面。',
   go: '练这些字',
-  searchAria: '在有记录的字里查字',
+  searchAria: '在写过的字里查字',
   foundIn: m => `在 ${m}月`,
-  notFound: c => `「${c}」还没有记录。`,
+  notFound: c => `「${c}」还没写过。`,
   startFailed: '没保存上，刚才的选择没记下。',
   emptyTitle: '你写下的字会留在这里',
 };
@@ -319,11 +320,11 @@ export default async function run(page, ctx) {
   await backToAllRoot();
   await openAll(page);
   let v = await view(page);
-  assert.equal(v.title, COPY.title, 'page title 有记录的字');
+  assert.equal(v.title, COPY.title, 'page title 写过的字');
   assert.equal(v.recorded, 300, 'recorded 300 (same as the home big number)');
   assert.equal(v.rendered, v.total, `all ${v.total} cells rendered after batching`);
   assert.equal(v.cols, 8, '8 columns (same as the wall)');
-  assert.equal(v.findAria, COPY.searchAria, 'find box aria-label 「在有记录的字里查字」 (R-A03)');
+  assert.equal(v.findAria, COPY.searchAria, 'find box aria-label 「在写过的字里查字」 (R-A03)');
 
   // ------------------------------------------------------------------ 2. 最近写的
   step('recent (default): hollow group first, two latest months open, older months folded (cross-year label)');
@@ -401,29 +402,38 @@ export default async function run(page, ctx) {
 
   // ------------------------------------------------------------------ 5. 筛选
   step('filters: counts, toggle off, sort collapses, custom groups (R-A02 / R-A04)');
-  assert.deepEqual(v.chips.map(c => [c.key, c.text, c.disabled]), [
-    ['wrong', `写错过 ${wrongChars.length}`, false],
-    ['forget', `快忘了 ${forgetChars.length}`, false],
-    ['unw', `自选了还没写 ${HOLLOW.length}`, false],
-    ['custom', `自选的字 ${HOLLOW.length + 1}`, false],
+  assert.deepEqual(v.chips.map(c => c.key), ['due', 'shaky', 'known', 'unw', 'custom'], 'r7-C1 D61 Q5: 三档（同字库首页）+ 自选未写 + 自选字');
+  const nOf = Object.fromEntries(v.chips.map(c => [c.key, c.n]));
+  const dueSet = new Set([...wrongChars, ...forgetChars]);
+  assert.equal(nOf.due, dueSet.size, '该复习了 = 写错过 ∪ 到期（旧的「写错过」「快忘了」两档的并集）');
+  assert.equal(nOf.due + nOf.shaky + nOf.known, 300, '三档互斥、合计 = 写过的字');
+  assert.deepEqual(v.chips.map(c => [c.text, c.disabled]), [
+    [`${COPY.zones[0]} ${nOf.due}`, false],
+    [`${COPY.zones[1]} ${nOf.shaky}`, nOf.shaky === 0],
+    [`${COPY.zones[2]} ${nOf.known}`, nOf.known === 0],
+    [`自选未写 ${HOLLOW.length}`, false],
+    [`自选字 ${HOLLOW.length + 1}`, false],
   ], 'chip labels with counts');
-  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
+  await menuClick(page, '[data-testid="all-chip"][data-key="due"]');
   v = await view(page);
-  assert.equal(v.filter, 'wrong', 'filter wrong on');
+  assert.equal(v.filter, 'due', 'filter due on');
   assert.equal(v.sorts, null, 'R-A04: sort collapsed while a filter is on');
-  assert.equal(v.chips[0].pressed, 'true', 'wrong chip pressed');
-  assert.equal(v.note, COPY.wrongNote, 'wrong note');
-  assert.deepEqual(v.groups.flatMap(g => g.cells.map(c => c.char)), wrongChars, 'wrong filter = latest wrong, newest first');
-  assert.deepEqual(v.go, { kind: 'list', text: COPY.go }, '练这些字 → (to the wrong list)');
-  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
+  assert.equal(v.chips[0].pressed, 'true', 'due chip pressed');
+  assert.equal(v.note, COPY.dueNote, 'due note');
+  const dueShown = v.groups.flatMap(g => g.cells.map(c => c.char));
+  assert.deepEqual([...dueShown].sort(), [...dueSet].sort(), 'due filter = 写错过 ∪ 到期');
+  assert.deepEqual(dueShown.slice(0, wrongChars.length), wrongChars, '写错的排前面，最近写错的在前');
+  assert.deepEqual(v.go, { kind: 'list', text: COPY.go }, '练这些字 → (to the due list)');
+  await menuClick(page, '[data-testid="all-chip"][data-key="due"]');
   v = await view(page);
   assert.equal(v.filter, '', 'tap again cancels');
   assert.equal(v.sort, 'age', 'sort restored');
   assert.ok(v.sorts, 'sort control back');
-  await menuClick(page, '[data-testid="all-chip"][data-key="forget"]');
+  await menuClick(page, '[data-testid="all-chip"][data-key="shaky"]');
   v = await view(page);
-  assert.equal(v.note, COPY.forgetNote, 'forget note');
-  assert.deepEqual(v.groups.flatMap(g => g.cells.map(c => c.char)).sort(), [...forgetChars].sort(), 'forget filter = due & latest correct (K16)');
+  assert.equal(v.note, COPY.shakyNote, 'shaky note');
+  assert.equal(v.groups.flatMap(g => g.cells).length, nOf.shaky, 'shaky filter = 未到期且还没记牢');
+  assert.ok(v.groups.flatMap(g => g.cells.map(c => c.char)).every(c => !dueSet.has(c)), 'three zones are exclusive');
   await menuClick(page, '[data-testid="all-chip"][data-key="custom"]');
   v = await view(page);
   assert.equal(v.filter, 'custom', 'switching filters');
@@ -436,7 +446,7 @@ export default async function run(page, ctx) {
   v = await view(page);
   assert.equal(v.note, COPY.unwNote, 'unw note (R-A02)');
   assert.deepEqual(v.groups[0].cells.map(c => [c.char, c.kind]), HOLLOW.map(c => [c, 'hollow']), 'unw cells = hollow');
-  assert.deepEqual(v.go, { kind: 'start', text: COPY.go }, '练这些字 → after 自选了还没写');
+  assert.deepEqual(v.go, { kind: 'start', text: COPY.go }, '练这些字 → after 自选未写');
 
   // ------------------------------------------------------------------ 6. 练这些字
   step('practice these (unw): write failure stays here, nothing written, retry opens B with source allWritten');
@@ -466,8 +476,8 @@ export default async function run(page, ctx) {
   assert.equal(v.filter, 'unw', 'back from the write page: filter kept');
   assert.equal(v.fail, null, 'failure note cleared after success');
 
-  step('practice these (wrong): ONE tap opens the write page (B) with the list defaults (I3 P0-06); 看这些字 › pushes the wrong list page');
-  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
+  step('practice these (due): ONE tap opens the write page (B) with the list defaults (I3 P0-06); 看这些字 › pushes the due list page');
+  await menuClick(page, '[data-testid="all-chip"][data-key="due"]');
   assert.equal(await page.locator(`${BODY} ${tid('all-list')}`).textContent(), '看这些字 ›', 'the list entry is renamed');
   await click(page, `${BODY} ${tid('all-list')}`);
   await page.waitForFunction(async () => {
@@ -477,17 +487,17 @@ export default async function run(page, ctx) {
   });
   await waitNavIdle(page, { settleMs: 150 });
   top = await routerTop(page);
-  assert.deepEqual([top.name, top.params.kind], ['library-list', 'wrong'], "看这些字 › → library-list {kind:'wrong'}");
+  assert.deepEqual([top.name, top.params.kind], ['library-list', 'due'], "看这些字 › → library-list {kind:'due'}");
   await backToAll(page);
   await page.evaluate(() => { const st = window.__shiziTest.getState(); return window.__shiziTest.seed({ ...st, sessions: { A: null, B: null, lastEnded: {} } }); }); // 上一步留下的未写完的组清掉，免得弹 S02
   await click(page, `${TOP} ${tid('all-go')}`);
   await page.waitForSelector(`${TOP} [data-testid="write-screen"]`);
   await waitNavIdle(page, { settleMs: 150 });
   const wrongB = (await page.evaluate(() => window.__shiziTest.getState())).sessions.B;
-  assert.deepEqual([wrongB.kind, wrongB.source], ['picked', { view: 'wrongList' }], 'B = picked, source wrongList (the list defaults)');
+  assert.deepEqual([wrongB.kind, wrongB.source], ['picked', { view: 'dueList' }], 'B = picked, source dueList (the list defaults)');
   assert.ok(wrongB.queue.length >= 1 && wrongB.queue.length <= 5, 'default selection ≤ 5 chars');
   await backToAll(page);
-  await menuClick(page, '[data-testid="all-chip"][data-key="wrong"]');
+  await menuClick(page, '[data-testid="all-chip"][data-key="due"]');
   await menuClick(page, '[data-testid="all-sort"][data-key="recent"]');
 
   // ------------------------------------------------------------------ 7. 页内查字
@@ -505,7 +515,7 @@ export default async function run(page, ctx) {
   assert.equal(v.legend, false, 'legend hidden');
   assert.equal(v.closed.length, 0, 'no other months');
 
-  step('find: a char without records → 「X」还没有记录。 and the page stays');
+  step('find: a char without records → 「X」还没写过。 and the page stays');
   await page.fill(`${BODY} ${tid('all-find')}`, HOLLOW[0]);
   v = await view(page);
   assert.equal(v.found, false, 'not found');

@@ -109,8 +109,8 @@ export default async function paperSpec(page, ctx) {
   // ------------------------------------------------------------------ 1. 设置
   ctx.step('P165: 设置 › 写字方式 — two radios with notes; pick 在纸上写 → settings.writeMode = paper');
   await openSettings(page);
-  assert.equal(await text(page, 'settings-writemode-value'), '在屏幕上写', 'default: on screen');
-  assert.equal(await text(page, 'settings-writemode-sub'), '在纸上写，回来对照判断', 'D56 / P277: the row explains 在纸上写 itself (the write page has no entry any more)');
+  assert.equal(await text(page, 'settings-writemode-value'), '屏幕上写', 'default: on screen');
+  assert.equal(await text(page, 'settings-writemode-sub'), '在纸上写，回来对照', 'D56 / P277: the row explains 在纸上写 itself (the write page has no entry any more)');
   const subBox = await page.evaluate(() => {
     const row = document.querySelector('.sz-layer[data-top="true"] [data-testid="settings-writemode"]').getBoundingClientRect();
     const title = document.querySelector('.sz-layer[data-top="true"] [data-testid="settings-writemode"] .sz-set__title').getBoundingClientRect();
@@ -133,8 +133,8 @@ export default async function paperSpec(page, ctx) {
   });
   assert.deepEqual(sheet.values, ['screen', 'paper']);
   assert.deepEqual(sheet.checked, ['true', 'false']);
-  assert.deepEqual(sheet.texts, ['在屏幕上写用手指或 Apple Pencil 写在书写格里', '在纸上写题面、提示、看答案照常；写好后点「写好了」，自己对照']);
-  assert.ok(/^选「在纸上写」时，判断照常记下、标注「纸上」，不留笔迹/.test(sheet.note), 'the note under the two options (§10.3)');
+  assert.deepEqual(sheet.texts, ['屏幕上写用手指或 Apple Pencil 写', '在纸上写照常看题和提示；写好后自己对照。']);
+  assert.ok(/^纸上写的标「纸上」，不留笔迹/.test(sheet.note), 'the note under the two options (§10.3)');
   await page.click(`${topSel('settings-writemode-option')}[data-value="paper"]`);
   await page.waitForSelector(topSel('settings-writemode-sheet'), { state: 'detached' });
   await waitNavIdle(page);
@@ -170,14 +170,14 @@ export default async function paperSpec(page, ctx) {
   assert.ok(box.paper && box.paper.width > 250 && Math.abs(box.paper.width - box.paper.height) < 1, 'paper box is a square the size of the writing grid');
   assert.equal(box.title, '在纸上写');
   assert.equal(box.body, '写好了点「写好了」，再自己对照。');
-  assert.equal(box.back, '改回在屏幕上写');
+  assert.equal(box.back, '屏幕上写');
   assert.equal(box.note, '这个字记下时会标注「纸上」，不留笔迹。');
   assert.equal(box.toPaper, false);
   assert.ok(!box.done.disabled && box.done.aria !== 'true', '写好了 needs no strokes on paper');
   const paperMenu = (await footItems(page)).map(i => i.testid);
   assert.ok(box.prompt && paperMenu.includes('write-hint') && paperMenu.includes('write-show-answer') && !paperMenu.includes('write-to-paper'), `prompt, hint and 看答案 as usual (the latter two in the text row: ${JSON.stringify(paperMenu)}; no 在纸上写 item while on paper)`);
 
-  ctx.step('P167: 提示 on paper → drawn inside the paper box; the copy folds away, 改回在屏幕上写 stays');
+  ctx.step('P167: 提示 on paper → drawn inside the paper box; the copy folds away, 屏幕上写 stays');
   await tap(page, 'write-hint');
   await page.waitForSelector(`${topSel('write-paper')}[data-hinted="true"]`);
   await page.waitForSelector(`${topSel('write-paper')} [data-testid="write-hint-layer"]`);
@@ -185,7 +185,7 @@ export default async function paperSpec(page, ctx) {
   assert.equal(await page.locator(topSel('write-paper-back')).isVisible(), true);
 
   // ------------------------------------------------------------------ 3. 判断页
-  ctx.step('P167: 写好了 → judge page with only the reference glyph (grid size) + aside; screen reader hears 你的书写：写在纸上');
+  ctx.step('P167: 写好了 → judge page with only the reference glyph (grid size) + aside; screen reader hears 你写的：写在纸上');
   await page.click(topSel('write-done'));
   await waitWrite(page, { cursor: 0, phase: 'compare' });
   const cmp = await page.evaluate(() => {
@@ -205,8 +205,8 @@ export default async function paperSpec(page, ctx) {
   assert.equal(cmp.paper, 'true');
   assert.equal(cmp.mine, false, 'no learner card');
   assert.ok(Math.abs(cmp.refW - box.paper.width) < 1.5, `reference = writing-grid size (${cmp.refW} vs ${box.paper.width})`);
-  assert.equal(cmp.aside, '和你纸上的字对照', 'D49: the slot under the reference reads 「和你纸上的字对照」, no 「参考字形 · 」 side note');
-  assert.equal(cmp.sr, '你的书写：写在纸上');
+  assert.equal(cmp.aside, '和你纸上的字对照', 'D49: the slot under the reference reads 「和你纸上的字对照」, no 「标准写法 · 」 side note');
+  assert.equal(cmp.sr, '你写的：在纸上');
   assert.equal(cmp.srClass, 'sr-only');
   assert.equal(cmp.stored.phase, 'compare');
   assert.equal(cmp.stored.paper, true, 'current.paper written with the compare phase');
@@ -231,7 +231,7 @@ export default async function paperSpec(page, ctx) {
   assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(f.sched['base:永'].due), 'FSRS scheduled the paper judgment');
   assert.ok(/「永」记为写对/.test(await text(page, 'write-line')), 'D19 result line as usual');
 
-  ctx.step('P167: 修改 the paper judgment → the sheet shows 写在纸上 (screen reader: 你的书写：写在纸上) instead of an empty ink cell');
+  ctx.step('P167: 修改 the paper judgment → the sheet shows 写在纸上 (screen reader: 你写的：写在纸上) instead of an empty ink cell');
   await page.click(topSel('write-line-change'));
   await page.waitForSelector(tid('write-change-sheet'));
   await waitNavIdle(page);
@@ -239,13 +239,13 @@ export default async function paperSpec(page, ctx) {
     const el = document.querySelector('[data-testid="write-change-sheet"] [data-testid="write-change-paper"]');
     return el ? { text: el.textContent, label: el.getAttribute('aria-label'), noink: !!document.querySelector('[data-testid="write-change-noink"]') } : null;
   });
-  assert.deepEqual(sheetPaper, { text: '写在纸上', label: '你的书写：写在纸上', noink: false });
+  assert.deepEqual(sheetPaper, { text: '写在纸上', label: '你写的：在纸上', noink: false });
   await page.click(tid('write-change-cancel'));
   await page.waitForFunction(() => !document.querySelector('[data-testid="write-change-sheet"]'));
   await waitNavIdle(page);
 
   // ------------------------------------------------------------------ 4. 单字切换
-  ctx.step('P165: next character follows the setting (paper); 改回在屏幕上写 switches only this character');
+  ctx.step('P165: next character follows the setting (paper); 屏幕上写 switches only this character');
   assert.equal(await present(page, 'write-paper'), true, '和 starts on paper (setting)');
   await page.click(topSel('write-paper-back'));
   await page.waitForSelector(topSel('write-grid'));
@@ -289,7 +289,7 @@ export default async function paperSpec(page, ctx) {
   assert.equal(f.settings.writeMode, 'paper', 'the setting still says paper');
 
   // ------------------------------------------------------------------ 5. 标注：单字详情 / 字墙
-  ctx.step('P169: 单字详情 of 永 — 记录了 2 次; one ink cell (the screen one); the paper record is a row 「{日期}　写对 · 纸上」');
+  ctx.step('P169: 单字详情 of 永 — 写过 2 次; one ink cell (the screen one); the paper record is a row 「{日期}　写对 · 纸上」');
   await page.evaluate(async () => {
     const { openDetail } = await import('/src/ui/screens/detail/index.js');
     openDetail('永');
@@ -317,7 +317,7 @@ export default async function paperSpec(page, ctx) {
       ink3,
     };
   });
-  assert.equal(det.count, '记录了 2 次');
+  assert.equal(det.count, '写过 2 次');
   assert.deepEqual(det.cells, [{ id: firstId, ink: 'true', latest: null, first: true }], 'the inked screen record is the hero (a single screen record = 第一次); the paper one takes no cell');
   assert.equal(det.strip, 0, 'nothing else in the strip');
   assert.equal(det.rows.length, 1);
@@ -358,7 +358,7 @@ export default async function paperSpec(page, ctx) {
   await page.evaluate(() => window.shiziAccessibilityStatus({ voiceOver: true, switchControl: false }));
   await openWriteA(page);
   await waitWrite(page, { cursor: 0, phase: 'recall' });
-  assert.equal(await text(page, 'write-paper-suggest-text'), '看不清或不方便在屏幕上写，可以在设置里改为在纸上写。');
+  assert.equal(await text(page, 'write-paper-suggest-text'), '不方便在屏幕写？可在设置改成纸上写。');
   assert.equal(await text(page, 'write-paper-suggest-go'), '去设置');
   assert.equal(await present(page, 'write-paper-suggest-no'), false, 'no 不用');
   assert.equal(await present(page, 'write-paper-suggest-yes'), false, 'no 改为在纸上写 (the setting is changed in settings, not here)');

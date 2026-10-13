@@ -99,7 +99,7 @@ export default async function run(page0, ctx) {
     assert.ok(f.hero[0].rect.w <= (v.width - 40 - 12) / 2 + 1, `${v.tag}: same cell size as in the two-cell case`);
     await back(page);
 
-    step(`${v.tag}: 没写过——参考字形当头图，没有两格`);
+    step(`${v.tag}: 没写过——标准写法当头图，没有两格`);
     await open(page, '春');
     f = await facts(page);
     assert.deepEqual([f.hero.length, f.ref], [0, true], `${v.tag}: reference glyph as the head`);

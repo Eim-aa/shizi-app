@@ -212,7 +212,7 @@ export default async function queryKeyboardSpec(page, ctx) {
   checkVisible(assert, after, 'C after scrolling the content');
   await closeSheet(page);
 
-  step('pick mode with several chars: the 「练这 N 个字」 bar is pinned at the bottom, rows scroll above it (393×448, system text XXXL)');
+  step('pick mode with several chars: the 「练这些字」 bar is pinned at the bottom, rows scroll above it (393×448, system text XXXL)');
   await page.evaluate(() => window.__shiziTest.reset());
   await setLarge(page, true);
   await openFromHome(page);

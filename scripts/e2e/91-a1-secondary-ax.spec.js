@@ -121,7 +121,7 @@ export default async function run(page0, ctx) {
     if (ax) {
       assert.equal(days.mode, 'list', `${v.tag}: the month is a list in AX`);
       assert.equal(days.cells, 0, `${v.tag}: no 7-column calendar cells in AX`);
-      for (const r of days.rows) assert.ok(/^10月\d+日 · 记了 \d+ 个字$/.test(r.text), `${v.tag}: row text 「${r.text}」`);
+      for (const r of days.rows) assert.ok(/^10月\d+日 · 写了 \d+ 个字$/.test(r.text), `${v.tag}: row text 「${r.text}」`);
       const first = page.locator('[data-testid="records-day"][data-has="true"]').first();
       await first.scrollIntoViewIfNeeded();
       const vis = await first.evaluate(el => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, vw: document.documentElement.clientWidth, vh: window.innerHeight }; });

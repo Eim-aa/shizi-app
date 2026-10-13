@@ -241,9 +241,9 @@ export default async function coldStart(page, ctx) {
   v = await app(a.p);
   assert.deepEqual([v.top, v.depth], ['write', 1], 'cold start: write page');
   assert.ok(await present(a.p, 'write-compare'), 'judge page shown');
-  assert.ok((await pixelsIn(a.p, 'write-compare-mine')) > 0, '你的书写 card has my ink');
-  assert.equal(await waitAttr(a.p, 'write-compare-ref', 'data-state', ['ready', 'missing']), 'ready', '参考字形 ready');
-  assert.ok((await pixelsIn(a.p, 'write-compare-ref')) > 0, '参考字形 painted');
+  assert.ok((await pixelsIn(a.p, 'write-compare-mine')) > 0, '你写的 card has my ink');
+  assert.equal(await waitAttr(a.p, 'write-compare-ref', 'data-state', ['ready', 'missing']), 'ready', '标准写法 ready');
+  assert.ok((await pixelsIn(a.p, 'write-compare-ref')) > 0, '标准写法 painted');
   assert.equal((await facts(a.p)).judged, 0, 'nothing judged by restoring');
 
   // ---------------------------------------------------------------- 3. answer

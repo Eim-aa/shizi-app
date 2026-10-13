@@ -292,7 +292,7 @@ export default async function sessionStart(page, ctx) {
   await waitNavIdle(page);
   assert.equal((await page.locator(topSel('session-none-title')).textContent()).trim(), '现在没有要写的字', 'R-H11 title');
   assert.equal((await page.locator(topSel('session-none-body')).textContent()).trim(), '想接着写，可以自己选几个字。', 'R-H11 body');
-  assert.equal((await page.locator(topSel('session-none-nochars')).textContent()).trim(), '可以换一个字库，或者先练写错过的字。', 'R-H11 noChars body (library exhausted)');
+  assert.equal((await page.locator(topSel('session-none-nochars')).textContent()).trim(), '可以换练习范围，或先复习旧字。', 'R-H11 noChars body (library exhausted)');
   assert.equal(await page.locator(topSel('session-none-home')).count(), 0, 'D58 ④: no extra 回到首页 link (the only exit is the top-left 「‹」)');
   assert.equal(await page.locator(topSel('page-back')).getAttribute('aria-label'), '返回', 'D58 ④: top-left is 「‹」 (返回), not ×');
   assert.equal(await page.evaluate(() => window.__shiziTest.getWriteLog().length), logBefore, 'no storage write');
@@ -305,8 +305,8 @@ export default async function sessionStart(page, ctx) {
     };
     return { lib: b('session-none-libswitch'), pick: b('session-none-pick') };
   });
-  assert.deepEqual(noneBtns.lib, { text: '更换字库', primary: true }, 'I5 / P83: exhausted → primary 更换字库 (原型 noChars)');
-  assert.equal(noneBtns.pick && noneBtns.pick.primary, false, '自己选字 becomes a secondary button when 更换字库 is the primary');
+  assert.deepEqual(noneBtns.lib, { text: '换范围', primary: true }, 'I5 / P83: exhausted → primary 换范围 (原型 noChars)');
+  assert.equal(noneBtns.pick && noneBtns.pick.primary, false, '自己选字 becomes a secondary button when 换范围 is the primary');
   await page.evaluate(async () => {
     const deck = await import('/src/data/deck.js');
     deck.setDeckSource(null);
@@ -315,12 +315,12 @@ export default async function sessionStart(page, ctx) {
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library-switch');
   await page.waitForSelector(topSel('libswitch-screen'));
   await waitNavIdle(page);
-  assert.ok(true, '更换字库 pushes the library-switch page');
+  assert.ok(true, '换范围 pushes the library-switch page');
   await page.click(topSel('page-back'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'session-none');
   await waitNavIdle(page);
   assert.equal(await page.evaluate(() => window.__shiziTest.getWriteLog().length), logBefore, 'opening / leaving the switch page writes nothing');
-  // 没写完的范围（非 exhausted）：没有「更换字库」，自己选字仍是主按钮
+  // 没写完的范围（非 exhausted）：没有「换范围」，自己选字仍是主按钮
   await page.evaluate(async () => (await import('/src/ui/screens/session/none.js')).openNonePage({ exhausted: false }));
   await page.waitForFunction(() => {
     const top = document.querySelector('.sz-layer[data-top="true"] [data-testid="session-none"]');
@@ -332,7 +332,7 @@ export default async function sessionStart(page, ctx) {
     const pick = top.querySelector('[data-testid="session-none-pick"]');
     return { lib: !!top.querySelector('[data-testid="session-none-libswitch"]'), pickPrimary: !!pick && pick.classList.contains('sz-btn--primary') };
   });
-  assert.deepEqual(plainNone, { lib: false, pickPrimary: true }, 'not exhausted: no 更换字库, 自己选字 is the primary button');
+  assert.deepEqual(plainNone, { lib: false, pickPrimary: true }, 'not exhausted: no 换范围, 自己选字 is the primary button');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('home'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
@@ -359,7 +359,7 @@ export default async function sessionStart(page, ctx) {
   assert.deepEqual(
     [await page.locator(tid('s02-continue')).textContent(), await page.locator(tid('s02-end-start')).textContent(),
       await page.locator(tid('s02-cancel')).textContent()].map(s => s.trim()),
-    ['接着写那组', '结束那组，开新的', '取消'], 'three buttons');
+    ['接着写', '开新一组', '取消'], 'three buttons');
   const focus = await page.evaluate(() => ({ testid: document.activeElement && document.activeElement.dataset.testid,
     tag: document.activeElement && document.activeElement.tagName }));
   assert.deepEqual(focus, { testid: 's02-dialog', tag: 'DIV' }, 'focus on the dialog itself, no button preselected');
@@ -371,7 +371,7 @@ export default async function sessionStart(page, ctx) {
   await waitNavIdle(page);
   assert.equal((await state(page)).sessions.B.id, 's901', 'old B kept');
 
-  ctx.step('S02 接着写那组 → the old B (cursor on 鲜)');
+  ctx.step('S02 接着写 → the old B (cursor on 鲜)');
   await call(page, 'startPicked', ['永', '和']);
   await page.waitForSelector(tid('s02-dialog'));
   await waitNavIdle(page);
@@ -382,7 +382,7 @@ export default async function sessionStart(page, ctx) {
   assert.equal(st.sessions.B.cursor, 1, 'cursor on 鲜');
   assert.equal((await routerInfo(page)).writeLayers, 1, 'one write layer');
 
-  ctx.step('S02 结束那组，开新的 (old B judged 1) → one commit, new B, no toast (D58 P0-10)');
+  ctx.step('S02 开新一组 (old B judged 1) → one commit, new B, no toast (D58 P0-10)');
   await goHome(page);
   await call(page, 'startPicked', ['永', '和']);
   await page.waitForSelector(tid('s02-dialog'));

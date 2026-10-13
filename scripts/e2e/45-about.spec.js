@@ -137,8 +137,8 @@ export default async function about(page, ctx) {
   assert.deepEqual(head.rows.map(x => x.id), ['about-row-privacy', 'about-row-credits', 'about-row-letter'], 'three rows in order');
   assert.ok(head.rows.every(x => x.tag === 'BUTTON'), 'every row is a <button>');
   assert.deepEqual(head.rows.map(x => x.to), ['about-privacy', 'about-credits', 'about-letter'], 'row targets');
-  assert.deepEqual(head.rows.map(x => x.aria), ['隐私，记录只存在这台手机上', '开源资料 · 致谢', '给我们写信'], 'row accessible names');
-  assert.deepEqual(head.rows.map(x => x.text), ['隐私 记录只存在这台手机上 ›', '开源资料 · 致谢', '给我们写信'], 'row texts (R-AB01; the arrows of the last two rows are svg chevrons since P1-E1b)');
+  assert.deepEqual(head.rows.map(x => x.aria), ['隐私，记录只存在这台手机上', '开源致谢', '联系我们'], 'row accessible names');
+  assert.deepEqual(head.rows.map(x => x.text), ['隐私 记录只存在这台手机上 ›', '开源致谢', '联系我们'], 'row texts (R-AB01; the arrows of the last two rows are svg chevrons since P1-E1b)');
   assert.ok(head.rows.every(x => x.h >= 44), 'rows at least 44px tall');
   assert.ok(await noHScroll(page), 'about: no horizontal scroll');
 
@@ -146,8 +146,8 @@ export default async function about(page, ctx) {
   ctx.step('each sub-page reachable; header back and system back return to the about page');
   const subs = [
     { row: 'about-row-privacy', screen: 'about-privacy', testid: 'about-privacy-screen', title: '隐私' },
-    { row: 'about-row-credits', screen: 'about-credits', testid: 'about-credits-screen', title: '开源资料 · 致谢' },
-    { row: 'about-row-letter', screen: 'about-letter', testid: 'about-letter-screen', title: '给我们写信' },
+    { row: 'about-row-credits', screen: 'about-credits', testid: 'about-credits-screen', title: '开源致谢' },
+    { row: 'about-row-letter', screen: 'about-letter', testid: 'about-letter-screen', title: '联系我们' },
   ];
   for (const s of subs) {
     await page.click(topSel(s.row));
@@ -168,7 +168,7 @@ export default async function about(page, ctx) {
   await waitTop(page, 'about-letter');
   await page.evaluate(() => history.back());
   await waitTop(page, 'about');
-  assert.equal((await route(page)).depth, 1, 'system back from 给我们写信 → about');
+  assert.equal((await route(page)).depth, 1, 'system back from 联系我们 → about');
 
   // ------------------------------------------------------------ 3. 隐私
   ctx.step('privacy: four paragraphs from copy X-ABOUT.privacy1, 2, 3Web, 4 (P21; P197 per platform)');
@@ -208,8 +208,8 @@ export default async function about(page, ctx) {
       links: top.querySelectorAll('a[href]').length,
     };
   });
-  assert.equal(cv.intro, '拾字用到了下面这些开源的程序、数据和字体。谢谢它们的作者。', 'intro line');
-  assert.deepEqual(cv.groups.map(g => [g.kind, g.title]), [['code', '程序'], ['data', '字形和字源'], ['font', '字体']], 'three groups in order');
+  assert.equal(cv.intro, '用到的开源程序、数据和字体，谢谢作者。', 'intro line');
+  assert.deepEqual(cv.groups.map(g => [g.kind, g.title]), [['code', '程序'], ['data', '字形字源'], ['font', '字体']], 'three groups in order');
   const shown = cv.groups.flatMap(g => g.items);
   const expected = ['code', 'data', 'font'].flatMap(k => credits.filter(c => c.kind === k));
   assert.deepEqual(shown.map(i => i.id), expected.map(c => c.id), 'items = credits.js (grouped, NOTICES order)');
@@ -262,7 +262,7 @@ export default async function about(page, ctx) {
   await page.waitForFunction(() => typeof window.__shiziTest === 'object');
   await waitTop(page, 'about-credits');
   const writesAfterReload = await writeCount(page); // 启动本身的写入（如有）不算关于页的
-  assert.ok(await page.$(topSel('about-credits-screen')), 'reload keeps 开源资料 · 致谢');
+  assert.ok(await page.$(topSel('about-credits-screen')), 'reload keeps 开源致谢');
   await page.click(topSel('page-back'));
   await waitTop(page, 'about');
   assert.equal((await route(page)).depth, 1, 'back after reload → about');

@@ -56,15 +56,15 @@ export default async function run(page0, ctx) {
     await page.emulateMedia({ colorScheme: scheme });
     await bootTestHost(page, ctx.baseURL);
 
-    step(`${scheme}: home — 自己选字 (fresh), 这次先写平常的字 (special)`);
+    step(`${scheme}: home — 自己选字 (fresh), 写平常字 (special)`);
     await seedHomeState(page, 'fresh');
     assert.ok(await page.locator(topSel('home-pick')).count(), 'fresh: 自己选字 is there');
     await checkPage(page, assert, `${scheme} home fresh`);
     await seedHomeState(page, 'special');
-    assert.ok(await page.locator(topSel('home-capital-defer')).count(), 'special: 这次先写平常的字 is there');
+    assert.ok(await page.locator(topSel('home-capital-defer')).count(), 'special: 写平常字 is there');
     await checkPage(page, assert, `${scheme} home special`);
 
-    step(`${scheme}: home — 今天的练习 · 接着写 (A + B 两组都没写完)`);
+    step(`${scheme}: home — 今天的字 · 接着写 (A + B 两组都没写完)`);
     await seedHomeSpec(page, { entries: [], groups: [
       { slot: 'A', at: '2026-10-05T12:00:00', chars: [...'疆嚷醋'], steps: ['correct'] },
       { slot: 'B', kind: 'picked', at: '2026-10-05T12:10:00', chars: [...'膝窗'], steps: [] },
@@ -72,7 +72,7 @@ export default async function run(page0, ctx) {
     await page.waitForSelector(topSel('other-line'));
     await checkPage(page, assert, `${scheme} home other-line`);
 
-    step(`${scheme}: 字库 / 有记录的字 / 详情 / 我的 / 设置`);
+    step(`${scheme}: 字库 / 写过的字 / 详情 / 我的 / 设置`);
     await seedHomeSpec(page, { entries: [...'疆酱肆酝春'].map((c, i) => ({ char: c, at: `2026-10-0${1 + i}T20:00:00`, judgment: i === 0 ? 'wrong' : 'correct' })), clock: '2026-10-05T19:30:00' });
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
     await page.waitForSelector(topSel('library-all-open'));

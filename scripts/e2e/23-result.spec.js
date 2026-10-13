@@ -332,7 +332,7 @@ export default async function resultSpec(page, ctx) {
       pressed: btns.some(b => b.hasAttribute('aria-pressed')),
     };
   });
-  assert.equal(dlg.body, '还有 2 个字没写，结束后就不写了。判断过的 1 个字已经记下。', 'S04 body (R-W15) with n=2, m=1');
+  assert.equal(dlg.body, '还有 2 个字没写。已写的 1 个已记下。', 'S04 body (R-W15) with n=2, m=1');
   assert.deepEqual(dlg.buttons, [['write-end-confirm', 'other'], ['write-end-continue', 'primary']], 'S04: 接着写 is the primary button, 结束这组 a normal one');
   assert.ok(dlg.active && !dlg.pressed, 'focus on the dialog itself, no preselected button');
   await page.click(tid('write-end-continue'));
@@ -340,7 +340,7 @@ export default async function resultSpec(page, ctx) {
   await waitNavIdle(page);
   assert.deepEqual((await state(page)).sessions.B, beforeEnd, '接着写: B deep-equal, nothing written');
 
-  step('结束这组 → result 这次选的字 / 先写到这里 → 回到首页 (tab root), lastEnded cleared');
+  step('结束这组 → result 自己选的 / 先写到这里 → 回到首页 (tab root), lastEnded cleared');
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
@@ -348,7 +348,7 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   let v = await resultView(page);
-  assert.deepEqual([v.header, v.variant, v.early, v.title], ['这次选的字', 'picked', 'true', null], 'picked result, ended early: the page title is only for the screen reader; no visible heading (R2-R1 / V2-04)');
+  assert.deepEqual([v.header, v.variant, v.early, v.title], ['自己选的', 'picked', 'true', null], 'picked result, ended early: the page title is only for the screen reader; no visible heading (R2-R1 / V2-04)');
   assert.equal(v.sub, '还有 2 个字没写，没有记下。', 'R-R05: only the line about what was not written (the 「记下了」 / 「点一个格子」 sentences are gone)');
   assert.equal(v.date, null, 'no date / source line: the date lives in the work 落款');
   assert.equal(v.workCells.length, 1, 'the one char written on this page is in the work (the same work layout as the daily page, V2-04)');
@@ -373,7 +373,7 @@ export default async function resultSpec(page, ctx) {
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
-  assert.equal((await page.locator(tid('write-end-body')).textContent()), '还有 1 个字没写，结束后就不写了。判断过的 0 个字已经记下。', 'S04 body with m=0');
+  assert.equal((await page.locator(tid('write-end-body')).textContent()), '还有 1 个字没写。已写的 0 个已记下。', 'S04 body with m=0');
   await page.click(tid('write-end-confirm'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   assert.equal(await toastText(page), null, 'I3 P0-11: zero-judged ending shows no toast (going back to the source is the feedback)');
@@ -414,7 +414,7 @@ export default async function resultSpec(page, ctx) {
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
-  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写，结束后就不写了。判断过的 0 个字已经记下。',
+  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写。已写的 0 个已记下。',
     'S04 body from the answer page: n = 2 (current included), m = 0 (看过答案不算判断)');
   await page.click(tid('write-end-confirm'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
@@ -499,7 +499,7 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   v = await resultView(page);
-  assert.deepEqual([v.title, v.sub, v.count], [null, null, 2], 'P1-E7: no 「这次记录了 N 个字」 title and no 「没算在内 / 点一个格子」 sentence on the daily page; the count still comes from the records');
+  assert.deepEqual([v.title, v.sub, v.count], [null, null, 2], 'P1-E7: no 「写了 N 个字」 title and no 「没算在内 / 点一个格子」 sentence on the daily page; the count still comes from the records');
   assert.deepEqual(v.cells.map(c => [c.char, c.caption, c.changeable]), [['永', '写对', 'true'], ['和', '看过答案', 'false'], ['春', '写对', 'true']], 'cells');
   assert.deepEqual(v.cells.map(c => c.aria), ['永，写对了，没有笔迹', '和，看过答案', '春，写对，点两下对照和修改'], 'H3 (P1-E7 / E9c): every item has an accessible name (rows carry the char in the name, not in the visible text)');
   // I6 / P88：春 刚在本页面写过（页面内笔迹）→ 在作品里，分享与作品一致；刷新后见下方 reload 步骤
@@ -516,7 +516,7 @@ export default async function resultSpec(page, ctx) {
     const q = id => s.querySelector(`[data-testid="${id}"]`);
     return { title: s.querySelector('.sz-sheet__title').textContent, close: q('result-sheet-close').textContent.trim(), note: q('result-sheet-note').textContent, flip: q('result-sheet-flip') ? q('result-sheet-flip').textContent.trim() : null };
   });
-  assert.deepEqual(sheet, { title: '「永」这次记为写对', close: '取消', note: '改了只换掉这一次，不会多算一次。', flip: '改为写错' }, 'R-R02 judged sheet');
+  assert.deepEqual(sheet, { title: '「永」写对了', close: '取消', note: '改了只换掉这一次，不会多算一次。', flip: '改为写错' }, 'R-R02 judged sheet');
   await page.click(tid('result-sheet-flip'));
   await page.waitForFunction(() => !document.querySelector('[data-testid="result-sheet"]'));
   await waitNavIdle(page);
@@ -549,7 +549,7 @@ export default async function resultSpec(page, ctx) {
   await evalIn(page, () => window.__shiziTest.failNextWrite(1));
   await page.click(tid('result-sheet-flip'));
   await page.waitForSelector(tid('result-sheet-fail-retry'));
-  assert.equal(await page.locator(tid('result-sheet-note')).textContent(), '没改成，还是原来的判断。', 'failure note R-W10');
+  assert.equal(await page.locator(tid('result-sheet-note')).textContent(), '没改成，还是原来的结果。', 'failure note R-W10');
   st = await state(page);
   assert.equal(st.records.find(r => r.char === '春' && r.kind === 'judged').judgment, 'correct', 'unchanged after the failure');
   await waitNavIdle(page);
@@ -584,7 +584,7 @@ export default async function resultSpec(page, ctx) {
   assert.ok(st.sessions.A && st.sessions.A.id !== 's40' && st.sessions.A.kind === 'daily', 'new daily group in A');
   assert.equal(st.sessions.lastEnded.A, undefined, 'old lastEnded.A cleared');
 
-  step('第一次练习 result: header 第一次练习, title not a count (P1-E5 / D28), the work (P1-E7), 再写一组 only (E9c), remind slot');
+  step('首次练习 result: header 首次练习, title not a count (P1-E5 / D28), the work (P1-E7), 再写一组 only (E9c), remind slot');
   await goHome(page);
   await seedGroup(page, { kind: 'first', chars: ['尴', '嚏', '狩', '晤', '飓'], steps: ['correct', 'wrong', 'seen', 'skip'] });
   await openWriteSlot(page, 'A');
@@ -592,7 +592,7 @@ export default async function resultSpec(page, ctx) {
   await waitResult(page);
   await waitNavIdle(page);
   v = await resultView(page);
-  assert.deepEqual([v.header, v.variant, v.title], ['第一次练习', 'first', '这三个字，很多人提笔就忘。'], 'first result (one char with ink on the page → the title is still 「这三个字」, C3-H / N3-07: it talks about the group, not the cells): the title is no longer 「这次记录了 N 个字」 (D28; 72-p1e5 covers the rest of the first-practice blocks)');
+  assert.deepEqual([v.header, v.variant, v.title], ['首次练习', 'first', '这三个字，很多人提笔就忘。'], 'first result (one char with ink on the page → the title is still 「这三个字」, C3-H / N3-07: it talks about the group, not the cells): the title is no longer 「写了 N 个字」 (D28; 72-p1e5 covers the rest of the first-practice blocks)');
   assert.equal(v.date, null, 'P1-E7: the date lives in the work 落款 now (交接 §4.1 has no separate date line)');
   assert.deepEqual(v.footButtons, ['result-again', 'result-done'], 'I3 P0-03: the first-practice footer is always 再写一组 (text, above) + 完成 (primary, on the app-wide line, R5M / P1-15) — the invitation (in the body) never replaces it');
   assert.equal(v.remindSlot, true, 'remind invitation slot (the invitation itself fades in after ≈600ms, covered by 72-p1e5)');

@@ -165,7 +165,7 @@ export default async function e9bWriteJudge(page, ctx) {
       back: back ? { aria: back.getAttribute('aria-label'), svg: !!back.querySelector('svg') } : null,
     };
   });
-  assert.equal(head.h1Text, '凭记忆写出这个字', 'the screen-reader page name is kept (R-W03.titleRecall)');
+  assert.equal(head.h1Text, '凭记忆写', 'the screen-reader page name is kept (R-W03.titleRecall)');
   assert.ok(head.h1.w <= 1.5 && head.h1.h <= 1.5, `…but visually hidden (${head.h1.w}×${head.h1.h})`);
   assert.deepEqual([head.prog.text, head.prog.fs, head.prog.color], ['2 / 5', 15, tokenRgb('light', 'ink3')], 'the counter is 15pt ink3');
   assert.ok(head.prog.num.includes('tabular-nums'), 'tabular numbers');
@@ -327,7 +327,7 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(near(m.foot.height, 158, 0.6), `${tag}: the button row is as high as on the write page (158 = 12 + 48 + 20 + 54 + 24, the help row stays empty but keeps its place)`);
   }
 
-  step('B: the judge page header and reading — 写对了吗？, the same ‹ icon, no side notes / sentence, names kept, the answer shows once');
+  step('B: the judge page header and reading — 写对了吗, the same ‹ icon, no side notes / sentence, names kept, the answer shows once');
   await boot(page, ctx, { view: { width: 402, height: 874 } });
   const writeBack = await page.$eval(topSel('page-back'), b => b.querySelector('path').getAttribute('d'));
   await toCompare(page);
@@ -350,14 +350,14 @@ export default async function e9bWriteJudge(page, ctx) {
       blankAria: blank.getAttribute('aria-label'),
     };
   });
-  assert.deepEqual([j.title, j.titleVisible, j.titleFs, j.titleWeight], ['写对了吗？', true, 17, '500'], 'header question 写对了吗？ (17 / 500)');
+  assert.deepEqual([j.title, j.titleVisible, j.titleFs, j.titleWeight], ['写对了吗', true, 17, '500'], 'header question 写对了吗 (17 / 500)');
   assert.deepEqual([j.back.aria, j.back.text], ['接着写', ''], 'top-left: an icon, screen-reader name 接着写');
   assert.equal(j.back.d, writeBack, 'it is the very same ‹ glyph as the write page back button');
   assert.ok(j.back.cls.includes('sz-btn--icon'), 'same icon button style as the write page back button');
   assert.ok(!j.text.includes('你来判断') && !j.note, 'the sentence 「你来判断，点一下就记下。」 is gone');
-  assert.ok(j.asides === 0 && !j.text.includes('你的书写') && !j.text.includes('参考字形'), 'no 「你的书写 / 参考字形」 side notes anywhere');
-  assert.equal(j.mineAria, '你的书写，1 笔', 'the upper cell keeps its reading name');
-  assert.ok(/^参考字形：据，jù，\d+ 画(，[^，]+)?$/.test(j.refAria), `the lower cell keeps its reading name (${j.refAria})`);
+  assert.ok(j.asides === 0 && !j.text.includes('你写的') && !j.text.includes('标准写法'), 'no 「你写的 / 标准写法」 side notes anywhere');
+  assert.equal(j.mineAria, '你写的，1 笔', 'the upper cell keeps its reading name');
+  assert.ok(/^标准写法：据，jù，\d+ 画(，[^，]+)?$/.test(j.refAria), `the lower cell keeps its reading name (${j.refAria})`);
   assert.deepEqual([j.mineRole, j.refRole], ['img', 'img'], 'both cells are role=img');
   assert.ok(!j.promptText.includes('据') && j.blankText === 'jù' && !j.fill, 'the prompt target cell shows no answer — the answer appears only in the reference cell');
   assert.ok(/^要写的字，第 2 个，读 jù，四声$/.test(j.blankAria), `…and keeps the 「要写的字」 reading name (${j.blankAria})`);
@@ -438,7 +438,7 @@ export default async function e9bWriteJudge(page, ctx) {
       const r = h1.getBoundingClientRect();
       return { text: h1.textContent, w: r.width, h: r.height };
     });
-    assert.deepEqual([hid.text, hid.w <= 1.5 && hid.h <= 1.5], ['写对了吗？', true], `${tag}: 写对了吗？ stays in the DOM for screen readers, visually hidden`);
+    assert.deepEqual([hid.text, hid.w <= 1.5 && hid.h <= 1.5], ['写对了吗', true], `${tag}: 写对了吗 stays in the DOM for screen readers, visually hidden`);
     const P = c.prompt.height;
     const Sv = Math.floor(Math.min(W - 40, Math.floor((c.body.height - 12 - P - 16 - 16) / 2)));
     const Sh = Math.floor((W - 40 - 12) / 2);
@@ -481,6 +481,6 @@ export default async function e9bWriteJudge(page, ctx) {
   const pj = await geo(page);
   assert.ok(near(pj.ref.width, 362, 1) && near(pj.ref.top, paperRecall.prompt.bottom + 16, 1.5), `the reference glyph is the writing-grid size, at the writing grid's place (${pj.ref.width}, top ${pj.ref.top.toFixed(1)})`);
   const aside = await page.$eval(topSel('write-compare-aside-ref'), el => ({ text: el.textContent.trim(), top: el.getBoundingClientRect().top, h: el.getBoundingClientRect().height, fs: parseFloat(getComputedStyle(el).fontSize), color: getComputedStyle(el).color }));
-  assert.deepEqual([aside.text, aside.fs, aside.color], ['和你纸上的字对照', 13, tokenRgb('light', 'ink3')], 'the slot under the reference reads 「和你纸上的字对照」 (13, ink3); no 「参考字形 · 」 side note');
+  assert.deepEqual([aside.text, aside.fs, aside.color], ['和你纸上的字对照', 13, tokenRgb('light', 'ink3')], 'the slot under the reference reads 「和你纸上的字对照」 (13, ink3); no 「标准写法 · 」 side note');
   assert.ok(near(aside.top, pj.ref.bottom, 1.5) && near(aside.h, 40, 1), 'it sits in the 40-high tools-row place right under the glyph');
 }

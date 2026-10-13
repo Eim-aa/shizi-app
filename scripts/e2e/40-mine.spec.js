@@ -23,34 +23,34 @@ const CLOCK = `${TODAY}T09:00:00`;
 const TOP = '.sz-layer[data-top="true"]';
 
 const dayNum = tag => (tag ? String(Number(tag.slice(8))) : ''); // P1-E7：月字帖角标只写「日」
-const UNDER_NOTE = '浅色的字，这个月没有留下笔迹。点一个字看详情。';
+const UNDER_NOTE = '浅色的字这个月没有笔迹，点字看详情。';
 
 const COPY = {
   mine: '我的',
   week: '这一周',
   records: '练习记录',
   emptyTitle: '还没有记录',
-  emptyBody: '写一个字并判断对错，这里就会有记录。',
+  emptyBody: '写字并点写对或写错，这里就有记录。',
   settings: '设置',
-  backup: '备份与恢复',
+  backup: '备份',
   backupSub: '记录只存在这台手机上',
   noBackup: '还没有备份', // 行尾的 › 自 P1-E1b 起是 svg chevron（components/Chevron.js），不在文字里
   lastBackup: d => `上次备份 ${d}`,
   annual: '年度报告',
   about: '关于拾字',
-  monthDays: (m, n) => `${m}月有记录 ${n} 天`,
+  monthDays: (m, n) => `${m}月写了 ${n} 天`,
   monthNone: m => `${m}月还没有记录`,
   legend: '墨点表示这天有记录，不分对错。',
-  emptyLegend: '写一个字并判断对错，这天就会有一个墨点。',
+  emptyLegend: '写字并点写对或写错，这天就有墨点。',
   sheetTitle: m => `${m}月字帖`,
   sheetNote: '点一个字看详情，红色小字是那天的日期。',
   historyNote: '这里只能保存本月的字帖。',
-  sheetEmpty: '这个月还没有可以放进图片的字',
-  sheetOrder: '按第一次写下的先后排列',
+  sheetEmpty: '这个月还没有可做图的字',
+  sheetOrder: '按第一次写的先后排',
   saveImage: '保存图片',
   all: '全部 ›',
   dayChars: d => `${d}写的字`,
-  todayImage: '这次的图片 · 保存图片',
+  todayImage: '本次图片 · 保存',
   noInk: '没有笔迹',
 };
 
@@ -536,7 +536,7 @@ export default async function run(page, ctx) {
   assert.deepEqual((await top(page)).params, { month: '2026-09', day: null }, 'view params written back');
   assert.equal(r.recordDays, o9.monthDays.length, 'record days = oracle');
   assert.equal(r.heading, COPY.monthDays(9, o9.monthDays.length), 'R-P01 「9月有记录 N 天」');
-  assert.equal(r.heading, '9月有记录 5 天', 'literal 5 days');
+  assert.equal(r.heading, '9月写了 5 天', 'literal 5 days');
   assert.equal(r.legend, COPY.legend, 'R-P01 legend');
   assert.deepEqual(r.days.filter(d => d.dot).map(d => d.day), o9.monthDays, 'dots = oracle days');
   assert.deepEqual(r.days.filter(d => d.tag === 'BUTTON').map(d => d.day), o9.monthDays, 'only record days are buttons');

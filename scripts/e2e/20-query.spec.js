@@ -25,7 +25,7 @@ const COPY = {
   dup: c => `重复的「${c}」只算一次。`,
   none: '先选字',
   one: '练这个字',
-  many: n => `练这些字`,
+  many: n => `练这 ${n} 个字`,
   rowCount: n => `写过 ${n} 次`,
   rowNone: '还没写过',
   rowBad: '暂不能练',

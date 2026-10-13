@@ -170,7 +170,7 @@ test('pickBar: 0 →「先选字」disabled; 1 →「练这个字」; N →「�
   assert.deepEqual(pickBar(1), { key: 'R-Q05.btnPractice', vars: undefined, disabled: false });
   assert.deepEqual(pickBar(3), { key: 'R-Q06.btnPracticeN', vars: { n: 3 }, disabled: false });
   assert.equal(t('R-Q06.btnNone'), '先选字');
-  assert.equal(t('R-Q06.btnPracticeN', { n: 3 }), '练这些字');
+  assert.equal(t('R-Q06.btnPracticeN', { n: 3 }), '练这 3 个字');
 });
 
 test('normalizeMode: only lookup / pick (P42: no add mode)', () => {

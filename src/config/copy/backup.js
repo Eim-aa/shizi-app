@@ -18,7 +18,7 @@ export default Object.freeze({
   'R-B02.changedSince': '上次备份后又有新记录，还没备份。',
   'R-B02.export': '导出备份',
   // R-B03（已定；K04（写明会丢哪段、危险操作不用主按钮、导出成功反馈、错误样式）边开发边改）
-  'R-B03.replaceBody': '备份有 {n} 个字，现有 {m} 个字将被替换。',
+  'R-B03.replaceBody': '{date}的备份，共 {n} 个字，将替换现有 {m} 个字。',
   'R-B03.restoreTitle': '恢复备份',
   'R-B03.restoreBody': '{date}的备份，共 {n} 个字。',
   'R-B03.restoreBtn': '恢复',

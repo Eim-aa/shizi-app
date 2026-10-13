@@ -39,7 +39,7 @@ const T = {
   restoreFailed: '没能恢复，你的记录还是原来的。',
   protectFailed: '没换成，现有记录没变。可以再试。',
   replaceTitle: '替换记录？',
-  replaceBody: '备份有 23 个字，现有 300 个字将被替换。',
+  replaceBody: '9月1日的备份，共 23 个字，将替换现有 300 个字。',
   loss: '9月2日到 9月24日的记录会丢失，建议先导出。',
   restoreTitle: '恢复备份',
   restoreBody: '9月1日的备份，共 23 个字。',

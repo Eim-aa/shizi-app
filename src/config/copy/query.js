@@ -34,7 +34,7 @@ export default Object.freeze({
   'R-Q05.unavailableSource': '字表参考《通用规范汉字表》，个别字未收。',
   'R-Q05.viewRecords': '查看记录',
   // R-Q06（已定；Z02 边开发边改）
-  'R-Q06.btnPracticeN': '练这些字',
+  'R-Q06.btnPracticeN': '练这 {n} 个字',
   'R-Q06.btnNone': '先选字',
   // X-QUERY（M2-0 查字 / 自己选字组件：原型 字库墨墙屏 L427–L446 的读屏标签、卡片拼音 · 笔画、多字重复提示）
   'X-QUERY.selectAria': '选择「{char}」',

@@ -299,7 +299,7 @@ test('PickBar: 0 selected → Button disabled (Button adds aria-disabled); N →
   assert.equal(text(none['query-go'][0]), '先选字');
   const two = byTestid(PickBar({ bar: pickBarOf(2), count: 2 }));
   assert.equal(two['query-go'][0].props.disabled, false);
-  assert.equal(text(two['query-go'][0]), '练这些字');
+  assert.equal(text(two['query-go'][0]), '练这 2 个字');
   const failed = byTestid(PickBar({ bar: pickBarOf(2), count: 2, failed: true }));
   assert.equal(failed['query-go'], undefined);
   assert.equal(text(failed['query-go-fail-cancel'][0]), '先不保存');

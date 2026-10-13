@@ -3940,9 +3940,9 @@
         },
         "versionAria": {
           "raw": null,
-          "text": "版本 {version}，构建日期 {day}，点按显示完整构建号",
+          "text": "版本 {version}，{day}，点按看完整构建号",
           "origin": "extra",
-          "note": "阶段 0 B7：版本行按钮的读屏名称",
+          "note": "阶段 0 B7：版本行按钮的读屏名称；r7-C1 / D61 文案重写",
           "decision": "P90"
         },
         "buildFull": {
@@ -3999,30 +3999,30 @@
         },
         "privacy3Web": {
           "raw": null,
-          "text": "网页版联网只用来更新拾字和取字的笔顺，不会带上你的记录。",
+          "text": "网页版联网只为更新和取笔顺，不带记录。",
           "origin": "extra",
-          "note": "隐私子页第 3 段（网页 / 主屏 PWA，C1）：01 §8.3 Service Worker 更新与 §8.4 笔顺按需下载，如实描述；待文案",
+          "note": "隐私子页第 3 段（网页 / 主屏 PWA，C1）：01 §8.3 Service Worker 更新与 §8.4 笔顺按需下载，如实描述；待文案；r7-C1 / D61 文案重写",
           "decision": "P21 / P197"
         },
         "privacy4": {
           "raw": null,
-          "text": "记录不会自己备份。换手机之前，先在「备份与恢复」里导出备份文件，自己存好。",
+          "text": "不会自动备份，换手机前请先导出。",
           "origin": "extra",
-          "note": "隐私子页第 4 段：R-M03「记录只存在这台手机上」+ R-B02「导出备份文件」；待文案",
+          "note": "隐私子页第 4 段：R-M03「记录只存在这台手机上」+ R-B02「导出备份文件」；待文案；r7-C1 / D61 文案重写",
           "decision": "P21"
         },
         "creditsTitle": {
           "raw": null,
-          "text": "开源资料 · 致谢",
+          "text": "开源致谢",
           "origin": "extra",
-          "note": "开源资料子页页头（R-AB01.openSourceRow 去掉行尾 ›）",
+          "note": "开源资料子页页头（R-AB01.openSourceRow 去掉行尾 ›）；r7-C1 / D61 文案重写",
           "decision": "P21"
         },
         "creditsIntro": {
           "raw": null,
-          "text": "拾字用到了下面这些开源的程序、数据和字体。谢谢它们的作者。",
+          "text": "用到的开源程序、数据和字体，谢谢作者。",
           "origin": "extra",
-          "note": "开源资料子页开头一句；内容由 scripts/build_credits.mjs 从 THIRD_PARTY_NOTICES.md 与 licenses/ 生成（03 P21 过渡）；待文案",
+          "note": "开源资料子页开头一句；内容由 scripts/build_credits.mjs 从 THIRD_PARTY_NOTICES.md 与 licenses/ 生成（03 P21 过渡）；待文案；r7-C1 / D61 文案重写",
           "decision": "P21"
         },
         "groupCode": {
@@ -4034,9 +4034,9 @@
         },
         "groupData": {
           "raw": null,
-          "text": "字形和字源",
+          "text": "字形字源",
           "origin": "extra",
-          "note": "开源资料分组：笔顺字形与字源数据（原型行标签「字形和字源的出处」）",
+          "note": "开源资料分组：笔顺字形与字源数据（原型行标签「字形和字源的出处」）；r7-C1 / D61 文案重写",
           "decision": "P21"
         },
         "groupFont": {

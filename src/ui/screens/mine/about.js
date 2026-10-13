@@ -116,7 +116,8 @@ injectStyles('about', `
 .sz-about__logo{width:64px;height:64px;display:block;border-radius:${T.rCtl}} /* 顶部 logo 是 App 图标图像（icon-512.png，assets/branding 同源导出），不是印（C3-H / T3-09、D53 ⑦：品牌只有墨「拾」与印「拾」两种用途，印只在作品与这里的落款处） */
 .sz-about__seal{width:16px;height:16px;box-sizing:border-box;border-radius:${T.rWork};display:inline-block;vertical-align:middle;margin-left:8px} /* 印是图形：固定 seal16，跟在题跋末句后（同首次打开的题跋），白文「拾」是铺满的 svg（SealGlyph），不随 --k（Q2-10） */
 .sz-about__name{margin:0;font-family:${T.song};font-size:${T.fs22};font-weight:500;color:${T.ink1}}
-.sz-about__build{margin:0;min-height:44px;padding:0 8px;font-size:${T.fs15};color:${T.ink2};font-variant-numeric:tabular-nums;overflow-wrap:anywhere;text-align:center}
+.sz-about__build{margin:0;min-height:44px;padding:0 8px;font-size:${T.fs15};color:${T.ink2};overflow-wrap:anywhere;text-align:center}
+.sz-ver{direction:ltr;unicode-bidi:isolate;font-variant-numeric:normal;font-feature-settings:normal;font-kerning:none} /* 版本行（关于页与「我的」页底同一个 VersionText）：括号与数字不参与双向重排 / 等宽数字特性，不会错位（E7） */
 .sz-about__buildfull{margin:-8px 0 0;max-width:100%;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink2};font-variant-numeric:tabular-nums;
   overflow-wrap:anywhere;text-align:center;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .sz-about__motto{margin:0;text-align:center;font-family:${T.kai};font-size:${T.fs17};line-height:${T.lh17};color:${T.ink1}}
@@ -144,11 +145,16 @@ injectStyles('about', `
 
 // ---------------------------------------------------------------- 视图
 
+/** 版本行文字（关于页与「我的」页底共用，E7）：同一个函数、同一种显示；dir=ltr + isolate，括号不会被双向算法挪位。 */
+export function VersionText({ version = VERSION, build = BUILD } = {}) {
+  return html`<span class="sz-ver" dir="ltr" data-testid="version-text">${versionTexts(version, build).line}</span>`;
+}
+
 /** 版本行（纯视图，无 hooks）：按钮显示「版本 1.0（20261001）」，展开后多一行完整 BUILD（可选中、长按复制）。 */
 export function BuildLineView({ open, onToggle, version = VERSION, build = BUILD }) {
   const v = versionTexts(version, build);
   return html`<${Button} variant="plain" class="sz-about__build" data-testid="about-build" aria-label=${v.aria}
-      aria-expanded=${open ? 'true' : 'false'} onClick=${onToggle}>${v.line}</${Button}>
+      aria-expanded=${open ? 'true' : 'false'} onClick=${onToggle}><${VersionText} version=${version} build=${build} /></${Button}>
     ${open ? html`<p class="sz-about__buildfull" data-testid="about-build-full">${v.full}</p>` : null}`;
 }
 

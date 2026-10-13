@@ -88,6 +88,13 @@ export default async function about(page, ctx) {
   // ------------------------------------------------------------ 1. 关于页
   ctx.step('about page from the 我的 tab: header, seal, name, build, motto, three row buttons with readable names');
   await goTab(page, 'mine');
+  // E7：「我的」页底与关于页是同一个 VersionText——文字相同、括号成对、不参与双向重排
+  const mineVer = await page.evaluate(() => {
+    const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="mine-version"]');
+    const span = el && el.querySelector('.sz-ver');
+    const cs = span && getComputedStyle(span);
+    return { text: el ? el.textContent.trim() : null, dir: span ? span.getAttribute('dir') : null, bidi: cs ? cs.unicodeBidi : null };
+  });
   await openAbout(page);
   let r = await route(page);
   const writesInSession = writesBefore;
@@ -119,6 +126,14 @@ export default async function about(page, ctx) {
   // B7（D36）：版本行「版本 1.0（20261001）」= VERSION + BUILD 的日期部分；完整 BUILD 点按展开、可选中
   assert.equal(head.build, `版本 ${version}（${build.slice(0, 8)}）`, 'version line = 版本 {VERSION}（BUILD date）');
   assert.ok(/^版本 \d+\.\d+\.\d+（\d{8}）$/.test(head.build), 'version line shape');
+  assert.equal(head.build, mineVer.text, 'E7: 关于页与「我的」页底版本行文字相同');
+  assert.equal((head.build.match(/（/g) || []).length, 1, 'E7: 左括号一个');
+  assert.equal(head.build.indexOf('（') < head.build.indexOf('）') && head.build.endsWith('）'), true, 'E7: 括号成对、右括号在末尾');
+  assert.deepEqual([mineVer.dir, mineVer.bidi], ['ltr', 'isolate'], 'E7: 版本行 dir=ltr + unicode-bidi:isolate（括号不被双向算法挪位）');
+  assert.equal(await page.evaluate(() => {
+    const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="about-build"] .sz-ver');
+    return el ? `${el.getAttribute('dir')}/${getComputedStyle(el).unicodeBidi}` : null;
+  }), 'ltr/isolate', 'E7: 关于页同一种显示');
   assert.equal(await page.locator(topSel('about-build-full')).count(), 0, 'full BUILD is folded by default');
   await page.click(topSel('about-build'));
   const full = await page.evaluate(() => {

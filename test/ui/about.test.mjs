@@ -13,7 +13,7 @@ import { CREDITS, LICENSE_TEXTS } from '../../src/config/credits.js';
 import {
   ABOUT_SCREEN, ABOUT_PRIVACY_SCREEN, ABOUT_CREDITS_SCREEN, ABOUT_LETTER_SCREEN,
   aboutRows, privacyParagraphs, creditGroups, creditFullText, creditName, stripArrow,
-  AboutView, PrivacyView, CreditsView, LetterView, BuildLineView, buildDay, versionTexts,
+  AboutView, PrivacyView, CreditsView, LetterView, BuildLineView, VersionText, buildDay, versionTexts,
 } from '../../src/ui/screens/mine/about.js';
 import { getScreen } from '../../src/ui/router.js';
 import { t } from '../../src/config/copy/index.js';
@@ -212,7 +212,12 @@ test('B7 (G43, D36): version line 「版本 1.0（20261001）」 from VERSION + 
   const closed = BuildLineView({ open: false, onToggle: () => {}, version: '1.0', build: '20261001-abcdef123456' });
   const [btn] = allByTestid(closed, 'about-build');
   assert.equal(btn.props['aria-expanded'], 'false');
-  assert.equal(textOf(btn), '版本 1.0（20261001）');
+  let vt = null;
+  walk(btn, n => { if (n.type === VersionText) vt = n; });
+  assert.ok(vt, 'E7: the version button renders the shared VersionText');
+  const vtNode = VersionText(vt.props);
+  assert.equal(textOf(vtNode), '版本 1.0（20261001）');
+  assert.equal(vtNode.props.dir, 'ltr', 'E7: dir=ltr so the brackets are never reordered by bidi');
   assert.equal(allByTestid(closed, 'about-build-full').length, 0);
   // 展开：完整 BUILD 一行
   const open = BuildLineView({ open: true, onToggle: () => {}, version: '1.0', build: '20261001-abcdef123456' });

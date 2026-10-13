@@ -41,7 +41,7 @@ import {
 import { MonthBody, mineSheetModel, monthModel } from './month.js';
 import { AppearanceRow } from './appearance.js';
 import { settingsView, timeText } from './prefs.js';
-import { versionTexts } from './about.js';
+import { VersionText } from './about.js';
 
 export { MINE_ROUTES, openRecords, openTodayRecords, setMineImageActions, RECORDS_SCREEN } from './records.js';
 
@@ -133,7 +133,6 @@ function MineScreen() {
   const model = useMemo(() => mineModel(state, today, { policy: defaultPolicy, hasInk: hasInkOfStore() }), [state, today]);
   const view = settingsView(state && state.settings);
   const last = model.lastBackup;
-  const version = versionTexts().line;
   return html`<${TabPage} title=${MINE_LABEL} testid="screen-mine">
     <div class="sz-mine" data-testid="mine-home" data-state=${model.empty ? 'empty' : 'records'} data-today=${today} data-month=${model.month}>
       <${Overview} overview=${model.overview} />
@@ -156,7 +155,7 @@ function MineScreen() {
           value=${String(model.year)} valueTestid="mine-annual-year" extra=${{ 'data-to': MINE_ROUTES.annual }} />
         <${Row} testid="mine-menu-about" name=${t('X-MINE.about')} onClick=${() => go(MINE_ROUTES.about)} extra=${{ 'data-to': MINE_ROUTES.about }} />
       </${RowBlock}>
-      <p class="sz-mine__ver" data-testid="mine-version">${version}</p>
+      <p class="sz-mine__ver" data-testid="mine-version"><${VersionText} /></p>
     </div>
   </${TabPage}>`;
 }

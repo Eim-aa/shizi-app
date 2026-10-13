@@ -23,8 +23,8 @@ export default Object.freeze({
   'X-WORK.statusSkipped': '跳过',
   // 读屏（交接 §5.5）
   'X-WORK.charsJoin': '、',
-  'X-WORK.workAria':'作品：{chars}，{n} 个字，{date}',
-  'X-WORK.workAriaOne': '作品：{chars}，{date}',
+  'X-WORK.workAria':'这次的字：{chars}，{n} 个，{date}',
+  'X-WORK.workAriaOne': '这次的字：{chars}，{date}',
   'X-WORK.cellAria': '{char}，{state}，点两下对照和修改',
   'X-WORK.cellStateCorrect': '写对',
   'X-WORK.cellStateAfterSeen': '看后写的',
@@ -38,7 +38,7 @@ export default Object.freeze({
   'X-WORK.chipWrong': '{char} · 写错',
   'X-WORK.previewAria': '图片预览',
   'X-WORK.splitNote': '{n} 个字，存成 {m} 张，每张不超过 {max} 字。',
-  'X-WORK.saveMany': '保存 {m} 张图片',
+  'X-WORK.saveMany': '保存 {m} 张',
   'X-WORK.pageAria': '第 {k} 张，共 {m} 张',
   // 落款（纸面汉字，由 ui/work-text.js kuan() 拼接；界面里的月份写「10月」，月 / 日 / 年紧跟数字不留空格，与落款一种写法，H1 / 03 P224）
   'X-WORK.kuanCount': '{n}字',
@@ -49,11 +49,11 @@ export default Object.freeze({
   'X-WORK.kuanJoinPart': '{kuan}　{part}',
   'X-WORK.annualBrand': '拾字　年报',
   'X-WORK.annualCoverLine': '这一年，你拾回{n}个字。', // 年报页首屏与册页卷首同一句，数字是汉字数字（D53，N2-14；{n} 由 work-text.js annualCoverLine 填）
-  'X-WORK.annualFirstLabel': '今年第一个字',
+  'X-WORK.annualFirstLabel': '今年首字',
   'X-WORK.annualFirstDate': '{date}的笔迹',
   // 月字帖（交接 §7）
   'X-WORK.monthTitle': '{month}月字帖',
-  'X-WORK.monthUnderNote': '浅色的字，这个月没有留下笔迹。点一个字看详情。',
+  'X-WORK.monthUnderNote': '浅色的字这个月没有笔迹，点字看详情。',
   'X-WORK.monthCellNoInk': '{char}，这个月没有留下笔迹',
   'X-WORK.monthOpen': '{month}月字帖，{n} 个字',
   // 月字帖格的读屏名称：格上标的是排序用的日子（第一次写下），墨迹取自另一天时再说一句（N2-07）
@@ -62,12 +62,12 @@ export default Object.freeze({
   'X-WORK.annualMonthName': '{month}月',
   'X-WORK.annualMonthCount': '{n} 字',
   'X-WORK.annualMonthAria': '{month}月，{n} 个字，点开看字帖',
-  'X-WORK.annualTwiceTitle': '同一个字，两次',
+  'X-WORK.annualTwiceTitle': '同字两次',
   'X-WORK.annualFirstCellAria': '「{char}」第一次的笔迹',
   'X-WORK.annualLastCellAria': '「{char}」最近一次的笔迹',
   'X-WORK.annualSaveTitle': '保存年报',
-  'X-WORK.annualSaveNote': '存成册页：卷首、每个月、卷尾，每张 3:4。',
-  'X-WORK.annualSaveButton': '保存 {n} 张图片',
-  'X-WORK.annualSaveLong': '存成一张长图',
-  'X-WORK.annualLongNote': '一张长图，宽 1440，字很小，适合存进相册。',
+  'X-WORK.annualSaveNote': '分成封面、每月、封底，每张 3:4。',
+  'X-WORK.annualSaveButton': '保存 {n} 张',
+  'X-WORK.annualSaveLong': '存成长图',
+  'X-WORK.annualLongNote': '一张长图，字很小，适合存进相册。',
 });

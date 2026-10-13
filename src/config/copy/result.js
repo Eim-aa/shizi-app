@@ -4,13 +4,13 @@
 
 export default Object.freeze({
   // R-R01（已定）
-  'R-R01.titleCount': '这次记录了 {n} 个字',
-  'R-R01.titleZero': '这次没有记下字',
+  'R-R01.titleCount': '写了 {n} 个字',
+  'R-R01.titleZero': '没有记录',
   'R-R01.noteDefault': '跳过和看过答案的字不算在内。',
   'R-R01.noteSeenCount': '另有 {n} 个字看过答案，没算在内。',
   // R-R02（已定（"这次没有书写"与 C012"这次没写"不一致，§5.1-12））
-  'R-R02.sheetTitleCorrect': '「{char}」这次记为写对',
-  'R-R02.sheetTitleWrong': '「{char}」这次记为写错',
+  'R-R02.sheetTitleCorrect': '「{char}」写对了',
+  'R-R02.sheetTitleWrong': '「{char}」写错了',
   'R-R02.sheetTitleSaw': '「{char}」看过答案',
   'R-R02.sheetTitleSkipped': '「{char}」跳过了',
   'R-R02.sheetNoteChange': '改了只换掉这一次，不会多算一次。',
@@ -30,22 +30,22 @@ export default Object.freeze({
   'R-R04.cancel': '先不选',
   // R-R05（已定；标题字样 §5.1-3）
   'R-R05.bodyEarly': '还有 {n} 个字没写，没有记下。',
-  'R-R05.kicker': '这次选的字',
+  'R-R05.kicker': '自己选的',
   // R-R06（已定；S05 边开发边改）
   'R-R06.leaveWrong': '回到写错过',
   'R-R06.leaveForget': '回到快忘了',
-  'R-R06.leaveAll': '回到有记录的字',
+  'R-R06.leaveAll': '回到写过的字',
   'R-R06.leaveMine': '回到我的',
   'R-R06.leaveDetail': '回到「{char}」',
   'R-R06.leaveLibrary': '回到字库',
   // R-R07（已定）
-  'R-R07.title': '这次的图片',
+  'R-R07.title': '本次图片',
   'R-R07.missingInk': '「{char}」这一次没有留下笔迹，不在图里。',
   'R-R07.imageNote': '存下来的是图片，不能用来恢复记录。',
-  'R-R07.allMissing': '这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。',
+  'R-R07.allMissing': '这次的字都没存下笔迹，做不了图片。',
   // X-RESULT（M2-3 结果页：原型 ShiziScreen L116–L124 的页头 / 标题 / 格下标签 / 底栏 / 日期来源行；P62 拆句）
   'X-RESULT.headerDaily': '这次练习',
-  'X-RESULT.headerFirst': '第一次练习',
+  'X-RESULT.headerFirst': '首次练习',
   'X-RESULT.cellCorrect': '写对',
   'X-RESULT.cellWrong': '写错',
   'X-RESULT.cellSkipped': '跳过',
@@ -84,14 +84,14 @@ export default Object.freeze({
   // X-INVITE（阶段 1 P1-E5，D35 / D46 ③：首练结果页内嵌的提醒邀请；点「好」才请求系统权限；过渡文案）
   'X-INVITE.title': '明天这个时候，给你一个词？',
   'X-INVITE.titleEvening': '明天晚上八点半，给你一个词？',
-  'X-INVITE.body': '锁屏上只出现词语和拼音，比如「{word}（{pinyin}）」，你先在心里写一遍。',
+  'X-INVITE.body': '锁屏只显示词语和拼音，先在心里写一遍。',
   'X-INVITE.blankLabel': '空着的字', // 示例里被遮住那一位的读屏名称（页面上画成描边小方框，N2-13）
-  'X-INVITE.bodyPlain': '锁屏上只出现词语和拼音，你先在心里写一遍。',
+  'X-INVITE.bodyPlain': '锁屏只显示词语和拼音，先在心里写一遍。',
   // 按钮写出结果（C3-H / T3-12、D53，03 P248）：「好」离开上下文不知道在好什么；首练页最多两句话，首练那次不再放说明 body（今天的练习那次仍放）
-  'X-INVITE.yes': '好，明天给我一个词',
+  'X-INVITE.yes': '开启提醒',
   'X-INVITE.no': '先不用',
   'X-INVITE.accepted': '好，明天 {time} 给你一个词。',
   'X-INVITE.changeTime': '改时间',
   'X-INVITE.timeLabel': '提醒时间',
-  'X-INVITE.denied': '没打开通知。想要提醒，可以在手机设置里打开。',
+  'X-INVITE.denied': '通知没打开。请到手机设置里打开。',
 });

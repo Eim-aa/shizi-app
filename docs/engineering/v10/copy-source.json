@@ -1056,11 +1056,13 @@
       "slots": {
         "titleCount": {
           "raw": "这次记录了 {N} 个字",
-          "text": "这次记录了 {n} 个字"
+          "text": "写了 {n} 个字",
+          "note": "r7-C1 / D61 文案重写"
         },
         "titleZero": {
           "raw": "这次没有记下字",
-          "text": "这次没有记下字"
+          "text": "没有记录",
+          "note": "r7-C1 / D61 文案重写"
         },
         "noteDefault": {
           "raw": "跳过和看过答案的字不算在内。",
@@ -1087,13 +1089,14 @@
         "sheetTitleCorrect": {
           "raw": "「X」这次记为写对 / 写错",
           "part": 0,
-          "text": "「{char}」这次记为写对"
+          "text": "「{char}」写对了",
+          "note": "r7-C1 / D61 文案重写"
         },
         "sheetTitleWrong": {
           "raw": "「X」这次记为写对 / 写错",
           "part": 1,
-          "text": "「{char}」这次记为写错",
-          "note": "「写对 / 写错」二选一的写错版",
+          "text": "「{char}」写错了",
+          "note": "「写对 / 写错」二选一的写错版；r7-C1 / D61 文案重写",
           "override": true
         },
         "sheetTitleSaw": {
@@ -1211,7 +1214,8 @@
         "kicker": {
           "raw": "这次选的字 / 先写到这里",
           "part": 0,
-          "text": "这次选的字"
+          "text": "自己选的",
+          "note": "r7-C1 / D61 文案重写"
         }
       },
       "dropped": [
@@ -1250,7 +1254,8 @@
         },
         "leaveAll": {
           "raw": "回到有记录的字",
-          "text": "回到有记录的字"
+          "text": "回到写过的字",
+          "note": "r7-C1 / D61 文案重写"
         },
         "leaveMine": {
           "raw": "回到我的",
@@ -1282,7 +1287,8 @@
       "slots": {
         "title": {
           "raw": "这次的图片",
-          "text": "这次的图片"
+          "text": "本次图片",
+          "note": "r7-C1 / D61 文案重写"
         },
         "missingInk": {
           "raw": "「X」这一次没有留下笔迹，不在图里。",
@@ -1296,7 +1302,8 @@
         },
         "allMissing": {
           "raw": "这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。",
-          "text": "这次记下的字都没有留下笔迹，不能保存本次练习图片；本月图片仍可到练习记录保存。"
+          "text": "这次的字都没存下笔迹，做不了图片。",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -3614,9 +3621,9 @@
         },
         "headerFirst": {
           "raw": null,
-          "text": "第一次练习",
+          "text": "首次练习",
           "origin": "extra",
-          "note": "原型 ShiziScreen-第十稿交接版 L119 firstResult 页头；reference/J-proto-screen.md §2.3.12",
+          "note": "原型 ShiziScreen-第十稿交接版 L119 firstResult 页头；reference/J-proto-screen.md §2.3.12；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "cellCorrect": {
@@ -4755,9 +4762,9 @@
         },
         "body": {
           "raw": null,
-          "text": "锁屏上只出现词语和拼音，比如「{word}（{pinyin}）」，你先在心里写一遍。",
+          "text": "锁屏只显示词语和拼音，先在心里写一遍。",
           "origin": "extra",
-          "note": "邀请说明；示例词随首练第一个字，写成与锁屏通知同形的「{词语}（{拼音}）」；被遮住的那一位页面里画成描边小方框（D53，N2-13，不用与「口」难分的 □）；黑体 13，「锁」不在宋体子集里（HEI_ONLY_COPY）",
+          "note": "邀请说明；示例词随首练第一个字，写成与锁屏通知同形的「{词语}（{拼音}）」；被遮住的那一位页面里画成描边小方框（D53，N2-13，不用与「口」难分的 □）；黑体 13，「锁」不在宋体子集里（HEI_ONLY_COPY）；r7-C1 / D61 文案重写",
           "decision": "P157"
         },
         "blankLabel": {
@@ -4769,16 +4776,16 @@
         },
         "bodyPlain": {
           "raw": null,
-          "text": "锁屏上只出现词语和拼音，你先在心里写一遍。",
+          "text": "锁屏只显示词语和拼音，先在心里写一遍。",
           "origin": "extra",
-          "note": "没有可举例的词语时的说明（不举例）；同上走黑体",
+          "note": "没有可举例的词语时的说明（不举例）；同上走黑体；r7-C1 / D61 文案重写",
           "decision": "P157"
         },
         "yes": {
           "raw": null,
-          "text": "好，明天给我一个词",
+          "text": "开启提醒",
           "origin": "extra",
-          "note": "首练 / 今天的练习结果页提醒邀请的主按钮：写出结果（C3-H / T3-12、D53，P248），原为「好」",
+          "note": "首练 / 今天的练习结果页提醒邀请的主按钮：写出结果（C3-H / T3-12、D53，P248），原为「好」；r7-C1 / D61 文案重写",
           "decision": "P248"
         },
         "no": {
@@ -4811,9 +4818,9 @@
         },
         "denied": {
           "raw": null,
-          "text": "没打开通知。想要提醒，可以在手机设置里打开。",
+          "text": "通知没打开。请到手机设置里打开。",
           "origin": "extra",
-          "note": "系统权限被拒后这一块变成的一行，不再追问（意思同 R-S02）",
+          "note": "系统权限被拒后这一块变成的一行，不再追问（意思同 R-S02）；r7-C1 / D61 文案重写",
           "decision": "P157"
         }
       }
@@ -4930,16 +4937,16 @@
         },
         "workAria": {
           "raw": null,
-          "text": "作品：{chars}，{n} 个字，{date}",
+          "text": "这次的字：{chars}，{n} 个，{date}",
           "origin": "extra",
-          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "workAriaOne": {
           "raw": null,
-          "text": "作品：{chars}，{date}",
+          "text": "这次的字：{chars}，{date}",
           "origin": "extra",
-          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）",
+          "note": "读屏名称（交接 §5.5；念法 D45 文案统一时定稿）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "cellAria": {
@@ -5014,9 +5021,9 @@
         },
         "saveMany": {
           "raw": null,
-          "text": "保存 {m} 张图片",
+          "text": "保存 {m} 张",
           "origin": "extra",
-          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）",
+          "note": "分享弹层（交接 §5.3 / §6.7；D39 分张）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "pageAria": {
@@ -5084,9 +5091,9 @@
         },
         "annualFirstLabel": {
           "raw": null,
-          "text": "今年第一个字",
+          "text": "今年首字",
           "origin": "extra",
-          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）",
+          "note": "纸面落款与年报册页文字（汉字数字由 ui/work-text.js 填入；交接 §6.4 / §8.2）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "annualFirstDate": {
@@ -5105,9 +5112,9 @@
         },
         "monthUnderNote": {
           "raw": null,
-          "text": "浅色的字，这个月没有留下笔迹。点一个字看详情。",
+          "text": "浅色的字这个月没有笔迹，点字看详情。",
           "origin": "extra",
-          "note": "月字帖（交接 §7）",
+          "note": "月字帖（交接 §7）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "monthCellNoInk": {
@@ -5153,9 +5160,9 @@
         },
         "annualTwiceTitle": {
           "raw": null,
-          "text": "同一个字，两次",
+          "text": "同字两次",
           "origin": "extra",
-          "note": "年报（交接 §8）",
+          "note": "年报（交接 §8）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "annualFirstCellAria": {
@@ -5181,30 +5188,30 @@
         },
         "annualSaveNote": {
           "raw": null,
-          "text": "存成册页：卷首、每个月、卷尾，每张 3:4。",
+          "text": "分成封面、每月、封底，每张 3:4。",
           "origin": "extra",
-          "note": "年报（交接 §8）",
+          "note": "年报（交接 §8）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "annualSaveButton": {
           "raw": null,
-          "text": "保存 {n} 张图片",
+          "text": "保存 {n} 张",
           "origin": "extra",
-          "note": "年报（交接 §8）",
+          "note": "年报（交接 §8）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "annualSaveLong": {
           "raw": null,
-          "text": "存成一张长图",
+          "text": "存成长图",
           "origin": "extra",
-          "note": "年报（交接 §8）",
+          "note": "年报（交接 §8）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "annualLongNote": {
           "raw": null,
-          "text": "一张长图，宽 1440，字很小，适合存进相册。",
+          "text": "一张长图，字很小，适合存进相册。",
           "origin": "extra",
-          "note": "年报（交接 §8）",
+          "note": "年报（交接 §8）；r7-C1 / D61 文案重写",
           "decision": "P160"
         },
         "rowAria": {

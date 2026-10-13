@@ -27,7 +27,5 @@ export default Object.freeze({
   'X-JUDGE.changeToCorrect': '改为写对',
   'X-JUDGE.changeCancel': '取消',
   // 纸上那一字的判断页与修改判断弹层（阶段 1 P1-E8；实现交接 §9.5 / §10.2，过渡文案；03 P167）
-  'X-JUDGE.paperRefAside': '和你纸上的字对照',
-  'X-JUDGE.paperMineLabel': '你写的：在纸上',
   'X-JUDGE.paperMineBox': '写在纸上',
 });

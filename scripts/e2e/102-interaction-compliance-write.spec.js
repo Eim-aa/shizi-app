@@ -154,7 +154,7 @@ export default async function interactionComplianceWrite(page, ctx) {
     assert.equal(after.depth, 0, `IC-17 ${name}: the stack is back at the tab root`);
   };
   step('IC-17: 「‹」 tapped while a push is still animating is not swallowed (T0-3: transitions can be interrupted)');
-  await tapBackMidPush('settings', {}, 90);
+  await tapBackMidPush('remind', {}, 90);
   await seedSession(page, { slot: 'A', chars: CHARS });
   await tapBackMidPush('write', { slot: 'A' }, 140);
 
@@ -162,7 +162,7 @@ export default async function interactionComplianceWrite(page, ctx) {
   await toRoot(page);
   await waitIdle(page, null, PRESS_MS);
   const rootTop = (await snapshot(page)).top;
-  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('settings', {}));
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('remind', {}));
   await page.waitForTimeout(90);
   assert.ok(await page.evaluate(() => document.querySelector('.sz-app').dataset.navAnim) !== 'idle', 'IC-17 the push is still running');
   await swipeBack(page, { to: 0.6 });

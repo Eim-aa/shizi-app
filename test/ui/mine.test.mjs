@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
-  recordIndex, weekModel, calendarModel, monthSheet, sheetPreview, dayItems, mineModel, recordsModel, clampMonth,
+  recordIndex, practiceDaySet, streakDays, overviewModel, calendarModel, monthSheet, sheetPreview, dayItems, mineModel, recordsModel, clampMonth,
   weekdayIndex, lastBackupDay, firstRecordMonth, MINE_SHEET_COLS, MINE_SHEET_ROWS,
 } from '../../src/ui/screens/mine/model.js';
 
@@ -24,16 +24,13 @@ function state(records, extra = {}) {
   return { records: months, sessions: { A: null, B: null, lastEnded: {} }, ...extra };
 }
 
-test('empty: no judged record (answer-seen / skipped only) → empty; week without dots; no sheet', () => {
+test('empty: no judged record (answer-seen / skipped only) → empty; overview all 0; no sheet', () => {
   serial = 0;
   const s = state([rec('户', TODAY, { kind: 'answer-seen' }), rec('虽', '2026-09-22', { kind: 'skipped' })]);
   const m = mineModel(s, TODAY);
   assert.equal(m.empty, true);
   assert.equal(m.sheetOn, false);
-  assert.deepEqual(m.week.map(d => d.day), ['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27']);
-  assert.ok(m.week.every(d => !d.has));
-  assert.deepEqual(m.week.filter(d => d.today).map(d => d.day), [TODAY]);
-  assert.deepEqual(m.week.filter(d => d.future).map(d => d.day), ['2026-09-25', '2026-09-26', '2026-09-27']);
+  assert.deepEqual(m.overview, { streak: 0, total: 0, chars: 0 });
   const nullModel = mineModel(null, TODAY);
   assert.equal(nullModel.empty, true);
   assert.equal(nullModel.lastBackup, null);
@@ -43,8 +40,28 @@ test('weekdayIndex: Monday first; week wraps across months', () => {
   assert.equal(weekdayIndex('2026-09-21'), 0); // Mon
   assert.equal(weekdayIndex('2026-09-27'), 6); // Sun
   assert.equal(weekdayIndex('2026-09-01'), 1); // Tue
-  const w = weekModel(recordIndex(null), '2026-10-01');
-  assert.deepEqual([w[0].day, w[6].day], ['2026-09-28', '2026-10-04']);
+});
+
+test('overview (D63): streak counts back from today, or from yesterday when today is not written yet; legacy.days counted', () => {
+  serial = 0;
+  assert.equal(streakDays(['2026-09-24', '2026-09-23', '2026-09-22', '2026-09-20'], '2026-09-24'), 3);
+  assert.equal(streakDays(['2026-09-23', '2026-09-22'], '2026-09-24'), 2); // 今天还没写：从昨天算
+  assert.equal(streakDays(['2026-09-22'], '2026-09-24'), 0); // 前天以前：断了
+  assert.equal(streakDays([], '2026-09-24'), 0);
+  // 跨月、跨年
+  assert.equal(streakDays(['2026-01-01', '2025-12-31', '2025-12-30'], '2026-01-01'), 3);
+  const s = state([rec('静', '2026-09-23'), rec('谁', '2026-09-24'), rec('谁', '2026-09-10')], {
+    legacy: { importedAt: 1, fromKeys: [], days: ['2026-09-22', '2026-09-21', '2026-09-10', '2026-08-01', 'bad', '2026-09-30'], report: {} },
+  });
+  const days = practiceDaySet(s);
+  assert.equal(days.size, 7); // 9-24 9-23 9-10 + legacy 9-22 9-21 8-01 9-30（9-10 重复，坏日期丢弃）
+  const o = overviewModel(s, TODAY);
+  assert.equal(o.streak, 4); // 9-21 … 9-24（旧版练习日接得上）
+  assert.equal(o.total, 6); // 9-30 在今天以后，不计
+  assert.equal(o.chars, 2); // 静、谁 = 字库「已练汉字」同一个数
+  assert.equal(mineModel(s, TODAY).overview.chars, 2);
+  // 没有新记录、只有旧版练习日也有数
+  assert.deepEqual(overviewModel({ legacy: { days: ['2026-09-24'] } }, TODAY), { streak: 1, total: 1, chars: 0 });
 });
 
 test('month sheet: first-appearance order, date tags on day change, P02 pick first vs last', () => {

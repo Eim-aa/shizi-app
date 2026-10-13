@@ -32,9 +32,6 @@ const BOTH_TRUE = {
   'R-W16.saveFailed': '写字页保存失败：刚写的笔画还在页面上',
   'X-LIBHOME.emptyTitle': '空态：写过的字会留在这里（字，不是笔迹）',
   // 阶段 1 P1-E8「在纸上写」：说的是纸上那次「不留笔迹」，纸上记录本来就没有墨迹，与 perRecordInk 开关无关
-  'X-PAPER.note': '纸上那一字的格下说明：纸上记录不留笔迹（ink = null），perRecordInk 无关',
-  'X-JUDGE.paperMineLabel': '纸上那一字的读屏名称「你的书写：写在纸上」，说的是没有屏幕笔迹，perRecordInk 无关',
-  'X-SETTINGS.writeModeNote': '写字方式说明：纸上记录不留笔迹、不进图片和年报，perRecordInk 无关',
   // 阶段 1 P1-E7：作品出口。下面都是「按这一条记录有没有墨」逐条判断后才出现的文案（有墨才画笔迹、没墨才说没有），与格子画什么一致
   'X-WORK.rowNoInkCorrect': '结果页作品下的行：这条记录确实没有墨（work.js state noInk），才出现这一行',
   'X-WORK.rowNoInkWrong': '同上（写错且没有墨）',

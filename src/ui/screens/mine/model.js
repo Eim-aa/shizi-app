@@ -29,13 +29,14 @@ import { addDays, addMonths, daysInMonth, isValidDay, isValidMonth, localDay, mo
 import { foldWorkByDay, isAfterSeenWork, isJudged, sortById } from '../../../core/records.js';
 import { pickRecordInPeriod, storedInkPresent } from '../../../core/ink-pick.js';
 import { isWorkMember, workMembers } from '../../../core/work-members.js';
+import { memoryZones } from '../library/model.js';
 
 /** 我的首页字帖列数、最多行数（原型 L26 7 列；R-M05「最近 3 行」）。 */
 export const MINE_SHEET_COLS = 7;
 export const MINE_SHEET_ROWS = 3;
 /** 练习记录字帖列数（原型 L91 5 列）。 */
 export const RECORDS_SHEET_COLS = 5;
-/** 一周七天，周一开头（原型 L26 / L89「一 二 三 四 五 六 日」）。 */
+/** 一周七天，周一开头（月历用）。 */
 export const WEEK_LENGTH = 7;
 
 // ---------------------------------------------------------------- 记录索引
@@ -118,17 +119,6 @@ export function firstRecordMonth(index) {
 export function weekdayIndex(day) {
   const { year, month, day: d } = parseDay(day);
   return (new Date(year, month - 1, d).getDay() + 6) % 7;
-}
-
-/** 这一周（R-M01；原型 L386）：今天所在的周一到周日；has = 这天有记录；今天红字；今天以后浅字。 */
-export function weekModel(index, today) {
-  const monday = addDays(today, -weekdayIndex(today));
-  const out = [];
-  for (let i = 0; i < WEEK_LENGTH; i += 1) {
-    const day = addDays(monday, i);
-    out.push({ day, n: parseDay(day).day, weekday: i, has: index.days.has(day), today: day === today, future: day > today });
-  }
-  return out;
 }
 
 /**
@@ -246,8 +236,45 @@ export function lastBackupDay(backupMeta) {
 }
 
 /**
- * 我的首页（R-M01–R-M05）。
- * @returns {{today, empty, week, month, sheet, preview, sheetOn, lastBackup, year}}
+ * 练习过的日子（D63 ④）：有 judged 记录的日子 ∪ 折叠月份里有字的日子（recordIndex.days）∪ v1 旧版练习日（state.legacy.days，01 §12）。
+ * 只用在「我的」页概览的两个天数；练习记录的月历仍只标当天写过的日子（R-P01 / K27）。
+ * @returns {Set<string>}
+ */
+export function practiceDaySet(state, index = recordIndex(state)) {
+  const out = new Set(index.days);
+  const legacy = state && state.legacy && Array.isArray(state.legacy.days) ? state.legacy.days : [];
+  for (const day of legacy) if (isValidDay(day)) out.add(day);
+  return out;
+}
+
+/**
+ * 连续练习天数：从今天往前连续有练习的天数；今天还没练就从昨天算起（今天还没写不算断）；今天以后的日子不计。
+ * @param {Set<string>|string[]} days
+ */
+export function streakDays(days, today) {
+  const set = days instanceof Set ? days : new Set(days || []);
+  let cursor = set.has(today) ? today : addDays(today, -1);
+  let n = 0;
+  while (set.has(cursor)) {
+    n += 1;
+    cursor = addDays(cursor, -1);
+  }
+  return n;
+}
+
+/**
+ * 概览三个数（D63 ④）：连续练习 N 天、累计练习 N 天（都含 v1 旧版练习日）、已练汉字 N 字（= 字库首页「已练汉字」同一个函数 memoryZones().recorded）。
+ * 今天以后的练习日（时钟回拨等）不计入累计与连续。
+ */
+export function overviewModel(state, today, index = recordIndex(state)) {
+  const all = practiceDaySet(state, index);
+  const upToToday = new Set([...all].filter(day => day <= today));
+  return { streak: streakDays(upToToday, today), total: upToToday.size, chars: memoryZones(state, today).recorded };
+}
+
+/**
+ * 我的首页（D63）。
+ * @returns {{today, empty, overview, month, sheet, preview, sheetOn, lastBackup, year}}
  */
 export function mineModel(state, today, { policy = defaultPolicy, hasInk = null } = {}) {
   const index = recordIndex(state);
@@ -257,11 +284,11 @@ export function mineModel(state, today, { policy = defaultPolicy, hasInk = null 
   return {
     today,
     empty,
-    week: weekModel(index, today),
+    overview: overviewModel(state, today, index),
     month,
     sheet,
     preview: sheetPreview(sheet),
-    // 这个月还没有字时不画字帖块（原型 mineSheet=false 一态；空态同样不画，原型 mineEmpty）。
+    // 这个月还没有字时不画字帖块（空态同样不画）。
     sheetOn: !empty && sheet.cells.length > 0,
     lastBackup: lastBackupDay(state && state.backupMeta),
     year: parseDay(today).year,

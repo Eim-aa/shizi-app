@@ -85,11 +85,11 @@ export default async function run(page0, ctx) {
     // 每组：页面准备（组内只做一次）+ 打开弹层（组内三次，每次一种关法）
     const groups = [
       {
-        name: '设置·外观弹层',
+        name: '我的·外观弹层（AX 档）',
         prepare: async () => {},
         open: async () => {
-          await page.evaluate(async () => (await import('/src/ui/screens/mine/settings.js')).openAppearanceSheet());
-          await page.waitForSelector('.sz-sheet [data-testid="settings-appearance-options"]');
+          await page.evaluate(async () => (await import('/src/ui/screens/mine/appearance.js')).openAppearanceSheet('auto'));
+          await page.waitForSelector('.sz-sheet[data-testid="mine-appearance-sheet"]');
         },
       },
       {

@@ -53,13 +53,14 @@ import { MonthBody, monthModel, openMonth } from './month.js';
 export const RECORDS_SCREEN = 'records';
 
 /**
- * 我的 tab 各去处的屏名（原型 ShiziScreen data-nav 键：records / settings / backup / annual / about；detail 为 M3-6）。
- * 目标屏由拥有它们的卡自注册（M4-2 年度报告、M4-3 设置、M4-4 备份与恢复、M4-6 关于）；还没注册时按钮不跳转（console.warn）。
+ * 我的 tab 各去处的屏名（records / remind / library / backup / annual / about；detail 为 M3-6）。
+ * 目标屏由各自的模块自注册（年度报告、提醒页 remind.js、换库页、备份、关于）；还没注册时按钮不跳转（console.warn）。
  */
 export const MINE_ROUTES = Object.freeze({
   records: RECORDS_SCREEN,
   annual: 'annual',
-  settings: 'settings',
+  remind: 'remind',
+  library: 'library-switch',
   backup: 'backup',
   about: 'about',
   detail: 'detail',

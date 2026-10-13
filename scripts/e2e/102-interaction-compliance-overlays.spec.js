@@ -4,14 +4,15 @@
 //   IC-16  每个进场都有退场：关闭过程中退场余影（.sz-exit）至少 2 帧处在动画中途（P1-07）
 //   N4 门控：Tab 根上的弹层同样能左缘右滑关（首页「自己选字」、字库）
 
+import { setTextSize } from './helpers.mjs';
 import { PRESS_MS, TOP, boot, enter, CATALOG, seedRich, skipIfPending, snapshot, swipeBack, toRoot, waitIdle } from './ic-lib.mjs';
 
 /** 弹层目录：在哪一页、怎么打开、是底部弹层还是确认框。 */
 const OVERLAYS = [
   { id: 'query (tab root)', page: 'home', open: 'home-pick', sel: '[data-testid="query-sheet"]', sheet: true, tabRoot: true },
   { id: 'all-menu', page: 'library-all', open: 'all-menu-open', sel: '[data-testid="all-menu"]', sheet: true },
-  { id: 'appearance', page: 'settings', open: 'settings-appearance', sel: '[data-testid="settings-appearance-sheet"]', sheet: true },
-  { id: 'write-mode', page: 'settings', open: 'settings-writemode', sel: '[data-testid="settings-writemode-sheet"]', sheet: true },
+  // D63：外观在「我的」页是行内三段，放不下（AX5）时才是点开的弹层
+  { id: 'appearance', page: 'mine', open: 'mine-appearance', sel: '[data-testid="mine-appearance-sheet"]', sheet: true, ax: 'AX5', tabRoot: true },
   // 月字帖「保存图片」改为一次点击直存（I3 P0-04），图片预览弹层从旁边的「调整…」打开
   { id: 'image-preview', page: 'month', open: 'month-adjust', sel: '[data-testid="image-sheet"]', sheet: true },
   // 清空确认改为居中确认框（I3，components/Confirm.js）；换库不再有确认框（I3 P1-19：不丢东西就不确认）
@@ -21,6 +22,7 @@ const OVERLAYS = [
 const EXITS = ['scrim', 'esc', 'native-escape', 'edge-swipe', 'swipe-down'];
 
 async function openOverlay(page, o, info) {
+  await setTextSize(page, o.ax || 'L');
   await enter(page, CATALOG.find(e => e.name === o.page), info);
   await page.waitForTimeout(PRESS_MS);
   const loc = page.locator(`${TOP} [data-testid="${o.open}"]`);
@@ -129,7 +131,7 @@ export default async function interactionComplianceOverlays(page, ctx) {
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('shizi-native-back-progress', { detail: { phase: 'ended', translationX: window.innerWidth * 0.1, progress: 0.1, velocityX: 0 } })));
   await page.waitForTimeout(400);
   assert.equal(await isOpen(page, ap), true, 'IC-06 a short drag springs back: still open');
-  assert.equal((await snapshot(page)).top, 'settings', 'IC-06 the page stack is unchanged');
+  assert.equal((await snapshot(page)).top, 'mine', 'IC-06 the page stack is unchanged');
   const back = await page.evaluate(t => document.querySelector(`${t} .sz-overlay:not(.sz-exit) .sz-sheet`).style.transform, TOP);
   assert.equal(back, '', 'IC-06 the sheet is back in place after the spring-back');
 

@@ -136,10 +136,10 @@ export default async function interactionComplianceFeedback(page, ctx) {
   // ---- IC-14：运行时动画都在令牌里
   step('IC-14: every running animation (push / pop, sheet in / out, toast, write phases) uses token durations and curves');
   await startAnimCollector(page);
-  await enter(page, CATALOG.find(e => e.name === 'settings'), info);
+  await enter(page, CATALOG.find(e => e.name === 'library-all'), info);
   await page.waitForTimeout(PRESS_MS);
-  await page.click(`${TOP} [data-testid="settings-appearance"]`);
-  await page.waitForSelector(`${TOP} [data-testid="settings-appearance-sheet"]`);
+  await page.click(`${TOP} [data-testid="all-menu-open"]`);
+  await page.waitForSelector(`${TOP} [data-testid="all-menu"]`);
   await page.waitForTimeout(PRESS_MS);
   await page.click(`${TOP} [data-testid="sheet-done"]`);
   await page.waitForTimeout(400);
@@ -167,10 +167,10 @@ export default async function interactionComplianceFeedback(page, ctx) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await toRoot(page);
   await startAnimCollector(page);
-  await enter(page, CATALOG.find(e => e.name === 'settings'), info);
+  await enter(page, CATALOG.find(e => e.name === 'library-all'), info);
   await page.waitForTimeout(PRESS_MS);
-  await page.click(`${TOP} [data-testid="settings-appearance"]`);
-  await page.waitForSelector(`${TOP} [data-testid="settings-appearance-sheet"]`);
+  await page.click(`${TOP} [data-testid="all-menu-open"]`);
+  await page.waitForSelector(`${TOP} [data-testid="all-menu"]`);
   await page.waitForTimeout(PRESS_MS);
   await page.click(`${TOP} [data-testid="sheet-done"]`);
   await page.waitForTimeout(400);

@@ -5,14 +5,14 @@
 //   2. 查字弹层「键盘开着」（假的 visualViewport：可见区缩到 448，弹层被抬到键盘上沿）时关闭：余影落回屏底、上沿逐帧单调下移、最后一帧完全出屏（不停在半屏——
 //      f0ce0a1 上余影带着 bottom = 键盘高播 translateY(100%)，停在 471 – 772 等计时到点才消失，模拟器逐帧见 .review/r6-J1）；输入框在余影出现的同一帧已失焦。
 
+import { setTextSize } from './helpers.mjs';
 import { CATALOG, PRESS_MS, TOP, boot, enter, seedRich, waitIdle } from './ic-lib.mjs';
 
 const OVERLAYS = [
   { id: 'query (library)', page: 'library', open: '.sz-libq', sel: '[data-testid="query-sheet"]' },
   { id: 'pick (home)', page: 'home', open: '[data-testid="home-pick"]', sel: '[data-testid="query-sheet"]' },
   { id: 'all-menu', page: 'library-all', open: '[data-testid="all-menu-open"]', sel: '[data-testid="all-menu"]' },
-  { id: 'appearance', page: 'settings', open: '[data-testid="settings-appearance"]', sel: '[data-testid="settings-appearance-sheet"]' },
-  { id: 'write-mode', page: 'settings', open: '[data-testid="settings-writemode"]', sel: '[data-testid="settings-writemode-sheet"]' },
+  { id: 'appearance (AX5, D63)', page: 'mine', open: '[data-testid="mine-appearance"]', sel: '[data-testid="mine-appearance-sheet"]', ax: 'AX5' },
   { id: 'image-preview', page: 'month', open: '[data-testid="month-adjust"]', sel: '[data-testid="image-sheet"]' },
   { id: 'backup-clear (confirm)', page: 'backup', open: '[data-testid="backup-clear"]', sel: '[data-testid="backup-clear-sheet"]' },
 ];
@@ -74,6 +74,7 @@ function installFakeViewport() {
 
 async function openAndClose(page, ctx, o, info, { keyboard = false } = {}) {
   const { assert } = ctx;
+  await setTextSize(page, o.ax || 'L');
   await enter(page, CATALOG.find(e => e.name === o.page), info);
   await page.waitForTimeout(PRESS_MS);
   await page.locator(`${TOP} ${o.open}`).first().click();

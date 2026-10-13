@@ -27,11 +27,11 @@ export default async function interactionCompliance(page, ctx) {
   await checkPages(page, ctx, info, PART1);
 
   step('IC-05: swipe-back thresholds (0.2 w at rest springs back; 0.4 w commits; 0.1 w at 600 pt/s commits)');
-  const settings = CATALOG.find(e => e.name === 'settings');
+  const settings = CATALOG.find(e => e.name === 'remind');
   await enter(page, settings, info);
   await swipeBack(page, { to: 0.2, velocity: 0 });
   await waitIdle(page, null, 300);
-  assert.equal((await snapshot(page)).top, 'settings', 'IC-05 0.2 w, v = 0: springs back, still on settings');
+  assert.equal((await snapshot(page)).top, 'remind', 'IC-05 0.2 w, v = 0: springs back, still on remind');
   assert.equal(await page.evaluate(t => document.querySelector(t).style.transform || '', TOP), '', 'IC-05 the page is back in place');
   await swipeBack(page, { to: 0.4, velocity: 0 });
   await waitIdle(page, 'home');
@@ -48,8 +48,8 @@ export default async function interactionCompliance(page, ctx) {
   await page.waitForTimeout(400);
   await waitIdle(page);
   const esc = await snapshot(page);
-  if (esc.top === 'settings') {
-    if (!skipIfPending('IC-08', {}, 'settings: Z gesture did nothing')) assert.equal(esc.top, 'home', 'IC-08 Z gesture / Esc goes back like 「‹」');
+  if (esc.top === 'remind') {
+    if (!skipIfPending('IC-08', {}, 'remind: Z gesture did nothing')) assert.equal(esc.top, 'home', 'IC-08 Z gesture / Esc goes back like 「‹」');
   } else {
     assert.equal(esc.top, 'home', 'IC-08 Z gesture / Esc goes back like 「‹」');
   }

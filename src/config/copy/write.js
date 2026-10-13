@@ -99,13 +99,6 @@ export default Object.freeze({
   'X-ANSWER.btnTraceDone': '自己写',
   'X-ANSWER.btnTraceDoneShort': '自己写', // AX3 起描一遍阶段主按钮的短文案（P259：SE 3 的 AX5 下「描好了，自己写」折成三行）
   'X-ANSWER.btnRetrace': '再描一遍',
-  // X-PAPER（阶段 1 P1-E8「在纸上写，回来自判」写字页；实现交接 §10.2 / §10.3，过渡文案；03 P165 / P167 / P168；D56 起建议改指向设置，03 P276）
-  'X-PAPER.title': '在纸上写',
-  'X-PAPER.body': '写好了点「写好了」，再自己对照。',
-  'X-PAPER.backToScreen': '屏幕上写',
-  'X-PAPER.note': '这个字记下时会标注「纸上」，不留笔迹。',
-  'X-PAPER.suggest': '不方便在屏幕写？可在设置改成纸上写。',
-  'X-PAPER.suggestGo': '去设置',
   // X-PERSIST（M1-6 抬笔写会话现场失败的顶部一次性提示；01 §4 表「沿旧两句」，旧 index.html L1067）
   'X-PERSIST.saveFailed': '进度没存上。请先导出备份，再重开拾字。',
   'X-PERSIST.quotaFailed': '空间满了，没存上。请导出备份并清理。',

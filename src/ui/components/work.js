@@ -277,12 +277,13 @@ export function PlainRow({ cells, grid, onOpen, label }) {
  * @param {Array<{key:string, ch:string, ink?:object|null, mode?:'hand'|'under', tag?:string, label:string, day?:string, record?:string}>} props.cells
  * @param {number} props.width  可用宽（px，一般 = 屏宽 − 40）
  * @param {string} props.kuan
+ * @param {number} [props.cols]  指定列数（缺省按字数定；「我的」页只放最近两行时用整月的列数）
  * @param {(cell)=>void} [props.onOpen]
  * @param {string} [props.testid]
  */
-export function MonthPaper({ cells, width, kuan, sign = true, onOpen, label, testid = 'month-paper', cellTestid = 'month-cell', kuanTestid = 'month-kuan', sealTestid = 'month-seal' }) {
+export function MonthPaper({ cells, width, kuan, sign = true, cols = 0, onOpen, label, testid = 'month-paper', cellTestid = 'month-cell', kuanTestid = 'month-kuan', sealTestid = 'month-seal' }) {
   const n = cells.length;
-  const g = sheetGrid(n, width);
+  const g = sheetGrid(n, width, { cols });
   const tags = sheetTags(cells);
   const rects = g.full ? [{ x: 0, y: 0, w: g.W, h: g.H }] : [{ x: 0, y: 0, w: g.W, h: (g.rows - 1) * g.c }, { x: 0, y: (g.rows - 1) * g.c, w: g.lastW, h: g.c }];
   const sealStyle = g.full ? null : { position: 'absolute', left: `${g.lastW + 8}px`, top: `${g.H - SEAL_PT}px` };

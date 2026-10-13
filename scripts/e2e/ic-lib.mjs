@@ -31,7 +31,7 @@ export const CATALOG = Object.freeze([
   { name: 'session-none', params: () => ({ exhausted: false }) },
   { name: 'records' },
   { name: 'month', ready: `${TOP} [data-testid="month-cell"]` },
-  { name: 'settings' },
+  { name: 'remind' },
   { name: 'backup' },
   { name: 'annual' },
   { name: 'about' },

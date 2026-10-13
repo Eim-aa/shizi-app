@@ -4,20 +4,19 @@
 
 export default Object.freeze({
   // R-M01（已定）
-  'R-M01.week': '这一周',
   'R-M01.saveImage': '保存图片',
   'R-M01.practiceLog': '练习记录',
   // R-M03（已定）
-  'R-M03.settings': '设置',
   'R-M03.backup': '备份',
-  'R-M03.backupSub': '记录只存在这台手机上',
   'R-M03.lastBackup': '上次备份 {date}',
   'R-M03.noBackup': '还没有备份',
+  'R-M03.remind': '提醒', // D63：「我的」页提醒行 / 提醒页页头
+  'R-M03.remindOff': '关',
   // R-M04（已定）
   'R-M04.emptyTitle': '还没有记录',
   'R-M04.emptyBody': '写字并点写对或写错，这里就有记录。',
   // R-M05（边开发边改）
-  'R-M05.sheetAll': '全部 ›',
+  'R-M05.sheetAll': '全部 {n} 字', // D63：标题行右侧，整行进练习记录
   // R-M06（已定；导出放以后版本）
   'R-M06.section1': '一 · 写过的字',
   'R-M06.charCount': '{n} 个字',
@@ -45,6 +44,12 @@ export default Object.freeze({
   // X-MINE（extra：M4-1 我的首页与练习记录里 04 没有收录的原型字样与读屏名，见 copy-source.json extra.X-MINE）
   'X-MINE.annual': '年度报告',
   'X-MINE.about': '关于拾字',
+  // D63「我的」页概览三个数
+  'X-MINE.ovStreak': '连续练习',
+  'X-MINE.ovTotal': '累计练习',
+  'X-MINE.ovChars': '已练汉字',
+  'X-MINE.ovDay': '天',
+  'X-MINE.ovChar': '字',
   'X-MINE.chevron': '›',
   'X-MINE.weekdays': ['一', '二', '三', '四', '五', '六', '日'],
   'X-MINE.dayRecorded': '{date}，有记录',
@@ -56,8 +61,6 @@ export default Object.freeze({
   // AX 档次级页（R2-A1 / A2-03，03 P233）：月历改成每天一行的列表、周条改成一句话；字帖格的日期角标不画，日期在格的读屏名称里（X-MINE.cellLabel）
   'X-MINE.axDayRow': '{date} · 写了 {n} 个字',
   'X-MINE.axDayRowPaper': '{date} · 有记录',
-  'X-MINE.weekSummary': '写了 {n} 天',
-  'X-MINE.weekSummaryNone': '还没有记录',
   'X-MINE.sheetOrder': '按第一次写的先后排',
   'X-MINE.sheetEmpty': '这个月还没有可做图的字',
   // 只在纸上写过的一天（日历有点、没有字帖）；阶段 1 P1-E2，过渡文案，03 P172

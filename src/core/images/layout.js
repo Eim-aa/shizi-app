@@ -276,14 +276,15 @@ export function sheetColumns(n) {
  * 字帖格几何。
  * @param {number} n  字数
  * @param {number} width  可用宽（单位同返回值）
- * @param {{unit?:number, maxHeight?:number}} [o]  unit = 每 pt 几个单位（屏幕 1；逻辑画布 2.69）；maxHeight = 网格可用高（导出图限高用；格宽随之缩小）
+ * @param {{unit?:number, maxHeight?:number, cols?:number}} [o]  unit = 每 pt 几个单位（屏幕 1；逻辑画布 2.69）；maxHeight = 网格可用高（导出图限高用；格宽随之缩小）；
+ *   cols = 指定列数（「我的」页只放最近两行时，列数按整月的字数定、不跟着放出来的字数变，D63）
  * @returns {{n,cols,rows,c,lastN,W,H,lastW,full:boolean, cells:Array<{x,y,col,row}>, outline:string, inner:string}}
  *   full = 末行满（末字在最右列）；outline / inner 是 SVG path 的 d（外框阶梯形 / 格间线）。
  */
-export function sheetGrid(n, width, { unit = 1, maxHeight = Infinity } = {}) {
+export function sheetGrid(n, width, { unit = 1, maxHeight = Infinity, cols: fixedCols = 0 } = {}) {
   if (!Number.isSafeInteger(n) || n < 0) throw new Error('INVALID_COUNT');
   if (n === 0) return { n, cols: 0, rows: 0, c: 0, lastN: 0, W: 0, H: 0, lastW: 0, full: true, cells: [], outline: '', inner: '' };
-  const cols = sheetColumns(n);
+  const cols = fixedCols >= 1 ? Math.floor(fixedCols) : sheetColumns(n);
   const rows = Math.ceil(n / cols);
   let c = Math.min(SHEET_MAX_CELL_PT * unit, width / cols);
   if (Number.isFinite(maxHeight) && maxHeight > 0) c = Math.min(c, maxHeight / rows);

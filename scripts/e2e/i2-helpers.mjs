@@ -113,7 +113,6 @@ export const WRITE_PHASES = [
   ['trace', { current: { phase: 'trace', answerSeen: true } }],
   ['retrace', { current: { phase: 'retrace', answerSeen: true } }],
   ['compare', { current: undefined, draw: true, done: true }],
-  ['compare-paper', { current: { paper: true }, done: true }],
 ];
 
 export async function openWritePhase(page, ctx, opts) {

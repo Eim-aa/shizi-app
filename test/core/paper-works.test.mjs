@@ -9,7 +9,7 @@ import { foldWorkByDay, isWorkRecord, withoutPaper } from '../../src/core/record
 import { validateRecordsMonth } from '../../src/core/schema.js';
 import { recover } from '../../src/store/budget.js';
 import { annualModel, annualPlan, yearMonths, yearSlice } from '../../src/ui/screens/mine/annual-model.js';
-import { calendarModel, dayItems, mineModel, monthSheet, recordIndex, recordsModel, weekModel } from '../../src/ui/screens/mine/model.js';
+import { calendarModel, dayItems, mineModel, monthSheet, recordIndex, overviewModel, recordsModel } from '../../src/ui/screens/mine/model.js';
 
 const INK = [[{ x: 60, y: 170, w: 11.5 }, { x: 280, y: 172, w: 11.5 }]];
 const inkOf = r => (r.source === 'paper' ? null : INK);
@@ -139,10 +139,11 @@ test('mine sheet / day list / month count: monthSheet and dayItems skip paper; t
   assert.deepEqual(dayItems(index, '2026-03-03').map(x => x.char), [], 'a paper-only day has no chars to list');
   assert.deepEqual(dayItems(index, '2026-03-04').map(x => x.char), [], '和 on paper that day: the screen record is on another day');
   assert.deepEqual(dayItems(index, '2026-03-02').map(x => x.char), ['永', '和']);
-  // 日历 / 本周：不过滤
+  // 日历 / 概览天数：不过滤
   const cal = calendarModel(index, '2026-03', '2026-09-24').filter(c => c.day);
   assert.deepEqual(cal.filter(c => c.has).map(c => c.day), ['2026-03-02', '2026-03-03', '2026-03-04'], 'calendar: the paper days still show a dot');
-  assert.deepEqual(weekModel(recordIndex(stateOf([paper(rec(1, '纸', 'judged', 'correct', '2026-09-24'))])), '2026-09-24').filter(d => d.has).map(d => d.day), ['2026-09-24']);
+  const ov = overviewModel(stateOf([paper(rec(1, '纸', 'judged', 'correct', '2026-09-24'))]), '2026-09-24');
+  assert.deepEqual([ov.streak, ov.total], [1, 1], 'overview: a paper-only day still counts as a practice day');
   const rm = recordsModel(st, '2026-09-24', { month: '2026-03', day: '2026-03-03', hasInk: () => true });
   assert.equal(rm.recordDays, 3, 'records model: written days include the paper days');
   assert.deepEqual(rm.selected.items, [], 'the selected paper-only day exists but has no items');

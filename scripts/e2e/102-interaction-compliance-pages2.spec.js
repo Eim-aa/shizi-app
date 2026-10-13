@@ -6,7 +6,7 @@ import { checkPages } from './ic-pages.mjs';
 import { setTextSize } from './helpers.mjs';
 import { longTextCatalog, seedLongText } from './fixtures/long-text.mjs';
 
-export const PART2 = ['session-none', 'records', 'month', 'settings', 'backup', 'annual', 'about', 'about-privacy', 'about-credits', 'about-letter'];
+export const PART2 = ['session-none', 'records', 'month', 'remind', 'backup', 'annual', 'about', 'about-privacy', 'about-credits', 'about-letter'];
 
 export default async function interactionCompliancePages2(page, ctx) {
   const { assert, step, baseURL } = ctx;
@@ -19,7 +19,7 @@ export default async function interactionCompliancePages2(page, ctx) {
   await setTextSize(page, 'AX5');
   const catalog = await longTextCatalog(page);
   // 写字页放在最后：用长文本 fixture 的「题面最长」卡（提示行最长；10650a2 上 AX5 + SE 正文滚 68pt，R5M / P299 起题面按可用高度缩小、再不行格子让步，不滚动）
-  for (const name of ['home', 'settings', 'backup', 'detail', 'library-list', 'write']) {
+  for (const name of ['home', 'remind', 'backup', 'detail', 'library-list', 'write']) {
     if (name === 'write') {
       const seeded = await seedLongText(page, catalog);
       assert.ok(seeded.ok, `IC-21 write: seeded the longest prompt (${catalog.longest.char}, hint ${catalog.longest.hint.length} chars)`);

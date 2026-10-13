@@ -1,19 +1,17 @@
-// M4-1 我的首页与练习记录（02 §6 M4-1；04 R-M01–R-M05、R-P01–R-P05、R-H08；03 P02 / P64；原型 ShiziScreen-第十稿交接版
-// L24–L31、L88–L110）。
+// M4-1 我的首页与练习记录（02 §6 M4-1；04 R-M01–R-M05、R-P01–R-P05、R-H08；03 P02 / P64）；D63 起「我的」页按丙重做（概览三个数 → {月}字帖标题行 → 提醒 / 练习范围 / 外观 → 备份 / 年度报告 / 关于 → 版本号）。
+// 「我的」页自己的新结构另见 110-r7-m1-mine.spec.js（顺序、概览算法、提醒页、外观三段、没有设置页）；本 spec 管数字口径与练习记录。
 //
 // 场景（钩子 seed + setClock 2026-09-24 周四）：
-//   1. 没有记录：我的（R-M04 两句、这一周无墨点、不画字帖、菜单四行、备份行「还没有备份 ›」）；只有看过答案 / 跳过也算没有记录；
-//      练习记录（「9月还没有记录」+ R-P04、‹ › 都灰且 aria-disabled、没有可点的日子、字帖虚线框、没有今天那一行）。
+//   1. 没有记录：我的（R-M04 两句、概览三个 0、不画字帖、行与目标、备份行「还没有备份」）；只有看过答案 / 跳过也算没有记录；
+//      练习记录（「9月还没有记录」+ R-P04、‹ › 都灰且 aria-disabled、没有可点的日子、没有今天那一行）。
 //   2. 有记录（真实 mutator judgeInDraft 造数，含笔迹、看过答案 / 跳过、折叠月份、legacy.days、backupMeta）：
-//      所有数字按 getState 独立重算后对照（这一周墨点、「N 月有记录 N 天」、墨点日子、字帖字数 / 顺序 / 角标 / 取墨记录 P02、
-//      落款汉字数字、上次备份日期）；无补记痕迹（没有虚线圈 / 空心点 / 「补记」字样；看过答案、跳过、legacy 旧练习日都不画墨点）。
-//   3. 练习记录：点有记录的日子列出那天的字（再点收起）；‹ › 翻月（字帖跟月份走，历史月说明换 R-P02.historyNote、没有保存入口、
-//      没有今天那一行）；到最早有记录的月份 ‹ 变灰；本月 › 变灰；刷新后停在同一月份与日子。
-//   4. 「今天的记录」：首页墨迹行（M2-1 setTodayRecordsAction）→ 练习记录本月、列出今天写的字（与墨迹行同一口径）。
-//   5. 导航：练习记录 ›、字帖格子 → 单字详情 {char}、菜单四行 → settings / backup / annual / about（没注册的屏用占位屏）；
-//      300 字：我的字帖只放最近 3 行 +「全部 ›」→ 练习记录本月（完整 300 格），首屏计时。
-//   6. 图片入口桩（M4-5 setMineImageActions）：没注册时不显示；注册后我的 / 练习记录「保存图片 ›」传 {month}，
-//      「{今天}写的字 / 这次的图片 · 保存图片 ›」传 {day, items}。
+//      所有数字按 getState 独立重算后对照（概览天数含旧版练习日、「N 月有记录 N 天」、墨点日子、字帖字数 / 顺序 / 角标 / 取墨记录 P02、
+//      落款汉字数字、上次备份日期）；无补记痕迹。
+//   3. 练习记录：点有记录的日子列出那天的字（再点收起）；‹ › 翻月；到最早有记录的月份 ‹ 变灰；本月 › 变灰；刷新后停在同一月份与日子。
+//   4. 「今天的记录」：练习记录本月、列出今天写的字。
+//   5. 导航：字帖标题行 → 练习记录本月（D63）、字帖格子 → 单字详情 {char}、行 → remind / library-switch / backup / annual / about；
+//      300 字：我的字帖只放最近两行（列数按整月字数定）+ 标题行「全部 300 字」→ 练习记录本月（完整 300 格），首屏计时。
+//   6. 图片入口桩（M4-5 setMineImageActions）：没注册时练习记录不显示；注册后「保存图片」传 {month}，「{今天}写的字 / 这次的图片 · 保存图片」传 {day, items}；「我的」页不再有保存图片（D63）。
 //   7. 浏览这些页面不写任何东西（写日志为空、getState 深相等）；深色 / 紧凑版 360×640 无横向滚动；每个 button 有无障碍名。
 
 import { bootTestHost, tid, tokenRgb, waitNavIdle } from './helpers.mjs';
@@ -27,13 +25,10 @@ const UNDER_NOTE = '浅色的字这个月没有笔迹，点字看详情。';
 
 const COPY = {
   mine: '我的',
-  week: '这一周',
   records: '练习记录',
   emptyTitle: '还没有记录',
   emptyBody: '写字并点写对或写错，这里就有记录。',
-  settings: '设置',
   backup: '备份',
-  backupSub: '记录只存在这台手机上',
   noBackup: '还没有备份', // 行尾的 › 自 P1-E1b 起是 svg chevron（components/Chevron.js），不在文字里
   lastBackup: d => `上次备份 ${d}`,
   annual: '年度报告',
@@ -48,7 +43,10 @@ const COPY = {
   sheetEmpty: '这个月还没有可做图的字',
   sheetOrder: '按第一次写的先后排',
   saveImage: '保存图片',
-  all: '全部 ›',
+  all: n => `全部 ${n} 字`,
+  remind: '提醒',
+  library: '练习范围',
+  appearance: '外观',
   dayChars: d => `${d}写的字`,
   todayImage: '本次图片 · 保存',
   noInk: '没有笔迹',
@@ -235,11 +233,8 @@ async function mineView(page) {
       empty: txt(q('mine-empty')),
       emptyTitle: txt(q('mine-empty-title')),
       emptyBody: txt(q('mine-empty-body')),
-      weekTitle: txt(q('mine-week-title')),
-      recordsLink: txt(q('mine-records')),
-      week: all('mine-week-day').map(el => ({ day: el.dataset.day, has: el.dataset.has === 'true', today: el.dataset.today === 'true',
-        future: el.dataset.future === 'true', dot: !!el.querySelector('[data-testid="mine-week-dot"]'), label: el.getAttribute('aria-label'),
-        text: txt(el) })),
+      overview: q('mine-overview') ? { streak: Number(q('mine-overview').dataset.streak), total: Number(q('mine-overview').dataset.total),
+        chars: Number(q('mine-overview').dataset.chars), text: txt(q('mine-overview')) } : null,
       sheet: sheet ? { month: sheet.dataset.month, count: Number(sheet.dataset.count), shown: Number(sheet.dataset.shown),
         truncated: sheet.dataset.truncated === 'true', days: Number(sheet.dataset.days) } : null,
       // D57 · C1：字帖是月字帖那一块（一层框，没有「纸卡」套着）；格子都在 .sz-month 里，且没有旧的 .sz-mine__paper 外框
@@ -250,16 +245,17 @@ async function mineView(page) {
       })(),
       sheetTitle: txt(q('mine-sheet-title')),
       sheetSave: q('mine-sheet-save') ? txt(q('mine-sheet-save')) : null,
+      sheetHead: q('mine-sheet-head') ? txt(q('mine-sheet-head')) : null,
       sheetAll: q('mine-sheet-all') ? txt(q('mine-sheet-all')) : null,
       sign: txt(q('mine-sheet-sign')),
       seal: txt(q('mine-sheet-seal')), sealPaths: q('mine-sheet-seal') ? q('mine-sheet-seal').querySelectorAll('svg path').length : 0,
       cells: all('mine-sheet-cell').map(el => ({ char: el.dataset.char, day: el.dataset.day, tag: el.dataset.tag, record: el.dataset.record,
         ink: el.dataset.ink, label: el.getAttribute('aria-label'), tagText: txt(el.querySelector('.sz-mcell__tag')) })),
-      menu: all('mine-menu').length ? [...q('mine-menu').querySelectorAll('button')].map(b => ({ testid: b.dataset.testid, to: b.dataset.to,
-        text: txt(b) })) : [],
-      backupSub: txt(q('mine-backup-sub')),
+      menu: ['mine-remind', 'mine-library', 'mine-appearance', 'mine-menu-backup', 'mine-menu-annual', 'mine-menu-about'].map(id => q(id)).filter(Boolean)
+        .map(b => ({ testid: b.dataset.testid, to: b.dataset.to || null, text: txt(b) })),
+      version: txt(q('mine-version')),
       backupValue: txt(q('mine-backup-value')),
-      backupLast: q('mine-backup-value') ? q('mine-backup-value').dataset.last : null,
+      backupLast: q('mine-menu-backup') ? q('mine-menu-backup').dataset.last : null,
       year: txt(q('mine-annual-year')),
       bodyText: root.innerText,
       unnamedButtons: [...root.querySelectorAll('button')].filter(b => !(b.getAttribute('aria-label') || b.innerText || '').trim())
@@ -335,7 +331,9 @@ async function recordsView(page) {
 }
 
 async function openRecordsFromMine(page) {
-  await page.click(`${TOP} ${tid('mine-records')}`);
+  // D63：字帖标题行就是练习记录入口（没有记录时没有字帖块，也就没有入口）
+  if (await page.locator(`${TOP} ${tid('mine-sheet-head')}`).count()) await page.click(`${TOP} ${tid('mine-sheet-head')}`);
+  else await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.push('records', {}); });
   await waitTop(page, 'records');
 }
 
@@ -396,7 +394,7 @@ const RICH = {
 export default async function run(page, ctx) {
   const { assert, step } = ctx;
   await bootTestHost(page, ctx.baseURL);
-  const stubbed = await stubMissing(page, ['settings', 'backup', 'annual', 'about']);
+  const stubbed = await stubMissing(page, ['backup', 'annual', 'about']);
   console.log(`stub screens: ${stubbed.join(',') || '(none)'}`);
   // 图片去处由 M4-5 注册（ui/images-entry.js）；先摘掉，测「没注册时不显示」，第 6 步用桩再测调用参数，最后还原。
   const hadImage = await page.evaluate(async () => {
@@ -419,22 +417,15 @@ export default async function run(page, ctx) {
   assert.equal(v.title, COPY.mine, 'tab title 我的');
   assert.equal(v.emptyTitle, COPY.emptyTitle, 'R-M04 title');
   assert.equal(v.emptyBody, COPY.emptyBody, 'R-M04 body');
-  assert.equal(v.weekTitle, COPY.week, 'R-M01 这一周');
-  assert.equal(v.recordsLink, `${COPY.records} ›`, '练习记录 › link');
-  assert.deepEqual(v.week.map(d => d.day), ['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27'],
-    'this week = Mon 21 … Sun 27 (Monday first)');
-  assert.deepEqual(v.week.map(d => d.text.split(' ')[0]), ['一', '二', '三', '四', '五', '六', '日'], 'weekday names');
-  assert.deepEqual(v.week.filter(d => d.today).map(d => d.day), [TODAY], 'today flagged');
-  assert.deepEqual(v.week.filter(d => d.future).map(d => d.day), ['2026-09-25', '2026-09-26', '2026-09-27'], 'future days flagged');
-  assert.equal(v.week.filter(d => d.dot).length, 0, 'no ink dots');
+  assert.deepEqual([v.overview.streak, v.overview.total, v.overview.chars], [0, 0, 0], 'D63: overview is three zeros without records');
+  assert.equal(v.overview.text, '0 天 连续练习 0 天 累计练习 0 字 已练汉字', 'overview copy: 连续练习 / 累计练习 / 已练汉字');
   assert.equal(v.sheet, null, 'no month sheet in the empty state');
-  assert.deepEqual(v.menu.map(m => [m.testid, m.to]), [['mine-menu-settings', 'settings'], ['mine-menu-backup', 'backup'],
-    ['mine-menu-annual', 'annual'], ['mine-menu-about', 'about']], 'menu order and targets (prototype L28)');
-  assert.equal(v.menu[0].text, COPY.settings, 'settings row (the trailing › is an svg chevron since P1-E1b)');
-  assert.equal(v.backupSub, COPY.backupSub, 'R-M03 backup sub line');
+  assert.deepEqual(v.menu.map(m => [m.testid, m.to]), [['mine-remind', null], ['mine-library', null], ['mine-appearance', null],
+    ['mine-menu-backup', 'backup'], ['mine-menu-annual', 'annual'], ['mine-menu-about', 'about']], 'D63: row order and targets');
+  assert.equal(v.menu[0].text, `${COPY.remind} 关`, 'reminder off → 提醒 …… 关');
   assert.equal(v.backupValue, COPY.noBackup, 'R-M03 no backup');
   assert.equal(v.year, '2026', 'annual row shows this year');
-  assert.equal(v.menu[3].text, COPY.about, 'about row (svg chevron)');
+  assert.ok(/^版本 \d+\.\d+\.\d+（\d{8}）$/.test(v.version), 'version line at the foot');
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');
 
   step('only answer-seen / skipped records → still empty');
@@ -442,7 +433,7 @@ export default async function run(page, ctx) {
   await page.waitForTimeout(100);
   v = await mineView(page);
   assert.equal(v.state, 'empty', 'answer-seen / skipped do not count as records');
-  assert.equal(v.week.filter(d => d.dot).length, 0, 'no dots for answer-seen / skipped days');
+  assert.deepEqual([v.overview.streak, v.overview.total, v.overview.chars], [0, 0, 0], 'answer-seen / skipped days are not practice days');
 
   step('no records: practice log (records empty design)');
   await openRecordsFromMine(page);
@@ -482,11 +473,16 @@ export default async function run(page, ctx) {
   assert.deepEqual(o9.inkIds.slice().sort(), [jingRecs[2].id, ganRec.id].sort(), 'D27: only first / latest judged ink survives (静 9-22, 感)');
   v = await mineView(page);
   assert.equal(v.empty, null, 'no empty block');
-  assert.deepEqual(v.week.filter(d => d.dot).map(d => d.day), v.week.map(d => d.day).filter(d => o9.days.includes(d)),
-    'week dots = days with judged records (oracle)');
-  assert.deepEqual(v.week.filter(d => d.dot).map(d => d.day), ['2026-09-22', '2026-09-24'],
-    'week dots 22 / 24 (21 skipped only, 23 answer-seen + legacy only → no dot)');
-  assert.equal(v.week.find(d => d.day === '2026-09-22').label, '9月22日，有记录', 'dot day accessible name');
+  // D63 概览：练习日 = 有 judged 记录的日子 ∪ 折叠月份 ∪ v1 旧版练习日（legacy.days）；连续 = 从今天往前（今天没写就从昨天）连续有练习的天数
+  const legacyDays = await page.evaluate(() => (window.__shiziTest.getState().legacy || { days: [] }).days);
+  const allDays = new Set([...o9.days, ...legacyDays].filter(d => d <= TODAY));
+  const dayBefore = day => new Date(new Date(`${day}T12:00:00`).getTime() - 86400000).toISOString().slice(0, 10);
+  let streak = 0;
+  for (let d = allDays.has(TODAY) ? TODAY : dayBefore(TODAY); allDays.has(d); d = dayBefore(d)) streak += 1;
+  assert.equal(v.overview.total, allDays.size, 'overview total = judged days ∪ folded ∪ legacy.days (oracle)');
+  assert.equal(v.overview.streak, streak, 'overview streak (oracle)');
+  assert.deepEqual([v.overview.streak, v.overview.total, v.overview.chars], [3, 11, 10],
+    'literal: 9-24, 9-23 (legacy only), 9-22 = 3 days in a row (9-21 skipped only); 11 days in all (7 judged + 2 folded + 2 legacy); 10 chars with a judged record');
   assert.deepEqual(v.sheet, { month: '2026-09', count: o9.sheet.length, shown: o9.sheet.length, truncated: false, days: o9.monthDays.length },
     'sheet counts from records');
   assert.equal(v.sheetTitle, COPY.sheetTitle(9), 'R-P02 「9月字帖」');
@@ -520,8 +516,9 @@ export default async function run(page, ctx) {
   assert.equal(v.sign, '二〇二六年九月 五字', 'signature literal');
   assert.equal(v.seal, '', 'R2-S2: the seal is a drawing, no text');
   assert.equal(v.sealPaths, 9, 'the seal draws the brand 拾');
-  assert.equal(v.sheetSave, null, 'save image hidden until M4-5 registers');
-  assert.equal(v.sheetAll, null, 'no 全部 › when ≤ 3 rows');
+  assert.equal(v.sheetSave, null, 'D63: no 保存图片 on 我的 (the title row is the whole entry; saving lives on the records / month pages)');
+  assert.equal(v.sheetAll, COPY.all(o9.sheet.length), 'D63: 全部 N 字 on the title row (N = the whole month)');
+  assert.equal(v.sheetHead, `${COPY.sheetTitle(9)} ${COPY.all(o9.sheet.length)}`, 'title row = 「9月字帖」 + 「全部 5 字」');
   assert.equal(v.backupValue, COPY.lastBackup(md('2026-09-01')), 'last backup date from backupMeta');
   assert.equal(v.backupLast, '2026-09-01', 'data-last');
   assert.ok(!/补记/.test(v.bodyText), 'no 补记 wording');
@@ -531,9 +528,8 @@ export default async function run(page, ctx) {
   step('records: practice log this month — numbers, dots, sheet, no backfill traces');
   const raw0 = await page.evaluate(() => window.__shiziTest.getRawKeys());
   await openRecordsFromMine(page);
-  await waitParams(page, { month: '2026-09', day: null });
   r = await recordsView(page);
-  assert.deepEqual((await top(page)).params, { month: '2026-09', day: null }, 'view params written back');
+  assert.deepEqual((await top(page)).params, { month: '2026-09' }, 'D63: the title row passes this month');
   assert.equal(r.recordDays, o9.monthDays.length, 'record days = oracle');
   assert.equal(r.heading, COPY.monthDays(9, o9.monthDays.length), 'R-P01 「9月有记录 N 天」');
   assert.equal(r.heading, '9月写了 5 天', 'literal 5 days');
@@ -618,7 +614,7 @@ export default async function run(page, ctx) {
   await page.waitForSelector('.sz-app');
   await page.waitForFunction(() => typeof window.__shiziTest === 'object');
   await page.evaluate(iso => window.__shiziTest.setClock(iso), CLOCK);
-  await stubMissing(page, ['settings', 'backup', 'annual', 'about']);
+  await stubMissing(page, ['backup', 'annual', 'about']);
   await waitRecordsMonth(page, '2026-06');
   const w0 = await writes(page); // 写日志随页面重载清零：从这里起算
   r = await recordsView(page);
@@ -648,7 +644,7 @@ export default async function run(page, ctx) {
   await waitTop(page, 'detail');
   assert.deepEqual((await top(page)).params, { char: '您' }, 'mine sheet cell → detail {char} (R-M01)');
   await back(page);
-  for (const [testid, name] of [['mine-menu-settings', 'settings'], ['mine-menu-backup', 'backup'], ['mine-menu-annual', 'annual'], ['mine-menu-about', 'about']]) {
+  for (const [testid, name] of [['mine-remind', 'remind'], ['mine-library', 'library-switch'], ['mine-menu-backup', 'backup'], ['mine-menu-annual', 'annual'], ['mine-menu-about', 'about']]) {
     await page.click(`${TOP} ${tid(testid)}`);
     await waitTop(page, name);
     const tp = await top(page);
@@ -656,6 +652,11 @@ export default async function run(page, ctx) {
     await back(page);
     await waitTop(page, 'mine');
   }
+  await page.click(`${TOP} ${tid('mine-sheet-head')}`);
+  await waitTop(page, 'records');
+  assert.deepEqual((await top(page)).params, { month: '2026-09' }, 'D63: the title row opens the practice log on this month');
+  await back(page);
+  await waitTop(page, 'mine');
 
   step('browsing mine / records / detail wrote nothing');
   assert.equal(await writes(page) - w0, 0, 'no writes since reload (write log unchanged)');
@@ -693,13 +694,12 @@ export default async function run(page, ctx) {
     });
   });
   await seed(page, RICH); // 重新发布状态 → 重画
-  await page.waitForSelector(`${TOP} ${tid('mine-sheet-save')}`);
+  await page.waitForSelector(`${TOP} ${tid('mine-sheet-head')}`);
   v = await mineView(page);
-  assert.equal(v.sheetSave, COPY.saveImage, 'mine 保存图片 ›');
-  await page.click(`${TOP} ${tid('mine-sheet-save')}`);
+  assert.equal(v.sheetSave, null, 'D63: 我的 has no 保存图片 even when the image action is registered');
   await openRecordsFromMine(page);
   r = await recordsView(page);
-  assert.equal(r.sheetSave, COPY.saveImage, 'records 保存图片 › (same entry)');
+  assert.equal(r.sheetSave, COPY.saveImage, 'records 保存图片 (the entry lives here)');
   assert.equal(r.today && r.today.text, `${COPY.dayChars('9月24日')} ${COPY.todayImage}`, 'R-P03 today row');
   assert.equal(r.today.n, o9.todayChars.length, 'today row n');
   await page.click(`${TOP} ${tid('records-sheet-save')}`);
@@ -707,7 +707,6 @@ export default async function run(page, ctx) {
   await page.click(`${TOP} ${tid('records-today')}`);
   const calls = await page.evaluate(() => window.__imgCalls);
   assert.deepEqual(calls, [
-    { kind: 'month', month: '2026-09', n: 5 },
     { kind: 'month', month: '2026-09', n: 5 },
     { kind: 'today', day: TODAY, chars: o9.todayChars.map(c => c.char) },
   ], 'image actions called with this month / today (each char\'s latest record today)');
@@ -718,7 +717,7 @@ export default async function run(page, ctx) {
   await back(page);
 
   // ------------------------------------------------------------------ 5. 300 字
-  step('300 chars this month: mine sheet = latest 80 chars (one sheet, D57 / P285) + 全部 › (R-M05), no signature; records shows all; timing');
+  step('300 chars this month: mine sheet = latest two rows (8 columns × 2 = 16, D63) + title row 全部 300 字 → practice log; no signature; timing');
   const deckChars = await page.evaluate(async () => {
     const { getDeck } = await import('/src/data/deck.js');
     return getDeck().keys.filter(k => k.startsWith('base:')).map(k => k.slice(5)).slice(0, 300);
@@ -735,27 +734,27 @@ export default async function run(page, ctx) {
   const mineMs = Date.now() - t0;
   const oBig = await oracle(page, '2026-09');
   v = await mineView(page);
-  assert.equal(v.sheet.count, 300, '300 chars in the sheet');
+  assert.equal(v.sheet.count, 300, '300 chars in the month');
   assert.equal(v.sheet.truncated, true, 'truncated');
-  const lastRows = oBig.sheet.slice(300 - 80);
-  assert.equal(v.cells.length, 80, 'shows the latest 80 chars (one sheet)');
-  assert.equal(v.sheet.shown, 80, 'data-shown = 80');
+  const lastRows = oBig.sheet.slice(300 - 16);
+  assert.equal(v.cells.length, 16, 'shows the latest two rows: 8 columns × 2');
+  assert.equal(v.sheet.shown, 16, 'data-shown = 16');
   assert.deepEqual(v.cells.map(c => c.char), lastRows.map(c => c.char), 'most recent chars, oldest first');
   assert.equal(v.cells[0].tag, dayNum(lastRows[0].day), 'first visible cell re-tagged with its date');
-  assert.equal(v.sheetAll, COPY.all, '「全部 ›」');
-  assert.equal(v.sign, null, 'D57: a capped sheet draws no signature / seal (the full month is on the month page)');
+  assert.equal(v.sheetAll, COPY.all(300), '「全部 300 字」');
+  assert.equal(v.sign, null, 'D57: a capped sheet draws no signature / seal (the full month is on the practice log)');
   assert.equal(v.hScroll, false, 'no horizontal overflow');
   console.log(`mine 300: seed→render ${mineMs}ms`);
   assert.ok(mineMs < 3000, `mine 300 chars renders within 3s (${mineMs}ms)`);
   const t1 = Date.now();
-  await page.click(`${TOP} ${tid('mine-sheet-all')}`);
-  await waitTop(page, 'month');
-  assert.equal((await top(page)).params.month, '2026-09', 'I3 P2-24: 全部 › → the month sheet page of this month (the same place every 「see the whole sheet」 entry goes)');
-  await page.waitForFunction(sel => document.querySelectorAll(`${sel} [data-testid="month-cell"]`).length === 300, TOP);
+  await page.click(`${TOP} ${tid('mine-sheet-head')}`);
+  await waitTop(page, 'records');
+  assert.equal((await top(page)).params.month, '2026-09', 'D63: the title row → practice log of this month');
+  await page.waitForFunction(sel => document.querySelectorAll(`${sel} [data-testid="records-sheet-cell"]`).length === 300, TOP);
   const recMs = Date.now() - t1;
-  console.log(`month 300: push→300 cells ${recMs}ms (incl. 450ms settle)`);
-  const monthChars = await page.evaluate(sel => [...document.querySelectorAll(`${sel} [data-testid="month-cell"]`)].map(c => c.dataset.char), TOP);
-  assert.deepEqual(monthChars, oBig.sheet.map(c => c.char), 'all 300 chars in order');
+  console.log(`records 300: push→300 cells ${recMs}ms (incl. 450ms settle)`);
+  const recChars = await page.evaluate(sel => [...document.querySelectorAll(`${sel} [data-testid="records-sheet-cell"]`)].map(c => c.dataset.char), TOP);
+  assert.deepEqual(recChars, oBig.sheet.map(c => c.char), 'all 300 chars in order');
   assert.equal(await page.evaluate(sel => document.documentElement.scrollWidth > window.innerWidth + 1, TOP), false, 'no horizontal overflow');
   await back(page);
 

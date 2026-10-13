@@ -236,8 +236,8 @@
     "P269": "首页标题只留给读屏、两组都没写完时的 A 行（H2，D55）：日常态标题「今天写几个字」改为视觉隐藏的 h1（页面标题与 aria-describedby 题记不变）；A、B 两组都没写完时 A 那一行（「今天的练习 · 接着写」）留作主按钮上方的文字按钮；特别组那天「自己选字」仍在；不是运行时开关",
     "P220": "首页日常状态的主视觉（H1，D51 ④）已被 H2（D55，P265 / P266）取代：首页不放字帖行 / 最近写的字，主视觉是墨「拾」128pt + 竖排题记；`RECENT_ROW_MAX`、`home/recent.js` 删除；不是运行时开关",
     "P221": "「拾」的交接（H1，D51 ④；C3-H，D53 ④，P245）已被 H2（D55，P267）取消：`home/handoff.js` 删除、`settings.shiHandoffDone` 不再读写（schema 字段保留兼容旧数据）；不是运行时开关",
-    "P168": "读屏开启时的建议（P1-E8，D56 起取代为 P276）：出现的判定与记一次（settings.paperSuggested）仍是 src/core/paper.js paperSuggestDue、write/paper.js usePaperSuggest；建议文案与按钮见 copy-source extra X-PAPER（decision P276）；不是运行时开关",
-    "P275": "「在纸上写」从写字页移到设置（R4-P1，D56）：写字页底栏与格下没有「在纸上写」入口，写字方式只在设置 › 写字方式里选；纸面格里的「改回在屏幕上写」保留；版式与结构，src/ui/screens/write/index.js、paper.js、foot.js；不是运行时开关",
+    "P168": "读屏开启时「改为在纸上写」的建议（P1-E8，D56 起取代为 P276）：D63 随「在纸上写」一并删除（settings.paperSuggested 旧值留在 settings 里不再读）；不是运行时开关",
+    "P275": "「在纸上写」从写字页移到设置（R4-P1，D56）：D63 起整个功能删除（写字页只有屏幕上写）；不是运行时开关",
     "P278": "AX 档底栏让步顺序（R4-P1，D56）：书写格会低于 220 时直接把主按钮字号封顶 34pt，不再先收起「在纸上写」；版式公式在 src/ui/screens/write/layout.js axWriteLayout（tight）与 write/index.js；不是运行时开关",
     "P270": "全 App 左缘右滑返回（R4-G1，D55）：有「‹」/「×」的子页从左缘任意高度右滑返回、跟手、按 P103 阈值完成或回弹；完成时执行页头左上键的同一个动作（ui/back-action.js）；弹层开着先关弹层；写字页不再整页关手势，判断阶段（左上「接着写」）不能滑动返回；减少动态效果淡化 150ms；不是运行时开关",
     "P271": "网页兜底左缘手势（R4-G1，D55）：浏览器 / PWA 在页头以下左缘 12px 起手带（.sz-edge，touch-action:none，不盖页头「‹」与页边线上按钮的点击区）上判方向，派发与原生同形状的 shizi-native-back-progress；竖向转滚动、轻点转给下面的元素；原生壳内不装；不是运行时开关",
@@ -259,7 +259,10 @@
     "P311": "页面固定、整页不可拖动（卡 R6-J1，交互规范 N7 / IC-22）：src/ui/components/styles.js SCROLL_Y、src/config/base.css 根文档、src/ui/root.js pinDocument、ios WebViewController.swift scrollView；不是运行时开关",
     "P312": "键盘开着时弹层退场与键盘同步（卡 R6-J1，交互规范 T0-7 / IC-24）：src/ui/components/exit.js slideRaisedSheet、Sheet.js useDialogFocus 失焦、motion.role.sheetOutKeyboard（tokens.json）；不是运行时开关",
     "P313": "交互合规 IC-22 / 23 / 24 与 WebKit 探针 page does not pan（卡 R6-J1）：scripts/e2e/106-j1-page-pan.spec.js、107-j1-write-entries.spec.js、108-j1-sheet-exit.spec.js、scripts/webkit-ax-probe.js；不是运行时开关",
-    "P193": "字库页减法稿（D49 ④ ⑤）整页已由 D60（卡 r7-L1）按「字库方向四」重做：写错过 / 快忘了两块、字墙题注、字墙与墙下说明、「还有 N 个字 ›」均不再出现在字库首页（墙留在「全部」），新结构与文案见 X-LIBFOUR.*、src/ui/screens/library/index.js；不是运行时开关"
+    "P193": "字库页减法稿（D49 ④ ⑤）整页已由 D60（卡 r7-L1）按「字库方向四」重做：写错过 / 快忘了两块、字墙题注、字墙与墙下说明、「还有 N 个字 ›」均不再出现在字库首页（墙留在「全部」），新结构与文案见 X-LIBFOUR.*、src/ui/screens/library/index.js；不是运行时开关",
+    "P165": "「在纸上写」写字方式（设置 › 写字方式 = settings.writeMode）：D63 删除功能，设置项与纸面格、纸上判断页一并去掉；旧数据里的 writeMode 读到也按屏幕上写、不重写；历史上 source:'paper' 的纸上记录照常显示；不是运行时开关",
+    "P276": "读屏开启后第一次进写字页的「设置里改成纸上写」建议与「去设置」（D56）：D63 删除；不是运行时开关",
+    "P277": "设置「写字方式」行标题下的一句副标题（D56）：D63 删除；不是运行时开关"
   },
   "noCopy": [
     "R-H07",
@@ -2153,12 +2156,6 @@
       "status": "已定",
       "source": "10.6（M3）；V05",
       "slots": {
-        "week": {
-          "raw": null,
-          "text": "这一周",
-          "origin": "04 R-M01 规则列：顺序「这一周 → {月}字帖 → 菜单」",
-          "note": "我的首页块标题"
-        },
         "saveImage": {
           "raw": null,
           "text": "保存图片",
@@ -2179,18 +2176,10 @@
       "status": "已定",
       "source": "C037/C038；C107/N16；T07；文案 D9",
       "slots": {
-        "settings": {
-          "raw": "设置",
-          "text": "设置"
-        },
         "backup": {
           "raw": "备份与恢复",
           "text": "备份",
           "note": "r7-C1 / D61 文案重写"
-        },
-        "backupSub": {
-          "raw": "记录只存在这台手机上",
-          "text": "记录只存在这台手机上"
         },
         "lastBackup": {
           "raw": "上次备份 {日期} ›",
@@ -2201,8 +2190,30 @@
         "noBackup": {
           "raw": "还没有备份",
           "text": "还没有备份"
+        },
+        "remind": {
+          "raw": null,
+          "text": "提醒",
+          "origin": "D63「我的」页丙：常用设置行",
+          "note": "D63：「我的」页第一组「提醒」行（右值 = 提醒时间或「关」）与提醒页页头同一个词；原「设置」页提醒组标题挪来"
+        },
+        "remindOff": {
+          "raw": null,
+          "text": "关",
+          "origin": "D63「我的」页丙：提醒行右值",
+          "note": "D63：提醒没开时「提醒 …… 关 ›」"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "设置",
+          "why": "D63：「我的」页不再有「设置」入口"
+        },
+        {
+          "raw": "记录只存在这台手机上",
+          "why": "D63：「我的」页按丙，备份行只有「备份 …… 上次备份 {date} ›」"
+        }
+      ]
     },
     "R-M04": {
       "screen": "mine",
@@ -2229,9 +2240,9 @@
       "slots": {
         "sheetAll": {
           "raw": null,
-          "text": "全部 ›",
+          "text": "全部 {n} 字",
           "origin": "04 R-M05 规则列：字帖只放最近 3 行 + 「全部 ›」",
-          "note": "边开发边改（走查-M03）"
+          "note": "边开发边改（走查-M03）；D63：「我的」页「{月}字帖」标题行右侧「全部 {n} 字 ›」，整行是练习记录入口（{n} = 本月整张字帖的字数，›画成装饰 Chevron）"
         }
       }
     },
@@ -2600,26 +2611,26 @@
       "status": "已定",
       "source": "C077–C080；T11",
       "slots": {
-        "title": {
-          "raw": "设置",
-          "text": "设置"
-        },
         "library": {
           "raw": "练习范围",
           "text": "练习范围"
-        },
-        "keySound": {
-          "raw": "按键音",
-          "text": "声音",
-          "decision": "P24",
-          "note": "触发点沿旧（policy.keySoundEvents）；D53（N2-12）：它管的是判断声与落款声，不是键盘点击，设置里改叫「声音」，副标题见 X-SETTINGS.soundSub"
         },
         "remindNote": {
           "raw": "通知会给一个词语和拼音，让你想想是哪个字。",
           "text": "通知给一个词和拼音，想想是哪个字。",
           "note": "r7-C1 / D61 文案重写"
         }
-      }
+      },
+      "dropped": [
+        {
+          "raw": "设置",
+          "why": "D63：「设置」页删除，各项挪到「我的」页与提醒页"
+        },
+        {
+          "raw": "按键音",
+          "why": "D63：「声音」开关删除，声音按缺省行为播放并服从手机静音键"
+        }
+      ]
     },
     "R-S02": {
       "screen": "settings",
@@ -2658,15 +2669,17 @@
         },
         "appearance.light": {
           "raw": null,
-          "text": "浅色",
+          "text": "日间",
           "origin": "04 R-S03 规则列：点开选浅色 / 深色 / 跟随系统",
-          "decision": "P51"
+          "decision": "P51",
+          "note": "D63：全 App「浅色」改称「日间」"
         },
         "appearance.dark": {
           "raw": null,
-          "text": "深色",
+          "text": "夜间",
           "origin": "04 R-S03 规则列",
-          "decision": "P51"
+          "decision": "P51",
+          "note": "D63：全 App「深色」改称「夜间」"
         },
         "appearance.auto": {
           "raw": null,
@@ -3288,20 +3301,6 @@
           "origin": "extra",
           "note": "修改判断弹层右上关闭；原型 L240；reference/I-proto-write.md「弹层取消」",
           "decision": "P66"
-        },
-        "paperRefAside": {
-          "raw": null,
-          "text": "和你纸上的字对照",
-          "origin": "extra",
-          "note": "纸上那一字的判断页：只有参考字形（放到书写格大小），格下说明位这一行；阶段 1 P1-E8；D49 起判断页不用旁注，去掉「参考字形 · 」（实现交接 §10.2）",
-          "decision": "P167"
-        },
-        "paperMineLabel": {
-          "raw": null,
-          "text": "你写的：在纸上",
-          "origin": "extra",
-          "note": "纸上那一字的读屏：判断页「你的书写」的名称、修改判断弹层本人格的名称（实现交接 §9.5 / §10.2）；r7-C1 / D61 文案重写",
-          "decision": "P167"
         },
         "paperMineBox": {
           "raw": null,
@@ -4059,32 +4058,8 @@
     "X-SETTINGS": {
       "screen": "settings",
       "milestone": "M4",
-      "source": "M4-3 设置（src/ui/screens/mine/settings.js）：组标题「练习 / 提醒 / 显示 / 数据」与开关行「练习提醒」取原型 ShiziScreen-第十稿交接版 L145–L152（reference/J-proto-screen.md §2.3.17）；提醒时间行按 03 P18（用户选）补槽；保存失败三段式按 04 §3 T01 / C063；04 R-S01–R-S04 没给这些槽",
+      "source": "M4-3 设置 → D63 提醒页（src/ui/screens/mine/remind.js）：「练习提醒」开关行取原型 ShiziScreen-第十稿交接版 L147 / L156；提醒时间行按 03 P18（用户选）补槽；保存失败三段式按 04 §3 T01 / C063；D63 删去「设置」页，原组标题、写字方式、声音副标题等槽随之删除",
       "slots": {
-        "groupPractice": {
-          "raw": null,
-          "text": "练习",
-          "origin": "extra",
-          "note": "设置页第一组标题；原型 ShiziScreen L146"
-        },
-        "groupRemind": {
-          "raw": null,
-          "text": "提醒",
-          "origin": "extra",
-          "note": "设置页第二组标题；原型 ShiziScreen L147"
-        },
-        "groupDisplay": {
-          "raw": null,
-          "text": "显示",
-          "origin": "extra",
-          "note": "设置页第三组标题；原型 ShiziScreen L148"
-        },
-        "groupData": {
-          "raw": null,
-          "text": "数据",
-          "origin": "extra",
-          "note": "设置页第四组标题；原型 ShiziScreen L149"
-        },
         "remindLabel": {
           "raw": null,
           "text": "练习提醒",
@@ -4098,17 +4073,11 @@
           "note": "提醒开着时的时间行标题（<input type=time>）；原型设置页没有这一行，按 03 P18「用户选」、走查-M05「开提醒时选时间」补槽，字样待文案",
           "decision": "P18"
         },
-        "more": {
-          "raw": null,
-          "text": "›",
-          "origin": "extra",
-          "note": "值行右侧箭头（装饰，aria-hidden）；原型 ShiziScreen L146 / L149「… ›」"
-        },
         "saveFailed": {
           "raw": null,
           "text": "没保存上，刚才的选择没记下。",
           "origin": "extra",
-          "note": "设置写入失败（按键音 / 提醒 / 提醒时间 / 外观）的说明句（R-G04 三段式）；04 §3 T01 模板、C063「刚才的选择」同句（换库 / 难度同一说法），原型没有这一态，待文案确认",
+          "note": "设置写入失败（提醒 / 提醒时间 / 外观）的说明句（R-G04 三段式）；04 §3 T01 模板、C063「刚才的选择」同句（换库 / 难度同一说法），原型没有这一态，待文案确认",
           "decision": "P55"
         },
         "cancel": {
@@ -4122,62 +4091,6 @@
           "text": "再试一次",
           "origin": "extra",
           "note": "三段式主按钮（T01）"
-        },
-        "writeMode": {
-          "raw": null,
-          "text": "写字方式",
-          "origin": "extra",
-          "note": "设置「练习」组一行（右侧当前方式 ›），点开底部弹层二选；阶段 1 P1-E8，Claude Design「拾字设计系统」实现交接.md §10.3（全部过渡）、求助与判断.html ⑤；D46 ⑬ / D47",
-          "decision": "P165"
-        },
-        "writeModeSub": {
-          "raw": null,
-          "text": "在纸上写，回来对照",
-          "origin": "extra",
-          "note": "设置「写字方式」行标题下的一句副标题（15 墨三）：说明「在纸上写」是什么（写字页不再有入口，D56）；r7-C1 / D61 文案重写",
-          "decision": "P277"
-        },
-        "writeScreen": {
-          "raw": null,
-          "text": "屏幕上写",
-          "origin": "extra",
-          "note": "写字方式选项一（缺省）；r7-C1 / D61 文案重写",
-          "decision": "P165"
-        },
-        "writeScreenSub": {
-          "raw": null,
-          "text": "用手指或 Apple Pencil 写",
-          "origin": "extra",
-          "note": "选项一的说明；r7-C1 / D61 文案重写",
-          "decision": "P165"
-        },
-        "writePaper": {
-          "raw": null,
-          "text": "在纸上写",
-          "origin": "extra",
-          "note": "写字方式选项二",
-          "decision": "P165"
-        },
-        "writePaperSub": {
-          "raw": null,
-          "text": "照常看题和提示；写好后自己对照。",
-          "origin": "extra",
-          "note": "选项二的说明；r7-C1 / D61 文案重写",
-          "decision": "P165"
-        },
-        "writeModeNote": {
-          "raw": null,
-          "text": "纸上写的标「纸上」，不留笔迹，不进图片。",
-          "origin": "extra",
-          "note": "写字方式弹层两个选项下的说明（D56 起去掉「在写字页格下点…只改这一个字」一句）；r7-C1 / D61 文案重写",
-          "decision": "P165"
-        },
-        "soundSub": {
-          "raw": null,
-          "text": "点写对写错时有轻声，写字时无声。",
-          "origin": "extra",
-          "note": "设置里「声音」开关的副标题（D53，N2-12）：说清响的是判断声 j1 与落款声 s1 两处，书写与描红不出声；r7-C1 / D61 文案重写",
-          "decision": "P24"
         }
       }
     },
@@ -4293,19 +4206,35 @@
           "note": "同上，那天的字都写在纸上（没有笔迹可数）",
           "decision": "P233"
         },
-        "weekSummary": {
+        "ovStreak": {
           "raw": null,
-          "text": "写了 {n} 天",
-          "origin": "extra",
-          "note": "AX 档「我的」周条换成的一句话（接在标题「这一周」后）",
-          "decision": "P233"
+          "text": "连续练习",
+          "origin": "D63「我的方向」丙·概览",
+          "note": "D63：「我的」页概览第一个数的名称（连续练习 N 天；含 v1 旧版练习日；今天还没写不算断）"
         },
-        "weekSummaryNone": {
+        "ovTotal": {
           "raw": null,
-          "text": "还没有记录",
-          "origin": "extra",
-          "note": "同上，这一周没有记录",
-          "decision": "P233"
+          "text": "累计练习",
+          "origin": "D63「我的方向」丙·概览",
+          "note": "D63：概览第二个数的名称（累计练习 N 天；含 v1 旧版练习日）"
+        },
+        "ovChars": {
+          "raw": null,
+          "text": "已练汉字",
+          "origin": "D63「我的方向」丙·概览",
+          "note": "D63：概览第三个数的名称（= 字库首页「已练汉字」同一个数）"
+        },
+        "ovDay": {
+          "raw": null,
+          "text": "天",
+          "origin": "D63「我的方向」丙·概览",
+          "note": "D63：概览数后面的单位（连续 / 累计练习）"
+        },
+        "ovChar": {
+          "raw": null,
+          "text": "字",
+          "origin": "D63「我的方向」丙·概览",
+          "note": "D63：概览数后面的单位（已练汉字）"
         }
       }
     },
@@ -5295,55 +5224,6 @@
           "origin": "extra",
           "note": "「调整图片 ›」的读屏名称（读屏不读「›」）",
           "decision": "P160"
-        }
-      }
-    },
-    "X-PAPER": {
-      "screen": "write",
-      "milestone": "M1",
-      "source": "阶段 1 P1-E8「在纸上写，回来自判」写字页（src/ui/screens/write/paper.js）：Claude Design「拾字设计系统」实现交接.md §10.3（全部过渡）、求助与判断.html ⑤；D46 ⑬ / D47",
-      "slots": {
-        "title": {
-          "raw": null,
-          "text": "在纸上写",
-          "origin": "extra",
-          "note": "纸上模式书写格内居中第一行（17 中黑）",
-          "decision": "P167"
-        },
-        "body": {
-          "raw": null,
-          "text": "写好了点「写好了」，再自己对照。",
-          "origin": "extra",
-          "note": "书写格内第二行（15，墨二）",
-          "decision": "P167"
-        },
-        "backToScreen": {
-          "raw": null,
-          "text": "屏幕上写",
-          "origin": "extra",
-          "note": "书写格内文字按钮：只把这一个字改回屏幕（写进 current.paper=false）；r7-C1 / D61 文案重写",
-          "decision": "P165"
-        },
-        "note": {
-          "raw": null,
-          "text": "这个字记下时会标注「纸上」，不留笔迹。",
-          "origin": "extra",
-          "note": "纸上模式格下说明（13，墨三）",
-          "decision": "P167"
-        },
-        "suggest": {
-          "raw": null,
-          "text": "不方便在屏幕写？可在设置改成纸上写。",
-          "origin": "extra",
-          "note": "读屏 / 切换控制开启后第一次进写字页时，格下一条非阻断建议（只出现一次，settings.paperSuggested；落笔 / 换字后收起）；D56 起改为指向设置，不再在写字页里改写字方式；r7-C1 / D61 文案重写",
-          "decision": "P276"
-        },
-        "suggestGo": {
-          "raw": null,
-          "text": "去设置",
-          "origin": "extra",
-          "note": "建议里的文字按钮：直达设置 › 写字方式的选择弹层",
-          "decision": "P276"
         }
       }
     },

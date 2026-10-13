@@ -232,12 +232,12 @@ export default async function w2B1(page, ctx) {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
 
   // ------------------------------------------------------------ 6. 其他页面不变
-  step('other pages keep the slide: pushing settings is not a paper');
+  step('other pages keep the slide: pushing the reminder page is not a paper');
   await page.evaluate(async () => {
     const { nav } = await import('/src/ui/router.js');
-    nav.push('settings', {});
+    nav.push('remind', {});
   });
-  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'settings');
+  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'remind');
   const slideSeen = await page.evaluate(() => document.querySelectorAll('.sz-layer[data-paper]').length);
-  assert.equal(slideSeen, 0, 'settings push is not a paper transition');
+  assert.equal(slideSeen, 0, 'remind push is not a paper transition');
 }

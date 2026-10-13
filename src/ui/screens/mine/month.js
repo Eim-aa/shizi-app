@@ -126,10 +126,10 @@ function openChar(cell) {
 }
 
 /** 字帖本体（月字帖页与练习记录页共用）：纸 + 说明句；这个月没有字时是虚线框。 */
-export function MonthBody({ model, onOpen = openChar, testid = 'month-paper', cellTestid = 'month-cell', emptyTestid = 'month-empty', kuanTestid = 'month-kuan', sealTestid = 'month-seal', sign = true }) {
+export function MonthBody({ model, onOpen = openChar, testid = 'month-paper', cellTestid = 'month-cell', emptyTestid = 'month-empty', kuanTestid = 'month-kuan', sealTestid = 'month-seal', sign = true, cols = 0 }) {
   const sw = useScreenWidth();
   if (!model.n) return EmptyState({ layout: 'inline', body: t('X-MINE.sheetEmpty'), testids: { root: emptyTestid, body: `${emptyTestid}-body` } }); // 全 App 唯一的空状态（S2，审计 P2-22）
-  return html`<${MonthPaper} cells=${model.cells} width=${sw - 40} kuan=${model.kuan} sign=${sign} onOpen=${onOpen} testid=${testid} cellTestid=${cellTestid}
+  return html`<${MonthPaper} cells=${model.cells} width=${sw - 40} kuan=${model.kuan} sign=${sign} cols=${cols} onOpen=${onOpen} testid=${testid} cellTestid=${cellTestid}
       kuanTestid=${kuanTestid} sealTestid=${sealTestid} label=${t('X-WORK.monthTitle', { month: model.monthNum })} />
     ${model.under ? html`<p class="sz-monthpage__note" data-testid="month-note">${t('X-WORK.monthUnderNote')}</p>` : null}`;
 }

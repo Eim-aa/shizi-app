@@ -34,11 +34,9 @@ test('recordsModel.dayList：有记录的每一天一项（升序）、n = 那�
   assert.deepEqual(recordsModel({ records: {}, sessions: { A: null, B: null, lastEnded: {} } }, TODAY, {}).dayList, []);
 });
 
-test('文案：每天一行「10月3日 · 记了 5 个字」、周条一句话「写了 n 天」', () => {
+test('文案：每天一行「10月3日 · 记了 5 个字」', () => {
   assert.equal(COPY['X-MINE.axDayRow'], '{date} · 写了 {n} 个字');
   assert.equal(COPY['X-MINE.axDayRowPaper'], '{date} · 有记录');
-  assert.equal(COPY['X-MINE.weekSummary'], '写了 {n} 天');
-  assert.equal(COPY['X-MINE.weekSummaryNone'], '还没有记录');
 });
 
 test('练习记录页：AX 档渲染列表（CalendarList，data-mode=list，行紧跟展开的那天），标准档仍是 7 列月历', () => {
@@ -51,11 +49,11 @@ test('练习记录页：AX 档渲染列表（CalendarList，data-mode=list，行
   assert.match(src, /:root\[data-ax\] \.sz-scell__tag\{display:none\}/, 'AX 档不画字帖格角标');
 });
 
-test('我的页：AX 档周条换成 mine-week-summary 一句话；标题与右侧链接放不下时上下排；菜单行的值换到标题下面', () => {
+test('我的页（D63）：AX 档概览纵排、标题行与右值放不下时折行、外观行改成「外观 …… 当前值 ›」弹层选', () => {
   const src = read('src/ui/screens/mine/index.js');
-  assert.match(src, /ax > 0\s*\n?\s*\? html`<p class="sz-mine__weeksum" data-testid="mine-week-summary"/);
-  assert.match(src, /:root\[data-ax\] \.sz-mine__bhead\{flex-wrap:wrap/);
-  assert.match(src, /:root\[data-ax\] \.sz-mine__row\.sz-btn\{flex-wrap:wrap/);
+  assert.match(src, /:root\[data-ax\] \.sz-mine__ov\{grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(src, /:root\[data-ax\] \.sz-mine__shead\.sz-btn\{flex-wrap:wrap/);
+  assert.match(read('src/ui/screens/mine/appearance.js'), /if \(ax > 0\) \{\s*\n\s*return html`<\$\{Row\} testid="mine-appearance"/);
 });
 
 test('月字帖页 / 单字详情：月字帖日期角标骑在格线上、AX 档照常画（D57 · C1），记录格两列且日期可折行（正常 CJK 折行，R3-K1 不再用 keep-all）', () => {

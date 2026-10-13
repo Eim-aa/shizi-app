@@ -1,7 +1,7 @@
 // 由 scripts/build_shell_manifest.mjs 生成，勿手改。sw.js 以 importScripts('./sw-manifest.js') 读取（01 §8.3）。
 // 升级的唯一入口：本文件或 sw.js 的字节变化 → 浏览器装新 worker。build 与 src/build-info.js、index.html meta 同源。
 self.SHIZI_SW_MANIFEST = {
-  build: "20261013-03abef72d64a",
+  build: "20261013-3aaa828bcb0b",
   // 核心壳：Cache.addAll 原子预缓存，任何一项失败 = 安装失败
   shell: [
     "core-strokes.js?v=0c49190f86d3",
@@ -57,7 +57,6 @@ self.SHIZI_SW_MANIFEST = {
     "src/core/ink-pick.js",
     "src/core/mix.js",
     "src/core/new-order.js",
-    "src/core/paper.js",
     "src/core/query.js",
     "src/core/records.js",
     "src/core/schema.js",
@@ -99,6 +98,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/components/LiveRegion.js",
     "src/ui/components/Page.js",
     "src/ui/components/PracticeGlyph.js",
+    "src/ui/components/Rows.js",
     "src/ui/components/Sheet.js",
     "src/ui/components/Tabs.js",
     "src/ui/components/Toast.js",
@@ -155,12 +155,14 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/screens/mine/about.js",
     "src/ui/screens/mine/annual-model.js",
     "src/ui/screens/mine/annual.js",
+    "src/ui/screens/mine/appearance.js",
     "src/ui/screens/mine/backup.js",
     "src/ui/screens/mine/index.js",
     "src/ui/screens/mine/model.js",
     "src/ui/screens/mine/month.js",
+    "src/ui/screens/mine/prefs.js",
     "src/ui/screens/mine/records.js",
-    "src/ui/screens/mine/settings.js",
+    "src/ui/screens/mine/remind.js",
     "src/ui/screens/result/first.js",
     "src/ui/screens/result/index.js",
     "src/ui/screens/result/work.js",
@@ -177,7 +179,6 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/screens/write/hint-layer.js",
     "src/ui/screens/write/index.js",
     "src/ui/screens/write/layout.js",
-    "src/ui/screens/write/paper.js",
     "src/ui/screens/write/persist.js",
     "src/ui/screens/write/phase-fade.js",
     "src/ui/screens/write/prompt.js",

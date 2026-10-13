@@ -90,7 +90,7 @@ export default async function edgeSwipe(page, ctx) {
   assert.equal(s.depth, 0);
   assert.equal(s.strip, false, 'tab root: no edge strip (root pages never go back)');
 
-  for (const [screen, params] of [['settings', {}], ['detail', { char: '完' }], ['records', {}]]) {
+  for (const [screen, params] of [['remind', {}], ['detail', { char: '完' }], ['records', {}]]) {
     for (const [where, y] of Object.entries(HEIGHTS)) {
       step(`${screen}: left-edge swipe from the ${where} (y=${y}) follows the finger and goes back`);
       await push(page, screen, params);
@@ -239,7 +239,7 @@ export default async function edgeSwipe(page, ctx) {
 
   step('reduced motion: no follow while dragging; release goes back with a 150ms cross-fade');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await push(page, 'settings');
+  await push(page, 'remind');
   await page.evaluate(() => {
     window.__fade = null;
     const app = document.querySelector('.sz-app');

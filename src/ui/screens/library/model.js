@@ -26,6 +26,10 @@
 import * as defaultPolicy from '../../../config/policy.js';
 import { diffDays, isValidDay } from '../../../core/dates.js';
 import { compareRecordIds, forgetList, isJudged } from '../../../core/records.js';
+import { overdueDays } from '../../../core/fsrs.js';
+import { homeModel } from '../home/today.js';
+import { aStartInfo, planDaily } from '../../../core/session-start.js';
+import { selectFirst } from '../../../core/sessions.js';
 
 /** 墙最多几行（R-L02 / 原型 L363 cols*8）。 */
 export const WALL_MAX_ROWS = 8;
@@ -183,4 +187,85 @@ export function cardMini(items, kind) { // eslint-disable-line no-unused-vars
     tone: 0,
     record: null,
   }));
+}
+
+// ---------------------------------------------------------------- r7-L1（D60）：字库首页的「今天要写」与三档记忆状态
+
+/** 记住了：稳定度 ≥ 这么多天（D60：三周以上才回来一次）。 */
+export const KNOWN_STABILITY_DAYS = 21;
+/** 区样字个数（D60：每行最多三个）。 */
+export const ZONE_SAMPLE_MAX = 3;
+/** 三档，自上而下（D60）。 */
+export const MEMORY_ZONES = Object.freeze(['due', 'shaky', 'known']);
+/**
+ * 三档样字的本人墨档位（wall.js 的档位 0–3 对应 --wall1…--wall4）：该复习了 wall4（最淡）、还不太熟 wall2、记住了 wall1（最浓）。
+ */
+export const ZONE_TONE = Object.freeze({ due: 3, shaky: 1, known: 0 });
+
+/** 一个字落在哪一档（纯函数）：最近一次写错或今天到期 → due；未到期且稳定度 < 21 天（没有调度项按 0 算）→ shaky；其余 known。 */
+export function memoryZoneOf(record, entry, today, knownDays = KNOWN_STABILITY_DAYS) {
+  if (record && record.judgment === 'wrong') return 'due';
+  if (entry && entry.stoppedAt === undefined) {
+    const od = overdueDays(entry, today);
+    if (od !== null && od >= 0) return 'due';
+  }
+  const stability = entry && entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0;
+  return stability >= knownDays ? 'known' : 'shaky';
+}
+
+/**
+ * 三档记忆状态（D60）：只看每个字最近一次 judged 记录（latestJudgedByChar）与它的 sched 项。
+ * 三档互斥、合计 = recorded。每档内部顺序 = 最该练在前：due 里最近写错的在前、其余按逾期天数降序；shaky / known 按到期日升序（快到期的在前）。
+ * @returns {{recorded:number, zones:{due,shaky,known}}} 每档 {kind, n, items:[{char, cardKey, record, tone}]}（tone = ZONE_TONE[kind]）
+ */
+export function memoryZones(state, today, { knownDays = KNOWN_STABILITY_DAYS } = {}) {
+  const { records } = recordsOfState(state);
+  const latest = latestJudgedByChar(records);
+  const sched = (state && state.sched) || {};
+  const buckets = { due: [], shaky: [], known: [] };
+  for (const record of latest.values()) {
+    const entry = sched[record.cardKey];
+    const kind = memoryZoneOf(record, entry, today, knownDays);
+    const dueDay = entry && isValidDay(entry.due) ? entry.due : '9999-12-31';
+    buckets[kind].push({ char: record.char, cardKey: record.cardKey, record, dueDay, wrong: record.judgment === 'wrong' });
+  }
+  const byDue = (a, b) => (a.dueDay < b.dueDay ? -1 : a.dueDay > b.dueDay ? 1 : compareRecordIds(a.record.id, b.record.id));
+  buckets.due.sort((a, b) => (a.wrong === b.wrong ? (a.wrong ? compareRecordIds(b.record.id, a.record.id) : byDue(a, b)) : a.wrong ? -1 : 1));
+  buckets.shaky.sort(byDue);
+  buckets.known.sort(byDue);
+  const zones = {};
+  for (const kind of MEMORY_ZONES) {
+    const items = buckets[kind].map(({ char, cardKey, record }) => ({ char, cardKey, record, tone: ZONE_TONE[kind] }));
+    zones[kind] = { kind, n: items.length, items };
+  }
+  return { recorded: latest.size, zones };
+}
+
+/** 区行的样字（最多三个，本人墨：kind 'ink' 取最近一次笔迹，没有笔迹时画标准字形；墨色档位按区）。 */
+export function zoneSamples(zone) {
+  return (zone.items || []).slice(0, ZONE_SAMPLE_MAX).map(item => ({ char: item.char, kind: 'ink', tone: item.tone, record: item.record }));
+}
+
+/**
+ * 「今天要写」一行（D60）：与首页主按钮同一个状态、同一组字。状态取自 homeModel（首页自己的模型）：
+ *   half  有没写完的组（含 B 优先）：「还剩 N 个」，N = homeModel.primary.remaining（与首页续写同一个数）；
+ *   done  没有没写完的组、今天写过（首页主按钮「再写一组」）；
+ *   fresh 其余（首页主按钮「开始写字」）：N = 首页点了会开的那一组（首次来 = 首练固定的字；否则 core/session-start planDaily 的队列）。
+ * 复习 = 队列里已经在调度表里的字，新字 = 其余。队列为空（没有要写的字）时 n = 0。
+ * @param {{deck:object, policy?:object}} o  deck = 选字用的题库适配器（data/deck.js deckAdapter）
+ * @returns {{phase:'fresh'|'half'|'done', n:number, review:number, fresh:number, remaining:number|null}}
+ */
+export function todayPlanModel(state, nowMs, { deck, policy = defaultPolicy } = {}) {
+  const home = homeModel(state, nowMs, { policy, deck });
+  if (home.resume !== 'none') {
+    const remaining = home.primary ? home.primary.remaining : 0;
+    return { phase: 'half', n: remaining, review: 0, fresh: 0, remaining };
+  }
+  if (home.records === 'record') return { phase: 'done', n: 0, review: 0, fresh: 0, remaining: null };
+  const sched = (state && state.sched) || {};
+  const queue = aStartInfo(state, { policy }).kind === 'first'
+    ? selectFirst(policy)
+    : planDaily(state, { today: home.today, deck, policy }).queue;
+  const review = queue.filter(key => !!sched[key]).length;
+  return { phase: 'fresh', n: queue.length, review, fresh: queue.length - review, remaining: null };
 }

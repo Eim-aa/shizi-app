@@ -46,16 +46,16 @@ test('failure of the start is passed back untouched (the screen keeps its place 
   assert.deepEqual(r, { ok: false, error: { kind: 'write' } });
 });
 
-test('copy: the list entry is 「看这些字 ›」 (a place), the action stays 「练这些字」', () => {
-  assert.equal(t('X-LIBHOME.viewThese'), '看这些字 ›');
-  assert.equal(t('X-LIBHOME.practiceThese'), '练这些字');
-  assert.equal(t('X-LIBHOME.viewAria', { label: '写错过' }), '写错过，看这些字');
+test('copy: the written-chars entry is 「全部 ›」 (a place); the zone page action stays 「练这些字」', () => {
+  assert.equal(t('X-LIBFOUR.writtenAll'), '全部 ›');
+  assert.equal(t('R-E02.btnMany'), '练这些字');
   assert.equal(t('X-ALL.viewThese'), '看这些字 ›');
 });
 
-test('library home: 练这些字 starts the group, 看这些字 opens the list (two separate buttons)', () => {
+test('library home (D60): a zone row opens the zone list; 今天要写 calls the home main-button function with the library as source', () => {
   const src = readFileSync(new URL('../../src/ui/screens/library/index.js', import.meta.url), 'utf8');
-  assert.match(src, /const practice = \(\) => \{\s*const r = startListDefault\(kind\)/);
-  assert.match(src, /data-testid="library-card-practice"[^>]*\n?[^>]*onClick=\$\{practice\}/);
-  assert.match(src, /data-testid="library-card-view"[^>]*\n?[^>]*onClick=\$\{\(\) => openList\(kind\)\}/);
+  assert.match(src, /data-testid="library-zone"[^>]*\n?[^>]*onClick=\$\{\(\) => openList\(zone\.kind\)\}/);
+  assert.match(src, /startMain\(\{ source: LIBRARY_TODAY_SOURCE \}\)/);
+  assert.match(src, /import \{ startMain \} from '\.\.\/home\/index\.js'/);
+  assert.doesNotMatch(src, /startListDefault|library-card-practice|library-wall/);
 });

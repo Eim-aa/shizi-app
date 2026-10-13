@@ -15,11 +15,15 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { monthDayParts } from '../../../core/dates.js';
 import { forgetList, judgedCountOfCard, wrongCountOfCard, wrongList } from '../../../core/records.js';
+import { memoryZones } from './model.js';
 
-export const LIST_KINDS = Object.freeze(['wrong', 'forget']);
+// wrong / forget：全部字页「写错过 / 快忘了」筛选的去处（M3-4）；due / shaky / known：字库首页三档记忆状态的区详情页（r7-L1，D60）。
+export const LIST_KINDS = Object.freeze(['wrong', 'forget', 'due', 'shaky', 'known']);
+/** 字库首页三档（D60）。 */
+export const ZONE_KINDS = Object.freeze(['due', 'shaky', 'known']);
 
 /** 清单种类 → 会话来源 view（R-R06 离开按钮、S05 来源说明；旧键 againList 兼容为 wrongList）。 */
-export const VIEW_OF_KIND = Object.freeze({ wrong: 'wrongList', forget: 'forgetList' });
+export const VIEW_OF_KIND = Object.freeze({ wrong: 'wrongList', forget: 'forgetList', due: 'dueList', shaky: 'shakyList', known: 'knownList' });
 
 /** params.kind 规整：'forget' / 'forgetList' → forget；其余（含旧键 againList / wrongList）→ wrong。 */
 /**
@@ -32,7 +36,16 @@ export function listRowMetaParts(meta) {
 }
 
 export function normalizeKind(kind) {
-  return kind === 'forget' || kind === 'forgetList' ? 'forget' : 'wrong';
+  if (kind === 'forget' || kind === 'forgetList') return 'forget';
+  if (kind === 'due' || kind === 'dueList') return 'due';
+  if (kind === 'shaky' || kind === 'shakyList') return 'shaky';
+  if (kind === 'known' || kind === 'knownList') return 'known';
+  return 'wrong';
+}
+
+/** 三档的区详情页？ */
+export function isZoneKind(kind) {
+  return ZONE_KINDS.includes(normalizeKind(kind));
 }
 
 /** 状态里的全部记录（含折叠月份的 kept）。 */
@@ -73,6 +86,16 @@ export function wordParts(word, char) {
  */
 export function listEntries(state, { kind, today, policy = defaultPolicy }) {
   const records = recordsOfState(state);
+  if (isZoneKind(kind)) {
+    const zone = memoryZones(state, today, {}).zones[normalizeKind(kind)];
+    return zone.items.map(({ cardKey, char, record }) => ({
+      cardKey,
+      char,
+      record,
+      count: judgedCountOfCard(records, cardKey),
+      day: record.localDay,
+    }));
+  }
   if (normalizeKind(kind) === 'wrong') {
     return wrongList(records).map(record => ({
       cardKey: record.cardKey,
@@ -144,6 +167,7 @@ export function hintText(n) {
 export function listModel(state, { kind: rawKind, sel = null, today, policy = defaultPolicy, cardFor = () => null, practicable = () => true }) {
   const kind = normalizeKind(rawKind);
   const isWrong = kind === 'wrong';
+  const zone = isZoneKind(kind);
   const chosen = normalizeSel(sel);
   const chosenSet = new Set(chosen || []);
   const limit = Number.isInteger(policy.listDefaultSelect) && policy.listDefaultSelect > 0 ? policy.listDefaultSelect : Infinity;
@@ -163,7 +187,9 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
     const inTop = i < topEnd;
     const selected = selectable && (chosen ? chosenSet.has(e.char) : inTop);
     const date = dateText(e.day);
-    const meta = isWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
+    // 区详情页「该复习了」里最近一次写错的字按写错的说法（带「写错那次」小图说明），其余按「最近一次 · 记录了 N 次」
+    const rowWrong = isWrong || (zone && e.record.judgment === 'wrong');
+    const meta = rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
     return {
       char: e.char,
       cardKey: e.cardKey,
@@ -174,7 +200,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
       word: wordParts(card && card.word, e.char),
       meta,
       metaParts: listRowMetaParts(meta),
-      thumbCaption: isWrong ? t('R-E03.wrongThumb') : '',
+      thumbCaption: rowWrong ? t('R-E03.wrongThumb') : '',
       selectable,
       selected,
       group: inTop ? 'top' : 'rest',
@@ -189,11 +215,11 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
   return {
     kind,
     view: VIEW_OF_KIND[kind],
-    title: isWrong ? t('R-E04.titleWrong') : t('R-E04.titleForget'),
+    title: zone ? t(`X-LIBFOUR.zone.${kind}`) : isWrong ? t('R-E04.titleWrong') : t('R-E04.titleForget'),
     empty: rows.length === 0,
-    emptyGlyph: isWrong ? t('X-LIST.emptyGlyphWrong') : t('X-LIST.emptyGlyphForget'),
-    emptyTitle: isWrong ? t('R-E04.wrongEmpty') : t('X-LIST.forgetEmptyTitle'),
-    emptyBody: isWrong ? t('X-LIST.wrongEmptyBody') : t('R-E04.forgetEmpty'),
+    emptyGlyph: zone ? t(`X-LIBFOUR.emptyGlyph.${kind}`) : isWrong ? t('X-LIST.emptyGlyphWrong') : t('X-LIST.emptyGlyphForget'),
+    emptyTitle: zone ? t('X-LIBFOUR.zoneEmptyTitle') : isWrong ? t('R-E04.wrongEmpty') : t('X-LIST.forgetEmptyTitle'),
+    emptyBody: zone ? t(`X-LIBFOUR.zoneEmptyBody.${kind}`) : isWrong ? t('X-LIST.wrongEmptyBody') : t('R-E04.forgetEmpty'),
     // 「先练这 N 个」= 最该练的那一组（不足 5 个按实际数）；一个都练不了时退回总数。与当前勾选无关，勾选看底栏。
     head: topSelectable > 0 ? t('X-LIST.firstHead', { n: topSelectable }) : t('X-LIST.countHead', { n: rows.length }),
     topCount: topRows.length,
@@ -201,7 +227,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
     restLabel: restCount > 0 ? t('X-LIST.restShow', { n: restCount }) : '',
     restHideLabel: restCount > 0 ? t('X-LIST.restHide', { n: restCount }) : '',
     customSel: chosen !== null,
-    top: isWrong ? t('R-E04.wrongTop') : t('R-E04.forgetTop'),
+    top: zone ? t(`X-LIBFOUR.zoneTop.${kind}`) : isWrong ? t('R-E04.wrongTop') : t('R-E04.forgetTop'),
     note: isWrong ? tInk('R-E03.wrongNote', undefined, policy) : tInk('R-E03.forgetNote', undefined, policy),
     rows,
     selectedKeys,

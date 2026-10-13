@@ -63,7 +63,7 @@ export function openLibraryQuery() {
 
 /** 字库首页顶部的查字框（无 props；library-query-slot 里画）。 */
 export function LibraryQueryBox() {
-  const label = t('R-Q01.titleLookup');
+  const label = t('X-LIBFOUR.searchPlaceholder');
   return html`<${Button} variant="plain" class="sz-libq" data-testid="library-query-open" data-mode="lookup"
     aria-haspopup="dialog" onClick=${() => { openLibraryQuery(); }}>
     ${SEARCH_ICON()}<span class="sz-libq__text">${label}</span>

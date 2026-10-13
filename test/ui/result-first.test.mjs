@@ -75,5 +75,5 @@ test('inviteExample: the first practice char, its word masked like the lock scre
 
 test('HEI_ONLY_COPY: every registered key exists in copy (so it can be excluded from the Serif subset), and only these kinds of text (R4-P1 adds the 读屏建议 X-PAPER.suggest)', () => {
   for (const key of HEI_ONLY_COPY) assert.ok(Object.prototype.hasOwnProperty.call(COPY, key), `${key} is a copy key`);
-  assert.ok(HEI_ONLY_COPY.every(key => /^X-(FIRST|HOME|INVITE|WORK|ALL)\./.test(key) || key === 'X-PAPER.suggest'), 'only the P1-E5 / P1-E7 body texts and the R4-P1 screen-reader suggestion (黑体 13, uses 便)');
+  assert.ok(HEI_ONLY_COPY.every(key => /^X-(FIRST|HOME|INVITE|WORK|ALL|LIBFOUR)\./.test(key) || key === 'X-PAPER.suggest'), 'only the P1-E5 / P1-E7 body texts and the R4-P1 screen-reader suggestion (黑体 13, uses 便)');
 });

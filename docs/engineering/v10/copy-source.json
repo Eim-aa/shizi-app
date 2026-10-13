@@ -35,13 +35,13 @@
     "{part}": "分张序号（其一 / 其二，X-WORK.kuanPart）",
     "{ymd}": "本地日 YYYY-MM-DD（备份文件名 X-BACKUP.fileName）",
     "{text}": "一段现成文案（X-FIRST.laterGroup / laterSame：「明天再见」「3 天后再见」）",
-    "{label}": "字库页「写错过 / 快忘了」块名（X-LIBHOME.practiceAria 读屏名称里复用）",
     "{inkDate}": "墨迹所在的日期（界面按 R-H02.dateFormat；月字帖格的读屏名称：墨迹取自另一天时补「{inkDate} 的笔迹」，X-WORK.cellInkDay）",
     "{a}": "笔序范围起（第几笔，从 1 起；X-WRITE.liveRangeOne / liveRangeMany，写字页读屏播报）",
     "{b}": "笔序范围止（第几笔，含）",
     "{range}": "一段现成的笔序读法（X-WRITE.liveRangeOne / liveRangeMany，嵌进 liveHint / liveTrace）",
     "{base}": "一句已成型的读屏名称（X-JUDGE.refCardLabelPlus：参考字形：字，拼音，n 画）",
-    "{extra}": "追加的一小段（结构 / 部件数）"
+    "{extra}": "追加的一小段（结构 / 部件数）",
+    "{label}": "图片 / 墨迹所在的名称（X-DETAIL.heroCaption / heroCellLabel：第一次 / 最近一次）；原字库页「写错过 / 快忘了」块名的用法已随 D60 去掉"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -258,7 +258,8 @@
     "P132": "旧「更大字体」用户的一次说明（D29）已由 D58 / I3 P0-13 取消：v1 迁移带来的 settings.large=true 启动后由 src/ui/screens/mine/settings.js clearLegacyLargeFlag 静默去掉，不再显示任何说明；不是运行时开关",
     "P311": "页面固定、整页不可拖动（卡 R6-J1，交互规范 N7 / IC-22）：src/ui/components/styles.js SCROLL_Y、src/config/base.css 根文档、src/ui/root.js pinDocument、ios WebViewController.swift scrollView；不是运行时开关",
     "P312": "键盘开着时弹层退场与键盘同步（卡 R6-J1，交互规范 T0-7 / IC-24）：src/ui/components/exit.js slideRaisedSheet、Sheet.js useDialogFocus 失焦、motion.role.sheetOutKeyboard（tokens.json）；不是运行时开关",
-    "P313": "交互合规 IC-22 / 23 / 24 与 WebKit 探针 page does not pan（卡 R6-J1）：scripts/e2e/106-j1-page-pan.spec.js、107-j1-write-entries.spec.js、108-j1-sheet-exit.spec.js、scripts/webkit-ax-probe.js；不是运行时开关"
+    "P313": "交互合规 IC-22 / 23 / 24 与 WebKit 探针 page does not pan（卡 R6-J1）：scripts/e2e/106-j1-page-pan.spec.js、107-j1-write-entries.spec.js、108-j1-sheet-exit.spec.js、scripts/webkit-ax-probe.js；不是运行时开关",
+    "P193": "字库页减法稿（D49 ④ ⑤）整页已由 D60（卡 r7-L1）按「字库方向四」重做：写错过 / 快忘了两块、字墙题注、字墙与墙下说明、「还有 N 个字 ›」均不再出现在字库首页（墙留在「全部」），新结构与文案见 X-LIBFOUR.*、src/ui/screens/library/index.js；不是运行时开关"
   },
   "noCopy": [
     "R-H07",
@@ -3687,7 +3688,7 @@
           "raw": null,
           "text": "你判断写错的字。",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L360 card()",
-          "note": "M3-1：写错过卡片说明（快忘了卡片的对应句在 R-L07）"
+          "note": "M3-1：写错过卡片说明（快忘了卡片的对应句在 R-L07）；现在用在「有记录的字」页写错过筛选的说明（all-model.js）"
         },
         "tone0": {
           "raw": null,
@@ -3735,41 +3736,6 @@
           "text": "{char}，{status}",
           "origin": "extra",
           "note": "M3-1：墙上每格按钮的读屏名；{status} = 墨色档位图例字样 / 写错过 / 自选了还没写（原型格子只有 data-nav，没有读屏名）"
-        },
-        "caption": {
-          "raw": null,
-          "origin": "extra",
-          "text": "{n} 个字",
-          "note": "字库页字墙上方的小标注（D49 减法稿，实现交接 §14：原宋 34 大数字「278」改为题注，t15 墨三）；{n} = 有记录的字数；黑体 15",
-          "decision": "P193"
-        },
-        "practiceThese": {
-          "raw": null,
-          "origin": "extra",
-          "text": "练这些字",
-          "note": "字库页「写错过 / 快忘了」两块右侧的文字按钮（D49：全 App 一种文字按钮、不再有「→」）；黑体 15",
-          "decision": "P193"
-        },
-        "practiceAria": {
-          "raw": null,
-          "origin": "extra",
-          "text": "{label}，练这些字",
-          "note": "「练这些字」的读屏名称：两块各一个，读屏要分得清是哪一块（{label} = 块名「写错过」「快忘了」）",
-          "decision": "P193"
-        },
-        "viewThese": {
-          "raw": null,
-          "text": "看这些字 ›",
-          "origin": "extra",
-          "note": "D58 ⑤ / I3 P0-05：字库页「写错过 / 快忘了」块里进清单页的去处（原「练这些字」现在一次点击直接开组）；去处带「›」",
-          "decision": "P193"
-        },
-        "viewAria": {
-          "raw": null,
-          "text": "{label}，看这些字",
-          "origin": "extra",
-          "note": "「看这些字 ›」的读屏名称（{label} = 块名；读屏不读「›」）",
-          "decision": "P193"
         }
       }
     },
@@ -5299,6 +5265,193 @@
           "origin": "extra",
           "note": "建议里的文字按钮：直达设置 › 写字方式的选择弹层",
           "decision": "P276"
+        }
+      }
+    },
+    "X-LIBFOUR": {
+      "screen": "library",
+      "milestone": "M3",
+      "source": "r7-L1 字库首页重做（D60，decisions.md；设计稿 docs/design/library/字库方向四.html）。措辞由负责人最后统一改，全部集中在本组。",
+      "slots": {
+        "searchPlaceholder": {
+          "raw": null,
+          "text": "搜索汉字或拼音",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "字库首页搜索框的占位（点开 = 查字弹层；查字已支持拼音）。D60 设计稿「搜索汉字或拼音」"
+        },
+        "todayLabel": {
+          "raw": null,
+          "text": "今天要写",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "「今天要写 …… 值 ›」一行的名称"
+        },
+        "todayValue": {
+          "raw": null,
+          "text": "{n} 个字",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "今天要写一行的值：首页主按钮点了会开的那一组的字数"
+        },
+        "todayNoneValue": {
+          "raw": null,
+          "text": "没有要写的字",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "今天要写一行的值：选不出字时（点了进「现在没有要写的字」页）；设计稿没有这一态，工程补"
+        },
+        "todaySubBoth": {
+          "raw": null,
+          "text": "{n} 个复习，{m} 个新字",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "今天要写一行的第二行小字：复习 + 新字都有（{n} 复习、{m} 新字）"
+        },
+        "todaySubReview": {
+          "raw": null,
+          "text": "{n} 个复习",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "第二行小字：全是复习（设计稿没有这一态，工程补）"
+        },
+        "todaySubNew": {
+          "raw": null,
+          "text": "{n} 个新字",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "第二行小字：全是新字（首练 / 全新的人；设计稿没有这一态，工程补）"
+        },
+        "todayHalfValue": {
+          "raw": null,
+          "text": "还剩 {n} 个",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "今天要写一行的值：写到一半（有没写完的组），n = 首页续写同一个剩余数"
+        },
+        "todayHalfSub": {
+          "raw": null,
+          "text": "接着写",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "写到一半的第二行小字"
+        },
+        "todayDoneValue": {
+          "raw": null,
+          "text": "写完了",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "今天要写一行的值：今天写过、没有没写完的组"
+        },
+        "todayDoneSub": {
+          "raw": null,
+          "text": "想多写，再写一组",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "写完的第二行小字"
+        },
+        "writtenHeading": {
+          "raw": null,
+          "text": "写过的字",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "小标题「写过的字 N」；N = 有记录的字数"
+        },
+        "writtenAll": {
+          "raw": null,
+          "text": "全部 ›",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "小标题右侧文字按钮（去「有记录的字」完整页；去处带「›」）"
+        },
+        "writtenAllAria": {
+          "raw": null,
+          "text": "全部写过的字",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "「全部 ›」的读屏名称"
+        },
+        "zone.due": {
+          "raw": null,
+          "text": "该复习了",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "三档之一：今天到期，或最近一次写错"
+        },
+        "zone.shaky": {
+          "raw": null,
+          "text": "还不太熟",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "三档之二：未到期且稳定度不足 21 天"
+        },
+        "zone.known": {
+          "raw": null,
+          "text": "记住了",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "三档之三：稳定度 ≥ 21 天"
+        },
+        "zoneTop.due": {
+          "raw": null,
+          "text": "今天要复习的字，和上次写错的字。",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页（该复习了）标题下的一句"
+        },
+        "zoneTop.shaky": {
+          "raw": null,
+          "text": "还没记牢的字，过几天会回来。",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页（还不太熟）标题下的一句"
+        },
+        "zoneTop.known": {
+          "raw": null,
+          "text": "已经记住的字，隔很久才会回来。",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页（记住了）标题下的一句"
+        },
+        "zoneEmptyTitle": {
+          "raw": null,
+          "text": "这一档现在没有字",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页空态标题（从字库首页进不来；记录变动后可能遇到）"
+        },
+        "zoneEmptyBody.due": {
+          "raw": null,
+          "text": "今天到期或写错的字会放在这里。",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页空态正文（该复习了）"
+        },
+        "zoneEmptyBody.shaky": {
+          "raw": null,
+          "text": "还没记牢的字会放在这里。",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页空态正文（还不太熟）"
+        },
+        "zoneEmptyBody.known": {
+          "raw": null,
+          "text": "已经记住的字会放在这里。",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页空态正文（记住了）"
+        },
+        "emptyGlyph.due": {
+          "raw": null,
+          "text": "复",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页空态的虚框装饰字（该复习了）"
+        },
+        "emptyGlyph.shaky": {
+          "raw": null,
+          "text": "熟",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页空态的虚框装饰字（还不太熟）"
+        },
+        "emptyGlyph.known": {
+          "raw": null,
+          "text": "记",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "区详情页空态的虚框装饰字（记住了）"
+        },
+        "leave.due": {
+          "raw": null,
+          "text": "回到该复习了",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "结果页离开按钮：从「该复习了」区详情页开的组"
+        },
+        "leave.shaky": {
+          "raw": null,
+          "text": "回到还不太熟",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "结果页离开按钮：从「还不太熟」区详情页开的组"
+        },
+        "leave.known": {
+          "raw": null,
+          "text": "回到记住了",
+          "origin": "docs/design/library/字库方向四.html（D60）",
+          "note": "结果页离开按钮：从「记住了」区详情页开的组"
         }
       }
     }

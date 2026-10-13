@@ -90,6 +90,12 @@ export const HEI_ONLY_COPY = Object.freeze([
   'X-ALL.menuLabel', // 「排序 · 筛选」：有记录的字页页头尾端的文字按钮与弹层标题（H1 / P223），都用黑体，「筛」不在宋体子集里
   'X-FIRST.shiWritten', // 首练结果页复现句前的「拾」那句：与复现句同一段，黑体 15（C3-H / P245）
   'X-FIRST.shiHome',
+  'X-LIBFOUR.zone.due', // 字库首页三档名与区详情页页标题 / 结果页离开按钮 / 区详情页说明（D60 r7-L1）：全部黑体（行名 17、页标题 17、15 说明），「该 太 牢」不在宋体子集里
+  'X-LIBFOUR.zone.shaky',
+  'X-LIBFOUR.zoneTop.shaky',
+  'X-LIBFOUR.zoneEmptyBody.shaky',
+  'X-LIBFOUR.leave.due',
+  'X-LIBFOUR.leave.shaky',
   'X-WORK.annualSaveNote', // 「存成册页：卷首、每个月、卷尾……」：年报保存弹层的说明，黑体 15，「卷」不在宋体子集里（阶段 1 P1-E7）
 ]);
 

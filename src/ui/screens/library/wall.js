@@ -19,7 +19,7 @@
 
 import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { Button } from '../../components/Button.js';
-import { T } from '../../components/styles.js';
+import { T, injectStyles } from '../../components/styles.js';
 import { PracticeGlyph, FACE_FULL } from '../../components/PracticeGlyph.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
@@ -102,6 +102,9 @@ export const WALL_CSS = `
 .sz-lib__g--sample .sz-lib__char{color:${T.wall1}}
 :root[data-ax] .sz-lib__sample{width:44px;height:44px}
 `;
+
+// 格子 / 样字 / 图例的样式：字库首页（三档样字）与「有记录的字」页（all.js）共用，随本模块注入。
+injectStyles('library-wall', WALL_CSS);
 
 /** 一格的读屏说明（「{字}，{状态}」）。 */
 export function cellLabel(cell) {

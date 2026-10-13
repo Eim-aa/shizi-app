@@ -1,38 +1,43 @@
-// 字库 tab 根页 · 字库首页（墨墙）（02 M3-1；R-L01–R-L04、R-L07–R-L10；原型 docs/design/v10/extracted/字库墨墙屏-第十稿交接版.dc.html
-// L26–L79、L353–L365；reference/K-proto-home-lib.md）。自注册，无中心路由表。
+// 字库 tab 根页（r7-L1，D60「字库方向四」：docs/design/library/字库方向四.html；原 02 M3-1 墨墙首页整体重做）。自注册，无中心路由表。
 //
-// 版式（D49 减法稿，实现交接 §14；各状态同一个顶部）：
-//   大标题「字库」→ 查字框（library-query-slot；M3-3 用 setLibraryQuerySlot 挂 M2-0 查字组件，下面不再有说明句）
-//   → 有记录：「写错过」「快忘了」两个同一模板的块（名称 + 数 + 右侧文字按钮「看这些字 ›」→ library-list {kind}（M3-2）与「练这些字」→ 直接开组（I3 · P0-05）；下面一排最该练的 5 个样字，
-//            30pt 标准字形、wall1、不画朱点；没有字时只有名称 + 0，不画按钮与样字）
-//            → 字墙题注「{n} 个字」（有记录的字数，R-L10，小标注）→ 墙（≤ 8 行，wall.js；点字 → 单字详情 detail {char}，M3-6；点空心字同样进详情，
-//              空心 = 自选了还没写，描边 ink4）→ 墙下说明（R-L03；深色反向说法）+「还有 N 个字 ›」（P27；没截断时不显示；进 library-all，M3-4）
-//   → 没有记录：「每天写的新字，从这个字库里挑。」（R-L05，原型 L37）+ 空态（原型 L71–L77）。
-//   去掉的（D49）：搜索框下说明、练习范围一行（移到「我的 › 设置」）、「有记录的字」大数字与副统计、两栏说明与朱点、两行图例、「→」。
-//   数据全部从记录算（R-L10；model.js 纯函数）。
+// 版式（自上而下，各状态同一个顶部；每一行都是「名称 …… 值 ›」的设置式一句话）：
+//   1 大标题「字库」
+//   2 搜索框（library-search；紧接大标题；占位「搜索汉字或拼音」；点开 = M3-3 查字弹层，query-entry.js LibraryQueryBox）
+//   3 「练习范围 …… {库名} ›」（library-range；整行一个按钮 → 换库页 library-switch，与「我的 › 设置 › 练习范围」同一页、同一个值 settings.library）
+//   4 「今天要写 …… {值} ›」+ 第二行小字（library-today，data-phase = fresh | half | done）：整行一次点击 = 首页主按钮在该状态下的同一动作
+//     （home/index.js startMain：开始写字 / 继续写字 / 再写一组；数与状态取自 model.js todayPlanModel，它内部用首页自己的 homeModel 与 planDaily，不另算）。
+//     进写字页的转场是 T0-6：被点的行就是 B1 的来源（root.js 捕获阶段 noteTap → paper-transition）。
+//   5 小标题「写过的字 N」（library-written，data-n）+ 右侧文字按钮「全部 ›」（library-all-open → library-all，墨墙留在那里）
+//     下面三行记忆状态（library-zone，data-kind = due | shaky | known，data-n）：名称 + 数 + 至多三个样字（本人墨，墨色 wall4 / wall2 / wall1）+ ›，
+//     点进区详情页（library-list，params {kind}，list.js「练这些字」）；0 个字的档只写名称与 0、墨三、不可点、不画 ›。
+//   没有记录时 1–4 照常，第 5 块写「写过的字 0」、三档都是 0（不另做空状态插画与说明句）。
+//   去掉的：写错过 / 快忘了两块、页内「练这些字」、墨墙与图例说明、「还有 N 个字」。
+//   AX（:root[data-ax]）：行内折行（名称与值上下排），不画样字与第二行小字；整页不滚动、不重叠。
+// 文案全部在 copy/library.js 的 X-LIBFOUR.*（措辞由负责人最后统一改，所以集中在这一组键里）。
+// 数据全部从记录与调度表算（model.js 纯函数）；本页不写入（点「今天要写」开组的写入在 core/session-start 经 store.commit）。
 //
-// 导航：目标屏由拥有它们的卡自注册（M3-2 library-list、M3-4 library-all、M3-5 library-switch、M3-6 detail）；
-// 还没注册时按钮不跳转（console.warn），不抛错。
-//
-// data-testid：screen-library（data-state=empty|records / data-recorded / data-today / data-compact）、library-query-slot、
-//   library-no-record-note、library-card-wrong / library-card-forget（data-n；没有字 data-empty=true，无按钮无样字）、library-card-name /
-//   library-card-count / library-card-view（文字按钮「看这些字 ›」→ 清单页）/ library-card-practice（文字按钮「练这些字」：一次点击直接开组）/ library-card-fail/ library-card-samples / library-card-mini-cell（样字）、library-caption（data-n）、
-//   library-wall、library-wall-cell、library-legend-note、library-more（data-n）、library-empty。墙的 testid 见 wall.js。
+// data-testid：screen-library、library-home（data-state = empty|records / data-recorded / data-today）、library-search、
+//   library-query-slot / library-query-open（查字框按钮）、library-range（library-range-value）、library-today（data-phase / data-n；
+//   library-today-value、library-today-sub、library-today-fail*）、library-written（data-n；library-written-count）、library-all-open、
+//   library-zone（data-kind / data-n；library-zone-name、library-zone-count、library-zone-sample）。
 
 import { html, useEffect, useMemo, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { TabPage } from '../../components/Page.js';
 import { Button, markStateChange } from '../../components/Button.js';
-import { EmptyState } from '../../components/EmptyState.js';
-import { LiveRegion } from '../../components/LiveRegion.js';
+import { Chevron } from '../../components/Chevron.js';
+import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
-import { libraryHomeModel, cardMini } from './model.js';
-import { LegendNote, Samples, Wall, WALL_CSS, useWallLayout } from './wall.js';
-import { startListDefault } from './list.js'; // M3-2 写错过 / 快忘了清单页自注册（library-list）；也注册「现在没有要写的字」页的「看写错过的字」
+import { currentLibraryId, deckAdapter } from '../../../data/deck.js';
+import { MEMORY_ZONES, memoryZones, todayPlanModel, zoneSamples } from './model.js';
+import { normalizeKind } from './list-model.js';
+import { Glyph } from './wall.js';
+import { startMain } from '../home/index.js';
+import './list.js'; // M3-2 清单页自注册（library-list）：三档的区详情页复用它（kind = due | shaky | known）
 import './switch.js'; // M3-5 换库页自注册（library-switch）
 import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all）
 import { LibraryQueryBox } from './query-entry.js'; // M3-3 顶部查字框（lookup 查字弹层）
@@ -43,41 +48,63 @@ export const LIBRARY_TAB = 'library';
 
 /** 本页跳转的目标屏（由各自的卡注册）。 */
 export const LIBRARY_ROUTES = Object.freeze({
-  list: 'library-list', // M3-2 写错过 / 快忘了清单，params {kind:'wrong'|'forget'}
+  list: 'library-list', // M3-2 清单页，params {kind:'wrong'|'forget'|'due'|'shaky'|'known'}
   all: 'library-all', // M3-4 有记录的字（完整页）
   switch: 'library-switch', // M3-5 换库
   detail: 'detail', // M3-6 单字详情，params {char}
 });
+
+/** 从字库「今天要写」开的组，写完结果页的离开按钮是「回到字库」（R-R06 leaveLibrary）。 */
+export const LIBRARY_TODAY_SOURCE = Object.freeze({ view: LIBRARY_TAB });
 
 // 每次渲染现取新 vnode，不复用模块级常量（vendor/ui.js 注释，M6-3）。
 const ICON = () => html`<svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
   stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11 5.4C7.8 3 4.6 3.8 3 4.6v13.2c2.4-.8 5.4-.4 8 1.2 2.6-1.6 5.6-2 8-1.2V4.6c-1.6-.8-4.8-1.6-8 .8ZM11 5.4v13.6"></path></svg>`;
 
 injectStyles('library', `
-.sz-tabpage[data-testid="screen-library"]{gap:12px}
+.sz-tabpage[data-testid="screen-library"]{gap:8px}
 .sz-lib{display:flex;flex-direction:column;min-height:0}
 .sz-lib__query{display:flex;flex-direction:column}
-.sz-lib__nonote{margin:${T.s2} 0 0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
-/* 写错过 / 快忘了：同一个行模板（查字下 28，两块之间 20）。第一行 名称 17 / 500 + 数 15 墨三 + 右侧文字按钮；第二行样字（下 6） */
-.sz-lib__pbs{display:flex;flex-direction:column;margin-top:28px}
-.sz-lib__pb{display:flex;flex-direction:column;gap:6px;min-width:0}
-.sz-lib__pb+.sz-lib__pb{margin-top:20px}
-.sz-lib__l1{display:flex;align-items:center;gap:${T.s2};min-height:${T.hit}}
-.sz-lib__name{font-size:${T.fs17};line-height:${T.lh17s};font-weight:500;color:${T.ink1}}
-.sz-lib__cnt{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
-.sz-lib__sp{flex:1}
-.sz-lib__l1 .sz-btn--text{flex:none}
-.sz-lib__pbfail{margin:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
-:root[data-ax] .sz-lib__l1{flex-wrap:wrap}
-:root[data-ax] .sz-lib__sp{display:none}
-:root[data-ax] .sz-lib__l1 .sz-btn--text{flex:1 0 100%;justify-content:flex-start;padding-left:0;margin-left:0}
-/* 字墙题注：快忘了块下 36，字墙在题注下 8 */
-.sz-lib__wl{margin:36px 0 0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
-.sz-lib__wallsec{display:flex;flex-direction:column;gap:${T.s3};margin-top:${T.s2}}
-.sz-lib__foot{display:flex;align-items:center;justify-content:space-between;gap:${T.s3}}
-.sz-lib__footnote{flex:1;min-width:0;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3};text-wrap:pretty}
-.sz-lib__more.sz-btn{flex:none;white-space:nowrap;color:${T.ink2}}
-${WALL_CSS}
+/* 块：第一块（练习范围）离搜索 18，其余块之间 26（设计稿 k4-blk）；块顶一条发丝线，块内每行底下一条 */
+.sz-libr__blk{flex:none;margin-top:26px;border-top:${T.hair} solid ${T.line}}
+.sz-libr__blk--first{margin-top:18px}
+.sz-libr__blk--flush{margin-top:0}
+.sz-libr__row{box-sizing:border-box;width:100%;min-height:56px;display:flex;align-items:center;gap:${T.s2};position:relative;
+  border-bottom:${T.hair} solid ${T.line};text-align:left;color:${T.ink1}}
+.sz-libr__row--two{min-height:64px}
+.sz-libr__tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+.sz-libr__nm{font-size:${T.fs17};line-height:${T.lh17s};font-weight:500;color:${T.ink1}}
+.sz-libr__cap{font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
+.sz-libr__cnt{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums;white-space:nowrap}
+.sz-libr__sp{flex:1;min-width:0}
+.sz-libr__val{min-width:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink2};font-variant-numeric:tabular-nums;text-align:right}
+.sz-libr__row--zero{cursor:default}
+.sz-libr__row--zero .sz-libr__nm{font-weight:400;color:${T.ink3}}
+/* 小标题「写过的字 N」+ 右侧「全部 ›」 */
+.sz-libr__wr{flex:none;margin-top:26px}
+.sz-libr__h{display:flex;align-items:center;gap:${T.s2};min-height:32px;padding-bottom:${T.s1}}
+.sz-libr__ht{font-size:${T.fs15};line-height:${T.lh15};font-weight:500;color:${T.ink2}}
+.sz-libr__hn{font-size:${T.fs15};line-height:${T.lh15};color:${T.ink3};font-variant-numeric:tabular-nums}
+.sz-libr__h .sz-btn--text{margin-left:auto;flex:none;white-space:nowrap}
+.sz-libr__samples{display:flex;gap:${T.s1};margin:0 2px 0 0;padding:0;flex:none}
+.sz-libr__sample{position:relative;flex:none;width:34px;height:34px;display:block}
+.sz-libr__fail{margin-top:${T.s3}}
+/* AX：名称与值上下排、行内折行；不画样字与第二行小字；块间距收紧（设计稿 AX5） */
+:root[data-ax] .sz-tabpage[data-testid="screen-library"]{gap:6px;padding-bottom:${T.s2}}
+:root[data-ax] .sz-libr__blk{margin-top:10px}
+:root[data-ax] .sz-libr__blk--first{margin-top:8px}
+:root[data-ax] .sz-libr__blk--flush{margin-top:0}
+:root[data-ax] .sz-libr__wr{margin-top:10px}
+:root[data-ax] .sz-libr__row{flex-wrap:wrap;min-height:56px;padding:2px 30px 2px 0;column-gap:${T.s3};row-gap:0}
+:root[data-ax] .sz-libr__row .sz-chev{position:absolute;right:0;top:50%;margin-top:-6.5px}
+:root[data-ax] .sz-libr__sp,:root[data-ax] .sz-libr__samples,:root[data-ax] .sz-libr__cap{display:none}
+:root[data-ax] .sz-libr__val{flex:1 0 100%;text-align:left}
+:root[data-ax] .sz-libr__h{min-height:0;flex-wrap:wrap;row-gap:0;column-gap:${T.s1}}
+:root[data-ax] .sz-libr__h .sz-btn--text{margin-right:0}
+:root[data-ax] .sz-libq__text{font-size:${T.fs13};line-height:${T.lh13}}
+:root[data-ax] .sz-libr__ht,:root[data-ax] .sz-libr__hn{font-size:${T.fs13};line-height:${T.lh13}}
+:root[data-ax] .sz-libr__val{font-size:${T.fs15};line-height:${T.lh15}}
+:root[data-ax] .sz-libq.sz-btn{min-height:56px}
 `);
 
 // ---------------------------------------------------------------- 查字框占位（M3-3）
@@ -85,7 +112,7 @@ ${WALL_CSS}
 let querySlot = null;
 
 /**
- * M3-3 挂查字框：传一个组件（无 props），画在 library-query-slot 里（R-L04 说明句在它下面）；传 null 取消。
+ * M3-3 挂查字框：传一个组件（无 props），画在 library-query-slot 里；传 null 取消。
  * 查字组件要求在点击处理里同步调用 openQuery（R-Q08），由挂上来的组件自己负责。
  */
 export function setLibraryQuerySlot(component) {
@@ -117,7 +144,7 @@ function useStoreState() {
   return state;
 }
 
-/** 回前台时重算「今天」（墨色档位按天）。 */
+/** 回前台时重算「今天」（今天要写 / 到期按天算）。 */
 function useToday() {
   const [today, setToday] = useState(() => localDay(envNow()));
   useEffect(() => {
@@ -150,11 +177,11 @@ export function go(name, params) {
 }
 
 export const openDetail = char => go(LIBRARY_ROUTES.detail, { char });
-export const openList = kind => go(LIBRARY_ROUTES.list, { kind: kind === 'forget' ? 'forget' : 'wrong' });
+export const openList = kind => go(LIBRARY_ROUTES.list, { kind: normalizeKind(kind) });
 export const openAll = () => go(LIBRARY_ROUTES.all);
 export const openSwitch = () => go(LIBRARY_ROUTES.switch);
 
-/** 练习范围一行的库名（R-L01：只写库名；「小学初中常用字」改名后的名字）。 */
+/** 练习范围一行的库名（R-L01：只写库名；与「我的 › 设置 › 练习范围」同一个函数、同一个值）。 */
 export function libraryName(libraryId) {
   if (libraryId === 'curriculum2500') return t('R-L01.curriculumName');
   return t(`R-L06.lib.${libraryId}.name`);
@@ -162,50 +189,97 @@ export function libraryName(libraryId) {
 
 // ---------------------------------------------------------------- 视图
 
-/** 写错过 / 快忘了的块（D49：两块同一模板）。 */
-function PracticeBlock({ kind, items }) {
-  const n = items.length;
-  const name = t(kind === 'wrong' ? 'R-E04.titleWrong' : 'R-E04.titleForget');
-  const [failed, setFailed] = useState(false);
-  // 「练这些字」一次点击直接开始一组（默认勾选的前 N 个字，I3 · P0-05）；要先看清单走「看这些字 ›」
-  const practice = () => {
-    const r = startListDefault(kind);
-    if (!r || !r.ok) {
-      setFailed(true);
-      markStateChange();
-      return;
-    }
-    setFailed(false);
-  };
-  return html`<section class="sz-lib__pb" data-testid=${`library-card-${kind}`} data-n=${n} data-empty=${n ? 'false' : 'true'}>
-    <div class="sz-lib__l1">
-      <span class="sz-lib__name" data-testid="library-card-name">${name}</span>
-      <span class="sz-lib__cnt" data-testid="library-card-count">${n}</span>
-      <span class="sz-lib__sp"></span>
-      ${n
-        ? html`<${Button} variant="text" data-testid="library-card-view" aria-label=${t('X-LIBHOME.viewAria', { label: name })}
-            onClick=${() => openList(kind)}>${t('X-LIBHOME.viewThese')}</${Button}>
-          <${Button} variant="text" data-testid="library-card-practice" aria-label=${t('X-LIBHOME.practiceAria', { label: name })}
-            onClick=${practice}>${t('X-LIBHOME.practiceThese')}</${Button}>`
-        : null}
-    </div>
-    ${n ? html`<${LiveRegion} text=${failed ? t('X-LIST.startFailed') : ''} testid="library-card-live" />` : null}
-    ${failed ? html`<span class="sz-lib__pbfail" data-testid="library-card-fail">${t('X-LIST.startFailed')}</span>` : null}
-    ${n ? html`<${Samples} cells=${cardMini(items, kind)} />` : null}
-  </section>`;
+/** 「今天要写」的值与第二行小字（文案键都在 X-LIBFOUR.*）。 */
+export function todayTexts(plan) {
+  if (plan.phase === 'half') return { value: t('X-LIBFOUR.todayHalfValue', { n: plan.n }), sub: t('X-LIBFOUR.todayHalfSub') };
+  if (plan.phase === 'done') return { value: t('X-LIBFOUR.todayDoneValue'), sub: t('X-LIBFOUR.todayDoneSub') };
+  if (plan.n <= 0) return { value: t('X-LIBFOUR.todayNoneValue'), sub: '' };
+  let sub;
+  if (plan.review > 0 && plan.fresh > 0) sub = t('X-LIBFOUR.todaySubBoth', { n: plan.review, m: plan.fresh });
+  else if (plan.review > 0) sub = t('X-LIBFOUR.todaySubReview', { n: plan.review });
+  else sub = t('X-LIBFOUR.todaySubNew', { n: plan.fresh });
+  return { value: t('X-LIBFOUR.todayValue', { n: plan.n }), sub };
 }
 
-function LibraryEmpty() {
-  // 全 App 唯一的空状态（components/EmptyState.js，规范 S2，审计 P2-22）
-  return EmptyState({ title: t('X-LIBHOME.emptyTitle'), body: t('R-L05.empty'), testids: { root: 'library-empty', cell: 'library-empty-cell' } });
+function RangeRow({ libraryId }) {
+  return html`<div class="sz-libr__blk sz-libr__blk--first">
+    <${Button} variant="plain" class="sz-libr__row" data-testid="library-range" onClick=${openSwitch}>
+      <span class="sz-libr__nm">${t('R-S01.library')}</span>
+      <span class="sz-libr__sp"></span>
+      <span class="sz-libr__val" data-testid="library-range-value">${libraryName(libraryId)}</span>
+      <${Chevron} />
+    </${Button}>
+  </div>`;
+}
+
+function TodayRow({ plan }) {
+  const [failed, setFailed] = useState(false);
+  const { value, sub } = todayTexts(plan);
+  const start = () => {
+    let r;
+    try {
+      r = startMain({ source: LIBRARY_TODAY_SOURCE });
+    } catch (error) {
+      console.error('[shizi] library today action failed', error);
+      r = { ok: false };
+    }
+    const bad = !!(r && r.ok === false);
+    setFailed(bad);
+    if (bad) markStateChange();
+  };
+  return html`<div class="sz-libr__blk">
+    <${Button} variant="plain" class=${sub ? 'sz-libr__row sz-libr__row--two' : 'sz-libr__row'} data-testid="library-today" data-phase=${plan.phase}
+      data-n=${String(plan.n)} onClick=${start}>
+      <span class="sz-libr__tx">
+        <span class="sz-libr__nm">${t('X-LIBFOUR.todayLabel')}</span>
+        ${sub ? html`<span class="sz-libr__cap" data-testid="library-today-sub">${sub}</span>` : null}
+      </span>
+      <span class="sz-libr__sp"></span>
+      <span class="sz-libr__val" data-testid="library-today-value">${value}</span>
+      <${Chevron} />
+    </${Button}>
+    ${failed
+    ? html`<div class="sz-libr__fail">${FailBlock({
+      layout: 'page',
+      testid: 'library-today-fail',
+      text: t('X-HOME.startFailed'),
+      retryLabel: t('R-H06.retry'),
+      cancelLabel: t('R-H06.cancel'),
+      onRetry: start,
+      onCancel: () => setFailed(false),
+    })}</div>`
+    : null}
+  </div>`;
+}
+
+/** 三档里的一行（D60）：有字 = 一个按钮（名称 + 数 + 样字 + ›）；0 个字 = 只写名称与 0（墨三、不可点、不画 ›）。 */
+function ZoneRow({ zone, getInk }) {
+  const name = t(`X-LIBFOUR.zone.${zone.kind}`);
+  if (!zone.n) {
+    return html`<div class="sz-libr__row sz-libr__row--zero" data-testid="library-zone" data-kind=${zone.kind} data-n="0">
+      <span class="sz-libr__nm" data-testid="library-zone-name">${name}</span>
+      <span class="sz-libr__cnt" data-testid="library-zone-count">0</span>
+    </div>`;
+  }
+  const cells = zoneSamples(zone);
+  return html`<${Button} variant="plain" class="sz-libr__row sz-libr__row--zone" data-testid="library-zone" data-kind=${zone.kind}
+    data-n=${String(zone.n)} onClick=${() => openList(zone.kind)}>
+    <span class="sz-libr__nm" data-testid="library-zone-name">${name}</span>
+    <span class="sz-libr__cnt" data-testid="library-zone-count">${zone.n}</span>
+    <span class="sz-libr__sp"></span>
+    <span class="sz-libr__samples" aria-hidden="true">
+      ${cells.map(cell => html`<span key=${cell.char} class="sz-libr__sample" data-testid="library-zone-sample" data-char=${cell.char}
+        data-tone=${cell.tone}><${Glyph} cell=${cell} getInk=${getInk} /></span>`)}
+    </span>
+    <${Chevron} />
+  </${Button}>`;
 }
 
 function LibraryScreen() {
   const state = useStoreState();
   const today = useToday();
-  const { large, width } = useWallLayout();
-  const compact = large;
-  const model = useMemo(() => libraryHomeModel(state, today, { compact: large, width }), [state, today, large, width]);
+  const mem = useMemo(() => memoryZones(state, today), [state, today]);
+  const plan = useMemo(() => todayPlanModel(state, envNow(), { deck: deckAdapter }), [state, today]);
   const getInk = useMemo(() => record => {
     try {
       return getStore().getInk(record);
@@ -213,31 +287,27 @@ function LibraryScreen() {
       return null;
     }
   }, [state]);
+  const libraryId = currentLibraryId(state && state.settings);
   const Slot = querySlot;
 
   return html`<${TabPage} title=${LIBRARY_LABEL} testid="screen-library">
-    <div class="sz-lib" data-testid="library-home" data-state=${model.empty ? 'empty' : 'records'} data-recorded=${model.recorded}
-      data-today=${today} data-compact=${compact ? 'true' : 'false'}>
-      <div class="sz-lib__query">
+    <div class="sz-lib" data-testid="library-home" data-state=${mem.recorded ? 'records' : 'empty'} data-recorded=${mem.recorded} data-today=${today}>
+      <div class="sz-lib__query" data-testid="library-search">
         <div data-testid="library-query-slot">${Slot ? html`<${Slot} />` : html`<${LibraryQueryBox} />`}</div>
       </div>
-      ${model.empty
-        ? html`<p class="sz-lib__nonote" data-testid="library-no-record-note">${t('R-L05.noRecordNote')}</p><${LibraryEmpty} />`
-        : html`<div class="sz-lib__pbs">
-            <${PracticeBlock} kind="wrong" items=${model.wrong.items} />
-            <${PracticeBlock} kind="forget" items=${model.forget.items} />
-          </div>
-          <p class="sz-lib__wl" data-testid="library-caption" data-n=${model.recorded}>${t('X-LIBHOME.caption', { n: model.recorded })}</p>
-          <div class="sz-lib__wallsec">
-            <${Wall} wall=${model.wall} getInk=${getInk} onOpen=${openDetail} />
-            <div class="sz-lib__foot">
-              <span class="sz-lib__footnote"><${LegendNote} /></span>
-              ${model.wall.more > 0
-                ? html`<${Button} variant="text" class="sz-lib__more" data-testid="library-more" data-n=${model.wall.more}
-                    onClick=${openAll}>${t('R-L02.more', { n: model.wall.more })}</${Button}>`
-                : null}
-            </div>
-          </div>`}
+      <${RangeRow} libraryId=${libraryId} />
+      <${TodayRow} plan=${plan} />
+      <div class="sz-libr__wr">
+        <div class="sz-libr__h" data-testid="library-written" data-n=${mem.recorded}>
+          <span class="sz-libr__ht">${t('X-LIBFOUR.writtenHeading')}</span>
+          <span class="sz-libr__hn" data-testid="library-written-count">${mem.recorded}</span>
+          <${Button} variant="text" data-testid="library-all-open" aria-label=${t('X-LIBFOUR.writtenAllAria')}
+            onClick=${openAll}>${t('X-LIBFOUR.writtenAll')}</${Button}>
+        </div>
+        <div class="sz-libr__blk sz-libr__blk--flush">
+          ${MEMORY_ZONES.map(kind => html`<${ZoneRow} key=${kind} zone=${mem.zones[kind]} getInk=${getInk} />`)}
+        </div>
+      </div>
     </div>
   </${TabPage}>`;
 }

@@ -255,14 +255,17 @@ function useBrandMoment(active, rootRef) {
 
 const SOURCE = Object.freeze({ view: HOME_TAB });
 
-/** 「拾」：B 没写完 → 续写 B（D05）；否则 A 槽（续写 / 第一次练习 / 今天的练习 / 现在没有要写的字）。 */
-export function startMain() {
+/**
+ * 「拾」：B 没写完 → 续写 B（D05）；否则 A 槽（续写 / 第一次练习 / 今天的练习 / 现在没有要写的字）。
+ * 字库首页「今天要写」一行（r7-L1，D60）调用的就是它——同一个函数、同一组字；source 只换来源页（写完「回到字库」）。
+ */
+export function startMain({ source = SOURCE } = {}) {
   const state = getStore().getState();
   if (core.resumableSession(state, 'B', { now: envNow() })) {
     const r = resumeSlot('B');
     if (!r || r.ok === false || r.opened) return r;
   }
-  return startA({ source: SOURCE });
+  return startA({ source });
 }
 
 /** S01 第二行：续写 A。 */

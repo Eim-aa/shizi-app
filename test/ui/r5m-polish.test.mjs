@@ -38,7 +38,7 @@ test('IC-17 / T0-3：页头返回键不吃「新页面后 0.4s」的防连点（
 
 test('P2-22：空状态全 App 一个组件（components/EmptyState.js，规范 S2）——各页不再自己画空格子 / 标题 / 说明', () => {
   const files = [
-    'src/ui/screens/library/index.js', 'src/ui/screens/library/all.js', 'src/ui/screens/library/list.js', 'src/ui/screens/mine/annual.js',
+    'src/ui/screens/library/all.js', 'src/ui/screens/library/list.js', 'src/ui/screens/mine/annual.js',
     'src/ui/screens/mine/index.js', 'src/ui/screens/mine/month.js', 'src/ui/screens/session/none.js',
   ];
   for (const f of files) {

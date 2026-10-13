@@ -2744,7 +2744,8 @@
       "slots": {
         "kindSession": {
           "raw": "这次的图片",
-          "text": "这次的图片"
+          "text": "本次图片",
+          "note": "r7-C1 / D61 文案重写"
         },
         "kindMonth": {
           "raw": "{月}字帖",
@@ -2754,7 +2755,8 @@
         },
         "kindGlyph": {
           "raw": "手写字图片",
-          "text": "手写字图片"
+          "text": "单字图片",
+          "note": "r7-C1 / D61 文案重写"
         },
         "imageNote": {
           "raw": "存下来的是图片，不能用来恢复记录。",
@@ -2762,7 +2764,8 @@
         },
         "glyphNote": {
           "raw": "用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。",
-          "text": "用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。"
+          "text": "用的是最近一次写的字，图片不能恢复记录。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "signatureDate": {
           "raw": null,
@@ -2778,16 +2781,16 @@
         },
         "glyphEntry": {
           "raw": null,
-          "text": "把这个字做成图片",
+          "text": "做成图片",
           "origin": "04 T09：入口「把这个字做成图片」（同 R-D04.makeImage）",
-          "note": "图片弹层入口"
+          "note": "图片弹层入口；r7-C1 / D61 文案重写"
         },
         "overLimit": {
           "raw": null,
-          "text": "一张图最多放 80 个字，现在的字超过了，暂时做不成图片。记录都还在，没有受影响。",
+          "text": "一张图最多 80 字，现在超了，做不了图片。",
           "origin": "03 P25 / P55：>80 字 pending + 说明句",
           "decision": "P25",
-          "note": "过渡文案，待产品定稿（P55）；80 与 policy.imageMaxChars 同值"
+          "note": "过渡文案，待产品定稿（P55）；80 与 policy.imageMaxChars 同值；r7-C1 / D61 文案重写"
         }
       },
       "dropped": [
@@ -4363,9 +4366,9 @@
         },
         "emptyMonth": {
           "raw": null,
-          "text": "这个月还没有可以放进图片的字",
+          "text": "这个月还没有可做图的字",
           "origin": "extra",
-          "note": "月字帖一个能画的字都没有时预览区的说明；原型 ShiziScreen recordsEmpty 纸卡虚线框（reference/J-proto-screen.md §2.3.8，L158）"
+          "note": "月字帖一个能画的字都没有时预览区的说明；原型 ShiziScreen recordsEmpty 纸卡虚线框（reference/J-proto-screen.md §2.3.8，L158）；r7-C1 / D61 文案重写"
         },
         "brand": {
           "raw": null,

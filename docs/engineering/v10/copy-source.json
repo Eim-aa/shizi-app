@@ -1839,7 +1839,8 @@
       "slots": {
         "wrongLine": {
           "raw": "上次你判断写错了",
-          "text": "上次你判断写错了"
+          "text": "上次写错了",
+          "note": "r7-C1 / D61 文案重写"
         },
         "forgetLine": {
           "raw": "有一阵没写，可能快忘了",
@@ -1855,9 +1856,9 @@
       "slots": {
         "nextReview": {
           "raw": "下次练习 · 大约 {10 月 3 日} 再练到",
-          "text": "下次练习 · 大约 {date}再练到",
+          "text": "下次复习 · 大约 {date}",
           "decision": "P12",
-          "note": "features.nextReviewLine=true，仅有 judged 记录时显示"
+          "note": "features.nextReviewLine=true，仅有 judged 记录时显示；r7-C1 / D61 文案重写"
         }
       }
     },
@@ -1869,11 +1870,13 @@
       "slots": {
         "count": {
           "raw": "记录了 {N} 次",
-          "text": "记录了 {n} 次"
+          "text": "写过 {n} 次",
+          "note": "r7-C1 / D61 文案重写"
         },
         "none": {
           "raw": "还没有记录",
-          "text": "还没有记录"
+          "text": "还没写过",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -1885,7 +1888,8 @@
       "slots": {
         "makeImage": {
           "raw": "把这个字做成图片",
-          "text": "把这个字做成图片"
+          "text": "做成图片",
+          "note": "r7-C1 / D61 文案重写"
         },
         "noInkNote": {
           "raw": "最近一次没有笔迹，再写一次就能做图片。",
@@ -1893,10 +1897,10 @@
         },
         "noInkNoteGlyph": {
           "raw": null,
-          "text": "这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。",
+          "text": "笔迹没存下来，写完后可在结果页做图。",
           "origin": "R-D04.noInkNote 的 perRecordInk=false 变体（笔迹不落盘，只在写完的当次进程内可用，故不再承诺「再写一次就能做图片」）",
           "decision": "P31",
-          "note": "阶段 0 A5（G17）：沿用 F4 的 tInk 机制；perRecordInk=false（现行默认）取此变体，perRecordInk=true 才取原槽"
+          "note": "阶段 0 A5（G17）：沿用 F4 的 tInk 机制；perRecordInk=false（现行默认）取此变体，perRecordInk=true 才取原槽；r7-C1 / D61 文案重写"
         },
         "noRecordNote": {
           "raw": "先写一次这个字，才能做成图片。",
@@ -1912,7 +1916,8 @@
       "slots": {
         "swapWord": {
           "raw": "换掉这个词语",
-          "text": "换掉这个词语"
+          "text": "换个词语",
+          "note": "r7-C1 / D61 文案重写"
         },
         "banner": {
           "raw": "「{词}」以后不会再出现",
@@ -1933,17 +1938,20 @@
         "rowTitle": {
           "raw": "从自选的字移除 / 记录不会删掉，只是不再算自选的字。",
           "part": 0,
-          "text": "从自选的字移除"
+          "text": "移出自选",
+          "note": "r7-C1 / D61 文案重写"
         },
         "rowSub": {
           "raw": "从自选的字移除 / 记录不会删掉，只是不再算自选的字。",
           "part": 1,
-          "text": "记录不会删掉，只是不再算自选的字。"
+          "text": "记录不删，只是不再算自选字。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "undoL1": {
           "raw": "「X」已从自选的字移除 / 离开这一页前可以撤销",
           "part": 0,
-          "text": "「{char}」已从自选的字移除"
+          "text": "「{char}」已移出自选字",
+          "note": "r7-C1 / D61 文案重写"
         },
         "undoL2": {
           "raw": "「X」已从自选的字移除 / 离开这一页前可以撤销",
@@ -2021,9 +2029,10 @@
         "body": {
           "raw": "旧版本拍照留下的记录，只能看，不能做成图片。<br>备份时会一起存下。",
           "text": [
-            "旧版本拍照留下的记录，只能看，不能做成图片。",
+            "旧版本拍照的记录，只能看，不能做图。",
             "备份时会一起存下。"
-          ]
+          ],
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -3517,15 +3526,15 @@
         },
         "glossLabel": {
           "raw": null,
-          "text": "释义",
+          "text": "意思",
           "origin": "extra",
-          "note": "字卡没有语境词（释义题 / 仅拼音题 / 换掉了词语）时的标签；原型 L400 dWordLabel「释义」"
+          "note": "字卡没有语境词（释义题 / 仅拼音题 / 换掉了词语）时的标签；原型 L400 dWordLabel「释义」；r7-C1 / D61 文案重写"
         },
         "emptyNote": {
           "raw": null,
-          "text": "判断过的每一次书写都会留在这里",
+          "text": "你每次写过的字都会留在这里",
           "origin": "extra",
-          "note": "没有记录时记录块右侧说明；原型 detailEmpty L57"
+          "note": "没有记录时记录块右侧说明；原型 detailEmpty L57；r7-C1 / D61 文案重写"
         },
         "cellTitle": {
           "raw": null,
@@ -3577,9 +3586,9 @@
         },
         "legacyEntry": {
           "raw": null,
-          "text": "旧版本的记录",
+          "text": "旧记录",
           "origin": "extra",
-          "note": "有旧版本照片（photos[字]）时单字详情里进入 R-D10 旧记录页的行，也是旧记录页照片下的小标题；原型 photo 页 L128–L132 底部「旧版本的记录」（单字详情里原型没有单独入口，data-nav=\"photo\" 双义，J 报告 §5-5）",
+          "note": "有旧版本照片（photos[字]）时单字详情里进入 R-D10 旧记录页的行，也是旧记录页照片下的小标题；原型 photo 页 L128–L132 底部「旧版本的记录」（单字详情里原型没有单独入口，data-nav=\"photo\" 双义，J 报告 §5-5）；r7-C1 / D61 文案重写",
           "decision": "P76"
         },
         "photoAlt": {

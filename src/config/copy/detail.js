@@ -4,26 +4,26 @@
 
 export default Object.freeze({
   // R-D01（已定）
-  'R-D01.wrongLine': '上次你判断写错了',
+  'R-D01.wrongLine': '上次写错了',
   'R-D01.forgetLine': '有一阵没写，可能快忘了',
   // R-D02（待定-工程确认（算不出就删行））
-  'R-D02.nextReview': '下次练习 · 大约 {date}再练到',
+  'R-D02.nextReview': '下次复习 · 大约 {date}',
   // R-D03（已定；L12/L13 边开发边改）
-  'R-D03.count': '记录了 {n} 次',
-  'R-D03.none': '还没有记录',
+  'R-D03.count': '写过 {n} 次',
+  'R-D03.none': '还没写过',
   // R-D04（已定）
-  'R-D04.makeImage': '把这个字做成图片',
+  'R-D04.makeImage': '做成图片',
   'R-D04.noInkNote': '最近一次没有笔迹，再写一次就能做图片。',
-  'R-D04.noInkNoteGlyph': '这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。',
+  'R-D04.noInkNoteGlyph': '笔迹没存下来，写完后可在结果页做图。',
   'R-D04.noRecordNote': '先写一次这个字，才能做成图片。',
   // R-D05（已定）
-  'R-D05.swapWord': '换掉这个词语',
+  'R-D05.swapWord': '换个词语',
   'R-D05.banner': '「{word}」以后不会再出现',
   'R-D05.undo': '撤销',
   // R-D06（已定；Z03 边开发边改）
-  'R-D06.rowTitle': '从自选的字移除',
-  'R-D06.rowSub': '记录不会删掉，只是不再算自选的字。',
-  'R-D06.undoL1': '「{char}」已从自选的字移除',
+  'R-D06.rowTitle': '移出自选',
+  'R-D06.rowSub': '记录不删，只是不再算自选字。',
+  'R-D06.undoL1': '「{char}」已移出自选字',
   'R-D06.undoL2': '离开这一页前可以撤销',
   'R-D06.undone': '已撤销',
   // R-D07（已定）
@@ -33,13 +33,13 @@ export default Object.freeze({
   'R-D08.btnPractice': '练这个字',
   // R-D10（已定）
   'R-D10.title': '「{char}」的旧记录',
-  'R-D10.body': ['旧版本拍照留下的记录，只能看，不能做成图片。', '备份时会一起存下。'],
+  'R-D10.body': ['旧版本拍照的记录，只能看，不能做图。', '备份时会一起存下。'],
   // X-DETAIL（M3-6 单字详情：原型 ShiziScreen L32–L61 / L128–L132 / L389–L413 的其余字样与三段式，origin: extra）
   'X-DETAIL.pageTitle': '「{char}」的记录',
   'X-DETAIL.strokes': '{n} 画',
   'X-DETAIL.wordLabel': '词语',
-  'X-DETAIL.glossLabel': '释义',
-  'X-DETAIL.emptyNote': '判断过的每一次书写都会留在这里',
+  'X-DETAIL.glossLabel': '意思',
+  'X-DETAIL.emptyNote': '你每次写过的字都会留在这里',
   'X-DETAIL.cellTitle': '{date} · {caption}',
   // 头图「第一次 | 最近一次」（H1 / V2-03、N2-10，03 P223）
   'X-DETAIL.cellNoInkLabel': '{text}，没有笔迹', // 记录格没有存下墨时的读屏名称（格里画衬底字，不写字，V16）
@@ -48,7 +48,7 @@ export default Object.freeze({
   'X-DETAIL.heroCaption': '{label} · {date}',
   'X-DETAIL.heroCellLabel': '{label}：{text}',
   'X-DETAIL.sourceLabel': '字源',
-  'X-DETAIL.legacyEntry': '旧版本的记录',
+  'X-DETAIL.legacyEntry': '旧记录',
   'X-DETAIL.photoAlt': '旧版本拍下的照片',
   'X-DETAIL.saveFailed': '没保存上，原来的内容都还在。',
   'X-DETAIL.retry': '再试一次',

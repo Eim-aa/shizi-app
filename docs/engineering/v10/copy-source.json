@@ -1315,7 +1315,8 @@
       "slots": {
         "curriculumName": {
           "raw": "小学初中常用字",
-          "text": "小学初中常用字"
+          "text": "课本字",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -1341,20 +1342,21 @@
       "slots": {
         "legend": {
           "raw": "墨色越浅，越久没写。点一个字，看它每次的笔迹。",
-          "text": "墨色越浅，越久没写。点一个字，看它第一次和最近一次的笔迹。",
+          "text": "颜色越浅，越久没写。点字看笔迹。",
           "decision": "P31",
-          "note": "已决定 D27（阶段 1 P1-E3）：只留每字第一次与最近一次判断的笔迹，中间那次回收后详情格写「没有笔迹」，原句「每次的笔迹」不成立，改为「第一次和最近一次的笔迹」；perRecordInk=true 时取此槽"
+          "note": "已决定 D27（阶段 1 P1-E3）：只留每字第一次与最近一次判断的笔迹，中间那次回收后详情格写「没有笔迹」，原句「每次的笔迹」不成立，改为「第一次和最近一次的笔迹」；perRecordInk=true 时取此槽；r7-C1 / D61 文案重写"
         },
         "legendGlyph": {
           "raw": null,
-          "text": "墨色越浅，越久没写。点一个字，看它的记录。",
+          "text": "颜色越浅，越久没写。点字看记录。",
           "origin": "R-L03.legend 的 perRecordInk=false 变体",
           "decision": "P31",
-          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）；r7-C1 / D61 文案重写"
         },
         "toneOldest": {
           "raw": "三个月以上",
-          "text": "三个月以上"
+          "text": "超三个月",
+          "note": "r7-C1 / D61 文案重写"
         },
         "legendDark": {
           "raw": "颜色越暗，越久没写",
@@ -1370,7 +1372,8 @@
       "slots": {
         "queryNote": {
           "raw": "查到的字可以直接练，也可以加入自选的字。",
-          "text": "查到的字可以直接练，也可以加入自选的字。"
+          "text": "查到的字可直接练，或加入自选字。",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -1382,11 +1385,13 @@
       "slots": {
         "noRecordNote": {
           "raw": "每天写的新字，从这个字库里挑。",
-          "text": "每天写的新字，从这个字库里挑。"
+          "text": "每天的新字，从这个范围里挑。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "empty": {
           "raw": "去「习字」写几个字，判断过对错，就会出现在这里。",
-          "text": "去「习字」写几个字，判断过对错，就会出现在这里。"
+          "text": "去「写字」写几个字，就会出现在这里。",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -1398,13 +1403,14 @@
       "slots": {
         "entry": {
           "raw": null,
-          "text": "更换字库 ›",
+          "text": "换范围 ›",
           "origin": "04 R-L06 规则列「更换字库 › → 列表」",
-          "note": "入口行"
+          "note": "入口行；r7-C1 / D61 文案重写"
         },
         "countLine": {
           "raw": "可以练 {N} 个字 · 有记录 {M} 个",
-          "text": "可以练 {n} 个字 · 有记录 {m} 个"
+          "text": "可练 {n} 个 · 写过 {m} 个",
+          "note": "r7-C1 / D61 文案重写"
         },
         "saveFailed": {
           "raw": "没保存上，刚才的选择没记下。",
@@ -1422,9 +1428,9 @@
         },
         "lib.core3500.name": {
           "raw": null,
-          "text": "规范常用字",
+          "text": "常用字",
           "origin": "04 §3.2 字库表",
-          "note": "库 id 沿旧值 core3500（B 报告 §2）"
+          "note": "库 id 沿旧值 core3500（B 报告 §2）；r7-C1 / D61 文案重写"
         },
         "lib.core3500.desc": {
           "raw": null,
@@ -1434,45 +1440,45 @@
         },
         "lib.adv3000.name": {
           "raw": null,
-          "text": "规范次常用字",
+          "text": "次常用字",
           "origin": "04 §3.2 字库表",
-          "note": "库 id 沿旧值 adv3000"
+          "note": "库 id 沿旧值 adv3000；r7-C1 / D61 文案重写"
         },
         "lib.adv3000.desc": {
           "raw": null,
-          "text": "看书看报会碰到的字。常用字写熟了，可以换这个。",
+          "text": "看书看报会碰到的字。常用字写熟再换。",
           "origin": "04 §3.2 字库表",
-          "note": "一句说明"
+          "note": "一句说明；r7-C1 / D61 文案重写"
         },
         "lib.rare.name": {
           "raw": null,
-          "text": "规范专门用字",
+          "text": "少见字",
           "origin": "04 §3.2 字库表",
-          "note": "库 id 沿旧值 rare"
+          "note": "库 id 沿旧值 rare；r7-C1 / D61 文案重写"
         },
         "lib.rare.desc": {
           "raw": null,
-          "text": "人名、地名和古文里的少见字。目前能练的大约一半。",
+          "text": "人名、地名、古文里的少见字。",
           "origin": "04 §3.2 字库表",
-          "note": "一句说明（文案-D5）"
+          "note": "一句说明（文案-D5）；r7-C1 / D61 文案重写"
         },
         "lib.curriculum2500.name": {
           "raw": null,
-          "text": "小学初中常用字",
+          "text": "课本字",
           "origin": "04 §3.2 字库表（原义教基础字，文案-D4）",
-          "note": "库 id 沿旧值 curriculum2500"
+          "note": "库 id 沿旧值 curriculum2500；r7-C1 / D61 文案重写"
         },
         "lib.curriculum2500.desc": {
           "raw": null,
-          "text": "小学到初中语文课要求会写的字。适合陪孩子一起练。",
+          "text": "小学到初中语文课要会写的字。",
           "origin": "04 §3.2 字库表",
-          "note": "一句说明"
+          "note": "一句说明；r7-C1 / D61 文案重写"
         },
         "sourceNote": {
           "raw": null,
-          "text": "字表参考教育部《通用规范汉字表》。有些字拾字还没收进来，暂时不能练，所以能练的字比原表少。",
+          "text": "参考《通用规范汉字表》，部分字暂未收录。",
           "origin": "04 §3.2 字库表底部来源说明（C098/C183）",
-          "note": "换库列表底部"
+          "note": "换库列表底部；r7-C1 / D61 文案重写"
         }
       },
       "dropped": [
@@ -1506,9 +1512,9 @@
       "slots": {
         "customUnwritten": {
           "raw": null,
-          "text": "另有 {n} 个自选的字还没写",
+          "text": "另有 {n} 个自选字没写",
           "origin": "04 R-L10 规则列 \"另有 N 个自选的字还没写\"",
-          "note": "规则列引号原文，N → {n}；同格「从 X 开始记录」的 X 含义未给，留给 M3-1"
+          "note": "规则列引号原文，N → {n}；同格「从 X 开始记录」的 X 含义未给，留给 M3-1；r7-C1 / D61 文案重写"
         }
       }
     },
@@ -1520,14 +1526,15 @@
       "slots": {
         "sortRecentNote": {
           "raw": "按最近一次写的月份排。每格是你最近一次的笔迹。",
-          "text": "按最近一次写的月份排。每格是你最近一次的笔迹。"
+          "text": "按最近写的月份排，每格是最近的笔迹。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "sortRecentNoteGlyph": {
           "raw": null,
-          "text": "按最近一次写的月份排。点一个字，看它的记录。",
+          "text": "按最近写的月份排。点字看记录。",
           "origin": "R-A01.sortRecentNote 的 perRecordInk=false 变体",
           "decision": "P31",
-          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）；r7-C1 / D61 文案重写"
         },
         "sortPinyinNote": {
           "raw": "按拼音首字母排。多音字按第一个读音。",
@@ -1561,7 +1568,8 @@
       "slots": {
         "filterCustom": {
           "raw": "自选的字 {N}",
-          "text": "自选的字 {n}"
+          "text": "自选字 {n}",
+          "note": "r7-C1 / D61 文案重写"
         },
         "customNote": {
           "raw": "你自己挑来常练的字。还没写的排在前面。",
@@ -1569,7 +1577,8 @@
         },
         "customUnwrittenNote": {
           "raw": "加入了自选的字，还没有记录。",
-          "text": "加入了自选的字，还没有记录。"
+          "text": "加入自选字，还没写过。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "filterWrong": {
           "raw": null,
@@ -1585,9 +1594,9 @@
         },
         "filterCustomUnwritten": {
           "raw": null,
-          "text": "自选了还没写",
+          "text": "自选未写",
           "origin": "04 R-A02 规则列：筛选「自选了还没写」",
-          "note": "筛选项"
+          "note": "筛选项；r7-C1 / D61 文案重写"
         },
         "practiceThese": {
           "raw": null,
@@ -1611,11 +1620,13 @@
         },
         "notFound": {
           "raw": "「X」还没有记录。",
-          "text": "「{char}」还没有记录。"
+          "text": "「{char}」还没写过。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "searchAria": {
           "raw": "在有记录的字里查字",
-          "text": "在有记录的字里查字"
+          "text": "在写过的字里查字",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -2027,7 +2038,8 @@
         },
         "btnNone": {
           "raw": "先选一个字",
-          "text": "先选一个字"
+          "text": "先选字",
+          "note": "r7-C1 / D61 文案重写"
         },
         "leaveWrong": {
           "raw": "回到写错过 / 回到快忘了",
@@ -2053,11 +2065,13 @@
         },
         "wrongMeta": {
           "raw": "{日期}写错 · 一共写错 {N} 次",
-          "text": "{date}写错 · 一共写错 {n} 次"
+          "text": "{date}写错 · 共 {n} 次",
+          "note": "r7-C1 / D61 文案重写"
         },
         "wrongNote": {
           "raw": "右边小图是你写错的那一次。点圆圈选字，点这一行看记录。",
-          "text": "右边小图是你写错的那一次。点圆圈选字，点这一行看记录。"
+          "text": "点圆圈选字，点这一行看记录。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "wrongNoteGlyph": {
           "raw": null,
@@ -2068,11 +2082,13 @@
         },
         "forgetMeta": {
           "raw": "最近一次 {日期} · 记录了 {N} 次",
-          "text": "最近一次 {date} · 记录了 {n} 次"
+          "text": "最近 {date} · 写过 {n} 次",
+          "note": "r7-C1 / D61 文案重写"
         },
         "forgetNote": {
           "raw": "格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。",
-          "text": "格子里是你最近一次的笔迹。点圆圈选字，点这一行看记录。"
+          "text": "点圆圈选字，点这一行看记录。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "forgetNoteGlyph": {
           "raw": null,
@@ -2099,7 +2115,8 @@
         },
         "forgetTop": {
           "raw": "有一阵没写、可能快忘了的字。写一遍，就会从这里移走。",
-          "text": "有一阵没写、可能快忘了的字。写一遍，就会从这里移走。"
+          "text": "有一阵没写的字。写一遍就会移走。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "wrongTop": {
           "raw": "下次写对了，就会从这里移走",
@@ -2650,20 +2667,21 @@
         },
         "openSourceRow": {
           "raw": "开源资料 · 致谢 ›",
-          "text": "开源资料 · 致谢 ›"
+          "text": "开源致谢 ›",
+          "note": "r7-C1 / D61 文案重写"
         },
         "letterTitle": {
           "raw": null,
-          "text": "给我们写信",
+          "text": "联系我们",
           "origin": "04 R-AB01 规则列：隐私、开源资料·致谢、给我们写信三个子页",
-          "note": "子页标题；行尾是否带 › 待设计"
+          "note": "子页标题；行尾是否带 › 待设计；r7-C1 / D61 文案重写"
         },
         "letterAddressPending": {
           "raw": null,
-          "text": "写信的地址还没有定下来，暂时收不到来信。",
+          "text": "来信地址还没定，暂时收不到来信。",
           "origin": "03 P21 过渡默认：写信页过渡文案（原占位「地址待补」会原样渲染给用户，F2 改写）",
           "decision": "P21",
-          "note": "过渡文案，待产品定稿（P21 / P90）"
+          "note": "过渡文案，待产品定稿（P21 / P90）；r7-C1 / D61 文案重写"
         }
       },
       "dropped": [
@@ -3356,9 +3374,9 @@
       "slots": {
         "title": {
           "raw": null,
-          "text": "更换字库",
+          "text": "练习范围",
           "origin": "extra",
-          "note": "换库页页头；原型 ShiziScreen L186 libSwitch 标题（J §2.3.23）",
+          "note": "换库页页头；原型 ShiziScreen L186 libSwitch 标题（J §2.3.23）；r7-C1 / D61 文案重写",
           "decision": "P55"
         },
         "current": {
@@ -3439,9 +3457,9 @@
         },
         "wrongEmptyBody": {
           "raw": null,
-          "text": "你判断写错的字会放在这里。",
+          "text": "你写错的字会放在这里。",
           "origin": "extra",
-          "note": "写错过空态第二句；原型 L408 leWhy（R-E04 只给了标题「现在没有写错过的字」）",
+          "note": "写错过空态第二句；原型 L408 leWhy（R-E04 只给了标题「现在没有写错过的字」）；r7-C1 / D61 文案重写",
           "decision": "P76"
         },
         "forgetEmptyTitle": {
@@ -3698,21 +3716,21 @@
       "slots": {
         "recordedLabel": {
           "raw": null,
-          "text": "有记录的字",
+          "text": "写过的字",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L39",
-          "note": "M3-1：大数字上方的小标签（整块是进「有记录的字」完整页的按钮，R-L02）；也用作墙的读屏分组名"
+          "note": "M3-1：大数字上方的小标签（整块是进「有记录的字」完整页的按钮，R-L02）；也用作墙的读屏分组名；r7-C1 / D61 文案重写"
         },
         "wrongCardNote": {
           "raw": null,
-          "text": "你判断写错的字。",
+          "text": "你写错的字。",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L360 card()",
-          "note": "M3-1：写错过卡片说明（快忘了卡片的对应句在 R-L07）；现在用在「有记录的字」页写错过筛选的说明（all-model.js）"
+          "note": "M3-1：写错过卡片说明（快忘了卡片的对应句在 R-L07）；现在用在「有记录的字」页写错过筛选的说明（all-model.js）；r7-C1 / D61 文案重写"
         },
         "tone0": {
           "raw": null,
-          "text": "一周内写过",
+          "text": "一周内",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L223 TL[0]",
-          "note": "M3-1：图例第一档（≤ policy.inkToneDays[0] 天，P56）；第四档见 R-L03.toneOldest",
+          "note": "M3-1：图例第一档（≤ policy.inkToneDays[0] 天，P56）；第四档见 R-L03.toneOldest；r7-C1 / D61 文案重写",
           "decision": "P56"
         },
         "tone1": {
@@ -3731,17 +3749,17 @@
         },
         "legendDarkNote": {
           "raw": null,
-          "text": "颜色越暗，越久没写。点一个字，看它第一次和最近一次的笔迹。",
+          "text": "颜色越暗，越久没写。点字看笔迹。",
           "origin": "04 R-L03 深色「颜色越暗，越久没写」+ R-L03.legend 后半句",
           "decision": "P31",
-          "note": "M3-1：深色主题下墙底说明（边改 L14：把 R-L03.legend 的前半句换成 R-L03.legendDark，后半句不变）；浅色用 R-L03.legend。D27（阶段 1 P1-E3）：后半句随 R-L03.legend 改为「第一次和最近一次的笔迹」"
+          "note": "M3-1：深色主题下墙底说明（边改 L14：把 R-L03.legend 的前半句换成 R-L03.legendDark，后半句不变）；浅色用 R-L03.legend。D27（阶段 1 P1-E3）：后半句随 R-L03.legend 改为「第一次和最近一次的笔迹」；r7-C1 / D61 文案重写"
         },
         "legendDarkNoteGlyph": {
           "raw": null,
-          "text": "颜色越暗，越久没写。点一个字，看它的记录。",
+          "text": "颜色越暗，越久没写。点字看记录。",
           "origin": "X-LIBHOME.legendDarkNote 的 perRecordInk=false 变体",
           "decision": "P31",
-          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）"
+          "note": "F4：perRecordInk=false（P31 阻塞）时这里画标准字形，原句承诺「笔迹」不成立；默认出货取此变体，perRecordInk=true 才取原槽（调用处 tInk 选择）；r7-C1 / D61 文案重写"
         },
         "emptyTitle": {
           "raw": null,
@@ -3776,9 +3794,9 @@
         },
         "chipUnwritten": {
           "raw": null,
-          "text": "自选了还没写 {n}",
+          "text": "自选未写 {n}",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L376 chipDefs",
-          "note": "M3-4：筛选项「自选了还没写 {N}」"
+          "note": "M3-4：筛选项「自选了还没写 {N}」；r7-C1 / D61 文案重写"
         },
         "ageNote": {
           "raw": null,
@@ -3788,9 +3806,9 @@
         },
         "groupRecorded": {
           "raw": null,
-          "text": "有记录",
+          "text": "写过的",
           "origin": "原型 字库墨墙屏-第十稿交接版.dc.html L383 custom 第二组",
-          "note": "M3-4：筛选「自选的字」下第二组（已写过的自选的字）组名"
+          "note": "M3-4：筛选「自选的字」下第二组（已写过的自选的字）组名；r7-C1 / D61 文案重写"
         },
         "groupMonth": {
           "raw": null,
@@ -5311,9 +5329,9 @@
         },
         "todayNoneValue": {
           "raw": null,
-          "text": "没有要写的字",
+          "text": "没有",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "今天要写一行的值：选不出字时（点了进「现在没有要写的字」页）；设计稿没有这一态，工程补"
+          "note": "今天要写一行的值：选不出字时（点了进「现在没有要写的字」页）；设计稿没有这一态，工程补；r7-C1 / D61 文案重写"
         },
         "todaySubBoth": {
           "raw": null,
@@ -5395,9 +5413,9 @@
         },
         "zoneTop.due": {
           "raw": null,
-          "text": "今天要复习的字，和上次写错的字。",
+          "text": "该复习的字，包括上次写错的。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页（该复习了）标题下的一句"
+          "note": "区详情页（该复习了）标题下的一句；r7-C1 / D61 文案重写"
         },
         "zoneTop.shaky": {
           "raw": null,
@@ -5413,15 +5431,15 @@
         },
         "zoneEmptyTitle": {
           "raw": null,
-          "text": "这一档现在没有字",
+          "text": "暂时没有字",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页空态标题（从字库首页进不来；记录变动后可能遇到）"
+          "note": "区详情页空态标题（从字库首页进不来；记录变动后可能遇到）；r7-C1 / D61 文案重写"
         },
         "zoneEmptyBody.due": {
           "raw": null,
-          "text": "今天到期或写错的字会放在这里。",
+          "text": "该复习的字会放在这里。",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "区详情页空态正文（该复习了）"
+          "note": "区详情页空态正文（该复习了）；r7-C1 / D61 文案重写"
         },
         "zoneEmptyBody.shaky": {
           "raw": null,

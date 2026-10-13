@@ -66,7 +66,7 @@ test('filterNotes: the three R-Q03 notes, duplicates only in the rows view, seve
   assert.deepEqual(filterNotes(null, 'rows'), []);
   // 文案
   assert.equal(t('R-Q03.onlyHanzi'), '只能输入汉字。');
-  assert.equal(t('R-Q03.removed', { n: 2 }), '只能输入汉字，已去掉 2 个字母或符号。');
+  assert.equal(t('R-Q03.removed', { n: 2 }), '只能输入汉字，已去掉 2 个其他字符。');
   assert.equal(t('R-Q03.duplicate', { char: '永' }), '重复的「永」只算一次。');
   assert.equal(t('X-QUERY.duplicateMany', { chars: '「永」「和」' }), '重复的「永」「和」只算一次。');
 });
@@ -137,8 +137,8 @@ test('rowStatus: 记录了 N 次 / 还没有记录 / 暂时不能练 / 自选的
   assert.deepEqual(rowStatus({ ...base, custom: true, count: 2 }), { key: 'R-Q04.rowCustomCount', vars: { n: 2 } });
   assert.deepEqual(rowStatus({ ...base, practicable: false, custom: true, count: 2 }), { key: 'R-Q04.rowUnavailable' },
     'unavailable wins');
-  assert.equal(t('R-Q04.rowCustomCount', { n: 2 }), '自选的字 · 记录了 2 次');
-  assert.equal(t('R-Q04.rowCustomNone'), '自选的字 · 还没有记录');
+  assert.equal(t('R-Q04.rowCustomCount', { n: 2 }), '自选字 · 写过 2 次');
+  assert.equal(t('R-Q04.rowCustomNone'), '自选字 · 还没写过');
 });
 
 test('cardStat: record line with date day, or 还没有记录', () => {
@@ -165,12 +165,12 @@ test('selectedChars: only chars still typed and practicable, in input order; not
   assert.deepEqual(selectedChars(['永'], ['永']), ['永']);
 });
 
-test('pickBar: 0 →「先选一个字」disabled; 1 →「练这个字」; N →「练这 N 个字」', () => {
+test('pickBar: 0 →「先选字」disabled; 1 →「练这个字」; N →「练这 N 个字」', () => {
   assert.deepEqual(pickBar(0), { key: 'R-Q06.btnNone', vars: undefined, disabled: true });
   assert.deepEqual(pickBar(1), { key: 'R-Q05.btnPractice', vars: undefined, disabled: false });
   assert.deepEqual(pickBar(3), { key: 'R-Q06.btnPracticeN', vars: { n: 3 }, disabled: false });
-  assert.equal(t('R-Q06.btnNone'), '先选一个字');
-  assert.equal(t('R-Q06.btnPracticeN', { n: 3 }), '练这 3 个字');
+  assert.equal(t('R-Q06.btnNone'), '先选字');
+  assert.equal(t('R-Q06.btnPracticeN', { n: 3 }), '练这些字');
 });
 
 test('normalizeMode: only lookup / pick (P42: no add mode)', () => {

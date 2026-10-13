@@ -13,7 +13,7 @@ test('运行时文案里没有「数字 / 占位符 + 空格 + 月 / 日 / 年�
 
 test('日期单位字后面不留空格再接汉字（「4 月 26 日 的笔迹」式）', () => {
   assert.equal(t('R-M06.inkDate', { date: '4月26日' }), '4月26日的笔迹');
-  assert.equal(t('R-D02.nextReview', { date: '10月7日' }), '下次练习 · 大约 10月7日再练到');
+  assert.equal(t('R-D02.nextReview', { date: '10月7日' }), '下次复习 · 大约 10月7日');
   const bad = Object.entries(COPY).filter(([, v]) => typeof v === 'string' && /\{(date|inkDate)\} [一-鿿]/.test(v));
   assert.deepEqual(bad.map(([k]) => k), [], '{date} 后面直接接汉字，不隔空格');
 });
@@ -28,7 +28,7 @@ test('一种写法：首页日期 / 月标题 / 月字帖 / 年月', () => {
   assert.equal(t('R-P02.sheetTitle', { month: 10 }), '10月字帖');
   assert.equal(t('X-WORK.monthTitle', { month: 9 }), '9月字帖', '落款侧（work.js）本来就是这一种');
   assert.equal(t('X-MINE.monthHead', { month: 10 }), '10月');
-  assert.equal(t('R-M06.monthDays', { month: 10, n: 2 }), '10月有记录 2 天');
+  assert.equal(t('R-M06.monthDays', { month: 10, n: 2 }), '10月写了 2 天');
 });
 
 test('cellCopy：记录格下两行「日期 / 判断」，读屏名与放大标题「日期 · 判断」', () => {

@@ -281,14 +281,14 @@ test('CharRow pick: checkbox is a Button role=checkbox with aria-checked + aria-
   assert.equal(sel.props['aria-label'], '选择「和」');
   sel.props.onClick();
   assert.equal(toggled, '和');
-  assert.equal(text(off['query-row-status'][0]), '自选的字 · 还没有记录');
+  assert.equal(text(off['query-row-status'][0]), '自选字 · 还没写过');
   const on = byTestid(CharRow({ summary: { char: '和', practicable: true, custom: false, count: 0 }, selectable: true, selected: true }));
   assert.equal(on['query-row-select'][0].props['aria-checked'], 'true');
   assert.equal(on['query-row-select'][0].props['aria-label'], '取消选择「和」');
   const bad = byTestid(CharRow({ summary: { char: '龘', practicable: false, custom: false, count: 0 }, selectable: false }));
   assert.equal(bad['query-row-select'], undefined);
   assert.equal(bad['query-row'][0].props['data-practicable'], 'false');
-  assert.equal(text(bad['query-row-status'][0]), '暂时不能练');
+  assert.equal(text(bad['query-row-status'][0]), '暂不能练');
 });
 
 test('PickBar: 0 selected → Button disabled (Button adds aria-disabled); N → label; failure → R-H06 三段式', () => {
@@ -296,10 +296,10 @@ test('PickBar: 0 selected → Button disabled (Button adds aria-disabled); N →
   assert.equal(none['query-bar'][0].props['data-count'], 0);
   assert.equal(none['query-go'][0].type, Button);
   assert.equal(none['query-go'][0].props.disabled, true);
-  assert.equal(text(none['query-go'][0]), '先选一个字');
+  assert.equal(text(none['query-go'][0]), '先选字');
   const two = byTestid(PickBar({ bar: pickBarOf(2), count: 2 }));
   assert.equal(two['query-go'][0].props.disabled, false);
-  assert.equal(text(two['query-go'][0]), '练这 2 个字');
+  assert.equal(text(two['query-go'][0]), '练这些字');
   const failed = byTestid(PickBar({ bar: pickBarOf(2), count: 2, failed: true }));
   assert.equal(failed['query-go'], undefined);
   assert.equal(text(failed['query-go-fail-cancel'][0]), '先不保存');
@@ -311,14 +311,14 @@ test('CardActions: add / already added / detail greyed without onDetail; add fai
   const summary = { char: '永', practicable: true, custom: false, count: 2, latest: rec('r2', '永'), latestDay: '2026-09-24' };
   const normal = byTestid(CardActions({ summary }));
   assert.equal(text(normal['query-card-practice'][0]), '练这个字');
-  assert.equal(text(normal['query-card-add'][0]), '加入自选的字');
+  assert.equal(text(normal['query-card-add'][0]), '加入自选');
   assert.equal(normal['query-card-add'][0].props.disabled, false);
   assert.equal(normal['query-card-detail'][0].props.disabled, true, '查看记录 greyed before M3-6');
   assert.equal(normal['query-card-in-custom'], undefined);
   const added = byTestid(CardActions({ summary: { ...summary, custom: true }, canDetail: true }));
   assert.equal(added['query-card-add'], undefined);
   assert.equal(added['query-card-in-custom'][0].props.disabled, true, '已在自选的字里 is a disabled button');
-  assert.equal(text(added['query-card-in-custom'][0]), '已在自选的字里');
+  assert.equal(text(added['query-card-in-custom'][0]), '已自选');
   assert.equal(added['query-card-detail'][0].props.disabled, false);
   const noRec = byTestid(CardActions({ summary: { ...summary, count: 0 } }));
   assert.equal(noRec['query-card-detail'], undefined, 'no record → no 查看记录');
@@ -334,7 +334,7 @@ test('CardActions: add / already added / detail greyed without onDetail; add fai
   assert.ok(failed && failed['query-card-add-fail']);
   assert.equal(text(failed['query-card-add-fail-cancel'][0]), '先不加');
   assert.equal(text(failed['query-card-add-fail-retry'][0]), '再试一次');
-  assert.ok(text(failed['query-card-add-fail'][0]).includes('没加进自选的字，输入的字还在。'));
+  assert.ok(text(failed['query-card-add-fail'][0]).includes('没加进自选，输入的字还在。'));
   failed['query-card-add-fail-retry'][0].props.onClick();
   assert.equal(retried, 1, '再试一次 = add again');
   const pf = expand(CardActions({ summary, practiceFailed: true }), 'query-card-practice-fail');
@@ -342,8 +342,8 @@ test('CardActions: add / already added / detail greyed without onDetail; add fai
   assert.equal(text(pf['query-card-practice-fail-retry'][0]), '再试一次');
   assert.ok(text(pf['query-card-practice-fail'][0]).includes('没保存上，输入的字还在。'));
   // 卡片文字
-  assert.equal(cardStatText(summary), '记录了 2 次 · 最近一次 9月24日');
-  assert.equal(cardStatText({ ...summary, count: 0, latestDay: null }), '还没有记录');
+  assert.equal(cardStatText(summary), '写过 2 次 · 最近 9月24日');
+  assert.equal(cardStatText({ ...summary, count: 0, latestDay: null }), '还没写过');
   assert.equal(cardMetaText('yǒng', 5), 'yǒng · 5 画');
   assert.equal(cardMetaText('yǒng', 0), 'yǒng');
   assert.equal(formatDay('2026-09-24'), '9月24日');
@@ -357,7 +357,7 @@ test('F5: card actions split — primary 「练这个字」 goes to the pinned f
   assert.equal(text(primary['query-card-practice'][0]), '练这个字');
   assert.equal(primary['query-card-add'], undefined, 'primary part has only the main action');
   const rest = byTestid(parts.rest);
-  assert.equal(text(rest['query-card-add'][0]), '加入自选的字');
+  assert.equal(text(rest['query-card-add'][0]), '加入自选');
   assert.equal(text(rest['query-card-detail'][0]), '查看记录');
   assert.equal(rest['query-card-practice'], undefined);
   // CardActions 仍是两块的合并（结构不变）
@@ -386,8 +386,8 @@ test('cardInkPoints: latest judged record ink (P19 latest); none when getInk has
 test('BadCard: three can\'t-practise lines; 查看记录 only with records, greyed without onDetail', () => {
   const none = byTestid(BadCard({ summary: { char: '龘', count: 0 } }));
   assert.equal(text(none['query-bad-title'][0]), '「龘」暂时不能练。');
-  assert.equal(text(none['query-bad-reason'][0]), '拾字还没有这个字的参考字形。');
-  assert.equal(text(none['query-bad-source'][0]), '能练的字参考教育部《通用规范汉字表》，个别字暂时还不能练。');
+  assert.equal(text(none['query-bad-reason'][0]), '拾字还没收录这个字的标准写法。');
+  assert.equal(text(none['query-bad-source'][0]), '字表参考《通用规范汉字表》，个别字未收。');
   assert.equal(none['query-card-detail'], undefined);
   const withRec = byTestid(BadCard({ summary: { char: '龘', count: 1 }, canDetail: false }));
   assert.equal(withRec['query-card-detail'][0].props.disabled, true);

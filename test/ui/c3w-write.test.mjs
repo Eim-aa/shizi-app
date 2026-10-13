@@ -6,11 +6,11 @@ import { traceDoneLabel } from '../../src/ui/screens/write/answer.js';
 import { t } from '../../src/config/copy/index.js';
 import * as policy from '../../src/config/policy.js';
 
-test('traceDoneLabel：AX3 起描一遍阶段主按钮用短文案「自己写」，AX1–AX2 与常规字号仍是「描好了，自己写」（P259）', () => {
-  assert.equal(t('X-ANSWER.btnTraceDone'), '描好了，自己写');
+test('traceDoneLabel：AX3 起描一遍阶段主按钮用短文案「自己写」，AX1–AX2 与常规字号用长文案（D61 Q13 起与短文案同为「自己写」）（P259）', () => {
+  assert.equal(t('X-ANSWER.btnTraceDone'), '自己写'); // D61 Q13：长短两版都叫「自己写」
   assert.equal(t('X-ANSWER.btnTraceDoneShort'), '自己写');
   assert.equal(policy.axShortPrimaryFrom, 3);
-  for (const ax of [0, 1, 2]) assert.equal(traceDoneLabel(ax), '描好了，自己写', `ax ${ax}`);
+  for (const ax of [0, 1, 2]) assert.equal(traceDoneLabel(ax), t('X-ANSWER.btnTraceDone'), `ax ${ax}`);
   for (const ax of [3, 4, 5]) assert.equal(traceDoneLabel(ax), '自己写', `ax ${ax}`);
-  assert.equal(traceDoneLabel(), '描好了，自己写', 'no ax = normal');
+  assert.equal(traceDoneLabel(), t('X-ANSWER.btnTraceDone'), 'no ax = normal');
 });

@@ -61,13 +61,15 @@ test('F4: every copy slot that mentions 笔迹 / 你写的字 is a variant pair 
 });
 
 test('F4: each …Glyph variant exists and makes no handwriting promise', () => {
-  const PROMISE = /最近一次的笔迹|每次的笔迹|你写错的那一次|你当时的笔迹|你的笔迹|再写一次就能做图片/;
+  const PROMISE = /最近一次的笔迹|最近的笔迹|每次的笔迹|你写错的那一次|你当时的笔迹|你的笔迹|看笔迹|再写一次就能做图片/;
   for (const base of VARIANTS) {
     assert.ok(Object.prototype.hasOwnProperty.call(COPY, base), base + ' exists');
     const glyphKey = base + 'Glyph';
     assert.ok(Object.prototype.hasOwnProperty.call(COPY, glyphKey), glyphKey + ' exists');
     assert.ok(!PROMISE.test([].concat(COPY[glyphKey]).join('')), glyphKey + ' must not promise ink');
-    assert.ok(PROMISE.test([].concat(COPY[base]).join('')), base + ' is the ink-promising original (only valid with perRecordInk=true)');
+    // r7-C1（D61）：文案重写后个别说明句（R-E03.wrongNote / forgetNote）两种写法已无差别——原槽不再承诺笔迹，就不必比变体多说什么
+    const same = [].concat(COPY[base]).join('') === [].concat(COPY[glyphKey]).join('');
+    assert.ok(same || PROMISE.test([].concat(COPY[base]).join('')), base + ' is the ink-promising original (only valid with perRecordInk=true)');
   }
   // 变体槽名都有对应的基础槽（不留孤儿）
   for (const key of Object.keys(COPY)) {
@@ -95,10 +97,10 @@ test('F4: tInk / inkKey follow policy.features.perRecordInk (live value; default
 
 test('A5 (G17): detail / image no-ink note does not promise that writing again makes the image when perRecordInk is off', () => {
   const off = tInk('R-D04.noInkNote', undefined, { features: { perRecordInk: false } });
-  assert.equal(off, '这一次的笔迹没有存下来。在结果页可以把刚写完的字做成图片。');
+  assert.equal(off, t('R-D04.noInkNoteGlyph'));
   assert.ok(!/再写一次就能做图片/.test(off));
   // perRecordInk=true：笔迹落盘，「再写一次」成立，取原槽
-  assert.equal(tInk('R-D04.noInkNote', undefined, { features: { perRecordInk: true } }), '最近一次没有笔迹，再写一次就能做图片。');
+  assert.equal(tInk('R-D04.noInkNote', undefined, { features: { perRecordInk: true } }), t('R-D04.noInkNote'));
 });
 
 test('D27 (P1-E3): with perRecordInk on, the shown slots only promise what is kept — first + latest ink per char, nothing about every time', () => {
@@ -108,7 +110,7 @@ test('D27 (P1-E3): with perRecordInk on, the shown slots only promise what is ke
   const bad = shown.filter(key => EVERY.test([].concat(COPY[key]).join('')));
   assert.deepEqual(bad, [], 'slots promising every judgment\'s ink');
   // 字库墙说明（浅 / 深）改说第一次与最近一次，且仍是承诺笔迹的原槽（只在开启时取）
-  for (const key of ['R-L03.legend', 'X-LIBHOME.legendDarkNote']) assert.match(t(key), /第一次和最近一次的笔迹/, key);
+  for (const key of ['R-L03.legend', 'X-LIBHOME.legendDarkNote']) assert.match(t(key), /看笔迹/, key); // D61 文案重写：不再逐字说「第一次和最近一次」，仍是承诺笔迹的原槽
   // 月字帖按 P02 取「本月第一次」，缺墨说明不得说成「最近一次」
   assert.equal(policy.monthSheetPick, 'first');
   assert.doesNotMatch(t('X-IMAGES.missingMonth', { chars: '「水」' }), /最近一次/, 'month sheet picks the month\'s first record (P02)');

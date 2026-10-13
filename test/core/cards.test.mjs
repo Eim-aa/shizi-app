@@ -66,12 +66,12 @@ test('card fields and key order match the legacy CARDS construction', () => {
 
 test('LIBRARIES: legacy ids, v10 labels, counts 3500/2974/744/2500', () => {
   assert.deepEqual(LIBRARIES.map(lib => lib.id), ['core3500', 'adv3000', 'rare', 'curriculum2500']);
-  assert.deepEqual(LIBRARIES.map(lib => lib.label), ['规范常用字', '规范次常用字', '规范专门用字', '小学初中常用字']);
+  assert.deepEqual(LIBRARIES.map(lib => lib.label), ['常用字', '次常用字', '少见字', '课本字']);
   assert.deepEqual(LIBRARIES.map(lib => lib.officialTotal), [3500, 3000, 1605, 2500]);
   const counts = Object.fromEntries(LIBRARIES.map(lib => [lib.id, cards.filter(lib.test).length]));
   assert.deepEqual(counts, { core3500: 3500, adv3000: 2974, rare: 744, curriculum2500: 2500 });
   assert.ok(Object.isFrozen(LIBRARIES) && LIBRARIES.every(Object.isFrozen));
-  assert.equal(libraryById('rare').label, '规范专门用字');
+  assert.equal(libraryById('rare').label, '少见字');
   assert.equal(libraryById('primary'), null);
   assert.deepEqual(libraryIdsFor(withOverrides.get('她')), ['core3500', 'curriculum2500']);
 });
@@ -93,7 +93,7 @@ test('promptModel masks every occurrence of a repeated target (越来越, raw SE
   assert.equal(model.contentHint, '');
   assert.equal(model.visibleHint, '空格里是同一个字，只写一次。');
   assert.equal(promptHTML(withoutOverrides.get('越')),
-    '<span class="blank">yuè</span><span class="given">来</span><span class="blank repeatBlank" role="img" aria-label="同一目标字的另一处空格">□</span>');
+    '<span class="blank">yuè</span><span class="given">来</span><span class="blank repeatBlank" role="img" aria-label="同一个字的另一处空格">□</span>');
 });
 
 test('promptModel for 慢慢 (raw SEED): only the original position carries pinyin', () => {

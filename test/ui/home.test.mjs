@@ -91,32 +91,32 @@ test('B6 (G45, D36): a current char that has seen its answer (still tracing / wr
   // 5 个字，写到第 3 个（cursor 2）：没看过答案 → 还有 3 个没写
   const plain = resumeOf(state({ A: sess('A', 'daily', 5, 2) }), now).primary;
   assert.deepEqual(plain, { slot: 'A', kind: 'daily', remaining: 3 });
-  assert.equal(resumeLineText(plain, t), '今天的练习 · 接着写', 'E9d / P196: the visible line carries no count');
-  assert.equal(resumeLineAria(plain, t), '今天的练习 · 接着写，还有 3 个字没写', 'the count is only in the screen-reader name (D49 ⑦)');
+  assert.equal(resumeLineText(plain, t), '今天的字 · 接着写', 'E9d / P196: the visible line carries no count');
+  assert.equal(resumeLineAria(plain, t), '今天的字 · 接着写，还剩 3 个', 'the count is only in the screen-reader name (D49 ⑦)');
   // 第 3 个字看过答案：正在写第 3 个字 · 还有 2 个
   for (const phase of ['answer', 'trace', 'retrace']) {
     const seen = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 2), { phase, answerSeen: true }) }), now).primary;
     assert.deepEqual(seen, { slot: 'A', kind: 'daily', remaining: 2, position: 3 }, phase);
-    assert.equal(resumeLineText(seen, t), '今天的练习 · 接着写', phase);
-    assert.equal(resumeLineAria(seen, t), '今天的练习 · 接着写，正在写第 3 个字，还有 2 个', phase);
+    assert.equal(resumeLineText(seen, t), '今天的字 · 接着写', phase);
+    assert.equal(resumeLineAria(seen, t), '今天的字 · 接着写，第 3 个，剩 2 个', phase);
   }
   // 三种来源
   const first = resumeOf(state({ A: withCurrent(sess('A', 'first', 5, 0), { answerSeen: true }) }), now).primary;
-  assert.equal(resumeLineText(first, t), '第一次练习 · 接着写');
-  assert.equal(resumeLineAria(first, t), '第一次练习 · 接着写，正在写第 1 个字，还有 4 个');
+  assert.equal(resumeLineText(first, t), '首次练习 · 接着写');
+  assert.equal(resumeLineAria(first, t), '首次练习 · 接着写，第 1 个，剩 4 个');
   const picked = resumeOf(state({ B: withCurrent(sess('B', 'picked', 3, 1), { answerSeen: true }) }), now).primary;
-  assert.equal(resumeLineText(picked, t), '这次选的字 · 接着写');
-  assert.equal(resumeLineAria(picked, t), '这次选的字 · 接着写，正在写第 2 个字，还有 1 个');
+  assert.equal(resumeLineText(picked, t), '自己选的 · 接着写');
+  assert.equal(resumeLineAria(picked, t), '自己选的 · 接着写，第 2 个，剩 1 个');
   // 最后一个字：不写「还有 0 个」
   const last = resumeOf(state({ B: withCurrent(sess('B', 'picked', 2, 1), { answerSeen: true }) }), now).primary;
   assert.deepEqual(last, { slot: 'B', kind: 'picked', remaining: 0, position: 2 });
-  assert.equal(resumeLineAria(last, t), '这次选的字 · 接着写，正在写第 2 个字，这是最后一个');
+  assert.equal(resumeLineAria(last, t), '自己选的 · 接着写，最后一个了');
   // 两组都没写完：other 行同口径
   const both = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 1), { answerSeen: true }), B: sess('B', 'picked', 2, 0) }), now);
   assert.deepEqual(both.primary, { slot: 'B', kind: 'picked', remaining: 2 });
   assert.deepEqual(both.other, { slot: 'A', kind: 'daily', remaining: 3, position: 2 });
-  assert.equal(resumeLineText(both.other, t), '今天的练习 · 接着写');
-  assert.equal(resumeLineAria(both.other, t), '今天的练习 · 接着写，正在写第 2 个字，还有 3 个');
+  assert.equal(resumeLineText(both.other, t), '今天的字 · 接着写');
+  assert.equal(resumeLineAria(both.other, t), '今天的字 · 接着写，第 2 个，剩 3 个');
   assert.equal(resumeLineText(null, t), '');
   assert.equal(resumeLineAria(null, t), '');
 });

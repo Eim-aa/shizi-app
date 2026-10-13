@@ -55,14 +55,14 @@ test('describeStructure：断言了结构就不重复部件数；没结构时 2�
 
 test('参考字形读屏名称：字，拼音，n 画，结构 / 部件数；没数据的部分不说（判断页与看答案页共用 ref-label.js）', () => {
   const g = ch => GROUPS[ch]; // 单测没有 deck-data.js 的全局 GROUPS：显式传
-  assert.equal(refCardLabel({ char: '的', py: 'dì', strokeData: strokeData('的'), groups: g('的') }), '参考字形：的，dì，8 画，左右结构');
-  assert.equal(refCardLabel({ char: '思', py: 'sī', strokeData: strokeData('思'), groups: g('思') }), '参考字形：思，sī，9 画，上下结构');
+  assert.equal(refCardLabel({ char: '的', py: 'dì', strokeData: strokeData('的'), groups: g('的') }), '标准写法：的，dì，8 画，左右结构');
+  assert.equal(refCardLabel({ char: '思', py: 'sī', strokeData: strokeData('思'), groups: g('思') }), '标准写法：思，sī，9 画，上下结构');
   const many = Object.keys(GROUPS).find(ch => GROUPS[ch].length === 3 && existsSync(new URL(`data/${ch}.json`, ROOT)));
-  assert.match(refCardLabel({ char: many, py: 'x', strokeData: strokeData(many), groups: g(many) }), /^参考字形：.，x，\d+ 画，3 个部件$/);
-  assert.equal(refCardLabel({ char: '的', py: 'dì', strokeData: { status: 'loading', data: null }, groups: g('的') }), '参考字形：的，dì', '数据没到：不说笔画与结构');
-  assert.equal(refCardLabel({ char: '的', py: '', strokeData: strokeData('的'), groups: g('的') }), '参考字形：的', '没有拼音：只读字');
-  assert.equal(refCardLabel({ char: '人', py: 'rén', strokeData: strokeData('人'), groups: g('人') }), '参考字形：人，rén，2 画', '1 个部件：不说');
-  assert.equal(refCardLabel({ char: '大', py: 'dà', strokeData: strokeData('大'), groups: g('大') }), '参考字形：大，dà，3 画，2 个部件', '镶嵌的 2 部件：几何推不出结构，只报部件数');
+  assert.match(refCardLabel({ char: many, py: 'x', strokeData: strokeData(many), groups: g(many) }), /^标准写法：.，x，\d+ 画，3 个部件$/);
+  assert.equal(refCardLabel({ char: '的', py: 'dì', strokeData: { status: 'loading', data: null }, groups: g('的') }), '标准写法：的，dì', '数据没到：不说笔画与结构');
+  assert.equal(refCardLabel({ char: '的', py: '', strokeData: strokeData('的'), groups: g('的') }), '标准写法：的', '没有拼音：只读字');
+  assert.equal(refCardLabel({ char: '人', py: 'rén', strokeData: strokeData('人'), groups: g('人') }), '标准写法：人，rén，2 画', '1 个部件：不说');
+  assert.equal(refCardLabel({ char: '大', py: 'dà', strokeData: strokeData('大'), groups: g('大') }), '标准写法：大，dà，3 画，2 个部件', '镶嵌的 2 部件：几何推不出结构，只报部件数');
   assert.equal(structureText({ char: '的', data: dataOf('的'), groups: null }), '', '没有分组数据：不说');
 });
 

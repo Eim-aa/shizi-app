@@ -81,7 +81,7 @@ const fakeDoc = () => ({ documentElement: new FakeRoot() });
 test('settingsView: defaults — P73 library, sound on (prototype SD), remind off at policy.remindDefault (P18), auto; no large field (D29)', () => {
   const v = settingsView(null);
   assert.equal(v.library, policy.defaultLibrary);
-  assert.equal(v.libraryName, '规范常用字');
+  assert.equal(v.libraryName, '常用字');
   assert.equal(v.sound, true);
   assert.deepEqual(v.remind, { enabled: false, hour: 20, minute: 0, permission: 'unknown' });
   assert.equal(v.denied, false);
@@ -90,7 +90,7 @@ test('settingsView: defaults — P73 library, sound on (prototype SD), remind of
   assert.equal(v.appearanceSwitch, true, 'P51 features.appearanceSwitch');
 
   const w = settingsView({ library: 'curriculum2500', sound: false, remind: { enabled: true, hour: 7, minute: 5, permission: 'denied' }, large: true, appearance: 'dark' });
-  assert.equal(w.libraryName, '小学初中常用字');
+  assert.equal(w.libraryName, '课本字');
   assert.equal(w.sound, false);
   assert.deepEqual(w.remind, { enabled: true, hour: 7, minute: 5, permission: 'denied' });
   assert.equal(w.denied, true);
@@ -238,10 +238,10 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   const all = textOf(vnode);
   assert.ok(!all.includes('背景音'), 'P07: no soundscape row');
   assert.ok(!all.includes('写完提示做成图片'), 'P13: no photoHint row');
-  assert.match(textOf(ids['settings-library'][0]), /^练习范围规范常用字$/, 'the trailing › is an svg chevron since P1-E1b (components/Chevron.js)');
+  assert.match(textOf(ids['settings-library'][0]), /^练习范围常用字$/, 'the trailing › is an svg chevron since P1-E1b (components/Chevron.js)');
   assert.equal(ids['settings-sound'][0].props.role, 'switch');
   assert.equal(ids['settings-sound'][0].props['aria-checked'], 'true', 'sound defaults on');
-  assert.equal(textOf(ids['settings-sound'][0]), '声音判断和落款时的轻声，书写时不出声。', 'N2-12: 「声音」 + a subtitle saying which two moments (D53)');
+  assert.equal(textOf(ids['settings-sound'][0]), '声音点写对写错时有轻声，写字时无声。', 'N2-12: 「声音」 + a subtitle saying which two moments (D53)');
   assert.equal(textOf(ids['settings-sound-sub'][0]), t('X-SETTINGS.soundSub'));
   assert.equal(ids['settings-remind'][0].props['aria-checked'], 'false');
   assert.equal(textOf(ids['settings-remind-sub'][0]), t('R-S01.remindNote'));
@@ -252,7 +252,7 @@ test('SettingsBody: four groups, rows in prototype order; no 背景音 (P07) / �
   assert.equal(allByTestid(ids['settings-group'][2])['settings-appearance'].length, 1, 'the 显示 group holds 外观');
   assert.equal(textOf(ids['settings-appearance-value'][0]), '跟随系统');
   assert.equal(ids['settings-appearance'][0].props['aria-haspopup'], 'dialog');
-  assert.equal(textOf(ids['settings-backup'][0]), '备份与恢复还没有备份', 'svg chevron, not text (P1-E1b)');
+  assert.equal(textOf(ids['settings-backup'][0]), '备份还没有备份', 'svg chevron, not text (P1-E1b)');
   assert.ok(!ids['settings-fail']);
 });
 
@@ -295,9 +295,9 @@ test('SettingsBody: reminders on → time row; denied → R-S02 subtext, body an
   const ids = allByTestid(body(v, { fail: { group: 'remind', field: 'time' } }));
   assert.equal(ids['settings-remind-time'][0].props.value, '07:05');
   assert.equal(ids['settings-remind-time'][0].props.type, 'time');
-  assert.equal(textOf(ids['settings-remind-sub'][0]), '手机关了拾字的通知，收不到提醒');
-  assert.match(textOf(ids['settings-remind-denied'][0]), /想收到提醒，请到手机设置里打开拾字的通知。去手机设置 ›/);
-  assert.equal(textOf(ids['settings-open-system'][0]), '去手机设置 ›');
+  assert.equal(textOf(ids['settings-remind-sub'][0]), '通知没开');
+  assert.match(textOf(ids['settings-remind-denied'][0]), /要收提醒，请到手机设置打开通知。手机设置 ›/);
+  assert.equal(textOf(ids['settings-open-system'][0]), '手机设置 ›');
   assert.equal(ids['settings-fail'].length, 1);
   assert.equal(ids['settings-fail'][0].props['data-group'], 'remind');
   assert.equal(textOf(ids['settings-fail-note'][0]), '没保存上，刚才的选择没记下。');
@@ -365,9 +365,9 @@ test('P165: SettingsBody 练习组「练习范围 · 写字方式 · 按键音�
   const row = ids['settings-writemode'][0];
   assert.equal(row.props['data-value'], 'paper');
   assert.equal(row.props['aria-haspopup'], 'dialog');
-  assert.equal(textOf(row), '写字方式在纸上写，回来对照判断在纸上写', 'title, then the one-line sub (what 在纸上写 is: P277), then the current value');
-  assert.equal(textOf(ids['settings-writemode-sub'][0]), '在纸上写，回来对照判断', 'D56: the row explains 在纸上写 itself, since the write page no longer offers it');
-  assert.equal(textOf(allByTestid(body(settingsView(null)))['settings-writemode-value'][0]), '在屏幕上写');
+  assert.equal(textOf(row), '写字方式在纸上写，回来对照在纸上写', 'title, then the one-line sub (what 在纸上写 is: P277), then the current value');
+  assert.equal(textOf(ids['settings-writemode-sub'][0]), '在纸上写，回来对照', 'D56: the row explains 在纸上写 itself, since the write page no longer offers it');
+  assert.equal(textOf(allByTestid(body(settingsView(null)))['settings-writemode-value'][0]), '屏幕上写');
   assert.ok(!/写字页格下|格下点/.test(t('X-SETTINGS.writeModeNote')), 'D56: the sheet note no longer promises a per-character switch on the write page');
 });
 

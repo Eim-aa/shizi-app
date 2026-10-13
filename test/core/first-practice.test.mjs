@@ -46,8 +46,8 @@ test('the first group is 3 characters and only the first practice: progress read
   const s = createSession({ id: 's1', kind: 'first', queue: q, at: at('2026-09-24') });
   assert.equal(s.queue.length, 3);
   assert.equal(t('R-W01.progress', { n: s.cursor + 1, total: s.queue.length }), '1 / 3');
-  assert.equal(t('R-H04.resumeFirst'), '第一次练习 · 接着写');
-  assert.equal(t('R-H04.resumeFirstAria', { n: 3 }), '第一次练习 · 接着写，还有 3 个字没写');
+  assert.equal(t('R-H04.resumeFirst'), '首次练习 · 接着写');
+  assert.equal(t('R-H04.resumeFirstAria', { n: 3 }), '首次练习 · 接着写，还剩 3 个');
   assert.equal(t('R-H03.firstVisit'), '先写三个大家常忘的字。', 'P1-E5: the line under 开始写字 (stage-1 design §一)');
   assert.equal(policy.groupSize, 5);
 });

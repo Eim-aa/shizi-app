@@ -9,11 +9,11 @@ import {
 
 const read = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');
 
-test('书写格读屏名称：没写是「书写格」，写了带笔数', () => {
-  assert.equal(gridLabel(0), '书写格');
-  assert.equal(gridLabel(1), '书写格，已写 1 笔');
-  assert.equal(gridLabel(3), '书写格，已写 3 笔');
-  assert.equal(gridLabel(undefined), '书写格');
+test('书写格读屏名称：没写是「写字格」，写了带笔数', () => {
+  assert.equal(gridLabel(0), '写字格');
+  assert.equal(gridLabel(1), '写字格，已写 1 笔');
+  assert.equal(gridLabel(3), '写字格，已写 3 笔');
+  assert.equal(gridLabel(undefined), '写字格');
 });
 
 test('笔数变化的播报句：抬笔、撤销、撤销到空、清空、恢复；没变化不播', () => {
@@ -34,8 +34,8 @@ test('笔序读法：没有笔画名称数据，一律「第 n 笔」；提示 /
   assert.equal(hintAnnouncement({ from: 3, to: 5 }), '提示画出了第 4 到第 5 笔');
   assert.equal(hintAnnouncement({ from: 0, to: 1 }), '提示画出了第 1 笔');
   assert.equal(hintAnnouncement(null), '');
-  assert.equal(traceAnnouncement(13), '描一遍：参考字形画出了第 1 到第 13 笔');
-  assert.equal(traceAnnouncement(0), '描一遍：参考字形出现了');
+  assert.equal(traceAnnouncement(13), '描一遍：已画出第 1 到第 13 笔');
+  assert.equal(traceAnnouncement(0), '描一遍：字形出现了');
 });
 
 test('写字页接线：书写格名称用 gridLabel(笔数)；播报区挂在页根（不在淡化快照里）；播报区是 aria-live=polite 的 status', () => {

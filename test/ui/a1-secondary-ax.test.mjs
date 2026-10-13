@@ -35,7 +35,7 @@ test('recordsModel.dayList：有记录的每一天一项（升序）、n = 那�
 });
 
 test('文案：每天一行「10月3日 · 记了 5 个字」、周条一句话「写了 n 天」', () => {
-  assert.equal(COPY['X-MINE.axDayRow'], '{date} · 记了 {n} 个字');
+  assert.equal(COPY['X-MINE.axDayRow'], '{date} · 写了 {n} 个字');
   assert.equal(COPY['X-MINE.axDayRowPaper'], '{date} · 有记录');
   assert.equal(COPY['X-MINE.weekSummary'], '写了 {n} 天');
   assert.equal(COPY['X-MINE.weekSummaryNone'], '还没有记录');

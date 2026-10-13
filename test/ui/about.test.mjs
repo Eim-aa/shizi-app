@@ -147,12 +147,12 @@ test('credits data: Preact / htm / Hanzi Writer / ts-fsrs and the data sources a
   }
 });
 
-test('about page: three rows (隐私 / 开源资料 · 致谢 / 给我们写信) from R-AB01, each a button with a readable name, pushing its sub-page', () => {
+test('about page: three rows (隐私 / 开源致谢 / 联系我们) from R-AB01, each a button with a readable name, pushing its sub-page', () => {
   const rows = aboutRows();
   assert.deepEqual(rows.map(r => r.to), [ABOUT_PRIVACY_SCREEN, ABOUT_CREDITS_SCREEN, ABOUT_LETTER_SCREEN]);
-  assert.deepEqual(rows.map(r => r.label), ['隐私', '开源资料 · 致谢', '给我们写信']);
+  assert.deepEqual(rows.map(r => r.label), ['隐私', '开源致谢', '联系我们']);
   assert.equal(rows[0].value, '记录只存在这台手机上 ›');
-  assert.deepEqual(rows.map(r => r.aria), ['隐私，记录只存在这台手机上', '开源资料 · 致谢', '给我们写信']);
+  assert.deepEqual(rows.map(r => r.aria), ['隐私，记录只存在这台手机上', '开源致谢', '联系我们']);
   assert.equal(stripArrow(t('R-AB01.openSourceRow')), t('X-ABOUT.creditsTitle'));
 
   const opened = [];
@@ -179,15 +179,15 @@ test('sub-pages: privacy paragraphs, credits groups (code → data → font), le
 
   const groups = creditGroups();
   assert.deepEqual(groups.map(g => g.kind), ['code', 'data', 'font']);
-  assert.deepEqual(groups.map(g => g.title), ['程序', '字形和字源', '字体']);
+  assert.deepEqual(groups.map(g => g.title), ['程序', '字形字源', '字体']);
   assert.equal(groups.reduce((n, g) => n + g.items.length, 0), CREDITS.length);
   assert.deepEqual(creditGroups(CREDITS.filter(c => c.kind === 'code')).map(g => g.kind), ['code'], 'empty groups are left out');
   const cred = CreditsView();
-  assert.equal(cred.props.title, '开源资料 · 致谢');
+  assert.equal(cred.props.title, '开源致谢');
   assert.equal(allByTestid(cred, 'about-credits-group').length, 3);
 
   const letter = LetterView();
-  assert.equal(letter.props.title, '给我们写信');
+  assert.equal(letter.props.title, '联系我们');
   const [addr] = allByTestid(letter, 'about-letter-address');
   assert.equal(textOf(addr), t('R-AB01.letterAddressPending'));
   assert.equal(addr.props['data-pending'], 'P21');
@@ -207,7 +207,7 @@ test('B7 (G43, D36): version line 「版本 1.0（20261001）」 from VERSION + 
   const v = versionTexts('1.0', '20261001-abcdef123456');
   assert.equal(v.line, '版本 1.0（20261001）');
   assert.equal(v.full, '构建号 20261001-abcdef123456');
-  assert.equal(v.aria, '版本 1.0，构建日期 20261001，点按显示完整构建号');
+  assert.equal(v.aria, '版本 1.0，20261001，点按看完整构建号');
   // 折叠：只有版本行按钮，没有完整 BUILD
   const closed = BuildLineView({ open: false, onToggle: () => {}, version: '1.0', build: '20261001-abcdef123456' });
   const [btn] = allByTestid(closed, 'about-build');
@@ -233,7 +233,7 @@ test('C1 / P197: the privacy network sentence depends on the platform (iOS shell
   const web = privacyParagraphs({ native: false });
   assert.equal(ios.length, 4);
   assert.equal(ios[2], '拾字不联网，你的记录不会离开这台手机。');
-  assert.equal(web[2], '网页版联网只用来更新拾字和取字的笔顺，不会带上你的记录。');
+  assert.equal(web[2], '网页版联网只为更新和取笔顺，不带记录。');
   assert.ok(!ios.some(p => p.includes('联网只用来')), 'the iOS page never claims it goes online');
   assert.deepEqual(ios.filter((_, i) => i !== 2), web.filter((_, i) => i !== 2), 'the other three paragraphs are the same');
   assert.deepEqual(privacyParagraphs(), web, 'node / browser without the native bridge = web');

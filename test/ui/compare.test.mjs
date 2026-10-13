@@ -368,7 +368,7 @@ test('JudgeFooter: only the two buttons (no 「你来判断…」 sentence, D49)
 });
 
 test('copy: M1-5 slots exist (R-W09 / R-W10 / R-W16 / R-W17 / R-W20 / X-JUDGE)', () => {
-  assert.equal(t('X-JUDGE.changeTitle', { char: '永' }), '修改「永」的判断');
+  assert.equal(t('X-JUDGE.changeTitle', { char: '永' }), '改「永」');
   assert.equal(t('X-JUDGE.changeToWrong'), '改为写错');
   assert.equal(t('X-JUDGE.changeToCorrect'), '改为写对');
   assert.equal(t('R-W20.skippedToast', { char: '春' }), '已跳过「春」');
@@ -404,16 +404,16 @@ test('rememberInk / paintMini helpers', t0 => {
   assert.equal(compareModule.MINI_WIDTH_SCALE, undefined, 'the 1.41 constant is gone');
 });
 
-test('A9: compare cards read 「参考字形：嚏，tì，17 画」「你的书写，5 笔」; missing data degrades gracefully', () => {
+test('A9: compare cards read 「标准写法：嚏，tì，17 画」「你写的，5 笔」; missing data degrades gracefully', () => {
   const ready = { status: 'ready', data: { strokes: Array.from({ length: 17 }, () => 'M0 0') } };
-  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: ready }), '参考字形：嚏，tì，17 画');
-  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: { status: 'loading', data: null } }), '参考字形：嚏，tì');
-  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: { status: 'missing', data: null } }), '参考字形：嚏，tì');
-  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: null }), '参考字形：嚏，tì');
-  assert.equal(refCardLabel({ char: '嚏', py: '', strokeData: ready }), '参考字形：嚏');
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: ready }), '标准写法：嚏，tì，17 画');
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: { status: 'loading', data: null } }), '标准写法：嚏，tì');
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: { status: 'missing', data: null } }), '标准写法：嚏，tì');
+  assert.equal(refCardLabel({ char: '嚏', py: 'tì', strokeData: null }), '标准写法：嚏，tì');
+  assert.equal(refCardLabel({ char: '嚏', py: '', strokeData: ready }), '标准写法：嚏');
   const stroke = [{ x: 1, y: 1, t: 0 }, { x: 2, y: 2, t: 10 }];
-  assert.equal(mineCardLabel([stroke, stroke, stroke, stroke, stroke]), '你的书写，5 笔');
-  assert.equal(mineCardLabel([stroke, [], stroke]), '你的书写，2 笔', 'empty strokes are not counted');
+  assert.equal(mineCardLabel([stroke, stroke, stroke, stroke, stroke]), '你写的，5 笔');
+  assert.equal(mineCardLabel([stroke, [], stroke]), '你写的，2 笔', 'empty strokes are not counted');
   assert.equal(mineCardLabel([]), t('R-W09.labelMine'));
   assert.equal(mineCardLabel(null), t('R-W09.labelMine'));
   // 渲染：两张卡收到的 label 就是这两个名称
@@ -426,7 +426,7 @@ test('A9: compare cards read 「参考字形：嚏，tì，17 画」「你的书
     if (typeof p.label === 'string') labels.push(p.label);
     walk(p.children);
   })(stage);
-  assert.deepEqual(labels, ['你的书写，2 笔', '参考字形：嚏，tì，17 画']);
+  assert.deepEqual(labels, ['你写的，2 笔', '标准写法：嚏，tì，17 画']);
 });
 
 test('ContinueButton（判断页左上「‹」）带 sz-page__ico--back：与写字页其它阶段同一个 x（I3-03）', () => {

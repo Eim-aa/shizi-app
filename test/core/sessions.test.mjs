@@ -139,8 +139,8 @@ test('sessions: home resume lines list B first, then A, with remaining counts (S
     { slot: 'B', kind: 'picked', remaining: 2 },
     { slot: 'A', kind: 'daily', remaining: 2 },
   ]);
-  assert.equal(t('R-H04.resumePicked'), '这次选的字 · 接着写');
-  assert.equal(t('R-H04.resumePickedAria', { n: 2 }), '这次选的字 · 接着写，还有 2 个字没写');
+  assert.equal(t('R-H04.resumePicked'), '自己选的 · 接着写');
+  assert.equal(t('R-H04.resumePickedAria', { n: 2 }), '自己选的 · 接着写，还剩 2 个');
   assert.deepEqual(resumeLines(emptySessions()), []);
 });
 

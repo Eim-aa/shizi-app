@@ -170,7 +170,7 @@ test('resultModel picked (R2-R1 / V2-04 / T2-03): the same work layout as the da
 
 test('leaveOf: every source view (R-R06); unknown and detail without char fall back to 回到首页', () => {
   assert.deepEqual(['wrongList', 'forgetList', 'allWritten', 'mine', 'library', 'home'].map(view => leaveOf({ view }).label),
-    ['回到写错过', '回到快忘了', '回到有记录的字', '回到我的', '回到字库', '回到首页']);
+    ['回到写错过', '回到快忘了', '回到写过的字', '回到我的', '回到字库', '回到首页']);
   assert.equal(leaveOf({ view: 'againList' }).view, 'wrongList', 'old key againList → wrongList');
   assert.equal(leaveOf({ view: 'detail', char: '静' }).label, '回到「静」');
   assert.equal(leaveOf({ view: 'detail' }).label, '回到首页');
@@ -409,7 +409,7 @@ test('EndDialogContent: S04 primary 接着写, 结束这组 secondary, no presel
   assert.deepEqual(btns.map(b => [b.props['data-testid'], b.props.variant]), [['write-end-confirm', 'secondary'], ['write-end-continue', 'primary']]);
   assert.ok(btns.every(b => !b.props.autofocus && !('aria-pressed' in b.props)));
   const body = find(ask, n => n.props && n.props['data-testid'] === 'write-end-body')[0];
-  assert.equal(body.props.children, '还有 2 个字没写，结束后就不写了。判断过的 1 个字已经记下。');
+  assert.equal(body.props.children, '还有 2 个字没写。已写的 1 个已记下。');
   const failed = EndDialogContent({ n: 2, m: 1, failed: true, onEnd: () => {}, onCancel: () => {} });
   const fb = find(failed, n => n.props && n.props.variant && n.props['data-testid']);
   assert.deepEqual(fb.map(b => b.props['data-testid']), ['write-end-fail-cancel', 'write-end-retry']);

@@ -64,7 +64,7 @@ test('自己选字 stays on the special-group day, next to 这次先写平常的
   assert.deepEqual(Object.fromEntries(Object.entries(STATES).map(([name, make]) => [name, make().showPick])),
     { first: false, fresh: true, progress: true, today: true, back: true, special: true });
   assert.equal(homeModel(state({ A: sess('A', 'first', 3, 1) }), at(DAY)).showPick, false, 'first practice not finished');
-  assert.equal(t('X-HOME.capitalDefer'), '这次先写平常的字');
+  assert.equal(t('X-HOME.capitalDefer'), '写平常字');
 });
 
 test('removed: the recent-row / handoff modules, their copy keys and test hooks are gone', () => {

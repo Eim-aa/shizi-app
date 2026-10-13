@@ -81,13 +81,13 @@ test('libraryRows: four rows in LIBRARIES order, names / descs from copy, n = ke
   };
   const rows = libraryRows(state, { libraryOf: fakeLib });
   assert.deepEqual(rows.map(r => r.id), LIBRARIES.map(l => l.id));
-  assert.deepEqual(rows.map(r => r.name), ['规范常用字', '规范次常用字', '规范专门用字', '小学初中常用字']);
+  assert.deepEqual(rows.map(r => r.name), ['常用字', '次常用字', '少见字', '课本字']);
   assert.equal(rows[0].desc, '日常最常用的字。大多数人从这里开始。');
   assert.equal(rows[3].desc, libraryDesc('curriculum2500'));
   assert.deepEqual(rows.map(r => r.total), [3, 2, 1, 2]);
   // 的 一 各算一次（同字两次判断计 1）；永只看过答案、韦只跳过 → 不算（D23）；折叠月的 kept 也算
   assert.deepEqual(rows.map(r => r.recorded), [2, 1, 1, 2]);
-  assert.equal(rows[0].countLine, '可以练 3 个字 · 有记录 2 个');
+  assert.equal(rows[0].countLine, '可练 3 个 · 写过 2 个');
   assert.deepEqual(rows.map(r => r.current), [true, false, false, false], 'no settings → P73 default library');
   assert.equal(policy.defaultLibrary, 'core3500');
 });
@@ -96,7 +96,7 @@ test('libraryRows: current follows settings.library; unknown id falls back to th
   const rows = libraryRows({ settings: { library: 'adv3000' }, records: {} }, { libraryOf: fakeLib });
   assert.deepEqual(rows.map(r => r.current), [false, true, false, false]);
   assert.deepEqual(rows.map(r => r.recorded), [0, 0, 0, 0]);
-  assert.equal(rows[1].countLine, '可以练 2 个字 · 有记录 0 个');
+  assert.equal(rows[1].countLine, '可练 2 个 · 写过 0 个');
   const bad = libraryRows({ settings: { library: 'primary' }, records: {} }, { libraryOf: fakeLib });
   assert.deepEqual(bad.map(r => r.current), [true, false, false, false]);
   assert.deepEqual(libraryRows(null, { libraryOf: fakeLib }).map(r => r.current), [true, false, false, false], 'store not booted');
@@ -118,7 +118,7 @@ test('real deck: counts come from the data (3500 / 2974 / 744 / 2500)', () => {
     const rows = libraryRows({ settings: null, records: { '2026-09': [rec('r1', '的'), rec('r2', '耶')] } });
     assert.deepEqual(rows.map(r => r.total), [3500, 2974, 744, 2500]);
     assert.deepEqual(rows.map(r => r.recorded), [1, 1, 0, 1]);
-    assert.equal(rows[1].countLine, '可以练 2974 个字 · 有记录 1 个');
+    assert.equal(rows[1].countLine, '可练 2974 个 · 写过 1 个');
     // 新字来源跟着 settings.library 走（session-start 读 deck.currentLibraryId）
     assert.equal(currentLibraryId({ library: 'adv3000' }), 'adv3000');
     const plan = planDaily({ records: {}, sched: {}, settings: { library: 'adv3000' }, sessions: null },
@@ -133,7 +133,7 @@ test('real deck: counts come from the data (3500 / 2974 / 744 / 2500)', () => {
 });
 
 test('countSegments: the count line splits into whole segments (折行整段换行)', () => {
-  assert.deepEqual(countSegments(t('R-L06.countLine', { n: 3500, m: 30 })), ['可以练 3500 个字', '有记录 30 个']);
+  assert.deepEqual(countSegments(t('R-L06.countLine', { n: 3500, m: 30 })), ['可练 3500 个', '写过 30 个']);
 });
 
 // ---------------------------------------------------------------- 写入
@@ -220,6 +220,6 @@ test('SwitchFail: 先不换 / 再试一次 with the save-failed sentence', () =>
 test('screen registered as library-switch; library names from copy', () => {
   assert.equal(LIBRARY_SWITCH_SCREEN, 'library-switch');
   assert.ok(getScreen('library-switch'), 'registered');
-  assert.equal(libraryName('rare'), '规范专门用字');
+  assert.equal(libraryName('rare'), '少见字');
   assert.throws(() => t('X-LIBSWITCH.switchedToast', { library: libraryName('adv3000') }), 'D58: switching shows no toast');
 });

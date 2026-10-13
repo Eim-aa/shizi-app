@@ -53,7 +53,7 @@ test('copy: t() fills placeholders, returns arrays for multi-line copy, and reje
   assert.equal(t('R-W05.hintRemaining', { n: 2 }), '提示，还有 2 次', 'D49：读屏名称；可见文字是 R-W05.hintLabel');
   assert.equal(t('R-W05.hintLabel'), '提示');
   assert.equal(t('R-W10.lineRecordedCorrect', { char: '静' }), '「静」记为写对 · 修改 ›');
-  assert.deepEqual(t('R-D10.body'), ['旧版本拍照留下的记录，只能看，不能做成图片。', '备份时会一起存下。']);
+  assert.deepEqual(t('R-D10.body'), ['旧版本拍照的记录，只能看，不能做图。', '备份时会一起存下。']);
   assert.equal(has('R-L06.confirmBody'), false, 'I3 P1-19: the switch-library confirm is gone');
   assert.equal(format('{n} / {total}', { n: 3 }), '3 / {total}', 'missing values stay visible');
   assert.throws(() => t('R-X99.nope'), /unknown copy key/);
@@ -68,14 +68,14 @@ test('copy: decided multi-version cells use the 03 transitional choice', () => {
   assert.equal(t('R-W10.lineSaw', { char: '静' }), '「静」看过答案', 'P248: 「记为看过答案」 is said in one place only (R-W07.answerNote)');
   assert.equal((Object.values(COPY).filter(v => typeof v === 'string' && v.includes('记为看过答案'))).length, 2, 'only the answer-page note (R-W07 / R-W08 variants of the same line) says 「记为看过答案」');
   assert.equal(t('R-R02.sheetNoInk'), '这次没写', 'P15');
-  assert.equal(t('R-Q04.rowCustomCount', { n: 3 }), '自选的字 · 记录了 3 次', 'P43');
+  assert.equal(t('R-Q04.rowCustomCount', { n: 3 }), '自选字 · 写过 3 次', 'P43');
   assert.equal(t('R-B01.clearUndoL1'), '记录已清空', 'P44');
   assert.equal(has('R-Q01.titleAdd'), false, 'P42: no add mode title');
 });
 
 test('copy: library names match the four-library governance labels (M0-2 contract)', () => {
   const names = ['core3500', 'adv3000', 'rare', 'curriculum2500'].map((id) => t('R-L06.lib.' + id + '.name'));
-  assert.deepEqual(names, ['规范常用字', '规范次常用字', '规范专门用字', '小学初中常用字']);
+  assert.deepEqual(names, ['常用字', '次常用字', '少见字', '课本字']);
   for (const v of Object.values(SCREENS.library)) {
     for (const line of Array.isArray(v) ? v : [v]) assert.equal(line.includes('义教基础字'), false);
   }

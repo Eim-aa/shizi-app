@@ -155,7 +155,7 @@ test('P276（D56）: 建议的视图——一句话 + 一个「去设置」文�
   let went = 0;
   const ids = byTestid(PaperSuggestView({ onGo: () => { went += 1; } }));
   assert.equal(ids['write-paper-suggest'][0].props.role, 'status');
-  assert.equal(textOf(ids['write-paper-suggest-text'][0]), '看不清或不方便在屏幕上写，可以在设置里改为在纸上写。');
+  assert.equal(textOf(ids['write-paper-suggest-text'][0]), '不方便在屏幕写？可在设置改成纸上写。');
   assert.equal(textOf(ids['write-paper-suggest-go'][0]), '去设置');
   assert.equal(ids['write-paper-suggest-go'][0].props.variant, 'text');
   assert.ok(!ids['write-paper-suggest-no'] && !ids['write-paper-suggest-yes'], 'only 去设置');
@@ -182,6 +182,6 @@ test('P167: 纸上判断页只有参考字形（书写格大小）+ 格下说明
   assert.ok(!ids['write-compare-mine'], 'no learner card');
   assert.equal(ids['write-compare-ref'].length, 1);
   assert.equal(textOf(ids['write-compare-aside-ref'][0]), '和你纸上的字对照');
-  assert.equal(textOf(ids['write-compare-paper'][0]), '你的书写：写在纸上');
+  assert.equal(textOf(ids['write-compare-paper'][0]), '你写的：在纸上');
   assert.equal(ids['write-compare-paper'][0].props.class, 'sr-only');
 });

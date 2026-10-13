@@ -159,8 +159,8 @@ test('noticeFor: quota vs generic sentence from copy; PersistNotice exposes role
   assert.deepEqual(noticeFor({ kind: 'quota' }), { kind: 'quota', text: t('X-PERSIST.quotaFailed') });
   assert.deepEqual(noticeFor({ kind: 'unknown' }), { kind: 'generic', text: t('X-PERSIST.saveFailed') });
   assert.deepEqual(noticeFor(null), { kind: 'generic', text: t('X-PERSIST.saveFailed') });
-  assert.equal(t('X-PERSIST.saveFailed'), '这次进度没有保存。请立即导出备份后重新打开 App。');
-  assert.equal(t('X-PERSIST.quotaFailed'), '本地空间已满，这次进度没有保存。请立即导出备份并清理空间。');
+  assert.equal(t('X-PERSIST.saveFailed'), '进度没存上。请先导出备份，再重开拾字。');
+  assert.equal(t('X-PERSIST.quotaFailed'), '空间满了，没存上。请导出备份并清理。');
   assert.equal(PersistNotice({ notice: null }), null);
   const v = PersistNotice({ notice: { kind: 'quota', text: 'x' } });
   assert.equal(v.props.role, 'status');

@@ -426,10 +426,10 @@ test('备份页文案小工具（mine/backup.js）：撤销底栏两行、丢失
   assert.deepEqual(ui.undoLines('clear', false), ['记录已清空', '离开这一页前可以撤销']);
   assert.deepEqual(ui.undoLines('restore', true), ['没能撤销，现在还是备份里的记录', '可以再点一次撤销']);
   assert.deepEqual(ui.undoLines('clear', true), ['没能撤销，记录还是空的', '可以再点一次撤销']);
-  assert.equal(ui.lossText({ from: '2026-09-02', to: '2026-09-24' }), '9月2日到 9月24日的记录会丢失，建议先导出备份文件。');
-  assert.equal(ui.lossText({ from: '2026-09-20', to: '2026-09-20' }), '9月20日的记录会丢失，建议先导出备份文件。');
+  assert.equal(ui.lossText({ from: '2026-09-02', to: '2026-09-24' }), '9月2日到 9月24日的记录会丢失，建议先导出。');
+  assert.equal(ui.lossText({ from: '2026-09-20', to: '2026-09-20' }), '9月20日的记录会丢失，建议先导出。');
   assert.equal(ui.lossText(null), '');
-  assert.equal(ui.lineText({ key: 'R-B01.conclusionRestore', vars: { day: '2026-09-01', n: 23 } }), '已换成 9月1日备份里的记录，一共 23 个字。');
+  assert.equal(ui.lineText({ key: 'R-B01.conclusionRestore', vars: { day: '2026-09-01', n: 23 } }), '已恢复 9月1日的备份，共 23 个字。');
   assert.equal(ui.lineText({ key: 'R-B02.noRecords' }), '现在没有记录。');
   assert.deepEqual(ui.backupMenuStatus({ records: {} }), { kind: 'never', day: null, text: '还没有备份' });
   assert.deepEqual(ui.backupMenuStatus({ records: {}, backupMeta: { lastExportAt: ms('2026-09-01', 20) } }),

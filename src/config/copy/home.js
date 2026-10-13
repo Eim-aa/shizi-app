@@ -4,7 +4,7 @@
 
 export default Object.freeze({
   // R-H01（已定）
-  'R-H01.title': '今天写几个字',
+  'R-H01.title': '今天写字',
   // R-H02（已定）
   'R-H02.line': '{date} · {period}',
   'R-H02.dateFormat': '{month}月{day}日',
@@ -15,24 +15,24 @@ export default Object.freeze({
   // R-H03（已定；阶段 1 P1-E5：首次打开按钮下一行，设计稿「首练与首页」§一，替换「第一次来，先写 3 个字试试。」）
   'R-H03.firstVisit': '先写三个大家常忘的字。',
   // R-H04（已定；阶段 1 E9d，P196 / D49 ⑦：A、B 两组都没写完时 A 那一行可见文字只剩「… · 接着写」，计数只放进读屏名称，过渡文案）
-  'R-H04.resumePicked': '这次选的字 · 接着写',
-  'R-H04.resumeDaily': '今天的练习 · 接着写',
-  'R-H04.resumeFirst': '第一次练习 · 接着写',
+  'R-H04.resumePicked': '自己选的 · 接着写',
+  'R-H04.resumeDaily': '今天的字 · 接着写',
+  'R-H04.resumeFirst': '首次练习 · 接着写',
   // 读屏名称（含可见文字「… · 接着写」，再加剩余字数；Voice Control 报可见文字能点到）
-  'R-H04.resumePickedAria': '这次选的字 · 接着写，还有 {n} 个字没写',
-  'R-H04.resumeDailyAria': '今天的练习 · 接着写，还有 {n} 个字没写',
-  'R-H04.resumeFirstAria': '第一次练习 · 接着写，还有 {n} 个字没写',
+  'R-H04.resumePickedAria': '自己选的 · 接着写，还剩 {n} 个',
+  'R-H04.resumeDailyAria': '今天的字 · 接着写，还剩 {n} 个',
+  'R-H04.resumeFirstAria': '首次练习 · 接着写，还剩 {n} 个',
   // 当前字已看过答案、正在描或自己写：不再算进「还有 N 个字没写」（阶段 0 B6，已决定 D36 / P77）；只进读屏名称
-  'R-H04.resumePickedNow': '这次选的字 · 接着写，正在写第 {k} 个字，还有 {n} 个',
-  'R-H04.resumeDailyNow': '今天的练习 · 接着写，正在写第 {k} 个字，还有 {n} 个',
-  'R-H04.resumeFirstNow': '第一次练习 · 接着写，正在写第 {k} 个字，还有 {n} 个',
-  'R-H04.resumePickedNowLast': '这次选的字 · 接着写，正在写第 {k} 个字，这是最后一个',
-  'R-H04.resumeDailyNowLast': '今天的练习 · 接着写，正在写第 {k} 个字，这是最后一个',
-  'R-H04.resumeFirstNowLast': '第一次练习 · 接着写，正在写第 {k} 个字，这是最后一个',
+  'R-H04.resumePickedNow': '自己选的 · 接着写，第 {k} 个，剩 {n} 个',
+  'R-H04.resumeDailyNow': '今天的字 · 接着写，第 {k} 个，剩 {n} 个',
+  'R-H04.resumeFirstNow': '首次练习 · 接着写，第 {k} 个，剩 {n} 个',
+  'R-H04.resumePickedNowLast': '自己选的 · 接着写，最后一个了',
+  'R-H04.resumeDailyNowLast': '今天的字 · 接着写，最后一个了',
+  'R-H04.resumeFirstNowLast': '首次练习 · 接着写，最后一个了',
   // R-H05（已定）
   'R-H05.body': '上一组还有{chars}没写。',
-  'R-H05.continueOld': '接着写那组',
-  'R-H05.endOldStartNew': '结束那组，开新的',
+  'R-H05.continueOld': '接着写',
+  'R-H05.endOldStartNew': '开新一组',
   'R-H05.cancel': '取消',
   // R-H06（已定）
   'R-H06.title': '自己选字',
@@ -44,8 +44,8 @@ export default Object.freeze({
   'R-H11.title': '现在没有要写的字',
   'R-H11.body': '想接着写，可以自己选几个字。',
   'R-H11.backHome': '回到首页 ›',
-  'R-H11.noCharsBody': '可以换一个字库，或者先练写错过的字。',
-  'R-H11.noCharsLink': '看写错过的字 ›',
+  'R-H11.noCharsBody': '可以换练习范围，或练写错过的字。',
+  'R-H11.noCharsLink': '写错过 ›',
   // X-HOME（原型首页壳 L217 ctaLabel（K 报告 §1-3）；01 M2-3「继续写字 · 今天的练习」）
   'X-HOME.start': '开始写字',
   'X-HOME.continue': '继续写字',
@@ -58,12 +58,12 @@ export default Object.freeze({
   'X-HOME.mottoLine3': '只是很久没写。',
   'X-HOME.shiLabel': '拾',
   'X-HOME.capitalBody': '今天写两组大写数字，借条、红包上用得着。',
-  'X-HOME.capitalDefer': '这次先写平常的字',
+  'X-HOME.capitalDefer': '写平常字',
   'X-HOME.backNote': '你写过的 {n} 个字都还在。',
   // X-SESSION（M2-2 会话开始：S02 保存失败三段式、「现在没有要写的字」页主按钮；04 R-H05 / R-H11 没给这些槽，P55 待文案）
   'X-SESSION.s02SaveFailed': '没保存上，刚才的选择没记下。',
   'X-SESSION.s02Retry': '再试一次',
   'X-SESSION.s02Cancel': '先不保存',
   'X-SESSION.nonePick': '自己选字',
-  'X-SESSION.noneLibSwitch': '更换字库',
+  'X-SESSION.noneLibSwitch': '换范围',
 });

@@ -88,7 +88,8 @@ export default async function j1WriteEntries(page, ctx) {
       sel: tid('query-card-practice'),
       gone: true,
     },
-    { name: '字库 「练这些字」', prep: async () => { await seedRich(page); await toTab('library'); }, sel: `${topSel('library-card-wrong')} ${tid('library-card-practice')}` },
+    { name: '字库 「今天要写」', prep: async () => { await seedRich(page); await toTab('library'); }, sel: topSel('library-today') },
+    { name: '字库区详情页 「练这些字」', prep: async () => { await seedRich(page); await toTab('library'); await push(page, 'library-list', { kind: 'due' }); await page.waitForSelector(topSel('list-go')); await waitNavIdle(page); }, sel: topSel('list-go') },
     { name: '单字详情 「练这个字」', prep: async () => { const i = await seedRich(page); await push(page, 'detail', { char: i.detailChar }); }, sel: topSel('detail-practice') },
     { name: '全部字 「练这些字」', prep: async () => {
         await seedRich(page);

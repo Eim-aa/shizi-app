@@ -135,12 +135,12 @@ export default async function p0aShell(page, ctx) {
   assert.equal(ps.transform, 'none', 'released back to rest');
   assert.equal(ps.filter, 'none', 'released filter cleared');
 
-  step('A4: pointercancel clears data-pressed on a wall cell; a disabled button never shows the pressed look');
-  const lib = topSel('library-wall-cell');
+  step('A4: pointercancel clears data-pressed on a library row; a disabled button never shows the pressed look');
+  const lib = topSel('library-today');
   const lbox = await page.locator(lib).first().boundingBox();
   await page.mouse.move(lbox.x + lbox.width / 2, lbox.y + lbox.height / 2);
   await page.mouse.down();
-  assert.equal((await pressState(lib)).attr, 'true', 'cell: data-pressed set on pointerdown');
+  assert.equal((await pressState(lib)).attr, 'true', 'row: data-pressed set on pointerdown');
   await page.evaluate(s => document.querySelector(s).dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })), lib);
   assert.equal((await pressState(lib)).attr, null, 'pointercancel clears data-pressed');
   await page.mouse.move(cx, cy - 400);

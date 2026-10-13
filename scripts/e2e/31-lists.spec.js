@@ -200,8 +200,7 @@ async function tabNumbers(page) {
     const n = el => (el && el.dataset.n !== undefined ? Number(el.dataset.n) : null);
     return {
       screen: document.querySelector('.sz-app').dataset.topScreen,
-      wrongCard: n(q('library-card-wrong')),
-      forgetCard: n(q('library-card-forget')),
+      dueZone: top ? n(top.querySelector('[data-testid="library-zone"][data-kind="due"]')) : null,
     };
   });
   const go = async tab => {
@@ -216,7 +215,7 @@ async function tabNumbers(page) {
   await read();
   await go('library');
   const lib = await read();
-  return { wrongCard: lib.wrongCard, forgetCard: lib.forgetCard };
+  return { dueZone: lib.dueZone };
 }
 
 export default async function listsSpec(page, ctx) {
@@ -414,8 +413,7 @@ export default async function listsSpec(page, ctx) {
   assert.equal(n.today, 1, 'getState: today N = 1');
   assert.equal(n.lastB, null, 'lastEnded.B cleared after leaving the result page');
   let tabs = await tabNumbers(page);
-  assert.equal(tabs.wrongCard, n.wrong.length, 'library home 写错过 card count = getState');
-  assert.equal(tabs.forgetCard, n.forget.length, 'library home 快忘了 card count = getState');
+  assert.equal(tabs.dueZone, n.wrong.length + n.forget.length, 'library home 该复习了 (r7-L1 D60: 写错过 + 到期) count = getState');
   await openList(page, 'forget');
   v = await listView(page);
   assert.ok(!v.rows.some(r2 => r2.char === '永'), '快忘了 page does not list 永');
@@ -465,8 +463,7 @@ export default async function listsSpec(page, ctx) {
   v = await listView(page);
   assert.deepEqual(v.empty && v.empty.title, COPY.wrongEmpty, 'back on the list: empty state');
   tabs = await tabNumbers(page);
-  assert.equal(tabs.wrongCard, 0, 'library home 写错过 card = 0');
-  assert.equal(tabs.forgetCard, n.forget.length, 'library home 快忘了 card = getState');
+  assert.equal(tabs.dueZone, n.forget.length, 'library home 该复习了 = 到期的（没有写错的了）= getState');
 
   // ------------------------------------------------------------------ 5. 从快忘了开 B → 结束 → 回本页
   step('from 快忘了: 练这个字 → 写对 → result 回到快忘了 / 从快忘了 → back to the list, 春 gone');

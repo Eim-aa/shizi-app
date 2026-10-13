@@ -201,19 +201,23 @@ export default async function p1e1bLayout(page, ctx) {
     await bootTestHost(page, ctx.baseURL);
     await page.evaluate(({ iso, s }) => { window.__shiziTest.reset(); window.__shiziTest.setClock(iso); const r = window.__shiziTest.seed(s); if (!r.ok) throw new Error(JSON.stringify(r)); }, { iso: `${TODAY}T09:00:00`, s: seedLibrary() });
     await page.waitForTimeout(300);
+    // r7-L1（D60）：墨墙在「全部」页（字库首页不再有墙）；所有字一组（按多久没写排序，自选未写在最前）
     await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.switchTab('library'); });
     await page.waitForTimeout(600);
     await waitNavIdle(page, { settleMs: 250 });
+    await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.push('library-all', { sort: 'age' }); });
+    await page.waitForFunction(() => { const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-body"]'); return !!b && Number(b.dataset.rendered) === Number(b.dataset.total); }, null, { timeout: 30000 });
+    await page.waitForTimeout(300);
     const wall = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]') || document;
-      const w = top.querySelector('[data-testid="library-wall"]');
-      const cells = [...w.querySelectorAll('[data-testid="library-wall-cell"]')].map(el => {
+      const w = top.querySelector('[data-testid="all-body"]');
+      const cells = [...w.querySelectorAll('[data-testid="all-cell"]')].map(el => {
         const ch = el.querySelector('.sz-lib__char');
         const mark = el.querySelector('.sz-lib__mark');
         return { kind: el.dataset.kind, tone: el.dataset.tone, color: ch ? getComputedStyle(ch).color : null, stroke: ch ? getComputedStyle(ch).webkitTextStrokeColor : null, mark: !!mark, scale: ch ? getComputedStyle(ch).transform : null, opacity: el.querySelector('.sz-lib__g') ? getComputedStyle(el.querySelector('.sz-lib__g')).opacity : null };
       });
       const legend = top.querySelectorAll('[data-testid="library-legend"], [data-testid="library-legend-tone"]').length;
-      return { cols: w.dataset.cols, cells, legend, tpl: getComputedStyle(w).gridTemplateColumns.split(' ').length };
+      return { cols: w.dataset.cols, cells, legend, tpl: getComputedStyle(top.querySelector('[data-testid="all-cells"]')).gridTemplateColumns.split(' ').length };
     });
     assert.equal(wall.cols, '8', `${scheme}: 8 columns at 393 wide`);
     assert.equal(wall.tpl, 8, `${scheme}: the grid really has 8 tracks`);
@@ -226,7 +230,7 @@ export default async function p1e1bLayout(page, ctx) {
     const wrongCells = wall.cells.filter(c => c.kind === 'wrong');
     assert.ok(wrongCells.length > 0 && wrongCells.every(c => c.mark), `${scheme}: wrong cells carry the zhu dot`);
     assert.ok(wrongCells.every(c => c.scale === 'none'), `${scheme}: wrong cells are not shrunk`);
-    assert.equal(wall.legend, 0, `${scheme}: no legend on the library page (D49: the tones and marks explain themselves)`);
+    assert.equal(wall.legend, 0, `${scheme}: no legend in the page body (the legend is in the 排序 · 筛选 menu)`);
     const hollow = wall.cells.filter(c => c.kind === 'hollow');
     assert.ok(hollow.length === 2 && hollow.every(c => c.stroke === tokenRgb(scheme, 'ink4')), `${scheme}: unwritten custom chars are outlined in ink4 (D49 ⑤: vermilion only means wrong)`);
   }
@@ -235,11 +239,11 @@ export default async function p1e1bLayout(page, ctx) {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.setViewportSize({ width: 440, height: 956 });
   await page.waitForTimeout(500);
-  const cols9 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall"], [data-testid="library-wall"]').dataset.cols);
+  const cols9 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="all-body"]').dataset.cols);
   assert.equal(cols9, '9', '440 wide: 9 columns');
   await setTextSize(page, LARGE_TEXT);
   await page.waitForTimeout(500);
-  const cols6 = await page.evaluate(() => document.querySelector('[data-testid="library-wall"]').dataset.cols);
+  const cols6 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="all-body"]').dataset.cols);
   assert.equal(cols6, '6', 'XXXL system text: 6 columns');
   await setTextSize(page, 'L');
   await page.setViewportSize({ width: 393, height: 852 });

@@ -295,17 +295,17 @@ export default async function run(page, ctx) {
   assert.ok(status0 && Math.abs(status0.total - u0.total) < 1024, `store usage estimate agrees (${status0 && status0.total} vs ${u0.total})`);
 
   // ------------------------------------------------------------------ 2. 墙首屏
-  step('wall first paint (library tab, 300 chars, ink minis)');
+  step('library home first paint (r7-L1 D60: three zone rows with ink-mini samples; the wall itself is on library-all, measured below)');
   await goTab(page, 'home');
   const wallRuns = [];
   for (let k = 0; k < 3; k += 1) {
-    wallRuns.push(await timedNav(page, { method: 'switchTab', args: ['library'], containerSel: '[data-testid="library-wall"]', cellSel: '[data-testid="library-wall-cell"]' }));
+    wallRuns.push(await timedNav(page, { method: 'switchTab', args: ['library'], containerSel: '[data-testid="library-home"]', cellSel: '[data-testid="library-zone-sample"]' }));
     await goTab(page, 'home');
   }
   const wallMax = Math.max(...wallRuns.map(r => r.ms));
   console.log(`    wall: ${wallRuns.map(r => `${fmtRun(r)}`).join(' / ')}`);
-  row('墙首屏（字库 tab，3 次最大）', fmtMs(wallMax), '≤ 200ms', wallMax <= LIMITS.firstPaintMs);
-  assert.ok(wallRuns[0].canvases > 0, `wall draws real ink minis (${wallRuns[0].canvases})`);
+  row('字库首页首屏（字库 tab，3 次最大）', fmtMs(wallMax), '≤ 200ms', wallMax <= LIMITS.firstPaintMs);
+  assert.ok(wallRuns[0].canvases > 0, `zone samples draw real ink minis (${wallRuns[0].canvases})`);
 
   // ------------------------------------------------------------------ 3. 有记录的字完整页首屏
   step('library-all first paint (300 chars, first batch ≤ 72 cells with ink)');
@@ -337,11 +337,12 @@ export default async function run(page, ctx) {
   const cdp = await page.context().newCDPSession(page);
   await goTab(page, 'library');
   const base = await heapUsed(cdp);
-  const wrongChar = await page.evaluate(() => {
-    const el = document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"][data-kind="wrong"]');
-    return el ? el.dataset.char : null;
+  const { wrongChar, anyChar } = await page.evaluate(() => {
+    const recs = [];
+    for (const v of Object.values(window.__shiziTest.getState().records)) recs.push(...(Array.isArray(v) ? v : v.kept || []));
+    const w = recs.find(r => r.judgment === 'wrong');
+    return { wrongChar: w ? w.char : null, anyChar: recs[0].char };
   });
-  const anyChar = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"]').dataset.char);
   const stack = [
     ['library-all', {}],
     ['detail', { char: anyChar }],
@@ -568,7 +569,8 @@ export default async function run(page, ctx) {
   const coldMonth = [];
   for (let k = 0; k < 3; k += 1) {
     await page.evaluate(async () => (await import('/src/data/strokes.js')).getStrokesLoader().clear());
-    coldWall.push(await timedNav(page, { method: 'switchTab', args: ['library'], containerSel: '[data-testid="library-wall"]', cellSel: '[data-testid="library-wall-cell"]' }));
+    coldWall.push(await timedNav(page, { method: 'push', args: ['library-all', { sort: 'age' }], containerSel: '[data-testid="all-body"]', cellSel: '[data-testid="all-cell"]' }));
+    await backToDepth(page, 0);
     await goTab(page, 'home');
   }
   await goTab(page, 'mine');
@@ -580,8 +582,10 @@ export default async function run(page, ctx) {
   const outlineGlyphs = await page.evaluate(async () => {
     const { nav: n } = await import('/src/ui/router.js');
     n.switchTab('library');
+    await new Promise(r => setTimeout(r, 500));
+    n.push('library-all', { sort: 'age' });
     await new Promise(r => setTimeout(r, 800));
-    return [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-wall-cell"] .sz-pg')].map(g => g.dataset.glyphSrc);
+    return [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="all-cell"] .sz-pg')].map(g => g.dataset.glyphSrc);
   });
   const coldWallMax = Math.max(...coldWall.map(r => r.ms));
   const coldMonthMax = Math.max(...coldMonth.map(r => r.ms));
@@ -589,6 +593,7 @@ export default async function run(page, ctx) {
   assert.ok(outlineGlyphs.length >= 60 && outlineGlyphs.every(x => x === 'outline'), `wall glyph cells are outlines (${outlineGlyphs.length})`);
   row('墙首屏（约 70 个无笔迹字轮廓，冷笔顺缓存，3 次最大）', fmtMs(coldWallMax), '≤ 200ms', coldWallMax <= LIMITS.firstPaintMs);
   row('练习记录首屏（约 70 个无笔迹衬底轮廓，冷缓存，3 次最大）', fmtMs(coldMonthMax), '≤ 200ms', coldMonthMax <= LIMITS.firstPaintMs);
+  await backToDepth(page, 0);
   await goTab(page, 'home');
 
   // 参考：CDP CPU 4× 降速（粗略模拟中端手机主线程；不作断言，真机数字见 M7）。
@@ -597,7 +602,7 @@ export default async function run(page, ctx) {
   const slowRec = await timedNav(page, { method: 'push', args: ['records', { month: '2026-09' }], containerSel: '[data-testid="records-sheet"]', cellSel: '[data-testid="records-sheet-cell"]' });
   await backToDepth(page, 0);
   await goTab(page, 'home');
-  const slowWall = await timedNav(page, { method: 'switchTab', args: ['library'], containerSel: '[data-testid="library-wall"]', cellSel: '[data-testid="library-wall-cell"]' });
+  const slowWall = await timedNav(page, { method: 'switchTab', args: ['library'], containerSel: '[data-testid="library-home"]', cellSel: '[data-testid="library-zone-sample"]' });
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   console.log(`    CPU 4×: records 300 ${fmtRun(slowRec)}; wall ${fmtRun(slowWall)}`);
   row('参考 CPU 4×：练习记录 300 格 / 墙首屏', `${fmtMs(slowRec.ms)} / ${fmtMs(slowWall.ms)}`, '（记录，不断言）', true);

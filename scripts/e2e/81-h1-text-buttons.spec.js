@@ -75,7 +75,7 @@ export default async function run(page0, ctx) {
     step(`${scheme}: 字库 / 有记录的字 / 详情 / 我的 / 设置`);
     await seedHomeSpec(page, { entries: [...'疆酱肆酝春'].map((c, i) => ({ char: c, at: `2026-10-0${1 + i}T20:00:00`, judgment: i === 0 ? 'wrong' : 'correct' })), clock: '2026-10-05T19:30:00' });
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
-    await page.waitForSelector(topSel('library-card-practice'));
+    await page.waitForSelector(topSel('library-all-open'));
     await checkPage(page, assert, `${scheme} library`);
     await go(page, async () => (await import('/src/ui/router.js')).nav.push('library-all', { filter: 'wrong' }));
     await page.waitForSelector(topSel('all-go'));

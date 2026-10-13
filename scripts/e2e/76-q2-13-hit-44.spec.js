@@ -47,10 +47,10 @@ export default async function run(page, ctx) {
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library');
   await waitNavIdle(page);
-  await page.waitForSelector(topSel('library-card-practice'));
-  check(assert, 'library 练这些字', await hitFacts(page, topSel('library-card-practice')));
-  const actH = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="library-card-practice"]').getBoundingClientRect().height);
-  assert.equal(Math.round(actH), 44, 'D49: 「练这些字」 is a text button (min height 44), so the visible height is the hit height');
+  await page.waitForSelector(topSel('library-all-open'));
+  check(assert, 'library 全部 ›', await hitFacts(page, topSel('library-all-open')));
+  const actH = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="library-all-open"]').getBoundingClientRect().height);
+  assert.equal(Math.round(actH), 44, 'D60: 「全部 ›」 is a text button (min height 44), so the visible height is the hit height');
 
   step('写字页：「结束这组」（自选的字那一组才有）');
   await seedSession(page, { slot: 'B', kind: 'picked', chars: ['春', '夏'] });

@@ -276,18 +276,18 @@ export default async function run(page, ctx) {
   const forgetChars = Object.keys(S300.sched).map(k => k.slice(5));
 
   // ------------------------------------------------------------------ 1. 进入与首屏
-  step('enter from the library home 「还有 N 个字 ›」 (the big number is a caption now, D49); 300 chars first paint < 200ms; batches fill in');
+  step('enter from the library home 「全部 ›」 (r7-L1 D60); 300 chars first paint < 200ms; batches fill in');
   await seed(page, S300);
   await page.waitForFunction(sel => {
     const el = document.querySelector(sel);
     return !!el && Number(el.dataset.recorded) === 300;
   }, `${TOP} [data-testid="library-home"]`);
   await page.waitForTimeout(450); // 新状态后 0.4s 按钮不响应（01 §6.6）
-  await click(page, `${TOP} ${tid('library-more')}`);
+  await click(page, `${TOP} ${tid('library-all-open')}`);
   await page.waitForSelector(BODY);
   await waitNavIdle(page, { settleMs: 150 });
   let top = await routerTop(page);
-  assert.equal(top.name, 'library-all', '还有 N 个字 › → library-all (real registration, not a stub)');
+  assert.equal(top.name, 'library-all', '全部 › → library-all (real registration, not a stub)');
   await backToAllRoot();
   async function backToAllRoot() {
     await page.evaluate(async () => {

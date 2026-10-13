@@ -56,9 +56,10 @@ export default async function (page, ctx) {
 
   ctx.step('library wall: the user\'s own records of removed characters stay, drawn with the ShiziKai fallback; no stroke-data request for them');
   await goTab(page, 'library');
-  await page.waitForSelector(`${TOP} [data-testid="library-wall-cell"]`);
-  await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"] .sz-pg[data-glyph-src="loading"]'), null, { timeout: 15000 });
-  const wall = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-wall-cell"]')]
+  await page.evaluate(async () => { const { nav, getRouter } = await import('/src/ui/router.js'); if (getRouter().getState().top.n !== 'library-all') nav.push('library-all', { sort: 'age' }); }); // r7-L1（D60）：墨墙在「全部」页
+  await page.waitForSelector(`${TOP} [data-testid="all-cell"]`);
+  await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] [data-testid="all-cell"] .sz-pg[data-glyph-src="loading"]'), null, { timeout: 15000 });
+  const wall = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="all-cell"]')]
     .map(cell => ({ char: cell.dataset.char, src: cell.querySelector('.sz-pg') && cell.querySelector('.sz-pg').dataset.glyphSrc })));
   const byChar = Object.fromEntries(wall.map(c => [c.char, c.src]));
   for (const ch of GONE) assert.equal(byChar[ch], 'fallback', `${ch} is on the wall with the ShiziKai fallback`);

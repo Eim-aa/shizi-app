@@ -158,22 +158,22 @@ export default async function inkRetention(page, ctx) {
   checkDetail(assert, await openDetail(page), ids, 'same page');
   await goBack(page);
 
-  step('library wall: 永 is drawn with the learner\'s latest ink; legend promises first + latest only');
+  step('library wall (r7-L1 D60: on 「全部」): 永 is drawn with the learner\'s latest ink');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library');
   await waitNavIdle(page);
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('library-all', { sort: 'age' }));
+  await page.waitForSelector(`.sz-layer[data-top="true"] [data-testid="all-cell"][data-char="${CHAR}"]`);
+  await waitNavIdle(page);
   const wall = await page.evaluate(c => {
-    const cell = document.querySelector(`[data-testid="library-wall-cell"][data-char="${c}"]`);
+    const cell = document.querySelector(`.sz-layer[data-top="true"] [data-testid="all-cell"][data-char="${c}"]`);
     return {
       ink: cell && cell.querySelector('[data-ink]') ? cell.querySelector('[data-ink]').dataset.ink : null,
       canvas: !!(cell && cell.querySelector('[data-testid="library-cell-ink"]')),
-      note: document.querySelector('[data-theme-variant="light"]').textContent.trim(),
     };
   }, CHAR);
   assert.equal(wall.ink, 'ink', 'wall cell draws persisted ink (not the standard glyph)');
   assert.ok(wall.canvas, 'wall cell renders InkMini');
-  assert.equal(wall.note, await page.evaluate(async () => (await import('/src/config/copy/index.js')).t('R-L03.legend')), 'legend = R-L03.legend (D27 wording)');
-  assert.ok(/第一次和最近一次的笔迹/.test(wall.note), 'legend says 第一次和最近一次的笔迹');
 
   step('refresh: detail still shows first + latest ink, middle 没有笔迹');
   await bootTestHost(page, ctx.baseURL);

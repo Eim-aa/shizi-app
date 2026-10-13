@@ -100,7 +100,7 @@ export default async function run(page0, ctx) {
     await rightOf(`${tag} list 页头尾端`, `${topSel('list-screen')} .sz-page__trail`);
     await go(page, async () => (await import('/src/ui/router.js')).nav.back());
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
-    await rightOf(`${tag} library 练这些字`, topSel('library-card-practice'));
+    await rightOf(`${tag} library 全部 ›`, topSel('library-all-open'));
     await go(page, async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
     await rightOf(`${tag} mine 练习记录 ›`, topSel('mine-records'));
     await rightOf(`${tag} mine 保存图片`, topSel('mine-sheet-save'));

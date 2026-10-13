@@ -146,19 +146,25 @@ export default async function run(page, ctx) {
   const notRun = [];
 
   // ------------------------------------------------------------------ 1 墙
-  ctx.step('1 wall: each cell = latest judged; missing ink → standard glyph; wrong → glyph + dot (never ink)');
+  ctx.step('1 wall (r7-L1 D60: the wall lives on 「全部」 = library-all now): each cell = latest judged; missing ink → standard glyph; wrong → glyph + dot (never ink)');
   await nav(page, 'switchTab', 'library');
-  await page.waitForSelector(topSel('library-wall'));
-  const wall = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-wall-cell"]')].map(el => {
+  await page.waitForSelector(topSel('library-zone'));
+  await nav(page, 'push', 'library-all', { sort: 'age' });
+  await page.waitForFunction(() => {
+    const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-body"]');
+    return !!b && Number(b.dataset.rendered) === Number(b.dataset.total) && Number(b.dataset.total) > 0;
+  }, null, { timeout: 30000 });
+  const wall = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="all-cell"]')].map(el => {
     const g = el.querySelector('[data-ink]');
     return { char: el.dataset.char, kind: el.dataset.kind, ink: g ? g.dataset.ink : null, mini: !!el.querySelector('[data-testid="library-cell-ink"]') };
   }));
-  assert.equal(wall.length, 64, 'wall shows 8 rows × 8 columns');
+  const recorded = await page.evaluate(() => Number(document.querySelector('.sz-layer[data-top="true"] [data-testid="all-body"]').dataset.recorded));
+  assert.ok(wall.length >= recorded && recorded >= 100, 'the all page draws every recorded char (' + wall.length + ' / ' + recorded + ')');
   let wallBad = wall.filter(cell => {
     const want = cell.kind === 'ink' && latestHas(cell.char) ? 'ink' : 'none';
     return cell.ink !== want || cell.mini !== (want === 'ink');
   });
-  assert.deepEqual(wallBad, [], 'every wall cell draws ink iff it is a correct-latest cell whose latest record has ink');
+  assert.deepEqual(wallBad, [], 'every cell draws ink iff it is a correct-latest cell whose latest record has ink');
   const wallChars = wall.map(c => c.char);
   for (const i of [...A, ...C]) {
     const c = chars[i];
@@ -170,6 +176,8 @@ export default async function run(page, ctx) {
   assert.equal(wall.find(x => x.char === chars[3]).kind, 'wrong', 'i=3 is a wrong cell (standard glyph + dot)');
   assert.ok(today.every(c => wallChars.includes(c)), 'today\'s chars on the wall');
   assert.ok(T_MISS.every(k => wall.find(x => x.char === today[k]).ink === 'none'), 'today\'s missing-ink chars show the standard glyph');
+
+  await nav(page, 'back');
 
   // ------------------------------------------------------------------ 2 查字卡片
   ctx.step('2 query card 「你的书写」: latest judged ink (P19); missing → 没有笔迹');

@@ -228,9 +228,15 @@ async function visitPages(page, scheme, ctx) {
   await tab(page, 'library');
   await page.waitForTimeout(500);
   await check('library');
+  // r7-L1（D60）：墨墙在「全部」页，写错的朱点在那里查
+  await page.evaluate(async () => { (await import('/src/ui/router.js')).nav.push('library-all', { sort: 'age' }); });
+  await page.waitForSelector('.sz-layer[data-top="true"] [data-testid="all-cell"]');
+  await page.waitForTimeout(600);
   const dots = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] .sz-lib__mark')].map(el => getComputedStyle(el).backgroundColor));
   assert.ok(dots.length > 0 && dots.every(c => c === dots[0]), `${scheme}: wall wrong-marks all share one colour`);
   assert.equal(dots[0], tokenRgb(scheme, 'zhu'), `${scheme}: the wall's wrong dot = zhu`);
+  await page.evaluate(async () => { (await import('/src/ui/router.js')).nav.back(); });
+  await page.waitForTimeout(600);
   await tab(page, 'mine');
   await page.waitForTimeout(500);
   await check('mine', { sheets: '.sz-month__sheet' }); // D57 · C1：字帖格是一张笺面（没有 .sz-mine__paper 卡片了）

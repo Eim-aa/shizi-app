@@ -147,11 +147,9 @@ export default async function run(page, { baseURL, assert, step, root }) {
   await waitNavIdle(page);
   const lib = await page.evaluate(() => {
     const home = document.querySelector('[data-testid="library-home"]');
-    const wrong = document.querySelector('[data-testid="library-card-wrong"]');
-    return { recorded: Number(home.dataset.recorded), wrong: wrong ? Number(wrong.dataset.n) : null };
+    return { recorded: Number(home.dataset.recorded) };
   });
   assert.equal(lib.recorded, expChars.size, `字库: ${lib.recorded} chars with records`);
-  assert.equal(lib.wrong, expWrong.length, `写错过 card: ${lib.wrong}`);
   await push(page, '/src/ui/screens/library/list.js', 'openList', 'wrong');
   await page.waitForSelector(topSel('list-screen'));
   await page.click(topSel('list-rest-toggle')); // B4：默认只露最该练的 5 行，其余折叠

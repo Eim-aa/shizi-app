@@ -15,7 +15,7 @@
 import { bootTestHost, localDayOf, PRESS_SETTLE_MS, tid, waitNavIdle } from './helpers.mjs';
 
 const COPY = {
-  box: '查字',
+  box: '搜索汉字或拼音', // r7-L1（D60）：占位改为「搜索汉字或拼音」，弹层标题仍是「查字」
   note: '查到的字可以直接练，也可以加入自选的字。',
   title: '查字',
   practice: '练这个字',
@@ -289,7 +289,7 @@ export default async function run(page, { baseURL, assert, step }) {
   step('entry: library-query-slot holds the 查字 box (<button>), no note under it (D49); no horizontal scroll');
   let e = await entryInfo(page);
   assert.equal(e.tag, 'BUTTON', 'the 查字 box is a <button>');
-  assert.equal(e.name, COPY.box, 'accessible name 「查字」');
+  assert.equal(e.name, COPY.box, 'accessible name 「搜索汉字或拼音」');
   assert.equal(e.mode, 'lookup', 'data-mode=lookup');
   assert.equal(e.haspopup, 'dialog', 'aria-haspopup=dialog');
   assert.equal(e.note, null, 'D49: the sentence under the box (R-L04 「查到的字可以直接练，也可以加入自选的字。」) is gone');

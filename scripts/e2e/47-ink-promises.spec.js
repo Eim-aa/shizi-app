@@ -64,28 +64,9 @@ async function walk(page, { assert, step }, on) {
   const slot = base => (on ? base : base + 'Glyph');
   const banned = on ? EVERY : PROMISE;
 
-  step(`[${tag}] library home: wall cells ${on ? 'draw the learner\'s ink' : 'are standard glyphs'}; legend notes = ${on ? 'original slots (D27 wording)' : '…Glyph'}`);
+  step(`[${tag}] library home (r7-L1 D60: no wall, no legend note any more): no unkept promise in the page text`);
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
   await topScreen(page, 'library');
-  const home = await page.evaluate(() => ({
-    cells: [...document.querySelectorAll('[data-testid="library-wall-cell"]')].map(c => ({
-      kind: c.dataset.kind,
-      ink: c.querySelector('[data-ink]') ? c.querySelector('[data-ink]').dataset.ink : null,
-    })),
-    noteLight: document.querySelector('[data-theme-variant="light"]').textContent.trim(),
-    noteDark: document.querySelector('[data-theme-variant="dark"]').textContent.trim(),
-  }));
-  assert.ok(home.cells.length >= 3, 'three recorded chars on the wall');
-  if (on) {
-    // 写错过的格子画标准字 + 红点（wall.js：只有 kind=ink 才画笔迹），其余画最近一次的笔迹
-    assert.ok(home.cells.filter(c => c.kind === 'ink').every(c => c.ink === 'ink'), 'every ink-kind wall cell draws persisted ink');
-    assert.ok(home.cells.some(c => c.ink === 'ink'), 'at least one cell draws ink');
-  } else {
-    assert.ok(home.cells.every(c => c.ink === 'none'), 'every wall cell is a standard glyph (no persisted ink)');
-  }
-  assert.equal(home.noteLight, await copy(page, slot('R-L03.legend')), `light note = ${slot('R-L03.legend')}`);
-  assert.equal(home.noteDark, await copy(page, slot('X-LIBHOME.legendDarkNote')), `dark note = ${slot('X-LIBHOME.legendDarkNote')}`);
-  if (on) assert.ok(/第一次和最近一次的笔迹/.test(home.noteLight), 'D27: only first + latest are kept');
   assert.ok(!banned.test(await pageText(page)), `library home text has no ${on ? '每次的笔迹' : '笔迹'} promise`);
 
   step(`[${tag}] 全部字: sort note = ${slot('R-A01.sortRecentNote')}`);
@@ -94,6 +75,18 @@ async function walk(page, { assert, step }, on) {
   await waitNavIdle(page);
   const pageOnly = await pageText(page);
   assert.ok(!banned.test(pageOnly), 'all page text: no unkept promise');
+  // 墨墙在「全部」页（r7-L1）：每格是否画笔迹随 perRecordInk
+  const wallCells = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="all-cell"]')].map(c => ({
+    kind: c.dataset.kind,
+    ink: c.querySelector('[data-ink]') ? c.querySelector('[data-ink]').dataset.ink : null,
+  })));
+  assert.ok(wallCells.length >= 3, 'three recorded chars on the wall');
+  if (on) {
+    assert.ok(wallCells.filter(c => c.kind === 'ink').every(c => c.ink === 'ink'), 'every ink-kind cell draws persisted ink');
+    assert.ok(wallCells.some(c => c.ink === 'ink'), 'at least one cell draws ink');
+  } else {
+    assert.ok(wallCells.every(c => c.ink === 'none'), 'every cell is a standard glyph (no persisted ink)');
+  }
   // H1 / T2-11：说明句收进页头尾端的「排序 · 筛选」菜单
   await page.click(topSel('all-menu-open'));
   await page.waitForSelector(topSel('all-menu'));

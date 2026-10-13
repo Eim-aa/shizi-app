@@ -110,13 +110,15 @@ export default async function (page, ctx) {
     document.dispatchEvent(new Event('visibilitychange'));
     return r;
   }, { iso: CLOCK, s: seedWall() });
-  await page.waitForSelector(`${TOP} [data-testid="library-wall-cell"]`);
-  const early = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-wall-cell"] .sz-pg')].map(el => el.dataset.glyphSrc));
+  await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library');
+  await page.evaluate(async () => { const { nav, getRouter } = await import('/src/ui/router.js'); if (getRouter().getState().top.n !== 'library-all') nav.push('library-all', { sort: 'age' }); }); // r7-L1（D60）：墨墙在「全部」页
+  await page.waitForSelector(`${TOP} [data-testid="all-cell"]`);
+  const early = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="all-cell"] .sz-pg')].map(el => el.dataset.glyphSrc));
   assert.ok(early.length > 0 && early.includes('loading'), 'first frame: glyph boxes exist and are still loading (nothing drawn yet)');
-  await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"] .sz-pg[data-glyph-src="loading"]'), null, { timeout: 15000 });
+  await page.waitForFunction(() => !document.querySelector('.sz-layer[data-top="true"] [data-testid="all-cell"] .sz-pg[data-glyph-src="loading"]'), null, { timeout: 15000 });
   const wall = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
-    return [...top.querySelectorAll('[data-testid="library-wall-cell"]')].map(cell => {
+    return [...top.querySelectorAll('[data-testid="all-cell"]')].map(cell => {
       const g = cell.querySelector('.sz-pg');
       const paths = [...g.querySelectorAll('path')];
       const p0 = paths[0];
@@ -149,7 +151,7 @@ export default async function (page, ctx) {
   }).length);
   assert.equal(jitter, 0, 'glyph boxes keep their size when the outline arrives (no layout shift)');
   const wallD = await page.evaluate(() => {
-    const cell = document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"][data-char="永"]');
+    const cell = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-cell"][data-char="永"]');
     return cell.querySelector('path').getAttribute('d');
   });
 
@@ -250,9 +252,10 @@ export default async function (page, ctx) {
     window.__shiziTest.seed(s);
     document.dispatchEvent(new Event('visibilitychange'));
   }, { iso: CLOCK, s: seedWall() });
-  await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"][data-char="鼎"] .sz-pg[data-glyph-src="fallback"]'), null, { timeout: 15000 });
+  await page.evaluate(async () => { const { nav, getRouter } = await import('/src/ui/router.js'); if (getRouter().getState().top.n !== 'library-all') nav.push('library-all', { sort: 'age' }); }); // r7-L1（D60）：墨墙在「全部」页
+  await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="all-cell"][data-char="鼎"] .sz-pg[data-glyph-src="fallback"]'), null, { timeout: 15000 });
   const ding = await page.evaluate(() => {
-    const g = document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"][data-char="鼎"] .sz-pg');
+    const g = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-cell"][data-char="鼎"] .sz-pg');
     return { src: g.dataset.glyphSrc, font: getComputedStyle(g.querySelector('.sz-pg__fb')).fontFamily, fill: getComputedStyle(g.querySelector('.sz-pg__fb')).webkitTextFillColor };
   });
   assert.ok(ding.src === 'fallback' && /ShiziKai/.test(ding.font), '鼎 (404) falls back to ShiziKai text');

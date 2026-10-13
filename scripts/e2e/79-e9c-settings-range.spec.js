@@ -1,7 +1,7 @@
 // 阶段 1 E9c（D49 ④；03 P193）：「练习范围 / 更换字库」从字库页移到「我的 › 设置 › 练习」。
 //
 //   「练习范围」是「练习」组第一行：右侧「{库名} ›」；点开 → 换库页（复用现有换库流程与确认框）；换完回到设置并显示新库名，settings.library 写进去；
-//   字库页没有这个入口（也不再有「更换字库 ›」文字）；换库后字库页的墙与「写错过 / 快忘了」不受影响（只影响之后的新字来源）。
+//   r7-L1（D60 覆盖 D49 ④）：字库页顶部又有「练习范围 …… 库名 ›」一行，推入的是同一个换库页、显示同一个值；换库后字库页的三档记忆状态不受影响（只影响之后的新字来源）。
 
 import { bootTestHost, tid, topSel, waitNavIdle } from './helpers.mjs';
 
@@ -17,8 +17,8 @@ function seed() {
 }
 const pad2 = n => (n < 10 ? `0${n}` : String(n));
 
-async function wallChars(page) {
-  return page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-wall-cell"]')].map(c => c.dataset.char));
+async function zoneCounts(page) {
+  return page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-zone"]')].map(c => `${c.dataset.kind}:${c.dataset.n}`));
 }
 
 export default async function (page, ctx) {
@@ -30,12 +30,12 @@ export default async function (page, ctx) {
     window.__shiziTest.seed(s);
     (await import('/src/ui/router.js')).nav.switchTab('library');
   }, seed());
-  await page.waitForSelector(topSel('library-wall'));
+  await page.waitForSelector(topSel('library-zone'));
   await waitNavIdle(page);
-  ctx.step('the library page has no practice-range entry any more');
-  assert.equal(await page.locator(topSel('library-switch')).count(), 0, 'no library-switch row');
-  assert.ok(!/更换字库|练习范围/.test(await page.textContent(topSel('library-home'))), 'no 练习范围 / 更换字库 text');
-  const wallBefore = await wallChars(page);
+  ctx.step('the library page has the 练习范围 row (D60) with the same value as settings; no 「更换字库 ›」 text');
+  assert.equal((await page.textContent(topSel('library-range-value'))).trim(), '规范常用字', 'range row value = the current library');
+  assert.ok(!/更换字库/.test(await page.textContent(topSel('library-home'))), 'no 更换字库 text');
+  const wallBefore = await zoneCounts(page);
 
   ctx.step('设置 › 练习 › 练习范围: first row of the group, shows the library name; opens the switch page; the switch returns to settings with the new name');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('mine'));
@@ -66,10 +66,10 @@ export default async function (page, ctx) {
   assert.equal(await page.getAttribute(topSel('settings-library'), 'data-library'), 'rare', 'data-library follows');
   assert.equal(await page.evaluate(() => window.__shiziTest.getState().settings.library), 'rare', 'settings.library written through the existing switch flow');
 
-  ctx.step('the library page is unaffected by the switch: same wall, still no entry');
+  ctx.step('the library page follows the switch: the range row shows the new library, the zones are unchanged');
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'library');
   await waitNavIdle(page);
-  assert.deepEqual(await wallChars(page), wallBefore, 'the wall (records) is unchanged by switching the practice range');
-  assert.equal(await page.locator(tid('library-switch')).count(), 0, 'still no practice-range entry');
+  assert.equal((await page.textContent(topSel('library-range-value'))).trim(), '规范专门用字', 'one value, two places: the range row follows settings.library');
+  assert.deepEqual(await zoneCounts(page), wallBefore, 'the three zones (records) are unchanged by switching the practice range');
 }

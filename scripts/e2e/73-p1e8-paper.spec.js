@@ -328,10 +328,11 @@ export default async function paperSpec(page, ctx) {
 
   ctx.step('字墙 as usual — 永 is a normal cell (tone by date), no 「纸上」 mark');
   await goTab(page, 'library');
-  await page.waitForSelector(`${topSel('library-wall-cell')}[data-char="永"]`);
+  await page.evaluate(async () => { const { nav, getRouter } = await import('/src/ui/router.js'); if (getRouter().getState().top.n !== 'library-all') nav.push('library-all', { sort: 'age' }); }); // r7-L1（D60）：墨墙在「全部」页
+  await page.waitForSelector(`${topSel('all-cell')}[data-char="永"]`);
   const wall = await page.evaluate(() => {
-    const cell = document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall-cell"][data-char="永"]');
-    const w = document.querySelector('.sz-layer[data-top="true"] [data-testid="library-wall"]');
+    const cell = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-cell"][data-char="永"]');
+    const w = document.querySelector('.sz-layer[data-top="true"] [data-testid="all-body"]');
     return { kind: cell.dataset.kind, tone: cell.dataset.tone, label: cell.getAttribute('aria-label'), wallText: w.textContent };
   });
   assert.equal(wall.kind, 'ink', 'paper correct → a normal (not wrong) cell');

@@ -5,7 +5,7 @@
 // 断言：顺序；今天要写与首页主按钮同一组字同一状态；三档互斥、合计 = N；0 档不可点；练习范围与设置同值；点进区详情页有「练这些字」；
 //   没有记录时仍有 1–4、三档都是 0；AX5 不滚不叠。
 
-import { bootTestHost, tid, topSel, waitNavIdle, setTextSize, seedSession } from './helpers.mjs';
+import { bootTestHost, tid, topSel, waitNavIdle, setTextSize, seedSession, tokenRgb } from './helpers.mjs';
 
 const TODAY = '2026-09-24';
 const CLOCK = `${TODAY}T09:00:00`;
@@ -254,6 +254,29 @@ export default async function (page, ctx) {
   assert.ok(lib.zones.every(z => !z.clickable && !z.chev && z.samples === 0), 'zeros: not clickable, no chevron, no samples');
   assert.equal(await page.locator(topSel('library-empty')).count(), 0, 'no empty-state illustration');
   assert.equal(lib.today.phase, 'fresh', 'today still plans a first group');
+
+  // ------------------------------------------------------------------ 6b. 墨色与夜间、读屏名称
+  for (const scheme of ['light', 'dark']) {
+    step(`${scheme}: sample ink = wall4 / wall2 / wall1 by zone; zero rows are ink3; every button has an accessible name`);
+    await page.emulateMedia({ colorScheme: scheme });
+    await seed(page, seedOf());
+    await toTab(page, 'library');
+    await page.waitForSelector(topSel('library-zone-sample'));
+    const colors = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="library-zone"]')].map(z => {
+      const ch = z.querySelector('.sz-lib__char');
+      return [z.dataset.kind, ch ? getComputedStyle(ch).color : null];
+    })));
+    assert.deepEqual(colors, { due: tokenRgb(scheme, 'wall4'), shaky: tokenRgb(scheme, 'wall2'), known: tokenRgb(scheme, 'wall1') }, `${scheme}: zone ink tones`);
+    const unnamed = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="screen-library"] button')]
+      .filter(b => !((b.getAttribute('aria-label') || b.innerText || '').trim())).length);
+    assert.equal(unnamed, 0, `${scheme}: every button has an accessible name`);
+  }
+  await seed(page, {});
+  await toTab(page, 'library');
+  await page.waitForSelector(topSel('library-zone'));
+  const zeroColor = await page.evaluate(() => getComputedStyle(document.querySelector('.sz-layer[data-top="true"] [data-testid="library-zone"] [data-testid="library-zone-name"]')).color);
+  assert.equal(zeroColor, tokenRgb('dark', 'ink3'), 'dark: zero zone name is ink3');
+  await page.emulateMedia({ colorScheme: 'light' });
 
   // ------------------------------------------------------------------ 7. AX5：不滚、不叠
   step('AX5: no scroll, no overlap, nothing cut off; samples and the today sub line are not drawn');

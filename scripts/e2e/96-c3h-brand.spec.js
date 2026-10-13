@@ -51,35 +51,7 @@ export default async function run(page, ctx) {
     await page.evaluate(() => history.back());
     await waitNavIdle(page);
 
-    step(`${scheme}: 字库空状态：一个空格，没有字、没有双钩「拾」`);
-    await page.evaluate(() => window.__shiziTest.reset());
-    await markFirstPracticeDone(page);
-    await page.evaluate(async () => (await import('/src/ui/router.js')).nav.switchTab('library'));
-    await page.waitForSelector(topSel('library-empty'));
-    await waitNavIdle(page);
-    const e = await page.evaluate(() => {
-      const root = document.querySelector('.sz-layer[data-top="true"]');
-      const empty = root.querySelector('[data-testid="library-empty"]');
-      const cell = empty.querySelector('[data-testid="library-empty-cell"]');
-      const cs = cell ? getComputedStyle(cell) : null;
-      return {
-        cell: !!cell,
-        cellBox: cell ? [Math.round(cell.getBoundingClientRect().width), Math.round(cell.getBoundingClientRect().height)] : null,
-        cellText: cell ? cell.textContent : null,
-        cellChildren: cell ? cell.children.length : null,
-        frame: cs ? cs.boxShadow !== 'none' : false,
-        glyphs: empty.querySelectorAll('svg, canvas').length,
-        hasShiChar: /拾/.test(empty.textContent),
-        brandMarks: root.querySelectorAll('[data-testid="brand-shi-mark"]').length,
-      };
-    });
-    assert.equal(e.cell, true, 'the empty state has the empty cell');
-    assert.deepEqual(e.cellBox, [72, 72], 'a 72pt cell');
-    assert.deepEqual([e.cellText, e.cellChildren], ['', 0], 'nothing drawn inside — an empty cell');
-    assert.equal(e.frame, true, 'the cell has its frame');
-    assert.equal(e.glyphs, 0, 'no glyph, no hollow 拾');
-    assert.equal(e.hasShiChar, false, 'no 拾 anywhere in the empty state');
-    assert.equal(e.brandMarks, 0, 'the brand ink 拾 is not used as the empty placeholder');
+    // r7-L1（D60）：字库首页不再有空状态（没有记录时仍是 1–4 + 三个 0，109-r7-l1 断言），原「字库空状态」一步撤去。
   }
   await page.emulateMedia({ colorScheme: 'light' });
 }

@@ -202,7 +202,7 @@ export default async function librarySwitch(page, ctx) {
 
   // ------------------------------------------------------------ 1. 列表
   ctx.step('list: four libraries, counts from data, M from judged records, P73 default is current, source note');
-  // 真实入口（D49 ④）：我的 › 设置 › 练习 › 练习范围（字库首页不再有「练习范围 / 更换字库 ›」，30-library 断言）
+  // 真实入口：我的 › 设置 › 练习 › 练习范围，以及字库首页顶部的「练习范围」一行（D60，109-r7-l1-library 断言同一页同一个值）
   assert.equal(await page.locator(tid('library-switch')).count(), 0, 'the library home has no practice-range entry any more');
   await goTab(page, 'mine');
   await page.click(topSel('mine-menu-settings'));

@@ -614,22 +614,25 @@
       "slots": {
         "titleRecall": {
           "raw": "凭记忆写出这个字",
-          "text": "凭记忆写出这个字"
+          "text": "凭记忆写",
+          "note": "r7-C1 / D61 文案重写"
         },
         "titleCompare": {
           "raw": "对照一下，写对了吗？",
-          "text": "写对了吗？",
+          "text": "写对了吗",
           "decision": "P189",
-          "note": "D49 减法修稿：判断页页头只问一次「写对了吗？」（实现交接 §9.2；AX 档只留给读屏）；去掉「对照一下，」",
+          "note": "D49 减法修稿：判断页页头只问一次「写对了吗？」（实现交接 §9.2；AX 档只留给读屏）；去掉「对照一下，」；r7-C1 / D61 文案重写",
           "override": true
         },
         "titleAnswer": {
           "raw": "这个字这样写",
-          "text": "这个字这样写"
+          "text": "正确写法",
+          "note": "r7-C1 / D61 文案重写"
         },
         "titleSelf": {
           "raw": "自己写一遍",
-          "text": "自己写一遍"
+          "text": "自己写",
+          "note": "r7-C1 / D61 文案重写"
         }
       }
     },
@@ -870,17 +873,19 @@
         },
         "changeBodyCorrect": {
           "raw": "刚才记的是写对。改了只换掉这一次，不会多算一次。",
-          "text": "刚才记的是写对。改了只换掉这一次，不会多算一次。"
+          "text": "刚才记为写对，改后不多算一次。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "changeBodyWrong": {
           "raw": null,
-          "text": "刚才记的是写错。改了只换掉这一次，不会多算一次。",
+          "text": "刚才记为写错，改后不多算一次。",
           "origin": "04 R-W10「刚才记的是写对。…」的写错同构",
-          "note": "原文只给写对例句"
+          "note": "原文只给写对例句；r7-C1 / D61 文案重写"
         },
         "changeFailed": {
           "raw": "没改成，还是原来的判断。",
-          "text": "没改成，还是原来的判断。"
+          "text": "没改成，还是原来的结果。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "retry": {
           "raw": "再试一次 / 先不改",
@@ -916,7 +921,8 @@
       "slots": {
         "confirmBody": {
           "raw": "还有 {N} 个字没写，结束后就不写了。判断过的 {M} 个字已经记下。",
-          "text": "还有 {n} 个字没写，结束后就不写了。判断过的 {m} 个字已经记下。"
+          "text": "还有 {n} 个字没写。已写的 {m} 个已记下。",
+          "note": "r7-C1 / D61 文案重写"
         },
         "continue": {
           "raw": "接着写",
@@ -2831,9 +2837,9 @@
         },
         "repeatBlankLabel": {
           "raw": null,
-          "text": "同一目标字的另一处空格",
+          "text": "同一个字的另一处空格",
           "origin": "cards.js PROMPT_COPY.repeatBlankLabel（□ 的读屏标签，决定-D16）",
-          "note": "读屏文案"
+          "note": "读屏文案；r7-C1 / D61 文案重写"
         },
         "missingPinyin": {
           "raw": null,
@@ -2911,9 +2917,9 @@
       "slots": {
         "gridLabel": {
           "raw": null,
-          "text": "书写格",
+          "text": "写字格",
           "origin": "extra",
-          "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）",
+          "note": "书写格容器 role=img 的 aria-label（读屏文案）；取 01 §6.1 的名称，不含答案字（决定-D16）；r7-C1 / D61 文案重写",
           "decision": "P66"
         },
         "firstTip": {
@@ -2925,9 +2931,9 @@
         },
         "gridLabelCount": {
           "raw": null,
-          "text": "书写格，已写 {n} 笔",
+          "text": "写字格，已写 {n} 笔",
           "origin": "extra",
-          "note": "书写格 role=img 的读屏名称（已写至少一笔时；没写时仍是 X-WRITE.gridLabel）；不含答案字（D16）",
+          "note": "书写格 role=img 的读屏名称（已写至少一笔时；没写时仍是 X-WRITE.gridLabel）；不含答案字（D16）；r7-C1 / D61 文案重写",
           "decision": "P231"
         },
         "liveStroke": {
@@ -2988,16 +2994,16 @@
         },
         "liveTrace": {
           "raw": null,
-          "text": "描一遍：参考字形画出了{range}",
+          "text": "描一遍：已画出{range}",
           "origin": "extra",
-          "note": "进入描一遍后的播报（参考字形画出全部笔画）",
+          "note": "进入描一遍后的播报（参考字形画出全部笔画）；r7-C1 / D61 文案重写",
           "decision": "P231"
         },
         "liveTraceWhole": {
           "raw": null,
-          "text": "描一遍：参考字形出现了",
+          "text": "描一遍：字形出现了",
           "origin": "extra",
-          "note": "进入描一遍但没有笔顺数据（楷体整字）时的播报",
+          "note": "进入描一遍但没有笔顺数据（楷体整字）时的播报；r7-C1 / D61 文案重写",
           "decision": "P231"
         }
       }
@@ -3016,9 +3022,9 @@
         },
         "btnTraceDone": {
           "raw": null,
-          "text": "描好了，自己写",
+          "text": "自己写",
           "origin": "extra",
-          "note": "描一遍阶段主按钮（没写时 disabled）；原型 L551；reference/I-proto-write.md 文案表「主按钮 trace」",
+          "note": "描一遍阶段主按钮（没写时 disabled）；原型 L551；reference/I-proto-write.md 文案表「主按钮 trace」；r7-C1 / D61 文案重写",
           "decision": "P66"
         },
         "btnTraceDoneShort": {
@@ -3279,16 +3285,16 @@
       "slots": {
         "saveFailed": {
           "raw": null,
-          "text": "这次进度没有保存。请立即导出备份后重新打开 App。",
+          "text": "进度没存上。请先导出备份，再重开拾字。",
           "origin": "extra",
-          "note": "抬笔写会话现场失败（非配额）的顶部一次性提示；旧 index.html L1067 通用句逐字；P52",
+          "note": "抬笔写会话现场失败（非配额）的顶部一次性提示；旧 index.html L1067 通用句逐字；P52；r7-C1 / D61 文案重写",
           "decision": "P66"
         },
         "quotaFailed": {
           "raw": null,
-          "text": "本地空间已满，这次进度没有保存。请立即导出备份并清理空间。",
+          "text": "空间满了，没存上。请导出备份并清理。",
           "origin": "extra",
-          "note": "抬笔写会话现场撞配额（QuotaExceededError）的顶部一次性提示；旧 index.html L1067 配额句逐字；P52",
+          "note": "抬笔写会话现场撞配额（QuotaExceededError）的顶部一次性提示；旧 index.html L1067 配额句逐字；P52；r7-C1 / D61 文案重写",
           "decision": "P66"
         }
       }
@@ -5245,9 +5251,9 @@
         },
         "backToScreen": {
           "raw": null,
-          "text": "改回在屏幕上写",
+          "text": "屏幕上写",
           "origin": "extra",
-          "note": "书写格内文字按钮：只把这一个字改回屏幕（写进 current.paper=false）",
+          "note": "书写格内文字按钮：只把这一个字改回屏幕（写进 current.paper=false）；r7-C1 / D61 文案重写",
           "decision": "P165"
         },
         "note": {
@@ -5259,9 +5265,9 @@
         },
         "suggest": {
           "raw": null,
-          "text": "看不清或不方便在屏幕上写，可以在设置里改为在纸上写。",
+          "text": "不方便在屏幕写？可在设置改成纸上写。",
           "origin": "extra",
-          "note": "读屏 / 切换控制开启后第一次进写字页时，格下一条非阻断建议（只出现一次，settings.paperSuggested；落笔 / 换字后收起）；D56 起改为指向设置，不再在写字页里改写字方式",
+          "note": "读屏 / 切换控制开启后第一次进写字页时，格下一条非阻断建议（只出现一次，settings.paperSuggested；落笔 / 换字后收起）；D56 起改为指向设置，不再在写字页里改写字方式；r7-C1 / D61 文案重写",
           "decision": "P276"
         },
         "suggestGo": {

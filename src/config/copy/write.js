@@ -9,10 +9,10 @@ export default Object.freeze({
   // R-W02（已定（显示位置/持续几字见 §6.2））
   'R-W02.firstTip': '看拼音和提示，把这个字写在格子里。',
   // R-W03（已定）
-  'R-W03.titleRecall': '凭记忆写出这个字',
-  'R-W03.titleCompare': '写对了吗？',
-  'R-W03.titleAnswer': '这个字这样写',
-  'R-W03.titleSelf': '自己写一遍',
+  'R-W03.titleRecall': '凭记忆写',
+  'R-W03.titleCompare': '写对了吗',
+  'R-W03.titleAnswer': '正确写法',
+  'R-W03.titleSelf': '自己写',
   // R-W04（已定）
   'R-W04.stepTrace': '第 1 步，共 2 步：描一遍',
   'R-W04.stepSelf': '第 2 步，共 2 步：自己写',
@@ -39,15 +39,15 @@ export default Object.freeze({
   'R-W10.lineChangedCorrect': '「{char}」已改为写对 · 修改 ›',
   'R-W10.lineChangedWrong': '「{char}」已改为写错 · 修改 ›',
   'R-W10.lineSaw': '「{char}」看过答案',
-  'R-W10.changeBodyCorrect': '刚才记的是写对。改了只换掉这一次，不会多算一次。',
-  'R-W10.changeBodyWrong': '刚才记的是写错。改了只换掉这一次，不会多算一次。',
-  'R-W10.changeFailed': '没改成，还是原来的判断。',
+  'R-W10.changeBodyCorrect': '刚才记为写对，改后不多算一次。',
+  'R-W10.changeBodyWrong': '刚才记为写错，改后不多算一次。',
+  'R-W10.changeFailed': '没改成，还是原来的结果。',
   'R-W10.retry': '再试一次',
   'R-W10.cancel': '先不改',
   // R-W14（已定）
   'R-W14.btnSkip': '跳过',
   // R-W15（已定；S04 边开发边改（原型仍以"结束这组"为主按钮，已核））
-  'R-W15.confirmBody': '还有 {n} 个字没写，结束后就不写了。判断过的 {m} 个字已经记下。',
+  'R-W15.confirmBody': '还有 {n} 个字没写。已写的 {m} 个已记下。',
   'R-W15.continue': '接着写',
   'R-W15.end': '结束这组',
   // R-W16（已定）
@@ -66,7 +66,7 @@ export default Object.freeze({
   'R-W29.btnDone': '写好了',
   // X-PROMPT（src/core/cards.js PROMPT_COPY（#175 原文，M0-2 占位常量；M1-8 题面接入时由 UI 从 copy 传入））
   'X-PROMPT.fallbackHint': '这个字暂时没有常用词，按拼音写就好',
-  'X-PROMPT.repeatBlankLabel': '同一目标字的另一处空格',
+  'X-PROMPT.repeatBlankLabel': '同一个字的另一处空格',
   'X-PROMPT.missingPinyin': '？',
   'X-PROMPT.repeatBlankGlyph': '□',
   'X-PROMPT.groupLabel': '题目',
@@ -79,9 +79,9 @@ export default Object.freeze({
   'X-PROMPT.tone4': '四声',
   'X-PROMPT.tone5': '轻声',
   // X-WRITE（M1-1 书写格组件的读屏名称）
-  'X-WRITE.gridLabel': '书写格',
+  'X-WRITE.gridLabel': '写字格',
   // 书写格读屏与播报（R2-A1 / A2-06，P231）：名称带笔数；抬笔 / 撤销 / 清空 / 提示 / 描一遍经 aria-live=polite 区域播报；笔画名称数据没有，按笔序
-  'X-WRITE.gridLabelCount': '书写格，已写 {n} 笔',
+  'X-WRITE.gridLabelCount': '写字格，已写 {n} 笔',
   'X-WRITE.liveStroke': '已写 {n} 笔',
   'X-WRITE.liveRestored': '恢复了，现在是 {n} 笔',
   'X-WRITE.liveUndo': '撤销了一笔，还有 {n} 笔',
@@ -90,23 +90,23 @@ export default Object.freeze({
   'X-WRITE.liveRangeOne': '第 {a} 笔',
   'X-WRITE.liveRangeMany': '第 {a} 到第 {b} 笔',
   'X-WRITE.liveHint': '提示画出了{range}',
-  'X-WRITE.liveTrace': '描一遍：参考字形画出了{range}',
-  'X-WRITE.liveTraceWhole': '描一遍：参考字形出现了',
+  'X-WRITE.liveTrace': '描一遍：已画出{range}',
+  'X-WRITE.liveTraceWhole': '描一遍：字形出现了',
   // X-WRITE.firstTip（阶段 1 Q2-1，03 P181；实现交接 §3 过渡文案）：首练第 1 字格下说明位一次性提示
   'X-WRITE.firstTip': '凭记忆写；想不起来，点下面的「提示」。',
   // X-ANSWER（M1-4 描一遍阶段标题与按钮；原型 ShiziWriteScreen L551–L553）
   'X-ANSWER.titleTrace': '描一遍',
-  'X-ANSWER.btnTraceDone': '描好了，自己写',
+  'X-ANSWER.btnTraceDone': '自己写',
   'X-ANSWER.btnTraceDoneShort': '自己写', // AX3 起描一遍阶段主按钮的短文案（P259：SE 3 的 AX5 下「描好了，自己写」折成三行）
   'X-ANSWER.btnRetrace': '再描一遍',
   // X-PAPER（阶段 1 P1-E8「在纸上写，回来自判」写字页；实现交接 §10.2 / §10.3，过渡文案；03 P165 / P167 / P168；D56 起建议改指向设置，03 P276）
   'X-PAPER.title': '在纸上写',
   'X-PAPER.body': '写好了点「写好了」，再自己对照。',
-  'X-PAPER.backToScreen': '改回在屏幕上写',
+  'X-PAPER.backToScreen': '屏幕上写',
   'X-PAPER.note': '这个字记下时会标注「纸上」，不留笔迹。',
-  'X-PAPER.suggest': '看不清或不方便在屏幕上写，可以在设置里改为在纸上写。',
+  'X-PAPER.suggest': '不方便在屏幕写？可在设置改成纸上写。',
   'X-PAPER.suggestGo': '去设置',
   // X-PERSIST（M1-6 抬笔写会话现场失败的顶部一次性提示；01 §4 表「沿旧两句」，旧 index.html L1067）
-  'X-PERSIST.saveFailed': '这次进度没有保存。请立即导出备份后重新打开 App。',
-  'X-PERSIST.quotaFailed': '本地空间已满，这次进度没有保存。请立即导出备份并清理空间。',
+  'X-PERSIST.saveFailed': '进度没存上。请先导出备份，再重开拾字。',
+  'X-PERSIST.quotaFailed': '空间满了，没存上。请导出备份并清理。',
 });

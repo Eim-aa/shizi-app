@@ -3,6 +3,9 @@
 // 逐帧采样：paper-transition.js watchPaperFrames 每画一帧同步回调，在同一个任务里量那一层的矩形——
 //   进场第一帧（s = 0）的矩形 = 被点元素的矩形（± 1）；点「‹」/ 左缘右滑返回的最后一帧（s = 0）= 被点元素此刻的矩形（± 1）；
 //   被点元素已不在屏上（自己选字弹层已关、结果页已被换掉）时缩回它原来的位置并淡出（最后一帧透明度 ≤ 0.05）。
+// D62（2026-10-13 真机反馈，覆盖 T0-6「任何入口都 B1」）：写字页转场按「回到哪里」定——只有从首页进入（主按钮、「接着写」；返回回到首页那个入口）才是 B1；
+//   其它入口（字库「今日练习」、区详情「练这些字」、字详情「练这个字」、查字「练这个字」、全部页「练这些字」、结果页「再写一组」）一律普通推入：
+//   从右推入（data-nav-anim = push-slide / replace-slide，写字页那层 left 从屏宽走到 0）、没有任何纸帧；返回往右滑出（pop-slide，left 从 0 走到屏宽），「‹」与左缘右滑同一套。
 // 入口：首页主按钮、「接着写」（文字按钮）、自己选字「练这个字」（查字弹层里）、字库「练这些字」、单字详情「练这个字」、全部字「练这些字」、结果页「再写一组」。
 
 import { bootTestHost, drawStroke, HORIZONTAL, makeSession, tap, tid, topSel, waitNavIdle } from './helpers.mjs';
@@ -23,6 +26,22 @@ function stopPaperWatch() {
   if (window.__paperUnwatch) window.__paperUnwatch();
   window.__paperUnwatch = null;
   return window.__paperFrames;
+}
+/** 逐帧记 data-nav-anim 与写字页那层的左边（普通推入的断言用）。 */
+async function startSlideWatch() {
+  window.__slide = { anims: new Set(), lefts: [], stop: false };
+  const tick = () => {
+    const app = document.querySelector('.sz-app');
+    if (app) window.__slide.anims.add(app.dataset.navAnim);
+    const l = document.querySelector('.sz-layer[data-screen="write"]');
+    if (l) window.__slide.lefts.push(l.getBoundingClientRect().left);
+    if (!window.__slide.stop) requestAnimationFrame(tick);
+  };
+  tick();
+}
+function stopSlideWatch() {
+  window.__slide.stop = true;
+  return { anims: [...window.__slide.anims], lefts: window.__slide.lefts };
 }
 function rectOfSel(sel) {
   const el = document.querySelector(sel);
@@ -72,8 +91,8 @@ export default async function j1WriteEntries(page, ctx) {
   };
 
   const ENTRIES = [
-    { name: 'home main button (primary)', prep: async () => { await seedRich(page); await toHome(page); }, sel: topSel('home-start'), solid: true },
-    { name: 'home 「接着写」 (text button)', prep: async () => { await toHome(page); await seedTwoGroups(page); await page.waitForSelector(topSel('other-line')); await waitNavIdle(page); }, sel: topSel('other-line'), swipe: true },
+    { name: 'home main button (primary)', prep: async () => { await seedRich(page); await toHome(page); }, sel: topSel('home-start'), solid: true, home: true },
+    { name: 'home 「接着写」 (text button)', prep: async () => { await toHome(page); await seedTwoGroups(page); await page.waitForSelector(topSel('other-line')); await waitNavIdle(page); }, sel: topSel('other-line'), swipe: true, home: true },
     {
       name: '自己选字 「练这个字」 (in the pick sheet, which closes)',
       prep: async () => {
@@ -88,9 +107,9 @@ export default async function j1WriteEntries(page, ctx) {
       sel: tid('query-card-practice'),
       gone: true,
     },
-    { name: '字库 「今天要写」', prep: async () => { await seedRich(page); await toTab('library'); }, sel: topSel('library-today') },
+    { name: '字库 「今日练习」', prep: async () => { await seedRich(page); await toTab('library'); }, sel: topSel('library-today') },
     { name: '字库区详情页 「练这些字」', prep: async () => { await seedRich(page); await toTab('library'); await push(page, 'library-list', { kind: 'due' }); await page.waitForSelector(topSel('list-go')); await waitNavIdle(page); }, sel: topSel('list-go') },
-    { name: '单字详情 「练这个字」', prep: async () => { const i = await seedRich(page); await push(page, 'detail', { char: i.detailChar }); }, sel: topSel('detail-practice') },
+    { name: '单字详情 「练这个字」', prep: async () => { const i = await seedRich(page); await push(page, 'detail', { char: i.detailChar }); }, sel: topSel('detail-practice'), swipe: true },
     { name: '全部字 「练这些字」', prep: async () => {
         await seedRich(page);
         await toHome(page);
@@ -108,16 +127,38 @@ export default async function j1WriteEntries(page, ctx) {
   ];
 
   for (const e of ENTRIES) {
-    step(`IC-23 ${e.name}: the paper grows out of the tapped element and shrinks back into it`);
+    step(`IC-23 ${e.name}: ${e.home ? 'the paper grows out of the tapped element and shrinks back into it' : 'plain push in from the right, plain slide out on the way back (D62)'}`);
     await e.prep();
     await waitNavIdle(page);
     const R = await page.evaluate(rectOfSel, e.sel);
     assert.ok(R && R.w > 0 && R.h > 0, `${e.name}: the entry is on screen (${fmt(R)})`);
     await page.evaluate(startPaperWatch);
+    await page.evaluate(startSlideWatch);
     await page.click(e.sel);
     await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'write', null, { timeout: 15000 });
     await waitNavIdle(page);
     const open = (await page.evaluate(stopPaperWatch)).filter(f => f.screen === 'write');
+    const openSlide = await page.evaluate(stopSlideWatch);
+    if (!e.home) {
+      const W = await page.evaluate(() => window.innerWidth);
+      const want = e.replace ? 'replace-slide' : 'push-slide';
+      assert.equal(open.length, 0, `${e.name}: no paper frames on the way in (${open.length})`);
+      assert.ok(openSlide.anims.includes(want), `${e.name}: in as ${want} (${openSlide.anims.join('/')})`);
+      assert.ok(openSlide.lefts.length >= 3 && openSlide.lefts[0] > W * 0.5 && openSlide.lefts[openSlide.lefts.length - 1] === 0, `${e.name}: the write page slides in from the right (left ${openSlide.lefts[0]} → ${openSlide.lefts[openSlide.lefts.length - 1]})`);
+      await page.evaluate(startPaperWatch);
+      await page.evaluate(startSlideWatch);
+      await page.waitForTimeout(450);
+      if (e.swipe) await swipeBack(page, { to: 0.5 });
+      else await page.click(topSel('page-back'));
+      await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen !== 'write', null, { timeout: 15000 });
+      await waitNavIdle(page);
+      const backPaper = (await page.evaluate(stopPaperWatch)).filter(f => f.screen === 'write');
+      const backSlide = await page.evaluate(stopSlideWatch);
+      assert.equal(backPaper.length, 0, `${e.name}: no paper frames on the way back (${backPaper.length})`);
+      assert.ok(backSlide.lefts.length >= 2 && backSlide.lefts[backSlide.lefts.length - 1] >= W * 0.9, `${e.name}: the write page slides out to the right (left → ${backSlide.lefts[backSlide.lefts.length - 1]})`);
+      if (!e.swipe) assert.ok(backSlide.anims.includes('pop-slide'), `${e.name}: out as pop-slide (${backSlide.anims.join('/')})`);
+      continue;
+    }
     assert.ok(open.length >= 3, `${e.name}: the open is a paper transition (${open.length} frames, modes ${[...new Set(open.map(f => f.mode))].join('/')})`);
     assert.ok(open.every(f => f.mode === 'B1'), `${e.name}: B1, not B3 (${[...new Set(open.map(f => f.mode))].join('/')})`);
     const first = open[0];
@@ -142,7 +183,7 @@ export default async function j1WriteEntries(page, ctx) {
     if (e.gone) assert.ok(last.op <= 0.05, `${e.name}: the element is gone, so the paper fades out as it lands (opacity ${last.op})`);
   }
 
-  step('IC-23 no element on screen (notification / deep link → nav.push): B3 quiet fade');
+  step('IC-23 no element on screen (notification / deep link → nav.push): B3 quiet fade (B3 unchanged by D62)');
   await seedRich(page);
   await toHome(page);
   await page.evaluate(startPaperWatch);

@@ -5,7 +5,8 @@
 //   · 左缘右滑（R4-G1 的进度接口 router.beginBack / setBackProgress / endBack / finishBack / cancelBack，由 root.js 的 BACK_TRANSITION 转给这里）：
 //     s = 1 − 手指进度 p，逐帧跟手；松手完成 = 从当前 s 继续收进来源（300ms × s，至少 120ms），取消 = 220ms 长回整屏。
 //
-// 来源（共享元素，R6-J1 起全 App 通用，交互与动效规范 T0 B1 一律从被点元素展开）：root.js 在 document 上挂一个捕获阶段的 click 监听（noteTap），
+// D62（覆盖 R6-J1）：只有首页上的入口（下层是 tab 根 home、被点元素不在弹层里）才走下面的 B1；其他入口记成 PUSHED，写字页普通推入、返回普通右滑出（planPaper 返回 null / 'S'）。
+// 来源（共享元素，交互与动效规范 T0-6）：root.js 在 document 上挂一个捕获阶段的 click 监听（noteTap），
 // 每次点按都记下「被点的那个可点元素」（button / [role=button] / a，或带 data-paper-source 的元素）的矩形、字、圆角、底色；
 // 下一次推入写字页（或结果页「再写一组」/ 撤销跳过换成写字页）时取走，记在「下层页面」名下。所以首页主按钮、「接着写」、自己选字的「练这 N 个字」、
 // 字库 / 详情的「练这个字」、自选字、结果页「再写一组」……都是同一条 B1：从被点元素的矩形长成纸，返回沿原路缩回它。
@@ -67,6 +68,9 @@ export const MAX_FRAME_MS = 50;
 
 let pending = null; // {el, rect, label, radius, bg, fg, solid, key, at}
 const QUIET = Object.freeze({ quiet: true }); // B3 进来的写字页的「来源」：没有按钮，只记得是安静淡入
+const PUSHED = Object.freeze({ pushed: true }); // 普通推入进来的写字页（D62：不是从首页进的）：返回也是普通右滑出，不画纸
+/** 只有从首页（tab 根 'home'）页面上的元素进入写字页才用 B1（弹层里的入口不算）：返回会回到首页那个入口（D62 覆盖 D57 / T0-6「任何入口都 B1」）。 */
+const HOME_TAB = 'home';
 const sources = new Map(); // 下层页面 entry id → 来源（B1）| {quiet:true}（B3）
 
 /** 能当来源的元素（被点元素向上找到的第一个）。 */
@@ -126,6 +130,7 @@ export function markPaperSource(el, key) {
   pending = {
     el, rect, label: solid ? (el.textContent || '').trim() : '', radius: radiusOf(el), bg: solid ? bg : '', fg: cs ? cs.color : '',
     solid, key: keyOf(el, key), at: nowMs(),
+    overlay: !!(el.closest && el.closest('[role="dialog"],[role="alertdialog"]')), // 弹层里的入口（查字「练这个字」）：返回回到的不是那个入口，不算首页入口（D62）
   };
 }
 
@@ -162,6 +167,7 @@ export function paperSourceOf(entryId) {
   const s = sources.get(entryId);
   if (!s) return null;
   if (s.quiet) return { quiet: true };
+  if (s.pushed) return { pushed: true };
   return { rect: { ...s.rect }, solid: s.solid, key: s.key };
 }
 
@@ -169,7 +175,7 @@ export function paperSourceOf(entryId) {
 
 /**
  * 根据一次转场决定动效。返回 null（沿用默认横推）或 {mode, dir, source, …}：
- *   mode 'B1' | 'B3' | 'R'（减少动态效果）；dir 'open' | 'close'；source = {rect, label, radius, key}（B1）。
+ *   mode 'B1' | 'B3' | 'R'（减少动态效果）| 'S'（结果页换成写字页的普通推入，D62）；dir 'open' | 'close'；source = {rect, label, radius, key}（B1）。
  * 只管「进写字页」与「写字页 / 结果页回到记着来源的页面」；其它页面的 push / pop 不在范围内（保持横推）。
  * @param {{kind:string, from:object, to:object}} t  router 的 transition
  * @param {{reduced:boolean, root:Element|null}} o
@@ -186,11 +192,15 @@ export function planPaper(t, { reduced, root, underId = null }) {
     }
     const src = takePending();
     if (t.kind === 'replace') {
-      // 结果页「再写一组」/ 撤销跳过回到那个字：新写字页从被点元素长出来，盖在被换掉的结果页上；来源记在结果页下面那一页名下。
-      // 没有被点元素（程序换页）时保持同一层换内容的 T-phase 淡化（返回 null，root.js 照旧）。
+      // 结果页「再写一组」/ 撤销跳过回到那个字：D62 起不是首页入口，有被点元素时就是普通推入（新写字页从右推入盖在被换掉的结果页上），
+      // 来源记在结果页下面那一页名下，返回同样是普通右滑出。没有被点元素（程序换页）时保持同一层换内容的 T-phase 淡化（返回 null，root.js 照旧）。
       if (!src) return null;
-      if (underId) sources.set(underId, src);
-      return reduced ? { mode: 'R', dir: 'open' } : { mode: 'B1', dir: 'open', source: src };
+      if (underId) sources.set(underId, PUSHED);
+      return reduced ? null : { mode: 'S', dir: 'open' };
+    }
+    if (src && (t.from.n !== HOME_TAB || src.overlay)) {
+      sources.set(t.from.id, PUSHED); // 点按进来、但不是从首页：和进其他 L1 页完全同一套推入
+      return null;
     }
     sources.set(t.from.id, src || QUIET);
     if (reduced) return { mode: 'R', dir: 'open' };
@@ -202,6 +212,7 @@ export function planPaper(t, { reduced, root, underId = null }) {
     const had = sources.get(t.to.id);
     if (t.from.n === 'result' && !had) return null; // 没有来源记录的结果页（冷启动 / 刷新恢复出来的栈：来源只记在内存里）：保持横推（审计 P2-25：已没有推入结果页的路径）
     sources.delete(t.to.id);
+    if (had && had.pushed) return null; // 普通推入进来的：普通右滑出（减少动态效果下也是通用的 150ms 淡化）
     if (reduced) return { mode: 'R', dir: 'close' };
     if (!had || had.quiet) return { mode: 'B3', dir: 'close' }; // B3 进来的（含写完换成的结果页）按 B3 倒放离开
     return { mode: 'B1', dir: 'close', source: liveSource(had, t.to.id, root) };
@@ -246,6 +257,7 @@ function liveSource(src, underId, root) {
 export function planPaperDrag(topEntry, underEntry, root) {
   if (!topEntry || !underEntry) return null;
   const had = sources.get(underEntry.id);
+  if (had && had.pushed) return null; // 普通推入进来的写字页 / 结果页：普通横推返回
   const b1 = had && !had.quiet ? { mode: 'B1', dir: 'close', drag: true, source: liveSource(had, underEntry.id, root) } : null;
   if (topEntry.n === 'write') return b1 || { mode: 'B3', dir: 'close', drag: true };
   if (topEntry.n === 'result' && had) return b1 || { mode: 'B3', dir: 'close', drag: true };

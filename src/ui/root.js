@@ -14,7 +14,7 @@
 //   页内回退（R5-I2，N3-3：判断阶段「‹ 接着写」，back-action 种类 'phase'）：不露出下层页，进度由 PHASE_BACK 画成判断 → 回忆的 T-phase 倒放
 //   （上格长回书写格、参考格与判断键淡出、题面不动）；完成即执行「接着写」，之后由写字页的阶段淡化（phase-fade.js）从此刻的画面接着过渡。
 //   浏览器 / 主屏 PWA 另有网页兜底手势（ui/edge-swipe.js，页头以下左缘 12px 起手），原生壳内关闭，免得两套手势打架。
-// - 写字页进出（W2，D57，P282–P284；ui/paper-transition.js）：从首页「开始写字」类按钮进来，按钮原地长成整张纸（B1，进 420ms / 退 360ms），没有来源按钮的入口用 B3 安静淡入（220 / 180ms），
+// - 写字页进出（W2，D57，P282–P284；D62 改：只有从首页进入才 B1，其它入口一律普通推入；ui/paper-transition.js）：从首页「开始写字」类按钮进来，按钮原地长成整张纸（B1，进 420ms / 退 360ms），没有来源按钮的入口用 B3 安静淡入（220 / 180ms），
 //   减少动态效果一律 150ms 淡化；进出与左缘右滑共用同一个进度 s（= 1 − 手指进度），BACK_TRANSITION 在写字页（及来源在首页的结果页）上把进度交给它。其它页面仍是横推。
 // Tab 页滚动容器顶部有一条吸附的纸色渐变遮罩（::before，P0-A8 / G20）：内容滚进状态栏 / 灵动岛时淡出，不与时间、电池重叠；
 // 不拦截点击（pointer-events:none），浅深色都走 --p。阶段 3 由系统的滚动边缘效果取代。
@@ -330,7 +330,7 @@ function Root({ router, win }) {
       const pages = snap.stack.filter(e => e.k === 's');
       const under = pages.length >= 2 ? pages[pages.length - 2] : null;
       const paper = planPaper(t, { reduced: prefersReducedMotion(win), root: appRef.current, underId: under ? under.id : null });
-      animRef.current.current = { seq: t.seq, kind: 'replace', paper, mode: paper ? (paper.mode === 'B1' ? 'paper' : 'fade') : 'phase', from: t.from, to: t.to, startS: null, startX: 0, underX: 0, width: 0 };
+      animRef.current.current = { seq: t.seq, kind: 'replace', paper, mode: paper ? (paper.mode === 'B1' ? 'paper' : paper.mode === 'S' ? 'slide' : 'fade') : 'phase', from: t.from, to: t.to, startS: null, startX: 0, underX: 0, width: 0 };
     } else if ((t.animate || fromGesture || reducedGesture) && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
       const start = fromGesture ? BACK_TRANSITION.handoff(gv) : { startX: 0, underX: 0, width: 0 };
       // 写字页进出（W2）：B1 / B3 / 减少动态效果的 150ms 淡化；null = 沿用横推（其它页面）。
@@ -375,7 +375,7 @@ function Root({ router, win }) {
     if (a.fromGesture && gestureRef.current.ctrl) gestureRef.current.ctrl.handoff();
     const rootEl = appRef.current;
     const pick = id => (rootEl ? rootEl.querySelector(`.sz-layer[data-entry="${id}"]`) : null);
-    if (a.paper) {
+    if (a.paper && a.paper.mode !== 'S') {
       // 写字页进出：同一个进度 s 逐帧画（paper-transition.js），点按与左缘右滑完成是同一条路径
       const plan = a.paper;
       const open = plan.dir === 'open';
@@ -410,8 +410,13 @@ function Root({ router, win }) {
     }
     if (a.kind === 'replace') {
       const layer = pick(a.to.id);
+      // D62：结果页「再写一组」等非首页入口 = 普通推入（和 push 同一套关键帧 / 时长 / 曲线）；程序换页仍是淡化
+      const slide = !!(a.paper && a.paper.mode === 'S');
+      if (slide && layer) layer.classList.add('sz-layer--moving');
       const anm = layer && typeof layer.animate === 'function'
-        ? layer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REPLACE_FADE_MS, easing: M.ease.linear, fill: 'both' })
+        ? (slide
+          ? layer.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: PUSH_MS, easing: PUSH_EASING, fill: 'both' })
+          : layer.animate([{ opacity: 0 }, { opacity: 1 }], { duration: REPLACE_FADE_MS, easing: M.ease.linear, fill: 'both' }))
         : null;
       let over = false;
       let tm = null;
@@ -419,6 +424,7 @@ function Root({ router, win }) {
         if (over) return;
         over = true;
         clearTimeout(tm);
+        if (slide && layer) layer.classList.remove('sz-layer--moving');
         if (anm) {
           try { anm.cancel(); } catch (error) { /* 已结束 */ }
         }
@@ -431,7 +437,7 @@ function Root({ router, win }) {
       };
       a.cancel = end;
       if (anm) anm.onfinish = end;
-      tm = setTimeout(end, REPLACE_FADE_MS + REPLACE_FADE_MS); // 兜底：onfinish 没来（后台标签页）也收尾
+      tm = setTimeout(end, (slide ? PUSH_MS : REPLACE_FADE_MS) + REPLACE_FADE_MS); // 兜底：onfinish 没来（后台标签页）也收尾
       return;
     }
     const fade = a.mode === 'fade';

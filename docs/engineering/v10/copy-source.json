@@ -789,42 +789,42 @@
         },
         "labelMine": {
           "raw": null,
-          "text": "你的书写",
+          "text": "你写的",
           "origin": "04 §4.1 判断页补充：对照方向 \"你的书写\" 左",
-          "note": "对照卡标签"
+          "note": "对照卡标签；r7-C1 / D61 文案重写"
         },
         "labelReference": {
           "raw": null,
-          "text": "参考字形",
+          "text": "标准写法",
           "origin": "04 §4.1 判断页补充：\"参考字形\" 右",
-          "note": "对照卡标签"
+          "note": "对照卡标签；r7-C1 / D61 文案重写"
         },
         "mineCardLabel": {
           "raw": null,
-          "text": "你的书写，{n} 笔",
+          "text": "你写的，{n} 笔",
           "origin": "extra",
-          "note": "阶段 0 A9（G21）：本人对照卡的读屏名称，{n} = 本次笔画数；视觉标签仍是 labelMine",
+          "note": "阶段 0 A9（G21）：本人对照卡的读屏名称，{n} = 本次笔画数；视觉标签仍是 labelMine；r7-C1 / D61 文案重写",
           "decision": "P112"
         },
         "refCardLabel": {
           "raw": null,
-          "text": "参考字形：{char}，{pinyin}，{n} 画",
+          "text": "标准写法：{char}，{pinyin}，{n} 画",
           "origin": "extra",
-          "note": "阶段 0 A9（G21）：参考卡的读屏名称；判断页已揭晓答案，读出字 / 拼音 / 笔画数不泄露；{n} = 参考字形笔画数",
+          "note": "阶段 0 A9（G21）：参考卡的读屏名称；判断页已揭晓答案，读出字 / 拼音 / 笔画数不泄露；{n} = 参考字形笔画数；r7-C1 / D61 文案重写",
           "decision": "P112"
         },
         "refCardLabelNoCount": {
           "raw": null,
-          "text": "参考字形：{char}，{pinyin}",
+          "text": "标准写法：{char}，{pinyin}",
           "origin": "extra",
-          "note": "阶段 0 A9：笔顺数据还没取到（加载中 / 缺失）时没有笔画数，不报数",
+          "note": "阶段 0 A9：笔顺数据还没取到（加载中 / 缺失）时没有笔画数，不报数；r7-C1 / D61 文案重写",
           "decision": "P112"
         },
         "refCardLabelChar": {
           "raw": null,
-          "text": "参考字形：{char}",
+          "text": "标准写法：{char}",
           "origin": "extra",
-          "note": "阶段 0 A9：题库里没有这个字的拼音时只读字",
+          "note": "阶段 0 A9：题库里没有这个字的拼音时只读字；r7-C1 / D61 文案重写",
           "decision": "P112"
         }
       },
@@ -3201,9 +3201,9 @@
       "slots": {
         "changeTitle": {
           "raw": null,
-          "text": "修改「{char}」的判断",
+          "text": "改「{char}」",
           "origin": "extra",
-          "note": "修改判断弹层标题；原型 sheetTitle（ShiziWriteScreen L637）；reference/I-proto-write.md 文案表「修改判断弹层标题」",
+          "note": "修改判断弹层标题；原型 sheetTitle（ShiziWriteScreen L637）；reference/I-proto-write.md 文案表「修改判断弹层标题」；r7-C1 / D61 文案重写",
           "decision": "P66"
         },
         "changeToWrong": {
@@ -3236,9 +3236,9 @@
         },
         "paperMineLabel": {
           "raw": null,
-          "text": "你的书写：写在纸上",
+          "text": "你写的：在纸上",
           "origin": "extra",
-          "note": "纸上那一字的读屏：判断页「你的书写」的名称、修改判断弹层本人格的名称（实现交接 §9.5 / §10.2）",
+          "note": "纸上那一字的读屏：判断页「你的书写」的名称、修改判断弹层本人格的名称（实现交接 §9.5 / §10.2）；r7-C1 / D61 文案重写",
           "decision": "P167"
         },
         "paperMineBox": {

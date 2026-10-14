@@ -18,3 +18,4 @@ ios/ShiziApp/Config/Signing.local.xcconfig
 AuthKey_*.p8
 *.ipa
 *.xcarchive
+scripts/sim/out/

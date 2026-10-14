@@ -1,0 +1,218 @@
+<title>拾字真机测试单</title>
+<style>
+/* 一列清单：按页面分组，每条 = 怎么做 + 应该看到什么 + 三个结果按钮 + 备注。颜色取拾字设计系统的纸 / 墨 / 朱。 */
+:root {
+  --paper: #F4EFE6; --sheet: #FBF8F2; --ink1: #26211D; --ink2: #564E46; --ink3: #857B70;
+  --line: #DCD3C4; --zhu: #B33A2B; --ok: #3F6B3A; --skip: #8A7F72;
+  --song: "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif;
+  --hei: -apple-system, "PingFang SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1B1814; --sheet: #24201B; --ink1: #ECE4D6; --ink2: #C1B7A4; --ink3: #8F8576;
+  --line: #3A332B; --zhu: #E07563; --ok: #8DBB84; --skip: #9C9284; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #1B1814; --sheet: #24201B; --ink1: #ECE4D6; --ink2: #C1B7A4; --ink3: #8F8576;
+  --line: #3A332B; --zhu: #E07563; --ok: #8DBB84; --skip: #9C9284; color-scheme: dark }
+body { background: var(--paper); color: var(--ink1); font: 400 16px/1.6 var(--hei); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 80px; display: grid; gap: 28px; }
+header { display: grid; gap: 8px; }
+h1 { margin: 0; font: 500 30px/38px var(--song); text-wrap: balance; }
+.lede { margin: 0; color: var(--ink2); font-size: 15px; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2; background: var(--paper); padding-block: 10px; border-bottom: 0.5px solid var(--line); display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 14px; color: var(--ink2); }
+.bar b { color: var(--ink1); font-weight: 500; font-variant-numeric: tabular-nums; }
+.bar .st { font-size: 13px; color: var(--ink3); margin-left: auto; }
+.meter { flex: 1 1 120px; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; min-width: 80px; }
+.meter i { display: block; height: 100%; width: 0; background: var(--ink1); transition: width .3s; }
+section { display: grid; gap: 0; }
+section h2 { margin: 0 0 6px; font: 500 21px/30px var(--song); display: flex; align-items: baseline; gap: 10px; }
+section h2 span { font: 400 13px/1 var(--hei); color: var(--ink3); font-variant-numeric: tabular-nums; }
+.item { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 10px; padding-block: 14px; border-top: 0.5px solid var(--line); }
+.item:last-child { border-bottom: 0.5px solid var(--line); }
+.id { font: 500 13px/24px ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink3); }
+.body { display: grid; gap: 6px; min-width: 0; }
+.do { font-weight: 500; }
+.exp { color: var(--ink2); font-size: 15px; }
+.known { font-size: 13px; color: var(--zhu); }
+.acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.acts button { appearance: none; font: 400 14px/1 var(--hei); color: var(--ink2); background: var(--sheet); border: 0.5px solid var(--line); border-radius: 8px; min-height: 36px; padding: 0 14px; cursor: pointer; }
+.acts button:focus-visible, textarea:focus-visible { outline: 2px solid var(--ink1); outline-offset: 2px; }
+.acts button[aria-pressed="true"][data-v="ok"] { background: var(--ok); border-color: var(--ok); color: var(--paper); }
+.acts button[aria-pressed="true"][data-v="issue"] { background: var(--zhu); border-color: var(--zhu); color: var(--paper); }
+.acts button[aria-pressed="true"][data-v="skip"] { background: var(--skip); border-color: var(--skip); color: var(--paper); }
+.acts button:disabled { opacity: .5; cursor: default; }
+textarea { width: 100%; box-sizing: border-box; font: 400 15px/1.5 var(--hei); color: var(--ink1); background: var(--sheet); border: 0.5px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; min-height: 44px; }
+textarea[hidden] { display: none; }
+.saved { font-size: 12px; color: var(--ink3); min-height: 16px; }
+footer { color: var(--ink3); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>拾字真机测试单</h1>
+    <p class="lede">在 iPhone 13 上按顺序一条一条试。每条点「通过」「有问题」或「先跳过」；有问题时在框里写一句看到了什么。写下的内容会自动保存，Claude 可以直接读到，不用再转述。</p>
+  </header>
+  <div class="bar" role="status">
+    <span>已试 <b id="done">0</b> / <b id="total">0</b></span>
+    <span>有问题 <b id="issues">0</b></span>
+    <div class="meter" aria-hidden="true"><i id="meterFill"></i></div>
+    <span class="st" id="state">正在连接…</span>
+  </div>
+  <div id="list"></div>
+  <footer>对应版本：v10/integration（2026-10-14 装机）。测试项按页面排，编号用来在聊天里指代，比如「B3 有问题」。</footer>
+</div>
+
+<script>
+(function () {
+  const PLAN = [
+    { g: 'A', name: '首页', items: [
+      ['打开 App，看首页', '只有日期、「拾」、竖排题记、「自己选字」和一个主按钮，没有别的提示。'],
+      ['看主按钮的字', '今天没写是「开始」，写了一半是「继续」，写完是「再写一组」。'],
+      ['点主按钮进写字页，再点左上返回', '进入时纸从按钮处展开；返回时纸缩回按钮。'],
+      ['再进一次写字页，用左边缘右滑返回', '纸跟着手指缩回，松手回到首页，没有卡顿。'],
+      ['点「自己选字」，选两个字', '弹出查字；选两个字后按钮显示「练这 2 个字」；点它，写字页从右边推进来。'],
+      ['写完回到首页', '不出现「已保存」之类的提示。']
+    ]},
+    { g: 'B', name: '写字页', items: [
+      ['看写字页布局', '题面在上；「提示」「看答案」在「写好了」上方；撤销、清空在格子下面；「跳过」在右上角。按钮大小和间距好点。'],
+      ['点「提示」，再点一次', '每次点都多给一点帮助。', '已知问题：现在只能点一次。你希望多点几次分别看到什么，写在备注里。'],
+      ['点「看答案」', '显示标准写法，看完可以直接在格子里写。', '已知问题：现在要先点「自己写」才能写。'],
+      ['描一遍结束后的按钮', '按钮叫「自己写」，点了回到空格子自己写。'],
+      ['写一个字，点「写好了」', '进入对照页，左边你写的、右边标准写法，下面「写对了」「写错了」。'],
+      ['在对照页用左边缘右滑', '回到写字页，刚写的笔迹还在。'],
+      ['点「跳过」', '换下一个字；这个字之后出现在字库「已跳过」里。'],
+      ['快速连写几笔', '笔迹跟手、不断笔、不卡。']
+    ]},
+    { g: 'C', name: '结果页', items: [
+      ['写完一组', '作品一个个出现，最后落印，落印时声音和震动同时到。'],
+      ['点「再写一组」', '新的写字页从右边推进来盖住结果页。'],
+      ['保存或分享图片', '图片带纸边，字清楚。'],
+      ['（首次练习后）看提醒邀请那段话', '读起来通顺、意思清楚。']
+    ]},
+    { g: 'D', name: '字库', items: [
+      ['看字库页从上到下', '搜索、练习范围、今日练习、已练汉字和三档（待复习 / 未熟悉 / 已熟悉）、再单独一块「已跳过」。'],
+      ['看各行字的大小', '「已练汉字」和下面各行名称一样大；数字、右边的值、小字各自一致。'],
+      ['点搜索，输入汉字，再输入拼音，然后关掉', '两种都能搜到；关闭时弹窗一路滑下去，不卡、不停在半屏。'],
+      ['点「练习范围」，再左滑返回', '进入换字库页；左缘右滑能回来；和「我的」页的练习范围显示同一个值。'],
+      ['点「今日练习」，再返回', '写字页从右边推进来；返回往右滑走，回到字库。'],
+      ['点「待复习」等任一档', '进入这一档的字；左滑返回；底部「练这些字」一次点就开始写。'],
+      ['点「已跳过」', '列出跳过、还没写过的字，能直接练。'],
+      ['点「全部 ›」，打开筛选', '筛选里是三档和自选相关的选项，小屏和大字号下排得开。'],
+      ['点任意一个字进字详情，点「练这个字」', '写字页从右边推进来；返回回到字详情。']
+    ]},
+    { g: 'E', name: '我的', items: [
+      ['看顶部三个数', '连续练习、累计练习、已练汉字，数字和你实际情况相符（已练汉字和字库一样）。'],
+      ['点「10月字帖」那一行', '进入练习记录，停在本月。'],
+      ['点「提醒」', '进入提醒页：开关、提醒时间；时间选择器样子正常；左滑能返回。'],
+      ['点外观的「日间」「夜间」「跟随系统」', '点一下马上切换；夜间时选中的那一段看得清。'],
+      ['点「备份」，试导出；再看恢复的确认句', '导出成功；恢复确认句写着备份日期和字数。'],
+      ['进「年度报告」，上下左右拖动', '只有内容区上下滚，整页不会被拖着走。'],
+      ['进「关于拾字」，再看页底版本号', '内容正常，版本号能看到（可能要轻轻上滑）。']
+    ]},
+    { g: 'F', name: '全局', items: [
+      ['把手机拨到静音，写一组', '全程没有声音，震动照常。'],
+      ['所有二级页都试一次左上返回和左缘右滑', '每一页两种返回都能用，动作一样。'],
+      ['系统设置里把字号调到最大，看字库和我的', '字不重叠、不被截断；看完把字号调回来。'],
+      ['切到夜间，整体看一遍', '每页颜色协调，没有刺眼或看不清的地方。'],
+      ['留意所有文字说法', '读起来正式、清楚，不像聊天；别扭的句子记在备注里。']
+    ]}
+  ];
+
+  const items = [];
+  PLAN.forEach(s => s.items.forEach((it, i) => items.push({ id: s.g + (i + 1), g: s.g, doIt: it[0], exp: it[1], known: it[2] || '' })));
+  const results = {};
+  let db = null, canWrite = true;
+
+  const list = document.getElementById('list');
+  list.innerHTML = PLAN.map(s => `<section aria-labelledby="h-${s.g}"><h2 id="h-${s.g}">${s.g}　${s.name}<span id="c-${s.g}"></span></h2>` +
+    items.filter(x => x.g === s.g).map(x => `
+      <div class="item" id="it-${x.id}">
+        <div class="id">${x.id}</div>
+        <div class="body">
+          <div class="do">${x.doIt}</div>
+          <div class="exp">应该：${x.exp}</div>
+          ${x.known ? `<div class="known">${x.known}</div>` : ''}
+          <div class="acts" role="group" aria-label="${x.id} 结果">
+            <button type="button" data-id="${x.id}" data-v="ok" aria-pressed="false">通过</button>
+            <button type="button" data-id="${x.id}" data-v="issue" aria-pressed="false">有问题</button>
+            <button type="button" data-id="${x.id}" data-v="skip" aria-pressed="false">先跳过</button>
+          </div>
+          <textarea id="note-${x.id}" data-id="${x.id}" aria-label="${x.id} 备注" placeholder="看到了什么？" rows="2"${x.known ? '' : ' hidden'}></textarea>
+          <div class="saved" id="sv-${x.id}"></div>
+        </div>
+      </div>`).join('') + `</section>`).join('');
+  document.getElementById('total').textContent = items.length;
+
+  function paint() {
+    let done = 0, issues = 0;
+    const per = {};
+    items.forEach(x => {
+      const r = results[x.id] || {};
+      if (r.status) done++;
+      if (r.status === 'issue') issues++;
+      per[x.g] = per[x.g] || [0, 0]; per[x.g][1]++; if (r.status) per[x.g][0]++;
+      document.querySelectorAll(`.acts button[data-id="${x.id}"]`).forEach(b => b.setAttribute('aria-pressed', String(r.status === b.dataset.v)));
+      const ta = document.getElementById('note-' + x.id);
+      if (document.activeElement !== ta) ta.value = r.note || '';
+      ta.hidden = !(x.known || r.status === 'issue' || r.note);
+    });
+    Object.keys(per).forEach(g => { document.getElementById('c-' + g).textContent = per[g][0] + ' / ' + per[g][1]; });
+    document.getElementById('done').textContent = done;
+    document.getElementById('issues').textContent = issues;
+    document.getElementById('meterFill').style.width = (items.length ? done / items.length * 100 : 0) + '%';
+  }
+
+  function setState(t) { document.getElementById('state').textContent = t; }
+  const pending = {};
+  async function save(id) {
+    if (!db || !canWrite) return;
+    if (pending[id]) { pending[id].again = true; return; }
+    pending[id] = { again: false };
+    const sv = document.getElementById('sv-' + id);
+    sv.textContent = '保存中…';
+    try {
+      do {
+        pending[id].again = false;
+        const r = results[id] || {};
+        await db.collection('results').doc(id).set({ status: r.status || '', note: r.note || '', at: new Date().toISOString() });
+      } while (pending[id].again);
+      sv.textContent = '已保存';
+    } catch (e) {
+      sv.textContent = e && e.code === 'invalid_argument' ? '没有保存权限，结果只在这台设备上看得到' : '没保存上，稍后再点一次';
+      if (e && e.code === 'invalid_argument') { canWrite = false; }
+    } finally { delete pending[id]; }
+  }
+
+  list.addEventListener('click', e => {
+    const b = e.target.closest('.acts button'); if (!b) return;
+    const id = b.dataset.id; const r = results[id] = Object.assign({}, results[id]);
+    r.status = r.status === b.dataset.v ? '' : b.dataset.v;
+    paint();
+    if (r.status === 'issue') { const ta = document.getElementById('note-' + id); ta.hidden = false; ta.focus(); }
+    save(id);
+  });
+  const timers = {};
+  list.addEventListener('input', e => {
+    const ta = e.target.closest('textarea'); if (!ta) return;
+    const id = ta.dataset.id; results[id] = Object.assign({}, results[id], { note: ta.value });
+    clearTimeout(timers[id]); timers[id] = setTimeout(() => save(id), 700);
+  });
+
+  paint();
+  (async () => {
+    const cl = window.claude;
+    db = cl && cl.use ? await cl.use('db') : null;
+    if (!db) { setState('未连上保存：结果不会保存'); return; }
+    setState('自动保存');
+    db.collection('results').onSnapshot(snap => {
+      snap.docs.forEach(d => {
+        const v = d.data() || {};
+        const ta = document.getElementById('note-' + d.id);
+        const editing = ta && document.activeElement === ta;
+        results[d.id] = { status: v.status || '', note: editing ? (results[d.id] || {}).note : (v.note || '') };
+      });
+      paint();
+    }, () => setState('连接断了，刷新页面再试'));
+  })();
+})();
+</script>

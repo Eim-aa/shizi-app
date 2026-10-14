@@ -148,13 +148,13 @@ export async function runWriteAx(page, ctx, views) {
         assert.equal(await page.$('[data-testid="write-ax-menu"]'), null, `${tag}: no menu involved`);
       }
 
-      // ---------------------------------------------------------------- 看答案页
-      step(`${tag} answer: primary 「描一遍」 + the text row (自己写 / 下一个), the note is in the note slot, the answer glyph (the grid) is whole and uncovered`);
-      await open(page, ctx, { view, size, current: { phase: 'answer', answerSeen: true } });
+      // ---------------------------------------------------------------- 看答案后的描一遍页（D64 ②）
+      step(`${tag} trace (right after 看答案): primary 「凭记忆写」 + the text row (下一个), the note is in the note slot, the standard writing (the grid) is whole and uncovered`);
+      await open(page, ctx, { view, size, current: { phase: 'trace', answerSeen: true } });
       const a = await page.evaluate(geometry);
-      assert.ok(a.grid.width >= (page.viewportSize().height < 700 ? 180 : 220) - 0.5 && a.grid.bottom <= a.foot.top + 0.5 && a.grid.top >= a.head.bottom - 0.5, `${tag}: the answer grid ${a.grid.width.toFixed(0)}pt is whole and above the foot`);
-      assert.ok(a.bodyScroll[0] <= a.bodyScroll[1] + 1, `${tag}: no scrolling on the answer page`);
-      assert.ok(a.note && a.note.top >= a.grid.bottom - 0.5 && !overlaps(a.note, a.grid), `${tag}: the note sits under the grid, not over the answer glyph`);
+      assert.ok(a.grid.width >= (page.viewportSize().height < 700 ? 180 : 220) - 0.5 && a.grid.bottom <= a.foot.top + 0.5 && a.grid.top >= a.head.bottom - 0.5, `${tag}: the trace grid ${a.grid.width.toFixed(0)}pt is whole and above the foot`);
+      assert.ok(a.bodyScroll[0] <= a.bodyScroll[1] + 1, `${tag}: no scrolling on the trace page`);
+      assert.ok(a.note && a.note.top >= a.grid.bottom - 0.5 && !overlaps(a.note, a.grid), `${tag}: the note sits under the grid, not over the standard writing`);
       assert.ok(a.note.bottom <= a.foot.top + 0.5, `${tag}: the note ends above the foot`);
       assert.ok(a.links && a.links.bottom <= a.vh + 0.5 && a.primary && a.primary.bottom <= a.vh + 0.5, `${tag}: foot buttons and the text row on the first screen`);
       const ans = await page.evaluate(() => ({
@@ -162,11 +162,11 @@ export async function runWriteAx(page, ctx, views) {
         id: document.querySelector('.sz-layer[data-top="true"] .sz-page__foot .sz-btn--primary').dataset.testid,
         dup: document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="write-answer-next"]').length,
       }));
-      assert.deepEqual([ans.primary, ans.id], ['描一遍', 'write-answer-trace'], `${tag}: the primary button is 描一遍`);
+      assert.deepEqual([ans.primary, ans.id], ['凭记忆写', 'write-trace-done'], `${tag}: the primary button is 凭记忆写`);
       assert.equal(ans.dup, 1, `${tag}: 「下一个」 is shown once (A2-11), in the text row`);
       const items = (await footItems(page)).map(i => i.testid);
-      assert.deepEqual(items, ['write-answer-self', 'write-answer-next'], `${tag}: answer text row = 自己写 / 下一个`);
-      await tap(page, 'write-answer-self');
+      assert.deepEqual(items, ['write-answer-next'], `${tag}: trace text row = 下一个 (no 描一遍 / 自己写 any more)`);
+      await tap(page, 'write-trace-done');
       await waitNavIdle(page);
       await page.waitForSelector(`${topSel('write-screen')} .sz-write[data-phase="retrace"]`, { timeout: 5000 });
 

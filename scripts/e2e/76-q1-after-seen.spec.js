@@ -93,10 +93,8 @@ export default async function q1AfterSeen(page, ctx) {
   await openWrite(page, { slot: 'A' });
   await waitPhase(page, 'recall');
 
-  step('永: 看答案 → 描一遍 (one horizontal) → 自己写 (vertical + horizontal) → 再描一遍 → 自己写 (vertical) → 下一个');
+  step('永: 看答案（直接描一遍，D64 ②）(one horizontal) → 凭记忆写 (vertical + horizontal) → 再描一遍 → 自己写 (vertical) → 下一个');
   await tap(page, 'write-show-answer');
-  await waitPhase(page, 'answer');
-  await page.click(topSel('write-answer-trace'));
   await waitPhase(page, 'trace');
   await drawStroke(page, HORIZONTAL);
   await page.click(topSel('write-trace-done'));

@@ -1,5 +1,5 @@
 // 交互合规（交互与动效规范 §8b）—— 第 5 份：写字页各阶段。
-//   IC-11  回忆 / 看答案 / 描一遍 / 自己写 / 判断每个阶段：B3 常用操作全部可见、可点、不在任何菜单弹层里
+//   IC-11  回忆 / 描一遍（看答案后直接进入，D64 ②）/ 凭记忆写 / 判断每个阶段：B3 常用操作全部可见、可点、不在任何菜单弹层里
 //   IC-19  写字页所有阶段「‹」图标的 x 坐标相等（± 0.5）
 //   IC-04  判断阶段左缘右滑 = 「‹ 接着写」：回到回忆、笔数不变、页面栈深度不变（P0-01 归卡 I2：未修前按待修清单跳过并打印）
 //   IC-17  转场进行中的输入不被吞：推入写字页的转场里落下的笔照样记下（与等转场放完再写结果相同）
@@ -13,7 +13,6 @@ const CHARS = ['永', '和', '春'];
 /** B3：每个阶段应当一次点击直达的操作（testid）。 */
 const OPS = {
   recall: ['write-done', 'write-hint', 'write-show-answer', 'write-skip', 'write-undo', 'write-clear'],
-  answer: ['write-answer-trace', 'write-answer-self', 'write-answer-next'],
   trace: ['write-trace-done', 'write-answer-next'],
   retrace: ['write-answer-next', 'write-retrace-trace'],
   compare: ['write-judge-wrong', 'write-judge-correct', 'write-continue'],
@@ -61,12 +60,6 @@ export default async function interactionComplianceWrite(page, ctx) {
   assert.deepEqual(f.ops, Object.fromEntries(OPS.recall.map(k => [k, 'ok'])), 'IC-11 recall');
   xs.recall = f.backX;
   await page.click(`${TOP} [data-testid="write-show-answer"]`);
-  await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.phase === 'answer');
-  await page.waitForTimeout(PRESS_MS);
-  f = await phaseFacts(page, OPS.answer);
-  assert.deepEqual(f.ops, Object.fromEntries(OPS.answer.map(k => [k, 'ok'])), 'IC-11 answer');
-  xs.answer = f.backX;
-  await page.click(`${TOP} [data-testid="write-answer-trace"]`);
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.phase === 'trace');
   await page.waitForTimeout(1900); // 描一遍前的笔顺快放（≤ 1.6s）
   await drawStroke(page, HORIZONTAL);
@@ -78,7 +71,7 @@ export default async function interactionComplianceWrite(page, ctx) {
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.phase === 'retrace');
   await page.waitForTimeout(PRESS_MS);
   f = await phaseFacts(page, OPS.retrace);
-  assert.deepEqual(f.ops, Object.fromEntries(OPS.retrace.map(k => [k, 'ok'])), 'IC-11 retrace (自己写)');
+  assert.deepEqual(f.ops, Object.fromEntries(OPS.retrace.map(k => [k, 'ok'])), 'IC-11 retrace (凭记忆写)');
   xs.retrace = f.backX;
   await page.click(`${TOP} [data-testid="write-answer-next"]`);
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.cursor === '1');

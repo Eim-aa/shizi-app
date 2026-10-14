@@ -109,7 +109,6 @@ export async function tapLead(page) {
 export const WRITE_PHASES = [
   ['recall', { current: undefined, draw: true }],
   ['hint', { current: undefined, hint: true }],
-  ['answer', { current: { phase: 'answer', answerSeen: true } }],
   ['trace', { current: { phase: 'trace', answerSeen: true } }],
   ['retrace', { current: { phase: 'retrace', answerSeen: true } }],
   ['compare', { current: undefined, draw: true, done: true }],

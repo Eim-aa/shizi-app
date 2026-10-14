@@ -120,17 +120,12 @@ export default async function x1Transitions(page, ctx) {
   await page.waitForSelector(topSel('write-grid'));
   assert.equal(await page.$eval(topSel('write-grid'), el => Number(el.dataset.strokeCount)), 1, 'the written stroke is intact');
 
-  step('fade: 看答案 (recall → answer) and 描一遍 / 自己写 fade too');
+  step('fade: 看答案 (recall → trace) and 凭记忆写 fade too');
   await open(page, ctx);
   await page.waitForTimeout(PRESS_SETTLE_MS);
   frames = await timeline(page, 'write-show-answer');
   sp = snapSpan(frames);
-  assert.ok(sp && sp.from <= 50 && sp.to <= 150 + 60, 'recall → answer: a 150ms snapshot fade');
-  await page.waitForSelector(topSel('write-answer-trace'));
-  await page.waitForTimeout(PRESS_SETTLE_MS + 250);
-  frames = await timeline(page, 'write-answer-trace');
-  sp = snapSpan(frames);
-  assert.ok(sp && sp.to <= 150 + 60, 'answer → trace: a 150ms snapshot fade');
+  assert.ok(sp && sp.from <= 50 && sp.to <= 150 + 60, 'recall → trace (看答案 goes straight there, D64 ②): a 150ms snapshot fade');
   await page.waitForSelector(topSel('write-trace-done'));
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(PRESS_SETTLE_MS);

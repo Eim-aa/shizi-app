@@ -92,7 +92,7 @@ export default async function run(page, ctx) {
     await seedSession(page, { slot: 'A', kind: 'first', chars: ['尴', '赢', '拾'], cursor: 0 });
     await openWrite(page, { slot: 'A' });
     await tap(page, 'write-show-answer');
-    await page.waitForSelector(topSel('write-answer-trace'));
+    await page.waitForSelector(topSel('write-trace-done'));
     await waitNavIdle(page);
     const t = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');

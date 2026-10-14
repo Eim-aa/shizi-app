@@ -159,9 +159,10 @@ async function judge(page, judgment, { nextCursor = null } = {}) {
   if (nextCursor !== null) await waitCursor(page, nextCursor);
 }
 
+/** 点「看答案」：直接进描一遍（D64 ②）。 */
 async function openAnswer(page) {
   await tap(page, 'write-show-answer');
-  await waitPhase(page, 'answer');
+  await waitPhase(page, 'trace');
 }
 
 async function openPickSheet(page) {
@@ -274,7 +275,7 @@ export default async function run(page, ctx) {
   assert.equal(await topScreen(page), 'home', 'no result page, no forced next step');
 
   // --------------------------------------------------------------- 2. 场景 2 + 反例 2
-  step('场景 2: hint → write → 看答案 → 描一遍 → 自己写 → 下一个: one answer-seen record, help facts kept apart');
+  step('场景 2: hint → write → 看答案（直接描一遍）→ 凭记忆写 → 下一个: one answer-seen record, help facts kept apart');
   await resetAt(page);
   await seed(page, { sessions: { A: makeSession({ id: 's610', slot: 'A', kind: 'daily', chars: ['大', '中', '永', '和'], at: await now(page) }), B: null, lastEnded: {} } });
   await toHome(page);
@@ -285,8 +286,6 @@ export default async function run(page, ctx) {
   assert.equal(f.sessions.A.current.hints, 1, 'hint used once (session.current.hints)');
   await drawStroke(page, HORIZONTAL);
   await openAnswer(page);
-  await page.click(topSel('write-answer-trace'));
-  await waitPhase(page, 'trace');
   await drawStroke(page, HORIZONTAL);
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
@@ -321,8 +320,6 @@ export default async function run(page, ctx) {
 
   step('反例 2: 没落笔就看答案 → 描一遍 → 下一个; 没落笔就跳过 — neither counts as a valid attempt');
   await openAnswer(page);
-  await page.click(topSel('write-answer-trace'));
-  await waitPhase(page, 'trace');
   await tap(page, 'write-answer-next');
   await waitCursor(page, 3);
   f = await facts(page);

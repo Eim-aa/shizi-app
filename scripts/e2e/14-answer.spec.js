@@ -1,10 +1,10 @@
-// M1-4 看答案 / 描一遍 / 自己写（02 §3 M1-4；决定-D18；01 §3.2 / §3.3 / §6.5；04 R-W07 / R-W08；走查-W19）；W1（D34 / D51 ⑧，I2-02 / V2-02）改后：
+// M1-4 看答案 / 描一遍 / 凭记忆写（02 §3 M1-4；决定-D18；01 §3.2 / §3.3 / §6.5；04 R-W07 / R-W08；走查-W19）；D64 ② 改后：
 // seed 一个 A 会话（永 / 和 / 春）→ 先写两笔 → failNextWrite(1) 时点「看答案」写失败弹三段式失败框（先不保存 / 再试一次）→「先不保存」什么都不记 →
-// 再点「看答案」**没有任何确认框**、直接进看答案页：记录恰好一条 kind='answer-seen'，今日 N（judged 去重）仍为 0，本人墨（两笔）像素不变、不清空、
-// 不换卡，答案字形在书写格的参考字形层里（本人墨下层），第一次格下一行说明并记 settings.answerNoteSeen → 描一遍（快放 ≤ 1.6s、点一下即到终态、
-// help.traced）→ 描好了，自己写 → 再描一遍 → 自己写 →「下一个」推进（item kind='answer-seen'、结果行 saw），全程不进判断页（compare）→
-// 第二字：看答案页「自己写」直达（第二次起没有格下说明）、「下一个」写失败留现场可重试 → 第三字：描一遍快放 ≤ 1.6s → 10.13 无笔顺数据：楷体整字衬底、
-// 照实记 answer-seen、描一遍浅色整字不播 → 减少动态效果：看答案直接终态。控制台零错误由 run.mjs 统一断言（10.13 段的 404 请求显式放行）。
+// 再点「看答案」**没有任何确认框、也没有中间一步**，直接进描一遍：记录恰好一条 kind='answer-seen'（help.traced 已是 true），今日 N（judged 去重）仍为 0，
+// 格子清空、标准写法直接淡显在格子里（写字页参考字形层），**不再点任何按钮就能落笔**，格下一句 R-W07.answerNote → 点「凭记忆写」清掉答案与笔迹进空格子 →
+// 再描一遍 → 凭记忆写 →「下一个」推进（item kind='answer-seen'、结果行 saw），全程不进判断页（compare）→
+// 第二字：看答案后「凭记忆写」直达、「下一个」写失败留现场可重试 → 第三字：描一遍快放 ≤ 1.6s → 10.13 无笔顺数据：
+// 照实记 answer-seen、描一遍浅色整字不播 → 减少动态效果：描一遍不播。控制台零错误由 run.mjs 统一断言（10.13 段的 404 请求显式放行）。
 
 import {
   bootTestHost, drawStroke, HORIZONTAL, localDayOf, PRESS_SETTLE_MS, seedSession, tid, topSel, VERTICAL,
@@ -17,18 +17,16 @@ const COPY = {
   retry: '再试一次',
   notNow: '先不保存',
   answerNote: '这个字记为看过答案，后面再写只算练习。',
-  self: '自己写',
   trace: '描一遍',
   next: '下一个',
-  traceDone: '自己写',
+  traceDone: '凭记忆写',
   retrace: '再描一遍',
   selfNote: '这个字看过答案了，再写只算练习。',
   titleRecall: '凭记忆写',
-  titleAnswer: '正确写法',
   titleTrace: '描一遍',
-  titleSelf: '自己写',
+  titleSelf: '凭记忆写',
   stepTrace: '第 1 步，共 2 步：描一遍',
-  stepSelf: '第 2 步，共 2 步：自己写',
+  stepSelf: '第 2 步，共 2 步：凭记忆写',
 };
 
 const CHARS = ['永', '和', '春'];
@@ -115,10 +113,10 @@ async function waitAttr(page, id, attr, values, timeout = 15000) {
   return page.getAttribute(topSel(id), attr);
 }
 
-/** 点「看答案」：没有确认框，直接进看答案页（D51 ⑧）。 */
+/** 点「看答案」：没有确认框，直接进描一遍（D51 ⑧ / D64 ②：没有中间一步）。 */
 async function showAnswer(page) {
   await tap(page, 'write-show-answer');
-  await waitPhase(page, 'answer');
+  await waitPhase(page, 'trace');
   assert0(await page.locator(tid('write-answer-confirm')).count() === 0, 'no confirm dialog appeared');
 }
 
@@ -209,83 +207,7 @@ export default async function answer(page, ctx) {
   f = await facts(page);
   assert.equal(f.records.length, 0, 'no record after 先不保存');
 
-  ctx.step('看答案 (no failure) → NO confirm dialog at all: straight to the answer page on the same card, one answer-seen record, today N = 0');
-  await tap(page, 'write-show-answer');
-  await waitPhase(page, 'answer');
-  assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog (D51 ⑧)');
-  s = await track();
-  assert.equal(s.title, COPY.titleAnswer, 'title R-W03.titleAnswer');
-  f = await facts(page);
-  assert.equal(f.records.length, 1, 'exactly one record');
-  const rec1 = f.records[0];
-  assert.equal(rec1.kind, 'answer-seen', "record kind === 'answer-seen'");
-  assert.equal(rec1.cardKey, 'base:永', 'record is for 永');
-  assert.equal(rec1.sessionId, 's1', 'record carries the session id');
-  assert.equal(rec1.judgment, undefined, 'answer-seen has no judgment');
-  assert.deepEqual(rec1.help, { hints: 0, answerSeen: true, traced: false }, 'help facts: answerSeen true, hints 0, traced false');
-  assert.equal(rec1.localDay, localDayOf(rec1.at), 'localDay derived from at');
-  assert.equal(f.todayN, 0, '今日 N (judged, deduped by char) does not count answer-seen');
-  assert.deepEqual(f.judgedToday, [], 'no judged record today');
-  assert.deepEqual(f.answerSeenToday, ['base:永'], 'answer-seen is listed as its own event');
-  assert.ok(!f.sched || Object.keys(f.sched).length === 0, 'sched (FSRS) untouched by answer-seen');
-  assert.deepEqual(f.ink, {}, 'no ink written for answer-seen');
-  assert.equal(f.session.current.phase, 'answer', "session.current.phase === 'answer'");
-  assert.equal(f.session.current.answerSeen, true, 'session.current.answerSeen === true');
-  assert.equal(f.session.current.strokes.length, 2, 'the writer\'s two strokes are still in the session (not cleared)');
-  assert.equal(f.session.lastLine, null, 'result line collapsed on 看答案 (D19)');
-  assert.equal(f.session.cursor, 0, 'cursor not advanced yet');
-
-  ctx.step('answer page: same grid, own ink untouched, the answer glyph is drawn UNDER the ink (--under, in the reference layer); no judge / write-done');
-  assert.equal(await waitAttr(page, 'write-answer-card', 'data-state', ['ready', 'missing']), 'ready', 'stroke data ready');
-  assert.equal(await page.getAttribute(topSel('write-answer-card'), 'data-anim'), 'reveal', 'answer under-layer reveals (400ms)');
-  assert.ok(await visible(page, 'write-grid'), 'the writing grid is still there (看答案 does not swap the card, D51 ⑧)');
-  assert.equal(await page.getAttribute(topSel('write-grid'), 'data-drawable'), 'false', 'no more writing on the answer page');
-  assert.equal(s.strokes, 2, 'the two strokes are still on the grid');
-  const layers = await page.evaluate(() => {
-    const top = document.querySelector('.sz-layer[data-top="true"]');
-    const card = top.querySelector('[data-testid="write-answer-card"]');
-    const glyph = top.querySelector('[data-testid="write-glyph-layer"]');
-    const ink = top.querySelector('[data-testid="write-grid-ink"]');
-    const grid = top.querySelector('[data-testid="write-grid"]');
-    const cv = card.querySelector('canvas');
-    const data = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
-    let n = 0;
-    let rgb = null;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3] === 255) { n += 1; if (!rgb) rgb = [data[i], data[i + 1], data[i + 2]]; }
-    }
-    const probe = document.createElement('span');
-    probe.style.color = 'var(--under)';
-    document.body.appendChild(probe);
-    const under = getComputedStyle(probe).color;
-    probe.remove();
-    return {
-      inGlyphLayer: glyph.contains(card), below: !!(glyph.compareDocumentPosition(ink) & Node.DOCUMENT_POSITION_FOLLOWING),
-      cardW: Math.round(card.getBoundingClientRect().width), gridW: Math.round(grid.getBoundingClientRect().width),
-      solid: n, rgb: rgb ? `rgb(${rgb.join(', ')})` : null, under,
-    };
-  });
-  assert.deepEqual([layers.inGlyphLayer, layers.below], [true, true], 'answer layer lives in the reference layer, below the ink canvas');
-  assert.equal(layers.cardW, layers.gridW - 2, 'answer layer fills the grid inside its 1px frame (same geometry as the hint layer)');
-  assert.equal(layers.gridW, 353, 'grid is 353 wide at 393×852 (screen width − 40, D36 / P1-E1b gutter 20)');
-  assert.ok(layers.solid > 500, `the answer glyph is drawn (${layers.solid} solid px)`);
-  assert.equal(layers.rgb, layers.under, 'answer glyph colour = --under');
-  const inkAnswer = await inkProbe(page);
-  assert.deepEqual(inkAnswer.px, inkRecall.px, 'darkest ink pixel identical to the recall one: not dimmed, not cleared');
-  assert.equal(inkAnswer.solid, inkRecall.solid, 'same number of solid ink pixels');
-  assert.equal(inkAnswer.eff, 1, 'ink canvas effective opacity 1');
-  assert.equal(await text(page, 'write-note'), COPY.answerNote, 'first time: the one consequence line under the grid (R-W07.answerNote); the R-W07.firstExplain line is gone (C3-H / N3-06, D53) and the footer is one row (D53 ②)');
-  assert.equal(((await page.evaluate(() => window.__shiziTest.getState().settings)) || {}).answerNoteSeen, undefined, 'settings.answerNoteSeen is no longer written by the UI (the flag stays in the schema only)');
-  assert.equal(await present0(page, 'write-answer-note'), false, 'no separate note above the buttons any more (single row footer)');
-  // R2-A1（A2-09）：名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数
-  assert.ok(/^标准写法：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
-  assert.deepEqual([await menuLabel(page, 'write-answer-self'), await label(page, 'write-answer-trace')], [COPY.self, COPY.trace],
-    'main button 描一遍, text button 自己写 in the text row');
-  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the text row');
-  assert.equal(await visible(page, 'write-done'), false, 'no 「写好了」 on the answer page');
-  assert.equal(await visible(page, 'write-show-answer'), false, 'no second 「看答案」');
-
-  ctx.step('描一遍 → trace: outline + preview animation, R-W08 note, step dot 1, traced fact recorded');
+  ctx.step('看答案 (no failure) → NO confirm dialog and NO middle step: straight into 描一遍 on the same card, one answer-seen record, today N = 0');
   await page.evaluate(() => {
     window.__previewLog = [];
     new MutationObserver(() => {
@@ -293,17 +215,51 @@ export default async function answer(page, ctx) {
       if (el) window.__previewLog.push([el.dataset.anim, performance.now()]);
     }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-anim'], childList: true });
   });
-  await page.click(topSel('write-answer-trace'));
+  await tap(page, 'write-show-answer');
   await waitPhase(page, 'trace');
+  assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog (D51 ⑧)');
   s = await track();
-  assert.equal(s.title, COPY.titleTrace, 'title 描一遍');
+  assert.equal(s.title, COPY.titleTrace, 'D64 ②: the page after 看答案 is 描一遍 (no 「正确写法」 page any more)');
+  assert.equal(phasesSeen.has('answer'), false, "the 'answer' phase is never entered");
+  f = await facts(page);
+  assert.equal(f.records.length, 1, 'exactly one record');
+  const rec1 = f.records[0];
+  assert.equal(rec1.kind, 'answer-seen', "record kind === 'answer-seen'");
+  assert.equal(rec1.cardKey, 'base:永', 'record is for 永');
+  assert.equal(rec1.sessionId, 's1', 'record carries the session id');
+  assert.equal(rec1.judgment, undefined, 'answer-seen has no judgment');
+  assert.deepEqual(rec1.help, { hints: 0, answerSeen: true, traced: true }, 'help facts: answerSeen true, hints 0, traced true (it went straight into 描一遍)');
+  assert.equal(rec1.localDay, localDayOf(rec1.at), 'localDay derived from at');
+  assert.equal(f.todayN, 0, '今日 N (judged, deduped by char) does not count answer-seen');
+  assert.deepEqual(f.judgedToday, [], 'no judged record today');
+  assert.deepEqual(f.answerSeenToday, ['base:永'], 'answer-seen is listed as its own event');
+  assert.ok(!f.sched || Object.keys(f.sched).length === 0, 'sched (FSRS) untouched by answer-seen');
+  assert.deepEqual(f.ink, {}, 'no ink written for answer-seen');
+  assert.equal(f.session.current.phase, 'trace', "session.current.phase === 'trace'");
+  assert.equal(f.session.current.answerSeen, true, 'session.current.answerSeen === true');
+  assert.equal(f.session.current.strokes.length, 0, 'the grid is empty for tracing');
+  assert.equal(f.session.lastLine, null, 'result line collapsed on 看答案 (D19)');
+  assert.equal(f.session.cursor, 0, 'cursor not advanced yet');
+
+  ctx.step('描一遍 right away: the standard writing is faded into the same grid and can be traced at once (no extra tap); R-W07.answerNote under the grid; 凭记忆写 / 下一个');
+  assert.equal(await waitAttr(page, 'write-trace-layer', 'data-state', ['ready', 'missing']), 'ready', 'stroke data ready');
+  assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'running', 'preview (先播一遍) is running (走查-W19)');
+  assert.ok(await visible(page, 'write-grid'), 'the writing grid is still there (看答案 does not swap the card, D51 ⑧)');
+  assert.equal(await page.getAttribute(topSel('write-grid'), 'data-drawable'), 'true', 'D64 ②: the grid takes writing immediately');
+  assert.equal(s.strokes, 0, 'empty grid');
+  assert.equal(await page.locator(topSel('write-answer-card')).count(), 0, 'no separate answer page layer any more');
   assert.equal(await page.getAttribute(topSel('write-steps'), 'aria-label'), COPY.stepTrace, 'step dots R-W04.stepTrace');
-  assert.equal(await text(page, 'write-note'), '', 'no note under the grid in trace (R-W08.traceNote deleted: the trace explains itself)');
-  assert.equal(s.strokes, 0, 'trace starts with an empty grid');
-  assert.equal(await label(page, 'write-trace-done'), COPY.traceDone, 'main button 自己写');
-  assert.deepEqual(s.done, null, 'no 「写好了」 in trace');
-  const traceDone0 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);
-  assert.equal(traceDone0, true, '描好了 disabled before writing');
+  assert.equal(await text(page, 'write-note'), COPY.answerNote, 'the one consequence line under the grid (R-W07.answerNote); no first-time line, one-row footer');
+  assert.equal(((await page.evaluate(() => window.__shiziTest.getState().settings)) || {}).answerNoteSeen, undefined, 'settings.answerNoteSeen is no longer written by the UI (the flag stays in the schema only)');
+  assert.equal(await present0(page, 'write-answer-note'), false, 'no separate note above the buttons (single row footer)');
+  // R2-A1（A2-09）：名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数
+  assert.ok(/^标准写法：永，yǒng(，\d+ 画(，[^，]+)?)?$/.test(await page.getAttribute(topSel('write-answer-char'), 'aria-label')), 'screen readers get the answer glyph from the footer (the reference layer is aria-hidden)');
+  assert.equal(await label(page, 'write-trace-done'), COPY.traceDone, 'main button 凭记忆写 (D64 ②; the old 自己写 is gone)');
+  assert.equal(await page.locator(topSel('write-trace-done')).isDisabled(), false, '凭记忆写 is enabled with nothing traced: it is a way to go on, not a 「done tracing」 gate');
+  assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the text row');
+  for (const gone of ['write-answer-trace', 'write-answer-self', 'write-done', 'write-show-answer']) {
+    assert.equal(await visible(page, gone), false, `${gone} is not there`);
+  }
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-state'), 'ready', 'trace layer has stroke data');
   const tr = await page.evaluate(() => {
     const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -332,34 +288,29 @@ export default async function answer(page, ctx) {
   assert.ok(tr.faint > 50, `the other strokes are hairline hooks (anti-aliased edge pixels: ${tr.faint})`);
   assert.equal(tr.ring, false, 'no ink3 ring canvas any more');
   assert.equal(tr.current, '0', 'the current stroke is stroke 0 before anything is traced');
-  assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'running', 'preview (先播一遍) is running (走查-W19)');
-  f = await facts(page);
-  assert.equal(f.records.length, 1, 'still one record');
-  assert.equal(f.records[0].help.traced, true, 'entering trace sets help.traced on the same record');
-  assert.equal(f.session.current.phase, 'trace', 'session phase trace');
 
-  ctx.step('pen-down during the preview skips it; the stroke still counts');
+  ctx.step('pen-down during the preview skips it; the stroke still counts (and needs no extra tap first)');
   await drawStroke(page, HORIZONTAL);
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['skipped', 'completed']), 'skipped', 'preview skipped by writing');
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-current', ['1']), '1', 'D53 ①: one stroke traced → the current (solid) stroke moves on to stroke 1; stroke 0 is covered by the own ink, not drawn any more');
   assert.equal(await menuLabel(page, 'write-answer-next'), COPY.next, '下一个 in the text row in trace');
   s = await track();
-  assert.equal(s.strokes, 1, 'stroke on the trace grid');
+  assert.equal(s.strokes, 1, 'D64 ②: the very first stroke after 看答案 landed on the grid (no 「描一遍」 tap in between)');
   const traceDone1 = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="write-trace-done"]').disabled);
-  assert.equal(traceDone1, false, '描好了 enabled after writing');
+  assert.equal(traceDone1, false, '凭记忆写 still enabled');
 
-  ctx.step('自己写 → retrace: empty grid, R-W07 self note, 再描一遍 / 下一个, no skip link');
+  ctx.step('凭记忆写 → retrace: answer and strokes cleared, empty grid, R-W07 self note, 再描一遍 / 下一个, no skip link');
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
   s = await track();
-  assert.equal(s.title, COPY.titleSelf, 'title 自己写');
+  assert.equal(s.title, COPY.titleSelf, 'title 凭记忆写');
   assert.equal(await page.getAttribute(topSel('write-steps'), 'aria-label'), COPY.stepSelf, 'step dots R-W04.stepSelf');
-  assert.equal(s.strokes, 0, 'retrace starts empty');
+  assert.equal(s.strokes, 0, 'retrace starts empty (the stroke traced before is cleared)');
   assert.equal(await text(page, 'write-note'), COPY.selfNote, 'grid note R-W07.selfNote');
   assert.deepEqual([await menuLabel(page, 'write-retrace-trace'), await label(page, 'write-answer-next')], [COPY.retrace, COPY.next],
     'buttons 再描一遍 / 下一个');
   assert.equal(await page.locator(topSel('write-answer-next')).count(), 1, 'only one 下一个 (no skip-row link in retrace)');
-  assert.equal(await visible(page, 'write-trace-layer'), false, 'no trace outline in retrace');
+  assert.equal(await visible(page, 'write-trace-layer'), false, 'no answer / trace outline in retrace: the answer is cleared');
 
   ctx.step('write in retrace, 再描一遍 → trace again (fresh grid): the preview does NOT replay for the same character (I3-07), the wash is the end state');
   await drawStroke(page, VERTICAL);
@@ -372,7 +323,7 @@ export default async function answer(page, ctx) {
   await page.waitForTimeout(300);
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'idle', 'I3-07: no replay of the stroke-order preview for the same character (the first entry played it)');
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-current'), '0', 'the wash is already the end state: stroke 0 solid');
-  assert.equal(await page.getAttribute(topSel('write-trace-done'), 'disabled'), '', '描好了 is disabled until a stroke is written, no waiting for a preview');
+  assert.equal(await page.locator(topSel('write-trace-done')).isDisabled(), false, '凭记忆写 is never disabled, no waiting for a preview');
   await drawStroke(page, VERTICAL);
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
@@ -406,15 +357,15 @@ export default async function answer(page, ctx) {
   assert.equal(f.todayN, 0, '今日 N still 0');
   assert.equal(await menuLabel(page, 'write-show-answer'), COPY.link, '看答案 available again for the new character');
 
-  ctx.step('第二字: 看答案 (no confirm, no first-time line) → 自己写 goes straight to retrace (traced stays false)');
+  ctx.step('第二字: 看答案 (no confirm, no first-time line) → 凭记忆写 straight away without tracing a stroke (D64 ②)');
   await showAnswer(page);
   assert.equal(await text(page, 'write-note'), COPY.answerNote, 'the consequence line stays under the grid');
-  await tap(page, 'write-answer-self');
+  await tap(page, 'write-trace-done');
   await waitPhase(page, 'retrace');
   f = await facts(page);
   assert.equal(f.records.length, 2, 'second answer-seen record');
   assert.equal(f.records[1].cardKey, 'base:和', 'record for 和');
-  assert.equal(f.records[1].help.traced, false, '自己写 without 描一遍 → traced false');
+  assert.equal(f.records[1].help.traced, true, '看答案 goes straight into 描一遍 → traced true even if nothing was traced');
 
   ctx.step('下一个 write fails → stays in retrace with 先不保存 / 再试一次; 先不保存 → back; 下一个 again → advances');
   await page.evaluate(() => window.__shiziTest.failNextWrite(1, { kind: 'generic' }));
@@ -446,8 +397,7 @@ export default async function answer(page, ctx) {
   assert.equal(f.session.items.length, 2, 'exactly one item for 和 (retry did not duplicate)');
   assert.equal(f.records.length, 2, 'still two records');
 
-  ctx.step('第三字: 看答案 → 描一遍: the stroke-order preview plays in ≤ 1.6s; 下一个 advances directly; session complete');
-  await showAnswer(page);
+  ctx.step('第三字: 看答案 → straight into 描一遍: the stroke-order preview plays in ≤ 1.6s; 下一个 advances directly; session complete');
   await page.evaluate(() => {
     window.__previewLog = [];
     new MutationObserver(() => {
@@ -455,8 +405,7 @@ export default async function answer(page, ctx) {
       if (el) window.__previewLog.push([el.dataset.anim, performance.now()]);
     }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-anim'], childList: true });
   });
-  await page.click(topSel('write-answer-trace'));
-  await waitPhase(page, 'trace');
+  await showAnswer(page);
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['completed', 'skipped']), 'completed', 'the preview ran to the end on its own');
   const log = await page.evaluate(() => window.__previewLog);
   const tRun = (log.find(e => e[0] === 'running') || [])[1];
@@ -478,7 +427,7 @@ export default async function answer(page, ctx) {
   const direct = await page.evaluate(() => window.__shiziTest.getWriteLog().filter(e => e.via === 'direct'));
   assert.deepEqual(direct, [], 'every localStorage write went through storage.js');
 
-  ctx.step('10.13: no stroke data (404) → Kai full glyph DOM text, answer-seen recorded as-is, trace uses the light full glyph');
+  ctx.step('10.13: no stroke data (404) → light Kai full glyph DOM text right after 看答案, answer-seen recorded as-is');
   const NODATA = '国';
   ctx.allowConsoleError(new RegExp(`^http 404: .*/data/(${NODATA}|${encodeURIComponent(NODATA)})\\.json$`));
   ctx.allowConsoleError(/^console\.error: Failed to load resource: the server responded with a status of 404/);
@@ -496,25 +445,20 @@ export default async function answer(page, ctx) {
   assert.ok(seeded2.ok, 'seeded a session whose first character has no stroke data');
   await openWrite(page, { slot: 'A' });
   await showAnswer(page);
-  assert.equal(await waitAttr(page, 'write-answer-card', 'data-state', ['missing']), 'missing', 'stroke data missing');
-  assert.equal(await page.getAttribute(`${topSel('write-answer-card')} ${tid('write-glyph-fallback')}`, 'data-variant'), 'under',
-    'Kai full glyph fallback, in the under-ink colour (variant under)');
+  assert.equal(await waitAttr(page, 'write-trace-layer', 'data-state', ['missing']), 'missing', 'stroke data missing');
+  assert.equal(await page.getAttribute(`${topSel('write-trace-layer')} ${tid('write-glyph-fallback')}`, 'data-variant'), 'trace',
+    'Kai full glyph fallback, light (variant trace): straight after 看答案');
   assert.equal(await text(page, 'write-glyph-fallback'), NODATA, 'fallback is DOM text of the character');
   assert.ok((await text(page, 'write-note')).startsWith(COPY.answerNote), 'note R-W08.answerNote (first line of the single note under the grid)');
   f = await facts(page);
   assert.equal(f.records.length, 1, 'answer-seen recorded without stroke data (照实记)');
   assert.equal(f.records[0].kind, 'answer-seen', 'kind answer-seen');
   assert.equal(f.records[0].cardKey, `base:${NODATA}`, 'record for the no-data character');
-  await page.click(topSel('write-answer-trace'));
-  await waitPhase(page, 'trace');
-  assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-state'), 'missing', 'trace layer: no data');
-  assert.equal(await page.getAttribute(`${topSel('write-trace-layer')} ${tid('write-glyph-fallback')}`, 'data-variant'), 'trace',
-    'trace uses the light full glyph (variant trace)');
   assert.equal(await page.getAttribute(topSel('write-trace-layer'), 'data-anim'), 'idle', 'no stroke-order preview without data');
-  assert.equal(await text(page, 'write-note'), '', 'still no trace note without stroke data');
+  assert.ok((await text(page, 'write-note')).startsWith(COPY.answerNote), 'the consequence line is the same without stroke data');
   await page.unroute('**/data/*.json');
 
-  ctx.step('reduced motion: answer page shows the final glyph immediately (static)');
+  ctx.step('reduced motion: 看答案 → the 描一遍 page shows the final trace immediately, no preview');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.evaluate(async () => {
     const { nav } = await import('/src/ui/router.js');
@@ -525,10 +469,6 @@ export default async function answer(page, ctx) {
   assert.ok(seeded3.ok, 'seeded a one-character session');
   await openWrite(page, { slot: 'A' });
   await showAnswer(page);
-  assert.equal(await waitAttr(page, 'write-answer-card', 'data-anim', ['static', 'reveal']), 'static',
-    'reduced motion → the answer glyph is just there (no 400ms reveal)');
-  await page.click(topSel('write-answer-trace'));
-  await waitPhase(page, 'trace');
   assert.equal(await waitAttr(page, 'write-trace-layer', 'data-anim', ['static', 'running', 'completed']), 'static',
     'reduced motion → no preview in trace');
   await page.emulateMedia({ reducedMotion: null });

@@ -300,14 +300,9 @@ async function scenarioFeedback(page, ctx) {
 
   n0 = (await nativeMessages(page)).length;
   await tap(page, 'write-show-answer');
-  await page.waitForSelector(topSel('write-answer-trace'));
-  await waitNavIdle(page);
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:light'], '看答案: light (F1)');
-  n0 = (await nativeMessages(page)).length;
-  await page.click(topSel('write-answer-trace'));
   await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.phase === 'trace');
   await waitNavIdle(page);
-  assert.deepEqual(await hapticsSince(page, n0), ['haptic:select'], '描一遍: select');
+  assert.deepEqual(await hapticsSince(page, n0), ['haptic:light'], '看答案 (straight into 描一遍, D64 ②): one light haptic, no second 描一遍 tap');
   n0 = (await nativeMessages(page)).length;
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(150);

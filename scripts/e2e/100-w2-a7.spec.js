@@ -3,7 +3,7 @@
 //   · 撤销 / 清空是书写格正下方一行（离格 4、高 44），撤销贴格左沿、清空贴格右沿，图标加文字；
 //   · 「跳过」在页头右上，进度「n / 总数」在页头中间；
 //   · 三尺寸（375×667 / 390×844 / 430×932）× L / XXXL / AX3 / AX5：全部在首屏、与书写格 / 主按钮 / 彼此不相交、一次点击生效；AX 档书写格 ≥ 220、页面不滚动；
-//   · 其它阶段（看答案 / 描一遍 / 自己写）的次要路径在同一位置（主按钮正上方）：自己写 / 下一个 / 再描一遍；picked 会话的「结束这组」在页头右上、跳过左边。
+//   · 其它阶段（描一遍 / 凭记忆写）的次要路径在同一位置（主按钮正上方）：下一个 / 再描一遍；picked 会话的「结束这组」在页头右上、跳过左边。
 // 测试浏览器没有安全区。
 
 import {
@@ -119,10 +119,10 @@ export default async function w2A7(page, ctx) {
   await page.click(topSel('write-hint'));
   await page.waitForSelector(`${topSel('write-glyph-layer')} [data-testid="write-hint-fill"]`, { timeout: 5000 });
 
-  step('one tap: 看答案 goes straight to the answer page');
+  step('one tap: 看答案 goes straight into 描一遍 (D64 ②)');
   await open(page, ctx, { view, size: 'L' });
   await page.click(topSel('write-show-answer'));
-  await page.waitForSelector('.sz-layer[data-top="true"] .sz-write[data-phase="answer"]', { timeout: 5000 });
+  await page.waitForSelector('.sz-layer[data-top="true"] .sz-write[data-phase="trace"]', { timeout: 5000 });
 
   step('one tap: 跳过 (top right) skips the character');
   await open(page, ctx, { view, size: 'L' });
@@ -145,7 +145,7 @@ export default async function w2A7(page, ctx) {
   step('AX5 on the smallest phone: one tap 看答案 works from the help row');
   await open(page, ctx, { view: VIEWS[0], size: 'AX5' });
   await tap(page, 'write-show-answer');
-  await page.waitForSelector('.sz-layer[data-top="true"] .sz-write[data-phase="answer"]', { timeout: 5000 });
+  await page.waitForSelector('.sz-layer[data-top="true"] .sz-write[data-phase="trace"]', { timeout: 5000 });
 
   // ---------------------------------------------------------------- 其它阶段：同一位置换内容
   const stageCase = async (name, current, ids, primary, size = 'L') => {
@@ -162,10 +162,9 @@ export default async function w2A7(page, ctx) {
     if (ids.length === 1) assert.ok(near(s.items[ids[0]].width, s.vw - 40, 1.5), `${name}: a single button takes the whole row (${s.items[ids[0]].width.toFixed(1)})`);
     return s;
   };
-  await stageCase('answer', { phase: 'answer', answerSeen: true }, ['write-answer-self', 'write-answer-next'], 'write-answer-trace');
   await stageCase('trace', { phase: 'trace', answerSeen: true }, ['write-answer-next'], 'write-trace-done');
   await stageCase('retrace', { phase: 'retrace', answerSeen: true }, ['write-retrace-trace'], 'write-answer-next');
-  await stageCase('answer AX5', { phase: 'answer', answerSeen: true }, ['write-answer-self', 'write-answer-next'], 'write-answer-trace', 'AX5');
+  await stageCase('trace AX5', { phase: 'trace', answerSeen: true }, ['write-answer-next'], 'write-trace-done', 'AX5');
 
   step('picked session: 结束这组 is in the page head, left of 跳过');
   await open(page, ctx, { view, size: 'L', kind: 'picked', slot: 'B' });

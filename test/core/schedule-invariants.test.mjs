@@ -141,13 +141,25 @@ test('D6 一天开始时，字库「待复习」档 = 首页今日练习的到�
   assert.deepEqual(only(MIXED, ['D6-zone-due-matches-plan']), [], show(only(MIXED, ['D6-zone-due-matches-plan'])));
 });
 
-test('X1 系统时间被拨回很多天后，判断仍能存上，稳定度不会掉到接近 0', { todo: '问题清单 #3：last_review 在未来时 ts-fsrs 给出负的 elapsed_days，稳定度 0.001，拨回 30 天抛 Invalid time value' }, () => {
+test('X1 系统时间被拨回很多天后，判断仍能存上，稳定度不会掉到接近 0（D65 #3：判断时刻夹到上次复习）', () => {
   const t0 = dayStartMs('2026-03-10') + 20 * HOUR;
   const first = reviewCard(null, { judgment: 'correct', at: t0, help: { hints: 0 }, cardKey: 'base:鲜' });
-  for (const back of [1, 5, 30]) {
-    const r = reviewCard(first.card, { judgment: 'correct', at: t0 - back * 24 * HOUR, help: { hints: 0 }, cardKey: 'base:鲜' });
+  const same = reviewCard(first.card, { judgment: 'correct', at: t0, help: { hints: 0 }, cardKey: 'base:鲜' });
+  for (const back of [1, 5, 30, 400]) {
+    const at = t0 - back * 24 * HOUR;
+    const r = reviewCard(first.card, { judgment: 'correct', at, help: { hints: 0 }, cardKey: 'base:鲜' });
     assert.ok(r.card.stability >= 1, `拨回 ${back} 天后稳定度 ${r.card.stability}`);
+    // 负间隔按 0：与「在上次复习的同一时刻再写对一次」得到同一张卡
+    assert.equal(r.card.stability, same.card.stability, `拨回 ${back} 天`);
+    assert.equal(r.clockBackMs, back * 24 * HOUR);
+    assert.ok(r.due > addDays(new Date(at).toISOString().slice(0, 10), 0), '下次到期至少是判断那天的次日');
   }
+  // 写错同样能存上
+  const wrong = reviewCard(first.card, { judgment: 'wrong', at: t0 - 30 * 24 * HOUR, help: { hints: 0 }, cardKey: 'base:鲜' });
+  assert.ok(wrong.card.stability > 0.1);
+  // 模拟里「拨回 5 天」的场景不再有提交失败
+  const BACK = runScenario({ id: 't-back', days: 30, seed: 1, events: [{ day: 20, type: 'clock', shiftDays: -5 }] });
+  assert.deepEqual(only(BACK, ['X1-judge-commit-fails']), [], show(only(BACK, ['X1-judge-commit-fails'])));
 });
 
 test('P5 同一个字、同样按时复习：带提示写对的下次间隔比无提示写对的短', { todo: '问题清单 #4：复习时带提示与不带提示都记 Good，间隔完全相同' }, () => {

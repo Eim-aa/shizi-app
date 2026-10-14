@@ -166,7 +166,7 @@ function isFirstReview(before) {
  * @param {object|null} before CompactCard；null = 新卡（在 at 时刻创建）
  * @param {{judgment:'correct'|'wrong', at:number, help?:object, cardKey?:string}} review
  *   cardKey 给了才能判断是不是热身字（热身字清单是数据，src/config/char-order.js）；opts.warmup 可显式覆盖（测试 / 注入）。
- * @returns {{card: object, due: string, rating: string}} due = max(明天, FSRS due 的本地日)
+ * @returns {{card: object, due: string, rating: string, clockBackMs?: number}} due = max(明天, FSRS due 的本地日)；clockBackMs = 判断时刻早于上次复习、被夹到上次复习的毫秒数（D65 #3）
  */
 export function reviewCard(before, review, opts = {}) {
   const lib = getFSRSLibrary(opts.lib);
@@ -175,13 +175,19 @@ export function reviewCard(before, review, opts = {}) {
   const warmup = opts.warmup !== undefined ? !!opts.warmup : !!review.cardKey && isWarmupKey(review.cardKey);
   const rating = ratingFor(review.judgment, review.help, policy, { first: isFirstReview(before), warmup });
   const start = before ? toLibraryCard(before) : lib.createEmptyCard(at);
-  const result = engineFor(lib).next(start, at, lib.Rating[rating]);
+  // D65 / 问题清单 #3：判断时刻早于上次复习（系统时间被往回调、校时、在时间较早的设备上恢复备份……）时，
+  // 按「刚复习过」处理——review 时刻夹到 last_review（负间隔按 0），不把负的 elapsed_days 交给库
+  // （否则稳定度被算成 0.001，回拨更多时库直接抛 Invalid time value，判断存不进去）。clockBackMs = 夹掉了多少毫秒（诊断用）。
+  const last = before && before.last_review ? Date.parse(before.last_review) : NaN;
+  const clockBackMs = Number.isFinite(last) && at < last ? last - at : 0;
+  const reviewAt = clockBackMs ? last : at;
+  const result = engineFor(lib).next(start, reviewAt, lib.Rating[rating]);
   const card = serializeCard(result.card);
-  const today = localDay(at);
+  const today = localDay(at); // 「至少次日」仍按判断当时的本地日（记录的 localDay）
   const tomorrow = addDays(today, 1);
   const fsrsDay = localDay(toMs(card.due));
   const due = fsrsDay > tomorrow ? fsrsDay : tomorrow;
-  return { card, due, rating };
+  return clockBackMs ? { card, due, rating, clockBackMs } : { card, due, rating };
 }
 
 /**
@@ -194,7 +200,13 @@ export function applyJudgment(entry, record, opts = {}) {
   // 新字的「判断前的卡」= 在判断时刻创建的空卡（与 reviewCard(null) 等价，重放结果相同）；
   // 始终存对象，schema 的 items[].fsrsBefore 只收对象。
   const fsrsBefore = entry && entry.fsrs ? entry.fsrs : emptyCard(record.at, opts);
-  const { card, due } = reviewCard(fsrsBefore, record, opts);
+  const { card, due, clockBackMs } = reviewCard(fsrsBefore, record, opts);
+  if (clockBackMs) {
+    // D65 #3：只记诊断，不让提交失败（与 app.js 等处同一做法：console.warn '[shizi] …'）。
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[shizi] fsrs: judged before last review (clock moved back ' + Math.round(clockBackMs / 60000) + ' min); clamped to last review', record.cardKey || '');
+    }
+  }
   const next = { fsrs: card, due, lastJudgedAt: toMs(record.at) };
   if (entry && entry.stoppedAt !== undefined) next.stoppedAt = entry.stoppedAt;
   return { entry: next, fsrsBefore };

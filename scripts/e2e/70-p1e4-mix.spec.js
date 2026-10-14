@@ -5,7 +5,9 @@
 //   1. D38 首次练习是 尴 赢 拾 三字，进度「1 / 3」，写完（尴写错、赢拾写对）走到结果页，之后进入正常调度；首练写对的字记 Easy（稳定度远大于 Good）。
 //   2. 第 2 天（setClock）：尴到期 → 今天的练习是「热身字在组首 + 复习 + 新字」混合，新字来自易忘度清单 1.0（豫 嚷 酝…，D45 起常用姓氏 / 地名字在内），不出现「的、一、是」，
 //      姓氏 / 地名 / 大写数字不在新字里；热身字写对记 Easy（稳定度远大于 Good）。
-//   3. 积压很大（40 个到期字）：连续开 6 组（经 core/session-start + commitJudgment 写完），不会连续两组全是复习（D41 积压阀）。
+//   3. 积压很大（24 个到期字）：连续开 5 组（经 core/session-start + commitJudgment 写完）：积压阀关着时每组全是复习，直到积压回落到 2 天以下才重新给新字
+//      （D65 ② 回滞阀，覆盖 D41 的「不连续两组全复习」）。
+//   本 spec 的配比断言按 5 字一组写（D41）：第 2 天起把「每组字数」设成 5（D65 ② 起缺省 20）。
 //   4. D40 大写数字特别组：累计满 10 组、积压不重 → 首页出现一句提示；开组 = 壹贰叁肆伍（题面是借条语境「壹佰元整」…），写完后第二组 = 陆柒捌玖拾，
 //      再之后不再出现；整个过程里别的组的题面语境不受影响。
 // 控制台零错误由 run.mjs 统一断言。
@@ -170,6 +172,12 @@ export default async function run(page, ctx) {
   // ------------------------------------------------------------ 2. 第 2 天
   step('day 2 (setClock): 尴 is due → the group mixes a warm-up char at the head, the review, early reviews and new chars from the order list; no 的 一 是');
   await setClock(page, '2026-09-25T09:00:00');
+  await page.evaluate(async () => {
+    const { commitGroupSize } = await import('/src/ui/screens/mine/prefs.js');
+    const { getStore } = await import('/src/store/store.js');
+    const r = commitGroupSize(getStore(), 5);
+    if (!r.ok) throw new Error('commitGroupSize failed');
+  });
   await toHome(page);
   assert.equal(await page.locator(topSel('home-capital-hint')).count(), 0, 'no capital hint this early');
   await page.click(topSel('home-start'));
@@ -214,7 +222,7 @@ export default async function run(page, ctx) {
   await waitTop(page, 'home');
 
   // ------------------------------------------------------------ 3. 积压很大
-  step('backlog of 40 due chars: six groups in a row never make two all-review groups back to back (D41 valve)');
+  step('backlog of 24 due chars: the valve closes (all-review groups) and only reopens once the backlog is under 2 days (D65 valve with hysteresis)');
   await resetAt(page);
   const nowMs = await page.evaluate(() => window.__shiziTest.now());
   const DAY = 86400000;
@@ -222,9 +230,9 @@ export default async function run(page, ctx) {
     const { libraryOf } = await import('/src/data/deck.js');
     const { CHAR_ORDER } = await import('/src/config/char-order.js');
     const bad = new Set([...CHAR_ORDER.warmup, ...CHAR_ORDER.reserved.surnames, ...CHAR_ORDER.reserved.places, ...CHAR_ORDER.reserved.capitalNumerals]);
-    return libraryOf('core3500').keys.filter(k => !bad.has(k.slice(5))).slice(2500, 2540);
+    return libraryOf('core3500').keys.filter(k => !bad.has(k.slice(5))).slice(2500, 2524);
   });
-  assert.equal(keys.length, 40);
+  assert.equal(keys.length, 24);
   const long = dayOf(nowMs - 40 * DAY);
   const yesterday = dayOf(nowMs - DAY);
   let serial = 1;
@@ -233,19 +241,18 @@ export default async function run(page, ctx) {
   const sched = {};
   for (const k of keys) sched[k] = { fsrs: FSRS(3, dayOf(nowMs - 2 * DAY)), due: dayOf(nowMs - 2 * DAY), lastJudgedAt: nowMs - 40 * DAY };
   sched['base:春'] = { fsrs: FSRS(3, dayOf(nowMs + 9 * DAY)), due: dayOf(nowMs + 9 * DAY), lastJudgedAt: nowMs - DAY };
-  await seed(page, { records: byMonth(recs), sched, sessions: { A: null, B: null, lastEnded: {} } });
+  await seed(page, { records: byMonth(recs), sched, sessions: { A: null, B: null, lastEnded: {} }, settings: { groupSize: 5 } });
   const news = [];
-  for (let g = 0; g < 6; g += 1) {
+  for (let g = 0; g < 5; g += 1) {
     const r = await playGroupViaStore(page);
     assert.ok(!r.error, 'group ' + g + ': ' + r.error);
     news.push(r.newKeys.length);
     assert.equal(r.special, null, 'no special group in this scenario');
   }
-  for (let i = 1; i < news.length; i += 1) {
-    assert.ok(news[i] > 0 || news[i - 1] > 0, `groups ${i - 1} and ${i} are both all-review: ${S(news)}`);
-  }
-  assert.equal(news[0], 0, 'p = 10 and yesterday had new chars → the first group is all review');
-  assert.ok(news.includes(0) && news.some(n => n > 0), 'the valve closed and opened: ' + S(news));
+  // 每组写掉 5 个到期字：开组时积压 24 19 14 9 4 → p = 积压 / 4 = 6、4.75（≥ 4 关）、3.5、2.25（阀关着、≥ 2 不开）、1（< 2 → 开）；
+  // 一共 20 个复习，碰不到每日上限 30
+  assert.deepEqual(news.slice(0, 4), [0, 0, 0, 0], 'p ≥ 4 closes the valve; it stays closed while p ≥ 2: ' + S(news));
+  assert.ok(news[4] > 0, 'backlog under 2 days → new chars again: ' + S(news));
 
   // ------------------------------------------------------------ 4. D40 大写数字
   step('D40: after 10 groups and a light backlog the home page hints, the next group is 壹贰叁肆伍 (money context), then 陆柒捌玖拾, then never again');

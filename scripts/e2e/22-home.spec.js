@@ -343,13 +343,13 @@ export default async function run(page, ctx) {
   assert.equal(st.sessions.A.id, 's801', 'other-line opens the seeded A');
   await backToHome(page);
 
-  step('records, no group: 拾 → today’s practice (daily group of 5)');
+  step('records, no group: 拾 → today’s practice (daily group of 20: D65 每组字数缺省 20)');
   await setup(page, { seed: { records: byMonth(todayRecs) } });
   await page.click(tid('home-start'));
   await waitWrite(page, 'A');
   st = await state(page);
   assert.equal(st.sessions.A.kind, 'daily', 'daily group');
-  assert.equal(st.sessions.A.queue.length, 5, 'group of 5');
+  assert.equal(st.sessions.A.queue.length, 20, 'group of 20 (settings.groupSize never chosen → 20)');
   assert.ok(!st.sessions.A.queue.some(k => ['base:数', 'base:感', 'base:警'].includes(k)), 'chars judged today are not picked again');
   await backToHome(page);
 

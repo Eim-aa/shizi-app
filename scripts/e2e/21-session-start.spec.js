@@ -66,7 +66,7 @@ async function resetSeed(page, s) {
   await goHome(page);
   const r = await page.evaluate(seed => {
     window.__shiziTest.reset();
-    return window.__shiziTest.seed(seed);
+    return window.__shiziTest.seed({ ...seed, settings: { groupSize: 5, ...(seed.settings || {}) } }); // D65 #2：本 spec 的选字断言按 5 字一组（D41 配比）写
   }, s);
   if (!r || !r.ok) throw new Error('seed failed: ' + JSON.stringify(r));
 }
@@ -201,7 +201,7 @@ export default async function sessionStart(page, ctx) {
   assert.equal(await page.locator(`${topSel('write-grid')}`).getAttribute('data-stroke-count'), '1', 'A still shows its stroke');
 
   // ------------------------------------------------------------ 4. 今天的练习选字
-  ctx.step('daily: due reviews (most overdue first) mixed with new chars (D41), judged-today excluded, skipped / answer-seen today can return, custom unwritten excluded');
+  ctx.step('daily: due reviews (most overdue first) mixed with new chars (D41), judged-today / skipped-today / answer-seen-today excluded (D65 #5), custom unwritten excluded');
   // 新字顺序（D28 易忘度字表 1.0，规范常用字库）：豫 嚷 酝 尴 疆 酱 贷 履 …（肆 是大写数字已剔除；D45：常用的姓氏 / 地名字 豫 疆 在内；不再是 SEED 字频序的 的 一 是 不 了 在 人）
   const recs = [
     record(1, '了', 'judged', 'correct', LONG_AGO, LA),
@@ -218,6 +218,7 @@ export default async function sessionStart(page, ctx) {
       'base:尴': { fsrs: FSRS, due: dayOf(now - 5 * DAY), lastJudgedAt: now - 60000 },
     },
     custom: { added: [{ char: '嚷', at: now - 70000 }] },
+    settings: { groupSize: 5 }, // D65 #2：本段按 5 字一组（D41 配比）
   });
   assert.deepEqual(await call(page, 'aStartInfo'), { kind: 'daily', firstVisit: false }, 'aStartInfo daily');
   r = await call(page, 'startA');
@@ -226,8 +227,9 @@ export default async function sessionStart(page, ctx) {
   st = await state(page);
   assert.equal(st.sessions.A.kind, 'daily', 'kind daily');
   // D41：2 个到期、p = 2 / 4 = 0.5 → 2 复习 + 3 新字；组内复、新交错，末位若是新字就换成复习字（组尾放好写的字）
-  assert.deepEqual(st.sessions.A.queue, ['base:在', 'base:豫', 'base:酝', 'base:疆', 'base:了'],
-    '在 (3 days overdue, first) · 豫 (skipped today; D45 common place-name char, 1st in the 1.0 table) · 酝 (answer-seen today) · 疆 (next in the table) · 了 (1 day, moved to the tail); not 尴 (judged today) nor 嚷 (custom)');
+  // D65 #5：今天跳过的豫、看过答案的酝当天不再出（豫另推迟 7 天），新字从疆往下取（疆 酱 龟）
+  assert.deepEqual(st.sessions.A.queue, ['base:在', 'base:疆', 'base:酱', 'base:龟', 'base:了'],
+    '在 (3 days overdue, first) · 疆 酱 龟 (next in the 1.0 table) · 了 (1 day, moved to the tail); not 尴 (judged today), 豫 (skipped today), 酝 (answer-seen today) nor 嚷 (custom)');
   for (const c of ['的', '一', '是']) assert.equal(st.sessions.A.queue.includes(`base:${c}`), false, `${c} is not a new character any more (D28)`);
 
   ctx.step('daily cap: 29 reviews done today → only 1 due character in the group (dailyReviewCap 30)');
@@ -260,7 +262,7 @@ export default async function sessionStart(page, ctx) {
     for (const r of records) (byM[r.localDay.slice(0, 7)] || (byM[r.localDay.slice(0, 7)] = [])).push(r);
     return { records: byM, sched, due };
   }, { now, today: TODAY, longAgo: LONG_AGO, la: LA });
-  await resetSeed(page, { records: capState.records, sched: capState.sched });
+  await resetSeed(page, { records: capState.records, sched: capState.sched, settings: { groupSize: 5 } }); // D65 #2：上限 30 是 5 字一组的值（20 字一组按比例 120）
   r = await call(page, 'startA');
   await waitWrite(page, 'A');
   st = await state(page);

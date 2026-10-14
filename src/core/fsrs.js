@@ -1,7 +1,8 @@
 // FSRS 封装（ts-fsrs 5.2.0 / FSRS-6，vendor/fsrs6.min.js 的 UMD 全局 `FSRS`）。
 // 01-架构设计 §5：request_retention 0.90、maximum_interval 365、enable_fuzz true；写错 → Again；写对 → Good，但有两处记 Easy（D41）：
 //   ① 新字第一次判断就写对（无提示）→ policy.ratingFirstCorrect（P127，Easy）；② 热身字写对（无提示）→ Easy（policy.warmup.easyOnCorrect，P126）。
-// 带提示写对一律读 policy.ratingWithHint（P34，Good）——提示说明不是「一下子就写出来」，所以首次写对带提示时不升 Easy。
+// 带提示写对读 policy.ratingWithHint（P34，D65 #4）：按提示次数分档、新字第一次与复习分开——提示越多评级越低（复习：1–2 次 Hard、3 次起 Again；
+// 新字第一次：1 次 Good、2 次 Hard、3 次起 Again）。整字都给出 = 看过答案，不生成判断（write/answer.js），不走这里。
 // 看过答案、跳过不评级、不改 due。
 // Again 后直接采用 FSRS 返回的 due（至少次日），不再悬置。
 //
@@ -134,7 +135,7 @@ export function emptyCard(at, opts = {}) {
 }
 
 /**
- * 一次判断的评级。judgment: 'correct' | 'wrong'；help.hints > 0 且写对时用 policy.ratingWithHint（P34）。
+ * 一次判断的评级。judgment: 'correct' | 'wrong'；help.hints > 0 且写对时按 policy.ratingWithHint（P34，D65 #4：按次数、首次 / 复习分档）。
  * 无提示写对时（D41）：ctx.warmup（热身字，P126 easyOnCorrect）或 ctx.first（新字第一次判断，P127 ratingFirstCorrect）→ Easy，否则 Good。
  * @param {{first?:boolean, warmup?:boolean}} [ctx]
  */
@@ -151,9 +152,21 @@ export function ratingFor(judgment, help, policy = defaultPolicy, ctx = null) {
     }
     return 'Good';
   }
-  const rating = policy.ratingWithHint;
+  const rating = hintedRating(policy.ratingWithHint, hints, !!(ctx && ctx.first));
   if (!RATINGS.includes(rating)) throw new RangeError('unsupported policy.ratingWithHint: ' + String(rating));
   return rating;
+}
+
+/**
+ * 带提示写对的评级（P34，D65 #4）。policy.ratingWithHint 可以是
+ *   一个评级（旧口径：不分次数、不分首次 / 复习），或
+ *   {first:[…], review:[…]}：按「点了几次提示」取第 n 个（超出取最后一个）——first = 新字第一次判断，review = 复习。
+ */
+function hintedRating(cfg, hints, first) {
+  if (typeof cfg === 'string') return cfg;
+  const list = cfg && Array.isArray(first ? cfg.first : cfg.review) ? (first ? cfg.first : cfg.review) : null;
+  if (!list || !list.length) return String(cfg);
+  return list[Math.min(hints, list.length) - 1];
 }
 
 /** 这张卡是不是「第一次判断」：没有卡，或卡还没有被评过级（reps 0、新卡状态）。 */

@@ -34,7 +34,14 @@ test('fsrs: vendored library is ts-fsrs 5.2.0 / FSRS-6 and is read from globalTh
 test('fsrs: rating mapping — correct → Good, wrong → Again, hinted correct reads policy (P34)', async () => {
   assert.equal(ratingFor('correct', { hints: 0 }), 'Good');
   assert.equal(ratingFor('wrong', { hints: 2 }), 'Again');
-  assert.equal(ratingFor('correct', { hints: 1 }), 'Good', 'default policy.ratingWithHint = Good');
+  // D65 #4：复习 1–2 次提示 Hard、3 次起 Again；新字第一次 1 次 Good、2 次 Hard、3 次起 Again
+  assert.equal(ratingFor('correct', { hints: 1 }), 'Hard', 'review with 1 hint → Hard');
+  assert.equal(ratingFor('correct', { hints: 2 }), 'Hard');
+  assert.equal(ratingFor('correct', { hints: 3 }), 'Again');
+  assert.equal(ratingFor('correct', { hints: 9 }), 'Again', 'beyond the table → last entry');
+  assert.equal(ratingFor('correct', { hints: 1 }, undefined, { first: true }), 'Good');
+  assert.equal(ratingFor('correct', { hints: 2 }, undefined, { first: true }), 'Hard');
+  assert.equal(ratingFor('correct', { hints: 4 }, undefined, { first: true }), 'Again');
   assert.equal(ratingFor('correct', { hints: 1 }, await policyWith({ ratingWithHint: 'Hard' })), 'Hard');
   assert.equal(ratingFor('correct', { hints: 2 }, await policyWith({ ratingWithHint: 'Again' })), 'Again');
   assert.equal(ratingFor('correct', { hints: 0 }, await policyWith({ ratingWithHint: 'Again' })), 'Good', 'no hint → policy not consulted');
@@ -211,7 +218,7 @@ test('fsrs D41: warm-up characters are rated Easy when correct without a hint (P
   const plainSecond = reviewCard(plainFirst.entry.fsrs, rec(4, '亦', 'judged', 'correct', '2026-09-20', { at: at('2026-09-20', 20) }));
   assert.equal(plainSecond.rating, 'Good');
   const warmHinted = reviewCard(warmFirst.entry.fsrs, rec(5, '春', 'judged', 'correct', '2026-09-20', { at: at('2026-09-20', 20), hints: 1 }));
-  assert.equal(warmHinted.rating, 'Good', 'a hint means it was not easy');
+  assert.equal(warmHinted.rating, 'Hard', 'a hint means it was not easy (D65 #4: review with a hint → Hard)');
   const warmWrong = reviewCard(warmFirst.entry.fsrs, rec(6, '春', 'judged', 'wrong', '2026-09-20', { at: at('2026-09-20', 20) }));
   assert.equal(warmWrong.rating, 'Again');
   assert.equal(reviewCard(warmFirst.entry.fsrs, { judgment: 'correct', at: at('2026-09-20', 20), cardKey: 'base:春' }, { warmup: false }).rating, 'Good', 'opts.warmup overrides');

@@ -162,13 +162,25 @@ test('X1 系统时间被拨回很多天后，判断仍能存上，稳定度不�
   assert.deepEqual(only(BACK, ['X1-judge-commit-fails']), [], show(only(BACK, ['X1-judge-commit-fails'])));
 });
 
-test('P5 同一个字、同样按时复习：带提示写对的下次间隔比无提示写对的短', { todo: '问题清单 #4：复习时带提示与不带提示都记 Good，间隔完全相同' }, () => {
+test('P5 同一个字、同样按时复习：带提示写对的下次间隔比无提示写对的短，提示越多越短（D65 #4）', () => {
   const t0 = dayStartMs('2026-03-10') + 20 * HOUR;
   const first = reviewCard(null, { judgment: 'correct', at: t0, help: { hints: 0 }, cardKey: 'base:鲜' });
   const at = Date.parse(first.card.due);
-  const clean = reviewCard(first.card, { judgment: 'correct', at, help: { hints: 0 }, cardKey: 'base:鲜' });
-  const hinted = reviewCard(first.card, { judgment: 'correct', at, help: { hints: 2 }, cardKey: 'base:鲜' });
-  assert.ok(hinted.card.scheduled_days < clean.card.scheduled_days, `带提示 ${hinted.card.scheduled_days} 天 / 无提示 ${clean.card.scheduled_days} 天`);
+  const iv = (hints) => reviewCard(first.card, { judgment: 'correct', at, help: { hints }, cardKey: 'base:鲜' });
+  const clean = iv(0);
+  const [h1, h2, h3, h4] = [iv(1), iv(2), iv(3), iv(4)];
+  assert.equal(clean.rating, 'Good');
+  assert.ok(h1.card.scheduled_days < clean.card.scheduled_days, `带提示 1 次 ${h1.card.scheduled_days} 天 / 无提示 ${clean.card.scheduled_days} 天`);
+  assert.ok(h2.card.scheduled_days <= h1.card.scheduled_days, `2 次 ${h2.card.scheduled_days} / 1 次 ${h1.card.scheduled_days}`);
+  assert.ok(h3.card.scheduled_days < h2.card.scheduled_days, `3 次 ${h3.card.scheduled_days} / 2 次 ${h2.card.scheduled_days}`);
+  assert.equal(h4.rating, h3.rating, '整字给完（4 段）与 3 段同一档：按看过答案口径，明天再来');
+  assert.equal(h4.card.scheduled_days <= 1, true);
+  // 新字第一次：带提示写对仍会再出现（不是「几乎不再出现」，也不是每次都按写错）：1 次 → 约 2 天、比无提示（Easy）短
+  const fresh = (hints) => reviewCard(null, { judgment: 'correct', at: t0, help: { hints }, cardKey: 'base:鲜' });
+  assert.equal(fresh(1).rating, 'Good');
+  assert.ok(fresh(1).card.scheduled_days < first.card.scheduled_days);
+  assert.ok(fresh(1).card.scheduled_days >= 1 && fresh(1).card.stability > 1, '第一次带 1 次提示写对：初始稳定度约 2 天');
+  assert.ok(fresh(2).card.scheduled_days <= fresh(1).card.scheduled_days);
 });
 
 test('不变量清单与报告一致（每条都有编号与说明）', () => {

@@ -24,7 +24,7 @@
 
 import * as defaultPolicy from '../config/policy.js';
 import { addDays, localDay } from './dates.js';
-import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAnyJudged, skippedCardKeysOn } from './records.js';
+import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAnyJudged, skippedCardKeysOn, sortById } from './records.js';
 import { overdueDays } from './fsrs.js';
 import { arrangeGroup, dueReviewsDoneOn, planGroup, practiceStats, pressureOf, warmupAllowed } from './mix.js';
 import { isWarmupKey } from './new-order.js';
@@ -338,6 +338,24 @@ function customUnwrittenKeys(custom, sched, practicable) {
   return out;
 }
 
+/** cardKey → 最近一次判断记录（按 id 序）。 */
+function latestJudgmentByKey(records) {
+  const out = new Map();
+  for (const r of sortById((records || []).filter(isJudged))) out.set(r.cardKey, r);
+  return out;
+}
+
+/**
+ * 每组保底带几个「最近一次练习日写错、今天到期」的字（D65 #1，policy.wrongFirst.reserveShare P315）：ceil(组大小 × 比例)，
+ * 不受每日复习上限和新字目标挤占（5 字一组 1 个、10 字 2 个、20 字 4 个、30 字 6 个）。
+ */
+export function wrongReserveOf(size, policy = defaultPolicy) {
+  const cfg = policy.wrongFirst;
+  if (!cfg || cfg.enabled === false) return 0;
+  const share = Number(cfg.reserveShare) || 0;
+  return Math.max(0, Math.min(size, Math.ceil(size * share)));
+}
+
 /**
  * 跳过后推迟进新字池的字（D65 #5，policy.skipNewDeferDays，P06）：最近 skipNewDeferDays 天内（今天算第 1 天）跳过过的字。
  * 只对新字起作用（选字时新字池才看它；有调度项的字到期照常出，当天的排除另按 skipScope）。
@@ -399,7 +417,11 @@ export function selectDaily({
   const customUnwritten = customUnwrittenKeys(custom, sched, practicable);
   const customSet = new Set(customUnwritten);
 
-  // ① 到期字（逾期天数降序、稳定度升序）与可提前复习的字（未到期，快到期的在前）
+  const stats = practiceStats(records, today, { policy, isWarm });
+  // ① 到期字与可提前复习的字（未到期，快到期的在前）。
+  // 到期字排序（D65 #1，policy.wrongFirst P315）：先「最近一次练习日（今天以前最近一个有判断的日子）写错、今天到期」的字（tier 0），
+  // 再「最近一次判断是写错」的其余到期字（tier 1），最后普通到期字（tier 2）；同一层内逾期天数降序、稳定度升序、键。
+  const lastJudged = latestJudgmentByKey(records);
   const due = [];
   const early = [];
   for (const [key, entry] of Object.entries(sched || {})) {
@@ -408,15 +430,19 @@ export function selectDaily({
     const od = overdueDays(entry, today);
     if (od === null) continue;
     const stability = entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0;
-    if (od >= 0) due.push({ key, od, stability });
-    else if (!isWarm(key)) early.push({ key, dueDay: entry.due, stability });
+    if (od >= 0) {
+      const last = lastJudged.get(key);
+      const wrong = !!last && last.judgment === 'wrong';
+      const tier = wrong && policy.wrongFirst && policy.wrongFirst.enabled !== false
+        ? (stats.lastDay !== null && last.localDay === stats.lastDay ? 0 : 1) : 2;
+      due.push({ key, od, stability, tier });
+    } else if (!isWarm(key)) early.push({ key, dueDay: entry.due, stability });
   }
   const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
-  due.sort((a, b) => b.od - a.od || a.stability - b.stability || byKey(a, b));
+  due.sort((a, b) => a.tier - b.tier || b.od - a.od || a.stability - b.stability || byKey(a, b));
   early.sort((a, b) => (a.dueDay < b.dueDay ? -1 : a.dueDay > b.dueDay ? 1 : 0) || a.stability - b.stability || byKey(a, b));
   const reviewBudgetLeft = Math.max(0, policy.dailyReviewCap - dueReviewsDoneOn(records, today, { sched, policy }));
 
-  const stats = practiceStats(records, today, { policy, isWarm });
   // D48 ⑧（P184）：离开 ≥ returnAfterDays 天回来的第一组（今天还没有判断）缩短为 returnGroupSize 个字；特别组不受影响（见下，按 groupSize 整组出）。
   const size = stats.firstBack && Number.isInteger(mix.returnGroupSize) && mix.returnGroupSize > 0
     ? Math.min(policy.groupSize, mix.returnGroupSize) : policy.groupSize;
@@ -462,6 +488,7 @@ export function selectDaily({
     warmOk: warmupAllowed(stats, policy.warmup),
     state: { backlog, groupsPerDay: stats.groupsPerDay, newAccuracy: stats.newAccuracy, lastHadNew: stats.lastHadNew },
     mix,
+    reserve: Math.min(wrongReserveOf(size, policy), due.filter((d) => d.tier === 0).length),
     newAvailable: pool.length + (warmNext && !pool.includes(warmNext) ? 1 : 0),
   });
   const ordinaryNew = pool.filter((k) => k !== plan.warmNew).slice(0, plan.newSlots - (plan.warmNew ? 1 : 0)); // 热身字也可能在字频尾部：不重复出

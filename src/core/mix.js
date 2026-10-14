@@ -123,12 +123,13 @@ export function warmupAllowed(stats, warm) {
  * @param {{backlog:number, groupsPerDay:number, newAccuracy:number, lastHadNew:boolean}} a.state
  * @param {object} a.mix                 policy.groupMix
  * @param {number} [a.newAvailable]      可当新字的字还有多少（缺省不限）
+ * @param {number} [a.reserve]           保底复习数（D65 #1：due 最前面这么多个「昨天写错、今天到期」的字一定进组，不受 budget / 新字目标挤占；缺省 0）
  * @returns {{newTarget:number, revKeys:string[], earlyKeys:string[], newSlots:number, warmNew:string|null, warmRev:number}}
  *   newSlots = 新字位总数（含热身新字）；warmNew 占其中一位。
  */
-export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, state, mix, newAvailable = Infinity }) {
+export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, state, mix, newAvailable = Infinity, reserve = 0 }) {
   const newTarget = Math.min(size, newTargetOf(state, mix));
-  const revSlots = Math.min(size - newTarget, budget);
+  const revSlots = Math.max(Math.min(size - newTarget, budget), Math.min(size, Math.max(0, reserve)));
   const revKeys = [];
   let warmRev = 0;
   for (const d of due) {

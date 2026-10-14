@@ -161,8 +161,9 @@ test('daily: due ordered overdue desc / stability asc, new characters in library
   assert.equal(s.kind, 'daily');
   // D41：3 个到期 → 积压天数 p = 3 / 4 = 0.75，落在「2 新」档；组内复、新交错（复 新 复 新 复），组尾是好写的复习字。
   // 旧断言 [子 丑 寅 甲 乙]（到期字全排在新字前）不再成立：到期字内部顺序（逾期降序、稳定度升序）与新字顺序不变，只是交错了。
-  assert.deepEqual(s.queue, ['base:子', 'base:甲', 'base:丑', 'base:乙', 'base:寅']);
-  assert.deepEqual(r.plan.dueKeys, ['base:子', 'base:丑', 'base:寅']);
+  // D65 #1：丑最近一次判断是写错 → 排在普通到期字（子、寅）之前；其余仍按逾期降序、稳定度升序。
+  assert.deepEqual(s.queue, ['base:丑', 'base:甲', 'base:子', 'base:乙', 'base:寅']);
+  assert.deepEqual(r.plan.dueKeys, ['base:丑', 'base:子', 'base:寅']);
   assert.deepEqual(r.plan.newKeys, ['base:甲', 'base:乙']);
   assert.equal(s.queue.length, policy.groupSize);
   assert.deepEqual(env.commits, ['session:start-daily']);

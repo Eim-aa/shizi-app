@@ -141,9 +141,32 @@ test('P4 刚跳过 / 刚看过答案的字，当天再开一组时不会立刻�
   }
 });
 
-test('W1 写错的字，第二天（如果第二天也练）会再出现', { todo: '问题清单 #1：写错的字只是「明天到期」，积压时排在更久远的到期字后面' }, () => {
-  assert.deepEqual(only(MIXED, ['W1-wrong-returns-next-day']), [], show(only(MIXED, ['W1-wrong-returns-next-day'])));
-  assert.deepEqual(only(WRONG, ['W1-wrong-returns-next-day']), [], show(only(WRONG, ['W1-wrong-returns-next-day'])));
+// W1（D65 #1）：严格的「每一个写错的字第二天都回来」做不到（成熟的字写错，FSRS 给的下次可能是 9 天后；一天全错时写错的字比一组还多），
+// 所以断言比例：第二天也练时，写错的字第二天就再见到的比例。修之前（只按逾期天数排）：混合 29%、一天三组 38%、天天全错 21%。
+function wrongNextDayShare(r) {
+  const byDay = new Map();
+  for (const e of r.events) {
+    if (!byDay.has(e.dayIdx)) byDay.set(e.dayIdx, []);
+    byDay.get(e.dayIdx).push(e);
+  }
+  let n = 0;
+  let back = 0;
+  for (const e of r.events) {
+    if (e.action !== 'judged' || e.judgment !== 'wrong' || e.slot !== 'A') continue;
+    const next = byDay.get(e.dayIdx + 1);
+    if (!next) continue;
+    n += 1;
+    if (next.some(x => x.char === e.char)) back += 1;
+  }
+  return { n, share: n ? back / n : 1 };
+}
+
+test('W1 写错的字，第二天（如果第二天也练）大多会再出现：写错优先 + 每组保底（D65 #1）', () => {
+  for (const [r, min] of [[MIXED, 0.9], [THREE, 0.9], [WRONG, 0.7]]) {
+    const { n, share } = wrongNextDayShare(r);
+    assert.ok(n >= 10, `${r.cfg.id} 写错次数太少：${n}`);
+    assert.ok(share >= min, `${r.cfg.id} 写错后第二天再见到 ${Math.round(share * 1000) / 10}%（要求 ≥ ${min * 100}%）\n` + show(only(r, ['W1-wrong-returns-next-day'])));
+  }
 });
 
 test('D6 一天开始时，字库「待复习」档 = 首页今日练习的到期字', { todo: '问题清单 #6：待复习档按「最近一次写错」也算，写错但还没到期的字只在字库里显示为待复习' }, () => {

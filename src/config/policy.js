@@ -90,6 +90,13 @@ export const groupMix = Object.freeze({
   earlyReviewFill: true, // P125 到期不够时用最快到期的字提前复习补位，再不足才补新字
   earlyCountsTowardCap: false, // P125 提前复习是否计入 dailyReviewCap（P03）：不计入
 });
+// P315 写错的字优先回来（D65 #1，问题清单 #1）：到期字排序先「最近一次练习日写错、今天到期」，再「最近一次判断是写错」的其余到期字，最后普通到期字
+// （同一层内仍按逾期天数降序、稳定度升序）；每组再保底 ceil(组大小 × reserveShare) 个「最近一次练习日写错、今天到期」的字，不受每日复习上限与新字目标挤占。
+// 比例 0.2 = 每 5 个字 1 个：一天一组、写对率 80% 时一组大约写错这么多，昨天写错的字今天都能回来；更多时排序已让它们排在最前。
+export const wrongFirst = Object.freeze({
+  enabled: true, // P315 总开关
+  reserveShare: 0.2, // P315 保底比例（按组大小，向上取整：5 → 1、10 → 2、20 → 4、30 → 6）
+});
 // P126 热身字（D28 的细化，已决定 D41）：每组至多 1 个高频字、放组首；只在首练后 firstDays 天内，或最近 window 次判断写对率 < accuracyBelow 时放，
 // 占一个新字位（新字位 ≥ 2 时）；热身字写对（无提示）一律记 Easy（easyOnCorrect）。热身字清单是数据（src/config/char-order.js，由脚本生成）。
 export const warmup = Object.freeze({

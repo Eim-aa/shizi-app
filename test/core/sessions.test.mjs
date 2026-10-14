@@ -346,6 +346,35 @@ test('daily: at most dailyReviewCap (30) due reviews per day, counted as they ar
   assert.deepEqual(none.queue, []);
 });
 
+test('daily: wrong-first (D65 #1) — last practice day\'s wrong chars lead the due list, then older wrong ones, then plain due; reserve survives an exhausted review budget', async () => {
+  const Y = addDays(TODAY, -1);
+  const s = {
+    'base:甲': sched(addDays(TODAY, -9), 2), // 逾期 9 天，普通
+    'base:乙': sched(addDays(TODAY, -5), 2), // 逾期 5 天，最近一次是写错（很久以前）
+    'base:丙': sched(TODAY, 0.2), // 昨天写错、今天到期
+    'base:丁': sched(TODAY, 0.2), // 昨天写错、今天到期
+  };
+  const records = [
+    rec(1, '甲', 'judged', 'correct', '2026-09-01'),
+    rec(2, '乙', 'judged', 'wrong', '2026-09-10'),
+    rec(3, '丙', 'judged', 'wrong', Y),
+    rec(4, '丁', 'judged', 'wrong', Y),
+  ];
+  // 积压 4、p = 1 → 2 新 + 3 复习：被挤掉的是逾期最久、但不是写错的甲
+  const res = selectDaily({ sched: s, records, today: TODAY, newCandidates: K('鲜境') });
+  assert.deepEqual(res.dueKeys.slice().sort(), K('丙丁乙').sort());
+  const order = res.queue.filter(k => res.dueKeys.includes(k));
+  assert.deepEqual(order.slice(0, 2).sort(), K('丙丁').sort(), 'yesterday\'s wrong chars first');
+  assert.equal(order[2], 'base:乙', 'then older wrong');
+  // 今天的复习预算已用完：保底的「昨天写错」仍进组（5 字一组保底 1 个）
+  const capped = selectDaily({ sched: s, records, today: TODAY, newCandidates: K('鲜境'), policy: { ...policy, dailyReviewCap: 0 } });
+  assert.equal(capped.dueKeys.length, 1);
+  assert.ok(K('丙丁').includes(capped.dueKeys[0]));
+  // 关掉：回到只按逾期天数排
+  const off = selectDaily({ sched: s, records, today: TODAY, newCandidates: [], policy: await policyWith({ wrongFirst: { enabled: false, reserveShare: 0.2 } }) });
+  assert.equal(off.queue.filter(k => off.dueKeys.includes(k))[0], 'base:甲');
+});
+
 test('daily: group size comes from policy (P03) and stopped cards are skipped', async () => {
   const s = { 'base:静': { ...sched('2026-09-01'), stoppedAt: 3 } };
   const cands = K('一二三四五六七八');

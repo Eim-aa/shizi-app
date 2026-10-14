@@ -26,7 +26,8 @@ import * as defaultPolicy from '../config/policy.js';
 import { addDays, localDay } from './dates.js';
 import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAnyJudged, skippedCardKeysOn, sortById } from './records.js';
 import { overdueDays } from './fsrs.js';
-import { arrangeGroup, dueReviewsDoneOn, planGroup, practiceStats, pressureOf, warmupAllowed } from './mix.js';
+import { arrangeGroup, dueReviewsDoneOn, planGroup, practiceStats, pressureOf, scaledCount, warmupAllowed } from './mix.js';
+import { dailyReviewCapOf, validGroupSize } from './group-size.js';
 import { isWarmupKey } from './new-order.js';
 import { capitalAfterKeysFor, capitalSpecial } from './special.js';
 
@@ -392,6 +393,7 @@ export function selectDaily({
   policy = defaultPolicy,
   isWarm = (key) => isWarmupKey(key),
   capitalDeferredDay = null,
+  groupSize = null,
 }) {
   const mix = policy.groupMix;
   const excluded = new Set(judgedCardKeysOn(records, today)); // 刚写过的字当天不再出（交接备注十.5）
@@ -441,19 +443,22 @@ export function selectDaily({
   const byKey = (a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
   due.sort((a, b) => a.tier - b.tier || b.od - a.od || a.stability - b.stability || byKey(a, b));
   early.sort((a, b) => (a.dueDay < b.dueDay ? -1 : a.dueDay > b.dueDay ? 1 : 0) || a.stability - b.stability || byKey(a, b));
-  const reviewBudgetLeft = Math.max(0, policy.dailyReviewCap - dueReviewsDoneOn(records, today, { sched, policy }));
+  // D65 #2（P314）：组大小 = 用户的「每组字数」（调用方从 settings 读，见 core/group-size.js）；每日复习上限按组大小换算。
+  const full = validGroupSize(groupSize, policy);
+  const reviewBudgetLeft = Math.max(0, dailyReviewCapOf(full, policy) - dueReviewsDoneOn(records, today, { sched, policy }));
 
-  // D48 ⑧（P184）：离开 ≥ returnAfterDays 天回来的第一组（今天还没有判断）缩短为 returnGroupSize 个字；特别组不受影响（见下，按 groupSize 整组出）。
+  // D48 ⑧（P184）：离开 ≥ returnAfterDays 天回来的第一组（今天还没有判断）缩短为 returnGroupSize 个字（按组大小换算：5 字一组 3 个、20 字一组 12 个）；
+  // 特别组不受影响（见下，整组出）。
   const size = stats.firstBack && Number.isInteger(mix.returnGroupSize) && mix.returnGroupSize > 0
-    ? Math.min(policy.groupSize, mix.returnGroupSize) : policy.groupSize;
+    ? Math.min(full, scaledCount(mix.returnGroupSize, full, mix)) : full;
   const backlog = due.length;
-  const pressure = pressureOf(backlog, stats.groupsPerDay, mix);
-  const base = { dueKeys: [], earlyKeys: [], newKeys: [], warmKeys: [], customKeys: [], reviewBudgetLeft, backlog, pressure };
+  const pressure = pressureOf(backlog, stats.groupsPerDay, mix, full);
+  const base = { dueKeys: [], earlyKeys: [], newKeys: [], warmKeys: [], customKeys: [], reviewBudgetLeft, backlog, pressure, groupSize: full };
 
-  // D40 大写数字特别组：整组换掉日常配比
+  // D40 大写数字特别组：整组换掉日常配比（特别组固定 5 个字，与每组字数无关）
   const special = capitalSpecial({ records, stats, pressure, practicable, excluded, policy, today, deferredDay: capitalDeferredDay });
   if (special) {
-    return { ...base, queue: special.keys.slice(0, policy.groupSize), newTarget: 0, special: { kind: special.kind, keys: special.keys } };
+    return { ...base, queue: special.keys.slice(0, Math.max(full, special.keys.length)), newTarget: 0, special: { kind: special.kind, keys: special.keys } };
   }
 
   // ② 新字池：不在调度里（从没有 judged）、没被排除；自选未写的字在 'none' 下不进 daily；特别组之后佰仟排最前
@@ -486,8 +491,9 @@ export function selectDaily({
     isWarm,
     warmNext,
     warmOk: warmupAllowed(stats, policy.warmup),
-    state: { backlog, groupsPerDay: stats.groupsPerDay, newAccuracy: stats.newAccuracy, lastHadNew: stats.lastHadNew },
+    state: { backlog, groupsPerDay: stats.groupsPerDay, newAccuracy: stats.newAccuracy, lastHadNew: stats.lastHadNew, firstBack: stats.firstBack },
     mix,
+    pressureSize: full,
     reserve: Math.min(wrongReserveOf(size, policy), due.filter((d) => d.tier === 0).length),
     newAvailable: pool.length + (warmNext && !pool.includes(warmNext) ? 1 : 0),
   });
@@ -509,7 +515,7 @@ export function selectDaily({
 }
 
 /** 下一次日常组是不是大写数字特别组（首页提示用，不选字）；返回 {kind, keys} 或 null。参数同 selectDaily 的子集。 */
-export function specialPlan({ sched = {}, records = [], today, practicable = (key) => typeof key === 'string' && key.startsWith('base:'), policy = defaultPolicy, isWarm = (key) => isWarmupKey(key), capitalDeferredDay = null }) {
+export function specialPlan({ sched = {}, records = [], today, practicable = (key) => typeof key === 'string' && key.startsWith('base:'), policy = defaultPolicy, isWarm = (key) => isWarmupKey(key), capitalDeferredDay = null, groupSize = null }) {
   const cfg = policy.capitalNumerals;
   if (!cfg || cfg.enabled === false) return null;
   if (capitalDeferredDay === today) return null; // D46 ④：今天点了「这次先写平常的字」
@@ -522,6 +528,6 @@ export function specialPlan({ sched = {}, records = [], today, practicable = (ke
     const od = overdueDays(entry, today);
     if (od !== null && od >= 0) backlog += 1;
   }
-  const pressure = pressureOf(backlog, stats.groupsPerDay, policy.groupMix);
+  const pressure = pressureOf(backlog, stats.groupsPerDay, policy.groupMix, validGroupSize(groupSize, policy));
   return capitalSpecial({ records, stats, pressure, practicable, excluded, policy, today, deferredDay: capitalDeferredDay });
 }

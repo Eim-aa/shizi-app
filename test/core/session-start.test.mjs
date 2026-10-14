@@ -67,7 +67,8 @@ function seed(env, { records = [], schedTable = {}, sessions = null, custom = nu
     sched: schedTable,
     sessions: sessions || { A: null, B: null, lastEnded: {} },
     ...(custom ? { custom } : {}),
-    ...(settings ? { settings } : {}),
+    // D65 #2：本文件的用例按 5 字一组写（D41），缺省把「每组字数」设成 5；用例自己给 settings 时以它为准
+    settings: { groupSize: 5, ...(settings || {}) },
     ...(backupMeta ? { backupMeta } : {}),
   });
   assert.equal(r.ok, true, JSON.stringify(r));
@@ -165,7 +166,7 @@ test('daily: due ordered overdue desc / stability asc, new characters in library
   assert.deepEqual(s.queue, ['base:丑', 'base:甲', 'base:子', 'base:乙', 'base:寅']);
   assert.deepEqual(r.plan.dueKeys, ['base:丑', 'base:子', 'base:寅']);
   assert.deepEqual(r.plan.newKeys, ['base:甲', 'base:乙']);
-  assert.equal(s.queue.length, policy.groupSize);
+  assert.equal(s.queue.length, 5);
   assert.deepEqual(env.commits, ['session:start-daily']);
 });
 

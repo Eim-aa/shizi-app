@@ -11,14 +11,19 @@ import {
   arrangeGroup, dueReviewsDoneOn, newTargetOf, planGroup, practiceStats, pressureOf, warmupAllowed,
 } from '../../src/core/mix.js';
 import { applyJudgment } from '../../src/core/fsrs.js';
-import { selectDaily } from '../../src/core/sessions.js';
+import { selectDaily as selectDailyAt } from '../../src/core/sessions.js';
 import { addDays } from '../../src/core/dates.js';
 import * as sim from '../../docs/engineering/v10/phase1/tools/simulate-mix.mjs';
 
+// D65 #2：日常组的大小改由「每组字数」决定（缺省 20）。本文件的用例都是按 5 字一组写的 D41 规则，所以缺省按 5 字一组选字
+// （配比按组大小等比例换算，5 字一组与 D41 完全相同）；按 20 / 30 字的换算另见 test/core/group-size.test.mjs。
+const selectDaily = (a) => selectDailyAt({ groupSize: 5, ...a });
 loadFSRSGlobal();
 const TODAY = '2026-09-24';
 const K = (s) => [...s].map((c) => 'base:' + c);
 const mix = policy.groupMix;
+// 与参考实现（D41 规则 D）对照时用旧阀（valveReleaseDays null：p ≥ 4 时隔一组给 1 个）；D65 的回滞阀另有用例。
+const mixD41 = { ...policy.groupMix, valveReleaseDays: null };
 const WARM = new Set(CHAR_ORDER.warmup);
 const isWarmChar = (c) => WARM.has(c);
 const isWarmKey = (k) => WARM.has(k.slice(5));
@@ -48,7 +53,7 @@ test('mix vs simulate-mix: newTarget of rule D agrees on a grid across every thr
       for (const newAcc of [0, 0.3, 0.59, 0.6, 0.61, 1]) {
         for (const lastHadNew of [true, false]) {
           const a = sim.RULES.D.newTarget({ backlog, groupsPerDayEma: G, newAcc, lastHadNew }, {});
-          const b = newTargetOf({ backlog, groupsPerDay: G, newAccuracy: newAcc, lastHadNew }, mix);
+          const b = newTargetOf({ backlog, groupsPerDay: G, newAccuracy: newAcc, lastHadNew }, mixD41);
           assert.equal(b, a, `backlog ${backlog} G ${G} acc ${newAcc} lastHadNew ${lastHadNew}`);
         }
       }
@@ -61,7 +66,7 @@ test('mix vs simulate-mix: planGroup (3000 random states) gives the same new / r
   const pick = (n) => Math.floor(rnd() * n);
   const warmList = [...CHAR_ORDER.warmup];
   const plainPool = CHAR_ORDER.order.filter((c) => !WARM.has(c));
-  const size = policy.groupSize;
+  const size = 5; // 参考实现按 5 字一组
   let withWarmNew = 0, withEarly = 0, allReview = 0, threeNew = 0, shortGroups = 0;
   for (let trial = 0; trial < 3000; trial += 1) {
     const nDue = pick(15);
@@ -83,7 +88,7 @@ test('mix vs simulate-mix: planGroup (3000 random states) gives the same new / r
       warmNext: warmPeek,
       warmOk: warmupAllowed({ dayIndex: state.day, allAccuracy: state.allAcc }, policy.warmup),
       state: { backlog: state.backlog, groupsPerDay: G, newAccuracy: state.newAcc, lastHadNew: state.lastHadNew },
-      mix,
+      mix: mixD41,
     });
     const where = JSON.stringify({ trial, state, budget, nDue: dueKeys.length, early: earlyKeys.length, warmPeek });
     assert.equal(b.newTarget, a.newTarget, 'newTarget ' + where);
@@ -186,24 +191,45 @@ test('rule D: 0.5 ≤ p < 1.5 → 2 new; 1.5 ≤ p < 4 → 1 new', () => {
   assert.deepEqual(counts(run(scenario({ due: 15 }))), [1, 4, 1, 0], 'p 3.75');
 });
 
-test('rule D valve (p ≥ 4): the last group had new chars → this group is all reviews; otherwise 1 new + 4 reviews', () => {
+test('valve (p ≥ 4, D65 #2): new chars drop to 0 whether or not the last group had new chars; the D41 alternating valve stays available for comparison', () => {
   const full = run(scenario({ due: 16, lastHadNew: true }));
   assert.equal(full.pressure, 4);
   assert.deepEqual(counts(full), [0, 5, 0, 0], 'a whole group of reviews');
-  const one = run(scenario({ due: 16, lastHadNew: false }));
-  assert.deepEqual(counts(one), [1, 4, 1, 0]);
-  const huge = run(scenario({ due: 40, lastHadNew: false }));
-  assert.deepEqual(counts(huge), [1, 4, 1, 0], 'a bigger backlog never pushes new chars below one when the last group was all review');
+  assert.deepEqual(counts(run(scenario({ due: 16, lastHadNew: false }))), [0, 5, 0, 0], 'still closed');
+  assert.deepEqual(counts(run(scenario({ due: 40, lastHadNew: false }))), [0, 5, 0, 0]);
+  // D41 旧阀：上一组全复习 → 1 新
+  assert.equal(newTargetOf({ backlog: 16, groupsPerDay: 1, newAccuracy: 1, lastHadNew: false }, mixD41), 1);
+  assert.equal(newTargetOf({ backlog: 16, groupsPerDay: 1, newAccuracy: 1, lastHadNew: true }, mixD41), 0);
 });
 
-test('rule D never makes two full-review groups in a row: a 30-due backlog alternates until it shrinks', () => {
+test('valve hysteresis (D65 #2): once closed it stays closed until p < valveReleaseDays (2), then the usual tiers come back', () => {
+  assert.equal(mix.valveReleaseDays, 2);
+  const tgt = (backlog, lastHadNew, size = 5) => newTargetOf({ backlog, groupsPerDay: 1, newAccuracy: 1, lastHadNew }, mix, size);
+  // 5 字一组：每组按 4 个复习折算；p = 积压 / 4
+  assert.equal(tgt(12, false), 0, 'p 3 and the valve is closed → stays closed');
+  assert.equal(tgt(8, false), 0, 'p 2 → still closed');
+  assert.equal(tgt(7, false), 1, 'p 1.75 < 2 → open again (1.5 ≤ p → 1 new)');
+  assert.equal(tgt(12, true), 1, 'p 3 while open → the usual 1 new');
+  assert.equal(tgt(4, false), 2, 'p 1 → 2 new');
+  // 20 字一组：同样的天数门槛，按字数是 4 倍（16 个复习 / 组）
+  assert.equal(tgt(64, true, 20), 0, 'p 4 at 20 per group = 64 due');
+  assert.equal(tgt(63, true, 20), 4, 'p < 4 → 1 share = 4 new');
+  assert.equal(tgt(32, false, 20), 0, 'closed, p 2');
+  assert.equal(tgt(31, false, 20), 4);
+  assert.equal(tgt(0, true, 20), 12, 'p 0 → 3 shares = 12 new');
+  assert.equal(tgt(10, true, 20), 8, 'p 0.625 → 2 shares = 8 new');
+  // 离开很久回来的第一组：阀关着也给 1 份
+  assert.equal(newTargetOf({ backlog: 40, groupsPerDay: 1, newAccuracy: 1, lastHadNew: false, firstBack: true }, mix, 5), 1);
+});
+
+test('D41 alternating valve (valveReleaseDays null) never makes two full-review groups in a row: a 30-due backlog alternates until it shrinks', () => {
   const w = scenario({ due: 30, lastHadNew: true });
   const records = [...w.records];
   const sch = { ...w.sched };
   const newsPerGroup = [];
   let serial = 20000;
   for (let g = 0; g < 8; g += 1) {
-    const r = selectDaily({ sched: sch, records, today: TODAY, newCandidates: w.candidates, isWarm: isWarmKey, policy: NO_CAPITAL });
+    const r = selectDaily({ sched: sch, records, today: TODAY, newCandidates: w.candidates, isWarm: isWarmKey, policy: { ...NO_CAPITAL, groupMix: mixD41 } });
     assert.ok(r.queue.length > 0);
     newsPerGroup.push(r.newKeys.length);
     // 写完这一组：新 session，今天判断；复习字推到下个月，新字进调度（id 递增 → 它就是「最近一组」）
@@ -503,5 +529,5 @@ test('selectDaily keeps working with the legacy call shape (no warm-up list, no 
   assert.equal(r.queue.length, 5);
   assert.ok(r.dueKeys.includes('base:亦'));
   assert.equal(r.special, null);
-  assert.equal((await policyWith({})).groupSize, 5);
+  assert.equal((await policyWith({})).groupSize, 20, 'D65 #2: the default per-group size is 20 (callers pass the user\'s choice)');
 });

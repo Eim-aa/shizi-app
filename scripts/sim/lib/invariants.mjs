@@ -14,7 +14,7 @@ import { memoryZones, skippedZone, latestJudgedByChar, recordsOfState } from '..
 
 export const INVARIANTS = Object.freeze([
   { id: 'G1-no-dup-in-group', title: '同一组内不重复（同一个字只出现一次）' },
-  { id: 'G2-group-size', title: '一组的字数不超过上限（首练 = 首练队列长度；之后 = groupSize）' },
+  { id: 'G2-group-size', title: '一组的字数不超过上限（首练 = 首练队列长度；之后 = 每组字数 settings.groupSize，缺省 policy.groupSize）' },
   { id: 'G3-not-judged-today', title: '今天已经判断过的字，今天不会再被选进新的一组' },
   { id: 'G4-new-in-library', title: '新字都在当前练习范围（字库）之内，且不是「不进默认排序」的特殊字' },
   { id: 'G5-new-never-judged', title: '被当作「新字」选出的字，之前从没有判断记录' },
@@ -22,7 +22,7 @@ export const INVARIANTS = Object.freeze([
   { id: 'G7-early-not-due', title: '被当作「提前复习」选出的字，调度表里确实还没到期' },
   { id: 'G8-one-warmup', title: '一组里热身字至多 1 个' },
   { id: 'G9-due-not-starved', title: '有到期字、复习预算没用完、又不是特别组时，这一组至少带 1 个到期字' },
-  { id: 'G10-daily-cap', title: '一天内到期复习的字数不超过每日复习上限（dailyReviewCap）' },
+  { id: 'G10-daily-cap', title: '一天内到期复习的字数不超过每日复习上限（dailyReviewCap，按每组字数换算）' },
   { id: 'D1-zones-sum', title: '字库三档（待复习 / 未熟悉 / 已熟悉）合计 = 已练汉字数' },
   { id: 'D2-recorded-eq-judged', title: '已练汉字数 = 有判断记录的不同汉字数' },
   { id: 'D3-skipped-not-practiced', title: '「已跳过」的字不计入已练，也不出现在三档里' },
@@ -64,7 +64,7 @@ export function checkGroup({ state, today, queue, plan, kind, deck, records, pol
   if (new Set(queue).size !== queue.length || new Set(chars).size !== chars.length) {
     out.push(v('G1-no-dup-in-group', queue.join(',')));
   }
-  const limit = kind === 'first' ? policy.firstQueue.length : policy.groupSize;
+  const limit = kind === 'first' ? policy.firstQueue.length : (plan && plan.groupSize) || policy.groupSize;
   if (queue.length > limit) out.push(v('G2-group-size', `${queue.length} > ${limit}`));
   const judgedToday = judgedCardKeysOn(records, today);
   for (const k of queue) if (judgedToday.has(k)) out.push(v('G3-not-judged-today', k));

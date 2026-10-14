@@ -58,7 +58,8 @@ test('policy: every P in 03 is covered by policy.js, a copy decision or a non-ru
 });
 
 test('policy: transitional defaults match 03 / the M0-6 card', () => {
-  assert.equal(policy.groupSize, 5);
+  assert.equal(policy.groupSize, 20); // D65 #2
+  assert.deepEqual([...policy.groupSizeOptions], [5, 10, 20, 30]); // P314
   assert.equal(policy.dailyReviewCap, 30);
   assert.deepEqual([...policy.firstQueue], ['尴', '赢', '拾'], 'P09 已决定 D38：首练 3 字（原旧校准组前 5：尴 嚏 狩 晤 飓）');
   assert.equal('hintMax' in policy, false, 'P17 已决定 D64 ①：不再限次');

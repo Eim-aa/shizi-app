@@ -10,6 +10,7 @@ import { overdueDays, ratingFor } from '../../../src/core/fsrs.js';
 import { charOfCardKey, isJudged, latestJudged } from '../../../src/core/records.js';
 import { isWarmupKey } from '../../../src/core/new-order.js';
 import { dueReviewsDoneOn } from '../../../src/core/mix.js';
+import { dailyReviewCapOf, groupSizeOf } from '../../../src/core/group-size.js';
 import { aStartInfo, expireStale, planDaily, recordsOf, startNextA, startPicked } from '../../../src/core/session-start.js';
 import { cardForKey, deckAdapter, isPracticable, libraryOf } from '../../../src/data/deck.js';
 import { commitJudgment } from '../../../src/ui/screens/write/compare.js';
@@ -47,6 +48,7 @@ export const DEFAULTS = Object.freeze({
   memory: null, // null | { s0, gain, fail }：开启后复习字的写对率 = 0.9^(间隔天数 / 用户自己的稳定度)
   events: [],
   library: null, // 初始练习范围；null = 默认
+  groupSize: null, // 「我的 › 每组字数」（settings.groupSize，D65 #2）；null = 没选过（按 policy.groupSize）
   seed: 1,
   budgets: null,
   probeRate: 0.04, // 每组做「撤销 / 更正」探针的概率
@@ -101,6 +103,7 @@ export function runScenario(input) {
   const clock = { t: instantOf(0, 0) };
   const store = makeStore(clock, { budgets: cfg.budgets, freeze: cfg.freeze });
   if (cfg.library) store.commit('sim:library', d => { d.settings = { ...(d.settings || {}), library: cfg.library }; });
+  if (cfg.groupSize) store.commit('sim:group-size', d => { d.settings = { ...(d.settings || {}), groupSize: cfg.groupSize }; });
   if (cfg.setup) cfg.setup(store, clock);
 
   const days = [];
@@ -332,6 +335,7 @@ export function runScenario(input) {
       else if (ev.type === 'clock') { skew += ev.shiftDays; skewTotal += ev.shiftDays; }
       else if (ev.type === 'tz') process.env.TZ = ev.tz;
       else if (ev.type === 'user') user = { ...user, ...ev.patch };
+      else if (ev.type === 'groupSize') store.commit('sim:group-size', d => { d.settings = { ...(d.settings || {}), groupSize: ev.groupSize }; });
     }
     clock.t = instantOf(dayIdx, skew);
     const today = localDay(clock.t);
@@ -446,7 +450,8 @@ export function runScenario(input) {
     row.schedN = scan.n;
     // 一天内到期复习数 ≤ 上限（G10）
     const dueDone = dueReviewsDoneOn(recordsOf(st), today, { sched: st.sched, policy });
-    if (dueDone > policy.dailyReviewCap) viol('G10-daily-cap', today, `${dueDone} > ${policy.dailyReviewCap}`);
+    const cap = dailyReviewCapOf(groupSizeOf(st.settings, policy), policy);
+    if (dueDone > cap) viol('G10-daily-cap', today, `${dueDone} > ${cap}`);
     viols(checkState({ state: st, today }), today);
     // 提醒
     if (practiced || true) {

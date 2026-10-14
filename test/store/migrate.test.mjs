@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   MIGRATION_LABEL, V1_KEYS, bootMigration, canonicalCardKey, convertV1, detectV1, legacyBackupToV2, readV1,
-  releaseLegacyKeys, runMigration,
+  releaseLegacyKeys, runMigration, spreadLegacyDue, spreadPerDayOf,
 } from '../../src/store/migrate.js';
 import { createStore } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
@@ -433,4 +433,68 @@ test('bootMigration: 没有 v1 → none；policy 关闭 → disabled；v2 已有
   const store = createStore({ storage, now: () => NOW });
   store.load();
   assert.equal(bootMigration({ store, now: () => NOW }).action, 'unavailable');
+});
+
+// ---------------------------------------------------------------- D65 #2：迁移时摊开一次性大量到期的字（P314）
+
+test('spreadLegacyDue: overdue entries spread from today on, at most perDay a day (counting entries already due that day), never earlier, others untouched', () => {
+  const e = (due, stability = 5) => ({ fsrs: { stability }, due, lastJudgedAt: 0 });
+  const sched = {};
+  for (let i = 0; i < 25; i += 1) sched['base:' + String.fromCodePoint(0x4e00 + i)] = e(addDays('2026-10-01', -30 + i), 3 + (i % 4));
+  sched['base:未'] = e('2026-10-02');
+  sched['base:远'] = e('2026-12-01');
+  sched['base:停'] = { ...e('2026-09-01'), stoppedAt: 5 };
+  const frozen = JSON.stringify(sched);
+  const { sched: out, moved } = spreadLegacyDue(sched, { today: '2026-10-01', perDay: 10 });
+  assert.equal(JSON.stringify(sched), frozen, 'pure: input untouched');
+  const perDay = new Map();
+  for (const [k, v] of Object.entries(out)) {
+    if (k === 'base:停') continue;
+    perDay.set(v.due, (perDay.get(v.due) || 0) + 1);
+    assert.ok(v.due >= sched[k].due, k + ' never moved earlier');
+  }
+  assert.equal(perDay.get('2026-10-01'), 10);
+  assert.equal(perDay.get('2026-10-02'), 10, '9 spread + 未 already due that day');
+  assert.equal(perDay.get('2026-10-03'), 6);
+  assert.equal(out['base:未'].due, '2026-10-02');
+  assert.equal(out['base:远'].due, '2026-12-01');
+  assert.equal(out['base:停'].due, '2026-09-01', 'stopped entries are left alone');
+  assert.equal(moved, 25, 'every overdue entry got a new day (all were before today)');
+  // 最早到期的先排：第一个（逾期 30 天）落在今天，最后一个（逾期 6 天）落在后天
+  assert.equal(out['base:' + String.fromCodePoint(0x4e00)].due, '2026-10-01');
+  assert.equal(out['base:' + String.fromCodePoint(0x4e00 + 24)].due, '2026-10-03');
+  // 字段只改 due，其余原样
+  assert.deepEqual({ ...out['base:' + String.fromCodePoint(0x4e00 + 24)], due: null }, { ...sched['base:' + String.fromCodePoint(0x4e00 + 24)], due: null });
+  // 不够 perDay 个已到期：不动
+  assert.equal(spreadLegacyDue({ 'base:甲': e('2026-09-01') }, { today: '2026-10-01', perDay: 10 }).moved, 0);
+  assert.equal(spreadPerDayOf(), 10, 'round(groupSize 20 × 0.5)');
+});
+
+test('convertV1: an old user with 60 overdue chars gets them spread over the next days (≤ 10 a day), records and cards unchanged (D65 #2)', () => {
+  const today = localDay(NOW);
+  const memory = {};
+  const events = [];
+  for (let i = 0; i < 60; i += 1) {
+    const ch = String.fromCodePoint(0x4e00 + 40 + i);
+    const key = 'base:' + ch;
+    const reviewed = new Date(Date.parse(addDays(today, -40) + 'T12:00:00+08:00') + i * 60000).toISOString();
+    const due = addDays(today, -20 + (i % 15));
+    memory[key] = {
+      seen: 1, fast: 1, last: Date.parse(reviewed), lastOutcome: 'fast', lastHints: 0, traced: false,
+      fsrsCard: { due: due + 'T04:00:00.000Z', stability: 5, difficulty: 5, elapsed_days: 1, scheduled_days: 5, learning_steps: 0, reps: 1, lapses: 0, state: 2, last_review: reviewed },
+      dueDay: due, pendingLearning: false,
+    };
+    events.push({ eventId: `e${i}:fsrs`, attemptId: `e${i}`, cardKey: key, target: ch, reviewedAt: reviewed, localDay: localDay(Date.parse(reviewed)), rating: 'Good', reason: 'independent', hintCount: 0, traced: false, teaching: false, plannedDue: addDays(today, -40) });
+  }
+  const { state, report } = convertV1({ memory, fsrsLog: { version: 2, events } }, { now: NOW });
+  const dues = Object.values(state.sched).map(s => s.due);
+  const byDay = new Map();
+  for (const d of dues) byDay.set(d, (byDay.get(d) || 0) + 1);
+  assert.ok([...byDay.values()].every(n => n <= 10), JSON.stringify([...byDay]));
+  assert.equal(dues.filter(d => d <= today).length, 10, 'only 10 left due on the migration day');
+  assert.equal(report.sched.spread, 60, 'all were before today: the first 10 move to today, the rest later');
+  const noSpread = convertV1({ memory, fsrsLog: { version: 2, events } }, { now: NOW, policy: policyWith({ spreadDuePerDayShare: 0 }) });
+  assert.equal(Object.values(noSpread.state.sched).filter(s => s.due <= today).length, 60);
+  for (const [k, v] of Object.entries(state.sched)) assert.deepEqual(v.fsrs, noSpread.state.sched[k].fsrs, 'FSRS card unchanged');
+  assert.deepEqual(state.records, noSpread.state.records);
 });

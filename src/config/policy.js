@@ -65,20 +65,29 @@ export const imageMissingInk = 'omit';
 export const imageMaxChars = 80;
 
 // ---- 调度与选字 ----
-// P03 第二次起每组字数
-export const groupSize = 5;
-// P03 每日到期复习上限（练完记账；D41 之后只作「一天写很多组」时的保险：每组复习最多 groupSize 个，要写 7 组以上才会碰到；
-// 到期不够时的「提前复习」补位不计入此上限，见 groupMix.earlyCountsTowardCap）
+// P03 第二次起每组字数的缺省（D65 #2，覆盖 D41 的 5）：用户在「我的 › 每组字数」里选（settings.groupSize，取值见 groupSizeOptions，P314）；
+// 没选过（含所有老用户）按 20。今日计划、首页主按钮、字库「今日练习」、再写一组都读同一个值（core/group-size.js groupSizeOf）。
+export const groupSize = 20;
+// P314 「每组字数」可选的值（D65 #2）：5 / 10 / 20 / 30。配比、积压阀、每日复习上限、回来的第一组按组大小等比例换算（groupMix.baseSize）。
+export const groupSizeOptions = Object.freeze([5, 10, 20, 30]);
+// P03 每日到期复习上限（练完记账；D41 之后只作「一天写很多组」时的保险：按 5 字一组写的 30，组大小换了按比例换算（= 6 组的复习量，20 字一组为 120），
+// 要写 7 组以上才会碰到；到期不够时的「提前复习」补位不计入此上限，见 groupMix.earlyCountsTowardCap）
 export const dailyReviewCap = 30;
 // P125 每组复习与新字的配比（已决定 D41「保底一新 + 积压阀」，规则 D；依据 docs/engineering/v10/phase1/复习新字配比-研究与推荐.md §4.3 / §6.1，
 // 参考实现 docs/engineering/v10/phase1/tools/simulate-mix.mjs RULES.D；阈值以 groupSize=5 为前提，改组大小须重跑模拟）。
 // 积压天数 p = 到期未写数 ÷（reviewsPerGroupForPressure × 近 pressureWindowDays 天平均每天组数，至少 1）；全部输入从现有 records / sched 推出，不新增存储。
+// D65 #2（P314）：下面的个数都按 baseSize（5 字一组）写，组大小换了按 size / baseSize 等比例换算（core/mix.js scaledCount，四舍五入、至少 1）：
+// 新字 1 / 2 / 3 份 → 20 字一组 4 / 8 / 12 个；积压折算 4 → 16；回来的第一组 3 → 12。p 的单位是「天」，所以天数阈值不用换算，
+// 按字数算的积压门槛自然随组大小等比例。比例不变的理由：D41 的配比是按「一组里新字占几成」在 5 字组上模拟定的（研究 §4.3），
+// 组变大以后每天的复习量与新字量同比例放大，积压的增长速度（以天计）和 5 字组一致；见 docs/qa/调度模拟报告.md 的 5 字 / 20 字对照。
 export const groupMix = Object.freeze({
+  baseSize: 5, // P314 下面各个数所依据的组大小（D41 按 5 字一组定的）
   newMax: 3, // P125 每组新字最多 3 个（到期与提前复习都不够补位时才补到第 4、5 个，例如首练后的第一组）
   threeNewBelowDays: 0.5, // P125 p < 0.5 且最近新字写对率 ≥ threeNewMinAccuracy → 3 个新字
   threeNewMinAccuracy: 0.6, // P125 给第 3 个新字所需的最近新字写对率
   twoNewBelowDays: 1.5, // P125 p < 1.5 → 2 个新字
-  valveDays: 4, // P125 p < 4 → 1 个新字；p ≥ 4（积压阀）→ 上一组有新字则本组全复习、否则 1 个新字（不会连续两组全复习）
+  valveDays: 4, // P125 p < 4 → 1 个新字；p ≥ 4（积压阀，D65 #2）→ 新字 0（全复习），直到 p 回落到 valveReleaseDays 以下
+  valveReleaseDays: 2, // P314 积压阀回滞（D65 #2）：阀关着（上一组 0 个新字）时 p ≥ 2 仍不给新字；null = D41 旧阀（p ≥ 4 时隔一组给 1 个，只作对照）
   reviewsPerGroupForPressure: 4, // P125 积压折算：每组按 4 个复习算几天能清掉
   pressureWindowDays: 7, // P125 「近几天平均每天组数」的窗口（不含今天），至少按 1 组算
   recentNewWindow: 10, // P125 「最近新字写对率」取最近几个新字的首次判断
@@ -344,6 +353,7 @@ export const migration = Object.freeze({
   importLegacy: true, // P10 导入旧数据（A）
   legacyHintedAs: 'none', // P35 v1 reason:"hinted" 且 hintCount>0：不生成判断，只留帮助事实与练习日
   synthesizeFromMemory: true, // P35 有 memory 无事件的字：用 memory 合成 legacy 记录
+  spreadDuePerDayShare: 0.5, // P314 迁移那一刻已到期（due ≤ 迁移当天）的字摊到之后几天：每天（连同那天本来就到期的字）至多 round(groupSize × 0.5) 个（D65 #2；store/migrate.js spreadLegacyDue）
   legacyKeyRetentionDays: 30, // P53 旧 v1 键回退窗口（天）
   legacyKeyReleaseOnExport: true, // P53 用户完成一次 v2 导出即可提前回收（先到者）
 });

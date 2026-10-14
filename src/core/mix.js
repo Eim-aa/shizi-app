@@ -2,10 +2,13 @@
 // 纯函数；依据 docs/engineering/v10/phase1/复习新字配比-研究与推荐.md §4.3 / §6，参考实现 docs/engineering/v10/phase1/tools/simulate-mix.mjs
 // （RULES.D + planGroup，test/core/mix.test.mjs 用同一组输入逐项对照）。全部输入从现有 records / sched 推出，不新增存储。
 //
-// 规则（阈值以每组 5 个字为前提）：
-//   p（积压天数）= 到期未写数 ÷（reviewsPerGroupForPressure × 近 pressureWindowDays 天平均每天组数，至少 1）
-//   新字数 = p ≥ valveDays ? (上一组有新字 ? 0 : 1) : p ≥ twoNewBelowDays ? 1 : (p < threeNewBelowDays 且最近新字写对率 ≥ 0.6) ? 3 : 2
-//   离开 ≥ returnAfterDays 天回来的第一组：把「上一组有新字」当作 false，积压阀照常给 1 个新字（不判全复习）；这一组缩短为 returnGroupSize（3）个字
+// 规则（policy 里的个数都按 groupMix.baseSize = 5 字一组写；组大小 size 换了按 size / 5 等比例换算，四舍五入、至少 1，D65 #2 / P314）：
+//   p（积压天数）= 到期未写数 ÷（reviewsPerGroupForPressure × size/5 × 近 pressureWindowDays 天平均每天组数，至少 1）——单位是「天」，
+//     所以积压阀的门槛按字数算也随组大小等比例（5 字一组 16 个、20 字一组 64 个）。
+//   积压阀（D65 #2，带回滞）：p ≥ valveDays → 新字 0（全复习）；上一组已经是 0 个新字时，要等 p 回落到 valveReleaseDays 以下才重新给新字。
+//     （valveReleaseDays = null 时是 D41 的旧阀：p ≥ valveDays 时上一组有新字 → 0、否则 1，不连续两组全复习——只留给与参考实现对照。）
+//   其余：p ≥ twoNewBelowDays → 1 份；p < threeNewBelowDays 且最近新字写对率 ≥ 0.6 → newMax 份（3）；否则 2 份（「份」= 按组大小换算后的个数）。
+//   离开 ≥ returnAfterDays 天回来的第一组：积压阀不判「全复习」，照常给 1 份新字；这一组缩短为 returnGroupSize（3，按组大小换算）个字
 //   （D48 ⑧，P184；组大小在 sessions.selectDaily 取，本模块的 planGroup 只按传入的 size 配）。
 //   复习 = min(到期数, groupSize − 新字数, 今日复习预算)；新字最多 newMax 个；到期不够时用最快到期的字提前复习补位（不计入每日上限），
 //   仍不足才补新字（首练后的第一组因此是 1 热身 + 4 新）。
@@ -88,18 +91,41 @@ export function practiceStats(records, today, { policy, isWarm }) {
   };
 }
 
-/** 积压天数 p。 */
-export function pressureOf(backlog, groupsPerDay, mix) {
-  return backlog / Math.max(1, mix.reviewsPerGroupForPressure * Math.max(1, groupsPerDay));
+function baseOf(mix) {
+  return Number.isInteger(mix.baseSize) && mix.baseSize > 0 ? mix.baseSize : 5;
 }
 
-/** 这一组的新字数目标（0–newMax，规则 D）。state = {backlog, groupsPerDay, newAccuracy, lastHadNew}。 */
-export function newTargetOf(state, mix) {
-  const p = pressureOf(state.backlog, state.groupsPerDay, mix);
-  if (p >= mix.valveDays) return state.lastHadNew ? 0 : 1;
-  if (p >= mix.twoNewBelowDays) return 1;
-  if (p < mix.threeNewBelowDays && state.newAccuracy >= mix.threeNewMinAccuracy) return mix.newMax;
-  return 2;
+/**
+ * 按组大小换算一个「以 5 字一组写的」个数（D65 #2，P314）：round(n × size / 5)，至少 1（n 为 0 时 0）；size = 5 时原样返回。
+ * 例：newMax 3 → 5 字 3、10 字 6、20 字 12、30 字 18；dailyReviewCap 30 → 20 字 120。
+ */
+export function scaledCount(n, size, mix) {
+  const base = baseOf(mix);
+  if (!Number.isFinite(size) || size === base || !n) return n;
+  return Math.max(1, Math.round((n * size) / base));
+}
+
+/** 积压天数 p（size 缺省 = baseSize）。 */
+export function pressureOf(backlog, groupsPerDay, mix, size = baseOf(mix)) {
+  const perGroup = (mix.reviewsPerGroupForPressure * size) / baseOf(mix);
+  return backlog / Math.max(1, perGroup * Math.max(1, groupsPerDay));
+}
+
+/**
+ * 这一组的新字数目标（0–newMax 份，规则 D + D65 积压阀回滞）。state = {backlog, groupsPerDay, newAccuracy, lastHadNew, firstBack?}；size 缺省 baseSize。
+ */
+export function newTargetOf(state, mix, size = baseOf(mix)) {
+  const p = pressureOf(state.backlog, state.groupsPerDay, mix, size);
+  const one = scaledCount(1, size, mix);
+  if (mix.valveReleaseDays === null || mix.valveReleaseDays === undefined) {
+    if (p >= mix.valveDays) return state.lastHadNew ? 0 : one; // D41 旧阀（对照用）
+  } else {
+    const closed = p >= mix.valveDays || (p >= mix.valveReleaseDays && state.lastHadNew === false);
+    if (closed) return state.firstBack ? one : 0;
+  }
+  if (p >= mix.twoNewBelowDays) return one;
+  if (p < mix.threeNewBelowDays && state.newAccuracy >= mix.threeNewMinAccuracy) return scaledCount(mix.newMax, size, mix);
+  return scaledCount(2, size, mix);
 }
 
 /** 热身字门控（P126）：首练后 firstDays 天内，或最近写得吃力。 */
@@ -120,15 +146,17 @@ export function warmupAllowed(stats, warm) {
  * @param {(key:string)=>boolean} a.isWarm
  * @param {string|null} a.warmNext       下一个可放的新热身字（没有 = null）
  * @param {boolean} a.warmOk             热身字门控是否放行
- * @param {{backlog:number, groupsPerDay:number, newAccuracy:number, lastHadNew:boolean}} a.state
+ * @param {{backlog:number, groupsPerDay:number, newAccuracy:number, lastHadNew:boolean, firstBack?:boolean}} a.state
  * @param {object} a.mix                 policy.groupMix
  * @param {number} [a.newAvailable]      可当新字的字还有多少（缺省不限）
+ * @param {number} [a.pressureSize]      按哪个组大小换算积压与新字份数（缺省 = size；回来的第一组缩短时传用户的组大小）
  * @param {number} [a.reserve]           保底复习数（D65 #1：due 最前面这么多个「昨天写错、今天到期」的字一定进组，不受 budget / 新字目标挤占；缺省 0）
  * @returns {{newTarget:number, revKeys:string[], earlyKeys:string[], newSlots:number, warmNew:string|null, warmRev:number}}
  *   newSlots = 新字位总数（含热身新字）；warmNew 占其中一位。
  */
-export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, state, mix, newAvailable = Infinity, reserve = 0 }) {
-  const newTarget = Math.min(size, newTargetOf(state, mix));
+export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, state, mix, newAvailable = Infinity, reserve = 0, pressureSize = size }) {
+  // 新字份数按「完整的一组」换算（pressureSize：回来的第一组缩短时仍按用户的组大小算积压与份数，再受本组 size 限制）
+  const newTarget = Math.min(size, newTargetOf(state, mix, pressureSize));
   const revSlots = Math.max(Math.min(size - newTarget, budget), Math.min(size, Math.max(0, reserve)));
   const revKeys = [];
   let warmRev = 0;
@@ -140,7 +168,7 @@ export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, 
     }
     revKeys.push(d.key);
   }
-  let newSlots = Math.min(mix.newMax, size - revKeys.length, newAvailable);
+  let newSlots = Math.min(scaledCount(mix.newMax, pressureSize, mix), size - revKeys.length, newAvailable);
   let earlyKeys = [];
   if (mix.earlyReviewFill && revKeys.length + newSlots < size) {
     earlyKeys = early.slice(0, size - revKeys.length - newSlots);

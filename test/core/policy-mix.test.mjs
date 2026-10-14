@@ -7,13 +7,15 @@ test('policy D41: groupMix (P125) matches the recommendation in 复习新字配�
   assert.deepEqual(
     { ...policy.groupMix },
     {
-      newMax: 3, threeNewBelowDays: 0.5, threeNewMinAccuracy: 0.6, twoNewBelowDays: 1.5, valveDays: 4, reviewsPerGroupForPressure: 4,
+      baseSize: 5, newMax: 3, threeNewBelowDays: 0.5, threeNewMinAccuracy: 0.6, twoNewBelowDays: 1.5, valveDays: 4, valveReleaseDays: 2, reviewsPerGroupForPressure: 4,
       pressureWindowDays: 7, recentNewWindow: 10, newAccuracyPrior: 0.5, allAccuracyPrior: 0.7, accuracyPriorWeight: 2, returnAfterDays: 7, returnGroupSize: 3,
       earlyReviewFill: true, earlyCountsTowardCap: false,
     },
   );
   assert.ok(Object.isFrozen(policy.groupMix));
-  assert.equal(policy.groupSize, 5, 'the thresholds assume groups of 5 (P03 unchanged)');
+  assert.equal(policy.groupMix.baseSize, 5, 'the counts are written for groups of 5 and scaled by size / 5 (D65 #2)');
+  assert.equal(policy.groupSize, 20, 'D65 #2: default per-group size 20');
+  assert.deepEqual([...policy.groupSizeOptions], [5, 10, 20, 30]);
   assert.equal(policy.dailyReviewCap, 30, 'P03 stays as a safety net');
 });
 

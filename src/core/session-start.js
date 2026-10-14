@@ -21,6 +21,7 @@
 import * as defaultPolicy from '../config/policy.js';
 import { localDay } from './dates.js';
 import { charOfCardKey, hasAnyJudged } from './records.js';
+import { groupSizeOf } from './group-size.js';
 import {
   createSession, endAndStartPicked, endSlot, expireDaily, isComplete, nextAKind, s02Prompt, selectDaily, selectFirst,
   specialPlan, startInSlot,
@@ -102,6 +103,7 @@ export function planDaily(state, { today, deck, policy = defaultPolicy }) {
     practicable: deck.practicable,
     policy,
     capitalDeferredDay: capitalDeferredDayOf(state),
+    groupSize: groupSizeOf(state && state.settings, policy), // D65 #2：用户的「每组字数」
   });
   const libraryExhausted = !newCandidates.some(key => deck.practicable(key) && !sched[key]);
   return { ...plan, libraryId, libraryExhausted };
@@ -114,7 +116,7 @@ export function planDaily(state, { today, deck, policy = defaultPolicy }) {
 export function planSpecial(state, { today, deck, policy = defaultPolicy }) {
   const records = recordsOf(state);
   if (!hasAnyJudged(records)) return null;
-  return specialPlan({ sched: (state && state.sched) || {}, records, today, practicable: deck.practicable, policy, capitalDeferredDay: capitalDeferredDayOf(state) });
+  return specialPlan({ sched: (state && state.sched) || {}, records, today, practicable: deck.practicable, policy, capitalDeferredDay: capitalDeferredDayOf(state), groupSize: groupSizeOf(state && state.settings, policy) });
 }
 
 /** settings.capitalDeferredDay：用户点「这次先写平常的字」的那一天（D46 ④）；没有 → null。 */

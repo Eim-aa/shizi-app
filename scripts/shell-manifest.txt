@@ -7289,6 +7289,7 @@ src/core/cards.js
 src/core/dates.js
 src/core/first-result.js
 src/core/fsrs.js
+src/core/group-size.js
 src/core/hints.js
 src/core/images/annual-render.js
 src/core/images/glyph-layout.js

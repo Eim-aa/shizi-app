@@ -58,7 +58,7 @@ const policy = await import(path.join(ROOT, 'src/config/policy.js'));
 const { addDays } = await import(path.join(ROOT, 'src/core/dates.js'));
 
 const DATA = JSON.parse(fs.readFileSync(JSON_PATH, 'utf8'));
-const SIZE = policy.groupSize; // P03
+const SIZE = (policy.groupMix && policy.groupMix.baseSize) || 5; // P03：D41 研究按 5 字一组（D65 起用户可选每组字数，缺省 20；配比按 5 字一组换算，见 src/core/mix.js scaledCount）
 const DAILY_REVIEW_CAP = policy.dailyReviewCap; // P03
 const COMBO = DATA.firstCombos.find((c) => c.id === DATA.defaultCombo);
 const WARM = DATA.warmup.order;

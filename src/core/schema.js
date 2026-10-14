@@ -421,6 +421,7 @@ const settingsFields = {
 
   large: v.bool,
   appearance: v.oneOf(['auto', 'light', 'dark']),
+  groupSize: v.oneOf([5, 10, 20, 30]), // D65 #2（P314）：「我的 › 每组字数」；缺省（没选过）按 policy.groupSize 20。取值与 policy.groupSizeOptions 一致（test/store 断言）
 };
 
 const conclusionFields = {

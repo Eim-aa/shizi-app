@@ -18,17 +18,20 @@ const HOUR = 3600000;
 const only = (res, ids) => res.violations.filter(v => ids.includes(v.id));
 const show = (list) => list.slice(0, 5).map(v => `${v.id} ${v.day}: ${v.detail}`).join('\n');
 
-// 同一批场景只跑一次，各测试共用。
-const MIXED = runScenario({ id: 't-mixed', days: 45, seed: 3, probeRate: 0.15 });
-const THREE = runScenario({ id: 't-three', days: 25, groupsPerDay: 3, seed: 4, probeRate: 0.1 });
+// 同一批场景只跑一次，各测试共用。这些场景按 5 字一组（「我的 › 每组字数」选 5，D65 #2）；缺省 20 字一组的另见 BIG。
+const G5 = { groupSize: 5 };
+const MIXED = runScenario({ id: 't-mixed', days: 45, seed: 3, probeRate: 0.15, ...G5 });
+const THREE = runScenario({ id: 't-three', days: 25, groupsPerDay: 3, seed: 4, probeRate: 0.1, ...G5 });
 const SWITCH = runScenario({
-  id: 't-switch', days: 30, seed: 5,
+  id: 't-switch', days: 30, seed: 5, ...G5,
   events: [{ day: 10, type: 'library', library: 'adv3000' }, { day: 20, type: 'library', library: 'core3500' }],
 });
-const PICKED = runScenario({ id: 't-picked', days: 20, seed: 6, events: Array.from({ length: 20 }, (_, i) => ({ day: i, type: 'pick', n: 2, offset: 6 + i * 2 })) });
-const SEEN = runScenario({ id: 't-seen', days: 8, groupsPerDay: 2, seed: 7, user: { answerRate: 0.4, skipRate: 0.3 } });
-const WRONG = runScenario({ id: 't-wrong', days: 10, seed: 8, user: { accuracy: 0.02, newAccuracy: 0.02, hintRate: 0, answerRate: 0, skipRate: 0, difficultyPenalty: 0 } });
-const AWAY = runScenario({ id: 't-away', days: 36, seed: 9, restDays: [{ from: 15, to: 24 }], user: { hintRate: 0, answerRate: 0, skipRate: 0 } });
+const PICKED = runScenario({ id: 't-picked', days: 20, seed: 6, ...G5, events: Array.from({ length: 20 }, (_, i) => ({ day: i, type: 'pick', n: 2, offset: 6 + i * 2 })) });
+const SEEN = runScenario({ id: 't-seen', days: 8, groupsPerDay: 2, seed: 7, ...G5, user: { answerRate: 0.4, skipRate: 0.3 } });
+const WRONG = runScenario({ id: 't-wrong', days: 10, seed: 8, ...G5, user: { accuracy: 0.02, newAccuracy: 0.02, hintRate: 0, answerRate: 0, skipRate: 0, difficultyPenalty: 0 } });
+const AWAY = runScenario({ id: 't-away', days: 36, seed: 9, ...G5, restDays: [{ from: 15, to: 24 }], user: { hintRate: 0, answerRate: 0, skipRate: 0 } });
+// 缺省（没选过每组字数 = 20）；第 20 天改成 30、第 30 天改成 10（改了只影响之后开的组）
+const BIG = runScenario({ id: 't-big', days: 40, seed: 10, probeRate: 0.1, events: [{ day: 20, type: 'groupSize', groupSize: 30 }, { day: 30, type: 'groupSize', groupSize: 10 }] });
 
 test('模拟引擎本身跑得动，且每天都有字可写', () => {
   for (const r of [MIXED, THREE, SWITCH, PICKED, SEEN, WRONG]) {
@@ -39,14 +42,15 @@ test('模拟引擎本身跑得动，且每天都有字可写', () => {
 
 // ---------------------------------------------------------------- 一组怎么选
 
-test('G1 同一组内不重复；G2 组不超过上限（首练 3、其后 5）', () => {
-  for (const r of [MIXED, THREE, SWITCH, PICKED, SEEN, WRONG, AWAY]) {
+test('G1 同一组内不重复；G2 组不超过上限（首练 3、其后 = 每组字数）', () => {
+  for (const r of [MIXED, THREE, SWITCH, PICKED, SEEN, WRONG, AWAY, BIG]) {
     assert.deepEqual(only(r, ['G1-no-dup-in-group', 'G2-group-size']), [], show(only(r, ['G1-no-dup-in-group', 'G2-group-size'])));
     for (const g of r.groups) {
       if (g.slot !== 'A') continue;
       const chars = g.queue.map(q => q.char);
       assert.equal(new Set(chars).size, chars.length);
-      assert.ok(chars.length <= (g.kind === 'first' ? 3 : 5), `${g.day} 第 ${g.group + 1} 组 ${chars.join('')}`);
+      const limit = g.kind === 'first' ? 3 : r === BIG ? (g.dayIdx >= 30 ? 10 : g.dayIdx >= 20 ? 30 : 20) : 5;
+      assert.ok(chars.length <= limit, `${g.day} 第 ${g.group + 1} 组 ${chars.join('')}`);
     }
   }
 });
@@ -73,9 +77,17 @@ test('G9 有到期字时不会被完全挤出；G10 每日复习不超上限', (
   for (const r of [MIXED, THREE, AWAY, WRONG]) assert.deepEqual(only(r, ids), [], show(only(r, ids)));
 });
 
-test('每天负担有上限：每组 ≤ 5 字，每天 ≤ 组数 × 5', () => {
+test('每天负担有上限：每组 ≤ 每组字数，每天 ≤ 组数 × 每组字数；缺省 20 字一组时日常组就是 20 个字，改了每组字数下一组就按新值', () => {
   for (const r of [MIXED, WRONG, AWAY]) assert.ok(r.days.every(d => d.cards <= 5 || d.dayIdx === 0), r.cfg.id);
   assert.ok(THREE.days.every(d => d.cards <= 15));
+  const daily = BIG.groups.filter(g => g.slot === 'A' && g.kind !== 'first' && !g.special);
+  assert.ok(daily.filter(g => g.dayIdx > 1 && g.dayIdx < 20).every(g => g.queue.length === 20), daily.slice(0, 5).map(g => g.queue.length).join(','));
+  assert.ok(daily.filter(g => g.dayIdx >= 20 && g.dayIdx < 30).every(g => g.queue.length === 30));
+  assert.ok(daily.filter(g => g.dayIdx >= 30).every(g => g.queue.length === 10));
+  const ids = ['G1-no-dup-in-group', 'G2-group-size', 'G3-not-judged-today', 'G4-new-in-library', 'G5-new-never-judged', 'G6-due-really-due', 'G7-early-not-due', 'G9-due-not-starved', 'G10-daily-cap', 'G11-new-in-order', 'D1-zones-sum', 'D2-recorded-eq-judged', 'P1-skip-undo-restores', 'P2-correction-roundtrip', 'P3-skip-seen-no-sched', 'P4-skip-seen-not-reoffered-today', 'X1-judge-commit-fails'];
+  assert.deepEqual(only(BIG, ids), [], show(only(BIG, ids)));
+  const { share } = wrongNextDayShare(BIG);
+  assert.ok(share >= 0.9, `20 字一组：写错后第二天再见到 ${share}`);
 });
 
 test('离开 ≥ 7 天回来的第一组缩短为 3 个字，之后恢复 5 个', () => {

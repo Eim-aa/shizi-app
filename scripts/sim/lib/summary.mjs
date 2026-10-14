@@ -47,6 +47,7 @@ export function summarize(res) {
   };
   // 写错以后多久再见到这个字（日历天数；同一个字之后的下一次出现，不论动作）
   const gaps = [];
+  const gapsDue1 = []; // 写错后 FSRS 给的下次到期就是第二天的那些（D65 #1：排序与保底管得到的只有这些；成熟的字写错可能隔几天才到期）
   const byChar = new Map();
   for (const e of res.events) {
     if (e.slot !== 'A') continue;
@@ -58,7 +59,10 @@ export function summarize(res) {
       const e = list[i];
       if (e.action !== 'judged' || e.judgment !== 'wrong') continue;
       const nxt = list.slice(i + 1).find(x => x.dayIdx > e.dayIdx);
-      if (nxt) gaps.push(nxt.dayIdx - e.dayIdx);
+      if (nxt) {
+        gaps.push(nxt.dayIdx - e.dayIdx);
+        if (e.intervalDays === 1) gapsDue1.push(nxt.dayIdx - e.dayIdx);
+      }
     }
   }
   gaps.sort((a, b) => a - b);
@@ -68,6 +72,7 @@ export function summarize(res) {
     median: gaps[Math.floor(gaps.length / 2)],
     p90: gaps[Math.floor(gaps.length * 0.9)],
     nextDayShare: round(gaps.filter(g => g === 1).length / gaps.length, 3),
+    nextDayShareDueTomorrow: gapsDue1.length ? round(gapsDue1.filter(g => g === 1).length / gapsDue1.length, 3) : null,
   } : null;
   const hintedReviews = judgedReviews.filter(e => e.judgment === 'correct');
   const hintGap = (() => {

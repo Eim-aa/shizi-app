@@ -3,11 +3,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import { CHAR_ORDER } from '../../src/config/char-order.js';
-import { selectDaily, specialPlan } from '../../src/core/sessions.js';
+import { selectDaily as selectDailyAt, specialPlan } from '../../src/core/sessions.js';
 import { capitalProgress, capitalSpecial, capitalAfterKeysFor } from '../../src/core/special.js';
 import { planDaily, planSpecial } from '../../src/core/session-start.js';
 import { addDays } from '../../src/core/dates.js';
 import { rec } from './helpers.mjs';
+
+// D65 #2：日常组的大小改由「每组字数」决定（缺省 20）。本文件的用例都是按 5 字一组写的 D41 规则，所以缺省按 5 字一组选字
+// （配比按组大小等比例换算，5 字一组与 D41 完全相同）；按 20 / 30 字的换算另见 test/core/group-size.test.mjs。
+const selectDaily = (a) => selectDailyAt({ groupSize: 5, ...a });
 
 const TODAY = '2026-09-24';
 const K = (s) => [...s].map((c) => 'base:' + c);
@@ -35,7 +39,7 @@ test('special group: not before 10 groups; from the 10th group on (and p < 1.5) 
   assert.equal(r.special.kind, 'capital1');
   assert.deepEqual(r.queue, K('壹贰叁肆伍'));
   assert.deepEqual(r.special.keys, K('壹贰叁肆伍'));
-  assert.equal(r.queue.length, policy.groupSize);
+  assert.equal(r.queue.length, 5);
   assert.equal(specialPlan({ sched: {}, records: history(10), today: TODAY }).kind, 'capital1');
   assert.equal(specialPlan({ sched: {}, records: history(9), today: TODAY }), null);
 });

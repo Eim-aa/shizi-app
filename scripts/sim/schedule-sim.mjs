@@ -5,6 +5,7 @@
 //   node scripts/sim/schedule-sim.mjs --only S1,S3        只跑编号以 S1 / S3 开头的场景
 //   node scripts/sim/schedule-sim.mjs --days 30           把每个场景的天数压到最多 30 天（快速烟测）
 //   node scripts/sim/schedule-sim.mjs --out some/dir      输出目录（默认 scripts/sim/out）
+//   node scripts/sim/schedule-sim.mjs --group-size 5      所有场景按「每组字数 5」跑（缺省 = 没选过，按 policy.groupSize 20）
 //
 // 输出（默认 scripts/sim/out/，已 .gitignore）：
 //   report.md                  可读报告（场景预期 vs 实际、偏离、不变量违反、单字间隔表）
@@ -34,6 +35,7 @@ function parseArgs(argv) {
     if (argv[i] === '--only') out.only = argv[++i].split(',');
     else if (argv[i] === '--days') out.days = Number(argv[++i]);
     else if (argv[i] === '--out') out.out = path.resolve(argv[++i]);
+    else if (argv[i] === '--group-size') out.groupSize = Number(argv[++i]);
   }
   return out;
 }
@@ -54,6 +56,7 @@ function unionColumns(rows) {
 function runOne(def, args) {
   const cfg = { ...def };
   if (args.days) cfg.days = Math.min(cfg.days, args.days);
+  if (args.groupSize) cfg.groupSize = args.groupSize; // D65 #2：所有场景按这个「每组字数」跑（缺省 = 没选过，按 policy.groupSize）
   const res = runScenario(cfg);
   res.summary = summarize(res);
   return res;

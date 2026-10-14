@@ -252,10 +252,10 @@ const v = {
 // ---------------------------------------------------------------- 各键形状
 
 /**
- * 提示次数的形状上限。架构 §3.2 写作 0|1|2，与 policy.hintMax（P17，过渡 2）同源；
- * 本卡不 import policy.js（M0-6 并行），P17 若改大，此处需同步。
+ * 提示次数的形状上限。D64 ①起提示可一直点到整字给出为止（P17 不再限 2 次），次数最多 = 一个字的笔画数（无分组数据的字每次多 1 笔）；
+ * 取 64 作形状上限（远大于任何一个字的笔画数），只防坏数据。
  */
-export const HINTS_SHAPE_MAX = 2;
+export const HINTS_SHAPE_MAX = 64;
 
 const JUDGMENTS = ['correct', 'wrong'];
 const RECORD_KINDS = ['judged', 'answer-seen', 'skipped'];

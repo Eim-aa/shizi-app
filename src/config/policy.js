@@ -149,10 +149,7 @@ export const defaultLibrary = 'core3500';
 export const epigraphRotation = 'day-of-year';
 
 // ---- 写字页与提示 ----
-// P17 每字提示上限
-export const hintMax = 2;
-// P01 提示从哪一笔接着给：按已写笔数
-export const hintStartRule = 'written-count';
+// （提示次数 / 起点：已决定 D64 ①，不再限次、不看已写笔数，由 core/hints.js 推出，这里不放数字）
 // P29 GROUPS 部件分组在提示中是否使用：不用（数据保留）
 export const hintUseGroups = false;
 // P39 first-tip 引导句：只在 first 会话第 1 个字、标题下方、首次落笔后消失

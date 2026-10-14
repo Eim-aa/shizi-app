@@ -137,7 +137,7 @@ export default async function glyph(page, ctx) {
   assert.equal(await text(page, 'write-glyph-note'), '这个字记为看过答案，后面再写只算练习。', 'answer note (R-W08.answerNote)');
   await click(page, 'write-glyph-mode-static');
 
-  ctx.step('永: network comes back → online event → refetch → normal glyph and 「提示，还有 2 次」');
+  ctx.step('永: network comes back → online event → refetch → normal glyph and 「提示，还有 5 次」');
   plan.set('永', 'pass');
   await page.context().setOffline(true);
   assert.equal(await page.evaluate(() => navigator.onLine), false, 'offline');
@@ -146,7 +146,7 @@ export default async function glyph(page, ctx) {
   assert.equal(hits.get('永'), 3, 'exactly one more request after coming back online');
   assert.equal(await page.locator(tid('write-glyph-fallback')).count(), 0, 'fallback removed');
   assert.equal(await page.locator(tid('write-hint-unavailable')).count(), 0, 'gray label removed');
-  assert.equal(await text(page, 'write-hint'), '提示，还有 2 次', 'hint button restored (R-W05.hintRemaining, P17 hintMax=2; this is the dev glyph demo, which prints the whole label — D49 shows only 「提示」 in the real write page)');
+  assert.equal(await text(page, 'write-hint'), '提示，还有 5 次', 'hint button restored (R-W05.hintRemaining, 永 has 5 strokes = 5 taps, D64 ①; this is the dev glyph demo, which prints the whole label — D49 shows only 「提示」 in the real write page)');
   assert.ok((await inkPixels(page)) > 2000, 'Path2D reference glyph painted on canvas');
   assert.equal(await page.locator(tid('write-glyph-note')).count(), 0, 'no 10.13 note once data is there');
 
@@ -208,10 +208,10 @@ export default async function glyph(page, ctx) {
   await click(page, 'write-glyph-mode-static');
   const before = await inkPixels(page);
   await click(page, 'write-hint');
-  assert.equal(await text(page, 'write-hint'), '提示，还有 1 次', 'first hint used');
+  assert.equal(await text(page, 'write-hint'), '提示，还有 4 次', 'first hint used');
   assert.ok((await inkPixels(page)) >= before, 'hint medians drawn over the glyph');
-  await click(page, 'write-hint');
-  assert.equal(await text(page, 'write-hint'), '提示已用完', 'hints used up (R-W05.hintUsedUp)');
+  for (let i = 0; i < 4; i += 1) await click(page, 'write-hint');
+  assert.equal(await text(page, 'write-hint'), '提示已用完', 'hints used up after the last stroke (R-W05.hintUsedUp, D64 ①)');
   assert.equal(await page.locator(tid('write-hint')).isDisabled(), true, 'used-up hint button is disabled');
 
   ctx.step('leaving the page while nothing is pending keeps the router healthy');

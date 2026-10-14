@@ -57,7 +57,7 @@ test('records: validateRecord reports char/cardKey mismatch and bad help', () =>
   const r = rec(1, '静', 'judged', 'correct', TODAY);
   assert.deepEqual(validateRecord(r), []);
   assert.ok(validateRecord({ ...r, char: '亦' }).some((e) => e.includes('char')));
-  assert.ok(validateRecord({ ...r, help: { hints: 3, answerSeen: false, traced: false } }).some((e) => e.includes('hints')));
+  assert.ok(validateRecord({ ...r, help: { hints: 65, answerSeen: false, traced: false } }).some((e) => e.includes('hints')));
   assert.ok(validateRecord({ ...r, localDay: '2026-9-24' }).some((e) => e.includes('localDay')));
   assert.ok(validateRecord({ ...r, kind: 'skipped', judgment: undefined, corrections: [] }).some((e) => e.includes('corrected')));
   assert.deepEqual(validateRecord(null), ['record must be an object']);

@@ -95,7 +95,7 @@ function GlyphDemo({ params }) {
     if (mode === 'static') {
       drawGlyph(ctx, data, { color: glyphColor('--ref') });
       if (hintsUsed > 0) {
-        const r = nextHintRange({ totalStrokes: data.strokes.length, writtenStrokes: 0, used: hintsUsed - 1 });
+        const r = nextHintRange({ totalStrokes: data.strokes.length, used: hintsUsed - 1 });
         if (r) drawMedians(ctx, data, { from: r.from, to: r.from + r.count, color: glyphColor('--hint', glyphColor('--ar')), alpha: 0.92 });
       }
       setAnim('idle');
@@ -121,7 +121,7 @@ function GlyphDemo({ params }) {
   const copy = fallbackCopy();
   const missing = load.status === 'missing';
   const ready = load.status === 'ready';
-  const hintState = hintButtonState({ used: hintsUsed, hasStrokeData: ready });
+  const hintState = hintButtonState({ used: hintsUsed, hasStrokeData: ready, totalStrokes: ready && load.data ? load.data.strokes.length : 0 });
   const hintCopy = hintButtonCopy(hintState);
   const note = missing
     ? mode === 'trace' ? '' : mode === 'play' ? copy.answerNote : copy.noHintNote

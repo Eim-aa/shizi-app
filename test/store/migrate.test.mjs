@@ -125,12 +125,12 @@ test('convertV1: 事件 → 记录（Good/wrong/dontKnow；不太确定与 P35 h
   assert.ok(state.legacy.days.includes(localDay(Date.parse('2026-09-13T12:00:00.000Z'))), 'uncertain day kept in legacy.days');
 });
 
-test('convertV1: P35 legacyHintedAs correct / wrong 把 hintCount>0 的 hinted 变成判断（帮助事实照实），hints 夹到 2', () => {
+test('convertV1: P35 legacyHintedAs correct / wrong 把 hintCount>0 的 hinted 变成判断（帮助事实照实），hints 照实（D64：不再夹到 2）', () => {
   for (const judgment of ['correct', 'wrong']) {
     const { state } = convertV1(smallV1(), { now: NOW, policy: policyWith({ legacyHintedAs: judgment }) });
     const recs = flatRecords(state.records).filter(r => r.char === '疑');
     assert.deepEqual(recs.map(r => r.judgment), [judgment], `hinted → ${judgment}`);
-    assert.equal(recs[0].help.hints, 2, 'hintCount 3 clamped to shape max 2');
+    assert.equal(recs[0].help.hints, 3, 'hintCount 3 kept (D64 ①: shape max is 64, no longer 2)');
     const synth = flatRecords(state.records).filter(r => r.char === '提');
     assert.deepEqual(synth.map(r => r.judgment), [judgment], 'synthesized hinted follows P35 too');
   }

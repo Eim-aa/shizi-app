@@ -236,15 +236,19 @@ export default async function e9bWriteJudge(page, ctx) {
   });
   assert.ok(skipFacts && skipFacts.text === '跳过' && near(skipFacts.right, 402 - 20, 6) && !skipFacts.under.includes('underline'), 'A7: 跳过 is a plain text button at the right end of the page head');
 
-  step('A: 提示 — the visible text is just 「提示」, the remaining count is only in the screen-reader name; used up → ink4, not clickable');
-  assert.deepEqual([byId['write-hint'].text, byId['write-hint'].aria], ['提示', '提示，还有 2 次'], 'visible 提示, name 提示，还有 2 次');
+  step('A: 提示 — the visible text is just 「提示」, the remaining count is only in the screen-reader name; the whole char given → ink4, not clickable');
+  const segs = Number((/^提示，还有 (\d+) 次$/.exec(byId['write-hint'].aria) || [])[1]);
+  assert.ok(segs >= 2, `D64 ①: the name counts the remaining segments (${byId['write-hint'].aria})`);
+  assert.deepEqual([byId['write-hint'].text, byId['write-hint'].aria], ['提示', `提示，还有 ${segs} 次`], 'visible 提示, name 提示，还有 N 次');
   await page.click(topSel('write-hint'));
   await page.waitForSelector(`${topSel('write-hint-layer')}[data-state="shown"]`);
   await page.waitForTimeout(PRESS_SETTLE_MS);
   let h = await page.$eval(topSel('write-hint'), b => ({ text: b.textContent.trim(), aria: b.getAttribute('aria-label'), disabled: b.disabled }));
-  assert.deepEqual(h, { text: '提示', aria: '提示，还有 1 次', disabled: false }, 'after one hint: still 「提示」, name says 1 left');
-  await page.click(topSel('write-hint'));
-  await page.waitForTimeout(PRESS_SETTLE_MS);
+  assert.deepEqual(h, { text: '提示', aria: `提示，还有 ${segs - 1} 次`, disabled: false }, 'after one hint: still 「提示」, name counts one fewer');
+  for (let i = 1; i < segs; i += 1) {
+    await page.click(topSel('write-hint'));
+    await page.waitForTimeout(PRESS_SETTLE_MS);
+  }
   h = await page.$eval(topSel('write-hint'), b => ({ text: b.textContent.trim(), aria: b.getAttribute('aria-label'), disabled: b.disabled, ariaDisabled: b.getAttribute('aria-disabled'), color: getComputedStyle(b).color }));
   assert.deepEqual([h.text, h.aria, h.disabled, h.ariaDisabled], ['提示', '提示已用完', true, 'true'], 'used up: disabled + aria-disabled, name 提示已用完');
   assert.equal(h.color, tokenRgb('light', 'ink4'), 'used up: ink4');

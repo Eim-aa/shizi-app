@@ -96,11 +96,11 @@ test('judgeInDraft: judged record + FSRS + advance with fsrsBefore + line record
   assert.equal(validateValue(KEYS.sched, d.sched), null, 'sched shape valid');
 });
 
-test('judgeInDraft: local hint count wins when larger; clamps to 2; wrong → Again due is tomorrow', () => {
+test('judgeInDraft: local hint count wins when larger (D64: no longer capped at 2); wrong → Again due is tomorrow', () => {
   const d = draftWith({ current: { hints: 0 } });
   judgeInDraft(d, { slot: 'A', cardKey: 'base:永', judgment: 'wrong', strokes: [STROKE], hints: 5, at: T0, nextId: idGen() });
   const [r] = recs(d);
-  assert.equal(r.help.hints, 2);
+  assert.equal(r.help.hints, 5);
   assert.equal(r.judgment, 'wrong');
   assert.equal(d.sched['base:永'].due, '2026-09-25', 'Again → at least tomorrow');
 });

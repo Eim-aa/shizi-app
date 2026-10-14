@@ -35,10 +35,10 @@ test('policy: every export and every nested key carries a registered P number', 
 });
 
 test('policy: the check catches an export without a P number', () => {
-  const bad = source.replace('// P17 每字提示上限\n', '// 每字提示上限\n');
+  const bad = source.replace('// P29 GROUPS 部件分组在提示中是否使用：不用（数据保留）\n', '// 部件分组在提示中是否使用\n');
   assert.notEqual(bad, source);
   const { errors } = checkPolicySource(bad, registered);
-  assert.ok(errors.some((e) => e.startsWith('policy.hintMax')), errors.join('\n'));
+  assert.ok(errors.some((e) => e.startsWith('policy.hintUseGroups')), errors.join('\n'));
 });
 
 test('policy: the check catches a nested key without a P number and an unregistered P', () => {
@@ -48,7 +48,7 @@ test('policy: the check catches a nested key without a P number and an unregiste
   let n = 99;
   while (registered.has('P' + n)) n += 1;
   const sentinel = 'P' + n;
-  const unknown = source.replace('// P17 每字提示上限', '// ' + sentinel + ' 每字提示上限');
+  const unknown = source.replace('// P29 GROUPS 部件分组在提示中是否使用', '// ' + sentinel + ' GROUPS 部件分组在提示中是否使用');
   assert.ok(checkPolicySource(unknown, registered).errors.some((e) => e.includes(sentinel)), sentinel);
 });
 
@@ -61,14 +61,14 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.groupSize, 5);
   assert.equal(policy.dailyReviewCap, 30);
   assert.deepEqual([...policy.firstQueue], ['尴', '赢', '拾'], 'P09 已决定 D38：首练 3 字（原旧校准组前 5：尴 嚏 狩 晤 飓）');
-  assert.equal(policy.hintMax, 2);
+  assert.equal('hintMax' in policy, false, 'P17 已决定 D64 ①：不再限次');
   assert.deepEqual(
     [policy.ink.base, policy.ink.lo, policy.ink.hi, policy.ink.pressureLo, policy.ink.pressureGain, policy.ink.pressureHi],
     [11.5, 0.25, 0.9, 0.58, 0.94, 1.52],
     'P65 ink hand-feel constants (沿旧版)',
   );
   assert.ok(Object.isFrozen(policy.ink));
-  assert.equal(policy.hintStartRule, 'written-count');
+  assert.equal('hintStartRule' in policy, false, 'P01 已决定 D64 ①');
   assert.equal(policy.hintUseGroups, false);
   assert.equal(policy.forgetRule, 'due');
   assert.equal(policy.forgetCap, 12);

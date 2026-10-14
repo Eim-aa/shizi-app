@@ -1,6 +1,6 @@
-// M1-3 提示（02 §3 M1-3；01 §6.4；R-W05；P01 / P17 / P29 / P41）。W1（D34 / D51 ⑧，V2-01 / A2-02）：提示 = 字形轮廓填淡朱实心 + 常驻 1pt 墨三外廓、
+// M1-3 提示（02 §3 M1-3；01 §6.4；R-W05；P29 / P41；D64 ① 取代 P01 / P17：每点一次在已给出的笔之后多给一段，到整字为止，给完记为看过答案）。W1（D34 / D51 ⑧，V2-01 / A2-02）：提示 = 字形轮廓填淡朱实心 + 常驻 1pt 墨三外廓、
 // 在本人墨下层，本人墨任何时候都不变暗（像素取样断言），整组 150ms 淡入，没有图例说明句。
-// 完成定义：3 画字（大）与 14 画字（聚）的提示笔数与按钮文案序列与 core/hints.js 一致；无笔顺数据的字显示
+// 完成定义：3 画字（大）与 14 画字（聚）连续点提示、每次多出新笔直到整字、按钮最后「提示已用完」不可点并记为看过答案；无笔顺数据的字显示
 // 「暂时没有提示」且没有可点的提示按钮；提示次数经 store.commit 写进 sessions[slot].current.hints（M0-6 形状）；
 // R-W05 文案。另覆盖：无分组数据的字前 1 / 前 2 笔；写过哪笔收哪笔（D53 ⑧；笔迹始终 100%）；减少动态效果 150ms 淡化（D58 ②）；
 // 写入失败不阻断且下次写入补上次数；会话现场里 hintRange 还在时静态恢复；无绕过 storage.js 的写入；回忆阶段 DOM 不含答案字。
@@ -128,7 +128,7 @@ export default async function hint(page, ctx) {
   await open(page, ctx, ['大', '聚']);
   await waitButton(page, 'available');
   let h = await hintState(page, true);
-  assert.equal(h.label, '提示，还有 2 次', 'R-W05 button screen-reader name starts at 「提示，还有 2 次」');
+  assert.equal(h.label, '提示，还有 3 次', 'D64 ①: the screen-reader name counts the remaining segments (3 strokes → 3 taps)');
   assert.equal(h.text, '提示', 'D49: the visible text is just 「提示」 (the count is only in the screen-reader name)');
   assert.deepEqual([h.disabled, h.ariaDisabled], [false, null], 'hint button enabled');
   assert.equal(h.layer, 'none', 'no hint drawn yet');
@@ -146,7 +146,7 @@ export default async function hint(page, ctx) {
     return { name: cs.animationName, dur: cs.animationDuration };
   }, LAYER);
   assert.deepEqual([fadeIn.name, fadeIn.dur], ['szHintFadeIn', '0.15s'], 'whole group fades in over 150ms (P210)');
-  assert.equal(h.label, '提示，还有 1 次', 'button → 「提示，还有 1 次」');
+  assert.equal(h.label, '提示，还有 2 次', 'button → 「提示，还有 2 次」');
   assert.equal(h.note, '', 'no legend sentence under the grid after a hint (D51 ⑧: 「浅红色是提示……」 deleted, P41)');
   assert.deepEqual([h.noteKind, h.noteDot], [null, false], 'no hint note, no dot');
   await page.waitForTimeout(260);
@@ -209,7 +209,7 @@ export default async function hint(page, ctx) {
   assert.deepEqual([cur.hints, cur.hintRange], [1, null], 'after fade: hints stays 1, hintRange cleared');
   assert.equal(h.note, '', 'still no legend sentence');
 
-  ctx.step('hint 2 continues from the written count (P01): 1 written → stroke 1; the writer\'s ink pixels are unchanged (not dimmed)');
+  ctx.step('hint 2 (D64 ①) continues AFTER the strokes already given: stroke 1 appears; the writer\'s ink pixels are unchanged (not dimmed)');
   const inkBefore = await inkProbe(page);
   assert.ok(inkBefore.px && inkBefore.px[3] > 200, `there is solid ink on the grid before the hint (${inkBefore.px})`);
   await pressHint(page);
@@ -219,17 +219,35 @@ export default async function hint(page, ctx) {
   assert.deepEqual(inkDuring.px, inkBefore.px, 'darkest ink pixel is identical while the hint is shown');
   assert.equal(inkDuring.eff, 1, 'effective opacity of the ink canvas (element × ancestors) stays 1');
   assert.equal(inkBefore.eff, 1);
+  const remainingOf = () => page.evaluate(sel => document.querySelector(sel).dataset.remaining, LAYER);
+  assert.equal(await remainingOf(), '1', 'hint 2 shows stroke 1 (stroke 0 was given and written; it does not come back)');
   h = await hintState(page, true);
-  assert.deepEqual([h.from, h.to, h.strokes], [1, 2, [1]], 'hint 2 with 1 written → stroke 1');
-  assert.equal(h.label, '提示已用完', 'button → 「提示已用完」');
-  assert.deepEqual([h.state, h.disabled, h.ariaDisabled], ['exhausted', true, 'true'], 'used-up button is disabled + aria-disabled');
+  assert.equal(h.label, '提示，还有 1 次', 'button → 「提示，还有 1 次」');
+  assert.deepEqual([h.state, h.disabled], ['available', false]);
   cur = await current(page);
-  assert.deepEqual([cur.hints, cur.hintRange], [2, { from: 1, to: 2 }], 'store: hints 2, hintRange {1,2}');
+  assert.deepEqual([cur.hints, cur.hintRange], [2, { from: 0, to: 2 }], 'store: hints 2, hintRange extended {0,2}');
+  assert.equal(cur.answerSeen, false, 'not the whole char yet → not answer-seen');
+
+  ctx.step('hint 3 (last) → the whole char has been given: button 「提示已用完」 disabled, the char is recorded as 看过答案 (same as 看答案)');
+  await pressHint(page);
+  await page.waitForFunction(sel => document.querySelector(sel).dataset.remaining === '1,2', LAYER);
+  h = await hintState(page, true);
+  assert.equal(h.label, '提示已用完', 'button → 「提示已用完」');
+  assert.deepEqual([h.state, h.disabled, h.ariaDisabled], ['exhausted', true, 'true'], 'used-up button is disabled + aria-disabled and stays in the foot');
+  cur = await current(page);
+  assert.deepEqual([cur.phase, cur.answerSeen, cur.hints, cur.hintRange], ['recall', true, 3, { from: 0, to: 3 }], 'store: answerSeen true, still on the recall page, hints 3');
+  const seenRecs = await page.evaluate(() => Object.values(window.__shiziTest.getState().records).flat().filter(r => r.kind === 'answer-seen'));
+  assert.equal(seenRecs.length, 1, 'exactly one answer-seen record');
+  assert.deepEqual([seenRecs[0].cardKey, seenRecs[0].help], ['base:大', { hints: 3, answerSeen: true, traced: false }], 'same record the 看答案 button writes (help.hints real)');
+  assert.ok(await page.$(topSel('write-answer-next')), 'foot is the answer-seen foot now: 「下一个」');
   await page.waitForTimeout(450);
   await tap(page, 'write-hint', { force: true });
   await page.waitForTimeout(100);
   cur = await current(page);
-  assert.equal(cur.hints, 2, 'clicking the used-up button changes nothing (hintMax = 2, P17)');
+  assert.equal(cur.hints, 3, 'clicking the used-up button changes nothing');
+  assert.equal((await page.evaluate(() => Object.values(window.__shiziTest.getState().records).flat().filter(r => r.kind === 'answer-seen').length)), 1, 'no second record');
+  await drawStroke(page, HORIZONTAL);
+  await page.waitForFunction(sel => document.querySelector(sel).dataset.remaining === '2', LAYER, { timeout: 5000 });
   assert.deepEqual(await noLeak(page, ['大']), [], 'answer character not in the write screen DOM (D16)');
 
   // ---------------------------------------------------------------- 14 画字
@@ -241,7 +259,7 @@ export default async function hint(page, ctx) {
   h = await hintState(page, true);
   assert.deepEqual([h.from, h.to, h.strokes], [0, 4, [0, 1, 2, 3]], 'hint 1 with 0 written → strokes 0–3');
   assert.ok(h.timing.every(x => x.name === 'none'), '4 strokes appear together (one group fade, no stagger on the web)');
-  assert.equal(h.label, '提示，还有 1 次', '14-stroke: 「提示，还有 1 次」');
+  assert.equal(h.label, '提示，还有 3 次', '14-stroke: 4 segments → after 1 tap 「提示，还有 3 次」');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, { from: 0, to: 4 }], 'store: hints 1, hintRange {0,4}');
 
@@ -277,35 +295,41 @@ export default async function hint(page, ctx) {
   await waitLayer(page, 'none');
   await page.waitForFunction(() => window.__shiziTest.getState().sessions.A.current.hintRange === null);
 
-  ctx.step('write 11 strokes → hint 2 clamps to the last quarter: from = min(11, 14 − 4) = 10');
-  await drawN(page, 7); // 已有 4 笔，共 11 笔
-  await waitLayer(page, 'none');
-  const count = await page.evaluate(sel => Number(document.querySelector(sel).dataset.strokeCount), topSel('write-grid'));
-  assert.equal(count, 11, '11 strokes on the grid');
+  ctx.step('D64 ①: keep tapping on the same 14-stroke char → each tap adds the next segment after the strokes already given (4–7, 8–11, 12–13), up to the whole char');
+  const rem = () => page.evaluate(sel => document.querySelector(sel).dataset.remaining, LAYER);
   await pressHint(page);
   await waitLayer(page, 'shown');
+  assert.equal(await rem(), '4,5,6,7', 'hint 2: strokes 4–7 (0–3 were given and written)');
   h = await hintState(page, true);
-  assert.deepEqual([h.from, h.to, h.strokes], [10, 14, [10, 11, 12, 13]], 'hint 2 → strokes 10–13');
-  assert.deepEqual([h.label, h.disabled, h.ariaDisabled], ['提示已用完', true, 'true'], '14-stroke: used up after 2');
+  assert.deepEqual([h.label, h.state], ['提示，还有 2 次', 'available']);
   cur = await current(page);
-  assert.deepEqual([cur.hints, cur.hintRange], [2, { from: 10, to: 14 }], 'store: hints 2, hintRange {10,14}');
+  assert.deepEqual([cur.hints, cur.hintRange, cur.answerSeen], [2, { from: 0, to: 8 }, false], 'store: hints 2, range {0,8}');
+  await pressHint(page);
+  await page.waitForFunction(sel => document.querySelector(sel).dataset.remaining === '4,5,6,7,8,9,10,11', LAYER);
+  h = await hintState(page, true);
+  assert.deepEqual([h.label, h.state], ['提示，还有 1 次', 'available'], 'unwritten earlier hint strokes stay while the next segment is added');
+  await pressHint(page);
+  await page.waitForFunction(sel => document.querySelector(sel).dataset.remaining === '4,5,6,7,8,9,10,11,12,13', LAYER);
+  h = await hintState(page, true);
+  assert.deepEqual([h.label, h.state, h.disabled], ['提示已用完', 'exhausted', true], 'the 4th tap gives the short last segment (2 strokes) and the whole char is out');
+  cur = await current(page);
+  assert.deepEqual([cur.hints, cur.hintRange, cur.answerSeen, cur.phase], [4, { from: 0, to: 14 }, true, 'recall'], 'store: 4 taps, whole char, recorded as seen');
   assert.deepEqual(await noLeak(page, ['聚']), [], 'answer character not in the DOM (D16)');
 
-  ctx.step('14-stroke, second hint without writing: same from (written count unchanged)');
+  ctx.step('second tap WITHOUT writing anything gives new strokes (the old bug: same strokes, count burnt)');
   await open(page, ctx, ['聚']);
   await waitButton(page, 'available');
-  await drawN(page, 5);
   await pressHint(page);
   await waitLayer(page, 'shown');
-  h = await hintState(page);
-  assert.deepEqual([h.from, h.to], [5, 9], '5 written → strokes 5–8');
+  assert.equal(await rem(), '0,1,2,3');
   await pressHint(page);
   await page.waitForFunction(sel => document.querySelector(sel).dataset.run === '2', LAYER);
+  assert.equal(await rem(), '0,1,2,3,4,5,6,7', 'second tap with nothing written: strokes 4–7 are added');
   h = await hintState(page, true);
-  assert.deepEqual([h.from, h.to, h.label], [5, 9, '提示已用完'], 'second press re-draws 5–8 and uses the last hint');
+  assert.equal(h.label, '提示，还有 2 次');
 
   // ---------------------------------------------------------------- 无分组数据
-  ctx.step('character with stroke data but no group data (custom 𠮷, served with 犇 data) → first 1 / first 2 strokes');
+  ctx.step('character with stroke data but no group data (custom 𠮷, served with 犇 data) → one more stroke per tap');
   const benData = await page.evaluate(async () => (await fetch('/data/%E7%8A%87.json')).text());
   await page.route(url => decodeURIComponent(url.pathname).endsWith('/data/𠮷.json'), route => route.fulfill({
     status: 200, contentType: 'application/json', body: benData,
@@ -316,11 +340,12 @@ export default async function hint(page, ctx) {
   await pressHint(page);
   await waitLayer(page, 'shown');
   h = await hintState(page);
-  assert.deepEqual([h.from, h.to], [0, 1], 'prefix mode hint 1 → stroke 0 (ignores written count)');
+  assert.deepEqual([h.from, h.to], [3, 4], 'prefix mode, 3 strokes already written → the first tap skips the written strokes and shows stroke 3 (one stroke per segment)');
   await pressHint(page);
   await page.waitForFunction(sel => document.querySelector(sel).dataset.run === '2', LAYER);
   h = await hintState(page, true);
-  assert.deepEqual([h.from, h.to, h.label], [0, 2, '提示已用完'], 'prefix mode hint 2 → strokes 0–1');
+  const benStrokes = JSON.parse(benData).medians.length;
+  assert.deepEqual([h.from, h.to, h.label], [3, 5, `提示，还有 ${benStrokes - 5} 次`], 'prefix mode hint 2 → one more stroke (3–4); strokes 0–2 count as given');
   assert.deepEqual(await noLeak(page, ['𠮷']), [], 'custom character not in the DOM (D16)');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
 
@@ -392,7 +417,7 @@ export default async function hint(page, ctx) {
   await pressHint(page);
   await waitLayer(page, 'shown');
   h = await hintState(page, true);
-  assert.equal(h.label, '提示，还有 1 次', 'button still counts the hint');
+  assert.equal(h.label, '提示，还有 2 次', 'button still counts the hint');
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [0, null], 'failed write left the store unchanged');
   await drawStroke(page, HORIZONTAL);
@@ -401,12 +426,12 @@ export default async function hint(page, ctx) {
   cur = await current(page);
   assert.deepEqual([cur.hints, cur.hintRange], [1, null], 'fade commit catches the count up: hints 1');
 
-  ctx.step('restore: session current already has hints 1 + hintRange → hint shown statically, 1 left');
+  ctx.step('restore: session current already has hints 1 + hintRange → hint shown statically, 3 left');
   await open(page, ctx, ['聚'], { current: { hints: 1, hintRange: { from: 0, to: 4 } } });
   await waitButton(page, 'available');
   await waitLayer(page, 'shown');
   h = await hintState(page, true);
-  assert.deepEqual([h.from, h.to, h.anim, h.label], [0, 4, 'static', '提示，还有 1 次'], 'restored hint drawn statically');
+  assert.deepEqual([h.from, h.to, h.anim, h.label], [0, 4, 'static', '提示，还有 3 次'], 'restored hint drawn statically');
   assert.ok(h.timing.every(x => x.name === 'none'), 'no animation on restore');
   await waitNavIdle(page, { settleMs: 50 });
 

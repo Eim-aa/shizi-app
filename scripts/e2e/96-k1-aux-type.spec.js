@@ -54,7 +54,7 @@ export default async function run(page, ctx) {
       assert.ok(gl > py * 1.5 && gl > pr * 1.5, `${tag}: the prompt glyph (${gl.toFixed(0)}) is much bigger than pinyin / counter`);
 
       step(`${tag} answer: note ${AUX.note[tier]}, title ${AUX.title[tier]} and not cut off`);
-      await open(page, ctx, { view, size, current: { phase: 'answer', answerSeen: true } });
+      await open(page, ctx, { view, size, current: { phase: 'trace', answerSeen: true } });
       const note = await page.evaluate(fsOf, '[data-testid="write-note"] *');
       assert.equal(note, AUX.note[tier], `${tag}: note ${note}`);
       const title = await page.$eval('.sz-layer[data-top="true"] .sz-page__head>.sz-page__title', el => ({

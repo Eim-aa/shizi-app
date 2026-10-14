@@ -10,7 +10,6 @@ const STROKES = encodeRawStrokes([line(80, 120, 260, 120), line(170, 60, 170, 29
 
 const PHASES = [
   { name: 'recall', current: {}, back: 'page-back' },
-  { name: 'answer', current: { phase: 'answer', answerSeen: true }, back: 'page-back' },
   { name: 'trace', current: { phase: 'trace', answerSeen: true }, back: 'page-back' },
   { name: 'retrace', current: { phase: 'retrace', answerSeen: true }, back: 'page-back' },
   { name: 'compare', current: { phase: 'compare', strokes: STROKES }, back: 'write-continue' },
@@ -51,7 +50,7 @@ export default async function run(page, ctx) {
   const { assert, step } = ctx;
   for (const [view, size] of [[{ width: 393, height: 852 }, 'L'], [{ width: 375, height: 667 }, 'L'], [{ width: 390, height: 844 }, 'AX3']]) {
     const tag = `${view.width}×${view.height} ${size}`;
-    step(`${tag}: the 「‹」 sits on the same x in recall / answer / trace / retrace / compare (I3-03)`);
+    step(`${tag}: the 「‹」 sits on the same x in recall / trace / retrace / compare (I3-03)`);
     const xs = {};
     for (const ph of PHASES) {
       await open(page, ctx, { view, size, current: ph.current });

@@ -42,6 +42,7 @@ import * as defaultPolicy from '../../../config/policy.js';
 import { getStore, setInk } from '../../../store/store.js';
 import { pruneInkOfCards } from '../../../store/budget.js';
 import { makeRecord, isJudged, JUDGMENTS } from '../../../core/records.js';
+import { HINTS_SHAPE_MAX } from '../../../core/schema.js';
 import { advance, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { applyJudgment } from '../../../core/fsrs.js';
 import { buildStroke, encodeInk, encodeRawStrokes, GRID, INK } from '../../../core/ink-math.js';
@@ -126,7 +127,7 @@ export function findJudged(state, sessionIdValue, cardKey) {
 
 function clampHints(n) {
   const v = Math.trunc(Number(n) || 0);
-  return Math.max(0, Math.min(2, v));
+  return Math.max(0, Math.min(HINTS_SHAPE_MAX, v));
 }
 
 /** perRecordInk 开关：显式传入优先，否则读 policy.features（P31）。 */

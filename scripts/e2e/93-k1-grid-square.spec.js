@@ -77,7 +77,7 @@ export default async function run(page, ctx) {
     assert.ok(Math.abs(r.mid.x - 172.5) <= 8 && Math.abs(r.mid.y - 172.5) <= 8, `${tag}: the centre of the box is the centre of the 345 grid (${r.mid.x.toFixed(1)}, ${r.mid.y.toFixed(1)})`);
 
     step(`${tag}: the answer grid stays square under the same stretch`);
-    await open(page, ctx, { view, size, current: { phase: 'answer', answerSeen: true } });
+    await open(page, ctx, { view, size, current: { phase: 'trace', answerSeen: true } });
     const a0 = await rectOf(page, 'write-grid');
     await addCss(page, `.sz-write__gridwrap{height:${Math.round(a0.w + 120)}px;align-items:stretch}`);
     const a1 = await rectOf(page, 'write-grid');

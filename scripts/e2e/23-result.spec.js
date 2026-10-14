@@ -212,9 +212,10 @@ async function writeAndJudge(page, judgment = 'correct') {
   await page.click(topSel(`write-judge-${judgment}`));
 }
 
+/** 点「看答案」：直接进描一遍（D64 ②）。 */
 async function openAnswer(page) {
   await tap(page, 'write-show-answer');
-  await waitPhase(page, 'answer');
+  await waitPhase(page, 'trace');
 }
 
 async function toastText(page) {
@@ -231,15 +232,10 @@ export default async function resultSpec(page, ctx) {
   // ------------------------------------------------------------------ 1. 最后一字 → 结果页（各阶段）
   const lastPaths = [
     { name: 'compare: 写对了', act: async () => writeAndJudge(page, 'correct'), kind: 'judged' },
-    { name: 'answer: bottom 下一个', act: async () => { await openAnswer(page); await tap(page, 'write-answer-next'); }, kind: 'answer-seen' },
+    { name: 'trace (right after 看答案): bottom 下一个', act: async () => { await openAnswer(page); await tap(page, 'write-answer-next'); }, kind: 'answer-seen' },
     {
-      name: 'trace: bottom 下一个',
-      act: async () => { await openAnswer(page); await page.click(topSel('write-answer-trace')); await waitPhase(page, 'trace'); await tap(page, 'write-answer-next'); },
-      kind: 'answer-seen',
-    },
-    {
-      name: 'retrace: 下一个',
-      act: async () => { await openAnswer(page); await tap(page, 'write-answer-self'); await waitPhase(page, 'retrace'); await tap(page, 'write-answer-next'); },
+      name: 'retrace (凭记忆写): 下一个',
+      act: async () => { await openAnswer(page); await tap(page, 'write-trace-done'); await waitPhase(page, 'retrace'); await tap(page, 'write-answer-next'); },
       kind: 'answer-seen',
     },
     { name: 'recall after answer seen (restore path): 下一个', current: { answerSeen: true, phase: 'recall' }, act: async () => tap(page, 'write-answer-next'), kind: 'answer-seen' },
@@ -381,16 +377,13 @@ export default async function resultSpec(page, ctx) {
   assert.ok(!st.sessions.B && st.sessions.lastEnded.B.endedEarly, 'B ended');
   await waitNavIdle(page);
 
-  step('H4: 结束这组 shown in answer / trace / retrace, hidden on the judge page; ending from the answer page with 0 judged → back + toast');
+  step('H4: 结束这组 shown in trace / retrace, hidden on the judge page; ending from the answer page with 0 judged → back + toast');
   await seedGroup(page, { kind: 'picked', chars: ['额', '鲜', '境'], steps: [] });
   await openWriteSlot(page, 'B');
   const endVisible = async () => (await footItems(page)).some(i => i.testid === 'write-end');
   await openAnswer(page);
-  assert.ok(await endVisible(), 'answer: 结束这组 visible');
-  assert.equal(await page.locator(topSel('write-end')).count(), 1, 'answer: 结束这组 is a button in the text row under the main button (D55)');
-  await page.click(topSel('write-answer-trace'));
-  await waitPhase(page, 'trace');
-  assert.ok(await endVisible(), 'trace: 结束这组 visible');
+  assert.ok(await endVisible(), 'trace (right after 看答案): 结束这组 visible');
+  assert.equal(await page.locator(topSel('write-end')).count(), 1, 'trace: 结束这组 is a button in the head, not in a menu (D55)');
   await drawStroke(page, HORIZONTAL);
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await page.click(topSel('write-trace-done'));

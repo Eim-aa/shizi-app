@@ -181,14 +181,15 @@ export default async function recover(page, ctx) {
   assert.equal((await facts(page)).storedStrokes, 1, 'undo after clear → session holds the stroke again');
 
   ctx.step('hint used, then refresh: count kept, hint shown statically');
+  const hintsBefore = Number(((await footItems(page)).find(i => i.testid === 'write-hint') || {}).remaining);
   await tap(page, 'write-hint');
   await waitAttr(page, 'write-hint-layer', 'data-state', ['shown']);
   f = await facts(page);
-  assert.equal(f.session.current.hints, 1, 'hint count written');
+  assert.equal(f.session.current.hints, 2, 'hint count written: 永 q=1, stroke 0 was already written, so the tap skips that segment and shows stroke 1 (both segments count as given)');
   await reloadWrite(page);
   s = await writeSnapshot(page);
   assert.deepEqual([s.phase, s.strokes], ['recall', 1], 'refresh: recall with the 1 stroke');
-  assert.equal(((await footItems(page)).find(i => i.testid === 'write-hint') || {}).remaining, '1', 'refresh: 1 hint left');
+  assert.equal(((await footItems(page)).find(i => i.testid === 'write-hint') || {}).remaining, String(hintsBefore - 2), 'refresh: two fewer segments left (D64 ①: the count is the remaining segments)');
   assert.equal(await waitAttr(page, 'write-hint-layer', 'data-anim', ['static', 'draw', 'fade']), 'static', 'refresh: hint restored statically');
 
   // ------------------------------------------------------------------ 2. compare
@@ -218,23 +219,21 @@ export default async function recover(page, ctx) {
   assert.equal((await facts(page)).judged.length, 0, 'no record written by any of this');
 
   // ------------------------------------------------------------------ 3. answer / trace / retrace
-  ctx.step('answer: 看答案 (no confirm dialog; the two strokes stay) → refresh shows the answer layer under the same ink; one answer-seen record');
+  ctx.step('看答案 (no confirm dialog) goes straight into trace (D64 ②) → refresh shows the same trace page; one answer-seen record');
   await tap(page, 'write-show-answer');
-  await waitPhase(page, 'answer');
+  await waitPhase(page, 'trace');
   assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog (D51 ⑧)');
-  assert.equal((await writeSnapshot(page)).strokes, 2, 'the recall strokes are still on the grid in the answer phase');
+  assert.equal((await writeSnapshot(page)).strokes, 0, 'the trace grid starts empty');
   await reloadWrite(page);
-  await waitPhase(page, 'answer');
-  assert.equal((await writeSnapshot(page)).strokes, 2, 'refresh: the recall strokes come back in the answer phase (not cleared)');
-  assert.ok(await present(page, 'write-answer-card'), 'refresh: answer layer shown');
-  assert.equal(await waitAttr(page, 'write-answer-card', 'data-state', ['ready', 'missing']), 'ready', 'refresh: answer glyph ready');
+  await waitPhase(page, 'trace');
+  assert.equal((await writeSnapshot(page)).strokes, 0, 'refresh: still the empty trace grid');
+  assert.ok(await present(page, 'write-trace-layer'), 'refresh: trace layer shown');
+  assert.equal(await waitAttr(page, 'write-trace-layer', 'data-state', ['ready', 'missing']), 'ready', 'refresh: answer glyph ready');
   f = await facts(page);
   assert.equal(f.answerSeen.length, 1, 'one answer-seen record');
   assert.equal(f.judged.length, 0, 'no judged record');
 
   ctx.step('trace: one stroke → refresh keeps trace, the stroke and the outline');
-  await page.click(topSel('write-answer-trace'));
-  await waitPhase(page, 'trace');
   s = await writeSnapshot(page);
   assert.equal(s.strokes, 0, 'trace starts empty');
   await write(page, HORIZONTAL, 1);

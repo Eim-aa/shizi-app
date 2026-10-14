@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {
   strokeDrawMs, hintTimeline, groupsFor, hasGroupData, hintSourceOf, planHint, hintButtonModel, hintNoteModel,
   initialHintView, reduceHintView, applyHintToDraft, HINT_FADE_OUT_MS, HINT_FADE_IN_MS, REDUCED_FADE_MS, HINT_DRAW, HintLayer,
-  hintRemaining, hintVisible, matchHintStroke, meanDistanceToMedian, HINT_MATCH_MAX_DIST,
+  hintRemaining, hintVisible, mergeHintRange, matchHintStroke, meanDistanceToMedian, HINT_MATCH_MAX_DIST,
 } from '../../src/ui/screens/write/hint-layer.js';
 import { GlyphWash } from '../../src/ui/canvas/glyph-wash.js';
 import { createSession, freshCurrent } from '../../src/core/sessions.js';
@@ -59,34 +59,40 @@ test('hintSourceOf: loading / ready (with or without groups) / missing', () => {
   assert.equal(hintSourceOf({ status: 'ready', data: { medians: [] } }).status, 'loading', 'empty data is not ready');
 });
 
-test('planHint: 3-stroke and 14-stroke quarter rule, prefix rule, exhausted, not ready', () => {
+test('planHint (D64 ①): every tap continues after the strokes already given, to the whole char; nothing written yet', () => {
   const s3 = ready(3, [1, 2]);
-  assert.deepEqual(planHint({ source: s3, used: 0, written: 0 }), { from: 0, to: 1, count: 1, index: 1 });
-  assert.deepEqual(planHint({ source: s3, used: 1, written: 1 }), { from: 1, to: 2, count: 1, index: 2 });
-  assert.deepEqual(planHint({ source: s3, used: 1, written: 3 }), { from: 2, to: 3, count: 1, index: 2 }, 'clamped to N − q');
-  assert.equal(planHint({ source: s3, used: 2, written: 0 }), null, 'hintMax = 2');
+  assert.deepEqual([0, 1, 2].map(used => planHint({ source: s3, used })), [
+    { from: 0, to: 1, count: 1, index: 1, skip: 0 }, { from: 1, to: 2, count: 1, index: 2, skip: 0 }, { from: 2, to: 3, count: 1, index: 3, skip: 0 },
+  ]);
+  assert.equal(planHint({ source: s3, used: 3 }), null, 'whole char given');
   const s14 = ready(14, [1, 4, 3, 1, 5]);
-  assert.deepEqual(planHint({ source: s14, used: 0, written: 0 }), { from: 0, to: 4, count: 4, index: 1 });
-  assert.deepEqual(planHint({ source: s14, used: 1, written: 5 }), { from: 5, to: 9, count: 4, index: 2 });
-  assert.deepEqual(planHint({ source: s14, used: 1, written: 11 }), { from: 10, to: 14, count: 4, index: 2 });
+  assert.deepEqual([0, 1, 2, 3].map(used => planHint({ source: s14, used })), [
+    { from: 0, to: 4, count: 4, index: 1, skip: 0 }, { from: 4, to: 8, count: 4, index: 2, skip: 0 }, { from: 8, to: 12, count: 4, index: 3, skip: 0 }, { from: 12, to: 14, count: 2, index: 4, skip: 0 },
+  ]);
+  assert.equal(planHint({ source: s14, used: 4 }), null);
+  assert.deepEqual(planHint({ source: s14, used: 1, written: 0 }), { from: 4, to: 8, count: 4, index: 2, skip: 0 }, 'the second tap with nothing new written gives NEW strokes (the old bug gave the same ones)');
   const p = ready(8, null);
-  assert.deepEqual(planHint({ source: p, used: 0, written: 5 }), { from: 0, to: 1, count: 1, index: 1 });
-  assert.deepEqual(planHint({ source: p, used: 1, written: 5 }), { from: 0, to: 2, count: 2, index: 2 });
+  assert.deepEqual([0, 1, 7].map(used => planHint({ source: p, used })), [
+    { from: 0, to: 1, count: 1, index: 1, skip: 0 }, { from: 1, to: 2, count: 1, index: 2, skip: 0 }, { from: 7, to: 8, count: 1, index: 8, skip: 0 },
+  ]);
+  assert.equal(planHint({ source: p, used: 8 }), null);
   assert.equal(planHint({ source: hintSourceOf({ status: 'loading' }), used: 0 }), null);
   assert.equal(planHint({ source: hintSourceOf({ status: 'missing' }), used: 0 }), null);
-  assert.equal(planHint({ source: s3, used: 0 }, { hintMax: 3, hintStartRule: 'written-count' }).index, 1, 'policy injectable');
 });
 
-test('hintButtonModel: R-W05 label sequence and states', () => {
-  const m0 = hintButtonModel({ status: 'ready', used: 0 });
+test('hintButtonModel (D64 ①): label counts the remaining segments, last tap leaves a disabled 「提示已用完」', () => {
+  const s14 = ready(14, [1, 4, 3, 1, 5]);
+  const m = (used, extra = {}) => hintButtonModel({ status: 'ready', used, source: s14, ...extra });
   // D49：可见文字（text）一直是「提示」，label 是读屏名称（次数只进读屏）
-  assert.deepEqual(m0, { kind: 'available', label: '提示，还有 2 次', text: '提示', disabled: false, remaining: 2 });
-  assert.deepEqual(hintButtonModel({ status: 'ready', used: 1 }), { kind: 'available', label: '提示，还有 1 次', text: '提示', disabled: false, remaining: 1 });
-  assert.deepEqual(hintButtonModel({ status: 'ready', used: 2 }), { kind: 'exhausted', label: '提示已用完', text: '提示', disabled: true, remaining: 0 });
+  assert.deepEqual(m(0), { kind: 'available', label: '提示，还有 4 次', text: '提示', disabled: false, remaining: 4 });
+  assert.deepEqual(m(3), { kind: 'available', label: '提示，还有 1 次', text: '提示', disabled: false, remaining: 1 });
+  assert.deepEqual(m(4), { kind: 'exhausted', label: '提示已用完', text: '提示', disabled: true, remaining: 0 });
+  assert.deepEqual(hintButtonModel({ status: 'ready', used: 2, source: ready(3, [1, 2]) }), { kind: 'available', label: '提示，还有 1 次', text: '提示', disabled: false, remaining: 1 });
   assert.deepEqual(hintButtonModel({ status: 'missing', used: 0 }), { kind: 'unavailable', label: '暂时没有提示' });
-  assert.deepEqual(hintButtonModel({ status: 'loading', used: 1 }), { kind: 'loading', label: '提示，还有 1 次', text: '提示', disabled: true, remaining: 1 });
-  assert.deepEqual(hintButtonModel({ status: 'loading', used: 2 }).kind, 'exhausted');
-  assert.deepEqual(hintButtonModel({ status: 'ready', used: 0, answerSeen: true }), { kind: 'hidden' }, 'M1-4 owns the saw-state buttons');
+  assert.deepEqual(hintButtonModel({ status: 'loading', used: 1, source: hintSourceOf({ status: 'loading' }) }), { kind: 'loading', label: '提示', text: '提示', disabled: true, remaining: null });
+  assert.deepEqual(m(0, { answerSeen: true }), { kind: 'hidden' }, 'M1-4 owns the saw-state buttons');
+  assert.equal(m(4, { answerSeen: true }).kind, 'exhausted', 'answer-seen because the hints ran out: the disabled button stays');
+  assert.deepEqual(m(2, { answerSeen: true }), { kind: 'hidden' });
   assert.deepEqual(hintButtonModel({ phase: 'compare', status: 'ready' }), { kind: 'hidden' });
   assert.deepEqual(hintButtonModel({ phase: 'trace', status: 'missing' }), { kind: 'hidden' });
 });
@@ -135,7 +141,7 @@ test('reduceHintView: hint → absorb (only that stroke) → faded; second hint 
   const cleared = reduceHintView(v, { type: 'restore', fromUser: 0 });
   assert.deepEqual(hintRemaining(cleared), [1, 2, 3], 'clear → every absorbed stroke comes back');
   v = reduceHintView(v, { type: 'hint', range: { from: 1, to: 2 } });
-  assert.deepEqual([v.used, v.run, v.show, v.range, v.absorbed], [2, 2, 'in', { from: 1, to: 2 }, []], 'a new hint starts a fresh range');
+  assert.deepEqual([v.used, v.run, v.show, v.range, v.absorbed], [2, 2, 'in', { from: 1, to: 2 }, []], 'a hint that does not continue the shown range starts a fresh one');
   assert.equal(reduceHintView(v, { type: 'hint', range: null }), v, 'invalid range ignored');
   assert.equal(reduceHintView(v, { type: 'sync-used', used: 1 }), v, 'sync only raises');
   assert.equal(reduceHintView(v, { type: 'sync-used', used: 3 }).used, 3);
@@ -148,6 +154,37 @@ test('reduceHintView: hint → absorb (only that stroke) → faded; second hint 
   const rest = initialHintView('base:聚', { hints: 1, hintRange: { from: 1, to: 4 } }, 2);
   assert.deepEqual(hintRemaining(rest), [2, 3]);
   assert.deepEqual(initialHintView('base:聚', { hints: 1, hintRange: { from: 1, to: 4 } }, 9).absorbed.map(a => a.hint), [1, 2, 3]);
+});
+
+test('planHint (D64 ①): a segment the user has already fully written is skipped (counted as given), so a tap always shows something new', () => {
+  const s14 = ready(14, [1, 4, 3, 1, 5]);
+  assert.deepEqual(planHint({ source: s14, used: 0, written: 5 }), { from: 4, to: 8, count: 4, index: 2, skip: 1 }, '5 written: segment 0–3 is all written → show 4–7');
+  assert.deepEqual(planHint({ source: s14, used: 0, written: 3 }), { from: 0, to: 4, count: 4, index: 1, skip: 0 }, 'partly written segment is not skipped');
+  assert.deepEqual(planHint({ source: s14, used: 0, written: 14 }), { from: 12, to: 14, count: 2, index: 4, skip: 3 }, 'everything written: lands on the last segment, never beyond it');
+  const s3 = ready(3, [1, 2]);
+  assert.deepEqual(planHint({ source: s3, used: 0, written: 1 }), { from: 1, to: 2, count: 1, index: 2, skip: 1 });
+});
+
+test('reduceHintView (D64 ①): strokes of the new segment the user already wrote are taken in at once; skipped segments count as used', () => {
+  let v = initialHintView('base:聚', { hints: 0, hintRange: null });
+  v = reduceHintView(v, { type: 'hint', range: { from: 2, to: 6 }, written: 4, skip: 1 });
+  assert.equal(v.used, 2, 'one tap + one skipped segment');
+  assert.deepEqual(hintRemaining(v), [4, 5], 'strokes 2–3 were already written');
+});
+
+test('reduceHintView (D64 ①): the next segment extends the shown range; absorbed strokes stay absorbed, the unwritten ones stay', () => {
+  let v = initialHintView('base:聚', { hints: 0, hintRange: null });
+  v = reduceHintView(v, { type: 'hint', range: { from: 0, to: 4 } });
+  v = reduceHintView(v, { type: 'absorb', user: 0, hint: 0 });
+  v = reduceHintView(v, { type: 'faded', hint: 0 });
+  v = reduceHintView(v, { type: 'hint', range: { from: 4, to: 8 } });
+  assert.deepEqual([v.used, v.range], [2, { from: 0, to: 8 }], 'range keeps its start, grows to the new end');
+  assert.deepEqual(hintRemaining(v), [1, 2, 3, 4, 5, 6, 7], 'stroke 0 is written (still counts as given); the rest are on the grid');
+  assert.deepEqual(v.absorbed, [{ user: 0, hint: 0 }]);
+  const all = reduceHintView(v, { type: 'hint', range: { from: 8, to: 12 } });
+  assert.deepEqual(all.range, { from: 0, to: 12 });
+  assert.deepEqual(mergeHintRange({ from: 0, to: 4 }, { from: 4, to: 8 }), { from: 0, to: 8 }, 'what is written to sessions.current.hintRange');
+  assert.deepEqual(mergeHintRange(null, { from: 4, to: 8 }), { from: 4, to: 8 }, 'no shown range (restored / cleared): just the new segment');
 });
 
 test('matchHintStroke：先按笔顺序号，序号对不上按几何最近（平均距离 ≤ 上限），再远就不算写过', () => {

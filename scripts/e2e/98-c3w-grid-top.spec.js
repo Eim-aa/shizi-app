@@ -20,7 +20,6 @@ const COMBOS = [
 const PHASES = [
   ['recall', {}],
   ['recall+ink', { strokes: STROKES }],
-  ['answer', { phase: 'answer', answerSeen: true, strokes: STROKES }],
   ['trace', { phase: 'trace', answerSeen: true }],
   ['retrace', { phase: 'retrace', answerSeen: true }],
   ['compare', { phase: 'compare', strokes: STROKES }],

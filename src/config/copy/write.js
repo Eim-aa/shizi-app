@@ -12,10 +12,10 @@ export default Object.freeze({
   'R-W03.titleRecall': '凭记忆写',
   'R-W03.titleCompare': '写对了吗',
   'R-W03.titleAnswer': '正确写法',
-  'R-W03.titleSelf': '自己写',
+  'R-W03.titleSelf': '凭记忆写',
   // R-W04（已定）
   'R-W04.stepTrace': '第 1 步，共 2 步：描一遍',
-  'R-W04.stepSelf': '第 2 步，共 2 步：自己写',
+  'R-W04.stepSelf': '第 2 步，共 2 步：凭记忆写',
   // R-W05（文案已定；"已写对哪几笔"算法 待定-工程确认（做不到退回按已写笔数））
   'R-W05.hintLabel': '提示',
   'R-W05.hintRemaining': '提示，还有 {n} 次',
@@ -24,14 +24,13 @@ export default Object.freeze({
   'R-W05.noHintNote': '这个字暂时没有提示，可以直接看答案。',
   // R-W06（说明句「浅红色是提示……」已删，D51 ⑧：不再用文字解释颜色；方案②/N07 原型专用-不做）
   // R-W07（D51 ⑧：看答案没有确认框，确认正文与两键已删；C3-H / N3-06、D53：第一次用时格下的一行说明 firstExplain 也删了，P212 → P248）
-  'R-W07.answerNote': '这个字记为看过答案，后面再写只算练习。',
-  'R-W07.btnSelf': '自己写',
+  'R-W07.answerNote': '记为看过答案。',
   'R-W07.btnTrace': '描一遍',
   'R-W07.btnNext': '下一个',
   'R-W07.selfNote': '这个字看过答案了，再写只算练习。',
   'R-W07.btnShowAnswer': '看答案',
   // R-W08（已定（接入时实测，决定 L51））
-  'R-W08.answerNote': '这个字记为看过答案，后面再写只算练习。',
+  'R-W08.answerNote': '记为看过答案。',
   // R-W08.traceNote「浅色是参考字形。」已删（D51 ⑧ / W1 验收：描一遍是逐笔引导，不再用文字解释颜色，理由同提示图例句 P41）
   // R-W10（已定）
   'R-W10.lineRecordedCorrect': '「{char}」记为写对 · 修改 ›',
@@ -96,8 +95,8 @@ export default Object.freeze({
   'X-WRITE.firstTip': '凭记忆写；想不起来，点下面的「提示」。',
   // X-ANSWER（M1-4 描一遍阶段标题与按钮；原型 ShiziWriteScreen L551–L553）
   'X-ANSWER.titleTrace': '描一遍',
-  'X-ANSWER.btnTraceDone': '自己写',
-  'X-ANSWER.btnTraceDoneShort': '自己写', // AX3 起描一遍阶段主按钮的短文案（P259：SE 3 的 AX5 下「描好了，自己写」折成三行）
+  'X-ANSWER.btnTraceDone': '凭记忆写',
+  'X-ANSWER.btnTraceDoneShort': '凭记忆写', // AX3 起描一遍阶段主按钮的短文案（P259；D64 ② 起与常规档同为「凭记忆写」）
   'X-ANSWER.btnRetrace': '再描一遍',
   // X-PERSIST（M1-6 抬笔写会话现场失败的顶部一次性提示；01 §4 表「沿旧两句」，旧 index.html L1067）
   'X-PERSIST.saveFailed': '进度没存上。请先导出备份，再重开拾字。',

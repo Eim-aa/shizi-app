@@ -34,7 +34,7 @@ export default async function run(page, ctx) {
     for (const size of ['L', 'AX5']) {
       step(`${scheme} ${size}: 看答案页的隐藏答案字 = 标准写法名称（含结构 / 部件）`);
       for (const c of cases) {
-        await openWritePage(page, ctx, { chars: [c.char, '和'], current: { phase: 'answer', answerSeen: true }, size, scheme });
+        await openWritePage(page, ctx, { chars: [c.char, '和'], current: { phase: 'trace', answerSeen: true }, size, scheme });
         await page.waitForSelector(topSel('write-answer-char'));
         // 笔顺数据到了才有笔画数与结构：等名称带上「画」
         await page.waitForFunction(() => /画/.test(document.querySelector('.sz-layer[data-top="true"] [data-testid="write-answer-char"]').getAttribute('aria-label')), null, { timeout: 15000 });

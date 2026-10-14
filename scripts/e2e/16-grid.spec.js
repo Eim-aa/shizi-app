@@ -158,7 +158,7 @@ export default async function grid(page, ctx) {
   // ------------------------------------------------------------------ ② 各阶段同一边长
   for (const [view, large, size] of [[{ width: 375, height: 667 }, false, 265], [{ width: 393, height: 852 }, true, 353]]) {
     const tag = `${view.width}×${view.height}${large ? ' large' : ''}`;
-    ctx.step(`${tag}: recall → 提示 → 写一笔 → 看答案 → 描一遍 → 自己写 all use grid ${size}`);
+    ctx.step(`${tag}: recall → 提示 → 写一笔 → 看答案（直接描一遍）→ 凭记忆写 all use grid ${size}`);
     await boot(page, ctx, view, { large });
     let g = await geo(page);
     assert.ok(square(g.grid, size), `${tag}: recall grid ${size}`);
@@ -176,17 +176,11 @@ export default async function grid(page, ctx) {
     assert.ok(square(g.grid, size), `${tag}: grid unchanged after the first stroke`);
 
     await page.click(topSel('write-show-answer'));
-    await waitPhase(page, 'answer');
-    await page.waitForSelector(`${topSel('write-answer-card')}[data-state="ready"]`);
+    await waitPhase(page, 'trace');
+    await page.waitForSelector(`${topSel('write-trace-layer')}[data-state="ready"]`);
     await page.waitForTimeout(300);
     g = await geo(page);
-    assert.ok(square(g.grid, size), `${tag}: the answer page keeps the writing grid at ${size} (看答案 does not swap in another card, D51 ⑧)`);
-    assert.ok(!!g.card && Math.abs(g.card.width - (size - 2)) <= 1.5 && Math.abs(g.card.height - (size - 2)) <= 1.5,
-      `${tag}: the answer layer fills the grid inside its frame (${g.card && g.card.width})`);
-
-    await page.click(topSel('write-answer-trace'));
-    await waitPhase(page, 'trace');
-    g = await geo(page);
+    assert.ok(square(g.grid, size), `${tag}: 看答案 goes straight to 描一遍 and keeps the writing grid at ${size} (D51 ⑧ / D64 ②)`);
     assert.ok(square(g.grid, size), `${tag}: trace grid ${size}`);
     assert.deepEqual((await geo(page, ['write-trace-done', 'write-answer-next'])).off, [], `${tag} trace: buttons on the first screen`);
     assert.ok(!!g.trace && Math.abs(g.trace.width - size) <= 2.5 && Math.abs(g.trace.height - size) <= 2.5, `${tag}: trace layer fills the grid ${JSON.stringify(g.trace)}`);

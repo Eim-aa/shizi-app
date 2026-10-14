@@ -56,8 +56,8 @@ export default async function f1FootStages(page, ctx) {
     for (const size of SIZES) {
       const tag = `${view.width}×${view.height} ${size}`;
       const ax = size.startsWith('AX');
-      step(`${tag} answer / trace / retrace: 自己写 / 下一个 / 再描一遍 are direct buttons under the main button, clear of the grid`);
-      for (const [phase, ids] of [['answer', ['write-answer-trace', 'write-answer-self', 'write-answer-next']], ['trace', ['write-trace-done', 'write-answer-next']], ['retrace', ['write-answer-next', 'write-retrace-trace']]]) {
+      step(`${tag} trace / retrace: 凭记忆写 / 下一个 / 再描一遍 are direct buttons under the main button, clear of the grid`);
+      for (const [phase, ids] of [['trace', ['write-trace-done', 'write-answer-next']], ['retrace', ['write-answer-next', 'write-retrace-trace']]]) {
         await open(page, ctx, { view, size, current: { phase, answerSeen: true } });
         const a = await page.evaluate(geometry, ids);
         assert.ok(!a.more && !a.menu, `${tag} ${phase}: no menu`);

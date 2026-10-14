@@ -54,20 +54,20 @@ export default async function run(page, ctx) {
     const tag = `${view.width}×${view.height} ${size}`;
     await page.setViewportSize(view);
 
-    step(`${tag} 描一遍: the main button label (「自己写」 from AX3, P259; it used to be 「自己写」 in three lines) wraps only between words, stays inside its button; nothing on the page is keep-all`);
+    step(`${tag} 描一遍: the main button label (「凭记忆写」, D64 ②; it used to wrap to three lines) wraps only between words, stays inside its button; nothing on the page is keep-all`);
     await openWrite(page, ctx, { size, current: { phase: 'trace', answerSeen: true } });
     const b = await page.evaluate(buttonText, 'write-trace-done');
-    assert.deepEqual(b.words, ['自己', '写'], `${tag}: the short label is segmented into words`);
+    assert.ok(b.words.join('') === '凭记忆写' && b.words.length >= 2, `${tag}: the label is segmented into words (${JSON.stringify(b.words)})`);
     assert.equal(b.lines, 1, `${tag}: and fits on one line`);
     assert.deepEqual(b.split, [], `${tag}: no word is split across lines`);
     assert.ok(b.inside && !b.overflow, `${tag}: the text stays inside the button (${b.lines} line(s))`);
     assert.deepEqual(await page.evaluate(keepAll), [], `${tag}: no element on the write page computes word-break:keep-all`);
 
-    step(`${tag} 看答案 + text row: no keep-all in the foot; the text buttons fold by word and stay inside the page`);
-    await openWrite(page, ctx, { size, current: { phase: 'answer', answerSeen: true } });
-    assert.deepEqual(await page.evaluate(keepAll), [], `${tag}: no keep-all on the answer page`);
+    step(`${tag} 凭记忆写 + text row: no keep-all in the foot; the text buttons fold by word and stay inside the page`);
+    await openWrite(page, ctx, { size, current: { phase: 'retrace', answerSeen: true } });
+    assert.deepEqual(await page.evaluate(keepAll), [], `${tag}: no keep-all on the retrace page`);
     const items = await page.$$eval('.sz-layer[data-top="true"] .sz-page__foot .sz-write__links .sz-btn--text', els => els.map(e => ({ t: e.textContent, o: e.scrollWidth > e.clientWidth + 8, r: e.getBoundingClientRect().right })));
-    assert.ok(items.length >= 2 && items.every(i => !i.o && i.r <= view.width + 0.5), `${tag}: the text row buttons do not overflow (${JSON.stringify(items)})`);
+    assert.ok(items.length >= 1 && items.every(i => !i.o && i.r <= view.width + 0.5), `${tag}: the text row buttons do not overflow (${JSON.stringify(items)})`);
 
     step(`${tag} 单字详情（没写过的字）: the empty note wraps inside the page margins`);
     await page.goto('about:blank');

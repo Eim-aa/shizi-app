@@ -147,16 +147,10 @@ export default async function run(page, ctx) {
   assert.ok(frames.some(f => f.inks.some(i => i.kind === 'flip')), 'the reverse scaling uses the same FLIP canvas');
   assert.equal(await page.$$eval('.sz-flipink', e => e.length), 0, 'FLIP canvas removed');
 
-  step('看答案 (recall → answer): the ink stays put (same place) — still only one canvas, no snapshot copy of it');
+  step('看答案 (recall → trace, D64 ②: straight into 描一遍): the old ink fades with the snapshot, the new grid is empty — still one ink at a time');
   await open(page, ctx, { current: { strokes: STROKES } });
   frames = await sample(page, 'write-show-answer');
-  assertSingle(assert, frames, 'recall → answer');
-  assert.ok(frames.every(f => f.inks.every(i => i.kind === 'real')), 'the only ink is the real grid one all along (no overlay copy)');
-
-  step('描一遍 (answer → trace): the old ink fades with the snapshot, the new grid is empty — still one ink at a time');
-  await open(page, ctx, { current: { phase: 'answer', answerSeen: true, strokes: STROKES } });
-  frames = await sample(page, 'write-answer-trace');
-  assertSingle(assert, frames, 'answer → trace');
+  assertSingle(assert, frames, 'recall → trace');
 
   step('判断 → 下一个字 (compare → next card): the upper cell ink fades once, text regions go out then in');
   await open(page, ctx, { current: { phase: 'compare', strokes: STROKES }, cursor: 0 });
@@ -165,7 +159,7 @@ export default async function run(page, ctx) {
   frames = await sample(page, 'write-judge-correct');
   assertSingle(assert, frames, 'compare → next card');
 
-  step('自己写 → 下一个 (retrace → next card): one ink, texts out then in');
+  step('凭记忆写 → 下一个 (retrace → next card): one ink, texts out then in');
   await open(page, ctx, { current: { phase: 'retrace', answerSeen: true, strokes: STROKES } });
   frames = await sample(page, 'write-answer-next');
   assertSingle(assert, frames, 'retrace → next card');

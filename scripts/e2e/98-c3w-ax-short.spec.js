@@ -1,4 +1,4 @@
-// R3-C3W（P259，第三轮审查）：SE 3 的 AX5 下描一遍阶段主按钮「描好了，自己写」折成三行；AX3 起改用短文案「自己写」（一行），
+// R3-C3W（P259，第三轮审查）：SE 3 的 AX5 下描一遍阶段主按钮曾折成三行；AX3 起用短文案（D64 ② 起长短两版同为「凭记忆写」）（一行），
 // AX1–AX2 与常规字号仍是「描好了，自己写」。读屏名称随按钮文字。
 import { bootTestHost, seedSession, setTextSize, topSel, waitNavIdle } from './helpers.mjs';
 
@@ -41,11 +41,11 @@ function labelFacts(page) {
 export default async function run(page, ctx) {
   const { assert, step } = ctx;
   for (const [view, size, want, lines] of [
-    [{ width: 375, height: 667 }, 'AX5', '自己写', 1],
-    [{ width: 375, height: 667 }, 'AX3', '自己写', 1],
-    [{ width: 390, height: 844 }, 'AX5', '自己写', 1],
-    [{ width: 390, height: 844 }, 'AX2', '自己写', 0],
-    [{ width: 390, height: 844 }, 'L', '自己写', 0],
+    [{ width: 375, height: 667 }, 'AX5', '凭记忆写', 1],
+    [{ width: 375, height: 667 }, 'AX3', '凭记忆写', 1],
+    [{ width: 390, height: 844 }, 'AX5', '凭记忆写', 1],
+    [{ width: 390, height: 844 }, 'AX2', '凭记忆写', 0],
+    [{ width: 390, height: 844 }, 'L', '凭记忆写', 0],
   ]) {
     const tag = `${view.width}×${view.height} ${size}`;
     step(`${tag}: trace-phase main button reads 「${want}」`);

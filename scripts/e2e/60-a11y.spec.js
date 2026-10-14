@@ -532,10 +532,10 @@ export default async function a11y(page, realCtx) {
   await waitNavIdle(page);
   await audit(page, cdp, ctx, 'write/recall after a judgment (result line)');
 
-  ctx.step('write page: answer');
+  ctx.step('write page: trace (right after 看答案, D64 ②)');
   await tap(page, 'write-show-answer');
-  await waitPhase(page, 'answer');
-  await audit(page, cdp, ctx, 'write/answer');
+  await waitPhase(page, 'trace');
+  await audit(page, cdp, ctx, 'write/trace');
 
   // ================================================================ 结果页
   ctx.step('result page + 对照弹层');

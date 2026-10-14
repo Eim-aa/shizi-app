@@ -1,33 +1,29 @@
 // 看答案 / 描一遍 / 自己写（M1-4；决定-D18；01 §3.2 / §3.3 / §6.5；04 R-W07 / R-W08；走查-W19；原型 ShiziWriteScreen
 // L407–L409、L544–L553、L605；reference/I-proto-write.md「看答案」「描一遍」「自己写一遍」）。
 //
-// 流程（01 §3.3 状态机 recall → answer → trace ⇄ retrace → 下一字；D34 / D51 ⑧ 求助梯子静态部分，I2-02）：
+// 流程（01 §3.3 状态机 recall → trace ⇄ retrace → 下一字；D64 ② 起看答案直接进描一遍，不再有中间的 answer 页）：
 //   1. 回忆阶段书写格下方左侧「看答案」文字按钮（R-W07.btnShowAnswer）→ **直接**看答案，没有确认框（D51 ⑧）。
-//   2. 点「看答案」= 一次 store.commit：追加一条 kind='answer-seen' 记录（help.answerSeen=true，hints 照实）+ 会话现场
-//      phase='answer'、answerSeen=true、结果行收起（决定-D19）；**本人笔画保留、不清空、不换卡**（D34 / D51 ⑧）。写失败：弹出一个失败框
-//      「没保存上，你写的字还在。」[先不保存 / 再试一次]（R-G04 三段式，文案复用 R-W16），重试成功才进看答案页（D07）。
-//      同一会话同一字已有 answer-seen 记录时不再新增（事件不重复）。
-//   3. 看答案页（answer）：还是那个书写格——答案字形（--under 衬底色）画在参考字形层、**在本人墨下层**，本人墨 100% 不变；格子不再接受落笔；
-//      答案衬底 400ms 显影（policy.motion.answerRevealMs，P210；减少动态效果直接显示）；不播笔顺。笔顺数据取不到（10.13）→ ShiziKai 楷体整字
-//      DOM 文本（GlyphFallback）。按钮上方说明 R-W07.answerNote（10.13 用 R-W08.answerNote，字串相同）；按钮 [自己写 / 描一遍]；底部「下一个」文字按钮。
-//      （C3-H / N3-06、D53：第一次用看答案时格下的一行说明 R-W07.firstExplain 已删——这一次本来就直接显示，预告没有参照；「记为看过答案」只在按钮上方这一处说。
-//      settings.answerNoteSeen 标志位与 commitAnswerNoteSeen / answerNoteDue 保留，界面不再读它。）本人墨在 answer 阶段与回忆阶段共用同一份笔画现场
-//      （answerInkKey）。读屏：答案字放在底栏一个视觉隐藏的 role=img（书写格本身 aria-hidden 参考层），名称是「参考字形：字，拼音，n 画，结构」（ref-label.js，A2-09）。
-//   4. 描一遍（trace）：书写格参考字形层画描红（和提示同一种画法，canvas/glyph-wash.js；D53 ①：当前一笔 --danzhu 不透明实心，其余还没轮到的笔是同色相 0.75pt 双钩，
-//      已描过的笔被本人墨盖住、不再画；没有灰外廓、没有整层不透明度；当前一笔 = 本阶段已写笔数，撤销 / 清空后退回；
+//   2. 点「看答案」= 一次 store.commit：追加一条 kind='answer-seen' 记录（help.answerSeen=true，help.traced=true，hints 照实）+ 会话现场
+//      phase='trace'、answerSeen=true、本人笔画清空（描一遍是空格子）、结果行收起（决定-D19）。写失败：就地三段式
+//      「没保存上，你写的字还在。」[先不保存 / 再试一次]（R-G04，文案复用 R-W16），重试成功才进描一遍（D07）。
+//      同一会话同一字已有 answer-seen 记录时不再新增（事件不重复）。旧版本存下的 phase='answer' 现场按描一遍恢复（write/index.js）。
+//      提示给完整个字时（hint-layer.js，D64 ①）也走这个函数（stay:true：留在回忆页，记录 traced=false），与看答案同一口径。
+//   3. 描一遍（trace）：标准写法直接淡显在书写格参考字形层，立即可描（D64 ②）。画法和提示同一种（canvas/glyph-wash.js；D53 ①：当前一笔 --danzhu 不透明实心，
+//      其余还没轮到的笔是同色相 0.75pt 双钩，已描过的笔被本人墨盖住、不再画；没有灰外廓、没有整层不透明度；当前一笔 = 本阶段已写笔数，撤销 / 清空后退回；
 //      10.13 用浅色楷体整字、不分笔顺），进阶段先快放一遍笔顺（每字只在第一次播，I3-07；总时长 ≤ 1.6s，policy.motion.stepPlayMaxMs，P210；走查-W19；落笔 / 点一下即到终态；
-//      减少动态效果不播）；格下没有说明（R-W08.traceNote 已删：描一遍自明，不再用文字解释颜色）；主按钮「描好了，自己写」（没写时 disabled）；底部「下一个」。进入描一遍时把该 answer-seen 记录的
-//      help.traced 置 true（同一次 commit，帮助事实，D07）。
-//   5. 自己写一遍（retrace）：空书写格；格下 R-W07.selfNote；按钮 [再描一遍 / 下一个]；底部不显示跳过。
-//      Q1（QA simB D1；D31 / 实现交接 §4.2）：离开自己写一遍（「下一个」或「再描一遍」，同一次 commit）时，格子里有本人笔画就把它
+//      减少动态效果不播）。格下说明 R-W07.answerNote（10.13 用 R-W08.answerNote，字串相同；「记为看过答案」只在这一处说）。读屏：答案字放在底栏一个视觉隐藏的 role=img
+//      （书写格参考层 aria-hidden），名称是「参考字形：字，拼音，n 画，结构」（ref-label.js，A2-09）。主按钮「凭记忆写」（X-ANSWER.btnTraceDone）；底部「下一个」。
+//      settings.answerNoteSeen 标志位与 commitAnswerNoteSeen / answerNoteDue 保留，界面不再读它。
+//   4. 凭记忆写（retrace，原「自己写一遍」）：点「凭记忆写」清掉答案与笔迹，空书写格；格下 R-W07.selfNote；按钮 [再描一遍 / 下一个]；底部不显示跳过。
+//      Q1（QA simB D1；D31 / 实现交接 §4.2）：离开凭记忆写（「下一个」或「再描一遍」，同一次 commit）时，格子里有本人笔画就把它
 //      存成**这条 answer-seen 记录的墨迹**（storeSelfInkInDraft：store.setInk 按记录月份写 shizi.v2.ink.<月>，键 = 记录 id），
-//      作品里成为「看后写的」格。记录 kind 不变、不写判断、不动 sched（D18 不变）；一次看答案后多次自己写只留最后一次
+//      作品里成为「看后写的」格。记录 kind 不变、不写判断、不动 sched（D18 不变）；一次看答案后多次凭记忆写只留最后一次
 //      （同一记录键覆盖；最后一次没写就留上一次）；描一遍的笔画不存；看答案前在回忆阶段写的笔画不存（它们只是这一字的现场，推进时丢弃）。看过答案后恢复到的
 //      recall（格下同样是自己写的说明）同样算。
 //      留存：store/budget.js pruneInkOfCards（同一次 commit）——这个字只留最新一份看后自写，且要新于最近一次判断；组还开着时不回收。
-//   6. 「下一个」= 一次 commit：sessions.advance(kind='answer-seen', recordId) → 追加 item、cursor+1、现场重置、
+//   5. 「下一个」= 一次 commit：sessions.advance(kind='answer-seen', recordId) → 追加 item、cursor+1、现场重置、
 //      结果行 {kind:'saw'}（「「X」记为看过答案」由结果行（M1-5）显示）。不进判断页（compare）。
-//   阶段切换（answer ⇄ trace ⇄ retrace）与「下一个」都是 commit：成功才切换 / 推进（D07）；失败留在当前阶段，
+//   阶段切换（trace ⇄ retrace）与「下一个」都是 commit：成功才切换 / 推进（D07）；失败留在当前阶段，
 //   说明换成 R-W16.saveFailed、按钮换成 [先不保存 / 再试一次]（原型 saveFail + pend）。
 //
 // 规则：
@@ -36,12 +32,10 @@
 // - answer-seen 不是有效记录：不写 judged、不动 sched / FSRS（决定-D18 / D23）；墨迹只存「自己写一遍」的本人笔画（Q1，上面第 5 条）。
 //
 // data-testid：write-show-answer（回忆阶段「看答案」）、write-show-answer-cancel / write-show-answer-retry（点「看答案」写入失败时底栏就地的三段式：
-// 说明在格下 write-note，S1 / 审计 P1-24；不再有 write-answer-confirm 失败框）、write-answer-card（书写格参考字形层里的答案衬底，data-state=loading|ready|missing、data-anim=reveal|static）、
-// write-answer-char（底栏里视觉隐藏的答案字，读屏用）、
-// write-answer-foot（answer 流程底栏，data-stage、data-failed）、write-answer-note（按钮上方说明）、
-// write-answer-self（自己写）、write-answer-trace（描一遍）、write-trace-done（描好了，自己写）、
+// 说明在格下 write-note，S1 / 审计 P1-24）、write-answer-char（底栏里视觉隐藏的答案字，读屏用）、
+// write-answer-foot（answer 流程底栏，data-stage、data-failed）、write-trace-done（凭记忆写）、
 // write-retrace-trace（再描一遍）、write-answer-next（下一个）、write-answer-show（看过答案后回忆阶段的「看答案」，
-// 仅恢复路径）、write-answer-fail-cancel / write-answer-fail-retry（保存失败两键）、write-trace-layer（描红层，
+// 仅恢复路径 / 提示给完之后）、write-answer-fail-cancel / write-answer-fail-retry（保存失败两键）、write-trace-layer（描红层，
 // data-state、data-anim）、write-glyph-fallback（10.13 楷体整字，M1-2 组件）。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
@@ -57,8 +51,8 @@ import { buildStroke, decodeRawStrokes, encodeInk } from '../../../core/ink-math
 import { makeRecord, charOfCardKey } from '../../../core/records.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
-import { animate, drawGlyph, glyphColor, prefersReducedMotion } from '../../canvas/glyph.js';
-import { GlyphWash, paintCanvas, useThemeVersion } from '../../canvas/glyph-wash.js';
+import { animate } from '../../canvas/glyph.js';
+import { GlyphWash } from '../../canvas/glyph-wash.js';
 import { GlyphFallback } from './glyph-fallback.js';
 import { pyOf, refCardLabel } from './ref-label.js';
 import { LinkButton, Slot, WriteFoot } from './foot.js';
@@ -74,22 +68,16 @@ export function traceDoneLabel(ax = 0, policy = defaultPolicy) {
   return ax >= policy.axShortPrimaryFrom ? t('X-ANSWER.btnTraceDoneShort') : t('X-ANSWER.btnTraceDone');
 }
 
-/** 答案衬底显影时长（P210）。 */
-export const ANSWER_REVEAL_MS = defaultPolicy.motion.answerRevealMs;
 /** 描一遍前笔顺快放总时长上限（P210）。 */
 export const STEP_PLAY_MAX_MS = defaultPolicy.motion.stepPlayMaxMs;
 
 injectStyles('write-answer', `
-@keyframes szAnswerReveal{from{opacity:0}to{opacity:1}}
-.sz-answer__under{position:absolute;inset:0;pointer-events:none}
-.sz-answer__under canvas{position:absolute;left:0;top:0;display:block;animation:szAnswerReveal ${ANSWER_REVEAL_MS}ms ${T.eOut} both}
 .sz-answer__anim{position:absolute;left:0;top:0;pointer-events:none}
 .sz-answer__trace{position:absolute;inset:0;pointer-events:none}
 .sz-answer__trace canvas{position:absolute;left:0;top:0;display:block}
 .sz-answer__sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .sz-answer__note{margin:0;width:100%;text-align:center;font-size:${T.fs13};line-height:${T.lh13};
   color:${T.ink3}}
-@media (prefers-reduced-motion: reduce){.sz-answer__under canvas{animation:szAnswerReveal ${T.dReduce} ${T.eLinear} both}} /* 减少动态效果：150ms 淡化，不硬切（D58 ②） */
 `);
 
 // ---------------------------------------------------------------- 纯函数（状态 → 草稿）
@@ -197,30 +185,39 @@ export function storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordIn
 }
 
 /**
- * 点「看答案」：一次 commit 写 answer-seen 记录 + 会话现场（phase='answer'、answerSeen、结果行收起）。
- * **本人笔画不清空**（D34 / D51 ⑧：答案衬在本人墨下层）。同一会话同一字已有 answer-seen 记录时只更新会话（事件不重复）。
+ * 点「看答案」：一次 commit 写 answer-seen 记录 + 会话现场（直接进描一遍 phase='trace'、answerSeen、结果行收起；D64 ②：标准写法淡显在空格子里，马上能描）。
+ * 进描一遍 = 记录 help.traced=true（帮助事实）。同一会话同一字已有 answer-seen 记录时只更新会话（事件不重复）。
+ *
+ * stay：提示给完整个字时（D64 ①）走同一个函数、同一口径记为看过答案，但留在回忆阶段继续写（本人笔画不动、不进描一遍）；
+ *   此时 hints / hintRange 一并写进现场（同一次 commit），记录 help.traced 仍是 false。
  * @returns store.commit 的结果；当前字已不是 cardKey 时 {ok:false, error:{kind:'stale'}}
  */
-export function commitAnswerSeen(store, { slot, cardKey }) {
+export function commitAnswerSeen(store, { slot, cardKey, stay = false, hints: hintsNow, hintRange = null }) {
   const stale = staleGuard(store, slot, cardKey);
   if (stale) return stale;
   return store.commit('write:answer-seen', (draft, ctx) => {
     const s = sessionOf(draft, slot);
     if (!s || currentCardKey(s) !== cardKey) throw new Error('answer-seen: not the current card');
-    if (!findAnswerSeen(draft, s.id, cardKey)) {
-      const hints = s.current && Number.isInteger(s.current.hints) ? s.current.hints : 0;
+    const stored = s.current && Number.isInteger(s.current.hints) ? s.current.hints : 0;
+    const hints = Math.max(stored, Number.isInteger(hintsNow) ? hintsNow : 0);
+    const existing = findAnswerSeen(draft, s.id, cardKey);
+    if (!existing) {
       const record = makeRecord({
         id: ctx.nextId('r'),
         cardKey,
         sessionId: s.id,
         kind: 'answer-seen',
         at: ctx.now,
-        help: { hints, answerSeen: true, traced: false },
+        help: { hints, answerSeen: true, traced: !stay },
       });
       appendRecordToDraft(draft, record);
+    } else if (!stay && !existing.help.traced) {
+      replaceRecordInDraft(draft, { ...existing, help: { ...existing.help, traced: true } });
     }
-    const next = clearLine(withCurrent(s, { phase: 'answer', answerSeen: true, hintRange: null }, ctx.now));
-    setSession(draft, slot, next);
+    const patch = stay
+      ? { answerSeen: true, hints, hintRange: hintRange ? { from: hintRange.from, to: hintRange.to } : null }
+      : { phase: 'trace', strokes: [], answerSeen: true, hintRange: null };
+    setSession(draft, slot, clearLine(withCurrent(s, patch, ctx.now)));
   });
 }
 
@@ -315,32 +312,6 @@ function useStrokeData(char, onStatus) {
     if (statusRef.current) statusRef.current(load.status);
   }, [load.status]);
   return load;
-}
-
-// ---------------------------------------------------------------- 答案衬底（answer 阶段，书写格参考字形层）
-
-/**
- * 看答案：答案字形用 --under 衬底色画在书写格的参考字形层里——在本人墨下层，本人墨不变暗、不清空、不换卡（D34 / D51 ⑧）。
- * 400ms 显影（CSS 动画，减少动态效果直接显示）；不播笔顺。笔顺数据取不到（10.13）→ ShiziKai 楷体整字 DOM 文本。主题变化只重画。
- */
-export function AnswerUnderLayer({ char, cssSize = 345, onStatus }) {
-  const load = useStrokeData(char, onStatus);
-  const canvasRef = useRef(null);
-  const theme = useThemeVersion();
-  const reduced = prefersReducedMotion();
-
-  useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = paintCanvas(canvas, cssSize);
-    if (load.status === 'ready' && load.data) drawGlyph(ctx, load.data, { color: glyphColor('--under') });
-  }, [load.data, load.status, cssSize, theme]);
-
-  return html`<div class="sz-answer__under" data-testid="write-answer-card" data-state=${load.status}
-    data-anim=${reduced ? 'static' : 'reveal'} aria-hidden="true">
-    <canvas ref=${canvasRef}></canvas>
-    ${load.status === 'missing' ? html`<${GlyphFallback} char=${char} variant="under" size=${cssSize} />` : null}
-  </div>`;
 }
 
 // ---------------------------------------------------------------- 描红层（trace 阶段，书写格参考字形层）
@@ -465,7 +436,9 @@ export function TraceLayer({ char, cssSize = 345, onStatus, strokeCount = 0, pla
  *   link：回忆阶段「看答案」的文字按钮（回忆阶段文字行左组；动作是 show）；stage：恒为 null（看答案不换卡，答案衬底画在书写格参考字形层里，D51 ⑧）；
  *   glyphLayer：answer 阶段的答案衬底 / trace 阶段的描红，书写格参考字形层内容；note：书写格下说明（write-note）；footer：接管时的底栏。
  */
-export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, strokes = null, onShowAnswer, ax = 0, end = null, footCompact = false }) {
+export function useAnswerFlow({ slot, session, cardKey, phase: rawPhase, strokeCount = 0, strokes = null, onShowAnswer, ax = 0, end = null, footCompact = false, hintDone = null }) {
+  // 旧版本存下的 'answer' 阶段（D64 ②之前的看答案页）按描一遍处理：标准写法淡显在格子里、可直接描。
+  const phase = rawPhase === 'answer' ? 'trace' : rawPhase;
   const char = cardKey ? charOfCardKey(cardKey) : null;
   const answerSeen = !!(session && session.current && session.current.answerSeen);
   const inFlow = ANSWER_PHASES.includes(phase);
@@ -516,28 +489,21 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
 
   const missing = glyphStatus === 'missing';
   const stage = null; // 看答案不换卡（D51 ⑧）
-  const glyphLayer = phase === 'answer'
-    ? ({ cssSize }) => html`<${AnswerUnderLayer} key=${'answer|' + cardKey} char=${char} cssSize=${cssSize} onStatus=${setGlyphStatus} />`
-    : phase === 'trace'
-      ? ({ cssSize }) => html`<${TraceLayer} key=${'trace|' + cardKey} char=${char} cssSize=${cssSize} onStatus=${setGlyphStatus}
-          strokeCount=${strokeCount} playKey=${session ? `${session.id}|${cardKey}` : cardKey} />`
-      : null;
+  const glyphLayer = phase === 'trace'
+    ? ({ cssSize }) => html`<${TraceLayer} key=${'trace|' + cardKey} char=${char} cssSize=${cssSize} onStatus=${setGlyphStatus}
+        strokeCount=${strokeCount} playKey=${session ? `${session.id}|${cardKey}` : cardKey} />`
+    : null;
 
-  // 看答案页底栏里视觉隐藏的答案字（书写格参考层 aria-hidden）：读屏名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数（A2-09 / P232）
-  const answerLabel = phase === 'answer'
+  // 描一遍页底栏里视觉隐藏的答案字（书写格参考层 aria-hidden）：读屏名称与判断页参考卡同一句——字、拼音、笔画数、结构 / 部件数（A2-09 / P232）
+  const answerLabel = phase === 'trace'
     ? refCardLabel({ char, py: pyOf(cardKey), strokeData: { status: glyphStatus, data: glyphStatus === 'ready' ? peekStrokes(char) : null } })
     : '';
   const failed = !!failNow;
   const failText = t('R-W16.saveFailed');
-  let note = '';
-  if (phase !== 'answer') {
-    if (failed) note = failText;
-    else if (phase === 'trace') note = ''; // 描一遍格下没有说明（R-W08.traceNote 已删）
-    else note = t('R-W07.selfNote'); // retrace，或看过答案后的 recall
-  }
-  const noteAbove = phase === 'answer'
-    ? (failed ? failText : missing ? t('R-W08.answerNote') : t('R-W07.answerNote'))
-    : '';
+  let note;
+  if (failed) note = failText;
+  else if (phase === 'trace') note = missing ? t('R-W08.answerNote') : t('R-W07.answerNote'); // 「记为看过答案」只在这一处说（C3-R T3-05；D64 ②：看答案直接进描一遍，说明随之搬到这里）
+  else note = t('R-W07.selfNote'); // retrace，或看过答案后的 recall
 
   const next = () => run({ kind: 'next' });
   const toPhase = p => () => run({ kind: 'phase', phase: p });
@@ -552,12 +518,9 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
     primary = { testid: 'write-answer-fail-retry', label: t('R-W16.retry'), onClick: () => run(failNow) };
     left = link2('write-answer-fail-cancel', t('R-W16.cancel'), () => setFail(null));
     right = null;
-  } else if (phase === 'answer') {
-    primary = { testid: 'write-answer-trace', label: t('R-W07.btnTrace'), onClick: toPhase('trace') };
-    left = link2('write-answer-self', t('R-W07.btnSelf'), toPhase('retrace'));
-    right = nextLink;
   } else if (phase === 'trace') {
-    primary = { testid: 'write-trace-done', label: traceDoneLabel(ax), disabled: strokeCount === 0, onClick: toPhase('retrace') };
+    // D64 ②：「凭记忆写」清掉答案与笔迹、回到空格子再写一遍（原「自己写」的去处）；不要求先描，所以不再因没写而灰掉
+    primary = { testid: 'write-trace-done', label: traceDoneLabel(ax), onClick: toPhase('retrace') };
     right = nextLink;
   } else if (phase === 'retrace') {
     primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
@@ -565,10 +528,11 @@ export function useAnswerFlow({ slot, session, cardKey, phase, strokeCount = 0, 
   } else {
     // 看过答案后的回忆阶段（只在恢复路径出现；原型 L544）
     primary = { testid: 'write-answer-next', label: t('R-W07.btnNext'), onClick: next };
-    left = link2('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('answer'), Icons.answer());
+    left = link2('write-answer-show', t('R-W07.btnShowAnswer'), toPhase('trace'), Icons.answer());
+    // 提示整字给完而记的看过答案（D64 ①）：提示按钮仍在，不可点（读屏「提示已用完」）
+    right = hintDone ? html`<${Slot} testid="write-hint-slot" cls="sz-write__hint">${hintDone}</${Slot}>` : null;
   }
-  const lead = phase === 'answer' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
-  const axNote = phase === 'answer' ? noteAbove : note; // 「记为看过答案」只在这一处说（C3-R T3-05：第一次的预告句已删）
+  const lead = phase === 'trace' ? html`<span class="sz-answer__sr" role="img" aria-label=${answerLabel} data-testid="write-answer-char"></span>` : null;
   const footer = html`<${WriteFoot} primary=${primary} left=${left} right=${right} testid="write-answer-foot" stage=${phase} failed=${failed} lead=${lead} compact=${footCompact} />`;
-  return { active: true, failed, link, show: showAnswer, stage, glyphLayer, note: axNote, footer };
+  return { active: true, failed, link, show: showAnswer, stage, glyphLayer, note, footer };
 }

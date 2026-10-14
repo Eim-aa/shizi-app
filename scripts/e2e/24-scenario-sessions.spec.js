@@ -98,7 +98,7 @@ async function checkA(page, assert, seeded, label) {
   w.hint = ((await footItems(page)).find(i => i.testid === 'write-hint') || {}).aria || null; // D49：次数在读屏名称里；D55：提示是主按钮下文字行里的按钮
   assert.deepEqual([w.slot, w.cursor, w.phase, w.progress], ['A', 0, 'recall', '1 / 3'], `${label}: A on its original character 永 (1 / 3), recall`);
   assert.equal(w.strokes, 2, `${label}: the 2 strokes are back in the grid`);
-  assert.equal(w.hint, '提示，还有 1 次', `${label}: one hint used, one left`);
+  assert.equal(w.hint, '提示，还有 4 次', `${label}: one hint used, four left (永 has 5 strokes, D64 ①)`);
   await page.waitForTimeout(800);
   const again = await writeView(page);
   assert.deepEqual([again.cursor, again.strokes], [0, 2], `${label}: no auto-advance to the next character`);

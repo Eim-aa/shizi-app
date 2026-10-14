@@ -15,7 +15,7 @@
 //   SKIP_BUILD=1       用已有的 .app
 //   DEVICES            逗号分隔的 名字=UDID（缺省 iPhone17 / SE3 / ProMax 三台评审模拟器）
 //   SIZES              逗号分隔，normal（L）/ xxxl / ax3 / ax5（缺省四档，K2；也接受 xs）
-//   STATES             逗号分隔，write / answer / trace / judge / detail（缺省全部）
+//   STATES             逗号分隔，write / trace / judge / detail（缺省全部）
 //   OUT_DIR            截图与每次结果 JSON 的目录（缺省 ios/ShiziApp/build/webkit-ax/out）
 //   RESULT_TIMEOUT     每个状态等结果的秒数（缺省 60）
 
@@ -38,7 +38,7 @@ const DEFAULT_DEVICES = 'iPhone17=F1193537-1696-4C87-8094-E6F24E4F220D,SE3=66BBB
 const DEVICES = (process.env.DEVICES || DEFAULT_DEVICES).split(',').map(s => s.split('=')).map(([name, udid]) => ({ name, udid }));
 const CONTENT_SIZE = { xs: 'extra-small', normal: 'large', xxxl: 'extra-extra-extra-large', ax3: 'accessibility-extra-large', ax5: 'accessibility-extra-extra-extra-large' };
 const SIZES = (process.env.SIZES || 'normal,xxxl,ax3,ax5').split(',');
-const STATES = (process.env.STATES || 'write,answer,trace,judge,detail').split(',');
+const STATES = (process.env.STATES || 'write,trace,judge,detail').split(',');
 
 const sh = (cmd, args, opts = {}) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts }).trim();
 const simctl = (...args) => sh('xcrun', ['simctl', ...args]);

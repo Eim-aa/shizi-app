@@ -107,6 +107,8 @@
     "X-ABOUT.privacy4": "r7-C1 / D61：按钮改名「导出备份」后，「先导出」「请先导出」指的是这个按钮的动作"
   },
   "nonRuntimeDecisions": {
+    "P17": "每字提示上限（已决定 D64 ①）：取消次数上限，每点一次在已给出的笔之后再多给一段，一直到整字都给出（src/core/hints.js），整字给完记为看过答案；policy.hintMax 已删；不是运行时开关",
+    "P01": "提示从哪一笔接着给（已决定 D64 ①）：不再按已写笔数，改为接在「已经给出过的提示笔」之后（被本人笔收掉的仍算已给出）；policy.hintStartRule 已删；不是运行时开关",
     "P295": "跳过的撤销窗口跟人走（R5-I2，交互规范 S4）：交接与宿主组件 src/ui/screens/write/skip.js handoffLeaveUndo / LeaveUndoHost、root.js 挂载；不是运行时开关",
     "P296": "判断阶段左缘右滑的跟手画面（R5-I2，规范 N3-3）：src/ui/root.js PHASE_BACK 与 back-action.js 的种类 phase；不是运行时开关",
     "P297": "结果页出口、再写一组的一段转场、Tab 滚动位置（R5-I2）：src/ui/screens/result/index.js leaveTo、paper-transition.js、root.js REPLACE_FADE_MS / TabRoot；不是运行时开关",
@@ -634,8 +636,8 @@
         },
         "titleSelf": {
           "raw": "自己写一遍",
-          "text": "自己写",
-          "note": "r7-C1 / D61 文案重写"
+          "text": "凭记忆写",
+          "note": "r7-C1 / D61 文案重写；r7-W2 / D64 ② 随按钮「凭记忆写」改名（同一个概念一个词）"
         }
       }
     },
@@ -651,7 +653,8 @@
         },
         "stepSelf": {
           "raw": "第 2 步，共 2 步：自己写",
-          "text": "第 2 步，共 2 步：自己写"
+          "text": "第 2 步，共 2 步：凭记忆写",
+          "note": "r7-W2 / D64 ② 随按钮「凭记忆写」改名"
         }
       }
     },
@@ -714,11 +717,8 @@
       "slots": {
         "answerNote": {
           "raw": "这个字记为看过答案，后面再写只算练习。",
-          "text": "这个字记为看过答案，后面再写只算练习。"
-        },
-        "btnSelf": {
-          "raw": "自己写",
-          "text": "自己写"
+          "text": "记为看过答案。",
+          "note": "r7-W2 / D64 ②：随看答案直接进描一遍，说明搬到描一遍页格下；大字号下两行放不下（iPhone SE 3 的 XXXL 被底栏截断），压成一句，「再写只算练习」由凭记忆写页的 R-W07.selfNote 承担"
         },
         "btnTrace": {
           "raw": "描一遍",
@@ -747,6 +747,10 @@
         {
           "raw": "接着想 / 看答案",
           "why": "D51 ⑧：删除看答案确认框（点「看答案」直接看）"
+        },
+        {
+          "raw": "自己写",
+          "why": "D64 ②：看答案直接进描一遍，不再有先看答案再选「描一遍 / 自己写」的一步；原「自己写」入口并入描一遍页主按钮 X-ANSWER.btnTraceDone「凭记忆写」"
         }
       ]
     },
@@ -758,7 +762,8 @@
       "slots": {
         "answerNote": {
           "raw": "这个字记为看过答案，后面再写只算练习。",
-          "text": "这个字记为看过答案，后面再写只算练习。"
+          "text": "记为看过答案。",
+          "note": "r7-W2 / D64 ②：随看答案直接进描一遍，说明搬到描一遍页格下；大字号下两行放不下（iPhone SE 3 的 XXXL 被底栏截断），压成一句，「再写只算练习」由凭记忆写页的 R-W07.selfNote 承担"
         }
       },
       "dropped": [
@@ -3097,16 +3102,16 @@
         },
         "btnTraceDone": {
           "raw": null,
-          "text": "自己写",
+          "text": "凭记忆写",
           "origin": "extra",
-          "note": "描一遍阶段主按钮（没写时 disabled）；原型 L551；reference/I-proto-write.md 文案表「主按钮 trace」；r7-C1 / D61 文案重写",
+          "note": "描一遍阶段主按钮（点了清掉答案与笔迹，回到空格子凭记忆再写一遍；不再因没写而灰掉）；原型 L551；r7-C1 / D61 文案重写；r7-W2：已决定 D64 ② 由「自己写」改为「凭记忆写」",
           "decision": "P66"
         },
         "btnTraceDoneShort": {
           "raw": null,
-          "text": "自己写",
+          "text": "凭记忆写",
           "origin": "extra",
-          "note": "AX3 及以上描一遍阶段主按钮的短文案（SE 3 的 AX5 下「描好了，自己写」折成三行，第三轮审查）；AX1–AX2 与常规字号仍用 btnTraceDone",
+          "note": "AX3 及以上描一遍阶段主按钮的短文案（第三轮审查）；D64 ② 起与 btnTraceDone 同为「凭记忆写」",
           "decision": "P259"
         },
         "btnRetrace": {

@@ -253,7 +253,8 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const session = state && state.sessions ? state.sessions[slot] || null : null;
   const cardKey = currentCardKey(session);
   const rawPhase = session && session.current ? session.current.phase : 'recall';
-  const storedPhase = PHASES.includes(rawPhase) ? rawPhase : 'recall';
+  // D64 ②：看答案直接进描一遍；旧版本存下的 'answer' 阶段（先看后点「描一遍」）按描一遍恢复。
+  const storedPhase = rawPhase === 'answer' ? 'trace' : PHASES.includes(rawPhase) ? rawPhase : 'recall';
   // M2-2：被压在下面期间本页不写回现场；重新成为顶层时，若这期间存下的现场被别处改过（上面那页写过同一槽），
   // 按存下的现场重取本地笔画，不把旧笔画写回去；没被改过就保留本地笔画（下一次写回照常）。
   const topGenRef = useRef({ was: isTop, gen: 0, current: null });
@@ -346,6 +347,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   const answer = useAnswerFlow({
     slot, session, cardKey, phase, strokeCount: view.strokes.length, strokes: view.strokes,
     onShowAnswer: endSkipUndo, ax, footCompact,
+    hintDone: hint.buttonModel.kind === 'exhausted' ? hint.button : null, // 提示整字给完而记的看过答案：底栏仍留着不可点的「提示」（D64 ①）
   });
   // M2-3「结束这组」（picked 会话；打开确认框即结束跳过的撤销机会）。除判断页外各阶段都显示（H4）；A7（D57）起在页头右上、跳过左边。保存失败（跳过 / 看答案流程）时不显示。
   const end = useEndGroup({ slot, session, phase, blocked: skip.failed || answer.failed, onOpen: endSkipUndo });

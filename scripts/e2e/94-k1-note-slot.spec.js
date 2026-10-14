@@ -79,7 +79,7 @@ export default async function run(page, ctx) {
   for (const size of ['AX3', 'AX5']) {
     const tag = `375×667 ${size}`;
     step(`${tag}: the answer note is whole above the foot`);
-    await open(page, ctx, { size, current: { phase: 'answer', answerSeen: true } });
+    await open(page, ctx, { size, current: { phase: 'trace', answerSeen: true } });
     await noteVisible(page, ctx, tag, '');
 
     step(`${tag}: after judging 「写错了」, the result row with 修改 is visible on the next card`);

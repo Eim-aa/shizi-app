@@ -39,7 +39,7 @@ export default async function run(page, ctx) {
   const { assert, step } = ctx;
   for (const [view, size] of COMBOS) {
     const tag = `${view.width}×${view.height} ${size}`;
-    step(`${tag}: walking through the phases in one page (hint → ink → answer → trace → retrace → next card → judge → back) the grid never moves`);
+    step(`${tag}: walking through the phases in one page (hint → ink → trace (看答案) → retrace → next card → judge → back) the grid never moves`);
     await open(page, ctx, { view, size });
     const seen = [await gridTop(page)];
     await tap(page, 'write-hint');
@@ -49,9 +49,6 @@ export default async function run(page, ctx) {
     await page.waitForTimeout(300);
     seen.push(await gridTop(page));
     await tap(page, 'write-show-answer');
-    await waitPhase(page, 'answer');
-    seen.push(await gridTop(page));
-    await page.click(topSel('write-answer-trace'));
     await waitPhase(page, 'trace');
     seen.push(await gridTop(page));
     await drawStroke(page, HORIZONTAL);
@@ -59,7 +56,7 @@ export default async function run(page, ctx) {
     await page.click(topSel('write-trace-done'));
     await waitPhase(page, 'retrace');
     seen.push(await gridTop(page));
-    assert.ok(seen.every(y => Math.abs(y - seen[0]) <= 1), `${tag}: one card, six moments: ${seen.map(y => y.toFixed(1)).join(' / ')}`);
+    assert.ok(seen.every(y => Math.abs(y - seen[0]) <= 1), `${tag}: one card, five moments: ${seen.map(y => y.toFixed(1)).join(' / ')}`);
     await tap(page, 'write-answer-next');
     await page.waitForFunction(() => document.querySelector('.sz-layer[data-top="true"] .sz-write').dataset.cursor === '2');
     await waitNavIdle(page);

@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadFSRSGlobal } from '../core/helpers.mjs';
 import {
-  commitAnswerSeen, commitAnswerPhase, commitAnswerNext, commitAnswerNoteSeen, answerNoteDue, answerInkKey, ANSWER_REVEAL_MS,
+  commitAnswerSeen, commitAnswerPhase, commitAnswerNext, commitAnswerNoteSeen, answerNoteDue, answerInkKey,
 } from '../../src/ui/screens/write/answer.js';
 import { storedStrokes, syncPatch } from '../../src/ui/screens/write/persist.js';
 import { createSession, withCurrent } from '../../src/core/sessions.js';
@@ -55,35 +55,54 @@ const withRecallInk = (state, strokes) => {
   return { ...state, sessions: { ...state.sessions, A } };
 };
 
-test('看答案：点一下直接进 answer 阶段，本人墨（回忆阶段写的笔画）原样保留，不清空、不换卡（D34 / D51 ⑧）', () => {
+test('看答案（D64 ②）：点一下直接进描一遍——一次 commit、不换卡、格子是空的，记录 traced=true', () => {
   const store = fakeStore(withRecallInk(baseState(), [H, V]));
-  const before = store.getState().sessions.A.current.strokes;
-  assert.equal(before.length, 2);
+  assert.equal(store.getState().sessions.A.current.strokes.length, 2);
   const r = commitAnswerSeen(store, { slot: 'A', cardKey: 'base:永' });
   assert.ok(r.ok);
   const cur = store.getState().sessions.A.current;
-  assert.equal(cur.phase, 'answer');
+  assert.equal(cur.phase, 'trace', 'no middle 「answer」 step any more');
   assert.equal(cur.answerSeen, true);
-  assert.deepEqual(cur.strokes, before, 'session.current.strokes untouched');
+  assert.deepEqual(cur.strokes, [], 'the trace grid starts empty');
   assert.equal(store.getState().sessions.A.cursor, 0, 'same card, cursor not advanced');
-  assert.deepEqual(store.labels, ['write:answer-seen'], 'exactly one commit, no confirm step');
+  assert.deepEqual(store.labels, ['write:answer-seen'], 'exactly one commit, no confirm step, no separate 「描一遍」 commit');
+  const seen = Object.values(store.getState().records).flat().filter(x => x.kind === 'answer-seen');
+  assert.equal(seen.length, 1);
+  assert.deepEqual(seen[0].help, { hints: 0, answerSeen: true, traced: true });
 });
 
-test('看答案与回忆共用一份本人墨笔画现场；描一遍 / 自己写各自一份空格子', () => {
+test('提示给完整个字（D64 ①）：同一个 commitAnswerSeen（stay），留在回忆页、笔画不动、hints / hintRange 一并写入，记录与看答案同口径', () => {
+  const store = fakeStore(withRecallInk(baseState(), [H, V]));
+  const before = store.getState().sessions.A.current.strokes;
+  const r = commitAnswerSeen(store, { slot: 'A', cardKey: 'base:永', stay: true, hints: 4, hintRange: { from: 0, to: 5 } });
+  assert.ok(r.ok);
+  const cur = store.getState().sessions.A.current;
+  assert.deepEqual([cur.phase, cur.answerSeen, cur.hints, cur.hintRange], ['recall', true, 4, { from: 0, to: 5 }]);
+  assert.deepEqual(cur.strokes, before, 'own strokes untouched');
+  const seen = Object.values(store.getState().records).flat().filter(x => x.kind === 'answer-seen');
+  assert.equal(seen.length, 1, 'one answer-seen record, like the 看答案 button');
+  assert.deepEqual(seen[0].help, { hints: 4, answerSeen: true, traced: false });
+  assert.deepEqual(store.labels, ['write:answer-seen']);
+  // 之后再点「看答案」：不新增记录，进描一遍并把 traced 置 true
+  assert.ok(commitAnswerSeen(store, { slot: 'A', cardKey: 'base:永' }).ok);
+  const seen2 = Object.values(store.getState().records).flat().filter(x => x.kind === 'answer-seen');
+  assert.equal(seen2.length, 1, 'no duplicate event');
+  assert.equal(seen2[0].help.traced, true);
+  assert.equal(store.getState().sessions.A.current.phase, 'trace');
+});
+
+test('笔画现场的分组键：回忆 / 判断共用一份；描一遍 / 凭记忆写各自一份空格子（旧存档的 answer 阶段仍与回忆共用）', () => {
   assert.equal(answerInkKey('base:永', 'recall'), 'base:永');
-  assert.equal(answerInkKey('base:永', 'answer'), 'base:永', 'answer shares the recall ink (the answer glyph is drawn under it)');
+  assert.equal(answerInkKey('base:永', 'answer'), 'base:永', 'legacy answer phase shares the recall ink');
   assert.equal(answerInkKey('base:永', 'compare'), 'base:永');
   assert.equal(answerInkKey('base:永', 'trace'), 'base:永|trace');
   assert.equal(answerInkKey('base:永', 'retrace'), 'base:永|retrace');
-  // 刷新后在 answer 阶段：本地笔画现场从存下的 strokes 取回（仍是回忆时写的那份）
+  // 看答案后直接是描一遍：空格子；刷新后也是空的
   const store = fakeStore(withRecallInk(baseState(), [H, V]));
   commitAnswerSeen(store, { slot: 'A', cardKey: 'base:永' });
   const s = store.getState().sessions.A;
-  const restored = storedStrokes(s, 'base:永', answerInkKey('base:永', s.current.phase));
-  assert.equal(restored.length, 2, 'both recall strokes come back in the answer phase');
-  assert.deepEqual(restored.map(st => Math.round(st[0].x)), [60, 172]);
-  // persist 的对齐：answer 阶段本地笔画与存下的一致时没有要补写的差别
-  assert.equal(syncPatch(s, { cardKey: 'base:永', inkKey: 'base:永', strokes: decodeRawStrokes(s.current.strokes), phase: 'answer' }), null);
+  assert.equal(storedStrokes(s, 'base:永', answerInkKey('base:永', s.current.phase)).length, 0, 'trace grid restored empty');
+  assert.equal(syncPatch(s, { cardKey: 'base:永', inkKey: 'base:永|trace', strokes: decodeRawStrokes(s.current.strokes), phase: 'trace' }), null);
 });
 
 test('看答案之后：进描一遍清空笔画、看答案前回忆阶段写的笔画不会被存成「看后写的」墨迹（Q1 存墨规则不变）', () => {
@@ -125,6 +144,4 @@ test('schema：settings.answerNoteSeen 是可缺省的布尔，类型不对被�
 test('看答案层的源码约束：没有确认框', () => {
   const src = fs.readFileSync(path.join(ROOT, 'src/ui/screens/write/answer.js'), 'utf8');
   assert.ok(!/openAnswerConfirm|R-W07\.confirm/.test(src), 'the 「看了答案…」 confirm dialog is gone');
-  assert.equal(ANSWER_REVEAL_MS, policy.motion.answerRevealMs);
-  assert.equal(ANSWER_REVEAL_MS, 400);
 });

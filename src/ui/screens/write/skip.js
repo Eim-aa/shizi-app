@@ -28,6 +28,7 @@ import { useAnnounce } from '../../components/FailBlock.js';
 import { playExit } from '../../components/exit.js';
 import '../../components/UndoBar.js'; // .sz-undobar 样式（撤销底栏同一视觉，R-G05）
 import { t } from '../../../config/copy/index.js';
+import { HINTS_SHAPE_MAX } from '../../../core/schema.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { assistiveTechActive, onAccessibilityStatus } from '../../../platform/accessibility.js';
 import { getStore } from '../../../store/store.js';
@@ -73,7 +74,7 @@ export function skipInDraft(draft, { slot, cardKey, hints = 0, at, nextId, polic
     sessionId: s.id,
     kind: 'skipped',
     at,
-    help: { hints: Math.max(0, Math.min(2, Math.max(stored, Math.trunc(Number(hints) || 0)))), answerSeen: false, traced: false },
+    help: { hints: Math.max(0, Math.min(HINTS_SHAPE_MAX, Math.max(stored, Math.trunc(Number(hints) || 0)))), answerSeen: false, traced: false },
   });
   appendRecordToDraft(draft, record);
   setSession(draft, slot, advance(s, { cardKey, recordId: record.id, kind: 'skipped', at }));

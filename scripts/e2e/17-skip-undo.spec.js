@@ -91,7 +91,7 @@ export default async function skipUndo(page, ctx) {
   await waitCursor(page, 1);
   assert.equal(await present(page, 'write-skip-undo'), true, 'undo bar shown');
   await tap(page, 'write-show-answer');
-  await page.waitForSelector(topSel('write-answer-trace'));
+  await page.waitForSelector(topSel('write-trace-done'));
   assert.equal(await page.locator(tid('write-answer-confirm')).count(), 0, 'no confirm dialog');
   assert.equal(await present(page, 'write-skip-undo'), false, 'bar gone after 看答案');
   await waitNavIdle(page);

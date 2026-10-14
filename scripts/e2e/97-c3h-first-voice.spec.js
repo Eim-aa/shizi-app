@@ -92,7 +92,7 @@ export default async function run(page, ctx) {
     await seedSession(page, { slot: 'A', kind: 'first', chars: ['尴', '赢', '拾'], cursor: 0 });
     await openWrite(page, { slot: 'A' });
     await tap(page, 'write-show-answer');
-    await page.waitForSelector(topSel('write-answer-trace'));
+    await page.waitForSelector(topSel('write-trace-done'));
     await waitNavIdle(page);
     const t = await page.evaluate(() => {
       const top = document.querySelector('.sz-layer[data-top="true"]');
@@ -100,7 +100,7 @@ export default async function run(page, ctx) {
     });
     assert.ok(!/以后点/.test(t.text), 'no 「以后点「看答案」会直接显示」');
     assert.equal((t.text.match(/记为看过答案/g) || []).length, 1, '「记为看过答案」 is said once on the screen');
-    assert.equal(t.note, '这个字记为看过答案，后面再写只算练习。', 'in the single line under the grid (the footer is one row, D53 ②)');
+    assert.equal(t.note, '记为看过答案。', 'in the single line under the grid (the footer is one row, D53 ②)');
   }
   await page.emulateMedia({ colorScheme: 'light' });
 }

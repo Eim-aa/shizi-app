@@ -82,7 +82,7 @@ test('record shape rules (judged needs judgment; char matches cardKey; month own
   assert.match(validateRecord(noJudgment), /judgment/);
   assert.match(validateRecord(plain(record(1, '人', { kind: 'skipped', extra: { judgment: 'wrong' } }))), /judgment/);
   assert.match(validateRecord(Object.assign(plain(record(1, '人')), { char: '口' })), /char/);
-  assert.match(validateRecord(Object.assign(plain(record(1, '人')), { help: { hints: 3, answerSeen: false, traced: false } })), /hints/);
+  assert.match(validateRecord(Object.assign(plain(record(1, '人')), { help: { hints: 65, answerSeen: false, traced: false } })), /hints/);
   assert.match(validateRecord(Object.assign(plain(record(1, '人')), { extraField: 1 })), /unknown field/);
   const noSession = plain(record(1, '人'));
   delete noSession.sessionId;

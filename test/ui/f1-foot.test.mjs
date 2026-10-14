@@ -66,13 +66,14 @@ test('D56：03 里 P226 / P260 / P261 的取值写「已决定 D56：在纸上�
   assert.match(read('docs/handoff/decisions.md'), /\| D56 \|/);
 });
 
-test('看答案 / 描一遍 / 自己写 / 保存失败：次要操作是文字行里的文字按钮，不进菜单', () => {
+test('看答案 / 凭记忆写 / 再描一遍 / 保存失败：次要操作是文字行里的文字按钮，不进菜单', () => {
   const ans = read('src/ui/screens/write/answer.js');
   assert.match(ans, /import \{ LinkButton, Slot, WriteFoot \} from '\.\/foot\.js';/);
-  for (const id of ['write-answer-self', 'write-answer-next', 'write-retrace-trace', 'write-answer-show', 'write-answer-fail-cancel']) {
+  for (const id of ['write-answer-next', 'write-retrace-trace', 'write-answer-show', 'write-answer-fail-cancel']) {
     assert.ok(ans.includes(`link2('${id}'`), `${id} is a visible text button`);
   }
-  assert.ok(ans.includes('<${WriteFoot} primary=${primary} left=${left} right=${right}'), 'answer / trace / retrace share the same foot');
+  assert.ok(ans.includes('<${WriteFoot} primary=${primary} left=${left} right=${right}'), 'trace / retrace share the same foot');
+  assert.doesNotMatch(ans, /write-answer-self|write-answer-trace|R-W07\.btnSelf|R-W07\.btnTrace/, 'D64 ②: no 描一遍 / 自己写 buttons any more (看答案 goes straight into 描一遍)');
   assert.doesNotMatch(ans.replace(/\/\/[^\n]*/g, ''), /AxFoot|items\b|write-more/);
 });
 

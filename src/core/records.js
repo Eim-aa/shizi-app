@@ -18,6 +18,7 @@
 // - 「今天记录了 N 个字」= 今天 judged 按字去重；墨迹行取最近 8 条（按 id，同字留最近一次，决定-D12）。
 
 import * as defaultPolicy from '../config/policy.js';
+import { HINTS_SHAPE_MAX } from './schema.js';
 import { localDay, isValidDay, monthOf, diffDays } from './dates.js';
 
 export const RECORD_KINDS = Object.freeze(['judged', 'answer-seen', 'skipped']);
@@ -109,7 +110,7 @@ function normalizeHelp(help) {
   const h = help || {};
   const hints = Number(h.hints) || 0;
   return {
-    hints: Math.max(0, Math.min(2, Math.trunc(hints))),
+    hints: Math.max(0, Math.min(HINTS_SHAPE_MAX, Math.trunc(hints))),
     answerSeen: h.answerSeen === true,
     traced: h.traced === true,
   };
@@ -135,7 +136,7 @@ export function validateRecord(r) {
   const help = r.help;
   if (!help || typeof help !== 'object') errors.push('help must be an object');
   else {
-    if (![0, 1, 2].includes(help.hints)) errors.push('help.hints must be 0, 1 or 2');
+    if (!Number.isInteger(help.hints) || help.hints < 0 || help.hints > HINTS_SHAPE_MAX) errors.push('help.hints must be an integer 0..' + HINTS_SHAPE_MAX);
     if (typeof help.answerSeen !== 'boolean') errors.push('help.answerSeen must be boolean');
     if (typeof help.traced !== 'boolean') errors.push('help.traced must be boolean');
   }

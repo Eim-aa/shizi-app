@@ -247,22 +247,20 @@ export default async function coldStart(page, ctx) {
   assert.equal((await facts(a.p)).judged, 0, 'nothing judged by restoring');
 
   // ---------------------------------------------------------------- 3. answer
-  step('after seeing the answer: kill → relaunch shows the answer card; still one answer-seen record');
+  step('after seeing the answer (straight into trace, D64 ②): kill → relaunch shows the trace page; still one answer-seen record');
   await a.p.click(topSel('write-continue'));
   await waitPhase(a.p, 'recall');
   await tap(a.p, 'write-show-answer');
-  await waitPhase(a.p, 'answer');
+  await waitPhase(a.p, 'trace');
   const S3 = await kill(a, ctx);
   a = await launch(ctx, browser, S3);
-  await waitPhase(a.p, 'answer');
-  assert.ok(await present(a.p, 'write-answer-card'), 'answer card shown');
-  assert.equal(await waitAttr(a.p, 'write-answer-card', 'data-state', ['ready', 'missing']), 'ready', 'answer glyph ready');
+  await waitPhase(a.p, 'trace');
+  assert.ok(await present(a.p, 'write-trace-layer'), 'trace layer shown');
+  assert.equal(await waitAttr(a.p, 'write-trace-layer', 'data-state', ['ready', 'missing']), 'ready', 'answer glyph ready');
   assert.equal((await facts(a.p)).answerSeen, 1, 'one answer-seen record');
 
   // ---------------------------------------------------------------- 4. trace
   step('trace: one stroke → kill → relaunch keeps trace, the stroke and the outline; back returns home');
-  await a.p.click(topSel('write-answer-trace'));
-  await waitPhase(a.p, 'trace');
   await write(a.p, HORIZONTAL, 1);
   const S4 = await kill(a, ctx);
   a = await launch(ctx, browser, S4);

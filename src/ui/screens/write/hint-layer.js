@@ -1,7 +1,7 @@
 // 提示（M1-3；决定-D25 方案①；01-架构设计 §6.4；04 R-W05 / R-W06；原型 ShiziWriteScreen L395–L405、L505–L510、L545、L563、L616）。
 //
-// 量：一律交给 core/hints.js（每字最多 policy.hintMax 次；有部件分组数据的字每次 max(1, round(N/4)) 笔、从
-//   min(已写笔数, N−q) 起（P01 按已写笔数）；没有分组数据的字前 1 / 前 2 笔；没有笔顺数据的字没有分步提示）。
+// 量：一律交给 core/hints.js（D64 ①：每点一次在已给出的笔之后再多给一段，可一直点到整字都给出；有部件分组数据的字每段 max(1, round(N/4)) 笔，
+//   没有分组数据的字每次多 1 笔；没有笔顺数据的字没有分步提示）。整字都给出后按钮不可点，这个字按「看过答案」记录（answer.js commitAnswerSeen，留在回忆页继续写）。
 //   「有没有分组数据」= deck-data.js 的 GROUPS[字] 存在且各组笔数之和等于笔顺数据的总笔数（与旧 index.html L2508 同一判据；
 //   policy.hintUseGroups=false（P29）只表示不按分组内容切笔，分组数据本身只用来判断走 1/4 规则还是前 1 / 前 2 笔）。
 // 画法（D34 / D51 ⑧ → D53 ①，第三轮 V3-01 / T3-02：去掉 ink3 外廓，与描一遍同一种画法，全 App 只保留一种）：提示画在书写格的参考字形层（本人笔迹层**下面**），用 canvas/glyph-wash.js 的
@@ -11,8 +11,8 @@
 //   序号对不上时按几何最近（本人笔画对提示笔中线的平均距离最小，且 ≤ HINT_MATCH_MAX_DIST）——只把那一笔提示 260ms 淡出，其余提示笔留着照着写；全部写过后提示层消失（同时 commit hintRange:null）。
 //   撤销（笔数减少）→ 被收掉的提示笔回来；读屏照常播报给出了哪几笔（sr-live.js）。
 //   减少动态效果：提示整体 120ms 淡入、被收的那一笔 120ms 淡出（02 §3 M1-3 / R-G01）。
-// 按钮（R-W05；D49 起是文字行里的文字按钮）：可见文字一直是「提示」，读屏名称「提示，还有 {n} 次」→「提示已用完」（用完 disabled + aria-disabled，ink4）；没有笔顺数据时换成灰字「暂时没有提示」
-//   （M1-2 NoHintLabel，不是按钮）；数据还在加载时按钮文字照常、暂不可点。看过答案后（answerSeen）不显示（M1-4 的按钮）。
+// 按钮（R-W05；D49 起是文字行里的文字按钮）：可见文字一直是「提示」，读屏名称「提示，还有 {n} 次」（n = 还剩几段）→「提示已用完」（用完 disabled + aria-disabled，ink4）；没有笔顺数据时换成灰字「暂时没有提示」
+//   （M1-2 NoHintLabel，不是按钮）；数据还在加载时按钮文字照常、暂不可点。看过答案后（answerSeen）不显示（M1-4 的按钮）——除非是提示整字给完记的看过答案（用完状态仍显示不可点的按钮）。
 // 格下说明：用过提示后没有说明句（D51 ⑧：删去解释颜色的图例句「浅红色是提示……」，P41）；没有笔顺数据时
 //   「这个字暂时没有提示，可以直接看答案。」（R-W05），前面有 --o 小圆点（原型 hintNote）。
 // 记录：每次点提示 commit sessions[slot].current.hints（次数）与 hintRange（{from, to}，笔序 0 起、to 不含）；
@@ -25,7 +25,8 @@
 // 组件 / hook：useStrokeData(char)、useHint({...})、HintLayer、HintButton、HintNote。
 
 import { html, useEffect, useLayoutEffect, useReducer, useRef, useState } from '../../../../vendor/ui.js';
-import { nextHintRange, hintButtonState, hintButtonCopy } from '../../../core/hints.js';
+import { nextHintRange, hintButtonState, hintButtonCopy, hintsAllGiven } from '../../../core/hints.js';
+import { commitAnswerSeen } from './answer.js';
 import { currentCardKey, withCurrent } from '../../../core/sessions.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
@@ -125,25 +126,34 @@ export function hintSourceOf({ status, data, char, groups } = {}) {
 /**
  * 下一次提示的笔序范围 {from, to, count, index}（to 不含）；不能给（加载中 / 无数据 / 已用完）返回 null。
  */
-export function planHint({ source, used = 0, written = 0 }, policy = defaultPolicy) {
+export function planHint({ source, used = 0, written = 0 }) {
   if (!source || source.status !== 'ready') return null;
-  const r = nextHintRange({
-    totalStrokes: source.totalStrokes,
-    writtenStrokes: written,
-    used,
-    hasStrokeData: source.hasStrokeData,
-    hasGroups: source.hasGroups,
-  }, policy);
-  return r ? { from: r.from, to: r.from + r.count, count: r.count, index: r.index } : null;
+  const at = u => nextHintRange({ totalStrokes: source.totalStrokes, used: u, hasStrokeData: source.hasStrokeData, hasGroups: source.hasGroups });
+  let r = at(used);
+  if (!r) return null;
+  // 这一段已经全被本人写过了（先写了几笔才点提示）：点一下什么都看不到，白烧一次——顺延到下一段，跳过的段也算已给出（次数照推：used 加上 skip）。最后一段不再顺延。
+  let skip = 0;
+  for (;;) {
+    if (r.from + r.count > written) break;
+    const n = at(used + skip + 1);
+    if (!n) break;
+    r = n;
+    skip += 1;
+  }
+  return { from: r.from, to: r.from + r.count, count: r.count, index: r.index, skip };
 }
 
 /**
  * 提示按钮模型。
  * @returns {{kind:'hidden'} | {kind:'unavailable', label} | {kind:'loading'|'available'|'exhausted', label, disabled, remaining}}
  */
-export function hintButtonModel({ phase = 'recall', status, used = 0, answerSeen = false } = {}, policy = defaultPolicy) {
-  if (phase !== 'recall' || answerSeen) return { kind: 'hidden' };
-  const st = hintButtonState({ used, hasStrokeData: status !== 'missing' }, policy);
+export function hintButtonModel({ phase = 'recall', status, used = 0, answerSeen = false, source = null } = {}) {
+  const total = source && source.status === 'ready' ? source.totalStrokes : 0;
+  const hasGroups = source ? source.hasGroups : true;
+  // 看过答案后不显示；唯一的例外是提示整字给完时记的看过答案（按钮留着，不可点，读屏「提示已用完」）
+  const done = hintsAllGiven({ totalStrokes: total, used, hasStrokeData: status !== 'missing', hasGroups });
+  if (phase !== 'recall' || (answerSeen && !done)) return { kind: 'hidden' };
+  const st = hintButtonState({ used, hasStrokeData: status !== 'missing', totalStrokes: total, hasGroups });
   const copy = hintButtonCopy(st);
   const label = t(copy.key, copy.vars); // 读屏名称（「提示，还有 2 次」「提示已用完」）；可见文字一律是 text（D49：次数不画出来）
   const text = t('R-W05.hintLabel');
@@ -162,6 +172,19 @@ export function hintNoteModel({ phase = 'recall', status, used = 0, answerSeen =
 
 function validRange(r) {
   return !!r && typeof r === 'object' && Number.isInteger(r.from) && Number.isInteger(r.to) && r.from >= 0 && r.to > r.from;
+}
+
+/** 新一段提示是不是紧接着现有范围（D64 ①：接在已给出的最后一笔之后）。 */
+function continuesRange(prev, next) {
+  return validRange(prev) && validRange(next) && prev.to <= next.from;
+}
+
+/**
+ * 新一段提示并入现有范围（D64 ①）：紧接着现有范围就延长（起点不变，终点到新一段末），否则（范围已被别处清空 / 恢复现场没有范围）就是新一段本身。
+ * 页面写进 sessions.current.hintRange 的就是这个合并后的范围。
+ */
+export function mergeHintRange(prev, next) {
+  return continuesRange(prev, next) ? { from: prev.from, to: next.to } : { from: next.from, to: next.to };
 }
 
 /** 提示笔里还没被本人笔收掉的笔序号（升序）。 */
@@ -248,7 +271,15 @@ export function reduceHintView(view, action) {
       return initialHintView(action.key, action.stored, action.written);
     case 'hint':
       if (!validRange(action.range)) return view;
-      return { ...view, used: view.used + 1, range: { from: action.range.from, to: action.range.to }, absorbed: [], fading: [], show: 'in', run: view.run + 1, restored: false };
+      {
+        // 在已给出的提示笔之后再多给一段（D64 ①）：被本人笔收掉的仍算已给出（不再回来）、没收的继续留着
+        const keep = continuesRange(view.range, action.range);
+        const absorbed = keep ? view.absorbed.slice() : [];
+        // 新一段里已经被本人写过的笔（按笔顺序号，同恢复现场的推法）直接算收掉，不再画
+        const w = Math.max(0, Math.trunc(Number(action.written) || 0));
+        for (let u = action.range.from; u < Math.min(action.range.to, w); u += 1) if (!absorbed.some(a => a.hint === u)) absorbed.push({ user: u, hint: u });
+        return { ...view, used: view.used + 1 + Math.max(0, Math.trunc(Number(action.skip) || 0)), range: mergeHintRange(view.range, action.range), absorbed, fading: keep ? view.fading : [], show: 'in', run: view.run + 1, restored: false };
+      }
     case 'absorb': {
       // 本人写完一笔（user）收掉提示笔 hint：只那一笔淡出，其余留着；已收掉的 / 不在这次范围里的不再收
       if (!validRange(view.range) || !hintRemaining(view).includes(action.hint)) return view;
@@ -452,6 +483,7 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
   const source = hintSourceOf({ status: strokes ? strokes.status : 'loading', data: strokes ? strokes.data : null, char });
   const used = Math.max(active.used, storedUsed);
   const answerSeen = !!(current && current.answerSeen);
+  const allGiven = hintsAllGiven({ totalStrokes: source.totalStrokes, used, hasStrokeData: source.hasStrokeData, hasGroups: source.hasGroups });
 
   function doCommit(label, patch) {
     const { slot: sl, session: se, cardKey: ck } = live.current;
@@ -475,16 +507,33 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
   function onHint() {
     const { view: v, cardKey: ck } = live.current;
     if (v.key !== ck) return;
-    const model = hintButtonModel({ phase, status: source.status, used, answerSeen });
+    const model = hintButtonModel({ phase, status: source.status, used, answerSeen, source });
     if (model.kind !== 'available') return;
     const range = planHint({ source, used, written });
     if (!range) return;
     clearTimers();
     clearedRef.current = false;
-    dispatch({ type: 'hint', range });
+    dispatch({ type: 'hint', range, written, skip: range.skip });
     if (typeof onHinted === 'function') onHinted(); // 写字页：跳过的撤销机会到此结束（G3）
     // 写入失败不阻断（P52 同口径）：提示照常显示，本地 used 已 +1，下次写入带上。
-    doCommit('hint', { hints: used + 1, hintRange: { from: range.from, to: range.to } });
+    const merged = mergeHintRange(v.range, range);
+    const usedNow = used + 1 + range.skip;
+    const patch = { hints: usedNow, hintRange: merged };
+    const whole = hintsAllGiven({ totalStrokes: source.totalStrokes, used: usedNow, hasStrokeData: source.hasStrokeData, hasGroups: source.hasGroups });
+    if (!whole) {
+      doCommit('hint', patch);
+      return;
+    }
+    // 整字都给出了：这一次提示的写入同时把这个字记为看过答案（与「看答案」同一函数、同一口径，D64 ①），页面仍留在回忆阶段继续写。
+    const { slot: sl, session: se } = live.current;
+    let store = null;
+    try {
+      store = se && getStore ? getStore() : null;
+    } catch (error) {
+      store = null;
+    }
+    const result = store ? commitAnswerSeen(store, { slot: sl, cardKey: ck, stay: true, hints: patch.hints, hintRange: patch.hintRange }) : { ok: false, error: { kind: 'no-store' } };
+    lastCommitRef.current = { label: 'hint-whole', ...(result.ok ? { ok: true, applied: true } : { ok: false, error: result.error }) };
   }
 
   // 写过哪笔收哪笔（D53 ⑧）：本人笔数在回忆阶段 +1（抬笔）→ 收掉与它匹配的那一笔提示（只那一笔淡出）；笔数减少（撤销 / 清空）→ 被收掉的提示笔回来。
@@ -493,7 +542,7 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
     const key = `${cardKey}|${phase}`;
     const prev = countRef.current;
     countRef.current = { key, count: written };
-    if (prev.key !== key || phase !== 'recall' || answerSeen) return;
+    if (prev.key !== key || phase !== 'recall' || (answerSeen && !allGiven)) return;
     const { view: v, strokes: st, ownStrokes: own, reduced: red } = live.current;
     if (v.key !== cardKey) return;
     if (written < prev.count) {
@@ -531,7 +580,7 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
     }
   }, [view, cardKey]);
 
-  const buttonModel = hintButtonModel({ phase, status: source.status, used, answerSeen });
+  const buttonModel = hintButtonModel({ phase, status: source.status, used, answerSeen, source });
   return {
     used,
     source,
@@ -539,7 +588,7 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
     reduced,
     buttonModel,
     button: html`<${HintButton} model=${buttonModel} onHint=${onHint} />`,
-    layer: phase === 'recall' && !answerSeen && source.status === 'ready'
+    layer: phase === 'recall' && (!answerSeen || allGiven) && source.status === 'ready'
       ? html`<${HintLayer} data=${strokes.data} view=${active} reduced=${reduced} />`
       : null,
     note: hintNoteModel({ phase, status: source.status, used, answerSeen }),

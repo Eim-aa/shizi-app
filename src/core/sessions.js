@@ -23,8 +23,8 @@
 // - 新字顺序由调用方给（src/core/new-order.js：易忘度清单，D28）；累计满 10 组且 p<1.5 时日常组换成大写数字特别组（D40，src/core/special.js）。
 
 import * as defaultPolicy from '../config/policy.js';
-import { localDay } from './dates.js';
-import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAnyJudged } from './records.js';
+import { addDays, localDay } from './dates.js';
+import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAnyJudged, skippedCardKeysOn } from './records.js';
 import { overdueDays } from './fsrs.js';
 import { arrangeGroup, dueReviewsDoneOn, planGroup, practiceStats, pressureOf, warmupAllowed } from './mix.js';
 import { isWarmupKey } from './new-order.js';
@@ -339,6 +339,16 @@ function customUnwrittenKeys(custom, sched, practicable) {
 }
 
 /**
+ * 跳过后推迟进新字池的字（D65 #5，policy.skipNewDeferDays，P06）：最近 skipNewDeferDays 天内（今天算第 1 天）跳过过的字。
+ * 只对新字起作用（选字时新字池才看它；有调度项的字到期照常出，当天的排除另按 skipScope）。
+ */
+export function skipDeferredNewKeys(records, today, policy = defaultPolicy) {
+  const days = Number.isInteger(policy.skipNewDeferDays) && policy.skipNewDeferDays > 0 ? policy.skipNewDeferDays : 0;
+  if (!days) return new Set();
+  return skippedCardKeysOn(records, today, addDays(today, -(days - 1)));
+}
+
+/**
  * 今天的练习选字（§5，D41 规则 D；D40 特别组）。
  * @param {object} args
  * @param {object} args.sched         {[cardKey]: {fsrs, due, lastJudgedAt, stoppedAt?}}
@@ -372,6 +382,13 @@ export function selectDaily({
   } else if (policy.answerSeenScope !== 'none') {
     throw new RangeError('unsupported policy.answerSeenScope: ' + String(policy.answerSeenScope));
   }
+  // D65 #5（P06）：跳过的字当天不再出（skipScope 'today'）；跳过的新字另在新字池里推迟 skipNewDeferDays 天（见 ②）
+  if (policy.skipScope === 'today') {
+    for (const key of skippedCardKeysOn(records, today)) excluded.add(key);
+  } else if (policy.skipScope !== 'session') {
+    throw new RangeError('unsupported policy.skipScope: ' + String(policy.skipScope));
+  }
+  const deferredNew = skipDeferredNewKeys(records, today, policy);
   if (!['none', 'after-due', 'first'].includes(policy.customIntoDaily)) {
     throw new RangeError('unsupported policy.customIntoDaily: ' + String(policy.customIntoDaily));
   }
@@ -419,7 +436,7 @@ export function selectDaily({
   const taken = new Set(dueSet);
   const pool = [];
   for (const key of [...customPick, ...capitalAfterKeysFor(records, policy), ...newCandidates]) {
-    if (taken.has(key) || excluded.has(key) || !practicable(key)) continue;
+    if (taken.has(key) || excluded.has(key) || deferredNew.has(key) || !practicable(key)) continue;
     if (sched && sched[key]) continue;
     if (customSet.has(key) && !customPick.includes(key)) continue;
     pool.push(key);
@@ -428,7 +445,7 @@ export function selectDaily({
   // 热身字：下一个还没写过的（热身字也在字频序里，所以这里不看 taken——它可能已经被新字池收走；放进组里时再从新字池去重）
   let warmNext = null;
   for (const key of warmupCandidates || []) {
-    if (dueSet.has(key) || excluded.has(key) || !practicable(key) || (sched && sched[key])) continue;
+    if (dueSet.has(key) || excluded.has(key) || deferredNew.has(key) || !practicable(key) || (sched && sched[key])) continue;
     warmNext = key;
     break;
   }

@@ -29,6 +29,7 @@ import {
 import * as policy from '../../src/config/policy.js';
 import { t } from '../../src/config/copy/index.js';
 import { at, rec, policyWith } from './helpers.mjs';
+import { addDays } from '../../src/core/dates.js';
 
 const TODAY = '2026-09-24';
 const K = (s) => [...s].map((c) => 'base:' + c);
@@ -273,17 +274,27 @@ test('daily: chars judged today are excluded', () => {
   assert.deepEqual(queue, K('亦慢额鲜境'));
 });
 
-test('daily: a char skipped today can come back in a new daily group', () => {
+test('daily: a char skipped today stays out today; a skipped new char is deferred skipNewDeferDays days, then returns to its place (D65 #5)', async () => {
   const records = [rec(1, '亦', 'skipped', null, TODAY, { sessionId: 's1' })];
-  const { queue } = selectDaily({ sched: {}, records, today: TODAY, newCandidates: K('亦慢') });
-  assert.deepEqual(queue, K('亦慢'));
+  assert.deepEqual(selectDaily({ sched: {}, records, today: TODAY, newCandidates: K('亦慢') }).queue, K('慢'));
+  assert.equal(policy.skipNewDeferDays, 7);
+  assert.deepEqual(selectDaily({ sched: {}, records, today: addDays(TODAY, 6), newCandidates: K('亦慢') }).queue, K('慢'), 'day 7 after the skip: still deferred');
+  assert.deepEqual(selectDaily({ sched: {}, records, today: addDays(TODAY, 7), newCandidates: K('亦慢') }).queue, K('亦慢'), 'then back at its usual place');
+  // 跳过一个到期字：当天不出，明天照常（调度项不变，不推迟）
+  const s = { 'base:静': sched('2026-09-20') };
+  assert.equal(selectDaily({ sched: s, records: [rec(2, '静', 'skipped', null, TODAY)], today: TODAY, newCandidates: [] }).queue.includes('base:静'), false);
+  assert.equal(selectDaily({ sched: s, records: [rec(2, '静', 'skipped', null, TODAY)], today: addDays(TODAY, 1), newCandidates: [] }).queue.includes('base:静'), true);
+  // 旧口径仍可注入
+  assert.deepEqual(selectDaily({ sched: {}, records, today: TODAY, newCandidates: K('亦慢'), policy: await policyWith({ skipScope: 'session', skipNewDeferDays: 0 }) }).queue, K('亦慢'));
+  assert.throws(() => selectDaily({ sched: {}, records, today: TODAY, newCandidates: K('亦慢'), policy: { ...policy, skipScope: 'week' } }), /skipScope/);
 });
 
 test('daily: answer-seen today follows policy.answerSeenScope (P36)', async () => {
   const records = [rec(1, '亦', 'answer-seen', null, TODAY)];
   const args = { sched: {}, records, today: TODAY, newCandidates: K('亦慢') };
-  assert.deepEqual(selectDaily(args).queue, K('亦慢'), "default 'none': may appear again");
-  assert.deepEqual(selectDaily({ ...args, policy: await policyWith({ answerSeenScope: 'today' }) }).queue, K('慢'));
+  assert.deepEqual(selectDaily(args).queue, K('慢'), "default 'today' (D65 #5): not again today");
+  assert.deepEqual(selectDaily({ ...args, today: addDays(TODAY, 1) }).queue, K('亦慢'), 'answer-seen new char: back tomorrow at its place');
+  assert.deepEqual(selectDaily({ ...args, policy: await policyWith({ answerSeenScope: 'none' }) }).queue, K('亦慢'));
   assert.throws(() => selectDaily({ ...args, policy: { ...policy, answerSeenScope: 'week' } }), /answerSeenScope/);
 });
 

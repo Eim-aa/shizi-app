@@ -3,7 +3,7 @@
 //
 // 跳过（R-W14「跳过」下划线文字，直接生效，不确认）= 一次 store.commit：追加一条 kind='skipped' 记录（不是有效记录：
 //   不判断、不评级、不改 sched / due、不写墨迹；help.hints 照实）+ 会话推进（item kind='skipped'、current 重置、
-//   结果行清空，决定-D19「跳过后清空」）。跳过只在本会话排除（policy.skipScope='session'，P06），不写 stoppedAt。
+//   结果行清空，决定-D19「跳过后清空」）。跳过当天不再出、新字推迟几天（policy.skipScope='today' / skipNewDeferDays，P06，D65 #5；选字在 core/sessions.selectDaily），不写 stoppedAt。
 //   写失败不推进：格下说明换「没保存上，你写的字还在。」、主按钮行换 [先不保存 / 再试一次]（R-W16 三段式，01 §4 表）。
 // 撤销（走查-W16 / R-W20）：跳过成功后底部轻提示「已跳过「X」 · 撤销」5 秒（D36）；撤销 = 第二次 commit：删掉这条 skipped
 //   记录（id 允许空洞，01 §3.1）、字放回 cursor、current 回到 recall，并把这条记录里的提示次数放回 current.hints
@@ -64,7 +64,7 @@ function monthOf(record) {
  * @returns {{record}}
  */
 export function skipInDraft(draft, { slot, cardKey, hints = 0, at, nextId, policy = defaultPolicy }) {
-  if (policy.skipScope !== 'session') throw new RangeError('unsupported policy.skipScope: ' + String(policy.skipScope));
+  if (policy.skipScope !== 'session' && policy.skipScope !== 'today') throw new RangeError('unsupported policy.skipScope: ' + String(policy.skipScope));
   const s = sessionOf(draft, slot);
   if (!s || currentCardKey(s) !== cardKey) throw new Error('skip: not the current card');
   const stored = s.current && Number.isInteger(s.current.hints) ? s.current.hints : 0;

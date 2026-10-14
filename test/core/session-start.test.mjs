@@ -186,7 +186,7 @@ test('daily: the first group after ≥ 7 days away is 3 chars through startDaily
   assert.equal(r.plan.newKeys.length >= 1, true, 'the usual 1 new char is still given');
 });
 
-test('daily: characters judged today never come back; skipped today can; answer-seen follows policy.answerSeenScope (P36)', async () => {
+test('daily: characters judged today never come back; skipped / answer-seen today stay out (D65 #5, P06 / P36)', async () => {
   const records = [
     rec(1, '甲', 'judged', 'correct', TODAY),
     rec(2, '乙', 'skipped', undefined, TODAY),
@@ -197,12 +197,13 @@ test('daily: characters judged today never come back; skipped today can; answer-
   seed(env, { records, schedTable });
   let plan = planDaily(env.store.getState(), { today: TODAY, deck: fakeDeck() });
   assert.equal(plan.queue.includes('base:甲'), false, 'judged today → excluded');
-  assert.equal(plan.queue.includes('base:乙'), true, 'skipped today → can come back');
-  assert.equal(policy.answerSeenScope, 'none');
-  assert.equal(plan.queue.includes('base:丙'), true, 'answer-seen today → can come back under answerSeenScope none');
-  const strict = await policyWith({ answerSeenScope: 'today' });
-  plan = planDaily(env.store.getState(), { today: TODAY, deck: fakeDeck(), policy: strict });
-  assert.equal(plan.queue.includes('base:丙'), false, 'answerSeenScope today → excluded');
+  assert.equal(plan.queue.includes('base:乙'), false, 'skipped today → excluded (skipScope today)');
+  assert.equal(policy.answerSeenScope, 'today');
+  assert.equal(plan.queue.includes('base:丙'), false, 'answer-seen today → excluded (answerSeenScope today)');
+  const loose = await policyWith({ answerSeenScope: 'none', skipScope: 'session', skipNewDeferDays: 0 });
+  plan = planDaily(env.store.getState(), { today: TODAY, deck: fakeDeck(), policy: loose });
+  assert.equal(plan.queue.includes('base:丙'), true, 'answerSeenScope none → can come back');
+  assert.equal(plan.queue.includes('base:乙'), true, 'skipScope session → can come back');
 
   // 同一天：今天判断过的字即使到期也不再出
   const env2 = makeEnv();

@@ -121,10 +121,13 @@ export const ratingWithHint = Object.freeze({
   first: Object.freeze(['Good', 'Hard', 'Again']), // P34 新字第一次判断带提示写对：1 次 / 2 次 / 3 次起
   review: Object.freeze(['Hard', 'Hard', 'Again']), // P34 复习带提示写对：1 次 / 2 次 / 3 次起
 });
-// P36 看过答案（无判断）的字当天是否排除出 daily：不排除
-export const answerSeenScope = 'none';
-// P06 「跳过」排除范围：只在当前会话（记 skipped 记录，不写 stoppedAt）
-export const skipScope = 'session';
+// P36 看过答案（无判断）的字当天是否排除出 daily（D65 #5，覆盖原 'none'）：'today' 当天不再出；调度项不变，到期的字明天照常回来，新字明天照常在新字池原位
+export const answerSeenScope = 'today';
+// P06 「跳过」排除范围（D65 #5，覆盖原 'session'）：'today' = 当天不再出（记 skipped 记录，不写 stoppedAt，调度项不变）；'session' = 只在本组内
+export const skipScope = 'today';
+// P06 跳过的新字（从没判断过）推迟几天再进新字池（D65 #5）：跳过那天算第 1 天，这些天里新字池跳过它，之后回到原来的位置
+// （不放池尾：池尾 = 几千个字之后，等于再也见不到；也不写 stoppedAt）。0 = 不推迟。
+export const skipNewDeferDays = 7;
 // P04 快忘了口径：最近一次 judged 为写对且 FSRS 到期
 export const forgetRule = 'due';
 // P04 快忘了最多几个

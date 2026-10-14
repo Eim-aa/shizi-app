@@ -384,6 +384,13 @@ export function answerSeenCardKeysOn(records, day) {
   return out;
 }
 
+/** 某一天（或从 fromDay 起到 day 为止，含两端）跳过的 cardKey 集合（D65 #5：跳过的字当天不再出、跳过的新字推迟几天）。 */
+export function skippedCardKeysOn(records, day, fromDay = day) {
+  const out = new Set();
+  for (const r of records || []) if (r && r.kind === 'skipped' && r.localDay >= fromDay && r.localDay <= day) out.add(r.cardKey);
+  return out;
+}
+
 /** 「今天记录了 N 个字」：今天 judged 按字去重的个数。 */
 export function todayCount(records, today) {
   return judgedCardKeysOn(records, today).size;

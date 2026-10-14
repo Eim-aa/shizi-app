@@ -6,7 +6,8 @@
 import * as defaultPolicy from '../../../src/config/policy.js';
 import { isReservedChar } from '../../../src/core/new-order.js';
 import { capitalAfterKeysFor } from '../../../src/core/special.js';
-import { charOfCardKey, isJudged, judgedCardKeysOn } from '../../../src/core/records.js';
+import { answerSeenCardKeysOn, charOfCardKey, isJudged, judgedCardKeysOn, skippedCardKeysOn } from '../../../src/core/records.js';
+import { skipDeferredNewKeys } from '../../../src/core/sessions.js';
 import { overdueDays } from '../../../src/core/fsrs.js';
 import { addDays, diffDays } from '../../../src/core/dates.js';
 import { memoryZones, skippedZone, latestJudgedByChar, recordsOfState } from '../../../src/ui/screens/library/model.js';
@@ -35,7 +36,7 @@ export const INVARIANTS = Object.freeze([
   { id: 'P4-skip-seen-not-reoffered-today', title: '刚跳过 / 刚看过答案的字，当天再开一组时不会立刻又出现' },
   { id: 'W1-wrong-returns-next-day', title: '写错的字，第二天（如果第二天也练）会再出现' },
   { id: 'P5-hint-shortens-interval', title: '同一个字、同样按时复习，带提示写对的下次间隔比无提示写对的短（仅单测）', unitOnly: true },
-  { id: 'G11-new-in-order', title: '新字按既定顺序挑（易忘度清单在前，已写过 / 今天写过的字跳过）' },
+  { id: 'G11-new-in-order', title: '新字按既定顺序挑（易忘度清单在前，已写过 / 今天写过 / 今天看过答案或跳过 / 最近几天跳过的新字跳过）' },
   { id: 'X1-judge-commit-fails', title: '写完一个字点「写对 / 写错」，记录一定能存上（不会因为时间异常等原因提交失败）' },
   { id: 'R1-reminder-target-due', title: '提醒通知里的题目，在对应那天已到期，且能练' },
   { id: 'R2-reminder-wrong-first', title: '提醒挑字：写错过的先于只是到期的' },
@@ -84,9 +85,15 @@ export function checkGroup({ state, today, queue, plan, kind, deck, records, pol
   {
     const cand = [...capitalAfterKeysFor(records, policy), ...deck.newCandidates(plan.libraryId)];
     const warm = new Set(plan.warmKeys || []);
+    // D65 #5：当天看过答案 / 跳过的字不再出（按 policy），跳过的新字推迟 skipNewDeferDays 天
+    const outToday = new Set([
+      ...(policy.answerSeenScope === 'today' ? answerSeenCardKeysOn(records, today) : []),
+      ...(policy.skipScope === 'today' ? skippedCardKeysOn(records, today) : []),
+      ...skipDeferredNewKeys(records, today, policy),
+    ]);
     const expected = [];
     for (const k of cand) {
-      if (judgedToday.has(k) || sched[k] || expected.includes(k) || warm.has(k)) continue;
+      if (judgedToday.has(k) || outToday.has(k) || sched[k] || expected.includes(k) || warm.has(k)) continue;
       expected.push(k);
       if (expected.length >= plan.newKeys.length) break;
     }

@@ -128,8 +128,17 @@ test('R1 提醒题目在对应那天已到期且能练；R2 写错过的先于�
 
 // ---------------------------------------------------------------- 当前不成立的不变量（todo：已在问题清单登记，修好后去掉 todo）
 
-test('P4 刚跳过 / 刚看过答案的字，当天再开一组时不会立刻又出现', { todo: '问题清单 #5：answerSeenScope=none、skipScope=session，当天会反复出现' }, () => {
+test('P4 刚跳过 / 刚看过答案的字，当天再开一组时不会立刻又出现；跳过的新字推迟几天、不总排在最前（D65 #5）', () => {
   assert.deepEqual(only(SEEN, ['P4-skip-seen-not-reoffered-today']), [], show(only(SEEN, ['P4-skip-seen-not-reoffered-today'])));
+  assert.deepEqual(only(THREE, ['P4-skip-seen-not-reoffered-today']), [], show(only(THREE, ['P4-skip-seen-not-reoffered-today'])));
+  // 跳过的新字：跳过那天起 skipNewDeferDays 天内不再被当作新字选出（之后才回来）
+  const skipped = new Map(); // char → 第一次跳过的 dayIdx（当时是新字）
+  for (const e of SEEN.events) if (e.slot === 'A' && e.action === 'skip' && e.src === 'new' && !skipped.has(e.char)) skipped.set(e.char, e.dayIdx);
+  assert.ok(skipped.size > 0, '场景里应有跳过的新字');
+  for (const [ch, d] of skipped) {
+    const again = SEEN.events.find(e => e.char === ch && e.dayIdx > d && e.src === 'new');
+    if (again) assert.ok(again.dayIdx - d >= 7, `「${ch}」第 ${d} 天跳过，第 ${again.dayIdx} 天又作新字出现`);
+  }
 });
 
 test('W1 写错的字，第二天（如果第二天也练）会再出现', { todo: '问题清单 #1：写错的字只是「明天到期」，积压时排在更久远的到期字后面' }, () => {

@@ -112,7 +112,8 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__prompt{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
 .sz-write[data-pfit] .sz-write__prompt{transform:scale(var(--pfit));transform-origin:50% 0;margin-bottom:var(--pfit-pull)} /* P299：放不下时题面整体按可用高度缩小（不重排、不截断；量到的题面高不受 transform 影响），下面的书写格跟着上移 */
 .sz-write__gridwrap{display:flex;justify-content:center;margin:${T.s4} calc(-1 * var(--bleed)) 0}
-.sz-write__below{position:relative;box-sizing:border-box;max-width:100%;display:flex;flex-direction:column;align-items:stretch;margin:0 auto} /* 格下 = 撤销 / 清空行 + 说明位（A7，D57） */
+.sz-write__below{position:relative;box-sizing:border-box;width:100%;display:flex;flex-direction:column;align-items:stretch;margin:0} /* 格下 = 撤销 / 清空行（与书写格同宽、居中）+ 说明位（A7，D57）。说明位取内容宽（屏宽 − 40），各字号同一条（与 AX 档同构，D53 ②；r7-W3）：
+  书写格让到下限以下的矮屏上（SE 3 的 245）说明若只有格宽，XXXL 下 R-W07.selfNote 折成两行 54pt，比名义版式留的 40 高、压到底栏下；取内容宽后同一句是一行。书写格边长仍只由视口定（D36 / P299） */
 .sz-write__note{flex:1;min-width:0;min-height:40px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-write__firsttip,.sz-hintnote{padding:3px 0} /* 单行时仍是 40 高的一行（文字居中，离格子 10）；两行说明（提示说明）46 高，文字离格子 ≥ 3、不被按钮行挡住（最矮的屏上书写格组只剩 4 的余量） */
 .sz-write__firsttip{display:block}
@@ -133,7 +134,7 @@ ${W} .sz-page__foot[data-under="true"]::before{content:"";position:absolute;left
 .sz-write__steps{height:5px;margin:-8px 0 3px;display:flex;justify-content:center;gap:5px;pointer-events:none}
 .sz-write__dot{width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid ${T.ink3}}
 .sz-write__dot[data-on="true"]{border:0;background:${T.ink1}}
-:root[data-ax] ${W} .sz-write__below{width:100%;min-height:${AX_BELOW_H}px;margin:0}
+:root[data-ax] ${W} .sz-write__below{min-height:${AX_BELOW_H}px}
 :root[data-ax] ${W} .sz-write__below *,:root[data-ax] ${W} .sz-write__progress{font-size:calc(17px * 1);line-height:24px}
 ${AX_HI(`${W} .sz-write__below *`)},${AX_HI(`${W} .sz-write__progress`)}{font-size:calc(22px * 1);line-height:30px}
 :root[data-ax] ${W} .sz-write__note{box-sizing:border-box;min-height:${AX_NOTE_H}px;justify-content:flex-start;padding-top:8px}
@@ -502,7 +503,7 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
           label=${gridLabel(view.strokes.length)}
         />`}
       </div>
-      ${compare.active ? null : html`<div class="sz-write__below" style=${ax > 0 ? undefined : { width: `${gridSize}px` }} data-has-note=${hasNote ? 'true' : 'false'}>
+      ${compare.active ? null : html`<div class="sz-write__below" data-has-note=${hasNote ? 'true' : 'false'}>
         ${toolRow}
         <span class="sz-write__note" data-testid="write-note">${noteNodes}</span>
       </div>`}

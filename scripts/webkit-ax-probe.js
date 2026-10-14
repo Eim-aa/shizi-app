@@ -3,8 +3,8 @@
 // （ios/ShiziApp/ShiziApp/NativeSmoke.swift runSmokeProbe）。只用公开测试钩子 window.__shiziTest、data-testid 与 router 的 nav。
 //
 // 整个文件是一个函数表达式（壳把它包进括号、以状态名调用），不是模块；不进 App 包、不进壳清单。
-// 状态：write（回忆，上一字的结果行「修改」在格下说明位）| trace（看答案后直接进入的描一遍，格下是后果说明，主按钮「凭记忆写」，D64 ②）| retrace（凭记忆写，格下是说明、两枚文字按钮 + 下一个）
-//       | judge（判断页两格）| detail（没写过的字的详情页空态）。
+// 状态：write（回忆，上一字的结果行「修改」在格下说明位）| trace（看答案后直接进入的描一遍，格下是后果说明，主按钮「凭记忆写」，D64 ②）| retrace（凭记忆写，格下是 R-W07.selfNote、两枚文字按钮 + 下一个）
+//       | self（看过答案后恢复到的回忆阶段，格下同样是 R-W07.selfNote，求助行是提示 / 看答案）| judge（判断页两格）| detail（没写过的字的详情页空态）。
 // 每个状态量三件事并回传：
 //   1. 书写格（及判断页两格、看答案格、纸面格）宽高相等（±1）；写字状态再画一笔「屏幕上 dx = dy」的斜线，存进数据的笔画 dy / dx 也必须是 1（±2%）；
 //   2. 没有文字横向溢出：文字节点的行框都在视口内、在所在按钮内；含文字的元素 scrollWidth ≤ clientWidth；文字之间不互相叠压；
@@ -310,8 +310,8 @@
       await panCheck();
       const line = q('write-line-slot');
       check('result row (修改) visible in the note slot', !!line && line.textContent.trim().length > 0 && !hidden(line, topLayer()), line ? line.textContent.trim() : null);
-    } else if (STATE === 'retrace' || STATE === 'trace') {
-      await seed(session(1, { phase: STATE, answerSeen: true }));
+    } else if (STATE === 'retrace' || STATE === 'trace' || STATE === 'self') {
+      await seed(session(1, { phase: STATE === 'self' ? 'recall' : STATE, answerSeen: true }));
       nav = await toHome();
       await openWrite();
       await sleep(STATE === 'trace' ? 3500 : 1500);

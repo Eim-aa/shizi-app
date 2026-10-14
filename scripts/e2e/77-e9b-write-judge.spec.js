@@ -88,6 +88,7 @@ async function geo(page) {
       wordwrap: rect(wordwrap),
       grid: rect(q('write-grid')),
       below: top.querySelector('.sz-write__below') ? rect(top.querySelector('.sz-write__below')) : null,
+      toolsRow: top.querySelector('[data-testid="write-tools"]') ? rect(top.querySelector('[data-testid="write-tools"]')) : null,
       mine: rect(q('write-compare-mine')),
       ref: rect(q('write-compare-ref')),
       stage: rect(q('write-compare')),
@@ -140,7 +141,8 @@ export default async function e9bWriteJudge(page, ctx) {
     assert.ok(near(m.prompt.top - m.body.top, topOff, 1), `${tag}: prompt top ${topOff} below the main-area top, 40% of the spare above (${m.prompt.top - m.body.top})`);
     assert.ok(near(m.grid.top - m.body.top, gridOff, 1), `${tag}: grid top ${gridOff} below the main-area top (${m.grid.top - m.body.top})`);
     assert.ok(near(m.grid.top - m.prompt.bottom, 16), `${tag}: prompt → grid is 16`);
-    assert.ok(near(m.below.height, 88, 0.6) && near(m.below.width, g), `${tag}: the under-grid area (撤销 / 清空 row 48 + note slot 40) is 88 high and as wide as the grid`);
+    assert.ok(near(m.below.height, 88, 0.6) && near(m.below.width, W - 40), `${tag}: the under-grid area (撤销 / 清空 row 48 + note slot 40) is 88 high; the note slot spans the content width W − 40 (r7-W3, as at AX sizes, D53 ②)`);
+    assert.ok(near(m.toolsRow.width, g) && near(m.toolsRow.left, m.grid.left), `${tag}: the 撤销 / 清空 row is as wide as the grid and aligned with it (${m.toolsRow.width})`);
     assert.ok(near(m.grid.cx, m.vw / 2, 0.6) && near(m.word.cx, m.vw / 2, 1.5), `${tag}: the whole word and the grid share the page's midline (${m.word.cx} / ${m.grid.cx})`);
     const bottomSpare = m.body.bottom - m.below.bottom;
     assert.ok(bottomSpare >= topOff * 1.4 - 1 || topOff === 12, `${tag}: the spare below the group (${bottomSpare.toFixed(1)}) is ~60% (above: ${topOff})`);

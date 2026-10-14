@@ -53,7 +53,9 @@ test('我的页（D63）：AX 档概览纵排、标题行与右值放不下时�
   const src = read('src/ui/screens/mine/index.js');
   assert.match(src, /:root\[data-ax\] \.sz-mine__ov\{grid-template-columns:minmax\(0,1fr\)/);
   assert.match(src, /:root\[data-ax\] \.sz-mine__shead\.sz-btn\{flex-wrap:wrap/);
-  assert.match(read('src/ui/screens/mine/appearance.js'), /if \(ax > 0\) \{\s*\n\s*return html`<\$\{Row\} testid="mine-appearance"/);
+  // D65 ②：外观与每组字数共用 choice.js 的「几选一」行（AX 档改成「名称 …… 当前值 ›」）
+  assert.match(read("src/ui/screens/mine/choice.js"), /if \(ax > 0\) \{[^}]*return html`<\$\{Row\} testid=\$\{cfg.testid\}/);
+  assert.match(read("src/ui/screens/mine/appearance.js"), /testid: .mine-appearance./);
 });
 
 test('月字帖页 / 单字详情：月字帖日期角标骑在格线上、AX 档照常画（D57 · C1），记录格两列且日期可折行（正常 CJK 折行，R3-K1 不再用 keep-all）', () => {

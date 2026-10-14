@@ -8,7 +8,8 @@
 //     有几个字几格、日期骑在格线上），只放最近两行（列数按整月字数定）：整月放得下就整张带落款与印，放不下只放最近的、不画落款和印，完整的在「全部」里；格子点进单字详情。
 //     「保存图片」不放在这里：设计稿把它放在月字帖页 / 练习记录页（那里本来就有），这里的标题行整行是入口，放不下第二个可点的东西。
 //     没有记录时：只写空态（「还没有记录」+ 一句话，R-M04），不加插画；有记录但这个月还没写字时：标题行照常（全部那一格不写数）、字帖位置是月字帖的空框。
-//   4 一组（块）：提醒（右值 = 提醒时间或「关」›，进提醒页 remind.js）、练习范围（右值 = 库名 ›，进换库页，同字库首页那一行、同一个值）、外观（行内三段，appearance.js）
+//   4 一组（块）：提醒（右值 = 提醒时间或「关」›，进提醒页 remind.js）、练习范围（右值 = 库名 ›，进换库页，同字库首页那一行、同一个值）、外观（行内三段，appearance.js）、
+//     每组字数（D65 ②：行内四段 5｜10｜20｜30，AX 档「20 个 ›」点开弹层；与外观同一种选择方式，group-size.js / choice.js）
 //   5 一组：备份（右值「上次备份 {date}」/「还没有备份」›）、年度报告（右值 = 年份 ›）、关于拾字 ›
 //   6 页底一行版本号（X-ABOUT.version，取 build-info.js；与关于页同一句，13 墨三居中）
 // 行与字库首页同一套（components/Rows.js）：名称 17 / 500 墨一 · 值 17 墨二 · 小字 13 墨三。目标屏由各自的模块自注册，本页只 nav.push。
@@ -19,7 +20,7 @@
 //   mine-overview（data-streak / data-total / data-chars）、mine-stat-streak / mine-stat-total / mine-stat-chars（data-n；mine-stat-num、mine-stat-label）、
 //   mine-sheet（data-month / data-count / data-shown / data-truncated / data-days）、mine-sheet-head（标题行按钮，进练习记录）、mine-sheet-title、mine-sheet-all、
 //   mine-sheet-grid、mine-sheet-cell（data-char / data-day / data-tag / data-record / data-ink）、mine-sheet-sign、mine-sheet-seal、
-//   mine-remind（mine-remind-value，data-on）、mine-library（mine-library-value）、mine-appearance（appearance.js）、
+//   mine-remind（mine-remind-value，data-on）、mine-library（mine-library-value）、mine-appearance（appearance.js）、mine-group-size（group-size.js）、
 //   mine-menu-backup（mine-backup-value，data-last=YYYY-MM-DD|''）/ mine-menu-annual（mine-annual-year）/ mine-menu-about、mine-version。
 
 import { html, useMemo } from '../../../../vendor/ui.js';
@@ -40,6 +41,7 @@ import {
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
 import { MonthBody, mineSheetModel, monthModel } from './month.js';
 import { AppearanceRow } from './appearance.js';
+import { GroupSizeRow } from './group-size.js';
 import { settingsView, timeText } from './prefs.js';
 import { VersionText } from './about.js';
 
@@ -146,6 +148,7 @@ function MineScreen() {
         <${Row} testid="mine-library" name=${t('R-S01.library')} value=${view.libraryName} valueTestid="mine-library-value"
           extra=${{ 'data-library': view.library }} onClick=${() => go(MINE_ROUTES.library)} />
         ${view.appearanceSwitch ? html`<${AppearanceRow} current=${view.appearance} />` : null}
+        <${GroupSizeRow} current=${view.groupSize} />
       </${RowBlock}>
       <${RowBlock}>
         <${Row} testid="mine-menu-backup" name=${t('R-M03.backup')} onClick=${() => go(MINE_ROUTES.backup)}

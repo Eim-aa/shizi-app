@@ -22,6 +22,9 @@ export default Object.freeze({
   'X-SETTINGS.saveFailed': '没保存上，刚才的选择没记下。',
   'X-SETTINGS.cancel': '先不保存',
   'X-SETTINGS.retry': '再试一次',
+  // D65 ②（P314）：「我的」页「每组字数」行（分段里的数字是数据，不进 copy）
+  'X-SETTINGS.groupSize': '每组字数',
+  'X-SETTINGS.groupSizeValue': '{n} 个',
   // X-REMIND（M5-5 提醒通知的标题与正文，P48；R-S01 只给了设置页说明，通知字样沿旧版，见 copy-source.json extra）
   'X-REMIND.title': '{word}（{pinyin}）',
   'X-REMIND.body': '还记得这个字怎么写吗？点开试试。',

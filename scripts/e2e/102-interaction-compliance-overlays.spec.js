@@ -13,6 +13,8 @@ const OVERLAYS = [
   { id: 'all-menu', page: 'library-all', open: 'all-menu-open', sel: '[data-testid="all-menu"]', sheet: true },
   // D63：外观在「我的」页是行内三段，放不下（AX5）时才是点开的弹层
   { id: 'appearance', page: 'mine', open: 'mine-appearance', sel: '[data-testid="mine-appearance-sheet"]', sheet: true, ax: 'AX5', tabRoot: true },
+  // D65 ②：每组字数与外观同一种选择方式（choice.js）：AX5 下才是弹层
+  { id: 'group-size', page: 'mine', open: 'mine-group-size', sel: '[data-testid="mine-group-size-sheet"]', sheet: true, ax: 'AX5', tabRoot: true },
   // 月字帖「保存图片」改为一次点击直存（I3 P0-04），图片预览弹层从旁边的「调整…」打开
   { id: 'image-preview', page: 'month', open: 'month-adjust', sel: '[data-testid="image-sheet"]', sheet: true },
   // 清空确认改为居中确认框（I3，components/Confirm.js）；换库不再有确认框（I3 P1-19：不丢东西就不确认）

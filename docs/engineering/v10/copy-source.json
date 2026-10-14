@@ -4102,6 +4102,20 @@
           "text": "再试一次",
           "origin": "extra",
           "note": "三段式主按钮（T01）"
+        },
+        "groupSize": {
+          "raw": null,
+          "text": "每组字数",
+          "origin": "extra",
+          "note": "D65 ②：「我的」页常用设置组里的一行（提醒 / 练习范围 / 外观之后）；标准字号行内分段 5｜10｜20｜30（数字是数据），AX 档行右值 + 选择弹层标题；D61 名称 2–4 字",
+          "decision": "P314"
+        },
+        "groupSizeValue": {
+          "raw": null,
+          "text": "{n} 个",
+          "origin": "extra",
+          "note": "D65 ②：AX 档行右值、选择弹层每一项、分段每一项的读屏名（「20 个」）；n = 5 / 10 / 20 / 30",
+          "decision": "P314"
         }
       }
     },

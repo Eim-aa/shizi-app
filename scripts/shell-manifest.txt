@@ -7403,6 +7403,8 @@ src/ui/screens/mine/annual-model.js
 src/ui/screens/mine/annual.js
 src/ui/screens/mine/appearance.js
 src/ui/screens/mine/backup.js
+src/ui/screens/mine/choice.js
+src/ui/screens/mine/group-size.js
 src/ui/screens/mine/index.js
 src/ui/screens/mine/model.js
 src/ui/screens/mine/month.js

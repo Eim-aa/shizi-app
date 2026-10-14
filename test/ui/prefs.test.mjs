@@ -6,8 +6,9 @@ import assert from 'node:assert/strict';
 import {
   settingsView, parseTime, timeText, defaultRemindTime, commitSettings, commitAppearance,
   commitRemindEnabled, commitRemindTime, applyReminderStatus, setReminderSync, LABELS,
-  APPEARANCE_ORDER, textSizeNoticeDue, commitTextSizeNoticeShown, clearLegacyLargeFlag,
+  APPEARANCE_ORDER, textSizeNoticeDue, commitTextSizeNoticeShown, clearLegacyLargeFlag, commitGroupSize,
 } from '../../src/ui/screens/mine/prefs.js';
+import { planDaily, startNextA } from '../../src/core/session-start.js';
 import { RemindBody, REMIND_SCREEN } from '../../src/ui/screens/mine/remind.js';
 import { AppearanceSheetView } from '../../src/ui/screens/mine/appearance.js';
 import { appearanceOf, applyAppearance, startAppearance } from '../../src/platform/appearance.js';
@@ -147,6 +148,36 @@ test('commitSettings: one commit writes only settings; keeps other fields; failu
   assert.deepEqual(store.getState().settings, { library: 'adv3000', appearance: 'dark' });
   assert.throws(() => commitAppearance(store, 'sepia'), RangeError);
   assert.equal(LABELS.appearance, 'settings:appearance');
+});
+
+test('每组字数（D65 ②）：settingsView 缺省 20；commitGroupSize 经 store.commit 只改 settings.groupSize；不认识的值拒绝；下一组按新值、开着的组不变', () => {
+  const { store } = freshStore();
+  assert.equal(settingsView(null).groupSize, 20);
+  assert.equal(settingsView({ groupSize: 7 }).groupSize, 20);
+  assert.equal(commitGroupSize(store, 10).ok, true);
+  assert.deepEqual(store.getState().settings, { groupSize: 10 });
+  assert.equal(settingsView(store.getState().settings).groupSize, 10);
+  assert.equal(commitGroupSize(store, 10).skipped, true, 'same value → no write');
+  assert.throws(() => commitGroupSize(store, 15), RangeError);
+  assert.throws(() => commitGroupSize(store, '20'), RangeError);
+  assert.equal(LABELS.groupSize, 'settings:group-size');
+  // 开组：字库里取字的假题库（够 40 个新字）
+  const keys = [...'甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥天地玄黄宇宙洪荒日月盈昃辰宿列张寒来暑往'].map(c => 'base:' + c);
+  const deck = { newCandidates: () => keys, practicable: k => keys.includes(k) };
+  const today = '2026-09-24';
+  // 先有一次判断（不是首练）
+  const seeded = store.commit('t:seed', d => {
+    d.records = { '2026-09': [{ id: 'r1', cardKey: 'base:尴', char: '尴', sessionId: 's9', kind: 'judged', judgment: 'correct', at: NOW - 86400000, localDay: '2026-09-23', help: { hints: 0, answerSeen: false, traced: false } }] };
+  });
+  assert.equal(seeded.ok, true, JSON.stringify(seeded));
+  assert.equal(planDaily(store.getState(), { today, deck }).queue.length, 10);
+  const opened = startNextA(store, { now: () => NOW, deck });
+  assert.equal(opened.ok, true);
+  assert.equal(store.getState().sessions.A.kind, 'daily', JSON.stringify(opened).slice(0, 300));
+  assert.equal(store.getState().sessions.A.queue.length, 10);
+  assert.equal(commitGroupSize(store, 30).ok, true);
+  assert.equal(store.getState().sessions.A.queue.length, 10, 'the open group keeps its size');
+  assert.equal(planDaily(store.getState(), { today, deck }).queue.length, 30, 'the next group uses the new size');
 });
 
 test('commitSettings on an empty store creates settings with the one field (schema-valid)', () => {

@@ -74,7 +74,7 @@ async function mineFacts(page) {
     if (!root) return null;
     const q = id => root.querySelector(`[data-testid="${id}"]`);
     const txt = el => (el ? el.innerText.replace(/\s+/g, ' ').trim() : null);
-    const order = ['mine-overview', 'mine-sheet', 'mine-remind', 'mine-library', 'mine-appearance', 'mine-menu-backup', 'mine-menu-annual', 'mine-menu-about', 'mine-version']
+    const order = ['mine-overview', 'mine-sheet', 'mine-remind', 'mine-library', 'mine-appearance', 'mine-group-size', 'mine-menu-backup', 'mine-menu-annual', 'mine-menu-about', 'mine-version']
       .filter(id => q(id)).sort((a, b) => (q(a).compareDocumentPosition(q(b)) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
     const ov = q('mine-overview');
     return {
@@ -130,7 +130,7 @@ export default async function run(page, ctx) {
   step('order: 概览 → 字帖 → 提醒 / 练习范围 / 外观 → 备份 / 年度报告 / 关于 → 版本；没有「设置」「练习记录」「保存图片」');
   let m = await mineFacts(page);
   assert.equal(m.title, '我的', 'big title only');
-  assert.deepEqual(m.order, ['mine-overview', 'mine-sheet', 'mine-remind', 'mine-library', 'mine-appearance', 'mine-menu-backup', 'mine-menu-annual', 'mine-menu-about', 'mine-version'],
+  assert.deepEqual(m.order, ['mine-overview', 'mine-sheet', 'mine-remind', 'mine-library', 'mine-appearance', 'mine-group-size', 'mine-menu-backup', 'mine-menu-annual', 'mine-menu-about', 'mine-version'],
     'D63 order');
   assert.equal(m.remind, '提醒 关', '提醒 …… 关');
   assert.equal(m.library, '练习范围 常用字', '练习范围 …… 常用字（与字库首页同一个值）');

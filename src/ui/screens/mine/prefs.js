@@ -15,12 +15,14 @@ import { APPEARANCES, appearanceOf } from '../../../platform/appearance.js';
 import { currentLibraryId } from '../../../data/deck.js';
 import { libraryName } from '../library/index.js';
 import * as policy from '../../../config/policy.js';
+import { groupSizeOf, isGroupSizeOption } from '../../../core/group-size.js';
 
 export const LABELS = Object.freeze({
   remind: 'settings:remind',
   remindTime: 'settings:remind-time',
   permission: 'settings:remind-permission',
   appearance: 'settings:appearance',
+  groupSize: 'settings:group-size', // D65 ②
   textSizeNotice: 'settings:text-size-notice', // 静默去掉旧 large 字段的提交标签
 });
 
@@ -77,6 +79,7 @@ export function settingsView(settings, { p = policy } = {}) {
     denied: permission === 'denied',
     on: r.enabled === true && permission !== 'denied',
     appearance: appearanceOf(settings, { features }).theme,
+    groupSize: groupSizeOf(settings, p), // D65 ②
     appearanceSwitch: features.appearanceSwitch !== false,
   };
 }
@@ -106,6 +109,12 @@ export function commitSettings(store, label, fields) {
     }
     draft.settings = merged;
   });
+}
+
+/** 每组字数（D65 ②，P314）：只收 policy.groupSizeOptions 里的值；改了从下一组起生效（开着的组不变）。 */
+export function commitGroupSize(store, value, { p = policy } = {}) {
+  if (!isGroupSizeOption(value, p)) throw new RangeError(`unknown group size: ${value}`);
+  return commitSettings(store, LABELS.groupSize, { groupSize: value });
 }
 
 export function commitAppearance(store, value) {

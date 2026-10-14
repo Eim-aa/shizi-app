@@ -13,6 +13,7 @@ const OVERLAYS = [
   { id: 'pick (home)', page: 'home', open: '[data-testid="home-pick"]', sel: '[data-testid="query-sheet"]' },
   { id: 'all-menu', page: 'library-all', open: '[data-testid="all-menu-open"]', sel: '[data-testid="all-menu"]' },
   { id: 'appearance (AX5, D63)', page: 'mine', open: '[data-testid="mine-appearance"]', sel: '[data-testid="mine-appearance-sheet"]', ax: 'AX5' },
+  { id: 'group-size (AX5, D65)', page: 'mine', open: '[data-testid="mine-group-size"]', sel: '[data-testid="mine-group-size-sheet"]', ax: 'AX5' },
   { id: 'image-preview', page: 'month', open: '[data-testid="month-adjust"]', sel: '[data-testid="image-sheet"]' },
   { id: 'backup-clear (confirm)', page: 'backup', open: '[data-testid="backup-clear"]', sel: '[data-testid="backup-clear-sheet"]' },
 ];

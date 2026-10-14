@@ -24,13 +24,13 @@ export default Object.freeze({
   'R-W05.noHintNote': '这个字暂时没有提示，可以直接看答案。',
   // R-W06（说明句「浅红色是提示……」已删，D51 ⑧：不再用文字解释颜色；方案②/N07 原型专用-不做）
   // R-W07（D51 ⑧：看答案没有确认框，确认正文与两键已删；C3-H / N3-06、D53：第一次用时格下的一行说明 firstExplain 也删了，P212 → P248）
-  'R-W07.answerNote': '这个字记为看过答案，后面再写只算练习。',
+  'R-W07.answerNote': '记为看过答案。',
   'R-W07.btnTrace': '描一遍',
   'R-W07.btnNext': '下一个',
   'R-W07.selfNote': '这个字看过答案了，再写只算练习。',
   'R-W07.btnShowAnswer': '看答案',
   // R-W08（已定（接入时实测，决定 L51））
-  'R-W08.answerNote': '这个字记为看过答案，后面再写只算练习。',
+  'R-W08.answerNote': '记为看过答案。',
   // R-W08.traceNote「浅色是参考字形。」已删（D51 ⑧ / W1 验收：描一遍是逐笔引导，不再用文字解释颜色，理由同提示图例句 P41）
   // R-W10（已定）
   'R-W10.lineRecordedCorrect': '「{char}」记为写对 · 修改 ›',

@@ -134,7 +134,7 @@ export default async function glyph(page, ctx) {
   assert.equal(await page.locator(tid('write-glyph-note')).count(), 0, 'no 「浅色是标准写法。」 note any more');
   assert.equal((await animInfo(page)).svg, false, 'no hanzi-writer without data');
   await click(page, 'write-glyph-mode-play');
-  assert.equal(await text(page, 'write-glyph-note'), '这个字记为看过答案，后面再写只算练习。', 'answer note (R-W08.answerNote)');
+  assert.equal(await text(page, 'write-glyph-note'), '记为看过答案。', 'answer note (R-W08.answerNote)');
   await click(page, 'write-glyph-mode-static');
 
   ctx.step('永: network comes back → online event → refetch → normal glyph and 「提示，还有 5 次」');
@@ -169,7 +169,7 @@ export default async function glyph(page, ctx) {
   const info = await animInfo(page);
   assert.equal(info.hosts, 1, 'one animation host in the grid');
   assert.ok(info.svg && info.paths >= 5, `hanzi-writer SVG mounted (${info.paths} paths)`);
-  assert.equal(await text(page, 'write-glyph-note'), '这个字记为看过答案，后面再写只算练习。', 'answer note while playing');
+  assert.equal(await text(page, 'write-glyph-note'), '记为看过答案。', 'answer note while playing');
   await waitState(page, 'anim', 'completed', 20000);
   assert.equal(await page.locator(tid('write-glyph-skip')).isEnabled(), false, 'skip disabled after completion');
 

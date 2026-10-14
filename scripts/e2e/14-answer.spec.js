@@ -16,7 +16,7 @@ const COPY = {
   saveFailed: '没保存上，你写的字还在。',
   retry: '再试一次',
   notNow: '先不保存',
-  answerNote: '这个字记为看过答案，后面再写只算练习。',
+  answerNote: '记为看过答案。',
   trace: '描一遍',
   next: '下一个',
   traceDone: '凭记忆写',

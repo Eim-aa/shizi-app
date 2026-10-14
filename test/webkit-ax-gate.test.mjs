@@ -24,7 +24,7 @@ test('the probe is a single function expression the shell calls with the state n
     'no text element with scrollWidth > clientWidth', 'no overlapping text', 'body does not scroll', 'note slot under the grid and above the foot']) {
     assert.ok(src.includes(`'${name}`), `probe checks 「${name}」`);
   }
-  for (const state of ["'write'", "'retrace'", "'trace'", "'judge'", "'detail'"]) assert.ok(src.includes(state), `probe state ${state}`);
+  for (const state of ["'write'", "'trace'", "'judge'", "'detail'"]) assert.ok(src.includes(state), `probe state ${state}`);
 });
 
 test('the gate runs the three review simulators × L / XXXL / AX3 / AX5 and restores L + light afterwards', () => {

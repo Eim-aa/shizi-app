@@ -9,7 +9,9 @@
 //     其次到期最久（due 早的在前），再按最近一次记录先后；已被前几天用过的字尽量不重复（全被用过时沿旧版取第一个）。
 //     通知标题「{词语}（{拼音}）」、正文沿旧句（copy X-REMIND，P48 待文案）；词语按 policy.reminderWord（过渡 'blank'：目标字位换成 ＿，
 //     与写字页题面一样不露答案，决定-D16）。
-//   - practicedToday：今天有没有 judged 记录（旧版 dailyActivity().stamps>0 的第十稿口径）。
+//   - practicedToday：今天有没有 judged 记录（旧版 dailyActivity().stamps>0 的第十稿口径）。「今天」= 原生今天那次提醒的时刻
+//     （日历上的今天 hour:minute）归到的那一天（core/dates.js localDay，一天从凌晨 4 点起，D66 ⑦）：凌晨 1 点写完前一天的字，
+//     今晚 8 点的提醒照常发。
 //   - enabled：用户的开关（settings.remind.enabled）。权限由原生在排之前核对（web 侧 permission 可能来自备份，P86）。
 // 同步时机：设置页开 / 关 / 改时间（settings.js syncReminder → 本模块，force）；原生回报权限变化（applyReminderStatus）；
 //   启动（提醒开着时先 queryReminderStatus 再同步）；store 变化（判断 / 更正 / 恢复备份等改了到期字或今天是否已练，
@@ -151,17 +153,28 @@ export function reminderQuestions(state, { today, count = REMINDER_DAYS, deck, p
 }
 
 /**
+ * 原生「今天」那次提醒归到哪一天（D66 ⑦）：日历上的今天 hour:minute 这一刻的 localDay。没给 now（测试 / 旧调用）时就是 today。
+ * 提醒时刻在凌晨 4 点以后（常见）= 日历上的今天；凌晨 1 点同步时 today 还是前一天，而今晚的提醒属于新的一天。
+ */
+export function fireDayOf(now, remind, today, policy = defaultPolicy) {
+  if (typeof now !== 'number' || !Number.isFinite(now) || !remind) return today;
+  const d = new Date(now);
+  const fire = new Date(d.getFullYear(), d.getMonth(), d.getDate(), Number(remind.hour) || 0, Number(remind.minute) || 0);
+  return localDay(fire.getTime(), policy);
+}
+
+/**
  * syncReminder 消息体（不含 type）：{enabled, hour, minute, practicedToday, questions}。
  * 提醒关着时不算题目（questions 为空）。
  */
-export function reminderPayload(state, { remind = null, today, deck, policy = defaultPolicy } = {}) {
+export function reminderPayload(state, { remind = null, today, now = null, deck, policy = defaultPolicy } = {}) {
   const r = remind || remindOf(state && state.settings, policy);
   const enabled = r.enabled === true;
   return {
     enabled,
     hour: r.hour,
     minute: r.minute,
-    practicedToday: todayCount(recordsOf(state), today) > 0,
+    practicedToday: todayCount(recordsOf(state), fireDayOf(now, r, today, policy)) > 0,
     questions: enabled ? reminderQuestions(state, { today, deck, policy }) : [],
   };
 }
@@ -204,7 +217,8 @@ export function createReminder(deps) {
     if (!st) return null;
     let payload;
     try {
-      payload = reminderPayload(st, { remind, today: localDay(nowFn()), deck: deps.deck, policy });
+      const nowMs = nowFn();
+      payload = reminderPayload(st, { remind, today: localDay(nowMs, policy), now: nowMs, deck: deps.deck, policy });
     } catch (error) {
       if (typeof console !== 'undefined') console.warn('[shizi] reminder content failed:', error);
       return null;

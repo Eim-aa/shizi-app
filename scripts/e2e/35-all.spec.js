@@ -495,7 +495,7 @@ export default async function run(page, ctx) {
   await waitNavIdle(page, { settleMs: 150 });
   const wrongB = (await page.evaluate(() => window.__shiziTest.getState())).sessions.B;
   assert.deepEqual([wrongB.kind, wrongB.source], ['picked', { view: 'dueList' }], 'B = picked, source dueList (the list defaults)');
-  assert.ok(wrongB.queue.length >= 1 && wrongB.queue.length <= 5, 'default selection ≤ 5 chars');
+  assert.ok(wrongB.queue.length >= 1 && wrongB.queue.length <= 20, 'default selection ≤ 每组字数 (20, D66 ⑬)');
   await backToAll(page);
   await menuClick(page, '[data-testid="all-chip"][data-key="due"]');
   await menuClick(page, '[data-testid="all-sort"][data-key="recent"]');

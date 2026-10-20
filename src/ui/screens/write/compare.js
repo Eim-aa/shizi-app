@@ -185,7 +185,8 @@ export function judgeInDraft(draft, o) {
   // D27：新判断成了「最近一次」，上一次的最近一次（不是第一次时）墨迹回收；第一次与这一次留下。
   const inkRecycled = pruneInkOfCards(draft, [cardKey]);
   const entry = draft.sched ? draft.sched[cardKey] : undefined;
-  const { entry: nextEntry, fsrsBefore } = applyJudgment(entry, record, { policy });
+  // D66 ①：records 给 fsrs 找「判断前看过答案」（新字不再给 Easy）；当天看答案已记过 Again 的字不再评级（见 core/fsrs.js）
+  const { entry: nextEntry, fsrsBefore } = applyJudgment(entry, record, { policy, records: allRecords(draft) });
   draft.sched = { ...(draft.sched || {}), [cardKey]: nextEntry };
   setSession(draft, slot, advance(s, { cardKey, recordId: record.id, kind: 'judged', fsrsBefore, at }));
   return { record, reused: false, inkWritten, inkRecycled };

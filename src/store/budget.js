@@ -26,6 +26,7 @@
 
 import { CORRUPT_PREFIX, inkIdOf, inkKey, inkMonthOf, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
 import * as policy from '../config/policy.js';
+import { localDay } from '../core/dates.js';
 
 const MiB = 1024 * 1024;
 
@@ -43,6 +44,22 @@ export const BUDGET_DEFAULTS = Object.freeze({
   /** P05 墨迹预算（全部 ink 月键合计）：policy.inkBudgetBytes（过渡 1.5MiB）。 */
   inkBudgetBytes: policy.inkBudgetBytes,
 });
+
+/**
+ * 墨迹预算随「每组字数」（D66 ⑭，policy.inkBudgetByGroupSize P326）：settings.groupSize → 字节；没选过按 policy.groupSize。
+ * 表里没有的组大小退回 policy.inkBudgetBytes。
+ */
+export function inkBudgetOf(settings, p = policy) {
+  const size = settings && p.groupSizeOptions && p.groupSizeOptions.indexOf(settings.groupSize) >= 0 ? settings.groupSize : p.groupSize;
+  const table = p.inkBudgetByGroupSize || {};
+  return Number.isFinite(table[size]) ? table[size] : p.inkBudgetBytes;
+}
+
+/** 这一次回收用的墨迹预算：注入了 budgets.inkBudgetBytes（测试 / 模拟）就用它；否则按 state.settings 的每组字数（inkBudgetOf）。 */
+function inkBudgetFor(b, state) {
+  if (b.inkBudgetBytes !== policy.inkBudgetBytes) return b.inkBudgetBytes;
+  return inkBudgetOf(state && state.settings);
+}
 
 export function resolveBudgets(overrides) {
   const out = {};
@@ -87,15 +104,20 @@ export function estimateUsage(pairs, budgets = BUDGET_DEFAULTS) {
   return { total, byBucket, ratio, level };
 }
 
-// ---------------------------------------------------------------- 日期（本地日；不依赖 core/dates.js）
-
-function pad2(n) {
-  return n < 10 ? `0${n}` : String(n);
+/**
+ * 用量预警给界面的模型字段（D66 ⑭，P57 storageWarnRatio）：store.status.usage（estimateUsage 的结果）→
+ *   null（没到预警线，或量不到）| {level:'warn'|'full', ratio}——warn = 超过 storageWarnRatio × 假定配额，full = 已到配额。
+ * 只在接近上限时有值；界面（「我的 › 备份」行，卡 C）据此写一句能行动的说明（建议导出备份），不弹窗、不加红点（D55 ⑤ / D66 ⑱）。
+ */
+export function storagePressureOf(usage) {
+  if (!usage || (usage.level !== 'warn' && usage.level !== 'full')) return null;
+  return { level: usage.level, ratio: Math.round((Number(usage.ratio) || 0) * 1000) / 1000 };
 }
 
+// ---------------------------------------------------------------- 日期（与全 App 同一个归日函数 core/dates.js localDay，D66 ⑦）
+
 export function localDayOf(ms) {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return localDay(ms);
 }
 
 /** 该月最后一天距 today（YYYY-MM-DD）的整天数；月份在未来时为负。 */
@@ -357,7 +379,7 @@ export function needsRecovery(state, { now, budgets, totalBytes, sizes } = {}) {
   const out = {
     records: rBytes > b.recordsBudgetBytes,
     aged,
-    ink: (sizes ? sizes.ink : inkBytes(state && state.ink)) > b.inkBudgetBytes,
+    ink: (sizes ? sizes.ink : inkBytes(state && state.ink)) > inkBudgetFor(b, state),
     total: typeof totalBytes === 'number' ? totalBytes > b.totalTargetBytes : false,
   };
   out.any = out.records || out.aged || out.ink;
@@ -433,7 +455,8 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
 
   if (hasInk) {
     let bytes = inkBytes(draft.ink);
-    if (bytes > b.inkBudgetBytes || wantMore()) {
+    const inkBudget = inkBudgetFor(b, draft);
+    if (bytes > inkBudget || wantMore()) {
       const candidates = [];
       for (const month of Object.keys(draft.ink)) {
         const table = draft.ink[month];
@@ -446,7 +469,7 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
       const evicted = new Map(); // month → Set(id)
       for (const c of candidates) {
         if (c.tier === Infinity) break; // 排序后 Infinity 全在末尾
-        if (!(bytes > b.inkBudgetBytes || wantMore())) break;
+        if (!(bytes > inkBudget || wantMore())) break;
         if (!evicted.has(c.month)) evicted.set(c.month, new Set());
         evicted.get(c.month).add(c.id);
         bytes -= c.size;

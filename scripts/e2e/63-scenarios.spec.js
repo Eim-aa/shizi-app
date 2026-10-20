@@ -531,7 +531,7 @@ export default async function run(page, ctx) {
   w = await writeSnapshot(page);
   assert.deepEqual([w.screen, w.cursor], ['write', 1], 'write page open on the second char');
   await page.evaluate(() => {
-    window.__shiziTest.setClock('2026-09-25T00:03:00');
+    window.__shiziTest.setClock('2026-09-25T04:03:00'); // D66 ⑦：一天从凌晨 4 点起，过了 4 点才算跨天
     document.dispatchEvent(new Event('visibilitychange'));
   });
   await waitTop(page, 'home');

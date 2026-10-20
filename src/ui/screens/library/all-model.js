@@ -19,7 +19,8 @@
 //   cell = {char, kind:'hollow'|'wrong'|'ink', tone, record, py, hit}
 //
 // 口径：
-// - 「有记录」只看 judged，同字取最近一次（按 id 序号；与字库首页 model.js 同一函数，数字两页一致）；折叠月份只算 kept
+// - 「有记录」= judged，同字取最近一次（按 id 序号）；D66 ⑤ 起从没判断过、看过答案的字也算（取最近一次看过答案，core/records.js practicedByChar，
+//   与字库首页、我的同一函数，数字几页一致）；折叠月份只算 kept
 //   （与字库首页一致）。
 // - 筛选三档 = 字库首页的 memoryZones（该复习了 = 最近一次写错 ∪ 到期；还不太熟；记住了），同一口径同一顺序；格子上的红点（kind
 //   'wrong'）仍只表示「最近一次写错」这个事实；自选了还没写 = 自选的字里没有 judged 记录的（custom.added 顺序）；
@@ -38,9 +39,9 @@
 import * as defaultPolicy from '../../../config/policy.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { isValidDay, monthOf } from '../../../core/dates.js';
-import { compareRecordIds } from '../../../core/records.js';
+import { compareRecordIds, practicedByChar } from '../../../core/records.js';
 import { pyKey } from '../../../core/query.js';
-import { customCharsOf, latestJudgedByChar, memoryZones, recordsOfState, toneOf, wallColumns } from './model.js';
+import { customCharsOf, memoryZones, recordsOfState, toneOf, wallColumns } from './model.js';
 
 export const SORTS = Object.freeze(['recent', 'py', 'age']);
 /** 筛选（r7-C1 / D61 Q5）：字库首页三档（该复习了 / 还不太熟 / 记住了）+ 自选未写 + 自选字；旧的 wrong / forget 并入 due（写错过 ∪ 快忘了 = 该复习了）。 */
@@ -140,7 +141,7 @@ export function allModel(state, {
   pyOf = () => '', practicable = () => true,
 } = {}) {
   const { records } = recordsOfState(state);
-  const latest = latestJudgedByChar(records);
+  const latest = practicedByChar(records); // D66 ⑤：已练汉字 = 有判断 ∪ 看过答案（与字库首页、我的同一个函数）
   const byNew = [...latest.values()].sort((a, b) => compareRecordIds(b.id, a.id));
   const custom = customCharsOf(state && state.custom);
   const hollow = custom.filter(c => !latest.has(c));

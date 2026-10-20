@@ -11,7 +11,9 @@ import { validateValue, KEYS } from '../../src/core/schema.js';
 const DAY = '2026-09-24';
 const YDAY = '2026-09-23';
 const at = (day, h = 9) => new Date(`${day}T${String(h).padStart(2, '0')}:00:00`).getTime();
-const CAP_DECK = { newCandidates: () => [], practicable: key => key.startsWith('base:') };
+// 练习范围里还有没写过的字（甲乙）：学完范围的首页另见 D66 ⑩ 用例
+const CAP_DECK = { newCandidates: () => ['base:甲', 'base:乙'], practicable: key => key.startsWith('base:') };
+const DONE_DECK = { newCandidates: () => ['base:永', 'base:和'], practicable: key => key.startsWith('base:') };
 
 function rec(n, c, { kind = 'judged', judgment = 'correct', day = DAY } = {}) {
   const r = { id: `r${n}`, cardKey: `base:${c}`, char: c, sessionId: 's9', kind, at: at(day, 8) + n, localDay: day,
@@ -51,6 +53,20 @@ test('the home model carries no copybook, no recent row, no progress cells, no h
 test('six states: the main button word (homeCtaKey)', () => {
   const words = Object.fromEntries(Object.entries(STATES).map(([name, make]) => [name, t(homeCtaKey(make()))]));
   assert.deepEqual(words, { first: '开始写字', fresh: '开始写字', progress: '继续写字', today: '再写一组', back: '开始写字', special: '开始写字' });
+});
+
+test('D66 ⑩: practice range finished and nothing to write → the main button is 换练习范围 (straight to the library switch page)', () => {
+  // 永、和 都写过（范围学完），没有到期字 → 开不了组
+  const sched = { 'base:永': { fsrs: { stability: 9, reps: 1, lapses: 0 }, due: '2026-10-30', lastJudgedAt: 0 }, 'base:和': { fsrs: { stability: 9, reps: 1, lapses: 0 }, due: '2026-10-30', lastJudgedAt: 0 } };
+  const done = homeModel({ ...state({ records: [rec(1, '永', { day: YDAY }), rec(2, '和', { day: YDAY })] }), sched }, at(DAY), { deck: DONE_DECK });
+  assert.equal(done.switchLibrary, true);
+  assert.equal(t(homeCtaKey(done)), '换练习范围');
+  // 还有一个到期字：照常开组（有多少到期出多少），按钮不变
+  const oneDue = homeModel({ ...state({ records: [rec(1, '永', { day: YDAY }), rec(2, '和', { day: YDAY })] }), sched: { ...sched, 'base:和': { ...sched['base:和'], due: DAY } } }, at(DAY), { deck: DONE_DECK });
+  assert.equal(oneDue.switchLibrary, false);
+  assert.equal(t(homeCtaKey(oneDue)), '开始写字');
+  // 还有新字：不变
+  assert.equal(homeModel({ ...state({ records: [rec(1, '永', { day: YDAY })] }), sched }, at(DAY), { deck: CAP_DECK }).switchLibrary, false);
 });
 
 test('the two extra lines: back = 「你写过的 N 个字都还在。」 with the real N, special = the special-group sentence; nothing else has one', () => {

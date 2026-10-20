@@ -301,6 +301,30 @@ export function latestJudgedByCard(records) {
   return latest;
 }
 
+/**
+ * 「已练汉字」（D66 ⑤，覆盖 D60 / D62「只数有判断记录的字」；字库首页、全部页、我的、首页回来态同一个函数）：
+ * 有判断记录的字取最近一次判断；从没判断过、但看过答案的字取最近一次「看过答案」记录（它进字库「待复习」）。
+ * 按字聚合（一字一卡）。返回 Map<char, record>。只跳过、没看过答案也没判断过的字不在里面（在「已跳过」）。
+ */
+export function practicedByChar(records) {
+  const judged = new Map();
+  const seen = new Map();
+  for (const r of records || []) {
+    if (!r || typeof r.char !== 'string') continue;
+    const into = isJudged(r) ? judged : r.kind === 'answer-seen' ? seen : null;
+    if (!into) continue;
+    const prev = into.get(r.char);
+    if (!prev || compareRecordIds(prev.id, r.id) < 0) into.set(r.char, r);
+  }
+  for (const [char, r] of seen) if (!judged.has(char)) judged.set(char, r);
+  return judged;
+}
+
+/** 这条「最近一次」是不是「只看过答案、还没判断过」（D66 ⑤）。 */
+export function isSeenOnly(record) {
+  return !!record && record.kind === 'answer-seen';
+}
+
 export function latestJudged(records, cardKey) {
   return latestJudgedByCard((records || []).filter((r) => r.cardKey === cardKey)).get(cardKey) || null;
 }

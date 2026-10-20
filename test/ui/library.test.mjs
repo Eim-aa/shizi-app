@@ -32,7 +32,7 @@ function state({ records = [], custom = null, sched = null, settings = null } = 
 
 const CHARS = Array.from('的一是在不了有和人这中大为上个国我以要他时来用们生到作地于出就分对成会可也你说年而');
 
-test('empty: no judged record → empty state (answer-seen / skipped do not count; custom only is still empty)', () => {
+test('empty: no record → empty state (skipped / custom only is still empty; D66 ⑤: an answer-seen char counts)', () => {
   const m0 = libraryHomeModel(null, TODAY);
   assert.equal(m0.empty, true);
   assert.equal(m0.recorded, 0);
@@ -42,7 +42,10 @@ test('empty: no judged record → empty state (answer-seen / skipped do not coun
     records: [rec(1, '永', { kind: 'answer-seen' }), rec(2, '和', { kind: 'skipped' })],
     custom: { added: [{ char: '馨', at: 1 }] },
   }), TODAY);
-  assert.equal(m1.empty, true, 'only answer-seen / skipped / custom → still empty (prototype noRec)');
+  assert.equal(m1.empty, false, 'D66 ⑤: an answer-seen char is 已练汉字 (in 待复习), so not empty');
+  assert.equal(m1.recorded, 1);
+  const m2 = libraryHomeModel(state({ records: [rec(2, '和', { kind: 'skipped' })], custom: { added: [{ char: '馨', at: 1 }] } }), TODAY);
+  assert.equal(m2.empty, true, 'only skipped / custom → still empty (prototype noRec)');
   assert.deepEqual(m1.hollow, ['馨']);
   assert.equal(m1.wall.more, 0);
 });

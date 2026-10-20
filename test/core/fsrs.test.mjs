@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadFSRSGlobal, loadFSRSInNewRealm, at, rec, policyWith } from './helpers.mjs';
+import * as policyModule from '../../src/config/policy.js';
+
+const policyFlat = () => ({ ...policyModule });
 import {
   FSRS_CONFIG,
   getFSRSLibrary,
@@ -11,12 +14,13 @@ import {
   ratingFor,
   reviewCard,
   applyJudgment,
+  applyAnswerSeen,
   replay,
   overdueDays,
   isDue,
   retrievability,
 } from '../../src/core/fsrs.js';
-import { addDays, diffDays } from '../../src/core/dates.js';
+import { addDays, diffDays, localDay } from '../../src/core/dates.js';
 import { correctRecord } from '../../src/core/records.js';
 
 const FSRS = loadFSRSGlobal();
@@ -34,9 +38,9 @@ test('fsrs: vendored library is ts-fsrs 5.2.0 / FSRS-6 and is read from globalTh
 test('fsrs: rating mapping — correct → Good, wrong → Again, hinted correct reads policy (P34)', async () => {
   assert.equal(ratingFor('correct', { hints: 0 }), 'Good');
   assert.equal(ratingFor('wrong', { hints: 2 }), 'Again');
-  // D65 #4：复习 1–2 次提示 Hard、3 次起 Again；新字第一次 1 次 Good、2 次 Hard、3 次起 Again
+  // D66 ②：复习 1 次提示 Hard、2 次起 Again（D65 #4 是 1–2 次 Hard）；新字第一次 1 次 Good、2 次 Hard、3 次起 Again（不变）
   assert.equal(ratingFor('correct', { hints: 1 }), 'Hard', 'review with 1 hint → Hard');
-  assert.equal(ratingFor('correct', { hints: 2 }), 'Hard');
+  assert.equal(ratingFor('correct', { hints: 2 }), 'Again', 'review with 2 hints (over half the strokes) → Again');
   assert.equal(ratingFor('correct', { hints: 3 }), 'Again');
   assert.equal(ratingFor('correct', { hints: 9 }), 'Again', 'beyond the table → last entry');
   assert.equal(ratingFor('correct', { hints: 1 }, undefined, { first: true }), 'Good');
@@ -52,8 +56,10 @@ test('fsrs: rating mapping — correct → Good, wrong → Again, hinted correct
 test('fsrs: Good and Again on a new card are both due tomorrow or later', () => {
   for (const judgment of ['correct', 'wrong']) {
     for (const hour of [0, 9, 23]) {
-      const { due, card } = reviewCard(null, { judgment, at: at(TODAY, hour, 30), help: { hints: 0 } });
-      assert.ok(due >= addDays(TODAY, 1), judgment + '@' + hour + ' → ' + due);
+      const ms = at(TODAY, hour, 30);
+      const { due, card } = reviewCard(null, { judgment, at: ms, help: { hints: 0 } });
+      // D66 ⑦：0:30 属于前一天（一天从 4 点起），「至少次日」按判断所在的那一天算
+      assert.ok(due >= addDays(localDay(ms), 1), judgment + '@' + hour + ' → ' + due);
       assert.ok(isCompactCard(card));
     }
   }
@@ -113,12 +119,12 @@ test('fsrs: correction replays from fsrsBefore, adds no record and gives a deter
 });
 
 test('fsrs: ratingWithHint changes scheduling while help facts stay on the record', async () => {
-  const r = rec(1, '静', 'judged', 'correct', TODAY, { hints: 2, at: at(TODAY, 20) });
+  const r = rec(1, '静', 'judged', 'correct', TODAY, { hints: 1, at: at(TODAY, 20) });
   const prior = applyJudgment(undefined, rec(0 + 1, '静', 'judged', 'correct', '2026-09-01', { at: at('2026-09-01', 20) })).entry;
   const good = applyJudgment(prior, r).entry;
   const again = applyJudgment(prior, r, { policy: await policyWith({ ratingWithHint: 'Again' }) }).entry;
   assert.ok(good.due > again.due, good.due + ' vs ' + again.due);
-  assert.equal(r.help.hints, 2);
+  assert.equal(r.help.hints, 1);
 });
 
 test('fsrs: applyJudgment keeps stoppedAt and rejects non-judged records', () => {
@@ -222,4 +228,113 @@ test('fsrs D41: warm-up characters are rated Easy when correct without a hint (P
   const warmWrong = reviewCard(warmFirst.entry.fsrs, rec(6, '春', 'judged', 'wrong', '2026-09-20', { at: at('2026-09-20', 20) }));
   assert.equal(warmWrong.rating, 'Again');
   assert.equal(reviewCard(warmFirst.entry.fsrs, { judgment: 'correct', at: at('2026-09-20', 20), cardKey: 'base:春' }, { warmup: false }).rating, 'Good', 'opts.warmup overrides');
+});
+
+// ---------------------------------------------------------------- D66 ① ②：看过答案 = 当天没写出来；提示 2 次起 Again
+
+/** 单字实验（产品体验评审 P2-01 / P2-02 同一套）：第 0 天 Easy、第 10 天 Good，第 56 天前后到期。 */
+function matureCard() {
+  const d0 = '2026-01-01';
+  const e0 = applyJudgment(undefined, rec(1, '静', 'judged', 'correct', d0, { at: at(d0, 20) })).entry;
+  const d10 = addDays(d0, 10);
+  return { d0, entry: applyJudgment(e0, rec(2, '静', 'judged', 'correct', d10, { at: at(d10, 20) })).entry };
+}
+
+test('fsrs D66 ①: a review char whose answer was seen gets one Again that day (not a judged record); a new char gets no schedule', () => {
+  const { entry } = matureCard();
+  const day = entry.due;
+  const seen = rec(3, '静', 'answer-seen', null, day, { at: at(day, 20) });
+  const out = applyAnswerSeen(entry, seen);
+  assert.equal(out.applied, true);
+  const wrong = applyJudgment(entry, rec(3, '静', 'judged', 'wrong', day, { at: at(day, 20) })).entry;
+  assert.deepEqual(out.entry.fsrs, wrong.fsrs, 'same FSRS step as writing it wrong (Again)');
+  assert.equal(out.entry.due, wrong.due);
+  assert.ok(diffDays(day, out.entry.due) <= 5, 'back within days: ' + diffDays(day, out.entry.due));
+  assert.equal(out.entry.seenAgainDay, day);
+  assert.equal(out.entry.lastJudgedAt, entry.lastJudgedAt, 'not a judgment: lastJudgedAt unchanged');
+  assert.equal(out.entry.fsrs.lapses, entry.fsrs.lapses + 1, 'counted as a lapse');
+  // 同一天第二次看答案：不再记
+  assert.equal(applyAnswerSeen(out.entry, rec(4, '静', 'answer-seen', null, day, { at: at(day, 21) })).applied, false, 'once a day');
+  // 当天已经判断过：不再记
+  const judgedToday = applyJudgment(entry, rec(5, '静', 'judged', 'correct', day, { at: at(day, 19) })).entry;
+  assert.equal(applyAnswerSeen(judgedToday, rec(6, '静', 'answer-seen', null, day, { at: at(day, 20) })).applied, false, 'already judged today');
+  // 新字：不建调度项
+  assert.equal(applyAnswerSeen(undefined, rec(7, '亦', 'answer-seen', null, day)).applied, false);
+  // 开关关（对照）
+  assert.equal(applyAnswerSeen(entry, seen, { policy: { ...policyFlat(), answerSeenRating: 'none' } }).applied, false);
+});
+
+test('fsrs D66 ① (P2-01 experiment): due day seen the answer, next day correct → back in days, not 7 months', () => {
+  const { entry } = matureCard();
+  const day = entry.due;
+  const next = addDays(day, 1);
+  // 修前：到期当天看答案不改调度，第二天写对按 Good → 约 178 天
+  const before = applyJudgment(entry, rec(4, '静', 'judged', 'correct', next, { at: at(next, 20) })).entry;
+  assert.ok(diffDays(next, before.due) > 100, 'old path: ' + diffDays(next, before.due) + ' days');
+  // D66 ①：看答案那天记 Again，第二天写对
+  const seen = applyAnswerSeen(entry, rec(3, '静', 'answer-seen', null, day, { at: at(day, 20) })).entry;
+  const after = applyJudgment(seen, rec(4, '静', 'judged', 'correct', next, { at: at(next, 20) })).entry;
+  assert.ok(diffDays(next, after.due) <= 14, 'seen → Again → correct next day: ' + diffDays(next, after.due) + ' days');
+  const wrongPath = applyJudgment(applyJudgment(entry, rec(3, '静', 'judged', 'wrong', day, { at: at(day, 20) })).entry, rec(4, '静', 'judged', 'correct', next, { at: at(next, 20) })).entry;
+  assert.deepEqual(after.fsrs, wrongPath.fsrs, 'same as writing it wrong that day');
+  assert.equal(after.seenAgainDay, undefined, 'the mark is cleared by the next real judgment');
+});
+
+test('fsrs D66 ①: a judgment written the same day after the answer was seen is not rated again (no second Again); corrections replay it', () => {
+  const { entry } = matureCard();
+  const day = entry.due;
+  const seen = applyAnswerSeen(entry, rec(3, '静', 'answer-seen', null, day, { at: at(day, 20) })).entry;
+  for (const judgment of ['wrong', 'correct']) {
+    const r = rec(4, '静', 'judged', judgment, day, { at: at(day, 20, 30), hints: 4 });
+    const { entry: held, fsrsBefore } = applyJudgment(seen, r);
+    assert.deepEqual(held.fsrs, seen.fsrs, judgment + ': FSRS card unchanged');
+    assert.equal(held.due, seen.due);
+    assert.equal(held.lastJudgedAt, r.at);
+    assert.equal(fsrsBefore.seenAgainDay, day, 'fsrsBefore carries the mark for replay');
+    // 本会话更正：改过去、改回来都按同一规则重放
+    assert.deepEqual(replay(fsrsBefore, [r]), held);
+    assert.deepEqual(replay(fsrsBefore, [correctRecord(r, judgment === 'wrong' ? 'correct' : 'wrong', at(day, 21))]), held, 'corrected: still held');
+  }
+  // 从头重放这个字的全部记录（judged + answer-seen）= 实际的调度项
+  const r4 = rec(4, '静', 'judged', 'correct', day, { at: at(day, 20, 30) });
+  const live = applyJudgment(seen, r4).entry;
+  const d10 = addDays('2026-01-01', 10);
+  const all = [rec(1, '静', 'judged', 'correct', '2026-01-01', { at: at('2026-01-01', 20) }), rec(2, '静', 'judged', 'correct', d10, { at: at(d10, 20) }),
+    rec(3, '静', 'answer-seen', null, day, { at: at(day, 20) }), r4];
+  assert.deepEqual(replay(null, all), live, 'full replay incl. answer-seen');
+  // 第二天的判断照常评级
+  const next = addDays(day, 1);
+  const tomorrow = applyJudgment(live, rec(5, '静', 'judged', 'correct', next, { at: at(next, 20) })).entry;
+  assert.notDeepEqual(tomorrow.fsrs, live.fsrs);
+});
+
+test('fsrs D66 ①: a new char whose answer was seen before its first judgment is not rated Easy (review mapping)', () => {
+  const day = TODAY;
+  const next = addDays(day, 1);
+  const seen = rec(1, '亦', 'answer-seen', null, day, { at: at(day, 20) });
+  const judged = rec(2, '亦', 'judged', 'correct', next, { at: at(next, 20) });
+  const clean = applyJudgment(undefined, judged);
+  const after = applyJudgment(undefined, judged, { records: [seen, judged] });
+  assert.ok(diffDays(next, clean.entry.due) >= 5, 'never seen: Easy ' + diffDays(next, clean.entry.due) + ' days');
+  assert.ok(diffDays(next, after.entry.due) <= 3, 'seen before: Good ' + diffDays(next, after.entry.due) + ' days');
+  assert.equal(after.fsrsBefore.seenBefore, true);
+  assert.deepEqual(replay(after.fsrsBefore, [judged]), after.entry, 'correction replay keeps the rule');
+  assert.deepEqual(replay(null, [seen, judged]), after.entry, 'full replay keeps the rule');
+  // 带提示：按复习一档（1 次 Hard，2 次起 Again）
+  const hinted = rec(2, '亦', 'judged', 'correct', next, { at: at(next, 20), hints: 2 });
+  const h = applyJudgment(undefined, hinted, { records: [seen, hinted] });
+  assert.equal(h.entry.due, addDays(next, 1), 'seen before + 2 hints → Again');
+  // 看答案在判断之后（id 更大）不算
+  const later = rec(3, '亦', 'answer-seen', null, next, { at: at(next, 21) });
+  assert.deepEqual(applyJudgment(undefined, judged, { records: [judged, later] }).entry, clean.entry);
+});
+
+test('fsrs D66 ② (P2-02 experiment): on a mature char, 2 hints now give the same short interval as a wrong answer', () => {
+  const { entry } = matureCard();
+  const day = entry.due;
+  const one = applyJudgment(entry, rec(3, '静', 'judged', 'correct', day, { at: at(day, 20), hints: 1 })).entry;
+  const two = applyJudgment(entry, rec(3, '静', 'judged', 'correct', day, { at: at(day, 20), hints: 2 })).entry;
+  const wrong = applyJudgment(entry, rec(3, '静', 'judged', 'wrong', day, { at: at(day, 20) })).entry;
+  assert.ok(diffDays(day, one.due) > 30, '1 hint → Hard: ' + diffDays(day, one.due));
+  assert.equal(two.due, wrong.due, '2 hints → Again = wrong');
 });

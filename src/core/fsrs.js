@@ -3,7 +3,16 @@
 //   ① 新字第一次判断就写对（无提示）→ policy.ratingFirstCorrect（P127，Easy）；② 热身字写对（无提示）→ Easy（policy.warmup.easyOnCorrect，P126）。
 // 带提示写对读 policy.ratingWithHint（P34，D65 #4）：按提示次数分档、新字第一次与复习分开——提示越多评级越低（复习：1–2 次 Hard、3 次起 Again；
 // 新字第一次：1 次 Good、2 次 Hard、3 次起 Again）。整字都给出 = 看过答案，不生成判断（write/answer.js），不走这里。
-// 看过答案、跳过不评级、不改 due。
+// 跳过不评级、不改 due。
+// 看过答案（D66 ①，policy.answerSeenRating P321，覆盖 D65 #5 的「看答案不改调度」）：
+//   - 复习字（已有调度项、评过级）看了答案 = 当天记一次「没写出来」（Again，不生成判断记录）：applyAnswerSeen，调度项记 seenAgainDay。
+//     一个字一天只记一次：当天已经判断过（或已经因为看答案记过 Again）的字再看答案不再记。
+//   - 同一天、看过答案之后又写了判断（提示给完整字后接着写、或当天自选组又写到它）：这次判断不再进 FSRS（不会记第二次 Again，
+//     写对也不加分——答案已经看过了），只更新 lastJudgedAt；判断记录照常存。
+//   - 新字（还没有调度项）看了答案：不建调度项（「调度项存在 ⇒ 有判断记录」不变），之后第一次判断不再给 Easy——
+//     按复习口径评级（无提示写对 Good；带提示 policy.ratingWithHint.review），因为那次已经不是「第一次凭记忆写出来」。
+//   本会话更正（replay）要能重放这两种情形：applyJudgment 返回的 fsrsBefore 上带标记（seenAgainDay = 当天已记过看答案的 Again；
+//   seenBefore = 新字判断前看过答案），只给 replay 读，不进调度项。
 // Again 后直接采用 FSRS 返回的 due（至少次日），不再悬置。
 //
 // 确定性：ts-fsrs 的 fuzz 种子由 review 时间与卡状态决定，同一 records 序列重放得到同一 due。
@@ -123,7 +132,7 @@ export function isCompactCard(value) {
 
 function toLibraryCard(compact) {
   // TypeConvert.card 接受 ISO 字符串；last_review 为 null 时给 undefined（与库的新卡一致）。
-  const out = { ...compact };
+  const out = { ...stripMarks(compact) };
   if (out.last_review === null) delete out.last_review;
   return out;
 }
@@ -169,9 +178,19 @@ function hintedRating(cfg, hints, first) {
   return list[Math.min(hints, list.length) - 1];
 }
 
-/** 这张卡是不是「第一次判断」：没有卡，或卡还没有被评过级（reps 0、新卡状态）。 */
+/** 这张卡是不是「第一次判断」：没有卡，或卡还没有被评过级（reps 0、新卡状态）；判断前看过答案的新字（seenBefore，D66 ①）不算。 */
 function isFirstReview(before) {
+  if (before && before.seenBefore === true) return false;
   return !before || (Number(before.reps) || 0) === 0;
+}
+
+/** fsrsBefore 上给 replay 用的标记（D66 ①）；进库、进调度项之前去掉。 */
+const REPLAY_MARKS = Object.freeze(['seenAgainDay', 'seenBefore']);
+function stripMarks(card) {
+  if (!card || !REPLAY_MARKS.some((k) => k in card)) return card;
+  const out = { ...card };
+  for (const k of REPLAY_MARKS) delete out[k];
+  return out;
 }
 
 /**
@@ -203,16 +222,78 @@ export function reviewCard(before, review, opts = {}) {
   return clockBackMs ? { card, due, rating, clockBackMs } : { card, due, rating };
 }
 
+/** 卡上次评级（判断或看答案的 Again）是不是在 day 这一天。 */
+function reviewedOn(card, day, policy) {
+  if (!card || !card.last_review) return false;
+  const ms = Date.parse(card.last_review);
+  return Number.isFinite(ms) && localDay(ms, policy) === day;
+}
+
+/**
+ * 看过答案要不要记一次 Again（D66 ①，P321）：policy.answerSeenRating === 'Again'、卡已评过级（复习字）、没停、
+ * 这一天还没评过级（没判断过、也没因为看答案记过 Again）。
+ */
+export function answerSeenAgainApplies(entry, record, policy = defaultPolicy) {
+  if (!policy || policy.answerSeenRating !== 'Again') return false;
+  if (!record || record.kind !== 'answer-seen' || !entry || !entry.fsrs || entry.stoppedAt !== undefined) return false;
+  if ((Number(entry.fsrs.reps) || 0) === 0) return false;
+  if (entry.seenAgainDay === record.localDay) return false;
+  return !reviewedOn(entry.fsrs, record.localDay, policy);
+}
+
+/** 调度项的字段顺序固定（更正往返要逐字节相同）：fsrs, due, lastJudgedAt, seenAgainDay?, stoppedAt?。 */
+function entryOf(fsrs, due, lastJudgedAt, seenAgainDay, stoppedAt) {
+  const out = { fsrs, due, lastJudgedAt };
+  if (seenAgainDay) out.seenAgainDay = seenAgainDay;
+  if (stoppedAt !== undefined) out.stoppedAt = stoppedAt;
+  return out;
+}
+
+/**
+ * 看过答案后的调度项（D66 ①）：复习字当天第一次「没写出来」记一次 Again（不生成判断，lastJudgedAt 不变），记 seenAgainDay；
+ * 其余情形（新字、当天已评过级、开关关）原样返回。
+ * @returns {{entry: object|undefined, applied: boolean}}
+ */
+export function applyAnswerSeen(entry, record, opts = {}) {
+  const policy = opts.policy || defaultPolicy;
+  if (!answerSeenAgainApplies(entry, record, policy)) return { entry, applied: false };
+  const { card, due } = reviewCard(entry.fsrs, { judgment: 'wrong', at: record.at, cardKey: record.cardKey }, opts);
+  return { entry: entryOf(card, due, entry.lastJudgedAt, record.localDay, entry.stoppedAt), applied: true };
+}
+
+/** records 里 cardKey 在 beforeId 之前有没有「看过答案」记录（新字判断前看过答案，D66 ①）。 */
+function seenBeforeIn(records, cardKey, beforeId) {
+  if (!Array.isArray(records)) return false;
+  const serial = (id) => {
+    const m = /^r(\d+)$/.exec(String(id));
+    return m ? Number(m[1]) : NaN;
+  };
+  const limit = serial(beforeId);
+  return records.some((r) => r && r.kind === 'answer-seen' && r.cardKey === cardKey && (!Number.isFinite(limit) || serial(r.id) < limit));
+}
+
 /**
  * 判断落定后的调度项。返回新的 sched 项与判断前的卡（存到 Session.items[i].fsrsBefore 供本会话更正重放）。
+ * D66 ①：当天已因看答案记过 Again 的字，这次判断不再进 FSRS（只更新 lastJudgedAt）；新字判断前看过答案（opts.records 里有它的
+ * answer-seen 记录）按复习口径评级。这两种情形 fsrsBefore 带标记（seenAgainDay / seenBefore），replay 照同样的规则重放。
  * @param {object|undefined} entry 现有 sched[cardKey]
  * @param {{judgment, at, help}} record 刚写入的 judged 记录
+ * @param {{policy?:object, records?:Array, lib?:object}} [opts] records = 全部记录（找「判断前看过答案」；缺省不找）
  */
 export function applyJudgment(entry, record, opts = {}) {
   if (!record || record.kind !== 'judged') throw new RangeError('applyJudgment expects a judged record');
+  const at = toMs(record.at);
+  if (entry && entry.fsrs && entry.seenAgainDay && entry.seenAgainDay === record.localDay) {
+    // 今天已经因为看答案记过一次 Again：这次判断是看过答案以后写的，不再评级（不记两次 Again，写对也不加分）
+    return {
+      entry: entryOf(entry.fsrs, entry.due, at, entry.seenAgainDay, entry.stoppedAt),
+      fsrsBefore: { ...entry.fsrs, seenAgainDay: entry.seenAgainDay },
+    };
+  }
   // 新字的「判断前的卡」= 在判断时刻创建的空卡（与 reviewCard(null) 等价，重放结果相同）；
   // 始终存对象，schema 的 items[].fsrsBefore 只收对象。
-  const fsrsBefore = entry && entry.fsrs ? entry.fsrs : emptyCard(record.at, opts);
+  let fsrsBefore = entry && entry.fsrs ? entry.fsrs : emptyCard(record.at, opts);
+  if (!(entry && entry.fsrs) && seenBeforeIn(opts.records, record.cardKey, record.id)) fsrsBefore = { ...fsrsBefore, seenBefore: true };
   const { card, due, clockBackMs } = reviewCard(fsrsBefore, record, opts);
   if (clockBackMs) {
     // D65 #3：只记诊断，不让提交失败（与 app.js 等处同一做法：console.warn '[shizi] …'）。
@@ -220,32 +301,61 @@ export function applyJudgment(entry, record, opts = {}) {
       console.warn('[shizi] fsrs: judged before last review (clock moved back ' + Math.round(clockBackMs / 60000) + ' min); clamped to last review', record.cardKey || '');
     }
   }
-  const next = { fsrs: card, due, lastJudgedAt: toMs(record.at) };
-  if (entry && entry.stoppedAt !== undefined) next.stoppedAt = entry.stoppedAt;
-  return { entry: next, fsrsBefore };
+  return { entry: entryOf(card, due, at, null, entry ? entry.stoppedAt : undefined), fsrsBefore };
 }
 
 /**
- * 从 fsrsBefore 依次重放若干 judged 记录（按 id 顺序、以各自 at 为 review 时间）。
- * 用于决定-D19 更正：只改 judgment，重放本会话此字的记录，得到确定的新 sched 项。
- * @param {object|null} fsrsBefore 判断前的卡（Session.items[i].fsrsBefore）；null 等同新卡
+ * 从 fsrsBefore 依次重放若干记录（按 id 顺序、以各自 at 为 review 时间），与 applyJudgment / applyAnswerSeen 同一套规则：
+ *   judged       → 评级（当天已因看答案记过 Again 的不再评级，D66 ①）；
+ *   answer-seen  → 复习字当天第一次记 Again（D66 ①）；其余记录忽略。
+ * 用于决定-D19 更正：只改 judgment，重放本会话此字的记录，得到确定的新 sched 项；也用于从头重放一个字的全部记录（core/mix.js）。
+ * @param {object|null} fsrsBefore 判断前的卡（Session.items[i].fsrsBefore，可带 seenAgainDay / seenBefore 标记）；null 等同新卡
  * @returns {object|null} 新 sched 项；没有可重放的 judged 记录时返回 null（调用方保留原 sched 项）
  */
 export function replay(fsrsBefore, records, opts = {}) {
-  let card = fsrsBefore || null;
+  const policy = opts.policy || defaultPolicy;
+  let card = fsrsBefore ? stripMarks(fsrsBefore) : null;
+  let seenAgainDay = fsrsBefore && typeof fsrsBefore.seenAgainDay === 'string' ? fsrsBefore.seenAgainDay : null;
+  let seenBefore = !!(fsrsBefore && fsrsBefore.seenBefore === true);
   let due = null;
   let lastJudgedAt = null;
+  let judgedAny = false;
   for (const record of records || []) {
-    if (!record || record.kind !== 'judged') continue;
-    const step = reviewCard(card, record, opts);
+    if (!record) continue;
+    if (record.kind === 'answer-seen') {
+      if (!card || (Number(card.reps) || 0) === 0) {
+        seenBefore = true; // 新字：不建卡，之后第一次判断按复习口径
+        continue;
+      }
+      const probe = { fsrs: card, seenAgainDay };
+      if (!answerSeenAgainApplies(probe, record, policy)) continue;
+      const step = reviewCard(card, { judgment: 'wrong', at: record.at, cardKey: record.cardKey }, opts);
+      card = step.card;
+      due = step.due;
+      seenAgainDay = record.localDay;
+      continue;
+    }
+    if (record.kind !== 'judged') continue;
+    judgedAny = true;
+    lastJudgedAt = toMs(record.at);
+    if (card && seenAgainDay && seenAgainDay === record.localDay) {
+      // 当天已因看答案记过 Again：这次判断不再评级
+      if (due === null) {
+        const fsrsDay = localDay(toMs(card.due), policy);
+        const next = addDays(record.localDay, 1);
+        due = fsrsDay > next ? fsrsDay : next;
+      }
+      continue;
+    }
+    const before = !card && seenBefore ? { ...emptyCard(record.at, opts), seenBefore: true } : card && seenBefore && (Number(card.reps) || 0) === 0 ? { ...card, seenBefore: true } : card;
+    const step = reviewCard(before, record, opts);
     card = step.card;
     due = step.due;
-    lastJudgedAt = toMs(record.at);
+    seenAgainDay = null;
+    seenBefore = false;
   }
-  if (due === null) return null;
-  const out = { fsrs: card, due, lastJudgedAt };
-  if (opts.stoppedAt !== undefined) out.stoppedAt = opts.stoppedAt;
-  return out;
+  if (!judgedAny || due === null) return null;
+  return entryOf(card, due, lastJudgedAt, seenAgainDay, opts.stoppedAt);
 }
 
 /** sched 项相对 today 的逾期天数（未到期为负；无 due 为 null）。 */

@@ -25,7 +25,7 @@
 
 import * as defaultPolicy from '../../../config/policy.js';
 import { diffDays, isValidDay } from '../../../core/dates.js';
-import { compareRecordIds, forgetList, isJudged } from '../../../core/records.js';
+import { compareRecordIds, forgetList, isJudged, practicedByChar } from '../../../core/records.js';
 import { overdueDays } from '../../../core/fsrs.js';
 import { homeModel } from '../home/today.js';
 import { aStartInfo, planDaily } from '../../../core/session-start.js';
@@ -123,7 +123,7 @@ export function firstRecordDay(records, foldedDays = []) {
  */
 export function libraryHomeModel(state, today, { policy = defaultPolicy, compact = false, width = null } = {}) {
   const { records, foldedDays } = recordsOfState(state);
-  const latest = latestJudgedByChar(records);
+  const latest = practicedByChar(records); // D66 ⑤：已练汉字 = 有判断 ∪ 看过答案
   const recorded = latest.size;
   const hollow = customCharsOf(state && state.custom).filter(c => !latest.has(c));
   const firstDay = recorded ? firstRecordDay(records, foldedDays) : null;
@@ -191,8 +191,16 @@ export function cardMini(items, kind) { // eslint-disable-line no-unused-vars
 
 // ---------------------------------------------------------------- r7-L1（D60）：字库首页的「今天要写」与三档记忆状态
 
-/** 记住了：稳定度 ≥ 这么多天（D60：三周以上才回来一次）。 */
-export const KNOWN_STABILITY_DAYS = 21;
+/** 记住了：稳定度 ≥ 这么多天（D60：三周以上才回来一次；数值在 policy.knownZone，P322）。 */
+export const KNOWN_STABILITY_DAYS = defaultPolicy.knownZone.stabilityDays;
+/** 已熟悉还要至少几次「想起来了」（D66 ⑰，policy.knownZone.minSuccesses，P322）。 */
+export const KNOWN_MIN_SUCCESSES = defaultPolicy.knownZone.minSuccesses;
+
+/** 调度项上「想起来了」的次数：评过级、不是 Again 的次数（FSRS reps − lapses；D66 ⑰）。 */
+export function successesOf(entry) {
+  if (!entry || !entry.fsrs) return 0;
+  return Math.max(0, (Number(entry.fsrs.reps) || 0) - (Number(entry.fsrs.lapses) || 0));
+}
 /** 区样字个数（D60：每行最多三个）。 */
 export const ZONE_SAMPLE_MAX = 3;
 /** 三档，自上而下（D60）。 */
@@ -202,35 +210,43 @@ export const MEMORY_ZONES = Object.freeze(['due', 'shaky', 'known']);
  */
 export const ZONE_TONE = Object.freeze({ due: 3, shaky: 1, known: 0 });
 
-/** 一个字落在哪一档（纯函数）：最近一次写错或今天到期 → due；未到期且稳定度 < 21 天（没有调度项按 0 算）→ shaky；其余 known。 */
-export function memoryZoneOf(record, entry, today, knownDays = KNOWN_STABILITY_DAYS) {
+/**
+ * 一个字落在哪一档（纯函数）：最近一次写错、今天到期、或只看过答案还没判断过（D66 ⑤）→ due；
+ * 未到期、稳定度 ≥ 21 天且至少 3 次「想起来了」（D66 ⑰，policy.knownZone）→ known；其余（没有调度项按稳定度 0 算）→ shaky。
+ */
+export function memoryZoneOf(record, entry, today, knownDays = KNOWN_STABILITY_DAYS, minSuccesses = KNOWN_MIN_SUCCESSES) {
   if (record && record.judgment === 'wrong') return 'due';
+  if (record && record.kind === 'answer-seen') return 'due';
   if (entry && entry.stoppedAt === undefined) {
     const od = overdueDays(entry, today);
     if (od !== null && od >= 0) return 'due';
   }
   const stability = entry && entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0;
-  return stability >= knownDays ? 'known' : 'shaky';
+  return stability >= knownDays && successesOf(entry) >= minSuccesses ? 'known' : 'shaky';
 }
 
 /**
- * 三档记忆状态（D60）：只看每个字最近一次 judged 记录（latestJudgedByChar）与它的 sched 项。
- * 三档互斥、合计 = recorded。每档内部顺序 = 最该练在前：due 里最近写错的在前、其余按逾期天数降序；shaky / known 按到期日升序（快到期的在前）。
+ * 三档记忆状态（D60）：只看每个字最近一次 judged 记录与它的 sched 项；从没判断过、只看过答案的字（D66 ⑤）也算进来，归「待复习」
+ * （core/records.js practicedByChar，record 是那条「看过答案」记录）。
+ * 三档互斥、合计 = recorded（已练汉字：有判断记录 ∪ 看过答案的字，首页 / 我的 / 全部页同一个数）。
+ * 每档内部顺序 = 最该练在前：due 里最近写错的在前、再是只看过答案的（最近的在前）、其余按逾期天数降序；shaky / known 按到期日升序（快到期的在前）。
  * @returns {{recorded:number, zones:{due,shaky,known}}} 每档 {kind, n, items:[{char, cardKey, record, tone}]}（tone = ZONE_TONE[kind]）
  */
-export function memoryZones(state, today, { knownDays = KNOWN_STABILITY_DAYS } = {}) {
+export function memoryZones(state, today, { knownDays = KNOWN_STABILITY_DAYS, minSuccesses = KNOWN_MIN_SUCCESSES } = {}) {
   const { records } = recordsOfState(state);
-  const latest = latestJudgedByChar(records);
+  const latest = practicedByChar(records);
   const sched = (state && state.sched) || {};
   const buckets = { due: [], shaky: [], known: [] };
   for (const record of latest.values()) {
     const entry = sched[record.cardKey];
-    const kind = memoryZoneOf(record, entry, today, knownDays);
+    const kind = memoryZoneOf(record, entry, today, knownDays, minSuccesses);
     const dueDay = entry && isValidDay(entry.due) ? entry.due : '9999-12-31';
-    buckets[kind].push({ char: record.char, cardKey: record.cardKey, record, dueDay, wrong: record.judgment === 'wrong' });
+    // 待复习里的先后：最近写错（0）→ 只看过答案（1）→ 到期（2）
+    const rank = record.judgment === 'wrong' ? 0 : record.kind === 'answer-seen' ? 1 : 2;
+    buckets[kind].push({ char: record.char, cardKey: record.cardKey, record, dueDay, rank });
   }
   const byDue = (a, b) => (a.dueDay < b.dueDay ? -1 : a.dueDay > b.dueDay ? 1 : compareRecordIds(a.record.id, b.record.id));
-  buckets.due.sort((a, b) => (a.wrong === b.wrong ? (a.wrong ? compareRecordIds(b.record.id, a.record.id) : byDue(a, b)) : a.wrong ? -1 : 1));
+  buckets.due.sort((a, b) => (a.rank === b.rank ? (a.rank < 2 ? compareRecordIds(b.record.id, a.record.id) : byDue(a, b)) : a.rank - b.rank));
   buckets.shaky.sort(byDue);
   buckets.known.sort(byDue);
   const zones = {};
@@ -246,14 +262,14 @@ export const SKIPPED_TONE = 3;
 
 /**
  * 「已跳过」一档（D62）：写字页点过「跳过」（一条 kind='skipped' 记录，写字页 skip.js 经 store.commit 追加；撤销会删掉它）、
- * 并且这个字至今没有任何 judged 记录的字。已经写过（有 judged 记录）的字回到三档里，不再出现在这里；不计入 recorded（已练汉字数）。
+ * 并且这个字至今没有任何 judged 记录、也没看过答案（D66 ⑤：看过答案的在「待复习」）的字。已经写过（有 judged 记录）的字回到三档里，不再出现在这里；不计入 recorded（已练汉字数）。
  * 每个字取最近一次跳过的那条记录，最近跳过的排前（按 id 序号）。
  * 注意：最旧月份折叠（store/budget.js fold）只保留 judged 记录，所以折叠月份里的跳过记录不再计入。
  * @returns {{kind:'skipped', n:number, items:[{char, cardKey, record, tone}]}}
  */
 export function skippedZone(state) {
   const { records } = recordsOfState(state);
-  const judged = latestJudgedByChar(records);
+  const judged = practicedByChar(records); // 看过答案的字已在「待复习」（D66 ⑤），不再算已跳过
   const latest = new Map();
   for (const r of records) {
     if (!r || r.kind !== 'skipped' || typeof r.char !== 'string' || judged.has(r.char)) continue;

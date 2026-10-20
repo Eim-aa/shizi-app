@@ -51,6 +51,7 @@ export default Object.freeze({
   'X-HOME.continue': '继续写字',
   // X-HOME（M2-1 首页：原型首页壳-v3 L44 / L56 / L57 / L71 / L74 / L81 的装饰字与入口；开组写入失败说明，P55 待文案）
   'X-HOME.pick': '自己选字',
+  'X-HOME.switchLibrary': '换练习范围',
   'X-HOME.startFailed': '没保存上，刚才的选择没记下。',
   // X-HOME（阶段 1 P1-E5，设计稿「首练与首页」：首次打开、日常首页五态；全部是过渡文案，阶段 1 文案统一时定稿）
   'X-HOME.mottoLine1': '提笔忘字，',

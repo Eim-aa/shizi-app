@@ -149,10 +149,12 @@ export default async function run(page, { baseURL, assert, step, root }) {
     const home = document.querySelector('[data-testid="library-home"]');
     return { recorded: Number(home.dataset.recorded) };
   });
-  assert.equal(lib.recorded, expChars.size, `字库: ${lib.recorded} chars with records`);
+  // D66 ⑤：字库的已练汉字 = 有判断 ∪ 看过答案（v1 的 miss 迁成看过答案）
+  assert.equal(lib.recorded, R.practicedByChar(expRecords).size, `字库: ${lib.recorded} chars with records or seen`);
   await push(page, '/src/ui/screens/library/list.js', 'openList', 'wrong');
   await page.waitForSelector(topSel('list-screen'));
-  await page.click(topSel('list-rest-toggle')); // B4：默认只露最该练的 5 行，其余折叠
+  // B4：默认只露最该练的 N 行（N = 每组字数，D66 ⑬），其余折叠；写错过不多于 N 个时没有折叠
+  if (await page.$(topSel('list-rest-toggle'))) await page.click(topSel('list-rest-toggle'));
   const wrongChars = await page.evaluate(() => [...document.querySelectorAll('.sz-layer[data-top="true"] [data-testid="list-row"]')].map(el => el.dataset.char).sort());
   assert.deepEqual(wrongChars, expWrong, 'wrong list = chars whose latest judged record is wrong');
 

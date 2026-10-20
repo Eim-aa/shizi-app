@@ -9,7 +9,7 @@ test('policy D41: groupMix (P125) matches the recommendation in 复习新字配�
     {
       baseSize: 5, newMax: 3, threeNewBelowDays: 0.5, threeNewMinAccuracy: 0.6, twoNewBelowDays: 1.5, valveDays: 4, valveReleaseDays: 2, reviewsPerGroupForPressure: 4,
       pressureWindowDays: 7, recentNewWindow: 10, newAccuracyPrior: 0.5, allAccuracyPrior: 0.7, accuracyPriorWeight: 2, returnAfterDays: 7, returnGroupSize: 3,
-      earlyReviewFill: true, earlyCountsTowardCap: false,
+      earlyReviewFill: true, earlyCountsTowardCap: false, earlyFillWhenExhausted: false,
     },
   );
   assert.ok(Object.isFrozen(policy.groupMix));
@@ -23,5 +23,6 @@ test('policy D41: warmup gate (P126) and first-correct rating (P127)', () => {
   assert.deepEqual({ ...policy.warmup }, { mode: 'gated', firstDays: 7, accuracyBelow: 0.6, window: 10, perGroupMax: 1, easyOnCorrect: true });
   assert.ok(Object.isFrozen(policy.warmup));
   assert.equal(policy.ratingFirstCorrect, 'Easy');
-  assert.deepEqual({ first: [...policy.ratingWithHint.first], review: [...policy.ratingWithHint.review] }, { first: ['Good', 'Hard', 'Again'], review: ['Hard', 'Hard', 'Again'] }, 'P34 D65 #4');
+  assert.deepEqual({ first: [...policy.ratingWithHint.first], review: [...policy.ratingWithHint.review] }, { first: ['Good', 'Hard', 'Again'], review: ['Hard', 'Again', 'Again'] }, 'P34 D65 #4 / D66 ②');
+  assert.equal(policy.answerSeenRating, 'Again', 'P321 D66 ①');
 });

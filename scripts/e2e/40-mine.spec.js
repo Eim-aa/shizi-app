@@ -433,7 +433,8 @@ export default async function run(page, ctx) {
   await page.waitForTimeout(100);
   v = await mineView(page);
   assert.equal(v.state, 'empty', 'answer-seen / skipped do not count as records');
-  assert.deepEqual([v.overview.streak, v.overview.total, v.overview.chars], [0, 0, 0], 'answer-seen / skipped days are not practice days');
+  // D66 ⑤：看过答案的字算已练汉字（与字库同一个数）；仍是空态、没有练习天数
+  assert.deepEqual([v.overview.streak, v.overview.total, v.overview.chars], [0, 0, 1], 'answer-seen / skipped days are not practice days; the seen char counts as 已练汉字');
 
   step('no records: practice log (records empty design)');
   await openRecordsFromMine(page);
@@ -481,8 +482,8 @@ export default async function run(page, ctx) {
   for (let d = allDays.has(TODAY) ? TODAY : dayBefore(TODAY); allDays.has(d); d = dayBefore(d)) streak += 1;
   assert.equal(v.overview.total, allDays.size, 'overview total = judged days ∪ folded ∪ legacy.days (oracle)');
   assert.equal(v.overview.streak, streak, 'overview streak (oracle)');
-  assert.deepEqual([v.overview.streak, v.overview.total, v.overview.chars], [3, 11, 10],
-    'literal: 9-24, 9-23 (legacy only), 9-22 = 3 days in a row (9-21 skipped only); 11 days in all (7 judged + 2 folded + 2 legacy); 10 chars with a judged record');
+  assert.deepEqual([v.overview.streak, v.overview.total, v.overview.chars], [3, 11, 11],
+    'literal: 9-24, 9-23 (legacy only), 9-22 = 3 days in a row (9-21 skipped only); 11 days in all (7 judged + 2 folded + 2 legacy); 10 chars with a judged record + 1 seen-only char (D66 ⑤)');
   assert.deepEqual(v.sheet, { month: '2026-09', count: o9.sheet.length, shown: o9.sheet.length, truncated: false, days: o9.monthDays.length },
     'sheet counts from records');
   assert.equal(v.sheetTitle, COPY.sheetTitle(9), 'R-P02 「9月字帖」');

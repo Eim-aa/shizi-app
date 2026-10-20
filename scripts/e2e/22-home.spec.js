@@ -344,7 +344,8 @@ export default async function run(page, ctx) {
   await backToHome(page);
 
   step('records, no group: 拾 → today’s practice (daily group of 20: D65 每组字数缺省 20)');
-  await setup(page, { seed: { records: byMonth(todayRecs) } });
+  // 首练在上个月（新用户前 3 天每组新字封顶，D66 ⑫，另测）
+  await setup(page, { seed: { records: byMonth([rec(100, '尴', { day: '2026-08-28' }), ...todayRecs.map(r => ({ ...r }))]) } });
   await page.click(tid('home-start'));
   await waitWrite(page, 'A');
   st = await state(page);

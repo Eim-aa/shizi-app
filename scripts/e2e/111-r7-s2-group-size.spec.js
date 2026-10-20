@@ -44,7 +44,7 @@ export default async function run(page, ctx) {
   const { assert, step } = ctx;
   await bootTestHost(page, ctx.baseURL);
   // 写过一次（不是首练），没有到期字：今天的练习全是新字，组大小 = 每组字数
-  const rec = { id: 'r1', cardKey: 'base:数', char: '数', sessionId: 's900', kind: 'judged', judgment: 'correct', at: new Date('2026-09-23T08:00:00').getTime(), localDay: '2026-09-23',
+  const rec = { id: 'r1', cardKey: 'base:数', char: '数', sessionId: 's900', kind: 'judged', judgment: 'correct', at: new Date('2026-09-21T08:00:00').getTime(), localDay: '2026-09-21', // 三天前（新用户前 3 天的新字封顶 D66 ⑫ 不在这里测）
     help: { hints: 0, answerSeen: false, traced: false } };
   await seed(page, { records: { '2026-09': [rec] } });
   await toTab(page, 'mine');

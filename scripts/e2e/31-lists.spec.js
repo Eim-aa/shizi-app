@@ -75,7 +75,7 @@ async function setup(page, { records, due = {} }) {
       sched[r.cardKey] = applyJudgment(prev, r).entry;
     }
     for (const [key, day] of Object.entries(dd)) sched[key] = { ...sched[key], due: day };
-    const out = window.__shiziTest.seed({ records: byMonth, sched, sessions: { A: null, B: null, lastEnded: {} } });
+    const out = window.__shiziTest.seed({ records: byMonth, sched, sessions: { A: null, B: null, lastEnded: {} }, settings: { groupSize: 5 } }); // 本文件按每组 5 字写：默认勾选 = 每组字数（D66 ⑬）
     nav.switchTab('library');
     return { ok: !!(out && out.ok), out };
   }, { records, due, clock: CLOCK });
@@ -502,7 +502,9 @@ export default async function listsSpec(page, ctx) {
   });
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   await waitNavIdle(page);
-  await page.click(tid('home-start'));
+  // D66 ⑩：范围学完、没有要写的字时首页主按钮直接是「换练习范围」；「现在没有要写的字」页仍给其余入口（这里直接打开它）
+  assert.equal((await page.locator(tid('home-start')).textContent()).trim(), '换练习范围', 'home main button = 换练习范围');
+  await page.evaluate(async () => (await import('/src/ui/screens/session/none.js')).openNonePage({ exhausted: true }));
   await page.waitForSelector(topSel('session-none'));
   await waitNavIdle(page);
   assert.ok(await page.$(topSel('session-none-wrong')), '待复习 › shown (registered by M3-2)');

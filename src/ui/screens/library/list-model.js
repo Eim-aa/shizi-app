@@ -2,7 +2,7 @@
 //
 // 口径（R-E01 / D23）：只看每个字最近一次有效记录（judged，按 id 序号）；由记录实时算（core/records.wrongList / forgetList），
 // 两单不重叠（最近一次为 wrong → 写错过；为 correct 且 sched 到期 → 快忘了，policy.forgetRule / forgetCap，P04）。
-// 勾选（R-E02 / S06；已决定 D36 / P113）：默认只选「最该练」的前 policy.listDefaultSelect（5）个——写错过 = 最近写错的，
+// 勾选（R-E02 / S06；已决定 D36 / P113）：默认只选「最该练」的前 listDefaultSelectOf（policy.listDefaultSelect 按每组字数换算，D66 ⑬：= 每组字数）个——写错过 = 最近写错的，
 // 快忘了 = 到期最久的（两单本来就按这个序排），不足 5 个按实际数；其余的收在「其余 N 个字」下，展开后可逐个选。
 // 勾选状态 sel：null = 默认；数组 = 用户自己选定的字（点圆圈 / 全选 / 全不选后）。写完回来恢复默认由页面在
 // 「从本页开的组结束」时把 sel 清成 null（04 §5.1-13：未写完返回保留勾选，写完回到清单回到默认）。
@@ -12,6 +12,7 @@
 // 纯函数：不访问 store / DOM；题库查找与可练谓词由调用方注入（页面传 data/deck.js，单测传假卡）。
 
 import * as defaultPolicy from '../../../config/policy.js';
+import { listDefaultSelectOf } from '../../../core/group-size.js';
 import { t, tInk } from '../../../config/copy/index.js';
 import { monthDayParts } from '../../../core/dates.js';
 import { forgetList, judgedCountOfCard, wrongCountOfCard, wrongList } from '../../../core/records.js';
@@ -175,7 +176,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
   const zone = isZoneKind(kind);
   const chosen = normalizeSel(sel);
   const chosenSet = new Set(chosen || []);
-  const limit = Number.isInteger(policy.listDefaultSelect) && policy.listDefaultSelect > 0 ? policy.listDefaultSelect : Infinity;
+  const limit = listDefaultSelectOf(state && state.settings, policy); // D66 ⑬：随每组字数（5 字一组 5 个、20 字一组 20 个）
   const entries = listEntries(state, { kind, today, policy });
   // 「最该练」= 清单顺序里前 limit 个能练的字；它们之前夹着的不能练的行也算在这一组里。
   let seen = 0;
@@ -195,7 +196,9 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
     // 区详情页「该复习了」里最近一次写错的字按写错的说法（带「写错那次」小图说明），其余按「最近一次 · 记录了 N 次」
     const rowWrong = isWrong || (zone && e.record.judgment === 'wrong');
     const skipped = kind === 'skipped';
-    const meta = skipped ? t('X-LIBFOUR.skippedMeta', { date }) : rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
+    const seenOnly = zone && e.record.kind === 'answer-seen'; // D66 ⑤：只看过答案、还没判断过的字（在「待复习」）
+    const meta = skipped ? t('X-LIBFOUR.skippedMeta', { date }) : seenOnly ? t('X-LIBFOUR.seenMeta', { date })
+      : rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
     return {
       char: e.char,
       cardKey: e.cardKey,
@@ -207,7 +210,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
       meta,
       metaParts: listRowMetaParts(meta),
       thumbCaption: rowWrong ? t('R-E03.wrongThumb') : '',
-      noThumb: skipped, // 已跳过的字没有笔迹，不画「没有笔迹」小图
+      noThumb: skipped || seenOnly, // 已跳过 / 只看过答案的字没有判断的笔迹，不画「没有笔迹」小图
       selectable,
       selected,
       group: inTop ? 'top' : 'rest',

@@ -81,7 +81,9 @@ test('每天负担有上限：每组 ≤ 每组字数，每天 ≤ 组数 × 每
   for (const r of [MIXED, WRONG, AWAY]) assert.ok(r.days.every(d => d.cards <= 5 || d.dayIdx === 0), r.cfg.id);
   assert.ok(THREE.days.every(d => d.cards <= 15));
   const daily = BIG.groups.filter(g => g.slot === 'A' && g.kind !== 'first' && !g.special);
-  assert.ok(daily.filter(g => g.dayIdx > 1 && g.dayIdx < 20).every(g => g.queue.length === 20), daily.slice(0, 5).map(g => g.queue.length).join(','));
+  // 第 2、3 天是新用户新字封顶（D66 ⑫：每组新字至多 8 个，组可以不满），第 4 天起每组 20 字
+  assert.ok(daily.filter(g => g.dayIdx > 2 && g.dayIdx < 20).every(g => g.queue.length === 20), daily.slice(0, 5).map(g => g.queue.length).join(','));
+  assert.ok(daily.filter(g => g.dayIdx >= 1 && g.dayIdx <= 2).every(g => g.queue.filter(q => q.src === 'new' || q.src === 'warm-new').length <= 8));
   assert.ok(daily.filter(g => g.dayIdx >= 20 && g.dayIdx < 30).every(g => g.queue.length === 30));
   assert.ok(daily.filter(g => g.dayIdx >= 30).every(g => g.queue.length === 10));
   const ids = ['G1-no-dup-in-group', 'G2-group-size', 'G3-not-judged-today', 'G4-new-in-library', 'G5-new-never-judged', 'G6-due-really-due', 'G7-early-not-due', 'G9-due-not-starved', 'G10-daily-cap', 'G11-new-in-order', 'D1-zones-sum', 'D2-recorded-eq-judged', 'P1-skip-undo-restores', 'P2-correction-roundtrip', 'P3-skip-seen-no-sched', 'P4-skip-seen-not-reoffered-today', 'X1-judge-commit-fails'];
@@ -206,7 +208,7 @@ test('X1 系统时间被拨回很多天后，判断仍能存上，稳定度不�
   assert.deepEqual(only(BACK, ['X1-judge-commit-fails']), [], show(only(BACK, ['X1-judge-commit-fails'])));
 });
 
-test('P5 同一个字、同样按时复习：带提示写对的下次间隔比无提示写对的短，提示越多越短（D65 #4）', () => {
+test('P5 同一个字、同样按时复习：带提示写对的下次间隔比无提示写对的短，提示越多越短（D65 #4；D66 ② 复习 2 次起 Again）', () => {
   const t0 = dayStartMs('2026-03-10') + 20 * HOUR;
   const first = reviewCard(null, { judgment: 'correct', at: t0, help: { hints: 0 }, cardKey: 'base:鲜' });
   const at = Date.parse(first.card.due);
@@ -215,8 +217,10 @@ test('P5 同一个字、同样按时复习：带提示写对的下次间隔比�
   const [h1, h2, h3, h4] = [iv(1), iv(2), iv(3), iv(4)];
   assert.equal(clean.rating, 'Good');
   assert.ok(h1.card.scheduled_days < clean.card.scheduled_days, `带提示 1 次 ${h1.card.scheduled_days} 天 / 无提示 ${clean.card.scheduled_days} 天`);
-  assert.ok(h2.card.scheduled_days <= h1.card.scheduled_days, `2 次 ${h2.card.scheduled_days} / 1 次 ${h1.card.scheduled_days}`);
-  assert.ok(h3.card.scheduled_days < h2.card.scheduled_days, `3 次 ${h3.card.scheduled_days} / 2 次 ${h2.card.scheduled_days}`);
+  // D66 ②：复习时 2 次起（一半以上的笔画）就是 Again，与 3 次、写错同一档
+  assert.ok(h2.card.scheduled_days < h1.card.scheduled_days, `2 次 ${h2.card.scheduled_days} / 1 次 ${h1.card.scheduled_days}`);
+  assert.equal(h2.rating, 'Again');
+  assert.equal(h3.rating, h2.rating, '3 次与 2 次同一档（Again）');
   assert.equal(h4.rating, h3.rating, '整字给完（4 段）与 3 段同一档：按看过答案口径，明天再来');
   assert.equal(h4.card.scheduled_days <= 1, true);
   // 新字第一次：带提示写对仍会再出现（不是「几乎不再出现」，也不是每次都按写错）：1 次 → 约 2 天、比无提示（Easy）短

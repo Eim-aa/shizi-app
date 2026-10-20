@@ -42,7 +42,8 @@
 import * as defaultPolicy from '../config/policy.js';
 import { LIBRARIES } from '../core/cards.js';
 import { buildBackupV2, setLegacyBackupImporter } from '../core/backup.js';
-import { addDays, localDay } from '../core/dates.js';
+import { addDays, calendarDay, localDay } from '../core/dates.js';
+import { spreadDue } from '../core/spread.js';
 import { isCompactCard, serializeCard } from '../core/fsrs.js';
 import { encodeInk, GRID, INK } from '../core/ink-math.js';
 import {
@@ -236,33 +237,12 @@ export function spreadPerDayOf(policy = defaultPolicy) {
  * 把「迁移那一刻已到期」（due ≤ today）的调度项摊到 today 起的之后几天：按 due 早的在前（再按稳定度低、键）排，
  * 从 today 起逐日放，每天连同那天本来就到期的字至多 perDay 个；只往后挪、不提前（to ≥ 原 due），未到期的字不动。
  * 纯函数：不改入参，返回 {sched, moved}（moved = 到期日被改了的字数）。
+ * 实现在 core/spread.js spreadDue（D66 ⑨ 离开 ≥ 30 天回来时同一个函数）。
  * @param {object} sched {[cardKey]: {fsrs, due, lastJudgedAt, stoppedAt?}}
  * @param {{today:string, perDay:number}} o
  */
 export function spreadLegacyDue(sched, { today, perDay }) {
-  const out = {};
-  const load = new Map(); // 日 → 已排的个数（含本来就在那天到期的字）
-  const overdue = [];
-  for (const [key, entry] of Object.entries(sched || {})) {
-    out[key] = entry;
-    if (!entry || !isLocalDay(entry.due) || entry.stoppedAt !== undefined) continue;
-    if (entry.due <= today) overdue.push([key, entry]);
-    else load.set(entry.due, (load.get(entry.due) || 0) + 1);
-  }
-  if (!(perDay > 0) || overdue.length <= perDay) return { sched: out, moved: 0 };
-  const stab = (e) => (e.fsrs ? Number(e.fsrs.stability) || 0 : 0);
-  overdue.sort((a, b) => (a[1].due < b[1].due ? -1 : a[1].due > b[1].due ? 1 : 0) || stab(a[1]) - stab(b[1]) || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-  let day = today;
-  let moved = 0;
-  for (const [key, entry] of overdue) {
-    while ((load.get(day) || 0) >= perDay) day = addDays(day, 1);
-    load.set(day, (load.get(day) || 0) + 1);
-    if (day !== entry.due) {
-      out[key] = { ...entry, due: day };
-      moved += 1;
-    }
-  }
-  return { sched: out, moved };
+  return spreadDue(sched, { today, perDay });
 }
 
 // ---------------------------------------------------------------- 转换（纯函数）
@@ -391,7 +371,7 @@ export function convertV1(values, { now, dueBase = null, source = 'device', pres
       report.synthesized.unknown += 1;
       continue;
     }
-    const day = localDay(at);
+    const day = calendarDay(at); // v1 按 0 点归日（D66 ⑦：旧数据按旧口径，不改成 4 点）
     const help = { hints: clampHints(m.lastHints), answerSeen: false, traced: m.traced === true };
     const base = { cardKey: key, at, localDay: day, legacySynth: true };
     if (outcome === 'fast') {
@@ -459,7 +439,7 @@ export function convertV1(values, { now, dueBase = null, source = 'device', pres
       report.sched.droppedNoJudged += 1;
       continue;
     }
-    const cardDue = localDay(Date.parse(fsrs.due));
+    const cardDue = calendarDay(Date.parse(fsrs.due)); // v1 的到期日按 0 点归日
     let due;
     if (m.queuedFront === true) due = cardDue; // 加字把 dueDay 改成了加字当天：不算调度
     else if (m.pendingLearning === true) due = addDays(today, 1);
@@ -518,7 +498,7 @@ export function convertV1(values, { now, dueBase = null, source = 'device', pres
       continue;
     }
     const at = finitePos(Number(row.at)) ? Number(row.at) : now;
-    rows.push({ ch, at, day: isLocalDay(row.day) ? row.day : localDay(at), dataURL: row.dataURL, bytes: row.dataURL.length * 2 });
+    rows.push({ ch, at, day: isLocalDay(row.day) ? row.day : calendarDay(at), dataURL: row.dataURL, bytes: row.dataURL.length * 2 });
   }
   rows.sort((a, b) => b.at - a.at || (a.ch < b.ch ? -1 : 1));
   let photoBytes = 0;

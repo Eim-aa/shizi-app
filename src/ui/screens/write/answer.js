@@ -29,7 +29,7 @@
 // 规则：
 // - 本文件只写 store.commit，不直接碰 localStorage；记录构造用 core/records.makeRecord，会话推进用 core/sessions。
 // - 回忆阶段不渲染答案字（决定-D16）：「看答案」按钮与失败框里都没有字；答案字只在 answer / trace 阶段出现。
-// - answer-seen 不是有效记录：不写 judged、不动 sched / FSRS（决定-D18 / D23）；墨迹只存「自己写一遍」的本人笔画（Q1，上面第 5 条）。
+// - answer-seen 不是有效记录：不写 judged（决定-D18 / D23）；D66 ① 起复习字看答案当天记一次 Again（core/fsrs.js applyAnswerSeen，同一次 commit），新字不动 sched；墨迹只存「自己写一遍」的本人笔画（Q1，上面第 5 条）。
 //
 // data-testid：write-show-answer（回忆阶段「看答案」）、write-show-answer-cancel / write-show-answer-retry（点「看答案」写入失败时底栏就地的三段式：
 // 说明在格下 write-note，S1 / 审计 P1-24）、write-answer-char（底栏里视觉隐藏的答案字，读屏用）、
@@ -49,6 +49,7 @@ import { pruneInkOfCards } from '../../../store/budget.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { buildStroke, decodeRawStrokes, encodeInk } from '../../../core/ink-math.js';
 import { makeRecord, charOfCardKey } from '../../../core/records.js';
+import { applyAnswerSeen } from '../../../core/fsrs.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../../core/sessions.js';
 import { peekStrokes, watchStrokes } from '../../../data/strokes.js';
 import { animate } from '../../canvas/glyph.js';
@@ -211,6 +212,9 @@ export function commitAnswerSeen(store, { slot, cardKey, stay = false, hints: hi
         help: { hints, answerSeen: true, traced: !stay },
       });
       appendRecordToDraft(draft, record);
+      // D66 ①（P321）：复习字看了答案 = 当天记一次「没写出来」（Again）；新字、当天已评过级的不记（core/fsrs.js applyAnswerSeen）
+      const seen = applyAnswerSeen(draft.sched ? draft.sched[cardKey] : undefined, record, { policy: defaultPolicy });
+      if (seen.applied) draft.sched = { ...(draft.sched || {}), [cardKey]: seen.entry };
     } else if (!stay && !existing.help.traced) {
       replaceRecordInDraft(draft, { ...existing, help: { ...existing.help, traced: true } });
     }

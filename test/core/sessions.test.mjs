@@ -33,7 +33,9 @@ import { addDays } from '../../src/core/dates.js';
 
 // D65 #2：日常组的大小改由「每组字数」决定（缺省 20）。本文件的用例都是按 5 字一组写的 D41 规则，所以缺省按 5 字一组选字
 // （配比按组大小等比例换算，5 字一组与 D41 完全相同）；按 20 / 30 字的换算另见 test/core/group-size.test.mjs。
-const selectDaily = (a) => selectDailyAt({ groupSize: 5, ...a });
+// 这些选字用例大多是「刚开始练」的用户；新用户前 3 天新字封顶（D66 ⑫）另有专门用例（mix.test），这里缺省关掉它
+const NO_RAMP = { ...policy, newUserRamp: null };
+const selectDaily = (a) => selectDailyAt({ groupSize: 5, policy: NO_RAMP, ...a });
 const TODAY = '2026-09-24';
 const K = (s) => [...s].map((c) => 'base:' + c);
 const sched = (due, stability = 5) => ({ fsrs: { stability }, due, lastJudgedAt: 0 });
@@ -308,9 +310,9 @@ test('daily: custom chars not yet written stay out of daily (P33 customIntoDaily
   const res = selectDaily(args);
   assert.deepEqual(res.queue, K('静亦慢额境'));
   assert.deepEqual(res.customKeys, []);
-  const after = selectDaily({ ...args, policy: await policyWith({ customIntoDaily: 'after-due' }) });
+  const after = selectDaily({ ...args, policy: await policyWith({ customIntoDaily: 'after-due', newUserRamp: null }) });
   assert.deepEqual(after.queue, K('静鲜馨亦慢'));
-  const first = selectDaily({ ...args, policy: await policyWith({ customIntoDaily: 'first' }) });
+  const first = selectDaily({ ...args, policy: await policyWith({ customIntoDaily: 'first', newUserRamp: null }) });
   assert.deepEqual(first.queue, K('鲜馨静亦慢'));
 });
 
@@ -382,8 +384,8 @@ test('daily: group size comes from policy (P03) and stopped cards are skipped', 
   const s = { 'base:静': { ...sched('2026-09-01'), stoppedAt: 3 } };
   const cands = K('一二三四五六七八');
   assert.equal(selectDaily({ sched: s, records: [], today: TODAY, newCandidates: cands }).queue.length, 5);
-  assert.equal(selectDailyAt({ sched: s, records: [], today: TODAY, newCandidates: cands }).queue.length, Math.min(policy.groupSize, cands.length), 'no groupSize → policy.groupSize');
-  const big = selectDailyAt({ sched: s, records: [], today: TODAY, newCandidates: cands, policy: await policyWith({ groupSize: 7 }) });
+  assert.equal(selectDailyAt({ sched: s, records: [], today: TODAY, newCandidates: cands, policy: NO_RAMP }).queue.length, Math.min(policy.groupSize, cands.length), 'no groupSize → policy.groupSize');
+  const big = selectDailyAt({ sched: s, records: [], today: TODAY, newCandidates: cands, policy: await policyWith({ groupSize: 7, newUserRamp: null }) });
   assert.equal(big.queue.length, 7);
   assert.equal(big.queue.includes('base:静'), false);
   assert.deepEqual(selectDaily({ sched: {}, records: [], today: TODAY, newCandidates: [] }).queue, [], 'nothing to write (R-H11)');

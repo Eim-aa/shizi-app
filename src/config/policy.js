@@ -29,6 +29,18 @@ export const features = Object.freeze({
 // ---- 墨迹容量（P05；P31 已决定 D27 开启后生效）----
 // P05 墨迹总预算（字节，UTF-16 估算）
 export const inkBudgetBytes = 1.5 * 1024 * 1024;
+// P326 墨迹预算随「每组字数」（D66 ⑭，产品体验评审 P3-04；store/budget.js inkBudgetOf）。超过预算时只回收「每字第一次 / 最近一次」以外的墨迹
+// （看后自写过期的、旧数据的中间次），第一次与最近一次永不回收（D27），所以预算越大、看后写的作品留得越久。
+// 实测（D66 ⑭，scripts/sim 真实格式笔迹：笔顺中线模拟书写 → ink v3，平均约 1.4–1.5KB/条（UTF-16）；S8 同一用户一年）：
+//   每天 20 字：墨迹第 162 天过 1.5MiB，一年 2.2MiB（800 字 × 约 2 份）；总占用第 342 天过 4MiB（5MiB 的 80%），一年 4.1MiB；
+//   每天 30 字：墨迹第 83 天过 1.5MiB，一年 3.4MiB；总占用第 153 天过 4MiB，第 292 天到 5MiB（假定配额）。
+// 取值让「墨迹 + 记录（P28 1.5MiB）」不超过 5MiB 的 80%：20 字 2MiB、30 字 2.5MiB；5 / 10 字维持 1.5MiB。真机配额（assumedQuotaBytes）待实测。
+export const inkBudgetByGroupSize = Object.freeze({
+  5: 1.5 * 1024 * 1024, // P326 每组 5 字
+  10: 1.5 * 1024 * 1024, // P326 每组 10 字
+  20: 2 * 1024 * 1024, // P326 每组 20 字（缺省）
+  30: 2.5 * 1024 * 1024, // P326 每组 30 字
+});
 // P05 / P78 存储前每笔最多点数（按弧长抽点）：v3 打包编码每点 4 字节，24 点/笔使 14 笔的字 ≈ 3.7KB（UTF-16）、
 // 300 字只存最近一次 ≈ 1.1MiB，落在 inkBudgetBytes 内（M4-5 实测 v2 + 32 点为 11.8–14.4KB/条，见 01 §3.5）
 export const inkMaxPointsPerStroke = 24;
@@ -98,6 +110,15 @@ export const groupMix = Object.freeze({
   returnGroupSize: 3, // P184（已决定 D48 ⑧，补充 D41）离开 ≥ returnAfterDays 天回来的第一组缩短为 3 字（配比规则不变，只是组小了；大写数字特别组整组出，不受影响）
   earlyReviewFill: true, // P125 到期不够时用最快到期的字提前复习补位，再不足才补新字
   earlyCountsTowardCap: false, // P125 提前复习是否计入 dailyReviewCap（P03）：不计入
+  earlyFillWhenExhausted: false, // P324 练习范围学完（没有新字可出）时还用不用提前复习凑满一组（D66 ⑩）：不用——有多少到期出多少，修前 true（模拟 S20：学完后提前复习占字次 36%）
+});
+// P325 新用户前几天新字封顶（D66 ⑫，产品体验评审 P2-05）：首练那天算第 1 天，到第 days 天为止，每组新字（含热身新字）至多 newMax 份
+// （按组大小换算：5 字一组 2 个、10 字 4 个、20 字 8 个、30 字 12 个），到期 / 提前复习也不够时不再补新字凑满一组（这几天的组可以不满）。
+// 理由：模拟 S1（缺省 20 字一组、全对）第 2 天是 3 个复习 + 17 个新字，第一周 80 个新字；新字一多，第一次复习要到 1–10 天后，
+// 刚入门最容易挫败。2 份 = 平常「积压不大」时那一档（p < 1.5）的新字数，第 4 天起回到平常的配比（最多 3 份）。
+export const newUserRamp = Object.freeze({
+  days: 3, // P325 首练那天算第 1 天，前几天封顶
+  newMax: 2, // P325 这几天每组新字至多几份（按 5 字一组写的个数，按组大小换算）
 });
 // P315 写错的字优先回来（D65 #1，问题清单 #1）：到期字排序先「最近一次练习日写错、今天到期」，再「最近一次判断是写错」的其余到期字，最后普通到期字
 // （同一层内仍按逾期天数降序、稳定度升序）；每组再保底 ceil(组大小 × reserveShare) 个「最近一次练习日写错、今天到期」的字，不受每日复习上限与新字目标挤占。
@@ -116,7 +137,7 @@ export const warmup = Object.freeze({
   perGroupMax: 1, // P126 每组至多 1 个热身字（新热身字或热身字的复习二选一）
   easyOnCorrect: true, // P126 热身字写对（无提示）记 Easy
 });
-// P127 新字第一次判断就写对（无提示）的 FSRS 评级（已决定 D41：Easy，初始稳定度约 8 天；带提示写对按 P34 ratingWithHint.first）
+// P127 新字第一次判断就写对（无提示）的 FSRS 评级（已决定 D41：Easy，初始稳定度约 8 天；带提示写对按 P34 ratingWithHint.first）；判断前看过答案的新字不算第一次（D66 ①，P321）
 export const ratingFirstCorrect = 'Easy';
 // P128 D40「写写大写数字」特别组：累计写满 afterGroups 组后、且积压天数 p < belowDays 的下一次练习，日常组换成两组特别组
 // （壹贰叁肆伍、陆柒捌玖拾，各一组；佰仟在两组特别组之后进入普通新字队列的最前）。每组各只出现一次（以记录为准），之后按普通 FSRS 回来。
@@ -129,16 +150,25 @@ export const capitalNumerals = Object.freeze({
 export const firstQueue = Object.freeze(['尴', '赢', '拾']);
 // P33 「自选了还没写」是否进入今天的练习：不进（只走 B 路径）
 export const customIntoDaily = 'none';
-// P34 带提示且判写对的 FSRS 评级（D65 #4，覆盖 D41 的「一律 Good」）：按点了几次提示取第 n 个（超出取最后一个），新字第一次判断与复习分开。
-// 复习：1–2 次（至多半个字）Hard，3 次起（四分之三以上，整字给完已记看过答案）Again——用了提示写对的字下次间隔短于不用提示写对（Good），提示越多越短。
+// P34 带提示且判写对的 FSRS 评级（D65 #4，覆盖 D41 的「一律 Good」；D66 ② 改复习一档）：按点了几次提示取第 n 个（超出取最后一个），新字第一次判断与复习分开。
+// 复习（D66 ②）：1 次（约四分之一个字）Hard，2 次起（平均已露出一半以上的笔画）Again——给出一半以上就算没想起来，与写错同一个间隔；
+// 修前 1–2 次都是 Hard，2 次提示的成熟字仍约 4 个月后再见（产品体验评审 P2-02）。
 // 新字第一次：1 次 Good（初始稳定度约 2 天，与无提示的 Easy 约 8 天拉开），2 次 Hard（约 1 天），3 次起 Again（明天）；首次学习不至于因为一次提示就被压到「几乎每天都来」。
+// D66 ① 复核：新字第一次这一档不改——Hard 与 Again 下次都是明天（至少次日），差别只在之后长得快慢；判断前看过答案的新字不走这一档，按复习一档（见 answerSeenRating）。
 // 每段提示约四分之一个字（core/hints.js）；没有部件分组的字每段 1 笔，按同一张表（次数口径，记录里只存次数）。
 export const ratingWithHint = Object.freeze({
   first: Object.freeze(['Good', 'Hard', 'Again']), // P34 新字第一次判断带提示写对：1 次 / 2 次 / 3 次起
-  review: Object.freeze(['Hard', 'Hard', 'Again']), // P34 复习带提示写对：1 次 / 2 次 / 3 次起
+  review: Object.freeze(['Hard', 'Again', 'Again']), // P34 复习带提示写对：1 次 / 2 次起（D66 ②）
 });
-// P36 看过答案（无判断）的字当天是否排除出 daily（D65 #5，覆盖原 'none'）：'today' 当天不再出；调度项不变，到期的字明天照常回来，新字明天照常在新字池原位
+// P36 看过答案（无判断）的字当天是否排除出 daily（D65 #5，覆盖原 'none'）：'today' 当天不再出；到期的字明天回来（D66 ① 起复习字看答案记一次 Again，见 P321），新字明天照常在新字池原位
 export const answerSeenScope = 'today';
+// P321 看过答案 = 当天「没写出来」（D66 ①，覆盖 D65 #5 的「看答案不改调度」；产品体验评审 P2-01）：
+// 'Again' = 复习字（已有调度项）看了答案，当天记一次 Again（不生成判断记录、不改三档以外的计数），下次按「忘了之后」的间隔回来；
+// 一个字一天只记一次：当天判断过、或已经因为看答案记过的，不再记；同一天看过答案之后再写的判断不再进 FSRS（不记第二次 Again，写对也不加分）。
+// 新字看了答案不建调度项，之后第一次判断不再给 Easy：按复习口径评级（无提示写对 Good、带提示按 ratingWithHint.review）——
+// 理由：看过答案以后的第一次写对是在短时记忆的帮助下写出来的，不是「第一次凭记忆写出来」（Easy 约 8–10 天）；Good 约 2 天，与「第一次写错再写对」相近。
+// 'none' = 修前口径（看答案不改调度，只作对照）。core/fsrs.js applyAnswerSeen / applyJudgment / replay 读取。
+export const answerSeenRating = 'Again';
 // P06 「跳过」排除范围（D65 #5，覆盖原 'session'）：'today' = 当天不再出（记 skipped 记录，不写 stoppedAt，调度项不变）；'session' = 只在本组内
 export const skipScope = 'today';
 // P06 跳过的新字（从没判断过）推迟几天再进新字池（D65 #5）：跳过那天算第 1 天，这些天里新字池跳过它，之后回到原来的位置
@@ -148,10 +178,23 @@ export const skipNewDeferDays = 7;
 export const forgetRule = 'due';
 // P04 快忘了最多几个
 export const forgetCap = 12;
-// P113 写错过 / 快忘了清单默认勾选几个「最该练」的字（已决定 D36）；其余收在「其余 N 个字」下，展开后可逐个选
+// P322 字库「已熟悉」的条件（D66 ⑰，产品体验评审 P2-07；D60 只要稳定度 ≥ 21 天）：稳定度 ≥ stabilityDays 天，且至少 minSuccesses 次「想起来了」。
+// 「想起来了」= 调度项上评过级、不是 Again 的次数（FSRS reps − lapses：写对 / 带 1 次提示写对；写错、2 次以上提示、看答案记的 Again 都不算）——
+// 从调度项读，最旧月份折叠掉中间的记录也不影响。理由：第一次无提示写对（Easy，约 8 天）后隔 10 天再写对一次，稳定度就过 21 天，
+// 只有两次提取、跨 10 天，撑不起「已熟悉」；三次成功意味着至少两次是隔了几天以后的回忆。达不到的字留在「未熟悉」，三档合计不变。
+export const knownZone = Object.freeze({
+  stabilityDays: 21, // P322 稳定度下限（天；D60 原值）
+  minSuccesses: 3, // P322 至少几次「想起来了」（reps − lapses）
+});
+// P113 写错过 / 快忘了 / 区详情清单默认勾选几个「最该练」的字（已决定 D36）；其余收在「其余 N 个字」下，展开后可逐个选。
+// D66 ⑬：这个数按 5 字一组写，随「每组字数」等比例换算（= 每组字数：20 字一组默认勾 20 个；core/group-size.js listDefaultSelectOf）
 export const listDefaultSelect = 5;
 // P37 跨天未完成的「今天的练习」：直接作废（已判断的保留，未写的不算）
 export const dailyExpiry = 'discard';
+// P320 一天从几点开始（D66 ⑦，覆盖 01 §3.1「日界本地 0 点」）：凌晨 4 点——0:00–3:59 仍算前一天。core/dates.js localDay 是唯一的归日函数：
+// 记录的 localDay、今日计划、跨天作废（P37）、到期（due ≤ 今天）、连续 / 累计练习天数、年报与月字帖归日、提醒 practicedToday 都读它。
+// 只影响新判断的归日与「今天」的判定，已经存下的 localDay / due / startedDay 不改写。0 = 0 点分界（旧口径）。
+export const dayStartHour = 4;
 // P61 首练（first）与自选组（picked）是否跨天过期：都不过期（'never'）；'daily' = 与今天的练习同口径（P37）。
 // daily 本身仍按 P37 dailyExpiry。core/sessions.js expireDaily 读此表。
 export const sessionExpiry = Object.freeze({
@@ -338,7 +381,8 @@ export const reminderWord = 'blank';
 export const reminderBlank = '＿';
 
 // ---- 容量 ----
-// P57 占用预警阈值：估算占用 > 该比例 × assumedQuotaBytes 时在备份页与首页状态句预警（01 §4）。store/budget.js 读取（可注入）。
+// P57 占用预警阈值：估算占用 > 该比例 × assumedQuotaBytes 时预警（01 §4）。store/budget.js estimateUsage / storagePressureOf 读取（可注入）；
+// D66 ⑭：界面只在「我的 › 备份」行用一句能行动的说明（建议导出备份），不弹窗、不加红点，首页不显示（卡 C 接 storagePressureOf）。
 export const storageWarnRatio = 0.8;
 // P57 假定的 localStorage 配额（字节）；真机实际配额未测，真机回填。store/budget.js 读取（可注入）。
 export const assumedQuotaBytes = 5 * 1024 * 1024;
@@ -346,6 +390,16 @@ export const assumedQuotaBytes = 5 * 1024 * 1024;
 export const recordsBudgetBytes = 1.5 * 1024 * 1024;
 // P28 records 折叠的天数阈值
 export const recordsFoldAfterDays = 400;
+
+// P323 离开很久回来时把到期字摊开（D66 ⑨，产品体验评审 P4-01）：离上次练习 ≥ afterDays 天、回来那一刻（今天还没判断）把已到期的字
+// 摊到之后几天，每天（连同那天本来就到期的字）至多 round(每组字数 × perDayShare) 个，只往后挪；与 v1 迁移的摊开同一个函数（core/spread.js spreadDue）。
+// 只执行一次：settings.returnSpreadFor 记下这次离开前的最后一个练习日。FSRS 卡与记录不变。
+// 理由：停 90 天回来，修前当天「待复习」两百多、之后每天全是复习、新字关一个月（模拟 S19）；摊开后当天待复习回到一天的量，头几天有新字。
+// 每天的份额取 0.5（与迁移同一口径）：模拟里 0.3 / 0.5 都会在第 2 周起因为写错重学再积压，0.3 积压阀关得更久，故不取更小的值。
+export const returnSpread = Object.freeze({
+  afterDays: 30, // P323 离开至少几天才摊（离开 7–29 天只缩短回来的第一组，P184）
+  perDayShare: 0.5, // P323 每天至多每组字数的几成（与迁移的 migration.spreadDuePerDayShare 同一口径）
+});
 
 // ---- 迁移（M5-4）----
 // P10 / P35 / P53：v1 → v2 一次性导入。
@@ -396,7 +450,7 @@ export const compactTextScale = 1.3;
 export const routeRestore = Object.freeze({
   enabled: true, // P108 冷启动是否恢复离开时的页面（false = 一律落首页，旧行为）
   maxAgeMinutes: 360, // P108 离开超过这么久（分钟）不恢复，落首页
-  crossDay: false, // P108 离开时与现在不是同一本地日（跨过 0 点）时是否仍恢复：过渡不恢复
+  crossDay: false, // P108 离开时与现在不是同一本地日（跨过一天的分界，凌晨 4 点，P320）时是否仍恢复：过渡不恢复
 });
 
 // ---- 跳过撤销（阶段 0 B2，D36）----

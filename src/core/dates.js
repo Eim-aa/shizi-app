@@ -1,7 +1,13 @@
 // 本地日期工具（纯函数，无 DOM）。
-// 01-架构设计 §3.1：localDay = YYYY-MM-DD（设备本地日，日界本地 0 点）；at 为 ms。
+// 01-架构设计 §3.1：localDay = YYYY-MM-DD（设备本地日）；at 为 ms。
+// 一天的分界（D66 ⑦，policy.dayStartHour P320）：凌晨 4 点，不是 0 点——0:00–3:59 仍算前一天。
+// 「今天」与归日只有这一个函数 localDay：记录的 localDay、今日计划与跨天作废（startedDay）、到期判断（due ≤ 今天）、
+// 连续 / 累计练习天数、年报与月字帖归日、提醒的 practicedToday 都由它算。已经存下的 localDay / due / startedDay 字串不改写。
+// calendarDay 是日历上的日期（0 点分界），只用于「v1 旧数据按旧口径归日」等少数地方。
 // 界面上的日期文字格式（「{month} 月 {day} 日」、时段词、落款的「年/月/日」）都在
 // src/config/copy/ 里；本模块只给数字与时段 id，汉字数字只供纸面落款（文案 T10 / 文案-D3）。
+
+import * as defaultPolicy from '../config/policy.js';
 
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MONTH_RE = /^(\d{4})-(\d{2})$/;
@@ -43,10 +49,27 @@ export function daysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
-/** ms 或 Date → 本地日键 YYYY-MM-DD。 */
-export function localDay(input) {
+/** ms 或 Date → 日历日键 YYYY-MM-DD（本地 0 点分界）。 */
+export function calendarDay(input) {
   const date = toDate(input);
   return date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate());
+}
+
+/** 一天从几点开始（policy.dayStartHour，P320；0–23 的整数，其余按 0）。 */
+export function dayStartHourOf(policy = defaultPolicy) {
+  const h = policy ? policy.dayStartHour : 0;
+  return Number.isInteger(h) && h > 0 && h < 24 ? h : 0;
+}
+
+/**
+ * ms 或 Date → 本地日键 YYYY-MM-DD（练习用的「一天」：凌晨 dayStartHour 点分界，D66 ⑦）。
+ * 本地时间早于 dayStartHour 点时算前一天（按本地钟点判断，夏令时不错位）。
+ */
+export function localDay(input, policy = defaultPolicy) {
+  const date = toDate(input);
+  const day = calendarDay(date);
+  const h = dayStartHourOf(policy);
+  return h && date.getHours() < h ? addDays(day, -1) : day;
 }
 
 /** YYYY-MM-DD → {year, month, day}（数字）。 */
@@ -56,7 +79,7 @@ export function parseDay(day) {
   return { year: y, month: m, day: d };
 }
 
-/** 本地日的 0 点（ms）。 */
+/** 日历日的 0 点（ms；不是练习日的开始，练习日从 dayStartHour 点起）。 */
 export function dayStartMs(day) {
   const { year, month, day: d } = parseDay(day);
   return new Date(year, month - 1, d).getTime();
@@ -66,7 +89,7 @@ export function dayStartMs(day) {
 export function addDays(day, n) {
   const { year, month, day: d } = parseDay(day);
   // 取当日正午再加减，避开个别时区 0 点不存在的情况。
-  return localDay(new Date(year, month - 1, d + Math.trunc(n), 12));
+  return calendarDay(new Date(year, month - 1, d + Math.trunc(n), 12));
 }
 
 /** b − a 的日历天数（b 晚于 a 为正）。 */

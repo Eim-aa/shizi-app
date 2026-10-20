@@ -2,9 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  KNOWN_STABILITY_DAYS, MEMORY_ZONES, ZONE_TONE, memoryZoneOf, memoryZones, skippedZone, todayPlanModel, zoneSamples,
+  KNOWN_MIN_SUCCESSES, KNOWN_STABILITY_DAYS, MEMORY_ZONES, ZONE_TONE, memoryZoneOf, memoryZones, skippedZone, todayPlanModel, zoneSamples,
 } from '../../src/ui/screens/library/model.js';
 import { planDaily } from '../../src/core/session-start.js';
+import * as policy from '../../src/config/policy.js';
 import { normalizeKind, listEntries, listModel } from '../../src/ui/screens/library/list-model.js';
 
 const TODAY = '2026-09-24';
@@ -12,7 +13,8 @@ const at = day => new Date(`${day}T09:00:00`).getTime();
 const rec = (n, char, judgment, day = '2026-09-10') => ({
   id: `r${n}`, cardKey: `base:${char}`, char, sessionId: 's9', kind: 'judged', judgment, at: at(day), localDay: day, help: { hints: 0, answerSeen: false, traced: false },
 });
-const sched = (due, stability) => ({ fsrs: { stability }, due, lastJudgedAt: 0 });
+// reps / lapses：缺省 5 次评级、0 次 Again（够「已熟悉」的 3 次成功，D66 ⑰）
+const sched = (due, stability, reps = 5, lapses = 0) => ({ fsrs: { stability, reps, lapses }, due, lastJudgedAt: 0 });
 
 function stateOf(rows, schedMap = {}, extra = {}) {
   const records = {};
@@ -31,7 +33,19 @@ test('memoryZoneOf: wrong or due today → due; not due and stability < 21 → s
   assert.equal(memoryZoneOf(rec(1, '永', 'correct'), { ...sched('2026-09-01', 30), stoppedAt: '2026-09-02' }, TODAY), 'known', 'a stopped card is never due');
 });
 
-test('memoryZones: exclusive, sum = recorded, answer-seen / skipped do not count, latest judged decides', () => {
+test('memoryZoneOf (D66 ⑰, policy.knownZone P322): 已熟悉 also needs ≥ 3 successes (reps − lapses); otherwise 未熟悉', () => {
+  assert.deepEqual({ ...policy.knownZone }, { stabilityDays: 21, minSuccesses: 3 });
+  assert.equal(KNOWN_MIN_SUCCESSES, 3);
+  const r = rec(1, '永', 'correct');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 2, 0), TODAY), 'shaky', 'Easy then Good: stability 44 but only 2 successes');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 3, 0), TODAY), 'known', '3 successes');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 4, 2), TODAY), 'shaky', '4 reviews with 2 Again → 2 successes');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 5, 2), TODAY), 'known');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 20, 9, 0), TODAY), 'shaky', 'still needs stability ≥ 21');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 2, 0), TODAY, 21, 2), 'known', 'minSuccesses is injectable');
+});
+
+test('memoryZones: exclusive, sum = recorded, latest judged decides; D66 ⑤: an answer-seen-only char is in 待复习', () => {
   const rows = [
     rec(1, '永', 'wrong', '2026-09-01'), rec(2, '永', 'correct', '2026-09-05'), // latest correct → not wrong any more
     rec(3, '和', 'wrong'), rec(4, '春', 'correct'), rec(5, '大', 'correct'),
@@ -39,9 +53,13 @@ test('memoryZones: exclusive, sum = recorded, answer-seen / skipped do not count
   ];
   const s = stateOf(rows, { 'base:永': sched('2026-12-01', 40), 'base:春': sched('2026-09-20', 5), 'base:大': sched('2026-10-30', 25) });
   const m = memoryZones(s, TODAY);
-  assert.equal(m.recorded, 4);
+  assert.equal(m.recorded, 5, '山 was only seen (answer-seen) → counted (D66 ⑤)');
   const sets = Object.fromEntries(MEMORY_ZONES.map(k => [k, m.zones[k].items.map(i => i.char).sort().join('')]));
-  assert.deepEqual(sets, { due: '和春', shaky: '', known: '大永' });
+  assert.deepEqual(sets, { due: '和山春', shaky: '', known: '大永' });
+  assert.deepEqual(m.zones.due.items.map(i => i.char), ['和', '山', '春'], 'wrong first, then seen-only, then due');
+  const row = listModel(s, { kind: 'due', today: TODAY }).rows.find(r => r.char === '山');
+  assert.equal(row.meta, '9月10日看过答案');
+  assert.equal(row.noThumb, true);
   assert.equal(MEMORY_ZONES.reduce((n, k) => n + m.zones[k].n, 0), m.recorded);
   assert.deepEqual(memoryZones(null, TODAY).zones.due, { kind: 'due', n: 0, items: [] }, 'no state → empty zones');
 });
@@ -72,26 +90,26 @@ test('skippedZone (D62): skipped and still no judged record; not counted in reco
     skip(1, '甲', '2026-09-01'), skip(2, '乙', '2026-09-08'), skip(3, '甲', '2026-09-09'), // 甲 skipped twice → newest record
     skip(4, '丙', '2026-09-10'), rec(5, '丙', 'correct', '2026-09-11'), // 丙 written afterwards → not skipped any more
     rec(6, '丁', 'correct', '2026-08-01'), skip(7, '丁', '2026-09-12'), // 丁 judged before, skipped later → has a judged record → not here
-    { ...rec(8, '戊', 'correct'), kind: 'answer-seen', judgment: null }, skip(9, '戊', '2026-09-13'), // answer-seen is not a judged record
+    { ...rec(8, '戊', 'correct'), kind: 'answer-seen', judgment: null }, skip(9, '戊', '2026-09-13'), // 看过答案 → 在待复习（D66 ⑤），不在已跳过
   ];
   const s = stateOf(rows, {});
   const z = skippedZone(s);
-  assert.deepEqual([z.kind, z.n], ['skipped', 3]);
-  assert.deepEqual(z.items.map(i => i.char), ['戊', '甲', '乙'], 'newest skip first');
-  assert.equal(z.items[1].record.id, 'r3', 'a char keeps its latest skip record');
+  assert.deepEqual([z.kind, z.n], ['skipped', 2]);
+  assert.deepEqual(z.items.map(i => i.char), ['甲', '乙'], 'newest skip first');
+  assert.equal(z.items[0].record.id, 'r3', 'a char keeps its latest skip record');
   assert.ok(z.items.every(i => i.tone === 3));
-  assert.equal(memoryZones(s, TODAY).recorded, 2, '丙 and 丁 only: skipped chars are not 已练汉字');
-  assert.equal(zoneSamples(z).length, 3);
+  assert.equal(memoryZones(s, TODAY).recorded, 3, '丙、丁 and 戊 (seen): skipped-only chars are not 已练汉字');
+  assert.equal(zoneSamples(z).length, 2);
   assert.deepEqual(skippedZone(null), { kind: 'skipped', n: 0, items: [] });
-  assert.deepEqual(listEntries(s, { kind: 'skipped', today: TODAY }).map(e => [e.char, e.count, e.day]), [['戊', 0, '2026-09-13'], ['甲', 0, '2026-09-09'], ['乙', 0, '2026-09-08']]);
+  assert.deepEqual(listEntries(s, { kind: 'skipped', today: TODAY }).map(e => [e.char, e.count, e.day]), [['甲', 0, '2026-09-09'], ['乙', 0, '2026-09-08']]);
   assert.equal(normalizeKind('skippedList'), 'skipped');
   const m = listModel(s, { kind: 'skipped', today: TODAY });
-  assert.deepEqual([m.title, m.view, m.rows.length, m.button.label], ['已跳过', 'skippedList', 3, '练这些字']);
+  assert.deepEqual([m.title, m.view, m.rows.length, m.button.label], ['已跳过', 'skippedList', 2, '练这些字']);
   assert.ok(m.rows.every(r => r.noThumb && r.thumbCaption === ''), 'no 没有笔迹 thumbnail on skipped rows');
-  assert.equal(m.rows[0].meta, '9月13日跳过');
+  assert.equal(m.rows[0].meta, '9月9日跳过');
   assert.equal(listModel(stateOf([], {}), { kind: 'skipped', today: TODAY }).empty, true);
   const undone = stateOf(rows.filter(r => r.id !== 'r2'), {});
-  assert.deepEqual(skippedZone(undone).items.map(i => i.char), ['戊', '甲']);
+  assert.deepEqual(skippedZone(undone).items.map(i => i.char), ['甲']);
 });
 
 const DECK = { newCandidates: () => ['base:新', 'base:字', 'base:词', 'base:句', 'base:文'], practicable: key => key.startsWith('base:'), currentLibraryId: () => 'core3500' };

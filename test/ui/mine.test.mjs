@@ -31,7 +31,8 @@ test('empty: no judged record (answer-seen / skipped only) → empty; overview a
   const m = mineModel(s, TODAY);
   assert.equal(m.empty, true);
   assert.equal(m.sheetOn, false);
-  assert.deepEqual(m.overview, { streak: 0, total: 0, chars: 0 });
+  // D66 ⑤：看过答案的字算已练汉字（与字库同一个数）；没有判断记录，所以仍是空态、没有练习天数
+  assert.deepEqual(m.overview, { streak: 0, total: 0, chars: 1 });
   const nullModel = mineModel(null, TODAY);
   assert.equal(nullModel.empty, true);
   assert.equal(nullModel.lastBackup, null);

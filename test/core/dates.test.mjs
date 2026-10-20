@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as policy from '../../src/config/policy.js';
 import {
   isValidDay,
   isValidMonth,
   localDay,
+  calendarDay,
+  dayStartHourOf,
   parseDay,
   dayStartMs,
   addDays,
@@ -34,10 +37,17 @@ test('dates: isValidDay checks format and calendar', () => {
   assert.equal(isValidMonth('2026-00'), false);
 });
 
-test('dates: localDay uses local calendar with a local-midnight boundary', () => {
+test('dates: localDay — a day starts at 4 am (D66 ⑦, policy.dayStartHour P320); calendarDay keeps the midnight boundary', () => {
+  assert.equal(policy.dayStartHour, 4);
   assert.equal(localDay(new Date(2026, 8, 24, 23, 59, 59)), '2026-09-24');
-  assert.equal(localDay(new Date(2026, 8, 25, 0, 0, 0)), '2026-09-25');
-  assert.equal(localDay(new Date(2026, 8, 24, 0, 0, 0).getTime()), '2026-09-24');
+  assert.equal(localDay(new Date(2026, 8, 25, 0, 0, 0)), '2026-09-24', '0:00 still belongs to the day before');
+  assert.equal(localDay(new Date(2026, 8, 25, 3, 59, 59).getTime()), '2026-09-24', '3:59 still the day before');
+  assert.equal(localDay(new Date(2026, 8, 25, 4, 0, 0).getTime()), '2026-09-25', '4:00 starts the new day');
+  assert.equal(localDay(new Date(2026, 0, 1, 1, 0, 0)), '2025-12-31', 'crosses the year');
+  assert.equal(localDay(new Date(2026, 2, 1, 2, 0, 0)), '2026-02-28', 'crosses the month');
+  assert.equal(calendarDay(new Date(2026, 8, 25, 0, 0, 0)), '2026-09-25');
+  assert.equal(localDay(new Date(2026, 8, 25, 0, 30), { dayStartHour: 0 }), '2026-09-25', 'dayStartHour 0 = old midnight boundary');
+  assert.equal(dayStartHourOf({ dayStartHour: 24 }), 0, 'out of range → 0');
   assert.throws(() => localDay('2026-09-24'), TypeError);
 });
 
@@ -63,7 +73,8 @@ test('dates: addDays and diffDays cross months, years and DST', () => {
 
 test('dates: monthOf and addMonths', () => {
   assert.equal(monthOf('2026-09-24'), '2026-09');
-  assert.equal(monthOf(new Date(2026, 0, 1).getTime()), '2026-01');
+  assert.equal(monthOf(new Date(2026, 0, 1, 12).getTime()), '2026-01');
+  assert.equal(monthOf(new Date(2026, 1, 1, 2).getTime()), '2026-01', '2 am on Feb 1 is still January 31 (D66 ⑦)');
   assert.equal(addMonths('2026-12', 1), '2027-01');
   assert.equal(addMonths('2026-01', -1), '2025-12');
   assert.equal(addMonths('2026-09', -21), '2024-12');

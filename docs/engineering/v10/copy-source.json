@@ -3690,6 +3690,13 @@
           "origin": "extra",
           "note": "I3 P1-36：字详情页头标题（只给读屏，页面里字卡自己是标题），推入后焦点落在这个标题",
           "decision": "P84"
+        },
+        "viewChar": {
+          "raw": null,
+          "text": "看这个字 ›",
+          "origin": "extra",
+          "decision": "P55",
+          "note": "D66 ⑮：结果页 / 写字页的对照与改判弹层里进字详情的入口（文字按钮，行尾 ›，名称 4 字）；全 App 只有这一种入口，点格子本身仍是打开对照弹层"
         }
       }
     },
@@ -5493,6 +5500,34 @@
           "text": "{date}跳过",
           "origin": "r7-F2 / D62（产品负责人真机反馈）",
           "note": "已跳过区详情页每行第二行小字：最近一次跳过的日期"
+        }
+      }
+    },
+    "X-REDO": {
+      "screen": "write",
+      "milestone": "M2",
+      "source": "D66 ③ 重写错字页（src/ui/screens/write/redo.js）：一组写完后把本组写错的字再写一遍，只算练习；04 §4.1 没有这些槽",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "重写错字",
+          "origin": "extra",
+          "note": "D66 ③：结果页底栏的文字按钮名与重写页的读屏页名（4 字，动宾短语；「写错」与结果页格下标签、字库用词一致）",
+          "decision": "P55"
+        },
+        "note": {
+          "raw": null,
+          "text": "再写一遍，只算练习。",
+          "origin": "extra",
+          "note": "D66 ③：重写页格下说明（与「看过答案后再写只算练习」R-W07.selfNote 同一口径，一句话说清不记录）",
+          "decision": "P55"
+        },
+        "again": {
+          "raw": null,
+          "text": "再写一次",
+          "origin": "extra",
+          "note": "D66 ③：对照阶段求助行按钮——回到空书写格重写这个字",
+          "decision": "P55"
         }
       }
     }

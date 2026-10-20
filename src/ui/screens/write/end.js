@@ -40,8 +40,8 @@ export const END_OVERLAY = 'write-end-dialog';
 const RESULT_SCREEN = 'result';
 
 injectStyles('write-end', `
-.sz-end__btn{position:relative;min-height:40px;padding:0 8px;color:${T.ink2}}
-.sz-end__btn::after{${HIT_EXT}} /* 视觉 40 高，热区 44（Q2-13） */
+.sz-end__btn{position:relative;min-height:44px;padding:0 8px;color:${T.ink2}}
+.sz-end__btn::after{${HIT_EXT}} /* 盒子 44 高（D66 ⑥：今天的练习也有它，页面矩阵按盒子量 ≥ 44；页头本身最小 44 高，不撑高），热区 44（Q2-13） */
 `);
 
 // ---------------------------------------------------------------- 纯函数

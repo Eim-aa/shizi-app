@@ -234,7 +234,7 @@ export default async function (page, ctx) {
     const top = document.querySelector('.sz-layer[data-top="true"]');
     const rect = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; };
     const row = top.querySelector('[data-testid="result-exrow"][data-state="addable"]');
-    const foot = [...top.querySelectorAll('.sz-page__foot button')].map(rect);
+    const foot = [...top.querySelectorAll('.sz-page__foot button:not([data-testid="result-redo"])')].map(rect); // D66 ③：有写错的字时主按钮上方多一枚文字按钮「重写错字」，不算在「底栏只有主按钮」里
     return {
       cells: [...top.querySelectorAll('[data-testid="work-cell"]')].map(c => Math.round(c.getBoundingClientRect().width)),
       open: row ? rect(row.querySelector('[data-testid="result-exrow-open"]')) : null,

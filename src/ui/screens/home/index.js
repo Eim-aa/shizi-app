@@ -102,7 +102,7 @@ injectStyles('home', `
 .sz-home__other.sz-btn{--bx:12px;margin-top:4px;min-height:${T.hit}}
 .sz-home__foot{flex:none;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 ${CTA_LINE}px} /* 主按钮底边固定在 Tab 栏上沿上方 24pt（T3-01 / D53 ③）：文字按钮 / 首次说明 / 失败提示都在它上面，不论哪一态主按钮 y 不变 */
 .sz-home__cta.sz-btn{width:240px;max-width:100%}
-.sz-home__prog{font-variant-numeric:tabular-nums;font-weight:400;opacity:.8} /* D66 ⑧：主按钮字后的「· 7 / 20」，同色、略轻 */
+.sz-home__prog{font-variant-numeric:tabular-nums;font-weight:400} /* D66 ⑧：主按钮字后的「· 7 / 20」，同色、字重略轻 */
 .sz-home__otherchev{margin-left:4px;color:${T.ink3}} /* 去处类文字按钮行尾的「›」（交互规范 B1） */
 .sz-home__row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:0 12px}
 .sz-home__side.sz-btn{margin-bottom:4px;min-height:${T.hit};justify-content:center}
@@ -462,7 +462,7 @@ function HomeScreen() {
   const ctaLabel = t(homeCtaKey(model));
   // D66 ⑧：进行中时主按钮字后接「· 7 / 20」（已写 / 总数）；读屏名称在 ctaAria
   const progressNode = model.resume !== 'none' && model.primary
-    ? html`<span class="sz-home__prog" data-testid="home-progress"> · ${progressText(model.primary, t)}</span>` : null;
+    ? html`<span class="sz-home__prog"> · ${progressText(model.primary, t)}</span>` : null;
   const note = homeNoteOf(model);
   const dateText = t('R-H02.line', {
     date: t('R-H02.dateFormat', model.dateParts),

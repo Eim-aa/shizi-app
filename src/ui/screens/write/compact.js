@@ -23,7 +23,7 @@ export const COMPACT_QUERY = `(max-height: ${COMPACT_MAX_HEIGHT}px)`;
 export const TEXT_LARGE_ATTR = 'data-text-large';
 
 /** 写字页 Page 根（components/Page 把 testid 放在 .sz-page 上）。 */
-const S = '.sz-page[data-testid="write-screen"]';
+const S = '.sz-page:is([data-testid="write-screen"],[data-testid="redo-screen"])';
 
 // 紧凑 / 大字号下只剩两件事：页头标题可换行（看答案 / 描一遍阶段的标题），其余版式一律由 layout.js 与 index.js 的结构规则决定（D49：不再有第二套排布）。
 function compactRules(scope) {

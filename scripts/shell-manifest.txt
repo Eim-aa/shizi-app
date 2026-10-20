@@ -7286,6 +7286,7 @@ src/config/policy.js
 src/config/tokens.css
 src/core/backup.js
 src/core/cards.js
+src/core/correct.js
 src/core/dates.js
 src/core/first-result.js
 src/core/fsrs.js
@@ -7382,7 +7383,9 @@ src/ui/router.js
 src/ui/screens/_demo/sub.js
 src/ui/screens/block/index.js
 src/ui/screens/detail/actions.js
+src/ui/screens/detail/correct.js
 src/ui/screens/detail/index.js
+src/ui/screens/detail/open.js
 src/ui/screens/detail/photos.js
 src/ui/screens/detail/records.js
 src/ui/screens/home/copybook.js
@@ -7430,6 +7433,7 @@ src/ui/screens/write/layout.js
 src/ui/screens/write/persist.js
 src/ui/screens/write/phase-fade.js
 src/ui/screens/write/prompt.js
+src/ui/screens/write/redo.js
 src/ui/screens/write/ref-label.js
 src/ui/screens/write/result-row.js
 src/ui/screens/write/skip.js

@@ -59,7 +59,8 @@ import { allRecords, replaceRecordInDraft } from '../write/answer.js';
 import { InkMini, RefMini, recalledInk } from '../write/compare.js';
 import { useStrokeData } from '../write/hint-layer.js';
 import { SkipUndoDock, canUndoSkip, undoSkipInDraft } from '../write/skip.js';
-import '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）
+import { openRedo } from '../write/redo.js'; // D66 ③ 重写错字
+import { ViewCharLink } from '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）+「看这个字 ›」
 import { NONE_SCREEN } from '../session/none.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
@@ -107,9 +108,11 @@ injectStyles('result', `
 .sz-result>.sz-work{margin-top:4px}
 .sz-result__head{margin-bottom:24px;gap:0}
 .sz-result__head+.sz-work{margin-top:0}
-.sz-result__remind{margin-top:28px}
+.sz-result__remind{margin-top:28px;position:sticky;bottom:0;z-index:1;background:${T.paper};padding-bottom:${T.s2}} /* D66 ⑯：提醒邀请（问句 + 开启提醒 / 先不用）粘在正文可视区底部——作品与各行再高，按钮也在 iPhone 17 首屏内、不靠滚动才看见；滚到底时回到自然位置 */
 .sz-result__remind:empty{display:none}
 .sz-result__textbtn{align-self:flex-start;margin-bottom:${T.s2}} /* 首练「再写一组」：文字按钮在主按钮正上方、左对齐 20pt 线，与主按钮视觉间距 20（与写字页求助行同一做法，B2） */
+.sz-result__textrow{display:flex;flex-wrap:wrap;align-items:center;gap:0 20px;margin-bottom:${T.s2}} /* 首练：「再写一组」「重写错字」两枚文字按钮同一行（D66 ③），都在主按钮正上方 */
+.sz-result__textrow .sz-result__textbtn{margin-bottom:0}
 .sz-result__fail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-result__failnote{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
 .sz-page[data-testid="result-screen"] .sz-page__body{padding-top:12px}
@@ -542,6 +545,7 @@ export function ResultCellSheet({ slot, sessionId, recordId, cellKind, cellChar,
       </div>
     </div>
     <p class="sz-change__note" data-testid="result-sheet-note" aria-live="polite">${note}</p>
+    <${ViewCharLink} testid="result-sheet-detail" char=${char} close=${close} />
     ${changeable && failed
       ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'result-sheet-fail', cancelLabel: t('R-W10.cancel'), retryLabel: t('R-W10.retry'), onCancel: () => close && close(), onRetry: flip })}`
       : changeable
@@ -713,20 +717,25 @@ function ResultScreen({ params, entry }) {
   const invite = useReminderInvite({ store, settings: state && state.settings, session: model.session, variant: model.variant, ready: landed });
   useEffect(() => { if (!model.work || model.work.empty) setLanded(true); }, [!!model.work, model.work ? model.work.empty : true]); // 没有作品（没有落印）：直接算落定
 
+  // D66 ③ 重写错字：本组（按现在的记录）写错的字再写一遍，只算练习；没有写错的字不显示。一次点击推入（普通推入，D62），写完回到本页
+  const wrongChars = model.cells.filter(c => c.kind === 'judged' && c.judgment === 'wrong').map(c => c.char);
+  const redoButton = wrongChars.length
+    ? html`<${Button} variant="text" class="sz-result__textbtn" data-testid="result-redo" onClick=${() => { dismissUndo(); openRedo(wrongChars); }}>${t('X-REDO.title')}</${Button}>`
+    : null;
   let footer;
   if (againFailed) {
     // 「再写一组」开组失败：底栏就地三段式（S1，components/FailBlock.js）
     footer = html`${FailBlock({ layout: 'foot', speak: false, testid: 'result-again-fail', noteTestid: 'result-again-note', cancelTestid: 'result-again-cancel', retryTestid: 'result-again-retry', text: t('X-RESULT.againFailed'), cancelLabel: t('X-RESULT.againCancel'), retryLabel: t('X-RESULT.againRetry'), onCancel: () => { setAgainFailed(false); markStateChange(); }, onRetry: again })}`;
   } else if (model.variant === 'first') {
-    // 首练收尾（N2-05）：主按钮是「完成」，「再写一组」降为文字按钮，在主按钮正上方（与写字页求助行同位，主按钮落在全 App 底线，P1-15）
-    footer = html`<${Button} variant="text" class="sz-result__textbtn" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>
+    // 首练收尾（N2-05）：主按钮是「完成」，「再写一组」降为文字按钮，在主按钮正上方（与写字页求助行同位，主按钮落在全 App 底线，P1-15）；有写错的字时旁边多一枚「重写错字」（D66 ③）
+    footer = html`<div class="sz-result__textrow"><${Button} variant="text" class="sz-result__textbtn" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>${redoButton}</div>
       <${Button} variant="primary" data-testid="result-done" onClick=${leave}>${t('X-RESULT.done')}</${Button}>`;
   } else if (model.again) {
-    // D49 ③：出口只在页头左上「×」；底栏只有主按钮（落在全 App 主按钮底线，与写字页「写好了」同位）
-    footer = html`<${Button} variant="primary" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>`;
+    // D49 ③：出口只在页头左上「×」；底栏只有主按钮（落在全 App 主按钮底线，与写字页「写好了」同位）；有写错的字时主按钮正上方多一枚文字按钮「重写错字」（D66 ③）
+    footer = html`${redoButton}<${Button} variant="primary" data-testid="result-again" onClick=${again}>${t('X-RESULT.again')}</${Button}>`;
   } else {
     // 主按钮行与其它变体同一位置（全 App 主按钮底线，P1-15）
-    footer = html`<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>`;
+    footer = html`${redoButton}<${Button} variant="primary" data-testid="result-leave" onClick=${leave}>${model.leave.label}</${Button}>`;
   }
 
   const imageAction = hooks.image;
@@ -763,7 +772,8 @@ function ResultScreen({ params, entry }) {
           picked=${model.variant === 'picked'} sealKey=${sealKey} session=${model.session} settings=${state && state.settings}
           onSealed=${() => { const st = storeOrNull(); if (st) commitSealed(st, { slot, sessionId }); }} onLanded=${() => setLanded(true)} />`
         : null}
-      ${model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} quiet=${model.work.empty} />` : null}
+      ${model.work ? html`<${WorkRows} rows=${model.work.rows.filter(r => r.state !== 'in')} inkOf=${inkForRecord} onOpen=${openEntry} onToggle=${toggleEntry} quiet=${model.work.empty}
+        changeable=${row => !!(model.cells[row.index] && model.cells[row.index].canChange)} />` : null}
       ${extras ? html`<${ReviewPreview} text=${extras.preview} />` : null}
       <div class="sz-result__remind" data-testid="result-remind-slot">
         <${ReminderInvite} invite=${invite} />

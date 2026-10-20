@@ -37,6 +37,7 @@ import { canCorrect, fsrsBeforeOf, markLineChanged } from '../../../core/session
 import { replay } from '../../../core/fsrs.js';
 import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
 import { loadStrokes, peekStrokes } from '../../../data/strokes.js';
+import { openCharDetail } from '../detail/open.js';
 import { allRecords, replaceRecordInDraft } from './answer.js';
 import { InkMini, RefMini, recalledInk } from './compare.js';
 
@@ -48,6 +49,7 @@ injectStyles('write-result-row', `
 .sz-line__dot{color:${T.ink4}}
 .sz-line__change{--bx:4px;min-width:${T.hit};min-height:${T.hit};margin:-4px calc(-1 * var(--bx)) 0;padding:4px var(--bx) 0;gap:${T.s1};color:${T.ink1};font-size:${T.fs13};} /* 按钮盒 44 × (文字宽 + 8)。① min-width 44 加左右各 4 的内边距让按钮盒不比点击区（::after，≥ 44 宽）窄——WebKit 下点击区伸出按钮盒会让按钮 scrollWidth > clientWidth（K2），负外边距抵回，文字位置不变；② 比 40 高的说明位多出的 4 全部伸向上面（上外边距 -4、上内边距 4 把字抵回行中线）：伸向下面的部分会让正文区出现 2pt 的可滚动量（SE 3 XXXL，写字页不得滚动），向上伸出不计入可滚动区；热区仍是 44 */
 .sz-change__cancel{position:absolute;right:12px;top:18px;height:44px;padding:0 12px;font-size:${T.fs15};color:${T.ink2}}
+.sz-change__view{align-self:flex-start;margin-left:calc(-1 * var(--bx,0px))} /* D66 ⑮：「看这个字 ›」文字按钮，左对齐 20pt 线（规范 B2），在说明与主按钮之间 */
 .sz-change__minis{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
 .sz-change__col{display:flex;flex-direction:column;gap:12px;min-width:0}
 .sz-change__note{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
@@ -199,6 +201,16 @@ function useLoadedStrokes(char) {
   return load;
 }
 
+/**
+ * 「看这个字 ›」（D66 ⑮）：对照 / 改判弹层里进字详情的入口——结果页与写字页是同一个组件（写字页只给「上一个字」，当前字的答案不会泄露，D16）。
+ * 先关弹层再推入详情（普通推入，D62），详情返回回到弹层下面的这一页。
+ */
+export function ViewCharLink({ testid, char, close }) {
+  if (!char) return null;
+  return html`<${Button} variant="text" class="sz-change__view" data-testid=${testid}
+    onClick=${() => { if (close) close(); openCharDetail(char); }}>${t('X-DETAIL.viewChar')}</${Button}>`;
+}
+
 /** 修改判断弹层（overlay 组件；root 注入 close / active）。 */
 export function ChangeSheet({ slot, recordId, close, active = true }) {
   const store = storeOrNull();
@@ -241,6 +253,7 @@ export function ChangeSheet({ slot, recordId, close, active = true }) {
       </div>
     </div>
     <p class="sz-change__note" data-testid="write-change-note" aria-live="polite">${note}</p>
+    <${ViewCharLink} testid="write-change-detail" char=${char} close=${close} />
     ${failed
       ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'write-change-fail', cancelLabel: t('R-W10.cancel'), retryLabel: t('R-W10.retry'), onCancel: () => close && close(), onRetry: flip })}`
       : html`<${Button} variant="primary" data-testid="write-change-flip" onClick=${flip}>${flipLabel}</${Button}>`}
@@ -254,6 +267,20 @@ export function openChangeSheet({ slot, recordId }) {
 
 // ---------------------------------------------------------------- 组件与写字页接线
 
+/**
+ * 「修改 ›」：改判的入口按钮（D66 ④）。写字页结果行与结果页写错的那一行用的是它——同一个组件、同一个外观（文字按钮，行尾 ›），点了都打开改判弹层。
+ * label 缺省取结果行文案里「 · 」后面的那个词（R-W10.lineRecordedCorrect 的「修改 ›」去掉 ›）。
+ */
+export function changeLabel() {
+  const full = t('R-W10.lineRecordedCorrect');
+  const cut = full.lastIndexOf(' · ');
+  return (cut >= 0 ? full.slice(cut + 3) : '').replace(/\s*›\s*$/, '');
+}
+
+export function ChangeLink({ label = changeLabel(), onClick, testid = 'write-line-change', ...rest }) {
+  return html`<${Button} variant="text" class="sz-line__change" data-testid=${testid} onClick=${onClick} ...${rest}>${label}<span aria-hidden="true">›</span></${Button}>`;
+}
+
 /** 结果行视图（纯视图，单测直接调用）。model 为 resultRowModel 的结果。 */
 export function ResultRowView({ model, onChange }) {
   if (!model || model.state === 'none') return null;
@@ -261,11 +288,7 @@ export function ResultRowView({ model, onChange }) {
     return html`<div class="sz-line" data-testid="write-line" data-state="skipped" aria-hidden="true"></div>`;
   }
   const action = model.action && model.canChange
-    ? (() => {
-      const label = model.action.replace(/\s*›\s*$/, '');
-      return html`<span class="sz-line__dot" aria-hidden="true">·</span><${Button} variant="text" class="sz-line__change"
-        data-testid="write-line-change" onClick=${onChange}>${label}<span aria-hidden="true">›</span></${Button}>`;
-    })()
+    ? html`<span class="sz-line__dot" aria-hidden="true">·</span>${ChangeLink({ label: model.action.replace(/\s*›\s*$/, ''), onClick: onChange })}`
     : null;
   return html`<div class="sz-line" data-testid="write-line" data-state=${model.state} data-kind=${model.kind}
     role="status" aria-live="polite"><span data-testid="write-line-text">${model.text}</span>${action}</div>`;

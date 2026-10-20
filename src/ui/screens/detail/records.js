@@ -28,7 +28,7 @@
 
 import { html, useEffect, useState } from '../../../../vendor/ui.js';
 import { nav } from '../../router.js';
-import { Button, pressFeedbackHandlers } from '../../components/Button.js';
+import { Button, markStateChange, pressFeedbackHandlers } from '../../components/Button.js';
 import { Sheet } from '../../components/Sheet.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
@@ -42,6 +42,10 @@ import { decodeInk, resampleForReplay } from '../../../core/ink-math.js';
 import { inkHasStrokes } from '../../../core/ink-pick.js';
 import { cardForKey, hasContextWord, withWordOff } from '../../../data/deck.js';
 import { InkMini, recalledInk } from '../write/compare.js';
+import '../write/result-row.js'; // .sz-change__note 的样式（改判弹层说明位，与结果页 / 写字页同一版式）
+import { FailBlock } from '../../components/FailBlock.js';
+import { getStore } from '../../../store/store.js';
+import { canCorrectHere, commitCorrectRecord } from './correct.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { promptCopy } from '../write/prompt.js';
 
@@ -373,9 +377,31 @@ function Cell({ record, ink, onOpen, first = false, latest = false }) {
   </button>`;
 }
 
-/** 放大弹层（overlay 组件；root 注入 close / active）。 */
+/**
+ * 放大弹层（overlay 组件；root 注入 close / active）。
+ * D66 ④：judged 的记录在这里也能改判——「改为写错 / 改为写对」，与结果页对照弹层同一句说明、同一个按钮、同一套规则（detail/correct.js）；
+ * 改完关弹层，详情页按记录实时重算（格子下的字、待复习、下次练习日）。失败：说明换成「没改成，还是原来的结果。」，按钮换 [先不改 / 再试一次]。
+ */
 export function ZoomSheet({ record, points = null, strokes = null, close, active = true }) {
+  const [failed, setFailed] = useState(false);
+  const store = (() => {
+    try {
+      return getStore();
+    } catch (error) {
+      return null;
+    }
+  })();
+  const changeable = canCorrectHere(record);
   const { title } = cellCopy(record);
+  const flip = () => {
+    const result = store ? commitCorrectRecord(store, { recordId: record.id }) : { ok: false, error: { kind: 'unavailable' } };
+    if (result.ok || (result.error && result.error.kind === 'stale')) {
+      if (close) close();
+      return;
+    }
+    setFailed(true);
+    markStateChange(); // 失败态是新状态（走查-W08）
+  };
   return html`<${Sheet} title=${title} onClose=${close} active=${active} testid="detail-zoom" doneTestid="detail-zoom-close">
     <div class="sz-dzoom">
       <div class="sz-dzoom__sq">
@@ -383,6 +409,10 @@ export function ZoomSheet({ record, points = null, strokes = null, close, active
           emptyText=${t('R-D07.noInkLarge')} emptyTestid="detail-zoom-noink" />
       </div>
     </div>
+    ${changeable ? html`<p class="sz-change__note" data-testid="detail-zoom-note" aria-live="polite">${failed ? t('R-W10.changeFailed') : t('R-R02.sheetNoteChange')}</p>
+      ${failed
+    ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'detail-zoom-fail', cancelLabel: t('R-W10.cancel'), retryLabel: t('R-W10.retry'), onCancel: () => close && close(), onRetry: flip })}`
+    : html`<${Button} variant="primary" data-testid="detail-zoom-flip" onClick=${flip}>${t(record.judgment === 'correct' ? 'X-JUDGE.changeToWrong' : 'X-JUDGE.changeToCorrect')}</${Button}>`}` : null}
   </${Sheet}>`;
 }
 

@@ -21,6 +21,7 @@ import { t } from '../../../config/copy/index.js';
 import { resultGrid } from '../../../core/images/layout.js';
 import { toggleAdded } from '../../../core/images/work.js';
 import { kuan } from '../../work-text.js';
+import { ChangeLink } from '../write/result-row.js';
 import { keySound, warmSounds } from '../../../platform/sound.js';
 import { haptic } from '../../../platform/haptics.js';
 
@@ -117,6 +118,7 @@ injectStyles('result-work', `
 .sz-exrow__t{flex:1;min-width:0;font-size:${T.fs17};line-height:${T.lh17s};color:${T.ink2}}
 .sz-exrow__tag{color:${T.ink3}}
 .sz-exrow .sz-btn--text{flex:none}
+.sz-exrow .sz-line__change{margin:0;padding:0 var(--bx)} /* D66 ④：与写字页结果行同一个「修改 ›」组件；这里在行内垂直居中，不需要结果行那样向上抵 4pt */
 :root[data-ax] .sz-exrow{flex-wrap:wrap;padding:6px 0}
 :root[data-ax] .sz-exrow__open{flex:1 1 100%;min-height:${ROW_GLYPH_AX}px;padding:0}
 :root[data-ax] .sz-exrow .sz-btn--text{margin-left:${ROW_GLYPH_AX + 12}px}
@@ -339,9 +341,10 @@ function rowAria(entry, quiet = false) {
 
 /**
  * 作品下没放进图里的行（已放进图里的字回到作品，不再有行）。
- * @param {{rows:Array, inkOf:(record)=>object|null, onOpen:(entry)=>void, onToggle:(entry)=>void}} props
+ * D66 ④：写错的那一行带「修改 ›」（changeable(row) 为真时），与写字页结果行是同一个组件（write/result-row.js ChangeLink），点开同一个对照与改判弹层。
+ * @param {{rows:Array, inkOf:(record)=>object|null, onOpen:(entry)=>void, onToggle:(entry)=>void, changeable?:(entry)=>boolean}} props
  */
-export function WorkRows({ rows, inkOf, onOpen, onToggle, quiet = false }) {
+export function WorkRows({ rows, inkOf, onOpen, onToggle, quiet = false, changeable = null }) {
   const ax = useAxSize();
   const shown = (rows || []).filter(row => row.state !== 'added');
   if (!shown.length) return null;
@@ -363,6 +366,8 @@ export function WorkRows({ rows, inkOf, onOpen, onToggle, quiet = false }) {
           ? html` <span class="sz-exrow__tag" data-testid="result-exrow-tag">${t('X-DETAIL.paperTag')}</span>`
           : null}</span>
       </button>
+      ${row.judgment === 'wrong' && changeable && changeable(row)
+        ? html`<${ChangeLink} testid="result-exrow-change" onClick=${() => onOpen(row)} />` : null}
       ${inked
         ? html`<${Button} variant="text" data-testid="result-add"
             aria-label=${t('X-FIRST.addAria', { char: row.char })}

@@ -58,7 +58,8 @@ async function homeLines(page) {
       // E9a（D49-7）：「这一组还有 N 个字」文字行已删；槽 / 种类 / 句子改读进行中格子块（data-slot / data-kind，读屏名称第一句）
       // H2（D55）：首页不再画进行中的格子，续写的是哪一组由 data-resume（A / B / A+B）与 other-line 表达
       other: line('other-line'),
-      cta: q('home-start') ? q('home-start').getAttribute('aria-label') : null,
+      cta: q('home-start') ? q('home-start').getAttribute('aria-label').replace(/，已写 \d+ 个，共 \d+ 个$/, '') : null, // D66 ⑧：进行中读屏名称带「，已写 n 个，共 m 个」，这里比的是按钮的字
+      ctaAria: q('home-start') ? q('home-start').getAttribute('aria-label') : null,
       dataResume: q('screen-home') ? q('screen-home').dataset.resume : null,
     };
   });

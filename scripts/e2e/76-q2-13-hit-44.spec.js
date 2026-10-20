@@ -52,14 +52,14 @@ export default async function run(page, ctx) {
   const actH = await page.evaluate(() => document.querySelector('.sz-layer[data-top="true"] [data-testid="library-all-open"]').getBoundingClientRect().height);
   assert.equal(Math.round(actH), 44, 'D60: 「全部 ›」 is a text button (min height 44), so the visible height is the hit height');
 
-  step('写字页：「结束这组」（自选的字那一组才有）');
+  step('写字页：「结束这组」（自选的字与今天的练习才有，D66 ⑥）');
   await seedSession(page, { slot: 'B', kind: 'picked', chars: ['春', '夏'] });
   await page.evaluate(async () => (await import('/src/ui/router.js')).nav.push('write', { slot: 'B' }));
   await page.waitForSelector(topSel('write-end'));
   await waitNavIdle(page);
   check(assert, 'write 结束这组', await hitFacts(page, topSel('write-end')));
   const endH = await page.evaluate(sel => document.querySelector(sel).getBoundingClientRect().height, topSel('write-end'));
-  assert.equal(Math.round(endH), 40, 'the visible size is unchanged (40)');
+  assert.equal(Math.round(endH), 44, 'D66 ⑥: the box is 44 high now (today’s practice has it too, and the page matrix measures boxes); it is a plain text button, so visible = hit');
 
   step('查字弹层：「‹ 回到这 N 个字」');
   await goHomeTab(page);

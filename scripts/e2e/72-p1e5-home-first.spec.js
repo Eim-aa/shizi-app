@@ -258,7 +258,7 @@ export default async function run(page, ctx) {
   assert.deepEqual(r.exrows, [{ char: '赢', text: '写错了', btn: '放进图里', ink: true }], 'wrong char with ink: the status word + 放进图里 (the char is the glyph on the left, not in the sentence; D49)');
   assert.equal(r.invite, null, 'the invitation has not faded in yet (≈600ms after the work settles)');
   assert.equal((await nativeMessages(page, 'requestReminderPermission')).length, 0, 'no permission request before 好');
-  assert.deepEqual(r.foot, ['result-again:再写一组', 'result-done:完成'], 'I3 P0-03: the sticky footer is 再写一组 (text, above) + 完成 (primary on the app-wide line, R5M / P1-15) before, while and after the invitation (it never blocks the main actions)');
+  assert.deepEqual(r.foot, ['result-again:再写一组', 'result-redo:重写错字', 'result-done:完成'], 'I3 P0-03: the sticky footer is 再写一组 (text, above; D66 ③: + 重写错字, 赢 was wrong) + 完成 (primary on the app-wide line, R5M / P1-15) before, while and after the invitation (it never blocks the main actions)');
   await waitInvite(page);
   r = await resultView(page);
   assert.equal(r.invite.title, '明天这个时候，给你一个词？', 'time 9:41 is inside 7:00–22:00');
@@ -486,21 +486,21 @@ export default async function run(page, ctx) {
   step('五态 ③有进行中的组: 按钮「继续写字」；首页不放这一组的格子，也不露还没写的字（D55）');
   await seedWorld(page, { entries: [], groups: [{ at: `${D(5)}T12:00:00`, chars: [...'疆嚷醋膝窗'], steps: ['correct', 'correct'] }], clock: `${D(5)}T12:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.cta, h.resume, h.pick], ['progress', '继续写字', 'A', '自己选字']);
+  assert.deepEqual([h.view, h.cta, h.resume, h.pick], ['progress', '继续写字 · 2 / 5', 'A', '自己选字']); // D66 ⑧：主按钮字后接「· 已写 / 总数」
   assert.ok(!/醋|膝|窗/.test(await page.evaluate(() => document.querySelector('.sz-layer [data-testid="screen-home"]').innerHTML)), 'the unwritten chars are nowhere in the home DOM');
-  assert.ok(!/\d/.test(h.visibleText.replace(/10月5日/, '')) && !/这一组还有/.test(h.visibleText), `D55: no progress and no numbers on the page: ${h.visibleText}`);
+  assert.ok(!/\d/.test(h.visibleText.replace(/10月5日/, '').replace('2 / 5', '')) && !/这一组还有/.test(h.visibleText), `D55 / D66 ⑧: the only number on the page is 已写 / 总数 on the main button: ${h.visibleText}`);
   check('progress', h);
-  step('③b A + B 都没写完: 主按钮续 B，主按钮上方一行文字按钮（无箭头，D49）续写 A（P269）');
+  step('③b A + B 都没写完: 主按钮续 B，主按钮上方一行文字按钮（D66 ⑧：「今天的字 · 已写 / 总数 ›」，行尾 › 表示可点）续写 A（P269）');
   await seedWorld(page, {
     entries: [], clock: `${D(5)}T12:30:00`,
     groups: [{ at: `${D(5)}T12:00:00`, slot: 'B', kind: 'picked', chars: [...'鲜境'], steps: [] }, { at: `${D(5)}T12:00:00`, slot: 'A', kind: 'daily', chars: [...'一二三四五'], steps: ['correct'] }],
   });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.resume, h.cta, h.otherLine], ['progress', 'A+B', '继续写字', '今天的字 · 接着写']);
+  assert.deepEqual([h.view, h.resume, h.cta, h.otherLine], ['progress', 'A+B', '继续写自选字 · 0 / 2', '今天的字 · 1 / 5›']);
   step('③c 首练写到一半: 仍没有「自己选字」');
   await seedWorld(page, { entries: [], groups: [{ at: `${D(5)}T12:00:00`, kind: 'first', chars: [...'尴赢拾'], steps: ['correct'] }], clock: `${D(5)}T12:30:00` });
   h = await homeView(page);
-  assert.deepEqual([h.view, h.pick, h.cta], ['progress', null, '继续写字']);
+  assert.deepEqual([h.view, h.pick, h.cta], ['progress', null, '继续写字 · 1 / 3']);
 
   step('五态 ④大写数字特别组那天: 一句提示；「自己选字」仍在，旁边文字按钮「写平常字」（D55 / P269，原来代替它）；点了顺延到下一个合适的日子');
   const history10 = ['09-28', '09-28', '09-29', '09-30', '10-01', '10-01', '10-02', '10-03', '10-04', '10-04'].map((d, i) => ({ char: String.fromCodePoint(0x6100 + i), at: `2026-${d}T20:0${i % 10}:00` }));
@@ -595,7 +595,7 @@ export default async function run(page, ctx) {
       const r = id => { const el = top.querySelector(`[data-testid="${id}"]`); const b = el.getBoundingClientRect(); return { text: el.textContent.trim(), cls: el.className, top: b.top, bottom: b.bottom }; };
       return { done: r('result-done'), again: r('result-again'), foot: [...top.querySelectorAll('.sz-page__foot button')].map(b => b.dataset.testid), vh: window.innerHeight };
     });
-    assert.deepEqual(answered.foot, ['result-again', 'result-done'], `${width}×${height}: answered → the same 再写一组 (text, above) + 完成 (primary)`);
+    assert.deepEqual(answered.foot, ['result-again', 'result-redo', 'result-done'], `${width}×${height}: answered → the same 再写一组 (text, above) + 完成 (primary)`);
     assert.deepEqual([answered.done.text, answered.again.text], ['完成', '再写一组']);
     assert.ok(/sz-btn--primary/.test(answered.done.cls) && /sz-btn--text/.test(answered.again.cls), `${width}×${height}: 完成 is the primary button, 再写一组 a text button`);
     assert.ok(answered.done.bottom <= answered.vh && answered.again.top < answered.done.top, `${width}×${height}: both inside the screen, 再写一组 above 完成 (R5M / P1-15)`);

@@ -77,6 +77,10 @@ export default Object.freeze({
   'X-PROMPT.tone3': '三声',
   'X-PROMPT.tone4': '四声',
   'X-PROMPT.tone5': '轻声',
+  // X-REDO（D66 ③ 重写错字：结果页按钮名 / 重写页格下说明 / 对照阶段求助行按钮）
+  'X-REDO.title': '重写错字',
+  'X-REDO.note': '再写一遍，只算练习。',
+  'X-REDO.again': '再写一次',
   // X-WRITE（M1-1 书写格组件的读屏名称）
   'X-WRITE.gridLabel': '写字格',
   // 书写格读屏与播报（R2-A1 / A2-06，P231）：名称带笔数；抬笔 / 撤销 / 清空 / 提示 / 描一遍经 aria-live=polite 区域播报；笔画名称数据没有，按笔序

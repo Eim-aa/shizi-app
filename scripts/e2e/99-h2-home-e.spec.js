@@ -17,7 +17,8 @@ import { HOME_STATES, seedHomeState } from './home-helpers.mjs';
 const VIEWS = [{ id: '390x844', width: 390, height: 844 }, { id: '375x667', width: 375, height: 667 }];
 const STATES = Object.keys(HOME_STATES);
 
-const CTA = { first: '开始写字', fresh: '开始写字', progress: '继续写字', today: '再写一组', back: '开始写字', special: '开始写字' };
+const CTA = { first: '开始写字', fresh: '开始写字', progress: '继续写字 · 2 / 5', today: '再写一组', back: '开始写字', special: '开始写字' }; // D66 ⑧：进行中主按钮字后接「· 已写 / 总数」
+const CTA_NAME = { ...CTA, progress: '继续写字，已写 2 个，共 5 个' };
 const CAPITAL = '今天写两组大写数字，借条、红包上用得着。';
 const EPIGRAPHS = [['心不厌精，', '手不忘熟。', '孙过庭'], ['文章千古事，', '得失寸心知。', '杜甫'], ['我书意造本无法，', '点画信手烦推求。', '苏轼']];
 
@@ -122,7 +123,7 @@ export default async function run(page, ctx) {
         assert.equal(m.view, name, `${t}: view`);
         assert.deepEqual(m.banned, [], `${t}: no copybook row, no ink cells, no handoff, no counts, no 「昨天写的字」 on the home`);
         assert.equal(m.startText, CTA[name], `${t}: the main button reads 「${CTA[name]}」`);
-        assert.equal(m.startLabel, CTA[name], `${t}: and is named the same for the screen reader`);
+        assert.equal(m.startLabel, CTA_NAME[name], `${t}: and is named for the screen reader (progress adds 已写 / 共)`);
         assert.equal(m.scrollable, false, `${t}: the page does not scroll`);
         assert.equal(m.overflowX, false, `${t}: no horizontal overflow`);
         assert.ok(near(m.panelBottom - m.start.b, 24, 0.6), `${t}: the main button's bottom is 24 above the tab bar (${m.panelBottom - m.start.b})`);
@@ -169,6 +170,7 @@ export default async function run(page, ctx) {
         assert.deepEqual(extra, [], `${t}: nothing else is written on the page (no title, no counts, no progress, no explanations)`);
         const digitsOutsideDate = m.visibleText.filter(x => x.text !== m.dateText && /\d/.test(x.text)).map(x => x.text);
         if (name === 'back') assert.deepEqual(digitsOutsideDate, ['你写过的 5 个字都还在。'], `${t}: the one number on the page is the 「N 个字」 line`);
+        else if (name === 'progress') assert.deepEqual(digitsOutsideDate, ['2 / 5'], `${t}: the one number on the page is the 已写 / 总数 on the main button (D66 ⑧)`);
         else assert.deepEqual(digitsOutsideDate, [], `${t}: no digits anywhere but the date`);
         void texts;
 

@@ -211,7 +211,8 @@ export default async function run(page, ctx) {
   });
   assert.deepEqual(commons.in, ['熊', '颜', '藏', '桂', '厦', '傅', '鞠', '豫'], 'D45: common surnames / place names are new-char candidates again');
   assert.deepEqual(commons.out, [], 'D45: rarely-used surnames / place names stay out');
-  assert.ok(q2.includes('豫') && q2.includes('嚷'), 'new chars are the first of the list: ' + S(q2));
+  // D66 ⑫：新用户前 3 天每组新字至多 2 份（5 字一组 2 个，含热身字）：热身字 + 新字池最前的「豫」，其余是首练字的提前复习
+  assert.ok(q2.includes('豫') && !q2.includes('嚷'), 'the new char is the first of the list (new-user cap: warm-up + 1 new): ' + S(q2));
   assert.equal(q2[q2.length - 1] !== '豫' && q2[q2.length - 1] !== '嚷', true, 'the group does not end on a new char');
   const warmChar = q2[0];
   // 写完第一个（热身字）→ 写对 → 记 Easy

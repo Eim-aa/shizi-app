@@ -43,7 +43,7 @@ function seedOf({ todayWritten = false } = {}) {
     (records[day.slice(0, 7)] || (records[day.slice(0, 7)] = [])).push({
       id: `r${k}`, cardKey: `base:${c}`, char: c, sessionId: 's900', kind: 'judged', judgment, at, localDay: day, help: { hints: 0, answerSeen: false, traced: false },
     });
-    if (s) sched[`base:${c}`] = { fsrs: { stability: s.s }, due: dayAgo(-s.due), lastJudgedAt: at };
+    if (s) sched[`base:${c}`] = { fsrs: { stability: s.s, reps: 3, lapses: 0 }, due: dayAgo(-s.due), lastJudgedAt: at };
   }
   // 已跳过（D62）：点过「跳过」、至今没有判断记录的字（水、火），不算已练汉字；山今天写了 = 不会出现在这里
   for (const [c, ago] of [['水', 3], ['火', 2]]) {

@@ -286,6 +286,16 @@ export default async function sessionStart(page, ctx) {
       edu: null, common: 1, norm: '一级', std: 0, ctx: 'dict' });
     deck.setDeckSource({ seed: [row('永', 1), row('和', 2)], overrides: {} });
   });
+  // D66 ⑩：范围学完、没有要写的字 → 首页主按钮直接是「换练习范围」（重画一次首页让它读到换过的小题库）
+  await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.switchTab('library'); });
+  await waitNavIdle(page);
+  await page.evaluate(async () => { const { nav } = await import('/src/ui/router.js'); nav.switchTab('home'); });
+  await page.waitForFunction(() => {
+    const b = document.querySelector('[data-testid="screen-home"] [data-testid="home-start"]');
+    return !!b && b.textContent.trim() === '换练习范围';
+  });
+  await waitNavIdle(page);
+  if (process.env.R8A_SHOTS) await page.screenshot({ path: `${process.env.R8A_SHOTS}/home-switch-library-393x852.png` });
   const logBefore = await page.evaluate(() => window.__shiziTest.getWriteLog().length);
   r = await call(page, 'startA');
   assert.equal(r.opened, 'none', 'opened the none page');
@@ -456,7 +466,7 @@ export default async function sessionStart(page, ctx) {
     },
   });
   r = await call(page, 'expireStale');
-  assert.deepEqual(r, { ok: true, expired: [] }, 'same day: nothing expires');
+  assert.deepEqual(r, { ok: true, expired: [], spread: null }, 'same day: nothing expires');
   const tomorrow = new Date(now + DAY);
   tomorrow.setHours(9, 0, 0, 0);
   await page.evaluate(iso => window.__shiziTest.setClock(iso), tomorrow.toISOString());
@@ -478,9 +488,10 @@ export default async function sessionStart(page, ctx) {
   assert.equal(st.sessions.A.startedDay, TOMORROW, 'new daily started on the new day');
   assert.ok(st.sessions.A.id !== 's903', 'a new session id');
   // 了 的 due 在 3 天后：不是到期复习。D41 的提前复习补位（到期不够时用快到期的字凑组）会把它放在组尾，所以只断言「不当到期字排在前面」。
-  assert.equal(st.sessions.A.queue.length, 5, 'a full group: 4 new chars + the not-yet-due 了 as an early-review filler');
+  // D66 ⑫：这是新用户的第 2 天，每组新字至多 2 份（5 字一组 2 个），不再补新字凑满：2 个新字 + 提前复习的 了
+  assert.equal(st.sessions.A.queue.length, 3, 'new-user ramp: 2 new chars + the not-yet-due 了 as an early-review filler');
   assert.equal(st.sessions.A.queue[st.sessions.A.queue.length - 1], 'base:了', '了 (not due yet) can only be an early-review filler, at the tail of the group');
-  assert.equal(st.sessions.A.queue.indexOf('base:了'), 4, '了 is not among the leading (due) chars');
+  assert.equal(st.sessions.A.queue.indexOf('base:了'), 2, '了 is not among the leading (due) chars');
 
   ctx.step('same flow when startA runs first on the new day: expiry + new group in one commit');
   await page.evaluate(() => window.__shiziTest.setClock(null));

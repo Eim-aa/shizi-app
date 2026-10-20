@@ -38,6 +38,12 @@ xcodebuild -project ios/ShiziApp/ShiziApp.xcodeproj -scheme Shizi -configuration
 ios/ShiziApp/scripts/verify-archive.sh work/Shizi.xcarchive
 ```
 
+数据层单测（XCTest，只测 `NativeStore.swift`：表结构、事务原子性、校验与读回、迁移标记、与 JS 同口径的校验和向量）：
+
+```bash
+xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziStoreTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
+```
+
 `CODE_SIGNING_ALLOWED=NO` 只用于本地无证书编译校验。真机运行和 TestFlight 必须使用 Apple Developer Team 正常签名。
 
 构建后可以检查 App 包或 archive 里的离线资源是否完整：
@@ -223,10 +229,10 @@ ios/ShiziApp/scripts/archive-testflight.sh
 
 ## 数据保留说明
 
-App 使用 `WKWebsiteDataStore.default()`，Web 侧数据全部在 `localStorage` 的 `shizi.v2.*` 键（数据模型 v2：记录按月分键、调度、设置、自选字、旧照片、备份元信息等；键表见 `docs/engineering/v10/01-架构设计.md` §3.6），所有写入经 `src/store/storage.js` 的事务。旧版（v1）用户首次打开新版时自动迁移一次；迁移后立即删除旧会话与旧安全副本大键，其余 v1 键保留到回退窗口结束（30 天或用户完成一次 v2 导出，先到者，03 P53）。
+**B1 起数据存在 App 自己的 SQLite 库** `Library/Application Support/ShiziStore/shizi.sqlite`（WAL、synchronous=FULL、文件保护「首次解锁后」、随 iCloud / 电脑备份；表结构与耐久性见 `docs/engineering/v10/01-架构设计.md` §4.1）。页面经同源端点 `/__native/store/v1/<op>`（`NativeStoreBridge.swift`）读写，键名与值同下文的 `shizi.v2.*`；第一次启动新版本时把 `localStorage` 里的全部 `shizi.*` 键一次性迁进去并逐项核对（§12.1），迁移没完成之前仍用 localStorage，旧 localStorage 数据保留一个版本周期不删。以下是迁移前（以及网页 / PWA）的存法：App 使用 `WKWebsiteDataStore.default()`，Web 侧数据全部在 `localStorage` 的 `shizi.v2.*` 键（数据模型 v2：记录按月分键、调度、设置、自选字、旧照片、备份元信息等；键表见 `docs/engineering/v10/01-架构设计.md` §3.6），所有写入经 `src/store/storage.js` 的事务。旧版（v1）用户首次打开新版时自动迁移一次；迁移后立即删除旧会话与旧安全副本大键，其余 v1 键保留到回退窗口结束（30 天或用户完成一次 v2 导出，先到者，03 P53）。
 
-「我的 → 备份与恢复」导出调用原生分享面板（分享完成才更新上次备份时间，取消不提示），备份文件为 `{app:'shizi', version:2, …}`；「用备份替换」调用原生 Files 选择器，原生预检后经 `shiziBackupPicked` 交给页面确认，非备份文件、超过 10 MB、取消选择经 `shiziBackupRejected` 显示页内 R-B06 文案；替换与清空前写设备内保护副本，离开备份页前可撤销，全程不 reload。旧版 v1 备份文件可以直接导入。练习图片经 `sharePracticeCard` / `savePracticeCard` 调起分享面板或存相册（`NSPhotoLibraryAddUsageDescription`）；分享或保存失败经 `shiziShareFailed` 由页面轻提示。浏览器 / PWA 保留 Web Share、下载和 file input 降级。拍字 / OCR 与相机已删除（不再有 `NSCameraUsageDescription`），旧照片只读查看并随备份。
+「我的 → 备份与恢复」导出调用原生分享面板（分享完成才更新上次备份时间，取消不提示），备份文件为 `{app:'shizi', version:2, …}`；「用备份替换」调用原生 Files 选择器，原生预检后经 `shiziBackupPicked` 交给页面确认，非备份文件、超过 64 MB（B1 前 10 MB）、取消选择经 `shiziBackupRejected` 显示页内 R-B06 文案；替换与清空前写设备内保护副本，离开备份页前可撤销，全程不 reload。旧版 v1 备份文件可以直接导入。练习图片经 `sharePracticeCard` / `savePracticeCard` 调起分享面板或存相册（`NSPhotoLibraryAddUsageDescription`）；分享或保存失败经 `shiziShareFailed` 由页面轻提示。浏览器 / PWA 保留 Web Share、下载和 file input 降级。拍字 / OCR 与相机已删除（不再有 `NSCameraUsageDescription`），旧照片只读查看并随备份。
 
-正常 App 更新会保留数据；卸载 App、抹掉设备数据或手动清理 WebKit 网站数据会删除本地记录。换机前请在「我的 → 备份与恢复」导出备份。
+正常 App 更新会保留数据；卸载 App、抹掉设备数据会删除本地记录（迁移前清理 WebKit 网站数据也会）。换机前请在「我的 → 备份与恢复」导出备份。
 
 工程内包含 `PrivacyInfo.xcprivacy`，当前声明不追踪用户、不收集隐私数据、不使用需要声明的 required reason API；`ITSAppUsesNonExemptEncryption=false` 表示 App 没有使用非豁免加密。若后续加入埋点、账号、推送、第三方 SDK 或自研加密，需要同步更新这些声明和 App Store Connect 的 App Privacy/出口合规信息。

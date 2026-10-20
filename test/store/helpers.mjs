@@ -2,6 +2,7 @@
 // 不以 .test.mjs 结尾，node --test 不会把它当测试文件跑。
 import { setInk } from '../../src/store/store.js';
 import { encodeInk, GRID, INK } from '../../src/core/ink-math.js';
+import { FakeNativeDb } from './native-fake.mjs';
 
 /**
  * 与 Web Storage 接口一致的内存实现。
@@ -131,6 +132,15 @@ export class MemoryStorage {
     }
   }
 }
+
+/**
+ * store 契约测试的两种后端（B1）：make(opts) 造「磁盘」（同一套注入 API），open(disk) 造交给 createStorage 的后端——
+ * localStorage 就是磁盘本身；native 每次 open = 一次启动加载（load 全部行建镜像，写入走原生事务）。
+ */
+export const BACKENDS = Object.freeze([
+  Object.freeze({ name: 'localStorage', native: false, make: opts => new MemoryStorage(opts), open: disk => disk }),
+  Object.freeze({ name: 'native', native: true, make: opts => new FakeNativeDb(opts), open: disk => disk.open() }),
+]);
 
 export function makeError(kind) {
   if (kind === 'quota') return new DOMException('The quota has been exceeded.', 'QuotaExceededError');

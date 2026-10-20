@@ -52,7 +52,7 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
 final class WebViewController: UIViewController {
     private static let temporarySharePrefix = "shizi-share-"
     /// 备份导入的原生预检上限（01 §8.1；与 src/core/backup.js BACKUP_MAX_BYTES 相同）。
-    static let backupMaxBytes = 10 * 1024 * 1024
+    static let backupMaxBytes = 64 * 1024 * 1024
 
     private let schemeHandler: LocalWebSchemeHandler
     var webView: WKWebView!
@@ -265,6 +265,8 @@ final class WebViewController: UIViewController {
         backGestureEnabled = true
         // 首次加载、WebContent 进程被回收后的重载、阻断页「再试一次」都经这里：脚本按此刻的系统字号重建，不会重放旧档位。
         refreshUserScripts()
+        // B1：趁 WebContent 进程拉起，先在数据层队列上开库、读好全部数据（页面启动时的 load 直接取用；01 §4.1）。
+        NativeStoreBridge.shared.prewarm()
         var components = URLComponents()
         components.scheme = ShiziWebResource.scheme
         components.host = ShiziWebResource.host
@@ -639,7 +641,7 @@ final class WebViewController: UIViewController {
         case cancelled
     }
 
-    /// 01 §8.1：原生只做 10MB 上限与 JSON 外壳预检（app=="shizi"、data 是非空对象、键全部 `shizi.` 前缀；v1/v2 都放行），
+    /// 01 §8.1：原生只做 64MB 上限（B1 前为 10MB）与 JSON 外壳预检（app=="shizi"、data 是非空对象、键全部 `shizi.` 前缀；v1/v2 都放行），
     /// 通过则把文件文本交给 shiziBackupPicked(text)，否则 shiziBackupRejected({reason})；校验、页内确认、保护副本、替换、
     /// 撤销全部在 JS。原生不 reload、不弹 alert。
     func importBackup(from url: URL) {

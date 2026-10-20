@@ -6,7 +6,7 @@ import { FACES } from './data/font-loader.js';
 import { isNativeShell } from './platform/env.js';
 
 // 拾字 v10 启动入口。完整启动顺序见 01-架构设计 §2：
-//   import './platform/bridge.js'（M0 验收修复起静态导入，M5-5 扩展）→ 加载数据 → 迁移（M5-4）→ 建 store（M0-5）→ 挂载 UI（本卡）
+//   import './platform/bridge.js'（M0 验收修复起静态导入，M5-5 扩展）→ 加载数据 → [iOS 壳] 读原生 SQLite / localStorage 迁原生（B1）→ 建 store（M0-5）→ v1 迁移（M5-4）→ 挂载 UI（本卡）
 //   → bridge.markReady → postMessage pageReady（M5-3）→ 注册 SW（M5-1）。
 // 当前（M0-4）：?dev=1 → 色板页（M0-3）；否则挂根组件（router + 三 tab）。
 
@@ -53,8 +53,13 @@ async function mountApp() {
   try {
     const { bootStore, getStore } = await import('./store/store.js');
     const { mountTestHooks } = await import('./platform/test-hooks.js');
+    const { prepareStorage } = await import('./store/native-boot.js');
     mark('store-modules');
-    bootStore({ onStorage: storage => mountTestHooks({ storage, getStore }) });
+    // B1（01 §4.1）：iOS 壳里先从原生 SQLite 读出全部数据（首次启动新版本时把 localStorage 迁进去并逐项核对），再建 store；
+    // 网页 / e2e 直接用 localStorage。prepareStorage 永不抛错，迁移失败回退 localStorage。
+    const prepared = await prepareStorage();
+    mark('store-native');
+    bootStore({ backend: prepared.backend, budgets: prepared.budgets, backendInfo: prepared.info, onStorage: storage => mountTestHooks({ storage, getStore }) });
     mark('store');
   } catch (error) {
     console.error('[shizi] store boot failed:', error);

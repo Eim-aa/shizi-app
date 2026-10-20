@@ -216,7 +216,7 @@ export default async function nativeBridge(page, ctx) {
   assert.deepEqual(early.pending.map(p => p.name), ['shiziBackupRejected'], 'queued');
   await page.waitForSelector(topSel('backup-screen'));
   let n = await waitNote(page, 'notBackup');
-  assert.equal(n.text, copy.notBackup, 'tooLarge (> 10 MB) → R-B06「不是拾字的备份」');
+  assert.equal(n.text, copy.notBackup, 'tooLarge (> 64 MB) → R-B06「不是拾字的备份」');
 
   ctx.step('backup rejection before ready (invalid) → R-B06');
   await boot(page, baseURL, 'invalid');

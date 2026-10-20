@@ -1,19 +1,23 @@
 // store/store.js：commit 事务语义、写失败不发布、中断矩阵、坏值隔离提示一次、配额回收重试、seed、备份整单拒绝。
+// B1：整套用例对两种后端各跑一遍（helpers.mjs BACKENDS：localStorage 与原生 SQLite 的替身 native-fake.mjs）——同一份 store 契约；
+// 只有后端内部机制不同的地方（txn 日志 vs 原生事务、回滚失败 vs 结果未知）按 B.native 分开断言。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStore, deleteInk, deriveSerial, getInk, isReplacement, setInk } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
 import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
 import {
-  MemoryStorage, T0, allRecordIds, baselineState, flatInk, inkEntry, inkEntryV2, judgeMutation, plain, record,
+  BACKENDS, T0, allRecordIds, baselineState, flatInk, inkEntry, inkEntryV2, judgeMutation, plain, record,
 } from './helpers.mjs';
 import { decodeInk, isInkV2, isInkV3 } from '../../src/core/ink-math.js';
 
 const NOW = Date.parse('2026-10-02T10:00:00+08:00');
 const clock = () => NOW;
 
-function freshStore(backend = new MemoryStorage(), options = {}) {
-  const storage = createStorage(backend, { now: clock });
+for (const B of BACKENDS) {
+
+function freshStore(backend = B.make(), options = {}) {
+  const storage = createStorage(B.open(backend), { now: clock });
   const store = createStore(Object.assign({ storage, now: clock }, options));
   store.load();
   return { store, storage, backend };
@@ -26,7 +30,7 @@ function seeded(options = {}) {
   return env;
 }
 
-test('commit success: publishes new frozen state, notifies subscribers, allocates ids from derived serial', () => {
+test(`[${B.name}] ` + 'commit success: publishes new frozen state, notifies subscribers, allocates ids from derived serial', () => {
   const { store, backend } = seeded();
   assert.equal(store.serial, 3);
   const seen = [];
@@ -62,8 +66,8 @@ test('commit success: publishes new frozen state, notifies subscribers, allocate
   assert.deepEqual(store.getInk(after.records['2026-10'][0]), inkEntry());
 });
 
-test('ink v3 (P78): legacy v2 ink on disk still loads and decodes; new writes are v3; both live in one month key', () => {
-  const backend = new MemoryStorage();
+test(`[${B.name}] ` + 'ink v3 (P78): legacy v2 ink on disk still loads and decodes; new writes are v3; both live in one month key', () => {
+  const backend = B.make();
   const base = baselineState();
   base.ink = { '2026-09': { r2: inkEntryV2() } };
   const { store } = seeded({ backend });
@@ -82,7 +86,7 @@ test('ink v3 (P78): legacy v2 ink on disk still loads and decodes; new writes ar
   assert.deepEqual(decodeInk(env.store.getInk(r3)).map(s => s.length), [8, 8, 8]);
 });
 
-test('ink helpers: getInk / setInk / deleteInk address shizi.v2.ink.<record month>; txn only carries touched months', () => {
+test(`[${B.name}] ` + 'ink helpers: getInk / setInk / deleteInk address shizi.v2.ink.<record month>; txn only carries touched months', () => {
   const { store, storage, backend } = seeded();
   const r2 = store.getState().records['2026-09'][0];
   assert.deepEqual(getInk(store.getState(), r2), inkEntry(), 'baseline r2 ink lives in 2026-09');
@@ -121,7 +125,7 @@ test('ink helpers: getInk / setInk / deleteInk address shizi.v2.ink.<record mont
   assert.equal(badMonth.error.kind, 'shape');
 });
 
-test('write failure does not publish: in-memory state and storage stay as before; retry succeeds without double count', () => {
+test(`[${B.name}] ` + 'write failure does not publish: in-memory state and storage stay as before; retry succeeds without double count', () => {
   const { store, storage, backend } = seeded();
   const beforeState = store.getState();
   const beforeDisk = backend.snapshot();
@@ -141,7 +145,7 @@ test('write failure does not publish: in-memory state and storage stay as before
   assert.equal(store.getState().records['2026-10'][0].id, 'r4', 'failed attempt did not burn a persisted id');
 });
 
-test('verify mismatch → rollback → not published', () => {
+test(`[${B.name}] ` + 'verify mismatch → rollback → not published', () => {
   const { store, backend } = seeded();
   const beforeDisk = backend.snapshot();
   const beforeState = store.getState();
@@ -155,7 +159,7 @@ test('verify mismatch → rollback → not published', () => {
   assert.deepEqual(backend.snapshot(), beforeDisk);
 });
 
-test('mutator mutating frozen state in place is rejected (copy-on-write discipline); shape errors never reach storage', () => {
+test(`[${B.name}] ` + 'mutator mutating frozen state in place is rejected (copy-on-write discipline); shape errors never reach storage', () => {
   const { store, backend } = seeded();
   const beforeDisk = backend.snapshot();
   const r = store.commit('bad', draft => {
@@ -178,7 +182,7 @@ test('mutator mutating frozen state in place is rejected (copy-on-write discipli
   assert.deepEqual(noop, { ok: true, keys: [], recovered: [] });
 });
 
-test('interruptAfterWrite(k) matrix k=1..N: after reload state is exactly pre or post; records unique; ids do not collide', () => {
+test(`[${B.name}] ` + 'interruptAfterWrite(k) matrix k=1..N: after reload state is exactly pre or post; records unique; ids do not collide', () => {
   // 先量出 N 与写后状态
   const probe = seeded();
   const pre = plain(probe.store.getState());
@@ -214,19 +218,24 @@ test('interruptAfterWrite(k) matrix k=1..N: after reload state is exactly pre or
   assert.ok(outcomes.slice(0, N - 1).every(o => o === 'pre'), 'any interruption before txn removal rolls back');
 });
 
-test('interruption during repair (double crash) still converges to pre-state', () => {
+test(`[${B.name}] ` + 'interruption during repair (double crash) still converges to pre-state', () => {
   const { store, storage, backend } = seeded();
   const pre = plain(store.getState());
-  storage.interruptAfterWrite(4); // txn + 3 数据键
+  storage.interruptAfterWrite(4); // localStorage：txn + 3 数据键；原生：落在一个事务之内 = 没提交
   store.commit('judge', judgeMutation('大'));
-  const second = createStorage(backend, { now: clock });
+  const second = createStorage(B.open(backend), { now: clock });
   second.interruptAfterWrite(1); // 回滚写了一个键就又「崩溃」
-  assert.throws(() => second.repair(), error => error.kind === 'interrupted');
+  if (B.native) {
+    // 原生事务没提交就「断电」：磁盘仍是写前，启动修复无事可做（不写任何键，也就不会二次崩溃）。
+    assert.equal(second.repair().txn, 'none');
+  } else {
+    assert.throws(() => second.repair(), error => error.kind === 'interrupted');
+  }
   const third = freshStore(backend);
   assert.deepEqual(sortKeys(plain(third.store.getState())), sortKeys(pre));
 });
 
-test('mock-level interruption (backend dies mid-write) is repaired the same way', () => {
+test(`[${B.name}] ` + 'mock-level interruption (backend dies mid-write) is repaired the same way', () => {
   const { store, backend } = seeded();
   const pre = plain(store.getState());
   backend.interruptAfterWrites(3);
@@ -234,11 +243,13 @@ test('mock-level interruption (backend dies mid-write) is repaired the same way'
   assert.equal(r.ok, false);
   backend.resume();
   const reloaded = freshStore(backend);
-  assert.equal(reloaded.store.status.lastRepair.txn, 'rolled-back');
+  // localStorage：txn 日志回滚；原生：事务没提交，磁盘本来就是写前（结果未知 → 本次进阻断，重启以库为准）。
+  assert.equal(reloaded.store.status.lastRepair.txn, B.native ? 'none' : 'rolled-back');
+  if (B.native) assert.equal(r.error.kind, 'blocked', 'native: outcome unknown → blocked until restart');
   assert.deepEqual(sortKeys(plain(reloaded.store.getState())), sortKeys(pre));
 });
 
-test('rollback failure → keys quarantined, store blocked (R-B09), commits refused', () => {
+function rollbackFailureLocal() {
   const { store, backend } = seeded();
   // sched 在写前已存在，回滚要 set 回原值——让这次 set 也失败。
   let schedSets = 0;
@@ -257,10 +268,29 @@ test('rollback failure → keys quarantined, store blocked (R-B09), commits refu
     draft.settings = Object.assign({}, draft.settings, { sound: false });
   });
   assert.equal(again.error.kind, 'blocked');
+}
+
+test(`[${B.name}] ` + (B.native ? 'outcome unknown (native timeout after commit) → store blocked (R-B09), commits refused; restart trusts the database' : 'rollback failure → keys quarantined, store blocked (R-B09), commits refused'), () => {
+  if (!B.native) return rollbackFailureLocal();
+  const { store, backend } = seeded();
+  backend.failOp('apply', 'E_TIMEOUT', { after: true }); // 原生已提交，但回复超时
+  const r = store.commit('judge', judgeMutation('大'));
+  assert.equal(r.ok, false);
+  assert.equal(r.error.kind, 'blocked');
+  assert.equal(store.status.blocked.reason, 'uncertain');
+  assert.equal(store.getState().records['2026-10'], undefined, 'not published: the page does not know the outcome');
+  const again = store.commit('settings', draft => {
+    draft.settings = Object.assign({}, draft.settings, { sound: false });
+  });
+  assert.equal(again.error.kind, 'blocked');
+  const reloaded = freshStore(backend);
+  assert.equal(reloaded.store.status.blocked, null, 'restart: not blocked any more');
+  assert.equal(reloaded.store.getState().records['2026-10'].length, 1, 'the database is the truth: the committed write is there');
+  return undefined;
 });
 
-test('bad stored values: quarantined at boot, original removed, notice flag set once (not on next boot)', () => {
-  const backend = new MemoryStorage();
+test(`[${B.name}] ` + 'bad stored values: quarantined at boot, original removed, notice flag set once (not on next boot)', () => {
+  const backend = B.make();
   backend.setItem(KEYS.settings, '{"appearance":"neon"}');
   backend.setItem(KEYS.sched, 'not json');
   const first = freshStore(backend);
@@ -277,13 +307,14 @@ test('bad stored values: quarantined at boot, original removed, notice flag set 
   assert.equal(backend.getItem(`shizi.corrupt.${KEYS.sched}`), 'not json', 'quarantined copy kept for export');
 });
 
-test('storage unavailable (SecurityError) → status.available=false, commits refused with kind unavailable', () => {
-  const backend = new MemoryStorage().failReads('security');
-  const storage = createStorage(backend, { now: clock });
+test(`[${B.name}] ` + 'storage unavailable (SecurityError) → status.available=false, commits refused with kind unavailable', () => {
+  const backend = B.make().failReads('security');
+  const storage = createStorage(B.open(backend), { now: clock });
   const store = createStore({ storage, now: clock });
   const report = store.load();
   assert.equal(report.available, false);
-  assert.equal(report.kind, 'security');
+  // 原生库打不开：镜像后端读写都抛错，探测失败归为 unknown（界面同一个 R-B09 阻断页）。
+  assert.equal(report.kind, B.native ? 'unknown' : 'security');
   const r = store.commit('x', draft => {
     draft.settings = { sound: true };
   });
@@ -314,7 +345,7 @@ function inkHeavyState(count) {
   return s;
 }
 
-test('quota hit → budget recovery (ink by §9 priority) → one retry succeeds; latest-per-char ink kept', () => {
+test(`[${B.name}] ` + 'quota hit → budget recovery (ink by §9 priority) → one retry succeeds; latest-per-char ink kept', () => {
   const state = inkHeavyState(24);
   const probeEnv = freshStore();
   assert.equal(probeEnv.store.seed(state).ok, true);
@@ -362,9 +393,9 @@ test('quota hit → budget recovery (ink by §9 priority) → one retry succeeds
   assert.deepEqual(plain(reloaded.store.getState()), plain(store.getState()), 'disk == memory after side recovery');
 });
 
-test('quota side recovery: evicted old ink months are persisted even if the retried commit still fails', () => {
+test(`[${B.name}] ` + 'quota side recovery: evicted old ink months are persisted even if the retried commit still fails', () => {
   const state = inkHeavyState(24);
-  const backend = new MemoryStorage();
+  const backend = B.make();
   const { store } = freshStore(backend);
   assert.equal(store.seed(state).ok, true);
   const before = flatInk(store.getState().ink);
@@ -387,9 +418,9 @@ test('quota side recovery: evicted old ink months are persisted even if the retr
   assert.deepEqual(plain(reloaded.store.getState()), plain(store.getState()), 'disk == memory');
 });
 
-test('commit {reclaim:false} (I2): quota hit → {ok:false, kind:quota}, no side recovery, every key unchanged, nothing published', () => {
+test(`[${B.name}] ` + 'commit {reclaim:false} (I2): quota hit → {ok:false, kind:quota}, no side recovery, every key unchanged, nothing published', () => {
   const state = inkHeavyState(24);
-  const backend = new MemoryStorage();
+  const backend = B.make();
   const { store } = freshStore(backend);
   assert.equal(store.seed(state).ok, true);
   const keysBefore = {};
@@ -418,9 +449,9 @@ test('commit {reclaim:false} (I2): quota hit → {ok:false, kind:quota}, no side
   assert.ok(writes >= 1, 'the write was really attempted');
 });
 
-test('commit {reclaim:false} (I2): pre-write over-budget estimate does not recover; the commit writes as-is', () => {
+test(`[${B.name}] ` + 'commit {reclaim:false} (I2): pre-write over-budget estimate does not recover; the commit writes as-is', () => {
   const state = inkHeavyState(24);
-  const { store } = freshStore(new MemoryStorage(), { budgets: { inkBudgetBytes: 20000 } });
+  const { store } = freshStore(B.make(), { budgets: { inkBudgetBytes: 20000 } });
   assert.equal(store.seed(state).ok, true);
   const inkBefore = store.getState().ink;
   const r = store.commit('safety-like', draft => {
@@ -433,7 +464,7 @@ test('commit {reclaim:false} (I2): pre-write over-budget estimate does not recov
   assert.ok(d.ok && d.recovered.length > 0, 'the default commit still recovers');
 });
 
-test('commit {replace:true} tags the notification as a whole-state replacement', () => {
+test(`[${B.name}] ` + 'commit {replace:true} tags the notification as a whole-state replacement', () => {
   const { store } = seeded();
   const seen = [];
   store.subscribe((state, info) => seen.push(isReplacement(info)));
@@ -441,8 +472,8 @@ test('commit {replace:true} tags the notification as a whole-state replacement',
   assert.deepEqual(seen, [true]);
 });
 
-test('quota hit with nothing recoverable → {ok:false, kind:quota}, nothing published', () => {
-  const backend = new MemoryStorage();
+test(`[${B.name}] ` + 'quota hit with nothing recoverable → {ok:false, kind:quota}, nothing published', () => {
+  const backend = B.make();
   const { store } = freshStore(backend);
   assert.equal(store.seed(baselineState()).ok, true);
   backend.quotaBytes = backend.usedBytes() + 50;
@@ -455,9 +486,9 @@ test('quota hit with nothing recoverable → {ok:false, kind:quota}, nothing pub
   assert.equal(store.getState(), before);
 });
 
-test('pre-write estimate over budget → recover first (ink budget), then write', () => {
+test(`[${B.name}] ` + 'pre-write estimate over budget → recover first (ink budget), then write', () => {
   const state = inkHeavyState(24);
-  const { store } = freshStore(new MemoryStorage(), { budgets: { inkBudgetBytes: 20000 } });
+  const { store } = freshStore(B.make(), { budgets: { inkBudgetBytes: 20000 } });
   assert.equal(store.seed(state).ok, true, 'seed does not recover');
   const r = store.commit('judge', judgeMutation('大'));
   assert.equal(r.ok, true);
@@ -468,7 +499,7 @@ test('pre-write estimate over budget → recover first (ink budget), then write'
   assert.ok(flatInk(inkState).r34, 'latest 水 kept');
 });
 
-test('pre-write: months older than 400 days are folded (P28); current month never folded', () => {
+test(`[${B.name}] ` + 'pre-write: months older than 400 days are folded (P28); current month never folded', () => {
   const s = baselineState();
   s.records['2025-01'] = [record(1, '山', { day: '2025-01-05', session: 1 })];
   s.meta = Object.assign({}, s.meta, { months: ['2025-01', '2026-09'] });
@@ -483,7 +514,7 @@ test('pre-write: months older than 400 days are folded (P28); current month neve
   assert.ok(Array.isArray(store.getState().records['2026-10']));
 });
 
-test('usage estimate is refreshed and exposed on status', () => {
+test(`[${B.name}] ` + 'usage estimate is refreshed and exposed on status', () => {
   const { store, backend } = seeded();
   const usage = store.status.usage;
   assert.equal(usage.total, backend.usedBytes());
@@ -492,7 +523,7 @@ test('usage estimate is refreshed and exposed on status', () => {
 
 // ---------------------------------------------------------------- seed / 备份
 
-test('seed replaces every v2 domain (missing domains deleted) and validates shapes first', () => {
+test(`[${B.name}] ` + 'seed replaces every v2 domain (missing domains deleted) and validates shapes first', () => {
   const { store, backend } = seeded();
   const bad = baselineState();
   bad.sched = { 'base:人': { fsrs: null } };
@@ -519,7 +550,7 @@ function backupFrom(state) {
   return { app: 'shizi', version: 2, date: '2026-09-01T00:00:00.000Z', data };
 }
 
-test('backup v2: any bad key → whole file rejected and writeAll never called', () => {
+test(`[${B.name}] ` + 'backup v2: any bad key → whole file rejected and writeAll never called', () => {
   const { store, storage, backend } = seeded();
   const good = backupFrom(baselineState());
   let writeAllCalls = 0;
@@ -542,9 +573,9 @@ test('backup v2: any bad key → whole file rejected and writeAll never called',
   storage.writeAll = original;
 });
 
-test('backup v2: good file replaces whitelisted keys, leaves sessions alone, clears shizi.corrupt.*', () => {
-  const { store, backend } = seeded();
-  backend.setItem('shizi.corrupt.shizi.v2.sched', 'junk');
+test(`[${B.name}] ` + 'backup v2: good file replaces whitelisted keys, leaves sessions alone, clears shizi.corrupt.*', () => {
+  const { store, storage, backend } = seeded();
+  storage.writeOne('shizi.corrupt.shizi.v2.sched', 'junk'); // 经 storage 布置（原生的镜像只认经它写入的键）
   const other = baselineState();
   other.records = { '2026-08': [record(7, '火', { day: '2026-08-02' })] };
   other.meta = Object.assign({}, other.meta, { serial: 7, months: ['2026-08'] });
@@ -562,7 +593,7 @@ test('backup v2: good file replaces whitelisted keys, leaves sessions alone, cle
   assert.ok(store.serial >= 7);
 });
 
-test('deriveSerial takes the max over meta.serial, records (incl. folded kept), sessions and ink ids', () => {
+test(`[${B.name}] ` + 'deriveSerial takes the max over meta.serial, records (incl. folded kept), sessions and ink ids', () => {
   const s = baselineState();
   s.meta.serial = 1;
   s.records['2025-01'] = { folded: true, month: '2025-01', byDay: {}, chars: [], kept: [record(40, '山', { day: '2025-01-02' })] };
@@ -583,7 +614,7 @@ function sortKeys(value) {
   return value;
 }
 
-test('replacement notifications (G1): load / seed are tagged as whole-state replacements, commit is not', () => {
+test(`[${B.name}] ` + 'replacement notifications (G1): load / seed are tagged as whole-state replacements, commit is not', () => {
   const { store } = freshStore();
   const seen = [];
   store.subscribe((state, info) => seen.push(info));
@@ -598,3 +629,4 @@ test('replacement notifications (G1): load / seed are tagged as whole-state repl
   assert.equal(isReplacement(null), false);
   assert.equal(isReplacement({ type: 'recover', label: 'x' }), false);
 });
+}

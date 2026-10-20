@@ -388,6 +388,21 @@ export const storageWarnRatio = 0.8;
 export const assumedQuotaBytes = 5 * 1024 * 1024;
 // P28 records 总预算（字节）；超预算或超 400 天先到者折叠最旧月份
 export const recordsBudgetBytes = 1.5 * 1024 * 1024;
+// P05 / P28 / P57 的原生口径（B1 原生数据层，iOS 壳 SQLite；01 §4.1 / §9）。上面 4 项（assumedQuotaBytes、recordsBudgetBytes、inkBudgetBytes、
+// inkBudgetByGroupSize）只管网页（localStorage）；iOS 壳迁到原生后用这里的值（store/budget.js NATIVE_BUDGETS，native-boot 注入）。
+// 估算仍是同一把尺「（键长 + 值长）× 2」（UTF-16），回收与预警逻辑不变；SQLite 存 UTF-8、JSON 以 ASCII 为主，
+// 实测库文件 ≈ 估算的一半左右（见 01 §9）。原生没有 5MiB 的硬上限，上限来自：备份文件（导出 / 导入整份 JSON，
+// core/backup.js BACKUP_MAX_BYTES 64MB）、整份状态常驻页面内存、每次判断重写当月键。storageWarnRatio（0.8）照用。
+export const nativeStorage = Object.freeze({
+  // P57 假定上限（估算口径）：约 32MB 库文件、备份文件约 35–40MB，在 64MB 导入上限之内；超过 80%（51.2MiB）时「我的 › 备份」行提示导出
+  quotaBytes: 64 * 1024 * 1024,
+  // P57 目标合计（01 §9；只做报告）
+  totalTargetBytes: 48 * 1024 * 1024,
+  // P28 records ≈ 3.7 万条（约 450B/条）；每天 30 字约 3.4 年——400 天折叠（recordsFoldAfterDays）通常先到
+  recordsBudgetBytes: 16 * 1024 * 1024,
+  // P05 墨迹 ≈ 2.2 万份（约 1.5KB/份）：D27 每字两份可容约 1.1 万字，超过 8105 字全库两份；不再随每组字数分档
+  inkBudgetBytes: 32 * 1024 * 1024,
+});
 // P28 records 折叠的天数阈值
 export const recordsFoldAfterDays = 400;
 

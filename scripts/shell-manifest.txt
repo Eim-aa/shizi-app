@@ -7321,6 +7321,8 @@ src/platform/appearance.js
 src/platform/bridge.js
 src/platform/env.js
 src/platform/haptics.js
+src/platform/native-preload.js
+src/platform/native-store.js
 src/platform/reminder.js
 src/platform/share.js
 src/platform/sound.js
@@ -7329,6 +7331,8 @@ src/platform/test-hooks.js
 src/platform/text-size.js
 src/store/budget.js
 src/store/migrate.js
+src/store/native-backend.js
+src/store/native-boot.js
 src/store/storage.js
 src/store/store.js
 src/ui/back-action.js

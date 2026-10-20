@@ -108,7 +108,8 @@ injectStyles('result', `
 .sz-result>.sz-work{margin-top:4px}
 .sz-result__head{margin-bottom:24px;gap:0}
 .sz-result__head+.sz-work{margin-top:0}
-.sz-result__remind{margin-top:28px;position:sticky;bottom:0;z-index:1;background:${T.paper};padding-bottom:${T.s2}} /* D66 ⑯：提醒邀请（问句 + 开启提醒 / 先不用）粘在正文可视区底部——作品与各行再高，按钮也在 iPhone 17 首屏内、不靠滚动才看见；滚到底时回到自然位置 */
+.sz-result__remind{margin-top:28px}
+:root:not([data-ax]) .sz-result__remind{position:sticky;bottom:0;z-index:1;background:${T.paper};padding-bottom:${T.s2}} /* AX 档底栏占掉大半屏、邀请卡比正文区还高，粘住只会盖住内容：AX 档仍在正文末尾，滚到才见（与其它正文一样） */ /* D66 ⑯：提醒邀请（问句 + 开启提醒 / 先不用）粘在正文可视区底部——作品与各行再高，按钮也在 iPhone 17 首屏内、不靠滚动才看见；滚到底时回到自然位置 */
 .sz-result__remind:empty{display:none}
 .sz-result__textbtn{align-self:flex-start;margin-bottom:${T.s2}} /* 首练「再写一组」：文字按钮在主按钮正上方、左对齐 20pt 线，与主按钮视觉间距 20（与写字页求助行同一做法，B2） */
 .sz-result__textrow{display:flex;flex-wrap:wrap;align-items:center;gap:0 20px;margin-bottom:${T.s2}} /* 首练：「再写一组」「重写错字」两枚文字按钮同一行（D66 ③），都在主按钮正上方 */

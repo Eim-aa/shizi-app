@@ -4,7 +4,8 @@
 //
 // 整个文件是一个函数表达式（壳把它包进括号、以状态名调用），不是模块；不进 App 包、不进壳清单。
 // 状态：write（回忆，上一字的结果行「修改」在格下说明位）| trace（看答案后直接进入的描一遍，格下是后果说明，主按钮「凭记忆写」，D64 ②）| retrace（凭记忆写，格下是 R-W07.selfNote、两枚文字按钮 + 下一个）
-//       | self（看过答案后恢复到的回忆阶段，格下同样是 R-W07.selfNote，求助行是提示 / 看答案）| judge（判断页两格）| detail（没写过的字的详情页空态）。
+//       | self（看过答案后恢复到的回忆阶段，格下同样是 R-W07.selfNote，求助行是提示 / 看答案）| judge（判断页两格）| detail（没写过的字的详情页空态）
+//       | redo（D66 ③ 重写错字页的写字阶段）| result（D66 ⑯ 首练结果页：写对 / 写错 / 看过答案各一，提醒邀请的「开启提醒 / 先不用」要在首屏内、在底栏之上、没被盖住）。
 // 每个状态量三件事并回传：
 //   1. 书写格（及判断页两格、看答案格、纸面格）宽高相等（±1）；写字状态再画一笔「屏幕上 dx = dy」的斜线，存进数据的笔画 dy / dx 也必须是 1（±2%）；
 //   2. 没有文字横向溢出：文字节点的行框都在视口内、在所在按钮内；含文字的元素 scrollWidth ≤ clientWidth；文字之间不互相叠压；
@@ -176,6 +177,7 @@
         const a = lines[i];
         const b = lines[j];
         if (a.el === b.el || a.el.contains(b.el) || b.el.contains(a.el)) continue;
+        if (a.el.closest('.sz-result__remind') !== b.el.closest('.sz-result__remind')) continue; // D66 ⑯：提醒邀请粘在正文底部，盖住它下面滚出去的内容是设计（滚动可达），不算字压字
         const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
         const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
         // 行框是字体的内容区，紧行高时上下相邻两行的行框本来就会重一点；重叠超过较矮一行的 40% 才算字压字。
@@ -327,6 +329,56 @@
       await waitFor(() => q('write-compare-ref') && q('write-compare-ref').dataset.state === 'ready', 'compare ready');
       await idle(900);
       result.metrics.layout = measure({ writePage: true });
+      await panCheck();
+    } else if (STATE === 'redo') {
+      T().reset();
+      nav = await toHome();
+      nav.push('redo', { chars: ['和', '春'] });
+      await waitFor(() => app().dataset.topScreen === 'redo', 'redo screen');
+      await idle(1200);
+      result.metrics.layout = measure({ writePage: true });
+      await panCheck();
+    } else if (STATE === 'result') {
+      const { judgeInDraft } = await import('/src/ui/screens/write/compare.js');
+      const { appendRecordToDraft } = await import('/src/ui/screens/write/answer.js');
+      const { makeRecord } = await import('/src/core/records.js');
+      const { advance, createSession } = await import('/src/core/sessions.js');
+      const now = T().now();
+      const draft = { records: {}, sched: {}, ink: {}, sessions: { A: createSession({ id: 's40', kind: 'first', source: { view: 'home' }, queue: ['base:尴', 'base:赢', 'base:拾'], at: now }), B: null, lastEnded: {} } };
+      let n = 100;
+      const nextId = p => p + (n += 1);
+      const ink = [[{ x: 60, y: 170, t: 0 }, { x: 170, y: 171, t: 60 }, { x: 280, y: 172, t: 120 }]];
+      ['correct', 'wrong', 'seen'].forEach((step, i) => {
+        const cur = draft.sessions.A;
+        const key = cur.queue[cur.cursor];
+        const at = now - 60000 + i * 1000;
+        if (step === 'seen') {
+          const r = makeRecord({ id: nextId('r'), cardKey: key, sessionId: cur.id, kind: 'answer-seen', at, help: { hints: 0, answerSeen: true, traced: false } });
+          appendRecordToDraft(draft, r);
+          draft.sessions.A = advance(cur, { cardKey: key, recordId: r.id, kind: 'answer-seen', at });
+        } else judgeInDraft(draft, { slot: 'A', cardKey: key, judgment: step, strokes: ink, at, nextId });
+      });
+      T().reset();
+      const res = T().seed(draft);
+      if (!res || !res.ok) throw new Error('seed failed: ' + JSON.stringify(res));
+      nav = await toHome();
+      nav.push('result', { slot: 'A', sessionId: 's40' });
+      await waitFor(() => app().dataset.topScreen === 'result', 'result screen');
+      await waitFor(() => q('result-invite-yes'), 'reminder invite', 12000);
+      await idle(1000);
+      result.metrics.layout = measure({ writePage: false });
+      const yes = q('result-invite-yes');
+      const no = q('result-invite-no');
+      const foot = topLayer().querySelector('.sz-page__foot');
+      const fb = foot ? foot.getBoundingClientRect() : null;
+      const yb = yes ? yes.getBoundingClientRect() : null;
+      const nb = no ? no.getBoundingClientRect() : null;
+      const vh = window.innerHeight;
+      const axOn = document.documentElement.hasAttribute('data-ax'); // AX 档邀请卡比正文区高，不粘住，滚到才见
+      check('⑯ 开启提醒 / 先不用 inside the first screen and above the foot (not AX)', axOn || !!(yb && nb && fb && yb.top >= 0 && nb.top >= 0 && yb.bottom <= fb.top + 0.5 && nb.bottom <= fb.top + 0.5 && yb.bottom <= vh), { yes: box(yes), no: box(no), footTop: fb && fb.top, vh });
+      const hit = yb ? document.elementFromPoint(yb.left + yb.width / 2, yb.top + yb.height / 2) : null;
+      check('⑯ nothing covers 开启提醒 (not AX)', axOn || !!hit && (hit === yes || yes.contains(hit)), hit ? (hit.dataset.testid || hit.className) : null);
+      check('④ 重写错字 and 修改 › are on the page', !!q('result-redo') && !!q('result-exrow-change'), { redo: !!q('result-redo'), change: !!q('result-exrow-change') });
       await panCheck();
     } else if (STATE === 'detail') {
       T().reset();

@@ -32,7 +32,7 @@ export const INVARIANTS = Object.freeze([
   { id: 'D7-due-not-starved-long', title: '到期字不会长期不出现：用户每天都练的前提下，没有字逾期超过 60 天' },
   { id: 'P1-skip-undo-restores', title: '撤销跳过之后，记录 / 调度表 / 会话与没跳过一致' },
   { id: 'P2-correction-roundtrip', title: '结果页把判断改过去再改回来，调度表与原来一致' },
-  { id: 'P3-skip-seen-no-sched', title: '跳过、看答案不改调度表，也不产生判断记录' },
+  { id: 'P3-skip-seen-no-sched', title: '跳过、新字看答案不改调度表；复习字看答案当天只记一次 Again（D66 ①）；都不产生判断记录' },
   { id: 'P4-skip-seen-not-reoffered-today', title: '刚跳过 / 刚看过答案的字，当天再开一组时不会立刻又出现' },
   { id: 'W1-wrong-returns-next-day', title: '写错的字，第二天（如果第二天也练）会再出现' },
   { id: 'P5-hint-shortens-interval', title: '同一个字、同样按时复习，带提示写对的下次间隔比无提示写对的短（仅单测）', unitOnly: true },

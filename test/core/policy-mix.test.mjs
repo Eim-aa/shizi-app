@@ -23,5 +23,6 @@ test('policy D41: warmup gate (P126) and first-correct rating (P127)', () => {
   assert.deepEqual({ ...policy.warmup }, { mode: 'gated', firstDays: 7, accuracyBelow: 0.6, window: 10, perGroupMax: 1, easyOnCorrect: true });
   assert.ok(Object.isFrozen(policy.warmup));
   assert.equal(policy.ratingFirstCorrect, 'Easy');
-  assert.deepEqual({ first: [...policy.ratingWithHint.first], review: [...policy.ratingWithHint.review] }, { first: ['Good', 'Hard', 'Again'], review: ['Hard', 'Hard', 'Again'] }, 'P34 D65 #4');
+  assert.deepEqual({ first: [...policy.ratingWithHint.first], review: [...policy.ratingWithHint.review] }, { first: ['Good', 'Hard', 'Again'], review: ['Hard', 'Again', 'Again'] }, 'P34 D65 #4 / D66 ②');
+  assert.equal(policy.answerSeenRating, 'Again', 'P321 D66 ①');
 });

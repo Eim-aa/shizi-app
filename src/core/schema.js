@@ -356,6 +356,8 @@ const schedEntryFields = {
   due: v.dayOrNull,
   lastJudgedAt: v.num,
   stoppedAt: v.num,
+  // 可缺省（D66 ①，policy.answerSeenRating P321）：复习字看过答案、当天记了一次 Again 的那一天；同一天之后的判断不再评级
+  seenAgainDay: v.day,
 };
 
 const intRow = v.arrayOf((x, p) => (Number.isInteger(x) ? null : fail(p, 'not an integer')));

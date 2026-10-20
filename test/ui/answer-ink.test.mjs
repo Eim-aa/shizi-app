@@ -9,6 +9,8 @@ import { createSession, withCurrent } from '../../src/core/sessions.js';
 import { decodeInk, encodeRawStrokes } from '../../src/core/ink-math.js';
 import { buildWork } from '../../src/core/images/work.js';
 import { storedInkPresent } from '../../src/core/ink-pick.js';
+import { applyJudgment } from '../../src/core/fsrs.js';
+import { makeRecord } from '../../src/core/records.js';
 
 loadFSRSGlobal();
 
@@ -195,4 +197,32 @@ test('Q1: a later judgment of the same card does not drop ink while its group is
   });
   assert.ok(commitJudgment(store, { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: [D] }).ok);
   assert.equal(storedInkPresent(store.getState(), seen), false, 'recycled once a later judgment exists and its group is closed');
+});
+
+// ---------------------------------------------------------------- D66 ①：看答案的调度（经真实的 commit 函数）
+
+test('D66 ①: 看答案 on a review char records one Again in the same commit; a judgment written after it the same day is not rated again', () => {
+  const state = baseState(['永', '和']);
+  // 永 是复习字：三周前第一次写对，今天到期
+  const old = makeRecord({ id: 'r1', cardKey: 'base:永', sessionId: 's9', kind: 'judged', judgment: 'correct', at: T0 - 21 * 86400000, help: {} });
+  state.records[old.localDay.slice(0, 7)] = [old];
+  state.sched['base:永'] = { ...applyJudgment(undefined, old).entry, due: '2026-10-04' };
+  const store = fakeStore(state);
+  const before = store.getState().sched['base:永'];
+  // 提示给完整个字 = 看过答案，留在回忆阶段继续写（stay），然后判断
+  assert.ok(commitAnswerSeen(store, { slot: 'A', cardKey: 'base:永', stay: true, hints: 4 }).ok);
+  const seen = store.getState().sched['base:永'];
+  assert.equal(seen.seenAgainDay, '2026-10-04');
+  assert.equal(seen.fsrs.reps, before.fsrs.reps + 1, 'one FSRS step (Again)');
+  assert.equal(seen.fsrs.lapses, before.fsrs.lapses + 1);
+  assert.equal(seen.lastJudgedAt, before.lastJudgedAt, 'not a judgment');
+  assert.equal(records(store.getState()).filter(r => r.kind === 'judged').length, 1, 'no new judged record');
+  const j = commitJudgment(store, { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: [H, V], hints: 4, perRecordInk: false });
+  assert.ok(j.ok);
+  const after = store.getState().sched['base:永'];
+  assert.deepEqual(after.fsrs, seen.fsrs, 'held: no second Again, no credit');
+  assert.equal(after.due, seen.due);
+  // 新字看答案：不建调度项
+  assert.ok(commitAnswerSeen(store, { slot: 'A', cardKey: 'base:和' }).ok);
+  assert.equal(store.getState().sched['base:和'], undefined);
 });

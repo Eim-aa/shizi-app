@@ -116,7 +116,7 @@ export const warmup = Object.freeze({
   perGroupMax: 1, // P126 每组至多 1 个热身字（新热身字或热身字的复习二选一）
   easyOnCorrect: true, // P126 热身字写对（无提示）记 Easy
 });
-// P127 新字第一次判断就写对（无提示）的 FSRS 评级（已决定 D41：Easy，初始稳定度约 8 天；带提示写对按 P34 ratingWithHint.first）
+// P127 新字第一次判断就写对（无提示）的 FSRS 评级（已决定 D41：Easy，初始稳定度约 8 天；带提示写对按 P34 ratingWithHint.first）；判断前看过答案的新字不算第一次（D66 ①，P321）
 export const ratingFirstCorrect = 'Easy';
 // P128 D40「写写大写数字」特别组：累计写满 afterGroups 组后、且积压天数 p < belowDays 的下一次练习，日常组换成两组特别组
 // （壹贰叁肆伍、陆柒捌玖拾，各一组；佰仟在两组特别组之后进入普通新字队列的最前）。每组各只出现一次（以记录为准），之后按普通 FSRS 回来。
@@ -129,16 +129,25 @@ export const capitalNumerals = Object.freeze({
 export const firstQueue = Object.freeze(['尴', '赢', '拾']);
 // P33 「自选了还没写」是否进入今天的练习：不进（只走 B 路径）
 export const customIntoDaily = 'none';
-// P34 带提示且判写对的 FSRS 评级（D65 #4，覆盖 D41 的「一律 Good」）：按点了几次提示取第 n 个（超出取最后一个），新字第一次判断与复习分开。
-// 复习：1–2 次（至多半个字）Hard，3 次起（四分之三以上，整字给完已记看过答案）Again——用了提示写对的字下次间隔短于不用提示写对（Good），提示越多越短。
+// P34 带提示且判写对的 FSRS 评级（D65 #4，覆盖 D41 的「一律 Good」；D66 ② 改复习一档）：按点了几次提示取第 n 个（超出取最后一个），新字第一次判断与复习分开。
+// 复习（D66 ②）：1 次（约四分之一个字）Hard，2 次起（平均已露出一半以上的笔画）Again——给出一半以上就算没想起来，与写错同一个间隔；
+// 修前 1–2 次都是 Hard，2 次提示的成熟字仍约 4 个月后再见（产品体验评审 P2-02）。
 // 新字第一次：1 次 Good（初始稳定度约 2 天，与无提示的 Easy 约 8 天拉开），2 次 Hard（约 1 天），3 次起 Again（明天）；首次学习不至于因为一次提示就被压到「几乎每天都来」。
+// D66 ① 复核：新字第一次这一档不改——Hard 与 Again 下次都是明天（至少次日），差别只在之后长得快慢；判断前看过答案的新字不走这一档，按复习一档（见 answerSeenRating）。
 // 每段提示约四分之一个字（core/hints.js）；没有部件分组的字每段 1 笔，按同一张表（次数口径，记录里只存次数）。
 export const ratingWithHint = Object.freeze({
   first: Object.freeze(['Good', 'Hard', 'Again']), // P34 新字第一次判断带提示写对：1 次 / 2 次 / 3 次起
-  review: Object.freeze(['Hard', 'Hard', 'Again']), // P34 复习带提示写对：1 次 / 2 次 / 3 次起
+  review: Object.freeze(['Hard', 'Again', 'Again']), // P34 复习带提示写对：1 次 / 2 次起（D66 ②）
 });
-// P36 看过答案（无判断）的字当天是否排除出 daily（D65 #5，覆盖原 'none'）：'today' 当天不再出；调度项不变，到期的字明天照常回来，新字明天照常在新字池原位
+// P36 看过答案（无判断）的字当天是否排除出 daily（D65 #5，覆盖原 'none'）：'today' 当天不再出；到期的字明天回来（D66 ① 起复习字看答案记一次 Again，见 P321），新字明天照常在新字池原位
 export const answerSeenScope = 'today';
+// P321 看过答案 = 当天「没写出来」（D66 ①，覆盖 D65 #5 的「看答案不改调度」；产品体验评审 P2-01）：
+// 'Again' = 复习字（已有调度项）看了答案，当天记一次 Again（不生成判断记录、不改三档以外的计数），下次按「忘了之后」的间隔回来；
+// 一个字一天只记一次：当天判断过、或已经因为看答案记过的，不再记；同一天看过答案之后再写的判断不再进 FSRS（不记第二次 Again，写对也不加分）。
+// 新字看了答案不建调度项，之后第一次判断不再给 Easy：按复习口径评级（无提示写对 Good、带提示按 ratingWithHint.review）——
+// 理由：看过答案以后的第一次写对是在短时记忆的帮助下写出来的，不是「第一次凭记忆写出来」（Easy 约 8–10 天）；Good 约 2 天，与「第一次写错再写对」相近。
+// 'none' = 修前口径（看答案不改调度，只作对照）。core/fsrs.js applyAnswerSeen / applyJudgment / replay 读取。
+export const answerSeenRating = 'Again';
 // P06 「跳过」排除范围（D65 #5，覆盖原 'session'）：'today' = 当天不再出（记 skipped 记录，不写 stoppedAt，调度项不变）；'session' = 只在本组内
 export const skipScope = 'today';
 // P06 跳过的新字（从没判断过）推迟几天再进新字池（D65 #5）：跳过那天算第 1 天，这些天里新字池跳过它，之后回到原来的位置

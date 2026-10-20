@@ -120,6 +120,7 @@ export function runScenario(input) {
   let maxOverdueSeen = 0;
   const memStats = { reviews: 0, pSum: 0, correct: 0, byBucket: {} };
   const seenToday = new Map();
+  let seenAgainCount = 0;
 
   function viol(id, day, detail) {
     violations.push({ id, day, detail });
@@ -128,6 +129,7 @@ export function runScenario(input) {
     for (const x of list) viol(x.id, day, x.detail);
   }
   const stateNow = () => store.getState();
+  const foldedMonths = () => Object.values(stateNow().records || {}).filter(m => m && !Array.isArray(m)).length;
   const snapOf = (slot) => {
     const st = stateNow();
     const sess = st.sessions && st.sessions[slot];
@@ -228,6 +230,7 @@ export function runScenario(input) {
 
       // 探针：撤销跳过（跳过又撤销，应与没跳过一致）
       if (probeRand() < cfg.probeRate) {
+        const foldedBefore = foldedMonths();
         const snap = snapOf(slot);
         const sk1 = commitSkip(store, { slot, cardKey, hints: 0 });
         let ok = sk1.ok;
@@ -237,7 +240,10 @@ export function runScenario(input) {
         }
         const snap2 = snapOf(slot);
         probes.skipUndo.n += 1;
-        if (!ok || snap !== snap2) {
+        // 这两次提交里刚好触发了预算回收（最旧月份折叠）时，记录本来就会变——不是撤销的问题，不比
+        const foldedNow = foldedMonths();
+        const foldedDuring = foldedNow !== foldedBefore;
+        if (!foldedDuring && (!ok || snap !== snap2)) {
           probes.skipUndo.bad += 1;
           viol('P1-skip-undo-restores', today, `${char}：撤销后状态与跳过前不一致`);
         }
@@ -255,7 +261,10 @@ export function runScenario(input) {
           const sj = commitSkip(store, { slot, cardKey, hints: 0 });
           if (!sj.ok) throw new Error('skip after failed judge failed: ' + JSON.stringify(sj.error));
         } else {
-        rating = ratingFor(judgment, { hints }, policy, { first: !schedBefore || (Number(schedBefore.fsrs && schedBefore.fsrs.reps) || 0) === 0, warmup: isWarmupKey(cardKey) });
+        // D66 ①：判断前看过答案的新字不算第一次；当天看答案已记过 Again 的字这次判断不再评级（记「—」）
+        const seenBefore = !schedBefore && recordsOf(st0).some(r => r.kind === 'answer-seen' && r.cardKey === cardKey);
+        rating = schedBefore && schedBefore.seenAgainDay === today ? '—'
+          : ratingFor(judgment, { hints }, policy, { first: !seenBefore && (!schedBefore || (Number(schedBefore.fsrs && schedBefore.fsrs.reps) || 0) === 0), warmup: isWarmupKey(cardKey) });
         memUpdate({ card, char, outcome: judgment, p, nowMs: clock.t, hinted: hintedFlag });
         if (cfg.memory && !isNew) {
           memStats.reviews += 1;
@@ -283,7 +292,11 @@ export function runScenario(input) {
       const after = st1.sched && st1.sched[cardKey] ? st1.sched[cardKey] : null;
       if (action !== 'judged' && action !== 'judge-failed') {
         probes.skipSeenNoSched.n += 1;
-        if (!jsonEq(schedBefore, after)) {
+        // D66 ①：复习字看了答案当天记一次 Again（调度项带 seenAgainDay = 今天、不多出判断）；跳过与新字看答案仍不改调度表
+        const seenAgain = action === 'seen' && schedBefore && after && after.seenAgainDay === today && after.lastJudgedAt === schedBefore.lastJudgedAt
+          && after.fsrs.reps === schedBefore.fsrs.reps + 1;
+        if (seenAgain) seenAgainCount += 1;
+        if (!seenAgain && !jsonEq(schedBefore, after)) {
           probes.skipSeenNoSched.bad += 1;
           viol('P3-skip-seen-no-sched', today, `${char} ${action}`);
         }
@@ -521,7 +534,7 @@ export function runScenario(input) {
   const final = stateNow();
   return {
     cfg, days, groups, events, violations, probes, memStats, state: final, skewTotal,
-    maxOverdueSeen, starveCardDays, sameDay: [...seenToday.values()].filter(n => n > 1).length,
+    maxOverdueSeen, starveCardDays, sameDay: [...seenToday.values()].filter(n => n > 1).length, seenAgainCount,
   };
 }
 

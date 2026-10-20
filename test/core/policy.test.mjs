@@ -75,7 +75,9 @@ test('policy: transitional defaults match 03 / the M0-6 card', () => {
   assert.equal(policy.forgetCap, 12);
   assert.equal(policy.customIntoDaily, 'none');
   assert.equal(policy.answerSeenScope, 'today'); // D65 #5
-  assert.deepEqual([...policy.ratingWithHint.review], ['Hard', 'Hard', 'Again']); // D65 #4
+  assert.deepEqual([...policy.ratingWithHint.review], ['Hard', 'Again', 'Again']); // D66 ②
+  assert.equal(policy.answerSeenRating, 'Again'); // D66 ①
+  assert.equal(policy.dayStartHour, 4); // D66 ⑦
   assert.equal(policy.skipScope, 'today'); // D65 #5
   assert.equal(policy.skipNewDeferDays, 7);
   assert.equal(policy.dailyExpiry, 'discard');

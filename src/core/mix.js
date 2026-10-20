@@ -223,17 +223,18 @@ export function dueReviewsDoneOn(records, today, { sched, policy }) {
   if (policy.groupMix.earlyCountsTowardCap !== false || !all) return all;
   const byCard = new Map();
   for (const r of records || []) {
-    if (!isJudged(r)) continue;
+    if (!isJudged(r) && !(r && r.kind === 'answer-seen')) continue; // 看过答案的 Again（D66 ①）也要一起重放，重放结果才与 sched 对得上
     if (!byCard.has(r.cardKey)) byCard.set(r.cardKey, []);
     byCard.get(r.cardKey).push(r);
   }
   let early = 0;
-  for (const [cardKey, list] of byCard) {
+  for (const [cardKey, all] of byCard) {
+    const list = all.filter(isJudged);
     if (!list.some((r) => r.localDay === today) || !list.some((r) => r.localDay < today)) continue; // 今天写过、以前也写过 = 一个复习字
     const entry = sched ? sched[cardKey] : undefined;
     if (!entry) continue;
     try {
-      const sorted = sortById(list);
+      const sorted = sortById(all);
       const full = replay(null, sorted, { policy });
       if (!full || full.due !== entry.due) continue;
       const before = replay(null, sorted.filter((r) => r.localDay < today), { policy });

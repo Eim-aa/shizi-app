@@ -152,6 +152,10 @@ export const forgetCap = 12;
 export const listDefaultSelect = 5;
 // P37 跨天未完成的「今天的练习」：直接作废（已判断的保留，未写的不算）
 export const dailyExpiry = 'discard';
+// P320 一天从几点开始（D66 ⑦，覆盖 01 §3.1「日界本地 0 点」）：凌晨 4 点——0:00–3:59 仍算前一天。core/dates.js localDay 是唯一的归日函数：
+// 记录的 localDay、今日计划、跨天作废（P37）、到期（due ≤ 今天）、连续 / 累计练习天数、年报与月字帖归日、提醒 practicedToday 都读它。
+// 只影响新判断的归日与「今天」的判定，已经存下的 localDay / due / startedDay 不改写。0 = 0 点分界（旧口径）。
+export const dayStartHour = 4;
 // P61 首练（first）与自选组（picked）是否跨天过期：都不过期（'never'）；'daily' = 与今天的练习同口径（P37）。
 // daily 本身仍按 P37 dailyExpiry。core/sessions.js expireDaily 读此表。
 export const sessionExpiry = Object.freeze({
@@ -396,7 +400,7 @@ export const compactTextScale = 1.3;
 export const routeRestore = Object.freeze({
   enabled: true, // P108 冷启动是否恢复离开时的页面（false = 一律落首页，旧行为）
   maxAgeMinutes: 360, // P108 离开超过这么久（分钟）不恢复，落首页
-  crossDay: false, // P108 离开时与现在不是同一本地日（跨过 0 点）时是否仍恢复：过渡不恢复
+  crossDay: false, // P108 离开时与现在不是同一本地日（跨过一天的分界，凌晨 4 点，P320）时是否仍恢复：过渡不恢复
 });
 
 // ---- 跳过撤销（阶段 0 B2，D36）----

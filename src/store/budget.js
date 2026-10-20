@@ -26,6 +26,7 @@
 
 import { CORRUPT_PREFIX, inkIdOf, inkKey, inkMonthOf, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
 import * as policy from '../config/policy.js';
+import { localDay } from '../core/dates.js';
 
 const MiB = 1024 * 1024;
 
@@ -87,15 +88,10 @@ export function estimateUsage(pairs, budgets = BUDGET_DEFAULTS) {
   return { total, byBucket, ratio, level };
 }
 
-// ---------------------------------------------------------------- 日期（本地日；不依赖 core/dates.js）
-
-function pad2(n) {
-  return n < 10 ? `0${n}` : String(n);
-}
+// ---------------------------------------------------------------- 日期（与全 App 同一个归日函数 core/dates.js localDay，D66 ⑦）
 
 export function localDayOf(ms) {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return localDay(ms);
 }
 
 /** 该月最后一天距 today（YYYY-MM-DD）的整天数；月份在未来时为负。 */

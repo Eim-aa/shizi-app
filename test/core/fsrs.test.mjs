@@ -16,7 +16,7 @@ import {
   isDue,
   retrievability,
 } from '../../src/core/fsrs.js';
-import { addDays, diffDays } from '../../src/core/dates.js';
+import { addDays, diffDays, localDay } from '../../src/core/dates.js';
 import { correctRecord } from '../../src/core/records.js';
 
 const FSRS = loadFSRSGlobal();
@@ -52,8 +52,10 @@ test('fsrs: rating mapping — correct → Good, wrong → Again, hinted correct
 test('fsrs: Good and Again on a new card are both due tomorrow or later', () => {
   for (const judgment of ['correct', 'wrong']) {
     for (const hour of [0, 9, 23]) {
-      const { due, card } = reviewCard(null, { judgment, at: at(TODAY, hour, 30), help: { hints: 0 } });
-      assert.ok(due >= addDays(TODAY, 1), judgment + '@' + hour + ' → ' + due);
+      const ms = at(TODAY, hour, 30);
+      const { due, card } = reviewCard(null, { judgment, at: ms, help: { hints: 0 } });
+      // D66 ⑦：0:30 属于前一天（一天从 4 点起），「至少次日」按判断所在的那一天算
+      assert.ok(due >= addDays(localDay(ms), 1), judgment + '@' + hour + ' → ' + due);
       assert.ok(isCompactCard(card));
     }
   }

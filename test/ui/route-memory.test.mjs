@@ -86,10 +86,14 @@ test('routeFresh (P108): within maxAgeMinutes and same local day; crossDay / max
   assert.equal(routeFresh(NOON - 359 * MIN, NOON, p), true);
   assert.equal(routeFresh(NOON - 361 * MIN, NOON, p), false, 'older than maxAgeMinutes');
   assert.equal(routeFresh(NOON + 361 * MIN, NOON, p), false, 'clock moved back past the window');
+  // D66 ⑦：一天从凌晨 4 点起——23:50 → 0:10 仍是同一天；3:50 → 4:10 才算跨天
   const lateNight = new Date(2026, 9, 3, 23, 50).getTime();
   const afterMidnight = new Date(2026, 9, 4, 0, 10).getTime();
-  assert.equal(routeFresh(lateNight, afterMidnight, p), false, 'crossed local midnight');
-  assert.equal(routeFresh(lateNight, afterMidnight, policyWith({ crossDay: true })), true, 'crossDay=true keeps it');
+  assert.equal(routeFresh(lateNight, afterMidnight, p), true, 'midnight is no longer a day boundary');
+  const beforeFour = new Date(2026, 9, 4, 3, 50).getTime();
+  const afterFour = new Date(2026, 9, 4, 4, 10).getTime();
+  assert.equal(routeFresh(beforeFour, afterFour, p), false, 'crossed the 4 am day boundary');
+  assert.equal(routeFresh(beforeFour, afterFour, policyWith({ crossDay: true })), true, 'crossDay=true keeps it');
   assert.equal(routeFresh(NaN, NOON, p), false);
   // 过渡默认值与 03 P108 一致
   assert.deepEqual({ ...defaultPolicy.routeRestore }, { enabled: true, maxAgeMinutes: 360, crossDay: false });

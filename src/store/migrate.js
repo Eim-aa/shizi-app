@@ -42,7 +42,7 @@
 import * as defaultPolicy from '../config/policy.js';
 import { LIBRARIES } from '../core/cards.js';
 import { buildBackupV2, setLegacyBackupImporter } from '../core/backup.js';
-import { addDays, localDay } from '../core/dates.js';
+import { addDays, calendarDay, localDay } from '../core/dates.js';
 import { isCompactCard, serializeCard } from '../core/fsrs.js';
 import { encodeInk, GRID, INK } from '../core/ink-math.js';
 import {
@@ -391,7 +391,7 @@ export function convertV1(values, { now, dueBase = null, source = 'device', pres
       report.synthesized.unknown += 1;
       continue;
     }
-    const day = localDay(at);
+    const day = calendarDay(at); // v1 按 0 点归日（D66 ⑦：旧数据按旧口径，不改成 4 点）
     const help = { hints: clampHints(m.lastHints), answerSeen: false, traced: m.traced === true };
     const base = { cardKey: key, at, localDay: day, legacySynth: true };
     if (outcome === 'fast') {
@@ -459,7 +459,7 @@ export function convertV1(values, { now, dueBase = null, source = 'device', pres
       report.sched.droppedNoJudged += 1;
       continue;
     }
-    const cardDue = localDay(Date.parse(fsrs.due));
+    const cardDue = calendarDay(Date.parse(fsrs.due)); // v1 的到期日按 0 点归日
     let due;
     if (m.queuedFront === true) due = cardDue; // 加字把 dueDay 改成了加字当天：不算调度
     else if (m.pendingLearning === true) due = addDays(today, 1);
@@ -518,7 +518,7 @@ export function convertV1(values, { now, dueBase = null, source = 'device', pres
       continue;
     }
     const at = finitePos(Number(row.at)) ? Number(row.at) : now;
-    rows.push({ ch, at, day: isLocalDay(row.day) ? row.day : localDay(at), dataURL: row.dataURL, bytes: row.dataURL.length * 2 });
+    rows.push({ ch, at, day: isLocalDay(row.day) ? row.day : calendarDay(at), dataURL: row.dataURL, bytes: row.dataURL.length * 2 });
   }
   rows.sort((a, b) => b.at - a.at || (a.ch < b.ch ? -1 : 1));
   let photoBytes = 0;

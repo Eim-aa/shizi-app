@@ -5,11 +5,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   REMINDER_DAYS, REMINDER_SOURCE_VIEW, affectsReminder, createReminder, maskedWord, normalizeTargetKey, remindOf,
-  reminderCandidates, reminderPayload, reminderQuestions,
+  fireDayOf, reminderCandidates, reminderPayload, reminderQuestions,
 } from '../../src/platform/reminder.js';
 import { createBridge } from '../../src/platform/bridge.js';
 import { setDeckSource } from '../../src/data/deck.js';
 import { makeRecord } from '../../src/core/records.js';
+import { localDay } from '../../src/core/dates.js';
 import * as policy from '../../src/config/policy.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -139,6 +140,20 @@ test('payload shape = WebViewController.syncReminder fields; user time; practice
   const off = reminderPayload(baseState({ remind: { enabled: false } }), { today: TODAY });
   assert.deepEqual(off, { enabled: false, hour: 20, minute: 0, practicedToday: false, questions: [] }, 'off: default time, no questions');
   assert.deepEqual(remindOf(null), { enabled: false, hour: 20, minute: 0, permission: 'unknown' });
+});
+
+test('practicedToday (D66 ⑦): written at 1 am belongs to the day before — tonight\'s reminder still fires', () => {
+  // 凌晨 1 点（日历 9 月 25 日）写了一个字：localDay = 9 月 24 日；今晚 21:05 的提醒属于 9 月 25 日，没练过
+  const oneAm = new Date(2026, 8, 25, 1, 0).getTime();
+  const st = baseState();
+  st.records['2026-09'].push(judged('白', 'correct', oneAm));
+  assert.equal(localDay(oneAm), '2026-09-24');
+  assert.equal(fireDayOf(oneAm, { hour: 21, minute: 5 }, localDay(oneAm)), '2026-09-25');
+  assert.equal(reminderPayload(st, { today: localDay(oneAm), now: oneAm }).practicedToday, false, '1 am practice does not silence tonight');
+  const tenPm = new Date(2026, 8, 24, 22, 0).getTime();
+  assert.equal(reminderPayload(st, { today: localDay(tenPm), now: tenPm }).practicedToday, true, 'the evening before: practiced that day');
+  // 提醒时刻本身在 0–4 点之间：属于前一天
+  assert.equal(fireDayOf(oneAm, { hour: 2, minute: 0 }, '2026-09-24'), '2026-09-24');
 });
 
 test('normalizeTargetKey accepts base:/custom:/bare single chars only', () => {

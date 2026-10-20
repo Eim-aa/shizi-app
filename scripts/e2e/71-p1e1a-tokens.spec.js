@@ -107,7 +107,7 @@ async function openResult(page) {
     const chars = ['永', '和', '春', '大', '中'];
     const now = window.__shiziTest.now();
     const d = new Date(now);
-    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const day = (await import('/src/core/dates.js')).localDay(d); // 练习日（凌晨 4 点分界，D66 ⑦）
     const session = { id: 's50', slot, kind: 'daily', source: { view: 'home' }, queue: chars.map(c => 'base:' + c), cursor: 0, items: [],
       current: { phase: 'recall', strokes: [], hints: 0, answerSeen: false, hintRange: null, referenceReady: false }, lastLine: null, startedAt: now, startedDay: day, updatedAt: now };
     const draft = { records: {}, sched: {}, ink: {}, sessions: { A: session, B: null, lastEnded: {} } };

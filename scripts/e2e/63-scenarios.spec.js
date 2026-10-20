@@ -39,7 +39,7 @@ async function facts(page) {
     }
     records.sort((a, b) => a.at - b.at);
     const d = new Date(window.__shiziTest.now());
-    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = (await import('/src/core/dates.js')).localDay(d); // 练习日（凌晨 4 点分界，D66 ⑦）
     return {
       records,
       sessions: st.sessions,

@@ -12,6 +12,7 @@
 //      再之后不再出现；整个过程里别的组的题面语境不受影响。
 // 控制台零错误由 run.mjs 统一断言。
 
+import { localDay } from '../../src/core/dates.js';
 import { bootTestHost, drawStroke, HORIZONTAL, PRESS_SETTLE_MS, topSel, waitNavIdle, leaveResult } from './helpers.mjs';
 
 const CLOCK = '2026-09-24T20:00:00';
@@ -131,8 +132,7 @@ function byMonth(records) {
 }
 
 function dayOf(ms) {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return localDay(ms); // 练习日（凌晨 4 点分界，D66 ⑦）
 }
 
 const FSRS = (stability, due) => ({ due, stability, difficulty: 5, elapsed_days: 0, scheduled_days: 10, learning_steps: 0, reps: 3, lapses: 0, state: 2, last_review: due });

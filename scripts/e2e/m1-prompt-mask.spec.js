@@ -122,11 +122,11 @@ function verifyGeometry(row, card) {
 }
 
 async function seedAt(page, keys, cursor, { reset = false, wait = true } = {}) {
-  const res = await page.evaluate(({ keys: q, cursor: c, reset: r }) => {
+  const res = await page.evaluate(async ({ keys: q, cursor: c, reset: r }) => {
     if (r) window.__shiziTest.reset();
     const now = Date.now();
     const d = new Date(now);
-    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const day = (await import('/src/core/dates.js')).localDay(d); // 练习日（凌晨 4 点分界，D66 ⑦）
     const session = {
       id: 's1', slot: 'A', kind: 'daily', source: { view: 'home' }, queue: q, cursor: c, items: [],
       current: { phase: 'recall', strokes: [], hints: 0, answerSeen: false, hintRange: null, referenceReady: false },

@@ -101,12 +101,12 @@ export default async function fontsSpec(page, ctx) {
 
   ctx.step('rendered fonts on home (CDP platform fonts): title 500, epigraph 400 (the seal is on the first-open page only, D49)');
   // 首次打开没有标题（P1-E5）：先 seed 一条昨天的判断，首页回到「今天还没写」，再量标题 / 题记 / 印
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     window.__shiziTest.reset();
     const at = window.__shiziTest.now() - 24 * 3600 * 1000;
     const d = new Date(at);
     const pad = n => String(n).padStart(2, '0');
-    const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const day = (await import('/src/core/dates.js')).localDay(at); // 练习日（凌晨 4 点分界，D66 ⑦）
     const rec = { id: 'r1', cardKey: 'base:永', char: '永', sessionId: 's1', kind: 'judged', judgment: 'correct', at, localDay: day, help: { hints: 0, answerSeen: false, traced: false } };
     window.__shiziTest.seed({ records: { [day.slice(0, 7)]: [rec] } });
     document.dispatchEvent(new Event('visibilitychange'));

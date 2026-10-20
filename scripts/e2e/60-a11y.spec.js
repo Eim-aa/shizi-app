@@ -397,12 +397,12 @@ export default async function a11y(page, realCtx) {
   assert.deepEqual(await page.evaluate(() => [...document.querySelectorAll('[role="tab"]')].map(el => el.getAttribute('tabindex'))),
     ['0', '-1', '-1'], 'roving tabindex: only the selected tab is in the Tab order');
   // P1-E5：首次打开没有题记（首页是书家「拾」+ 题跋）；下面「今天还没写」的首页才有题记，先 seed 一条昨天的判断
-  const seedYesterday = () => page.evaluate(() => {
+  const seedYesterday = () => page.evaluate(async () => {
     window.__shiziTest.reset();
     const at = window.__shiziTest.now() - 24 * 3600 * 1000;
     const d = new Date(at);
     const pad = n => String(n).padStart(2, '0');
-    const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const day = (await import('/src/core/dates.js')).localDay(at); // 练习日（凌晨 4 点分界，D66 ⑦）
     const rec = { id: 'r1', cardKey: 'base:永', char: '永', sessionId: 's1', kind: 'judged', judgment: 'correct', at, localDay: day, help: { hints: 0, answerSeen: false, traced: false } };
     window.__shiziTest.seed({ records: { [day.slice(0, 7)]: [rec] } });
     document.dispatchEvent(new Event('visibilitychange'));

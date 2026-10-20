@@ -35,13 +35,13 @@ async function cta(page) {
 
 /** 首练已完成：昨天一条判断（保留其余域），首页出现「自己选字」。 */
 async function seedFirstPracticeDone(page) {
-  const r = await page.evaluate(() => {
+  const r = await page.evaluate(async () => {
     window.__shiziTest.reset();
     const now = window.__shiziTest.now();
     const at = now - 24 * 3600 * 1000;
     const d = new Date(at);
     const pad = n => String(n).padStart(2, '0');
-    const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const day = (await import('/src/core/dates.js')).localDay(at); // 练习日（凌晨 4 点分界，D66 ⑦）
     const rec = { id: 'r1', cardKey: 'base:永', char: '永', sessionId: 's1', kind: 'judged', judgment: 'correct', at, localDay: day, help: { hints: 0, answerSeen: false, traced: false } };
     return window.__shiziTest.seed({ records: { [day.slice(0, 7)]: [rec] } });
   });

@@ -41,6 +41,7 @@ import { openQuery } from '../../components/query/index.js';
 import { useCompact } from '../write/compact.js';
 import { expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
+import { openLibrarySwitch } from '../library/switch.js';
 import { homeModel, homeCtaKey, homeNoteOf, resumeLineText, resumeLineAria } from './today.js';
 import { BrandShi, firstShiSize, useElementWidth } from './copybook.js';
 import { ShiMark } from '../../brand/shi.js';
@@ -507,7 +508,7 @@ function HomeScreen() {
         ? html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start-fail-retry" aria-label=${t('R-H06.retry')}
             onClick=${() => run(failed)}>${t('R-H06.retry')}</${Button}>`
         : html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
-            onClick=${() => run(startMain)}>${ctaLabel}</${Button}>`}
+            onClick=${() => run(model.switchLibrary ? openLibrarySwitch : startMain)}>${ctaLabel}</${Button}>`}
     </div>
     </div>
     ${demo || testHost ? html`<div class="sz-home__dev">

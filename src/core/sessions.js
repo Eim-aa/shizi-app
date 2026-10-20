@@ -481,8 +481,10 @@ export function selectDaily({
     break;
   }
 
-  // 没有到期字、也没有新字可出（字库写完）时，不用提前复习凑一组：保持 R-H11「现在没有要写的字」（想接着写，可以自己选字）。
-  const earlyPool = due.length || pool.length || warmNext ? early.map((e) => e.key) : [];
+  // 没有新字可出（练习范围学完，D66 ⑩ / policy.groupMix.earlyFillWhenExhausted P324）时不用提前复习凑满一组：有多少到期出多少；
+  // 没有到期字也没有新字时不开组（首页主按钮是「换练习范围」）。还有新字时照旧用提前复习补位。
+  const exhausted = !pool.length && !warmNext;
+  const earlyPool = exhausted && mix.earlyFillWhenExhausted === false ? [] : due.length || pool.length || warmNext ? early.map((e) => e.key) : [];
   const plan = planGroup({
     size,
     budget: reviewBudgetLeft,

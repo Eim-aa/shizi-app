@@ -9,6 +9,7 @@
 //     capital,                                    // D40：下一次练习是大写数字特别组时 = 'capital1' | 'capital2'（首页给一句提示，P129），否则 null
 //     view, gapDays,                              // 首页呈现哪一态，见 homeViewOf
 //     libraryCount, showPick,
+//     switchLibrary,                              // D66 ⑩：练习范围学完且没有要写的字 → 主按钮「换练习范围」
 //   }
 //
 // H2（D55，产品负责人选定首页方向 E「极静」）：首页只有日期、墨「拾」、竖排题记和按钮，不放写过的字 / 字帖行 / 数字 / 进度 / 说明；
@@ -29,7 +30,7 @@ import { epigraphFor } from '../../../config/epigraphs.js';
 import { diffDays, localDay, monthDayParts, periodOf } from '../../../core/dates.js';
 import { hasAnyJudged, isJudged, practicedByChar, todayCount } from '../../../core/records.js';
 import { remainingCount } from '../../../core/sessions.js';
-import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
+import { aStartInfo, planDaily, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
 
 /** 离开多少天算「回来」（D41：离开 ≥7 天回来的第一组照常 1 新；首页换成「你写过的 N 个字都还在」，P155）。 */
 export const BACK_AFTER_DAYS = 7;
@@ -118,6 +119,8 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, deck = null } 
   const gapDays = lastDay === null ? null : diffDays(lastDay, today);
   const view = homeViewOf({ records: recordsState, resume, capital, gapDays });
   return {
+    // D66 ⑩：练习范围学完、今天也没有要写的字 → 主按钮直接是「换练习范围」（推入换库页），不再先进「现在没有要写的字」页
+    switchLibrary: !!deck && !resumeOn && recordsState !== 'first' && !capital && noCharsLeft(state, today, deck, policy),
     today,
     period: periodOf(nowMs),
     dateParts: monthDayParts(today),
@@ -138,10 +141,25 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, deck = null } 
 }
 
 /**
- * 主按钮的文案键（六态里只有它随状态变）：有没写完的组 →「继续写字」；首次打开 / 今天还没写 / 离开一周 / 特别组 →「开始写字」；今天写过 →「再写一组」。
+ * 练习范围学完（当前范围没有新字可出）且这会儿开组也没有字可写（D66 ⑩）。先看范围里还有没有没写过的字（便宜），没有才算一次今日计划。
+ */
+export function noCharsLeft(state, today, deck, policy = defaultPolicy) {
+  if (!deck || typeof deck.newCandidates !== 'function') return false;
+  const sched = (state && state.sched) || {};
+  const settingsLib = state && state.settings && typeof state.settings.library === 'string' ? state.settings.library : null;
+  const libraryId = deck.currentLibraryId ? deck.currentLibraryId(state && state.settings) : settingsLib || policy.defaultLibrary || null;
+  if (deck.newCandidates(libraryId).some(key => deck.practicable(key) && !sched[key])) return false;
+  const plan = planDaily(state, { today, deck, policy });
+  return plan.libraryExhausted && plan.queue.length === 0;
+}
+
+/**
+ * 主按钮的文案键（六态里只有它随状态变）：有没写完的组 →「继续写字」；首次打开 / 今天还没写 / 离开一周 / 特别组 →「开始写字」；今天写过 →「再写一组」；
+ * 练习范围学完、没有要写的字 →「换练习范围」（D66 ⑩，点了推入换库页）。
  */
 export function homeCtaKey(model) {
   if (model.resume !== 'none') return 'X-HOME.continue';
+  if (model.switchLibrary) return 'X-HOME.switchLibrary';
   if (model.view === 'first' || model.records !== 'record') return 'X-HOME.start';
   return 'X-RESULT.again';
 }

@@ -304,14 +304,17 @@ test('new chars: at most 3 while the due + early pool can fill the group; the 4t
   assert.equal(tiny.queue.length, 2);
 });
 
-test('library exhausted and nothing due: no group is made of early reviews alone — the queue stays empty so R-H11 「现在没有要写的字」 still shows', () => {
+test('library exhausted: no early reviews to fill a group (D66 ⑩) — nothing due → empty queue; some due → just those', () => {
   const only = { 'base:亦': sched(addDays(TODAY, 3)), 'base:鲜': sched(addDays(TODAY, 5)) };
   const none = selectDaily({ sched: only, records: [], today: TODAY, newCandidates: [], isWarm: isWarmKey, policy: NO_CAPITAL });
   assert.deepEqual(none.queue, []);
-  // 有一个到期字就不同：到期字 + 提前复习补位
+  // 有一个到期字：D66 ⑩ 起不再用提前复习凑满——有多少到期出多少（修前：到期字 + 提前复习补位 = 3 个）
   const oneDue = selectDaily({ sched: { ...only, 'base:额': sched(addDays(TODAY, -1)) }, records: [], today: TODAY, newCandidates: [], isWarm: isWarmKey, policy: NO_CAPITAL });
   assert.deepEqual(oneDue.dueKeys, ['base:额']);
-  assert.equal(oneDue.queue.length, 3, 'the due char plus the two early fillers');
+  assert.deepEqual(oneDue.queue, ['base:额'], 'only the due char (policy.groupMix.earlyFillWhenExhausted = false, P324)');
+  assert.equal(policy.groupMix.earlyFillWhenExhausted, false);
+  const old = selectDaily({ sched: { ...only, 'base:额': sched(addDays(TODAY, -1)) }, records: [], today: TODAY, newCandidates: [], isWarm: isWarmKey, policy: { ...NO_CAPITAL, groupMix: { ...policy.groupMix, earlyFillWhenExhausted: true } } });
+  assert.equal(old.queue.length, 3, 'the old rule (for comparison): the due char plus the two early fillers');
   // 还有新字可出时照常用提前复习补位
   const withNew = selectDaily({ sched: only, records: [], today: TODAY, newCandidates: K('酱'), isWarm: isWarmKey, policy: NO_CAPITAL });
   assert.equal(withNew.queue.length, 3);

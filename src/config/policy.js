@@ -98,6 +98,7 @@ export const groupMix = Object.freeze({
   returnGroupSize: 3, // P184（已决定 D48 ⑧，补充 D41）离开 ≥ returnAfterDays 天回来的第一组缩短为 3 字（配比规则不变，只是组小了；大写数字特别组整组出，不受影响）
   earlyReviewFill: true, // P125 到期不够时用最快到期的字提前复习补位，再不足才补新字
   earlyCountsTowardCap: false, // P125 提前复习是否计入 dailyReviewCap（P03）：不计入
+  earlyFillWhenExhausted: false, // P324 练习范围学完（没有新字可出）时还用不用提前复习凑满一组（D66 ⑩）：不用——有多少到期出多少，修前 true（模拟 S20：学完后提前复习占字次 36%）
 });
 // P325 新用户前几天新字封顶（D66 ⑫，产品体验评审 P2-05）：首练那天算第 1 天，到第 days 天为止，每组新字（含热身新字）至多 newMax 份
 // （按组大小换算：5 字一组 2 个、10 字 4 个、20 字 8 个、30 字 12 个），到期 / 提前复习也不够时不再补新字凑满一组（这几天的组可以不满）。

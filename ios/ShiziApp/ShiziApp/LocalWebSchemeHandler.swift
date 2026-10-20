@@ -17,6 +17,11 @@ final class LocalWebSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     func webView(_ webView: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        // B1：数据层端点（/__native/store/v1/<op>，NativeStoreBridge.swift）不是随包文件。
+        if let url = urlSchemeTask.request.url, NativeStoreBridge.shared.handles(url) {
+            NativeStoreBridge.shared.start(urlSchemeTask)
+            return
+        }
         guard let requestURL = urlSchemeTask.request.url, let fileURL = fileURL(for: requestURL) else {
             fail(urlSchemeTask, code: NSURLErrorBadURL)
             return
@@ -51,7 +56,9 @@ final class LocalWebSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     func webView(_ webView: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
-        // WKWebView may cancel in-flight resource loads during navigation. No cleanup is needed.
+        // WKWebView may cancel in-flight resource loads during navigation. Static files need no cleanup;
+        // a stopped data-layer request must not be answered any more.
+        NativeStoreBridge.shared.stop(urlSchemeTask)
     }
 
     private func fileURL(for url: URL) -> URL? {

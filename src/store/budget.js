@@ -46,6 +46,19 @@ export const BUDGET_DEFAULTS = Object.freeze({
 });
 
 /**
+ * B1：iOS 壳迁到原生 SQLite 后的预算（policy.nativeStorage；store/native-boot.js 注入 bootStore）。估算口径不变（UTF-16），
+ * 只换数值；inkBudgetBytes 与 policy.inkBudgetBytes 不同，因此不再按每组字数分档（inkBudgetFor）。
+ */
+export const NATIVE_BUDGETS = Object.freeze({
+  quotaBytes: policy.nativeStorage.quotaBytes,
+  warnRatio: policy.storageWarnRatio,
+  totalTargetBytes: policy.nativeStorage.totalTargetBytes,
+  recordsBudgetBytes: policy.nativeStorage.recordsBudgetBytes,
+  recordsFoldAfterDays: policy.recordsFoldAfterDays,
+  inkBudgetBytes: policy.nativeStorage.inkBudgetBytes,
+});
+
+/**
  * 墨迹预算随「每组字数」（D66 ⑭，policy.inkBudgetByGroupSize P326）：settings.groupSize → 字节；没选过按 policy.groupSize。
  * 表里没有的组大小退回 policy.inkBudgetBytes。
  */

@@ -8,7 +8,7 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4EFE6">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1B1814">
 <meta name="description" content="每天练几个容易提笔忘掉的汉字，把这些字重新写熟。">
-<meta name="shizi-asset-build" content="20261021-5eddd93e3914">
+<meta name="shizi-asset-build" content="20261021-c7dae5df9147">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="src/config/tokens.css">
 <link rel="stylesheet" href="src/config/base.css">
 <link rel="stylesheet" href="fonts/fonts.css">
+<script src="src/platform/native-preload.js"></script>
 <script defer src="core-strokes.js?v=0c49190f86d3"></script>
 <script defer src="deck-data.js?v=4b8770326dc6"></script>
 <script defer src="data/context-overrides.js?v=3c35385da53d"></script>
@@ -32,6 +33,7 @@
 <link rel="modulepreload" href="src/platform/env.js">
 <link rel="modulepreload" href="src/store/store.js">
 <link rel="modulepreload" href="src/platform/test-hooks.js">
+<link rel="modulepreload" href="src/store/native-boot.js">
 <link rel="modulepreload" href="src/store/migrate.js">
 <link rel="modulepreload" href="src/ui/screens/block/index.js">
 <link rel="modulepreload" href="src/platform/appearance.js">
@@ -44,6 +46,8 @@
 <link rel="modulepreload" href="src/core/schema.js">
 <link rel="modulepreload" href="src/store/storage.js">
 <link rel="modulepreload" href="src/store/budget.js">
+<link rel="modulepreload" href="src/store/native-backend.js">
+<link rel="modulepreload" href="src/platform/native-store.js">
 <link rel="modulepreload" href="src/core/cards.js">
 <link rel="modulepreload" href="src/core/backup.js">
 <link rel="modulepreload" href="src/core/dates.js">

@@ -1,4 +1,12 @@
-// localStorage 驱动（01-架构设计 §4）。整个应用里**唯一**调用 localStorage 写方法的模块。
+// 存储驱动（01-架构设计 §4）。整个应用里**唯一**调用 localStorage 写方法的模块，也是唯一调用原生数据层写入的模块。
+//
+// 两种后端，同一套接口与语义（B1，01 §4.1）：
+//   · Storage 兼容对象（网页 / e2e / 迁移前的 iOS 壳：localStorage）——下面 writeAll 的 txn 日志 + 逐键读回 + 回滚；
+//   · 事务后端（iOS 壳：store/native-backend.js，有 applyBatch）——一次 writeAll = 一个原生 SQLite 事务（原子，掉电也只会是
+//     写前或写后），不写 shizi.v2.txn；原生在事务里按校验和读回比对，不符整笔回滚（E_VERIFY）；commit 返回时已落盘。
+//     失败分类同 localStorage（磁盘满 = 'quota'）；原生超时 / 传输失败 = 结果未知 → 置阻断（BlockingStorageError，reason
+//     'uncertain'），重启后以库为准。故障注入在事务后端上的含义：failNextWrite 命中本事务任一键 = 整笔不写；
+//     interruptAfterWrite(k) 的 k 落在本事务的项数之内 = 事务没提交就「断电」（写前），否则提交后再「断电」。
 //
 // writeAll(entries, {label})：
 //   0. 读每个键的原值 prev；与新值相同的条目跳过；
@@ -11,7 +19,8 @@
 //   回滚失败：把没能恢复的键搬到 shizi.corrupt.<key>、txn 复制一份到 shizi.corrupt.shizi.v2.txn（live txn 保留，
 //   下次启动 repair() 会再按 prev 回滚），进入阻断状态并抛 BlockingStorageError（R-B09 阻断页由 UI 负责）。
 //
-// writeOne(key, raw|null, {label})：**只供预算回收的单键缩小写**（store 撞配额后的旁路回收）。
+// writeOne(key, raw|null, {label})：**只供预算回收的单键缩小写**（store 撞配额后的旁路回收）；另有 B1 迁移标记
+//   shizi.nativeStore.v1（store/native-boot.js，只写 localStorage、不是业务数据）。
 //   单个 setItem/removeItem 本身原子（断电后键要么是原值要么是新值，两者都合法），因此不写 txn——
 //   写 txn 要多占一份原值，正是配额吃紧时拿不出的空间。原值留在内存：读回不一致就用它恢复；恢复失败按 rollback 隔离并阻断。
 //
@@ -49,12 +58,14 @@ export class StorageWriteError extends Error {
 
 /** 回滚失败、存储进入阻断状态（R-B09）。之后的 writeAll 一律抛此错误，直到重新启动。 */
 export class BlockingStorageError extends Error {
-  constructor(message, { keys = [], cause = null } = {}) {
+  constructor(message, { keys = [], cause = null, reason = 'rollback-failed' } = {}) {
     super(message);
     this.name = 'BlockingStorageError';
     this.kind = 'blocked';
     this.keys = keys;
     this.cause = cause;
+    /** 'rollback-failed'（localStorage 回滚失败）| 'uncertain'（原生写入结果未知）。 */
+    this.reason = reason;
   }
 }
 
@@ -124,6 +135,11 @@ export function isDriverActive() {
   return driverDepth > 0;
 }
 
+/** 结果未知的写（原生超时 / 传输失败，native-backend.js 标 uncertain）。 */
+function isUncertain(error) {
+  return !!error && error.uncertain === true;
+}
+
 function defaultBackend() {
   // 访问 localStorage 本身在被禁用时会抛 SecurityError，由调用方分类。
   return globalThis.localStorage;
@@ -144,6 +160,18 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
 
   function be() {
     return backend || defaultBackend();
+  }
+
+  /** 事务后端（原生 SQLite）：有 applyBatch。 */
+  function isTx() {
+    const b = be();
+    return !!b && typeof b.applyBatch === 'function';
+  }
+
+  /** 结果未知：之后一律阻断（同回滚失败），重启后按库里已提交的内容重新加载。 */
+  function noteUncertain(error, keys) {
+    if (!isUncertain(error) || blocked) return;
+    blocked = { reason: 'uncertain', keys: keys.slice(), moved: [], cause: error, at: now() };
   }
 
   function matches(matchKey, key) {
@@ -186,6 +214,9 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
     driverDepth += 1;
     try {
       be().setItem(key, value);
+    } catch (error) {
+      noteUncertain(error, [key]);
+      throw error;
     } finally {
       driverDepth -= 1;
     }
@@ -197,6 +228,9 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
     driverDepth += 1;
     try {
       be().removeItem(key);
+    } catch (error) {
+      noteUncertain(error, [key]);
+      throw error;
     } finally {
       driverDepth -= 1;
     }
@@ -311,12 +345,62 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
   }
 
   /**
+   * 事务后端：todo 一个原生事务写完（见文件头）。成功返回 {written, label}；失败抛 StorageWriteError（磁盘没变）
+   * 或 BlockingStorageError（结果未知）。
+   */
+  function txWrite(todo, label) {
+    const keys = todo.map(([key]) => key);
+    for (const [key] of todo) {
+      const injected = takeInjectedFailure(key);
+      if (injected) throw toWriteError(injected, key, 'write'); // 一个事务：整笔不写
+    }
+    if (interruptAfter !== null && interruptAfter < todo.length) {
+      interruptAfter = null;
+      halted = true;
+      throw new StorageWriteError('interrupted', `interrupted inside transaction ${label}`, { key: keys[0], phase: 'interrupt' });
+    }
+    driverDepth += 1;
+    try {
+      be().applyBatch(todo);
+    } catch (error) {
+      if (isUncertain(error)) {
+        noteUncertain(error, keys);
+        throw new BlockingStorageError(`native write outcome unknown (${error.code || error.message})`, { keys, cause: error, reason: 'uncertain' });
+      }
+      if (error && error.code === 'E_VERIFY') {
+        throw new StorageWriteError('verify', error.message || 'native read-back mismatch', { key: error.key || null, phase: 'verify', cause: error });
+      }
+      throw toWriteError(error, error && error.key ? error.key : null, 'write');
+    } finally {
+      driverDepth -= 1;
+    }
+    if (interruptAfter !== null) {
+      interruptAfter -= todo.length;
+      if (interruptAfter <= 0) {
+        interruptAfter = null;
+        halted = true;
+        throw new StorageWriteError('interrupted', `interrupted after transaction ${label}`, { key: keys[keys.length - 1], phase: 'interrupt' });
+      }
+    }
+    // 原生已在事务里按校验和读回比对；这里再核一次镜像（防御镜像更新的缺陷）。此时库里已是新值，镜像不符 = 内存与磁盘
+    // 可能分叉 → 当作结果未知：阻断，重启后按库重新加载。
+    for (const [key, raw] of todo) {
+      if (rawGet(key) !== raw) {
+        const error = new StorageWriteError('verify', `mirror mismatch at ${key}`, { key, phase: 'verify' });
+        blocked = blocked || { reason: 'uncertain', keys, moved: [], cause: error, at: now() };
+        throw new BlockingStorageError(error.message, { keys, cause: error, reason: 'uncertain' });
+      }
+    }
+    return { written: keys, label };
+  }
+
+  /**
    * 事务写。entries: [[key, raw|null]] 或 {key: raw|null}。
    * 成功返回 {written:[key…], label}；失败抛 StorageWriteError（已回滚）或 BlockingStorageError（回滚失败）。
    */
   function writeAll(entries, { label = 'write' } = {}) {
     if (halted) throw new StorageWriteError('interrupted', 'storage halted by interruptAfterWrite', { phase: 'halted' });
-    if (blocked) throw new BlockingStorageError('storage is blocked after a failed rollback', { keys: blocked.keys });
+    if (blocked) throw new BlockingStorageError(`storage is blocked (${blocked.reason})`, { keys: blocked.keys, reason: blocked.reason });
     const sorted = normalizeEntries(entries);
     const prev = {};
     const todo = [];
@@ -332,6 +416,7 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
       todo.push([key, raw]);
     }
     if (!todo.length) return { written: [], label };
+    if (isTx()) return txWrite(todo, label);
     const keys = todo.map(([key]) => key);
     const txn = { label: String(label), at: now(), keys, prev, phase: 'writing' };
     const txnRaw = JSON.stringify(txn);
@@ -400,7 +485,7 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
    */
   function writeOne(key, raw, { label = 'write-one' } = {}) {
     if (halted) throw new StorageWriteError('interrupted', 'storage halted by interruptAfterWrite', { phase: 'halted' });
-    if (blocked) throw new BlockingStorageError('storage is blocked after a failed rollback', { keys: blocked.keys });
+    if (blocked) throw new BlockingStorageError(`storage is blocked (${blocked.reason})`, { keys: blocked.keys, reason: blocked.reason });
     const [[k, value]] = normalizeEntries([[key, raw]]);
     let before;
     try {
@@ -409,6 +494,10 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
       throw toWriteError(error, k, 'read-prev');
     }
     if (before === value) return { written: [], label };
+    if (isTx()) {
+      txWrite([[k, value]], label);
+      return { written: [k], label };
+    }
     let failure = null;
     try {
       try {
@@ -449,7 +538,8 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
       if (injected) throw injected;
       driverDepth += 1;
       try {
-        if (raw === null) be().removeItem(key);
+        if (isTx()) be().applyBatch([[key, raw]]);
+        else if (raw === null) be().removeItem(key);
         else be().setItem(key, raw);
       } finally {
         driverDepth -= 1;
@@ -541,6 +631,22 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
    * 返回删掉的键；失败的键跳过。
    */
   function removeKeys(keys) {
+    if (isTx()) {
+      // 事务后端：一个事务删完（只发确实存在的键）。
+      guardHalted(keys[0] || null);
+      const present = keys.filter(key => rawGet(key) !== null);
+      if (!present.length) return keys.slice();
+      driverDepth += 1;
+      try {
+        be().applyBatch(present.map(key => [key, null]));
+        return keys.slice();
+      } catch (error) {
+        noteUncertain(error, present);
+        return [];
+      } finally {
+        driverDepth -= 1;
+      }
+    }
     const removed = [];
     for (const key of keys) {
       try {
@@ -556,6 +662,14 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
   return {
     get backend() {
       return be();
+    },
+    /** 'native'（事务后端，原生 SQLite）| 'localStorage'。 */
+    get kind() {
+      try {
+        return isTx() ? 'native' : 'localStorage';
+      } catch (error) {
+        return 'localStorage';
+      }
     },
     read,
     readAll,

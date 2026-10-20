@@ -10,7 +10,7 @@
 //   getInk(record)                  某条记录的墨迹（按 inkMonthOf/inkIdOf 定位），没有返回 null
 //   getRawKeys(prefix='shizi.', {includeRoute?})  localStorage 原始键值（K03 等「全部 v2 键深相等」断言用）；
 //                                   默认不含路由提示 shizi.v2.route（审查整改 F1：它随导航而变，不是数据），includeRoute:true 才给
-//   getStatus()                     store.status（available/blocked/corruptNotice/usage/lastRepair）
+//   getStatus()                     store.status（available/blocked/corruptNotice/usage/lastRepair/backend——B1：kind 'native'|'localStorage' 与迁移信息）
 //   failNextWrite(n, {kind:'quota'|'generic'|'security', matchKey?})  接下来 n 次匹配的 setItem 抛错
 //   interruptAfterWrite(k)          第 k 次写后模拟进程中断（之后写全部失败且不回滚；刷新页面后 repair）
 //   setClock(iso|null)              平移应用时钟（platform/env.js now()）
@@ -77,6 +77,23 @@ function installWriteLog(backend, sink, routeSink = []) {
       record(this, 'remove', String(key), 0, ok);
     }
   };
+  // B1 原生后端（store/native-backend.js）：一次 applyBatch = 一个原生事务，逐项记一条（op 同 setItem / removeItem）。
+  const origBatch = proto.applyBatch;
+  if (typeof origBatch === 'function') {
+    proto.applyBatch = function applyBatch(entries) {
+      let ok = false;
+      try {
+        const out = origBatch.call(this, entries);
+        ok = true;
+        return out;
+      } finally {
+        for (const [key, value] of entries) {
+          if (value === null) record(this, 'remove', String(key), 0, ok);
+          else record(this, 'set', String(key), (String(key).length + String(value).length) * 2, ok);
+        }
+      }
+    };
+  }
   if (typeof origClear === 'function') {
     proto.clear = function clear() {
       let ok = false;

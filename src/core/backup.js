@@ -28,8 +28,12 @@ import {
 import { localDay } from './dates.js';
 import { t } from '../config/copy/index.js';
 
-/** 备份文件大小上限（字节）：与 iOS 原生预检同口径（01 §8.1、M5-3「>10MB 显示 R-B06 文案」）。 */
-export const BACKUP_MAX_BYTES = 10 * 1024 * 1024;
+/**
+ * 备份文件大小上限（字节）：与 iOS 原生预检同口径（01 §8.1、M5-3「超过上限显示 R-B06 文案」）。
+ * B1 起 64MB（原 10MB）：原生数据层的假定上限 policy.nativeStorage.quotaBytes（64MiB 估算 ≈ 32MB 库文件、备份约 35–40MB）
+ * 的整份备份必须能导回来。
+ */
+export const BACKUP_MAX_BYTES = 64 * 1024 * 1024;
 /** shizi.v2.safety 的 version 字段（01 §9 保护副本形状）。 */
 export const SAFETY_VERSION = 2;
 

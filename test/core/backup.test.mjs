@@ -132,7 +132,7 @@ test('inspectBackup: 报告（日期、字数含折叠月）与失败原因 → 
   }
   const big = inspectBackup('x'.repeat(16), { maxBytes: 8 });
   assert.deepEqual([big.reason, big.kind], ['tooLarge', 'notBackup']);
-  assert.equal(BACKUP_MAX_BYTES, 10 * 1024 * 1024);
+  assert.equal(BACKUP_MAX_BYTES, 64 * 1024 * 1024);
 });
 
 test('v1 备份：转换器未注册是桩（v1-unsupported）；M5-4 注册后走同一份报告', () => {

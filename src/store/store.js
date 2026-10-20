@@ -207,7 +207,7 @@ export function deleteInk(draft, record) {
 /**
  * @param {{storage?: object, now?: () => number, budgets?: object, freeze?: boolean}} options
  */
-export function createStore({ storage = createStorage(), now = envNow, budgets = null, freeze = true } = {}) {
+export function createStore({ storage = createStorage(), now = envNow, budgets = null, freeze = true, backendInfo = null } = {}) {
   let state = deepFreeze(emptyState());
   let lastRaw = new Map(); // 上次落盘（或读入）的 v2 域键 → 原始字串
   let lastValues = new Map(); // 同一批键 → 已发布（冻结）的值
@@ -221,6 +221,8 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     corruptNotice: null, // null 或 {keys:[…]}；只在本次启动新隔离了坏值时置一次
     usage: null,
     lastRepair: null,
+    // B1：这次启动用的是哪种持久化（'native' 原生 SQLite | 'localStorage'）及迁移 / 回退信息（store/native-boot.js prepareStorage）。
+    backend: Object.assign({ kind: storage && storage.kind ? storage.kind : 'localStorage' }, backendInfo || {}),
   };
 
   const publishFreeze = value => (freeze ? deepFreeze(value) : value);
@@ -420,7 +422,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       return null;
     } catch (error) {
       if (error instanceof BlockingStorageError) {
-        status.blocked = { reason: 'rollback-failed', keys: error.keys };
+        status.blocked = { reason: error.reason || 'rollback-failed', keys: error.keys };
         notify({ type: 'status' });
         return { kind: 'blocked', key: null, reason: error.message };
       }
@@ -640,6 +642,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
         corruptNotice: status.corruptNotice,
         usage: status.usage,
         lastRepair: status.lastRepair,
+        backend: status.backend,
       };
     },
     /** 坏值顶部提示显示过后调用；本次启动不再提示。 */
@@ -663,11 +666,13 @@ let activeStore = null;
 
 /**
  * app.js 启动用：建 storage → onStorage(storage)（例如挂测试钩子，要在 repair 之前记录写日志）→ 建 store → load。
+ * B1：backend / budgets / backendInfo 来自 store/native-boot.js prepareStorage（iOS 壳里是原生 SQLite 的镜像后端与原生口径的预算；
+ * 网页与回退时 backend 为 null = localStorage）。
  */
-export function bootStore({ backend = null, onStorage = null, budgets = null } = {}) {
+export function bootStore({ backend = null, onStorage = null, budgets = null, backendInfo = null } = {}) {
   const storage = createStorage(backend, { now: envNow });
   if (typeof onStorage === 'function') onStorage(storage);
-  const store = createStore({ storage, budgets });
+  const store = createStore({ storage, budgets, backendInfo });
   const report = store.load();
   activeStore = store;
   return { store, storage, report };

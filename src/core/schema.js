@@ -23,6 +23,11 @@ export const INK_PREFIX = 'shizi.v2.ink.';
 export const CORRUPT_PREFIX = 'shizi.corrupt.';
 /** iOS DEBUG 冒烟键：不属于 v2，reset() 不删，备份不含。 */
 export const NATIVE_SMOKE_KEY = 'shizi.nativeSmoke.v1';
+/**
+ * B1：只写在 localStorage 里的标记——本机的数据已迁到原生 SQLite 并核对过（store/native-boot.js）。
+ * 之后原生库若读不出来，就进阻断页而不是退回已过时的 localStorage。不属于 v2、不迁移、备份不含。
+ */
+export const NATIVE_STORE_MARKER_KEY = 'shizi.nativeStore.v1';
 
 export const KEYS = Object.freeze({
   meta: 'shizi.v2.meta',

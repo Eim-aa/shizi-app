@@ -4,7 +4,7 @@
 //     today, period, dateParts:{month, day}, epigraph,
 //     records: 'first' | 'empty' | 'record',     // 维度一：从记录派生（原型首页壳 L218 hState；K06 / R-H09 修正）
 //     resume:  'none' | 'A' | 'B' | 'A+B',       // 维度二：从会话派生（S01 / R-H04；D05 B 优先续写）
-//     primary, other,                             // S01 两行：{slot, kind, remaining}；primary = B 优先，other 只在 A、B 都没写完时 = A
+//     primary, other, daily,                      // S01 两行：{slot, kind, remaining, done, total}；primary = B 优先，other 只在 A、B 都没写完时 = A；daily = A 没写完时的那一行（不论 B，字库「今日练习」用）
 //     showRecord, showFirstTip,
 //     capital,                                    // D40：下一次练习是大写数字特别组时 = 'capital1' | 'capital2'（首页给一句提示，P129），否则 null
 //     view, gapDays,                              // 首页呈现哪一态，见 homeViewOf
@@ -40,10 +40,12 @@ export const BACK_AFTER_DAYS = 7;
  */
 function lineOf(session, slot) {
   if (!session) return null;
-  const total = remainingCount(session);
-  const line = { slot, kind: session.kind, remaining: total };
-  if (total > 0 && session.current && session.current.answerSeen === true) {
-    line.remaining = total - 1;
+  const left = remainingCount(session);
+  // D66 ⑧：已写 / 总数（跳过的字不算已写；看过答案的字算——它在结果页有一格）
+  const done = session.items.filter(it => it && it.kind !== 'skipped').length;
+  const line = { slot, kind: session.kind, remaining: left, done, total: session.queue.length };
+  if (left > 0 && session.current && session.current.answerSeen === true) {
+    line.remaining = left - 1;
     line.position = session.cursor + 1;
   }
   return line;
@@ -57,7 +59,7 @@ export function resumeOf(state, nowMs, { policy = defaultPolicy } = {}) {
   // 原型 APP @379350：cs = B 没写完 ? B : A 没写完 ? A : null；otherSlot() 只在两组都没写完时 = 'A'。
   const primary = b ? lineOf(b, 'B') : a ? lineOf(a, 'A') : null;
   const other = a && b ? lineOf(a, 'A') : null;
-  return { resume, primary, other };
+  return { resume, primary, other, daily: a ? lineOf(a, 'A') : null };
 }
 
 /** 维度一：records。 */
@@ -109,7 +111,7 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, deck = null } 
   const today = localDay(nowMs);
   const records = recordsOf(state);
   const recordsState = recordsStateOf(state, today, { policy });
-  const { resume, primary, other } = resumeOf(state, nowMs, { policy });
+  const { resume, primary, other, daily } = resumeOf(state, nowMs, { policy });
   const resumeOn = resume !== 'none';
   const showRecord = recordsState === 'record' && !resumeOn;
   const special = deck && !resumeOn && recordsState !== 'first' ? planSpecial(state, { today, deck, policy }) : null;
@@ -126,6 +128,7 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, deck = null } 
     resume,
     primary,
     other,
+    daily,
     showRecord,
     showFirstTip: recordsState === 'first' && !resumeOn,
     capital,
@@ -138,10 +141,11 @@ export function homeModel(state, nowMs, { policy = defaultPolicy, deck = null } 
 }
 
 /**
- * 主按钮的文案键（六态里只有它随状态变）：有没写完的组 →「继续写字」；首次打开 / 今天还没写 / 离开一周 / 特别组 →「开始写字」；今天写过 →「再写一组」。
+ * 主按钮的文案键（六态里只有它随状态变）：有没写完的组 →「继续写字」（续的是自己选的字时「继续写自选字」，D66 ⑧：与那一行「今天的字」分得清）；
+ * 首次打开 / 今天还没写 / 离开一周 / 特别组 →「开始写字」；今天写过 →「再写一组」。
  */
 export function homeCtaKey(model) {
-  if (model.resume !== 'none') return 'X-HOME.continue';
+  if (model.resume !== 'none') return model.primary && model.primary.kind === 'picked' ? 'X-HOME.continuePicked' : 'X-HOME.continue';
   if (model.view === 'first' || model.records !== 'record') return 'X-HOME.start';
   return 'X-RESULT.again';
 }
@@ -163,21 +167,33 @@ export function resumeKeyOf(kind) {
   return 'R-H04.resumeDaily';
 }
 
-/**
- * S01 行的可见文字（P196，D49 ⑦）：只有「… · 接着写」，不显示剩余字数（计数只进读屏名称，见 resumeLineAria）。
- */
-export function resumeLineText(line, translate) {
-  if (!line) return '';
-  return translate(resumeKeyOf(line.kind));
+/** 已写 / 总数的可见文字（「7 / 20」，D66 ⑧）。 */
+export function progressText(line, translate) {
+  return line ? translate('X-HOME.progress', { n: line.done, total: line.total }) : '';
 }
 
 /**
- * S01 行的读屏名称：含可见文字「… · 接着写」，再加剩余字数——普通 = 「… · 接着写，还有 {n} 个字没写」；当前字看过答案仍在写 =
- * 「… · 接着写，正在写第 {k} 个字，还有 {n} 个」，它是最后一个字时「…，正在写第 {k} 个字，这是最后一个」。
+ * S01 行的可见文字（D66 ⑧：「今天的字 · 7 / 20」，续的是哪一组写在名字里，已写 / 总数跟在后面；点得动由行尾「›」表示，在视图里）。
+ * 与主按钮「继续写字」不同说法：主按钮是动作，这一行是去处。
+ */
+export function resumeLineText(line, translate) {
+  if (!line) return '';
+  return translate(resumeKeyOf(line.kind), { n: line.done, total: line.total });
+}
+
+/**
+ * S01 行的读屏名称：「接着写今天的字，已写 {n} 个，共 {total} 个」；当前字看过答案仍在写 =「…，正在写第 {k} 个，共 {total} 个」，它是最后一个字时「…，正在写最后一个」。
  */
 export function resumeLineAria(line, translate) {
   if (!line) return '';
   const base = resumeKeyOf(line.kind);
-  if (line.position === undefined) return translate(`${base}Aria`, { n: line.remaining });
-  return translate(line.remaining > 0 ? `${base}Now` : `${base}NowLast`, { k: line.position, n: line.remaining });
+  if (line.position === undefined) return translate(`${base}Aria`, { n: line.done, total: line.total });
+  return translate(line.remaining > 0 ? `${base}Now` : `${base}NowLast`, { k: line.position, total: line.total });
+}
+
+/** 主按钮的读屏名称：「继续写字，已写 {n} 个，共 {total} 个」；没有进行中的组时就是按钮的字。 */
+export function ctaAria(model, translate) {
+  const label = translate(homeCtaKey(model));
+  const line = model.resume !== 'none' ? model.primary : null;
+  return line ? translate('X-HOME.continueAria', { label, n: line.done, total: line.total }) : label;
 }

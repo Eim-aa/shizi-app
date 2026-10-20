@@ -219,7 +219,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
   const sub = [];
   let title = null;
   const header = t(variant === 'first' ? 'X-RESULT.headerFirst' : variant === 'picked' ? 'R-R05.kicker' : 'X-RESULT.headerDaily');
-  if (variant === 'picked' && early && unwritten > 0) sub.push(t('R-R05.bodyEarly', { n: unwritten }));
+  if (variant !== 'first' && early && unwritten > 0) sub.push(t('R-R05.bodyEarly', { n: unwritten })); // 今天的练习中途结束（D66 ⑥）与自选组同一句
 
   // 作品（三种结果页都有）：成员规则见 core/work-members.js / core/images/work.js。inkTest = 这条记录有没有本人墨
   // （存下的墨迹或本页面会话里刚判断时记下的笔画，与格子 / 图片取墨同一取法，I6）。

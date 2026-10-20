@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
   BACK_AFTER_DAYS, homeModel, homeViewOf, libraryCountOf, recordsStateOf,
-  resumeOf, resumeKeyOf, resumeLineText, resumeLineAria,
+  resumeOf, resumeKeyOf, resumeLineText, resumeLineAria, homeCtaKey, progressText, ctaAria,
 } from '../../src/ui/screens/home/today.js';
 import { firstShiSize } from '../../src/ui/screens/home/copybook.js';
 import { EPIGRAPHS, epigraphAuthor } from '../../src/config/epigraphs.js';
@@ -42,18 +42,47 @@ test('records dimension: first / empty / record (K06: cleared → empty, not fir
   assert.equal(recordsStateOf(null, DAY), 'first', 'store not booted');
 });
 
-test('resume dimension: none / A / B / A+B; B is the primary line, A the other (D05 / S01)', () => {
+test('resume dimension: none / A / B / A+B; B is the primary line, A the other (D05 / S01); D66 ⑧ lines carry done / total, `daily` is A whatever B does', () => {
   const now = at(DAY);
-  assert.deepEqual(resumeOf(state(), now), { resume: 'none', primary: null, other: null });
+  assert.deepEqual(resumeOf(state(), now), { resume: 'none', primary: null, other: null, daily: null });
   assert.deepEqual(resumeOf(state({ A: sess('A', 'daily', 5, 2) }), now),
-    { resume: 'A', primary: { slot: 'A', kind: 'daily', remaining: 3 }, other: null });
+    { resume: 'A', primary: { slot: 'A', kind: 'daily', remaining: 3, done: 0, total: 5 }, other: null, daily: { slot: 'A', kind: 'daily', remaining: 3, done: 0, total: 5 } });
   assert.deepEqual(resumeOf(state({ B: sess('B', 'picked', 2, 0) }), now),
-    { resume: 'B', primary: { slot: 'B', kind: 'picked', remaining: 2 }, other: null });
+    { resume: 'B', primary: { slot: 'B', kind: 'picked', remaining: 2, done: 0, total: 2 }, other: null, daily: null });
   assert.deepEqual(resumeOf(state({ A: sess('A', 'first', 5, 1), B: sess('B', 'picked', 2, 1) }), now),
-    { resume: 'A+B', primary: { slot: 'B', kind: 'picked', remaining: 1 }, other: { slot: 'A', kind: 'first', remaining: 4 } });
+    { resume: 'A+B', primary: { slot: 'B', kind: 'picked', remaining: 1, done: 0, total: 2 }, other: { slot: 'A', kind: 'first', remaining: 4, done: 0, total: 5 },
+      daily: { slot: 'A', kind: 'first', remaining: 4, done: 0, total: 5 } });
   assert.equal(resumeOf(state({ A: sess('A', 'daily', 5, 5) }), now).resume, 'none', 'written-out group is not resumable');
   assert.equal(resumeOf(state({ A: sess('A', 'daily', 5, 2, YDAY) }), now).resume, 'none', 'yesterday’s daily expires (P37)');
   assert.equal(resumeOf(state({ B: sess('B', 'picked', 2, 0, YDAY) }), now).resume, 'B', 'picked never expires (P61)');
+});
+
+test('D66 ⑧ done / total: items written (judged or answer-seen) over the queue; skipped ones are not counted as written', () => {
+  const g = sess('A', 'daily', 20, 9);
+  g.items = [
+    ...Array.from({ length: 7 }, (_, i) => ({ cardKey: `base:${i}`, kind: 'judged', recordId: `r${i}` })),
+    { cardKey: 'base:7', kind: 'answer-seen', recordId: 'r7' },
+    { cardKey: 'base:8', kind: 'skipped', recordId: 'r8' },
+  ];
+  const line = resumeOf(state({ A: g }), at(DAY)).primary;
+  assert.deepEqual([line.done, line.total, line.remaining], [8, 20, 11]);
+  assert.equal(progressText(line, t), '8 / 20');
+  assert.equal(resumeLineText(line, t), '今天的字 · 8 / 20');
+  assert.equal(resumeLineAria(line, t), '接着写今天的字，已写 8 个，共 20 个');
+});
+
+test('D66 ⑧ two entries, two wordings: the main button continues 「继续写字」 / 「继续写自选字」 with 「· 已写 / 总数」 in its name; the line says 「今天的字 · n / total」 and is a › row', () => {
+  const now = at(DAY);
+  const both = homeModel(state({ A: sess('A', 'daily', 20, 7), B: sess('B', 'picked', 5, 2) }), now);
+  assert.equal(t(homeCtaKey(both)), '继续写自选字', 'B is the main button: said so, so it cannot be mistaken for today’s group');
+  assert.equal(ctaAria(both, t), '继续写自选字，已写 0 个，共 5 个');
+  assert.equal(resumeLineText(both.other, t), '今天的字 · 0 / 20');
+  const onlyA = homeModel(state({ A: sess('A', 'daily', 20, 7) }), now);
+  assert.equal(t(homeCtaKey(onlyA)), '继续写字');
+  assert.equal(ctaAria(onlyA, t), '继续写字，已写 0 个，共 20 个');
+  const idle = homeModel(state(), now);
+  assert.equal(ctaAria(idle, t), '开始写字', 'no group in progress: the plain label, no count');
+  assert.equal(both.daily.total, 20, 'daily is A even while B is the primary line');
 });
 
 test('P16 (D55): with an unfinished group the home is the \u201Ccontinue\u201D state — no copybook, no today row, just the view and the resume lines', () => {
@@ -90,33 +119,33 @@ test('B6 (G45, D36): a current char that has seen its answer (still tracing / wr
   const withCurrent = (session, current) => ({ ...session, current: { phase: 'answer', strokes: [], ...current } });
   // 5 个字，写到第 3 个（cursor 2）：没看过答案 → 还有 3 个没写
   const plain = resumeOf(state({ A: sess('A', 'daily', 5, 2) }), now).primary;
-  assert.deepEqual(plain, { slot: 'A', kind: 'daily', remaining: 3 });
-  assert.equal(resumeLineText(plain, t), '今天的字 · 接着写', 'E9d / P196: the visible line carries no count');
-  assert.equal(resumeLineAria(plain, t), '今天的字 · 接着写，还剩 3 个', 'the count is only in the screen-reader name (D49 ⑦)');
+  assert.deepEqual(plain, { slot: 'A', kind: 'daily', remaining: 3, done: 0, total: 5 });
+  assert.equal(resumeLineText(plain, t), '今天的字 · 0 / 5', 'D66 ⑧: the visible line carries 已写 / 总数');
+  assert.equal(resumeLineAria(plain, t), '接着写今天的字，已写 0 个，共 5 个');
   // 第 3 个字看过答案：正在写第 3 个字 · 还有 2 个
   for (const phase of ['answer', 'trace', 'retrace']) {
     const seen = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 2), { phase, answerSeen: true }) }), now).primary;
-    assert.deepEqual(seen, { slot: 'A', kind: 'daily', remaining: 2, position: 3 }, phase);
-    assert.equal(resumeLineText(seen, t), '今天的字 · 接着写', phase);
-    assert.equal(resumeLineAria(seen, t), '今天的字 · 接着写，第 3 个，剩 2 个', phase);
+    assert.deepEqual(seen, { slot: 'A', kind: 'daily', remaining: 2, done: 0, total: 5, position: 3 }, phase);
+    assert.equal(resumeLineText(seen, t), '今天的字 · 0 / 5', phase);
+    assert.equal(resumeLineAria(seen, t), '接着写今天的字，正在写第 3 个，共 5 个', phase);
   }
   // 三种来源
   const first = resumeOf(state({ A: withCurrent(sess('A', 'first', 5, 0), { answerSeen: true }) }), now).primary;
-  assert.equal(resumeLineText(first, t), '首次练习 · 接着写');
-  assert.equal(resumeLineAria(first, t), '首次练习 · 接着写，第 1 个，剩 4 个');
+  assert.equal(resumeLineText(first, t), '首次练习 · 0 / 5');
+  assert.equal(resumeLineAria(first, t), '接着写首次练习，正在写第 1 个，共 5 个');
   const picked = resumeOf(state({ B: withCurrent(sess('B', 'picked', 3, 1), { answerSeen: true }) }), now).primary;
-  assert.equal(resumeLineText(picked, t), '自己选的 · 接着写');
-  assert.equal(resumeLineAria(picked, t), '自己选的 · 接着写，第 2 个，剩 1 个');
+  assert.equal(resumeLineText(picked, t), '自己选的 · 0 / 3');
+  assert.equal(resumeLineAria(picked, t), '接着写自己选的字，正在写第 2 个，共 3 个');
   // 最后一个字：不写「还有 0 个」
   const last = resumeOf(state({ B: withCurrent(sess('B', 'picked', 2, 1), { answerSeen: true }) }), now).primary;
-  assert.deepEqual(last, { slot: 'B', kind: 'picked', remaining: 0, position: 2 });
-  assert.equal(resumeLineAria(last, t), '自己选的 · 接着写，最后一个了');
+  assert.deepEqual(last, { slot: 'B', kind: 'picked', remaining: 0, done: 0, total: 2, position: 2 });
+  assert.equal(resumeLineAria(last, t), '接着写自己选的字，正在写最后一个');
   // 两组都没写完：other 行同口径
   const both = resumeOf(state({ A: withCurrent(sess('A', 'daily', 5, 1), { answerSeen: true }), B: sess('B', 'picked', 2, 0) }), now);
-  assert.deepEqual(both.primary, { slot: 'B', kind: 'picked', remaining: 2 });
-  assert.deepEqual(both.other, { slot: 'A', kind: 'daily', remaining: 3, position: 2 });
-  assert.equal(resumeLineText(both.other, t), '今天的字 · 接着写');
-  assert.equal(resumeLineAria(both.other, t), '今天的字 · 接着写，第 2 个，剩 3 个');
+  assert.deepEqual(both.primary, { slot: 'B', kind: 'picked', remaining: 2, done: 0, total: 2 });
+  assert.deepEqual(both.other, { slot: 'A', kind: 'daily', remaining: 3, done: 0, total: 5, position: 2 });
+  assert.equal(resumeLineText(both.other, t), '今天的字 · 0 / 5');
+  assert.equal(resumeLineAria(both.other, t), '接着写今天的字，正在写第 2 个，共 5 个');
   assert.equal(resumeLineText(null, t), '');
   assert.equal(resumeLineAria(null, t), '');
 });

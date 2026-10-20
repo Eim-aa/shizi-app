@@ -1,6 +1,7 @@
 // 结束这组（M2-3；决定-D22；01 §3.3 / §6.7；04 R-W15 / R-W16；边改 S04；原型 ShiziWriteScreen L152–L156、L216、L352、L628–L629）。
 //
-// 「结束这组」只在这次选的字（picked，B 槽）里有，写字页「跳过」那一行的右边（紧凑版在「看答案 · 跳过 · 结束这组」一行的右端）。
+// 「结束这组」在这次选的字（picked，B 槽）和今天的练习（daily，A 槽）里有；首次练习（first，只有三个字，每字都能跳过）不放（D66 ⑥）。
+// 位置在写字页「跳过」那一行的右边（紧凑版在「看答案 · 跳过 · 结束这组」一行的右端）。
 // 除判断页（compare，没有底栏）之外的各阶段都显示：回忆、看答案、描一遍、自己写一遍（看答案流程的底栏里「下一个」那一行右端，
 // answer.js endButton）；底栏被保存失败两键占住时不显示（原型「写完、保存失败、修改判断弹层开着时不显示」；M2 验收 H4）。
 // 流程：
@@ -68,9 +69,12 @@ export function endConfirmCounts(state, slot) {
   return { n: remainingCount(s), m: judgedCountOf(state, s.id) };
 }
 
-/** 能不能「结束这组」：picked 会话、还有没写的字。 */
+/** 哪些组能「结束这组」（D66 ⑥：今天的练习也能；首次练习只有三个字，不放）。 */
+const ENDABLE_KINDS = Object.freeze(['picked', 'daily']);
+
+/** 能不能「结束这组」：picked / daily 会话、还有没写的字。 */
 export function canEndGroup(session) {
-  return !!session && session.kind === 'picked' && !isComplete(session);
+  return !!session && ENDABLE_KINDS.includes(session.kind) && !isComplete(session);
 }
 
 /**
@@ -80,7 +84,7 @@ export function canEndGroup(session) {
 export function endInDraft(draft, { slot, sessionId, at }) {
   const s = sessionOf(draft, slot);
   if (!s || s.id !== sessionId) throw new Error('end: session changed');
-  if (s.kind !== 'picked') throw new Error('end: only a picked group can be ended');
+  if (!ENDABLE_KINDS.includes(s.kind)) throw new Error('end: only a picked or daily group can be ended');
   const next = endSlot(sessionsOf(draft), slot, { at, early: !isComplete(s) });
   draft.sessions = next;
   return { ended: next.lastEnded[slot], judgedCount: judgedCountOf(draft, sessionId) };
@@ -91,7 +95,7 @@ const STALE = Object.freeze({ ok: false, error: Object.freeze({ kind: 'stale' })
 /** 结束这组 commit。会话已不是 sessionId 时 stale。成功时另带 {ended, judgedCount}。 */
 export function commitEndGroup(store, { slot, sessionId }) {
   const s = sessionOf(store.getState(), slot);
-  if (!s || s.id !== sessionId || s.kind !== 'picked') return STALE;
+  if (!s || s.id !== sessionId || !ENDABLE_KINDS.includes(s.kind)) return STALE;
   let out = null;
   const result = store.commit(END_LABEL, (draft, ctx) => {
     out = endInDraft(draft, { slot, sessionId, at: ctx.now });

@@ -5,7 +5,7 @@
 //   2 搜索框（library-search；紧接大标题；占位「搜索汉字或拼音」；点开 = M3-3 查字弹层，query-entry.js LibraryQueryBox）
 //   3 「练习范围 …… {库名} ›」（library-range；整行一个按钮 → 换库页 library-switch，与「我的 › 设置 › 练习范围」同一页、同一个值 settings.library）
 //   4 「今日练习 …… {值} ›」+ 第二行小字（library-today，data-phase = fresh | half | done）：整行一次点击 = 首页主按钮在该状态下的同一动作
-//     （home/index.js startMain：开始写字 / 继续写字 / 再写一组；数与状态取自 model.js todayPlanModel，它内部用首页自己的 homeModel 与 planDaily，不另算）。
+//     （home/index.js startToday（D66 ⑧：只续 / 开今天的练习，不碰自己选的那一组）：开始写字 / 继续写字 / 再写一组；数与状态取自 model.js todayPlanModel，它内部用首页自己的 homeModel 与 planDaily，不另算）。
 //     进写字页的转场是 T0-6：被点的行就是 B1 的来源（root.js 捕获阶段 noteTap → paper-transition）。
 //   5 小标题「已练汉字 N」（library-written，data-n）+ 右侧文字按钮「全部 ›」（library-all-open → library-all，墨墙留在那里）
 //     下面三行记忆状态（library-zone，data-kind = due | shaky | known，data-n）：名称 + 数 + 至多三个样字（本人墨，墨色 wall4 / wall2 / wall1）+ ›，
@@ -37,7 +37,7 @@ import { currentLibraryId, deckAdapter } from '../../../data/deck.js';
 import { MEMORY_ZONES, memoryZones, skippedZone, todayPlanModel, zoneSamples } from './model.js';
 import { normalizeKind } from './list-model.js';
 import { Glyph } from './wall.js';
-import { startMain } from '../home/index.js';
+import { startToday } from '../home/index.js';
 import './list.js'; // M3-2 清单页自注册（library-list）：三档的区详情页复用它（kind = due | shaky | known）
 import './switch.js'; // M3-5 换库页自注册（library-switch）
 import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all）
@@ -219,7 +219,7 @@ function TodayRow({ plan }) {
   const start = () => {
     let r;
     try {
-      r = startMain({ source: LIBRARY_TODAY_SOURCE });
+      r = startToday({ source: LIBRARY_TODAY_SOURCE });
     } catch (error) {
       console.error('[shizi] library today action failed', error);
       r = { ok: false };

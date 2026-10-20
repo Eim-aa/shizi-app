@@ -2,9 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  KNOWN_STABILITY_DAYS, MEMORY_ZONES, ZONE_TONE, memoryZoneOf, memoryZones, skippedZone, todayPlanModel, zoneSamples,
+  KNOWN_MIN_SUCCESSES, KNOWN_STABILITY_DAYS, MEMORY_ZONES, ZONE_TONE, memoryZoneOf, memoryZones, skippedZone, todayPlanModel, zoneSamples,
 } from '../../src/ui/screens/library/model.js';
 import { planDaily } from '../../src/core/session-start.js';
+import * as policy from '../../src/config/policy.js';
 import { normalizeKind, listEntries, listModel } from '../../src/ui/screens/library/list-model.js';
 
 const TODAY = '2026-09-24';
@@ -12,7 +13,8 @@ const at = day => new Date(`${day}T09:00:00`).getTime();
 const rec = (n, char, judgment, day = '2026-09-10') => ({
   id: `r${n}`, cardKey: `base:${char}`, char, sessionId: 's9', kind: 'judged', judgment, at: at(day), localDay: day, help: { hints: 0, answerSeen: false, traced: false },
 });
-const sched = (due, stability) => ({ fsrs: { stability }, due, lastJudgedAt: 0 });
+// reps / lapses：缺省 5 次评级、0 次 Again（够「已熟悉」的 3 次成功，D66 ⑰）
+const sched = (due, stability, reps = 5, lapses = 0) => ({ fsrs: { stability, reps, lapses }, due, lastJudgedAt: 0 });
 
 function stateOf(rows, schedMap = {}, extra = {}) {
   const records = {};
@@ -29,6 +31,18 @@ test('memoryZoneOf: wrong or due today → due; not due and stability < 21 → s
   assert.equal(memoryZoneOf(rec(1, '永', 'correct'), sched('2026-09-25', 21), TODAY), 'known');
   assert.equal(memoryZoneOf(rec(1, '永', 'correct'), undefined, TODAY), 'shaky', 'no sched entry counts as stability 0');
   assert.equal(memoryZoneOf(rec(1, '永', 'correct'), { ...sched('2026-09-01', 30), stoppedAt: '2026-09-02' }, TODAY), 'known', 'a stopped card is never due');
+});
+
+test('memoryZoneOf (D66 ⑰, policy.knownZone P322): 已熟悉 also needs ≥ 3 successes (reps − lapses); otherwise 未熟悉', () => {
+  assert.deepEqual({ ...policy.knownZone }, { stabilityDays: 21, minSuccesses: 3 });
+  assert.equal(KNOWN_MIN_SUCCESSES, 3);
+  const r = rec(1, '永', 'correct');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 2, 0), TODAY), 'shaky', 'Easy then Good: stability 44 but only 2 successes');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 3, 0), TODAY), 'known', '3 successes');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 4, 2), TODAY), 'shaky', '4 reviews with 2 Again → 2 successes');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 5, 2), TODAY), 'known');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 20, 9, 0), TODAY), 'shaky', 'still needs stability ≥ 21');
+  assert.equal(memoryZoneOf(r, sched('2026-10-30', 44, 2, 0), TODAY, 21, 2), 'known', 'minSuccesses is injectable');
 });
 
 test('memoryZones: exclusive, sum = recorded, latest judged decides; D66 ⑤: an answer-seen-only char is in 待复习', () => {

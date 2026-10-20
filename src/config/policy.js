@@ -157,6 +157,14 @@ export const skipNewDeferDays = 7;
 export const forgetRule = 'due';
 // P04 快忘了最多几个
 export const forgetCap = 12;
+// P322 字库「已熟悉」的条件（D66 ⑰，产品体验评审 P2-07；D60 只要稳定度 ≥ 21 天）：稳定度 ≥ stabilityDays 天，且至少 minSuccesses 次「想起来了」。
+// 「想起来了」= 调度项上评过级、不是 Again 的次数（FSRS reps − lapses：写对 / 带 1 次提示写对；写错、2 次以上提示、看答案记的 Again 都不算）——
+// 从调度项读，最旧月份折叠掉中间的记录也不影响。理由：第一次无提示写对（Easy，约 8 天）后隔 10 天再写对一次，稳定度就过 21 天，
+// 只有两次提取、跨 10 天，撑不起「已熟悉」；三次成功意味着至少两次是隔了几天以后的回忆。达不到的字留在「未熟悉」，三档合计不变。
+export const knownZone = Object.freeze({
+  stabilityDays: 21, // P322 稳定度下限（天；D60 原值）
+  minSuccesses: 3, // P322 至少几次「想起来了」（reps − lapses）
+});
 // P113 写错过 / 快忘了清单默认勾选几个「最该练」的字（已决定 D36）；其余收在「其余 N 个字」下，展开后可逐个选
 export const listDefaultSelect = 5;
 // P37 跨天未完成的「今天的练习」：直接作废（已判断的保留，未写的不算）

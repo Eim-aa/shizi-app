@@ -191,8 +191,16 @@ export function cardMini(items, kind) { // eslint-disable-line no-unused-vars
 
 // ---------------------------------------------------------------- r7-L1（D60）：字库首页的「今天要写」与三档记忆状态
 
-/** 记住了：稳定度 ≥ 这么多天（D60：三周以上才回来一次）。 */
-export const KNOWN_STABILITY_DAYS = 21;
+/** 记住了：稳定度 ≥ 这么多天（D60：三周以上才回来一次；数值在 policy.knownZone，P322）。 */
+export const KNOWN_STABILITY_DAYS = defaultPolicy.knownZone.stabilityDays;
+/** 已熟悉还要至少几次「想起来了」（D66 ⑰，policy.knownZone.minSuccesses，P322）。 */
+export const KNOWN_MIN_SUCCESSES = defaultPolicy.knownZone.minSuccesses;
+
+/** 调度项上「想起来了」的次数：评过级、不是 Again 的次数（FSRS reps − lapses；D66 ⑰）。 */
+export function successesOf(entry) {
+  if (!entry || !entry.fsrs) return 0;
+  return Math.max(0, (Number(entry.fsrs.reps) || 0) - (Number(entry.fsrs.lapses) || 0));
+}
 /** 区样字个数（D60：每行最多三个）。 */
 export const ZONE_SAMPLE_MAX = 3;
 /** 三档，自上而下（D60）。 */
@@ -204,9 +212,9 @@ export const ZONE_TONE = Object.freeze({ due: 3, shaky: 1, known: 0 });
 
 /**
  * 一个字落在哪一档（纯函数）：最近一次写错、今天到期、或只看过答案还没判断过（D66 ⑤）→ due；
- * 未到期且稳定度 < 21 天（没有调度项按 0 算）→ shaky；其余 known。
+ * 未到期、稳定度 ≥ 21 天且至少 3 次「想起来了」（D66 ⑰，policy.knownZone）→ known；其余（没有调度项按稳定度 0 算）→ shaky。
  */
-export function memoryZoneOf(record, entry, today, knownDays = KNOWN_STABILITY_DAYS) {
+export function memoryZoneOf(record, entry, today, knownDays = KNOWN_STABILITY_DAYS, minSuccesses = KNOWN_MIN_SUCCESSES) {
   if (record && record.judgment === 'wrong') return 'due';
   if (record && record.kind === 'answer-seen') return 'due';
   if (entry && entry.stoppedAt === undefined) {
@@ -214,7 +222,7 @@ export function memoryZoneOf(record, entry, today, knownDays = KNOWN_STABILITY_D
     if (od !== null && od >= 0) return 'due';
   }
   const stability = entry && entry.fsrs ? Number(entry.fsrs.stability) || 0 : 0;
-  return stability >= knownDays ? 'known' : 'shaky';
+  return stability >= knownDays && successesOf(entry) >= minSuccesses ? 'known' : 'shaky';
 }
 
 /**
@@ -224,14 +232,14 @@ export function memoryZoneOf(record, entry, today, knownDays = KNOWN_STABILITY_D
  * 每档内部顺序 = 最该练在前：due 里最近写错的在前、再是只看过答案的（最近的在前）、其余按逾期天数降序；shaky / known 按到期日升序（快到期的在前）。
  * @returns {{recorded:number, zones:{due,shaky,known}}} 每档 {kind, n, items:[{char, cardKey, record, tone}]}（tone = ZONE_TONE[kind]）
  */
-export function memoryZones(state, today, { knownDays = KNOWN_STABILITY_DAYS } = {}) {
+export function memoryZones(state, today, { knownDays = KNOWN_STABILITY_DAYS, minSuccesses = KNOWN_MIN_SUCCESSES } = {}) {
   const { records } = recordsOfState(state);
   const latest = practicedByChar(records);
   const sched = (state && state.sched) || {};
   const buckets = { due: [], shaky: [], known: [] };
   for (const record of latest.values()) {
     const entry = sched[record.cardKey];
-    const kind = memoryZoneOf(record, entry, today, knownDays);
+    const kind = memoryZoneOf(record, entry, today, knownDays, minSuccesses);
     const dueDay = entry && isValidDay(entry.due) ? entry.due : '9999-12-31';
     // 待复习里的先后：最近写错（0）→ 只看过答案（1）→ 到期（2）
     const rank = record.judgment === 'wrong' ? 0 : record.kind === 'answer-seen' ? 1 : 2;

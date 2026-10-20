@@ -7309,6 +7309,7 @@ src/core/schema.js
 src/core/session-start.js
 src/core/sessions.js
 src/core/special.js
+src/core/spread.js
 src/core/structure.js
 src/core/work-members.js
 src/data/deck.js

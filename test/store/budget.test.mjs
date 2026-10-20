@@ -293,3 +293,20 @@ test('Q1 fold: an old month keeps after-seen records of an open group (with ink)
   assert.deepEqual(closed.records['2026-07'].kept.map(r => r.id), ['r1']);
   assert.ok(!flatInk(closed.ink).r9, 'folded-away after-seen ink dropped');
 });
+
+test('D66 ⑭ (P326): the ink budget follows 每组字数; storagePressureOf only speaks near the limit', () => {
+  const MiB = 1024 * 1024;
+  assert.equal(budgetModule.inkBudgetOf(null), 2 * MiB, 'never chosen → 20 → 2MiB');
+  assert.equal(budgetModule.inkBudgetOf({ groupSize: 5 }), 1.5 * MiB);
+  assert.equal(budgetModule.inkBudgetOf({ groupSize: 30 }), 2.5 * MiB);
+  // 预算按 settings：每组 20 字 1.8MiB 不回收，每组 5 字就回收
+  const big = { ink: { '2026-09': { r1: 'x'.repeat(0.9 * MiB) } }, records: {} };
+  const now = Date.parse('2026-09-24T12:00:00');
+  assert.equal(budgetModule.needsRecovery({ ...big, settings: { groupSize: 20 } }, { now }).ink, false);
+  assert.equal(budgetModule.needsRecovery({ ...big, settings: { groupSize: 5 } }, { now }).ink, true);
+  assert.equal(budgetModule.storagePressureOf(null), null);
+  assert.equal(budgetModule.storagePressureOf({ level: 'ok', ratio: 0.5 }), null);
+  assert.deepEqual(budgetModule.storagePressureOf({ level: 'warn', ratio: 0.8123 }), { level: 'warn', ratio: 0.812 });
+  assert.deepEqual(budgetModule.storagePressureOf({ level: 'full', ratio: 1.01 }), { level: 'full', ratio: 1.01 });
+  assert.equal(policy.storageWarnRatio, 0.8);
+});

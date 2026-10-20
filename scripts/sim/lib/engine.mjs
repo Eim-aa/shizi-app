@@ -19,7 +19,8 @@ import { commitAnswerNext, commitAnswerSeen } from '../../../src/ui/screens/writ
 import { commitResultCorrection } from '../../../src/ui/screens/result/index.js';
 import { memoryZones, skippedZone, todayPlanModel } from '../../../src/ui/screens/library/model.js';
 import { reminderCandidates, reminderQuestions } from '../../../src/platform/reminder.js';
-import { bootDeck, makeStore, rng, STROKES } from './env.mjs';
+import { bootDeck, makeStore, realStrokesOf, rng, STROKES } from './env.mjs';
+import { inkBytes, recordsBytes } from '../../../src/store/budget.js';
 import { checkGroup, checkState, checkZonePlanAgree } from './invariants.mjs';
 
 const DAY_MS = 86400000;
@@ -55,6 +56,7 @@ export const DEFAULTS = Object.freeze({
   setup: null, // (store, clock) => void：开局前改状态（迁移场景用）
   freeze: true,
   starveDays: 60,
+  realInk: false, // true：按笔顺中线写出真实格式的笔迹并存墨（perRecordInk），每天记下墨迹 / 记录占用（D66 ⑭ 实测存储）
 });
 
 function inRest(cfg, dayIdx) {
@@ -253,7 +255,7 @@ export function runScenario(input) {
       let hintedFlag = false;
       if (action === 'judged') {
         hintedFlag = hints > 0;
-        const j = commitJudgment(store, { slot, cardKey, judgment, strokes: STROKES, hints, perRecordInk: false });
+        const j = commitJudgment(store, { slot, cardKey, judgment, strokes: cfg.realInk ? realStrokesOf(char, (seenToday.get(sk) || 0) % 2) : STROKES, hints, perRecordInk: !!cfg.realInk });
         if (!j.ok) {
           // 判断没存上（真实用户会看到失败提示）。记一次违反，然后让用户放弃这个字（跳过）继续。
           viol('X1-judge-commit-fails', today, `${char}：${JSON.stringify(j.error)}`);
@@ -282,7 +284,7 @@ export function runScenario(input) {
       } else {
         const a = commitAnswerSeen(store, { slot, cardKey });
         if (!a.ok) throw new Error('answer-seen failed ' + JSON.stringify(a.error));
-        const n = commitAnswerNext(store, { slot, cardKey, strokes: null, perRecordInk: false });
+        const n = commitAnswerNext(store, { slot, cardKey, strokes: cfg.realInk ? realStrokesOf(char, 1) : null, perRecordInk: !!cfg.realInk });
         if (!n.ok) throw new Error('answer-next failed ' + JSON.stringify(n.error));
         memUpdate({ card, char, outcome: 'seen', p, nowMs: clock.t });
       }
@@ -450,6 +452,13 @@ export function runScenario(input) {
         if (e.hints) row.hinted += 1;
       } else if (e.action === 'seen') row.seen += 1;
       else row.skipped += 1;
+    }
+    if (cfg.realInk) {
+      row.inkBytes = inkBytes(st.ink);
+      row.recordsBytes = recordsBytes(st.records);
+      const u = store.status.usage;
+      row.usageBytes = u ? u.total : '';
+      row.usageLevel = u ? u.level : '';
     }
     const z = memoryZones(st, today);
     row.recorded = z.recorded;

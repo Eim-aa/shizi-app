@@ -29,6 +29,18 @@ export const features = Object.freeze({
 // ---- 墨迹容量（P05；P31 已决定 D27 开启后生效）----
 // P05 墨迹总预算（字节，UTF-16 估算）
 export const inkBudgetBytes = 1.5 * 1024 * 1024;
+// P326 墨迹预算随「每组字数」（D66 ⑭，产品体验评审 P3-04；store/budget.js inkBudgetOf）。超过预算时只回收「每字第一次 / 最近一次」以外的墨迹
+// （看后自写过期的、旧数据的中间次），第一次与最近一次永不回收（D27），所以预算越大、看后写的作品留得越久。
+// 实测（D66 ⑭，scripts/sim 真实格式笔迹：笔顺中线模拟书写 → ink v3，平均约 1.4–1.5KB/条（UTF-16）；S8 同一用户一年）：
+//   每天 20 字：墨迹第 162 天过 1.5MiB，一年 2.2MiB（800 字 × 约 2 份）；总占用第 342 天过 4MiB（5MiB 的 80%），一年 4.1MiB；
+//   每天 30 字：墨迹第 83 天过 1.5MiB，一年 3.4MiB；总占用第 153 天过 4MiB，第 292 天到 5MiB（假定配额）。
+// 取值让「墨迹 + 记录（P28 1.5MiB）」不超过 5MiB 的 80%：20 字 2MiB、30 字 2.5MiB；5 / 10 字维持 1.5MiB。真机配额（assumedQuotaBytes）待实测。
+export const inkBudgetByGroupSize = Object.freeze({
+  5: 1.5 * 1024 * 1024, // P326 每组 5 字
+  10: 1.5 * 1024 * 1024, // P326 每组 10 字
+  20: 2 * 1024 * 1024, // P326 每组 20 字（缺省）
+  30: 2.5 * 1024 * 1024, // P326 每组 30 字
+});
 // P05 / P78 存储前每笔最多点数（按弧长抽点）：v3 打包编码每点 4 字节，24 点/笔使 14 笔的字 ≈ 3.7KB（UTF-16）、
 // 300 字只存最近一次 ≈ 1.1MiB，落在 inkBudgetBytes 内（M4-5 实测 v2 + 32 点为 11.8–14.4KB/条，见 01 §3.5）
 export const inkMaxPointsPerStroke = 24;
@@ -369,7 +381,8 @@ export const reminderWord = 'blank';
 export const reminderBlank = '＿';
 
 // ---- 容量 ----
-// P57 占用预警阈值：估算占用 > 该比例 × assumedQuotaBytes 时在备份页与首页状态句预警（01 §4）。store/budget.js 读取（可注入）。
+// P57 占用预警阈值：估算占用 > 该比例 × assumedQuotaBytes 时预警（01 §4）。store/budget.js estimateUsage / storagePressureOf 读取（可注入）；
+// D66 ⑭：界面只在「我的 › 备份」行用一句能行动的说明（建议导出备份），不弹窗、不加红点，首页不显示（卡 C 接 storagePressureOf）。
 export const storageWarnRatio = 0.8;
 // P57 假定的 localStorage 配额（字节）；真机实际配额未测，真机回填。store/budget.js 读取（可注入）。
 export const assumedQuotaBytes = 5 * 1024 * 1024;

@@ -36,6 +36,8 @@ import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { sheetColumns } from '../../../core/images/layout.js';
 import { mineModel } from './model.js';
+import { getStore } from '../../../store/store.js';
+import { storagePressureOf } from '../../../store/budget.js';
 import { annualDefaultYear } from './annual-model.js';
 import {
   dayText, go, hasInkOfStore, MINE_ROUTES, openRecords, useStoreState, useToday,
@@ -130,10 +132,19 @@ function remindValue(remind, on) {
   return on ? timeText(remind.hour, remind.minute) : t('R-M03.remindOff');
 }
 
+/** 笔迹存储压力（D66 ⑭）：store.status.usage → storagePressureOf；读不到时 null（不显示）。 */
+function storagePressureOfStore() {
+  try {
+    return storagePressureOf(getStore().status.usage);
+  } catch (_) {
+    return null;
+  }
+}
+
 function MineScreen() {
   const state = useStoreState();
   const today = useToday();
-  const model = useMemo(() => mineModel(state, today, { policy: defaultPolicy, hasInk: hasInkOfStore() }), [state, today]);
+  const model = useMemo(() => mineModel(state, today, { policy: defaultPolicy, hasInk: hasInkOfStore(), storagePressure: storagePressureOfStore() }), [state, today]);
   const view = settingsView(state && state.settings);
   const last = model.lastBackup;
   const annualYear = useMemo(() => annualDefaultYear(state, today), [state, today]); // D66 ⑪：今年没有记录而往年有时指向最近有记录的一年

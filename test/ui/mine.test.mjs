@@ -259,7 +259,7 @@ test('D66 ⑱ backup hint: >= 30 days since last backup (or since first record w
 test('D66 ⑱ storage pressure (card A field storagePressure): shown only when readable and near the limit; wins over the 30-day hint', () => {
   serial = 0;
   const rs = [rec('静', '2026-07-01')];
-  for (const v of [true, 'near', 'high', 'full', { near: true }, { level: 'high' }, { ratio: 0.9 }, 0.85]) assert.equal(storagePressureNear(v), true, JSON.stringify(v));
+  for (const v of [true, 'near', 'high', 'full', { near: true }, { level: 'high' }, { level: 'warn', ratio: 0.82 }, 'warn', { ratio: 0.9 }, 0.85]) assert.equal(storagePressureNear(v), true, JSON.stringify(v));
   for (const v of [undefined, null, false, 0, 0.3, 'ok', {}, { level: 'low' }, NaN]) assert.equal(storagePressureNear(v), false, String(v));
   assert.equal(backupHint(state(rs, { backupMeta: { lastExportAt: new Date('2026-09-20T12:00:00').getTime(), lastExportSig: 'x' } }), TODAY), null, 'field absent → nothing');
   assert.deepEqual(backupHint(state(rs, { storagePressure: 'near', backupMeta: { lastExportAt: new Date('2026-09-20T12:00:00').getTime(), lastExportSig: 'x' } }), TODAY), { kind: 'pressure' });

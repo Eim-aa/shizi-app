@@ -278,12 +278,12 @@ export const BACKUP_STALE_DAYS = 30;
 
 /**
  * 笔迹存储压力（卡 A 提供的模型字段，字段名 `storagePressure`，读 state.storagePressure 或 opts.storagePressure）：
- * 真 / 'near' / 'high' / 'full' / {near:true} / {level:'near'|'high'|'full'} / 占用比 ≥ 0.8 都算「接近上限」；读不到或不认识的值 → false（不显示）。
+ * 真 / 'near' / 'high' / 'full' / {near:true} / {level:'near'|'high'|'warn'|'full'} / 占用比 ≥ 0.8 都算「接近上限」；读不到或不认识的值 → false（不显示）。
  */
 export function storagePressureNear(value) {
   if (value === true) return true;
   if (typeof value === 'number') return Number.isFinite(value) && value >= 0.8;
-  if (typeof value === 'string') return value === 'near' || value === 'high' || value === 'full';
+  if (typeof value === 'string') return value === 'near' || value === 'high' || value === 'warn' || value === 'full';
   if (value && typeof value === 'object') {
     if (value.near === true || value.high === true || value.full === true) return true;
     if (typeof value.level === 'string') return storagePressureNear(value.level);

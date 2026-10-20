@@ -8,7 +8,7 @@ import { loadFSRSGlobal, at, rec, ROOT, policyWith } from './helpers.mjs';
 import * as policy from '../../src/config/policy.js';
 import { CHAR_ORDER } from '../../src/config/char-order.js';
 import {
-  arrangeGroup, dueReviewsDoneOn, newTargetOf, planGroup, practiceStats, pressureOf, warmupAllowed,
+  arrangeGroup, dueReviewsDoneOn, newTargetOf, newUserCapOf, planGroup, practiceStats, pressureOf, warmupAllowed,
 } from '../../src/core/mix.js';
 import { applyJudgment } from '../../src/core/fsrs.js';
 import { selectDaily as selectDailyAt } from '../../src/core/sessions.js';
@@ -291,9 +291,11 @@ test('new chars: at most 3 while the due + early pool can fill the group; the 4t
   assert.deepEqual(r2.earlyKeys, K(chars(1, 600).join('')), 'the soonest-due char');
   // 没有到期、提前复习候选 6 个：3 新 + 2 提前复习
   assert.deepEqual(counts(run(scenario({ due: 0, early: 6 }))).slice(1), [0, 3, 2]);
-  // 什么都补不上（没有到期、没有可提前复习的字，例如首练后的第一组）：才补到 5 个新字
-  const empty = run({ sched: {}, records: [rec(1, chars(1, 0)[0], 'judged', 'correct', TODAY, { sessionId: 's1' })], candidates: K(chars(30, 800).join('')) });
+  // 什么都补不上（没有到期、没有可提前复习的字，例如首练后的第一组）：才补到 5 个新字——新用户前 3 天除外（D66 ⑫：至多 2 份，组可以不满）
+  const firstDay = { sched: {}, records: [rec(1, chars(1, 0)[0], 'judged', 'correct', TODAY, { sessionId: 's1' })], candidates: K(chars(30, 800).join('')) };
+  const empty = run(firstDay, { policy: { ...NO_CAPITAL, newUserRamp: null } });
   assert.equal(empty.newKeys.length, 5);
+  assert.equal(run(firstDay).newKeys.length, 2, 'D66 ⑫: day 1–3 of a new user → at most 2 new per 5-char group');
   // 提前复习候选不够（只有 1 个）：补满靠新字
   const short = run(scenario({ due: 0, early: 1 }));
   assert.deepEqual(counts(short).slice(1), [0, 4, 1]);
@@ -417,7 +419,7 @@ test('warm-up chars also sit in the frequency-ordered new-char tail (real deck):
   const warmList = K(CHAR_ORDER.warmup.slice(0, 3).join(''));
   const cands = [...K(chars(6, 800).join('')), ...warmList, ...K(chars(10, 900).join(''))]; // 热身字夹在候选里（字频尾部）
   const records = [rec(1, chars(1, 10)[0], 'judged', 'correct', addDays(TODAY, -1), { sessionId: 's1' })];
-  const r = selectDaily({ sched: {}, records, today: TODAY, newCandidates: cands, warmupCandidates: warmList, isWarm: isWarmKey, policy: NO_CAPITAL });
+  const r = selectDaily({ sched: {}, records, today: TODAY, newCandidates: cands, warmupCandidates: warmList, isWarm: isWarmKey, policy: { ...NO_CAPITAL, newUserRamp: null } });
   assert.deepEqual(r.warmKeys, [warmList[0]]);
   assert.equal(r.queue[0], warmList[0], 'warm-up char first');
   assert.equal(new Set(r.queue).size, r.queue.length, 'no duplicates');
@@ -525,9 +527,25 @@ test('group order: warm-up first, then review/new interleaved, early reviews las
 });
 
 test('selectDaily keeps working with the legacy call shape (no warm-up list, no isWarm): reviews and new chars fill the group', async () => {
-  const r = selectDaily({ sched: { 'base:亦': sched('2026-09-20') }, records: [], today: TODAY, newCandidates: K('鲜境额慢') });
+  const r = selectDaily({ sched: { 'base:亦': sched('2026-09-20') }, records: [], today: TODAY, newCandidates: K('鲜境额慢'), policy: { ...policy, newUserRamp: null } });
   assert.equal(r.queue.length, 5);
   assert.ok(r.dueKeys.includes('base:亦'));
   assert.equal(r.special, null);
   assert.equal((await policyWith({})).groupSize, 20, 'D65 #2: the default per-group size is 20 (callers pass the user\'s choice)');
+});
+
+test('D66 ⑫ (policy.newUserRamp P325): days 1–3 after the first practice → at most 2 parts of new chars per group (20-char group: 8), no filling with new chars; day 4 back to normal', () => {
+  assert.deepEqual({ ...policy.newUserRamp }, { days: 3, newMax: 2 });
+  const cands = K(chars(40, 800).join(''));
+  const first = [rec(1, chars(1, 0)[0], 'judged', 'correct', addDays(TODAY, -1), { sessionId: 's1' })]; // 首练是昨天：今天第 2 天
+  const day2 = selectDailyAt({ sched: {}, records: first, today: TODAY, newCandidates: cands, isWarm: isWarmKey, policy: NO_CAPITAL, groupSize: 20 });
+  assert.equal(day2.newKeys.length, 8, 'day 2: 8 new (was 20 — nothing else to fill)');
+  assert.equal(day2.queue.length, 8, 'the group is not padded with more new chars');
+  const day3 = selectDailyAt({ sched: {}, records: [rec(1, chars(1, 0)[0], 'judged', 'correct', addDays(TODAY, -2), { sessionId: 's1' })], today: TODAY, newCandidates: cands, isWarm: isWarmKey, policy: NO_CAPITAL, groupSize: 20 });
+  assert.equal(day3.newKeys.length, 8, 'day 3 still capped');
+  const day4 = selectDailyAt({ sched: {}, records: [rec(1, chars(1, 0)[0], 'judged', 'correct', addDays(TODAY, -3), { sessionId: 's1' })], today: TODAY, newCandidates: cands, isWarm: isWarmKey, policy: NO_CAPITAL, groupSize: 20 });
+  assert.equal(day4.newKeys.length, 20, 'day 4: the usual rule (fills with new chars when nothing else can)');
+  assert.equal(newUserCapOf({ dayIndex: 3 }, policy.newUserRamp, 30, policy.groupMix), 12);
+  assert.equal(newUserCapOf({ dayIndex: 4 }, policy.newUserRamp, 30, policy.groupMix), Infinity);
+  assert.equal(newUserCapOf({ dayIndex: 1 }, null, 20, policy.groupMix), Infinity);
 });

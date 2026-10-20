@@ -220,7 +220,7 @@ test('daily: characters judged today never come back; skipped / answer-seen toda
 test('daily: custom characters not yet written do not enter the daily queue (P33 none)', () => {
   const env = makeEnv();
   seed(env, { custom: { added: [{ char: '甲', at: at(TODAY, 8) }, { char: '乙', at: at(TODAY, 8) }] } });
-  const r = startDaily(env.store, { now: env.now, deck: fakeDeck() });
+  const r = startDaily(env.store, { now: env.now, deck: fakeDeck(), policy: { ...policy, newUserRamp: null } }); // 新用户封顶（D66 ⑫）另测
   const q = env.store.getState().sessions.A.queue;
   assert.equal(r.started, true);
   assert.equal(q.includes('base:甲') || q.includes('base:乙'), false);
@@ -495,8 +495,11 @@ test('after the first practice (尴 赢 拾) the first daily group is 1 warm-up 
     practicable: () => true,
     currentLibraryId: () => 'core3500',
   };
-  const plan = planDaily(env.store.getState(), { today: TODAY, deck });
+  const plan = planDaily(env.store.getState(), { today: TODAY, deck, policy: { ...policy, newUserRamp: null } });
   assert.deepEqual(plan.queue, ['base:春', 'base:酱', 'base:酝', 'base:嚷', 'base:痒'], 'warm-up first; 尴 is already written so it is not new');
+  // D66 ⑫：新用户前 3 天每组新字至多 2 份（5 字一组 2 个，含热身字），没有别的字可补时组就短一点
+  const ramp = planDaily(env.store.getState(), { today: TODAY, deck });
+  assert.deepEqual(ramp.queue, ['base:春', 'base:酱'], 'day 1 again: warm-up + 1 new, not padded');
   assert.deepEqual(plan.warmKeys, ['base:春']);
   assert.equal(plan.dueKeys.length, 0);
   assert.equal(plan.special, null);

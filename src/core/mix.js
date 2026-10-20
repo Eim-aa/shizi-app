@@ -128,6 +128,16 @@ export function newTargetOf(state, mix, size = baseOf(mix)) {
   return scaledCount(2, size, mix);
 }
 
+/**
+ * 新用户前几天的新字上限（D66 ⑫，policy.newUserRamp P325）：首练那天算第 1 天（stats.dayIndex），到第 days 天为止 = newMax 份
+ * （按组大小换算）；之后 / 没配 → Infinity（不封顶）。
+ */
+export function newUserCapOf(stats, ramp, size, mix) {
+  if (!ramp || !Number.isInteger(ramp.days) || ramp.days <= 0 || !Number.isInteger(ramp.newMax)) return Infinity;
+  if (!stats || stats.dayIndex > ramp.days) return Infinity;
+  return scaledCount(ramp.newMax, size, mix);
+}
+
 /** 热身字门控（P126）：首练后 firstDays 天内，或最近写得吃力。 */
 export function warmupAllowed(stats, warm) {
   if (warm.mode !== 'gated') throw new RangeError('unsupported policy.warmup.mode: ' + String(warm.mode));
@@ -150,13 +160,15 @@ export function warmupAllowed(stats, warm) {
  * @param {object} a.mix                 policy.groupMix
  * @param {number} [a.newAvailable]      可当新字的字还有多少（缺省不限）
  * @param {number} [a.pressureSize]      按哪个组大小换算积压与新字份数（缺省 = size；回来的第一组缩短时传用户的组大小）
+ * @param {number} [a.newCap]            新字（含热身新字）至多几个（D66 ⑫ 新用户前几天，policy.newUserRamp；缺省不限）
  * @param {number} [a.reserve]           保底复习数（D65 #1：due 最前面这么多个「昨天写错、今天到期」的字一定进组，不受 budget / 新字目标挤占；缺省 0）
  * @returns {{newTarget:number, revKeys:string[], earlyKeys:string[], newSlots:number, warmNew:string|null, warmRev:number}}
  *   newSlots = 新字位总数（含热身新字）；warmNew 占其中一位。
  */
-export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, state, mix, newAvailable = Infinity, reserve = 0, pressureSize = size }) {
+export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, state, mix, newAvailable = Infinity, reserve = 0, pressureSize = size, newCap = Infinity }) {
   // 新字份数按「完整的一组」换算（pressureSize：回来的第一组缩短时仍按用户的组大小算积压与份数，再受本组 size 限制）
-  const newTarget = Math.min(size, newTargetOf(state, mix, pressureSize));
+  // newCap（D66 ⑫ 新用户前几天）：新字（含热身新字）至多这么多个，补位也不超过——组可以不满
+  const newTarget = Math.min(size, newCap, newTargetOf(state, mix, pressureSize));
   const revSlots = Math.max(Math.min(size - newTarget, budget), Math.min(size, Math.max(0, reserve)));
   const revKeys = [];
   let warmRev = 0;
@@ -168,12 +180,12 @@ export function planGroup({ size, budget, due, early, isWarm, warmNext, warmOk, 
     }
     revKeys.push(d.key);
   }
-  let newSlots = Math.min(scaledCount(mix.newMax, pressureSize, mix), size - revKeys.length, newAvailable);
+  let newSlots = Math.min(scaledCount(mix.newMax, pressureSize, mix), size - revKeys.length, newAvailable, newCap);
   let earlyKeys = [];
   if (mix.earlyReviewFill && revKeys.length + newSlots < size) {
     earlyKeys = early.slice(0, size - revKeys.length - newSlots);
   }
-  newSlots = Math.min(size - revKeys.length - earlyKeys.length, newAvailable); // 仍不足就再补新字
+  newSlots = Math.min(size - revKeys.length - earlyKeys.length, newAvailable, newCap); // 仍不足就再补新字（新用户前几天不超过 newCap）
   let warmNew = null;
   if (newSlots >= 2 && warmRev === 0 && warmOk && warmNext) {
     warmNew = warmNext;

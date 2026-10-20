@@ -26,7 +26,7 @@ import * as defaultPolicy from '../config/policy.js';
 import { addDays, localDay } from './dates.js';
 import { charOfCardKey, isJudged, judgedCardKeysOn, answerSeenCardKeysOn, hasAnyJudged, skippedCardKeysOn, sortById } from './records.js';
 import { overdueDays } from './fsrs.js';
-import { arrangeGroup, dueReviewsDoneOn, planGroup, practiceStats, pressureOf, scaledCount, warmupAllowed } from './mix.js';
+import { arrangeGroup, dueReviewsDoneOn, newUserCapOf, planGroup, practiceStats, pressureOf, scaledCount, warmupAllowed } from './mix.js';
 import { dailyReviewCapOf, validGroupSize } from './group-size.js';
 import { isWarmupKey } from './new-order.js';
 import { capitalAfterKeysFor, capitalSpecial } from './special.js';
@@ -494,6 +494,7 @@ export function selectDaily({
     state: { backlog, groupsPerDay: stats.groupsPerDay, newAccuracy: stats.newAccuracy, lastHadNew: stats.lastHadNew, firstBack: stats.firstBack },
     mix,
     pressureSize: full,
+    newCap: newUserCapOf(stats, policy.newUserRamp, full, mix), // D66 ⑫：新用户前 3 天每组新字至多 2 份
     reserve: Math.min(wrongReserveOf(size, policy), due.filter((d) => d.tier === 0).length),
     newAvailable: pool.length + (warmNext && !pool.includes(warmNext) ? 1 : 0),
   });

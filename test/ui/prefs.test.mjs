@@ -167,7 +167,8 @@ test('每组字数（D65 ②）：settingsView 缺省 20；commitGroupSize 经 s
   const today = '2026-09-24';
   // 先有一次判断（不是首练）
   const seeded = store.commit('t:seed', d => {
-    d.records = { '2026-09': [{ id: 'r1', cardKey: 'base:尴', char: '尴', sessionId: 's9', kind: 'judged', judgment: 'correct', at: NOW - 86400000, localDay: '2026-09-23', help: { hints: 0, answerSeen: false, traced: false } }] };
+    // 首练在三天前（新用户前 3 天的新字封顶 D66 ⑫ 不在这里测）
+    d.records = { '2026-09': [{ id: 'r1', cardKey: 'base:尴', char: '尴', sessionId: 's9', kind: 'judged', judgment: 'correct', at: NOW - 3 * 86400000, localDay: '2026-09-21', help: { hints: 0, answerSeen: false, traced: false } }] };
   });
   assert.equal(seeded.ok, true, JSON.stringify(seeded));
   assert.equal(planDaily(store.getState(), { today, deck }).queue.length, 10);

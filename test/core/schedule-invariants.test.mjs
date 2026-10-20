@@ -81,7 +81,9 @@ test('每天负担有上限：每组 ≤ 每组字数，每天 ≤ 组数 × 每
   for (const r of [MIXED, WRONG, AWAY]) assert.ok(r.days.every(d => d.cards <= 5 || d.dayIdx === 0), r.cfg.id);
   assert.ok(THREE.days.every(d => d.cards <= 15));
   const daily = BIG.groups.filter(g => g.slot === 'A' && g.kind !== 'first' && !g.special);
-  assert.ok(daily.filter(g => g.dayIdx > 1 && g.dayIdx < 20).every(g => g.queue.length === 20), daily.slice(0, 5).map(g => g.queue.length).join(','));
+  // 第 2、3 天是新用户新字封顶（D66 ⑫：每组新字至多 8 个，组可以不满），第 4 天起每组 20 字
+  assert.ok(daily.filter(g => g.dayIdx > 2 && g.dayIdx < 20).every(g => g.queue.length === 20), daily.slice(0, 5).map(g => g.queue.length).join(','));
+  assert.ok(daily.filter(g => g.dayIdx >= 1 && g.dayIdx <= 2).every(g => g.queue.filter(q => q.src === 'new' || q.src === 'warm-new').length <= 8));
   assert.ok(daily.filter(g => g.dayIdx >= 20 && g.dayIdx < 30).every(g => g.queue.length === 30));
   assert.ok(daily.filter(g => g.dayIdx >= 30).every(g => g.queue.length === 10));
   const ids = ['G1-no-dup-in-group', 'G2-group-size', 'G3-not-judged-today', 'G4-new-in-library', 'G5-new-never-judged', 'G6-due-really-due', 'G7-early-not-due', 'G9-due-not-starved', 'G10-daily-cap', 'G11-new-in-order', 'D1-zones-sum', 'D2-recorded-eq-judged', 'P1-skip-undo-restores', 'P2-correction-roundtrip', 'P3-skip-seen-no-sched', 'P4-skip-seen-not-reoffered-today', 'X1-judge-commit-fails'];

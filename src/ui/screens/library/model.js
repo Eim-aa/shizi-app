@@ -287,18 +287,19 @@ export function zoneSamples(zone) {
 }
 
 /**
- * 「今天要写」一行（D60）：与首页主按钮同一个状态、同一组字。状态取自 homeModel（首页自己的模型）：
- *   half  有没写完的组（含 B 优先）：「还剩 N 个」，N = homeModel.primary.remaining（与首页续写同一个数）；
- *   done  没有没写完的组、今天写过（首页主按钮「再写一组」）；
- *   fresh 其余（首页主按钮「开始写字」）：N = 首页点了会开的那一组（首次来 = 首练固定的字；否则 core/session-start planDaily 的队列）。
+ * 「今日练习」一行（D60；D66 ⑧：永远是今天的练习，不被自己选的那一组占用）。状态取自 homeModel（首页自己的模型）：
+ *   half  今天的练习（A 槽）有没写完：「还剩 N 个」，N = homeModel.daily.remaining（与首页「今天的字 · 已写 / 总数」那一行同一组）；
+ *   done  A 没有没写完的组、今天写过；
+ *   fresh 其余：N = 点了会开的那一组（首次来 = 首练固定的字；否则 core/session-start planDaily 的队列）。
+ * 自己选的那一组（B）没写完时首页主按钮续的是它（D05），这一行不跟着变：点它只续 / 开今天的练习（home startToday）。
  * 复习 = 队列里已经在调度表里的字，新字 = 其余。队列为空（没有要写的字）时 n = 0。
  * @param {{deck:object, policy?:object}} o  deck = 选字用的题库适配器（data/deck.js deckAdapter）
  * @returns {{phase:'fresh'|'half'|'done', n:number, review:number, fresh:number, remaining:number|null}}
  */
 export function todayPlanModel(state, nowMs, { deck, policy = defaultPolicy } = {}) {
   const home = homeModel(state, nowMs, { policy, deck });
-  if (home.resume !== 'none') {
-    const remaining = home.primary ? home.primary.remaining : 0;
+  if (home.daily) {
+    const remaining = home.daily.remaining;
     return { phase: 'half', n: remaining, review: 0, fresh: 0, remaining };
   }
   if (home.records === 'record') return { phase: 'done', n: 0, review: 0, fresh: 0, remaining: null };

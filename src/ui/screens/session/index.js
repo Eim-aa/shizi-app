@@ -24,6 +24,7 @@ import { t } from '../../../config/copy/index.js';
 import { openS02 } from './s02.js';
 import { openNonePage } from './none.js';
 import '../write/index.js'; // 写字页自注册
+import '../write/redo.js'; // 重写错字页自注册（'redo'，D66 ③）：结果页按屏名推入
 
 export const WRITE_SCREEN = 'write';
 const HOME_TAB = 'home';

@@ -87,7 +87,8 @@ export function titleFor(phase) {
   return key ? t(key) : '';
 }
 
-const W = '.sz-page[data-testid="write-screen"]';
+// D66 ③：重写错字页（write/redo.js）是同一套版式，页面级样式认它的 testid（:is 要 iOS 14+，API 下限 15.0）
+const W = '.sz-page:is([data-testid="write-screen"],[data-testid="redo-screen"])';
 /** AX3–AX5 的选择器（辅助字分层封顶的第二、三档；R3-K1 P243）。 */
 const AX_HI = (sel, extra = '') => [3, 4, 5].map(n => `:root[data-ax="${n}"]${extra} ${sel}`).join(',');
 /** AX3–AX5 格下说明位的最小高度：两行 22pt 辅助字 2 × 30 + 上内边距 8（AX1–AX2 仍是 AX_NOTE_H = 56）。 */

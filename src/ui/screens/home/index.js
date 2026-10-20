@@ -42,7 +42,7 @@ import { useCompact } from '../write/compact.js';
 import { expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
 import { openLibrarySwitch } from '../library/switch.js';
-import { homeModel, homeCtaKey, homeNoteOf, resumeLineText, resumeLineAria } from './today.js';
+import { homeModel, homeCtaKey, homeNoteOf, resumeLineText, resumeLineAria, progressText, ctaAria } from './today.js';
 import { BrandShi, firstShiSize, useElementWidth } from './copybook.js';
 import { ShiMark } from '../../brand/shi.js';
 import { useAxLevel } from '../../components/ax.js';
@@ -103,6 +103,8 @@ injectStyles('home', `
 .sz-home__other.sz-btn{--bx:12px;margin-top:4px;min-height:${T.hit}}
 .sz-home__foot{flex:none;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 ${CTA_LINE}px} /* 主按钮底边固定在 Tab 栏上沿上方 24pt（T3-01 / D53 ③）：文字按钮 / 首次说明 / 失败提示都在它上面，不论哪一态主按钮 y 不变 */
 .sz-home__cta.sz-btn{width:240px;max-width:100%}
+.sz-home__prog{font-variant-numeric:tabular-nums;font-weight:400} /* D66 ⑧：主按钮字后的「· 7 / 20」，同色、字重略轻 */
+.sz-home__otherchev{margin-left:4px;color:${T.ink3}} /* 去处类文字按钮行尾的「›」（交互规范 B1） */
 .sz-home__row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:0 12px}
 .sz-home__side.sz-btn{margin-bottom:4px;min-height:${T.hit};justify-content:center}
 .sz-home__note{margin:0 0 12px;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink3}}
@@ -270,10 +272,18 @@ export function startMain({ source = SOURCE } = {}) {
 }
 
 /** S01 第二行：续写 A。 */
-export function resumeOther() {
+export function resumeOther({ source = SOURCE } = {}) {
   const r = resumeSlot('A');
-  if (r && r.ok !== false && !r.opened) return startA({ source: SOURCE });
+  if (r && r.ok !== false && !r.opened) return startA({ source });
   return r;
+}
+
+/**
+ * 字库「今日练习」一行（D66 ⑧）：永远是今天的练习（A 槽）——A 没写完就续 A，没有就开今天的下一组；不碰自己选的那一组（B）。
+ * 首页主按钮（startMain）在 B 没写完时先续 B，两处因此不再指向不同的组：字库这一行的数与首页「今天的字」那一行同一个。
+ */
+export function startToday({ source = SOURCE } = {}) {
+  return resumeOther({ source });
 }
 
 /**
@@ -451,6 +461,9 @@ function HomeScreen() {
   const brand = useBrandMoment(view === 'first' && ax === 0, rootRef);
   const { size: shiSize, hideEpi } = useShiAvail(rootRef, refs, ax > 0 && view !== 'first');
   const ctaLabel = t(homeCtaKey(model));
+  // D66 ⑧：进行中时主按钮字后接「· 7 / 20」（已写 / 总数）；读屏名称在 ctaAria
+  const progressNode = model.resume !== 'none' && model.primary
+    ? html`<span class="sz-home__prog"> · ${progressText(model.primary, t)}</span>` : null;
   const note = homeNoteOf(model);
   const dateText = t('R-H02.line', {
     date: t('R-H02.dateFormat', model.dateParts),
@@ -499,7 +512,7 @@ function HomeScreen() {
       ${view === 'first' ? html`<p class="sz-home__note" data-testid="home-first-tip">${t('R-H03.firstVisit')}</p>` : null}
       ${model.other ? html`<${Button} variant="text" class="sz-home__other" data-testid="other-line" data-slot=${model.other.slot}
         data-kind=${model.other.kind} data-remaining=${String(model.other.remaining)} aria-label=${resumeLineAria(model.other, t)}
-        onClick=${() => run(resumeOther)}>${resumeLineText(model.other, t)}</${Button}>` : null}
+        onClick=${() => run(resumeOther)}>${resumeLineText(model.other, t)}<span class="sz-home__otherchev" aria-hidden="true">›</span></${Button}>` : null}
       ${model.showPick || view === 'special' ? html`<div class="sz-home__row">
         ${model.showPick ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-pick" onClick=${() => openPick()}>${t('X-HOME.pick')}</${Button}>` : null}
         ${view === 'special' ? html`<${Button} variant="text" class="sz-home__side" data-testid="home-capital-defer" onClick=${() => run(deferCapital)}>${t('X-HOME.capitalDefer')}</${Button}>` : null}
@@ -507,8 +520,8 @@ function HomeScreen() {
       ${failed
         ? html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start-fail-retry" aria-label=${t('R-H06.retry')}
             onClick=${() => run(failed)}>${t('R-H06.retry')}</${Button}>`
-        : html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${ctaLabel}
-            onClick=${() => run(model.switchLibrary ? openLibrarySwitch : startMain)}>${ctaLabel}</${Button}>`}
+        : html`<${Button} variant="primary" class="sz-home__cta" data-testid="home-start" aria-label=${model.switchLibrary ? ctaLabel : ctaAria(model, t)}
+            onClick=${() => run(model.switchLibrary ? openLibrarySwitch : startMain)}>${ctaLabel}${model.switchLibrary ? null : progressNode}</${Button}>`}
     </div>
     </div>
     ${demo || testHost ? html`<div class="sz-home__dev">

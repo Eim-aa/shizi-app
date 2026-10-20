@@ -39,8 +39,9 @@ const COPY = {
   firstVisit: '先写三个大家常忘的字。',
   picked: n => `这一组还有 ${n} 个字`,
   daily: n => `这一组还有 ${n} 个字`,
-  dailyOther: '今天的字 · 接着写', // E9d（P196，D49 ⑦）：可见文字不带计数
-  dailyOtherAria: n => `今天的字 · 接着写，还剩 ${n} 个`, // 计数只在读屏名称里
+  continuePicked: '继续写自选字', // D66 ⑧：主按钮续的是自己选的那一组时的字
+  dailyOther: (done, total) => `今天的字 · ${done} / ${total}›`, // D66 ⑧：可见文字是「名称 · 已写 / 总数」，行尾 › 表示可点（textContent 含 ›）
+  dailyOtherAria: (done, total) => `接着写今天的字，已写 ${done} 个，共 ${total} 个`,
   first: n => `这一组还有 ${n} 个字`,
   count: n => `今天写了 ${n} 个字`,
   pick: '自己选字',
@@ -138,7 +139,8 @@ async function home(page) {
       date: txt('home-date'),
       title: txt('home-title'),
       epigraph: q('home-epigraph') ? { index: Number(q('home-epigraph').dataset.index), text: txt('home-epigraph') } : null,
-      cta: q('home-start') ? q('home-start').getAttribute('aria-label') : null,
+      cta: q('home-start') ? q('home-start').getAttribute('aria-label').replace(/，已写 \d+ 个，共 \d+ 个$/, '') : null, // D66 ⑧：进行中读屏名称带「，已写 n 个，共 m 个」，这里比的是按钮的字
+      ctaAria: q('home-start') ? q('home-start').getAttribute('aria-label') : null,
       ctaText: txt('home-start'),
       firstTip: txt('home-first-tip'),
       otherLine: q('other-line') ? { text: txt('other-line'), aria: q('other-line').getAttribute('aria-label'), slot: q('other-line').dataset.slot, tag: q('other-line').tagName } : null,
@@ -226,9 +228,10 @@ export default async function run(page, ctx) {
     assert.equal(h.records, recordsCase, `data-records=${recordsCase}`);
     assert.equal(h.resume, resumeCase, `data-resume=${resumeCase}`);
     const noneCta = recordsCase === 'record' ? '再写一组' : COPY.start;
-    assert.equal(h.cta, resumeCase === 'none' ? noneCta : COPY.continue, `main entry ${resumeCase === 'none' ? noneCta : '继续写字'} (P1-E5: 今天写过 → 再写一组)`);
+    const resumeCta = resumeCase === 'B' || resumeCase === 'A+B' ? COPY.continuePicked : COPY.continue; // B 在手时主按钮续的是 B（D05）：D66 ⑧ 说成「继续写自选字」
+    assert.equal(h.cta, resumeCase === 'none' ? noneCta : resumeCta, `main entry ${resumeCase === 'none' ? noneCta : resumeCta} (P1-E5: 今天写过 → 再写一组)`);
     assert.equal(h.firstTip, null, 'no 第一次来 (records exist)');
-    const expectOther = resumeCase === 'A+B' ? { text: COPY.dailyOther, aria: COPY.dailyOtherAria(3), slot: 'A', tag: 'BUTTON' } : null;
+    const expectOther = resumeCase === 'A+B' ? { text: COPY.dailyOther(0, 5), aria: COPY.dailyOtherAria(0, 5), slot: 'A', tag: 'BUTTON' } : null;
     assert.deepEqual(h.otherLine, expectOther, `other-line ${expectOther ? `「${expectOther.text}」, count only in the name: ${expectOther.aria}` : 'absent'}`);
   }
 
@@ -324,6 +327,8 @@ export default async function run(page, ctx) {
   h = await home(page);
   assert.equal(h.resume, 'A', 'resume=A');
   assert.equal(h.cta, COPY.continue, '继续写字');
+  assert.ok(/^继续写字 · \d+ \/ \d+$/.test(h.ctaText), `D66 ⑧: the main button carries 已写 / 总数 right after its label (${h.ctaText})`);
+  assert.ok(/^继续写字，已写 \d+ 个，共 \d+ 个$/.test(h.ctaAria), `D66 ⑧: its name for the screen reader says the same (${h.ctaAria})`);
   assert.equal(h.firstTip, null, 'tip gone');
   await page.click(tid('home-start'));
   await waitWrite(page, 'A');
@@ -393,7 +398,7 @@ export default async function run(page, ctx) {
   assert.equal(await page.locator(SHEET).count(), 0, 'sheet closed (prototype lkGo closes it)');
   await backToHome(page);
   h = await home(page);
-  assert.deepEqual([h.resume, h.cta], ['B', COPY.continue], 'back on home: resume = B, 继续写字');
+  assert.deepEqual([h.resume, h.cta], ['B', COPY.continuePicked], 'back on home: resume = B, 继续写自选字');
 
   step('自己选字: commit fails → R-H06 three-part in the sheet, input kept, no B; retry opens B');
   await setup(page, { seed: { records: byMonth(oldRecs) } });

@@ -163,7 +163,8 @@ export default async function e9bWriteJudge(page, ctx) {
     const back = top.querySelector('[data-testid="page-back"]');
     return {
       h1Text: h1.textContent, h1: { w: r.width, h: r.height, clip: cs.clip, pos: cs.position },
-      prog: { text: prog.textContent, fs: parseFloat(pcs.fontSize), color: pcs.color, num: pcs.fontVariantNumeric, cx: (pr.left + pr.right) / 2, vw: window.innerWidth },
+      prog: { text: prog.textContent, fs: parseFloat(pcs.fontSize), color: pcs.color, num: pcs.fontVariantNumeric, cx: (pr.left + pr.right) / 2, vw: window.innerWidth, left: pr.left, right: pr.right },
+      end: (() => { const e = top.querySelector('[data-testid="write-end"]'); return e ? e.getBoundingClientRect().left : null; })(),
       back: back ? { aria: back.getAttribute('aria-label'), svg: !!back.querySelector('svg') } : null,
     };
   });
@@ -171,7 +172,9 @@ export default async function e9bWriteJudge(page, ctx) {
   assert.ok(head.h1.w <= 1.5 && head.h1.h <= 1.5, `…but visually hidden (${head.h1.w}×${head.h1.h})`);
   assert.deepEqual([head.prog.text, head.prog.fs, head.prog.color], ['2 / 5', 15, tokenRgb('light', 'ink3')], 'the counter is 15pt ink3');
   assert.ok(head.prog.num.includes('tabular-nums'), 'tabular numbers');
-  assert.ok(near(head.prog.cx, head.prog.vw / 2, 30), `the counter sits in the middle of the head (A7: ${head.prog.cx} of ${head.prog.vw})`);
+  // D66 ⑥：今天的练习的页头右上也有「结束这组」（右侧槽变宽），进度落在「‹」与它之间、不相碰；没有它（首练）时仍在页头正中
+  if (head.end !== null) assert.ok(head.prog.right <= head.end - 4 && head.prog.left >= 44, `the counter sits between ‹ and 结束这组 (A7 / D66 ⑥: ${head.prog.left}–${head.prog.right} < ${head.end})`);
+  else assert.ok(near(head.prog.cx, head.prog.vw / 2, 30), `the counter sits in the middle of the head (A7: ${head.prog.cx} of ${head.prog.vw})`);
   assert.deepEqual(head.back, { aria: '返回', svg: true }, 'left: the ‹ icon button');
 
   step('A: the prompt — the whole word is centered, given characters have no frame, only the blank is framed (frame token, 1pt), pinyin sits above the blank');

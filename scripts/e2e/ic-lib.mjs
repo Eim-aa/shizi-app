@@ -29,6 +29,7 @@ export const CATALOG = Object.freeze([
   { name: 'detail', params: info => ({ char: info.detailChar }) },
   { name: 'detail-photo', params: info => ({ char: info.detailChar }) },
   { name: 'session-none', params: () => ({ exhausted: false }) },
+  { name: 'redo', params: info => ({ chars: [info.detailChar] }), ready: `${TOP} .sz-write[data-stage]` }, // D66 ③ 重写错字页（结果页推入，只在内存里练）
   { name: 'records' },
   { name: 'month', ready: `${TOP} [data-testid="month-cell"]` },
   { name: 'remind' },

@@ -375,9 +375,29 @@ test('endInDraft: picked group → lastEnded.B with endedEarly; judged count by 
   assert.equal(d.sessions.lastEnded.B.endedEarly, true);
   assert.equal(d.sessions.lastEnded.B.endedAt, T0 + 5000);
   assert.equal(validateValue(KEYS.sessions, d.sessions), null);
-  const daily = group({ steps: ['correct'] });
-  assert.equal(canEndGroup(daily.d.sessions.A), false);
-  assert.throws(() => endInDraft(daily.d, { slot: 'A', sessionId: daily.id, at: T0 }), /only a picked group/);
+});
+
+test('D66 ⑥ endInDraft: the daily group can be ended early too (judged words keep their result page, unwritten ones do not count); the first-practice group cannot', () => {
+  const daily = group({ chars: ['永', '和', '春'], steps: ['correct'] });
+  assert.equal(canEndGroup(daily.d.sessions.A), true, 'daily, not finished');
+  assert.deepEqual(endConfirmCounts(daily.d, 'A'), { n: 2, m: 1 });
+  const out = endInDraft(daily.d, { slot: 'A', sessionId: daily.id, at: T0 + 5000 });
+  assert.equal(out.judgedCount, 1);
+  assert.equal(daily.d.sessions.A, null);
+  assert.equal(daily.d.sessions.lastEnded.A.endedEarly, true);
+  assert.equal(validateValue(KEYS.sessions, daily.d.sessions), null);
+  const m = resultModel(daily.d, { slot: 'A', sessionId: daily.id });
+  assert.equal(m.variant, 'daily');
+  assert.equal(m.early, true);
+  assert.deepEqual(m.sub, ['还有 2 个字没写，没有记下。'], 'daily ended early says what was not written, like the picked group');
+  assert.equal(m.cells.filter(c => c.kind === 'judged').length, 1);
+  const done = group({ steps: ['correct'] });
+  const rest = group({ chars: ['永', '和'], steps: [] });
+  assert.equal(canEndGroup(rest.d.sessions.A), true);
+  const firstGroup = group({ kind: 'first', chars: ['永', '和', '拾'], steps: ['correct'] });
+  assert.equal(canEndGroup(firstGroup.d.sessions.A), false, 'first practice: three words, each can be skipped');
+  assert.throws(() => endInDraft(firstGroup.d, { slot: 'A', sessionId: firstGroup.id, at: T0 }), /only a picked or daily/);
+  assert.ok(done);
 });
 
 test('commitEndGroup: zero judged returns judgedCount 0; failure keeps the group; stale when the group changed', () => {

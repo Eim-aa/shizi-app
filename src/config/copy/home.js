@@ -14,21 +14,21 @@ export default Object.freeze({
   'R-H02.period.night': '晚上',
   // R-H03（已定；阶段 1 P1-E5：首次打开按钮下一行，设计稿「首练与首页」§一，替换「第一次来，先写 3 个字试试。」）
   'R-H03.firstVisit': '先写三个大家常忘的字。',
-  // R-H04（已定；阶段 1 E9d，P196 / D49 ⑦：A、B 两组都没写完时 A 那一行可见文字只剩「… · 接着写」，计数只放进读屏名称，过渡文案）
-  'R-H04.resumePicked': '自己选的 · 接着写',
-  'R-H04.resumeDaily': '今天的字 · 接着写',
-  'R-H04.resumeFirst': '首次练习 · 接着写',
-  // 读屏名称（含可见文字「… · 接着写」，再加剩余字数；Voice Control 报可见文字能点到）
-  'R-H04.resumePickedAria': '自己选的 · 接着写，还剩 {n} 个',
-  'R-H04.resumeDailyAria': '今天的字 · 接着写，还剩 {n} 个',
-  'R-H04.resumeFirstAria': '首次练习 · 接着写，还剩 {n} 个',
-  // 当前字已看过答案、正在描或自己写：不再算进「还有 N 个字没写」（阶段 0 B6，已决定 D36 / P77）；只进读屏名称
-  'R-H04.resumePickedNow': '自己选的 · 接着写，第 {k} 个，剩 {n} 个',
-  'R-H04.resumeDailyNow': '今天的字 · 接着写，第 {k} 个，剩 {n} 个',
-  'R-H04.resumeFirstNow': '首次练习 · 接着写，第 {k} 个，剩 {n} 个',
-  'R-H04.resumePickedNowLast': '自己选的 · 接着写，最后一个了',
-  'R-H04.resumeDailyNowLast': '今天的字 · 接着写，最后一个了',
-  'R-H04.resumeFirstNowLast': '首次练习 · 接着写，最后一个了',
+  // R-H04（已定；D66 ⑧：A、B 两组都没写完时 A 那一行可见文字是「名称 · 已写 / 总数」，行尾「›」由视图画；与主按钮「继续写字」不同说法）
+  'R-H04.resumePicked': '自己选的 · {n} / {total}',
+  'R-H04.resumeDaily': '今天的字 · {n} / {total}',
+  'R-H04.resumeFirst': '首次练习 · {n} / {total}',
+  // 读屏名称（接着写 + 哪一组 + 已写 / 总数）
+  'R-H04.resumePickedAria': '接着写自己选的字，已写 {n} 个，共 {total} 个',
+  'R-H04.resumeDailyAria': '接着写今天的字，已写 {n} 个，共 {total} 个',
+  'R-H04.resumeFirstAria': '接着写首次练习，已写 {n} 个，共 {total} 个',
+  // 当前字已看过答案、正在描或凭记忆写：只进读屏名称（阶段 0 B6，已决定 D36 / P77）
+  'R-H04.resumePickedNow': '接着写自己选的字，正在写第 {k} 个，共 {total} 个',
+  'R-H04.resumeDailyNow': '接着写今天的字，正在写第 {k} 个，共 {total} 个',
+  'R-H04.resumeFirstNow': '接着写首次练习，正在写第 {k} 个，共 {total} 个',
+  'R-H04.resumePickedNowLast': '接着写自己选的字，正在写最后一个',
+  'R-H04.resumeDailyNowLast': '接着写今天的字，正在写最后一个',
+  'R-H04.resumeFirstNowLast': '接着写首次练习，正在写最后一个',
   // R-H05（已定）
   'R-H05.body': '上一组还有{chars}没写。',
   'R-H05.continueOld': '接着写',
@@ -49,6 +49,10 @@ export default Object.freeze({
   // X-HOME（原型首页壳 L217 ctaLabel（K 报告 §1-3）；01 M2-3「继续写字 · 今天的练习」）
   'X-HOME.start': '开始写字',
   'X-HOME.continue': '继续写字',
+  // D66 ⑧：主按钮续的是自己选的那一组时的字；进行中的组「已写 / 总数」接在主按钮的字后面
+  'X-HOME.continuePicked': '继续写自选字',
+  'X-HOME.progress': '{n} / {total}',
+  'X-HOME.continueAria': '{label}，已写 {n} 个，共 {total} 个',
   // X-HOME（M2-1 首页：原型首页壳-v3 L44 / L56 / L57 / L71 / L74 / L81 的装饰字与入口；开组写入失败说明，P55 待文案）
   'X-HOME.pick': '自己选字',
   'X-HOME.switchLibrary': '换练习范围',

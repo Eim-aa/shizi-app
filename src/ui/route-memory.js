@@ -143,6 +143,8 @@ export const RESTORE_GUARDS = Object.freeze({
   'detail-photo': (p, ctx) => singleChar(p && p.char) && hasPhoto(ctx.state, p.char),
   // 「现在没有要写的字」：开组失败时的过渡页，重启后没有意义。
   'session-none': () => false,
+  // 重写错字页（D66 ③）：只在内存里练、不写存储，重启后没有意义。
+  redo: () => false,
 });
 
 /**

@@ -66,7 +66,7 @@ export default async function w2A7(page, ctx) {
       const ax = size.startsWith('AX');
       step(`${tag} recall: A7 layout — 提示 / 看答案 right above 「写好了」, 撤销 / 清空 under the grid, 跳过 top right, progress in the middle`);
       await open(page, ctx, { view, size });
-      const g = await page.evaluate(geometry, ['write-done', 'write-hint', 'write-show-answer', 'write-skip', 'write-undo', 'write-clear', 'write-progress', 'write-to-paper']);
+      const g = await page.evaluate(geometry, ['write-done', 'write-hint', 'write-show-answer', 'write-skip', 'write-undo', 'write-clear', 'write-progress', 'write-to-paper', 'write-end']);
       const it = g.items;
       assert.ok(!g.more, `${tag}: no 「⋯」 menu`);
       assert.ok(!it['write-to-paper'], `${tag}: 在纸上写 is not on the write page (D56 / P275)`);
@@ -100,7 +100,10 @@ export default async function w2A7(page, ctx) {
       const sk = it['write-skip'];
       const pr = it['write-progress'];
       assert.ok(sk.bottom <= g.head.bottom + 0.5 && sk.right >= g.vw - 20 - 8, `${tag}: 跳过 sits in the page head, right end (${sk.right.toFixed(1)})`);
-      assert.ok(pr.bottom <= g.head.bottom + 0.5 && Math.abs((pr.left + pr.right) / 2 - g.vw / 2) <= 30, `${tag}: progress in the middle of the head (${((pr.left + pr.right) / 2).toFixed(1)} of ${g.vw})`);
+      // D66 ⑥：今天的练习的页头右上也有「结束这组」（右侧槽变宽，进度在「‹」与它之间居中、不相碰，与自选组一直如此）；没有它时仍在页头正中
+      const en = it['write-end'];
+      if (en) assert.ok(pr.bottom <= g.head.bottom + 0.5 && pr.right <= en.left - 4 && pr.left >= 44, `${tag}: with 结束这组 in the head the progress sits between 「‹」 and it (${pr.left.toFixed(1)}–${pr.right.toFixed(1)} < ${en.left.toFixed(1)})`);
+      else assert.ok(pr.bottom <= g.head.bottom + 0.5 && Math.abs((pr.left + pr.right) / 2 - g.vw / 2) <= 30, `${tag}: progress in the middle of the head (${((pr.left + pr.right) / 2).toFixed(1)} of ${g.vw})`);
       assert.ok(!overlaps(sk, pr), `${tag}: 跳过 and the progress do not overlap`);
       assert.ok(g.grid.bottom <= u.top + 0.5 && u.bottom <= h.top + 0.5, `${tag}: grid → tools row → help row → main button, top to bottom`);
       assert.ok(g.scrollW <= g.vw, `${tag}: no horizontal overflow`);

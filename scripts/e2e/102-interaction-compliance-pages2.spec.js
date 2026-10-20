@@ -6,7 +6,7 @@ import { checkPages } from './ic-pages.mjs';
 import { setTextSize } from './helpers.mjs';
 import { longTextCatalog, seedLongText } from './fixtures/long-text.mjs';
 
-export const PART2 = ['session-none', 'records', 'month', 'remind', 'backup', 'annual', 'about', 'about-privacy', 'about-credits', 'about-letter'];
+export const PART2 = ['session-none', 'redo', 'records', 'month', 'remind', 'backup', 'annual', 'about', 'about-privacy', 'about-credits', 'about-letter'];
 
 export default async function interactionCompliancePages2(page, ctx) {
   const { assert, step, baseURL } = ctx;

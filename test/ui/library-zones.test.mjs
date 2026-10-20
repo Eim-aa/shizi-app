@@ -141,4 +141,11 @@ test('todayPlanModel: first visit = the fixed first group (all new); half = home
   };
   const half = todayPlanModel({ ...stateOf([rec(1, '永', 'correct', '2026-09-01')]), sessions: { A: session, B: null, lastEnded: {} } }, at(TODAY), { deck: DECK });
   assert.deepEqual({ phase: half.phase, n: half.n, remaining: half.remaining }, { phase: 'half', n: 3, remaining: 3 });
+
+  // D66 ⑧：自己选的那一组（B）写到一半时，「今日练习」仍然只数今天的练习（A），不被 B 的剩余字数占用
+  const picked = { ...session, id: 's2', slot: 'B', kind: 'picked', queue: ['base:东', 'base:西'], cursor: 1 };
+  const both = todayPlanModel({ ...stateOf([rec(1, '永', 'correct', '2026-09-01')]), sessions: { A: session, B: picked, lastEnded: {} } }, at(TODAY), { deck: DECK });
+  assert.deepEqual({ phase: both.phase, n: both.n }, { phase: 'half', n: 3 }, 'A has 3 left, B has 1: the row says 3');
+  const onlyB = todayPlanModel({ ...stateOf([rec(1, '永', 'correct', '2026-09-01')]), sessions: { A: null, B: picked, lastEnded: {} } }, at(TODAY), { deck: DECK });
+  assert.equal(onlyB.phase, 'fresh', 'only B in progress: today’s practice has not started');
 });

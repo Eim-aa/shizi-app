@@ -55,7 +55,7 @@ test('copy: the written-chars entry is 「全部 ›」 (a place); the zone page
 test('library home (D60): a zone row opens the zone list; 今日练习 calls the home main-button function with the library as source', () => {
   const src = readFileSync(new URL('../../src/ui/screens/library/index.js', import.meta.url), 'utf8');
   assert.match(src, /data-testid=\$\{id\}[^>]*\n?[^>]*onClick=\$\{\(\) => openList\(zone\.kind\)\}/);
-  assert.match(src, /startMain\(\{ source: LIBRARY_TODAY_SOURCE \}\)/);
-  assert.match(src, /import \{ startMain \} from '\.\.\/home\/index\.js'/);
+  assert.match(src, /startToday\(\{ source: LIBRARY_TODAY_SOURCE \}\)/); // D66 ⑧：今日练习永远是今天的练习（A 槽），不跟着自己选的那一组走
+  assert.match(src, /import \{ startToday \} from '\.\.\/home\/index\.js'/);
   assert.doesNotMatch(src, /startListDefault|library-card-practice|library-wall/);
 });

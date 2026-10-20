@@ -38,16 +38,16 @@ import { M } from '../../../config/motion.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
-import { isHan } from '../../../core/query.js';
 import { RefMini } from '../write/compare.js';
 import { useStrokeData } from '../write/hint-layer.js';
 import { startPicked } from '../session/index.js';
 import { isPracticable } from '../../../data/deck.js';
 import { detailHero, detailModel, hasInkPoints, HeroPair, inkOf, RecordsBlock, SourceRow } from './records.js';
 import {
-  commitRemoveCustom, commitRestoreCustom, commitWordOff, commitWordOn, DetailRows, FailBlock,
+  commitAddCustom, commitRemoveCustom, commitRestoreCustom, commitWordOff, commitWordOn, DetailRows, FailBlock,
 } from './actions.js';
 import { PHOTO_SCREEN } from './photos.js'; // 旧记录页自注册
+import { openCharDetail } from './open.js';
 
 export const DETAIL_SCREEN = 'detail';
 export const LIST_SCREEN_NAME = 'library-list'; // M3-2 清单页（params {kind:'wrong'|'forget'}）
@@ -97,19 +97,8 @@ function listOpener(kind) {
   return null;
 }
 
-/**
- * 打开单字详情（查字组件 onDetail(char, api) 可直接传它）。栈顶已是同一个字的详情时不再叠一层。
- * @returns {boolean} 是否推入
- */
-export function openDetail(char) {
-  if (!isHan(char)) return false;
-  const router = getRouter();
-  const snap = router ? router.getState() : null;
-  const top = snap ? snap.top : null;
-  if (snap && snap.depth > 0 && !snap.topIsOverlay && top && top.n === DETAIL_SCREEN && top.p && top.p.char === char) return false;
-  nav.push(DETAIL_SCREEN, { char });
-  return true;
-}
+/** 打开单字详情（查字组件 onDetail(char, api) 可直接传它）。栈顶已是同一个字的详情时不再叠一层（detail/open.js）。 */
+export const openDetail = openCharDetail;
 
 // ---------------------------------------------------------------- hooks
 
@@ -191,6 +180,7 @@ function DetailScreen({ params, entry }) {
   const [banner, setBanner] = useState(null); // {word, cardKey, state:'on'|'failed'|'undone'}
   const [swapFailed, setSwapFailed] = useState(false);
   const [removeFailed, setRemoveFailed] = useState(false);
+  const [addFailed, setAddFailed] = useState(false);
   const [practiceFailed, setPracticeFailed] = useState(false);
 
   useLeave(entry && entry.id, () => {
@@ -198,6 +188,7 @@ function DetailScreen({ params, entry }) {
     setBanner(null);
     setSwapFailed(false);
     setRemoveFailed(false);
+    setAddFailed(false);
     setPracticeFailed(false);
   });
 
@@ -235,6 +226,12 @@ function DetailScreen({ params, entry }) {
       return;
     }
     setRemoveFailed(true);
+  };
+  // ---- 加入自选（D66 ⑮；与查字卡同一个 commit，成功不提示：这一行自己变成「移出自选」）
+  const add = () => {
+    const st = storeOrNull();
+    const r = st ? commitAddCustom(st, char) : { ok: false };
+    setAddFailed(!r.ok);
   };
   const undoRemove = () => {
     const u = undo;
@@ -283,7 +280,8 @@ function DetailScreen({ params, entry }) {
       <${SourceRow} char=${char} />
       <${DetailRows} model=${model} onList=${onList} onImage=${hooks.image} swapFailed=${swapFailed}
         onLegacy=${() => nav.push(PHOTO_SCREEN, { char })} onSwap=${swap} onSwapCancel=${() => setSwapFailed(false)}
-        onRemove=${remove} removeFailed=${removeFailed} onRemoveCancel=${() => setRemoveFailed(false)} />
+        onRemove=${remove} removeFailed=${removeFailed} onRemoveCancel=${() => setRemoveFailed(false)}
+        onAdd=${add} addFailed=${addFailed} onAddCancel=${() => setAddFailed(false)} />
     </${Page}>
   </div>`;
 }

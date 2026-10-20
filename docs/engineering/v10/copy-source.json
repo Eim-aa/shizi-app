@@ -404,86 +404,86 @@
       "slots": {
         "resumePicked": {
           "raw": "这次选的字 · 还有 {N} 个字没写",
-          "text": "自己选的 · 接着写",
+          "text": "自己选的 · {n} / {total}",
           "decision": "P196",
-          "note": "D49 ⑦（阶段 1 E9d）：A、B 两组都没写完时 A 那一行可见文字只剩「这次选的字 · 接着写」，剩余字数只进读屏名称（resumePickedAria）；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：A、B 两组都没写完时 A 那一行（只会是今天的练习 / 首次练习）可见文字是「名称 · 已写 / 总数」，行尾「›」由视图画；与主按钮「继续写字」不同说法（主按钮是动作，这一行是去处）；读屏名称见 resumePickedAria",
           "override": true
         },
         "resumeDaily": {
           "raw": "今天的练习 · 还有 {N} 个字没写",
-          "text": "今天的字 · 接着写",
+          "text": "今天的字 · {n} / {total}",
           "decision": "P196",
-          "note": "D49 ⑦（阶段 1 E9d）：A、B 两组都没写完时 A 那一行可见文字只剩「今天的练习 · 接着写」，剩余字数只进读屏名称（resumeDailyAria）；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：A、B 两组都没写完时 A 那一行（只会是今天的练习 / 首次练习）可见文字是「名称 · 已写 / 总数」，行尾「›」由视图画；与主按钮「继续写字」不同说法（主按钮是动作，这一行是去处）；读屏名称见 resumeDailyAria",
           "override": true
         },
         "resumeFirst": {
           "raw": "第一次练习 · 还有 {N} 个字没写",
-          "text": "首次练习 · 接着写",
+          "text": "首次练习 · {n} / {total}",
           "decision": "P196",
-          "note": "D49 ⑦（阶段 1 E9d）：A、B 两组都没写完时 A 那一行可见文字只剩「第一次练习 · 接着写」，剩余字数只进读屏名称（resumeFirstAria）；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：A、B 两组都没写完时 A 那一行（只会是今天的练习 / 首次练习）可见文字是「名称 · 已写 / 总数」，行尾「›」由视图画；与主按钮「继续写字」不同说法（主按钮是动作，这一行是去处）；读屏名称见 resumeFirstAria",
           "override": true
         },
         "resumePickedAria": {
           "raw": null,
-          "text": "自己选的 · 接着写，还剩 {n} 个",
+          "text": "接着写自己选的字，已写 {n} 个，共 {total} 个",
           "origin": "extra",
           "decision": "P196",
-          "note": "D49 ⑦：该行的读屏名称（含可见文字，再加剩余字数）；r7-C1 / D61 文案重写"
+          "note": "D66 ⑧：该行的读屏名称（接着写 + 哪一组 + 已写 / 总数）"
         },
         "resumeDailyAria": {
           "raw": null,
-          "text": "今天的字 · 接着写，还剩 {n} 个",
+          "text": "接着写今天的字，已写 {n} 个，共 {total} 个",
           "origin": "extra",
           "decision": "P196",
-          "note": "D49 ⑦：该行的读屏名称（含可见文字，再加剩余字数）；r7-C1 / D61 文案重写"
+          "note": "D66 ⑧：该行的读屏名称（接着写 + 哪一组 + 已写 / 总数）"
         },
         "resumeFirstAria": {
           "raw": null,
-          "text": "首次练习 · 接着写，还剩 {n} 个",
+          "text": "接着写首次练习，已写 {n} 个，共 {total} 个",
           "origin": "extra",
           "decision": "P196",
-          "note": "D49 ⑦：该行的读屏名称（含可见文字，再加剩余字数）；r7-C1 / D61 文案重写"
+          "note": "D66 ⑧：该行的读屏名称（接着写 + 哪一组 + 已写 / 总数）"
         },
         "resumePickedNow": {
           "raw": null,
-          "text": "自己选的 · 接着写，第 {k} 个，剩 {n} 个",
+          "text": "接着写自己选的字，正在写第 {k} 个，共 {total} 个",
           "origin": "extra",
-          "note": "阶段 0 B6（G45，D36）：当前字已看过答案、仍在描或自己写时的续练行，不再把它算进「还有 N 个字没写」；{k} = 正在写的是第几个，{n} = 之后还没写的字数；E9d（P196）起只进读屏名称，可见文字是「… · 接着写」；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：当前字已看过答案、仍在描或凭记忆写时的读屏名称；{k} = 正在写的是第几个；只进读屏名称",
           "decision": "P77"
         },
         "resumeDailyNow": {
           "raw": null,
-          "text": "今天的字 · 接着写，第 {k} 个，剩 {n} 个",
+          "text": "接着写今天的字，正在写第 {k} 个，共 {total} 个",
           "origin": "extra",
-          "note": "阶段 0 B6（G45，D36）：当前字已看过答案、仍在描或自己写时的续练行，不再把它算进「还有 N 个字没写」；{k} = 正在写的是第几个，{n} = 之后还没写的字数；E9d（P196）起只进读屏名称，可见文字是「… · 接着写」；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：当前字已看过答案、仍在描或凭记忆写时的读屏名称；{k} = 正在写的是第几个；只进读屏名称",
           "decision": "P77"
         },
         "resumeFirstNow": {
           "raw": null,
-          "text": "首次练习 · 接着写，第 {k} 个，剩 {n} 个",
+          "text": "接着写首次练习，正在写第 {k} 个，共 {total} 个",
           "origin": "extra",
-          "note": "阶段 0 B6（G45，D36）：当前字已看过答案、仍在描或自己写时的续练行，不再把它算进「还有 N 个字没写」；{k} = 正在写的是第几个，{n} = 之后还没写的字数；E9d（P196）起只进读屏名称，可见文字是「… · 接着写」；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：当前字已看过答案、仍在描或凭记忆写时的读屏名称；{k} = 正在写的是第几个；只进读屏名称",
           "decision": "P77"
         },
         "resumePickedNowLast": {
           "raw": null,
-          "text": "自己选的 · 接着写，最后一个了",
+          "text": "接着写自己选的字，正在写最后一个",
           "origin": "extra",
-          "note": "阶段 0 B6：正在写的就是最后一个字（之后没有了）时不写「还有 0 个」；E9d（P196）起只进读屏名称；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：正在写的就是最后一个字时的读屏名称",
           "decision": "P77"
         },
         "resumeDailyNowLast": {
           "raw": null,
-          "text": "今天的字 · 接着写，最后一个了",
+          "text": "接着写今天的字，正在写最后一个",
           "origin": "extra",
-          "note": "阶段 0 B6：正在写的就是最后一个字（之后没有了）时不写「还有 0 个」；E9d（P196）起只进读屏名称；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：正在写的就是最后一个字时的读屏名称",
           "decision": "P77"
         },
         "resumeFirstNowLast": {
           "raw": null,
-          "text": "首次练习 · 接着写，最后一个了",
+          "text": "接着写首次练习，正在写最后一个",
           "origin": "extra",
-          "note": "阶段 0 B6：正在写的就是最后一个字（之后没有了）时不写「还有 0 个」；E9d（P196）起只进读屏名称；r7-C1 / D61 文案重写",
+          "note": "D66 ⑧：正在写的就是最后一个字时的读屏名称",
           "decision": "P77"
         }
       }
@@ -3250,6 +3250,27 @@
           "origin": "extra",
           "note": "离开 ≥7 天回来：把积累和「没有丢」合成一句，不提缺了几天（D01 / D41）；D55：放在「拾」与题记组下面（13 墨三），N = 字库里写过的字数",
           "decision": "P265"
+        },
+        "continuePicked": {
+          "raw": null,
+          "text": "继续写自选字",
+          "origin": "extra",
+          "decision": "P196",
+          "note": "D66 ⑧：主按钮续的是自己选的那一组时的字（与那一行「今天的字」分得清）；统一用词「自选字」（D61）"
+        },
+        "progress": {
+          "raw": null,
+          "text": "{n} / {total}",
+          "origin": "extra",
+          "decision": "P196",
+          "note": "D66 ⑧：进行中的组「已写 / 总数」，主按钮字后 · 接上；读屏名称见 continueAria"
+        },
+        "continueAria": {
+          "raw": null,
+          "text": "{label}，已写 {n} 个，共 {total} 个",
+          "origin": "extra",
+          "decision": "P196",
+          "note": "D66 ⑧：主按钮的读屏名称；{label} = 主按钮的字"
         }
       }
     },
@@ -3676,6 +3697,13 @@
           "origin": "extra",
           "note": "I3 P1-36：字详情页头标题（只给读屏，页面里字卡自己是标题），推入后焦点落在这个标题",
           "decision": "P84"
+        },
+        "viewChar": {
+          "raw": null,
+          "text": "看这个字 ›",
+          "origin": "extra",
+          "decision": "P55",
+          "note": "D66 ⑮：结果页 / 写字页的对照与改判弹层里进字详情的入口（文字按钮，行尾 ›，名称 4 字）；全 App 只有这一种入口，点格子本身仍是打开对照弹层"
         }
       }
     },
@@ -5520,6 +5548,34 @@
           "text": "{date}看过答案",
           "origin": "r8-A / D66 ⑤（产品体验评审 P1-04）",
           "note": "待复习区详情页里只看过答案、还没判断过的字，每行第二行小字：最近一次看答案的日期"
+        }
+      }
+    },
+    "X-REDO": {
+      "screen": "write",
+      "milestone": "M2",
+      "source": "D66 ③ 重写错字页（src/ui/screens/write/redo.js）：一组写完后把本组写错的字再写一遍，只算练习；04 §4.1 没有这些槽",
+      "slots": {
+        "title": {
+          "raw": null,
+          "text": "重写错字",
+          "origin": "extra",
+          "note": "D66 ③：结果页底栏的文字按钮名与重写页的读屏页名（4 字，动宾短语；「写错」与结果页格下标签、字库用词一致）",
+          "decision": "P55"
+        },
+        "note": {
+          "raw": null,
+          "text": "再写一遍，只算练习。",
+          "origin": "extra",
+          "note": "D66 ③：重写页格下说明（与「看过答案后再写只算练习」R-W07.selfNote 同一口径，一句话说清不记录）",
+          "decision": "P55"
+        },
+        "again": {
+          "raw": null,
+          "text": "再写一次",
+          "origin": "extra",
+          "note": "D66 ③：对照阶段求助行按钮——回到空书写格重写这个字",
+          "decision": "P55"
         }
       }
     }

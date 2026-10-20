@@ -165,7 +165,7 @@ export async function runWriteAx(page, ctx, views) {
       assert.deepEqual([ans.primary, ans.id], ['凭记忆写', 'write-trace-done'], `${tag}: the primary button is 凭记忆写`);
       assert.equal(ans.dup, 1, `${tag}: 「下一个」 is shown once (A2-11), in the text row`);
       const items = (await footItems(page)).map(i => i.testid);
-      assert.deepEqual(items, ['write-answer-next'], `${tag}: trace text row = 下一个 (no 描一遍 / 自己写 any more)`);
+      assert.deepEqual(items, ['write-answer-next', 'write-end'], `${tag}: trace text row = 下一个 + 结束这组 at its right end (D66 ⑥: the daily group has it too; no 描一遍 / 自己写 any more)`);
       await tap(page, 'write-trace-done');
       await waitNavIdle(page);
       await page.waitForSelector(`${topSel('write-screen')} .sz-write[data-phase="retrace"]`, { timeout: 5000 });

@@ -29,6 +29,7 @@ export default async function i2ScreensB(page, ctx) {
   const month = new Date().toISOString().slice(0, 7);
   const FIXTURE = {
     detail: { char: '完' }, 'detail-photo': { char: '人' }, 'library-list': { kind: 'wrong' }, month: { month },
+    redo: { chars: ['完'] }, // D66 ③ 重写错字页：要有可练的字才不会立刻退回去
     '_demo/sub': { level: 1 },
   };
   const SKIP = new Set(['write', 'result']); // 写字页见 1，结果页见 4

@@ -36,6 +36,7 @@ export default Object.freeze({
   'R-D10.body': ['旧版本拍照的记录，只能看，不能做图。', '备份时会一起存下。'],
   // X-DETAIL（M3-6 单字详情：原型 ShiziScreen L32–L61 / L128–L132 / L389–L413 的其余字样与三段式，origin: extra）
   'X-DETAIL.pageTitle': '「{char}」的记录',
+  'X-DETAIL.viewChar': '看这个字 ›', // D66 ⑮：结果页 / 写字页对照弹层里进字详情的入口
   'X-DETAIL.strokes': '{n} 画',
   'X-DETAIL.wordLabel': '词语',
   'X-DETAIL.glossLabel': '意思',

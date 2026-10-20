@@ -15,7 +15,7 @@
 // 列表行（原型顺序）：[写错过 / 快忘了 → 清单]、下次练习（P12）、[做成图片（M4-5 注册后才显示）]、[旧版本的记录（R-D10）]、
 //   [换掉这个词语]、[从自选的字移除]。
 //
-// data-testid：detail-rows、detail-list-row（data-list=wrong|forget）、detail-list-dot、detail-next、detail-image
+// data-testid：detail-add（加入自选，D66 ⑮；失败 detail-add-fail + -cancel / -retry）、detail-rows、detail-list-row（data-list=wrong|forget）、detail-list-dot、detail-next、detail-image
 //   （data-state=ok|noInk|noRecord）、detail-image-note、detail-legacy、detail-swap、detail-swap-fail（+ -cancel / -retry）、
 //   detail-remove（一点即移除，没有确认框）、detail-remove-fail（+ -cancel / -retry）、detail-word-banner（换词的撤销条，data-state=on|failed|undone，里面是通用的 undo-bar / undo-button）。
 
@@ -25,6 +25,7 @@ import { FailBlock as SharedFailBlock } from '../../components/FailBlock.js';
 import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t, tInk } from '../../../config/copy/index.js';
+import { commitAdd } from '../../components/query/QuerySheet.js';
 import { dayText } from './records.js';
 
 export const LABELS = Object.freeze({
@@ -98,6 +99,11 @@ export function commitRestoreCustom(store, removed) {
   });
 }
 
+/** 「加入自选」（D66 ⑮）：与查字卡同一个函数（QuerySheet.commitAdd：已在自选里不写，经 store.commit）。 */
+export function commitAddCustom(store, char) {
+  return commitAdd(store, char);
+}
+
 // ---------------------------------------------------------------- 视图（纯组件）
 
 function Row({ testid, title, sub = null, value = null, arrow = false, off = false, tall = false, dot = false, onClick = null, subSmall = false, extra = {} }) {
@@ -131,7 +137,8 @@ export function FailBlock({ testid, note, onCancel, onRetry }) {
  * @param {Function} p.onLegacy / p.onSwap / p.onRemove
  * @param {boolean} p.swapFailed
  */
-export function DetailRows({ model, onList = null, onImage = null, onLegacy, onSwap, onSwapCancel, onRemove, onRemoveCancel = null, swapFailed = false, removeFailed = false }) {
+export function DetailRows({ model, onList = null, onImage = null, onLegacy, onSwap, onSwapCancel, onRemove, onRemoveCancel = null, swapFailed = false, removeFailed = false,
+  onAdd = null, onAddCancel = null, addFailed = false }) {
   const rows = [];
   if (model.list) {
     const wrong = model.list === 'wrong';
@@ -168,6 +175,13 @@ export function DetailRows({ model, onList = null, onImage = null, onLegacy, onS
     if (removeFailed) {
       rows.push(html`<${FailBlock} key="removefail" testid="detail-remove-fail" note=${t('X-DETAIL.saveFailed')} onCancel=${onRemoveCancel}
         onRetry=${onRemove} />`);
+    }
+  }
+  // D66 ⑮：不在自选里的字可以加入自选（与查字卡同一个函数）；一点即生效、不提示（成功后这一行自己变成上面的「移出自选」）
+  if (!model.custom && model.practicable && onAdd) {
+    rows.push(html`<${Row} key="add" testid="detail-add" title=${t('R-Q05.btnAdd')} onClick=${onAdd} />`);
+    if (addFailed) {
+      rows.push(html`<${FailBlock} key="addfail" testid="detail-add-fail" note=${t('X-DETAIL.saveFailed')} onCancel=${onAddCancel} onRetry=${onAdd} />`);
     }
   }
   return html`<div class="sz-drows" data-testid="detail-rows">${rows}</div>`;

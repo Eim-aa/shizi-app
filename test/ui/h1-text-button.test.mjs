@@ -50,6 +50,7 @@ test('Button.js 之外没有给文字按钮加回下划线 / 改字号的覆盖�
 const DESTINATION = new Set([
   'R-H11.backHome', 'R-H11.noCharsLink', 'R-L02.more', 'R-L06.entry', 'X-LIST.restShow', 'X-ALL.closedCount',
   'R-M05.sheetAll', 'X-LIBFOUR.writtenAll', 'X-ALL.viewThese', 'X-WORK.adjustImage', 'R-S02.link', 'R-AB01.privacyRow', 'R-AB01.openSourceRow',
+  'X-DETAIL.viewChar', // D66 ⑮：去字详情的入口
 ]);
 const KNOWN_EXCEPTIONS = new Set(['R-W10.lineRecordedCorrect', 'R-W10.lineRecordedWrong', 'R-W10.lineChangedCorrect', 'R-W10.lineChangedWrong']);
 

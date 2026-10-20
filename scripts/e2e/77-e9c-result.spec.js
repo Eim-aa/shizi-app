@@ -94,7 +94,7 @@ async function facts(page) {
       }),
       again: all('[data-testid="result-again"]').length,
       leave: all('[data-testid="result-leave"]').length,
-      footButtons: foot ? foot.querySelectorAll('button').length : -1,
+      footButtons: foot ? foot.querySelectorAll('button:not([data-testid="result-redo"])').length : -1, // D66 ③：「重写错字」（有写错的字才有）不算
       foot: rect(foot),
       footUnder: foot ? foot.getAttribute('data-under') : null,
       footShadow: foot ? cs(foot, 'boxShadow') : null,

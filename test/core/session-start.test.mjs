@@ -304,7 +304,7 @@ test('daily expires across days (P37 discard): judged records stay, the slot is 
   });
   // 同一天不过期
   env.clock.t = at(YESTERDAY, 22);
-  assert.deepEqual(expireStale(env.store, { now: env.now }), { ok: true, expired: [] });
+  assert.deepEqual(expireStale(env.store, { now: env.now }), { ok: true, expired: [], spread: null });
   assert.equal(env.commits.length, 0);
   // 第二天
   env.clock.t = at(TODAY, 7);
@@ -529,4 +529,56 @@ test('startDaily opens the D40 special group as an ordinary daily session: one c
   assert.equal(s.kind, 'daily');
   assert.deepEqual(s.queue, ['base:壹', 'base:贰', 'base:叁', 'base:肆', 'base:伍']);
   assert.deepEqual(env.commits, ['session:start-daily']);
+});
+
+// ---------------------------------------------------------------- D66 ⑨：离开 ≥ 30 天回来时把到期字摊开（只一次）
+
+test('D66 ⑨: back after ≥ 30 days → expireStale spreads the due chars over the next days in one commit, once per absence; planDaily already sees it', () => {
+  const env = makeEnv();
+  const last = '2026-08-01'; // 54 天前
+  const records = [];
+  const schedTable = {};
+  for (let i = 0; i < 12; i += 1) {
+    const c = String.fromCodePoint(0x4e00 + 300 + i);
+    records.push(rec(i + 1, c, 'judged', 'correct', last));
+    schedTable['base:' + c] = sched(`2026-08-${String(5 + i).padStart(2, '0')}`, 3 + i);
+  }
+  seed(env, { records, schedTable }); // 每组 5 字 → 每天至多 round(5 × 0.5) = 3 个
+  const deck = fakeDeck(LIB, Object.keys(schedTable));
+  // 不写入的预览（首页 / 字库「今天要写」）已按摊开后的调度表选字
+  const preview = planDaily(env.store.getState(), { today: TODAY, deck });
+  assert.equal(preview.backlog, 3, 'only today\'s share counts as due');
+  const res = expireStale(env.store, { now: env.now });
+  assert.equal(res.ok, true);
+  assert.deepEqual({ moved: res.spread.moved, lastDay: res.spread.lastDay, perDay: res.spread.perDay }, { moved: 12, lastDay: last, perDay: 3 });
+  assert.deepEqual(env.commits, ['session:return-spread']);
+  const st = env.store.getState();
+  const dues = Object.values(st.sched).map(e => e.due).sort();
+  assert.deepEqual(dues, [TODAY, TODAY, TODAY, '2026-09-25', '2026-09-25', '2026-09-25', '2026-09-26', '2026-09-26', '2026-09-26', '2026-09-27', '2026-09-27', '2026-09-27']);
+  assert.equal(st.settings.returnSpreadFor, last, 'marked as done for this absence');
+  assert.deepEqual(planDaily(st, { today: TODAY, deck }).queue, preview.queue, 'preview = what is committed');
+  // 同一天再打开、第二天（今天没练）再打开：不再摊
+  assert.deepEqual(expireStale(env.store, { now: env.now }), { ok: true, expired: [], spread: null });
+  env.clock.t = at('2026-09-25', 20);
+  assert.equal(expireStale(env.store, { now: env.now }).spread, null, 'the same absence is spread only once');
+  assert.equal(env.commits.length, 1);
+});
+
+test('D66 ⑨: no spread when away < 30 days or already written today; starting a group spreads too (no home visit)', () => {
+  const env = makeEnv();
+  seed(env, { records: [rec(1, '甲', 'judged', 'correct', '2026-09-01')], schedTable: { 'base:甲': sched('2026-09-05') } });
+  assert.equal(expireStale(env.store, { now: env.now }).spread, null, '23 days: only the shorter first group (P184)');
+  const env2 = makeEnv();
+  seed(env2, {
+    records: ['甲', '乙', '丙', '丁'].map((c, i) => rec(i + 1, c, 'judged', 'correct', '2026-07-01')),
+    schedTable: { 'base:甲': sched('2026-07-02'), 'base:乙': sched('2026-07-03'), 'base:丙': sched('2026-07-04'), 'base:丁': sched('2026-07-05') },
+  });
+  const started = startDaily(env2.store, { now: env2.now, deck: fakeDeck() });
+  assert.equal(started.started, true);
+  const st = env2.store.getState();
+  assert.equal(st.settings.returnSpreadFor, '2026-07-01');
+  assert.deepEqual(Object.values(st.sched).map(e => e.due).sort(), [TODAY, TODAY, TODAY, '2026-09-25']);
+  const env3 = makeEnv();
+  seed(env3, { records: [rec(1, '甲', 'judged', 'correct', '2026-07-01'), rec(2, '乙', 'judged', 'correct', TODAY)], schedTable: { 'base:甲': sched('2026-07-02') } });
+  assert.equal(expireStale(env3.store, { now: env3.now }).spread, null, 'already written today → not the moment of return');
 });

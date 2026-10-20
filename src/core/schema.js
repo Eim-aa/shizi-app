@@ -415,6 +415,7 @@ const settingsFields = {
   remind: (x, p) => checkFields(x, p, remindFields, []),
   remindInvite: (x, p) => checkFields(x, p, remindInviteFields, []),
   capitalDeferredDay: v.day, // D46 ④：点了「这次先写平常的字」的那一天
+  returnSpreadFor: v.day, // D66 ⑨（P323）：离开 ≥ 30 天回来时已摊开过到期字的那次离开（离开前最后一个练习日），同一次离开不再摊
   writeMode: v.oneOf(['screen', 'paper']), // D46 ⑬（P1-E8，03 P165）：设置 › 写字方式；缺省 screen
   paperSuggested: v.bool, // P1-E8（03 P168）：读屏开启时「改为在纸上写」的建议已出现过（只出现一次）
   answerNoteSeen: v.bool, // W1（03 P212，D51 ⑧）：第一次用「看答案」时格下的一行说明已出现过（只出现一次；看答案没有确认框）

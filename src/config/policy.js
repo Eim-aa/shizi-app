@@ -377,6 +377,16 @@ export const recordsBudgetBytes = 1.5 * 1024 * 1024;
 // P28 records 折叠的天数阈值
 export const recordsFoldAfterDays = 400;
 
+// P323 离开很久回来时把到期字摊开（D66 ⑨，产品体验评审 P4-01）：离上次练习 ≥ afterDays 天、回来那一刻（今天还没判断）把已到期的字
+// 摊到之后几天，每天（连同那天本来就到期的字）至多 round(每组字数 × perDayShare) 个，只往后挪；与 v1 迁移的摊开同一个函数（core/spread.js spreadDue）。
+// 只执行一次：settings.returnSpreadFor 记下这次离开前的最后一个练习日。FSRS 卡与记录不变。
+// 理由：停 90 天回来，修前当天「待复习」两百多、之后每天全是复习、新字关一个月（模拟 S19）；摊开后当天待复习回到一天的量，头几天有新字。
+// 每天的份额取 0.5（与迁移同一口径）：模拟里 0.3 / 0.5 都会在第 2 周起因为写错重学再积压，0.3 积压阀关得更久，故不取更小的值。
+export const returnSpread = Object.freeze({
+  afterDays: 30, // P323 离开至少几天才摊（离开 7–29 天只缩短回来的第一组，P184）
+  perDayShare: 0.5, // P323 每天至多每组字数的几成（与迁移的 migration.spreadDuePerDayShare 同一口径）
+});
+
 // ---- 迁移（M5-4）----
 // P10 / P35 / P53：v1 → v2 一次性导入。
 export const migration = Object.freeze({

@@ -22,6 +22,7 @@ import * as defaultPolicy from '../config/policy.js';
 import { localDay } from './dates.js';
 import { charOfCardKey, hasAnyJudged } from './records.js';
 import { groupSizeOf } from './group-size.js';
+import { applyReturnSpreadInDraft, returnSpreadPlan } from './spread.js';
 import {
   createSession, endAndStartPicked, endSlot, expireDaily, isComplete, nextAKind, s02Prompt, selectDaily, selectFirst,
   specialPlan, startInSlot,
@@ -34,6 +35,7 @@ export const LABELS = Object.freeze({
   startPicked: 'session:start-picked',
   endAndStartPicked: 'session:end-and-start-picked',
   deferSpecial: 'session:defer-special',
+  returnSpread: 'session:return-spread',
 });
 
 // ---------------------------------------------------------------- 读状态
@@ -92,7 +94,9 @@ export function planDaily(state, { today, deck, policy = defaultPolicy }) {
     : settingsLib || policy.defaultLibrary || null;
   const newCandidates = deck.newCandidates(libraryId);
   const warmupCandidates = typeof deck.warmupCandidates === 'function' ? deck.warmupCandidates(libraryId) : [];
-  const sched = (state && state.sched) || {};
+  // D66 ⑨：离开 ≥ 30 天回来、还没摊开过 → 按摊开后的调度表选（与 expireStale / 开组时写入的同一个结果）
+  const spread = returnSpreadPlan(state, today, policy);
+  const sched = spread ? spread.sched : (state && state.sched) || {};
   const plan = selectDaily({
     sched,
     records: recordsOf(state),
@@ -180,17 +184,23 @@ function nowOf(now) {
 }
 
 /**
- * 只做跨天过期（首页读取时 / 回前台时调用）。没有过期的会话时不写入。
- * @returns {{ok:true, expired:Session[]} | {ok:false, error}}
+ * 跨天过期（首页读取时 / 回前台时调用）；离开 ≥ 30 天回来的那一刻同一次提交里把到期字摊开（D66 ⑨，core/spread.js）。
+ * 没有过期的会话、也不用摊时不写入。
+ * @returns {{ok:true, expired:Session[], spread:null|{moved, lastDay, perDay, gapDays}} | {ok:false, error}}
  */
 export function expireStale(store, { now, policy = defaultPolicy } = {}) {
   const today = localDay(nowOf(now));
-  const { expiredAll } = expireDaily(sessionsOf(store.getState()), today, policy);
-  if (!expiredAll.length) return { ok: true, expired: [] };
-  const result = store.commit(LABELS.expire, draft => {
+  const state = store.getState();
+  const { expiredAll } = expireDaily(sessionsOf(state), today, policy);
+  // D66 ⑨（P323）：离开 ≥ 30 天回来的那一刻，把已到期的字摊到之后几天（只执行一次，settings.returnSpreadFor 记下）
+  const spreadDue = !!returnSpreadPlan(state, today, policy);
+  if (!expiredAll.length && !spreadDue) return { ok: true, expired: [], spread: null };
+  let spread = null;
+  const result = store.commit(spreadDue && !expiredAll.length ? LABELS.returnSpread : LABELS.expire, draft => {
     expireInDraft(draft, today, policy);
+    spread = applyReturnSpreadInDraft(draft, today, policy);
   });
-  return result.ok ? { ok: true, expired: expiredAll } : result;
+  return result.ok ? { ok: true, expired: expiredAll, spread } : result;
 }
 
 /**
@@ -241,6 +251,7 @@ function startA(store, { kind, now, deck, source, policy }) {
   let created = null;
   const result = store.commit(kind === 'first' ? LABELS.startFirst : LABELS.startDaily, (draft, ctx) => {
     expireInDraft(draft, localDay(ctx.now), policy);
+    if (kind !== 'first') applyReturnSpreadInDraft(draft, localDay(ctx.now), policy); // D66 ⑨：没经首页直接开组时也摊（与 planDaily 选字用的同一个调度表）
     endCompleteInDraft(draft, 'A', ctx.now);
     const session = createSession({ id: ctx.nextId('s'), kind, source: source || { view: 'home' }, queue, at: ctx.now });
     setSessions(draft, startInSlot(sessionsOf(draft), session));

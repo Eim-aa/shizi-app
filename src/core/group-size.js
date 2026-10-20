@@ -24,6 +24,15 @@ export function groupSizeOf(settings, policy = defaultPolicy) {
   return validGroupSize(settings ? settings.groupSize : undefined, policy);
 }
 
+/**
+ * 区详情 / 清单「练这些字」默认勾选几个（D66 ⑬，policy.listDefaultSelect P113）：按 5 字一组写的 5，随每组字数等比例换算
+ * （= 每组字数：5 → 5、10 → 10、20 → 20、30 → 30），与首页、今日练习同一个值。
+ */
+export function listDefaultSelectOf(settings, policy = defaultPolicy) {
+  const n = Number.isInteger(policy.listDefaultSelect) && policy.listDefaultSelect > 0 ? policy.listDefaultSelect : 0;
+  return n ? scaledCount(n, groupSizeOf(settings, policy), policy.groupMix) : Infinity;
+}
+
 /** 按组大小换算后的每日到期复习上限（dailyReviewCap 是按 5 字一组写的 30）。 */
 export function dailyReviewCapOf(size, policy = defaultPolicy) {
   return scaledCount(policy.dailyReviewCap, validGroupSize(size, policy), policy.groupMix);

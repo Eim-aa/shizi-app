@@ -17,6 +17,7 @@ import { applyJudgment } from '../../src/core/fsrs.js';
 import { t } from '../../src/config/copy/index.js';
 import { localDay } from '../../src/core/dates.js';
 import * as policy from '../../src/config/policy.js';
+import { listDefaultSelectOf } from '../../src/core/group-size.js';
 
 loadFSRSGlobal();
 
@@ -25,10 +26,11 @@ const CARDS = { 永: { word: '永远' }, 和: { word: '和平' }, 春: { word: '
 const cardFor = key => CARDS[key.slice(5)] || null;
 const practicable = key => key.startsWith('base:') && !!cardFor(key);
 
-function stateOf(records, sched = {}, sessions = { A: null, B: null, lastEnded: {} }) {
+// 这些清单用例按「我的 › 每组字数」选 5 写（默认勾选 = 每组字数，D66 ⑬）；缺省 20 字一组的另见下面的 D66 ⑬ 用例。
+function stateOf(records, sched = {}, sessions = { A: null, B: null, lastEnded: {} }, settings = { groupSize: 5 }) {
   const byMonth = {};
   for (const r of records) (byMonth[r.localDay.slice(0, 7)] || (byMonth[r.localDay.slice(0, 7)] = [])).push(r);
-  return { records: byMonth, sched, sessions, ink: {} };
+  return { records: byMonth, sched, sessions, ink: {}, settings };
 }
 
 const due = (day, stability = 3) => ({ fsrs: { stability }, due: day, lastJudgedAt: 0 });
@@ -214,6 +216,19 @@ test('B4 (G38, D36): 写错过 with 8 rows → default selects only the 5 most r
   const three = listModel(st, { kind: 'wrong', today: TODAY, cardFor: manyCardFor, practicable: manyPracticable, policy: { ...policy, listDefaultSelect: 3 } });
   assert.equal(three.selectedCount, 3);
   assert.equal(three.head, '先练这 3 个');
+});
+
+test('D66 ⑬: the default selection follows 每组字数 (policy.listDefaultSelect 5 per 5-char group → = group size)', () => {
+  const chars = Array.from({ length: 34 }, (_, i) => String.fromCodePoint(0x4e00 + 0x100 + i));
+  const records = chars.map((c, i) => rec(i + 1, c, 'judged', 'wrong', `2026-09-${String(1 + (i % 28)).padStart(2, '0')}`));
+  const pick = settings => listModel(stateOf(records, {}, undefined, settings), { kind: 'wrong', today: TODAY, cardFor: manyCardFor, practicable: manyPracticable });
+  assert.equal(pick(null).selectedCount, 20, 'never chosen → group size 20 → 20');
+  assert.equal(pick({}).head, '先练这 20 个');
+  assert.equal(pick({ groupSize: 10 }).selectedCount, 10);
+  assert.equal(pick({ groupSize: 30 }).selectedCount, 30);
+  assert.equal(pick({ groupSize: 5 }).selectedCount, 5);
+  assert.equal(listDefaultSelectOf({ groupSize: 30 }), 30);
+  assert.equal(listDefaultSelectOf(null), 20);
 });
 
 test('B4: 快忘了 default = the 5 longest overdue (list order); rows that cannot be practised do not take a slot', () => {

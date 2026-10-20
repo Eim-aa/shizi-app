@@ -165,7 +165,8 @@ export const knownZone = Object.freeze({
   stabilityDays: 21, // P322 稳定度下限（天；D60 原值）
   minSuccesses: 3, // P322 至少几次「想起来了」（reps − lapses）
 });
-// P113 写错过 / 快忘了清单默认勾选几个「最该练」的字（已决定 D36）；其余收在「其余 N 个字」下，展开后可逐个选
+// P113 写错过 / 快忘了 / 区详情清单默认勾选几个「最该练」的字（已决定 D36）；其余收在「其余 N 个字」下，展开后可逐个选。
+// D66 ⑬：这个数按 5 字一组写，随「每组字数」等比例换算（= 每组字数：20 字一组默认勾 20 个；core/group-size.js listDefaultSelectOf）
 export const listDefaultSelect = 5;
 // P37 跨天未完成的「今天的练习」：直接作废（已判断的保留，未写的不算）
 export const dailyExpiry = 'discard';

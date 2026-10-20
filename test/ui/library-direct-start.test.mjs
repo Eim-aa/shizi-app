@@ -19,13 +19,13 @@ const practicable = key => key.startsWith('base:');
 function stateWrong(chars) {
   const records = chars.map((ch, i) => rec(i + 1, ch, 'judged', 'wrong', `2026-09-${String(10 + i).padStart(2, '0')}`));
   const byMonth = { '2026-09': records };
-  return { records: byMonth, sched: {}, sessions: { A: null, B: null, lastEnded: {} }, ink: {} };
+  return { records: byMonth, sched: {}, sessions: { A: null, B: null, lastEnded: {} }, ink: {}, settings: { groupSize: 5 } }; // 每组 5 字 → 默认 5 个（D66 ⑬）
 }
 
 test('startListDefault: starts the default selection (the first listDefaultSelect practicable chars) with the list as the source — no list page in between', () => {
   const state = stateWrong(CHARS);
   const expected = listModel(state, { kind: 'wrong', sel: null, today: TODAY, policy, cardFor, practicable }).selectedKeys;
-  assert.equal(expected.length, policy.listDefaultSelect, 'default N comes from policy.listDefaultSelect');
+  assert.equal(expected.length, policy.listDefaultSelect, 'default N comes from policy.listDefaultSelect (5 per 5-char group, D66 ⑬)');
   const calls = [];
   const result = startListDefault('wrong', { state, today: TODAY, cardFor, practicable, start: (keys, opts) => { calls.push({ keys, opts }); return { ok: true, started: true }; } });
   assert.equal(result.ok, true);

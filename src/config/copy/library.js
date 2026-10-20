@@ -151,6 +151,7 @@ export default Object.freeze({
   'X-LIBFOUR.emptyGlyph.skipped': '跳',
   'X-LIBFOUR.leave.skipped': '回到已跳过',
   'X-LIBFOUR.skippedMeta': '{date}跳过',
+  'X-LIBFOUR.seenMeta': '{date}看过答案',
   // X-LIBHOME（extra；M3-1 字库首页（墨墙），原型 字库墨墙屏 L26–L79 / L353–L365，04 §4.1 未收录的字样）
   'X-LIBHOME.recordedLabel': '已练汉字',
   'X-LIBHOME.wrongCardNote': '你写错的字。',

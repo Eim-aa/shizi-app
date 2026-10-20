@@ -27,7 +27,7 @@
 import * as defaultPolicy from '../../../config/policy.js';
 import { epigraphFor } from '../../../config/epigraphs.js';
 import { diffDays, localDay, monthDayParts, periodOf } from '../../../core/dates.js';
-import { hasAnyJudged, isJudged, latestJudgedByCard, todayCount } from '../../../core/records.js';
+import { hasAnyJudged, isJudged, practicedByChar, todayCount } from '../../../core/records.js';
 import { remainingCount } from '../../../core/sessions.js';
 import { aStartInfo, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
 
@@ -94,9 +94,9 @@ export function homeViewOf({ records, resume, capital, gapDays }) {
   return 'fresh';
 }
 
-/** 字库里有几个字（有过判断记录的字，按字去重）——回来态「你写过的 N 个字都还在」的 N。 */
+/** 字库里有几个字（已练汉字：有过判断记录或看过答案的字，按字去重，D66 ⑤；与字库、我的同一个函数）——回来态「你写过的 N 个字都还在」的 N。 */
 export function libraryCountOf(records) {
-  return latestJudgedByCard(records || []).size;
+  return practicedByChar(records || []).size;
 }
 
 /**

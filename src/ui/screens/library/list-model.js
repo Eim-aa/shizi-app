@@ -195,7 +195,9 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
     // 区详情页「该复习了」里最近一次写错的字按写错的说法（带「写错那次」小图说明），其余按「最近一次 · 记录了 N 次」
     const rowWrong = isWrong || (zone && e.record.judgment === 'wrong');
     const skipped = kind === 'skipped';
-    const meta = skipped ? t('X-LIBFOUR.skippedMeta', { date }) : rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
+    const seenOnly = zone && e.record.kind === 'answer-seen'; // D66 ⑤：只看过答案、还没判断过的字（在「待复习」）
+    const meta = skipped ? t('X-LIBFOUR.skippedMeta', { date }) : seenOnly ? t('X-LIBFOUR.seenMeta', { date })
+      : rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
     return {
       char: e.char,
       cardKey: e.cardKey,
@@ -207,7 +209,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
       meta,
       metaParts: listRowMetaParts(meta),
       thumbCaption: rowWrong ? t('R-E03.wrongThumb') : '',
-      noThumb: skipped, // 已跳过的字没有笔迹，不画「没有笔迹」小图
+      noThumb: skipped || seenOnly, // 已跳过 / 只看过答案的字没有判断的笔迹，不画「没有笔迹」小图
       selectable,
       selected,
       group: inTop ? 'top' : 'rest',

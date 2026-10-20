@@ -24,8 +24,8 @@ export const INVARIANTS = Object.freeze([
   { id: 'G9-due-not-starved', title: '有到期字、复习预算没用完、又不是特别组时，这一组至少带 1 个到期字' },
   { id: 'G10-daily-cap', title: '一天内到期复习的字数不超过每日复习上限（dailyReviewCap，按每组字数换算）' },
   { id: 'D1-zones-sum', title: '字库三档（待复习 / 未熟悉 / 已熟悉）合计 = 已练汉字数' },
-  { id: 'D2-recorded-eq-judged', title: '已练汉字数 = 有判断记录的不同汉字数' },
-  { id: 'D3-skipped-not-practiced', title: '「已跳过」的字不计入已练，也不出现在三档里' },
+  { id: 'D2-recorded-eq-judged', title: '已练汉字数 = 有判断记录或看过答案的不同汉字数（D66 ⑤）' },
+  { id: 'D3-skipped-not-practiced', title: '「已跳过」的字不计入已练，也不出现在三档里（看过答案的字在待复习，不在已跳过）' },
   { id: 'D4-sched-has-judged', title: '调度表里的每个字，至少有一条判断记录' },
   { id: 'D5-due-after-judged-day', title: '每个字的下次到期日，晚于它最近一次判断的那一天（至少次日）' },
   { id: 'D6-zone-due-matches-plan', title: '一天开始时，「待复习」档里的字 = 首页今日练习里「到期」的字（两处口径一致）' },
@@ -127,15 +127,16 @@ export function checkState({ state, today }) {
   const out = [];
   const { records } = recordsOfState(state);
   const judgedChars = new Set(records.filter(isJudged).map(r => r.char));
+  const practicedChars = new Set([...judgedChars, ...records.filter(r => r && r.kind === 'answer-seen').map(r => r.char)]);
   const zones = memoryZones(state, today);
   const sum = zones.zones.due.n + zones.zones.shaky.n + zones.zones.known.n;
   if (sum !== zones.recorded) out.push(v('D1-zones-sum', `三档合计 ${sum} ≠ 已练 ${zones.recorded}`));
-  if (zones.recorded !== judgedChars.size) out.push(v('D2-recorded-eq-judged', `已练 ${zones.recorded} ≠ 有判断的字 ${judgedChars.size}`));
+  if (zones.recorded !== practicedChars.size) out.push(v('D2-recorded-eq-judged', `已练 ${zones.recorded} ≠ 有判断或看过答案的字 ${practicedChars.size}`));
   const skipped = skippedZone(state);
   const inZones = new Set();
   for (const z of Object.values(zones.zones)) for (const it of z.items) inZones.add(it.char);
   for (const it of skipped.items) {
-    if (judgedChars.has(it.char) || inZones.has(it.char)) out.push(v('D3-skipped-not-practiced', it.char));
+    if (practicedChars.has(it.char) || inZones.has(it.char)) out.push(v('D3-skipped-not-practiced', it.char));
   }
   const latest = latestJudgedByChar(records);
   for (const [key, entry] of Object.entries((state && state.sched) || {})) {

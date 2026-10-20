@@ -40,6 +40,12 @@ function fixture(now) {
   };
 }
 
+/** 提醒那天（D66 ⑦：日历上的今天 hour:minute 归到的练习日）里的一个时刻：凌晨 0–4 点跑时，「现在」还属于前一天，不能当「今天已练」。 */
+function fireMomentRecordAt(now) {
+  const d = new Date(now);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTime();
+}
+
 async function seedFixture(page, { settings = null, sessions = null, extra = [] } = {}) {
   const now = await page.evaluate(() => Date.now());
   const fx = fixture(now);
@@ -148,7 +154,7 @@ async function scenarioSettings(page, ctx) {
     const key = r.localDay.slice(0, 7);
     const records = { ...st.records, [key]: (st.records[key] || []).concat([r]) };
     window.__shiziTest.seed({ ...st, records });
-  }, rec(50, '额', 'correct', fx.now));
+  }, rec(50, '额', 'correct', fireMomentRecordAt(fx.now)));
   await page.waitForFunction(n => (window.__nativeMsgs || []).filter(m => m.type === 'syncReminder').length > n, n0);
   sync = await lastSync(page);
   assert.equal(sync.practicedToday, true, 'practicedToday after a judged record today');

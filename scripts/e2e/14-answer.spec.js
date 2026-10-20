@@ -43,7 +43,7 @@ async function facts(page) {
     }
     const now = window.__shiziTest.now();
     const d = new Date(now);
-    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = (await import('/src/core/dates.js')).localDay(d);
     return {
       records,
       session: st.sessions ? st.sessions.A || (st.sessions.lastEnded || {}).A || null : null, // 写完后移入 lastEnded（M2-3）

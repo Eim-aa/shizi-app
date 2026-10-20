@@ -15,14 +15,14 @@
 //      无提示（D58）；旧 B 零判断 → 也无提示；保存失败 → 留在确认框（三段式），再试一次成功。
 //   7. daily 跨天过期（setClock）：昨天没写完的今天的练习 → startA 开新的今天的练习；已判断记录保留；B 不过期（P61）。
 
+import { localDay } from '../../src/core/dates.js';
 import { bootTestHost, drawStroke, HORIZONTAL, noToastFor, tid, topSel, waitNavIdle } from './helpers.mjs';
 
 const SESSION_MOD = '/src/ui/screens/session/index.js';
 const FIRST = ['尴', '赢', '拾']; // D38：首练 3 字（原 5 字：尴 嚏 狩 晤 飓）
 
 function dayOf(ms) {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return localDay(ms); // 练习日：凌晨 4 点分界（D66 ⑦）
 }
 
 async function call(page, fn, ...args) {

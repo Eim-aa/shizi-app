@@ -39,7 +39,7 @@ async function facts(page, slot = 'A') {
       for (const r of Array.isArray(v) ? v : (v && v.kept) || []) records.push(r);
     }
     const d = new Date(window.__shiziTest.now());
-    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = (await import('/src/core/dates.js')).localDay(d);
     const session = st.sessions ? st.sessions[sl] : null;
     return {
       records,

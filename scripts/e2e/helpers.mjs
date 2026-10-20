@@ -19,6 +19,7 @@
 //   routePerRecordInk(page, on)    本 page 加载的 src/config/policy.js 里 features.perRecordInk 改成 on（源码不动；D27 起默认 true，
 //                                  F4 的关闭态 / 10.12 兜底用 false 测）；要在 goto 之前装。返回命中次数计数器
 
+import { localDay } from '../../src/core/dates.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -87,9 +88,9 @@ function pad2(n) {
   return n < 10 ? `0${n}` : String(n);
 }
 
+// 练习日（D66 ⑦：凌晨 policy.dayStartHour 点分界）；0–4 点跑测试时仍与源码同一规则。
 export function localDayOf(ms) {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return localDay(ms);
 }
 
 /**

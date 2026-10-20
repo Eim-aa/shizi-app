@@ -285,4 +285,30 @@ export const SCENARIOS = [
     ],
     baseline: { user: { hintRate: 1, hintRateReview: 0, hintCorrect: 1, accuracy: 1, newAccuracy: 1, difficultyPenalty: 0, answerRate: 0, skipRate: 0 } },
   },
+  {
+    id: 'S19-away-90d',
+    name: '停用 90 天回来：练 60 天后 90 天不打开 App，再回来练 60 天（每天一组，按真实遗忘曲线作答）',
+    days: 210,
+    restDays: [{ from: 60, to: 149 }],
+    user: { hintRate: 0.05, answerRate: 0.03, skipRate: 0.01 },
+    memory: { s0: 2.2, gain: 12, fail: 0.4 },
+    seed: 13,
+    expect: [
+      { text: '回来当天「待复习」不是几百个（一天的量附近，≤ 每组字数的 1.5 倍）', check: (s, r) => { const d = r.days[150]; return ok(d.zoneDue <= 30, `回来当天结束：待复习 ${d.zoneDue}、开始时积压 ${d.backlogStart}`); } },
+      { text: '回来后第一个月有新字（不是一个月全复习）：回来后 30 天新字 ≥ 60 个', check: (s, r) => { const w = r.days.slice(150, 180); const n = w.reduce((a, d) => a + d.newCards, 0); return ok(n >= 60, `回来后 30 天新字 ${n} 个（每天 ${w.map(d => d.newCards).join('、')}）`); } },
+      { text: '回来 12 天后积压回到一天的量以内（≤ 20）', check: (s, r) => ok(r.days[161].backlogStart <= 20, `回来第 1 / 12 / 30 天开始时积压 ${r.days[150].backlogStart} / ${r.days[161].backlogStart} / ${r.days[179].backlogStart}`) },
+    ],
+  },
+  {
+    id: 'S20-library-exhausted',
+    name: '练习范围学完：少见字、每组 30 字、每天三组（120 天）',
+    days: 120,
+    library: 'rare',
+    groupSize: 30,
+    groupsPerDay: 3,
+    seed: 17,
+    expect: [
+      { text: '范围学完后不再用提前复习凑满一组：学完之后提前复习占字次 ≤ 10%', check: (s, r) => { const x = r.days.findIndex(d => d.exhausted); if (x < 0) return ok(false, '120 天内没学完'); const after = r.days.slice(x).filter(d => d.practiced); const all = after.reduce((a, d) => a + d.cards, 0); const early = after.reduce((a, d) => a + d.earlyCards, 0); return ok(all === 0 || early / all <= 0.1, `第 ${x + 1} 天学完；之后提前复习 ${early}/${all} 字次（${all ? pct(early / all) : '—'}）；有字可写的天 ${after.filter(d => d.cards > 0).length}、「没有要写的字」的天 ${after.filter(d => d.empty).length}`); } },
+    ],
+  },
 ];

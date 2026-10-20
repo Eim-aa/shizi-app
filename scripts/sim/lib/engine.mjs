@@ -373,6 +373,7 @@ export function runScenario(input) {
       row.newTargetStart = peek.newTarget;
       row.budgetLeftStart = peek.reviewBudgetLeft;
       row.library = peek.libraryId;
+      row.exhausted = !!peek.libraryExhausted;
       const zp = checkZonePlanAgree({ state: stateNow(), today, plan: peek });
       row.zonePlanDiff = zp.onlyZone.length + zp.onlyPlan.length;
       for (const x of zp.violations) viol(x.id, today, x.detail);

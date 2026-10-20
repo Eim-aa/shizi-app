@@ -43,6 +43,8 @@ export default Object.freeze({
   'R-P04.empty': '写字并点写对或写错，这天就有墨点。',
   // X-MINE（extra：M4-1 我的首页与练习记录里 04 没有收录的原型字样与读屏名，见 copy-source.json extra.X-MINE）
   'X-MINE.annual': '年度报告',
+  'X-MINE.backupStale': '{n} 天没有备份', // D66 ⑱：有记录且 ≥ 30 天没备份时「备份」行的右值
+  'X-MINE.backupNearFull': '快存满了，建议导出备份', // D66 ⑭ / ⑱：笔迹存储接近上限时「备份」行的右值（卡 A 提供 storagePressure）
   'X-MINE.about': '关于拾字',
   // D63「我的」页概览三个数
   'X-MINE.ovStreak': '连续练习',
@@ -70,6 +72,8 @@ export default Object.freeze({
   'X-ANNUAL.section3': '三 · 少见的字',
   'X-ANNUAL.section4': '四 · 第一个字',
   'X-ANNUAL.emptyGlyph': '年',
+  'X-ANNUAL.prevYear': '上一年', // D66 ⑪：年报页内逐年切换（有往年记录时才出现）
+  'X-ANNUAL.nextYear': '下一年',
   'X-ANNUAL.rareGlyph': '「{char}」的标准字形',
   'X-ANNUAL.firstInk': '「{char}」当时的笔迹',
   'X-ANNUAL.firstNoInk': '「{char}」，没有笔迹',

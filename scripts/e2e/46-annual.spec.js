@@ -229,13 +229,42 @@ export default async function run(page, ctx) {
 
   for (const [label, spec] of [
     ['only answer-seen / skipped', { extra: RICH.extra }],
-    ['only last year', { steps: RICH.steps.slice(0, 2) }],
   ]) {
     await seed(page, spec);
     await waitState(page, 'empty');
     v = await view(page);
     assert.equal(v.empty && v.empty.title, COPY.emptyTitle, `${label} → 今年还没写过`);
   }
+
+  // ------------------------------------------------------------------ 1b. 往年（D66 ⑪，P4-02）
+  step('past years: only last year → the row and the page point at 2025 without any switch; two years → ‹ › switch, params keep the year');
+  await seed(page, { steps: RICH.steps.slice(0, 2) });
+  await waitState(page, 'report', { year: 2025 });
+  v = await view(page);
+  assert.equal(v.count, 1, 'only last year: the 2025 report (豕 correct; 籍 wrong is not a work)');
+  assert.ok(!v.buttons.includes('annual-prev') && !v.buttons.includes('annual-next'), 'a single year of records shows no switch at all');
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
+  await waitTop(page, 'mine');
+  assert.equal(await page.textContent(`${TOP} ${tid('mine-annual-year')}`), '2025', 'mine row points at the latest year with records');
+  await seed(page, RICH);
+  await page.waitForFunction(sel => (document.querySelector(sel) || {}).textContent === '2026', `${TOP} [data-testid="mine-annual-year"]`);
+  await page.click(`${TOP} ${tid('mine-menu-annual')}`);
+  await waitTop(page, 'annual');
+  await waitState(page, 'report', { year: 2026 });
+  assert.deepEqual(await page.evaluate(sel => {
+    const el = id => document.querySelector(`${sel} [data-testid="${id}"]`);
+    return [!!el('annual-prev'), !!el('annual-next'), el('annual-prev').disabled, el('annual-next').disabled, el('annual-years').dataset.years];
+  }, TOP), [true, true, false, true, '2025 2026'], 'two years: prev enabled, next disabled at the latest year');
+  await page.click(`${TOP} ${tid('annual-prev')}`);
+  await waitState(page, 'report', { year: 2025 });
+  assert.equal((await view(page)).yearText, '二〇二五', 'the 2025 scroll title');
+  assert.deepEqual((await top(page)).params, { year: 2025 }, 'the viewed year is kept in params');
+  await page.click(`${TOP} ${tid('annual-next')}`);
+  await waitState(page, 'report', { year: 2026 });
+  await page.evaluate(async () => (await import('/src/ui/router.js')).nav.back());
+  await waitTop(page, 'mine');
+  await page.click(`${TOP} ${tid('mine-menu-annual')}`);
+  await waitTop(page, 'annual');
 
   // ------------------------------------------------------------------ 2. 一卷
   step('the scroll: 卷首 (二〇二六, the one number, 今年首字) → monthly sections → no statistics sections');
@@ -332,7 +361,7 @@ export default async function run(page, ctx) {
   assert.equal(await writes(page) - wReload, 0, 'no writes while on annual after reload and going back');
   assert.deepEqual(raw1, raw0, 'every shizi.* storage key byte-equal before / after viewing + reload');
 
-  step('year boundary: clock 2027-01-02 → 今年还没写过');
+  step('year boundary: clock 2027-01-02 → no record this year, the page follows the latest year with records (D66 ⑪)');
   await page.click(`${TOP} ${tid('mine-menu-annual')}`);
   await waitTop(page, 'annual');
   const wBefore = await writes(page);
@@ -340,9 +369,9 @@ export default async function run(page, ctx) {
     window.__shiziTest.setClock('2027-01-02T09:00:00');
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await waitState(page, 'empty', { year: 2027 });
+  await waitState(page, 'report', { year: 2026 });
   v = await view(page);
-  assert.equal(v.empty && v.empty.title, COPY.emptyTitle, 'new year: empty state');
+  assert.equal(v.count, rawCount, 'new year: still the 2026 report, not an empty page');
   assert.equal(await writes(page) - wBefore, 0, 'no writes on the annual page');
   await page.evaluate(c => {
     window.__shiziTest.setClock(c);

@@ -104,6 +104,7 @@
     "X-BACKUP.exportStay": "P290 三段式（S1）：「先不导出」= 不再点「导出备份文件」",
     "X-BACKUP.lossRange": "r7-C1 / D61：按钮改名「导出备份」后，「先导出」「请先导出」指的是这个按钮的动作",
     "X-BACKUP.lossDay": "r7-C1 / D61：按钮改名「导出备份」后，「先导出」「请先导出」指的是这个按钮的动作",
+    "X-BACKUP.exportFirst": "D66 ⑱：「先导出」指的是「导出备份」这个按钮的动作（替换确认框里的直接入口）",
     "X-ABOUT.privacy4": "r7-C1 / D61：按钮改名「导出备份」后，「先导出」「请先导出」指的是这个按钮的动作"
   },
   "nonRuntimeDecisions": {
@@ -4130,6 +4131,20 @@
           "origin": "原型 ShiziScreen-第十稿交接版.dc.html L28 菜单「年度报告」",
           "note": "M4-1：我的菜单行（进年度报告页由 M4-2 注册）；行内小字是今年的年份数字（数据，不进 copy）"
         },
+        "backupStale": {
+          "raw": null,
+          "text": "{n} 天没有备份",
+          "origin": "extra",
+          "note": "D66 ⑱：有记录且距上次备份（从没备份则距最早一条记录）≥ 30 天时，「我的」页「备份」行的右值；不加红点、不弹窗",
+          "decision": "D66"
+        },
+        "backupNearFull": {
+          "raw": null,
+          "text": "快存满了，建议导出备份",
+          "origin": "extra",
+          "note": "D66 ⑭ / ⑱：笔迹存储接近上限（卡 A 的 storagePressure）时「备份」行的右值，优先于 30 天提示；能行动：建议导出",
+          "decision": "D66"
+        },
         "about": {
           "raw": null,
           "text": "关于拾字",
@@ -4373,6 +4388,13 @@
       "milestone": "M4",
       "source": "M4-4 备份与恢复（src/ui/screens/mine/backup.js）：页面段落、恢复 / 清空两行、替换确认标题与两键、清空底部弹层（标题、两键、失败句与失败两键）取原型 ShiziScreen-第十稿交接版 L166–L171 / L205–L210（reference/J-proto-screen.md §2.3.20、§2.3.27、§2.3.28）；丢失日期范围句按边改 K04（04 §4.3 L436）与 03 P26；导出成功反馈按 K04「导出成功给反馈」，字样工程暂拟",
       "slots": {
+        "exportFirst": {
+          "raw": null,
+          "text": "先导出",
+          "origin": "extra",
+          "note": "D66 ⑱：替换备份确认框里的直接按钮（导出当前记录，不必先取消）",
+          "decision": "D66"
+        },
         "intro": {
           "raw": null,
           "text": "记录只在这台手机上，换手机前先导出备份。",
@@ -4513,6 +4535,20 @@
       "milestone": "M4",
       "source": "M4-2 年度报告（src/ui/screens/mine/annual.js）：原型 ShiziScreen-第十稿交接版 L133–L144 里 04 R-M06 没有收录的界面字样（第二至四节标题、空态字）（reference/J-proto-screen.md §2.3.16）；读屏名为工程补",
       "slots": {
+        "prevYear": {
+          "raw": null,
+          "text": "上一年",
+          "origin": "extra",
+          "note": "D66 ⑪：年报页内逐年切换的读屏名（只在有两年及以上记录时出现）",
+          "decision": "D66"
+        },
+        "nextYear": {
+          "raw": null,
+          "text": "下一年",
+          "origin": "extra",
+          "note": "D66 ⑪：同上",
+          "decision": "D66"
+        },
         "section2": {
           "raw": null,
           "text": "二 · 写得最勤",

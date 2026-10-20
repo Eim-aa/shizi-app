@@ -25,11 +25,12 @@
 //   home/today.js todayWorkRow）；D42：留的这一条 = 那天内从晚到早第一条留有墨迹的，那天里都没有才留最近一次；折叠日子只有字，没有记录。
 
 import * as defaultPolicy from '../../../config/policy.js';
-import { addDays, addMonths, daysInMonth, isValidDay, isValidMonth, localDay, monthOf, parseDay } from '../../../core/dates.js';
+import { addDays, addMonths, daysInMonth, diffDays, isValidDay, isValidMonth, localDay, monthOf, parseDay } from '../../../core/dates.js';
 import { foldWorkByDay, isAfterSeenWork, isJudged, sortById } from '../../../core/records.js';
 import { pickRecordInPeriod, storedInkPresent } from '../../../core/ink-pick.js';
 import { isWorkMember, workMembers } from '../../../core/work-members.js';
 import { memoryZones } from '../library/model.js';
+import { recordsSignature } from '../../../core/backup.js';
 
 /** 我的首页字帖列数、最多行数（原型 L26 7 列；R-M05「最近 3 行」）。 */
 export const MINE_SHEET_COLS = 7;
@@ -272,11 +273,52 @@ export function overviewModel(state, today, index = recordIndex(state)) {
   return { streak: streakDays(upToToday, today), total: upToToday.size, chars: memoryZones(state, today).recorded };
 }
 
+/** D66 ⑱：多少天没备份才在「我的」备份行写明。 */
+export const BACKUP_STALE_DAYS = 30;
+
+/**
+ * 笔迹存储压力（卡 A 提供的模型字段，字段名 `storagePressure`，读 state.storagePressure 或 opts.storagePressure）：
+ * 真 / 'near' / 'high' / 'full' / {near:true} / {level:'near'|'high'|'full'} / 占用比 ≥ 0.8 都算「接近上限」；读不到或不认识的值 → false（不显示）。
+ */
+export function storagePressureNear(value) {
+  if (value === true) return true;
+  if (typeof value === 'number') return Number.isFinite(value) && value >= 0.8;
+  if (typeof value === 'string') return value === 'near' || value === 'high' || value === 'full';
+  if (value && typeof value === 'object') {
+    if (value.near === true || value.high === true || value.full === true) return true;
+    if (typeof value.level === 'string') return storagePressureNear(value.level);
+    if (typeof value.ratio === 'number') return storagePressureNear(value.ratio);
+  }
+  return false;
+}
+
+/**
+ * 「我的」备份行的线索（D66 ⑱ + 存储压力预留）：null | {kind:'pressure'} | {kind:'stale', days}。
+ * - 压力优先（能行动：建议导出）；
+ * - stale：有记录，且距上次备份 ≥ 30 天；从没备份则距最早一条记录 ≥ 30 天。上次导出后记录没有再变（签名一致）不提示——没有东西可备份。
+ */
+export function backupHint(state, today, index = recordIndex(state), { storagePressure } = {}) {
+  if (!hasRecords(index)) return null;
+  const pressure = storagePressure !== undefined ? storagePressure : state && state.storagePressure;
+  if (storagePressureNear(pressure)) return { kind: 'pressure' };
+  const meta = state && state.backupMeta;
+  const last = lastBackupDay(meta);
+  let since = last;
+  if (last) {
+    if (meta && typeof meta.lastExportSig === 'string' && meta.lastExportSig === recordsSignature(state.records)) return null;
+  } else {
+    for (const day of index.days) if (!since || day < since) since = day;
+  }
+  if (!since || !isValidDay(today)) return null;
+  const days = diffDays(since, today);
+  return days >= BACKUP_STALE_DAYS ? { kind: 'stale', days } : null;
+}
+
 /**
  * 我的首页（D63）。
- * @returns {{today, empty, overview, month, sheet, preview, sheetOn, lastBackup, year}}
+ * @returns {{today, empty, overview, month, sheet, preview, sheetOn, lastBackup, backupHint, year}}
  */
-export function mineModel(state, today, { policy = defaultPolicy, hasInk = null } = {}) {
+export function mineModel(state, today, { policy = defaultPolicy, hasInk = null, storagePressure } = {}) {
   const index = recordIndex(state);
   const empty = !hasRecords(index);
   const month = monthOf(today);
@@ -291,6 +333,7 @@ export function mineModel(state, today, { policy = defaultPolicy, hasInk = null 
     // 这个月还没有字时不画字帖块（空态同样不画）。
     sheetOn: !empty && sheet.cells.length > 0,
     lastBackup: lastBackupDay(state && state.backupMeta),
+    backupHint: backupHint(state, today, index, { storagePressure }),
     year: parseDay(today).year,
   };
 }

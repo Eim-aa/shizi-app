@@ -4,7 +4,7 @@
 // 只有一个数（年字数）；不出统计小节（最忙月份、较少见的字不再有）。
 //
 // 口径（与 M4-1 mine/model.js recordIndex 同一索引）：
-// - 「今年」= 应用时钟今天所在的公历年；只算 localDay 在这一年的记录。
+// - 「今年」= 应用时钟今天所在的公历年（localDay 已按 policy 的一天分界归日）；只算 localDay 在这一年的记录。D66 ⑪：annualModel 可传 year 看往年（annualYears 列出有记录的年份，annualDefaultYear 给「我的」页与年报页的缺省年份）。
 // - 「记录」只看 judged（看过答案 / 跳过不算）；折叠月份（01 §9）的 byDay 字与日子也算。**纸上记录不进、不计入年字数、月字数、今年第一个字**
 //   （D46-13 / D47，作品成员规则 core/work-members.js；写错的字没手动放进来也不进，D51 ⑤；折叠月份用折叠时记下的 paperOnly 去掉只在纸上写过的字，foldWorkByDay）。日历「写过的日子」不在这里，仍算纸上那天。
 // - 看后自写（Q1，QA simB D1；D31「写对与看后自己写的字」）：年字数、每月一段、卷尾另收看过答案且留有自己写一遍本人墨的记录
@@ -28,6 +28,34 @@ import { pickInkRecord, storedInkPresent } from '../../../core/ink-pick.js';
 
 function yearOfDay(day) {
   return isValidDay(day) ? parseDay(day).year : null;
+}
+
+/** 有记录（作品口径，同 yearSlice）的年份，升序。 */
+export function annualYears(state) {
+  const index = recordIndex(state);
+  const candidates = new Set();
+  for (const r of index.judged) if (typeof r.localDay === 'string' && isValidDay(r.localDay)) candidates.add(yearOfDay(r.localDay));
+  for (const r of workRecordsOf(index)) if (typeof r.localDay === 'string' && isValidDay(r.localDay)) candidates.add(yearOfDay(r.localDay));
+  for (const month of Object.keys(index.folded)) {
+    const y = Number(String(month).slice(0, 4));
+    if (Number.isInteger(y)) candidates.add(y);
+  }
+  return [...candidates].filter(year => {
+    const slice = yearSlice(state, year);
+    return slice.days.length > 0 || slice.chars.length > 0;
+  }).sort((a, b) => a - b);
+}
+
+/**
+ * 缺省年份（D66 ⑪）：今天所在年有记录 → 今年；今年没有而往年有 → 不晚于今年的最近一个有记录的年份（都在今年之后时取最早那年）；一条记录都没有 → 今年（空态）。
+ * 「我的」页年度报告行的右值与年报页的初始年份都用它。
+ */
+export function annualDefaultYear(state, today) {
+  const cur = yearOfDay(today);
+  const years = annualYears(state);
+  if (!years.length || years.includes(cur)) return cur;
+  const past = years.filter(y => y <= cur);
+  return past.length ? past[past.length - 1] : years[0];
 }
 
 /**
@@ -148,17 +176,22 @@ export function yearMonths(state, slice, { policy } = {}) {
  * 年报页面模型。
  * @param {object|null} state  store 状态
  * @param {string} today       YYYY-MM-DD（应用时钟）
- * @param {{hasInk?:(record)=>boolean, policy?:object}} [opts]  hasInk：D42 挑留墨记录用，缺省按 state.ink
- * @returns {{today, year, empty:boolean, count:number, chars:string[], days:number,
+ * @param {{hasInk?:(record)=>boolean, policy?:object, year?:number}} [opts]  hasInk：D42 挑留墨记录用，缺省按 state.ink；year：看哪一年（缺省 = today 所在年）
+ * @returns {{today, year, years:number[], prevYear:number|null, nextYear:number|null, empty:boolean, count:number, chars:string[], days:number,
  *   first: {char, day, record|null}|null, months: Array<{month, monthNum, n}>, twice: object|null}}
  */
-export function annualModel(state, today, { hasInk = null, policy = null } = {}) {
-  const year = yearOfDay(today);
+export function annualModel(state, today, { hasInk = null, policy = null, year: wanted = null } = {}) {
+  const year = Number.isInteger(wanted) ? wanted : yearOfDay(today);
+  const years = annualYears(state);
+  const at = years.indexOf(year);
   const slice = yearSlice(state, year);
   const empty = slice.days.length === 0 && slice.chars.length === 0;
   return {
     today,
     year,
+    years,
+    prevYear: at > 0 ? years[at - 1] : null,
+    nextYear: at >= 0 && at < years.length - 1 ? years[at + 1] : null,
     empty,
     count: slice.chars.length,
     chars: slice.chars,
@@ -179,8 +212,8 @@ function cellOfRecord(char, record, inkOf) {
  * 年报的图计划（纯数据）：卷首、每月的页、卷尾。
  * @returns {{status:'ready'|'empty', model, cover, months:Array<{month, monthNum, cells, pages}>, tail, pages:Array<{type, ...}>}}
  */
-export function annualPlan(state, { today, inkOf, hasInk = null, policy = defaultPolicy }) {
-  const model = annualModel(state, today, { hasInk, policy });
+export function annualPlan(state, { today, inkOf, hasInk = null, policy = defaultPolicy, year = null }) {
+  const model = annualModel(state, today, { hasInk, policy, year });
   if (model.empty || !model.first) return { status: 'empty', model, cover: null, months: [], tail: null, pages: [] };
   const first = cellOfRecord(model.first.char, model.first.record, inkOf);
   const months = model.months.map(m => {

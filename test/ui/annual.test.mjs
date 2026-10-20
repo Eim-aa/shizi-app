@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  annualModel, annualPlan, firstOfYear, twiceOfYear, yearMonths, yearSlice,
+  annualDefaultYear, annualModel, annualPlan, annualYears, firstOfYear, twiceOfYear, yearMonths, yearSlice,
 } from '../../src/ui/screens/mine/annual-model.js';
 import * as annualModule from '../../src/ui/screens/mine/annual-model.js';
 import { ANNUAL_SCREEN, annualDateText, firstLine } from '../../src/ui/screens/mine/annual.js';
@@ -35,7 +35,7 @@ const POINTS = [[{ x: 60, y: 170, w: 11.5 }, { x: 280, y: 172, w: 11.5 }]];
 
 test('the statistics sections are gone: the model has one number (count) and no busiest month / rarest char', () => {
   const m = annualModel(state([rec('静', '2026-03-01')]), TODAY);
-  assert.deepEqual(Object.keys(m).sort(), ['chars', 'count', 'days', 'empty', 'first', 'months', 'today', 'twice', 'year']);
+  assert.deepEqual(Object.keys(m).sort(), ['chars', 'count', 'days', 'empty', 'first', 'months', 'nextYear', 'prevYear', 'today', 'twice', 'year', 'years']);
   assert.equal(annualModule.busiestMonth, undefined);
   assert.equal(annualModule.rarestChar, undefined);
 });
@@ -250,4 +250,31 @@ test('D45: the first-char date line reads 「{date}的笔迹」 and never says i
   assert.ok(!/第一次|当时|首次/.test(slot), 'the date is the day of the ink record, not 今年第一次');
   assert.equal(firstLine('2026-03-09', true), '3月9日的笔迹');
   assert.equal(firstLine('2026-03-09', false), '3月9日');
+});
+
+test('D66 ⑪ past years: annualYears lists years with records; default year falls back to the latest one; year option views a past year', () => {
+  serial = 0;
+  const s = state([rec('静', '2024-05-01'), rec('谁', '2025-12-31'), rec('户', '2025-06-01', { judgment: 'wrong' }), rec('虽', '2025-07-01', { kind: 'answer-seen' })]);
+  assert.deepEqual(annualYears(s), [2024, 2025], 'wrong-but-not-added / answer-seen only do not count; judged correct do');
+  assert.equal(annualDefaultYear(s, TODAY), 2025, 'nothing in 2026 → most recent year with records');
+  assert.equal(annualDefaultYear(state([rec('静', '2026-01-02'), rec('谁', '2025-12-31')]), TODAY), 2026, 'this year has records → this year');
+  assert.equal(annualDefaultYear(null, TODAY), 2026, 'no records at all → this year (empty state)');
+  assert.equal(annualDefaultYear(state([rec('静', '2027-02-01')]), TODAY), 2027, 'only future years (clock rewound) → that year');
+  const past = annualModel(s, TODAY, { year: 2025 });
+  assert.equal(past.empty, false);
+  assert.equal(past.year, 2025);
+  assert.equal(past.count, 1);
+  assert.deepEqual([past.prevYear, past.nextYear, past.years], [2024, null, [2024, 2025]]);
+  const old = annualModel(s, TODAY, { year: 2024 });
+  assert.deepEqual([old.prevYear, old.nextYear, old.first.char], [null, 2025, '静']);
+  assert.equal(annualModel(s, TODAY).empty, true, 'default (today) year is still empty');
+  const plan = annualPlan(s, { today: TODAY, inkOf: () => null, year: 2025 });
+  assert.equal(plan.status, 'ready');
+  assert.equal(plan.model.year, 2025);
+});
+
+test('D66 ⑪ a single year of records has no previous / next year (nothing to switch)', () => {
+  serial = 0;
+  const m = annualModel(state([rec('静', '2026-03-01')]), TODAY);
+  assert.deepEqual([m.years, m.prevYear, m.nextYear], [[2026], null, null]);
 });

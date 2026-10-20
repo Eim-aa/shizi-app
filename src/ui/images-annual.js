@@ -26,11 +26,11 @@ function storeOrNull() {
 }
 
 /** 年报弹层的任务（形状见 components/image-preview.js 头注）。 */
-export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = null, policy = defaultPolicy, today = null } = {}) {
+export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = null, policy = defaultPolicy, today = null, year: wantedYear = null } = {}) {
   const st = state || (store ? store.getState() : null);
   const day = today || localDay(envNow());
   const ink = inkOf || (record => inkPointsOf(store, record));
-  const plan = annualPlan(st, { today: day, inkOf: ink, hasInk: record => recordHasInk(store, record), policy });
+  const plan = annualPlan(st, { today: day, inkOf: ink, hasInk: record => recordHasInk(store, record), policy, year: wantedYear });
   const year = plan.model.year;
   const deps = renderDeps();
   const coverArgs = () => ({

@@ -525,6 +525,24 @@ export default async function run(page, ctx) {
   assert.deepEqual(v.unnamedButtons, [], 'every button has an accessible name');
   assert.equal(v.hScroll, false, 'no horizontal overflow (393)');
 
+  step('D66 ⑱: 30+ days since the last backup → the backup row value says so (no dot, no extra row); back within 30 days → the date again');
+  const rowsBefore = v.menu.length;
+  await page.evaluate(() => {
+    window.__shiziTest.setClock('2026-11-05T09:00:00');
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForFunction(sel => (document.querySelector(sel) || {}).textContent === '65 天没有备份', `${TOP} [data-testid="mine-backup-value"]`);
+  const stale = await mineView(page);
+  assert.equal(stale.backupValue, '65 天没有备份', 'stale hint replaces 「上次备份 …」 (9-01 → 11-05 = 65 days)');
+  assert.equal(await page.getAttribute(`${TOP} ${tid('mine-menu-backup')}`, 'data-hint'), 'stale', 'data-hint=stale');
+  assert.equal(stale.menu.length, rowsBefore, 'no new row');
+  assert.equal(await page.locator(`${TOP} ${tid('mine-menu-backup')} .sz-dot, ${TOP} ${tid('mine-menu-backup')} [data-dot]`).count(), 0, 'no red dot');
+  await page.evaluate(iso => {
+    window.__shiziTest.setClock(iso);
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, CLOCK);
+  await page.waitForFunction(sel => (document.querySelector(sel) || {}).textContent === '上次备份 9月1日', `${TOP} [data-testid="mine-backup-value"]`);
+
   step('records: practice log this month — numbers, dots, sheet, no backfill traces');
   const raw0 = await page.evaluate(() => window.__shiziTest.getRawKeys());
   await openRecordsFromMine(page);

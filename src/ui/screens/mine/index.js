@@ -10,7 +10,7 @@
 //     没有记录时：只写空态（「还没有记录」+ 一句话，R-M04），不加插画；有记录但这个月还没写字时：标题行照常（全部那一格不写数）、字帖位置是月字帖的空框。
 //   4 一组（块）：提醒（右值 = 提醒时间或「关」›，进提醒页 remind.js）、练习范围（右值 = 库名 ›，进换库页，同字库首页那一行、同一个值）、外观（行内三段，appearance.js）、
 //     每组字数（D65 ②：行内四段 5｜10｜20｜30，AX 档「20 个 ›」点开弹层；与外观同一种选择方式，group-size.js / choice.js）
-//   5 一组：备份（右值「上次备份 {date}」/「还没有备份」›）、年度报告（右值 = 年份 ›）、关于拾字 ›
+//   5 一组：备份（右值「上次备份 {date}」/「还没有备份」；D66 ⑱ ≥ 30 天没备份写「N 天没有备份」，笔迹存储接近上限写「快存满了，建议导出备份」›）、年度报告（右值 = 年份：今年没有记录而往年有时是最近有记录的一年 ›）、关于拾字 ›
 //   6 页底一行版本号（X-ABOUT.version，取 build-info.js；与关于页同一句，13 墨三居中）
 // 行与字库首页同一套（components/Rows.js）：名称 17 / 500 墨一 · 值 17 墨二 · 小字 13 墨三。目标屏由各自的模块自注册，本页只 nav.push。
 // 数字全部按记录算（model.js mineModel；R-M01、K27）。
@@ -21,7 +21,7 @@
 //   mine-sheet（data-month / data-count / data-shown / data-truncated / data-days）、mine-sheet-head（标题行按钮，进练习记录）、mine-sheet-title、mine-sheet-all、
 //   mine-sheet-grid、mine-sheet-cell（data-char / data-day / data-tag / data-record / data-ink）、mine-sheet-sign、mine-sheet-seal、
 //   mine-remind（mine-remind-value，data-on）、mine-library（mine-library-value）、mine-appearance（appearance.js）、mine-group-size（group-size.js）、
-//   mine-menu-backup（mine-backup-value，data-last=YYYY-MM-DD|''）/ mine-menu-annual（mine-annual-year）/ mine-menu-about、mine-version。
+//   mine-menu-backup（mine-backup-value，data-last=YYYY-MM-DD|''、data-hint=''|stale|pressure）/ mine-menu-annual（mine-annual-year = 最近有记录的一年）/ mine-menu-about、mine-version。
 
 import { html, useMemo } from '../../../../vendor/ui.js';
 import { registerScreen } from '../../router.js';
@@ -36,6 +36,7 @@ import { t } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { sheetColumns } from '../../../core/images/layout.js';
 import { mineModel } from './model.js';
+import { annualDefaultYear } from './annual-model.js';
 import {
   dayText, go, hasInkOfStore, MINE_ROUTES, openRecords, useStoreState, useToday,
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
@@ -135,6 +136,11 @@ function MineScreen() {
   const model = useMemo(() => mineModel(state, today, { policy: defaultPolicy, hasInk: hasInkOfStore() }), [state, today]);
   const view = settingsView(state && state.settings);
   const last = model.lastBackup;
+  const annualYear = useMemo(() => annualDefaultYear(state, today), [state, today]); // D66 ⑪：今年没有记录而往年有时指向最近有记录的一年
+  const hint = model.backupHint; // D66 ⑱：≥ 30 天没备份 / 笔迹存储接近上限时写在「备份」行右值里（不加红点、不弹窗）
+  const backupValue = hint
+    ? (hint.kind === 'pressure' ? t('X-MINE.backupNearFull') : t('X-MINE.backupStale', { n: hint.days }))
+    : last ? t('R-M03.lastBackup', { date: dayText(last) }) : t('R-M03.noBackup');
   return html`<${TabPage} title=${MINE_LABEL} testid="screen-mine">
     <div class="sz-mine" data-testid="mine-home" data-state=${model.empty ? 'empty' : 'records'} data-today=${today} data-month=${model.month}>
       <${Overview} overview=${model.overview} />
@@ -152,10 +158,10 @@ function MineScreen() {
       </${RowBlock}>
       <${RowBlock}>
         <${Row} testid="mine-menu-backup" name=${t('R-M03.backup')} onClick=${() => go(MINE_ROUTES.backup)}
-          value=${last ? t('R-M03.lastBackup', { date: dayText(last) }) : t('R-M03.noBackup')} valueTestid="mine-backup-value"
-          extra=${{ 'data-to': MINE_ROUTES.backup, 'data-last': last || '' }} />
-        <${Row} testid="mine-menu-annual" name=${t('X-MINE.annual')} onClick=${() => go(MINE_ROUTES.annual)}
-          value=${String(model.year)} valueTestid="mine-annual-year" extra=${{ 'data-to': MINE_ROUTES.annual }} />
+          value=${backupValue} valueTestid="mine-backup-value"
+          extra=${{ 'data-to': MINE_ROUTES.backup, 'data-last': last || '', 'data-hint': hint ? hint.kind : '' }} />
+        <${Row} testid="mine-menu-annual" name=${t('X-MINE.annual')} onClick=${() => go(MINE_ROUTES.annual, annualYear === model.year ? undefined : { year: annualYear })}
+          value=${String(annualYear)} valueTestid="mine-annual-year" extra=${{ 'data-to': MINE_ROUTES.annual }} />
         <${Row} testid="mine-menu-about" name=${t('X-MINE.about')} onClick=${() => go(MINE_ROUTES.about)} extra=${{ 'data-to': MINE_ROUTES.about }} />
       </${RowBlock}>
       <p class="sz-mine__ver" data-testid="mine-version"><${VersionText} /></p>

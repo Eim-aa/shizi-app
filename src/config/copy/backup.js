@@ -60,6 +60,7 @@ export default Object.freeze({
   'X-BACKUP.restoreStay': '先不恢复',
   'X-BACKUP.exportFailed': '备份文件没导出来，你的记录都还在。',
   'X-BACKUP.exportStay': '先不导出',
+  'X-BACKUP.exportFirst': '先导出', // D66 ⑱：替换确认框里直接导出当前记录
   // X-BACKUP.fileName（阶段 1 Q2-7，03 P182）：导出的备份文件名，{ymd} = 本地日 YYYY-MM-DD
   'X-BACKUP.fileName': '拾字备份-{ymd}.json',
 });

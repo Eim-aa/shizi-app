@@ -137,6 +137,7 @@ injectStyles('mine-backup', `
 .sz-bk__file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
 .sz-bk__undo{position:relative;margin:0 -8px}
 .sz-bk__undo .sz-undobar{position:relative;left:auto;right:auto;bottom:auto}
+.sz-bk__exportfirst.sz-btn--text{align-self:flex-start;min-height:44px;margin:-8px 0 -8px;padding:8px 0}
 .sz-bk__loss{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink1}}
 `);
 
@@ -240,7 +241,7 @@ onShareFailed(kind => {
  * 替换 / 恢复确认框。标题说后果，正文一句说影响；取消在左（次）、确认在右（主），不预选、不变红（规范 B3）。
  * 替换时正文后多一行「会丢失哪几天的记录」。
  */
-export function RestoreConfirm({ model, onConfirm, close, active = true }) {
+export function RestoreConfirm({ model, onConfirm, onExport = null, close, active = true }) {
   const replace = model.mode === 'replace';
   const date = dateText(model.day);
   const body = replace ? t('R-B03.replaceBody', { date, n: model.n, m: model.m }) : t('R-B03.restoreBody', { date, n: model.n });
@@ -251,6 +252,7 @@ export function RestoreConfirm({ model, onConfirm, close, active = true }) {
     cancelLabel=${t('X-BACKUP.confirmCancel')} confirmLabel=${replace ? t('X-BACKUP.replaceOk') : t('R-B03.restoreBtn')}
     onConfirm=${onConfirm} close=${close} active=${active}>
     ${loss ? html`<p class="sz-bk__loss" data-testid="backup-restore-confirm-loss" data-from=${model.loss.from} data-to=${model.loss.to}>${loss}</p>` : null}
+    ${loss && onExport ? html`<${Button} variant="text" class="sz-bk__exportfirst" data-testid="backup-restore-export" onClick=${onExport}>${t('X-BACKUP.exportFirst')}</${Button}>` : null}
   </${Confirm}>`;
 }
 
@@ -276,6 +278,7 @@ function BackupScreen({ entry }) {
   const undoRef = useRef(undo);
   undoRef.current = undo;
   const handlersRef = useRef(null); // 原生回调交给最新一次渲染的处理函数
+  const exportRef = useRef(null); // 确认框里的「先导出」调用最新一次渲染的 doExport
 
   // ---- 恢复流程
   const runRestore = report => {
@@ -310,7 +313,8 @@ function BackupScreen({ entry }) {
       nav.closeOverlay(overlayId);
       runRestore(report);
     };
-    overlayId = nav.openOverlay(RestoreConfirm, { model, onConfirm }, { name: RESTORE_OVERLAY });
+    // D66 ⑱：确认框里直接「先导出」（评委 P3：原先要 取消 → 导出 → 重选文件 三步）；导出完成确认框还在，接着可以点「替换」。
+    overlayId = nav.openOverlay(RestoreConfirm, { model, onConfirm, onExport: () => exportRef.current && exportRef.current() }, { name: RESTORE_OVERLAY });
   };
 
   const receiveText = text => {
@@ -424,6 +428,8 @@ function BackupScreen({ entry }) {
       setExportFail(true);
     });
   };
+
+  exportRef.current = doExport;
 
   // ---- 挂载：P32 恢复撤销底栏 / 删过期副本；交付挂载前到达的原生回调
   useEffect(() => {

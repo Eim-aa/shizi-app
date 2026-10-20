@@ -828,6 +828,12 @@ export default async function run(page, { baseURL, assert, step }) {
   await waitConfirm(page);
   v = await view(page);
   assert.equal(v.confirm.title, T.replaceTitle, 'shiziBackupPicked → in-page confirm');
+  // D66 ⑱：确认框里直接「先导出」——不必先取消再导出再重选文件；点了之后确认框还在
+  assert.equal(await page.textContent(topSel('backup-restore-export')), '先导出', 'D66 ⑱: 先导出 button inside the replace confirm');
+  const sharesBefore = await page.evaluate(() => window.__nativeMsgs.filter(m => m.type === 'shareBackup').length);
+  await page.click(topSel('backup-restore-export'));
+  await page.waitForFunction(n => window.__nativeMsgs.filter(m => m.type === 'shareBackup').length === n + 1, sharesBefore);
+  assert.ok(await page.isVisible(topSel('backup-restore-confirm')), 'D66 ⑱: the confirm stays open after 先导出, 替换 is still one tap away');
   await page.click(topSel('backup-restore-cancel'));
   await page.waitForFunction(() => !document.querySelector('[data-testid="backup-restore-confirm"]'));
   await waitNavIdle(page);

@@ -4,8 +4,9 @@ import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
 import {
   recordIndex, practiceDaySet, streakDays, overviewModel, calendarModel, monthSheet, sheetPreview, dayItems, mineModel, recordsModel, clampMonth,
-  weekdayIndex, lastBackupDay, firstRecordMonth, MINE_SHEET_COLS, MINE_SHEET_ROWS,
+  weekdayIndex, lastBackupDay, backupHint, storagePressureNear, firstRecordMonth, MINE_SHEET_COLS, MINE_SHEET_ROWS,
 } from '../../src/ui/screens/mine/model.js';
+import { recordsSignature } from '../../src/core/backup.js';
 
 const TODAY = '2026-09-24'; // 周四
 
@@ -230,4 +231,37 @@ test('300 chars in a month: models stay fast', () => {
   assert.equal(m.sheet.chars, 300);
   assert.equal(r.sheet.cells.length, 300);
   assert.ok(ms < 100, `models in ${ms.toFixed(1)}ms`);
+});
+
+test('D66 ⑱ backup hint: >= 30 days since last backup (or since first record when never backed up), only with records and changes', () => {
+  serial = 0;
+  const at = day => new Date(`${day}T12:00:00`).getTime();
+  const rs = [rec('静', '2026-07-01')];
+  // 从没备份：最早记录 7/1 → 9/24 = 85 天
+  assert.deepEqual(mineModel(state(rs), TODAY).backupHint, { kind: 'stale', days: 85 });
+  // 刚满 30 天才出，29 天不出
+  assert.deepEqual(backupHint(state([rec('谁', '2026-08-25')]), TODAY), { kind: 'stale', days: 30 });
+  assert.equal(backupHint(state([rec('谁', '2026-08-26')]), TODAY), null, '29 days: no hint');
+  // 备份过：距上次备份
+  assert.deepEqual(backupHint(state(rs, { backupMeta: { lastExportAt: at('2026-08-20'), lastExportSig: 'x' } }), TODAY), { kind: 'stale', days: 35 });
+  assert.equal(backupHint(state(rs, { backupMeta: { lastExportAt: at('2026-09-10'), lastExportSig: 'x' } }), TODAY), null, '14 days');
+  // 备份以后记录没变（签名一致）：没有东西可备份，不提示
+  const st = state(rs, { backupMeta: { lastExportAt: at('2026-08-01') } });
+  st.backupMeta.lastExportSig = recordsSignature(st.records);
+  assert.equal(backupHint(st, TODAY), null);
+  // 没有记录（含只看过答案）：不提示
+  assert.equal(backupHint(state([]), TODAY), null);
+  assert.equal(backupHint(null, TODAY), null);
+  assert.equal(backupHint(state([rec('户', '2026-06-01', { kind: 'answer-seen' })], { backupMeta: { lastExportAt: at('2026-06-02') } }), TODAY), null);
+});
+
+test('D66 ⑱ storage pressure (card A field storagePressure): shown only when readable and near the limit; wins over the 30-day hint', () => {
+  serial = 0;
+  const rs = [rec('静', '2026-07-01')];
+  for (const v of [true, 'near', 'high', 'full', { near: true }, { level: 'high' }, { ratio: 0.9 }, 0.85]) assert.equal(storagePressureNear(v), true, JSON.stringify(v));
+  for (const v of [undefined, null, false, 0, 0.3, 'ok', {}, { level: 'low' }, NaN]) assert.equal(storagePressureNear(v), false, String(v));
+  assert.equal(backupHint(state(rs, { backupMeta: { lastExportAt: new Date('2026-09-20T12:00:00').getTime(), lastExportSig: 'x' } }), TODAY), null, 'field absent → nothing');
+  assert.deepEqual(backupHint(state(rs, { storagePressure: 'near', backupMeta: { lastExportAt: new Date('2026-09-20T12:00:00').getTime(), lastExportSig: 'x' } }), TODAY), { kind: 'pressure' });
+  assert.deepEqual(mineModel(state(rs), TODAY, { storagePressure: true }).backupHint, { kind: 'pressure' }, 'opts.storagePressure beats the 30-day hint');
+  assert.equal(backupHint(state([]), TODAY, undefined, { storagePressure: true }), null, 'no records → nothing to export');
 });

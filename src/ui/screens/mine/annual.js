@@ -14,10 +14,11 @@
 //   annual-twice（data-char）、annual-twice-first / annual-twice-last（data-record / data-day）、annual-twice-date、
 //   annual-empty、annual-empty-glyph、annual-empty-title、annual-empty-body。
 
-import { html, useMemo } from '../../../../vendor/ui.js';
+import { html, useMemo, useState } from '../../../../vendor/ui.js';
 import { registerScreen, getScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { useSaveFlow } from '../../image-quick.js';
+import { Icons } from '../../components/icons.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
@@ -30,7 +31,7 @@ import { monthDayParts } from '../../../core/dates.js';
 import { monthCells } from '../../../core/images/pick.js';
 import { inkOf, recordHasInk } from '../detail/records.js';
 import { hasInkOfStore, useStoreState, useToday } from './records.js';
-import { annualModel } from './annual-model.js';
+import { annualDefaultYear, annualModel } from './annual-model.js';
 import { openMonth } from './month.js';
 import { annualCoverLine, annualYearText } from '../../work-text.js';
 
@@ -39,6 +40,12 @@ export const ANNUAL_SCREEN = 'annual';
 injectStyles('mine-annual', `
 .sz-ann{display:flex;flex-direction:column;gap:0;margin:0 -4px}
 .sz-ann__fail{margin:0;text-align:center;font-size:${T.fs13};line-height:${T.lh13};color:${T.ink1}}
+.sz-ann__yhead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sz-ann__arrows{display:flex;gap:4px;margin-right:-4px}
+.sz-ann__arrow.sz-btn{width:44px;height:44px;display:grid;place-items:center;color:${T.ink2}}
+.sz-ann__arrowbg{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:${T.field}}
+.sz-ann__arrow.sz-btn[disabled]{color:${T.ink4};cursor:default}
+.sz-ann__arrow.sz-btn[disabled] .sz-ann__arrowbg{background:transparent;box-shadow:inset 0 0 0 1px ${T.line}}
 .sz-ann__year{margin:0;font-family:${T.song};font-size:${T.fs34};line-height:${T.lh34};font-weight:400;color:${T.ink1}}
 .sz-ann__line{margin:8px 0 0;font-size:${T.fs17};line-height:${T.lh17};color:${T.ink2}}
 .sz-ann__first{display:flex;gap:20px;align-items:flex-end;margin-top:24px;padding-bottom:16px}
@@ -75,13 +82,13 @@ function currentStore() {
   }
 }
 
-/** 打开年度报告（「我的」菜单同名屏）。目标屏没注册时只 console.warn。 */
-export function openAnnual() {
+/** 打开年度报告（「我的」菜单同名屏）。year：看哪一年（缺省 = 今年有记录看今年，否则最近有记录的一年，D66 ⑪）。目标屏没注册时只 console.warn。 */
+export function openAnnual({ year } = {}) {
   if (!getScreen(ANNUAL_SCREEN)) {
     console.warn(`[shizi] screen "${ANNUAL_SCREEN}" is not registered yet`);
     return false;
   }
-  nav.push(ANNUAL_SCREEN);
+  nav.push(ANNUAL_SCREEN, Number.isInteger(year) ? { year } : {});
   return true;
 }
 
@@ -134,7 +141,7 @@ function AnnualEmpty() {
     testids: { root: 'annual-empty', cell: 'annual-empty-glyph', title: 'annual-empty-title', body: 'annual-empty-body' } });
 }
 
-function Report({ model, state }) {
+function Report({ model, state, onYear }) {
   const store = currentStore();
   const sw = useScreenWidth();
   const ax = useAxSize();
@@ -146,7 +153,17 @@ function Report({ model, state }) {
   const firstBuilt = builtInk(firstInk);
   const twice = model.twice;
   return html`
-    <h2 class="sz-ann__year" data-testid="annual-year" data-year=${model.year}>${annualYearText(model.year)}</h2>
+    <div class="sz-ann__yhead">
+      <h2 class="sz-ann__year" data-testid="annual-year" data-year=${model.year}>${annualYearText(model.year)}</h2>
+      ${model.years.length > 1
+        ? html`<span class="sz-ann__arrows" data-testid="annual-years" data-years=${model.years.join(' ')}>
+            <${Button} variant="plain" class="sz-ann__arrow" data-testid="annual-prev" disabled=${model.prevYear == null}
+              aria-label=${t('X-ANNUAL.prevYear')} onClick=${() => onYear(model.prevYear)}><span class="sz-ann__arrowbg">${Icons.prev()}</span></${Button}>
+            <${Button} variant="plain" class="sz-ann__arrow" data-testid="annual-next" disabled=${model.nextYear == null}
+              aria-label=${t('X-ANNUAL.nextYear')} onClick=${() => onYear(model.nextYear)}><span class="sz-ann__arrowbg">${Icons.next()}</span></${Button}>
+          </span>`
+        : null}
+    </div>
     <p class="sz-ann__line" data-testid="annual-head" data-n=${model.count}>${annualCoverLine(model.count)}</p>
     ${first
       ? html`<div class="sz-ann__first" data-testid="annual-first" data-char=${first.char} data-day=${first.day}
@@ -179,26 +196,39 @@ function Report({ model, state }) {
 }
 
 /** 分享弹层（images-annual.js 在年报页之外没有别的入口，按需动态加载，与 images-entry.js 的加载顺序无关）。只在「调整图片」（分享、存成长图）时进入。 */
-async function shareAnnual() {
+async function shareAnnual(year) {
   const { openAnnualImage } = await import('../../images-annual.js');
-  openAnnualImage();
+  openAnnualImage({ year });
 }
 
 /** 年报的导出任务（同上，按需加载）。 */
-async function annualJob() {
+async function annualJob(year) {
   const { buildAnnualJob } = await import('../../images-annual.js');
-  return buildAnnualJob();
+  return buildAnnualJob({ year });
 }
 
-function AnnualScreen() {
+function AnnualScreen({ params }) {
   const state = useStoreState();
   const today = useToday();
-  const model = useMemo(() => annualModel(state, today, { hasInk: hasInkOfStore(), policy: defaultPolicy }), [state, today]);
+  // D66 ⑪：看哪一年——params.year（刷新 / 返回能恢复）；没有就取缺省（今年有记录看今年，否则最近有记录的一年）。多于一年时页内用「‹ ›」逐年切换，只有一年不出任何切换。
+  const [picked, setPicked] = useState(() => (params && Number.isInteger(params.year) ? params.year : null));
+  const year = picked != null ? picked : annualDefaultYear(state, today);
+  const model = useMemo(() => annualModel(state, today, { hasInk: hasInkOfStore(), policy: defaultPolicy, year }), [state, today, year]);
+  // 切年写回 params（本页在顶层时），刷新 / 从月字帖返回都停在这一年
+  const onYear = next => {
+    if (!Number.isInteger(next)) return;
+    setPicked(next);
+    try {
+      nav.setParams({ year: next });
+    } catch (error) {
+      // 本页不在顶层时忽略
+    }
+  };
   // 与月字帖同一布局（I3 · P1-23）：页头右侧「调整图片 ›」进预览，底栏「保存图片」一次点击直接存（册页每张 3:4）
-  const flow = useSaveFlow(annualJob);
+  const flow = useSaveFlow(() => annualJob(year));
   const trailing = model.empty
     ? null
-    : html`<${Button} variant="text" data-testid="annual-adjust" aria-label=${t('X-WORK.adjustAria')} onClick=${shareAnnual}>${t('X-WORK.adjustImage')}</${Button}>`;
+    : html`<${Button} variant="text" data-testid="annual-adjust" aria-label=${t('X-WORK.adjustAria')} onClick=${() => shareAnnual(year)}>${t('X-WORK.adjustImage')}</${Button}>`;
   const footer = model.empty
     ? null
     : [html`<${LiveRegion} key="live" text=${flow.note} testid="annual-save-live" />`,
@@ -208,7 +238,7 @@ function AnnualScreen() {
   return html`<${Page} title=${t('X-MINE.annual')} trailing=${trailing} footer=${footer} testid="annual-screen">
     <div class="sz-ann" data-testid="annual-body" data-state=${model.empty ? 'empty' : 'report'} data-year=${model.year}
       data-today=${today} data-count=${model.count} data-days=${model.days} data-months=${model.months.length} style=${model.empty ? { flex: '1' } : null}>
-      ${model.empty ? html`<${AnnualEmpty} />` : html`<${Report} model=${model} state=${state} />`}
+      ${model.empty ? html`<${AnnualEmpty} />` : html`<${Report} model=${model} state=${state} onYear=${onYear} />`}
     </div>
   </${Page}>`;
 }

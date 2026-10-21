@@ -28,20 +28,9 @@ export function strokeAnnouncement(prev, next) {
   return t('X-WRITE.liveUndo', { n: next });
 }
 
-/** 一段笔画范围的读法：「第 4 笔」「第 4 到第 5 笔」。from 从 0 起、to 不含；没有笔画名称数据，一律按笔序。 */
-export function strokeRangeText(from, to) {
-  const a = Math.trunc(Number(from)) + 1;
-  const b = Math.trunc(Number(to));
-  if (!(a >= 1) || !(b >= a)) return '';
-  return a === b ? t('X-WRITE.liveRangeOne', { a }) : t('X-WRITE.liveRangeMany', { a, b });
-}
-
-/** 提示给出了 [from, to) 笔 → 播报句。 */
-export function hintAnnouncement(range) {
-  if (!range) return '';
-  const text = strokeRangeText(range.from, range.to);
-  return text ? t('X-WRITE.liveHint', { range: text }) : '';
-}
+// B2.2：提示播报的两句（strokeRangeText / hintAnnouncement）挪到无 DOM 的 src/session/ops/hint.js（写字会话 API 的 hint op 同一句），这里原名转出。
+import { strokeRangeText, hintAnnouncement } from '../../../session/write-ops.js';
+export { strokeRangeText, hintAnnouncement };
 
 /** 进入描一遍：参考字形画出了全部 total 笔。没有笔顺数据（楷体整字）时只说出现了参考字形。 */
 export function traceAnnouncement(total) {

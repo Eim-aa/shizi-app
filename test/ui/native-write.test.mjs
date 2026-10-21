@@ -12,6 +12,7 @@ import { commitJudgment, commitComparePhase } from '../../src/ui/screens/write/c
 import { commitStrokes } from '../../src/ui/screens/write/persist.js';
 import { commitFinish } from '../../src/ui/screens/result/index.js';
 import { createSession } from '../../src/core/sessions.js';
+import { hintSourceOf, hintStep, commitHintStep, commitHint } from '../../src/ui/screens/write/hint-layer.js';
 import { setCardResolver } from '../../src/data/deck.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -68,7 +69,7 @@ function apiOn(store, navigate = quietNav) {
 }
 
 test('ops: the B2.0 set is named; unknown op is rejected without throwing', () => {
-  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy']);
+  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint']);
   const r = apiOn(fakeStore()).call('nope', {});
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'unknown-op');
@@ -234,7 +235,171 @@ test('open: recovery is idempotent (a judged-but-not-advanced card is advanced o
 test('open: timing for the native surface comes from the same source as the web page (P227 pen arm, M1 judge keys)', async () => {
   const { PEN_ARM_MS } = await import('../../src/ui/screens/write/index.js');
   const { M } = await import('../../src/config/motion.js');
+  const { PRESS_GUARD_MS } = await import('../../src/ui/components/Button.js');
+  const hint = await import('../../src/ui/screens/write/hint-layer.js');
+  const fade = await import('../../src/ui/screens/write/phase-fade.js');
+  const layout = await import('../../src/ui/screens/write/layout.js');
   const r = apiOn(fakeStore()).call('open', { slot: 'A' });
-  assert.deepEqual(r.timing, { penArmMs: PEN_ARM_MS, judgeAppearMs: M.moment.judgeAppear, judgeReadyMs: M.moment.judgeReady });
+  assert.deepEqual(r.timing, { penArmMs: PEN_ARM_MS, judgeAppearMs: M.moment.judgeAppear, judgeReadyMs: M.moment.judgeReady, pressGuardMs: PRESS_GUARD_MS });
   assert.equal(r.timing.penArmMs, 250);
+  assert.equal(r.timing.pressGuardMs, 400, '0.4s 防误点（确认单 2）');
+  // T-phase 与提示层的时长：与网页 phase-fade.js / hint-layer.js 同一组值
+  assert.deepEqual(r.motion, {
+    fade: fade.FADE_MS, textOut: fade.TEXT_OUT_MS, inkFlip: fade.FLIP_MS, phaseReverse: M.role.phaseReverse, reduce: M.dur.reduce,
+    hintIn: hint.HINT_FADE_IN_MS, hintOut: hint.HINT_FADE_OUT_MS, hintReduced: hint.REDUCED_FADE_MS,
+  });
+  // 版式常量：与网页 layout.js 同一组（01 §6.1）
+  assert.equal(r.layout.min, layout.GRID_MIN);
+  assert.equal(r.layout.max, layout.GRID_MAX);
+  assert.equal(r.layout.promptGap, layout.PROMPT_GAP);
+  assert.equal(r.layout.toolRowHeight + r.layout.noteHeight, layout.TOOLS_H);
+  assert.equal(r.layout.bottomGap, layout.BOTTOM_GAP);
+  assert.equal(r.layout.topShare, layout.TOP_SHARE);
+  assert.equal(r.layout.topMin, layout.TOP_MIN);
+  assert.equal(r.layout.nominalHead, layout.NOMINAL_HEAD_H);
+  assert.equal(r.layout.nominalFoot, layout.NOMINAL_FOOT_H);
+  assert.equal(r.layout.footBottomMin, layout.FOOT_BOTTOM_MIN);
+  assert.equal(r.layout.nominalPrompt, layout.PROMPT_H_STD);
+  assert.equal(r.layout.fitGridMin, layout.FIT_GRID_MIN);
+  assert.equal(r.layout.hintMatchMaxDist, hint.HINT_MATCH_MAX_DIST);
+});
+
+// ---------------------------------------------------------------- B2.2 提示（hint op）：网页路径 == API 路径
+
+/** 网页写字页点一次提示（useHint.onHint 的同一组函数：来源由笔顺数据推出，hintStep + commitHintStep）。 */
+function webHint(store, { cardKey, n, used, range, written, groups }) {
+  const s = store.getState().sessions.A;
+  const data = n > 0 ? { medians: Array.from({ length: n }, () => [[0, 0]]) } : null;
+  const source = hintSourceOf({ status: n > 0 ? 'ready' : 'missing', data, char: cardKey.slice(5), groups });
+  const step = hintStep({ source, used, written, range });
+  if (!step) return null;
+  commitHintStep(store, { slot: 'A', sessionId: s.id, cardKey, step });
+  return step;
+}
+
+function withGroups(table, fn) {
+  const saved = globalThis.GROUPS;
+  globalThis.GROUPS = table;
+  try {
+    return fn();
+  } finally {
+    if (saved === undefined) delete globalThis.GROUPS;
+    else globalThis.GROUPS = saved;
+  }
+}
+
+test('hint op: every tap = the web hint path field by field, up to the whole char (= answer seen, D64 ①)', () => withGroups({ 永: [4, 4] }, () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  let local = { used: 0, range: null };
+  let web = { used: 0, range: null };
+  const st = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'state', totalStrokes: 8 });
+  assert.equal(st.ok, true);
+  assert.equal(st.button.kind, 'available');
+  assert.equal(st.button.remaining, 4, '8 strokes with group data → quarters of 2');
+  assert.equal(st.button.label, t('R-W05.hintRemaining', { n: 4 }));
+  for (let i = 0; i < 4; i += 1) {
+    const w = webHint(viaWeb, { cardKey: 'base:永', n: 8, used: web.used, range: web.range, written: 1, groups: [4, 4] });
+    const r = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 8, used: local.used, range: local.range, written: 1 });
+    assert.equal(r.ok, true, `tap #${i + 1}`);
+    assert.deepEqual(r.hintRange, w.hintRange);
+    assert.equal(r.used, w.used);
+    assert.equal(r.whole, w.whole);
+    assert.deepEqual(viaApi.getState(), viaWeb.getState(), `state after tap #${i + 1}`);
+    local = { used: r.used, range: r.hintRange };
+    web = { used: w.used, range: w.hintRange };
+  }
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  assert.deepEqual(viaApi.labels, ['hint', 'hint', 'hint', 'write:answer-seen'], 'the tap that gives the whole char records answer-seen');
+  const cur = viaApi.getState().sessions.A;
+  assert.equal(cur.current.answerSeen, true);
+  assert.equal(cur.current.phase, 'recall', 'stays in recall to keep writing');
+  assert.deepEqual(cur.current.hintRange, { from: 0, to: 8 });
+  const done = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 8, used: local.used, range: local.range, written: 1 });
+  assert.equal(done.ok, false);
+  assert.equal(done.error.kind, 'unavailable');
+  assert.equal(done.button.kind, 'exhausted', 'the button stays (greyed) after the hint gave the whole char');
+  assert.equal(done.button.label, t('R-W05.hintUsedUp'));
+}));
+
+test('hint op: no group data → one stroke per tap; a segment already written is skipped (same skip as the web)', () => withGroups({}, () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  const w = webHint(viaWeb, { cardKey: 'base:永', n: 5, used: 0, range: null, written: 2, groups: null });
+  const r = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 5, used: 0, range: null, written: 2 });
+  assert.deepEqual(r.given, { from: 2, to: 3, skip: 2 });
+  assert.equal(r.used, 3);
+  assert.deepEqual(r.hintRange, w.hintRange);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.equal(r.announce, t('X-WRITE.liveHint', { range: t('X-WRITE.liveRangeOne', { a: 3 }) }), 'spoken: the strokes now shown');
+}));
+
+test('hint op: all hint strokes absorbed → hintRange null; undo brings them back (= web hint-fade commit)', () => withGroups({}, () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  webHint(viaWeb, { cardKey: 'base:永', n: 5, used: 0, range: null, written: 0, groups: null });
+  const g = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 5, used: 0, written: 0 });
+  const s = viaWeb.getState().sessions.A;
+  commitHint(viaWeb, { slot: 'A', sessionId: s.id, cardKey: 'base:永', hints: 1, hintRange: null }, 'hint-fade');
+  api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'range', hints: g.used, hintRange: null });
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.equal(viaApi.getState().sessions.A.current.hintRange, null);
+  commitHint(viaWeb, { slot: 'A', sessionId: s.id, cardKey: 'base:永', hints: 1, hintRange: { from: 0, to: 1 } }, 'hint-fade');
+  api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'range', hints: g.used, hintRange: { from: 0, to: 1 } });
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+}));
+
+test('hint op: no stroke data → unavailable button + note; stale card refused; a failed write still gives the hint (P52) and the next write catches up', () => withGroups({}, () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  const none = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'state', totalStrokes: 0 });
+  assert.equal(none.button.kind, 'unavailable');
+  assert.equal(none.button.label, t('R-W05.hintUnavailable'));
+  assert.equal(none.note.text, t('R-W05.noHintNote'));
+  assert.equal(api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 0 }).error.kind, 'unavailable');
+  assert.equal(api.call('hint', { slot: 'A', cardKey: 'base:和', action: 'give', totalStrokes: 3 }).error.kind, 'stale');
+  assert.equal(api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'state' }).button.kind, 'loading', 'stroke count not known yet');
+  assert.deepEqual(store.labels, []);
+  store.failures = 1;
+  const failed = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 5, used: 0, written: 0 });
+  assert.equal(failed.ok, false);
+  assert.deepEqual(failed.given, { from: 0, to: 1, skip: 0 }, 'shown anyway');
+  assert.equal(store.getState().sessions.A.current.hints, 0);
+  const next = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 5, used: failed.used, range: failed.hintRange, written: 0 });
+  assert.equal(next.ok, true);
+  assert.equal(store.getState().sessions.A.current.hints, 2, 'the local count is carried into the next write');
+  assert.deepEqual(store.getState().sessions.A.current.hintRange, { from: 0, to: 2 });
+}));
+
+test('hints feed the judgment the same way on both paths (D66 ②: review with 2+ hints)', () => withGroups({}, () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  let w = webHint(viaWeb, { cardKey: 'base:永', n: 5, used: 0, range: null, written: 0, groups: null });
+  w = webHint(viaWeb, { cardKey: 'base:永', n: 5, used: w.used, range: w.hintRange, written: 0, groups: null });
+  let r = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 5 });
+  r = api.call('hint', { slot: 'A', cardKey: 'base:永', action: 'give', totalStrokes: 5, used: r.used, range: r.hintRange });
+  commitComparePhase(viaWeb, { slot: 'A', cardKey: 'base:永', phase: 'compare', strokes: [STROKE_A] });
+  commitJudgment(viaWeb, { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: [STROKE_A], hints: w.used });
+  api.call('phase', { slot: 'A', cardKey: 'base:永', phase: 'compare', strokes: strokesToWire([STROKE_A]) });
+  api.call('judge', { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: strokesToWire([STROKE_A]), hints: r.used });
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  const rec = Object.values(viaApi.getState().records).flat()[0];
+  assert.equal(rec.help.hints, 2);
+}));
+
+test('snapshot: hint range, answer seen and the previous card line (text only; 修改 › is B2.5)', () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  nativeJudge(api, store, 'wrong', [STROKE_A]);
+  const snap = writeSnapshot(store.getState(), 'A');
+  assert.equal(snap.answerSeen, false);
+  assert.equal(snap.hintRange, null);
+  assert.equal(snap.line.state, 'judged');
+  assert.equal(snap.line.text, t('R-W10.lineRecordedWrong', { char: '永' }).split(' · ')[0]);
+  assert.ok(!snap.line.text.includes('和'), 'the line names the previous char, never the current answer (D16)');
 });

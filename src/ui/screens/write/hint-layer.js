@@ -25,10 +25,7 @@
 // 组件 / hook：useStrokeData(char)、useHint({...})、HintLayer、HintButton、HintNote。
 
 import { html, useEffect, useLayoutEffect, useReducer, useRef, useState } from '../../../../vendor/ui.js';
-import { nextHintRange, hintButtonState, hintButtonCopy, hintsAllGiven } from '../../../core/hints.js';
-import { commitAnswerSeen } from './answer.js';
-import * as defaultPolicy from '../../../config/policy.js';
-import { t } from '../../../config/copy/index.js';
+import { hintsAllGiven } from '../../../core/hints.js';
 import { watchStrokes, peekStrokes } from '../../../data/strokes.js';
 import { mediansInBox, prefersReducedMotion } from '../../canvas/glyph.js';
 import { M } from '../../../config/motion.js';
@@ -38,273 +35,62 @@ import { SolidIcons } from '../../components/icons.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { NoHintLabel } from './glyph-fallback.js';
 
-// ---------------------------------------------------------------- 常量（原型 L505–L510 / 01 §6.4）
-// 节奏里的过渡值（单笔时长上限、错开系数、减少动态效果的淡化时长）在 policy.motion（P70，待设计走查）；
-// strokeDrawMs / hintTimeline 可传 motion 覆盖。其余是原型 / 01 §6.4 的工程常量。
-
-export const HINT_DRAW = Object.freeze({
-  minMs: M.dur.fade, // D58 归并：原型的 110 → motion.duration.fade（阶段 2 原生逐笔写出的基准；网页阶段整组淡入）
-  maxMs: defaultPolicy.motion.hintStrokeMs,
-  stagger: defaultPolicy.motion.hintStagger,
-  opacity: 1, // 整组的显隐不透明度；淡朱实填本身不透明（对比度见 test/ui/contrast.test.mjs「提示」）
-});
-/** 提示整组淡入（P210；D51 ⑧ 网页阶段的最小过渡）。 */
-export const HINT_FADE_IN_MS = defaultPolicy.motion.hintFadeInMs;
-/** 被本人笔收掉的那一笔提示的淡出时长（01 §6.4；D53 ⑧：只收写过的那一笔）。 */
-export const HINT_FADE_OUT_MS = M.role.hintStrokeOut;
-/** 序号对不上时按几何最近匹配的上限：本人笔画到提示笔中线的平均距离（书写格 345 单位，约格边的 11%）；更远的不算「写过这一笔」。 */
-export const HINT_MATCH_MAX_DIST = 40;
-/** 减少动态效果时的淡入淡出（02 §3 M1-3 / R-G01；policy.motion.reducedFadeMs，P70）。 */
-export const REDUCED_FADE_MS = defaultPolicy.motion.reducedFadeMs;
-
-// ---------------------------------------------------------------- 纯逻辑
-
-/** 单笔描画时长（ms）：round(min(max(1100/n,110), 240, 1200/(.3+.7n)))，n = 这次给的笔数。 */
-export function strokeDrawMs(count, motion) {
-  const n = Math.max(1, Math.trunc(Number(count) || 1));
-  const maxMs = motion && Number.isFinite(motion.hintStrokeMs) ? motion.hintStrokeMs : HINT_DRAW.maxMs;
-  return Math.round(Math.min(Math.max(1100 / n, HINT_DRAW.minMs), maxMs, 1200 / (0.3 + 0.7 * n)));
-}
-
-/** 这次提示每笔的 {delay, dur}（ms）与总时长。 */
-export function hintTimeline(count, motion) {
-  const n = Math.max(0, Math.trunc(Number(count) || 0));
-  const dur = strokeDrawMs(n || 1, motion);
-  const stagger = motion && Number.isFinite(motion.hintStagger) ? motion.hintStagger : HINT_DRAW.stagger;
-  const items = [];
-  for (let j = 0; j < n; j += 1) items.push({ delay: Math.round(j * dur * stagger), dur });
-  const total = n ? items[n - 1].delay + dur : 0;
-  return { dur, items, total };
-}
-
-/** deck-data.js 的 GROUPS 表（classic script 顶层 const，挂在全局词法环境，不在 globalThis 上）。 */
-function globalGroups() {
-  try {
-    // eslint-disable-next-line no-undef
-    if (typeof GROUPS !== 'undefined' && GROUPS && typeof GROUPS === 'object') return GROUPS;
-  } catch (error) {
-    // 没有 deck-data（node 单测）
-  }
-  const g = typeof globalThis !== 'undefined' ? globalThis.GROUPS : undefined;
-  return g && typeof g === 'object' ? g : null;
-}
-
-/** 某字的部件分组（每组笔数数组）；没有返回 null。table 缺省读全局 GROUPS。 */
-export function groupsFor(char, table = globalGroups()) {
-  if (!table || typeof char !== 'string' || !char) return null;
-  const g = Object.prototype.hasOwnProperty.call(table, char) ? table[char] : null;
-  return Array.isArray(g) ? g : null;
-}
-
-/** 分组数据可用：每组为正整数、总和等于笔顺数据的总笔数（旧 index.html L2508 同一判据）。 */
-export function hasGroupData(groups, totalStrokes) {
-  if (!Array.isArray(groups) || groups.length === 0) return false;
-  let sum = 0;
-  for (const n of groups) {
-    if (!Number.isInteger(n) || n < 1) return false;
-    sum += n;
-  }
-  return sum === totalStrokes;
-}
-
-/**
- * 笔顺数据状态 → 提示用的来源描述。
- * @param {{status:'loading'|'ready'|'missing', data?:object|null, char?:string, groups?:number[]|null}} input
- * @returns {{status:'loading'|'ready'|'missing', totalStrokes:number, hasStrokeData:boolean, hasGroups:boolean}}
- */
-export function hintSourceOf({ status, data, char, groups } = {}) {
-  if (status === 'ready' && data && Array.isArray(data.medians) && data.medians.length > 0) {
-    const totalStrokes = data.medians.length;
-    const g = groups === undefined ? groupsFor(char) : groups;
-    return { status: 'ready', totalStrokes, hasStrokeData: true, hasGroups: hasGroupData(g, totalStrokes) };
-  }
-  if (status === 'missing') return { status: 'missing', totalStrokes: 0, hasStrokeData: false, hasGroups: false };
-  return { status: 'loading', totalStrokes: 0, hasStrokeData: true, hasGroups: false };
-}
-
-/**
- * 下一次提示的笔序范围 {from, to, count, index}（to 不含）；不能给（加载中 / 无数据 / 已用完）返回 null。
- */
-export function planHint({ source, used = 0, written = 0 }) {
-  if (!source || source.status !== 'ready') return null;
-  const at = u => nextHintRange({ totalStrokes: source.totalStrokes, used: u, hasStrokeData: source.hasStrokeData, hasGroups: source.hasGroups });
-  let r = at(used);
-  if (!r) return null;
-  // 这一段已经全被本人写过了（先写了几笔才点提示）：点一下什么都看不到，白烧一次——顺延到下一段，跳过的段也算已给出（次数照推：used 加上 skip）。最后一段不再顺延。
-  let skip = 0;
-  for (;;) {
-    if (r.from + r.count > written) break;
-    const n = at(used + skip + 1);
-    if (!n) break;
-    r = n;
-    skip += 1;
-  }
-  return { from: r.from, to: r.from + r.count, count: r.count, index: r.index, skip };
-}
-
-/**
- * 提示按钮模型。
- * @returns {{kind:'hidden'} | {kind:'unavailable', label} | {kind:'loading'|'available'|'exhausted', label, disabled, remaining}}
- */
-export function hintButtonModel({ phase = 'recall', status, used = 0, answerSeen = false, source = null } = {}) {
-  const total = source && source.status === 'ready' ? source.totalStrokes : 0;
-  const hasGroups = source ? source.hasGroups : true;
-  // 看过答案后不显示；唯一的例外是提示整字给完时记的看过答案（按钮留着，不可点，读屏「提示已用完」）
-  const done = hintsAllGiven({ totalStrokes: total, used, hasStrokeData: status !== 'missing', hasGroups });
-  if (phase !== 'recall' || (answerSeen && !done)) return { kind: 'hidden' };
-  const st = hintButtonState({ used, hasStrokeData: status !== 'missing', totalStrokes: total, hasGroups });
-  const copy = hintButtonCopy(st);
-  const label = t(copy.key, copy.vars); // 读屏名称（「提示，还有 2 次」「提示已用完」）；可见文字一律是 text（D49：次数不画出来）
-  const text = t('R-W05.hintLabel');
-  if (st.state === 'unavailable') return { kind: 'unavailable', label };
-  if (st.state === 'exhausted') return { kind: 'exhausted', label, text, disabled: true, remaining: 0 };
-  if (status !== 'ready') return { kind: 'loading', label, text, disabled: true, remaining: st.remaining };
-  return { kind: 'available', label, text, disabled: false, remaining: st.remaining };
-}
-
-/** 格下说明（提示相关的两句）。其余说明（保存失败、看过答案…）由各自卡片决定优先级。 */
-export function hintNoteModel({ phase = 'recall', status, used = 0, answerSeen = false } = {}) {
-  if (phase !== 'recall' || answerSeen) return null;
-  if (status === 'missing') return { kind: 'no-hint', text: t('R-W05.noHintNote'), dot: true };
-  return null; // 用过提示后没有说明句（D51 ⑧：不再用文字解释颜色）
-}
-
-function validRange(r) {
-  return !!r && typeof r === 'object' && Number.isInteger(r.from) && Number.isInteger(r.to) && r.from >= 0 && r.to > r.from;
-}
-
-/** 新一段提示是不是紧接着现有范围（D64 ①：接在已给出的最后一笔之后）。 */
-function continuesRange(prev, next) {
-  return validRange(prev) && validRange(next) && prev.to <= next.from;
-}
-
-/**
- * 新一段提示并入现有范围（D64 ①）：紧接着现有范围就延长（起点不变，终点到新一段末），否则（范围已被别处清空 / 恢复现场没有范围）就是新一段本身。
- * 页面写进 sessions.current.hintRange 的就是这个合并后的范围。
- */
-export function mergeHintRange(prev, next) {
-  return continuesRange(prev, next) ? { from: prev.from, to: next.to } : { from: next.from, to: next.to };
-}
-
-/** 提示笔里还没被本人笔收掉的笔序号（升序）。 */
-export function hintRemaining(view) {
-  if (!view || !validRange(view.range)) return [];
-  const gone = new Set((view.absorbed || []).map(a => a.hint));
-  const out = [];
-  for (let i = view.range.from; i < view.range.to; i += 1) if (!gone.has(i)) out.push(i);
-  return out;
-}
-
-/** 提示层此刻有没有东西可看（还有没收的笔，或有一笔正在淡出）。 */
-export function hintVisible(view) {
-  return hintRemaining(view).length > 0 || !!(view && view.fading && view.fading.length);
-}
-
-function distToSegment(px, py, ax, ay, bx, by) {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const len2 = dx * dx + dy * dy;
-  const t = len2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2)) : 0;
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-}
-
-/** 本人一笔（原始采样，书写格 345 单位）到一条提示笔中线（同单位折线）的平均距离。 */
-export function meanDistanceToMedian(points, median) {
-  if (!Array.isArray(points) || !points.length || !Array.isArray(median) || !median.length) return Infinity;
-  const step = Math.max(1, Math.floor(points.length / 24));
-  let sum = 0;
-  let n = 0;
-  for (let i = 0; i < points.length; i += step) {
-    const p = points[i];
-    let best = Infinity;
-    if (median.length === 1) best = Math.hypot(p.x - median[0][0], p.y - median[0][1]);
-    for (let j = 0; j + 1 < median.length; j += 1) best = Math.min(best, distToSegment(p.x, p.y, median[j][0], median[j][1], median[j + 1][0], median[j + 1][1]));
-    sum += best;
-    n += 1;
-  }
-  return n ? sum / n : Infinity;
-}
-
-/**
- * 本人写下的第 index 笔对应哪一笔提示（纯函数；D53 ⑧）。先按笔顺序号：index 本身还在 remaining 里就是它；
- * 否则按几何最近：remaining 里中线离本人笔画最近的一笔，平均距离 ≤ maxDist 才算（没有笔画 / 中线数据时不匹配）。
- * @param {{remaining:number[], index:number, points?:Array<{x:number,y:number}>, medians?:Array<Array<[number,number]>>, maxDist?:number}} o
- * @returns {number|null} 提示笔序号；匹配不上返回 null
- */
-export function matchHintStroke({ remaining, index, points = null, medians = null, maxDist = HINT_MATCH_MAX_DIST } = {}) {
-  if (!Array.isArray(remaining) || !remaining.length) return null;
-  if (remaining.includes(index)) return index;
-  if (!Array.isArray(points) || !points.length || !Array.isArray(medians)) return null;
-  let best = null;
-  let bestD = Infinity;
-  for (const h of remaining) {
-    const d = meanDistanceToMedian(points, medians[h]);
-    if (d < bestD) {
-      bestD = d;
-      best = h;
-    }
-  }
-  return best !== null && bestD <= maxDist ? best : null;
-}
-
-/**
- * 提示层视图状态（每个字一份）。
- * show：'none' 没有提示；'in' 有提示（run 变化即重新淡入）。range：这次给的 {from, to}（笔序 0 起、to 不含）。
- * absorbed：[{user, hint}] 已被本人笔收掉的提示笔（user = 本人第几笔）；fading：[{hint}] 正在淡出的（收掉后 260ms 内）。
- * stored：会话现场 {hints, hintRange}（恢复时 hintRange 仍在 → 直接静态显示，不再描画）；written = 恢复时已写笔数，据此按笔顺序号推出哪些提示笔已被收掉。
- */
-export function initialHintView(key, stored, written = 0) {
-  const used = Math.max(0, Math.trunc(Number(stored && stored.hints) || 0));
-  const range = stored && validRange(stored.hintRange) ? { from: stored.hintRange.from, to: stored.hintRange.to } : null;
-  const absorbed = [];
-  if (range) {
-    const w = Math.max(0, Math.trunc(Number(written) || 0));
-    for (let u = range.from; u < Math.min(range.to, w); u += 1) absorbed.push({ user: u, hint: u });
-  }
-  return { key, used, range, absorbed, fading: [], show: range ? 'in' : 'none', run: 0, restored: !!range };
-}
-
-export function reduceHintView(view, action) {
-  switch (action.type) {
-    case 'reset':
-      return initialHintView(action.key, action.stored, action.written);
-    case 'hint':
-      if (!validRange(action.range)) return view;
-      {
-        // 在已给出的提示笔之后再多给一段（D64 ①）：被本人笔收掉的仍算已给出（不再回来）、没收的继续留着
-        const keep = continuesRange(view.range, action.range);
-        const absorbed = keep ? view.absorbed.slice() : [];
-        // 新一段里已经被本人写过的笔（按笔顺序号，同恢复现场的推法）直接算收掉，不再画
-        const w = Math.max(0, Math.trunc(Number(action.written) || 0));
-        for (let u = action.range.from; u < Math.min(action.range.to, w); u += 1) if (!absorbed.some(a => a.hint === u)) absorbed.push({ user: u, hint: u });
-        return { ...view, used: view.used + 1 + Math.max(0, Math.trunc(Number(action.skip) || 0)), range: mergeHintRange(view.range, action.range), absorbed, fading: keep ? view.fading : [], show: 'in', run: view.run + 1, restored: false };
-      }
-    case 'absorb': {
-      // 本人写完一笔（user）收掉提示笔 hint：只那一笔淡出，其余留着；已收掉的 / 不在这次范围里的不再收
-      if (!validRange(view.range) || !hintRemaining(view).includes(action.hint)) return view;
-      return { ...view, absorbed: view.absorbed.concat([{ user: action.user, hint: action.hint }]), fading: view.fading.concat([{ hint: action.hint }]) };
-    }
-    case 'faded': {
-      if (!view.fading.some(f => f.hint === action.hint)) return view;
-      return { ...view, fading: view.fading.filter(f => f.hint !== action.hint) };
-    }
-    case 'restore': {
-      // 撤销 / 清空：笔数退到 fromUser 笔——它们收掉的提示笔回来（同时重新淡入这一组）
-      const back = view.absorbed.filter(a => a.user >= action.fromUser);
-      if (!back.length) return view;
-      const gone = new Set(back.map(a => a.hint));
-      return { ...view, absorbed: view.absorbed.filter(a => a.user < action.fromUser), fading: view.fading.filter(f => !gone.has(f.hint)), show: 'in', run: view.run + 1, restored: false };
-    }
-    case 'sync-used':
-      return action.used > view.used ? { ...view, used: action.used } : view;
-    default:
-      return view;
-  }
-}
-
-// B2.1：提交函数与纯模型挪到无 DOM 的 src/session/（src/session/write-ops.js）；这里导入并原名转出，原导入路径照旧可用。
-import { applyHintToDraft, commitHint } from '../../../session/write-ops.js';
-export { applyHintToDraft, commitHint };
+// B2.1 / B2.2：提交函数与纯模型（常量、来源判定、planHint、按钮 / 说明模型、视图状态机、匹配、时间线、点一次提示的 hintStep / commitHintStep）
+// 在无 DOM 的 src/session/ops/hint.js；这里导入并原名转出，原导入路径照旧可用（网页与写字会话 API 用的是同一批函数）。
+import {
+  HINT_DRAW,
+  HINT_FADE_IN_MS,
+  HINT_FADE_OUT_MS,
+  HINT_MATCH_MAX_DIST,
+  REDUCED_FADE_MS,
+  strokeDrawMs,
+  hintTimeline,
+  groupsFor,
+  hasGroupData,
+  hintSourceOf,
+  hintSourceOfCount,
+  planHint,
+  hintButtonModel,
+  hintNoteModel,
+  mergeHintRange,
+  hintRemaining,
+  hintVisible,
+  meanDistanceToMedian,
+  matchHintStroke,
+  initialHintView,
+  reduceHintView,
+  applyHintToDraft,
+  commitHint,
+  hintStep,
+  commitHintStep,
+} from '../../../session/write-ops.js';
+export {
+  HINT_DRAW,
+  HINT_FADE_IN_MS,
+  HINT_FADE_OUT_MS,
+  HINT_MATCH_MAX_DIST,
+  REDUCED_FADE_MS,
+  strokeDrawMs,
+  hintTimeline,
+  groupsFor,
+  hasGroupData,
+  hintSourceOf,
+  hintSourceOfCount,
+  planHint,
+  hintButtonModel,
+  hintNoteModel,
+  mergeHintRange,
+  hintRemaining,
+  hintVisible,
+  meanDistanceToMedian,
+  matchHintStroke,
+  initialHintView,
+  reduceHintView,
+  applyHintToDraft,
+  commitHint,
+  hintStep,
+  commitHintStep,
+};
 // ---------------------------------------------------------------- 样式
 
 injectStyles('hint-layer', `
@@ -493,22 +279,14 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
     if (v.key !== ck) return;
     const model = hintButtonModel({ phase, status: source.status, used, answerSeen, source });
     if (model.kind !== 'available') return;
-    const range = planHint({ source, used, written });
-    if (!range) return;
+    // 点一次提示（D64 ①）：与写字会话 API 的 hint op 同一对函数（src/session/ops/hint.js hintStep / commitHintStep）。
+    const step = hintStep({ source, used, written, range: v.range });
+    if (!step) return;
     clearTimers();
     clearedRef.current = false;
-    dispatch({ type: 'hint', range, written, skip: range.skip });
+    dispatch({ type: 'hint', range: step.plan, written, skip: step.plan.skip });
     if (typeof onHinted === 'function') onHinted(); // 写字页：跳过的撤销机会到此结束（G3）
-    // 写入失败不阻断（P52 同口径）：提示照常显示，本地 used 已 +1，下次写入带上。
-    const merged = mergeHintRange(v.range, range);
-    const usedNow = used + 1 + range.skip;
-    const patch = { hints: usedNow, hintRange: merged };
-    const whole = hintsAllGiven({ totalStrokes: source.totalStrokes, used: usedNow, hasStrokeData: source.hasStrokeData, hasGroups: source.hasGroups });
-    if (!whole) {
-      doCommit('hint', patch);
-      return;
-    }
-    // 整字都给出了：这一次提示的写入同时把这个字记为看过答案（与「看答案」同一函数、同一口径，D64 ①），页面仍留在回忆阶段继续写。
+    // 写入失败不阻断（P52 同口径）：提示照常显示，本地 used 已 +1，下次写入带上。整字都给出了：这次写入同时记为看过答案，页面仍留在回忆阶段继续写。
     const { slot: sl, session: se } = live.current;
     let store = null;
     try {
@@ -516,8 +294,8 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
     } catch (error) {
       store = null;
     }
-    const result = store ? commitAnswerSeen(store, { slot: sl, cardKey: ck, stay: true, hints: patch.hints, hintRange: patch.hintRange }) : { ok: false, error: { kind: 'no-store' } };
-    lastCommitRef.current = { label: 'hint-whole', ...(result.ok ? { ok: true, applied: true } : { ok: false, error: result.error }) };
+    const result = store ? commitHintStep(store, { slot: sl, sessionId: se.id, cardKey: ck, step }) : { ok: false, error: { kind: 'no-store' } };
+    lastCommitRef.current = { label: step.whole ? 'hint-whole' : 'hint', ...result };
   }
 
   // 写过哪笔收哪笔（D53 ⑧）：本人笔数在回忆阶段 +1（抬笔）→ 收掉与它匹配的那一笔提示（只那一笔淡出）；笔数减少（撤销 / 清空）→ 被收掉的提示笔回来。

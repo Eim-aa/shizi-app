@@ -1,7 +1,7 @@
 // QA-H1：逐屏对比的元素配对与差异（ios/ShiziApp/scripts/native-ui/elements.mjs）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { diffState, colorDelta, normText } from '../ios/ShiziApp/scripts/native-ui/elements.mjs';
+import { assignKeys, diffState, colorDelta, normText } from '../ios/ShiziApp/scripts/native-ui/elements.mjs';
 import { CHECKS } from '../ios/ShiziApp/scripts/native-ui/parity-checks.mjs';
 
 const tol = { pos: 1, size: 1, textHeight: 4, color: 8, font: 0.5, weight: 0.1 };
@@ -43,4 +43,15 @@ test('every named check (AI report NP-*) has an id, a status and states', () => 
     assert.ok(['expected-fail', 'pass'].includes(c.status));
     assert.ok(c.states.length > 0);
   }
+});
+
+test('primary key: only the full-width primary button; the help-row 下一个 (same testid in the trace phase) pairs by text', () => {
+  const web = assignKeys([
+    { kind: 'button', id: 'write-answer-next', class: 'sz-btn sz-btn--text', text: '下一个', frame: { x: 20, y: 718, w: 362, h: 48 } },
+    { kind: 'button', id: 'write-trace-done', class: 'sz-btn sz-btn--primary', text: '凭记忆写', frame: { x: 20, y: 786, w: 362, h: 54 } },
+  ], 'web');
+  assert.equal(web[0].key, undefined);
+  assert.equal(web[1].key, 'primary');
+  const next = assignKeys([{ kind: 'button', id: 'write-answer-next', class: 'sz-btn sz-btn--primary', text: '下一个', frame: { x: 20, y: 786, w: 362, h: 54 } }], 'web');
+  assert.equal(next[0].key, 'primary');
 });

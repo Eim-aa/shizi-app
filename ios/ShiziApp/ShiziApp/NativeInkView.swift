@@ -309,12 +309,24 @@ final class NativeInkRenderer {
 
 @objc(ShiziNativeInkView)
 final class NativeInkView: UIView {
+    /// 写字页书写面的笔模型参数（R9-A NP-07 / NP-21：同一组笔画的墨粗与网页接近，±25%）。
+    /// ink-model-1.0 默认值（金标准向量绑定的 InkParams.default）在快写的横画上只有网页墨粗的 ~60%（横画方向因子 0.72 × 快写下限 0.62）；
+    /// 这里在规格 §3.11 的 T2 范围内取：整体墨量 base 13 → 15、快写最细 vMin 0.62 → 0.72、横画 dirH 0.72 → 0.82（横竖比 1.56 → 1.37）。
+    /// 结构性参数与算法不动、金标准自检仍按默认值跑；T2 盲测定稿后改写进 policy.ink、由页面随 open 给出（暂定值，见架构文档 §12 R9-A）。
+    static let surfaceParams: InkParams = {
+        var k = InkParams.default
+        k.base = 15
+        k.vMin = 0.72
+        k.dirH = 0.82
+        return k
+    }()
+
     override class var layerClass: AnyClass { CAMetalLayer.self }
     var metalLayer: CAMetalLayer { layer as! CAMetalLayer } // swiftlint:disable:this force_cast
 
     weak var delegate: NativeInkViewDelegate?
     let renderer: NativeInkRenderer
-    var params = InkParams.default
+    var params = NativeInkView.surfaceParams
     var inputPolicy = NativeInkInputPolicy()
 
     /// 墨色（预乘前，0–1）与整体不透明度。

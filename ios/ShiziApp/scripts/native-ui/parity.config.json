@@ -1,8 +1,36 @@
 {
   "//": "QA-H1 逐屏对比容差（文字高度另用 textHeight：两边行高 / 字体度量不同；pt / 0–255 通道 / pt / 字重 -1…1）。ignore：明确不比的差异（state / type / label 任意组合；label 为语义键或归一后的文字）。",
-  "tolerance": { "pos": 1, "size": 1, "textHeight": 4, "color": 8, "font": 0.5, "weight": 0.1 },
+  "tolerance": {
+    "pos": 1,
+    "size": 1,
+    "textHeight": 4,
+    "color": 8,
+    "font": 0.5,
+    "weight": 0.1
+  },
   "ignore": [
-    { "type": "extra", "label": "hintLayer", "//": "提示层是原生的叠层视图，没有文字" },
-    { "state": "end-dialog", "type": "size", "label": "end-body", "//": "R9-B：iOS 中文排版把行末句号「。」压成半宽（TextKit 规则，WebKit 不压），两行正文第一行的文字框窄约 7pt；字形位置、折行处、行距与网页一致，只差这一处量法" }
+    {
+      "type": "extra",
+      "label": "hintLayer",
+      "//": "提示层是原生的叠层视图，没有文字"
+    },
+    {
+      "state": "end-dialog",
+      "type": "size",
+      "label": "end-body",
+      "//": "R9-B：iOS 中文排版把行末句号「。」压成半宽（TextKit 规则，WebKit 不压），两行正文第一行的文字框窄约 7pt；字形位置、折行处、行距与网页一致，只差这一处量法"
+    },
+    {
+      "state": "change-sheet",
+      "type": "size",
+      "label": "hé",
+      "//": "R9-A：弹层 / 确认框盖着写字页时，网页整页 aria-hidden，取证脚本不给底下文字的文字框（只剩 span 盒：拼音行高 22 + 下内边距 4 = 26），只能拿原生标签框（22）比盒高；拼音的字号、位置、宽度与其它状态逐项一致"
+    },
+    {
+      "state": "end-dialog",
+      "type": "size",
+      "label": "hé",
+      "//": "R9-A：弹层 / 确认框盖着写字页时，网页整页 aria-hidden，取证脚本不给底下文字的文字框（只剩 span 盒：拼音行高 22 + 下内边距 4 = 26），只能拿原生标签框（22）比盒高；拼音的字号、位置、宽度与其它状态逐项一致"
+    }
   ]
 }

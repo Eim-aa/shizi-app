@@ -66,6 +66,7 @@ extension WebViewController: NativeWriteCoordinating {
             vc.modalPresentationStyle = .overFullScreen
             vc.transitioningDelegate = vc.transitions
             let animate = body["animate"] as? Bool ?? true
+            QATrace.note("open via=\(body["via"] as? String ?? "") animate=\(animate)") // QA-H1 测试钩子：转场核对（NF-01）
             // D62：首页入口应是「纸展开」、其他入口推入（B2.8 做）；B2.0 一律推入，冷启动恢复不带动画
             present(vc, animated: animate)
         case "close":
@@ -143,6 +144,7 @@ final class NativeWriteSlide: NSObject, UIViewControllerAnimatedTransitioning {
     }
 
     func animateTransition(using ctx: UIViewControllerContextTransitioning) {
+        QATrace.note("\(presenting ? "present" : "dismiss"):\(fade ? "fade" : "slide")\(ctx.isInteractive ? ":interactive" : "")") // QA-H1 测试钩子
         let key: UITransitionContextViewKey = presenting ? .to : .from
         guard let v = ctx.view(forKey: key) else { ctx.completeTransition(false); return }
         let w = ctx.containerView.bounds.width

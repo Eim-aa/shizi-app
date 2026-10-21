@@ -247,7 +247,8 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
   // P1-S2：原生书写面 spike 叠层（__shiziNativeInk、-shizi-native-ink、NativeInkSpike）、金标准自检 InkModelCheck、T1 量测 NativeInkLatency 同样只在 DEBUG。
   //   B2.1 起书写面本身（NativeInkView / InkModel）转正为 Release 组件，不在此列（verify-archive.sh 反过来断言 Release 含它）。
   // B2.0：原生写字页最小纵切（__shiziNativeWrite、-shizi-native-write、NativeWrite* / NativeGlyph）开关默认关、只在 DEBUG。
-  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|InkModelCheck|NativeInkLatency|__shiziNativeWrite|shizi-native-write|NativeWrite|NativeGlyph/;
+  // QA-H1：界面测试的状态注入 / 取证 / 探针（-shizi-qa*、NativeQAHarness、QAProbe、QATrace）只在 DEBUG。
+  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|InkModelCheck|NativeInkLatency|__shiziNativeWrite|shizi-native-write|NativeWrite|NativeGlyph|shizi-qa|NativeQA|QAProbe|QATrace|qa-probe/;
   const leaks = [];
   for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
     const stack = [];

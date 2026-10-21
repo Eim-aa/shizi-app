@@ -313,18 +313,20 @@ export default async function p1e1bLayout(page, ctx) {
   await page.waitForTimeout(500);
 
   // ------------------------------------------------------------------ G Toast
-  step('G: toast — min height 48, no dot, 2px timer line, gutter 20');
+  step('G: toast — min height 48, no dot, 2px timer line, gutter 20; raised light surface, 24 radius, not the primary fill (D71 ③)');
   await page.evaluate(async () => { (await import('/src/ui/components/Toast.js')).showToast('测试一条提示', { kind: 'failure' }); });
   await page.waitForSelector('[data-testid="toast"]');
   const toast = await page.evaluate(() => {
     const el = document.querySelector('[data-testid="toast"]');
     const r = el.getBoundingClientRect();
     const t = el.querySelector('[data-testid="toast-timer"]');
-    return { h: r.height, left: r.left, right: window.innerWidth - r.right, dot: !!el.querySelector('.sz-toast__dot'), timerH: t ? t.getBoundingClientRect().height : null, radius: getComputedStyle(el).borderTopLeftRadius };
+    return { h: r.height, left: r.left, right: window.innerWidth - r.right, dot: !!el.querySelector('.sz-toast__dot'), timerH: t ? t.getBoundingClientRect().height : null, radius: getComputedStyle(el).borderTopLeftRadius, bg: getComputedStyle(el).backgroundColor, border: getComputedStyle(el).borderTopWidth, btnBg: (() => { const b = document.createElement('button'); b.className = 'sz-btn sz-btn--primary'; document.body.appendChild(b); const c = getComputedStyle(b).backgroundColor; b.remove(); return c; })() };
   });
   assert.ok(toast.h >= 48 - 0.5, `toast ≥ 48 high (${toast.h})`);
   assert.ok(near(toast.left, 20) && near(toast.right, 20), `toast edges are the 20pt gutter (${toast.left}, ${toast.right})`);
   assert.equal(toast.dot, false, 'no leading dot in the toast');
   assert.equal(toast.timerH, 2, 'a 2px timer line runs along the bottom edge');
-  assert.equal(toast.radius, '12px', 'toast radius = control (12)');
+  assert.equal(toast.radius, '24px', 'toast radius = container (24): an L4 floating bar, not a 12-radius button (D71 ③)');
+  assert.ok(toast.bg !== toast.btnBg, `toast surface is not the primary button fill (${toast.bg} vs ${toast.btnBg}, D71 ③)`);
+  assert.equal(toast.border, '1px', 'toast has a 1px hairline edge (--toast-line)');
 }

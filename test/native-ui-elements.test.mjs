@@ -1,7 +1,7 @@
 // QA-H1：逐屏对比的元素配对与差异（ios/ShiziApp/scripts/native-ui/elements.mjs）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assignKeys, diffState, colorDelta, normText } from '../ios/ShiziApp/scripts/native-ui/elements.mjs';
+import { assignKeys, diffState, colorDelta, contrastRatio, normText } from '../ios/ShiziApp/scripts/native-ui/elements.mjs';
 import { CHECKS } from '../ios/ShiziApp/scripts/native-ui/parity-checks.mjs';
 
 const tol = { pos: 1, size: 1, textHeight: 4, color: 8, font: 0.5, weight: 0.1 };
@@ -37,7 +37,7 @@ test('colour delta is the max channel difference', () => {
 test('every named check (AI report NP-*) has an id, a status and states', () => {
   const ids = new Set();
   for (const c of CHECKS) {
-    assert.match(c.id, /^NP-\d\d$/);
+    assert.match(c.id, /^(NP|L4)-\d\d$/); // NP：AI 报告编号；L4：设计系统规则（D71 ③）
     assert.ok(!ids.has(c.id), `duplicate ${c.id}`);
     ids.add(c.id);
     assert.ok(['expected-fail', 'pass'].includes(c.status));
@@ -54,4 +54,19 @@ test('primary key: only the full-width primary button; the help-row 下一个 (s
   assert.equal(web[1].key, 'primary');
   const next = assignKeys([{ kind: 'button', id: 'write-answer-next', class: 'sz-btn sz-btn--primary', text: '下一个', frame: { x: 20, y: 786, w: 362, h: 54 } }], 'web');
   assert.equal(next[0].key, 'primary');
+});
+
+test('L4-01: a floating bar painted with the primary button fill fails; the raised light surface passes (D71 ③)', () => {
+  const c = CHECKS.find(x => x.id === 'L4-01');
+  assert.ok(c && c.status === 'pass');
+  const screen = (barBg, radius) => [
+    { key: 'undo-bar', kind: 'view', bg: barBg, radius, frame: { x: 20, y: 638, w: 362, h: 62 } },
+    { key: 'primary', kind: 'button', bg: '#E4DDD0FF', enabled: false, radius: 12, frame: { x: 20, y: 786, w: 362, h: 54 } },
+  ];
+  const old = c.eval({ appearance: 'light', web: screen('#26211DFF', 12), native: screen('#26211DFF', 12) });
+  assert.equal(old.pass, false, 'old look (toast-bg = btn-bg, 12 radius) is rejected');
+  assert.ok(c.eval({ appearance: 'light', web: screen('#FBF8F2FF', 24), native: screen('#FBF8F2FF', 24) }).pass);
+  assert.ok(c.eval({ appearance: 'dark', web: screen('#2A2520FF', 24), native: screen('#2A2520FF', 24) }).pass);
+  assert.equal(c.eval({ appearance: 'dark', web: screen('#2A2520FF', 24), native: screen('#E2D9C9FF', 24) }).pass, false, 'native alone regressing fails too');
+  assert.ok(Math.abs(contrastRatio('#26211D', '#FBF8F2') - 15.03) < 0.01);
 });

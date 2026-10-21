@@ -107,6 +107,21 @@ export function rgba(hex) {
   return [1, 2, 3, 4].map(i => (m[i] === undefined ? 255 : parseInt(m[i], 16)));
 }
 
+/** WCAG 2.x 对比度（只看 RGB，忽略透明度）；任一缺失 → null。 */
+export function contrastRatio(a, b) {
+  const x = rgba(a), y = rgba(b);
+  if (!x || !y) return null;
+  const lum = c => {
+    const [r, g, bl] = c.slice(0, 3).map(v => {
+      const u = v / 255;
+      return u <= 0.03928 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 /** 两色最大通道差（0–255）；任一缺失 → null。透明度按纸色上叠合前直接比通道（够用于找差异）。 */
 export function colorDelta(a, b) {
   const x = rgba(a), y = rgba(b);

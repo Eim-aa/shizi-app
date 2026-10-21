@@ -40,6 +40,16 @@ enum NativeInkWire {
         return nil
     }
 
+    /// 页面 box-shadow 令牌（"0px 4px 16px rgba(…)"，单层）→ 偏移 / 模糊 / 颜色。CSS 的 blur 是高斯 2σ，CALayer.shadowRadius 取 blur / 2。
+    static func shadow(_ s: String?) -> (dx: CGFloat, dy: CGFloat, blur: CGFloat, color: UIColor)? {
+        guard let s = s?.trimmingCharacters(in: .whitespaces), !s.isEmpty, s != "none",
+              let open = s.firstIndex(of: "(") ?? s.firstIndex(of: "#") else { return nil }
+        let start = s[..<open].range(of: "rgb", options: .backwards)?.lowerBound ?? open
+        let nums = s[..<start].split(separator: " ").compactMap { Double($0.replacingOccurrences(of: "px", with: "")) }
+        guard nums.count >= 3, let c = uiColor(String(s[start...])) else { return nil }
+        return (CGFloat(nums[0]), CGFloat(nums[1]), CGFloat(nums[2]), c)
+    }
+
     /// 页面令牌颜色 → UIColor。
     static func uiColor(_ s: String?) -> UIColor? {
         guard let c = parseColor(s) else { return nil }

@@ -45,7 +45,7 @@ const th = tokens.color.contrast.thresholds;
 /** 每个配对属于哪一类要求（tokens.json thresholds）：正文 4.5、大字与图形 3、提示 / 描红 3、提示对本人墨 3。 */
 const KIND = {
   'ink1/paper': 'text', 'ink2/paper': 'text', 'ink3/paper': 'text', 'ink3/sheet': 'text',
-  'btnFg/btnBg': 'text', 'toastFg/toastBg': 'text',
+  'btnFg/btnBg': 'text', 'toastFg/toastBg': 'text', 'toastBg/btnBg': 'toastVsPrimary',
   'ink4/paper': 'largeTextAndGraphics', 'hand/sheet': 'largeTextAndGraphics', 'ref/sheet': 'largeTextAndGraphics',
   'under/sheet': 'largeTextAndGraphics', 'frame/sheet': 'largeTextAndGraphics', 'frame/paper': 'largeTextAndGraphics', 'wall4/paper': 'largeTextAndGraphics',
   'zhu/paper': 'largeTextAndGraphics', 'zhu/sheet': 'largeTextAndGraphics', 'onSeal/seal': 'largeTextAndGraphics',

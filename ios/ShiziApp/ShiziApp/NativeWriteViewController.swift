@@ -62,6 +62,8 @@ final class NativeWriteViewController: UIViewController {
     private(set) var snapshot: [String: Any]
     private var copy: [String: String]
     private var colors: [String: UIColor] = [:]
+    /// 页面令牌原串（颜色以外的令牌，如 toast-shadow 的 box-shadow 串）。
+    private var rawColors: [String: String] = [:]
     private var inkTint: SIMD4<Float>?
     private(set) var phase: Phase = .recall
     private(set) var strokes: [[InkRawPoint]] = []
@@ -210,13 +212,24 @@ final class NativeWriteViewController: UIViewController {
     }
 
     private func applyColors(_ raw: [String: String]?) {
+        rawColors = raw ?? [:]
         for (k, v) in raw ?? [:] {
+            if k.hasSuffix("-shadow") { continue } // box-shadow 串（toast-shadow），不是颜色：toastStyle 用 NativeInkWire.shadow 解析
             if let c = NativeInkWire.uiColor(v) { colors[k] = c }
         }
         if let h = NativeInkWire.parseColor(raw?["hand"]) { inkTint = SIMD4(h.x, h.y, h.z, 1) }
     }
 
     private func color(_ name: String, _ fallback: UIColor) -> UIColor { colors[name] ?? fallback }
+
+    /// L4 浮条（撤销条）外观：全取页面令牌 toast-bg / toast-fg / toast-act / toast-line / toast-shadow 与圆角 r-box（R10-B，D71 ③）；
+    /// 回退值只在令牌缺失时用，取弹层面 / 正文墨（浮起的浅面），不用主按钮的实心色。
+    private func toastStyle() -> NativeToastStyle {
+        let bg = color("toast-bg", color("elev", .secondarySystemBackground))
+        let fg = color("toast-fg", color("ink1", .label))
+        return NativeToastStyle(background: bg, foreground: fg, action: color("toast-act", fg), line: colors["toast-line"] ?? colors["line"],
+                                shadow: NativeInkWire.shadow(rawColors["toast-shadow"]), radius: textType.value("r-box"))
+    }
 
     private func applyTiming(_ payload: [String: Any]) {
         let raw = payload["timing"] as? [String: Any]
@@ -1439,7 +1452,7 @@ final class NativeWriteViewController: UIViewController {
     private func beginUndo(sessionId: String, recordId: String, char: String, strokes held: [[InkRawPoint]]) {
         endUndo()
         undoInfo = (sessionId, recordId, char, held)
-        let bar = NativeUndoBarView(background: color("toast-bg", UIColor(white: 0.15, alpha: 1)), foreground: color("toast-fg", UIColor(white: 0.96, alpha: 1)), type: textType)
+        let bar = NativeUndoBarView(style: toastStyle(), type: textType)
         bar.strings = .init(text: tr("R-W20.skippedToast", ["char": char]), undo: tr("R-W20.undo"), failed: tr("R-W16.saveFailed"), cancel: tr("R-W16.cancel"), retry: tr("R-W16.retry"))
         bar.onUndo = { [weak self] in self?.tapUndoSkip() }
         bar.onCancelFail = { [weak self] in self?.endUndo() }

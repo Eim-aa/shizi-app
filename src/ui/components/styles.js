@@ -99,14 +99,15 @@ export function injectStyles(id, cssText) {
 // 不写颜色 / 字号 / 圆角字面量（scripts/verify_tokens.mjs 检查）；var() 不带回退值，令牌文件一定先于组件样式加载。
 const v = name => `var(--${name})`;
 export const T = {
-  // 颜色（浅 / 深两套在 tokens.css）
+  // 颜色（浅 / 深两套在 tokens.css）。L4 浮条（toast*）是浮起的浅面 + 细边 + 轻阴影，不得用 btnBg 等实心深色（D71 ③）
   paper: v('paper'), sheet: v('sheet'), field: v('field'), elev: v('elev'), line: v('line'), frame: v('frame'), guide: v('guide'),
   ink1: v('ink1'), ink2: v('ink2'), ink3: v('ink3'), ink4: v('ink4'),
   hand: v('hand'), ref: v('ref'), under: v('under'),
   zhu: v('zhu'), seal: v('seal'), onSeal: v('on-seal'), danzhu: v('danzhu'),
   wall1: v('wall1'), wall2: v('wall2'), wall3: v('wall3'), wall4: v('wall4'),
   btnBg: v('btn-bg'), btnFg: v('btn-fg'), btnDown: v('btn-down'), toastBg: v('toast-bg'), toastFg: v('toast-fg'),
-  scrim: v('scrim'), elevShadow: v('elev-shadow'), imgShadow: v('img-shadow'),
+  toastAct: v('toast-act'), toastLine: v('toast-line'),
+  scrim: v('scrim'), elevShadow: v('elev-shadow'), imgShadow: v('img-shadow'), toastShadow: v('toast-shadow'),
   // 字阶：七级，已乘 --k
   k: v('k'),
   fs11: v('fs11'), fs13: v('fs13'), fs15: v('fs15'), fs17: v('fs17'), fs22: v('fs22'), fs28: v('fs28'), fs34: v('fs34'),

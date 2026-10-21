@@ -128,6 +128,9 @@ final class NativeWriteViewController: UIViewController {
     private var endDialog: NativeEndDialogView?
     private var endBusy = false
     private var a11yObserver: NSObjectProtocol?
+    /// R9-B：网页字阶（open 回包 type）与弹层 / 确认框时刻（motion.overlay）。
+    private var textType = NativeType()
+    private var overlaySpec = NativeOverlaySpec()
 
     // MARK: 视图
 
@@ -155,7 +158,7 @@ final class NativeWriteViewController: UIViewController {
     private let refGlyph = NativeGlyphView()
     private let undoButton = UIButton(type: .system)
     private let clearButton = UIButton(type: .system)
-    private let noteView = UIView()
+    private let noteView = NativeOverflowView() // 结果行「修改 ›」的 44pt 热区伸出说明位上沿也点得到（NP-01）
     private let lineLabel = UILabel()
     private let noteDot = UIView()
     private let noteLabel = UILabel()
@@ -218,7 +221,9 @@ final class NativeWriteViewController: UIViewController {
             motion = m.compactMapValues { ($0 as? NSNumber)?.doubleValue }
             easeOut = (m["easeOut"] as? [NSNumber])?.map { $0.doubleValue }
             settleSpec = NativeSettleSpec(motion: m)
+            overlaySpec = NativeOverlaySpec(motion: m)
         }
+        if payload["type"] != nil { textType = NativeType(payload["type"]) }
         if let l = payload["layout"] as? [String: Any] { layoutK = NativeWriteLayoutConstants(l) }
         if let t = payload["trace"] as? [String: Any] {
             trace = t.compactMapValues { ($0 as? NSNumber)?.doubleValue }
@@ -320,8 +325,8 @@ final class NativeWriteViewController: UIViewController {
         for f in [gridFrame, refFrame] {
             f.layer.borderWidth = frameW
             f.layer.borderColor = color("frame", .separator).cgColor
-            f.layer.cornerRadius = 4
-            f.backgroundColor = .clear
+            f.layer.cornerRadius = 0 // --r-work 0：书写格、对照卡方角（D46 ⑪，NP-13）
+            f.backgroundColor = color("sheet", .clear) // 笺底（--sheet）
             f.isUserInteractionEnabled = false
         }
         hintLayer.color = color("danzhu", .systemRed)
@@ -344,17 +349,14 @@ final class NativeWriteViewController: UIViewController {
         }
         lineLabel.accessibilityIdentifier = "native-write-line"
         noteLabel.accessibilityIdentifier = "native-write-note"
-        lineDot.text = "\u{00B7}"
-        lineDot.font = UIFont.preferredFont(forTextStyle: .footnote)
-        lineDot.adjustsFontForContentSizeCategory = true
-        lineDot.textColor = color("ink4", .tertiaryLabel)
         lineDot.isAccessibilityElement = false
         lineDot.textAlignment = .center
         noteView.addSubview(lineDot)
         // 结果行「修改 ›」：文字按钮 13 号 ink1，热区 44（D19 / D46 ⑭）；文字来自页面（line.action），读屏名称去掉 ›
-        changeButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .footnote)
-        changeButton.titleLabel?.adjustsFontForContentSizeCategory = true
         changeButton.setTitleColor(color("ink1", .label), for: .normal)
+        // 网页 .sz-line__change：按钮盒 44 高、比行高多出的 4 全部伸向上面，左右各 4 的内边距，字左对齐
+        changeButton.contentHorizontalAlignment = .left
+        changeButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 4, bottom: 0, right: 4)
         changeButton.accessibilityIdentifier = "native-write-line-change"
         wire(changeButton, id: "change") { $0.tapChange() }
         noteView.addSubview(changeButton)
@@ -401,6 +403,7 @@ final class NativeWriteViewController: UIViewController {
         edgeBack.addTarget(self, action: #selector(handleEdgeBack(_:)))
         view.addGestureRecognizer(edgeBack)
 
+        styleResultLine()
         apply(snapshot: snapshot, keepLocal: false)
         NotificationCenter.default.addObserver(self, selector: #selector(contentSizeChanged), name: UIContentSizeCategory.didChangeNotification, object: nil)
         // 读屏 / 切换控制状态变了：撤销条被钉住后关掉读屏要重新给一整段（write/skip.js onAccessibilityStatus）
@@ -454,6 +457,7 @@ final class NativeWriteViewController: UIViewController {
     }
 
     @objc private func contentSizeChanged() {
+        styleResultLine()
         rebuildPrompt()
         view.setNeedsLayout()
     }
@@ -792,7 +796,7 @@ final class NativeWriteViewController: UIViewController {
         let line = snapshot["line"] as? [String: Any]
         let lineText = line?["text"] as? String ?? ""
         let lineOn = phase == .recall && !answerSeen && flowFail == nil && strokes.isEmpty && !penDown && !lineText.isEmpty
-        lineLabel.text = lineOn ? lineText : nil
+        NativeType.set(lineLabel, lineOn ? lineText : nil, font: textType.font("fs13"), color: color("ink3", .secondaryLabel))
         lineLabel.isHidden = !lineOn
         // 「修改 ›」只对可改的记录开放（sessions.canCorrect → line.canChange；看过答案 / 跳过不可改）
         let action = line?["action"] as? String ?? ""
@@ -986,29 +990,36 @@ final class NativeWriteViewController: UIViewController {
         let noteW = g
         var ny: CGFloat = 0
         if !lineLabel.isHidden {
-            let lh = ceil(lineLabel.sizeThatFits(CGSize(width: noteW, height: .greatestFiniteMagnitude)).height)
-            let infinite = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            // 网页 .sz-line（R9-B，NP-14）：13 / 20 一行「正文 · 修改 ›」，列间 8、折行时行间 4；「修改 ›」按钮盒 = 文字宽 + 8（至少 44）× 44，
+            // 盒子左缘比字左缘外伸 4，下沿对齐行底再 +（说明位 40 − 行高）/ 2，比行多出的高度全部伸向上面（点击区整块 44，NP-01）
+            let rowH = textType.line("lh13")
+            let lh = NativeType.height(lineLabel, width: noteW, line: rowH)
             if changeButton.isHidden {
-                lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: max(lh, 20))
+                lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: lh)
                 lineDot.frame = .zero
-                ny = lineLabel.frame.maxY + 2
+                ny = lh
             } else {
-                // 「正文 · 修改 ›」：一行放得下就一行（修改按钮盒 = 文字宽 + 8、44 高，上下对着行中线伸出；点击区 ≥ 44），放不下折行、修改在下一行行首
-                let lw = ceil(lineLabel.sizeThatFits(infinite).width)
-                let bw = max(44, ceil((changeButton.titleLabel?.sizeThatFits(infinite).width ?? 0)) + 8)
-                let dotW: CGFloat = 12
-                let rowH = max(20, ceil(lineLabel.font.lineHeight))
-                if lw + dotW + bw - 8 <= noteW {
+                let lw = NativeType.width(lineLabel)
+                let dotW = NativeType.width(lineDot)
+                let cw = NativeType.width(changeButton.titleLabel ?? UILabel())
+                let bw = max(44, cw + 8)
+                let below = max(0, (k.noteHeight - rowH) / 2) // 行下沿到说明位下沿
+                if lw + 8 + dotW + 8 + cw <= noteW {
                     lineLabel.frame = CGRect(x: 0, y: 0, width: lw, height: rowH)
-                    lineDot.frame = CGRect(x: lw, y: 0, width: dotW, height: rowH)
-                    changeButton.frame = CGRect(x: lw + dotW - 4, y: rowH / 2 - 22, width: bw, height: 44)
-                    ny = rowH + 2
+                    lineDot.frame = CGRect(x: lw + 8, y: 0, width: dotW, height: rowH)
+                    changeButton.frame = CGRect(x: lw + 8 + dotW + 8 - 4, y: rowH + below - 44, width: bw, height: 44)
+                    ny = rowH
                 } else {
-                    lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: max(lh, rowH))
-                    lineDot.frame = .zero
-                    changeButton.frame = CGRect(x: -4, y: lineLabel.frame.maxY + 2 + rowH / 2 - 22, width: bw, height: 44)
-                    ny = lineLabel.frame.maxY + 2 + rowH + 2
+                    // 折行：正文占满一行（可多行），「· 修改 ›」接在下一行行首（flex-wrap，行间 4）
+                    lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: lh)
+                    let y2 = lh + 4
+                    lineDot.frame = CGRect(x: 0, y: y2, width: dotW, height: rowH)
+                    changeButton.frame = CGRect(x: dotW + 8 - 4, y: y2 + rowH / 2 - 24, width: bw, height: 44)
+                    ny = y2 + rowH
                 }
+                // 字的竖向中线对齐行中线：按钮盒上内边距 = 2 ×（行中线 − 盒顶）− 44
+                let rowMid = lineDot.frame.midY
+                changeButton.contentEdgeInsets = UIEdgeInsets(top: max(0, 2 * (rowMid - changeButton.frame.minY) - 44), left: 4, bottom: 0, right: 4)
             }
         }
         if !noteLabel.isHidden {
@@ -1043,7 +1054,8 @@ final class NativeWriteViewController: UIViewController {
         if let bar = undoBar {
             let bw = w - 2 * gutter
             let bh = bar.height(for: bw)
-            bar.frame = CGRect(x: gutter, y: footTop + 12 - 8 - bh, width: bw, height: bh)
+            // 网页 SkipUndoDock：贴在底栏上方 8（底栏 = 求助行上方 12 起；保存失败时底栏更高，条跟着上移）
+            bar.frame = CGRect(x: gutter, y: footTop - 8 - bh, width: bw, height: bh)
         }
         endDialog?.frame = view.bounds
         startStepPlayIfNeeded()
@@ -1285,7 +1297,7 @@ final class NativeWriteViewController: UIViewController {
     private func beginUndo(sessionId: String, recordId: String, char: String, strokes held: [[InkRawPoint]]) {
         endUndo()
         undoInfo = (sessionId, recordId, char, held)
-        let bar = NativeUndoBarView(background: color("toast-bg", UIColor(white: 0.15, alpha: 1)), foreground: color("toast-fg", UIColor(white: 0.96, alpha: 1)))
+        let bar = NativeUndoBarView(background: color("toast-bg", UIColor(white: 0.15, alpha: 1)), foreground: color("toast-fg", UIColor(white: 0.96, alpha: 1)), type: textType)
         bar.strings = .init(text: tr("R-W20.skippedToast", ["char": char]), undo: tr("R-W20.undo"), failed: tr("R-W16.saveFailed"), cancel: tr("R-W16.cancel"), retry: tr("R-W16.retry"))
         bar.onUndo = { [weak self] in self?.tapUndoSkip() }
         bar.onCancelFail = { [weak self] in self?.endUndo() }
@@ -1369,7 +1381,8 @@ final class NativeWriteViewController: UIViewController {
     private func showEndDialog(n: Int, m: Int, sessionId: String) {
         guard endDialog == nil else { return }
         let strings = NativeEndDialogView.Strings(
-            body: tr("R-W15.confirmBody", ["n": n, "m": m]), end: tr("R-W15.end"), cont: tr("R-W15.continue"),
+            // 判断过 0 个用 confirmBodyNone（只带 n），有判断用 confirmBody（n、m）；两句都由页面给（R9-C）
+            body: m > 0 ? tr("R-W15.confirmBody", ["n": n, "m": m]) : tr("R-W15.confirmBodyNone", ["n": n]), end: tr("R-W15.end"), cont: tr("R-W15.continue"),
             failed: tr("R-W16.saveFailed"), cancel: tr("R-W16.cancel"), retry: tr("R-W16.retry"))
         var pal = NativeEndDialogView.Palette()
         pal.scrim = color("scrim", pal.scrim)
@@ -1378,21 +1391,24 @@ final class NativeWriteViewController: UIViewController {
         pal.ink2 = color("ink2", pal.ink2)
         pal.ink4 = color("ink4", pal.ink4)
         pal.paper = color("paper", pal.paper)
-        let d = NativeEndDialogView(frame: view.bounds, strings: strings, palette: pal)
+        pal.primary = colors["btn-bg"]
+        pal.primaryText = colors["btn-fg"]
+        let d = NativeEndDialogView(frame: view.bounds, strings: strings, palette: pal, type: textType)
         d.onContinue = { [weak self] in self?.dismissEndDialog() }
         d.onCancelFail = { [weak self] in self?.dismissEndDialog() }
         d.onEnd = { [weak self] in self?.commitEnd(sessionId: sessionId) }
-        d.alpha = 0
         view.addSubview(d)
         endDialog = d
-        UIView.animate(withDuration: reduceMotion ? dur("reduce") : (dur("fade") > 0 ? dur("fade") : 0.15), delay: 0, options: [.curveLinear]) { d.alpha = 1 }
+        d.frame = view.bounds
+        d.layoutIfNeeded()
+        d.animateIn(overlaySpec, reduce: reduceMotion) // T-confirm（R9-B）
         UIAccessibility.post(notification: .screenChanged, argument: d)
     }
 
     func dismissEndDialog() {
         guard let d = endDialog else { return }
         endDialog = nil
-        UIView.animate(withDuration: reduceMotion ? dur("reduce") : 0.15, delay: 0, options: [.curveLinear]) { d.alpha = 0 } completion: { _ in d.removeFromSuperview() }
+        d.animateOut(overlaySpec, reduce: reduceMotion)
     }
 
     /// 「结束这组」= 一次 end 提交；成功：有判断 → 换成结果页，零判断 → 回来源；失败留在框里（三段式）；stale = 会话已不是它。
@@ -1771,6 +1787,22 @@ final class NativeWriteViewController: UIViewController {
 
     // MARK: 结果行「修改 ›」与改判弹层（D19）
 
+    /// 结果行字阶（网页 .sz-line：13 / 20，正文 ink3、「·」ink4、「修改 ›」ink1；R9-B）与判断两键字阶（17 / 500）。
+    private func styleResultLine() {
+        lineLabel.adjustsFontForContentSizeCategory = false
+        NativeType.set(lineDot, "\u{00B7}", font: textType.font("fs13"), color: color("ink4", .tertiaryLabel), align: .center)
+        changeButton.titleLabel?.adjustsFontForContentSizeCategory = false
+        changeButton.titleLabel?.font = textType.font("fs13")
+        if !lineLabel.isHidden, let t = lineLabel.text {
+            NativeType.set(lineLabel, t, font: textType.font("fs13"), color: color("ink3", .secondaryLabel))
+        }
+        for b in [wrongButton, correctButton] {
+            b.titleLabel?.adjustsFontForContentSizeCategory = false
+            b.titleLabel?.font = textType.font("fs17", weight: .medium)
+        }
+        view.setNeedsLayout()
+    }
+
     @objc private func tapChange() {
         guard phase == .recall, !submitting, let line = snapshot["line"] as? [String: Any], (line["canChange"] as? Bool) == true,
               let rid = line["recordId"] as? String else { return }
@@ -1787,12 +1819,28 @@ final class NativeWriteViewController: UIViewController {
 
     func presentChangeSheet(_ model: NativeChangeSheetViewController.Model) {
         guard presentedViewController == nil else { return }
-        let style = NativeJudgeStyle(tr: { [weak self] k, v in self?.tr(k, v) ?? "" }, color: { [weak self] n, f in self?.color(n, f) ?? f }, inkTint: inkTint)
+        let style = NativeJudgeStyle(tr: { [weak self] k, v in self?.tr(k, v) ?? "" }, color: { [weak self] n, f in self?.color(n, f) ?? f }, inkTint: inkTint,
+                                     type: textType, overlay: overlaySpec)
         let vc = NativeChangeSheetViewController(slot: slot, model: model, bridge: bridge, style: style) { [weak self] snap in
             // 改判成功：结果行换成「已改为……」，当前字的笔迹 / 提示 / 阶段原样（只改这一次，D19）
             if let snap, (snap["cardKey"] as? String) == self?.cardKey { self?.apply(snapshot: snap, keepLocal: true) }
         }
+        vc.onViewChar = { [weak self] char in self?.openCharDetail(char) }
         present(vc, animated: true)
+    }
+
+    /// 改判弹层「看这个字 ›」（D66 ⑮，R9-B NP-04）：写字条目留在网页栈里，字详情推入在它上面；原生页淡出让开（不发 exit back），
+    /// 详情返回时宿主重新请原生盖上（open via 'return'，笔画 / 结果行从快照恢复）。
+    func openCharDetail(_ char: String) {
+        guard !exitHandled else { return }
+        bridge.call("exit", ["slot": slot, "to": "detail", "char": char]) { [weak self] reply in
+            guard let self, reply.ok else { return }
+            self.exitHandled = true
+            self.saveMetrics()
+            self.endUndo()
+            self.transitions.fadeNext = true
+            self.dismiss(animated: true)
+        }
     }
 
     /// 测试：没有本人笔画的判断页（正常流程到不了，R-W17）。

@@ -127,7 +127,7 @@ final class NativeAnswerSkipTests: XCTestCase {
         XCTAssertEqual(recs.filter { ($0["kind"] as? String) == "judged" }.count, 0, "no judgment for a seen answer")
         let seenId = try XCTUnwrap(seen.first?["id"] as? String)
         let hasInk = try await js("const st = window.__shiziTest.getState(); const r = Object.values(st.records).flat().find(x => x.id === \(Self.literal(seenId))); return !!window.__shiziTest.getInk(r);") as? Bool
-        XCTAssertEqual(hasInk, true, "the last 凭记忆写 is stored as this record's ink (Q1)")
+        XCTAssertEqual(hasInk, false, "D70 ②（R9-C）：凭记忆写的笔迹不存，看过答案记录没有墨迹")
         XCTAssertEqual(sessionA(st)?["cursor"] as? Int, 1)
         let line = vc.snapshot["line"] as? [String: Any]
         XCTAssertEqual(line?["state"] as? String, "saw")

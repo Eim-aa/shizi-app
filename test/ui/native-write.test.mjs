@@ -192,6 +192,23 @@ test('judge reply on the last card says finished; exit navigates to the result p
   assert.deepEqual(calls, [['result', 'A', 's1'], ['back']]);
 });
 
+test('R9-B: exit to the char detail (改判弹层「看这个字 ›」, D66 ⑮) pushes the detail over the write entry — same openCharDetail as the web ViewCharLink', () => {
+  const calls = [];
+  const api = apiOn(fakeStore(), { back: () => calls.push(['back']), toResult: () => calls.push(['result']), toDetail: (slot, char) => { calls.push(['detail', slot, char]); return true; } });
+  assert.equal(api.call('exit', { slot: 'A', to: 'detail', char: '永' }).ok, true);
+  assert.equal(api.call('exit', { slot: 'A', to: 'detail' }).ok, false, 'no char → invalid, nothing navigates');
+  assert.deepEqual(calls, [['detail', 'A', '永']], 'leaving for the detail is neither back nor result');
+  assert.equal(apiOn(fakeStore()).call('exit', { slot: 'A', to: 'detail', char: '永' }).ok, false, 'no toDetail injected → refused, not thrown');
+  assert.equal(apiOn(fakeStore()).call('copy', { keys: ['X-DETAIL.viewChar'] }).copy['X-DETAIL.viewChar'], t('X-DETAIL.viewChar'));
+  assert.ok(NATIVE_WRITE_COPY_KEYS.includes('X-DETAIL.viewChar'));
+});
+
+test('R9-B: open carries the type tokens the page injects (原生按网页字阶排字，不抄表)', () => {
+  const api = createWriteSessionApi({ getStore: () => fakeStore(), navigate: quietNav, colors: () => ({}), type: () => ({ fs13: 13, lh13: 20 }) });
+  assert.deepEqual(api.call('open', { slot: 'A' }).type, { fs13: 13, lh13: 20 });
+  assert.deepEqual(apiOn(fakeStore()).call('open', { slot: 'A' }).type, {});
+});
+
 test('D07: a failed judgment changes nothing and does not advance; the retry records once', () => {
   const store = fakeStore();
   const api = apiOn(store);
@@ -257,7 +274,14 @@ test('open: timing for the native surface comes from the same source as the web 
     hintIn: hint.HINT_FADE_IN_MS, hintOut: hint.HINT_FADE_OUT_MS, hintReduced: hint.REDUCED_FADE_MS,
     easeOut: [...M.bezier.out],
     settle: { lift: M.moment.settleLift, fadeFrom: M.moment.settleFadeFrom, end: M.moment.settleEnd, countBox: M.moment.settleCountBox, liftScale: M.moment.settleLiftScale, gather: [...M.bezier.gather] },
+    // R9-B：改判弹层 T-sheet / 确认框 T-confirm / 下滑关闭阈值——与 Sheet.js / Confirm.js 同一组
+    overlay: {
+      sheetIn: M.role.sheetIn, sheetOut: M.role.sheetOut, scrimIn: M.role.scrimIn, scrimOut: M.role.scrimOut, confirmIn: M.role.confirmIn, confirmOut: M.role.confirmOut,
+      confirmFrom: M.scale.confirmFrom, snap: M.role.gestureSnap, easeIn: [...M.bezier.in],
+      directionSlop: M.gesture.directionSlop, commitRatio: M.gesture.sheetCommitRatio, commitVelocity: M.gesture.commitVelocity, returnVelocity: M.gesture.returnVelocity,
+    },
   });
+  assert.deepEqual([r.motion.overlay.sheetIn, r.motion.overlay.sheetOut, r.motion.overlay.scrimIn, r.motion.overlay.scrimOut], [280, 220, 200, 180], 'T-sheet 进 280 / 退 220、遮罩 200 / 180');
   assert.deepEqual([r.motion.settle.lift, r.motion.settle.fadeFrom, r.motion.settle.end, r.motion.settle.countBox], [100, 380, 460, 14], 'M23 判断落定');
   // 版式常量：与网页 layout.js 同一组（01 §6.1）
   assert.equal(r.layout.min, layout.GRID_MIN);

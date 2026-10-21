@@ -173,6 +173,22 @@ final class WriteFlowTests: XCTestCase {
         XCTAssertTrue(qa.el("native-write-line").label.contains("写对"), "line: \(qa.el("native-write-line").label)")
     }
 
+    /// D66 ⑮（R9-B，NP-04）：改判弹层「看这个字 ›」→ 关弹层、推入这个字的详情；详情返回 → 回到原生写字页，结果行仍在、不多记。
+    func test504_changeSheetViewCharOpensTheDetailAndComesBack() {
+        let qa = QA(seed: "line")
+        qa.launch()
+        qa.tapNative("native-write-line-change")
+        XCTAssertTrue(qa.el("native-change-title").waitForExistence(timeout: 5), "change sheet shown")
+        qa.tapNative("native-change-detail")
+        qa.waitNative(false)
+        qa.waitRouteTop("detail")
+        qa.edgeBack()
+        qa.waitNative(true)
+        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("open via=return") }, "\(qa.transitions)")
+        XCTAssertTrue(qa.el("native-write-line-change").waitForExistence(timeout: 4), "result line still there")
+        XCTAssertEqual(qa.records, 1, "nothing recorded on the way")
+    }
+
     // MARK: §6 跳过
 
     /// §6：跳过直接生效；「已跳过「永」· 撤销」；撤销回到被跳过的字。

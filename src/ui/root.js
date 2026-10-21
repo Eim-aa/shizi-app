@@ -205,6 +205,7 @@ injectStyles('root', `
 .sz-app{position:fixed;inset:0;overflow:hidden;background:${T.paper};color:${T.ink1};font-family:${T.hei};
   -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 .sz-layer{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:${T.paper};display:flex;flex-direction:column}
+.sz-layer[data-native-host]{background:transparent;pointer-events:none}
 .sz-layer--moving{box-shadow:-1px 0 0 ${T.line}}
 .sz-layer--snap{transition:transform ${SNAP_MS}ms ${PUSH_EASING}}
 .sz-layer--under{pointer-events:none}
@@ -272,7 +273,7 @@ function TabRoot({ entry }) {
   </div>`;
 }
 
-function Layer({ router, group, isRoot, visible, isTop }) {
+function Layer({ router, group, isRoot, visible, isTop, nativeHost = false }) {
   const e = group.screen;
   const def = getScreen(e.n);
   const Comp = def ? def.component : null;
@@ -287,6 +288,7 @@ function Layer({ router, group, isRoot, visible, isTop }) {
     data-entry=${e.id}
     data-screen=${e.n}
     data-top=${isTop ? 'true' : undefined}
+    data-native-host=${nativeHost ? 'true' : undefined}
     aria-hidden=${isTop ? undefined : 'true'}
     style=${style}
   >
@@ -701,6 +703,10 @@ function Root({ router, win }) {
     visible.add(anim.from.id);
     visible.add(anim.to.id);
   }
+  // B2.0 原生宿主：顶层页由原生页面盖着显示，网页这一层透明，下层页保持可见（原生左缘滑回时露出的就是它）。
+  const topDef = snap.top ? getScreen(snap.top.n) : null;
+  const nativeHostId = topDef && topDef.nativeHost && topDef.nativeHost(snap.top) ? topId : null;
+  if (nativeHostId && groups.length >= 2) visible.add(groups[groups.length - 2].screen.id);
   const dragging = !anim && gestureOn === 'page' && groups.length >= 2;
   if (dragging) visible.add(groups[groups.length - 2].screen.id);
   const navAnim = anim ? `${anim.kind}-${anim.mode}` : dragging ? 'drag' : gestureOn === 'phase' ? 'drag-phase' : 'idle';
@@ -716,6 +722,7 @@ function Root({ router, win }) {
       isRoot=${i === 0}
       visible=${visible.has(g.screen.id)}
       isTop=${g.screen.id === topId}
+      nativeHost=${g.screen.id === nativeHostId}
     />`)}
     ${webEdge && !anim ? html`<${EdgeStrip} />` : null}
     ${anim ? null : html`<${LeaveUndoHost} snap=${snap} onUndone=${slot => nav.push('write', { slot })} />`}

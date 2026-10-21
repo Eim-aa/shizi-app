@@ -52,6 +52,8 @@ export function registerScreen(name, component, opts = {}) {
     icon: opts.icon || null,
     // 01 §7：本屏在顶层期间自己管原生左缘返回手势门控；根组件此时不发 backGestureEnabled（R4-G1 起写字页不再声明，目前没有页面用）。
     ownsBackGesture: opts.ownsBackGesture === true,
+    // B2.0：本屏此刻由原生页面显示（返回 true 时根组件让下层页保持可见、本层透明不接收触摸；见 write/native-session.js）。
+    nativeHost: typeof opts.nativeHost === 'function' ? opts.nativeHost : null,
   };
   registry.set(name, def);
   return def;

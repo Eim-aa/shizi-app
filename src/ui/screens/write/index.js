@@ -68,6 +68,7 @@ import { LinkButton, Slot, WriteFoot } from './foot.js';
 import { usePhaseFade } from './phase-fade.js';
 import { gridLabel, useWriteAnnounce } from './sr-live.js';
 import { AX_GRID_MIN, AX_NOTE_H, AX_BELOW_H, FOOT_BOTTOM_MIN, TOOL_ROW_H } from './layout.js';
+import { NativeWriteHost, nativeWriteEnabled } from './native-session.js'; // B2.0：开关打开时本条目由原生写字页显示（默认关）
 
 export const WRITE_SCREEN = 'write';
 /** 换字后书写格的落笔门限（01 §6.6 / 走查-V01；P227：300 → 250，门限内的笔先持住、到点补画，不再丢弃）。 */
@@ -240,6 +241,11 @@ function StepDots({ phase }) {
  * 旧本体卸载时 usePersist 的「离开即写回」不写：它记下的是替换前的现场（isStale）。
  */
 function WriteScreen({ params, entry }) {
+  if (nativeWriteEnabled()) return html`<${NativeWriteHost} params=${params} entry=${entry} />`;
+  return html`<${WebWriteScreen} params=${params} entry=${entry} />`;
+}
+
+function WebWriteScreen({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
   const { state, epoch } = useStoreState();
   const isTop = useIsTop(entry);
@@ -515,4 +521,4 @@ function WriteBody({ slot, state, epoch, isTop, entry, isStale }) {
   </${Page}>`;
 }
 
-registerScreen(WRITE_SCREEN, WriteScreen, { label: titleFor('recall') });
+registerScreen(WRITE_SCREEN, WriteScreen, { label: titleFor('recall'), nativeHost: () => nativeWriteEnabled() });

@@ -7435,6 +7435,7 @@ src/ui/screens/write/glyph-fallback.js
 src/ui/screens/write/hint-layer.js
 src/ui/screens/write/index.js
 src/ui/screens/write/layout.js
+src/ui/screens/write/native-session.js
 src/ui/screens/write/persist.js
 src/ui/screens/write/phase-fade.js
 src/ui/screens/write/prompt.js

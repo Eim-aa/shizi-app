@@ -67,6 +67,16 @@ export class NativeBackend {
     this._apply(entries);
   }
 
+  /** 往原生库的诊断记一条（store 迁移 ink schema 2 失败时用；只供排查，不等结果、失败不抛）。 */
+  diag(entry) {
+    try {
+      const pending = this._transport.callAsync ? this._transport.callAsync('diag', { entry }, { timeoutMs: 5000 }) : null;
+      if (pending && typeof pending.catch === 'function') pending.catch(() => {});
+    } catch (error) {
+      // 诊断写不进去不影响启动
+    }
+  }
+
   // setItem / removeItem / applyBatch 共用（测试钩子的写日志各包一层公开方法，内部互不调用，免得一笔记两次）。
   _apply(entries) {
     if (!entries.length) return;

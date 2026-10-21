@@ -347,8 +347,9 @@ export default async function judgeCorrect(page, ctx) {
   assert.deepEqual(r1.help, { hints: 0, answerSeen: false, traced: false }, 'help facts as they happened');
   assert.equal(r1.sessionId, f.session.id, 'record carries the session id');
   assert.equal('inkId' in r1, false, 'no inkId (ink is keyed by the record id itself, 01 §3.6)');
-  // D27（阶段 1 P1-E3）：perRecordInk 默认开启——判断 commit 同时写这条记录月份的 ink 月键（关闭时不写，见 47-ink-promises 的关闭态）
-  assert.deepEqual(f.inkKeys, [`shizi.v2.ink.${r1.localDay.slice(0, 7)}`], 'perRecordInk on (D27 default): ink month key written with the record');
+  // D27（阶段 1 P1-E3）：perRecordInk 默认开启——判断 commit 同时写这条记录的墨迹（B2.3 ink schema 2：每条一个键 shizi.v2.ink.<月>.<id>；
+  // 关闭时不写，见 47-ink-promises 的关闭态）
+  assert.deepEqual(f.inkKeys, [`shizi.v2.ink.${r1.localDay.slice(0, 7)}.${r1.id}`], 'perRecordInk on (D27 default): one ink key written with the record');
   assert.equal(f.todayN, 1, 'today N = 1');
   assert.equal(f.session.cursor, 1, 'session advanced');
   assert.equal(f.session.items.length, 1, 'one item');
@@ -629,7 +630,8 @@ export default async function judgeCorrect(page, ctx) {
     return { ok: r.ok, id: rec.id, month, ink: isInkV3(ink), keys: Object.keys(window.__shiziTest.getRawKeys('shizi.v2.ink.')), inTable: !!(window.__shiziTest.getState().ink[month] || {})[rec.id] };
   });
   assert.ok(inkRes.ok && inkRes.ink && inkRes.inTable, 'ink stored as packed Ink v3 for the record (P78)');
-  assert.deepEqual(inkRes.keys, [`shizi.v2.ink.${inkRes.month}`], 'ink lives under shizi.v2.ink.<record month>');
+  assert.ok(inkRes.keys.includes(`shizi.v2.ink.${inkRes.month}.${inkRes.id}`), 'ink lives under shizi.v2.ink.<record month>.<record id> (B2.3)');
+  assert.ok(inkRes.keys.every(k => /^shizi\.v2\.ink\.\d{4}-\d{2}\.r\d+$/.test(k)), 'no month keys any more');
   await waitCursor(page, 4);
 
   // ------------------------------------------------------------------ 最后一个字

@@ -14,7 +14,7 @@ import * as compareModule from '../../src/ui/screens/write/compare.js';
 import { Button } from '../../src/ui/components/Button.js';
 import { createSession } from '../../src/core/sessions.js';
 import { replay } from '../../src/core/fsrs.js';
-import { isInkV3, decodeRawStrokes } from '../../src/core/ink-math.js';
+import { isInkV4, decodeInkRaw, decodeRawStrokes } from '../../src/core/ink-math.js';
 import { validateValue, KEYS } from '../../src/core/schema.js';
 import { t } from '../../src/config/copy/index.js';
 
@@ -105,14 +105,18 @@ test('judgeInDraft: local hint count wins when larger (D64: no longer capped at 
   assert.equal(d.sched['base:永'].due, '2026-09-25', 'Again → at least tomorrow');
 });
 
-test('judgeInDraft: perRecordInk on writes Ink v3 under the record month (P31 / P78 / 01 §3.5)', () => {
+test('judgeInDraft: perRecordInk on writes Ink v4 raw points under the record month (P31 / B2.3 / 01 §3.5)', () => {
   const d = draftWith();
-  const out = judgeInDraft(d, { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: [STROKE, STROKE], at: T0, nextId: idGen(), perRecordInk: true });
+  const second = STROKE.map(p => ({ ...p, t: p.t + 400 }));
+  const out = judgeInDraft(d, { slot: 'A', cardKey: 'base:永', judgment: 'correct', strokes: [STROKE, second], at: T0, nextId: idGen(), perRecordInk: true });
   assert.equal(out.inkWritten, true);
   const ink = d.ink[MONTH].r1;
-  assert.ok(isInkV3(ink), 'packed v3 encoding (P78)');
-  assert.equal(ink.s.length, 2);
+  assert.ok(isInkV4(ink), 'raw-point encoding (B2.3)');
+  assert.equal(ink.r.length, 2);
+  assert.deepEqual(ink.g, [0, 280], 'pause between strokes kept (400 − 120 ms)');
+  assert.deepEqual(decodeInkRaw(ink), [STROKE, second.map(p => ({ ...p, t: p.t - 400 + 120 + 280 }))], 'raw points round-trip (0.1 unit / 1 ms)');
   assert.equal(validateValue(`shizi.v2.ink.${MONTH}`, d.ink[MONTH]), null, 'ink month shape valid');
+  assert.equal(validateValue(`shizi.v2.ink.${MONTH}.r1`, ink), null, 'one-record key shape valid');
 });
 
 test('judgeInDraft (D27 / P1-E3): a new judgment recycles the previous latest ink unless it is the first; first + latest stay', () => {

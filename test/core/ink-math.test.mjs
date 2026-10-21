@@ -4,10 +4,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   INK, INK_SPEC, INK_TUNABLE_KEYS, inkParams, GRID, buildStroke, speedFactor, pressureFactor, mergeSameTime, liftSpeed, catmullRom, thinStroke, simplifyStroke,
-  strokeLength, encodeInk, decodeInk, isInkV2, isInkV3, isInk, resampleForReplay, encodeRawStrokes, decodeRawStrokes,
+  strokeLength, encodeInk, decodeInk, isInkV2, isInkV3, isInk, resampleForReplay, encodeRawStrokes, decodeRawStrokes, encodeInkRaw,
   INK_DT_LEVELS, quantizeDt, bytesToBase64, base64ToBytes,
 } from '../../src/core/ink-math.js';
-import { inkBytes } from '../../src/store/budget.js';
+import { inkBudgetOf, inkBytes } from '../../src/store/budget.js';
 import * as policy from '../../src/config/policy.js';
 import { validateValue } from '../../src/core/schema.js';
 import fs from 'node:fs';
@@ -371,8 +371,9 @@ function deckChars() {
   return out;
 }
 
-/** 按笔顺中线模拟一个字的书写（每笔起收慢、中段快 0.15–0.7 单位/ms，±0.4 单位手抖，笔间 350ms）→ buildStroke。 */
-function writeChar(ch) {
+/** 按笔顺中线模拟一个字的书写（每笔起收慢、中段快 0.15–0.7 单位/ms，±0.4 单位手抖，笔间 350ms）→ 原始点（120Hz）。 */
+function writeCharRaw(ch, hz = 120) {
+  const STEP = 1000 / hz;
   const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', ch + '.json'), 'utf8'));
   const out = [];
   let t = 1000;
@@ -388,16 +389,21 @@ function writeChar(ch) {
       let i = 1;
       while (i < cum.length - 1 && cum[i] < s) i += 1;
       const f = cum[i] > cum[i - 1] ? (s - cum[i - 1]) / (cum[i] - cum[i - 1]) : 0;
-      raw.push({ x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f + Math.sin(k * 1.7) * 0.4, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f + Math.cos(k * 2.3) * 0.4, t: t + k * HZ120 });
-      s += (0.15 + 0.55 * Math.sin(Math.PI * Math.min(1, (s / L) * 1.1))) * HZ120;
+      raw.push({ x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * f + Math.sin(k * 1.7) * 0.4, y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * f + Math.cos(k * 2.3) * 0.4, t: t + k * STEP });
+      s += (0.15 + 0.55 * Math.sin(Math.PI * Math.min(1, (s / L) * 1.1))) * STEP;
       k += 1;
     }
     const end = pts[pts.length - 1];
-    raw.push({ x: end.x, y: end.y, t: t + k * HZ120 });
-    t += k * HZ120 + 350;
-    out.push(buildStroke(raw, { final: true }));
+    raw.push({ x: end.x, y: end.y, t: t + k * STEP });
+    t += k * STEP + 350;
+    out.push(raw);
   }
   return out;
+}
+
+/** 同一次模拟书写 → buildStroke（与写字页同一管线；v3 口径的测量用）。 */
+function writeChar(ch) {
+  return writeCharRaw(ch).map(raw => buildStroke(raw, { final: true }));
 }
 
 /** 300 个字各两份墨迹（第一次 + 最近一次，各自的月键）→ budget.inkBytes。 */
@@ -444,8 +450,10 @@ test('ink-math (Q1 / P176): after-seen ink on top of D27 two copies — measured
     `20% of chars with after-seen: common ${(cTyp.bytes / MiB).toFixed(3)} MiB, ≥12-stroke ${(hTyp.bytes / MiB).toFixed(3)} MiB`);
   // 常用 300 字：即使每字都有一份看后自写，仍在 1.2MiB 目标内
   assert.ok(cMax.bytes <= 1.2 * MiB, `common 300 × 3 = ${cMax.bytes} B ≤ 1.2MiB`);
-  // 偏难的上限（12 画以上、每字都有）超过 1.2MiB 目标但仍在 P05 预算内：常规提交不回收；超预算时先回收判断其余层，再回收看后自写（4 → 5）
-  assert.ok(hMax.bytes <= policy.inkBudgetBytes, `≥12-stroke 300 × 3 = ${hMax.bytes} B ≤ P05 inkBudgetBytes`);
+  // 偏难的上限（12 画以上、每字都有）超过 1.2MiB 目标；B2.3 起落盘每条一个键，900 份多出约 30KB 键名，比 P05 的 1.5MiB 多 0.05%，
+  // 仍在缺省每组字数（20 字，P326 2MiB）的预算内：常规提交不回收；超预算时先回收判断其余层，再回收看后自写（4 → 5）
+  assert.ok(hMax.bytes <= policy.inkBudgetBytes * 1.01, `≥12-stroke 300 × 3 = ${hMax.bytes} B ≈ P05 inkBudgetBytes (+1% at most)`);
+  assert.ok(hMax.bytes <= inkBudgetOf(null), `≥12-stroke 300 × 3 = ${hMax.bytes} B ≤ default P326 ink budget`);
   // 实际的比例（看过答案且自己写了、之后还没再判断的字）远低于全部：20% 时两组都在 1.2MiB 内
   assert.ok(cTyp.bytes <= 1.2 * MiB && hTyp.bytes <= 1.2 * MiB, '20% share stays within 1.2MiB');
 });
@@ -478,6 +486,51 @@ test('ink-math (P121): simplifyStroke keeps corners, width changes and pauses; s
   assert.equal(simplifyStroke(w).length, policy.inkMaxPointsPerStroke, 'a very wiggly stroke is capped at inkMaxPointsPerStroke');
   assert.equal(simplifyStroke(w, { max: 10 }).length, 10);
   assert.deepEqual(simplifyStroke(w, { tolerance: null }), thinStroke(w), 'tolerance:null → uniform thinning (P78)');
+});
+
+/** B2.3：同样的 300 字 × 2 份，按现在的写入口径 Ink v4（原始点）、每条一个键 → budget.inkBytes。hz = 采样率（手指 60 / 120，Pencil 合并点 240）。 */
+function twoCopiesRaw(chars, hz) {
+  const table = {};
+  let points = 0;
+  let strokes = 0;
+  chars.forEach((ch, i) => {
+    const raw = writeCharRaw(ch, hz);
+    strokes += raw.length;
+    for (const st of raw) points += st.length;
+    const first = `2026-${String(1 + (i % 6)).padStart(2, '0')}`;
+    const latest = `2026-${String(7 + (i % 4)).padStart(2, '0')}`;
+    (table[first] = table[first] || {})[`r${10000 + i * 2}`] = encodeInkRaw(raw);
+    (table[latest] = table[latest] || {})[`r${10001 + i * 2}`] = encodeInkRaw(raw.map(st => st.map(p => ({ ...p, x: p.x + 1.3 }))));
+  });
+  return { bytes: inkBytes(table), perRecord: inkBytes(table) / (chars.length * 2), avgPoints: points / strokes, avgStrokes: strokes / chars.length };
+}
+
+test('ink-math (B2.3 ink v4 raw points): 300 real characters × 2 copies — measured against the web (P05 / P326) and native ink budgets', () => {
+  const all = deckChars();
+  const common = all.slice(0, 300).map(c => c.ch);
+  const heavy = all.filter(c => c.strokes >= 12).slice(0, 300).map(c => c.ch);
+  const MiB = 1024 * 1024;
+  const rows = [];
+  for (const hz of [60, 120, 240]) {
+    const a = twoCopiesRaw(common, hz);
+    const b = twoCopiesRaw(heavy, hz);
+    rows.push({ hz, a, b });
+    console.log(`# B2.3 ink v4 × 2 copies @${hz}Hz: common 300 = ${(a.bytes / MiB).toFixed(3)} MiB (${(a.perRecord / 1024).toFixed(1)} KiB/record, avg ${a.avgPoints.toFixed(0)} pts/stroke); ` +
+      `≥12-stroke 300 = ${(b.bytes / MiB).toFixed(3)} MiB (${(b.perRecord / 1024).toFixed(1)} KiB/record)`);
+  }
+  const at120 = rows.find(r => r.hz === 120);
+  const v3 = twoCopies(common).bytes;
+  console.log(`# B2.3 v4 / v3 (120Hz common): ${(at120.a.bytes / v3).toFixed(2)}×`);
+  // 原生（policy.nativeStorage.inkFormat 'raw'）：120Hz 常用字每份 ≤ 4KiB；原生墨迹预算（32MiB 估算）容得下 3500 字 × 2 份（120Hz）
+  assert.equal(policy.nativeStorage.inkFormat, 'raw');
+  assert.ok(at120.a.perRecord <= 4 * 1024, `120Hz common: ${(at120.a.perRecord / 1024).toFixed(2)} KiB/record ≤ 4 KiB`);
+  assert.ok(at120.a.perRecord * 2 * 3500 <= policy.nativeStorage.inkBudgetBytes, '3500 chars × 2 copies @120Hz fit the native ink budget');
+  // 最重的情形（Pencil 240Hz、12 画以上）：预算仍容约 2000 字 × 2 份（超出时按 D27 只回收第一次 / 最近一次以外的墨迹）
+  const worst = rows.find(r => r.hz === 240).b.perRecord;
+  assert.ok(worst * 2 * 1900 <= policy.nativeStorage.inkBudgetBytes, `240Hz ≥12-stroke ${(worst / 1024).toFixed(1)} KiB/record: ≥ 1900 chars × 2`);
+  // 网页（localStorage 5MiB）仍存 v3（policy.inkFormat，P05）：原始点约为 v3 的 2.9 倍，装不下 D27 不回收的两份
+  assert.equal(policy.inkFormat, 'v3');
+  assert.ok(at120.a.bytes > v3 * 2, 'raw points are several times v3 — why the web keeps v3');
 });
 
 test('ink-math (D27 / P1-E3): 300 real characters × 2 copies (first + latest) ≤ 1.2MiB with ink v3', () => {

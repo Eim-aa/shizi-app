@@ -149,7 +149,8 @@ export default async function inkRetention(page, ctx) {
   f = await facts(page);
   assert.deepEqual(f.judged.map(r => [r.month, r.judgment, r.ink]), [['2026-03', 'correct', true], ['2026-07', 'wrong', false], ['2026-10', 'correct', true]],
     'D27: the middle (July) ink is recycled when the third judgment is written; first (March) and latest (October) stay');
-  assert.deepEqual(f.inkKeys, ['shizi.v2.ink.2026-03', 'shizi.v2.ink.2026-10'], 'the July ink month key is gone (emptied → removed)');
+  // B2.3 ink schema 2：每条墨迹一个键 shizi.v2.ink.<月>.<id>
+  assert.deepEqual(f.inkKeys, [`shizi.v2.ink.2026-03.${f.judged[0].id}`, `shizi.v2.ink.2026-10.${f.judged[2].id}`], 'the July ink key is gone');
   assert.equal(f.direct, 0, 'every write went through storage.js (store.commit)');
   const ids = f.judged.map(r => r.id);
 

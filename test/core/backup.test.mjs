@@ -448,10 +448,13 @@ test('D27：备份信封含墨迹（每字第一次 + 最近一次，跨月键�
   // 永：r1（7月，第一次）+ r3（9月，最近一次）；和 r2、字 r4 各一次
   const withInk = { ...currentState(), ink: { '2026-07': { r1: inkA, r2: inkB }, '2026-09': { r3: inkB, r4: inkA } } };
   const { store, backend } = makeStore(withInk);
-  // 1. 导出文件里有每个 ink 月键，值 = 落盘字串
+  // 1. 导出文件里有每个 ink 月键（备份按月分组；B2.3 起落盘是每条一个键，月表里每条 = 落盘那一条的字串）
   const file = buildBackupV2(store.getState(), { now: NOW });
+  const perRecord = (b, month, table) => Object.keys(table).map(id => [id, b.getItem(`shizi.v2.ink.${month}.${id}`)]);
   for (const month of ['2026-07', '2026-09']) {
-    assert.equal(file.data[`shizi.v2.ink.${month}`], backend.getItem(`shizi.v2.ink.${month}`), `ink ${month} in the envelope`);
+    const table = JSON.parse(file.data[`shizi.v2.ink.${month}`]);
+    assert.equal(backend.getItem(`shizi.v2.ink.${month}`), null, `no month key on disk (${month})`);
+    assert.deepEqual(perRecord(backend, month, table), Object.keys(table).map(id => [id, JSON.stringify(table[id])]), `ink ${month} in the envelope`);
   }
   const report = inspectBackup(serializeBackup(file));
   assert.equal(report.ok, true);
@@ -459,7 +462,8 @@ test('D27：备份信封含墨迹（每字第一次 + 最近一次，跨月键�
   const fresh = makeStore();
   assert.equal(restoreFromBackup(fresh.store, report, { now: NOW }).ok, true);
   for (const month of ['2026-07', '2026-09']) {
-    assert.equal(fresh.backend.getItem(`shizi.v2.ink.${month}`), backend.getItem(`shizi.v2.ink.${month}`), `ink ${month} restored byte-equal`);
+    const table = withInk.ink[month];
+    assert.deepEqual(perRecord(fresh.backend, month, table), perRecord(backend, month, table), `ink ${month} restored byte-equal`);
   }
   assert.deepEqual(decodeInk(fresh.store.getInk(rec(1, '永', '2026-07-03'))), decodeInk(inkA), 'first-time ink of 永 decodes after restore');
   assert.deepEqual(decodeInk(fresh.store.getInk(rec(3, '永', '2026-09-02'))), decodeInk(inkB), 'latest ink of 永 decodes after restore');

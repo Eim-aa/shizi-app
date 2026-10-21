@@ -141,9 +141,10 @@ final class InkSurfaceTests: XCTestCase {
                 let name = "\(v["id"] ?? "?") @\(side)"
                 XCTAssertEqual(rec.events, ["begin", "end"], name)
                 let got = try XCTUnwrap(rec.strokes.first, name)
-                // 原始点：位置往返误差 < 1e-9 单位，时间 / 压力原样；抬笔点与上一点同位置时不再追加（与网页 onUp 同一规则，V09）
+                // 原始点：位置往返误差 < 1e-9 单位，时间 / 压力原样；抬笔点与上一点同位置且同一时刻时不再追加，
+                // 同位置但更晚（抬笔前的停顿，例如 V09 单点）照样追加（B2.3：保留停顿时长）
                 var expect = Array(pts.dropLast())
-                if let l = expect.last, let e = pts.last, e.x != l.x || e.y != l.y { expect.append(e) }
+                if let l = expect.last, let e = pts.last, e.x != l.x || e.y != l.y || e.t > l.t { expect.append(e) }
                 if expect.count == pts.count { XCTAssertEqual(expect.map(\.t), pts.map(\.t), name) }
                 XCTAssertEqual(got.count, expect.count, name)
                 for (g, e) in zip(got, expect) {
@@ -293,6 +294,69 @@ final class InkSurfaceTests: XCTestCase {
         XCTAssertEqual(disc.count, 32 * 6)
         let far = stride(from: 0, to: disc.count, by: 2).map { hypot(Double(disc[$0]) - 100, Double(disc[$0 + 1]) - 100) }.max() ?? 0
         XCTAssertEqual(far, 5, accuracy: 1e-4)
+    }
+
+    // MARK: B2.3 存下的墨迹（Ink v4 原始点）回放
+
+    /// 夹具 ink-v4-fixture.json（gen-ink-v4-fixture.mjs 由 JS 生成，node test/core/ink-v4.test.mjs 核它与代码同步）：
+    /// Swift 解出的原始点 = JS decodeInkRaw；InkModel 对它的几何 = 参考实现（reference.mjs）——原生回放与 JS 逐值一致。
+    func testStoredInkV4DecodesLikeJSAndReplaysLikeTheReference() throws {
+        let doc = try XCTUnwrap(try JSONSerialization.jsonObject(with: bundled("ink-v4-fixture.json")) as? [String: Any])
+        let cases = try XCTUnwrap(doc["cases"] as? [[String: Any]])
+        XCTAssertGreaterThanOrEqual(cases.count, 21)
+        var worstArea = 0.0
+        for c in cases {
+            let id = c["id"] as? String ?? "?"
+            let ink = try XCTUnwrap(c["ink"] as? [String: Any], id)
+            let packed = try XCTUnwrap(ink["r"] as? [String], id)
+            let rows = try XCTUnwrap(c["rows"] as? [[NSNumber]], id)
+            XCTAssertEqual(packed.map { InkStoredInk.rawRow(packed: $0) ?? [] }, rows.map { $0.map(\.intValue) }, "\(id) rows")
+            let got = try XCTUnwrap(InkStoredInk.decode(ink), id)
+            let want = try XCTUnwrap(c["raw"] as? [[[NSNumber]]], id)
+            XCTAssertEqual(got.count, want.count, id)
+            for (s, (g, w)) in zip(got, want).enumerated() {
+                XCTAssertEqual(g.count, w.count, "\(id) stroke \(s)")
+                for (q, e) in zip(g, w) {
+                    XCTAssertEqual(q.x, e[0].doubleValue, accuracy: 1e-9, id)
+                    XCTAssertEqual(q.y, e[1].doubleValue, accuracy: 1e-9, id)
+                    XCTAssertEqual(q.t, e[2].doubleValue, id)
+                    if e.count > 3 { XCTAssertEqual(q.p ?? -1, e[3].doubleValue, accuracy: 1e-9, id) } else { XCTAssertNil(q.p, id) }
+                }
+            }
+            let refs = try XCTUnwrap(c["ref"] as? [[String: Any]], id)
+            for (s, (pts, ref)) in zip(got, refs).enumerated() {
+                let pr = InkModel.analyze(pts)
+                let area = InkModel.unionArea(InkModel.geometry(pr), h: 0.1)
+                let wantArea = (ref["area"] as? NSNumber)?.doubleValue ?? 0
+                let rel = wantArea > 0 ? abs(area - wantArea) / wantArea : abs(area)
+                worstArea = max(worstArea, rel)
+                XCTAssertLessThanOrEqual(rel, 1e-6, "\(id) stroke \(s) area \(area) vs reference \(wantArea)")
+                XCTAssertEqual(pr.len, (ref["len"] as? NSNumber)?.doubleValue ?? -1, accuracy: 1e-6, "\(id) stroke \(s) len")
+                XCTAssertEqual(pr.samples.count, (ref["n"] as? NSNumber)?.intValue, "\(id) stroke \(s) samples")
+                XCTAssertEqual(pr.capEnd, ref["capEnd"] as? String, "\(id) stroke \(s) end cap")
+                XCTAssertEqual(pr.blooms.count, (ref["blooms"] as? NSNumber)?.intValue, "\(id) stroke \(s) blooms")
+            }
+        }
+        print(String(format: "[shizi] ink v4 replay: %d cases, worst area vs reference %.2e", cases.count, worstArea))
+        // 坏的墨迹：解不开就是没有（调用方按「没有笔迹」画）
+        XCTAssertNil(InkStoredInk.decode(["v": 4, "c": 345, "r": ["AAA="], "g": [0]]))
+        XCTAssertNil(InkStoredInk.decode(["v": 3, "c": 345, "s": ["AAAA"]]))
+        XCTAssertNil(InkStoredInk.decode(json: "{"))
+    }
+
+    /// B2.3 决定：抬笔前的停顿时长保留——同位置、更晚的抬笔点照样进原始点（存进 Ink v4，原生回放的停顿洇墨 / 慢收靠它）。
+    func testPauseBeforeLiftKeepsItsTime() throws {
+        let (ink, rec) = try surface(side: 345)
+        let pts = [InkRawPoint(x: 40, y: 100, t: 1000), InkRawPoint(x: 120, y: 100, t: 1080), InkRawPoint(x: 200, y: 100, t: 1160)]
+        ink.inputBegan(sample(pts[0], side: 345), id: id(0))
+        ink.inputMoved([sample(pts[1], side: 345)], predicted: [], last: sample(pts[1], side: 345), id: id(0))
+        ink.inputMoved([sample(pts[2], side: 345)], predicted: [], last: sample(pts[2], side: 345), id: id(0))
+        // 停 300ms 再抬笔，位置不变
+        ink.inputEnded([], last: sample(InkRawPoint(x: 200, y: 100, t: 1460), side: 345), id: id(0))
+        let got = try XCTUnwrap(rec.strokes.first)
+        XCTAssertEqual(got.map(\.t), [1000, 1080, 1160, 1460], "lift sample kept with its time")
+        XCTAssertEqual(InkModel.analyze(got).v30 ?? -1, 0, accuracy: 1e-9, "lift speed sees the pause (slow lift)")
+        XCTAssertGreaterThan(InkModel.analyze(got).blooms.count, InkModel.analyze(Array(got.dropLast())).blooms.count, "pause bloom at the end (spec §5.3)")
     }
 
     func testReleaseBuildCarriesTheSurfaceUnderAStableName() {

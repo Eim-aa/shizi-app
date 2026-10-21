@@ -628,16 +628,18 @@ export function isInkV3(ink) {
   return true;
 }
 
-/** 可读的墨迹（v2 或 v3）。 */
+/** 可读的墨迹（v4 原始点 / v3 / 旧 v2）。 */
 export function isInk(ink) {
-  return isInkV3(ink) || isInkV2(ink);
+  return isInkV4(ink) || isInkV3(ink) || isInkV2(ink);
 }
 
 /**
- * Ink（v3 打包 / 旧 v2）→ 每笔 {x, y, w, t, p?}（345 空间，w 为绝对宽；t 从 0 起的累计 ms）。形状不合法返回 null。
+ * Ink（v4 原始点 / v3 打包 / 旧 v2）→ 每笔 {x, y, w, t, p?}（345 空间，w 为绝对宽；t 从 0 起的累计 ms）。形状不合法返回 null。
+ * v4 没有存宽度：按当前笔锋参数（opts 同 buildStroke）重算，与书写时一致；v3 / v2 是烘焙好的宽度。
  * 回放 / 缩略图渲染前再走 catmullRom（resampleForReplay）保证外观与书写时一致（01 §3.5）。
  */
 export function decodeInk(ink, opts = {}) {
+  if (isInkV4(ink)) return decodeInkV4(ink, opts);
   const base = num(opts.base, opts.policy ? inkParams(opts.policy).base : INK.base);
   const scale = GRID / 1000;
   if (isInkV3(ink)) {
@@ -719,5 +721,203 @@ export function decodeRawStrokes(rows) {
     }
     out.push(pts);
   }
+  return out;
+}
+
+// ---------------------------------------------------------------- 存储编码 Ink v4：原始点（B2.3，规格 §6.4，DQ2-C）
+//
+// 与会话现场 / 桥上的 encodeRawStrokes 是同一份点、同一精度（x / y 0.1 单位、dt 1ms、p 0.001），只是按笔打包成字节：
+// 一行 [stride, x, y, dt, (p), …] ↔ 一个 base64 串，互逆、无损（rawRowToPacked / packedToRawRow）。打包是因为 JSON 整数
+// 每点约 13 个字符，实测（test/core/ink-math.test.mjs B2.3）120Hz 常用 300 字 × 2 份就有 4.8MiB；打包后约为其 30%。
+//
+// 一笔的字节：stride（3 | 4）一个字节，之后每点依次：zz(x − 上一点 x)、zz(y − 上一点 y)、dt、（stride 4 时）zz(p − 上一点 p)，
+// 都是 LEB128 变长整数（每字节 7 位，低位在前）；zz = zigzag（0, −1, 1, −2 … → 0, 1, 2, 3 …）；第一点的「上一点」为 0。
+// 120Hz 手写相邻点多在 ±6.3 单位内，每点通常 3 个字节（Pencil 再加 1）。
+
+/** 有符号整数 → zigzag 非负整数。 */
+function zz(n) {
+  return n >= 0 ? n * 2 : -n * 2 - 1;
+}
+
+function unzz(u) {
+  return u % 2 === 0 ? u / 2 : -(u + 1) / 2;
+}
+
+function pushVarint(out, u) {
+  let v = u;
+  while (v >= 128) {
+    out.push((v % 128) | 128);
+    v = Math.floor(v / 128);
+  }
+  out.push(v);
+}
+
+const VARINT_MAX_BYTES = 5; // ≤ 2^35：远大于任何坐标 / 时间差
+
+/** encodeRawStrokes 的一行 → 打包串；行不合法返回 null。 */
+export function rawRowToPacked(row) {
+  if (!isRawStrokeRow(row)) return null;
+  const stride = row[0];
+  const bytes = [stride];
+  let px = 0;
+  let py = 0;
+  let pp = 0;
+  for (let j = 1; j < row.length; j += stride) {
+    pushVarint(bytes, zz(row[j] - px));
+    pushVarint(bytes, zz(row[j + 1] - py));
+    pushVarint(bytes, Math.max(0, row[j + 2]));
+    px = row[j];
+    py = row[j + 1];
+    if (stride === 4) {
+      pushVarint(bytes, zz(row[j + 3] - pp));
+      pp = row[j + 3];
+    }
+  }
+  return bytesToBase64(Uint8Array.from(bytes));
+}
+
+/** 打包串 → encodeRawStrokes 的一行；坏串（base64 不对、变长整数截断 / 过长、没有点）返回 null。 */
+export function packedToRawRow(str) {
+  const bytes = base64ToBytes(str);
+  if (!bytes || bytes.length < 4) return null;
+  const stride = bytes[0];
+  if (stride !== 3 && stride !== 4) return null;
+  let i = 1;
+  const next = () => {
+    let u = 0;
+    let mul = 1;
+    for (let k = 0; k < VARINT_MAX_BYTES; k += 1) {
+      if (i >= bytes.length) return null;
+      const b = bytes[i++];
+      u += (b & 127) * mul;
+      if (b < 128) return u;
+      mul *= 128;
+    }
+    return null;
+  };
+  const row = [stride];
+  let px = 0;
+  let py = 0;
+  let pp = 0;
+  while (i < bytes.length) {
+    const dx = next();
+    const dy = next();
+    const dt = next();
+    const dp = stride === 4 ? next() : 0;
+    if (dx === null || dy === null || dt === null || dp === null) return null;
+    px += unzz(dx);
+    py += unzz(dy);
+    row.push(px, py, dt);
+    if (stride === 4) {
+      pp += unzz(dp);
+      row.push(pp);
+    }
+  }
+  return row.length > 1 ? row : null;
+}
+
+/** encodeRawStrokes 的一行是否合法（stride 3 / 4、整数、至少一个点）。 */
+export function isRawStrokeRow(row) {
+  if (!Array.isArray(row) || row.length < 4 || !row.every(Number.isInteger)) return false;
+  const stride = row[0];
+  return (stride === 3 || stride === 4) && row.length >= 1 + stride && (row.length - 1) % stride === 0;
+}
+
+/**
+ * 原始采样（每笔 {x,y,t,p?}，t 为 ms、任意起点；网页写字页与原生书写面经桥交来的同一份）→ Ink v4：
+ *   { v:4, c:345, r:['<base64>'…], g:[ms…] }
+ *   r：每笔一个打包串（见上，= encodeRawStrokes 那一行）——原始点全精度（0.1 单位 / 1ms），不抽点、不烘焙宽度；
+ *   g：每笔起笔距上一笔最后一点的 ms（第一笔 0；取整、负数按 0），与 r 等长——回放时还原笔间停顿。
+ * 超过 inkMaxStrokes 笔只留前 inkMaxStrokes 笔（P05）。没有笔画返回 {v:4, c:345, r:[], g:[]}。
+ * 宽度不存：读的人按自己的笔锋模型重算（网页 decodeInk → buildStroke；原生 InkModel，规格 §6.4「与书写时逐样本一致」）。
+ * @param {Array<Array<{x,y,t,p?}>>} rawStrokes
+ * @param {{maxStrokes?:number, policy?:object}} [opts]
+ */
+export function encodeInkRaw(rawStrokes, opts = {}) {
+  const policy = opts.policy || defaultPolicy;
+  const maxStrokes = num(opts.maxStrokes, policy.inkMaxStrokes);
+  const kept = (rawStrokes || [])
+    .filter(s => Array.isArray(s) && s.length)
+    .slice(0, Math.max(0, Math.floor(maxStrokes)));
+  const r = encodeRawStrokes(kept).map(rawRowToPacked);
+  const g = [];
+  let lastEnd = null;
+  for (const stroke of kept) {
+    const t0 = num(stroke[0].t, null);
+    g.push(lastEnd === null || t0 === null ? 0 : Math.max(0, Math.round(t0 - lastEnd)));
+    let end = t0; // 本笔最后一点的时间（单调不减，与 encodeRawStrokes 同一夹法）
+    for (const pt of stroke) {
+      const t = num(pt.t, end);
+      if (t !== null && (end === null || t > end)) end = t;
+    }
+    if (end !== null) lastEnd = end;
+  }
+  return { v: 4, c: GRID, r, g };
+}
+
+/** v4 → encodeRawStrokes 的行（每笔一行）；形状不对（含任一笔解不开）返回 null。 */
+export function inkRawRows(ink) {
+  if (!ink || typeof ink !== 'object' || ink.v !== 4 || !Number.isFinite(ink.c) || ink.c <= 0) return null;
+  if (!Array.isArray(ink.r) || !Array.isArray(ink.g) || ink.g.length !== ink.r.length) return null;
+  if (!ink.g.every(x => Number.isInteger(x) && x >= 0)) return null;
+  const rows = [];
+  for (const str of ink.r) {
+    const row = typeof str === 'string' ? packedToRawRow(str) : null;
+    if (!row) return null;
+    rows.push(row);
+  }
+  return rows;
+}
+
+/** Ink v4 是否合法（每笔都能解开、g 与 r 等长且为非负整数）。 */
+export function isInkV4(ink) {
+  return inkRawRows(ink) !== null;
+}
+
+/**
+ * Ink v4 → 原始点（每笔 {x, y, t, p?}，t 为整份墨迹从 0 起的累计 ms，笔间停顿按 g 还原）。不是 v4 返回 null。
+ * 原生回放读同一份（ios InkStoredInk.decode；逐点一致由 test/core/ink-v4.test.mjs 与 XCTest 共用的夹具核对）。
+ */
+export function decodeInkRaw(ink) {
+  const rows = inkRawRows(ink);
+  if (!rows) return null;
+  const scale = GRID / ink.c;
+  let offset = 0;
+  return decodeRawStrokes(rows).map((pts, i) => {
+    offset += ink.g[i];
+    const out = pts.map(q => {
+      const o = { x: q.x * scale, y: q.y * scale, t: q.t + offset };
+      if (q.p !== undefined) o.p = q.p;
+      return o;
+    });
+    if (out.length) offset = out[out.length - 1].t;
+    return out;
+  });
+}
+
+/**
+ * 判断 / 看后自写存墨用的编码入口（session/ops judge、answer）：format 'raw'（缺省）→ Ink v4 原始点；'v3' → 旧管线
+ * buildStroke(final) + encodeInk（抽点、烘焙宽度）。选哪种由 store 按后端给（ctx.inkFormat：原生 'raw'、localStorage 'v3'，policy P05）。
+ */
+export function encodeStoredInk(rawStrokes, { policy = defaultPolicy, format = 'raw' } = {}) {
+  if (format === 'v3') {
+    const built = (rawStrokes || []).filter(s => Array.isArray(s) && s.length).map(s => buildStroke(s, { final: true }));
+    return encodeInk(built, { policy });
+  }
+  return encodeInkRaw(rawStrokes, { policy });
+}
+
+const decodedV4 = new WeakMap(); // 墨迹对象（store 里冻结、引用稳定）→ 默认参数下的解码结果：字墙 / 列表反复渲染同一份
+
+/** v4 解码成与 v3 相同的点列 {x, y, w, t, p?}：原始点 → buildStroke(final) 按当前笔锋参数算宽度。 */
+function decodeInkV4(ink, opts) {
+  const plain = !opts || Object.keys(opts).length === 0;
+  if (plain && decodedV4.has(ink)) return decodedV4.get(ink);
+  const out = decodeInkRaw(ink).map(s => buildStroke(s, Object.assign({}, opts, { final: true })).map(q => {
+    const o = { x: q.x, y: q.y, w: q.w, t: q.t };
+    if (q.p !== undefined) o.p = q.p;
+    return o;
+  }));
+  if (plain) decodedV4.set(ink, out);
   return out;
 }

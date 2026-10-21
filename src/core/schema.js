@@ -18,6 +18,7 @@ export const RECORDS_PREFIX = 'shizi.v2.records.';
  * 月份与 records.<YYYY-MM> 同规则（记录的 localDay 所在月 = 其 at 的本地月，01 §3.1）。
  * 原因：01 §4 的事务日志把每个被改键的旧值整份写进 shizi.v2.txn，单键 ink（预算 1.5MiB）会让每次判断的峰值占用翻倍；
  * 按月分键后一次判断只重写当月 ink 键。
+ * B2.3（ink schema 2）：落盘再细到每条一个键（inkRecordKey），月键只剩旧数据读取兼容与备份文件里的分组形态；见 inkRecordKey。
  */
 export const INK_PREFIX = 'shizi.v2.ink.';
 export const CORRUPT_PREFIX = 'shizi.corrupt.';
@@ -151,6 +152,35 @@ export function isInkKey(key) {
 
 export function monthOfInkKey(key) {
   return isInkKey(key) ? key.slice(INK_PREFIX.length) : null;
+}
+
+/**
+ * B2.3 ink schema 2：落盘时每条墨迹一个键 `shizi.v2.ink.<YYYY-MM>.<recordId>` = 一条 Ink（不再是整月一个 JSON）。
+ * store 的内存状态与备份文件仍按月分组（state.ink[月][id]、备份里的 shizi.v2.ink.<月>），只有存储层的键变了：
+ * 一次判断只写它自己那一条（原生 SQLite 的 ink_records 一行；localStorage 一个键），不再重写整月。
+ * 旧的月键（schema 1）读取兼容，store 启动时逐月迁成单条键（store.js migrateInkSchema）。
+ */
+export function inkRecordKey(month, id) {
+  return `${INK_PREFIX}${month}.${id}`;
+}
+
+/** 单条墨迹键 → {month, id}；不是返回 null。 */
+export function parseInkRecordKey(key) {
+  if (!isString(key) || key.indexOf(INK_PREFIX) !== 0) return null;
+  const rest = key.slice(INK_PREFIX.length);
+  const month = rest.slice(0, 7);
+  const id = rest.slice(8);
+  if (rest.charAt(7) !== '.' || !isMonthKey(month) || !isRecordId(id)) return null;
+  return { month, id };
+}
+
+export function isInkRecordKey(key) {
+  return parseInkRecordKey(key) !== null;
+}
+
+/** 存储层的墨迹键：单条键（schema 2）或旧月键（schema 1）。 */
+export function isInkStorageKey(key) {
+  return isInkKey(key) || isInkRecordKey(key);
 }
 
 /** 按月分键的域（records / ink）。 */
@@ -384,10 +414,30 @@ const inkV3Fields = {
   s: v.arrayOf(b64),
   p: v.arrayOf(b64),
 };
-/** 一条墨迹：v3（写入口径）或 v2（旧数据，读取兼容）。 */
+/**
+ * Ink v4 原始点（B2.3，core/ink-math encodeInkRaw）：{v:4, c:345, r:['<base64>'], g:[ms]}，每笔一个打包串（= encodeRawStrokes 那一行），
+ * g 与 r 等长。形状层只核 base64 与长度（同 v3）；逐字节解包由 core/ink-math.isInkV4 / 解码时再核，坏的按「没有笔迹」显示。
+ */
+const inkV4Fields = {
+  v: (x, p) => (x === 4 ? null : fail(p, 'must be 4')),
+  c: v.num,
+  r: v.arrayOf((x, p) => (isString(x) && x.length >= 8 && BASE64_RE.test(x) ? null : fail(p, 'not a packed stroke (base64)'))),
+  g: v.arrayOf(v.int),
+};
+/** 一条墨迹：v4（B2.3 起的写入口径，原始点）、v3（打包，旧数据）或 v2（更旧，读取兼容）。 */
 function checkInk(x, p) {
+  if (x && typeof x === 'object' && x.v === 4) {
+    const err = checkFields(x, p, inkV4Fields, ['v', 'c', 'r', 'g']);
+    if (err) return err;
+    return x.g.length === x.r.length ? null : fail(`${p}.g`, 'length differs from r');
+  }
   if (x && typeof x === 'object' && x.v === 3) return checkFields(x, p, inkV3Fields, ['v', 'c', 's']);
   return checkFields(x, p, inkV2Fields, ['v', 'c', 's']);
+}
+
+/** 单条墨迹的形状校验（store 迁移 ink schema 2 时逐条用；与月表 / 单条键的校验同一函数）。 */
+export function validateInk(value, path = 'ink') {
+  return checkInk(value, path);
 }
 
 const customFields = {
@@ -582,8 +632,17 @@ export const KEY_SPECS = Object.freeze([
     pattern: `${INK_PREFIX}<YYYY-MM>`,
     domain: 'ink',
     match: isInkKey,
-    // 形状层只校验「recordId → Ink（v3，或旧 v2）」；墨迹与记录的月份归属由 store 的读写 helper 保证（inkMonthOf）。
+    // 整月一张表（schema 1 的落盘形态；备份文件与保护副本里的形态）：形状层只校验「recordId → Ink（v4 / v3 / 旧 v2）」；
+    // 墨迹与记录的月份归属由 store 的读写 helper 保证（inkMonthOf）。
     validate: (x, key) => checkMap(x, key || 'ink', isRecordId, checkInk),
+  },
+  {
+    // B2.3 ink schema 2：单条墨迹键 shizi.v2.ink.<YYYY-MM>.<recordId> = 一条 Ink。只是存储层的键，不进备份（备份按月分组，见 BACKUP_EXCLUDED）。
+    id: 'inkRecord',
+    pattern: `${INK_PREFIX}<YYYY-MM>.<recordId>`,
+    domain: 'ink',
+    match: isInkRecordKey,
+    validate: (x, key) => checkInk(x, key || 'inkRecord'),
   },
   { id: 'custom', key: KEYS.custom, domain: 'custom', validate: x => checkFields(x, 'custom', customFields, ['added']) },
   { id: 'wordOff', key: KEYS.wordOff, domain: 'wordOff', validate: x => checkMap(x, 'wordOff', isCardKey, v.num) },
@@ -606,7 +665,7 @@ export const BACKUP_WHITELIST = Object.freeze([
 ]);
 
 /** 不进备份的键（显式清单，01 §3.6「进备份：否」）。shizi.corrupt.* 与 nativeSmoke 不在 v2 命名空间，另行排除。 */
-export const BACKUP_EXCLUDED = Object.freeze(['sessions', 'funnel', 'safety', 'txn', 'route']);
+export const BACKUP_EXCLUDED = Object.freeze(['sessions', 'funnel', 'safety', 'txn', 'route', 'inkRecord']);
 
 const SPEC_BY_ID = new Map(KEY_SPECS.map(spec => [spec.id, spec]));
 
@@ -615,6 +674,7 @@ export function specForKey(key) {
   if (!isString(key)) return null;
   if (isRecordsKey(key)) return SPEC_BY_ID.get('records');
   if (isInkKey(key)) return SPEC_BY_ID.get('ink');
+  if (isInkRecordKey(key)) return SPEC_BY_ID.get('inkRecord');
   for (const spec of KEY_SPECS) if (spec.key === key) return spec;
   return null;
 }

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   BUDGET_DEFAULTS, bucketOfKey, entryBytes, estimateUsage, indexRecords, inkBytes, inkTier, needsRecovery, recover,
 } from '../../src/store/budget.js';
-import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
+import { KEYS, inkKey, inkRecordKey, recordsKey } from '../../src/core/schema.js';
 import * as policy from '../../src/config/policy.js';
 import { flatInk, inkEntry, record } from './helpers.mjs';
 import * as budgetModule from '../../src/store/budget.js';
@@ -75,9 +75,10 @@ test('ink tiers follow 01 §9 as amended by D27: orphan < other-month rest < thi
 
 test('recover (ink over budget): evicts lowest tier first, oldest first within a tier, stops once under budget', () => {
   const draft = tierFixture();
-  const one = entryBytes('r1', JSON.stringify(inkEntry(20, 4))) + 8;
+  const one = entryBytes(inkRecordKey('2026-10', 'r1'), JSON.stringify(inkEntry(20, 4)));
   const total = inkBytes(draft.ink);
-  assert.equal(total, Object.keys(draft.ink).reduce((n, m) => n + entryBytes(inkKey(m), JSON.stringify(draft.ink[m])), 0), 'ink bytes = sum over month keys');
+  // B2.3 ink schema 2：落盘每条一个键，估算 = 每条键之和
+  assert.equal(total, Object.keys(draft.ink).reduce((n, m) => n + Object.keys(draft.ink[m]).reduce((k, id) => k + entryBytes(inkRecordKey(m, id), JSON.stringify(draft.ink[m][id])), 0), 0), 'ink bytes = sum over one-record keys');
   const budget = total - one * 2.5; // 需要淘汰 3 份
   const before = draft.ink;
   const { actions } = recover(draft, { now: NOW, budgets: { inkBudgetBytes: budget } });

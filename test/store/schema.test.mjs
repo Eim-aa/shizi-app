@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BACKUP_EXCLUDED, BACKUP_WHITELIST, DOMAINS, KEYS, KEY_SPECS,
-  inkIdOf, inkKey, inkMonthOf, isBackupKey, isInkKey, isLocalDay, keyForDomain, monthOfKey, parseAndValidate, parseBackupV2,
+  inkIdOf, inkKey, inkMonthOf, inkRecordKey, isBackupKey, isInkKey, isInkRecordKey, isInkStorageKey, isLocalDay, parseInkRecordKey, keyForDomain, monthOfKey, parseAndValidate, parseBackupV2,
   recordsKey, specForKey, validateRecord, validateValue,
 } from '../../src/core/schema.js';
 import { baselineState, record, plain } from './helpers.mjs';
@@ -22,7 +22,8 @@ test('key coverage invariant: every store domain maps to a schema key, and 01 §
     assert.ok(spec, `domain ${domain} has no schema entry`);
   }
   // 01 §3.6：sessions/funnel/safety/txn 不进备份；其余 v2 键进备份。
-  assert.deepEqual([...BACKUP_EXCLUDED].sort(), ['funnel', 'route', 'safety', 'sessions', 'txn']);
+  // B2.3：单条墨迹键（inkRecord）只是存储层的键，备份按月分组（ink 月键），所以不进备份。
+  assert.deepEqual([...BACKUP_EXCLUDED].sort(), ['funnel', 'inkRecord', 'route', 'safety', 'sessions', 'txn']);
   assert.equal(isBackupKey(KEYS.sessions), false);
   assert.equal(isBackupKey(KEYS.meta), true);
   assert.equal(isBackupKey(recordsKey('2026-09')), true);
@@ -33,6 +34,33 @@ test('key coverage invariant: every store domain maps to a schema key, and 01 §
   assert.equal(isBackupKey(inkKey('2026-09')), true, 'ink month keys are backed up');
   assert.equal(specForKey('shizi.v2.ink'), null, 'the old single ink key is gone');
   assert.equal(specForKey('shizi.v2.ink.2026-13'), null, 'bad month is not an ink key');
+  assert.equal(isBackupKey(inkRecordKey('2026-09', 'r5')), false, 'one-record ink keys are storage-only (backup groups ink by month)');
+});
+
+test('B2.3 ink schema 2: one key per record shizi.v2.ink.<YYYY-MM>.<recordId> = one Ink (v4 raw points | v3 | v2)', () => {
+  const key = inkRecordKey('2026-09', 'r12');
+  assert.equal(key, 'shizi.v2.ink.2026-09.r12');
+  assert.deepEqual(parseInkRecordKey(key), { month: '2026-09', id: 'r12' });
+  assert.equal(isInkRecordKey(key), true);
+  assert.equal(isInkKey(key), false, 'not a month key');
+  assert.ok(isInkStorageKey(key) && isInkStorageKey(inkKey('2026-09')), 'both are ink storage keys');
+  for (const bad of ['shizi.v2.ink.2026-09.', 'shizi.v2.ink.2026-09.s1', 'shizi.v2.ink.2026-13.r1', 'shizi.v2.ink.2026-09.r0', 'shizi.v2.ink.2026-09r1', 'shizi.v2.ink.2026-09.r1.x']) {
+    assert.equal(parseInkRecordKey(bad), null, bad);
+    assert.equal(specForKey(bad), null, bad);
+  }
+  assert.equal(specForKey(key).id, 'inkRecord');
+  assert.equal(specForKey(key).domain, 'ink');
+  assert.equal(monthOfKey(key), null, 'monthOfKey stays for month keys only');
+  const v4 = { v: 4, c: 345, r: ['A8gBkAMALiIIsQKOO1w=', 'BNAP0A8A7AQUEwT8Ag=='], g: [0, 400] };
+  assert.equal(validateValue(key, v4), null, 'v4 one-record value valid');
+  assert.equal(validateValue(inkKey('2026-09'), { r12: v4 }), null, 'v4 inside a month table (backup files) valid');
+  assert.equal(validateValue(key, { v: 3, c: 345, s: ['AAAAAA=='] }), null, 'v3 still valid per record');
+  assert.match(validateValue(key, { v: 4, c: 345, r: ['A8gBkAMALiIIsQKOO1w='], g: [] }), /length differs/);
+  assert.match(validateValue(key, { v: 4, c: 345, r: [[3, 1, 2, 0]], g: [0] }), /packed stroke/);
+  assert.match(validateValue(key, { v: 4, c: 345, r: ['AAA='], g: [0] }), /packed stroke/, 'shorter than one point');
+  assert.match(validateValue(key, { v: 4, c: 345, r: ['A8gBkAMALiIIsQKOO1w='], g: [-1] }), /non-negative/);
+  assert.match(validateValue(key, { v: 4, c: 345, r: [], g: [], s: [] }), /unknown field/);
+  assert.match(validateValue(key, { v: 4, c: 345, r: [] }), /missing/);
 });
 
 test('ink is split by record month: shizi.v2.ink.<YYYY-MM> = {recordId: Ink v3 | legacy v2} (F3 / P78)', () => {

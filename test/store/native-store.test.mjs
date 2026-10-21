@@ -8,7 +8,7 @@ import { createStorage } from '../../src/store/storage.js';
 import { createStore } from '../../src/store/store.js';
 import { MIGRATION_SKIP, prepareStorage } from '../../src/store/native-boot.js';
 import { NATIVE_BUDGETS, BUDGET_DEFAULTS, storagePressureOf } from '../../src/store/budget.js';
-import { KEYS, NATIVE_SMOKE_KEY, NATIVE_STORE_MARKER_KEY, inkKey, recordsKey } from '../../src/core/schema.js';
+import { KEYS, NATIVE_SMOKE_KEY, NATIVE_STORE_MARKER_KEY, inkRecordKey, recordsKey } from '../../src/core/schema.js';
 import { buildBackupV2, inspectBackup, restoreFromBackup, serializeBackup, dropSafety } from '../../src/core/backup.js';
 import { mountTestHooks } from '../../src/platform/test-hooks.js';
 import { FakeNativeDb } from './native-fake.mjs';
@@ -110,7 +110,7 @@ test('failure ⇒ nothing changed: disk byte-equal, memory not published (quota,
     const { db, store } = seededNative();
     const disk = db.snapshot();
     const before = store.getState();
-    db.failWhen(({ key }) => (key === inkKey('2026-10') ? verdict : null));
+    db.failWhen(({ key }) => (key === inkRecordKey('2026-10', 'r4') ? verdict : null));
     const r = store.commit('judge', judgeMutation('大'), { reclaim: false });
     db.failWhen(null);
     assert.equal(r.ok, false, JSON.stringify(verdict));

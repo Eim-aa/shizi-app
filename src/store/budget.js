@@ -2,7 +2,7 @@
 //
 // 估算口径：localStorage 按 UTF-16 计，每个条目 ≈ (键长 + 值长) × 2 字节。
 // 回收只动两个域：
-//   ink      按月分键（shizi.v2.ink.<YYYY-MM>），预算按全部月键合计；跨月键统一排序淘汰。
+//   ink      内存按月分组、落盘每条一个键（B2.3 ink schema 2：shizi.v2.ink.<YYYY-MM>.<id>），预算按全部墨迹键合计；跨月统一排序淘汰。
 //            估算按实际 JSON 串长，与编码无关：新写入为 v3 打包编码（每点 4 字节 base64，14 笔 × 24 点 ≈ 3.7KB/条，
 //            300 条 ≈ 1.07MiB，test/core/ink-math.test.mjs P78 容量测量），旧 v2 数据按其原长计。
 //            保留规则（决定-D27，阶段 1 P1-E3）：每字只留「第一次判断」与「最近一次判断」的墨迹（同一条则一份），其余回收。
@@ -24,7 +24,7 @@
 //
 // 预算数值取自 src/config/policy.js（P05/P28/P57 过渡默认值）；store/测试可用 budgets 覆盖注入（resolveBudgets）。
 
-import { CORRUPT_PREFIX, inkIdOf, inkKey, inkMonthOf, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
+import { CORRUPT_PREFIX, inkIdOf, inkMonthOf, inkRecordKey, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
 import * as policy from '../config/policy.js';
 import { localDay } from '../core/dates.js';
 
@@ -328,9 +328,9 @@ export function pruneInkOfCards(draft, cardKeys) {
   return out;
 }
 
-function inkEntryBytes(id, entry) {
-  // 在 {"id":{…},…} 里的份额：引号 + 冒号 + 逗号 ≈ 4 个字符。
-  return (id.length + JSON.stringify(entry).length + 4) * 2;
+/** 一条墨迹落盘的估算字节：B2.3 ink schema 2 每条一个键 shizi.v2.ink.<月>.<id>。 */
+function inkEntryBytes(month, id, entry) {
+  return entryBytes(inkRecordKey(month, id), JSON.stringify(entry));
 }
 
 export function recordsBytes(records) {
@@ -339,21 +339,20 @@ export function recordsBytes(records) {
   return total;
 }
 
-/** ink 域（{month: {id: Ink}}）全部月键的估算字节合计；空月表不落盘，不计。 */
+/** ink 域（{month: {id: Ink}}）落盘的估算字节合计（每条一个键）；空月表不落盘，不计。 */
 export function inkBytes(ink) {
   if (!isPlainObject(ink)) return 0;
   let total = 0;
-  for (const month of Object.keys(ink)) {
-    const table = ink[month];
-    if (!isPlainObject(table) || Object.keys(table).length === 0) continue;
-    total += entryBytes(inkKey(month), JSON.stringify(table));
-  }
+  for (const month of Object.keys(ink)) total += inkMonthBytes(month, ink[month]);
   return total;
 }
 
-/** 单个月表的估算字节（空表 = 键会被删除 = 0）。 */
+/** 一个月的墨迹落盘的估算字节（每条一个键之和；空表 = 0）。 */
 function inkMonthBytes(month, table) {
-  return isPlainObject(table) && Object.keys(table).length ? entryBytes(inkKey(month), JSON.stringify(table)) : 0;
+  if (!isPlainObject(table)) return 0;
+  let total = 0;
+  for (const id of Object.keys(table)) total += inkEntryBytes(month, id, table[id]);
+  return total;
 }
 
 /**
@@ -475,7 +474,7 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
         const table = draft.ink[month];
         if (!inkMonthAllowed(month) || !isPlainObject(table)) continue;
         for (const id of Object.keys(table)) {
-          candidates.push({ month, id, tier: inkTier(id, index, currentMonth), serial: serialOf(id), size: inkEntryBytes(id, table[id]) });
+          candidates.push({ month, id, tier: inkTier(id, index, currentMonth), serial: serialOf(id), size: inkEntryBytes(month, id, table[id]) });
         }
       }
       candidates.sort((x, y) => x.tier - y.tier || x.serial - y.serial || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0) || (x.month < y.month ? -1 : 1));

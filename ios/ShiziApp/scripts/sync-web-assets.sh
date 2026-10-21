@@ -30,7 +30,7 @@ rm -rf "${INK_DEST}"
 if [ "${CONFIGURATION:-}" = "Debug" ]; then
   INK_SRC="${REPO_ROOT}/docs/engineering/v10/phase1/ink-model"
   mkdir -p "${INK_DEST}"
-  cp "${INK_SRC}/vectors.json" "${INK_SRC}/out/reference-dump.json" "${INK_DEST}/"
+  cp "${INK_SRC}/vectors.json" "${INK_SRC}/out/reference-dump.json" "${INK_SRC}/ink-v4-fixture.json" "${INK_DEST}/"
   # ProMotion 120Hz：CADisplayLink 要超过 60Hz 需要 CADisableMinimumFrameDurationOnPhone。只在显式要求时（xcodebuild … SHIZI_NATIVE_INK_120HZ=YES，
   # run-device.sh NATIVE_INK=1 会带上）写进 Debug 包的 Info.plist，平常的 Debug / Release 构建不变。
   PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"

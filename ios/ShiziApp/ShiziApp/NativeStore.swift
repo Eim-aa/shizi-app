@@ -6,12 +6,14 @@ import SQLite3
 // 这一层只认「键 → JSON 字串」：键与 JS 侧 store 的 v2 键一一对应（src/core/schema.js），值是 store 序列化好的原始字串，
 // 原样存、原样取，原生不解析业务形状（规则在 JS，B4 前不在 Swift 重写）。键按数据形状分表：
 //   records(month)   shizi.v2.records.<YYYY-MM>    每月一行（当月 Record[] 或折叠对象）
-//   ink(month)       shizi.v2.ink.<YYYY-MM>        每月一行（{recordId: Ink v3}；B2 原生书写面接手后可升级为每条一行）
+//   ink_records(month, id)  shizi.v2.ink.<YYYY-MM>.<recordId>  每条墨迹一行（schema 2，B2.3：一次判断只写它自己那一行）
+//   ink(month)       shizi.v2.ink.<YYYY-MM>        schema 1 的旧月键（{recordId: Ink}），只剩没迁完的旧数据；JS store 启动时逐月迁成单条行
 //   sched / sessions / settings                    各一行（id = 1）
 //   docs(name)       shizi.v2.<meta|custom|wordOff|photos|legacy|backupMeta|funnel|safety>
 //   aux(key)         其余 shizi.* 键（路由提示 shizi.v2.route、隔离值 shizi.corrupt.*、v1 旧键等），原样保留
 //   store_meta       库自身的状态：迁移标记、创建时间、诊断
-// 版本号用 PRAGMA user_version（当前 1）；升级在 migrateSchema() 里逐级写，库比 App 新时拒绝打开（E_SCHEMA）。
+// 版本号用 PRAGMA user_version（当前 2）；升级在 migrateSchema() 里逐级写（每级一个事务，做完那一级才改 user_version），
+// 库比 App 新时拒绝打开（E_SCHEMA）。升级失败：事务回滚（库停在上一级，数据不动），记一条诊断，打不开（JS 侧进阻断页，下次启动重试）。
 //
 // 写入：apply(ops) 一次一个 SQLite 事务（BEGIN IMMEDIATE … COMMIT），WAL + synchronous=FULL——COMMIT 返回即已落盘（含掉电）。
 // 每个值带 JS 算的校验和（UTF-8 字节数 + FNV-1a 32，见 checksum）：入库前核对收到的字串、写后在同一事务里读回逐字节比对，
@@ -58,6 +60,8 @@ struct NativeStoreError: Error, CustomStringConvertible {
 /// 一个键落在哪张表、哪一行。键 ↔ 行一一对应（key(for:) 是 slot(for:) 的逆）。
 enum NativeStoreSlot: Equatable {
     case monthly(table: String, month: String)
+    /// schema 2：一条墨迹一行（B2.3）。
+    case inkRecord(month: String, id: String)
     case single(table: String)
     case doc(name: String)
     case aux(key: String)
@@ -66,6 +70,13 @@ enum NativeStoreSlot: Equatable {
     static let singleTables: Set<String> = ["sched", "sessions", "settings"]
     static let docNames: Set<String> = ["meta", "custom", "wordOff", "photos", "legacy", "backupMeta", "funnel", "safety"]
     static let maxKeyLength = 512
+
+    /// 记录 id：r + 不以 0 开头的数字（与 JS schema isRecordId 同口径）。
+    static func isRecordId(_ s: Substring) -> Bool {
+        let u = Array(s.utf8)
+        guard u.count >= 2, u.count <= 20, u[0] == UInt8(ascii: "r"), u[1] != UInt8(ascii: "0") else { return false }
+        return u.dropFirst().allSatisfy { $0 >= UInt8(ascii: "0") && $0 <= UInt8(ascii: "9") }
+    }
 
     static func isMonth(_ s: Substring) -> Bool {
         let u = Array(s.utf8)
@@ -86,6 +97,11 @@ enum NativeStoreSlot: Equatable {
                 if rest.hasPrefix(p) {
                     let month = rest.dropFirst(p.count)
                     if isMonth(month) { return .monthly(table: table, month: String(month)) }
+                    // ink.<YYYY-MM>.<recordId>（schema 2）
+                    if table == "ink", month.count > 8 {
+                        let m = month.prefix(7), dot = month.dropFirst(7).prefix(1), id = month.dropFirst(8)
+                        if isMonth(m), dot == ".", isRecordId(id) { return .inkRecord(month: String(m), id: String(id)) }
+                    }
                 }
             }
             let name = String(rest)
@@ -98,6 +114,7 @@ enum NativeStoreSlot: Equatable {
     var key: String {
         switch self {
         case let .monthly(table, month): return "\(Self.v2Prefix)\(table).\(month)"
+        case let .inkRecord(month, id): return "\(Self.v2Prefix)ink.\(month).\(id)"
         case let .single(table): return Self.v2Prefix + table
         case let .doc(name): return Self.v2Prefix + name
         case let .aux(key): return key
@@ -158,8 +175,8 @@ struct NativeStoreMigration: Equatable {
 
 final class NativeStore {
     /// 库结构版本（PRAGMA user_version）。改表结构时 +1，并在 migrateSchema() 里加一级升级。
-    static let schemaVersion: Int32 = 1
-    static let dataTables = ["records", "ink", "sched", "sessions", "settings", "docs", "aux"]
+    static let schemaVersion: Int32 = 2
+    static let dataTables = ["records", "ink", "ink_records", "sched", "sessions", "settings", "docs", "aux"]
     static let diagLimit = 20
 
     let fileURL: URL
@@ -205,7 +222,13 @@ final class NativeStore {
             let mode = try scalarText("PRAGMA journal_mode=WAL")
             guard mode?.lowercased() == "wal" else { throw NativeStoreError("E_IO", "journal_mode=\(mode ?? "nil")") }
             try exec("PRAGMA synchronous=FULL")
-            try migrateSchema()
+            do {
+                try migrateSchema()
+            } catch {
+                // 升级失败：那一级的事务已回滚（库停在上一级、数据不动）。尽量记一条诊断，再按打不开处理（下次启动重试）。
+                try? appendDiag(["kind": "schema-upgrade-failed", "from": Int(userVersion), "to": Int(Self.schemaVersion), "error": "\(error)"])
+                throw error
+            }
             protectFiles()
         } catch {
             close()
@@ -237,15 +260,19 @@ final class NativeStore {
         return Int32(text) ?? 0
     }
 
-    /// 逐级升级。v0 → v1 建表。将来 v1 → v2（例如墨迹改为每条一行）在这里追加一段，同一个事务里改表并改 user_version。
+    /// 逐级升级：每一级一个事务（改表 + 把 user_version 改成这一级），做完一级才进下一级——中途被杀，下次从停下的那一级接着做（可重入）。
+    ///   v0 → v1 建表（B1）。
+    ///   v1 → v2 墨迹每条一行（B2.3）：建 ink_records(month, id, body)。只改结构：把旧 ink 月行拆成单条行由 JS store 做
+    ///          （store.js migrateInkSchema：逐条形状校验、逐月一个 apply 事务、失败回滚并记诊断、下次启动再迁）——
+    ///          值的形状只在 JS 里（D69 / B4 前不在 Swift 重写），原生仍不解析业务 JSON；拆完之前旧月行照常可读可写。
     private func migrateSchema() throws {
         let version = userVersion
         if version > Self.schemaVersion {
             throw NativeStoreError("E_SCHEMA", "database schema \(version) is newer than app schema \(Self.schemaVersion)")
         }
         if version == Self.schemaVersion { return }
-        try transaction {
-            if version < 1 {
+        if version < 1 {
+            try upgrade(to: 1) {
                 for table in ["records", "ink"] {
                     try exec("CREATE TABLE IF NOT EXISTS \(table) (month TEXT PRIMARY KEY NOT NULL, body TEXT NOT NULL, updated_at INTEGER NOT NULL)")
                 }
@@ -257,9 +284,26 @@ final class NativeStore {
                 try exec("CREATE TABLE IF NOT EXISTS store_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)")
                 try setMeta("createdAt", String(Int64(now())))
             }
-            try exec("PRAGMA user_version = \(Self.schemaVersion)")
+        }
+        if userVersion < 2 {
+            try upgrade(to: 2) {
+                try exec("CREATE TABLE IF NOT EXISTS ink_records (month TEXT NOT NULL, id TEXT NOT NULL, body TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (month, id))")
+                try setMeta("schema2At", String(Int64(now())))
+            }
         }
     }
+
+    /// 一级升级：一个事务里做 body 并把 user_version 改成 level。
+    private func upgrade(to level: Int32, _ body: () throws -> Void) throws {
+        try transaction {
+            try body()
+            if let fail = failUpgrade, fail == level { throw NativeStoreError("E_SQLITE", "injected upgrade failure at \(level)") }
+            try exec("PRAGMA user_version = \(level)")
+        }
+    }
+
+    /// 测试注入：升级到这一级时在事务提交前失败（验证回滚与诊断）。
+    var failUpgrade: Int32?
 
     // MARK: - 读
 
@@ -271,6 +315,9 @@ final class NativeStore {
             try each("SELECT month, body FROM \(table)") { stmt in
                 out.append((NativeStoreSlot.monthly(table: table, month: Self.text(stmt, 0)).key, Self.text(stmt, 1)))
             }
+        }
+        try each("SELECT month, id, body FROM ink_records") { stmt in
+            out.append((NativeStoreSlot.inkRecord(month: Self.text(stmt, 0), id: Self.text(stmt, 1)).key, Self.text(stmt, 2)))
         }
         for table in NativeStoreSlot.singleTables.sorted() {
             try each("SELECT body FROM \(table) WHERE id = 1") { stmt in
@@ -529,6 +576,7 @@ final class NativeStore {
     static func selectSQL(_ slot: NativeStoreSlot) -> (String, [Bind]) {
         switch slot {
         case let .monthly(table, month): return ("SELECT body FROM \(table) WHERE month = ?", [.text(month)])
+        case let .inkRecord(month, id): return ("SELECT body FROM ink_records WHERE month = ? AND id = ?", [.text(month), .text(id)])
         case let .single(table): return ("SELECT body FROM \(table) WHERE id = 1", [])
         case let .doc(name): return ("SELECT body FROM docs WHERE name = ?", [.text(name)])
         case let .aux(key): return ("SELECT body FROM aux WHERE key = ?", [.text(key)])
@@ -538,6 +586,7 @@ final class NativeStore {
     static func deleteSQL(_ slot: NativeStoreSlot) -> (String, [Bind]) {
         switch slot {
         case let .monthly(table, month): return ("DELETE FROM \(table) WHERE month = ?", [.text(month)])
+        case let .inkRecord(month, id): return ("DELETE FROM ink_records WHERE month = ? AND id = ?", [.text(month), .text(id)])
         case let .single(table): return ("DELETE FROM \(table) WHERE id = 1", [])
         case let .doc(name): return ("DELETE FROM docs WHERE name = ?", [.text(name)])
         case let .aux(key): return ("DELETE FROM aux WHERE key = ?", [.text(key)])
@@ -550,6 +599,8 @@ final class NativeStore {
         switch slot {
         case let .monthly(table, month):
             return ("INSERT INTO \(table) (month, body, updated_at) VALUES (?, ?, ?) \(tail)", [.text(month)])
+        case let .inkRecord(month, id):
+            return ("INSERT INTO ink_records (month, id, body, updated_at) VALUES (?, ?, ?, ?) \(tail)", [.text(month), .text(id)])
         case let .single(table):
             return ("INSERT INTO \(table) (id, body, updated_at) VALUES (1, ?, ?) \(tail)", [])
         case let .doc(name):

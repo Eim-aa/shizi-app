@@ -1,10 +1,7 @@
 // 看答案 / 描一遍 / 自己写的提交函数与记录草稿工具（从 src/ui/screens/write/answer.js 原样挪来，B2.1；行为不变）。
 // 无 DOM、不依赖 UI：网页写字页（answer.js useAnswerFlow）与写字会话 API（write-api.js）共用。
 
-import { setInk } from '../../store/store.js';
-import { pruneInkOfCards } from '../../store/budget.js';
 import * as defaultPolicy from '../../config/policy.js';
-import { decodeRawStrokes, encodeStoredInk } from '../../core/ink-math.js';
 import { makeRecord } from '../../core/records.js';
 import { applyAnswerSeen } from '../../core/fsrs.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../core/sessions.js';
@@ -75,44 +72,23 @@ function staleGuard(store, slot, cardKey) {
   return !s || currentCardKey(s) !== cardKey ? STALE : null;
 }
 
-/** 至少一笔、至少一个点的原始笔画。 */
-function hasStrokes(strokes) {
-  return Array.isArray(strokes) && strokes.some(st => Array.isArray(st) && st.length > 0);
-}
-
 /** 当前阶段是不是「自己写」：自己写一遍（retrace），或看过答案后恢复到的回忆阶段（格下同样是 R-W07.selfNote）。 */
 export function isSelfWritePhase(current) {
   if (!current) return false;
   return current.phase === 'retrace' || (current.phase === 'recall' && current.answerSeen === true);
 }
 
-/** perRecordInk 开关（P31 / D27）：显式传入优先，否则读 policy.features。 */
-function inkEnabled(perRecordInk, policy) {
-  if (typeof perRecordInk === 'boolean') return perRecordInk;
-  const p = policy || defaultPolicy;
-  return !!(p.features && p.features.perRecordInk === true);
-}
-
 /**
- * Q1：把「自己写一遍」的本人笔画存成本会话这个字的 answer-seen 记录的墨迹（store.commit 的 mutate 里调用）。
- * 当前阶段不是自己写、没有 answer-seen 记录、没有笔画或 perRecordInk 关时什么都不做。strokes 缺省取会话现场
- * （session.current.strokes，抬笔写回的那份——刷新 / 冷启动后本地现场即由它恢复）。同一记录键覆盖 = 只留最后一次；
- * 随后 pruneInkOfCards 回收这个字更早的看后自写（组已关的），判断墨迹的 D27 留存不变。
+ * D70 ②（NF-05）：看过答案后「凭记忆写」的笔迹只算练习，**不存**为作品里的「看后写的」、不进结果页作品、不进字库缩略图。
+ * 网页（useAnswerFlow）与原生（window.shiziNativeWrite）的提交函数都经这一处，所以两边同时生效；函数保留是为了让
+ * commitAnswerPhase / commitAnswerNext 等调用点不变，恒返回 stored:false。已有存量数据不迁移（旧的看后自写墨迹照旧读取）。
  * @returns {{stored:boolean, recordId:string|null}}
  */
-export function storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy, inkFormat } = {}) {
-  const none = { stored: false, recordId: null };
+export function storeSelfInkInDraft(draft, { slot, cardKey } = {}) {
   const s = sessionOf(draft, slot);
-  if (!s || currentCardKey(s) !== cardKey || !isSelfWritePhase(s.current)) return none;
-  if (!inkEnabled(perRecordInk, policy)) return none;
+  if (!s || currentCardKey(s) !== cardKey || !isSelfWritePhase(s.current)) return { stored: false, recordId: null };
   const record = findAnswerSeen(draft, s.id, cardKey);
-  if (!record) return none;
-  const raw = Array.isArray(strokes) ? strokes : decodeRawStrokes(s.current.strokes || []);
-  if (!hasStrokes(raw)) return { stored: false, recordId: record.id };
-  // B2.3：原生存原始点（Ink v4），网页存 v3（inkFormat = ctx.inkFormat）
-  setInk(draft, record, encodeStoredInk(raw, { policy: policy || defaultPolicy, format: inkFormat }));
-  pruneInkOfCards(draft, [cardKey]);
-  return { stored: true, recordId: record.id };
+  return { stored: false, recordId: record ? record.id : null };
 }
 
 /**

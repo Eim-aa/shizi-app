@@ -65,6 +65,7 @@ export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'R-W14.btnSkip',
   'R-W15.end',
   'R-W15.confirmBody',
+  'R-W15.confirmBodyNone',
   'R-W15.continue',
   'R-W20.skippedToast',
   'R-W20.undo',

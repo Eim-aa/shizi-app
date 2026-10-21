@@ -59,7 +59,7 @@ function storeOrNull() {
  * 主按钮「接着写」、「结束这组」普通按钮（S04）；失败态 [先不保存 / 再试一次]。
  */
 export function EndDialogContent({ n = 0, m = 0, failed = false, onEnd, onCancel }) {
-  const body = failed ? t('R-W16.saveFailed') : t('R-W15.confirmBody', { n, m });
+  const body = failed ? t('R-W16.saveFailed') : (m > 0 ? t('R-W15.confirmBody', { n, m }) : t('R-W15.confirmBodyNone', { n }));
   // 失败：弹层内容就地换成三段式（S1，components/FailBlock.js dialog：[先不保存 | 再试一次]；说明句就是上面的正文，常驻的 aria-live 段落换文字即播报）
   const actions = failed
     ? html`${FailBlock({ layout: 'dialog', text: '', testid: 'write-end-fail', cancelTestid: 'write-end-fail-cancel', retryTestid: 'write-end-retry', onCancel: onCancel, onRetry: () => onEnd && onEnd() })}`

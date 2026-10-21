@@ -105,7 +105,7 @@ test('笔画现场的分组键：回忆 / 判断共用一份；描一遍 / 凭�
   assert.equal(syncPatch(s, { cardKey: 'base:永', inkKey: 'base:永|trace', strokes: decodeRawStrokes(s.current.strokes), phase: 'trace' }), null);
 });
 
-test('看答案之后：进描一遍清空笔画、看答案前回忆阶段写的笔画不会被存成「看后写的」墨迹（Q1 存墨规则不变）', () => {
+test('看答案之后：进描一遍清空笔画、看答案前回忆阶段写的笔画不会被存成「看后写的」墨迹，凭记忆写的也不存（D70 ②）', () => {
   const store = fakeStore(withRecallInk(baseState(), [H, V]));
   commitAnswerSeen(store, { slot: 'A', cardKey: 'base:永' });
   assert.ok(commitAnswerPhase(store, { slot: 'A', cardKey: 'base:永', phase: 'trace' }).ok);
@@ -115,7 +115,7 @@ test('看答案之后：进描一遍清空笔画、看答案前回忆阶段写�
   assert.ok(commitAnswerNext(store, { slot: 'A', cardKey: 'base:永', strokes: [V] }).ok);
   const ink = store.getState().ink;
   const keys = Object.keys(ink).flatMap(m => Object.keys(ink[m]));
-  assert.equal(keys.length, 1, 'only the retrace strokes are stored (Q1)');
+  assert.equal(keys.length, 0, 'D70 ②: the retrace strokes are practice only — nothing is stored');
 });
 
 test('settings.answerNoteSeen 标志位（C3-H / D53 起界面不再读它、第一次的格下说明已删）：answerNoteDue / commitAnswerNoteSeen 照旧，只在 answer 阶段、从没记过时 due；记即 store.commit，之后不再写', () => {

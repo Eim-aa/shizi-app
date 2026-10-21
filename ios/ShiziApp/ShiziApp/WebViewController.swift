@@ -377,6 +377,7 @@ final class WebViewController: UIViewController {
         #if DEBUG
         installNativeDevUserScriptIfNeeded(controller)
         installNativeInkUserScriptIfNeeded(controller)
+        installNativeWriteUserScriptIfNeeded(controller)
         #endif
         if let source = Self.initialContentSizeScript(category ?? currentContentSizeCategory) {
             controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -835,6 +836,8 @@ extension WebViewController: WKScriptMessageHandler {
             handleNativeSmokeControl(body)
         case "nativeInk":
             handleNativeInkMessage(body)
+        case "nativeWrite":
+            handleNativeWriteMessage(body)
         #endif
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")

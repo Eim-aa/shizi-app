@@ -44,6 +44,14 @@ ios/ShiziApp/scripts/verify-archive.sh work/Shizi.xcarchive
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziStoreTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
 ```
 
+原生写字页（B2.0 纵切，DEBUG 启动参数 `-shizi-native-write` / `SHIZI_NATIVE_WRITE=1`，默认关；架构见 `docs/engineering/v10/B2-原生写字架构.md`）的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入）：
+
+```bash
+xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziWriteTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
+```
+
+会清空该模拟器上 App 的数据（`__shiziTest.reset`），请用自己的模拟器。
+
 `CODE_SIGNING_ALLOWED=NO` 只用于本地无证书编译校验。真机运行和 TestFlight 必须使用 Apple Developer Team 正常签名。
 
 构建后可以检查 App 包或 archive 里的离线资源是否完整：

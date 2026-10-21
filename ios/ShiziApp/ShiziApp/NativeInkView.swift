@@ -285,7 +285,7 @@ final class NativeInkView: UIView {
 
     weak var delegate: NativeInkViewDelegate?
     let renderer: NativeInkRenderer
-    let latency = NativeInkLatency()
+    var latency = NativeInkLatency()
     var params = InkParams.default
 
     /// 墨色（预乘前，0–1）与整体不透明度（页面固化层 opacity）。

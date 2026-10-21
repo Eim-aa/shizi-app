@@ -37,6 +37,8 @@ extension WebViewController {
     static var nativeTestHostEnabled: Bool {
         let process = ProcessInfo.processInfo
         return nativeSmokeEnabled || process.arguments.contains("-shizi-dev") || process.environment["SHIZI_DEV"] == "1"
+            // B2.0：测试宿主（XCTest 驱动写字会话 API）只要测试钩子，不跑冒烟、不进调试页
+            || process.arguments.contains("-shizi-test-host") || process.environment["SHIZI_TEST_HOST"] == "1"
     }
 
     private static func argumentValue(after flag: String) -> String? {

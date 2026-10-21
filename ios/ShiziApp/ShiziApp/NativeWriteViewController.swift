@@ -416,7 +416,11 @@ final class NativeWriteViewController: UIViewController {
         [backButton, centerLabel, progressLabel, headProgress, endButton, skipButton, stepsView, promptView, gridFrame, noInkLabel, hintLayer, traceLayer, ink, refFrame, undoButton, clearButton, noteView, footView]
             .forEach { view.addSubview($0) }
 
-        // 左缘右滑 = 左上「‹」：回忆阶段跟手滑回上一页（交互式转场），判断阶段 = 接着写（D58 ① / 确认单 2）
+        // 左缘右滑 = 左上「‹」：回忆阶段跟手滑回上一页（交互式转场），判断阶段 = 接着写（D58 ① / 确认单 2）。
+        // R10-A（D71 ②）：系统左缘识别器的起手区（UIKit _edgeRegionSize 40.2pt，真机还按手指接触半径放宽）伸进书写格左侧约 20pt——
+        // 那里起笔向右写（横）会被它认成返回手势：这一笔被取消、交互式返回又回弹，看上去就是「写完的笔画突然消失」。
+        // 规则：书写格里起手一律归书写，边缘返回只在格外（页边 20pt）生效（与网页起手带只占页边 12px、不压书写格同一口径）。
+        edgeBack.delegate = self
         edgeBack.edges = .left
         edgeBack.addTarget(self, action: #selector(handleEdgeBack(_:)))
         view.addGestureRecognizer(edgeBack)
@@ -2140,6 +2144,9 @@ final class NativeWriteViewController: UIViewController {
     }
 
     @objc private func handleEdgeBack(_ g: UIScreenEdgePanGestureRecognizer) {
+        #if DEBUG
+        if g.state != .changed { NSLog("[shizi] native write edge back state=%d x=%.1f", g.state.rawValue, Double(g.location(in: view).x)) }
+        #endif
         guard endDialog == nil else { return }
         let x = max(0, g.translation(in: view).x), v = g.velocity(in: view).x
         let width = max(1, view.bounds.width)
@@ -2164,7 +2171,7 @@ final class NativeWriteViewController: UIViewController {
         case .began:
             guard !submitting else { return }
             settleAnimations()
-            ink?.cancelStroke(reason: "cancel", notify: false) // 落笔中被手势打断：这一笔丢弃（与网页 pointercancel 同语义）
+            ink?.cancelStroke(reason: "edge-back", notify: false) // 落笔中被手势打断：这一笔丢弃（与网页 pointercancel 同语义）
             transitions.interactor = UIPercentDrivenInteractiveTransition()
             dismiss(animated: true)
         case .changed:
@@ -2176,6 +2183,23 @@ final class NativeWriteViewController: UIViewController {
         default:
             break
         }
+    }
+}
+
+extension NativeWriteViewController: UIGestureRecognizerDelegate {
+    /// 左缘返回只收书写格以外起手的触摸：能落笔时（书写面可写、没隐藏）格里按下的触摸归书写（R10-A）。
+    static func edgeBackReceives(touchAt p: CGPoint, inkFrame: CGRect, inkDrawable: Bool) -> Bool {
+        !(inkDrawable && inkFrame.contains(p))
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard gestureRecognizer === edgeBack, let ink else { return true }
+        let p = touch.location(in: view)
+        let ok = Self.edgeBackReceives(touchAt: p, inkFrame: ink.frame, inkDrawable: ink.drawable && !ink.isHidden && ink.window != nil)
+        #if DEBUG
+        if !ok, p.x < 48 { ink.logStroke("edge-back yields to ink") } // 只记系统起手区（40.2pt）以内的
+        #endif
+        return ok
     }
 }
 

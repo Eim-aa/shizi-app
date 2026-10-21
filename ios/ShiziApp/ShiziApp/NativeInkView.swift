@@ -309,17 +309,10 @@ final class NativeInkRenderer {
 
 @objc(ShiziNativeInkView)
 final class NativeInkView: UIView {
-    /// 写字页书写面的笔模型参数（R9-A NP-07 / NP-21：同一组笔画的墨粗与网页接近，±25%）。
-    /// ink-model-1.0 默认值（金标准向量绑定的 InkParams.default）在快写的横画上只有网页墨粗的 ~60%（横画方向因子 0.72 × 快写下限 0.62）；
-    /// 这里在规格 §3.11 的 T2 范围内取：整体墨量 base 13 → 15、快写最细 vMin 0.62 → 0.72、横画 dirH 0.72 → 0.82（横竖比 1.56 → 1.37）。
-    /// 结构性参数与算法不动、金标准自检仍按默认值跑；T2 盲测定稿后改写进 policy.ink、由页面随 open 给出（暂定值，见架构文档 §12 R9-A）。
-    static let surfaceParams: InkParams = {
-        var k = InkParams.default
-        k.base = 15
-        k.vMin = 0.72
-        k.dirH = 0.82
-        return k
-    }()
+    /// 写字页书写面的笔模型参数。D71 ①：回到 R9-A 之前的原生书写面参数（= ink-model-1.0 默认值：base 13 / vMin 0.62 / dirH 0.72）——
+    /// 负责人真机试用判断 R9-A 的加粗（15 / 0.72 / 0.82）「比之前粗，影响观感」，手感优先于逐屏对比；墨粗属笔锋渲染，
+    /// 与网页的差异在 parity 里按 NP-07 带理由豁免。T2 盲测定稿后改写进 policy.ink、由页面随 open 给出。
+    static let surfaceParams: InkParams = .default
 
     override class var layerClass: AnyClass { CAMetalLayer.self }
     var metalLayer: CAMetalLayer { layer as! CAMetalLayer } // swiftlint:disable:this force_cast
@@ -378,6 +371,14 @@ final class NativeInkView: UIView {
     /// 每帧画完后的钩子（DEBUG：落定原型用来在「第一帧」同帧发触觉）。
     var afterFrame: ((CFTimeInterval) -> Void)?
     private var fade: (start: CFTimeInterval, ms: Double, from: Float)?
+    /// 每一笔的结局（DEBUG，R10-A：笔画「写完消失」排查）：began / ended / held / cancel:<原因> / refused:<原因>，最近 64 条。
+    /// 探针（QAProbe native.inkLog）与控制台（[shizi] ink …）都看得到。
+    private(set) var strokeLog: [String] = []
+    func logStroke(_ e: String) {
+        strokeLog.append(e)
+        if strokeLog.count > 64 { strokeLog.removeFirst(strokeLog.count - 64) }
+        NSLog("[shizi] ink %@", e)
+    }
     #endif
 
     init?(frame: CGRect, renderer: NativeInkRenderer) {
@@ -466,7 +467,11 @@ final class NativeInkView: UIView {
         }
         pageStrokes = next
         // 代理已经收下的待确认笔从 pending 去掉；笔数减少（撤销 / 清空 / 换字）时 pending 全清
-        pendingStrokes = strokes.count < oldCount || strokes.isEmpty ? [] : pend
+        let nextPending = strokes.count < oldCount || strokes.isEmpty ? [] : pend
+        #if DEBUG
+        if nextPending.count < pend.count { logStroke("pending-cleared \(pend.count) by sync(\(strokes.count))") }
+        #endif
+        pendingStrokes = nextPending
         needsRender = true
     }
 
@@ -557,7 +562,12 @@ final class NativeInkView: UIView {
     // MARK: 触摸 → 采样
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard drawable else { return }
+        guard drawable else {
+            #if DEBUG
+            logStroke("refused:not-drawable")
+            #endif
+            return
+        }
         // Pencil 优先（规则 1）：同一批里有 Pencil 先看 Pencil
         for t in touches.sorted(by: { $0.type == .pencil && $1.type != .pencil }) {
             inputBegan(Sample(t, in: self), id: ObjectIdentifier(t))
@@ -578,8 +588,14 @@ final class NativeInkView: UIView {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let id = current, touches.contains(where: { ObjectIdentifier($0) == id }) else { return }
-        cancelStroke(reason: "cancel", notify: true)
+        guard let id = current, let t = touches.first(where: { ObjectIdentifier($0) == id }) else { return }
+        #if DEBUG
+        // 谁取消的：这次触摸上已经识别出来的手势（began / changed / ended）
+        let who = (t.gestureRecognizers ?? []).filter { [.began, .changed, .ended].contains($0.state) }
+            .map { "\(type(of: $0))@\($0.view.map { String(describing: type(of: $0)) } ?? "-")" }
+        logStroke("touches-cancelled by [\(who.joined(separator: ","))] x=\(Int(t.location(in: self).x)) y=\(Int(t.location(in: self).y))")
+        #endif
+        cancelStroke(reason: "touches-cancelled", notify: true)
     }
 
     // MARK: 采样 → 笔（触摸与测试同一条路）
@@ -590,7 +606,10 @@ final class NativeInkView: UIView {
         guard drawable else { return false }
         if s.kind == .pencil { inputPolicy.notePencil(at: s.timestamp) }
         switch inputPolicy.begin(kind: s.kind, majorRadius: s.majorRadius, at: s.timestamp, active: current == nil ? nil : currentKind) {
-        case .reject:
+        case .reject(let why):
+            #if DEBUG
+            logStroke("refused:\(why)")
+            #endif
             return false
         case .preempt:
             cancelStroke(reason: "palm", notify: true)
@@ -607,6 +626,7 @@ final class NativeInkView: UIView {
         heldStartedAt = s.timestamp
         #if DEBUG
         latency.touch(s.timestamp, delivered: CACurrentMediaTime())
+        logStroke(String(format: "began x=%.0f y=%.0f%@", Double(s.location.x), Double(s.location.y), held ? " held" : ""))
         #endif
         liveDirty = !held
         needsRender = true
@@ -659,6 +679,9 @@ final class NativeInkView: UIView {
         held = false
         if wasHeld, CACurrentMediaTime() < acceptFrom {
             heldDone.append(stroke) // P227：这一笔不丢，到点整笔交出
+            #if DEBUG
+            logStroke("held")
+            #endif
             needsRender = true
             return
         }
@@ -672,6 +695,7 @@ final class NativeInkView: UIView {
         pendingSince = CACurrentMediaTime()
         #if DEBUG
         latency.strokes += 1
+        logStroke("ended n=\(stroke.count)")
         #endif
         needsRender = true
         delegate?.nativeInkDidEndStroke(self, raw: stroke)
@@ -688,6 +712,7 @@ final class NativeInkView: UIView {
         held = false
         #if DEBUG
         latency.dropPending()
+        logStroke("cancel:\(reason)")
         #endif
         needsRender = true
         if notify, !wasHeld { delegate?.nativeInkDidCancelStroke(self, reason: reason) }
@@ -818,6 +843,9 @@ final class NativeInkView: UIView {
         #endif
         // 代理迟迟没同步回来（例如这一笔被丢弃）：2s 后不再显示待确认的笔
         if !pendingStrokes.isEmpty, current == nil, CACurrentMediaTime() - pendingSince > 2 {
+            #if DEBUG
+            logStroke("pending-dropped \(pendingStrokes.count)")
+            #endif
             pendingStrokes = []
             needsRender = true
         }

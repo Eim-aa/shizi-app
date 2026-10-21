@@ -2,8 +2,9 @@
 //
 // usage: node compare.mjs --ref <参考目录> --native <原生取证目录> --out <输出目录> [--config parity.config.json]
 // 方法：以「元素清单 + 位置尺寸 + 文案 + 颜色」为主（elements.mjs 配对，容差见 parity.config.json），不做整图像素比；
-//   笔迹区域不比（只比书写格的框，不比格里的墨）。另在截图上取少量像素（格底色、辅助线、题面空格、横画粗、遮罩），
-//   供具名检查（parity-checks.mjs，两份 AI 报告的 NP-*）用。
+//   格里的墨另比像素（R11-A，D72 ②：原生墨与网页同一算法）：parity.config.json ink.states 列出的状态，在各自的墨格（网页 / 原生各取自己的框）
+//   里按同一网格取墨区掩膜，比墨区 IoU 与平均粗细（墨面积比，同一组注入笔画、中线相同）——NP-07 / NP-22。
+//   另在截图上取少量像素（格底色、辅助线、题面空格、横画粗、遮罩），供具名检查（parity-checks.mjs，两份 AI 报告的 NP-*）用。
 // 输出：<out>/report.md（文本差异清单）、<out>/report.json、<out>/side-by-side/<状态>_<外观>_<字号>.png（左网页、右原生，差异框编号）。
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -90,6 +91,28 @@ async function sample(page, png, regions) {
       for (let yy = y + 4; yy < y + h - 4; yy += 1) for (let xx = x + 4; xx < x + w - 4; xx += 1) if (Math.abs(ref - lum(px(xx, yy))) > 60) n += 1;
       out.blankInk = n;
     }
+    if (g.ink) {
+      // 墨区掩膜：墨格内 N×N 网格（N = 网页墨格边长 pt，1 倍图上一格一像素），与格底亮度差超过「格内最大差」× threshold 记为墨；
+      // 内缩 inset 避开格线。返回 '0' / '1' 串。
+      const { x, y, w, h } = g.ink.frame;
+      const N = g.ink.n, inset = g.ink.inset;
+      const corners = [[0.04, 0.04], [0.96, 0.04], [0.04, 0.96], [0.96, 0.96]].map(([fx, fy]) => lum(px(x + fx * w, y + fy * h))).sort((a, b) => a - b);
+      const bgL = corners[2];
+      const d = new Float32Array(N * N);
+      let max = 0;
+      for (let j = 0; j < N; j += 1) for (let i = 0; i < N; i += 1) {
+        const u = (i + 0.5) / N, v = (j + 0.5) / N;
+        const xx = x + inset + u * (w - 2 * inset), yy = y + inset + v * (h - 2 * inset);
+        const dd = Math.abs(bgL - lum(px(xx, yy)));
+        d[j * N + i] = dd;
+        if (dd > max) max = dd;
+      }
+      const cut = Math.max(40, max * g.ink.threshold);
+      let mask = '';
+      for (let k = 0; k < d.length; k += 1) mask += d[k] > cut ? '1' : '0';
+      out.inkMask = mask;
+      out.inkContrast = Math.round(max);
+    }
     out.scrim = hex(px(g.screenW / 2, 100));
     return out;
   }, { src: dataUrl(png), regions });
@@ -119,6 +142,28 @@ function render(page, { webPng, natPng, diffs, title, screen }) {
 
 const escape = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
 
+/** 墨区比较（R11-A）：两张同尺寸掩膜 → IoU、容 1 格的 IoU（边缘抗锯齿 / 亚像素对位）、墨面积比（原生 / 网页 = 平均粗细比）。 */
+function inkCompare(a, b, n) {
+  if (!a || !b || a.length !== b.length) return null;
+  let inter = 0, union = 0, na = 0, nb = 0, nearA = 0, nearB = 0;
+  const at = (m, i, j) => i >= 0 && j >= 0 && i < n && j < n && m.charCodeAt(j * n + i) === 49;
+  const near = (m, i, j) => { for (let dj = -1; dj <= 1; dj += 1) for (let di = -1; di <= 1; di += 1) if (at(m, i + di, j + dj)) return true; return false; };
+  for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) {
+    const A = at(a, i, j), B = at(b, i, j);
+    if (A) na += 1;
+    if (B) nb += 1;
+    if (A && B) inter += 1;
+    if (A || B) union += 1;
+    if (A && near(b, i, j)) nearA += 1;
+    if (B && near(a, i, j)) nearB += 1;
+  }
+  const r = x => Math.round(x * 1000) / 1000;
+  // 容 1 格：网页墨点在原生墨 1 格内的比例、原生墨点在网页墨 1 格内的比例，取小者
+  return { web: na, native: nb, iou: union ? r(inter / union) : 1, iou1: na && nb ? r(Math.min(nearA / na, nearB / nb)) : (na === nb ? 1 : 0), area: na ? r(nb / na) : null };
+}
+
+const INK = config.ink || { states: {} };
+
 const pairsFound = readdirSync(refDir).filter(f => f.endsWith('.json')).map(f => f.replace(/\.json$/, '')).sort();
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
@@ -143,10 +188,22 @@ for (const name of pairsFound) {
     const blankEl = (natJson.elements || []).find(e => e.id === 'native-write-blank');
     const regions = { grid, blank: blankEl ? blankEl.frame : null, screenW: screen.w };
     const scaleOf = async png => page.evaluate(async src => { const i = new Image(); i.src = src; await i.decode(); return i.width; }, dataUrl(png));
+    // 墨格（R11-A）：两边各取自己的框，同一 N×N 网格
+    const inkKey = INK.states[state];
+    const wInk = inkKey && (web.find(e => e.key === inkKey) || {}).frame;
+    const nInk = inkKey && (native.find(e => e.key === inkKey) || {}).frame;
+    const n = wInk ? Math.round(wInk.w) : 0;
+    const inkOf = f => (f && n ? { frame: f, n, inset: INK.inset ?? 2, threshold: INK.threshold ?? 0.5 } : null);
     px = {
-      web: await sample(page, webPng, { ...regions, scale: (await scaleOf(webPng)) / screen.w }),
-      native: await sample(page, natPng, { ...regions, scale: (await scaleOf(natPng)) / screen.w }),
+      web: await sample(page, webPng, { ...regions, ink: inkOf(wInk), scale: (await scaleOf(webPng)) / screen.w }),
+      native: await sample(page, natPng, { ...regions, ink: inkOf(nInk), scale: (await scaleOf(natPng)) / screen.w }),
     };
+    if (inkKey) {
+      px.ink = inkCompare(px.web.inkMask, px.native.inkMask, n) || { error: `墨格 网页 ${wInk ? '有' : '无'} 原生 ${nInk ? '有' : '无'}` };
+      px.ink.key = inkKey;
+    }
+    delete px.web.inkMask;
+    delete px.native.inkMask;
     await render(page, { webPng, natPng, diffs: kept, title: `${STATE_NAMES[state] || state} · ${appearance} · ${size}`, screen });
     await page.screenshot({ path: join(outDir, 'side-by-side', `${name}.png`), fullPage: true });
   }
@@ -155,7 +212,7 @@ for (const name of pairsFound) {
     if (!c.states.includes(state)) continue;
     if (c.appearances && !c.appearances.includes(appearance)) continue;
     let r;
-    try { r = c.eval({ state, tag: `${appearance}_${size}`, appearance, size, web, native, px, screen, tolerance: tol }); } catch (error) { r = { pass: false, detail: `检查出错：${error.message}` }; }
+    try { r = c.eval({ state, tag: `${appearance}_${size}`, appearance, size, web, native, px, screen, tolerance: tol, ink: INK }); } catch (error) { r = { pass: false, detail: `检查出错：${error.message}` }; }
     checks.push({ id: c.id, status: statusOf(c), pass: !!r.pass, detail: r.detail });
   }
   results.push({ name, state, appearance, size, ok: webJson.ok && natJson.ok, errors: [webJson.error, natJson.error].filter(Boolean), diffs: kept.map(d => ({ type: d.type, aspects: d.aspects, label: d.label, msg: d.msg })), checks, px });

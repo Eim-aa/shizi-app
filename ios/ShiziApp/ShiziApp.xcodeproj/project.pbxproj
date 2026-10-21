@@ -19,6 +19,8 @@
 		1A000000000000000000B2A7 /* NativeHintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A6 /* NativeHintTests.swift */; };
 		1A000000000000000000B25D /* NativeJudgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B25C /* NativeJudgeTests.swift */; };
 		1A000000000000000000B2A5 /* NativeHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A4 /* NativeHint.swift */; };
+		1A00000000000000000B11A2 /* WebInk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B11A1 /* WebInk.swift */; };
+		1A00000000000000000B11A4 /* WebInkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B11A3 /* WebInkTests.swift */; };
 		1A000000000000000000B25B /* NativeJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B25A /* NativeJudge.swift */; };
 		1A000000000000000000B2A3 /* NativeWriteLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A2 /* NativeWriteLayout.swift */; };
 		1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A0 /* NativeInkWire.swift */; };
@@ -76,6 +78,8 @@
 		1A0000000000000000B24605 /* NativeTraceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeTraceTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B24607 /* NativeAnswerSkipTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAnswerSkipTests.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A4 /* NativeHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeHint.swift; sourceTree = "<group>"; };
+		1A00000000000000000B11A1 /* WebInk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebInk.swift; sourceTree = "<group>"; };
+		1A00000000000000000B11A3 /* WebInkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebInkTests.swift; sourceTree = "<group>"; };
 		1A000000000000000000B25A /* NativeJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeJudge.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A2 /* NativeWriteLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteLayout.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A0 /* NativeInkWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkWire.swift; sourceTree = "<group>"; };
@@ -154,6 +158,7 @@
 				1A0000000000000000000C01 /* NativeWriteBridgeTests.swift */,
 				1A0000000000000000000C21 /* InkSurfaceTests.swift */,
 				1A000000000000000000B2A6 /* NativeHintTests.swift */,
+				1A00000000000000000B11A3 /* WebInkTests.swift */,
 				1A000000000000000000B25C /* NativeJudgeTests.swift */,
 				1A0000000000000000B24605 /* NativeTraceTests.swift */,
 				1A0000000000000000B24607 /* NativeAnswerSkipTests.swift */,
@@ -200,6 +205,7 @@
 				1A0000000000000000000B24 /* NativeWriteViewController.swift */,
 				1A0000000000000000000B26 /* NativeWriteCoordinator.swift */,
 				1A000000000000000000B2A4 /* NativeHint.swift */,
+				1A00000000000000000B11A1 /* WebInk.swift */,
 				1A000000000000000000B25A /* NativeJudge.swift */,
 				1A0000000000000000B24601 /* NativeTrace.swift */,
 				1A0000000000000000B24603 /* NativeSkipEnd.swift */,
@@ -425,6 +431,7 @@
 				1A0000000000000000000B25 /* NativeWriteViewController.swift in Sources */,
 				1A0000000000000000000B27 /* NativeWriteCoordinator.swift in Sources */,
 				1A000000000000000000B2A5 /* NativeHint.swift in Sources */,
+				1A00000000000000000B11A2 /* WebInk.swift in Sources */,
 				1A000000000000000000B25B /* NativeJudge.swift in Sources */,
 				1A0000000000000000B24602 /* NativeTrace.swift in Sources */,
 				1A0000000000000000B24604 /* NativeSkipEnd.swift in Sources */,
@@ -444,6 +451,7 @@
 				1A0000000000000000000C02 /* NativeWriteBridgeTests.swift in Sources */,
 				1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */,
 				1A000000000000000000B2A7 /* NativeHintTests.swift in Sources */,
+				1A00000000000000000B11A4 /* WebInkTests.swift in Sources */,
 				1A000000000000000000B25D /* NativeJudgeTests.swift in Sources */,
 				1A0000000000000000B24606 /* NativeTraceTests.swift in Sources */,
 				1A0000000000000000B24608 /* NativeAnswerSkipTests.swift in Sources */,

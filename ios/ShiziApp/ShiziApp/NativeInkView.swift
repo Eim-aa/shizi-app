@@ -4,9 +4,11 @@ import UIKit
 
 // 原生书写面（B2.1 转正：Release 组件；docs/engineering/v10/B2-原生写字架构.md §6；规格 docs/engineering/v10/phase1/笔锋模型规格.md）。
 //
-// 管线（规格 §7）：UITouch（合并点 coalescedTouches + 预测点 predictedTouches；Pencil 时 force / altitude）
+// 管线（输入沿规格 §7；墨的几何见下）：UITouch（合并点 coalescedTouches + 预测点 predictedTouches；Pencil 时 force / altitude）
 //   → 原始点（345 单位格、ms = UITouch.timestamp × 1000、p 仅 Pencil；时间戳不单调时夹到前一点，规格 §2.1）
-//   → CADisplayLink（preferredFrameRateRange 最高 120）每帧：InkModel.analyze(final: false, predicted:) → geometry → 三角形
+//   → CADisplayLink（preferredFrameRateRange 最高 120）每帧：WebInk.buildStroke(原始点 + 预测点, final: false) → 三角形
+//      （R11-A，D72 ②：墨与网页同一算法 ink-math.js buildStroke + brush.js 画法，参数由页面随 open 下发；ink-model-1.0 / InkModel
+//       只留作 T2 盲测候选，见 inkModel）
 //   → Metal：CAMetalLayer 直接呈现，4×MSAA；墨的三角形同一墨色、不混合地写入 = 规格 §4.2 的「并集」（重叠处颜色相同，非零规则自然成立），
 //      MSAA resolve 得到预乘 alpha 的抗锯齿边。悬停预览点另一条混合管线叠在最上面（半透明，不落墨）。
 //   抬笔：final = true 的终态几何替换书写中的预混态（规格 §7.4 的 70ms 补间在后续卡），原始点交给代理（写字页 → 页面 store.commit）。
@@ -145,11 +147,27 @@ final class NativeInkStrokeMesh {
         }
     }
 
-    static func build(raw: [InkRawPoint], params: InkParams) -> NativeInkStrokeMesh {
+    /// 一笔抬笔后的几何（R11-A，D72 ②）：网页同一算法 WebInk.buildStroke(final: true) → brush.js 同一画法的三角形。
+    /// params 为 nil（页面还没下发 ink 表）时没有几何——书写面只在写字页 open 之后存在，open 一定带 ink（契约 test/ui/native-write.test.mjs）。
+    static func build(raw: [InkRawPoint], params: WebInkParams?) -> NativeInkStrokeMesh {
+        var v: [Float] = []
+        if let params { WebInk.triangles(WebInk.buildStroke(raw, final: true, params: params).points, into: &v) }
+        return NativeInkStrokeMesh(raw: raw, vertices: v)
+    }
+
+    /// ink-model-1.0 的几何（T2 盲测候选，不在产品路径上：只有 DEBUG 的 NativeInkSpike 经 NativeInkView.inkModel 用到）。
+    static func build(raw: [InkRawPoint], inkModel params: InkParams) -> NativeInkStrokeMesh {
         let profile = InkModel.analyze(raw, final: true, params: params)
         var v: [Float] = []
         triangles(InkModel.geometry(profile), into: &v)
         return NativeInkStrokeMesh(raw: raw, vertices: v)
+    }
+
+    /// 书写中的一笔（final = false）：已记的原始点 + 这一帧的预测点（只做临时尾巴，下一帧丢弃；时间夹成单调）。
+    static func live(raw: [InkRawPoint], predicted: [InkRawPoint], params: WebInkParams, into out: inout [Float]) {
+        var pts = raw
+        for q in predicted { NativeInkView.append(q, to: &pts) }
+        WebInk.triangles(WebInk.buildStroke(pts, final: false, params: params).points, into: &out)
     }
 
     /// 实心圆（扇形三角化，345 单位）。
@@ -163,8 +181,8 @@ final class NativeInkStrokeMesh {
         return v
     }
 
-    /// 悬停预览点的直径（345 单位；规格 §2.1：0.9 × B × F_p(0.35)）。
-    static func hoverDotDiameter(_ k: InkParams) -> Double { 0.9 * k.base * InkModel.pressureFactor(0.35, k) }
+    /// 悬停预览点的直径（345 单位）：Pencil 轻落（p = 0.35）的单点直径 = single × base × 压力因子（网页同一算法的单点口径）。
+    static func hoverDotDiameter(_ k: WebInkParams) -> Double { k.single * k.base * WebInk.pressureFactor(0.35, k) }
 }
 
 // MARK: - 渲染
@@ -310,17 +328,21 @@ final class NativeInkRenderer {
 
 @objc(ShiziNativeInkView)
 final class NativeInkView: UIView {
-    /// 写字页书写面的笔模型参数。D71 ①：回到 R9-A 之前的原生书写面参数（= ink-model-1.0 默认值：base 13 / vMin 0.62 / dirH 0.72）——
-    /// 负责人真机试用判断 R9-A 的加粗（15 / 0.72 / 0.82）「比之前粗，影响观感」，手感优先于逐屏对比；墨粗属笔锋渲染，
-    /// 与网页的差异在 parity 里按 NP-07 带理由豁免。T2 盲测定稿后改写进 policy.ink、由页面随 open 给出。
-    static let surfaceParams: InkParams = .default
+    /// 墨的算法与参数（R11-A，D72 ②）：与网页同一算法 WebInk（= ink-math.js buildStroke），参数是页面随 open 下发的 ink 表
+    /// （policy.ink + INK_SPEC，WebInkParams.current），不在原生写数值。取代 D71 ① 的 ink-model-1.0 参数（base 13 / vMin 0.62 / dirH 0.72）。
 
     override class var layerClass: AnyClass { CAMetalLayer.self }
     var metalLayer: CAMetalLayer { layer as! CAMetalLayer } // swiftlint:disable:this force_cast
 
     weak var delegate: NativeInkViewDelegate?
     let renderer: NativeInkRenderer
-    var params = NativeInkView.surfaceParams
+    var params: WebInkParams? = WebInkParams.current {
+        didSet { if params != oldValue { rebuildMeshes() } }
+    }
+    /// T2 盲测候选（DEBUG 的 NativeInkSpike 设）：非 nil 时改用 ink-model-1.0 画；产品路径（写字页 / 判断页）不设。
+    var inkModel: InkParams? {
+        didSet { rebuildMeshes() }
+    }
     var inputPolicy = NativeInkInputPolicy()
 
     /// 墨色（预乘前，0–1）与整体不透明度。
@@ -463,7 +485,7 @@ final class NativeInkView: UIView {
                 next.append(first)
                 pend.removeFirst()
             } else {
-                next.append(NativeInkStrokeMesh.build(raw: s, params: params))
+                next.append(mesh(s))
             }
         }
         pageStrokes = next
@@ -473,6 +495,20 @@ final class NativeInkView: UIView {
         if nextPending.count < pend.count { logStroke("pending-cleared \(pend.count) by sync(\(strokes.count))") }
         #endif
         pendingStrokes = nextPending
+        needsRender = true
+    }
+
+    /// 一笔的几何（产品：网页同一算法；inkModel 设了时用 ink-model-1.0）。
+    func mesh(_ raw: [InkRawPoint]) -> NativeInkStrokeMesh {
+        if let k = inkModel { return NativeInkStrokeMesh.build(raw: raw, inkModel: k) }
+        return NativeInkStrokeMesh.build(raw: raw, params: params)
+    }
+
+    /// 参数变了（页面重新同步下发新表 / 换笔模型）：已画的笔按新参数重算。
+    private func rebuildMeshes() {
+        pageStrokes = pageStrokes.map { mesh($0.raw) }
+        pendingStrokes = pendingStrokes.map { mesh($0.raw) }
+        liveDirty = !raw.isEmpty
         needsRender = true
     }
 
@@ -691,8 +727,7 @@ final class NativeInkView: UIView {
     }
 
     private func finish(_ stroke: [InkRawPoint]) {
-        let mesh = NativeInkStrokeMesh.build(raw: stroke, params: params)
-        pendingStrokes.append(mesh)
+        pendingStrokes.append(mesh(stroke))
         pendingSince = CACurrentMediaTime()
         #if DEBUG
         latency.strokes += 1
@@ -799,10 +834,13 @@ final class NativeInkView: UIView {
         guard needsRender || liveDirty || hasExtra else { return }
         let callback = CACurrentMediaTime()
         if liveDirty, !raw.isEmpty, !held {
-            let profile = InkModel.analyze(raw, final: false, predicted: predicted, params: params)
             var v: [Float] = []
             v.reserveCapacity(liveVertices.count + 64)
-            NativeInkStrokeMesh.triangles(InkModel.geometry(profile), into: &v)
+            if let k = inkModel {
+                NativeInkStrokeMesh.triangles(InkModel.geometry(InkModel.analyze(raw, final: false, predicted: predicted, params: k)), into: &v)
+            } else if let params {
+                NativeInkStrokeMesh.live(raw: raw, predicted: predicted, params: params, into: &v)
+            }
             liveVertices = v
         }
         liveDirty = false
@@ -821,8 +859,10 @@ final class NativeInkView: UIView {
             // 落笔预览点：墨色 40%，叠在最上面（混合管线），不落墨
             let pa = a * 0.4
             let hu = NativeInkRenderer.uniforms(color: SIMD4(inkColor.x * pa, inkColor.y * pa, inkColor.z * pa, pa))
-            let dot = NativeInkStrokeMesh.disc(x: h.x, y: h.y, radius: NativeInkStrokeMesh.hoverDotDiameter(params) / 2)
-            batches.append(.init(vertices: dot, buffer: nil, count: dot.count / 2, uniforms: hu, blend: true))
+            if let params {
+                let dot = NativeInkStrokeMesh.disc(x: h.x, y: h.y, radius: NativeInkStrokeMesh.hoverDotDiameter(params) / 2)
+                batches.append(.init(vertices: dot, buffer: nil, count: dot.count / 2, uniforms: hu, blend: true))
+            }
         }
         #if DEBUG
         if let extra { batches.append(contentsOf: extra) }

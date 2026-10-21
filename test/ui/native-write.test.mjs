@@ -14,7 +14,7 @@ import { commitFinish } from '../../src/ui/screens/result/index.js';
 import { createSession } from '../../src/core/sessions.js';
 import { makeRecord } from '../../src/core/records.js';
 import { applyJudgment } from '../../src/core/fsrs.js';
-import { encodeRawStrokes } from '../../src/core/ink-math.js';
+import { encodeRawStrokes, inkParams, INK_SPEC, INK_TUNABLE_KEYS } from '../../src/core/ink-math.js';
 import { commitAnswerSeen, commitAnswerPhase, commitAnswerNext } from '../../src/ui/screens/write/answer.js';
 import { commitSkip, commitUndoSkip } from '../../src/ui/screens/write/skip.js';
 import { commitEndGroup, endConfirmCounts } from '../../src/ui/screens/write/end.js';
@@ -707,6 +707,13 @@ test('open: trace / skip-undo parameters come from the same policy as the web (s
   assert.equal(r.trace.maxMs, 1600);
   assert.deepEqual(r.skipUndo, { ms: policyModule.skipUndo.ms, pauseWhileHeld: true, keepOpenWithAssistiveTech: true });
   assert.equal(r.skipUndo.ms, 5000);
+});
+
+test('open: ink parameters are the web buildStroke table (policy.ink + INK_SPEC), D72 ②', () => {
+  const r = apiOn(fakeStore()).call('open', { slot: 'A' });
+  assert.deepEqual(r.ink, { ...inkParams(policyModule) });
+  for (const k of [...INK_TUNABLE_KEYS, ...Object.keys(INK_SPEC)]) assert.ok(Number.isFinite(r.ink[k]), k);
+  assert.equal(r.ink.base, policyModule.ink.base);
 });
 
 // ---------------------------------------------------------------- B2.6 跳过 / 撤销 / 结束这组：网页路径 == API 路径

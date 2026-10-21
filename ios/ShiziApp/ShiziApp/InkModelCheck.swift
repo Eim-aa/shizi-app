@@ -10,6 +10,7 @@ import Foundation
 // 入口：
 //   App 内：DEBUG 启动参数 -shizi-ink-selfcheck（NativeInkSpike.swift）——读包内 InkModel/vectors.json 与 reference-dump.json，
 //           结果写 Documents/shizi-ink-selfcheck.json 并打到 console；
+//   XCTest：ShiziWriteTests InkSurfaceTests（App 作宿主，读同一份包内文件；B2.1）；
 //   macOS：swiftc -D DEBUG InkModel.swift InkModelCheck.swift <main> 直接跑（见 ios/ShiziApp/scripts/ink-model-check.sh）。
 
 struct InkModelCheckReport {

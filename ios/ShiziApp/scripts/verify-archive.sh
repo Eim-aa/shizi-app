@@ -60,11 +60,17 @@ test -n "$app_minimum_os" || { echo "Missing MinimumOSVersion" >&2; exit 65; }
 test -n "$app_executable" && test -f "${APP}/${app_executable}" || { echo "Archived executable is missing" >&2; exit 65; }
 
 # M5-3：DEBUG 冒烟与测试宿主注入（NativeSmoke.swift、?test=1 + __shiziNativeDev）不得进 Release 可执行文件。
-for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "ink_vs" "__shiziNativeWrite" "-shizi-native-write" "shizi-native-write-metrics.json"; do
+for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "shizi-ink-selfcheck" "touchToTargetMs" "__shiziNativeWrite" "-shizi-native-write" "shizi-native-write-metrics.json"; do
   if LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}"; then
     echo "Release executable contains Debug native-smoke marker: ${marker}" >&2
     exit 65
   fi
+done
+
+# B2.1：原生书写面转正——Release 可执行文件必须含书写面：NativeInkView（ObjC 名 ShiziNativeInkView）与 Metal 渲染器的着色器（ink_vs；
+# 笔锋模型由书写面每帧调用，随之保留）。spike 叠层（NativeInkSpike）、金标准自检、T1 量测仍只在 Debug（上面的标记表）。
+for marker in "ShiziNativeInkView" "ink_vs"; do
+  LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}" || { echo "Release executable is missing the native ink surface (${marker})" >&2; exit 65; }
 done
 
 # P1-S2：原生书写面 spike 的笔锋模型金标准文件只在 Debug 构建复制进包（sync-web-assets.sh）。

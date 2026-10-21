@@ -27,6 +27,7 @@
 		1A0000000000000000000B25 /* NativeWriteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B24 /* NativeWriteViewController.swift */; };
 		1A0000000000000000000B27 /* NativeWriteCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B26 /* NativeWriteCoordinator.swift */; };
 		1A0000000000000000000C02 /* NativeWriteBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000C01 /* NativeWriteBridgeTests.swift */; };
+		1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000C21 /* InkSurfaceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +66,7 @@
 		1A0000000000000000000B24 /* NativeWriteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteViewController.swift; sourceTree = "<group>"; };
 		1A0000000000000000000B26 /* NativeWriteCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteCoordinator.swift; sourceTree = "<group>"; };
 		1A0000000000000000000C01 /* NativeWriteBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteBridgeTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000000C21 /* InkSurfaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkSurfaceTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000000C03 /* ShiziWriteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShiziWriteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -105,6 +107,7 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000000C01 /* NativeWriteBridgeTests.swift */,
+				1A0000000000000000000C21 /* InkSurfaceTests.swift */,
 			);
 			path = ShiziWriteTests;
 			sourceTree = "<group>";
@@ -341,6 +344,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A0000000000000000000C02 /* NativeWriteBridgeTests.swift in Sources */,
+				1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

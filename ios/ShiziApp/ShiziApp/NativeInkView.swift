@@ -1,29 +1,122 @@
-#if DEBUG
 import Metal
 import QuartzCore
 import UIKit
 
-// 原生书写面 spike（P1-S2；I3-13 / I2-12）：叠在 WKWebView 上、与网页书写格同位置同尺寸的原生书写层。
+// 原生书写面（B2.1 转正：Release 组件；docs/engineering/v10/B2-原生写字架构.md §6；规格 docs/engineering/v10/phase1/笔锋模型规格.md）。
 //
 // 管线（规格 §7）：UITouch（合并点 coalescedTouches + 预测点 predictedTouches；Pencil 时 force / altitude）
-//   → 原始点（345 单位格、ms = UITouch.timestamp × 1000、p 仅 Pencil）
+//   → 原始点（345 单位格、ms = UITouch.timestamp × 1000、p 仅 Pencil；时间戳不单调时夹到前一点，规格 §2.1）
 //   → CADisplayLink（preferredFrameRateRange 最高 120）每帧：InkModel.analyze(final: false, predicted:) → geometry → 三角形
-//   → Metal：CAMetalLayer 直接呈现（不经 WKWebView），4×MSAA；所有三角形同一墨色、不混合地写入 = 规格 §4.2 的「并集」语义
-//      （重叠处颜色相同，非零规则自然成立），MSAA resolve 得到预乘 alpha 的抗锯齿边。
-//   抬笔：final = true 的终态几何立即替换书写中的预混态（规格 §7.4 的 70ms 补间本 spike 未做），原始点交给页面（NativeInkSpike）。
-// 已完成的笔（页面同步来的 + 刚抬笔、页面还没确认的）各自缓存一份顶点缓冲，只在变化时重算；每帧只重算正在写的一笔。
-// 飞白、洇墨、纸纹调制、湿墨变干本 spike 未实现（只验证形状、跟手与延迟）。
+//   → Metal：CAMetalLayer 直接呈现，4×MSAA；墨的三角形同一墨色、不混合地写入 = 规格 §4.2 的「并集」（重叠处颜色相同，非零规则自然成立），
+//      MSAA resolve 得到预乘 alpha 的抗锯齿边。悬停预览点另一条混合管线叠在最上面（半透明，不落墨）。
+//   抬笔：final = true 的终态几何替换书写中的预混态（规格 §7.4 的 70ms 补间在后续卡），原始点交给代理（写字页 → 页面 store.commit）。
+// 已完成的笔（代理同步来的 + 刚抬笔、代理还没同步回来的）各自缓存一份顶点缓冲，只在变化时重算；每帧只重算正在写的一笔。
 //
-// 测量（T1）：每个合并点记 touch 时间戳 → 首次包含它的那一帧的 CADisplayLink.targetTimestamp 与 drawable 的 presentedTime，
-//   见 NativeInkLatency；导出 JSON 由 NativeInkSpike 负责。
+// 输入（D32；规格 §2.1；本文件的 NativeInkInputPolicy / NativeInkPencilAction 是可单测的纯逻辑）：
+//   - Apple Pencil：压力（force / maximumPossibleForce）与倾角（altitudeAngle）进原始点；悬停（UIHoverGestureRecognizer，iPadOS 16.1+ zOffset > 0）
+//     在笔尖下方画落笔预览点（直径 0.9 × B × F_p(0.35)，不落墨、不存）；双击（UIPencilInteraction）按系统偏好映射成「清空 / 撤销」交给代理。
+//   - 手指与 Pencil 同时出现（写字时手掌误触）：见 NativeInkInputPolicy——Pencil 优先、Pencil 刚用过时手指不落墨、大接触面积 / 静止的手指判为手掌。
+//   - 换字落笔门限（P227，acceptFrom）：门限之前落下的笔先「持住」——照常记点，但不画、不通知；到点补开始并接着实时画，抬笔早于门限时整笔
+//     等到门限再交出——这一笔不丢（与网页 ink-canvas.js 同语义）。门限 = .infinity 表示「等下一个字」（判断回包前落下的笔）。
+//   - 书写中书写面移动 / 改尺寸（换阶段、换字的版式变化）：已记的点按屏幕位置换算到新格，笔不断、不丢（T0 规则 3：这次输入照常生效）。
+// 测量（T1，只在 DEBUG）：每个合并点记 touch 时间戳 → 首次包含它的那一帧的 targetTimestamp / presentedTime（NativeInkLatency）。
 
-/// 书写面回调（NativeInkSpike 实现：转成页面消息）。
+/// 书写面回调（原生写字页实现；DEBUG 的 spike 叠层 NativeInkSpike 也实现）。
 protocol NativeInkViewDelegate: AnyObject {
     func nativeInkDidBeginStroke(_ view: NativeInkView, at timestamp: TimeInterval)
     func nativeInkDidEndStroke(_ view: NativeInkView, raw: [InkRawPoint])
     func nativeInkDidCancelStroke(_ view: NativeInkView, reason: String)
-    func nativeInkRequestsExport(_ view: NativeInkView)
+    /// Apple Pencil 双击（按系统偏好映射后的动作）。
+    func nativeInk(_ view: NativeInkView, didRequest action: NativeInkPencilAction)
 }
+
+extension NativeInkViewDelegate {
+    func nativeInk(_ view: NativeInkView, didRequest action: NativeInkPencilAction) {}
+}
+
+// MARK: - Pencil 双击
+
+/// Apple Pencil 双击的动作（D32；架构 §6 第 2 条「按系统偏好映射到撤销或清空」）。
+enum NativeInkPencilAction: String, Equatable {
+    /// 撤销最后一笔（与格下「撤销」同一个动作）。
+    case undo
+    /// 清空格子（与格下「清空」同一个动作；清空后可撤销一次，所以误触双击也找得回来）。
+    case clear
+
+    /// 系统偏好（设置 › Apple Pencil › 双击）→ 动作：
+    ///   「切换到橡皮擦」→ 清空（书写格没有橡皮工具，擦掉格子是它最近的意思；可撤销一次）；
+    ///   「切换到上一个工具」→ 撤销（回到上一步）；
+    ///   「关闭」、调色板 / 墨水属性 / 情境调板（这页没有调板）、系统快捷指令（由系统执行）→ 不做任何事。
+    static func forTap(_ preferred: UIPencilPreferredAction) -> NativeInkPencilAction? {
+        switch preferred {
+        case .switchEraser: return .clear
+        case .switchPrevious: return .undo
+        default: return nil
+        }
+    }
+}
+
+// MARK: - 手指与 Pencil：落笔判定（纯逻辑）
+
+/// 哪一个触点是「写字的那一个」（规格 §2.1：本模型只接受一路 touch 流；被判为手掌的 touch 不得进入 move，判定被推翻时发 cancel）。
+///
+/// 规则（时间单位 s，与 UITouch.timestamp 同一时基；长度单位 pt）：
+///   1. 同一时刻只写一笔；一笔进行中其余触点一律忽略——唯一例外：手指在写时 Pencil 落下，手指那笔取消（多半是掌托 / 握笔的手指），改写 Pencil 这笔。
+///   2. Pencil 刚用过时手指不落墨：Pencil 正在写，或上一次 Pencil 接触（落笔、移动、抬笔、悬停）在 pencilGrace 秒之内；
+///      系统「只用 Apple Pencil 绘图」打开时（UIPencilInteraction.prefersPencilOnlyDrawing），本次运行里用过 Pencil 之后手指一直不落墨。
+///   3. 手掌：手指接触半径 ≥ palmRadius 直接不落墨；落笔后半径涨到 ≥ palmRadius，或半径 ≥ palmSuspectRadius 且最初 palmStill 秒内
+///      几乎没动（< palmStillDistance）——判为手掌，这一笔取消（不固化、不计笔数）。
+///   4. 手指只在没用过 Pencil（或已过 pencilGrace、且没开「只用 Apple Pencil 绘图」）时写字：iPhone（没有 Pencil）上手指照常写，规则 2 不生效。
+struct NativeInkInputPolicy {
+    enum Kind: Equatable { case pencil, finger }
+    enum Begin: Equatable {
+        case accept
+        /// Pencil 落下，取消正在写的手指那笔后接受。
+        case preempt
+        case reject(String)
+    }
+
+    static let pencilGrace: TimeInterval = 1.5
+    static let palmRadius: CGFloat = 30
+    static let palmSuspectRadius: CGFloat = 20
+    static let palmStill: TimeInterval = 0.12
+    static let palmStillDistance: CGFloat = 2
+
+    var pencilOnly = false
+    private(set) var pencilSeen = false
+    private(set) var lastPencilAt: TimeInterval = -.infinity
+
+    /// Pencil 的任何接触（落笔、移动、抬笔、悬停）。
+    mutating func notePencil(at t: TimeInterval) {
+        pencilSeen = true
+        lastPencilAt = max(lastPencilAt, t)
+    }
+
+    /// 新触点落下时的判定。active：正在写的那一笔是谁（没有为 nil）。
+    func begin(kind: Kind, majorRadius: CGFloat, at t: TimeInterval, active: Kind?) -> Begin {
+        if kind == .pencil {
+            switch active {
+            case .finger?: return .preempt
+            case .pencil?: return .reject("busy")
+            case nil: return .accept
+            }
+        }
+        if active != nil { return .reject("busy") }
+        if pencilOnly && pencilSeen { return .reject("pencil-only") }
+        if t - lastPencilAt < Self.pencilGrace { return .reject("pencil-recent") }
+        if majorRadius >= Self.palmRadius { return .reject("palm") }
+        return .accept
+    }
+
+    /// 手指那笔写着写着判为手掌（规则 3）：maxRadius = 落笔以来最大接触半径，moved = 离落笔点的最远距离（pt），elapsed = 落笔以来的秒数。
+    func isPalm(kind: Kind, maxRadius: CGFloat, moved: CGFloat, elapsed: TimeInterval) -> Bool {
+        guard kind == .finger else { return false }
+        if maxRadius >= Self.palmRadius { return true }
+        return maxRadius >= Self.palmSuspectRadius && elapsed >= Self.palmStill && moved < Self.palmStillDistance
+    }
+}
+
+// MARK: - 几何
 
 /// 一笔已算好的几何（三角形顶点，345 单位）。
 final class NativeInkStrokeMesh {
@@ -57,13 +150,30 @@ final class NativeInkStrokeMesh {
         triangles(InkModel.geometry(profile), into: &v)
         return NativeInkStrokeMesh(raw: raw, vertices: v)
     }
+
+    /// 实心圆（扇形三角化，345 单位）。
+    static func disc(x: Double, y: Double, radius r: Double, segments n: Int = 32) -> [Float] {
+        var v: [Float] = []
+        v.reserveCapacity(n * 6)
+        for i in 0..<n {
+            let a0 = Double(i) / Double(n) * 2 * Double.pi, a1 = Double(i + 1) / Double(n) * 2 * Double.pi
+            v += [Float(x), Float(y), Float(x + r * cos(a0)), Float(y + r * sin(a0)), Float(x + r * cos(a1)), Float(y + r * sin(a1))]
+        }
+        return v
+    }
+
+    /// 悬停预览点的直径（345 单位；规格 §2.1：0.9 × B × F_p(0.35)）。
+    static func hoverDotDiameter(_ k: InkParams) -> Double { 0.9 * k.base * InkModel.pressureFactor(0.35, k) }
 }
 
-/// Metal 渲染器：一条管线、4×MSAA，画进 CAMetalLayer 的 drawable。
+// MARK: - 渲染
+
+/// Metal 渲染器：4×MSAA，画进 CAMetalLayer 的 drawable。两条管线：墨（不混合 = 并集）与叠加（预乘 alpha 混合：悬停预览点）。
 final class NativeInkRenderer {
     let device: MTLDevice
     private let queue: MTLCommandQueue
     private let pipeline: MTLRenderPipelineState
+    private let blendPipeline: MTLRenderPipelineState
     private var msaa: MTLTexture?
     static let sampleCount = 4
 
@@ -73,12 +183,11 @@ final class NativeInkRenderer {
         var color: SIMD4<Float>
     }
 
-    /// 345 单位 → 归一化设备坐标；y 向下。整笔一个 uniform（落定原型里用它把墨缩放 / 平移到别处）。
+    /// 345 单位 → 归一化设备坐标；y 向下。rectInView 非零时把 345 单位格映射到 view 内的这块矩形（pt）。
     static func uniforms(color: SIMD4<Float>, rectInView: CGRect = .zero, viewSize: CGSize = .zero) -> Uniforms {
         if rectInView == .zero || viewSize == .zero {
             return Uniforms(scale: SIMD2(2 / 345, -2 / 345), offset: SIMD2(-1, 1), color: color)
         }
-        // 把 345 单位格映射到 view 内的 rectInView（pt），再到 NDC
         let sx = Float(rectInView.width / 345) * 2 / Float(viewSize.width)
         let sy = Float(rectInView.height / 345) * 2 / Float(viewSize.height)
         let ox = Float(rectInView.minX) * 2 / Float(viewSize.width) - 1
@@ -104,7 +213,7 @@ final class NativeInkRenderer {
         self.device = device
         self.queue = queue
         do {
-            // 运行时编译着色器：spike 不往工程里加 .metal 构建规则，Release 也不会带上它
+            // 着色器随源码编译（两个函数、几十字节；工程里不加 .metal 构建规则，构建机不需要单独的 Metal 工具链）
             let library = try device.makeLibrary(source: Self.shaderSource, options: nil)
             let desc = MTLRenderPipelineDescriptor()
             desc.vertexFunction = library.makeFunction(name: "ink_vs")
@@ -113,8 +222,15 @@ final class NativeInkRenderer {
             desc.colorAttachments[0].isBlendingEnabled = false // 并集：同色覆盖即可，不混合
             desc.rasterSampleCount = Self.sampleCount
             pipeline = try device.makeRenderPipelineState(descriptor: desc)
+            let att = desc.colorAttachments[0]!
+            att.isBlendingEnabled = true // 叠加：预乘 alpha 的 source-over
+            att.sourceRGBBlendFactor = .one
+            att.sourceAlphaBlendFactor = .one
+            att.destinationRGBBlendFactor = .oneMinusSourceAlpha
+            att.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+            blendPipeline = try device.makeRenderPipelineState(descriptor: desc)
         } catch {
-            NSLog("[shizi] native-ink Metal pipeline failed: %@", error.localizedDescription)
+            NSLog("[shizi] ink surface: Metal pipeline failed: %@", error.localizedDescription)
             return nil
         }
     }
@@ -124,6 +240,7 @@ final class NativeInkRenderer {
         let buffer: MTLBuffer?
         let count: Int
         let uniforms: Uniforms
+        var blend = false
     }
 
     func makeBuffer(_ vertices: [Float]) -> MTLBuffer? {
@@ -131,7 +248,7 @@ final class NativeInkRenderer {
         return vertices.withUnsafeBytes { device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared) }
     }
 
-    /// 画一帧并呈现。presented 在 drawable 真正上屏时回调（模拟器上可能拿不到，返回 0）。
+    /// 画一帧并呈现。presented 在 drawable 真正上屏时回调（模拟器上拿不到）。
     @discardableResult
     func render(layer: CAMetalLayer, batches: [Batch], presented: ((CFTimeInterval) -> Void)?) -> Bool {
         guard let drawable = layer.nextDrawable() else { return false }
@@ -155,8 +272,13 @@ final class NativeInkRenderer {
         pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         pass.colorAttachments[0].storeAction = .multisampleResolve
         guard let cb = queue.makeCommandBuffer(), let enc = cb.makeRenderCommandEncoder(descriptor: pass) else { return false }
+        var blending = false
         enc.setRenderPipelineState(pipeline)
         for b in batches where b.count > 0 {
+            if b.blend != blending {
+                blending = b.blend
+                enc.setRenderPipelineState(blending ? blendPipeline : pipeline)
+            }
             var u = b.uniforms
             if let buf = b.buffer {
                 enc.setVertexBuffer(buf, offset: 0, index: 0)
@@ -173,7 +295,6 @@ final class NativeInkRenderer {
         }
         enc.endEncoding()
         #if !targetEnvironment(simulator)
-        // presentedTime：这一帧真正上屏的时刻（模拟器 SDK 没有这个 API，模拟器上只有 targetTimestamp）
         if let presented {
             drawable.addPresentedHandler { d in presented(d.presentedTime) }
         }
@@ -184,7 +305,565 @@ final class NativeInkRenderer {
     }
 }
 
-/// T1 测量：触点（UITouch.timestamp）→ 首次上屏的帧。
+// MARK: - 书写面
+
+@objc(ShiziNativeInkView)
+final class NativeInkView: UIView {
+    override class var layerClass: AnyClass { CAMetalLayer.self }
+    var metalLayer: CAMetalLayer { layer as! CAMetalLayer } // swiftlint:disable:this force_cast
+
+    weak var delegate: NativeInkViewDelegate?
+    let renderer: NativeInkRenderer
+    var params = InkParams.default
+    var inputPolicy = NativeInkInputPolicy()
+
+    /// 墨色（预乘前，0–1）与整体不透明度。
+    var inkColor = SIMD4<Float>(0.231, 0.184, 0.157, 1) { didSet { needsRender = true } }
+    var inkOpacity: Float = 1 { didSet { needsRender = true } }
+    /// 此刻能不能落笔（不能时触摸穿透给下层）。改成不能时丢弃正在写的一笔与持住的笔。
+    var drawable = true {
+        didSet {
+            isUserInteractionEnabled = drawable
+            if !drawable {
+                cancelStroke(reason: "reset", notify: true)
+                heldDone = []
+                hideHover()
+            }
+        }
+    }
+    /// 换字落笔门限（CACurrentMediaTime / UITouch.timestamp 时基，s；P227）。之前落下的笔先持住、到点补画；.infinity = 等下一个字。
+    var acceptFrom: CFTimeInterval = 0 { didSet { needsRender = true } }
+
+    private(set) var pageStrokes: [NativeInkStrokeMesh] = [] // 代理确认过的笔
+    private(set) var pendingStrokes: [NativeInkStrokeMesh] = [] // 已抬笔、代理还没同步回来的笔
+    private var pendingSince: CFTimeInterval = 0
+
+    // 正在写的一笔
+    private var current: ObjectIdentifier? // 写字的那一个触点
+    private var currentKind: NativeInkInputPolicy.Kind = .finger
+    private var raw: [InkRawPoint] = []
+    private var predicted: [InkRawPoint] = []
+    private var held = false // 门限之前落下：记点但不画、不通知
+    private var heldStartedAt: TimeInterval = 0
+    private var heldDone: [[InkRawPoint]] = [] // 门限之前已经抬笔的笔，到点整笔交出
+    private var palm = (start: CGPoint.zero, maxRadius: CGFloat(0), moved: CGFloat(0), startedAt: TimeInterval(0))
+    private var liveVertices: [Float] = []
+    private var liveDirty = false
+    private(set) var needsRender = true
+    private var link: CADisplayLink?
+    var lastFrameCpuMs = 0.0
+
+    // 悬停预览点（345 单位；nil = 不画）
+    private var hoverPoint: (x: Double, y: Double)?
+    private var hoverRecognizer: UIHoverGestureRecognizer?
+    private var pencilInteraction: UIPencilInteraction?
+
+    #if DEBUG
+    /// T1 测量（DEBUG）：触点 → 帧预计上屏 / 真正上屏。
+    var latency = NativeInkLatency()
+    /// spike 叠层的落定原型等外部动画每帧追加的绘制（返回 nil 表示动画结束；DEBUG）。
+    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)?
+    /// 每帧画完后的钩子（DEBUG：落定原型用来在「第一帧」同帧发触觉）。
+    var afterFrame: ((CFTimeInterval) -> Void)?
+    private var fade: (start: CFTimeInterval, ms: Double, from: Float)?
+    #endif
+
+    init?(frame: CGRect, renderer: NativeInkRenderer) {
+        self.renderer = renderer
+        super.init(frame: frame)
+        isOpaque = false
+        backgroundColor = .clear
+        isMultipleTouchEnabled = true
+        let ml = metalLayer
+        ml.device = renderer.device
+        ml.pixelFormat = .bgra8Unorm
+        ml.framebufferOnly = true
+        ml.isOpaque = false
+        ml.presentsWithTransaction = false
+        ml.maximumDrawableCount = 3
+        contentScaleFactor = UIScreen.main.scale
+
+        // Apple Pencil：悬停预览（iPadOS 16.1+，zOffset）与双击（按系统偏好映射）
+        let hover = UIHoverGestureRecognizer(target: self, action: #selector(handleHover(_:)))
+        addGestureRecognizer(hover)
+        hoverRecognizer = hover
+        let pencil = UIPencilInteraction()
+        pencil.delegate = self
+        addInteraction(pencil)
+        pencilInteraction = pencil
+        if #available(iOS 14.0, *) { inputPolicy.pencilOnly = UIPencilInteraction.prefersPencilOnlyDrawing }
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// 建一个书写面（自带渲染器）；Metal 不可用时 nil。@objc：Release 可执行文件里书写面整条管线（渲染器与着色器；笔锋模型由每帧的
+    /// tick 调用）随它保留，不因暂时没有 Release 调用方被优化掉（verify-archive.sh 查 ShiziNativeInkView 与着色器 ink_vs）。
+    @objc static func make(frame: CGRect) -> NativeInkView? {
+        guard let renderer = NativeInkRenderer() else { return nil }
+        return NativeInkView(frame: frame, renderer: renderer)
+    }
+
+    deinit { link?.invalidate() }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let scale = window?.screen.scale ?? UIScreen.main.scale
+        let size = CGSize(width: max(1, bounds.width * scale), height: max(1, bounds.height * scale))
+        if metalLayer.drawableSize != size {
+            metalLayer.drawableSize = size
+            needsRender = true
+        }
+    }
+
+    /// 书写中书写面移动 / 改尺寸：已记的点按屏幕位置换算到新格（笔不断，T0 规则 3）。
+    override var frame: CGRect {
+        didSet { if frame != oldValue { remapStrokeInProgress(from: oldValue, to: frame) } }
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil, link == nil {
+            let l = CADisplayLink(target: NativeInkWeakTarget(self), selector: #selector(NativeInkWeakTarget.tick(_:)))
+            // ProMotion：请求 120Hz（需要 Info.plist CADisableMinimumFrameDurationOnPhone）
+            l.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+            l.add(to: .main, forMode: .common)
+            link = l
+        } else if window == nil {
+            link?.invalidate()
+            link = nil
+        }
+    }
+
+    // MARK: 代理同步来的笔
+
+    /// 代理的 strokes（按顺序）。与已有的对比：多出来的笔若正是待确认的笔，直接挪过来（不重算）；否则重建。
+    func syncPageStrokes(_ strokes: [[InkRawPoint]]) {
+        let oldCount = pageStrokes.count
+        var next: [NativeInkStrokeMesh] = []
+        var pend = pendingStrokes
+        for (i, s) in strokes.enumerated() {
+            if i < pageStrokes.count, Self.sameStroke(pageStrokes[i].raw, s) {
+                next.append(pageStrokes[i])
+            } else if let first = pend.first, Self.sameShape(first.raw, s) {
+                next.append(first)
+                pend.removeFirst()
+            } else {
+                next.append(NativeInkStrokeMesh.build(raw: s, params: params))
+            }
+        }
+        pageStrokes = next
+        // 代理已经收下的待确认笔从 pending 去掉；笔数减少（撤销 / 清空 / 换字）时 pending 全清
+        pendingStrokes = strokes.count < oldCount || strokes.isEmpty ? [] : pend
+        needsRender = true
+    }
+
+    /// 同一笔（只比位置与点数：页面那份可能做过时基换算）。
+    static func sameShape(_ a: [InkRawPoint], _ b: [InkRawPoint]) -> Bool {
+        guard a.count == b.count, let fa = a.first, let fb = b.first, let la = a.last, let lb = b.last else { return false }
+        return abs(fa.x - fb.x) < 1e-3 && abs(fa.y - fb.y) < 1e-3 && abs(la.x - lb.x) < 1e-3 && abs(la.y - lb.y) < 1e-3
+    }
+
+    static func sameStroke(_ a: [InkRawPoint], _ b: [InkRawPoint]) -> Bool { sameShape(a, b) }
+
+    // MARK: 点处理（纯函数，可单测）
+
+    /// 一个触点采样 → 原始点（规格 §1）：位置按格边长换算到 345 单位；t = timestamp × 1000；p 只在 Pencil（force / maximumPossibleForce，
+    /// ≤ 0 不写）；倾角只在 Pencil（度）。手指一律不写 p（即便 force > 0），保证手指笔迹在各机型一致。
+    static func rawPoint(location: CGPoint, size: CGSize, timestamp: TimeInterval, pencil: Bool, force: CGFloat, maximumPossibleForce: CGFloat, altitude: CGFloat) -> InkRawPoint {
+        let w = max(1, Double(size.width)), h = max(1, Double(size.height))
+        var q = InkRawPoint(x: Double(location.x) * 345 / w, y: Double(location.y) * 345 / h, t: timestamp * 1000)
+        if pencil {
+            if maximumPossibleForce > 0 {
+                let p = Double(force / maximumPossibleForce)
+                if p > 0 { q.p = min(1, p) }
+            }
+            q.alt = Double(altitude) * 180 / Double.pi
+        }
+        return q
+    }
+
+    /// 追加原始点（规格 §2.1：时间戳不单调时夹到前一点时间，再由 InkModel.prepare 按零时间差合并）。
+    static func append(_ q: InkRawPoint, to raw: inout [InkRawPoint]) {
+        var q = q
+        if let last = raw.last, !(q.t >= last.t) { q.t = last.t }
+        raw.append(q)
+    }
+
+    /// 345 单位点在两块书写面之间换算（同一屏幕位置）。
+    static func remap(_ q: InkRawPoint, from a: CGRect, to b: CGRect) -> InkRawPoint {
+        guard a.width > 0, a.height > 0, b.width > 0, b.height > 0 else { return q }
+        var r = q
+        let sx = Double(a.minX) + q.x * Double(a.width) / 345, sy = Double(a.minY) + q.y * Double(a.height) / 345
+        r.x = (sx - Double(b.minX)) * 345 / Double(b.width)
+        r.y = (sy - Double(b.minY)) * 345 / Double(b.height)
+        return r
+    }
+
+    /// 一个触点采样（UITouch 的必要字段；测试直接构造）。
+    struct Sample {
+        var location: CGPoint // 书写面坐标（pt）：preciseLocation
+        var timestamp: TimeInterval
+        var kind: NativeInkInputPolicy.Kind
+        var majorRadius: CGFloat = 0
+        var force: CGFloat = 0
+        var maximumPossibleForce: CGFloat = 0
+        var altitude: CGFloat = 0
+
+        init(location: CGPoint, timestamp: TimeInterval, kind: NativeInkInputPolicy.Kind, majorRadius: CGFloat = 0,
+             force: CGFloat = 0, maximumPossibleForce: CGFloat = 0, altitude: CGFloat = 0) {
+            self.location = location
+            self.timestamp = timestamp
+            self.kind = kind
+            self.majorRadius = majorRadius
+            self.force = force
+            self.maximumPossibleForce = maximumPossibleForce
+            self.altitude = altitude
+        }
+
+        init(_ t: UITouch, in view: UIView) {
+            let pencil = t.type == .pencil
+            self.init(location: t.preciseLocation(in: view), timestamp: t.timestamp, kind: pencil ? .pencil : .finger, majorRadius: t.majorRadius,
+                      force: t.force, maximumPossibleForce: t.maximumPossibleForce, altitude: pencil ? t.altitudeAngle : 0)
+        }
+    }
+
+    private func gridPoint(_ s: Sample) -> InkRawPoint {
+        Self.rawPoint(location: s.location, size: bounds.size, timestamp: s.timestamp, pencil: s.kind == .pencil,
+                      force: s.force, maximumPossibleForce: s.maximumPossibleForce, altitude: s.altitude)
+    }
+
+    private func remapStrokeInProgress(from a: CGRect, to b: CGRect) {
+        guard current != nil || !heldDone.isEmpty, a.width > 0, b.width > 0 else { return }
+        raw = raw.map { Self.remap($0, from: a, to: b) }
+        predicted = predicted.map { Self.remap($0, from: a, to: b) }
+        heldDone = heldDone.map { s in s.map { Self.remap($0, from: a, to: b) } }
+        liveDirty = !held
+        needsRender = true
+    }
+
+    // MARK: 触摸 → 采样
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard drawable else { return }
+        // Pencil 优先（规则 1）：同一批里有 Pencil 先看 Pencil
+        for t in touches.sorted(by: { $0.type == .pencil && $1.type != .pencil }) {
+            inputBegan(Sample(t, in: self), id: ObjectIdentifier(t))
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let id = current, let t = touches.first(where: { ObjectIdentifier($0) == id }) else { return }
+        let co = (event?.coalescedTouches(for: t) ?? [t]).map { Sample($0, in: self) }
+        let pre = (event?.predictedTouches(for: t) ?? []).map { Sample($0, in: self) }
+        inputMoved(co, predicted: pre, last: Sample(t, in: self), id: id)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let id = current, let t = touches.first(where: { ObjectIdentifier($0) == id }) else { return }
+        let co = (event?.coalescedTouches(for: t) ?? []).map { Sample($0, in: self) }
+        inputEnded(co, last: Sample(t, in: self), id: id)
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let id = current, touches.contains(where: { ObjectIdentifier($0) == id }) else { return }
+        cancelStroke(reason: "cancel", notify: true)
+    }
+
+    // MARK: 采样 → 笔（触摸与测试同一条路）
+
+    /// 落下一个触点；返回是否成了「写字的那一个」。
+    @discardableResult
+    func inputBegan(_ s: Sample, id: ObjectIdentifier) -> Bool {
+        guard drawable else { return false }
+        if s.kind == .pencil { inputPolicy.notePencil(at: s.timestamp) }
+        switch inputPolicy.begin(kind: s.kind, majorRadius: s.majorRadius, at: s.timestamp, active: current == nil ? nil : currentKind) {
+        case .reject:
+            return false
+        case .preempt:
+            cancelStroke(reason: "palm", notify: true)
+        case .accept:
+            break
+        }
+        hideHover()
+        current = id
+        currentKind = s.kind
+        raw = [gridPoint(s)]
+        predicted = []
+        palm = (s.location, s.majorRadius, 0, s.timestamp)
+        held = s.timestamp < acceptFrom
+        heldStartedAt = s.timestamp
+        #if DEBUG
+        latency.touch(s.timestamp, delivered: CACurrentMediaTime())
+        #endif
+        liveDirty = !held
+        needsRender = true
+        if !held { delegate?.nativeInkDidBeginStroke(self, at: s.timestamp) }
+        return true
+    }
+
+    /// 移动：合并点全部进原始点（时间戳夹成单调），预测点只画这一帧；手指那笔按掌托规则复核。
+    func inputMoved(_ coalesced: [Sample], predicted pre: [Sample], last: Sample, id: ObjectIdentifier) {
+        guard current == id else { return }
+        #if DEBUG
+        let now = CACurrentMediaTime()
+        #endif
+        for c in coalesced {
+            Self.append(gridPoint(c), to: &raw)
+            #if DEBUG
+            latency.touch(c.timestamp, delivered: now)
+            #endif
+        }
+        if currentKind == .pencil {
+            inputPolicy.notePencil(at: last.timestamp)
+        } else {
+            palm.maxRadius = max(palm.maxRadius, last.majorRadius)
+            palm.moved = max(palm.moved, hypot(last.location.x - palm.start.x, last.location.y - palm.start.y))
+            if inputPolicy.isPalm(kind: currentKind, maxRadius: palm.maxRadius, moved: palm.moved, elapsed: last.timestamp - palm.startedAt) {
+                cancelStroke(reason: "palm", notify: true)
+                return
+            }
+        }
+        predicted = pre.map(gridPoint)
+        liveDirty = !held
+        needsRender = true
+    }
+
+    /// 抬笔：补上最后的合并点与抬笔点，整笔固化交给代理；门限之前抬笔的整笔先留着，到点再交出。
+    func inputEnded(_ coalesced: [Sample], last: Sample, id: ObjectIdentifier) {
+        guard current == id else { return }
+        for c in coalesced where c.timestamp * 1000 > (raw.last?.t ?? 0) { Self.append(gridPoint(c), to: &raw) }
+        let end = gridPoint(last)
+        if let l = raw.last, end.x != l.x || end.y != l.y { Self.append(end, to: &raw) }
+        if currentKind == .pencil { inputPolicy.notePencil(at: last.timestamp) }
+        let stroke = raw
+        let wasHeld = held
+        current = nil
+        raw = []
+        predicted = []
+        liveVertices = []
+        held = false
+        if wasHeld, CACurrentMediaTime() < acceptFrom {
+            heldDone.append(stroke) // P227：这一笔不丢，到点整笔交出
+            needsRender = true
+            return
+        }
+        if wasHeld { delegate?.nativeInkDidBeginStroke(self, at: heldStartedAt) }
+        finish(stroke)
+    }
+
+    private func finish(_ stroke: [InkRawPoint]) {
+        let mesh = NativeInkStrokeMesh.build(raw: stroke, params: params)
+        pendingStrokes.append(mesh)
+        pendingSince = CACurrentMediaTime()
+        #if DEBUG
+        latency.strokes += 1
+        #endif
+        needsRender = true
+        delegate?.nativeInkDidEndStroke(self, raw: stroke)
+    }
+
+    /// 丢弃正在写的一笔（不固化、不计笔数）。notify：是否告诉代理（代理自己发起的取消不回告；持住中的笔代理还不知道，也不回告）。
+    func cancelStroke(reason: String, notify: Bool) {
+        guard current != nil else { return }
+        let wasHeld = held
+        current = nil
+        raw = []
+        predicted = []
+        liveVertices = []
+        held = false
+        #if DEBUG
+        latency.dropPending()
+        #endif
+        needsRender = true
+        if notify, !wasHeld { delegate?.nativeInkDidCancelStroke(self, reason: reason) }
+    }
+
+    /// 丢掉持住的笔（判断没保存上：那时落下的笔不属于任何一个字）。
+    func dropHeld() {
+        if held { cancelStroke(reason: "reset", notify: false) }
+        heldDone = []
+    }
+
+    var isWriting: Bool { current != nil }
+    /// 有持住的笔（正在写或已抬笔，等门限）。
+    var hasHeldInput: Bool { held || !heldDone.isEmpty }
+    /// 正在写的这一笔的原始点（测试与诊断用）。
+    var strokeInProgress: [InkRawPoint] { raw }
+
+    /// 门限到了：持住的笔补开始（正在写的接着实时画；已抬笔的整笔交出）。每帧调用；测试可直接调。
+    func releaseHeldIfDue(_ now: CFTimeInterval) {
+        guard now >= acceptFrom else { return }
+        if held, current != nil {
+            held = false
+            liveDirty = true
+            needsRender = true
+            delegate?.nativeInkDidBeginStroke(self, at: heldStartedAt)
+        }
+        if !heldDone.isEmpty {
+            let done = heldDone
+            heldDone = []
+            for s in done {
+                delegate?.nativeInkDidBeginStroke(self, at: (s.first?.t ?? 0) / 1000)
+                finish(s)
+            }
+        }
+    }
+
+    // MARK: Apple Pencil：悬停与双击
+
+    @objc private func handleHover(_ g: UIHoverGestureRecognizer) {
+        guard #available(iOS 16.1, *) else { return }
+        switch g.state {
+        case .began, .changed:
+            // zOffset > 0 只有 Apple Pencil 悬停（触控板指针为 0）
+            guard drawable, current == nil, g.zOffset > 0 else { hideHover(); return }
+            inputPolicy.notePencil(at: CACurrentMediaTime())
+            let loc = g.location(in: self)
+            let w = max(1, Double(bounds.width)), h = max(1, Double(bounds.height))
+            hoverPoint = (Double(loc.x) * 345 / w, Double(loc.y) * 345 / h)
+            needsRender = true
+        default:
+            hideHover()
+        }
+    }
+
+    private func hideHover() {
+        guard hoverPoint != nil else { return }
+        hoverPoint = nil
+        needsRender = true
+    }
+
+    /// 双击：按系统偏好得到的动作交给代理（正在写一笔时不做，避免和书写冲突）。
+    fileprivate func pencilTapped() {
+        guard drawable, current == nil, let action = NativeInkPencilAction.forTap(UIPencilInteraction.preferredTapAction) else { return }
+        delegate?.nativeInk(self, didRequest: action)
+    }
+
+    // MARK: 每帧
+
+    fileprivate func tick(_ link: CADisplayLink) {
+        #if DEBUG
+        latency.tick(duration: link.targetTimestamp - link.timestamp)
+        stepFade(link.targetTimestamp)
+        #endif
+        releaseHeldIfDue(CACurrentMediaTime())
+        if isHidden { return }
+        #if DEBUG
+        let extra = overlayFrame?(link.targetTimestamp)
+        if overlayFrame != nil, extra == nil { overlayFrame = nil; needsRender = true }
+        let hasExtra = extra != nil
+        #else
+        let hasExtra = false
+        #endif
+        guard needsRender || liveDirty || hasExtra else { return }
+        let callback = CACurrentMediaTime()
+        if liveDirty, !raw.isEmpty, !held {
+            let profile = InkModel.analyze(raw, final: false, predicted: predicted, params: params)
+            var v: [Float] = []
+            v.reserveCapacity(liveVertices.count + 64)
+            NativeInkStrokeMesh.triangles(InkModel.geometry(profile), into: &v)
+            liveVertices = v
+        }
+        liveDirty = false
+        let a = inkOpacity
+        let color = SIMD4<Float>(inkColor.x * a, inkColor.y * a, inkColor.z * a, a)
+        let u = NativeInkRenderer.uniforms(color: color)
+        var batches: [NativeInkRenderer.Batch] = []
+        for m in pageStrokes + pendingStrokes {
+            if m.buffer == nil { m.buffer = renderer.makeBuffer(m.vertices) }
+            batches.append(.init(vertices: nil, buffer: m.buffer, count: m.vertexCount, uniforms: u))
+        }
+        if !liveVertices.isEmpty, !held {
+            batches.append(.init(vertices: liveVertices, buffer: nil, count: liveVertices.count / 2, uniforms: u))
+        }
+        if let h = hoverPoint {
+            // 落笔预览点：墨色 40%，叠在最上面（混合管线），不落墨
+            let pa = a * 0.4
+            let hu = NativeInkRenderer.uniforms(color: SIMD4(inkColor.x * pa, inkColor.y * pa, inkColor.z * pa, pa))
+            let dot = NativeInkStrokeMesh.disc(x: h.x, y: h.y, radius: NativeInkStrokeMesh.hoverDotDiameter(params) / 2)
+            batches.append(.init(vertices: dot, buffer: nil, count: dot.count / 2, uniforms: hu, blend: true))
+        }
+        #if DEBUG
+        if let extra { batches.append(contentsOf: extra) }
+        #endif
+        let cpu = (CACurrentMediaTime() - callback) * 1000
+        lastFrameCpuMs = cpu
+        #if DEBUG
+        let frameId = latency.frame(callback: callback, target: link.targetTimestamp, cpuMs: cpu)
+        let lat = latency
+        let ok = renderer.render(layer: metalLayer, batches: batches) { t in
+            DispatchQueue.main.async { lat.presented(frame: frameId, at: t) }
+        }
+        #else
+        let ok = renderer.render(layer: metalLayer, batches: batches, presented: nil)
+        #endif
+        needsRender = !ok
+        #if DEBUG
+        afterFrame?(link.targetTimestamp)
+        #endif
+        // 代理迟迟没同步回来（例如这一笔被丢弃）：2s 后不再显示待确认的笔
+        if !pendingStrokes.isEmpty, current == nil, CACurrentMediaTime() - pendingSince > 2 {
+            pendingStrokes = []
+            needsRender = true
+        }
+    }
+
+    func requestRender() { needsRender = true }
+
+    #if DEBUG
+    // MARK: spike 叠层的卸载淡出（DEBUG：网页阶段交叉淡化 150ms 时网页快照里没有墨，由原生层同步淡出）
+
+    func fadeOutAndHide(ms: Double) {
+        isUserInteractionEnabled = false
+        fade = (0, ms, inkOpacity)
+        needsRender = true
+    }
+
+    func cancelFade() {
+        guard let f = fade else { return }
+        fade = nil
+        inkOpacity = f.from
+        isUserInteractionEnabled = drawable
+    }
+
+    fileprivate func stepFade(_ target: CFTimeInterval) {
+        guard var f = fade else { return }
+        if f.start == 0 { f.start = target; fade = f }
+        let u = min(1, (target - f.start) * 1000 / max(1, f.ms))
+        inkOpacity = f.from * Float(1 - u)
+        if u >= 1 {
+            fade = nil
+            isHidden = true
+            inkOpacity = f.from
+        }
+    }
+    #endif
+}
+
+extension NativeInkView: UIPencilInteractionDelegate {
+    func pencilInteractionDidTap(_ interaction: UIPencilInteraction) {
+        pencilTapped()
+    }
+
+    @available(iOS 17.5, *)
+    func pencilInteraction(_ interaction: UIPencilInteraction, didReceiveTap tap: UIPencilInteraction.Tap) {
+        pencilTapped()
+    }
+}
+
+/// CADisplayLink 强引用 target：用弱引用中转，视图释放后 link 失效。
+final class NativeInkWeakTarget: NSObject {
+    weak var view: NativeInkView?
+    init(_ view: NativeInkView) { self.view = view }
+    @objc func tick(_ link: CADisplayLink) {
+        guard let view else { link.invalidate(); return }
+        view.tick(link)
+    }
+}
+
+#if DEBUG
+/// T1 测量（DEBUG）：触点（UITouch.timestamp）→ 首次上屏的帧。原生写字页的量测文件与 spike 叠层的导出都读它。
 final class NativeInkLatency {
     struct Sample {
         var touch: CFTimeInterval // UITouch.timestamp（s，与 CACurrentMediaTime 同一时基）
@@ -276,294 +955,6 @@ final class NativeInkLatency {
             let f = frames[smp.frame]
             return [smp.touch, smp.delivered, f.callback, f.target, f.presented]
         }
-    }
-}
-
-final class NativeInkView: UIView {
-    override class var layerClass: AnyClass { CAMetalLayer.self }
-    var metalLayer: CAMetalLayer { layer as! CAMetalLayer } // swiftlint:disable:this force_cast
-
-    weak var delegate: NativeInkViewDelegate?
-    let renderer: NativeInkRenderer
-    var latency = NativeInkLatency()
-    var params = InkParams.default
-
-    /// 墨色（预乘前，0–1）与整体不透明度（页面固化层 opacity）。
-    var inkColor = SIMD4<Float>(0.231, 0.184, 0.157, 1) { didSet { needsRender = true } }
-    var inkOpacity: Float = 1 { didSet { needsRender = true } }
-    /// 页面说此刻能不能落笔（不能时触摸穿透给网页）。
-    var drawable = true { didSet { isUserInteractionEnabled = drawable; if !drawable { cancelStroke(reason: "reset", notify: true) } } }
-
-    private(set) var pageStrokes: [NativeInkStrokeMesh] = [] // 页面确认过的笔
-    private(set) var pendingStrokes: [NativeInkStrokeMesh] = [] // 已抬笔、页面还没同步回来的笔
-    private var pendingSince: CFTimeInterval = 0
-
-    private var current: UITouch?
-    private var raw: [InkRawPoint] = []
-    private var predicted: [InkRawPoint] = []
-    private var liveVertices: [Float] = []
-    private var liveDirty = false
-    private(set) var needsRender = true
-    private var link: CADisplayLink?
-    var lastFrameCpuMs = 0.0
-    /// 落定原型等外部动画每帧追加的绘制（返回 nil 表示动画结束）。
-    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)?
-    /// 每帧画完后的钩子（落定原型用来在「第一帧」同帧发触觉）。
-    var afterFrame: ((CFTimeInterval) -> Void)?
-
-    init?(frame: CGRect, renderer: NativeInkRenderer) {
-        self.renderer = renderer
-        super.init(frame: frame)
-        isOpaque = false
-        backgroundColor = .clear
-        isMultipleTouchEnabled = true
-        // 读屏：本 spike 不做原生读屏元素，网页书写格（role=img + 标签）仍是读屏看到的那个；直通（allowsDirectInteraction）留到阶段 2。
-        isAccessibilityElement = false
-        let ml = metalLayer
-        ml.device = renderer.device
-        ml.pixelFormat = .bgra8Unorm
-        ml.framebufferOnly = true
-        ml.isOpaque = false
-        ml.presentsWithTransaction = false
-        ml.maximumDrawableCount = 3
-        contentScaleFactor = UIScreen.main.scale
-
-        let export = UITapGestureRecognizer(target: self, action: #selector(handleExportTap(_:)))
-        export.numberOfTouchesRequired = 2
-        export.numberOfTapsRequired = 2
-        addGestureRecognizer(export)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    deinit { link?.invalidate() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        let scale = window?.screen.scale ?? UIScreen.main.scale
-        let size = CGSize(width: max(1, bounds.width * scale), height: max(1, bounds.height * scale))
-        if metalLayer.drawableSize != size {
-            metalLayer.drawableSize = size
-            needsRender = true
-        }
-    }
-
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        if window != nil, link == nil {
-            let l = CADisplayLink(target: NativeInkWeakTarget(self), selector: #selector(NativeInkWeakTarget.tick(_:)))
-            // ProMotion：请求 120Hz（需要 Info.plist CADisableMinimumFrameDurationOnPhone，DEBUG + SHIZI_NATIVE_INK_120HZ 构建时由同步脚本加上）
-            l.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
-            l.add(to: .main, forMode: .common)
-            link = l
-        } else if window == nil {
-            link?.invalidate()
-            link = nil
-        }
-    }
-
-    @objc private func handleExportTap(_ g: UITapGestureRecognizer) {
-        if g.state == .ended { delegate?.nativeInkRequestsExport(self) }
-    }
-
-    // MARK: 页面同步来的笔
-
-    /// 页面的 strokes（按顺序）。与已有的对比：页面多出来的笔若正是待确认的笔，直接挪过来（不重算）；否则重建。
-    func syncPageStrokes(_ strokes: [[InkRawPoint]]) {
-        let oldCount = pageStrokes.count
-        var next: [NativeInkStrokeMesh] = []
-        var pend = pendingStrokes
-        for (i, s) in strokes.enumerated() {
-            if i < pageStrokes.count, Self.sameStroke(pageStrokes[i].raw, s) {
-                next.append(pageStrokes[i])
-            } else if let first = pend.first, Self.sameShape(first.raw, s) {
-                next.append(first)
-                pend.removeFirst()
-            } else {
-                next.append(NativeInkStrokeMesh.build(raw: s, params: params))
-            }
-        }
-        pageStrokes = next
-        // 页面已经收下的待确认笔从 pending 去掉；页面把笔数减少（撤销 / 清空 / 换字）时 pending 全清
-        pendingStrokes = strokes.count < oldCount || strokes.isEmpty ? [] : pend
-        needsRender = true
-    }
-
-    /// 同一笔（页面那份时间做过时基换算，只比位置与点数）。
-    static func sameShape(_ a: [InkRawPoint], _ b: [InkRawPoint]) -> Bool {
-        guard a.count == b.count, let fa = a.first, let fb = b.first, let la = a.last, let lb = b.last else { return false }
-        return abs(fa.x - fb.x) < 1e-3 && abs(fa.y - fb.y) < 1e-3 && abs(la.x - lb.x) < 1e-3 && abs(la.y - lb.y) < 1e-3
-    }
-
-    static func sameStroke(_ a: [InkRawPoint], _ b: [InkRawPoint]) -> Bool { sameShape(a, b) }
-
-    // MARK: 触摸
-
-    private func gridPoint(_ t: UITouch) -> InkRawPoint {
-        let loc = t.preciseLocation(in: self)
-        let w = max(1, bounds.width), h = max(1, bounds.height)
-        var q = InkRawPoint(x: Double(loc.x) * 345 / Double(w), y: Double(loc.y) * 345 / Double(h), t: t.timestamp * 1000)
-        if t.type == .pencil {
-            if t.maximumPossibleForce > 0 {
-                let p = Double(t.force / t.maximumPossibleForce)
-                if p > 0 { q.p = min(1, p) }
-            }
-            q.alt = Double(t.altitudeAngle) * 180 / Double.pi
-        }
-        return q
-    }
-
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard drawable, current == nil, let t = touches.first else { return }
-        // 只认第一根落下的触点；第二根手指 / 手掌在这一笔期间一律忽略（规格 §2.1 掌托的接触面积 / 静止判定留到阶段 2）
-        current = t
-        let now = CACurrentMediaTime()
-        raw = [gridPoint(t)]
-        predicted = []
-        latency.touch(t.timestamp, delivered: now)
-        liveDirty = true
-        needsRender = true
-        delegate?.nativeInkDidBeginStroke(self, at: t.timestamp)
-    }
-
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let t = current, touches.contains(t) else { return }
-        let now = CACurrentMediaTime()
-        let co = event?.coalescedTouches(for: t) ?? [t]
-        for c in co {
-            raw.append(gridPoint(c))
-            latency.touch(c.timestamp, delivered: now)
-        }
-        predicted = (event?.predictedTouches(for: t) ?? []).map(gridPoint)
-        liveDirty = true
-        needsRender = true
-    }
-
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let t = current, touches.contains(t) else { return }
-        let co = event?.coalescedTouches(for: t) ?? []
-        for c in co where c.timestamp * 1000 > (raw.last?.t ?? 0) { raw.append(gridPoint(c)) }
-        let end = gridPoint(t)
-        if let last = raw.last, end.x != last.x || end.y != last.y { raw.append(end) }
-        let stroke = raw
-        current = nil
-        raw = []
-        predicted = []
-        liveVertices = []
-        let mesh = NativeInkStrokeMesh.build(raw: stroke, params: params)
-        pendingStrokes.append(mesh)
-        pendingSince = CACurrentMediaTime()
-        latency.strokes += 1
-        needsRender = true
-        delegate?.nativeInkDidEndStroke(self, raw: stroke)
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let t = current, touches.contains(t) else { return }
-        cancelStroke(reason: "cancel", notify: true)
-    }
-
-    /// 丢弃正在写的一笔（不固化、不计笔数）。notify：是否告诉页面（页面自己发起的取消不回告）。
-    func cancelStroke(reason: String, notify: Bool) {
-        guard current != nil else { return }
-        current = nil
-        raw = []
-        predicted = []
-        liveVertices = []
-        latency.dropPending()
-        needsRender = true
-        if notify { delegate?.nativeInkDidCancelStroke(self, reason: reason) }
-    }
-
-    var isWriting: Bool { current != nil }
-
-    // MARK: 每帧
-
-    fileprivate func tick(_ link: CADisplayLink) {
-        latency.tick(duration: link.targetTimestamp - link.timestamp)
-        stepFade(link.targetTimestamp)
-        if isHidden { return }
-        let extra = overlayFrame?(link.targetTimestamp)
-        if overlayFrame != nil, extra == nil { overlayFrame = nil; needsRender = true }
-        guard needsRender || liveDirty || extra != nil else { return }
-        let callback = CACurrentMediaTime()
-        if liveDirty, !raw.isEmpty {
-            let profile = InkModel.analyze(raw, final: false, predicted: predicted, params: params)
-            var v: [Float] = []
-            v.reserveCapacity(liveVertices.count + 64)
-            NativeInkStrokeMesh.triangles(InkModel.geometry(profile), into: &v)
-            liveVertices = v
-        }
-        liveDirty = false
-        let a = inkOpacity
-        let color = SIMD4<Float>(inkColor.x * a, inkColor.y * a, inkColor.z * a, a)
-        let u = NativeInkRenderer.uniforms(color: color)
-        var batches: [NativeInkRenderer.Batch] = []
-        for m in pageStrokes + pendingStrokes {
-            if m.buffer == nil { m.buffer = renderer.makeBuffer(m.vertices) }
-            batches.append(.init(vertices: nil, buffer: m.buffer, count: m.vertexCount, uniforms: u))
-        }
-        if !liveVertices.isEmpty {
-            batches.append(.init(vertices: liveVertices, buffer: nil, count: liveVertices.count / 2, uniforms: u))
-        }
-        if let extra { batches.append(contentsOf: extra) }
-        let cpu = (CACurrentMediaTime() - callback) * 1000
-        lastFrameCpuMs = cpu
-        let frameId = latency.frame(callback: callback, target: link.targetTimestamp, cpuMs: cpu)
-        let lat = latency
-        let ok = renderer.render(layer: metalLayer, batches: batches) { t in
-            DispatchQueue.main.async { lat.presented(frame: frameId, at: t) }
-        }
-        needsRender = !ok
-        afterFrame?(link.targetTimestamp)
-        // 页面迟迟没同步回来（例如这一笔被页面丢弃）：2s 后不再显示待确认的笔
-        if !pendingStrokes.isEmpty, current == nil, CACurrentMediaTime() - pendingSince > 2 {
-            pendingStrokes = []
-            needsRender = true
-        }
-    }
-
-    func requestRender() { needsRender = true }
-
-    // MARK: 卸载淡出（页面阶段交叉淡化 150ms 时，网页快照里没有墨，由原生层同步淡出）
-
-    private var fade: (start: CFTimeInterval, ms: Double, from: Float)?
-
-    func fadeOutAndHide(ms: Double) {
-        isUserInteractionEnabled = false
-        fade = (0, ms, inkOpacity)
-        needsRender = true
-    }
-
-    func cancelFade() {
-        guard let f = fade else { return }
-        fade = nil
-        inkOpacity = f.from
-        isUserInteractionEnabled = drawable
-    }
-
-    /// 每帧推进淡出；结束时隐藏并复原不透明度。
-    fileprivate func stepFade(_ target: CFTimeInterval) {
-        guard var f = fade else { return }
-        if f.start == 0 { f.start = target; fade = f }
-        let u = min(1, (target - f.start) * 1000 / max(1, f.ms))
-        inkOpacity = f.from * Float(1 - u)
-        if u >= 1 {
-            fade = nil
-            isHidden = true
-            inkOpacity = f.from
-        }
-    }
-}
-
-/// CADisplayLink 强引用 target：用弱引用中转，视图释放后 link 失效。
-final class NativeInkWeakTarget: NSObject {
-    weak var view: NativeInkView?
-    init(_ view: NativeInkView) { self.view = view }
-    @objc func tick(_ link: CADisplayLink) {
-        guard let view else { link.invalidate(); return }
-        view.tick(link)
     }
 }
 #endif

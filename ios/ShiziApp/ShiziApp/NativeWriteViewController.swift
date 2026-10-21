@@ -9,7 +9,11 @@ import WebKit
 // 提交：judge 经桥由页面 store.commit 完成（与网页同一个 commitJudgment）；成功才推进（D07），失败留在判断页三段式（R-W16）。
 // 现场：抬笔 / 撤销 / 清空后发 strokes（P52 不阻断，不等回包）；进 / 出判断页发 phase。
 // 文案：全部取自页面 src/config/copy（open 回包的 copy 字典），本文件不写任何用户可见的字。
-// 不在本纵切里（见架构文档 §8 后续卡）：提示、看答案、跳过、结束这组、结果行与改判、换字防误触时窗、转场与落定动效、读屏逐笔播报。
+// 书写面（B2.1，架构 §6 第 2、5 条）：Apple Pencil 双击按系统偏好 =「清空 / 撤销」（与格下两键同一个动作）；换字后 250ms 内落下的笔先持住、到点补画
+// （P227，门限来自页面 open 回包 timing）；点了判断、回包之前落下的笔也持住，回包推进到下一个字后接着画，没保存上就丢掉（不属于任何一个字）；
+// 换阶段 / 换字的版式动画进行中落笔：动画一帧到终态，这次输入照常生效（T0 规则 3）；进判断页后两键 320ms 出现、440ms 可点（时刻编排 M1，
+// 取代看不见的 0.4s 防误点；减少动态效果 / 读屏时直接可点，T0-3）。
+// 不在本纵切里（见架构文档 §11 后续卡）：提示、看答案、跳过、结束这组、结果行与改判、转场与落定动效、读屏逐笔播报。
 
 protocol NativeWriteCoordinating: AnyObject {
     func nativeWriteDidRequestBack(_ vc: NativeWriteViewController)
@@ -32,6 +36,14 @@ final class NativeWriteViewController: UIViewController {
     private var cleared: [[InkRawPoint]]?
     private var submitting = false
     private var failed = false
+    /// 页面给的时刻（s；open 回包 timing，单一来源 src/session/write-api.js writeTiming）。
+    private var penArm: TimeInterval = 0
+    private var judgeAppear: TimeInterval = 0
+    private var judgeReady: TimeInterval = 0
+    private var judgeKeysReady = true
+    private var judgeArmToken = 0
+    /// 上一次按「换字」设门限的字（含进页面的第一个字）。
+    private var armedCard: String?
     /// 已经交给协调者离开（返回 / 结果页），之后的 viewDidDisappear 不再发 exit。
     var exitHandled = false
     /// 页面打开量测：消息到达时刻（CACurrentMediaTime）与页面发出时刻（epoch ms）。
@@ -65,6 +77,7 @@ final class NativeWriteViewController: UIViewController {
         self.copy = (payload["copy"] as? [String: String]) ?? [:]
         super.init(nibName: nil, bundle: nil)
         applyColors(payload["colors"] as? [String: String])
+        applyTiming(payload["timing"] as? [String: Any])
     }
 
     @available(*, unavailable)
@@ -88,6 +101,13 @@ final class NativeWriteViewController: UIViewController {
 
     private func color(_ name: String, _ fallback: UIColor) -> UIColor { colors[name] ?? fallback }
 
+    private func applyTiming(_ raw: [String: Any]?) {
+        let ms = { (k: String) in ((raw?[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
+        penArm = ms("penArmMs")
+        judgeAppear = ms("judgeAppearMs")
+        judgeReady = ms("judgeReadyMs")
+    }
+
     // MARK: 生命周期
 
     override func loadView() {
@@ -98,7 +118,7 @@ final class NativeWriteViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        guard let renderer = NativeInkRenderer(), let inkView = NativeInkView(frame: .zero, renderer: renderer) else {
+        guard let inkView = NativeInkView.make(frame: .zero) else {
             NSLog("[shizi] native-write: Metal unavailable")
             return
         }
@@ -205,6 +225,11 @@ final class NativeWriteViewController: UIViewController {
             cleared = nil
             phase = (next["phase"] as? String) == "compare" && !strokes.isEmpty ? .compare : .recall
         }
+        // 换字（含进页面）：门限内落下的笔先持住、到点补画（P227）；判断回包前持住的笔在这里接上新字
+        if cardKey != armedCard || ink?.acceptFrom == .infinity {
+            armedCard = cardKey
+            ink?.acceptFrom = CACurrentMediaTime() + penArm
+        }
         failed = false
         ink?.syncPageStrokes(strokes)
         refGlyph.char = char
@@ -218,6 +243,7 @@ final class NativeWriteViewController: UIViewController {
     func resync(payload: [String: Any]) {
         if let c = payload["copy"] as? [String: String] { copy = c }
         applyColors(payload["colors"] as? [String: String])
+        applyTiming(payload["timing"] as? [String: Any])
         if let s = payload["snapshot"] as? [String: Any] { apply(snapshot: s, keepLocal: true) }
     }
 
@@ -287,7 +313,8 @@ final class NativeWriteViewController: UIViewController {
             backButton.accessibilityLabel = tr("R-W09.continueWriting")
         }
         let recall = phase == .recall
-        ink?.drawable = recall && !submitting
+        // 判断提交中也接收落笔（持住，等回包推进到下一个字；见 judge）
+        ink?.drawable = recall ? !submitting : submitting
         ink?.accessibilityLabel = recall
             ? (strokes.isEmpty ? tr("X-WRITE.gridLabel") : tr("X-WRITE.gridLabelCount", ["n": strokes.count]))
             : tr("R-W09.mineCardLabel", ["n": strokes.count])
@@ -304,8 +331,8 @@ final class NativeWriteViewController: UIViewController {
         correctButton.setTitle(failed ? tr("R-W16.retry") : tr("R-W09.btnCorrect"), for: .normal)
         failNote.isHidden = !failed
         failCancel.isHidden = !failed
-        wrongButton.isEnabled = !submitting
-        correctButton.isEnabled = !submitting
+        wrongButton.isEnabled = !submitting && judgeKeysReady
+        correctButton.isEnabled = !submitting && (failed || judgeKeysReady)
     }
 
     // MARK: 版式（B2.0 最小版；完整版式与 AX 档见 B2.1 / B2.9）
@@ -461,6 +488,7 @@ final class NativeWriteViewController: UIViewController {
     private func continueWriting() {
         guard phase == .compare, !submitting, let key = cardKey else { return }
         failed = false
+        disarmJudgeKeys()
         bridge.send("phase", ["slot": slot, "cardKey": key, "phase": "recall"])
         setPhase(.recall)
     }
@@ -478,15 +506,58 @@ final class NativeWriteViewController: UIViewController {
             view.setNeedsLayout()
             view.layoutIfNeeded() // 书写格回到动画起点
             phase = p
-            UIView.animate(withDuration: UIAccessibility.isReduceMotionEnabled ? 0.15 : 0.3) { self.refFrame.alpha = 1 }
+            UIView.animate(withDuration: UIAccessibility.isReduceMotionEnabled ? 0.15 : 0.3, delay: 0, options: [.allowUserInteraction]) { self.refFrame.alpha = 1 }
+            armJudgeKeys()
         }
         refresh()
         let reduce = UIAccessibility.isReduceMotionEnabled
-        UIView.animate(withDuration: reduce ? 0.15 : 0.3, delay: 0, options: [.curveEaseInOut]) {
+        // .allowUserInteraction：动画进行中落笔照常生效（T0 规则 3；落笔时 settleAnimations 让动画一帧到终态）
+        UIView.animate(withDuration: reduce ? 0.15 : 0.3, delay: 0, options: [.curveEaseInOut, .allowUserInteraction]) {
             self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
         }
         UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
+    }
+
+    // MARK: 判断两键的出现与就绪（时刻编排 M1：0–judgeAppear 不显示，之后 60% 且不可点，judgeReady 变实可点；取代看不见的 0.4s 防误点）
+
+    private func armJudgeKeys() {
+        judgeArmToken += 1
+        let token = judgeArmToken
+        // 减少动态效果 / 读屏：直接可点、不淡入（T0-3：不留看不见的锁）
+        guard judgeReady > 0, !UIAccessibility.isReduceMotionEnabled, !UIAccessibility.isVoiceOverRunning else {
+            disarmJudgeKeys()
+            return
+        }
+        judgeKeysReady = false
+        setJudgeKeysAlpha(0)
+        DispatchQueue.main.asyncAfter(deadline: .now() + judgeAppear) { [weak self] in
+            guard let self, self.judgeArmToken == token else { return }
+            self.setJudgeKeysAlpha(0.6)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + judgeReady) { [weak self] in
+            guard let self, self.judgeArmToken == token else { return }
+            self.judgeKeysReady = true
+            self.setJudgeKeysAlpha(1)
+            self.refresh()
+        }
+    }
+
+    private func disarmJudgeKeys() {
+        judgeArmToken += 1
+        judgeKeysReady = true
+        setJudgeKeysAlpha(1)
+    }
+
+    private func setJudgeKeysAlpha(_ a: CGFloat) {
+        wrongButton.alpha = a
+        correctButton.alpha = a
+    }
+
+    /// 落笔时正在进行的版式动画一帧到终态（T0 规则 3：动画不挡输入，这次输入照常生效）。
+    private func settleAnimations() {
+        view.layer.removeAllAnimations()
+        for v in view.subviews { v.layer.removeAllAnimations() }
     }
 
     @objc private func tapWrong() { judge("wrong") }
@@ -504,6 +575,8 @@ final class NativeWriteViewController: UIViewController {
         guard phase == .compare, !submitting, let key = cardKey, !strokes.isEmpty else { return }
         submitting = true
         lastJudgment = judgment
+        // 回包之前落下的笔先持住（不画、不交出），推进到下一个字后接着画（P227 同语义：这一笔不丢）
+        ink?.acceptFrom = .infinity
         refresh()
         judgeHaptic.prepare()
         let hints = snapshot["hints"] as? Int ?? 0
@@ -513,7 +586,9 @@ final class NativeWriteViewController: UIViewController {
             // 结果未知后重发（或连点）：页面回 stale 且快照已经不是这个字 → 上一次其实已提交，按成功对账（不多记，D07）
             let advanced = !reply.ok && reply.errorKind == "stale" && reply.snapshot.map { ($0["cardKey"] as? String) != key } == true
             guard reply.ok || advanced else {
-                // D07：没保存上——留在判断页，笔迹还在；两键换成「先不保存 / 再试一次」
+                // D07：没保存上——留在判断页，笔迹还在；两键换成「先不保存 / 再试一次」。这期间持住的笔不属于任何一个字，丢掉
+                self.ink?.dropHeld()
+                self.ink?.acceptFrom = 0
                 self.failed = true
                 self.refresh()
                 self.view.setNeedsLayout()
@@ -594,7 +669,9 @@ final class NativeWriteViewController: UIViewController {
 }
 
 extension NativeWriteViewController: NativeInkViewDelegate {
-    func nativeInkDidBeginStroke(_ view: NativeInkView, at timestamp: TimeInterval) {}
+    func nativeInkDidBeginStroke(_ view: NativeInkView, at timestamp: TimeInterval) {
+        settleAnimations()
+    }
 
     func nativeInkDidEndStroke(_ view: NativeInkView, raw: [InkRawPoint]) {
         guard phase == .recall else { return }
@@ -607,9 +684,13 @@ extension NativeWriteViewController: NativeInkViewDelegate {
 
     func nativeInkDidCancelStroke(_ view: NativeInkView, reason: String) {}
 
-    func nativeInkRequestsExport(_ view: NativeInkView) {
-        NativeWriteMetrics.shared.inkSummary = view.latency.summary
-        NativeWriteMetrics.shared.save()
+    /// Apple Pencil 双击（按系统偏好映射，NativeInkPencilAction）：与格下「撤销 / 清空」同一个动作，只在回忆阶段。
+    func nativeInk(_ view: NativeInkView, didRequest action: NativeInkPencilAction) {
+        guard phase == .recall, !submitting else { return }
+        switch action {
+        case .undo: tapUndo()
+        case .clear: tapClear()
+        }
     }
 }
 #endif

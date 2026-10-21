@@ -3,6 +3,7 @@ import UIKit
 import WebKit
 
 // 原生书写面 spike 的壳侧接线（P1-S2；I3-13 / I2-12）。只在 DEBUG 编译，默认关闭。
+// B2.1 起书写面本身（NativeInkView / InkModel）是 Release 组件；这里只剩 spike 专用的网页叠层、量测导出、落定原型与 T2 参数组。
 //
 // 开关：DEBUG 启动参数 -shizi-native-ink（或环境变量 SHIZI_NATIVE_INK=1）。开启时：
 //   1. 文档开始注入 window.__shiziNativeInk = true；页面 src/ui/canvas/native-ink.js 据此接管写字页的书写格（网页画布隐藏、不再落笔）。
@@ -83,6 +84,11 @@ final class NativeInkSpike: NSObject {
         v.params = Self.preset(Self.presetName)
         v.delegate = self
         v.isHidden = true
+        // 书写格上两指双击 → 导出 T1 量测（spike 专用；B2.1 起从书写面本身挪到这里，正式书写面不带它）
+        let export = UITapGestureRecognizer(target: self, action: #selector(handleExportTap(_:)))
+        export.numberOfTouchesRequired = 2
+        export.numberOfTapsRequired = 2
+        v.addGestureRecognizer(export)
         webView.addSubview(v)
         ink = v
         NSLog("[shizi] native-ink on: preset %@, screen max %d fps", Self.presetName, UIScreen.main.maximumFramesPerSecond)
@@ -355,8 +361,11 @@ extension NativeInkSpike: NativeInkViewDelegate {
         send(["kind": "cancel", "reason": reason])
     }
 
-    func nativeInkRequestsExport(_ view: NativeInkView) {
-        exportLatency()
+}
+
+extension NativeInkSpike {
+    @objc fileprivate func handleExportTap(_ g: UITapGestureRecognizer) {
+        if g.state == .ended { exportLatency() }
     }
 }
 

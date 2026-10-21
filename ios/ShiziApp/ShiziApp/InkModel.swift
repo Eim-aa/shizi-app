@@ -1,12 +1,11 @@
-#if DEBUG
 import Foundation
 
-// 拾字 笔锋模型 · Swift 移植（P1-S2 原生书写面 spike；规格 docs/engineering/v10/phase1/笔锋模型规格.md，ink-model-1.0）。
+// 拾字 笔锋模型 · Swift 移植（P1-S2 起；B2.1 随原生书写面转正进 Release；规格 docs/engineering/v10/phase1/笔锋模型规格.md，ink-model-1.0）。
 //
 // 逐函数对照 docs/engineering/v10/phase1/ink-model/reference.mjs（JS 参考实现，阶段 2 的契约）：
 //   prepare → oneEuro → resample → analyze → geometry → unionArea，参数表 InkParams 与 PARAMS 一一对应。
 // 纯函数、只依赖 Foundation：App 内（NativeInkView 每帧调用）与 macOS 命令行（swiftc 直接编译，见 InkModelCheck.swift）同一份源码。
-// 只在 DEBUG 编译（spike 期间 Release 产物不含原生书写面）。
+// 金标准自检 InkModelCheck.swift 只在 DEBUG（XCTest ShiziWriteTests 与 -shizi-ink-selfcheck 用）。
 
 enum InkModel {
     static let version = "ink-model-1.0"
@@ -970,4 +969,3 @@ extension InkModel {
         return area * h
     }
 }
-#endif

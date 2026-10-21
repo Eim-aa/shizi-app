@@ -244,9 +244,10 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
   check('bridge handler is cycle-free and removed on teardown',
     webView.includes('WeakScriptMessageHandler(delegate: self)') && webView.includes('removeScriptMessageHandler(forName: "shiziNative")'));
   // M5-3：冒烟与测试宿主注入（__shiziNativeDev、?test=1、nativeSmoke*）只在 #if DEBUG 里（Release 不编译；产物另由 verify-archive.sh 查）。
-  // P1-S2：原生书写面 spike（__shiziNativeInk、-shizi-native-ink、NativeInkSpike / NativeInkView / InkModel）同样只在 DEBUG。
+  // P1-S2：原生书写面 spike 叠层（__shiziNativeInk、-shizi-native-ink、NativeInkSpike）、金标准自检 InkModelCheck、T1 量测 NativeInkLatency 同样只在 DEBUG。
+  //   B2.1 起书写面本身（NativeInkView / InkModel）转正为 Release 组件，不在此列（verify-archive.sh 反过来断言 Release 含它）。
   // B2.0：原生写字页最小纵切（__shiziNativeWrite、-shizi-native-write、NativeWrite* / NativeGlyph）开关默认关、只在 DEBUG。
-  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|NativeInkView|InkModel|__shiziNativeWrite|shizi-native-write|NativeWrite|NativeGlyph/;
+  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|InkModelCheck|NativeInkLatency|__shiziNativeWrite|shizi-native-write|NativeWrite|NativeGlyph/;
   const leaks = [];
   for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
     const stack = [];

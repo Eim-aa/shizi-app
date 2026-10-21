@@ -4,7 +4,7 @@
 // status：
 //   'expected-fail'  已知问题、待修复卡转绿。失败 = 「预期失败（待修）」，不算回归；通过 = 「意外通过」，提示把 status 改成 'pass'。
 //   'pass'           应当通过；失败 = 回归。
-// 逐项豁免不改这里，写在 parity.config.json 的 waive（编号 → 理由）：照跑照记实测值，失败不算回归（NP-07，D71 ①）。
+// 逐项豁免不改这里，写在 parity.config.json 的 waive（编号 → 理由）：照跑照记实测值，失败不算回归。
 // 每条 eval(ctx) 返回 {pass, detail}；ctx = {state, tag, appearance, size, web, native, px:{web, native}, screen}。
 //   web / native：配好语义键的元素（elements.mjs）；px：在截图上的取样（compare.mjs 用 Playwright 读像素）。
 // NP-01（修改 › 热区）、NP-06（判断失败三段式）要真实点按，写在 XCUITest（ShiziUITests/KnownIssueTests.swift）。
@@ -59,13 +59,25 @@ export const CHECKS = [
     },
   },
   {
-    // D71 ①：原生书写面回到 R9-A 之前的参数，墨粗与网页的差异按 parity.config.json waive 豁免（检查照跑、照记实测值）
-    id: 'NP-07', status: 'pass', level: '中', title: '同一组笔画的墨粗与网页接近（±25%）（NP-21 结果页缩略墨迹同源）',
-    states: ['recall-ink'],
-    eval({ px }) {
-      const w = px.web.inkThick, n = px.native.inkThick;
-      const ok = w > 0 && n > 0 && n / w >= 0.75 && n / w <= 1.33;
-      return { pass: ok, detail: `横画粗（1 倍图像素）网页 ${w} 原生 ${n}` };
+    // R11-A（D72 ②，取消 D71 ① 的豁免）：原生墨与网页同一算法。粗细 = 同一组注入笔画（中线相同）的墨面积比 = 平均笔宽比；
+    // 口径与容差见 parity.config.json ink（compare.mjs inkCompare）。横画粗（单列像素）只记录。
+    id: 'NP-07', status: 'pass', level: '中', title: '同一组笔画的墨粗细与网页一致（平均笔宽 ±10%）（NP-21 结果页缩略墨迹同源）',
+    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet'],
+    eval({ px, ink }) {
+      const c = px.ink;
+      if (!c || c.error) return { pass: false, detail: c ? c.error : '没有墨区取样' };
+      const ok = c.web > 0 && c.native > 0 && Math.abs(c.area - 1) <= ink.thickness;
+      return { pass: ok, detail: `墨面积（≈ 平均笔宽）原生 / 网页 ${c.area}（${c.native} / ${c.web} 像素）；横画粗 网页 ${px.web.inkThick} 原生 ${px.native.inkThick}` };
+    },
+  },
+  {
+    id: 'NP-22', status: 'pass', level: '中', title: '同一组笔画的墨区与网页重合（R11-A，D72 ②：原生墨与网页同一算法）',
+    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet'],
+    eval({ px, ink }) {
+      const c = px.ink;
+      if (!c || c.error) return { pass: false, detail: c ? c.error : '没有墨区取样' };
+      const ok = c.iou1 >= ink.iou1 && c.iou >= ink.iou;
+      return { pass: ok, detail: `墨区 IoU ${c.iou}（≥ ${ink.iou}）、容 1 像素 ${c.iou1}（≥ ${ink.iou1}）` };
     },
   },
   {
@@ -236,5 +248,5 @@ export const COVERED_ELSEWHERE = {
   'NP-01': 'XCUITest KnownIssueTests.testNP01_changeLinkWholeHitArea（真实点按「修改 ›」44pt 热区上沿；R9-B 修好，普通断言）',
   'NP-06': 'XCUITest KnownIssueTests.testNP06_judgeSaveFailureThreeSteps（-shizi-qa-fail-next 注入写失败）',
   'NP-18': '并入 NP-09（撤销 / 清空图标）',
-  'NP-21': '并入 NP-07（同一笔锋模型；结果页仍是网页）',
+  'NP-21': '并入 NP-07 / NP-22（原生墨与网页同一算法 buildStroke；结果页仍是网页）',
 };

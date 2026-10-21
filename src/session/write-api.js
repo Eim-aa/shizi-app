@@ -9,7 +9,7 @@ import { getStore } from '../store/store.js';
 import { t } from '../config/copy/index.js';
 import { canCorrect, currentCardKey, isComplete } from '../core/sessions.js';
 import { charOfCardKey, isJudged, isPaperRecord } from '../core/records.js';
-import { decodeInk, decodeInkRaw, encodeRawStrokes } from '../core/ink-math.js';
+import { decodeInk, decodeInkRaw, encodeRawStrokes, inkParams } from '../core/ink-math.js';
 import { capitalCard, cardForKey, withWordOff } from '../data/deck.js';
 import { M } from '../config/motion.js';
 import * as policy from '../config/policy.js';
@@ -231,6 +231,14 @@ export function writeTrace() {
   };
 }
 
+/**
+ * 笔迹参数（D72 ②：原生书写面与网页同一算法 buildStroke，同一组参数）：policy.ink（P65 手感参数）+ INK_SPEC（已定规格），
+ * 即 core/ink-math.js inkParams(policy) 整张表。原生 WebInk.swift 只从这里取数，不写死数值。
+ */
+export function writeInk() {
+  return { ...inkParams(policy) };
+}
+
 /** 跳过撤销条的寿命（P115，D36）：ms、按住暂停、读屏时不自动收起（与网页 skip.js createUndoLifetime 同一组）。 */
 export function writeSkipUndo() {
   return {
@@ -376,7 +384,7 @@ export function createWriteSessionApi(deps = {}) {
       const rec = commitRecover(store, { slot });
       return {
         ok: true, recovered: !!(rec && rec.ok && !rec.noop), snapshot: snapshot(slot), copy: copyBundle(), colors: colors(), type: type(), timing: writeTiming(),
-        motion: writeMotion(), layout: writeLayoutConstants(), trace: writeTrace(), skipUndo: writeSkipUndo(),
+        motion: writeMotion(), layout: writeLayoutConstants(), trace: writeTrace(), skipUndo: writeSkipUndo(), ink: writeInk(),
       };
     },
     /** 抬笔 / 撤销 / 清空后的现场写回（P52：不阻断，失败只回报）。 */

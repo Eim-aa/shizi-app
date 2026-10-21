@@ -6,6 +6,9 @@ import Foundation
 //   prepare → oneEuro → resample → analyze → geometry → unionArea，参数表 InkParams 与 PARAMS 一一对应。
 // 纯函数、只依赖 Foundation：App 内（NativeInkView 每帧调用）与 macOS 命令行（swiftc 直接编译，见 InkModelCheck.swift）同一份源码。
 // 金标准自检 InkModelCheck.swift 只在 DEBUG（XCTest ShiziWriteTests 与 -shizi-ink-selfcheck 用）。
+//
+// R11-A（D72 ②）：产品书写面不再用本模型画墨（改用 WebInk.swift = 网页 ink-math.js buildStroke 同一算法）。本文件保留作 T2 盲测候选：
+// 只有 DEBUG 的 NativeInkSpike 经 NativeInkView.inkModel 打开；InkRawPoint / InkStoredInk（原始点与 v4 解码）仍是产品共用的类型。
 
 enum InkModel {
     static let version = "ink-model-1.0"

@@ -81,7 +81,7 @@ final class NativeInkSpike: NSObject {
     private func ensureView() -> NativeInkView? {
         if let ink { return ink }
         guard let webView, let renderer = NativeInkRenderer(), let v = NativeInkView(frame: .zero, renderer: renderer) else { return nil }
-        v.params = Self.preset(Self.presetName)
+        v.inkModel = Self.preset(Self.presetName) // spike 是 ink-model-1.0 的 T2 盲测台：产品书写面不设 inkModel
         v.delegate = self
         v.isHidden = true
         // 书写格上两指双击 → 导出 T1 量测（spike 专用；B2.1 起从书写面本身挪到这里，正式书写面不带它）
@@ -164,8 +164,8 @@ final class NativeInkSpike: NSObject {
         v.isUserInteractionEnabled = false
         webView.addSubview(v)
         settleView = v
-        let params = ink?.params ?? .default
-        let meshes = strokes.map { NativeInkStrokeMesh.build(raw: $0, params: params) }
+        let params = ink?.inkModel ?? .default
+        let meshes = strokes.map { NativeInkStrokeMesh.build(raw: $0, inkModel: params) }
         let color = ink?.inkColor ?? SIMD4<Float>(0.231, 0.184, 0.157, 1)
         let size = webView.bounds.size
         settleImpact.prepare()

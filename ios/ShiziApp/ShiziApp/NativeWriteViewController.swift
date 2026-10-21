@@ -246,6 +246,11 @@ final class NativeWriteViewController: UIViewController {
         }
         if payload["type"] != nil { textType = NativeType(payload["type"]) }
         if let l = payload["layout"] as? [String: Any] { layoutK = NativeWriteLayoutConstants(l) }
+        // R11-A（D72 ②）：墨与网页同一算法，参数随 open 下发（policy.ink + INK_SPEC）；判断弹层等另建的书写面也读 WebInkParams.current
+        if let k = WebInkParams(payload["ink"]) {
+            WebInkParams.current = k
+            ink?.params = k
+        }
         if let t = payload["trace"] as? [String: Any] {
             trace = t.compactMapValues { ($0 as? NSNumber)?.doubleValue }
             traceLayer.hookWidthPt = CGFloat(trace["hookWidthPt"] ?? 0.75)

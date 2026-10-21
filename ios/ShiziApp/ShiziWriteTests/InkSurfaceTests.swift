@@ -153,9 +153,10 @@ final class InkSurfaceTests: XCTestCase {
                     XCTAssertEqual(g.t, e.t, accuracy: 1e-6, name)
                     if let p = e.p { XCTAssertEqual(g.p ?? -1, p, accuracy: 1e-6, name) } else { XCTAssertNil(g.p, name) }
                 }
-                // 几何：书写面的终态三角形 = InkModel 对金标准原始点的结果
-                let viaSurface = NativeInkStrokeMesh.build(raw: got, params: .default)
-                let direct = NativeInkStrokeMesh.build(raw: expect, params: .default)
+                // 几何：书写面的终态三角形 = 直接对金标准原始点的结果（产品画法 WebInk，R11-A；InkModel 的面积另核，ink-model-1.0 仍是 T2 候选）
+                let k = try WebInkFixture.params()
+                let viaSurface = NativeInkStrokeMesh.build(raw: got, params: k)
+                let direct = NativeInkStrokeMesh.build(raw: expect, params: k)
                 XCTAssertEqual(viaSurface.vertexCount, direct.vertexCount, name)
                 XCTAssertGreaterThan(direct.vertexCount, 0, name)
                 let worst = zip(viaSurface.vertices, direct.vertices).map { abs($0 - $1) }.max() ?? 0
@@ -306,10 +307,11 @@ final class InkSurfaceTests: XCTestCase {
         XCTAssertNil(NativeInkPencilAction.forTap(.showColorPalette))
     }
 
-    func testHoverDotSize() {
-        // 规格 §2.1：直径 = 0.9 × B × F_p(0.35)；B = 13，F_p(0.35) = 0.42 + √0.35 × 0.92
-        let expected = 0.9 * 13 * (0.42 + 0.35.squareRoot() * 0.92)
-        XCTAssertEqual(NativeInkStrokeMesh.hoverDotDiameter(.default), expected, accuracy: 1e-9)
+    func testHoverDotSize() throws {
+        // R11-A：直径 = 网页单点口径 single × base × 压力因子(0.35)（参数随 open 下发，同 policy.ink）
+        let k = try WebInkFixture.params()
+        let expected = k.single * k.base * min(k.pressureHi, max(k.pressureLo, k.pressureLo + 0.35.squareRoot() * k.pressureGain))
+        XCTAssertEqual(NativeInkStrokeMesh.hoverDotDiameter(k), expected, accuracy: 1e-9)
         let disc = NativeInkStrokeMesh.disc(x: 100, y: 100, radius: 5, segments: 32)
         XCTAssertEqual(disc.count, 32 * 6)
         let far = stride(from: 0, to: disc.count, by: 2).map { hypot(Double(disc[$0]) - 100, Double(disc[$0 + 1]) - 100) }.max() ?? 0
@@ -421,12 +423,4 @@ final class EdgeBackVsInkTests: XCTestCase {
     }
 }
 
-// D71 ①：写字页书写面回到 R9-A 之前的参数（= ink-model-1.0 默认值），T2 盲测定稿前不再改。
-final class InkSurfaceParamsTests: XCTestCase {
-    func testSurfaceParamsAreThePreR9AValues() {
-        let k = NativeInkView.surfaceParams
-        XCTAssertEqual(k.base, 13)
-        XCTAssertEqual(k.vMin, 0.62)
-        XCTAssertEqual(k.dirH, 0.72)
-    }
-}
+// D72 ②（取代 D71 ① 的 ink-model-1.0 参数）：书写面的墨与网页同一算法，见 WebInkTests.swift。

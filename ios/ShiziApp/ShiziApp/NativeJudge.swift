@@ -68,7 +68,7 @@ enum NativeSettle {
     /// 触觉与第一帧同一个 CADisplayLink 回调（firstFrame）。减少动态效果：不飞，reduceMs 原地淡出，触觉照发。
     /// 返回叠层（播完自己移除）；Metal 不可用 / 没有笔画 / 没有起点返回 nil（调用方自己发触觉）。
     @discardableResult
-    static func play(in container: UIView, from: CGRect, to counter: CGRect?, strokes: [[InkRawPoint]], params: InkParams, color: SIMD4<Float>,
+    static func play(in container: UIView, from: CGRect, to counter: CGRect?, strokes: [[InkRawPoint]], params: WebInkParams?, color: SIMD4<Float>,
                      spec: NativeSettleSpec, reduceMotion: Bool, firstFrame: @escaping () -> Void) -> NativeInkView? {
         guard !strokes.isEmpty, from.width > 0 else { return nil }
         if sharedRenderer == nil { sharedRenderer = NativeInkRenderer() }

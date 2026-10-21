@@ -64,7 +64,8 @@ enum NativeInkPencilAction: String, Equatable {
 ///   1. 同一时刻只写一笔；一笔进行中其余触点一律忽略——唯一例外：手指在写时 Pencil 落下，手指那笔取消（多半是掌托 / 握笔的手指），改写 Pencil 这笔。
 ///   2. Pencil 刚用过时手指不落墨：Pencil 正在写，或上一次 Pencil 接触（落笔、移动、抬笔、悬停）在 pencilGrace 秒之内；
 ///      系统「只用 Apple Pencil 绘图」打开时（UIPencilInteraction.prefersPencilOnlyDrawing），这块书写面上用过 Pencil 之后手指一直不落墨。
-///   3. 手掌：手指接触半径 ≥ palmRadius 直接不落墨；落笔后半径涨到 ≥ palmRadius，或半径 ≥ palmSuspectRadius 且最初 palmStill 秒内
+///   3. 手掌（只在这块书写面上用过 Pencil 之后生效，D71 ②：iPhone 没有 Pencil，大拇指接触半径常到 20–40pt，按半径判手掌会把大拇指的笔吞掉；
+///      网页书写面没有手掌规则）：手指接触半径 ≥ palmRadius 直接不落墨；落笔后半径涨到 ≥ palmRadius，或半径 ≥ palmSuspectRadius 且最初 palmStill 秒内
 ///      几乎没动（< palmStillDistance）——判为手掌，这一笔取消（不固化、不计笔数）。
 ///   4. 手指只在没用过 Pencil（或已过 pencilGrace、且没开「只用 Apple Pencil 绘图」）时写字：iPhone（没有 Pencil）上手指照常写，规则 2 不生效。
 struct NativeInkInputPolicy {
@@ -104,13 +105,13 @@ struct NativeInkInputPolicy {
         if active != nil { return .reject("busy") }
         if pencilOnly && pencilSeen { return .reject("pencil-only") }
         if t - lastPencilAt < Self.pencilGrace { return .reject("pencil-recent") }
-        if majorRadius >= Self.palmRadius { return .reject("palm") }
+        if pencilSeen && majorRadius >= Self.palmRadius { return .reject("palm") }
         return .accept
     }
 
     /// 手指那笔写着写着判为手掌（规则 3）：maxRadius = 落笔以来最大接触半径，moved = 离落笔点的最远距离（pt），elapsed = 落笔以来的秒数。
     func isPalm(kind: Kind, maxRadius: CGFloat, moved: CGFloat, elapsed: TimeInterval) -> Bool {
-        guard kind == .finger else { return false }
+        guard kind == .finger, pencilSeen else { return false }
         if maxRadius >= Self.palmRadius { return true }
         return maxRadius >= Self.palmSuspectRadius && elapsed >= Self.palmStill && moved < Self.palmStillDistance
     }

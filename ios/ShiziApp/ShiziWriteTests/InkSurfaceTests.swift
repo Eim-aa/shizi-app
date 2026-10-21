@@ -196,9 +196,27 @@ final class InkSurfaceTests: XCTestCase {
         XCTAssertEqual(p.begin(kind: .pencil, majorRadius: 0, at: 100, active: .pencil), .reject("busy"))
     }
 
+    func testThumbWithoutPencilIsNeverPalm() throws {
+        // D71 ②：没用过 Pencil（iPhone）时，大接触半径的手指（大拇指）照常写，不判手掌
+        let (ink, rec) = try surface()
+        let t0 = CACurrentMediaTime()
+        XCTAssertTrue(ink.inputBegan(Sample(location: CGPoint(x: 50, y: 50), timestamp: t0, kind: .finger, majorRadius: 38), id: id(0)))
+        let still = Sample(location: CGPoint(x: 50.5, y: 50.5), timestamp: t0 + 0.13, kind: .finger, majorRadius: 42)
+        ink.inputMoved([still], predicted: [], last: still, id: id(0))
+        XCTAssertTrue(ink.isWriting)
+        let moving = Sample(location: CGPoint(x: 90, y: 52), timestamp: t0 + 0.2, kind: .finger, majorRadius: 45)
+        ink.inputMoved([moving], predicted: [], last: moving, id: id(0))
+        XCTAssertTrue(ink.isWriting)
+        XCTAssertFalse(rec.events.contains("cancel:palm"))
+        XCTAssertFalse(NativeInkInputPolicy().isPalm(kind: .finger, maxRadius: 45, moved: 0, elapsed: 0.5))
+        XCTAssertEqual(NativeInkInputPolicy().begin(kind: .finger, majorRadius: 45, at: 100, active: nil), .accept)
+    }
+
     func testPalmIsRejectedOrCancelled() throws {
         let (ink, rec) = try surface()
         let t0 = CACurrentMediaTime()
+        // 手掌规则只在用过 Pencil 之后生效（D71 ②）；Pencil 接触早于 pencilGrace，手指可写
+        ink.inputPolicy.notePencil(at: t0 - 10)
         // 接触面积大：直接不落墨
         XCTAssertFalse(ink.inputBegan(Sample(location: CGPoint(x: 50, y: 50), timestamp: t0, kind: .finger, majorRadius: 34), id: id(0)))
         // 面积偏大且 120ms 内几乎没动：判为手掌，这一笔取消
@@ -218,8 +236,10 @@ final class InkSurfaceTests: XCTestCase {
         XCTAssertFalse(ink.isWriting)
         XCTAssertEqual(rec.events.suffix(2), ["begin", "cancel:palm"])
         // 普通手指的点（不动、半径小）不是手掌
-        XCTAssertFalse(NativeInkInputPolicy().isPalm(kind: .finger, maxRadius: 9, moved: 0, elapsed: 0.5))
-        XCTAssertFalse(NativeInkInputPolicy().isPalm(kind: .pencil, maxRadius: 40, moved: 0, elapsed: 0.5))
+        var seen = NativeInkInputPolicy()
+        seen.notePencil(at: 0)
+        XCTAssertFalse(seen.isPalm(kind: .finger, maxRadius: 9, moved: 0, elapsed: 0.5))
+        XCTAssertFalse(seen.isPalm(kind: .pencil, maxRadius: 40, moved: 0, elapsed: 0.5))
     }
 
     func testStrokesBeforeTheArmTimeAreHeldThenDrawnNotLost() throws {

@@ -34,7 +34,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-04', status: 'expected-fail', level: '高', title: '改判弹层有「看这个字 ›」',
+    id: 'NP-04', status: 'pass', level: '高', title: '改判弹层有「看这个字 ›」',
     states: ['change-sheet'],
     eval({ native, web }) {
       const w = byText(web, /^看这个字/);
@@ -86,7 +86,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-10', status: 'expected-fail', level: '中', title: '改判弹层是满宽贴底抽屉、底色与网页一致',
+    id: 'NP-10', status: 'pass', level: '中', title: '改判弹层是满宽贴底抽屉、底色与网页一致',
     states: ['change-sheet'],
     eval({ web, native, screen, tolerance }) {
       const w = byKey(web, 'sheet'), n = byKey(native, 'sheet');
@@ -118,7 +118,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-13', status: 'expected-fail', level: '中', title: '判断页两格方角、共用格线、纸色填充',
+    id: 'NP-13', status: 'pass', level: '中', title: '判断页两格方角、共用格线、纸色填充',
     states: ['judge', 'last-judge'],
     eval({ web, native, tolerance }) {
       const bad = [];
@@ -133,7 +133,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-14', status: 'expected-fail', level: '中', title: '格下结果行字号与「修改 ›」位置与网页一致',
+    id: 'NP-14', status: 'pass', level: '中', title: '格下结果行字号与「修改 ›」位置与网页一致',
     states: ['line'],
     eval({ web, native, tolerance }) {
       const wt = byKey(web, 'line-text'), nt = byKey(native, 'line-text');
@@ -178,7 +178,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-19', status: 'expected-fail', level: '低', title: '跳过撤销条高度与离求助键的间距与网页一致（±2pt）',
+    id: 'NP-19', status: 'pass', level: '低', title: '跳过撤销条高度与离求助键的间距与网页一致（±2pt）',
     states: ['skip-undo'],
     eval({ web, native }) {
       const w = byKey(web, 'undo-bar'), n = byKey(native, 'undo-bar');
@@ -189,7 +189,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-20', status: 'expected-fail', level: '低', title: '弹层 / 确认框遮罩深浅与网页一致',
+    id: 'NP-20', status: 'pass', level: '低', title: '弹层 / 确认框遮罩深浅与网页一致',
     states: ['change-sheet', 'end-dialog'],
     eval({ px, tolerance }) {
       const d = colorDelta(px.web.scrim, px.native.scrim);
@@ -200,7 +200,7 @@ export const CHECKS = [
 
 /** 报告里 NP 编号的覆盖说明（没写成逐屏检查的条目在哪里）。 */
 export const COVERED_ELSEWHERE = {
-  'NP-01': 'XCUITest KnownIssueTests.testNP01_changeLinkWholeHitArea（真实点按「修改 ›」44pt 热区上沿）',
+  'NP-01': 'XCUITest KnownIssueTests.testNP01_changeLinkWholeHitArea（真实点按「修改 ›」44pt 热区上沿；R9-B 修好，普通断言）',
   'NP-06': 'XCUITest KnownIssueTests.testNP06_judgeSaveFailureThreeSteps（-shizi-qa-fail-next 注入写失败）',
   'NP-18': '并入 NP-09（撤销 / 清空图标）',
   'NP-21': '并入 NP-07（同一笔锋模型；结果页仍是网页）',

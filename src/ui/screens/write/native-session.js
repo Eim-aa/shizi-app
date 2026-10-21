@@ -19,6 +19,7 @@ import { getRouter, nav } from '../../router.js';
 import { postNative, isNative } from '../../../platform/bridge.js';
 import { handoffSkipUndo, openResult } from '../result/index.js';
 import { handoffLeaveUndo } from './skip.js';
+import { openCharDetail } from '../detail/open.js';
 import {
   createWriteSessionApi as createSessionApi, writeSnapshot, strokesToWire, strokesFromWire, copyBundle, NATIVE_WRITE_COPY_KEYS, NATIVE_WRITE_OPS,
 } from '../../../session/write-api.js';
@@ -27,7 +28,10 @@ import {
 export { writeSnapshot, strokesToWire, strokesFromWire, copyBundle, NATIVE_WRITE_COPY_KEYS, NATIVE_WRITE_OPS };
 
 /** 原生要的颜色令牌（取页面此刻计算值：浅 / 深色与网页同源，见 tokens.css）。 */
-export const NATIVE_WRITE_COLOR_TOKENS = Object.freeze(['paper', 'hand', 'ref', 'frame', 'line', 'ink1', 'ink2', 'ink3', 'ink4', 'field', 'danzhu', 'toast-bg', 'toast-fg', 'scrim', 'elev']);
+export const NATIVE_WRITE_COLOR_TOKENS = Object.freeze(['paper', 'hand', 'ref', 'frame', 'line', 'ink1', 'ink2', 'ink3', 'ink4', 'field', 'danzhu', 'toast-bg', 'toast-fg', 'scrim', 'elev', 'sheet', 'btn-bg', 'btn-fg']);
+
+/** R9-B：原生要的字阶令牌（--fs13 / --lh13 …，取页面此刻计算值，pt；系统字号连续倍率 --k 与 AX 档取值表都在 tokens.css，原生不抄表）。 */
+export const NATIVE_WRITE_TYPE_TOKENS = Object.freeze(['fs13', 'lh13', 'fs15', 'lh15', 'fs17', 'lh17s', 'fs22', 'lh22', 'btn-h']);
 
 function globalWin() {
   return typeof window !== 'undefined' ? window : null;
@@ -43,6 +47,30 @@ export function colorBundle(win = globalWin()) {
   try {
     const cs = win.getComputedStyle(win.document.documentElement);
     for (const name of NATIVE_WRITE_COLOR_TOKENS) out[name] = cs.getPropertyValue(`--${name}`).trim();
+  } catch (error) {
+    // node:test / 无 DOM
+  }
+  return out;
+}
+
+export function typeBundle(win = globalWin()) {
+  const out = {};
+  try {
+    const cs = win.getComputedStyle(win.document.documentElement);
+    // 字阶是 calc(13px * var(--k)) / max(…) 这样的表达式：挂一个探针元素让浏览器算出 px
+    const probe = win.document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;width:0;height:0';
+    win.document.documentElement.appendChild(probe);
+    for (const name of NATIVE_WRITE_TYPE_TOKENS) {
+      probe.style.width = `var(--${name})`;
+      const px = parseFloat(win.getComputedStyle(probe).width);
+      if (Number.isFinite(px) && px > 0) out[name] = px;
+      else {
+        const raw = parseFloat(cs.getPropertyValue(`--${name}`));
+        if (Number.isFinite(raw) && raw > 0) out[name] = raw;
+      }
+    }
+    probe.remove();
   } catch (error) {
     // node:test / 无 DOM
   }
@@ -68,8 +96,19 @@ export function createWriteSessionApi(deps = {}) {
         handoffSkipUndo(undo ? { ...undo, slot, until: clockNow() + undo.remainingMs } : null);
         openResult(slot, sessionId);
       },
+      // R9-B：改判弹层「看这个字 ›」（D66 ⑮）——写字条目留在栈里，字详情推入在它上面（网页 ViewCharLink 同一个 openCharDetail）；
+      // 详情返回、写字条目重新成为顶层时，宿主再请原生盖上（NativeWriteHost 的路由订阅）。
+      toDetail: (slot, char) => {
+        const router = getRouter();
+        const top = router ? router.getState().top : null;
+        awayEntry = top && top.n === 'write' ? top.id : null;
+        const ok = openCharDetail(char);
+        if (!ok) awayEntry = null;
+        return ok;
+      },
     },
     colors: deps.colors || (() => colorBundle()),
+    type: deps.type || (() => typeBundle()),
   });
 }
 
@@ -78,6 +117,8 @@ function clockNow() {
 }
 
 let installed = null;
+/** R9-B：原生写字页为进字详情暂时让开时，写字条目的 id（返回到它时宿主重新请原生盖上）。 */
+let awayEntry = null;
 
 
 /** 装 window.shiziNativeWrite(op, args) → Promise<结果>（只在开关打开时；幂等）。 */
@@ -119,7 +160,16 @@ export function NativeWriteHost({ params, entry }) {
     }
     const opened = api ? api.call('open', { slot }) : { ok: false };
     sentRef.current = postNative('nativeWrite', { op: 'open', slot, entryId: entry ? entry.id : null, animate, via, sentAt: Date.now(), payload: opened });
+    // R9-B：从字详情返回（写字条目重新成为顶层）→ 再请原生盖上（via 'return'：原生淡入，笔画 / 结果行从快照恢复）
+    const off = router && typeof router.subscribe === 'function' ? router.subscribe(() => {
+      const top = router.getState().top;
+      if (!entry || awayEntry !== entry.id || !top || top.id !== entry.id) return;
+      awayEntry = null;
+      const again = api ? api.call('open', { slot }) : { ok: false };
+      sentRef.current = postNative('nativeWrite', { op: 'open', slot, entryId: entry.id, animate: true, via: 'return', sentAt: Date.now(), payload: again }) || sentRef.current;
+    }) : null;
     return () => {
+      if (off) off();
       if (sentRef.current) postNative('nativeWrite', { op: 'close', slot, entryId: entry ? entry.id : null });
     };
   }, [entry && entry.id]);

@@ -66,6 +66,8 @@ extension WebViewController: NativeWriteCoordinating {
             vc.modalPresentationStyle = .overFullScreen
             vc.transitioningDelegate = vc.transitions
             let animate = body["animate"] as? Bool ?? true
+            // R9-B：从字详情返回（改判弹层「看这个字 ›」让开过）：淡入盖回，不是推入
+            if (body["via"] as? String) == "return" { vc.transitions.fadeNext = true }
             QATrace.note("open via=\(body["via"] as? String ?? "") animate=\(animate)") // QA-H1 测试钩子：转场核对（NF-01）
             // D62：首页入口应是「纸展开」、其他入口推入（B2.8 做）；B2.0 一律推入，冷启动恢复不带动画
             present(vc, animated: animate)

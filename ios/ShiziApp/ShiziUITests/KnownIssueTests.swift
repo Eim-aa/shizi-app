@@ -3,7 +3,7 @@ import XCTest
 // QA-H1：两份 AI 测试报告里要真实点按才能查的条目（逐屏对比能查的 NP-* 在 scripts/native-ui/parity-checks.mjs）。
 //   QAIssue.expectFail = 预期失败（待修）：现在失败不算回归；修好后 XCTest 报「意外通过」，修复卡把包装去掉转成普通断言。
 // 报告：qa-flow/报告.md（NF-01…NF-05 + 已验证正常的路径 1–13）、qa-parity/报告.md（NP-01…NP-21）。
-// 负责人决定 D70：NF-02 返回回首页（普通断言，EntryFlowTests.test106）；NF-05 凭记忆写的笔迹不存（预期失败，待修）。
+// 负责人决定 D70：NF-02 返回回首页（普通断言，EntryFlowTests.test106）；NF-05 凭记忆写的笔迹不存（R9-C 修好，普通断言）。
 //
 // 「已验证正常的路径」1–13 → 本 target 里的通过用例：
 //   1 首练开始→判断→下一字→结果行      EntryFlowTests.test101 + WriteFlowTests.test502
@@ -29,7 +29,7 @@ final class KnownIssueTests: XCTestCase {
     // MARK: NP（逐屏一致性报告）
 
     /// NP-01（高）：结果行「修改 ›」整个 44pt 热区（D19 / D46 ⑭）都能打开改判弹层。
-    /// 现状：按钮 44pt 高、伸出父视图 noteView（约 22pt 高）上下各约 11pt，伸出去的部分点不到（报告：点文字要偏下才响应）。
+    /// R9-B 修好（普通断言）：说明位改成可伸出边界接收点按的视图（NativeOverflowView），按钮盒照网页 44 高、上伸 4。
     func testNP01_changeLinkWholeHitArea() {
         let qa = QA(seed: "line")
         qa.launch()
@@ -45,9 +45,7 @@ final class KnownIssueTests: XCTestCase {
         // 热区上沿往下 6pt（仍在 44pt 热区里）
         origin.withOffset(CGVector(dx: f.midX, dy: f.minY + 6)).tap()
         let opened = qa.el("native-change-title").waitForExistence(timeout: 3)
-        QAIssue.expectFail("NP-01", "「修改 ›」44pt 热区伸出 noteView 的部分点不到") {
-            XCTAssertTrue(opened, "tap at (\(f.midX), \(f.minY + 6)) inside the 44pt hit area opens the change sheet")
-        }
+        XCTAssertTrue(opened, "tap at (\(f.midX), \(f.minY + 6)) inside the 44pt hit area opens the change sheet")
     }
 
     /// NP-06（高 · 报告未能验证）：判断保存失败 → 三段式：说明「没保存上，你写的字还在。」→「先不保存」→「再试一次」；重试成功只记一次（D07）。
@@ -86,15 +84,13 @@ final class KnownIssueTests: XCTestCase {
         }
     }
 
-    /// NF-03（低）：「结束这组」确认框文案与确认单 §7 一致。
+    /// NF-03（低，R9-C 改文案、原生照 API 取）：「结束这组」确认框文案与确认单 §7 一致。普通断言。
     func testNF03_endDialogCopyMatchesTheChecklist() {
         let qa = QA(seed: "end-dialog")
         qa.launch()
         let body = qa.el("native-write-end-body")
         XCTAssertTrue(body.waitForExistence(timeout: 4))
-        QAIssue.expectFail("NF-03", "确认框文案是「还有 N 个字没写。已写的 M 个已记下。」，确认单 §7 要求另一句") {
-            XCTAssertEqual(body.label, "还有 4 个字没写，结束后就不写了。判断过的 1 个字已经记下。")
-        }
+        XCTAssertEqual(body.label, "还有 4 个字没写，结束后就不写了。判断过的 1 个字已经记下。")
     }
 
     /// NF-04（低）：结果页「重写错字」应是原生页（确认单 §9 沿用写字页）；现状仍是网页。
@@ -110,7 +106,7 @@ final class KnownIssueTests: XCTestCase {
         }
     }
 
-    /// NF-05（D70：待修）：看答案后「凭记忆写」的笔迹不存（不进作品「看后写的」、不进字库缩略图），网页与原生都一样。
+    /// NF-05（D70，R9-C 已修）：看答案后「凭记忆写」的笔迹不存（不进作品「看后写的」、不进字库缩略图），网页与原生都一样。普通断言。
     func testNF05_retraceInkIsNotSaved() {
         let qa = QA(seed: "recall")
         qa.launch()
@@ -123,8 +119,6 @@ final class KnownIssueTests: XCTestCase {
         qa.tapNative("native-write-next")
         let p = qa.waitProbe("next card") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 1 }
         let inked = p["answerSeenInk"] as? Int ?? -1
-        QAIssue.expectFail("NF-05", "凭记忆写的笔迹被存成看过答案记录的墨迹（D70：不存）") {
-            XCTAssertEqual(inked, 0, "no ink stored for the answer-seen record")
-        }
+        XCTAssertEqual(inked, 0, "no ink stored for the answer-seen record")
     }
 }

@@ -117,7 +117,9 @@ final class NativeUndoLifetime {
     }
 }
 
-/// 底部轻提示：「已跳过「X」· 撤销」；撤销写失败时换成「没保存上，你写的字还在。」+ [先不保存 / 再试一次]（不自动消失）。撤销条同一视觉（toast 底 / 字）。
+/// 底部轻提示：「已跳过「X」· 撤销」；撤销写失败时换成「没保存上，你写的字还在。」+ [先不保存 / 再试一次]（不自动消失）。
+/// 视觉照网页 UndoBar.js / skip.js（R9-B，NP-19）：toast 底 / 字、12 圆角、最小高 48、上下内边距 8、左 16 右 8；字 15 / 22；
+/// 「撤销」是 15 / 500 的文字按钮（盒子 = 字宽 + 8、44 高，点击区仍 ≥ 44）；条贴在底栏上方 8（写字页排）。
 final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
     struct Strings {
         var text = ""
@@ -136,28 +138,29 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
     var onRelease: (() -> Void)?
 
     private let label = UILabel()
-    private let undoButton = UIButton(type: .system)
-    private let cancelButton = UIButton(type: .system)
-    private let retryButton = UIButton(type: .system)
+    private let undoButton = NativeTextButton(type: .system)
+    private let cancelButton = NativeTextButton(type: .system)
+    private let retryButton = NativeTextButton(type: .system)
     private let press = UILongPressGestureRecognizer()
     private let fg: UIColor
+    private let type: NativeType
 
-    init(background: UIColor, foreground: UIColor) {
+    init(background: UIColor, foreground: UIColor, type: NativeType = NativeType()) {
         fg = foreground
+        self.type = type
         super.init(frame: .zero)
         backgroundColor = background
         layer.cornerRadius = 12
-        label.font = UIFont.preferredFont(forTextStyle: .subheadline)
-        label.adjustsFontForContentSizeCategory = true
-        label.textColor = foreground
+        layer.cornerCurve = .continuous
         label.numberOfLines = 0
         label.accessibilityTraits = [.updatesFrequently]
         label.accessibilityIdentifier = "native-write-undo-text"
         for (b, id) in [(undoButton, "native-write-skip-undo"), (cancelButton, "native-write-skip-undo-cancel"), (retryButton, "native-write-skip-undo-retry")] {
-            b.titleLabel?.font = UIFont.preferredFont(forTextStyle: .subheadline).withWeight(.medium)
-            b.titleLabel?.adjustsFontForContentSizeCategory = true
+            b.titleLabel?.font = type.font("fs15", weight: .medium)
             b.setTitleColor(foreground, for: .normal)
+            b.setTitleColor(foreground.withAlphaComponent(0.55), for: .disabled)
             b.tintColor = foreground
+            b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
             b.accessibilityIdentifier = id
             addSubview(b)
         }
@@ -185,7 +188,7 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
     }
 
     private func render() {
-        label.text = isFailed ? strings.failed : strings.text
+        NativeType.set(label, isFailed ? strings.failed : strings.text, font: type.font("fs15"), color: fg, line: type.line("lh15"))
         undoButton.setTitle(strings.undo, for: .normal)
         cancelButton.setTitle(strings.cancel, for: .normal)
         retryButton.setTitle(strings.retry, for: .normal)
@@ -208,26 +211,33 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
 
     private func buttons() -> [UIButton] { isFailed ? [cancelButton, retryButton] : [undoButton] }
 
+    private func buttonWidth(_ b: UIButton) -> CGFloat { NativeType.width(b.titleLabel ?? UILabel()) + 8 }
+
+    /// 按钮区宽（失败两键间 4）。
     private func buttonsWidth() -> CGFloat {
-        buttons().reduce(0) { $0 + ceil($1.sizeThatFits(CGSize(width: 200, height: 44)).width) + 16 }
+        let bs = buttons()
+        return bs.reduce(0) { $0 + buttonWidth($1) } + CGFloat(max(0, bs.count - 1)) * 4
     }
 
-    /// 按给定宽度算出整条的高度（最少 48）。
+    /// 按给定宽度算出整条的高度：max(48, max(字高, 44) + 上下 8)。
     func height(for width: CGFloat) -> CGFloat {
-        let textW = max(60, width - 16 - 8 - buttonsWidth())
-        let h = ceil(label.sizeThatFits(CGSize(width: textW, height: .greatestFiniteMagnitude)).height)
-        return max(48, h + 16)
+        let textW = max(60, width - 16 - 8 - 12 - buttonsWidth())
+        let h = NativeType.height(label, width: textW, line: type.line("lh15"))
+        return max(48, max(h, 44) + 16)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         var x = bounds.width - 8
         for b in buttons().reversed() {
-            let w = ceil(b.sizeThatFits(CGSize(width: 200, height: 44)).width) + 16
+            let w = buttonWidth(b)
             x -= w
             b.frame = CGRect(x: x, y: (bounds.height - 44) / 2, width: w, height: 44)
+            x -= 4
         }
-        label.frame = CGRect(x: 16, y: 0, width: max(0, x - 16 - 8), height: bounds.height)
+        let textW = max(0, x + 4 - 12 - 16)
+        let h = NativeType.height(label, width: textW, line: type.line("lh15"))
+        label.frame = CGRect(x: 16, y: (bounds.height - h) / 2, width: textW, height: h)
     }
 
     var undoButtonForTesting: UIButton { undoButton }
@@ -236,14 +246,10 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
     var textForTesting: String { label.text ?? "" }
 }
 
-private extension UIFont {
-    func withWeight(_ w: UIFont.Weight) -> UIFont {
-        UIFont.systemFont(ofSize: pointSize, weight: w)
-    }
-}
-
 /// 「结束这组」居中确认框（S04）：正文 + 两键 [结束这组（普通） | 接着写（主按钮）]，不预选；点遮罩 = 接着写。
-/// 写入失败留在框里（R-G04 三段式）：正文换「没保存上，你写的字还在。」、按钮换 [先不保存 | 再试一次]。
+/// 写入失败留在框里（R-G04 三段式）：正文换「没保存上，你写的字还在。」、按钮换 [先不保存（文字按钮）| 再试一次（主按钮）]（网页 FailBlock dialog）。
+/// 视觉照网页 Confirm.js（R9-B）：左右页边 20、垂直居中、24 圆角、elev 底、内边距 24 / 20 / 20、正文 15 / 22 ink2、两键上方 12 + 4、键高 btn-h；
+/// 转场 T-confirm：进场由 0.96 放大淡入（confirmIn，ease.out），退场淡出（confirmOut，ease.in）；遮罩 scrimIn / scrimOut；减少动态效果 reduce 淡化。
 final class NativeEndDialogView: UIView {
     struct Strings {
         var body = ""
@@ -261,6 +267,8 @@ final class NativeEndDialogView: UIView {
         var ink2 = UIColor.secondaryLabel
         var ink4 = UIColor.separator
         var paper = UIColor.systemBackground
+        var primary: UIColor?
+        var primaryText: UIColor?
     }
 
     private(set) var isFailed = false
@@ -270,47 +278,40 @@ final class NativeEndDialogView: UIView {
     var onCancelFail: (() -> Void)?
 
     private let palette: Palette
+    private let type: NativeType
     private let scrim = UIView()
     private let panel = UIView()
     private let bodyLabel = UILabel()
-    private let leftButton = UIButton(type: .system)
+    private let leftButton = NativeTextButton(type: .system)
     private let rightButton = UIButton(type: .system)
 
-    init(frame: CGRect, strings: Strings, palette: Palette) {
+    init(frame: CGRect, strings: Strings, palette: Palette, type: NativeType = NativeType()) {
         self.strings = strings
         self.palette = palette
+        self.type = type
         super.init(frame: frame)
         scrim.backgroundColor = palette.scrim
         scrim.accessibilityIdentifier = "native-write-end-scrim"
         scrim.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapScrim)))
         addSubview(scrim)
         panel.backgroundColor = palette.panel
-        panel.layer.cornerRadius = 20
-        panel.layer.shadowColor = UIColor.black.cgColor
-        panel.layer.shadowOpacity = 0.14
-        panel.layer.shadowRadius = 24
-        panel.layer.shadowOffset = CGSize(width: 0, height: 8)
+        panel.layer.cornerRadius = 24
+        panel.layer.cornerCurve = .continuous
         panel.accessibilityIdentifier = "native-write-end-dialog"
         addSubview(panel)
-        bodyLabel.font = UIFont.preferredFont(forTextStyle: .subheadline)
-        bodyLabel.adjustsFontForContentSizeCategory = true
-        bodyLabel.textColor = palette.ink2
         bodyLabel.numberOfLines = 0
         bodyLabel.accessibilityIdentifier = "native-write-end-body"
         panel.addSubview(bodyLabel)
         for b in [leftButton, rightButton] {
-            b.titleLabel?.font = UIFont.preferredFont(forTextStyle: .body).withWeight(.medium)
-            b.titleLabel?.adjustsFontForContentSizeCategory = true
             b.titleLabel?.numberOfLines = 2
             b.titleLabel?.textAlignment = .center
             b.layer.cornerRadius = 12
+            b.layer.cornerCurve = .continuous
             panel.addSubview(b)
         }
-        leftButton.setTitleColor(palette.ink1, for: .normal)
-        leftButton.layer.borderWidth = 1
-        leftButton.layer.borderColor = palette.ink4.cgColor
-        rightButton.backgroundColor = palette.ink1
-        rightButton.setTitleColor(palette.paper, for: .normal)
+        rightButton.titleLabel?.font = type.font("fs17", weight: .medium)
+        rightButton.backgroundColor = palette.primary ?? palette.ink1
+        rightButton.setTitleColor(palette.primaryText ?? palette.paper, for: .normal)
         leftButton.addAction(UIAction { [weak self] _ in
             guard let self else { return }
             self.isFailed ? self.onCancelFail?() : self.onEnd?()
@@ -336,9 +337,14 @@ final class NativeEndDialogView: UIView {
     }
 
     private func render() {
-        bodyLabel.text = isFailed ? strings.failed : strings.body
+        NativeType.set(bodyLabel, isFailed ? strings.failed : strings.body, font: type.font("fs15"), color: palette.ink2)
         leftButton.setTitle(isFailed ? strings.cancel : strings.end, for: .normal)
         rightButton.setTitle(isFailed ? strings.retry : strings.cont, for: .normal)
+        // 普通按钮（墨四描边、17 / 500 墨一）；失败态换成文字按钮「先不保存」（15，ink2，在左栏居中）
+        leftButton.titleLabel?.font = isFailed ? type.font("fs15") : type.font("fs17", weight: .medium)
+        leftButton.setTitleColor(isFailed ? palette.ink2 : palette.ink1, for: .normal)
+        leftButton.layer.borderWidth = isFailed ? 0 : 1
+        leftButton.layer.borderColor = palette.ink4.cgColor
         leftButton.accessibilityIdentifier = isFailed ? "native-write-end-fail-cancel" : "native-write-end-confirm"
         rightButton.accessibilityIdentifier = isFailed ? "native-write-end-retry" : "native-write-end-continue"
         setNeedsLayout()
@@ -346,28 +352,79 @@ final class NativeEndDialogView: UIView {
 
     @objc private func tapScrim() { onContinue?() } // 点遮罩 = 接着写（失败态同样是关框）
 
+    /// 键上的字在半宽里放不下一行（AX 档）：键长高成两行。
+    private func needsTwoLines(_ innerW: CGFloat) -> Bool {
+        let room = (innerW - 12) / 2 - 16
+        return [leftButton, rightButton].contains { NativeType.width($0.titleLabel ?? UILabel()) > room }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         scrim.frame = bounds
+        // --elev-shadow：浅色墨 10%（上移 10、模糊 30），深色只有一条极淡的上沿高光
+        let dark = traitCollection.userInterfaceStyle == .dark
+        panel.layer.shadowColor = (dark ? UIColor(red: 1, green: 240 / 255, blue: 220 / 255, alpha: 1) : UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 1)).cgColor
+        panel.layer.shadowOpacity = dark ? 0.06 : 0.10
+        panel.layer.shadowRadius = dark ? 0 : 15
+        panel.layer.shadowOffset = CGSize(width: 0, height: dark ? -0.5 : -10)
         let gutter: CGFloat = 20
         let w = bounds.width - 2 * gutter
         let padX: CGFloat = 20
         let innerW = w - 2 * padX
-        let bodyH = ceil(bodyLabel.sizeThatFits(CGSize(width: innerW, height: .greatestFiniteMagnitude)).height)
-        let btnH = max(54, ceil((rightButton.titleLabel?.font.lineHeight ?? 22)) * 2 + 20)
+        let source = isFailed ? strings.failed : strings.body
+        // 网页 p 的 text-wrap: pretty（两行时末行太短就在句读后折行）
+        NativeType.set(bodyLabel, NativeType.pretty(source, font: bodyLabel.font, width: innerW), font: type.font("fs15"), color: palette.ink2, line: type.line("lh15"))
+        bodyLabel.accessibilityLabel = source
+        let bodyH = NativeType.height(bodyLabel, width: innerW, line: type.line("lh15"))
+        let lineH = ceil(type.font("fs17").lineHeight)
+        let btnH = needsTwoLines(innerW) ? max(type.value("btn-h"), lineH * 2 + 20) : type.value("btn-h")
         let half = (innerW - 12) / 2
-        let lh = max(btnH, 54)
-        let contentH = 24 + bodyH + 16 + lh + 20
+        let contentH = 24 + bodyH + 12 + 4 + btnH + 20
         let safe = safeAreaInsets
         let maxH = bounds.height - safe.top - safe.bottom - 48
         let h = min(contentH, maxH)
         panel.frame = CGRect(x: gutter, y: (bounds.height - h) / 2, width: w, height: h)
         bodyLabel.frame = CGRect(x: padX, y: 24, width: innerW, height: bodyH)
-        leftButton.frame = CGRect(x: padX, y: 24 + bodyH + 16, width: half, height: lh)
-        rightButton.frame = CGRect(x: padX + half + 12, y: 24 + bodyH + 16, width: half, height: lh)
+        let by = 24 + bodyH + 16
+        if isFailed {
+            let lw = NativeType.width(leftButton.titleLabel ?? UILabel()) + 8
+            leftButton.frame = CGRect(x: padX + (half - lw) / 2, y: by + (btnH - 44) / 2, width: lw, height: 44)
+        } else {
+            leftButton.frame = CGRect(x: padX, y: by, width: half, height: btnH)
+        }
+        rightButton.frame = CGRect(x: padX + half + 12, y: by, width: half, height: btnH)
     }
 
-    var bodyForTesting: String { bodyLabel.text ?? "" }
+    /// 进场：遮罩淡入；面板由 confirmFrom 放大淡入（减少动态效果：整体 reduce 淡化）。
+    func animateIn(_ spec: NativeOverlaySpec, reduce: Bool) {
+        if reduce {
+            alpha = 0
+            NativeOverlaySpec.run(spec.reduce, UICubicTimingParameters(animationCurve: .linear), { self.alpha = 1 })
+            return
+        }
+        scrim.alpha = 0
+        panel.alpha = 0
+        panel.transform = CGAffineTransform(scaleX: spec.confirmFrom, y: spec.confirmFrom)
+        NativeOverlaySpec.run(spec.scrimIn, NativeOverlaySpec.curve(spec.easeOut, fallback: .easeOut), { self.scrim.alpha = 1 })
+        NativeOverlaySpec.run(spec.confirmIn, NativeOverlaySpec.curve(spec.easeOut, fallback: .easeOut), {
+            self.panel.alpha = 1
+            self.panel.transform = .identity
+        })
+    }
+
+    /// 退场：面板淡出（confirmOut，ease.in）、遮罩淡出（scrimOut）；完了从父视图拿掉。
+    func animateOut(_ spec: NativeOverlaySpec, reduce: Bool) {
+        isUserInteractionEnabled = false
+        if reduce {
+            NativeOverlaySpec.run(spec.reduce, UICubicTimingParameters(animationCurve: .linear), { self.alpha = 0 }, done: { self.removeFromSuperview() })
+            return
+        }
+        let curve = NativeOverlaySpec.curve(spec.easeIn, fallback: .easeIn)
+        NativeOverlaySpec.run(spec.confirmOut, curve, { self.panel.alpha = 0 })
+        NativeOverlaySpec.run(max(spec.scrimOut, spec.confirmOut), curve, { self.scrim.alpha = 0 }, done: { self.removeFromSuperview() })
+    }
+
+    var bodyForTesting: String { isFailed ? strings.failed : strings.body }
     var leftTitleForTesting: String { leftButton.title(for: .normal) ?? "" }
     var rightTitleForTesting: String { rightButton.title(for: .normal) ?? "" }
     func tapLeftForTesting() { leftButton.sendActions(for: .touchUpInside) }

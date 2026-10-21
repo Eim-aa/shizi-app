@@ -79,6 +79,7 @@ export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'X-PROMPT.groupLabel',
   'X-WRITE.gridLabel',
   'X-WRITE.gridLabelCount',
+  'X-DETAIL.viewChar',
 ]);
 
 // ---------------------------------------------------------------- 笔画格式
@@ -200,6 +201,13 @@ export function writeMotion() {
     settle: {
       lift: M.moment.settleLift, fadeFrom: M.moment.settleFadeFrom, end: M.moment.settleEnd, countBox: M.moment.settleCountBox,
       liftScale: M.moment.settleLiftScale, gather: [...M.bezier.gather],
+    },
+    // R9-B：改判弹层（T-sheet）与「结束这组」确认框（T-confirm）的进退场、遮罩淡入淡出、下滑关闭阈值（交互规范 T0；Sheet.js / Confirm.js 同一组值）
+    overlay: {
+      sheetIn: M.role.sheetIn, sheetOut: M.role.sheetOut, scrimIn: M.role.scrimIn, scrimOut: M.role.scrimOut,
+      confirmIn: M.role.confirmIn, confirmOut: M.role.confirmOut, confirmFrom: M.scale.confirmFrom, snap: M.role.gestureSnap,
+      easeIn: [...M.bezier.in],
+      directionSlop: M.gesture.directionSlop, commitRatio: M.gesture.sheetCommitRatio, commitVelocity: M.gesture.commitVelocity, returnVelocity: M.gesture.returnVelocity,
     },
   };
 }
@@ -334,13 +342,15 @@ const NO_NAVIGATE = Object.freeze({
 
 /**
  * 写字会话 API。deps 可注入（node:test 用假 store / 假导航）；导航与颜色属于界面，页面侧（native-session.js）注入网页路由与令牌计算值。
- * @param {{getStore?: () => object, navigate?: {back: (slot, undo) => void, toResult: (slot, sessionId, undo) => void}, colors?: () => object}} deps
+ * @param {{getStore?: () => object, navigate?: {back: (slot, undo) => void, toResult: (slot, sessionId, undo) => void, toDetail?: (slot, char) => boolean}, colors?: () => object, type?: () => object}} deps
+ *   type（R9-B）：字阶的此刻计算值（pt；页面侧 native-session.js typeBundle，--fs13 / --lh13 …，随系统字号 --k 与 AX 表），原生据此排字，不另抄取值表
  * @returns {{call(op:string, args?:object): object}}  同步返回结果对象（window 全局再包成 Promise）
  */
 export function createWriteSessionApi(deps = {}) {
   const storeOf = deps.getStore || getStore;
   const navigate = deps.navigate || NO_NAVIGATE;
   const colors = deps.colors || (() => ({}));
+  const type = deps.type || (() => ({}));
 
   const snapshot = slot => writeSnapshot(storeOf().getState(), slot);
 
@@ -361,7 +371,7 @@ export function createWriteSessionApi(deps = {}) {
       const store = storeOf();
       const rec = commitRecover(store, { slot });
       return {
-        ok: true, recovered: !!(rec && rec.ok && !rec.noop), snapshot: snapshot(slot), copy: copyBundle(), colors: colors(), timing: writeTiming(),
+        ok: true, recovered: !!(rec && rec.ok && !rec.noop), snapshot: snapshot(slot), copy: copyBundle(), colors: colors(), type: type(), timing: writeTiming(),
         motion: writeMotion(), layout: writeLayoutConstants(), trace: writeTrace(), skipUndo: writeSkipUndo(),
       };
     },
@@ -390,8 +400,15 @@ export function createWriteSessionApi(deps = {}) {
       const finished = finishIfComplete(store, slot);
       return { ok: true, recordId: r.record ? r.record.id : null, reused: !!r.reused, finished, snapshot: snapshot(slot) };
     },
-    /** 原生页离开：to = 'back'（左上 ‹ / 左缘滑回）或 'result'（写完最后一字）。 */
-    exit({ slot, to, sessionId, undo }) {
+    /**
+     * 原生页离开：to = 'back'（左上 ‹ / 左缘滑回）、'result'（写完最后一字）或 'detail'（R9-B：改判弹层「看这个字 ›」，D66 ⑮——
+     * 写字条目留在栈里，字详情推入在它上面，返回回到写字页；网页 ViewCharLink 同一个 openCharDetail）。
+     */
+    exit({ slot, to, sessionId, undo, char }) {
+      if (to === 'detail') {
+        if (typeof char !== 'string' || !char || typeof navigate.toDetail !== 'function') return { ok: false, error: { kind: 'invalid' } };
+        return { ok: navigate.toDetail(slot, char) !== false };
+      }
       // undo（B2.6）：跳过后 5 秒撤销条还在时离开，剩余的撤销机会交给结果页 / 来源页（S4，网页 handoffSkipUndo / handoffLeaveUndo）
       const handoff = normalizeUndo(undo);
       if (to === 'result') navigate.toResult(slot, sessionId, handoff);

@@ -13,7 +13,13 @@ import WebKit
 //   底栏：求助行（主按钮正上方 20 的凹面按钮：提示 / 看答案——看答案在 B2.4 接上前不显示，提示占满一行）+ 主按钮「写好了」（没写时不能点），
 //   主按钮下沿 = 屏底 − max(24, 下安全区)。书写格顶边在同一张卡的所有阶段不动（D53 ②）。
 //   字号：全部系统字体 + adjustsFontForContentSizeCategory，按量到的行高排；书写格边长与字号无关（D36）。AX 档的专门排法在 B2.9。
-// 判断：书写格收成上格（你写的）、下格标准写法，「写错了 / 写对了」；左上「‹」= 接着写（左缘右滑同一个动作）。完整版式与编排在 B2.5。
+// 判断（B2.5 完整版；确认单 5、D46 ⑪、D49、D55）：书写格收成上格（你写的）、下格标准写法，同一顶边、同一中线、共用一条 1pt 格线（第二格上移 1pt）；
+//   页头「‹」（读屏「接着写」）/ 中间标题 / 右侧计数；题面与写字页相同、目标格不显示答案；两键「写错了 / 写对了」在主按钮的位置，同一个样式、
+//   无预选、无着色；两键按时刻编排出现（0–judgeAppear 不显示，之后 60% 且不可点，judgeReady 变实可点；减少动态效果与读屏直接可点）；没有本人笔画时上格「这次没写」；
+//   进判断页时读屏焦点落在页标题。回忆 → 判断：本人墨以顶边中点为原点纯缩放（inkFlip，ease.out），参考格 fade 后淡入（T-phase）；
+//   「‹ 接着写」与左缘右滑是同一个动作：判断 → 回忆的 T-phase 倒放（phaseReverse，左缘滑回跟手，过阈值才完成），书写格与笔迹原样回来。
+//   判断落定（M23，NativeJudge.swift）：提交成功后本人笔迹离纸、收进页头计数，触觉与第一帧同帧；失败走三段式（说明 → 先不保存 → 再试一次）。
+//   改判（D19）：回忆阶段的结果行「修改 ›」→ 改判弹层（NativeChangeSheetViewController）→ correct op。
 // 提交：judge 经桥由页面 store.commit 完成；成功才推进（D07），失败留在判断页三段式（R-W16）。现场：抬笔 / 撤销 / 清空后发 strokes（P52 不等）。
 // 提示（D64 ①，NativeHint.swift）：每点一次经 hint op 多给一段（规则在页面），淡朱实填画在本人墨下面、整组淡入；写过哪笔收哪笔、撤销回来；
 //   整字给完 = 看过答案（同一次写入），按钮留着变灰；读屏播报给出了哪几笔（页面给的那句）。
@@ -54,6 +60,17 @@ final class NativeWriteViewController: UIViewController {
     private var layoutK = NativeWriteLayoutConstants()
     private var judgeKeysReady = true
     private var judgeArmToken = 0
+    /// 回忆 ⇄ 判断的缓动与判断落定的时刻（页面给的 motion.easeOut / motion.settle，原生不自带默认值）。
+    private var easeOut: [Double]?
+    private var settleSpec: NativeSettleSpec?
+    /// 格框线宽（tokens.css --frame-w = 1，网页同一值）。
+    private let frameW: CGFloat = 1
+    /// 判断 → 回忆的 T-phase 倒放进行中（版式里书写格 / 参考格的 frame 由动画驱动，viewDidLayoutSubviews 不覆盖）。
+    private var reversing = false
+    private var reverseAnimator: UIViewPropertyAnimator?
+    private var reverseFinished = false
+    /// 书写格（回忆版式）的位置：判断 → 回忆倒放的终点。
+    private var recallGridRect = CGRect.zero
     /// 上一次按「换字」设门限的字（含进页面的第一个字）。
     private var armedCard: String?
     /// 已经交给协调者离开（返回 / 结果页），之后的 viewDidDisappear 不再发 exit。
@@ -80,6 +97,11 @@ final class NativeWriteViewController: UIViewController {
 
     private let backButton = UIButton(type: .system)
     private let centerLabel = UILabel()
+    private let progressLabel = UILabel() // 判断页页头右侧的计数（回忆阶段计数在中间）
+    private let noInkLabel = UILabel() // 没有本人笔画时上格「这次没写」
+    private let changeButton = UIButton(type: .system) // 结果行「修改 ›」
+    private let lineDot = UILabel()
+    private let failRetry = UIButton(type: .system)
     private let skipButton = UIButton(type: .system)
     private let endButton = UIButton(type: .system)
     private let promptView = UIView()
@@ -151,6 +173,8 @@ final class NativeWriteViewController: UIViewController {
         pressGuard = ms("pressGuardMs")
         if let m = payload["motion"] as? [String: Any] {
             motion = m.compactMapValues { ($0 as? NSNumber)?.doubleValue }
+            easeOut = (m["easeOut"] as? [NSNumber])?.map { $0.doubleValue }
+            settleSpec = NativeSettleSpec(motion: m)
         }
         if let l = payload["layout"] as? [String: Any] { layoutK = NativeWriteLayoutConstants(l) }
     }
@@ -192,6 +216,20 @@ final class NativeWriteViewController: UIViewController {
         centerLabel.textColor = color("ink2", .secondaryLabel)
         centerLabel.accessibilityIdentifier = "native-write-progress"
         centerLabel.accessibilityTraits = [.header]
+        progressLabel.font = UIFont.preferredFont(forTextStyle: .subheadline)
+        progressLabel.adjustsFontForContentSizeCategory = true
+        progressLabel.textAlignment = .right
+        progressLabel.textColor = color("ink3", .secondaryLabel)
+        progressLabel.accessibilityIdentifier = "native-write-count"
+        progressLabel.isHidden = true
+        noInkLabel.font = UIFont.preferredFont(forTextStyle: .footnote)
+        noInkLabel.adjustsFontForContentSizeCategory = true
+        noInkLabel.textAlignment = .center
+        noInkLabel.numberOfLines = 0
+        noInkLabel.textColor = color("ink3", .secondaryLabel)
+        noInkLabel.text = tr("R-W17.noInk")
+        noInkLabel.accessibilityIdentifier = "native-write-noink"
+        noInkLabel.isHidden = true
 
         // 页头右上：跳过 / 结束这组（文字按钮；B2.6 接上功能前不显示，位置已留）
         configureTextButton(skipButton, title: tr("R-W14.btnSkip"), icon: nil, id: "native-write-skip")
@@ -210,7 +248,7 @@ final class NativeWriteViewController: UIViewController {
         promptView.shouldGroupAccessibilityChildren = true
 
         for f in [gridFrame, refFrame] {
-            f.layer.borderWidth = 1.5
+            f.layer.borderWidth = frameW
             f.layer.borderColor = color("frame", .separator).cgColor
             f.layer.cornerRadius = 4
             f.backgroundColor = .clear
@@ -236,6 +274,20 @@ final class NativeWriteViewController: UIViewController {
         }
         lineLabel.accessibilityIdentifier = "native-write-line"
         noteLabel.accessibilityIdentifier = "native-write-note"
+        lineDot.text = "\u{00B7}"
+        lineDot.font = UIFont.preferredFont(forTextStyle: .footnote)
+        lineDot.adjustsFontForContentSizeCategory = true
+        lineDot.textColor = color("ink4", .tertiaryLabel)
+        lineDot.isAccessibilityElement = false
+        lineDot.textAlignment = .center
+        noteView.addSubview(lineDot)
+        // 结果行「修改 ›」：文字按钮 13 号 ink1，热区 44（D19 / D46 ⑭）；文字来自页面（line.action），读屏名称去掉 ›
+        changeButton.titleLabel?.font = UIFont.preferredFont(forTextStyle: .footnote)
+        changeButton.titleLabel?.adjustsFontForContentSizeCategory = true
+        changeButton.setTitleColor(color("ink1", .label), for: .normal)
+        changeButton.accessibilityIdentifier = "native-write-line-change"
+        wire(changeButton, id: "change") { $0.tapChange() }
+        noteView.addSubview(changeButton)
         noteDot.backgroundColor = color("danzhu", .systemRed)
         noteDot.layer.cornerRadius = 3
         noteDot.isAccessibilityElement = false
@@ -251,17 +303,20 @@ final class NativeWriteViewController: UIViewController {
         configureOutline(correctButton, title: tr("R-W09.btnCorrect"), id: "native-write-correct")
         wire(wrongButton, id: "wrong") { $0.tapWrong() }
         wire(correctButton, id: "correct") { $0.tapCorrect() }
-        configureTextButton(failCancel, title: tr("R-W16.cancel"), icon: nil, id: "native-write-fail-cancel")
+        // 保存失败三段式（S1，D07）：说明 → 求助行「先不保存」（凹面）→ 主按钮「再试一次」（满宽墨底）；写字流程同一写法
+        configureHelp(failCancel, title: tr("R-W16.cancel"), icon: nil, id: "native-write-fail-cancel")
+        configurePrimary(failRetry, title: tr("R-W16.retry"), id: "native-write-fail-retry")
         wire(failCancel, id: "failCancel") { $0.tapFailCancel() }
+        wire(failRetry, id: "retry") { $0.tapRetry() }
         failNote.text = tr("R-W16.saveFailed")
         failNote.font = UIFont.preferredFont(forTextStyle: .subheadline)
         failNote.adjustsFontForContentSizeCategory = true
         failNote.textColor = color("ink2", .secondaryLabel)
         failNote.textAlignment = .center
         failNote.numberOfLines = 0
-        [hintButtonView, answerButton, doneButton, wrongButton, correctButton, failNote, failCancel].forEach { footView.addSubview($0) }
+        [hintButtonView, answerButton, doneButton, wrongButton, correctButton, failNote, failCancel, failRetry].forEach { footView.addSubview($0) }
 
-        [backButton, centerLabel, endButton, skipButton, promptView, gridFrame, hintLayer, ink, refFrame, undoButton, clearButton, noteView, footView]
+        [backButton, centerLabel, progressLabel, endButton, skipButton, promptView, gridFrame, noInkLabel, hintLayer, ink, refFrame, undoButton, clearButton, noteView, footView]
             .forEach { view.addSubview($0) }
 
         // 左缘右滑 = 左上「‹」：回忆阶段跟手滑回上一页（交互式转场），判断阶段 = 接着写（D58 ① / 确认单 2）
@@ -394,7 +449,7 @@ final class NativeWriteViewController: UIViewController {
             let cell = UIView()
             switch kind {
             case "blank":
-                cell.layer.borderWidth = 1.5
+                cell.layer.borderWidth = frameW
                 cell.layer.borderColor = color("frame", .separator).cgColor
                 let py = UILabel()
                 py.text = text
@@ -408,7 +463,7 @@ final class NativeWriteViewController: UIViewController {
                 cell.accessibilityLabel = c["label"] as? String // 只有位置与拼音，不含答案字（D16）
                 cell.accessibilityIdentifier = "native-write-blank"
             case "repeatBlank":
-                cell.layer.borderWidth = 1.5
+                cell.layer.borderWidth = frameW
                 cell.layer.borderColor = color("frame", .separator).cgColor
                 let l = UILabel()
                 l.text = text
@@ -559,10 +614,16 @@ final class NativeWriteViewController: UIViewController {
             centerLabel.accessibilityLabel = tr("R-W01.progressLabel", ["n": n, "total": total])
             backButton.accessibilityLabel = tr("X-COMMON.back")
         } else {
+            // 判断页页头：左「‹」（读屏「接着写」）/ 中间标题 / 右计数
             centerLabel.text = tr("R-W03.titleCompare")
             centerLabel.accessibilityLabel = nil
             backButton.accessibilityLabel = tr("R-W09.continueWriting")
+            progressLabel.text = tr("R-W01.progress", ["n": n, "total": total])
+            progressLabel.accessibilityLabel = tr("R-W01.progressLabel", ["n": n, "total": total])
         }
+        progressLabel.isHidden = recall
+        // 没有本人笔画时上格「这次没写」（R-W17；正常流程到不了：没有笔画进不了判断页）
+        noInkLabel.isHidden = recall || !strokes.isEmpty
         // 判断提交中也接收落笔（持住，等回包推进到下一个字；见 judge）
         ink?.drawable = recall ? !submitting : submitting
         ink?.accessibilityLabel = recall
@@ -580,6 +641,15 @@ final class NativeWriteViewController: UIViewController {
         let lineOn = recall && !answerSeen && strokes.isEmpty && !penDown && !lineText.isEmpty
         lineLabel.text = lineOn ? lineText : nil
         lineLabel.isHidden = !lineOn
+        // 「修改 ›」只对可改的记录开放（sessions.canCorrect → line.canChange；看过答案 / 跳过不可改）
+        let action = line?["action"] as? String ?? ""
+        let changeOn = lineOn && (line?["canChange"] as? Bool) == true && !action.isEmpty
+        changeButton.isHidden = !changeOn
+        lineDot.isHidden = !changeOn
+        if changeOn {
+            changeButton.setTitle(action, for: .normal)
+            changeButton.accessibilityLabel = action.replacingOccurrences(of: "\u{203A}", with: "").trimmingCharacters(in: .whitespaces)
+        }
         let noteOn = recall && !answerSeen && !(hintNoteText ?? "").isEmpty
         noteLabel.text = noteOn ? hintNoteText : nil
         noteLabel.isHidden = !noteOn
@@ -608,12 +678,13 @@ final class NativeWriteViewController: UIViewController {
         doneButton.isEnabled = !strokes.isEmpty
         doneButton.backgroundColor = strokes.isEmpty ? color("field", .secondarySystemFill) : color("ink1", .label)
         wrongButton.isHidden = recall || failed
-        correctButton.isHidden = recall
-        correctButton.setTitle(failed ? tr("R-W16.retry") : tr("R-W09.btnCorrect"), for: .normal)
-        failNote.isHidden = !failed
-        failCancel.isHidden = !failed
+        correctButton.isHidden = recall || failed
+        failNote.isHidden = recall || !failed
+        failCancel.isHidden = recall || !failed
+        failRetry.isHidden = recall || !failed
         wrongButton.isEnabled = !submitting && judgeKeysReady
-        correctButton.isEnabled = !submitting && (failed || judgeKeysReady)
+        correctButton.isEnabled = !submitting && judgeKeysReady
+        failRetry.isEnabled = !submitting
     }
 
     // MARK: 版式（A7；NativeWriteLayout = 网页 layout.js；AX 档专门排法在 B2.9）
@@ -647,6 +718,12 @@ final class NativeWriteViewController: UIViewController {
             b.frame = CGRect(x: right - bw, y: safe.top + (headH - 44) / 2, width: bw, height: 44)
             right -= bw + 16
         }
+        if !progressLabel.isHidden {
+            // 判断页：计数在右（页边 20 对齐），标题居中，两边留出对称的空
+            let pw = ceil(progressLabel.sizeThatFits(CGSize(width: w / 3, height: headH)).width)
+            progressLabel.frame = CGRect(x: w - gutter - pw, y: safe.top, width: pw, height: headH)
+            right = progressLabel.frame.minX - 8
+        }
         let side = max(64, w - right)
         centerLabel.frame = CGRect(x: side, y: safe.top, width: max(0, w - 2 * side), height: headH)
 
@@ -656,7 +733,11 @@ final class NativeWriteViewController: UIViewController {
         let helpH = max(48, ceil(hintButtonView.titleLabel?.font.lineHeight ?? 22) + 26)
         let primaryY = h - footBottom - primaryH
         let helpY = primaryY - 20 - helpH
-        let footTop = helpY - 12
+        // 保存失败：说明句在求助行上面一行，底栏比平时高出这一截（网页底栏同一结构：说明 → 20 → 求助行 → 20 → 主按钮，说明 margin-bottom 6）
+        let noteH = failed ? ceil(failNote.sizeThatFits(CGSize(width: w - 2 * gutter, height: .greatestFiniteMagnitude)).height) : 0
+        let noteExtra = failed ? noteH + 26 : 0
+        let footTopBase = helpY - 12
+        let footTop = footTopBase - noteExtra
         footView.frame = CGRect(x: 0, y: footTop, width: w, height: h - footTop)
         let fy = { (y: CGFloat) in y - footTop }
         doneButton.frame = CGRect(x: gutter, y: fy(primaryY), width: w - 2 * gutter, height: primaryH)
@@ -668,10 +749,9 @@ final class NativeWriteViewController: UIViewController {
         for (i, b) in helps.enumerated() {
             b.frame = CGRect(x: gutter + CGFloat(i) * (slotW + 12), y: fy(helpY), width: slotW, height: helpH)
         }
-        if failed {
-            failCancel.frame = wrongButton.frame
-            failNote.frame = CGRect(x: gutter, y: fy(helpY), width: w - 2 * gutter, height: helpH)
-        }
+        failRetry.frame = doneButton.frame
+        failCancel.frame = CGRect(x: gutter, y: fy(helpY), width: w - 2 * gutter, height: helpH)
+        failNote.frame = CGRect(x: gutter, y: fy(helpY) - 26 - noteH, width: w - 2 * gutter, height: noteH)
 
         // 题面：拼音行 + 4 + 52 的格（有提示行时下面再一行）；P = 量到的整个题面高
         let cell: CGFloat = 52
@@ -683,7 +763,7 @@ final class NativeWriteViewController: UIViewController {
         let promptH = pyH + 4 + cw + hintH
 
         let headBottom = safe.top + headH
-        let mainH = footTop - headBottom
+        let mainH = footTopBase - headBottom
         let nominal = NativeWriteLayout.nominalMainHeight(pageHeight: h, safeTop: safe.top, footBottom: footBottom, k)
         let L = NativeWriteLayout.write(width: w, nominalHeight: nominal, promptHeight: promptH, headExtra: headExtra, k)
         // 大字号下页头 / 底栏比名义高：组超出主区时整体上移（不与底栏重叠），书写格边长不变（D36）
@@ -718,8 +798,29 @@ final class NativeWriteViewController: UIViewController {
         var ny: CGFloat = 0
         if !lineLabel.isHidden {
             let lh = ceil(lineLabel.sizeThatFits(CGSize(width: noteW, height: .greatestFiniteMagnitude)).height)
-            lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: max(lh, 20))
-            ny = lineLabel.frame.maxY + 2
+            let infinite = CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            if changeButton.isHidden {
+                lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: max(lh, 20))
+                lineDot.frame = .zero
+                ny = lineLabel.frame.maxY + 2
+            } else {
+                // 「正文 · 修改 ›」：一行放得下就一行（修改按钮盒 = 文字宽 + 8、44 高，上下对着行中线伸出；点击区 ≥ 44），放不下折行、修改在下一行行首
+                let lw = ceil(lineLabel.sizeThatFits(infinite).width)
+                let bw = max(44, ceil((changeButton.titleLabel?.sizeThatFits(infinite).width ?? 0)) + 8)
+                let dotW: CGFloat = 12
+                let rowH = max(20, ceil(lineLabel.font.lineHeight))
+                if lw + dotW + bw - 8 <= noteW {
+                    lineLabel.frame = CGRect(x: 0, y: 0, width: lw, height: rowH)
+                    lineDot.frame = CGRect(x: lw, y: 0, width: dotW, height: rowH)
+                    changeButton.frame = CGRect(x: lw + dotW - 4, y: rowH / 2 - 22, width: bw, height: 44)
+                    ny = rowH + 2
+                } else {
+                    lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: max(lh, rowH))
+                    lineDot.frame = .zero
+                    changeButton.frame = CGRect(x: -4, y: lineLabel.frame.maxY + 2 + rowH / 2 - 22, width: bw, height: 44)
+                    ny = lineLabel.frame.maxY + 2 + rowH + 2
+                }
+            }
         }
         if !noteLabel.isHidden {
             let nh = ceil(noteLabel.sizeThatFits(CGSize(width: noteW - 14, height: .greatestFiniteMagnitude)).height)
@@ -729,17 +830,21 @@ final class NativeWriteViewController: UIViewController {
         }
         noteView.frame = CGRect(x: gridRect.minX, y: noteTop + max(0, (k.noteHeight - ny) / 2), width: noteW, height: max(ny, 1))
 
-        if phase == .recall {
-            gridFrame.frame = gridRect
-        } else {
-            // 判断：上下两格（同一顶边、同一中线，共用一条格线；D46 ⑪）
-            let s = min(g, NativeWriteLayout.judgePair(width: w, mainHeight: mainH - (failed ? helpH : 0), gridTop: gridTop - headBottom, k))
-            gridFrame.frame = CGRect(x: (w - s) / 2, y: gridTop, width: s, height: s)
-            refFrame.frame = CGRect(x: (w - s) / 2, y: gridTop + s - 1.5, width: s, height: s)
-            refGlyph.frame = refFrame.bounds
+        recallGridRect = gridRect
+        if !reversing { // 判断 → 回忆倒放中：书写格 / 参考格的位置由动画驱动（版式不覆盖）
+            if phase == .recall {
+                gridFrame.frame = gridRect
+            } else {
+                // 判断：上下两格（同一顶边、同一中线，共用一条格线 = 第二格上移 frameW；D46 ⑪）。边长按「主区高 − 说明句」算（保存失败时底栏长高）
+                let s = min(g, NativeWriteLayout.judgePair(width: w, mainHeight: mainH - noteExtra, gridTop: gridTop - headBottom, k))
+                gridFrame.frame = CGRect(x: (w - s) / 2, y: gridTop, width: s, height: s)
+                refFrame.frame = CGRect(x: (w - s) / 2, y: gridTop + s - frameW, width: s, height: s)
+                refGlyph.frame = refFrame.bounds
+            }
+            ink?.frame = gridFrame.frame.insetBy(dx: frameW, dy: frameW)
         }
-        ink?.frame = gridFrame.frame.insetBy(dx: 1.5, dy: 1.5)
-        hintLayer.frame = gridRect.insetBy(dx: 1.5, dy: 1.5)
+        noInkLabel.frame = gridFrame.frame.insetBy(dx: 8, dy: 8)
+        hintLayer.frame = gridRect.insetBy(dx: frameW, dy: frameW)
     }
 
     // MARK: 控件样式（设计系统：文字按钮 15 ink2；凹面求助 field 底 17/500；主按钮墨底 17/500 圆角 12）
@@ -757,9 +862,9 @@ final class NativeWriteViewController: UIViewController {
         b.accessibilityIdentifier = id
     }
 
-    private func configureHelp(_ b: UIButton, title: String, icon: String, id: String) {
+    private func configureHelp(_ b: UIButton, title: String, icon: String?, id: String) {
         b.setTitle(title, for: .normal)
-        b.setImage(UIImage(systemName: icon), for: .normal)
+        if let icon { b.setImage(UIImage(systemName: icon), for: .normal) }
         b.titleLabel?.font = Self.scaled(.body, 17, .medium)
         b.titleLabel?.adjustsFontForContentSizeCategory = true
         b.titleLabel?.numberOfLines = 2
@@ -792,6 +897,9 @@ final class NativeWriteViewController: UIViewController {
         b.layer.borderWidth = 1
         b.layer.borderColor = color("ink4", .separator).cgColor
         b.accessibilityIdentifier = id
+        // 按下的底是 field（网页 .sz-judge__btn[data-pressed]）；只有按下态，没有选中 / 预选 / 判定着色（D03）
+        b.addAction(UIAction { [weak b, weak self] _ in b?.backgroundColor = self?.color("field", .secondarySystemFill) }, for: [.touchDown, .touchDragEnter])
+        b.addAction(UIAction { [weak b] _ in b?.backgroundColor = .clear }, for: [.touchUpInside, .touchUpOutside, .touchCancel, .touchDragExit])
     }
 
     // MARK: 动作
@@ -832,47 +940,225 @@ final class NativeWriteViewController: UIViewController {
         guard phase == .recall, !strokes.isEmpty, let key = cardKey else { return }
         lightHaptic.impactOccurred(intensity: 0.5)
         bridge.send("phase", ["slot": slot, "cardKey": key, "phase": "compare", "strokes": NativeInkWire.wire(strokes)])
-        setPhase(.compare)
+        enterCompare()
     }
 
-    private func continueWriting() {
-        guard phase == .compare, !submitting, let key = cardKey else { return }
-        failed = false
-        disarmJudgeKeys()
-        bridge.send("phase", ["slot": slot, "cardKey": key, "phase": "recall"])
-        setPhase(.recall)
-    }
+    // MARK: 回忆 ⇄ 判断（T-phase；交互规范 T0 / N3-3；时长与缓动取页面 motion：inkFlip / phaseReverse / easeOut / fade / reduce）
 
-    /// 回忆 ⇄ 判断（T-phase：回忆 → 判断 墨纯缩放 inkFlip 200ms；判断 → 回忆倒放 phaseReverse 280ms；减少动态效果 150ms）。完整编排在 B2.5。
-    private func setPhase(_ p: Phase) {
-        let toCompare = p == .compare
-        phase = p
+    /// 「写好了」→ 判断页：本人墨以顶边中点为原点纯缩放（inkFlip，ease.out）进上格；参考格在 fade 之后淡入（inkFlip 长）；两键按时刻编排出现。
+    /// 减少动态效果：不缩放，整页 150ms 交叉淡化，两键直接可点（T0-3）。
+    private func enterCompare() {
+        phase = .compare
         markStateChange()
-        if toCompare {
-            // 参考格先就位（不从零尺寸长出来），随两格版式一起出现
+        reverseFinished = false
+        if reduceMotion {
+            crossfade {
+                self.refFrame.alpha = 1
+                self.refresh()
+                self.renderHint(fadeIn: false)
+                self.view.setNeedsLayout()
+                self.view.layoutIfNeeded()
+            }
+            disarmJudgeKeys()
+            UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
+            return
+        }
+        // 参考格先就位（不从零尺寸长出来），随两格版式一起出现
+        UIView.performWithoutAnimation {
+            view.setNeedsLayout()
+            view.layoutIfNeeded()
+            refFrame.alpha = 0
+        }
+        phase = .recall
+        view.setNeedsLayout()
+        view.layoutIfNeeded() // 书写格回到动画起点
+        phase = .compare
+        armJudgeKeys()
+        refresh()
+        renderHint(fadeIn: false)
+        // .allowUserInteraction：动画进行中落笔照常生效（T0 规则 3；落笔时 settleAnimations 让动画一帧到终态）
+        let a = UIViewPropertyAnimator(duration: dur("inkFlip"), timingParameters: NativeBezier.timing(easeOut))
+        a.addAnimations {
+            self.view.setNeedsLayout()
+            self.view.layoutIfNeeded()
+        }
+        a.isUserInteractionEnabled = true
+        a.startAnimation()
+        UIView.animate(withDuration: dur("inkFlip"), delay: dur("fade"), options: [.curveLinear, .allowUserInteraction]) {
+            self.refFrame.alpha = 1
+        }
+        UIAccessibility.post(notification: .screenChanged, argument: centerLabel) // 焦点落在页标题，不落在任何判断键上（D03）
+    }
+
+    /// 「‹ 接着写」（点按）：判断 → 回忆的 T-phase 倒放（phaseReverse，ease.out）。
+    private func continueWriting() {
+        guard phase == .compare, !submitting, !reversing else { return }
+        startReverse(interactive: false)
+    }
+
+    /// 倒放的起点。interactive = 左缘右滑跟手（暂停在 0，由手指决定进度）；否则直接播放。
+    /// 画面：上格（本人书写）以顶边中点为原点长回书写格的大小与位置，参考格与两键淡出，题面与页头不动；结束后文字区 150ms 交叉淡化换成回忆阶段的内容。
+    private func startReverse(interactive: Bool) {
+        guard phase == .compare, !submitting, !reversing, cardKey != nil else { return }
+        if failed {
+            failed = false
+            refresh()
+            view.layoutIfNeeded()
+        }
+        disarmJudgeKeys()
+        if reduceMotion {
+            // 减少动态效果：不缩放，整页 150ms 交叉淡化（点按立即；手势在松手时由 handleEdgeBack 调用）
+            crossfade { self.completeReverse() }
+            return
+        }
+        settleAnimations()
+        let target = recallGridRect
+        reversing = true
+        reverseFinished = false
+        ink?.drawable = true // 倒放进行中落笔：动画一帧到终态，这一笔照常生效（T0 规则 3）
+        let timing: UITimingCurveProvider = interactive ? UICubicTimingParameters(animationCurve: .linear) : NativeBezier.timing(easeOut)
+        let a = UIViewPropertyAnimator(duration: max(0.01, dur("phaseReverse")), timingParameters: timing)
+        a.addAnimations {
+            self.gridFrame.frame = target
+            self.ink?.frame = target.insetBy(dx: self.frameW, dy: self.frameW)
+            self.refFrame.alpha = 0
+            self.setJudgeKeysAlpha(0)
+            self.noInkLabel.alpha = 0
+        }
+        a.addCompletion { [weak self] pos in self?.reverseEnded(at: pos) }
+        a.isUserInteractionEnabled = true
+        reverseAnimator = a
+        if interactive { a.pauseAnimation() } else { a.startAnimation() }
+    }
+
+    /// 左缘右滑的判断阶段三步（手势识别器与测试同一条路）：开始 / 跟手（progress = 位移 ÷ 屏宽，与网页同一口径）/ 松手（commit = 过阈值）。
+    func edgeReverseBegan() {
+        guard phase == .compare, !submitting, !reversing else { return }
+        startReverse(interactive: true)
+    }
+
+    func edgeReverseChanged(progress: CGFloat) {
+        reverseAnimator?.fractionComplete = min(1, max(0, progress))
+    }
+
+    func edgeReverseEnded(commit: Bool) {
+        guard let a = reverseAnimator, reversing else { return }
+        if commit {
+            a.isReversed = false
+            a.continueAnimation(withTimingParameters: NativeBezier.timing(easeOut), durationFactor: max(0.25, 1 - a.fractionComplete))
+        } else {
+            a.isReversed = true
+            a.continueAnimation(withTimingParameters: nil, durationFactor: 0.5)
+        }
+    }
+
+    private func reverseEnded(at pos: UIViewAnimatingPosition) {
+        guard reverseAnimator != nil || reversing else { return }
+        reverseAnimator = nil
+        reversing = false
+        if pos == .end {
+            finishReverse()
+        } else {
+            // 手势没过阈值：回到判断页（上格 / 参考格 / 两键回到原样）
+            refFrame.alpha = 1
+            noInkLabel.alpha = 1
+            setJudgeKeysAlpha(1)
+            ink?.drawable = submitting
             UIView.performWithoutAnimation {
                 view.setNeedsLayout()
                 view.layoutIfNeeded()
-                refFrame.alpha = 0
             }
-            phase = .recall
-            view.setNeedsLayout()
-            view.layoutIfNeeded() // 书写格回到动画起点
-            phase = p
-            armJudgeKeys()
         }
+    }
+
+    /// 倒放走完 → 回忆阶段：文字区交叉淡化（内容变了的旧的 0–75ms 淡出、新的 75–150ms 淡入），现场写回 phase recall（P52 不阻断）。
+    private func finishReverse() {
+        guard !reverseFinished, phase == .compare else { return }
+        reverseFinished = true
+        swapText { self.completeReverse() }
+    }
+
+    /// 回忆阶段的状态切换本身（无动画）。
+    private func completeReverse() {
+        guard phase == .compare, let key = cardKey else { return }
+        failed = false
+        phase = .recall
+        markStateChange()
+        bridge.send("phase", ["slot": slot, "cardKey": key, "phase": "recall"])
+        refFrame.alpha = 1
+        noInkLabel.alpha = 1
+        setJudgeKeysAlpha(1)
         refresh()
         renderHint(fadeIn: false)
-        let d = reduceMotion ? dur("reduce") : (toCompare ? dur("inkFlip") : dur("phaseReverse"))
-        // .allowUserInteraction：动画进行中落笔照常生效（T0 规则 3；落笔时 settleAnimations 让动画一帧到终态）
-        UIView.animate(withDuration: d, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
-            self.refFrame.alpha = toCompare ? 1 : 0
-            self.view.setNeedsLayout()
-            self.view.layoutIfNeeded()
-        } completion: { _ in
-            self.refFrame.alpha = 1
-        }
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
         UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
+    }
+
+    /// 倒放进行中被打断（落笔 / 点按）：一帧到终态，状态切到回忆（T0 规则 3）。
+    private func settleReverse() {
+        guard let a = reverseAnimator else { return }
+        a.stopAnimation(false)
+        a.finishAnimation(at: .end)
+        if reverseAnimator != nil { reverseEnded(at: .end) }
+    }
+
+    /// 减少动态效果的整页交叉淡化：旧页的替身 reduce（150ms）线性淡出，新状态在它下面（D58 ②）。
+    private func crossfade(_ change: () -> Void) {
+        settleAnimations()
+        let ghost = view.snapshotView(afterScreenUpdates: false)
+        ghost?.isUserInteractionEnabled = false
+        ghost?.accessibilityElementsHidden = true
+        change()
+        guard let ghost else { return }
+        ghost.frame = view.bounds
+        view.addSubview(ghost)
+        transitionOverlay = ghost
+        UIView.animate(withDuration: dur("reduce"), delay: 0, options: [.curveLinear, .allowUserInteraction]) {
+            ghost.alpha = 0
+        } completion: { [weak self, weak ghost] _ in
+            ghost?.removeFromSuperview()
+            if self?.transitionOverlay === ghost { self?.transitionOverlay = nil }
+        }
+    }
+
+    private func ghostOf(_ v: UIView, in overlay: UIView) -> UIView? {
+        guard !v.isHidden, v.alpha > 0, let s = v.snapshotView(afterScreenUpdates: false) else { return nil }
+        s.frame = v.frame
+        overlay.addSubview(s)
+        return s
+    }
+
+    /// 文字类区域（页头标题 / 计数 / 格下说明 / 底栏）的状态切换：内容变了的旧的 0–textOut 淡出、新的 textOut–fade 淡入，不叠字；内容没变的不动。
+    /// 减少动态效果：整页交叉淡化（不走这里）。
+    private func swapText(_ change: () -> Void) {
+        if reduceMotion {
+            crossfade(change)
+            return
+        }
+        let fade = dur("fade") > 0 ? dur("fade") : 0.15
+        let textOut = dur("textOut") > 0 ? dur("textOut") : fade / 2
+        let regions: [UIView] = [centerLabel, progressLabel, noteView, footView]
+        let oldKeys = regions.map(textKey)
+        let overlay = UIView(frame: view.bounds)
+        overlay.isUserInteractionEnabled = false
+        overlay.accessibilityElementsHidden = true
+        let ghosts = regions.map { ghostOf($0, in: overlay) }
+        change()
+        view.layoutIfNeeded()
+        view.addSubview(overlay)
+        transitionOverlay = overlay
+        for (i, v) in regions.enumerated() {
+            guard let g = ghosts[i] else { continue }
+            if textKey(v) == oldKeys[i] { g.removeFromSuperview(); continue }
+            v.alpha = 0
+            UIView.animate(withDuration: textOut, delay: 0, options: [.curveLinear, .allowUserInteraction]) { g.alpha = 0 }
+            UIView.animate(withDuration: fade - textOut, delay: textOut, options: [.curveLinear, .allowUserInteraction]) { v.alpha = 1 } completion: { [weak self, weak overlay] _ in
+                overlay?.removeFromSuperview()
+                if self?.transitionOverlay === overlay { self?.transitionOverlay = nil }
+            }
+        }
+        if !regions.indices.contains(where: { ghosts[$0] != nil && textKey(regions[$0]) != oldKeys[$0] }) { overlay.removeFromSuperview(); transitionOverlay = nil }
     }
 
     // MARK: 换字转场（T-phase；交互规范 T0：文字类先出后进，非文字 150ms 淡出；减少动态效果 150ms 交叉淡化）
@@ -881,9 +1167,10 @@ final class NativeWriteViewController: UIViewController {
     private func textKey(_ v: UIView) -> String {
         switch v {
         case centerLabel: return centerLabel.text ?? ""
+        case progressLabel: return progressLabel.isHidden ? "" : progressLabel.text ?? ""
         case promptView: return (promptCells.map { $0.accessibilityLabel ?? "" } + [promptHint.text ?? ""]).joined(separator: "|")
-        case noteView: return [lineLabel.isHidden ? "" : lineLabel.text ?? "", noteLabel.isHidden ? "" : noteLabel.text ?? ""].joined(separator: "|")
-        case footView: return [hintButtonView, doneButton, wrongButton, correctButton].map { $0.isHidden ? "" : ($0.title(for: .normal) ?? "") }.joined(separator: "|")
+        case noteView: return [lineLabel.isHidden ? "" : lineLabel.text ?? "", changeButton.isHidden ? "" : "c", noteLabel.isHidden ? "" : noteLabel.text ?? ""].joined(separator: "|")
+        case footView: return ([hintButtonView, doneButton, wrongButton, correctButton, failCancel, failRetry].map { $0.isHidden ? "" : ($0.title(for: .normal) ?? "") } + [failNote.isHidden ? "" : "n"]).joined(separator: "|")
         default: return ""
         }
     }
@@ -893,7 +1180,7 @@ final class NativeWriteViewController: UIViewController {
         let reduce = reduceMotion
         let fade = dur("fade") > 0 ? dur("fade") : 0.15
         let textOut = reduce ? fade : (dur("textOut") > 0 ? dur("textOut") : fade / 2)
-        let textRegions: [UIView] = [centerLabel, promptView, noteView, footView]
+        let textRegions: [UIView] = [centerLabel, progressLabel, promptView, noteView, footView]
         let oldKeys = textRegions.map(textKey)
         let oldFrames = [gridFrame.frame, refFrame.frame]
         // 旧样子的替身（渲染服务器的副本，含书写面的 Metal 内容）：书写格、参考格、本人墨、提示层、各文字区
@@ -979,6 +1266,7 @@ final class NativeWriteViewController: UIViewController {
 
     /// 落笔 / 点按时正在进行的版式动画与换字转场一帧到终态（T0 规则 3：动画不挡输入，这次输入照常生效）。
     private func settleAnimations() {
+        settleReverse()
         view.layer.removeAllAnimations()
         for v in view.subviews {
             v.layer.removeAllAnimations()
@@ -991,18 +1279,87 @@ final class NativeWriteViewController: UIViewController {
     }
 
     @objc private func tapWrong() { judge("wrong") }
-    @objc private func tapCorrect() { judge(failed ? lastJudgment : "correct") }
+    @objc private func tapCorrect() { judge("correct") }
+    /// 保存失败三段式的「再试一次」：重发上一次的判断（commit 是原子事务，失败不留半条记录，重试不重复计数，D07）。
+    @objc private func tapRetry() { judge(lastJudgment) }
     @objc private func tapFailCancel() {
-        // 「先不保存」：回到判断前（两键），笔迹仍在（R-W16）
+        // 「先不保存」：回到判断前（两键），笔迹仍在（R-W16）；失败态到判断态是新状态（0.4s 不响应，走查 W08）
         failed = false
+        markStateChange()
         refresh()
         view.setNeedsLayout()
     }
 
+    // MARK: 结果行「修改 ›」与改判弹层（D19）
+
+    @objc private func tapChange() {
+        guard phase == .recall, !submitting, let line = snapshot["line"] as? [String: Any], (line["canChange"] as? Bool) == true,
+              let rid = line["recordId"] as? String else { return }
+        bridge.call("correct", ["slot": slot, "recordId": rid, "action": "state"]) { [weak self] reply in
+            guard let self else { return }
+            guard reply.ok, let model = NativeChangeSheetViewController.Model(reply.body) else {
+                // 结果行已不是这条记录（stale）：按回包快照刷新，「修改 ›」随之收起
+                if let snap = reply.snapshot { self.apply(snapshot: snap, keepLocal: true) }
+                return
+            }
+            self.presentChangeSheet(model)
+        }
+    }
+
+    func presentChangeSheet(_ model: NativeChangeSheetViewController.Model) {
+        guard presentedViewController == nil else { return }
+        let style = NativeJudgeStyle(tr: { [weak self] k, v in self?.tr(k, v) ?? "" }, color: { [weak self] n, f in self?.color(n, f) ?? f }, inkTint: inkTint)
+        let vc = NativeChangeSheetViewController(slot: slot, model: model, bridge: bridge, style: style) { [weak self] snap in
+            // 改判成功：结果行换成「已改为……」，当前字的笔迹 / 提示 / 阶段原样（只改这一次，D19）
+            if let snap, (snap["cardKey"] as? String) == self?.cardKey { self?.apply(snapshot: snap, keepLocal: true) }
+        }
+        present(vc, animated: true)
+    }
+
+    /// 测试：没有本人笔画的判断页（正常流程到不了，R-W17）。
+    func forceCompareWithoutInkForTesting() {
+        strokes = []
+        ink?.syncPageStrokes([])
+        phase = .compare
+        refresh()
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
+    }
+
+    var gridFrameLineWidthForTesting: CGFloat { gridFrame.layer.borderWidth }
+    var noInkTextForTesting: String? { noInkLabel.text }
+    var failNoteTextForTesting: String? { failNote.isHidden ? nil : failNote.text }
+    var failNoteFrameForTesting: CGRect { failNote.convert(failNote.bounds, to: view) }
+    var lineTextForTesting: String? { lineLabel.isHidden ? nil : lineLabel.text }
+    /// 题面里能被读到 / 看到的全部文字（题面不含答案字，D16）。
+    var promptTextsForTesting: [String] {
+        promptCells.flatMap { c -> [String] in
+            [c.accessibilityLabel ?? ""] + c.subviews.flatMap { sub -> [String] in
+                if let l = sub as? UILabel { return [l.text ?? ""] }
+                if let g = sub as? NativeGlyphView { return [g.char] }
+                return []
+            }
+        }
+    }
+
+    var changeSheetForTesting: NativeChangeSheetViewController? { presentedViewController as? NativeChangeSheetViewController }
+    var changeShownForTesting: Bool { !changeButton.isHidden }
+    var failShownForTesting: Bool { phase == .compare && failed }
+    var reversingForTesting: Bool { reversing }
+    var settlePlayedForTesting = 0
+    var noInkShownForTesting: Bool { !noInkLabel.isHidden }
+    var judgeKeysForTesting: (wrong: UIButton, correct: UIButton) { (wrongButton, correctButton) }
+    var failRetryForTesting: UIButton { failRetry }
+    var failCancelForTesting: UIButton { failCancel }
+    var progressTextForTesting: String? { progressLabel.isHidden ? nil : progressLabel.text }
+    var titleTextForTesting: String? { centerLabel.text }
+    var judgeKeysReadyForTesting: Bool { judgeKeysReady }
+    var gridFramesForTesting: (mine: CGRect, ref: CGRect) { (gridFrame.frame, refFrame.frame) }
+
     private var lastJudgment = "correct"
 
     private func judge(_ judgment: String) {
-        guard phase == .compare, !submitting, let key = cardKey, !strokes.isEmpty else { return }
+        guard phase == .compare, !submitting, !reversing, let key = cardKey, !strokes.isEmpty else { return }
         submitting = true
         lastJudgment = judgment
         // 回包之前落下的笔先持住（不画、不交出），推进到下一个字后接着画（P227 同语义：这一笔不丢）
@@ -1026,23 +1383,54 @@ final class NativeWriteViewController: UIViewController {
                 UIAccessibility.post(notification: .announcement, argument: self.failNote.text)
                 return
             }
-            self.judgeHaptic.impactOccurred(intensity: 0.7)
             self.failed = false
             let finished = reply.body["finished"] as? [String: Any]
             if let finished, let sid = finished["sessionId"] as? String {
+                self.judgeHaptic.impactOccurred(intensity: 0.7)
                 self.coordinator?.nativeWriteDidFinish(self, sessionId: sid)
                 return
             }
             if advanced, let snap = reply.snapshot, (snap["active"] as? Bool) != true || (snap["done"] as? Bool) == true {
                 // 已提交的是最后一个字：这组已结束，交给结果页
+                self.judgeHaptic.impactOccurred(intensity: 0.7)
                 self.coordinator?.nativeWriteDidFinish(self, sessionId: self.snapshot["sessionId"] as? String ?? "")
                 return
             }
             if let next = reply.snapshot {
+                // M23 判断落定：commit 成功后本人笔迹离纸、收进页头计数，触觉与第一帧同帧（F1：成功后才发，失败三段式不发）
+                let plan = self.settlePlan()
+                self.ink?.isHidden = plan != nil // 墨在第 0 帧离开纸面：这一层由落定叠层接着画
                 self.advance(to: next)
+                self.ink?.isHidden = false
+                if let plan, !self.playSettle(plan) { self.judgeHaptic.impactOccurred(intensity: 0.7) }
+                if plan == nil { self.judgeHaptic.impactOccurred(intensity: 0.7) }
                 self.scheduleAutoStep()
             }
         }
+    }
+
+    // MARK: 判断落定（M23；时刻与曲线来自页面 motion.settle，NativeSettle 只负责画）
+
+    private struct SettlePlan {
+        let from: CGRect
+        let to: CGRect?
+        let strokes: [[InkRawPoint]]
+    }
+
+    /// 落定前的记录：上格墨的位置、页头计数的位置、本人笔画。没有笔画 / 页面没给时刻（没有 settle 参数）/ 没有书写面 → nil（不做落定动画）。
+    private func settlePlan() -> SettlePlan? {
+        guard settleSpec != nil, let ink, !strokes.isEmpty, ink.window != nil else { return nil }
+        return SettlePlan(from: ink.frame, to: progressLabel.isHidden ? nil : progressLabel.frame, strokes: strokes)
+    }
+
+    private func playSettle(_ plan: SettlePlan) -> Bool {
+        guard let spec = settleSpec, let ink else { return false }
+        let played = NativeSettle.play(in: view, from: plan.from, to: plan.to, strokes: plan.strokes, params: ink.params, color: ink.inkColor, spec: spec,
+                                       reduceMotion: reduceMotion) { [weak self] in
+            self?.judgeHaptic.impactOccurred(intensity: 0.7)
+        }
+        if played != nil { settlePlayedForTesting += 1 }
+        return played != nil
     }
 
     // MARK: 量测用自动驾驶（DEBUG：SHIZI_NW_AUTO=1；每个字写一笔合成笔画 →「写好了」→ 判断，写错 / 写对交替）
@@ -1073,7 +1461,20 @@ final class NativeWriteViewController: UIViewController {
         let x = max(0, g.translation(in: view).x), v = g.velocity(in: view).x
         let width = max(1, view.bounds.width)
         if phase == .compare {
-            if g.state == .ended, BackGestureThreshold.commits(distance: x, velocity: v, width: width) { continueWriting() }
+            // 判断阶段：左缘右滑 = 「‹ 接着写」，跟手画面是 T-phase 倒放（上格长回书写格、参考格与两键淡出）；过阈值才完成，否则回弹（N3-3）。
+            // 减少动态效果：不跟手，松手按同一阈值判定，完成后 150ms 淡化。
+            let commit = BackGestureThreshold.commits(distance: x, velocity: v, width: width)
+            if reduceMotion {
+                if g.state == .ended, commit { continueWriting() }
+                return
+            }
+            switch g.state {
+            case .began: edgeReverseBegan()
+            case .changed: edgeReverseChanged(progress: x / width)
+            case .ended: edgeReverseEnded(commit: commit)
+            case .cancelled, .failed: edgeReverseEnded(commit: false)
+            default: break
+            }
             return
         }
         switch g.state {

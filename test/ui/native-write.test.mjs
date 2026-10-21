@@ -68,8 +68,8 @@ function apiOn(store, navigate = quietNav) {
   return createWriteSessionApi({ getStore: () => store, navigate, colors: () => ({}) });
 }
 
-test('ops: the B2.0 set is named; unknown op is rejected without throwing', () => {
-  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint']);
+test('ops: the named set; unknown op is rejected without throwing', () => {
+  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct']);
   const r = apiOn(fakeStore()).call('nope', {});
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'unknown-op');
@@ -247,7 +247,10 @@ test('open: timing for the native surface comes from the same source as the web 
   assert.deepEqual(r.motion, {
     fade: fade.FADE_MS, textOut: fade.TEXT_OUT_MS, inkFlip: fade.FLIP_MS, phaseReverse: M.role.phaseReverse, reduce: M.dur.reduce,
     hintIn: hint.HINT_FADE_IN_MS, hintOut: hint.HINT_FADE_OUT_MS, hintReduced: hint.REDUCED_FADE_MS,
+    easeOut: [...M.bezier.out],
+    settle: { lift: M.moment.settleLift, fadeFrom: M.moment.settleFadeFrom, end: M.moment.settleEnd, countBox: M.moment.settleCountBox, liftScale: M.moment.settleLiftScale, gather: [...M.bezier.gather] },
   });
+  assert.deepEqual([r.motion.settle.lift, r.motion.settle.fadeFrom, r.motion.settle.end, r.motion.settle.countBox], [100, 380, 460, 14], 'M23 判断落定');
   // 版式常量：与网页 layout.js 同一组（01 §6.1）
   assert.equal(r.layout.min, layout.GRID_MIN);
   assert.equal(r.layout.max, layout.GRID_MAX);
@@ -392,7 +395,7 @@ test('hints feed the judgment the same way on both paths (D66 ②: review with 2
   assert.equal(rec.help.hints, 2);
 }));
 
-test('snapshot: hint range, answer seen and the previous card line (text only; 修改 › is B2.5)', () => {
+test('snapshot: hint range, answer seen and the previous card line (text; the 修改 › action text comes with it)', () => {
   const store = fakeStore();
   const api = apiOn(store);
   nativeJudge(api, store, 'wrong', [STROKE_A]);
@@ -402,4 +405,121 @@ test('snapshot: hint range, answer seen and the previous card line (text only; �
   assert.equal(snap.line.state, 'judged');
   assert.equal(snap.line.text, t('R-W10.lineRecordedWrong', { char: '永' }).split(' · ')[0]);
   assert.ok(!snap.line.text.includes('和'), 'the line names the previous char, never the current answer (D16)');
+});
+
+// ---------------------------------------------------------------- B2.5 改判（correct op）：网页路径 == API 路径
+
+import { commitCorrection } from '../../src/ui/screens/write/result-row.js';
+import { isJudged } from '../../src/core/records.js';
+
+/** fakeStore 的墨迹读取（真 store 的 getInk：state.ink[月][id]）。 */
+function withInk(store) {
+  store.getInk = rec => {
+    const m = store.getState().ink[String(rec.localDay).slice(0, 7)];
+    return m ? m[rec.id] : null;
+  };
+  return store;
+}
+
+function lastRecord(store) {
+  return Object.values(store.getState().records).flat().filter(isJudged).slice(-1)[0];
+}
+
+test('correct op: 改判 = the web commitCorrection field by field, flips once and never counts twice (D19 / D07)', () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  assert.equal(webJudge(viaWeb, 'correct', [STROKE_A]).ok, true);
+  assert.equal(nativeJudge(api, viaApi, 'correct', [STROKE_A]).ok, true);
+  const rid = lastRecord(viaApi).id;
+  assert.equal(writeSnapshot(viaApi.getState(), 'A').line.canChange, true, '结果行可改');
+
+  // 改为写错（原生明示 to；网页同参数）
+  const w = commitCorrection(viaWeb, { slot: 'A', recordId: rid, to: 'wrong' });
+  const r = api.call('correct', { slot: 'A', recordId: rid, to: 'wrong' });
+  assert.equal(w.ok, true);
+  assert.equal(r.ok, true);
+  assert.equal(r.judgment, 'wrong');
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels, 'same commits in the same order');
+  const rec = lastRecord(viaApi);
+  assert.equal(rec.judgment, 'wrong');
+  assert.equal(Object.values(viaApi.getState().records).flat().length, 1, '只改这一次，不多算一次');
+  assert.equal(rec.corrections.length, 1);
+  assert.equal(r.snapshot.line.text, t('R-W10.lineChangedWrong', { char: '永' }).split(' · ')[0], '结果行换成「已改为写错」');
+  assert.equal(r.snapshot.line.canChange, true);
+
+  // 同一个 to 重发（回包丢了 / 连点）：不改回去、不再追加
+  const again = api.call('correct', { slot: 'A', recordId: rid, to: 'wrong' });
+  commitCorrection(viaWeb, { slot: 'A', recordId: rid, to: 'wrong' }); // 网页侧同一次重发（同一目标，空操作）
+  assert.equal(again.ok, true);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.equal(lastRecord(viaApi).corrections.length, 1, 'idempotent with an explicit target');
+  assert.equal(lastRecord(viaApi).judgment, 'wrong');
+
+  // 省略 to = 反过来（网页弹层 flip 的同一语义）
+  const w2 = commitCorrection(viaWeb, { slot: 'A', recordId: rid });
+  const r2 = api.call('correct', { slot: 'A', recordId: rid });
+  assert.equal(w2.ok, true);
+  assert.equal(r2.ok, true);
+  assert.equal(r2.judgment, 'correct');
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.equal(viaApi.getState().sched['base:永'].reps, viaWeb.getState().sched['base:永'].reps);
+});
+
+test('correct op: only the line record of this session can be changed (sessions.canCorrect); a later card closes the door', () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  nativeJudge(api, store, 'correct', [STROKE_A]);
+  const first = lastRecord(store).id;
+  assert.equal(api.call('correct', { slot: 'A', recordId: first, action: 'state' }).ok, true);
+  nativeJudge(api, store, 'wrong', [STROKE_B]);
+  const second = lastRecord(store).id;
+  // 结果行只说紧挨着的上一个字：第一条已不可改
+  const stale = api.call('correct', { slot: 'A', recordId: first, to: 'wrong' });
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error.kind, 'stale');
+  assert.equal(api.call('correct', { slot: 'A', recordId: first, action: 'state' }).error.kind, 'stale');
+  assert.equal(api.call('correct', { slot: 'A', recordId: 'nope', action: 'state' }).error.kind, 'stale');
+  assert.equal(api.call('correct', { slot: 'A', recordId: second, to: 'correct' }).ok, true);
+  // 没有结果行（会话槽为空）也不开放
+  assert.equal(apiOn(fakeStore()).call('correct', { slot: 'A', recordId: first, action: 'state' }).error.kind, 'stale');
+});
+
+test('correct op state: sheet data = the record (char, judgment, own strokes from the stored ink); a failed write changes nothing and the retry applies once', () => {
+  const store = withInk(fakeStore());
+  const api = apiOn(store);
+  nativeJudge(api, store, 'correct', [STROKE_A, STROKE_B]);
+  const rid = lastRecord(store).id;
+  const sheet = api.call('correct', { slot: 'A', recordId: rid, action: 'state' });
+  assert.equal(sheet.ok, true);
+  assert.equal(sheet.char, '永');
+  assert.equal(sheet.judgment, 'correct');
+  assert.equal(sheet.paper, false);
+  assert.equal(sheet.strokes.length, 2, 'both strokes of the learner');
+  assert.equal(sheet.strokes[0].length, STROKE_A.length);
+  assert.ok(Math.abs(sheet.strokes[0][0][0] - STROKE_A[0].x) <= 0.06, 'raw points (Ink v4)');
+  assert.equal(sheet.strokes[1][0].length, 4, 'pressure kept');
+  const before = store.getState();
+  store.failures = 1;
+  const failed = api.call('correct', { slot: 'A', recordId: rid, to: 'wrong' });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.error.kind, 'generic');
+  assert.equal(store.getState(), before, 'D07: nothing changed');
+  assert.equal(failed.snapshot.line.text, writeSnapshot(before, 'A').line.text);
+  const retry = api.call('correct', { slot: 'A', recordId: rid, to: 'wrong' });
+  assert.equal(retry.ok, true);
+  assert.equal(lastRecord(store).corrections.length, 1);
+  // 没有存墨迹（无 getInk、也没记下）→ 弹层「这一次没有留下笔迹」
+  const bare = fakeStore();
+  nativeJudge(apiOn(bare), bare, 'correct', [STROKE_A]);
+  assert.deepEqual(apiOn(bare).call('correct', { slot: 'A', recordId: lastRecord(bare).id, action: 'state' }).strokes, []);
+});
+
+test('correct op: native copy keys for the sheet are all in the open payload (title, two cards, note, buttons, three-part failure)', () => {
+  const copy = apiOn(fakeStore()).call('open', { slot: 'A' }).copy;
+  for (const k of ['X-JUDGE.changeTitle', 'X-JUDGE.changeToWrong', 'X-JUDGE.changeToCorrect', 'X-JUDGE.changeCancel', 'R-W10.changeBodyCorrect', 'R-W10.changeBodyWrong',
+    'R-W10.changeFailed', 'R-W10.retry', 'R-W10.cancel', 'R-W09.labelMine', 'R-W09.labelReference', 'R-W17.noInk', 'R-D07.noInkLarge', 'R-W16.saveFailed', 'R-W16.retry', 'R-W16.cancel']) {
+    assert.equal(copy[k], t(k), k);
+  }
 });

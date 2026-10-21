@@ -36,6 +36,12 @@ export const role = Object.freeze(Object.fromEntries(Object.entries(ROLE_KEYS).m
 export const moment = Object.freeze({
   judgeAppear: 320,
   judgeReady: 440,
+  // M23 判断落定（时刻编排 ②）：本人笔迹 0–settleLift 离纸（缩到 settleLiftScale）、之后按 gather 曲线收进页头计数（settleCountBox pt 见方），settleFadeFrom–settleEnd 淡出
+  settleLift: 100,
+  settleFadeFrom: 380,
+  settleEnd: 460,
+  settleCountBox: 14,
+  settleLiftScale: 0.97,
   answerReveal: 400,
   workCellIn: 180,
   workStagger: 50,

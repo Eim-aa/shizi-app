@@ -12,7 +12,7 @@ import { ROOT } from './core/helpers.mjs';
 import { NATIVE_WRITE_COPY_KEYS } from '../src/ui/screens/write/native-session.js';
 
 const DIR = path.join(ROOT, 'ios/ShiziApp/ShiziApp');
-const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift'];
+const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift'];
 const SURFACE = ['NativeInkView.swift', 'InkModel.swift', 'NativeInkWire.swift'];
 const HAN = /[㐀-鿿＀-￯　-〿]/;
 
@@ -30,7 +30,7 @@ test('native write sources: no Chinese string literals (copy comes from src/conf
 });
 
 test('native write sources: every copy key the page asks for is shipped in the open payload', () => {
-  const src = fs.readFileSync(path.join(DIR, 'NativeWriteViewController.swift'), 'utf8');
+  const src = ['NativeWriteViewController.swift', 'NativeJudge.swift'].map(f => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n');
   const used = [...new Set([...src.matchAll(/tr\("([A-Z][\w-]*\.\w+)"/g)].map(m => m[1]))];
   assert.ok(used.length >= 10);
   for (const k of used) assert.ok(NATIVE_WRITE_COPY_KEYS.includes(k), `${k} missing from NATIVE_WRITE_COPY_KEYS`);
@@ -77,4 +77,15 @@ test('B2.2: the native write page does not depend on the DEBUG spike (wire / col
   const spike = fs.readFileSync(path.join(DIR, 'NativeInkSpike.swift'), 'utf8');
   assert.match(spike, /NativeInkWire\.parseColor/);
   assert.match(spike, /NativeInkWire\.rawStrokes/);
+});
+
+test('B2.5: the judge page times come from the page (motion.settle / easeOut), not from the Swift source', () => {
+  const src = code(fs.readFileSync(path.join(DIR, 'NativeJudge.swift'), 'utf8'));
+  // M23 的时刻 / 缩放 / 曲线只出现在 open 回包里；原生源码里不得写死
+  assert.ok(!/\b(100|380|460)\b/.test(src.replace(/\b(100)\b(?=\s*\/\s*1000)/g, '')), 'no hard-coded settle milliseconds');
+  assert.ok(!/0\.97|0\.985|0\.015/.test(src), 'no hard-coded lift scale');
+  assert.ok(!/0\.5,\s*0,\s*0\.15|0\.2,\s*0\.7/.test(src), 'no hard-coded bezier');
+  const vc = code(fs.readFileSync(path.join(DIR, 'NativeWriteViewController.swift'), 'utf8'));
+  assert.match(vc, /NativeSettleSpec\(motion:/);
+  assert.match(vc, /NativeBezier\.timing\(easeOut\)/);
 });

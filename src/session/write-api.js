@@ -7,20 +7,21 @@
 
 import { getStore } from '../store/store.js';
 import { t } from '../config/copy/index.js';
-import { currentCardKey, isComplete } from '../core/sessions.js';
-import { charOfCardKey } from '../core/records.js';
+import { canCorrect, currentCardKey, isComplete } from '../core/sessions.js';
+import { charOfCardKey, isJudged, isPaperRecord } from '../core/records.js';
+import { decodeInk, decodeInkRaw } from '../core/ink-math.js';
 import { capitalCard, cardForKey, withWordOff } from '../data/deck.js';
 import { M } from '../config/motion.js';
 import * as policy from '../config/policy.js';
 import {
-  answerInkKey, commitComparePhase, commitHint, commitHintStep, commitJudgment, commitRecover, commitStrokes, hintAnnouncement, hintButtonModel,
+  answerInkKey, commitComparePhase, commitCorrection, commitHint, commitHintStep, commitJudgment, commitRecover, commitStrokes, hintAnnouncement, hintButtonModel,
   hintNoteModel, hintSourceOfCount, hintStep, HINT_FADE_IN_MS, HINT_FADE_OUT_MS, HINT_MATCH_MAX_DIST, PEN_ARM_MS, promptCells, REDUCED_FADE_MS,
-  resultRowModel, storedStrokes,
+  findRecord, recalledInk, resultRowModel, storedStrokes,
 } from './write-ops.js';
 import { commitFinish } from './result-ops.js';
 
-/** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
-export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint']);
+/** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
+export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct']);
 
 /** 原生写字页用到的文案键（值取自 src/config/copy，原生不另存一份）。 */
 export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
@@ -36,6 +37,19 @@ export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'R-W09.labelMine',
   'R-W09.mineCardLabel',
   'R-W09.refCardLabelChar',
+  'R-W09.labelReference',
+  'R-W10.changeBodyCorrect',
+  'R-W10.changeBodyWrong',
+  'R-W10.changeFailed',
+  'R-W10.retry',
+  'R-W10.cancel',
+  'R-D07.noInkLarge',
+  'R-W17.noInk',
+  'X-JUDGE.changeTitle',
+  'X-JUDGE.changeToWrong',
+  'X-JUDGE.changeToCorrect',
+  'X-JUDGE.changeCancel',
+  'X-JUDGE.paperMineBox',
   'R-W14.btnSkip',
   'R-W15.end',
   'R-W16.saveFailed',
@@ -148,6 +162,7 @@ export function writeTiming() {
  * 原生写字页的动效时长（ms；单一来源 src/config/motion.js 与提示层常量，交互规范 T0 T-phase / T1）。
  * fade：T-phase 交叉淡化；textOut：文字类先出（新的在 textOut → fade 淡入）；inkFlip：回忆 → 判断本人墨纯缩放；phaseReverse：判断 → 回忆倒放；
  * reduce：减少动态效果的淡化；hintIn / hintOut：提示整组淡入、被收掉的那一笔淡出；hintReduced：减少动态效果时两者。
+ * easeOut / settle：B2.5（上面第二块注释）。
  */
 export function writeMotion() {
   return {
@@ -159,6 +174,12 @@ export function writeMotion() {
     hintIn: HINT_FADE_IN_MS,
     hintOut: HINT_FADE_OUT_MS,
     hintReduced: REDUCED_FADE_MS,
+    // B2.5：回忆 ⇄ 判断的缓动（ease.out 控制点）与判断落定 M23（时刻 ms、离纸缩放、收进计数的方框边长 pt、gather 曲线控制点）
+    easeOut: [...M.bezier.out],
+    settle: {
+      lift: M.moment.settleLift, fadeFrom: M.moment.settleFadeFrom, end: M.moment.settleEnd, countBox: M.moment.settleCountBox,
+      liftScale: M.moment.settleLiftScale, gather: [...M.bezier.gather],
+    },
   };
 }
 
@@ -199,6 +220,33 @@ export function copyBundle(keys = NATIVE_WRITE_COPY_KEYS) {
     }
   }
   return out;
+}
+
+/**
+ * 改判弹层「你的书写」的原始笔画（桥上紧凑格式）：存下的墨迹（v4 原始点；v3 / v2 旧数据取解出的点，原生按笔锋模型近似重算宽度，规格 §6.4）→
+ * 本页面刚判断时记下的笔画（perRecordInk 关时）→ 没有（[]，弹层显示「这一次没有留下笔迹」）。网页弹层 result-row.js inkOfRecord 的同一个次序。
+ */
+function sheetStrokes(store, record) {
+  let ink = null;
+  try {
+    ink = store.getInk(record);
+  } catch (error) {
+    ink = null;
+  }
+  if (ink) {
+    const raw = decodeInkRaw(ink);
+    if (raw) return strokesToWire(raw);
+    const decoded = decodeInk(ink);
+    if (decoded) return strokesToWire(decoded.map(pts => pts.map(q => ({ x: q.x, y: q.y, t: q.t, p: q.p }))));
+  }
+  return strokesToWire(recalledInk(record.id) || []);
+}
+
+/** 这条记录此刻能不能改（结果行仍是它、且 items 里有 fsrsBefore：sessions.canCorrect，D19）。 */
+function correctable(state, slot, recordId) {
+  const s = sessionOf(state, slot);
+  const record = findRecord(state, recordId);
+  return !!(s && s.lastLine && s.lastLine.recordId === recordId && canCorrect(s, recordId) && record && isJudged(record));
 }
 
 // ---------------------------------------------------------------- 会话 API
@@ -286,6 +334,25 @@ export function createWriteSessionApi(deps = {}) {
     },
     copy({ keys }) {
       return { ok: true, copy: copyBundle(Array.isArray(keys) ? keys : NATIVE_WRITE_COPY_KEYS) };
+    },
+    /**
+     * 改判（D19 / D66 ④；B2.5）：结果行「修改 ›」与改判弹层。网页弹层 result-row.js 的同一个 commitCorrection（同一条记录只改 judgment、追加 corrections，
+     * 从 fsrsBefore 重放本字此后的记录更新 sched；会话只把 lastLine 换成 'changed'，current 原样不动）。
+     *   action 'state'：只读，弹层要的数据——{recordId, char, judgment, paper, strokes}；已不能改（结果行换了 / 不是 judged）回 stale；
+     *   action 'apply'（缺省）：改。to = 'correct' | 'wrong'（原生按弹层打开时的判断取反后明示，重发不会改回去；省略 = 反过来，与网页 flip 同）。
+     *     结果行已不是这条记录 → stale（网页同样直接关弹层）。失败 {ok:false, error} 原生就地换三段式（R-W10），记录与 FSRS 不变。回包都带新快照。
+     */
+    correct({ slot, recordId, to, action = 'apply' }) {
+      const store = storeOf();
+      const state = store.getState();
+      if (action === 'state') {
+        if (!correctable(state, slot, recordId)) return { ok: false, error: { kind: 'stale' }, snapshot: snapshot(slot) };
+        const record = findRecord(state, recordId);
+        return { ok: true, recordId, char: record.char, judgment: record.judgment, paper: isPaperRecord(record), strokes: sheetStrokes(store, record) };
+      }
+      const r = commitCorrection(store, { slot, recordId, to: to === 'correct' || to === 'wrong' ? to : undefined });
+      if (!r || !r.ok) return { ok: false, error: plainError(r), snapshot: snapshot(slot) };
+      return { ok: true, recordId, judgment: r.record ? r.record.judgment : null, snapshot: snapshot(slot) };
     },
     /**
      * 提示（D64 ①、D66 ②；B2.2）。与网页 useHint 同一组函数（src/session/ops/hint.js）。原生自己读包里同一份 data/<字>.json，只把总笔数 totalStrokes 交来

@@ -16,7 +16,7 @@ const fmt = f => (f ? `(${f.x}, ${f.y}) ${f.w}×${f.h}` : '无');
 
 export const CHECKS = [
   {
-    id: 'NP-02', status: 'expected-fail', level: '高', title: '首练第 1 字回忆阶段格下说明句（凭记忆写；想不起来，点下面的「提示」。）与网页一致',
+    id: 'NP-02', status: 'pass', level: '高', title: '首练第 1 字回忆阶段格下说明句（凭记忆写；想不起来，点下面的「提示」。）与网页一致',
     states: ['first-recall'],
     eval({ web, native }) {
       const notes = web.filter(e => e.kind === 'text' && ['write-note', 'write-first-tip'].includes(e.id) && e.text);
@@ -26,7 +26,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-03', status: 'expected-fail', level: '高', title: '看答案后（描一遍）题面空格里显示答案字',
+    id: 'NP-03', status: 'pass', level: '高', title: '看答案后（描一遍）题面空格里显示答案字',
     states: ['trace'],
     eval({ px }) {
       const w = px.web.blankInk, n = px.native.blankInk;
@@ -43,7 +43,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-05', status: 'expected-fail', level: '高', title: '书写格纸色格底与十字辅助线与网页一致',
+    id: 'NP-05', status: 'pass', level: '高', title: '书写格纸色格底与十字辅助线与网页一致',
     states: ['recall', 'judge', 'trace', 'retrace'],
     eval({ px, tolerance }) {
       const d = colorDelta(px.web.gridBg, px.native.gridBg);
@@ -53,7 +53,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-07', status: 'expected-fail', level: '中', title: '同一组笔画的墨粗与网页接近（±25%）（NP-21 结果页缩略墨迹同源）',
+    id: 'NP-07', status: 'pass', level: '中', title: '同一组笔画的墨粗与网页接近（±25%）（NP-21 结果页缩略墨迹同源）',
     states: ['recall-ink'],
     eval({ px }) {
       const w = px.web.inkThick, n = px.native.inkThick;
@@ -62,7 +62,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-08', status: 'expected-fail', level: '中', title: '页头阶段标题（描一遍 / 凭记忆写 / 写对了吗）字号、字重、颜色与网页一致',
+    id: 'NP-08', status: 'pass', level: '中', title: '页头阶段标题（描一遍 / 凭记忆写 / 写对了吗）字号、字重、颜色与网页一致',
     states: ['trace', 'retrace', 'judge'],
     eval({ web, native, tolerance }) {
       const w = web.find(e => e.tag === 'h1' && !e.srOnly);
@@ -73,7 +73,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-09', status: 'expected-fail', level: '中', title: '提示 / 看答案 / 撤销 / 清空的图标尺寸与网页一致、不随字号放大（NP-18 同源）',
+    id: 'NP-09', status: 'pass', level: '中', title: '提示 / 看答案 / 撤销 / 清空的图标尺寸与网页一致、不随字号放大（NP-18 同源）',
     states: ['recall'],
     eval({ web, native, tolerance }) {
       const bad = [];
@@ -97,7 +97,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-11', status: 'expected-fail', level: '中', title: '看答案流程说明句左对齐（与网页同位置）',
+    id: 'NP-11', status: 'pass', level: '中', title: '看答案流程说明句左对齐（与网页同位置）',
     states: ['trace', 'retrace'],
     eval({ web, native, tolerance }) {
       const w = web.find(e => e.id === 'write-note' && e.text);
@@ -109,7 +109,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-12', status: 'expected-fail', level: '中', title: '主按钮「写好了」（可点）底色与网页一致（深色）',
+    id: 'NP-12', status: 'pass', level: '中', title: '主按钮「写好了」（可点）底色与网页一致（深色）',
     states: ['recall-ink'], appearances: ['dark'],
     eval({ web, native, tolerance }) {
       const w = byKey(web, 'primary'), n = byKey(native, 'primary');
@@ -146,7 +146,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-15', status: 'expected-fail', level: '低', title: '页头「跳过」「结束这组」字号与位置与网页一致',
+    id: 'NP-15', status: 'pass', level: '低', title: '页头「跳过」「结束这组」字号与位置与网页一致',
     states: ['recall'],
     eval({ web, native, tolerance }) {
       const bad = [];
@@ -160,7 +160,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-16', status: 'expected-fail', level: '低', title: '返回「‹」图标尺寸与网页一致',
+    id: 'NP-16', status: 'pass', level: '低', title: '返回「‹」图标尺寸与网页一致',
     states: ['recall'],
     eval({ web, native, tolerance }) {
       const w = byKey(web, 'back'), n = byKey(native, 'back');
@@ -169,7 +169,7 @@ export const CHECKS = [
     },
   },
   {
-    id: 'NP-17', status: 'expected-fail', level: '低', title: '题面与书写格的纵向位置与网页一致（±1pt）',
+    id: 'NP-17', status: 'pass', level: '低', title: '题面与书写格的纵向位置与网页一致（±1pt）',
     states: ['recall'],
     eval({ web, native, tolerance }) {
       const w = byKey(web, 'grid'), n = byKey(native, 'grid');

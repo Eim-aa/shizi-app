@@ -150,7 +150,7 @@ struct NativeType {
 
     private static let fallback: [String: (CGFloat, UIFont.TextStyle)] = [
         "fs13": (13, .footnote), "lh13": (20, .footnote), "fs15": (15, .subheadline), "lh15": (22, .subheadline),
-        "fs17": (17, .body), "lh17s": (22, .body), "fs22": (22, .title2), "lh22": (30, .title2), "btn-h": (54, .body),
+        "fs17": (17, .body), "lh17": (26, .body), "lh17s": (22, .body), "fs28": (28, .title1), "fs22": (22, .title2), "lh22": (30, .title2), "btn-h": (54, .body),
     ]
 
     func value(_ name: String) -> CGFloat {

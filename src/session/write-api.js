@@ -15,19 +15,20 @@ import { M } from '../config/motion.js';
 import * as policy from '../config/policy.js';
 import {
   answerInkKey, canEndGroup, commitAnswerNext, commitAnswerPhase, commitAnswerSeen, commitComparePhase, commitCorrection, commitEndGroup, commitHint, commitHintStep,
-  commitJudgment, commitRecover, commitSkip, commitStrokes, commitUndoSkip, endConfirmCounts, hintAnnouncement, hintButtonModel,
+  commitFirstTipSeen, commitJudgment, commitRecover, commitSkip, commitStrokes, commitUndoSkip, endConfirmCounts, firstTipDue, hintAnnouncement, hintButtonModel,
   hintNoteModel, hintSourceOfCount, hintStep, HINT_FADE_IN_MS, HINT_FADE_OUT_MS, HINT_MATCH_MAX_DIST, PEN_ARM_MS, promptCells, REDUCED_FADE_MS,
   findRecord, recalledInk, resultRowModel, storedStrokes,
 } from './write-ops.js';
 import { commitFinish } from './result-ops.js';
 
-/** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct，B2.4 / B2.6 加 showAnswer / answerPhase / answerNext / skip / undoSkip / end；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
-export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end']);
+/** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct，B2.4 / B2.6 加 showAnswer / answerPhase / answerNext / skip / undoSkip / end，R9-A 加 firstTip；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
+export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip']);
 
 /** 原生写字页用到的文案键（值取自 src/config/copy，原生不另存一份）。 */
 export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'R-W01.progress',
   'R-W01.progressLabel',
+  'X-WRITE.firstTip',
   'R-W03.titleRecall',
   'R-W03.titleCompare',
   'R-W05.hintLabel',
@@ -112,10 +113,11 @@ function sessionOf(state, slot) {
   return state && state.sessions ? state.sessions[slot] || null : null;
 }
 
-function promptOf(state, cardKey, queue) {
+// revealed：看答案 · 描一遍阶段把目标字填回空格（网页 Prompt 同一个 REVEAL_PHASES 规则；R9-A NP-03）。回忆 / 判断阶段 fill 恒为 null（D16 / D49）。
+function promptOf(state, cardKey, queue, revealed = false) {
   const card = withWordOff(capitalCard(cardForKey(cardKey), queue), state ? state.wordOff : null);
-  const model = promptCells(card, { revealed: false });
-  return { cells: model.cells.map(c => ({ kind: c.kind, text: c.text, label: c.label })), hint: model.hint };
+  const model = promptCells(card, { revealed });
+  return { cells: model.cells.map(c => ({ kind: c.kind, text: c.text, label: c.label, fill: c.fill || null })), hint: model.hint };
 }
 
 /**
@@ -153,7 +155,9 @@ export function writeSnapshot(state, slot) {
     hints: s.current && Number.isInteger(s.current.hints) ? s.current.hints : 0,
     hintRange: s.current && s.current.hintRange ? { from: s.current.hintRange.from, to: s.current.hintRange.to } : null,
     answerSeen: !!(s.current && s.current.answerSeen),
-    prompt: promptOf(state, cardKey, s.queue),
+    prompt: promptOf(state, cardKey, s.queue, answerPhase === 'trace'),
+    // 首练第 1 字格下的一次性提示（网页 first-tip.js 同一个 firstTipDue；出现即经 op firstTip 记 settings.firstTipSeen，R9-A NP-02）
+    firstTip: firstTipDue({ settings: state ? state.settings : null, session: s, phase: raw === 'compare' || answerPhase ? 'other' : 'recall' }),
     lastLine: s.lastLine ? { ...s.lastLine } : null,
     line: lineOf(s, state),
   };
@@ -477,6 +481,11 @@ export function createWriteSessionApi(deps = {}) {
     },
     copy({ keys }) {
       return { ok: true, copy: copyBundle(Array.isArray(keys) ? keys : NATIVE_WRITE_COPY_KEYS) };
+    },
+    /** 首练第 1 字的一次性提示出现了（R9-A NP-02）：与网页 useFirstTip 同一个 commitFirstTipSeen（只记一次；P52 失败不阻断）。 */
+    firstTip() {
+      const r = commitFirstTipSeen(storeOf());
+      return r && r.ok ? { ok: true } : { ok: false, error: plainError(r) };
     },
     /**
      * 改判（D19 / D66 ④；B2.5）：结果行「修改 ›」与改判弹层。网页弹层 result-row.js 的同一个 commitCorrection（同一条记录只改 judgment、追加 corrections，

@@ -58,6 +58,8 @@ export function assignKeys(list, side) {
   for (const e of list) {
     if (side === 'web' && e.tag === 'h1' && !e.srOnly) { e.key = 'title'; continue; }
     if (side === 'native' && e.id === 'native-write-progress') { e.key = /^\d+ \/ \d+$/.test(String(e.text || '').trim()) ? 'progress' : 'title'; continue; }
+    // 主按钮只认底栏满宽的那一枚（.sz-btn--primary）：描一遍阶段求助行的「下一个」也用 write-answer-next 这个 testid（answer.js nextLink），它按文字配对
+    if (side === 'web' && e.id === 'write-answer-next' && !/\bsz-btn--primary\b/.test(e.class || '')) continue;
     for (const k of KEYS) {
       const hit = k[side].some(sel => {
         const [type, rest] = sel.split(':');

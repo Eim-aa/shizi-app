@@ -77,7 +77,7 @@ function apiOn(store, navigate = quietNav) {
 }
 
 test('ops: the named set; unknown op is rejected without throwing', () => {
-  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end']);
+  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip']);
   const r = apiOn(fakeStore()).call('nope', {});
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'unknown-op');
@@ -844,4 +844,45 @@ test('end: D07 — failure keeps the group (retry ends it once); stale after it 
   first.sessions.A = createSession({ id: 's2', kind: 'first', queue: CHARS.map(c => 'base:' + c), at: T0 });
   assert.equal(writeSnapshot(first, 'A').canEnd, false, 'no 结束这组 in the first practice (D66 ⑥)');
   assert.equal(apiOn(fakeStore(first)).call('end', { slot: 'A', sessionId: 's2' }).error.kind, 'stale');
+});
+
+// ---- R9-A：首练一次性提示 / 看答案后题面填字 / 字号倍率表 ----------------------------------------------------------
+
+import { commitFirstTipSeen, firstTipDue } from '../../src/ui/screens/write/first-tip.js';
+import { promptCells } from '../../src/ui/screens/write/prompt.js';
+import { cardForKey } from '../../src/data/deck.js';
+
+function firstState() {
+  const s = createSession({ id: 's9', kind: 'first', queue: CHARS.map(c => 'base:' + c), at: T0 });
+  return { records: {}, sched: {}, ink: {}, sessions: { A: s, B: null, lastEnded: {} }, settings: {}, meta: null, wordOff: {} };
+}
+
+test('firstTip: snapshot says due exactly when the web useFirstTip would show it; the op = commitFirstTipSeen (once)', () => {
+  const viaWeb = fakeStore(firstState());
+  const viaApi = fakeStore(firstState());
+  const s0 = viaApi.getState();
+  assert.equal(writeSnapshot(s0, 'A').firstTip, firstTipDue({ settings: s0.settings, session: s0.sessions.A, phase: 'recall' }));
+  assert.equal(writeSnapshot(s0, 'A').firstTip, true);
+  assert.equal(writeSnapshot(initialState(), 'A').firstTip, false, 'daily session: no tip');
+  commitFirstTipSeen(viaWeb);
+  const r = apiOn(viaApi).call('firstTip', {});
+  assert.equal(r.ok, true);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  assert.equal(writeSnapshot(viaApi.getState(), 'A').firstTip, false, 'shown once');
+  apiOn(viaApi).call('firstTip', {});
+  assert.deepEqual(viaApi.labels, viaWeb.labels, 'already seen: no second write');
+  assert.ok(copyBundle()['X-WRITE.firstTip']);
+});
+
+test('prompt fill: the blank cell carries the answer only in the trace phase (web REVEAL_PHASES), never in recall / retrace (D16)', () => {
+  const store = fakeStore(reviewState());
+  const recall = writeSnapshot(store.getState(), 'A');
+  assert.ok(recall.prompt.cells.every(c => c.fill === null));
+  const r = apiOn(store).call('showAnswer', { slot: 'A', cardKey: 'base:永' });
+  const web = promptCells(cardForKey('base:永'), { revealed: true });
+  assert.deepEqual(r.snapshot.prompt.cells.map(c => c.fill), web.cells.map(c => c.fill));
+  assert.equal(r.snapshot.prompt.cells[1].fill, '永');
+  const back = apiOn(store).call('answerPhase', { slot: 'A', cardKey: 'base:永', phase: 'retrace', strokes: [] });
+  assert.ok(back.snapshot.prompt.cells.every(c => c.fill === null));
 });

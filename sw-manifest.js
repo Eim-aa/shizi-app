@@ -1,7 +1,7 @@
 // 由 scripts/build_shell_manifest.mjs 生成，勿手改。sw.js 以 importScripts('./sw-manifest.js') 读取（01 §8.3）。
 // 升级的唯一入口：本文件或 sw.js 的字节变化 → 浏览器装新 worker。build 与 src/build-info.js、index.html meta 同源。
 self.SHIZI_SW_MANIFEST = {
-  build: "20261021-9acfc0588938",
+  build: "20261021-f67b5334c77f",
   // 核心壳：Cache.addAll 原子预缓存，任何一项失败 = 安装失败
   shell: [
     "core-strokes.js?v=0c49190f86d3",
@@ -84,6 +84,21 @@ self.SHIZI_SW_MANIFEST = {
     "src/platform/sw.js",
     "src/platform/test-hooks.js",
     "src/platform/text-size.js",
+    "src/session/ops/answer.js",
+    "src/session/ops/end.js",
+    "src/session/ops/first-result.js",
+    "src/session/ops/first-tip.js",
+    "src/session/ops/hint.js",
+    "src/session/ops/judge.js",
+    "src/session/ops/line.js",
+    "src/session/ops/prompt.js",
+    "src/session/ops/result.js",
+    "src/session/ops/skip.js",
+    "src/session/ops/strokes.js",
+    "src/session/ops/work.js",
+    "src/session/result-ops.js",
+    "src/session/write-api.js",
+    "src/session/write-ops.js",
     "src/store/budget.js",
     "src/store/migrate.js",
     "src/store/native-backend.js",

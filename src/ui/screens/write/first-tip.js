@@ -10,22 +10,9 @@
 import { html, useEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { t } from '../../../config/copy/index.js';
 
-/** 这一刻要不要出现：首练第 1 字、回忆阶段、从没出现过。纯函数。 */
-export function firstTipDue({ settings = null, session = null, phase = 'recall' } = {}) {
-  if (!session || session.kind !== 'first' || session.cursor !== 0) return false;
-  if (phase !== 'recall') return false;
-  return !(settings && settings.firstTipSeen === true);
-}
-
-/** 记下提示已出现过（settings.firstTipSeen = true，只出现一次）。已记过不写。 */
-export function commitFirstTipSeen(store) {
-  const cur = store.getState().settings;
-  if (cur && cur.firstTipSeen === true) return { ok: true, keys: [], skipped: true };
-  return store.commit('write:first-tip', draft => {
-    draft.settings = { ...(draft.settings || {}), firstTipSeen: true };
-  });
-}
-
+// B2.1：提交函数与纯模型挪到无 DOM 的 src/session/（src/session/write-ops.js）；这里导入并原名转出，原导入路径照旧可用。
+import { firstTipDue, commitFirstTipSeen } from '../../../session/write-ops.js';
+export { firstTipDue, commitFirstTipSeen };
 /**
  * @param {{settings:object|null, session:object|null, phase:string, strokeCount:number, hinted:boolean, blocked:boolean, getStore:()=>object}} o
  *   blocked：格下说明位已被别的非阻断建议占着（读屏的「改为在纸上写」）。

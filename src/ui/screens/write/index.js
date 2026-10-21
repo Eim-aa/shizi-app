@@ -71,8 +71,9 @@ import { AX_GRID_MIN, AX_NOTE_H, AX_BELOW_H, FOOT_BOTTOM_MIN, TOOL_ROW_H } from 
 import { NativeWriteHost, nativeWriteEnabled } from './native-session.js'; // B2.0：开关打开时本条目由原生写字页显示（默认关）
 
 export const WRITE_SCREEN = 'write';
-/** 换字后书写格的落笔门限（01 §6.6 / 走查-V01；P227：300 → 250，门限内的笔先持住、到点补画，不再丢弃）。 */
-export const PEN_ARM_MS = 250;
+// 换字后书写格的落笔门限（P227）：B2.1 起定义在 src/session（原生书写面经写字会话 API 拿同一个值）；这里转出，原导入路径照旧可用。
+import { PEN_ARM_MS } from '../../../session/write-ops.js';
+export { PEN_ARM_MS };
 
 // 阶段 → 标题（R-W03）。trace（描一遍）的标题在 R-W03 没有槽位，取原型 L553（copy X-ANSWER.titleTrace，M1-4）。
 const TITLE_KEYS = Object.freeze({

@@ -230,3 +230,11 @@ test('open: recovery is idempotent (a judged-but-not-advanced card is advanced o
   assert.equal(again.recovered, false);
   assert.equal(Object.values(half.getState().records).flat().length, 1);
 });
+
+test('open: timing for the native surface comes from the same source as the web page (P227 pen arm, M1 judge keys)', async () => {
+  const { PEN_ARM_MS } = await import('../../src/ui/screens/write/index.js');
+  const { M } = await import('../../src/config/motion.js');
+  const r = apiOn(fakeStore()).call('open', { slot: 'A' });
+  assert.deepEqual(r.timing, { penArmMs: PEN_ARM_MS, judgeAppearMs: M.moment.judgeAppear, judgeReadyMs: M.moment.judgeReady });
+  assert.equal(r.timing.penArmMs, 250);
+});

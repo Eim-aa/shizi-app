@@ -44,9 +44,7 @@ export function kuan({ day = null, month = null, n = null, part = 0, of = 1, bra
  * 首练结果页标题「这三个字，很多人提笔就忘。」：固定说这一组（首练恒为 3 个字），不按作品里有几格取数（C3-H / N3-07、D53，03 P248：
  * 「这一个字」不是自然的中文，而且让没写出来的字被排除在这句安慰之外）；作品的字数交给落款。
  */
-export function firstTitle() {
-  return t('X-FIRST.title');
-}
+export { firstTitle } from '../session/result-ops.js'; // B2.1：结果页数据挪到 src/session，标题函数随之（同一个函数）
 
 /** 年报卷首：年份「二〇二六」、一句话「这一年，你写过二百九十个字。」、「四月二十六日的笔迹」（纸面汉字）。 */
 export function annualYearText(year) {

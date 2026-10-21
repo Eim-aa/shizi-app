@@ -105,7 +105,6 @@ export const EXCEPTIONS = Object.freeze([
   { rule: 'motion', file: 'src/ui/router.js', snippet: 'PENDING_TIMEOUT_MS = 1000', why: 'history.back() 之后等 popstate 的上限（导航兜底），不是动画时长' },
   { rule: 'motion', file: 'src/ui/router.js', snippet: 'GESTURE_ABSORB_MS = 600', why: '原生 shizi-native-back 归入同一次手势的时间窗（事件去重），不是动画时长' },
   { rule: 'motion', file: 'src/ui/screens/home/index.js', snippet: 'CLOCK_TICK_MS = 30000', why: '首页日期 / 时段重算间隔（时钟），不是动画' },
-  { rule: 'motion', file: 'src/ui/screens/write/index.js', snippet: 'PEN_ARM_MS = 250', why: '换字后早到的落笔先缓存、到点补画的窗口（P227，输入处理，不丢笔），不是动画时长' },
   { rule: 'motion', file: 'src/ui/components/Toast.js', snippet: '.sz-toast__timer{animation:none}', why: '提示条底边的计时线是进度指示（scaleX），减少动态效果下不做缩放、静止显示；提示条本身仍是 150ms 淡化' },
 ]);
 

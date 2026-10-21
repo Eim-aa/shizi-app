@@ -27,7 +27,6 @@
 import { html, useEffect, useLayoutEffect, useReducer, useRef, useState } from '../../../../vendor/ui.js';
 import { nextHintRange, hintButtonState, hintButtonCopy, hintsAllGiven } from '../../../core/hints.js';
 import { commitAnswerSeen } from './answer.js';
-import { currentCardKey, withCurrent } from '../../../core/sessions.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { t } from '../../../config/copy/index.js';
 import { watchStrokes, peekStrokes } from '../../../data/strokes.js';
@@ -303,20 +302,9 @@ export function reduceHintView(view, action) {
   }
 }
 
-/**
- * store.commit 的 mutator 主体：把 {hints?, hintRange} 写进 draft.sessions[slot].current。
- * 会话 / 当前字已经变了（换字、会话结束）就不写，返回 false。
- */
-export function applyHintToDraft(draft, { slot, sessionId, cardKey, hints, hintRange }, at) {
-  const sessions = draft.sessions;
-  const s = sessions ? sessions[slot] : null;
-  if (!s || s.id !== sessionId || currentCardKey(s) !== cardKey || !s.current) return false;
-  const patch = { hintRange: hintRange ? { from: hintRange.from, to: hintRange.to } : null };
-  if (hints !== undefined) patch.hints = Math.max(Number(s.current.hints) || 0, hints);
-  draft.sessions = { ...sessions, [slot]: withCurrent(s, patch, at) };
-  return true;
-}
-
+// B2.1：提交函数与纯模型挪到无 DOM 的 src/session/（src/session/write-ops.js）；这里导入并原名转出，原导入路径照旧可用。
+import { applyHintToDraft, commitHint } from '../../../session/write-ops.js';
+export { applyHintToDraft, commitHint };
 // ---------------------------------------------------------------- 样式
 
 injectStyles('hint-layer', `
@@ -495,11 +483,7 @@ export function useHint({ slot, session, cardKey, char, phase, written, ownStrok
       store = null;
     }
     if (!store) return { ok: false, error: { kind: 'no-store' } };
-    let applied = false;
-    const result = store.commit(label, (draft, ctx) => {
-      applied = applyHintToDraft(draft, { slot: sl, sessionId: se.id, cardKey: ck, ...patch }, ctx.now);
-    });
-    const out = result && result.ok ? { ok: true, applied } : { ok: false, error: result && result.error };
+    const out = commitHint(store, { slot: sl, sessionId: se.id, cardKey: ck, ...patch }, label);
     lastCommitRef.current = { label, ...out };
     return out;
   }

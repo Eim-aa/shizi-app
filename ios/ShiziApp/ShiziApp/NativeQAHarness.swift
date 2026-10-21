@@ -617,7 +617,8 @@ final class QAProbe {
             }
             out["native"] = ["shown": true, "slot": vc.slot, "cardKey": vc.cardKey ?? "", "phase": phase, "strokes": vc.strokes.count,
                              "undoBar": vc.undoBarForTesting != nil, "endDialog": vc.endDialogForTesting != nil,
-                             "sheet": vc.presentedViewController != nil, "cursor": vc.snapshot["cursor"] as? Int ?? -1]
+                             "sheet": vc.presentedViewController != nil, "cursor": vc.snapshot["cursor"] as? Int ?? -1,
+                             "inkLog": vc.inkViewForTesting?.strokeLog ?? []]
         } else {
             out["native"] = ["shown": false]
         }

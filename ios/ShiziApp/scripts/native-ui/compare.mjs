@@ -21,6 +21,9 @@ const natDir = args.native;
 const outDir = args.out;
 const config = JSON.parse(readFileSync(args.config || join(here, 'parity.config.json'), 'utf8'));
 const tol = config.tolerance;
+/** 逐项豁免（parity.config.json waive：编号 → 理由）：照跑照记，失败不算回归。 */
+const waived = Object.fromEntries(Object.entries(config.waive || {}).filter(([k]) => !k.startsWith('//')));
+const statusOf = c => (waived[c.id] ? 'waived' : c.status);
 if (!refDir || !natDir || !outDir) {
   console.error('usage: node compare.mjs --ref <dir> --native <dir> --out <dir>');
   process.exit(2);
@@ -153,7 +156,7 @@ for (const name of pairsFound) {
     if (c.appearances && !c.appearances.includes(appearance)) continue;
     let r;
     try { r = c.eval({ state, tag: `${appearance}_${size}`, appearance, size, web, native, px, screen, tolerance: tol }); } catch (error) { r = { pass: false, detail: `检查出错：${error.message}` }; }
-    checks.push({ id: c.id, status: c.status, pass: !!r.pass, detail: r.detail });
+    checks.push({ id: c.id, status: statusOf(c), pass: !!r.pass, detail: r.detail });
   }
   results.push({ name, state, appearance, size, ok: webJson.ok && natJson.ok, errors: [webJson.error, natJson.error].filter(Boolean), diffs: kept.map(d => ({ type: d.type, aspects: d.aspects, label: d.label, msg: d.msg })), checks, px });
 }
@@ -172,18 +175,20 @@ for (const r of results) for (const c of r.checks || []) {
 const regressions = Object.values(checkSummary).filter(s => s.status === 'pass' && s.failed);
 const unexpectedPass = Object.values(checkSummary).filter(s => s.status === 'expected-fail' && !s.failed);
 const expectedFail = Object.values(checkSummary).filter(s => s.status === 'expected-fail' && s.failed);
+const waivedRuns = Object.values(checkSummary).filter(s => s.status === 'waived');
 const TYPE = { position: '位置', size: '尺寸', text: '文案', color: '颜色', font: '字号字重', state: '可点状态', icon: '图标', missing: '原生缺少', extra: '原生多出' };
 const md = [];
 md.push('# 原生 vs 网页 逐屏对比报告（QA-H1）', '');
 md.push(`- 对比 ${results.length} 屏（状态 × 外观 × 字号），差异 **${total}** 条（一个元素各方面合一条；原生缺少 / 多出各一条）；容差：位置 ±${tol.pos}pt、尺寸 ±${tol.size}pt、颜色通道 ±${tol.color}、字号 ±${tol.font}pt、字重 ±${tol.weight}`);
 md.push(`- 按类别（一条可含多类）：${Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${TYPE[k] || k} ${v}`).join('、') || '无'}`);
-md.push(`- 具名检查（AI 报告 NP-*）：预期失败（待修）${expectedFail.length} 条、意外通过 ${unexpectedPass.length} 条、回归 ${regressions.length} 条`);
+md.push(`- 具名检查（AI 报告 NP-*）：预期失败（待修）${expectedFail.length} 条、意外通过 ${unexpectedPass.length} 条、回归 ${regressions.length} 条、豁免 ${waivedRuns.length} 条`);
 const errs = results.filter(r => r.error || (r.errors && r.errors.length) || r.ok === false);
 if (errs.length) md.push(`- 取证出错 ${errs.length} 屏：${errs.map(r => `${r.name}（${r.error || r.errors.join('；')}）`).join('，')}`);
 md.push('', '## 具名检查', '', '| 编号 | 状态 | 结果 | 说明（最多 3 屏） |', '|---|---|---|---|');
 for (const c of CHECKS) {
   const s = checkSummary[c.id];
-  const res = !s ? '没跑到' : s.failed ? (c.status === 'expected-fail' ? `预期失败（待修）${s.failed}/${s.runs}` : `**回归** ${s.failed}/${s.runs}`) : (c.status === 'expected-fail' ? `**意外通过** ${s.runs}/${s.runs}（可改为 pass）` : `通过 ${s.runs}/${s.runs}`);
+  const res = waived[c.id] ? `豁免（${waived[c.id]}）${s ? `：不合 ${s.failed}/${s.runs}` : '：没跑到'}`
+    : !s ? '没跑到' : s.failed ? (c.status === 'expected-fail' ? `预期失败（待修）${s.failed}/${s.runs}` : `**回归** ${s.failed}/${s.runs}`) : (c.status === 'expected-fail' ? `**意外通过** ${s.runs}/${s.runs}（可改为 pass）` : `通过 ${s.runs}/${s.runs}`);
   md.push(`| ${c.id} | ${c.level} · ${c.title} | ${res} | ${(s && s.details.join('<br>')) || ''} |`);
 }
 for (const [id, where] of Object.entries(COVERED_ELSEWHERE)) md.push(`| ${id} | — | 见别处 | ${where} |`);
@@ -197,6 +202,6 @@ for (const r of results) {
 }
 writeFileSync(join(outDir, 'report.md'), md.join('\n'));
 writeFileSync(join(outDir, 'report.json'), JSON.stringify({ total, byType, checks: checkSummary, results }, null, 2));
-console.log(`compared ${results.length} screens: ${total} diffs (${Object.entries(byType).map(([k, v]) => `${k} ${v}`).join(', ')}); NP checks expected-fail ${expectedFail.length}, unexpected-pass ${unexpectedPass.length}, regressions ${regressions.length}`);
+console.log(`compared ${results.length} screens: ${total} diffs (${Object.entries(byType).map(([k, v]) => `${k} ${v}`).join(', ')}); NP checks expected-fail ${expectedFail.length}, unexpected-pass ${unexpectedPass.length}, regressions ${regressions.length}, waived ${waivedRuns.length}`);
 console.log(`report: ${join(outDir, 'report.md')}`);
 process.exitCode = regressions.length ? 1 : 0;

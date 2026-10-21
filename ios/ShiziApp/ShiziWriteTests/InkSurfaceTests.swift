@@ -363,3 +363,50 @@ final class InkSurfaceTests: XCTestCase {
         XCTAssertEqual(NSStringFromClass(NativeInkView.self), "ShiziNativeInkView", "verify-archive.sh looks for this name in Release")
     }
 }
+
+// R10-A（D71 ②）：书写格里起手的触摸归书写，左缘返回只在格外（页边）生效。
+// 根因：UIScreenEdgePanGestureRecognizer 的起手区（UIKit _UISEGestureFeatureSettings._edgeRegionSize = 40.2pt，真机按手指接触半径还会放宽）
+// 伸进书写格（x = 21 起）左侧约 20pt：那里起笔向右写，识别器开始 → 这一笔被取消、交互式返回回弹 → 「写完的笔画突然消失」。
+@MainActor
+final class EdgeBackVsInkTests: XCTestCase {
+    /// iPhone 13 / 17（宽 390）：书写格 x = 20、格线 1 → 书写面从 21 起。
+    private func inkFrame(width: CGFloat) -> CGRect {
+        let k = NativeWriteLayoutConstants()
+        let g = min(k.max, NativeWriteLayout.contentWidth(width, k))
+        return CGRect(x: (width - g) / 2, y: 225, width: g, height: g).insetBy(dx: 1, dy: 1)
+    }
+
+    func testGridTouchesNeverGoToTheEdgeBackRecognizer() {
+        for width in [CGFloat(375), 390, 393, 430] {
+            let f = inkFrame(width: width)
+            XCTAssertLessThan(f.minX, 40.2, "the system edge region reaches into the grid at width \(width) (why this rule exists)")
+            for x in stride(from: f.minX, through: f.maxX - 0.5, by: 0.5) {
+                for y in [f.minY, f.midY, f.maxY - 0.5] {
+                    XCTAssertFalse(NativeWriteViewController.edgeBackReceives(touchAt: CGPoint(x: x, y: y), inkFrame: f, inkDrawable: true),
+                                   "touch at (\(x), \(y)) inside the grid belongs to writing (width \(width))")
+                }
+            }
+        }
+    }
+
+    func testEdgeBackStillWorksFromTheMarginAndWhenTheGridCannotBeWritten() {
+        let f = inkFrame(width: 390)
+        for x in stride(from: CGFloat(0), to: f.minX, by: 0.5) {
+            XCTAssertTrue(NativeWriteViewController.edgeBackReceives(touchAt: CGPoint(x: x, y: f.midY), inkFrame: f, inkDrawable: true), "margin x=\(x)")
+        }
+        XCTAssertTrue(NativeWriteViewController.edgeBackReceives(touchAt: CGPoint(x: 10, y: f.minY - 30), inkFrame: f, inkDrawable: true), "above the grid")
+        XCTAssertTrue(NativeWriteViewController.edgeBackReceives(touchAt: CGPoint(x: 25, y: f.maxY + 30), inkFrame: f, inkDrawable: true), "below the grid")
+        // 判断页（书写面不可写）：上格不收笔，左缘照常
+        XCTAssertTrue(NativeWriteViewController.edgeBackReceives(touchAt: CGPoint(x: 25, y: f.midY), inkFrame: f, inkDrawable: false))
+    }
+}
+
+// D71 ①：写字页书写面回到 R9-A 之前的参数（= ink-model-1.0 默认值），T2 盲测定稿前不再改。
+final class InkSurfaceParamsTests: XCTestCase {
+    func testSurfaceParamsAreThePreR9AValues() {
+        let k = NativeInkView.surfaceParams
+        XCTAssertEqual(k.base, 13)
+        XCTAssertEqual(k.vMin, 0.62)
+        XCTAssertEqual(k.dirH, 0.72)
+    }
+}

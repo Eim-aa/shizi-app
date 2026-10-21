@@ -64,6 +64,91 @@ final class WriteFlowTests: XCTestCase {
         XCTAssertEqual(qa.session()["strokes"] as? Int, 2)
     }
 
+    /// R10-A（D71 ②）：书写格里任意位置起笔，每一笔都保留——笔画数 = 落笔数。九宫格各区与四边内 2–30pt（含左缘附近起笔向右写横，
+    /// 系统左缘识别器的起手区会伸进书写格）；每一笔的结局看 DEBUG 笔画日志（探针 native.inkLog：ended / cancel:<谁>）。
+    func test204_everyStrokeInTheGridIsKept() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        let g = qa.el("native-write-grid")
+        XCTAssertTrue(g.waitForExistence(timeout: 5))
+        let f = g.frame
+        var starts: [(String, CGPoint, CGVector)] = [] // 名字、格内起点（pt）、方向（pt）
+        for (i, fx) in [0.15, 0.5, 0.85].enumerated() {
+            for (j, fy) in [0.15, 0.5, 0.85].enumerated() {
+                starts.append(("cell\(i)\(j)", CGPoint(x: f.width * fx, y: f.height * fy), CGVector(dx: f.width * (fx < 0.6 ? 0.12 : -0.12), dy: 0)))
+            }
+        }
+        for d in [2.0, 6, 10, 16, 24, 30] { // 左缘：系统左缘识别器的起手区（40.2pt）盖到格内约 20pt
+            starts.append(("left\(Int(d))", CGPoint(x: d, y: f.height * 0.4), CGVector(dx: 90, dy: 0)))
+            starts.append(("leftLow\(Int(d))", CGPoint(x: d, y: f.height * 0.8), CGVector(dx: 90, dy: 4)))
+        }
+        for d in [2.0, 12, 30] {
+            starts.append(("right\(Int(d))", CGPoint(x: f.width - d, y: f.height * 0.4), CGVector(dx: -90, dy: 0)))
+            starts.append(("top\(Int(d))", CGPoint(x: f.width * 0.5, y: d), CGVector(dx: 0, dy: 90)))
+            starts.append(("bottom\(Int(d))", CGPoint(x: f.width * 0.5, y: f.height - d), CGVector(dx: 0, dy: -90)))
+            starts.append(("bottomLeft\(Int(d))", CGPoint(x: d, y: f.height - d), CGVector(dx: 80, dy: -40)))
+        }
+        var expected = 0
+        var lost: [String] = []
+        for (name, p, v) in starts {
+            let before = qa.native["strokes"] as? Int ?? -1
+            let a = g.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: p.x, dy: p.y))
+            // 慢写与快写（快写的横画最容易被左缘识别器认成返回：它按速度往回推算起手点）
+            a.press(forDuration: expected % 2 == 0 ? 0.05 : 0, thenDragTo: a.withOffset(v), withVelocity: expected % 2 == 0 ? 300 : 1200, thenHoldForDuration: 0.02)
+            Thread.sleep(forTimeInterval: 0.3)
+            let n = qa.native
+            let after = n["strokes"] as? Int ?? -1
+            if !qa.nativeShown { XCTFail("\(name): left the page"); break }
+            let log = n["inkLog"] as? [String] ?? []
+            if after != before + 1 || log.last?.hasPrefix("ended") != true {
+                lost.append("\(name) \(before)→\(after) log=\(log.suffix(3))")
+            }
+            // 左缘起手区里的格内起笔：左缘识别器被问到、并把触摸让给了书写（没有这一条 = 规则没接上）
+            if p.x + f.minX < 40, !log.suffix(4).contains("edge-back yields to ink") {
+                lost.append("\(name): edge-back recognizer was not refused; log=\(log.suffix(4))")
+            }
+            expected += 1
+            if after >= 10 { // 格里画满了：清空接着画（清空不影响要测的东西）
+                qa.tapNative("native-write-clear")
+                qa.waitProbe("cleared") { (($0["native"] as? [String: Any])?["strokes"] as? Int) == 0 }
+            }
+        }
+        XCTAssertEqual(lost, [], "every stroke started inside the grid is kept (\(starts.count) strokes)")
+    }
+
+    /// R10-A：快速连写（笔与笔之间不停）、写完立刻点「写好了」——每一笔都在，判断页与会话的笔数 = 落笔数；
+    /// 判断后下一个字（结果行在格下、说明位热区往上伸）第一笔落在格的左下 / 正下 / 右下边缘附近也保留。
+    func test205_rapidStrokesThenDoneKeepEveryStroke() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        let g = qa.el("native-write-grid")
+        XCTAssertTrue(g.waitForExistence(timeout: 5))
+        let starts: [CGVector] = [CGVector(dx: 0.03, dy: 0.3), CGVector(dx: 0.5, dy: 0.1), CGVector(dx: 0.05, dy: 0.6), CGVector(dx: 0.9, dy: 0.9)]
+        for p in starts {
+            let a = g.coordinate(withNormalizedOffset: p)
+            a.press(forDuration: 0, thenDragTo: a.withOffset(CGVector(dx: p.dx < 0.6 ? 80 : -80, dy: 10)), withVelocity: 1000, thenHoldForDuration: 0)
+        }
+        qa.el("native-write-done").tap()
+        qa.waitProbe("judge page with all strokes") { (($0["native"] as? [String: Any])?["phase"] as? String) == "compare" }
+        XCTAssertEqual(qa.native["strokes"] as? Int, starts.count, "log=\(qa.native["inkLog"] ?? "-")")
+        qa.waitProbe("session has every stroke") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["strokes"] as? Int == starts.count }
+        // 判断 → 下一个字：结果行出现，第一笔落在格下沿附近
+        Thread.sleep(forTimeInterval: 1.0) // 判断两键就绪
+        qa.tapNative("native-write-wrong")
+        qa.waitProbe("next card") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 1 }
+        Thread.sleep(forTimeInterval: 0.6)
+        let f = g.frame
+        var n = 0
+        for (dx, dy) in [(4.0, f.height - 4), (f.width / 2, f.height - 3), (f.width - 5, f.height - 6), (3.0, f.height / 2)] {
+            let a = g.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: dx, dy: dy))
+            a.press(forDuration: 0, thenDragTo: a.withOffset(CGVector(dx: dx < f.width / 2 ? 70 : -70, dy: -50)), withVelocity: 900, thenHoldForDuration: 0)
+            n += 1
+            Thread.sleep(forTimeInterval: 0.35)
+            XCTAssertEqual(qa.native["strokes"] as? Int, n, "stroke \(n) from (\(dx), \(dy)) kept; log=\((qa.native["inkLog"] as? [String] ?? []).suffix(3))")
+            XCTAssertFalse(qa.native["sheet"] as? Bool ?? false, "no sheet opened by a stroke")
+        }
+    }
+
     // MARK: §3 提示
 
     /// §3（D64 ①）：每点一次多给一段，可点到整字；整字给完按钮变灰、记看过答案。

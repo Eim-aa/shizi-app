@@ -3,6 +3,7 @@
 // status：
 //   'expected-fail'  已知问题、待修复卡转绿。失败 = 「预期失败（待修）」，不算回归；通过 = 「意外通过」，提示把 status 改成 'pass'。
 //   'pass'           应当通过；失败 = 回归。
+// 逐项豁免不改这里，写在 parity.config.json 的 waive（编号 → 理由）：照跑照记实测值，失败不算回归（NP-07，D71 ①）。
 // 每条 eval(ctx) 返回 {pass, detail}；ctx = {state, tag, appearance, size, web, native, px:{web, native}, screen}。
 //   web / native：配好语义键的元素（elements.mjs）；px：在截图上的取样（compare.mjs 用 Playwright 读像素）。
 // NP-01（修改 › 热区）、NP-06（判断失败三段式）要真实点按，写在 XCUITest（ShiziUITests/KnownIssueTests.swift）。
@@ -53,6 +54,7 @@ export const CHECKS = [
     },
   },
   {
+    // D71 ①：原生书写面回到 R9-A 之前的参数，墨粗与网页的差异按 parity.config.json waive 豁免（检查照跑、照记实测值）
     id: 'NP-07', status: 'pass', level: '中', title: '同一组笔画的墨粗与网页接近（±25%）（NP-21 结果页缩略墨迹同源）',
     states: ['recall-ink'],
     eval({ px }) {

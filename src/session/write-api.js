@@ -9,19 +9,20 @@ import { getStore } from '../store/store.js';
 import { t } from '../config/copy/index.js';
 import { canCorrect, currentCardKey, isComplete } from '../core/sessions.js';
 import { charOfCardKey, isJudged, isPaperRecord } from '../core/records.js';
-import { decodeInk, decodeInkRaw } from '../core/ink-math.js';
+import { decodeInk, decodeInkRaw, encodeRawStrokes } from '../core/ink-math.js';
 import { capitalCard, cardForKey, withWordOff } from '../data/deck.js';
 import { M } from '../config/motion.js';
 import * as policy from '../config/policy.js';
 import {
-  answerInkKey, commitComparePhase, commitCorrection, commitHint, commitHintStep, commitJudgment, commitRecover, commitStrokes, hintAnnouncement, hintButtonModel,
+  answerInkKey, canEndGroup, commitAnswerNext, commitAnswerPhase, commitAnswerSeen, commitComparePhase, commitCorrection, commitEndGroup, commitHint, commitHintStep,
+  commitJudgment, commitRecover, commitSkip, commitStrokes, commitUndoSkip, endConfirmCounts, hintAnnouncement, hintButtonModel,
   hintNoteModel, hintSourceOfCount, hintStep, HINT_FADE_IN_MS, HINT_FADE_OUT_MS, HINT_MATCH_MAX_DIST, PEN_ARM_MS, promptCells, REDUCED_FADE_MS,
   findRecord, recalledInk, resultRowModel, storedStrokes,
 } from './write-ops.js';
 import { commitFinish } from './result-ops.js';
 
-/** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
-export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct']);
+/** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct，B2.4 / B2.6 加 showAnswer / answerPhase / answerNext / skip / undoSkip / end；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
+export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end']);
 
 /** 原生写字页用到的文案键（值取自 src/config/copy，原生不另存一份）。 */
 export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
@@ -31,6 +32,17 @@ export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'R-W03.titleCompare',
   'R-W05.hintLabel',
   'R-W07.btnShowAnswer',
+  'R-W07.btnNext',
+  'R-W07.answerNote',
+  'R-W07.selfNote',
+  'R-W08.answerNote',
+  'R-W03.titleSelf',
+  'R-W04.stepTrace',
+  'R-W04.stepSelf',
+  'X-ANSWER.titleTrace',
+  'X-ANSWER.btnTraceDone',
+  'X-ANSWER.btnRetrace',
+  'X-COMMON.leave',
   'R-W09.btnWrong',
   'R-W09.btnCorrect',
   'R-W09.continueWriting',
@@ -52,6 +64,10 @@ export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'X-JUDGE.paperMineBox',
   'R-W14.btnSkip',
   'R-W15.end',
+  'R-W15.confirmBody',
+  'R-W15.continue',
+  'R-W20.skippedToast',
+  'R-W20.undo',
   'R-W16.saveFailed',
   'R-W16.retry',
   'R-W16.cancel',
@@ -121,12 +137,16 @@ export function writeSnapshot(state, slot) {
   const raw = s.current && s.current.phase;
   const phase = raw === 'compare' ? 'compare' : 'recall';
   const strokes = storedStrokes(s, cardKey, answerInkKey(cardKey, raw));
+  // B2.4：看答案流程的阶段（旧版存下的 'answer' 按描一遍，与网页 useAnswerFlow 同一规则）；phase 仍只表 recall / compare（B2.2 起的约定）
+  const answerPhase = raw === 'answer' || raw === 'trace' ? 'trace' : raw === 'retrace' ? 'retrace' : null;
   return {
     ...base,
     cardKey,
     char: charOfCardKey(cardKey),
     phase: phase === 'compare' && !strokes.length ? 'recall' : phase,
     storedPhase: raw || 'recall',
+    answerPhase,
+    canEnd: canEndGroup(s),
     strokes: strokesToWire(strokes),
     hints: s.current && Number.isInteger(s.current.hints) ? s.current.hints : 0,
     hintRange: s.current && s.current.hintRange ? { from: s.current.hintRange.from, to: s.current.hintRange.to } : null,
@@ -180,6 +200,30 @@ export function writeMotion() {
       lift: M.moment.settleLift, fadeFrom: M.moment.settleFadeFrom, end: M.moment.settleEnd, countBox: M.moment.settleCountBox,
       liftScale: M.moment.settleLiftScale, gather: [...M.bezier.gather],
     },
+  };
+}
+
+/**
+ * 描一遍前笔顺快放与描红画法的参数（B2.4；glyph.js playbackPlan / drawGlyphHook 同一组值，单一来源 policy）：
+ * maxMs 总时长上限（含起始淡化与笔间隔，D68 ②）、speed 动画速度、gapMs 笔间隔上限、fadeMs 起始淡化、hookWidthPt / hookWidthMoreContrastPt 双钩线宽。
+ */
+export function writeTrace() {
+  return {
+    maxMs: policy.motion.stepPlayMaxMs,
+    speed: policy.motion.answerSpeed,
+    gapMs: policy.motion.answerStrokeGapMs,
+    fadeMs: policy.motion.answerFadeMs,
+    hookWidthPt: policy.traceHook.widthPt,
+    hookWidthMoreContrastPt: policy.traceHook.moreContrastPt,
+  };
+}
+
+/** 跳过撤销条的寿命（P115，D36）：ms、按住暂停、读屏时不自动收起（与网页 skip.js createUndoLifetime 同一组）。 */
+export function writeSkipUndo() {
+  return {
+    ms: policy.skipUndo.ms,
+    pauseWhileHeld: !!policy.skipUndo.pauseWhileHeld,
+    keepOpenWithAssistiveTech: !!policy.skipUndo.keepOpenWithAssistiveTech,
   };
 }
 
@@ -265,6 +309,19 @@ function clock() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
+/** 跳过撤销机会的交接（原生页离开时带来）：撤销条剩余多久 + 撤销要写回的笔画（紧凑行，与网页 useSkip 同一格式）。坏数据当没有。 */
+function normalizeUndo(raw) {
+  if (!raw || typeof raw.sessionId !== 'string' || typeof raw.recordId !== 'string') return null;
+  const wire = strokesFromWire(raw.strokes);
+  return {
+    sessionId: raw.sessionId,
+    recordId: raw.recordId,
+    char: typeof raw.char === 'string' ? raw.char : '',
+    strokes: wire.length ? encodeRawStrokes(wire) : null,
+    remainingMs: Math.max(0, Number(raw.remainingMs) || 0),
+  };
+}
+
 const NO_NAVIGATE = Object.freeze({
   back() {
     throw new Error('write session api: navigate.back not provided');
@@ -276,7 +333,7 @@ const NO_NAVIGATE = Object.freeze({
 
 /**
  * 写字会话 API。deps 可注入（node:test 用假 store / 假导航）；导航与颜色属于界面，页面侧（native-session.js）注入网页路由与令牌计算值。
- * @param {{getStore?: () => object, navigate?: {back: Function, toResult: Function}, colors?: () => object}} deps
+ * @param {{getStore?: () => object, navigate?: {back: (slot, undo) => void, toResult: (slot, sessionId, undo) => void}, colors?: () => object}} deps
  * @returns {{call(op:string, args?:object): object}}  同步返回结果对象（window 全局再包成 Promise）
  */
 export function createWriteSessionApi(deps = {}) {
@@ -286,6 +343,17 @@ export function createWriteSessionApi(deps = {}) {
 
   const snapshot = slot => writeSnapshot(storeOf().getState(), slot);
 
+  /** 这组写完了（任一路径推进到队尾）：同一次调用里 commitFinish（幂等，与网页写字页同一顺序）。 */
+  function finishIfComplete(store, slot) {
+    const s = sessionOf(store.getState(), slot);
+    if (!s || !isComplete(s)) return null;
+    const f = commitFinish(store, { slot, sessionId: s.id });
+    return { ok: !!(f && f.ok), sessionId: s.id };
+  }
+
+  /** 看答案流程 / 跳过 / 结束的统一回包：失败（含 stale）也带快照，原生据此对账（D07：成功才推进，stale = 已不是这个字）。 */
+  const flowFail = (slot, r) => ({ ok: false, error: plainError(r), snapshot: snapshot(slot) });
+
   const ops = {
     /** 打开 / 重新同步：先做恢复幂等（与网页写字页挂载时同一函数），再给快照、文案、颜色与时刻（writeTiming）。 */
     open({ slot }) {
@@ -293,7 +361,7 @@ export function createWriteSessionApi(deps = {}) {
       const rec = commitRecover(store, { slot });
       return {
         ok: true, recovered: !!(rec && rec.ok && !rec.noop), snapshot: snapshot(slot), copy: copyBundle(), colors: colors(), timing: writeTiming(),
-        motion: writeMotion(), layout: writeLayoutConstants(),
+        motion: writeMotion(), layout: writeLayoutConstants(), trace: writeTrace(), skipUndo: writeSkipUndo(),
       };
     },
     /** 抬笔 / 撤销 / 清空后的现场写回（P52：不阻断，失败只回报）。 */
@@ -318,19 +386,76 @@ export function createWriteSessionApi(deps = {}) {
       const r = commitJudgment(store, { slot, cardKey, judgment, strokes: strokesFromWire(strokes), hints });
       // 失败也带快照：结果未知（桥超时 / 页面重载）后重发时若上一次其实已提交，回 stale + 已推进的快照，原生据此对账，不会多记（D07）
       if (!r || !r.ok) return { ok: false, error: plainError(r), snapshot: snapshot(slot) };
-      const s = sessionOf(store.getState(), slot);
-      let finished = null;
-      if (s && isComplete(s)) {
-        const f = commitFinish(store, { slot, sessionId: s.id });
-        finished = { ok: !!(f && f.ok), sessionId: s.id };
-      }
+      const finished = finishIfComplete(store, slot);
       return { ok: true, recordId: r.record ? r.record.id : null, reused: !!r.reused, finished, snapshot: snapshot(slot) };
     },
     /** 原生页离开：to = 'back'（左上 ‹ / 左缘滑回）或 'result'（写完最后一字）。 */
-    exit({ slot, to, sessionId }) {
-      if (to === 'result') navigate.toResult(slot, sessionId);
-      else navigate.back();
+    exit({ slot, to, sessionId, undo }) {
+      // undo（B2.6）：跳过后 5 秒撤销条还在时离开，剩余的撤销机会交给结果页 / 来源页（S4，网页 handoffSkipUndo / handoffLeaveUndo）
+      const handoff = normalizeUndo(undo);
+      if (to === 'result') navigate.toResult(slot, sessionId, handoff);
+      else navigate.back(slot, handoff);
       return { ok: true };
+    },
+    /**
+     * 点「看答案」（D64 ②：标准写法直接淡显、立即可描；B2.4）。与网页 useAnswerFlow.showAnswer 同一个 commitAnswerSeen：
+     * answer-seen 记录 + 会话现场进描一遍（复习字当天记一次 Again，D66 ①）。回包带快照（phase 仍是 recall，answerPhase 'trace'）。
+     */
+    showAnswer({ slot, cardKey }) {
+      const r = commitAnswerSeen(storeOf(), { slot, cardKey });
+      return r && r.ok ? { ok: true, snapshot: snapshot(slot) } : flowFail(slot, r);
+    },
+    /**
+     * 看答案流程内换阶段（trace ⇄ retrace；看过答案后的回忆阶段点「看答案」回 trace）。与网页 commitAnswerPhase 同一个：
+     * 离开凭记忆写（retrace）时同一次 commit 把本人笔画存成这条 answer-seen 记录的墨迹（Q1）；笔画清空。
+     */
+    answerPhase({ slot, cardKey, phase, strokes }) {
+      if (phase !== 'trace' && phase !== 'retrace') return { ok: false, error: { kind: 'invalid' }, snapshot: snapshot(slot) };
+      const r = commitAnswerPhase(storeOf(), { slot, cardKey, phase, strokes: strokesFromWire(strokes) });
+      return r && r.ok ? { ok: true, snapshot: snapshot(slot) } : flowFail(slot, r);
+    },
+    /** 看过答案后「下一个」（推进，不进判断页；Q1 同一次 commit 存看后自写的墨迹）。这组写完时同一次调用里 commitFinish。 */
+    answerNext({ slot, cardKey, strokes }) {
+      const store = storeOf();
+      const r = commitAnswerNext(store, { slot, cardKey, strokes: strokesFromWire(strokes) });
+      if (!r || !r.ok) return flowFail(slot, r);
+      return { ok: true, finished: finishIfComplete(store, slot), snapshot: snapshot(slot) };
+    },
+    /**
+     * 跳过（直接生效，不确认；B2.6，D68 ③）。与网页 useSkip.skip 同一个 commitSkip；成功回 undo 机会 {sessionId, recordId, char, ms}（5 秒，P115），
+     * 原生据此显示「已跳过「X」· 撤销」。跳过的是最后一字时同一次调用里 commitFinish，原生把撤销机会随 exit result 交给结果页。
+     */
+    skip({ slot, cardKey, hints = 0 }) {
+      const store = storeOf();
+      const r = commitSkip(store, { slot, cardKey, hints: Math.max(0, Math.trunc(Number(hints) || 0)) });
+      if (!r || !r.ok) return flowFail(slot, r);
+      const finished = finishIfComplete(store, slot);
+      const rec = r.record;
+      return {
+        ok: true, finished, snapshot: snapshot(slot),
+        undo: rec ? { sessionId: rec.sessionId, recordId: rec.id, char: rec.char, ms: policy.skipUndo.ms } : null,
+      };
+    },
+    /** 撤销跳过：删记录、字放回、提示次数与跳过时格子里的笔画写回（M2-3；strokes = 原生跳过时的本人笔画）。stale = 已不能撤销（会话变了 / 不是最后一条 skipped）。 */
+    undoSkip({ slot, sessionId, recordId, strokes }) {
+      const wire = strokesFromWire(strokes);
+      const rows = wire.length ? encodeRawStrokes(wire) : null;
+      const r = commitUndoSkip(storeOf(), { slot, sessionId, recordId, strokes: rows });
+      return r && r.ok ? { ok: true, snapshot: snapshot(slot) } : flowFail(slot, r);
+    },
+    /**
+     * 结束这组（D66 ⑥，D68 ④；B2.6）。action 'counts'：确认框的数字 {n 没写的（含当前字）, m 已判断的}；
+     * 'commit'（缺省）：与网页 openEndConfirm.onEnd 同一个 commitEndGroup，成功回 judgedCount（> 0 → 原生 exit result 换成结果页；0 → exit back 回来源）。
+     * 失败留在确认框（原生三段式）；stale = 会话已不是它。
+     */
+    end({ slot, sessionId, action = 'commit' }) {
+      const store = storeOf();
+      if (action === 'counts') {
+        const c = endConfirmCounts(store.getState(), slot);
+        return { ok: true, n: c.n, m: c.m, canEnd: canEndGroup(sessionOf(store.getState(), slot)) };
+      }
+      const r = commitEndGroup(store, { slot, sessionId });
+      return r && r.ok ? { ok: true, judgedCount: r.judgedCount, sessionId, snapshot: snapshot(slot) } : flowFail(slot, r);
     },
     copy({ keys }) {
       return { ok: true, copy: copyBundle(Array.isArray(keys) ? keys : NATIVE_WRITE_COPY_KEYS) };

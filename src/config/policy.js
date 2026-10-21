@@ -476,6 +476,12 @@ export const routeRestore = Object.freeze({
 });
 
 // ---- 跳过撤销（阶段 0 B2，D36）----
+// 帮助层双钩（描一遍里「还没轮到」的笔）的线宽（B2.4 从 glyph.js 挪来，值不变；D53 ①，P153）。src/ui/canvas/glyph.js HOOK_WIDTH_PT 取它，原生写字页（write-api.js writeMotion）也取它。
+export const traceHook = Object.freeze({
+  widthPt: 0.75, // P153 双钩线宽（pt）
+  moreContrastPt: 1.5, // P153 系统开了「增强对比度」时加粗到的线宽（pt）
+});
+
 // P115 跳过后底部撤销条的寿命与读屏行为（已决定 D36）。src/ui/screens/write/skip.js 读取（SKIP_UNDO_MS 由它派生）。
 export const skipUndo = Object.freeze({
   ms: M.timing.undoWindow, // P115 撤销条显示多久（毫秒）；原 3000

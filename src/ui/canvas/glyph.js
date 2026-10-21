@@ -26,9 +26,9 @@ export const GLYPH_PAD_RATIO = 0.06;
 export const MEDIAN_WIDTH_UNITS = 18;
 // 帮助层（提示 / 描一遍）的画法（D53 ①，第三轮 V3-01 / T3-02）：淡朱不透明实填 + 同色相细轮廓（双钩），没有 ink3 灰外廓、没有整层 .4 不透明度——
 // 对比度由淡朱自己承担（对笺 ≥ 3:1、对本人墨 ≥ 3:1，test/ui/contrast.test.mjs）。双钩线宽（pt，书写格 345 单位下换算见 drawGlyphHook）：
-export const HOOK_WIDTH_PT = 0.75;
+export const HOOK_WIDTH_PT = policy.traceHook.widthPt;
 /** 系统开了「增强对比度」时双钩加粗到的线宽（pt；P153：原来的 ink3 halo 已随灰外廓一起去掉，改为线加粗）。 */
-export const HOOK_WIDTH_MORE_CONTRAST_PT = 1.5;
+export const HOOK_WIDTH_MORE_CONTRAST_PT = policy.traceHook.moreContrastPt;
 
 // 动画节奏（工程取值；原型没有看答案播放与「先播一遍」，旧版提示用 speed 5 / 间隔 60ms 太快，
 // hanzi-writer 默认 speed 1 / 间隔 1000ms 太慢）。过渡值在 policy.motion（P70，待设计走查）；

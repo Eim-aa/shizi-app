@@ -17,7 +17,8 @@
 import { html, useEffect, useRef } from '../../../../vendor/ui.js';
 import { getRouter, nav } from '../../router.js';
 import { postNative, isNative } from '../../../platform/bridge.js';
-import { openResult } from '../result/index.js';
+import { handoffSkipUndo, openResult } from '../result/index.js';
+import { handoffLeaveUndo } from './skip.js';
 import {
   createWriteSessionApi as createSessionApi, writeSnapshot, strokesToWire, strokesFromWire, copyBundle, NATIVE_WRITE_COPY_KEYS, NATIVE_WRITE_OPS,
 } from '../../../session/write-api.js';
@@ -26,7 +27,7 @@ import {
 export { writeSnapshot, strokesToWire, strokesFromWire, copyBundle, NATIVE_WRITE_COPY_KEYS, NATIVE_WRITE_OPS };
 
 /** 原生要的颜色令牌（取页面此刻计算值：浅 / 深色与网页同源，见 tokens.css）。 */
-export const NATIVE_WRITE_COLOR_TOKENS = Object.freeze(['paper', 'hand', 'ref', 'frame', 'line', 'ink1', 'ink2', 'ink3', 'ink4', 'field', 'danzhu']);
+export const NATIVE_WRITE_COLOR_TOKENS = Object.freeze(['paper', 'hand', 'ref', 'frame', 'line', 'ink1', 'ink2', 'ink3', 'ink4', 'field', 'danzhu', 'toast-bg', 'toast-fg', 'scrim', 'elev']);
 
 function globalWin() {
   return typeof window !== 'undefined' ? window : null;
@@ -58,11 +59,22 @@ export function createWriteSessionApi(deps = {}) {
   return createSessionApi({
     ...deps,
     navigate: deps.navigate || {
-      back: () => nav.back({ cause: 'native' }),
-      toResult: (slot, sessionId) => openResult(slot, sessionId),
+      // 跳过的 5 秒撤销条还在时离开：剩余的撤销机会交给来源页 / 结果页（S4；网页写字页 leave / 写完最后一字同一组函数）
+      back: (slot, undo) => {
+        handoffLeaveUndo(undo ? { ...undo, slot, until: clockNow() + undo.remainingMs } : null);
+        nav.back({ cause: 'native' });
+      },
+      toResult: (slot, sessionId, undo) => {
+        handoffSkipUndo(undo ? { ...undo, slot, until: clockNow() + undo.remainingMs } : null);
+        openResult(slot, sessionId);
+      },
     },
     colors: deps.colors || (() => colorBundle()),
   });
+}
+
+function clockNow() {
+  return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
 let installed = null;

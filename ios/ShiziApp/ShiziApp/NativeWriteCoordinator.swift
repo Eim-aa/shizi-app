@@ -87,10 +87,18 @@ extension WebViewController: NativeWriteCoordinating {
     }
 
     func nativeWriteDidFinish(_ vc: NativeWriteViewController, sessionId: String) {
+        nativeWriteDidFinish(vc, sessionId: sessionId, undo: nil)
+    }
+
+    /// undo（B2.6）：跳过最后一字后 5 秒撤销机会还在时，剩余时长与笔画随 exit 交给结果页（页面 handoffSkipUndo）。
+    func nativeWriteDidFinish(_ vc: NativeWriteViewController, sessionId: String, undo: [String: Any]?) {
         vc.exitHandled = true
         vc.saveMetrics()
+        vc.endUndo()
+        var args: [String: Any] = ["slot": vc.slot, "to": "result", "sessionId": sessionId]
+        if let undo { args["undo"] = undo }
         // 先让页面把写字条目就地换成结果页（D20 无中间页），再淡出原生页露出它
-        NativeWriteBridge(webView: webView).call("exit", ["slot": vc.slot, "to": "result", "sessionId": sessionId]) { _ in
+        NativeWriteBridge(webView: webView).call("exit", args) { _ in
             vc.transitions.fadeNext = true
             vc.dismiss(animated: true)
         }

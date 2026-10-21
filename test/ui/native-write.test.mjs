@@ -12,6 +12,14 @@ import { commitJudgment, commitComparePhase } from '../../src/ui/screens/write/c
 import { commitStrokes } from '../../src/ui/screens/write/persist.js';
 import { commitFinish } from '../../src/ui/screens/result/index.js';
 import { createSession } from '../../src/core/sessions.js';
+import { makeRecord } from '../../src/core/records.js';
+import { applyJudgment } from '../../src/core/fsrs.js';
+import { encodeRawStrokes } from '../../src/core/ink-math.js';
+import { commitAnswerSeen, commitAnswerPhase, commitAnswerNext } from '../../src/ui/screens/write/answer.js';
+import { commitSkip, commitUndoSkip } from '../../src/ui/screens/write/skip.js';
+import { commitEndGroup, endConfirmCounts } from '../../src/ui/screens/write/end.js';
+import { handoffSkipUndo, takeSkipUndo } from '../../src/ui/screens/result/index.js';
+import * as policyModule from '../../src/config/policy.js';
 import { hintSourceOf, hintStep, commitHintStep, commitHint } from '../../src/ui/screens/write/hint-layer.js';
 import { setCardResolver } from '../../src/data/deck.js';
 import { t } from '../../src/config/copy/index.js';
@@ -69,7 +77,7 @@ function apiOn(store, navigate = quietNav) {
 }
 
 test('ops: the named set; unknown op is rejected without throwing', () => {
-  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct']);
+  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end']);
   const r = apiOn(fakeStore()).call('nope', {});
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'unknown-op');
@@ -522,4 +530,293 @@ test('correct op: native copy keys for the sheet are all in the open payload (ti
     'R-W10.changeFailed', 'R-W10.retry', 'R-W10.cancel', 'R-W09.labelMine', 'R-W09.labelReference', 'R-W17.noInk', 'R-D07.noInkLarge', 'R-W16.saveFailed', 'R-W16.retry', 'R-W16.cancel']) {
     assert.equal(copy[k], t(k), k);
   }
+
+});
+
+// ---------------------------------------------------------------- B2.4 看答案 / 描一遍 / 凭记忆写：网页路径 == API 路径
+
+/** 带一个「复习字」的起始状态：base:永 前几天判断过（有调度项）→ 看答案会记一次 Again（D66 ①）；base:和 是新字。 */
+function reviewState() {
+  const st = initialState();
+  const earlier = new Date(2026, 9, 14, 20).getTime();
+  const rec = makeRecord({ id: 'r100', cardKey: 'base:永', sessionId: 's100', kind: 'judged', judgment: 'correct', at: earlier, help: { hints: 0, answerSeen: false, traced: false } });
+  st.sched = { 'base:永': applyJudgment(undefined, rec).entry };
+  st.records = { '2026-10': [rec] };
+  return st;
+}
+
+test('showAnswer = commitAnswerSeen: answer-seen record + straight into the trace phase (D64 ②), a review char gets one Again (D66 ①)', () => {
+  const viaWeb = fakeStore(reviewState());
+  const viaApi = fakeStore(reviewState());
+  const before = viaApi.getState().sched['base:永'];
+  commitAnswerSeen(viaWeb, { slot: 'A', cardKey: 'base:永' });
+  const r = apiOn(viaApi).call('showAnswer', { slot: 'A', cardKey: 'base:永' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  assert.equal(r.snapshot.answerPhase, 'trace');
+  assert.equal(r.snapshot.phase, 'recall', 'phase keeps meaning recall / compare');
+  assert.equal(r.snapshot.answerSeen, true);
+  assert.deepEqual(r.snapshot.strokes, []);
+  const st = viaApi.getState();
+  assert.ok(st.sched['base:永'].seenAgainDay, 'Again recorded today');
+  assert.notDeepEqual(st.sched['base:永'], before);
+  assert.equal(st.sessions.A.current.phase, 'trace');
+  const seen = Object.values(st.records).flat().filter(x => x.kind === 'answer-seen');
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].help.traced, true);
+  // 同一个字再点：不重复记录
+  apiOn(viaApi).call('showAnswer', { slot: 'A', cardKey: 'base:永' });
+  assert.equal(Object.values(viaApi.getState().records).flat().filter(x => x.kind === 'answer-seen').length, 1);
+});
+
+test('answer flow: trace → 凭记忆写 (retrace) → 下一个, strokes included — web path and API path agree on every commit (Q1 self ink, D66 ① Again)', () => {
+  const viaWeb = fakeStore(reviewState());
+  const viaApi = fakeStore(reviewState());
+  const api = apiOn(viaApi);
+  const key = 'base:永';
+  // 网页路径
+  commitAnswerSeen(viaWeb, { slot: 'A', cardKey: key });
+  commitStrokes(viaWeb, { slot: 'A', cardKey: key, inkKey: `${key}|trace`, strokes: [STROKE_A], phase: 'recall' });
+  commitAnswerPhase(viaWeb, { slot: 'A', cardKey: key, phase: 'retrace', strokes: [STROKE_A] });
+  commitStrokes(viaWeb, { slot: 'A', cardKey: key, inkKey: `${key}|retrace`, strokes: [STROKE_B, STROKE_A], phase: 'recall' });
+  commitAnswerNext(viaWeb, { slot: 'A', cardKey: key, strokes: [STROKE_B, STROKE_A] });
+  // API 路径（原生：看答案 → 描一遍里写一笔（strokes op）→ 凭记忆写 → 写两笔 → 下一个）
+  assert.equal(api.call('showAnswer', { slot: 'A', cardKey: key }).ok, true);
+  assert.equal(api.call('strokes', { slot: 'A', cardKey: key, strokes: strokesToWire([STROKE_A]), phase: 'recall' }).ok, true);
+  assert.deepEqual(strokesFromWire(writeSnapshot(viaApi.getState(), 'A').strokes), [STROKE_A], 'the trace strokes are what the snapshot restores');
+  const retrace = api.call('answerPhase', { slot: 'A', cardKey: key, phase: 'retrace', strokes: strokesToWire([STROKE_A]) });
+  assert.equal(retrace.snapshot.answerPhase, 'retrace');
+  assert.deepEqual(retrace.snapshot.strokes, [], '凭记忆写 starts from an empty grid');
+  api.call('strokes', { slot: 'A', cardKey: key, strokes: strokesToWire([STROKE_B, STROKE_A]), phase: 'recall' });
+  const next = api.call('answerNext', { slot: 'A', cardKey: key, strokes: strokesToWire([STROKE_B, STROKE_A]) });
+  assert.equal(next.ok, true);
+  assert.equal(next.finished, null);
+  assert.equal(next.snapshot.cardKey, 'base:和', 'advanced to the next char');
+  assert.equal(next.snapshot.line.state, 'saw', 'the line under the grid says the answer was seen (no judgment)');
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  const st = viaApi.getState();
+  const seen = Object.values(st.records).flat().find(r => r.kind === 'answer-seen');
+  assert.ok(Object.values(st.ink).some(m => seen.id in m), 'the last 凭记忆写 is stored as the answer-seen record ink (Q1)');
+  assert.equal(Object.values(st.records).flat().filter(r => r.kind === 'judged' && r.sessionId === 's1').length, 0, 'no judgment');
+});
+
+test('answer flow: 再描一遍 (retrace → trace) and the recall-after-answer-seen path (hint gave the whole char) behave like the web', () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  const key = 'base:永';
+  commitAnswerSeen(viaWeb, { slot: 'A', cardKey: key });
+  commitAnswerPhase(viaWeb, { slot: 'A', cardKey: key, phase: 'retrace', strokes: [] });
+  commitAnswerPhase(viaWeb, { slot: 'A', cardKey: key, phase: 'trace', strokes: [STROKE_A] });
+  api.call('showAnswer', { slot: 'A', cardKey: key });
+  api.call('answerPhase', { slot: 'A', cardKey: key, phase: 'retrace', strokes: [] });
+  const again = api.call('answerPhase', { slot: 'A', cardKey: key, phase: 'trace', strokes: strokesToWire([STROKE_A]) });
+  assert.equal(again.snapshot.answerPhase, 'trace');
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  // 提示给完整字（看过答案，留在回忆阶段）：快照 answerPhase 为 null、answerSeen 为 true；「下一个」直接推进，看后写的笔画也算看后自写
+  const hintStore = fakeStore();
+  commitAnswerSeen(hintStore, { slot: 'A', cardKey: key, stay: true, hints: 4, hintRange: { from: 0, to: 8 } });
+  const snap = writeSnapshot(hintStore.getState(), 'A');
+  assert.equal(snap.answerSeen, true);
+  assert.equal(snap.answerPhase, null);
+  assert.equal(snap.phase, 'recall');
+  const n = apiOn(hintStore).call('answerNext', { slot: 'A', cardKey: key, strokes: strokesToWire([STROKE_A]) });
+  assert.equal(n.ok, true);
+  const st = hintStore.getState();
+  assert.equal(st.sessions.A.cursor, 1);
+  const seen = Object.values(st.records).flat().find(r => r.kind === 'answer-seen');
+  assert.equal(seen.help.traced, false, 'a hint-given answer was never traced');
+  assert.ok(Object.values(st.ink).some(m => seen.id in m), 'recall-after-seen writing counts as the self-written ink too');
+});
+
+test('answer ops: a failed write changes nothing (D07), the retry succeeds once; a stale card is refused with the advanced snapshot; bad phase refused', () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  const key = 'base:永';
+  const before = store.getState();
+  store.failures = 1;
+  const failed = api.call('showAnswer', { slot: 'A', cardKey: key });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.error.kind, 'generic');
+  assert.equal(failed.snapshot.answerPhase, null, 'still the recall page — the 三段式 stays on it');
+  assert.equal(store.getState(), before);
+  assert.equal(api.call('showAnswer', { slot: 'A', cardKey: key }).ok, true);
+  store.failures = 1;
+  const f2 = api.call('answerPhase', { slot: 'A', cardKey: key, phase: 'retrace', strokes: strokesToWire([STROKE_A]) });
+  assert.equal(f2.ok, false);
+  assert.equal(f2.snapshot.answerPhase, 'trace', 'stays in the trace phase, strokes kept by the native page');
+  store.failures = 1;
+  assert.equal(api.call('answerNext', { slot: 'A', cardKey: key, strokes: [] }).ok, false);
+  assert.equal(store.getState().sessions.A.cursor, 0, 'not advanced');
+  assert.equal(api.call('answerNext', { slot: 'A', cardKey: key, strokes: [] }).ok, true);
+  const stale = api.call('answerNext', { slot: 'A', cardKey: key, strokes: [] });
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error.kind, 'stale');
+  assert.equal(stale.snapshot.cardKey, 'base:和');
+  assert.equal(Object.values(store.getState().records).flat().filter(r => r.kind === 'answer-seen').length, 1);
+  assert.equal(api.call('answerPhase', { slot: 'A', cardKey: 'base:和', phase: 'compare' }).error.kind, 'invalid');
+});
+
+test('answer flow: 下一个 on the last char finishes the group in the same call (same order as the web page)', () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  let r;
+  for (const c of CHARS) {
+    api.call('showAnswer', { slot: 'A', cardKey: 'base:' + c });
+    r = api.call('answerNext', { slot: 'A', cardKey: 'base:' + c, strokes: [] });
+  }
+  assert.deepEqual(r.finished, { ok: true, sessionId: 's1' });
+  assert.equal(store.getState().sessions.A, null);
+  assert.equal(store.getState().sessions.lastEnded.A.id, 's1');
+});
+
+test('open: trace / skip-undo parameters come from the same policy as the web (stepPlay ≤ 1.6s, hook width, 5s undo)', () => {
+  const r = apiOn(fakeStore()).call('open', { slot: 'A' });
+  assert.deepEqual(r.trace, {
+    maxMs: policyModule.motion.stepPlayMaxMs, speed: policyModule.motion.answerSpeed, gapMs: policyModule.motion.answerStrokeGapMs,
+    fadeMs: policyModule.motion.answerFadeMs, hookWidthPt: 0.75, hookWidthMoreContrastPt: 1.5,
+  });
+  assert.equal(r.trace.maxMs, 1600);
+  assert.deepEqual(r.skipUndo, { ms: policyModule.skipUndo.ms, pauseWhileHeld: true, keepOpenWithAssistiveTech: true });
+  assert.equal(r.skipUndo.ms, 5000);
+});
+
+// ---------------------------------------------------------------- B2.6 跳过 / 撤销 / 结束这组：网页路径 == API 路径
+
+test('skip + undoSkip = commitSkip + commitUndoSkip: record, session, hints and the strokes written back, field by field', () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  const key = 'base:永';
+  const w = commitSkip(viaWeb, { slot: 'A', cardKey: key, hints: 2 });
+  const r = api.call('skip', { slot: 'A', cardKey: key, hints: 2 });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.undo, { sessionId: 's1', recordId: w.record.id, char: '永', ms: 5000 });
+  assert.equal(r.snapshot.cardKey, 'base:和');
+  assert.equal(r.finished, null);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  // 撤销：跳过时格子里的本人笔画（网页 useSkip 先 encodeRawStrokes）写回 current.strokes
+  commitUndoSkip(viaWeb, { slot: 'A', sessionId: 's1', recordId: w.record.id, strokes: encodeRawStrokes([STROKE_A, STROKE_B]) });
+  const u = api.call('undoSkip', { slot: 'A', sessionId: 's1', recordId: r.undo.recordId, strokes: strokesToWire([STROKE_A, STROKE_B]) });
+  assert.equal(u.ok, true);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  assert.equal(u.snapshot.cardKey, key, 'the skipped char is back');
+  assert.equal(u.snapshot.hints, 2, 'the hint count comes back with it (D07)');
+  assert.equal(strokesFromWire(u.snapshot.strokes).length, 2, 'and the strokes that were in the grid');
+  assert.equal(Object.values(viaApi.getState().records).flat().length, 0, 'the skipped record is gone');
+  // 没写笔画的撤销：不带笔画
+  const w2 = commitSkip(viaWeb, { slot: 'A', cardKey: key });
+  const r2 = api.call('skip', { slot: 'A', cardKey: key });
+  commitUndoSkip(viaWeb, { slot: 'A', sessionId: 's1', recordId: w2.record.id, strokes: null });
+  api.call('undoSkip', { slot: 'A', sessionId: 's1', recordId: r2.undo.recordId, strokes: [] });
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+});
+
+test('skip: writes the same skipped record as the web (no judgment, not re-implemented)', () => {
+  const store = fakeStore();
+  const r = apiOn(store).call('skip', { slot: 'A', cardKey: 'base:永' });
+  const rec = Object.values(store.getState().records).flat()[0];
+  assert.equal(rec.kind, 'skipped');
+  assert.equal(rec.id, r.undo.recordId);
+  assert.equal(store.getState().sessions.A.items.at(-1).kind, 'skipped');
+});
+
+test('skip: D07 — a failed skip changes nothing; the retry records once; a second skip of the same card is stale', () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  const before = store.getState();
+  store.failures = 1;
+  const failed = api.call('skip', { slot: 'A', cardKey: 'base:永' });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.snapshot.cardKey, 'base:永');
+  assert.equal(store.getState(), before);
+  assert.equal(api.call('skip', { slot: 'A', cardKey: 'base:永' }).ok, true);
+  const again = api.call('skip', { slot: 'A', cardKey: 'base:永' });
+  assert.equal(again.error.kind, 'stale');
+  assert.equal(Object.values(store.getState().records).flat().length, 1);
+});
+
+test('undoSkip: only the last skipped record can be undone (stale otherwise); a failed undo changes nothing and retries', () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  const a = api.call('skip', { slot: 'A', cardKey: 'base:永' });
+  const b = api.call('skip', { slot: 'A', cardKey: 'base:和' });
+  assert.equal(api.call('undoSkip', { slot: 'A', sessionId: 's1', recordId: a.undo.recordId }).error.kind, 'stale', 'not the last item any more');
+  store.failures = 1;
+  const before = store.getState();
+  assert.equal(api.call('undoSkip', { slot: 'A', sessionId: 's1', recordId: b.undo.recordId }).ok, false);
+  assert.equal(store.getState(), before);
+  assert.equal(api.call('undoSkip', { slot: 'A', sessionId: 's1', recordId: b.undo.recordId }).ok, true);
+  assert.equal(store.getState().sessions.A.cursor, 1);
+});
+
+test('skip of the last char finishes the group; exit hands the undo chance (remaining ms + strokes) to the result page / source page', () => {
+  const store = fakeStore();
+  const calls = [];
+  const api = apiOn(store, {
+    back: (slot, undo) => calls.push(['back', slot, undo]),
+    toResult: (slot, id, undo) => calls.push(['result', slot, id, undo]),
+  });
+  api.call('skip', { slot: 'A', cardKey: 'base:永' });
+  api.call('skip', { slot: 'A', cardKey: 'base:和' });
+  const last = api.call('skip', { slot: 'A', cardKey: 'base:春' });
+  assert.deepEqual(last.finished, { ok: true, sessionId: 's1' });
+  assert.equal(last.snapshot.active, false);
+  assert.equal(store.getState().sessions.lastEnded.A.id, 's1');
+  api.call('exit', { slot: 'A', to: 'result', sessionId: 's1', undo: { sessionId: 's1', recordId: last.undo.recordId, char: '春', strokes: strokesToWire([STROKE_A]), remainingMs: 4200 } });
+  api.call('exit', { slot: 'A', to: 'back', undo: { sessionId: 's1', recordId: 'r9', char: '永', remainingMs: 100 } });
+  api.call('exit', { slot: 'A', to: 'back', undo: { recordId: 'x' } });
+  assert.deepEqual(calls[0], ['result', 'A', 's1', { sessionId: 's1', recordId: last.undo.recordId, char: '春', strokes: encodeRawStrokes([STROKE_A]), remainingMs: 4200 }]);
+  assert.deepEqual(calls[1], ['back', 'A', { sessionId: 's1', recordId: 'r9', char: '永', strokes: null, remainingMs: 100 }]);
+  assert.equal(calls[2][2], null, 'a malformed hand-over is ignored');
+  // 结果页取走交接的撤销机会（网页同一组函数）
+  handoffSkipUndo({ ...calls[0][3], slot: 'A', until: Date.now() + 3000 });
+  const taken = takeSkipUndo('A', 's1', 0);
+  assert.equal(taken.recordId, last.undo.recordId);
+});
+
+test('end: counts and commit = endConfirmCounts + commitEndGroup (web path); judged > 0 → result page, none judged → back to the source', () => {
+  const viaWeb = fakeStore();
+  const viaApi = fakeStore();
+  const api = apiOn(viaApi);
+  nativeJudge(api, viaApi, 'correct', [STROKE_A]);
+  webJudge(viaWeb, 'correct', [STROKE_A]);
+  const c = api.call('end', { slot: 'A', sessionId: 's1', action: 'counts' });
+  assert.deepEqual({ n: c.n, m: c.m }, endConfirmCounts(viaWeb.getState(), 'A'));
+  assert.deepEqual({ n: c.n, m: c.m }, { n: 2, m: 1 });
+  assert.equal(c.canEnd, true);
+  const w = commitEndGroup(viaWeb, { slot: 'A', sessionId: 's1' });
+  const r = api.call('end', { slot: 'A', sessionId: 's1' });
+  assert.equal(r.ok, true);
+  assert.equal(r.judgedCount, w.judgedCount);
+  assert.equal(r.judgedCount, 1);
+  assert.equal(r.snapshot.active, false);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.equal(viaApi.getState().sessions.lastEnded.A.endedEarly, true);
+  const none = apiOn(fakeStore());
+  const z = none.call('end', { slot: 'A', sessionId: 's1' });
+  assert.equal(z.ok, true);
+  assert.equal(z.judgedCount, 0);
+});
+
+test('end: D07 — failure keeps the group (retry ends it once); stale after it ended; the first practice cannot be ended; snapshot says canEnd', () => {
+  const store = fakeStore();
+  const api = apiOn(store);
+  assert.equal(writeSnapshot(store.getState(), 'A').canEnd, true);
+  const before = store.getState();
+  store.failures = 1;
+  const failed = api.call('end', { slot: 'A', sessionId: 's1' });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.snapshot.active, true, 'the group is still there');
+  assert.equal(store.getState(), before);
+  assert.equal(api.call('end', { slot: 'A', sessionId: 's1' }).ok, true);
+  assert.equal(api.call('end', { slot: 'A', sessionId: 's1' }).error.kind, 'stale');
+  const first = initialState();
+  first.sessions.A = createSession({ id: 's2', kind: 'first', queue: CHARS.map(c => 'base:' + c), at: T0 });
+  assert.equal(writeSnapshot(first, 'A').canEnd, false, 'no 结束这组 in the first practice (D66 ⑥)');
+  assert.equal(apiOn(fakeStore(first)).call('end', { slot: 'A', sessionId: 's2' }).error.kind, 'stale');
 });

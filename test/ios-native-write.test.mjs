@@ -12,7 +12,7 @@ import { ROOT } from './core/helpers.mjs';
 import { NATIVE_WRITE_COPY_KEYS } from '../src/ui/screens/write/native-session.js';
 
 const DIR = path.join(ROOT, 'ios/ShiziApp/ShiziApp');
-const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift'];
+const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift', 'NativeTrace.swift', 'NativeSkipEnd.swift'];
 const SURFACE = ['NativeInkView.swift', 'InkModel.swift', 'NativeInkWire.swift'];
 const HAN = /[㐀-鿿＀-￯　-〿]/;
 

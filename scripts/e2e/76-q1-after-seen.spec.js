@@ -1,6 +1,6 @@
-// Q1（QA simB D1）：看答案后「自己写一遍」的本人墨迹存进这条「看过答案」记录 → 结果页作品出现「看后写的」格并画本人墨 →
-// 分享图默认成员含它 → 刷新、冷启动后仍在。描一遍的笔迹不存；一次看答案后多次自己写只留最后一次。D18 不变（kind 仍是 answer-seen、
-// 不算写对写错、不进 sched）。
+// D70 ②（NF-05，覆盖 Q1）：看答案后「凭记忆写」的笔迹只算练习，不存为作品里的「看后写的」 → 结果页作品里没有这个字的格、
+// 没有「看后写的」标注（这个字只在「没放进图里」的行）；分享图成员不含它 → 刷新、冷启动后仍如此。描一遍的笔迹也不存。
+// D18 不变（kind 仍是 answer-seen、不算写对写错、不进 sched）。
 //
 // 流程：seed 今天的练习（永 / 和）→ 永：看答案 → 描一遍（写一横）→ 描好了，自己写（写一竖一横）→ 再描一遍 → 描好了，自己写
 // （写一竖）→ 下一个 → 和：写 → 写对了 → 结果页。
@@ -56,17 +56,16 @@ async function cellInkPixels(page, ch) {
   }, ch);
 }
 
-async function checkResult(page, ctx, seenId, label) {
+async function checkResult(page, ctx, label) {
   const { assert } = ctx;
   await waitResultPainted(page);
   const v = await resultSnapshot(page);
-  assert.deepEqual(v.cells.map(c => [c.ch, c.mode, c.state]), [['永', 'hand', 'in'], ['和', 'hand', 'in']],
-    `${label}: 永 (看过答案后自己写的) is a work cell drawn with the learner's ink`);
-  assert.deepEqual(v.caps, ['看后写的'], `${label}: one cell caption 「看后写的」 (under 永)`);
-  assert.deepEqual(v.rows.map(r => r.ch), [], `${label}: 永 is no longer a 「看过答案」 row below the work`);
-  assert.ok((await cellInkPixels(page, '永')) > 50, `${label}: the 永 cell canvas has ink pixels`);
-  assert.equal(v.share, true, `${label}: share icon shown`);
-  // 分享图：默认成员含 永（看后写的），画本人墨
+  assert.deepEqual(v.cells.map(c => [c.ch, c.mode, c.state]), [['和', 'hand', 'in']],
+    `${label}: only 和 (写对) is a work cell — 永 (看过答案后凭记忆写的) is not`);
+  assert.deepEqual(v.caps, [], `${label}: no 「看后写的」 caption anywhere`);
+  assert.deepEqual(v.rows.map(r => r.ch), ['永'], `${label}: 永 is a 「看过答案」 row below the work`);
+  assert.equal(await cellInkPixels(page, '永'), -1, `${label}: no 永 cell canvas`);
+  // 分享图：成员只有 和
   await page.click(topSel('result-share'));
   await page.waitForFunction(() => {
     const r = document.querySelector('[data-testid="image-preview"]');
@@ -74,9 +73,7 @@ async function checkResult(page, ctx, seenId, label) {
   });
   await page.waitForTimeout(300);
   const ds = await page.evaluate(() => ({ ...document.querySelector('[data-testid="image-preview"] [data-testid="image-canvas"]').dataset }));
-  assert.equal(ds.members, '永和', `${label}: the share image members are 永和`);
-  assert.equal(ds.modes, 'hh', `${label}: both drawn with the learner's ink`);
-  assert.ok(ds.recordIds.split(',').includes(seenId), `${label}: the image draws the answer-seen record's ink (${seenId})`);
+  assert.equal(ds.members, '和', `${label}: the share image members are only 和`);
   await page.waitForTimeout(PRESS_SETTLE_MS);
   await page.click('[data-testid="image-done"]');
   await page.waitForFunction(() => !document.querySelector('[data-testid="image-preview"]'));
@@ -93,7 +90,7 @@ export default async function q1AfterSeen(page, ctx) {
   await openWrite(page, { slot: 'A' });
   await waitPhase(page, 'recall');
 
-  step('永: 看答案（直接描一遍，D64 ②）(one horizontal) → 凭记忆写 (vertical + horizontal) → 再描一遍 → 自己写 (vertical) → 下一个');
+  step('永: 看答案（直接描一遍，D64 ②）(one horizontal) → 凭记忆写 (vertical + horizontal) → 再描一遍 → 凭记忆写 (vertical) → 下一个');
   await tap(page, 'write-show-answer');
   await waitPhase(page, 'trace');
   await drawStroke(page, HORIZONTAL);
@@ -108,8 +105,7 @@ export default async function q1AfterSeen(page, ctx) {
   f = await facts(page);
   const seen = f.records.find(r => r.char === '永');
   assert.equal(seen.kind, 'answer-seen', 'the record is still 看过答案 (D18)');
-  assert.deepEqual(Object.keys(f.ink), [seen.id], 'leaving 自己写 (再描一遍) stores the self-written ink on the answer-seen record');
-  assert.equal(f.ink[seen.id].strokes, 2, 'two strokes (vertical + horizontal)');
+  assert.deepEqual(f.ink, {}, 'D70 ②: leaving 凭记忆写 (再描一遍) stores nothing — it is practice only');
   await drawStroke(page, HORIZONTAL);
   await page.click(topSel('write-trace-done'));
   await waitPhase(page, 'retrace');
@@ -117,9 +113,7 @@ export default async function q1AfterSeen(page, ctx) {
   await tap(page, 'write-answer-next');
   await waitPhase(page, 'recall');
   f = await facts(page);
-  assert.deepEqual(Object.keys(f.ink), [seen.id], 'still one ink entry for 永');
-  assert.equal(f.ink[seen.id].strokes, 1, 'only the last 自己写 is kept (one vertical stroke)');
-  assert.ok(Math.abs(f.ink[seen.id].first[0] - f.ink[seen.id].last[0]) < 20 && f.ink[seen.id].last[1] > f.ink[seen.id].first[1] + 100, 'it is the vertical stroke');
+  assert.deepEqual(f.ink, {}, 'D70 ②: 下一个 after 凭记忆写 stores nothing either');
   const yong = f.records.find(r => r.char === '永');
   assert.deepEqual([yong.kind, yong.judgment, !!f.sched['base:永']], ['answer-seen', undefined, false], 'no judgment, no FSRS entry (D18)');
 
@@ -129,15 +123,15 @@ export default async function q1AfterSeen(page, ctx) {
   await page.waitForSelector(topSel('write-judge-correct'));
   await waitPhase(page, 'compare');
   await page.click(topSel('write-judge-correct'));
-  await checkResult(page, ctx, seen.id, 'result page');
+  await checkResult(page, ctx, 'result page');
 
-  step('reload on the result page → 看后写的 cell and its ink are still there');
+  step('reload on the result page → still no 永 cell');
   await page.reload();
   await page.waitForSelector('.sz-app');
   await page.waitForFunction(() => typeof window.__shiziTest === 'object');
-  await checkResult(page, ctx, seen.id, 'after reload');
+  await checkResult(page, ctx, 'after reload');
 
-  step('cold start (new browser context with the same storage) → still there');
+  step('cold start (new browser context with the same storage) → still no 永 cell');
   await page.evaluate(() => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
     document.dispatchEvent(new Event('visibilitychange'));
@@ -162,10 +156,10 @@ export default async function q1AfterSeen(page, ctx) {
         nav.push('result', { slot: 'A', sessionId: id });
       }, seen.sessionId);
     }
-    await checkResult(p2, ctx, seen.id, 'after cold start');
+    await checkResult(p2, ctx, 'after cold start');
     const g = await facts(p2);
-    assert.deepEqual(Object.keys(g.ink).sort(), Object.keys(f.ink).concat(g.records.filter(r => r.char === '和').map(r => r.id)).sort(),
-      'after cold start: the stored ink is 永 (看后写的) + 和 (写对)');
+    assert.deepEqual(Object.keys(g.ink).sort(), g.records.filter(r => r.char === '和').map(r => r.id).sort(),
+      'after cold start: the only stored ink is 和 (写对) — 永 (看过答案) has none');
     assert.deepEqual(errors, [], 'cold-start process: no pageerror / console.error');
   } finally {
     await context.close();

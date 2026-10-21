@@ -150,11 +150,11 @@ export default async function scenario(page, ctx) {
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
-  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 1 个字没写。已写的 1 个已记下。', 'S04 body');
+  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 1 个字没写，结束后就不写了。判断过的 1 个字已经记下。', 'S04 body');
   await page.click(tid('write-end-confirm'));
   await waitTop(page, 'result');
   assert.equal(await page.locator(topSel('result-title')).count(), 0, 'B result: no visible heading any more (R2-R1: the picked page is the work layout)');
-  assert.equal((await page.locator(topSel('result-sub')).textContent()).trim(), '还有 1 个字没写，没有记下。', 'B result ended early: the one line about what was not written');
+  assert.equal((await page.locator(topSel('result-sub')).textContent()).trim(), '还有 1 个字没写。', 'B result ended early: the one line about what was not written');
   assert.equal((await page.locator(topSel('result-leave')).textContent()).trim(), '回到首页', 'leave to the source: 回到首页');
   s = await sessions(page);
   assert.deepEqual(s.A, seeded, 'A still deep-equal after ending B');

@@ -29,7 +29,7 @@ export default Object.freeze({
   'R-R04.retry': '再试一次',
   'R-R04.cancel': '先不选',
   // R-R05（已定；标题字样 §5.1-3）
-  'R-R05.bodyEarly': '还有 {n} 个字没写，没有记下。',
+  'R-R05.bodyEarly': '还有 {n} 个字没写。', // NF-03：只指未写的字；已判断的字照常记下，不再说「没有记下」
   'R-R05.kicker': '自己选的',
   // R-R06（已定；S05 边开发边改）
   'R-R06.leaveWrong': '回到写错过',

@@ -164,7 +164,7 @@ test('resultModel picked (R2-R1 / V2-04 / T2-03): the same work layout as the da
   m = resultModel(ended(d, slot, true), { slot, sessionId: id });
   assert.equal(m.early, true);
   assert.equal(m.title, null);
-  assert.deepEqual(m.sub, ['还有 3 个字没写，没有记下。'], 'ended early: the one line about what was not written');
+  assert.deepEqual(m.sub, ['还有 3 个字没写。'], 'ended early: the one line about what was not written');
   assert.equal(m.leave.label, '回到「额」');
 });
 
@@ -389,7 +389,7 @@ test('D66 ⑥ endInDraft: the daily group can be ended early too (judged words k
   const m = resultModel(daily.d, { slot: 'A', sessionId: daily.id });
   assert.equal(m.variant, 'daily');
   assert.equal(m.early, true);
-  assert.deepEqual(m.sub, ['还有 2 个字没写，没有记下。'], 'daily ended early says what was not written, like the picked group');
+  assert.deepEqual(m.sub, ['还有 2 个字没写。'], 'daily ended early says what was not written, like the picked group');
   assert.equal(m.cells.filter(c => c.kind === 'judged').length, 1);
   const done = group({ steps: ['correct'] });
   const rest = group({ chars: ['永', '和'], steps: [] });
@@ -429,7 +429,10 @@ test('EndDialogContent: S04 primary 接着写, 结束这组 secondary, no presel
   assert.deepEqual(btns.map(b => [b.props['data-testid'], b.props.variant]), [['write-end-confirm', 'secondary'], ['write-end-continue', 'primary']]);
   assert.ok(btns.every(b => !b.props.autofocus && !('aria-pressed' in b.props)));
   const body = find(ask, n => n.props && n.props['data-testid'] === 'write-end-body')[0];
-  assert.equal(body.props.children, '还有 2 个字没写。已写的 1 个已记下。');
+  assert.equal(body.props.children, '还有 2 个字没写，结束后就不写了。判断过的 1 个字已经记下。');
+  // NF-03 / 确认单 §7：判断过 0 个字时只说前半句，不出现「已写的 0 个已记下」
+  const none = EndDialogContent({ n: 2, m: 0, onEnd: () => {}, onCancel: () => {} });
+  assert.equal(find(none, n => n.props && n.props['data-testid'] === 'write-end-body')[0].props.children, '还有 2 个字没写，结束后就不写了。');
   const failed = EndDialogContent({ n: 2, m: 1, failed: true, onEnd: () => {}, onCancel: () => {} });
   const fb = find(failed, n => n.props && n.props.variant && n.props['data-testid']);
   assert.deepEqual(fb.map(b => b.props['data-testid']), ['write-end-fail-cancel', 'write-end-retry']);

@@ -570,7 +570,7 @@ test('showAnswer = commitAnswerSeen: answer-seen record + straight into the trac
   assert.equal(Object.values(viaApi.getState().records).flat().filter(x => x.kind === 'answer-seen').length, 1);
 });
 
-test('answer flow: trace → 凭记忆写 (retrace) → 下一个, strokes included — web path and API path agree on every commit (Q1 self ink, D66 ① Again)', () => {
+test('answer flow: trace → 凭记忆写 (retrace) → 下一个, strokes included — web path and API path agree on every commit (D70 ② no self ink, D66 ① Again)', () => {
   const viaWeb = fakeStore(reviewState());
   const viaApi = fakeStore(reviewState());
   const api = apiOn(viaApi);
@@ -598,7 +598,8 @@ test('answer flow: trace → 凭记忆写 (retrace) → 下一个, strokes inclu
   assert.deepEqual(viaApi.labels, viaWeb.labels);
   const st = viaApi.getState();
   const seen = Object.values(st.records).flat().find(r => r.kind === 'answer-seen');
-  assert.ok(Object.values(st.ink).some(m => seen.id in m), 'the last 凭记忆写 is stored as the answer-seen record ink (Q1)');
+  assert.ok(!Object.values(st.ink).some(m => seen.id in m), 'D70 ②: the 凭记忆写 strokes are practice only — not stored (API path)');
+  assert.deepEqual(viaWeb.getState().ink, {}, 'D70 ②: same on the web path');
   assert.equal(Object.values(st.records).flat().filter(r => r.kind === 'judged' && r.sessionId === 's1').length, 0, 'no judgment');
 });
 
@@ -616,7 +617,7 @@ test('answer flow: 再描一遍 (retrace → trace) and the recall-after-answer-
   assert.equal(again.snapshot.answerPhase, 'trace');
   assert.deepEqual(viaApi.getState(), viaWeb.getState());
   assert.deepEqual(viaApi.labels, viaWeb.labels);
-  // 提示给完整字（看过答案，留在回忆阶段）：快照 answerPhase 为 null、answerSeen 为 true；「下一个」直接推进，看后写的笔画也算看后自写
+  // 提示给完整字（看过答案，留在回忆阶段）：快照 answerPhase 为 null、answerSeen 为 true；「下一个」直接推进，看后写的笔画同样只算练习（D70 ②）
   const hintStore = fakeStore();
   commitAnswerSeen(hintStore, { slot: 'A', cardKey: key, stay: true, hints: 4, hintRange: { from: 0, to: 8 } });
   const snap = writeSnapshot(hintStore.getState(), 'A');
@@ -629,7 +630,7 @@ test('answer flow: 再描一遍 (retrace → trace) and the recall-after-answer-
   assert.equal(st.sessions.A.cursor, 1);
   const seen = Object.values(st.records).flat().find(r => r.kind === 'answer-seen');
   assert.equal(seen.help.traced, false, 'a hint-given answer was never traced');
-  assert.ok(Object.values(st.ink).some(m => seen.id in m), 'recall-after-seen writing counts as the self-written ink too');
+  assert.ok(!Object.values(st.ink).some(m => seen.id in m), 'D70 ②: recall-after-seen writing is practice too — not stored');
 });
 
 test('answer ops: a failed write changes nothing (D07), the retry succeeds once; a stale card is refused with the advanced snapshot; bad phase refused', () => {

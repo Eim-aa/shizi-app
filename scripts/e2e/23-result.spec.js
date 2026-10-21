@@ -328,7 +328,7 @@ export default async function resultSpec(page, ctx) {
       pressed: btns.some(b => b.hasAttribute('aria-pressed')),
     };
   });
-  assert.equal(dlg.body, '还有 2 个字没写。已写的 1 个已记下。', 'S04 body (R-W15) with n=2, m=1');
+  assert.equal(dlg.body, '还有 2 个字没写，结束后就不写了。判断过的 1 个字已经记下。', 'S04 body (R-W15) with n=2, m=1');
   assert.deepEqual(dlg.buttons, [['write-end-confirm', 'other'], ['write-end-continue', 'primary']], 'S04: 接着写 is the primary button, 结束这组 a normal one');
   assert.ok(dlg.active && !dlg.pressed, 'focus on the dialog itself, no preselected button');
   await page.click(tid('write-end-continue'));
@@ -345,7 +345,7 @@ export default async function resultSpec(page, ctx) {
   await waitNavIdle(page);
   let v = await resultView(page);
   assert.deepEqual([v.header, v.variant, v.early, v.title], ['自己选的', 'picked', 'true', null], 'picked result, ended early: the page title is only for the screen reader; no visible heading (R2-R1 / V2-04)');
-  assert.equal(v.sub, '还有 2 个字没写，没有记下。', 'R-R05: only the line about what was not written (the 「记下了」 / 「点一个格子」 sentences are gone)');
+  assert.equal(v.sub, '还有 2 个字没写。', 'R-R05: only the line about what was not written (the 「记下了」 / 「点一个格子」 sentences are gone)');
   assert.equal(v.date, null, 'no date / source line: the date lives in the work 落款');
   assert.equal(v.workCells.length, 1, 'the one char written on this page is in the work (the same work layout as the daily page, V2-04)');
   assert.ok(/\s自选一字$/.test(v.kuan), `the 落款 carries 「自选」 and the count: ${v.kuan}`);
@@ -369,7 +369,7 @@ export default async function resultSpec(page, ctx) {
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
-  assert.equal((await page.locator(tid('write-end-body')).textContent()), '还有 1 个字没写。已写的 0 个已记下。', 'S04 body with m=0');
+  assert.equal((await page.locator(tid('write-end-body')).textContent()), '还有 1 个字没写，结束后就不写了。', 'S04 body with m=0');
   await page.click(tid('write-end-confirm'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
   assert.equal(await toastText(page), null, 'I3 P0-11: zero-judged ending shows no toast (going back to the source is the feedback)');
@@ -407,7 +407,7 @@ export default async function resultSpec(page, ctx) {
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
-  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写。已写的 0 个已记下。',
+  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写，结束后就不写了。',
     'S04 body from the answer page: n = 2 (current included), m = 0 (看过答案不算判断)');
   await page.click(tid('write-end-confirm'));
   await page.waitForFunction(() => document.querySelector('.sz-app').dataset.topScreen === 'home');
@@ -435,7 +435,7 @@ export default async function resultSpec(page, ctx) {
     'P77: 鲜 added as 看过答案, not changeable');
   const seenRow = await evalIn(page, () => { const r = document.querySelector('.sz-layer[data-top="true"] [data-testid="result-exrow"][data-index="1"]'); return r ? { record: r.dataset.record, state: r.dataset.state } : null; });
   assert.deepEqual(seenRow, { record: seenRec.id, state: 'seen' }, 'the added item is a 「看过答案」 row pointing at the answer-seen record of this session');
-  assert.equal(v.sub, '还有 2 个字没写，没有记下。', 'unwritten count unchanged (queue − cursor)');
+  assert.equal(v.sub, '还有 2 个字没写。', 'unwritten count unchanged (queue − cursor)');
   st = await state(page);
   assert.equal(st.records.filter(r => r.kind === 'judged').length, 1, 'still one judged record');
   await page.click(topSel('result-leave'));

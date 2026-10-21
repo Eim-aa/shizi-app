@@ -128,7 +128,7 @@ export function resultModel(state, { slot, sessionId, hasInk = null, policy = de
   const day = dayOfSession(session);
 
   // 三种结果页同一个作品版式（交接 §5.1；自选组 R2-R1 起也是）：最上面就是作品，不写「这次记录了 N 个字」「点一个格子…」；数量只出现在落款里。
-  // 首练保留标题（D28 / P1-E5；N3-07 / D53 起固定「这三个字」，firstTitle）；自选组只在中途结束时多一行「还有 N 个字没写，没有记下。」。
+  // 首练保留标题（D28 / P1-E5；N3-07 / D53 起固定「这三个字」，firstTitle）；自选组只在中途结束时多一行「还有 N 个字没写。」。
   const sub = [];
   let title = null;
   const header = t(variant === 'first' ? 'X-RESULT.headerFirst' : variant === 'picked' ? 'R-R05.kicker' : 'X-RESULT.headerDaily');

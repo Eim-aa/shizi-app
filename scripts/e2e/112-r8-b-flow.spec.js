@@ -1,6 +1,6 @@
 // r8 卡 B（写字与结果页流程，D66 ③ ④ ⑥ ⑧ ⑮ ⑯）。
 //
-//   1. ⑥ 今天这一组也能「结束这组」：写字页有「结束这组」、确认框数字、结束后出结果页与作品、「还有 N 个字没写，没有记下。」；首次练习没有。
+//   1. ⑥ 今天这一组也能「结束这组」：写字页有「结束这组」、确认框数字、结束后出结果页与作品、「还有 N 个字没写。」；首次练习没有。
 //   2. ④ 结果页写错的那一行有「修改 ›」（与写字页结果行同一个组件）→ 对照 / 改判弹层 → 改为写对；⑮ 弹层里「看这个字 ›」进字详情、返回回到结果页。
 //   3. ③ 结果页「重写错字」→ 推入重写页（只算练习：不写任何记录、不动调度、不动会话）→ 写完回到结果页；没有写错的字时没有这个按钮。
 //   4. ④ ⑮ 字详情：记录格放大弹层里改判（字库待复习与下次练习日同步）；「加入自选」一次点击、行变「移出自选」。
@@ -111,7 +111,7 @@ export default async function run(page, ctx) {
   await tap(page, 'write-end');
   await page.waitForSelector(tid('write-end-dialog'));
   await waitNavIdle(page);
-  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写。已写的 1 个已记下。', 'S04 body: n = 2 unwritten, m = 1 judged');
+  assert.equal(await page.locator(tid('write-end-body')).textContent(), '还有 2 个字没写，结束后就不写了。判断过的 1 个字已经记下。', 'S04 body: n = 2 unwritten, m = 1 judged');
   await page.click(tid('write-end-confirm'));
   await page.waitForSelector(topSel('result-screen'));
   await waitNavIdle(page);
@@ -119,7 +119,7 @@ export default async function run(page, ctx) {
     const b = document.querySelector('.sz-layer[data-top="true"] [data-testid="result-body"]');
     return { variant: b.dataset.variant, early: b.dataset.early, sub: (document.querySelector('.sz-layer[data-top="true"] [data-testid="result-sub"]') || {}).textContent || null };
   });
-  assert.deepEqual(v, { variant: 'daily', early: 'true', sub: '还有 2 个字没写，没有记下。' }, 'daily result, ended early: the same line as the picked group');
+  assert.deepEqual(v, { variant: 'daily', early: 'true', sub: '还有 2 个字没写。' }, 'daily result, ended early: the same line as the picked group');
   let st = await state(page);
   assert.ok(!st.sessions.A && st.sessions.lastEnded.A.endedEarly === true, 'A moved to lastEnded.A, endedEarly');
   assert.equal(st.records.filter(r => r.kind === 'judged').length, 1, 'only the written char counts');

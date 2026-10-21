@@ -118,8 +118,19 @@ final class NativeUndoLifetime {
 }
 
 /// 底部轻提示：「已跳过「X」· 撤销」；撤销写失败时换成「没保存上，你写的字还在。」+ [先不保存 / 再试一次]（不自动消失）。
-/// 视觉照网页 UndoBar.js / skip.js（R9-B，NP-19）：toast 底 / 字、12 圆角、最小高 48、上下内边距 8、左 16 右 8；字 15 / 22；
+/// 视觉照网页 UndoBar.js / skip.js（R9-B，NP-19）：最小高 48、上下内边距 8、左 16 右 8；字 15 / 22；
 /// 「撤销」是 15 / 500 的文字按钮（盒子 = 字宽 + 8、44 高，点击区仍 ≥ 44）；条贴在底栏上方 8（写字页排）。
+/// 外观是 L4 浮条（R10-B，D71 ③）：浮起的浅面 toast-bg（= elev）+ 1pt toast-line 细边 + toast-shadow 轻阴影、r-box 圆角（24，单行即胶囊），
+/// 正文 toast-fg、操作 toast-act——全部取页面令牌（NativeToastStyle），不写死；实心深色只给主按钮。
+struct NativeToastStyle {
+    var background: UIColor
+    var foreground: UIColor
+    var action: UIColor
+    var line: UIColor?
+    var shadow: (dx: CGFloat, dy: CGFloat, blur: CGFloat, color: UIColor)?
+    var radius: CGFloat
+}
+
 final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
     struct Strings {
         var text = ""
@@ -145,13 +156,28 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
     private let fg: UIColor
     private let type: NativeType
 
-    init(background: UIColor, foreground: UIColor, type: NativeType = NativeType()) {
-        fg = foreground
+    convenience init(background: UIColor, foreground: UIColor, type: NativeType = NativeType()) {
+        self.init(style: NativeToastStyle(background: background, foreground: foreground, action: foreground, line: nil, shadow: nil, radius: type.value("r-box")), type: type)
+    }
+
+    init(style: NativeToastStyle, type: NativeType = NativeType()) {
+        fg = style.foreground
+        let foreground = style.action
         self.type = type
         super.init(frame: .zero)
-        backgroundColor = background
-        layer.cornerRadius = 12
+        backgroundColor = style.background
+        layer.cornerRadius = style.radius
         layer.cornerCurve = .continuous
+        if let line = style.line {
+            layer.borderWidth = 1
+            layer.borderColor = line.cgColor
+        }
+        if let sh = style.shadow {
+            layer.shadowColor = sh.color.withAlphaComponent(1).cgColor
+            layer.shadowOpacity = Float(sh.color.cgColor.alpha)
+            layer.shadowOffset = CGSize(width: sh.dx, height: sh.dy)
+            layer.shadowRadius = sh.blur / 2
+        }
         label.numberOfLines = 0
         label.accessibilityTraits = [.updatesFrequently]
         label.accessibilityIdentifier = "native-write-undo-text"
@@ -219,25 +245,29 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
         return bs.reduce(0) { $0 + buttonWidth($1) } + CGFloat(max(0, bs.count - 1)) * 4
     }
 
-    /// 按给定宽度算出整条的高度：max(48, max(字高, 44) + 上下 8)。
+    /// 按给定宽度算出整条的高度：max(48, max(字高, 44) + 上下 8 + 上下细边)。
+    /// 细边宽（网页 border:1px，border-box：边在盒内、内边距之外）。
+    private var edge: CGFloat { layer.borderWidth }
+
     func height(for width: CGFloat) -> CGFloat {
-        let textW = max(60, width - 16 - 8 - 12 - buttonsWidth())
+        let textW = max(60, width - 16 - 8 - 12 - 2 * edge - buttonsWidth())
         let h = NativeType.height(label, width: textW, line: type.line("lh15"))
-        return max(48, max(h, 44) + 16)
+        return max(48, max(h, 44) + 16 + 2 * edge)
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        var x = bounds.width - 8
+        if layer.shadowOpacity > 0 { layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: layer.cornerRadius).cgPath }
+        var x = bounds.width - 8 - edge
         for b in buttons().reversed() {
             let w = buttonWidth(b)
             x -= w
             b.frame = CGRect(x: x, y: (bounds.height - 44) / 2, width: w, height: 44)
             x -= 4
         }
-        let textW = max(0, x + 4 - 12 - 16)
+        let textW = max(0, x + 4 - 12 - 16 - edge)
         let h = NativeType.height(label, width: textW, line: type.line("lh15"))
-        label.frame = CGRect(x: 16, y: (bounds.height - h) / 2, width: textW, height: h)
+        label.frame = CGRect(x: 16 + edge, y: (bounds.height - h) / 2, width: textW, height: h)
     }
 
     var undoButtonForTesting: UIButton { undoButton }

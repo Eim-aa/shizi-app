@@ -5,8 +5,9 @@
 // 跨页面保留（换页后仍在显示；写字页返回首页不再出「已保存」条，R4-F1 / P262）。
 // <ToastHost/> 由 ui/root.js 挂一次；role=status + aria-live=polite（01-架构设计 §7）。
 // 位置（H1 / I2-04）：默认距底 110px；当前页的主按钮（.sz-btn--primary，或元素上声明 data-toast-anchor）压住这个位置时整条抬到它上沿之上 12，不再盖住主操作（toastBottom）。
-// 规格取设计系统 v1 的 Toast（P1-E1b，tokens.json components.toast）：左右页边 20、距底 110px（在 tab 条上方）、最小高 48、12px 圆角（--r-ctl）、
-// --toast-bg 底 / --toast-fg 字、15px/22px、没有圆点；底边一条 2px 计时线（currentColor 35%，在显示时长内收尽；减少动态效果时不动画）。
+// 规格取设计系统 v1 的 Toast（P1-E1b，tokens.json components.toast）：左右页边 20、距底 110px（在 tab 条上方）、最小高 48、15px/22px、没有圆点；
+// 外观是 L4 浮条（D71 ③）：浮起的浅面 --toast-bg（= elev）+ 1px --toast-line 细边 + --toast-shadow 轻阴影、24 圆角（--r-box，单行即胶囊），字 --toast-fg（ink1）；
+// 底边一条 2px 计时线（ink3、40% 不透明，在显示时长内收尽；减少动态效果时不动画）。实心深色只给主按钮。
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../vendor/ui.js';
 import { injectStyles, T } from './styles.js';
 import { playExit } from './exit.js';
@@ -106,10 +107,10 @@ injectStyles('toast', `
   pointer-events:none;display:flex;justify-content:center}
 @keyframes sz-toast-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .sz-toast{position:relative;overflow:hidden;box-sizing:border-box;width:100%;min-height:48px;display:flex;align-items:center;
-  padding:${T.s3} ${T.s4};border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};animation:sz-fade-in ${T.dFade} ${T.eLinear} backwards}
+  padding:${T.s3} ${T.s4};border-radius:${T.rBox};background:${T.toastBg};color:${T.toastFg};border:1px solid ${T.toastLine};box-shadow:${T.toastShadow};animation:sz-fade-in ${T.dFade} ${T.eLinear} backwards}
 .sz-toast.sz-exit{position:absolute;left:0;right:0;bottom:0} /* 退场的余影叠在原位，不与新的一条并排 */
 .sz-toast__text{flex:1;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
-.sz-toast__timer{position:absolute;left:0;right:0;bottom:0;height:2px;background:currentColor;opacity:.35;transform-origin:left center;
+.sz-toast__timer{position:absolute;left:0;right:0;bottom:0;height:2px;background:${T.ink3};opacity:.4;transform-origin:left center;
   animation:sz-toast-timer ${T.eLinear} both}
 @media (prefers-reduced-motion: reduce){.sz-toast{animation:sz-fade-in ${T.dReduce} ${T.eLinear} backwards}.sz-toast__timer{animation:none}}
 `);

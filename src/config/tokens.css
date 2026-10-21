@@ -50,8 +50,8 @@
   --gutter: 20px; /* 页边距：文字、格子、按钮共用一条边 · 来源：tokens.json space.gutter */
   --group-gap: 32px; /* 分组之间的留白（用留白与发丝线分组，不用卡片）· 来源：tokens.json space.groupGap */
   --r-work: 0px; /* 圆角·作品：书写格、对照卡、字帖、字墙格、图片、印章 · 来源：tokens.json radius.work */
-  --r-ctl: 12px; /* 圆角·控件：按钮、输入框、分段控件、Toast · 来源：tokens.json radius.control */
-  --r-box: 24px; /* 圆角·容器：弹层（上两角）、浮层 · 来源：tokens.json radius.container */
+  --r-ctl: 12px; /* 圆角·控件：按钮、输入框、分段控件 · 来源：tokens.json radius.control */
+  --r-box: 24px; /* 圆角·容器：弹层（上两角）、浮层、L4 浮条（最小高 48 时即胶囊，与 12 圆角的按钮分开，D71 ③） · 来源：tokens.json radius.container */
   --hair: 0.5px; /* 分隔发丝线（真机 1 物理像素）· 来源：tokens.json line.hairline */
   --frame-w: 1px; /* 格框线宽 · 来源：tokens.json line.frame */
   --guide-w: 0.75px; /* 格内十字虚线线宽 · 来源：tokens.json line.guide */
@@ -214,11 +214,14 @@
   --btn-bg: #26211D; /* 主按钮底（墨） · 来源：tokens.json color.light.btnBg */
   --btn-fg: #F4EFE6; /* 主按钮字 · 来源：tokens.json color.light.btnFg */
   --btn-down: #0F0C0A; /* 主按钮按下底 · 来源：tokens.json color.light.btnDown */
-  --toast-bg: #26211D; /* Toast / 撤销条底 · 来源：tokens.json color.light.toastBg */
-  --toast-fg: #F4EFE6; /* Toast / 撤销条字 · 来源：tokens.json color.light.toastFg */
+  --toast-bg: #FBF8F2; /* L4 浮条（Toast / 撤销条 / 失败提示条）底：浮起的浅面 = elev，不是实心深色（实心深色只给主按钮，D71 ③） · 来源：tokens.json color.light.toastBg */
+  --toast-fg: #26211D; /* L4 浮条正文 = ink1 · 来源：tokens.json color.light.toastFg */
+  --toast-act: #26211D; /* L4 浮条里的操作（撤销 / 再试一次）：500 字重文字按钮，无下划线 · 来源：tokens.json color.light.toastAct */
+  --toast-line: #DDD5C7; /* L4 浮条 1px 细边 = line · 来源：tokens.json color.light.toastLine */
   --scrim: rgba(38,33,29,0.32); /* 遮罩 · 来源：tokens.json color.light.scrim */
   --elev-shadow: 0px -0.5px 0px rgba(38,33,29,.10), 0px -10px 30px rgba(38,33,29,.10); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.light.sheet */
   --img-shadow: 0px 2px 12px rgba(38,33,29,.06); /* 分享预览里那张图的轻投影（唯一不在弹层本身上的阴影；只给 t-light 的预览板用）· 来源：tokens.json shadow.light.preview */
+  --toast-shadow: 0px 4px 16px rgba(38,33,29,.12); /* L4 浮条的轻阴影（和 1px 细边一起把浅面托起来，D71 ③）· 来源：tokens.json shadow.light.toast */
   --tex-img: var(--tex-light); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.light */
 }
 
@@ -251,11 +254,14 @@
     --btn-bg: #E2D9C9; /* 主按钮底（墨） · 来源：tokens.json color.dark.btnBg */
     --btn-fg: #1B1814; /* 主按钮字 · 来源：tokens.json color.dark.btnFg */
     --btn-down: #CBC1B0; /* 主按钮按下底 · 来源：tokens.json color.dark.btnDown */
-    --toast-bg: #3A332C; /* Toast / 撤销条底 · 来源：tokens.json color.dark.toastBg */
-    --toast-fg: #ECE4D6; /* Toast / 撤销条字 · 来源：tokens.json color.dark.toastFg */
+    --toast-bg: #2A2520; /* L4 浮条（Toast / 撤销条 / 失败提示条）底：浮起的浅面 = elev，不是实心深色（实心深色只给主按钮，D71 ③） · 来源：tokens.json color.dark.toastBg */
+    --toast-fg: #ECE4D6; /* L4 浮条正文 = ink1 · 来源：tokens.json color.dark.toastFg */
+    --toast-act: #ECE4D6; /* L4 浮条里的操作（撤销 / 再试一次）：500 字重文字按钮，无下划线 · 来源：tokens.json color.dark.toastAct */
+    --toast-line: #38322B; /* L4 浮条 1px 细边 = line · 来源：tokens.json color.dark.toastLine */
     --scrim: rgba(0,0,0,0.52); /* 遮罩 · 来源：tokens.json color.dark.scrim */
     --elev-shadow: 0px -0.5px 0px rgba(255,240,220,.06); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.dark.sheet */
     --img-shadow: 0px 2px 12px rgba(0,0,0,.28); /* 分享预览里那张图的轻投影（预览板自己是 t-light，深色主题下这条只作对称保留）· 来源：tokens.json shadow.dark.preview */
+    --toast-shadow: 0px 4px 16px rgba(0,0,0,.40); /* L4 浮条的轻阴影（和 1px 细边一起把浅面托起来，D71 ③）· 来源：tokens.json shadow.dark.toast */
     --tex-img: var(--tex-dark); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.dark */
   }
 }
@@ -289,11 +295,14 @@
   --btn-bg: #E2D9C9; /* 主按钮底（墨） · 来源：tokens.json color.dark.btnBg */
   --btn-fg: #1B1814; /* 主按钮字 · 来源：tokens.json color.dark.btnFg */
   --btn-down: #CBC1B0; /* 主按钮按下底 · 来源：tokens.json color.dark.btnDown */
-  --toast-bg: #3A332C; /* Toast / 撤销条底 · 来源：tokens.json color.dark.toastBg */
-  --toast-fg: #ECE4D6; /* Toast / 撤销条字 · 来源：tokens.json color.dark.toastFg */
+  --toast-bg: #2A2520; /* L4 浮条（Toast / 撤销条 / 失败提示条）底：浮起的浅面 = elev，不是实心深色（实心深色只给主按钮，D71 ③） · 来源：tokens.json color.dark.toastBg */
+  --toast-fg: #ECE4D6; /* L4 浮条正文 = ink1 · 来源：tokens.json color.dark.toastFg */
+  --toast-act: #ECE4D6; /* L4 浮条里的操作（撤销 / 再试一次）：500 字重文字按钮，无下划线 · 来源：tokens.json color.dark.toastAct */
+  --toast-line: #38322B; /* L4 浮条 1px 细边 = line · 来源：tokens.json color.dark.toastLine */
   --scrim: rgba(0,0,0,0.52); /* 遮罩 · 来源：tokens.json color.dark.scrim */
   --elev-shadow: 0px -0.5px 0px rgba(255,240,220,.06); /* 弹层阴影（只有弹层有阴影）· 来源：tokens.json shadow.dark.sheet */
   --img-shadow: 0px 2px 12px rgba(0,0,0,.28); /* 分享预览里那张图的轻投影（预览板自己是 t-light，深色主题下这条只作对称保留）· 来源：tokens.json shadow.dark.preview */
+  --toast-shadow: 0px 4px 16px rgba(0,0,0,.40); /* L4 浮条的轻阴影（和 1px 细边一起把浅面托起来，D71 ③）· 来源：tokens.json shadow.dark.toast */
   --tex-img: var(--tex-dark); /* 笺面纸纹（只用于 .tex 笺面，占位强度见 texture.placeholderStrength）· 来源：tokens.json texture.placeholderStrength.dark */
 }
 

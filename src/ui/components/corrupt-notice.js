@@ -11,8 +11,8 @@ import { injectStyles, T } from './styles.js';
 
 injectStyles('corrupt-notice', `
 .sz-corrupt{position:absolute;left:${T.gutter};right:${T.gutter};top:calc(8px + env(safe-area-inset-top, 0px));z-index:45;box-sizing:border-box;
-  display:flex;gap:8px;align-items:flex-start;padding:10px 6px 10px 16px;border-radius:${T.rCtl};background:${T.toastBg};color:${T.toastFg};
-  }
+  display:flex;gap:8px;align-items:flex-start;padding:10px 6px 10px 16px;border-radius:${T.rBox};background:${T.toastBg};color:${T.toastFg};
+  border:1px solid ${T.toastLine};box-shadow:${T.toastShadow}} /* L4 浮条外观（D71 ③）：浮起的浅面，不用实心深色 */
 .sz-corrupt .sz-btn{color:inherit}
 .sz-corrupt__text{flex:1;margin:0;padding-top:2px;font-size:${T.fs15};line-height:${T.lh15};color:inherit}
 `);

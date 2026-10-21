@@ -453,30 +453,32 @@
       "tag" : "span"
     },
     {
-      "bg" : "#26211DFF",
+      "bg" : "#FBF8F2FF",
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 1,
       "class" : "sz-undobar sz-skipbar",
       "frame" : {
-        "h" : 60,
+        "h" : 62,
         "w" : 362,
         "x" : 20,
-        "y" : 638
+        "y" : 636
       },
       "id" : "write-skip-undo",
       "kind" : "view",
-      "radius" : 12,
+      "radius" : 24,
       "tag" : "div"
     },
     {
       "align" : "left",
       "class" : "",
-      "color" : "#F4EFE6FF",
+      "color" : "#26211DFF",
       "fontSize" : 15,
       "fontWeight" : 0,
       "frame" : {
         "h" : 22,
         "w" : 89.299999999999997,
-        "x" : 36,
-        "y" : 657
+        "x" : 37,
+        "y" : 656
       },
       "id" : "write-skip-undo-text",
       "kind" : "text",
@@ -485,22 +487,22 @@
       "textFrame" : {
         "h" : 19,
         "w" : 89.299999999999997,
-        "x" : 36,
-        "y" : 658
+        "x" : 37,
+        "y" : 657
       }
     },
     {
       "align" : "center",
       "class" : "sz-btn sz-btn--text",
-      "color" : "#F4EFE6FF",
+      "color" : "#26211DFF",
       "enabled" : true,
       "fontSize" : 15,
       "fontWeight" : 0.23000000000000001,
       "frame" : {
         "h" : 44,
         "w" : 37.799999999999997,
-        "x" : 336.19999999999999,
-        "y" : 646
+        "x" : 335.19999999999999,
+        "y" : 645
       },
       "id" : "write-skip-undo-btn",
       "kind" : "button",
@@ -509,8 +511,8 @@
       "textFrame" : {
         "h" : 19,
         "w" : 29.800000000000001,
-        "x" : 340.19999999999999,
-        "y" : 658
+        "x" : 339.19999999999999,
+        "y" : 657
       }
     },
     {

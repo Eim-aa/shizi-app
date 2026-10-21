@@ -1,4 +1,5 @@
-// QA-H1：逐屏对比里的「具名检查」——两份 AI 测试报告（qa-parity 报告 NP-01…NP-21）逐条写成的可重复检查。
+// QA-H1：逐屏对比里的「具名检查」——两份 AI 测试报告（qa-parity 报告 NP-01…NP-21）逐条写成的可重复检查；
+// 设计系统规则写成的检查用规则编号（L4-01：L4 浮条与主按钮分开，D71 ③）。
 //
 // status：
 //   'expected-fail'  已知问题、待修复卡转绿。失败 = 「预期失败（待修）」，不算回归；通过 = 「意外通过」，提示把 status 改成 'pass'。
@@ -7,7 +8,11 @@
 //   web / native：配好语义键的元素（elements.mjs）；px：在截图上的取样（compare.mjs 用 Playwright 读像素）。
 // NP-01（修改 › 热区）、NP-06（判断失败三段式）要真实点按，写在 XCUITest（ShiziUITests/KnownIssueTests.swift）。
 
-import { colorDelta, normText } from './elements.mjs';
+import { readFileSync } from 'node:fs';
+import { colorDelta, contrastRatio, normText } from './elements.mjs';
+
+// 设计令牌（唯一来源）：L4-01 用主按钮实心底 btnBg 与门槛 toastVsPrimary（D71 ③）
+const TOKENS = JSON.parse(readFileSync(new URL('../../../../docs/design/design-system-v1/tokens.json', import.meta.url), 'utf8'));
 
 const byKey = (list, key) => list.find(e => e.key === key);
 const byText = (list, re) => list.find(e => re.test(normText(e.text)));
@@ -186,6 +191,32 @@ export const CHECKS = [
       if (!w || !n || !wh || !nh) return { pass: false, detail: `撤销条 网页 ${fmt(w && w.frame)} 原生 ${fmt(n && n.frame)}` };
       const wg = wh.frame.y - (w.frame.y + w.frame.h), ng = nh.frame.y - (n.frame.y + n.frame.h);
       return { pass: close(w.frame.h, n.frame.h, 2) && close(wg, ng, 2), detail: `条高 网页 ${w.frame.h} 原生 ${n.frame.h}；与求助键间距 网页 ${Math.round(wg)} 原生 ${Math.round(ng)}` };
+    },
+  },
+  {
+    id: 'L4-01', status: 'pass', level: '高', title: '浮条底色 ≠ 主按钮底色，且两者色差足够大（对比度 ≥ toastVsPrimary）；浮条圆角大于主按钮（D71 ③）',
+    states: ['skip-undo'],
+    eval({ web, native, appearance }) {
+      const minRatio = TOKENS.color.contrast.thresholds.toastVsPrimary;
+      const btnBg = (TOKENS.color[appearance] || {}).btnBg;
+      const bad = [], info = [];
+      for (const [side, list] of [['网页', web], ['原生', native]]) {
+        const bar = byKey(list, 'undo-bar');
+        if (!bar || !bar.bg) { bad.push(`${side}没有撤销条或取不到底色`); continue; }
+        const primary = byKey(list, 'primary');
+        // 主按钮实心底：令牌 btnBg；同屏主按钮可点时再拿它的实际底色比一次（不可点时是 field 底，不代表主按钮的实心色）
+        const refs = [['btnBg', `${btnBg}FF`]];
+        if (primary && primary.enabled && primary.bg) refs.push(['同屏主按钮', primary.bg]);
+        for (const [name, c] of refs) {
+          const r = contrastRatio(bar.bg, c);
+          const same = colorDelta(bar.bg, c) === 0;
+          if (same || r === null || r < minRatio) bad.push(`${side}浮条 ${bar.bg} 对${name} ${c} 对比度 ${r === null ? '?' : r.toFixed(2)}${same ? '（同色）' : ''} < ${minRatio}`);
+          else info.push(`${side}对${name} ${r.toFixed(1)}`);
+        }
+        const pr = (primary && primary.radius) || 12;
+        if (!((bar.radius || 0) > pr)) bad.push(`${side}浮条圆角 ${bar.radius || 0} 不大于主按钮 ${pr}`);
+      }
+      return { pass: !bad.length, detail: bad.join('；') || info.join('，') };
     },
   },
   {

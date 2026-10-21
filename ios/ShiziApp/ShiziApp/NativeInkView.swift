@@ -634,7 +634,9 @@ final class NativeInkView: UIView {
         guard current == id else { return }
         for c in coalesced where c.timestamp * 1000 > (raw.last?.t ?? 0) { Self.append(gridPoint(c), to: &raw) }
         let end = gridPoint(last)
-        if let l = raw.last, end.x != l.x || end.y != l.y { Self.append(end, to: &raw) }
+        // 抬笔点：位置变了，或位置没变但时间更晚（抬笔前的停顿）都追加——B2.3 决定保留停顿时长：判断墨迹存原始点（Ink v4），
+        // 原生回放的停顿洇墨与慢收（规格 §5.3、§3）要靠这个时刻；同一时刻的重复点不追加（零时间差本来就会被合并）。
+        if let l = raw.last, end.x != l.x || end.y != l.y || end.t > l.t { Self.append(end, to: &raw) }
         if currentKind == .pencil { inputPolicy.notePencil(at: last.timestamp) }
         let stroke = raw
         let wasHeld = held

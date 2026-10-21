@@ -4,7 +4,7 @@
 import { setInk } from '../../store/store.js';
 import { pruneInkOfCards } from '../../store/budget.js';
 import * as defaultPolicy from '../../config/policy.js';
-import { buildStroke, decodeRawStrokes, encodeInk } from '../../core/ink-math.js';
+import { decodeRawStrokes, encodeStoredInk } from '../../core/ink-math.js';
 import { makeRecord } from '../../core/records.js';
 import { applyAnswerSeen } from '../../core/fsrs.js';
 import { advance, clearLine, currentCardKey, withCurrent } from '../../core/sessions.js';
@@ -100,7 +100,7 @@ function inkEnabled(perRecordInk, policy) {
  * 随后 pruneInkOfCards 回收这个字更早的看后自写（组已关的），判断墨迹的 D27 留存不变。
  * @returns {{stored:boolean, recordId:string|null}}
  */
-export function storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy } = {}) {
+export function storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy, inkFormat } = {}) {
   const none = { stored: false, recordId: null };
   const s = sessionOf(draft, slot);
   if (!s || currentCardKey(s) !== cardKey || !isSelfWritePhase(s.current)) return none;
@@ -109,8 +109,8 @@ export function storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordIn
   if (!record) return none;
   const raw = Array.isArray(strokes) ? strokes : decodeRawStrokes(s.current.strokes || []);
   if (!hasStrokes(raw)) return { stored: false, recordId: record.id };
-  const built = raw.filter(st => Array.isArray(st) && st.length).map(st => buildStroke(st, { final: true }));
-  setInk(draft, record, encodeInk(built, { policy: policy || defaultPolicy }));
+  // B2.3：原生存原始点（Ink v4），网页存 v3（inkFormat = ctx.inkFormat）
+  setInk(draft, record, encodeStoredInk(raw, { policy: policy || defaultPolicy, format: inkFormat }));
   pruneInkOfCards(draft, [cardKey]);
   return { stored: true, recordId: record.id };
 }
@@ -167,7 +167,7 @@ export function commitAnswerPhase(store, { slot, cardKey, phase, strokes, perRec
   return store.commit(`write:answer-${phase}`, (draft, ctx) => {
     const s = sessionOf(draft, slot);
     if (!s || currentCardKey(s) !== cardKey) throw new Error('answer phase: not the current card');
-    storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy });
+    storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy, inkFormat: ctx.inkFormat });
     if (phase === 'trace') {
       const record = findAnswerSeen(draft, s.id, cardKey);
       if (record && !record.help.traced) replaceRecordInDraft(draft, { ...record, help: { ...record.help, traced: true } });
@@ -188,7 +188,7 @@ export function commitAnswerNext(store, { slot, cardKey, strokes, perRecordInk, 
   return store.commit('write:answer-next', (draft, ctx) => {
     const s = sessionOf(draft, slot);
     if (!s || currentCardKey(s) !== cardKey) throw new Error('answer next: not the current card');
-    storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy });
+    storeSelfInkInDraft(draft, { slot, cardKey, strokes, perRecordInk, policy, inkFormat: ctx.inkFormat });
     const record = findAnswerSeen(draft, s.id, cardKey);
     setSession(draft, slot, advance(s, { cardKey, recordId: record ? record.id : undefined, kind: 'answer-seen', at: ctx.now }));
   });

@@ -118,6 +118,22 @@ final class NativeWriteBridgeTests: XCTestCase {
         XCTAssertNotNil((st["sched"] as? [String: Any])?[key], "FSRS entry written in the same commit")
         let ink = try await js("const st = window.__shiziTest.getState(); const r = Object.values(st.records).flat().find(x => x.cardKey === \(Self.literal(key))); return !!window.__shiziTest.getInk(r);") as? Bool
         XCTAssertEqual(ink, true, "per-record ink written (perRecordInk)")
+        // B2.3 ink schema 2：原生库里这条记录的墨迹是一行 shizi.v2.ink.<月>.<id>，值是 Ink v4 原始点；原生解出来就是写下的点
+        let rid = try XCTUnwrap(r["id"] as? String)
+        let month = String(try XCTUnwrap(r["localDay"] as? String).prefix(7))
+        let rows = try await js("return window.__shiziTest.getRawKeys('shizi.v2.ink.');") as? [String: Any]
+        let mine = (rows ?? [:]).keys.filter { $0.hasSuffix(".\(rid)") }
+        XCTAssertEqual(mine, ["shizi.v2.ink.\(month).\(rid)"], "one row for this record's ink")
+        let body = try XCTUnwrap(rows?["shizi.v2.ink.\(month).\(rid)"] as? String)
+        let decoded = try XCTUnwrap(InkStoredInk.decode(json: body), "Ink v4 raw points on the native backend")
+        XCTAssertEqual(decoded.first?.count, Self.stroke.count)
+        for (q, e) in zip(decoded.first ?? [], Self.stroke) {
+            XCTAssertEqual(q.x, e[0], accuracy: 0.05 + 1e-9)
+            XCTAssertEqual(q.y, e[1], accuracy: 0.05 + 1e-9)
+            XCTAssertEqual(q.t, e[2] - 1_000, accuracy: 0.5 + 1e-9)
+        }
+        let inkSchema = try await js("return window.__shiziTest.getStatus().inkSchema.schema;") as? Int
+        XCTAssertEqual(inkSchema, 2)
         XCTAssertEqual(sessionA(st)?["cursor"] as? Int, 1)
         // 存储后端是原生 SQLite（B1）：同一份数据
         let backend = try await js("return window.__shiziTest.getStatus().backend.kind;") as? String

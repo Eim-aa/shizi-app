@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStore, deleteInk, deriveSerial, getInk, isReplacement, setInk } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
-import { KEYS, inkKey, recordsKey } from '../../src/core/schema.js';
+import { KEYS, inkKey, inkRecordKey, recordsKey } from '../../src/core/schema.js';
 import {
   BACKENDS, T0, allRecordIds, baselineState, flatInk, inkEntry, inkEntryV2, judgeMutation, plain, record,
 } from './helpers.mjs';
@@ -56,17 +56,18 @@ test(`[${B.name}] ` + 'commit success: publishes new frozen state, notifies subs
   assert.ok(r.keys.indexOf(KEYS.sessions) === r.keys.length - 1, 'sessions written last');
   assert.equal(backend.getItem(KEYS.txn), null);
   assert.deepEqual(JSON.parse(backend.getItem(recordsKey('2026-10'))), plain(after.records['2026-10']));
-  // 墨迹按记录月份分键（F3）：本次只新写 ink.2026-10，ink.2026-09 不动也不进 txn。
-  assert.ok(r.keys.includes(inkKey('2026-10')), 'new record ink goes to its own month key');
-  assert.ok(!r.keys.includes(inkKey('2026-09')), 'other ink months untouched');
-  assert.ok(order.indexOf(inkKey('2026-10')) >= 0 && order.indexOf(inkKey('2026-10')) < order.indexOf(recordsKey('2026-10')), 'ink month written before records month');
+  // B2.3 ink schema 2：每条墨迹一个键；本次只新写 ink.2026-10.r4，别的墨迹不动也不进 txn。
+  assert.ok(r.keys.includes(inkRecordKey('2026-10', 'r4')), 'new record ink goes to its own key');
+  assert.equal(r.keys.filter(k => k.indexOf('shizi.v2.ink.') === 0).length, 1, 'only that one ink key written');
+  assert.ok(order.indexOf(inkRecordKey('2026-10', 'r4')) >= 0 && order.indexOf(inkRecordKey('2026-10', 'r4')) < order.indexOf(recordsKey('2026-10')), 'ink written before records month');
   assert.equal(order[order.length - 1], KEYS.sessions, 'sessions is the last data key written');
   assert.equal(backend.getItem('shizi.v2.ink'), null, 'no single ink key any more');
-  assert.deepEqual(Object.keys(JSON.parse(backend.getItem(inkKey('2026-10')))), ['r4']);
+  assert.equal(backend.getItem(inkKey('2026-10')), null, 'no month key either');
+  assert.deepEqual(JSON.parse(backend.getItem(inkRecordKey('2026-10', 'r4'))), inkEntry());
   assert.deepEqual(store.getInk(after.records['2026-10'][0]), inkEntry());
 });
 
-test(`[${B.name}] ` + 'ink v3 (P78): legacy v2 ink on disk still loads and decodes; new writes are v3; both live in one month key', () => {
+test(`[${B.name}] ` + 'ink v3 (P78): legacy v2 ink on disk still loads and decodes; v2 and v3 entries live side by side in one month', () => {
   const backend = B.make();
   const base = baselineState();
   base.ink = { '2026-09': { r2: inkEntryV2() } };
@@ -81,12 +82,12 @@ test(`[${B.name}] ` + 'ink v3 (P78): legacy v2 ink on disk still loads and decod
   const r3 = env.store.getState().records['2026-09'][1];
   const r = env.store.commit('v3 ink', draft => { setInk(draft, r3, inkEntry()); });
   assert.equal(r.ok, true, JSON.stringify(r));
-  const table = JSON.parse(backend.getItem(inkKey('2026-09')));
-  assert.ok(isInkV2(table.r2) && isInkV3(table.r3), 'mixed month table: r2 v2, r3 v3');
+  assert.ok(isInkV2(JSON.parse(backend.getItem(inkRecordKey('2026-09', 'r2')))) && isInkV3(JSON.parse(backend.getItem(inkRecordKey('2026-09', 'r3')))),
+    'same month: r2 v2, r3 v3, one key each');
   assert.deepEqual(decodeInk(env.store.getInk(r3)).map(s => s.length), [8, 8, 8]);
 });
 
-test(`[${B.name}] ` + 'ink helpers: getInk / setInk / deleteInk address shizi.v2.ink.<record month>; txn only carries touched months', () => {
+test(`[${B.name}] ` + 'ink helpers: getInk / setInk / deleteInk address state.ink[record month]; on disk one key per record, txn only carries that record', () => {
   const { store, storage, backend } = seeded();
   const r2 = store.getState().records['2026-09'][0];
   assert.deepEqual(getInk(store.getState(), r2), inkEntry(), 'baseline r2 ink lives in 2026-09');
@@ -105,8 +106,9 @@ test(`[${B.name}] ` + 'ink helpers: getInk / setInk / deleteInk address shizi.v2
   });
   storage.writeAll = origWriteAll;
   assert.equal(r.ok, true, JSON.stringify(r));
-  assert.deepEqual(txnSeen, [inkKey('2026-09')]);
-  assert.deepEqual(Object.keys(JSON.parse(backend.getItem(inkKey('2026-09')))).sort(), ['r2', 'r3']);
+  assert.deepEqual(txnSeen, [inkRecordKey('2026-09', 'r3')], 'only r3 written (r2 untouched)');
+  assert.deepEqual(JSON.parse(backend.getItem(inkRecordKey('2026-09', 'r3'))), inkEntry(4, 2));
+  assert.deepEqual(JSON.parse(backend.getItem(inkRecordKey('2026-09', 'r2'))), inkEntry());
   assert.ok(Object.isFrozen(store.getState().ink['2026-09']));
   // 删光一个月 → 月键移除
   const del = store.commit('drop ink', draft => {
@@ -115,7 +117,8 @@ test(`[${B.name}] ` + 'ink helpers: getInk / setInk / deleteInk address shizi.v2
     setInk(draft, r3, null);
   });
   assert.equal(del.ok, true);
-  assert.equal(backend.getItem(inkKey('2026-09')), null, 'empty month key removed');
+  assert.equal(backend.getItem(inkRecordKey('2026-09', 'r2')), null, 'deleted record key removed');
+  assert.equal(backend.getItem(inkRecordKey('2026-09', 'r3')), null, 'deleted record key removed');
   assert.deepEqual(store.getState().ink, {});
   const bad = store.commit('no month', draft => setInk(draft, { id: 'r9' }, inkEntry()));
   assert.equal(bad.error.kind, 'mutator');
@@ -150,7 +153,7 @@ test(`[${B.name}] ` + 'verify mismatch → rollback → not published', () => {
   const beforeDisk = backend.snapshot();
   const beforeState = store.getState();
   let hits = 0;
-  backend.failWhen(({ op, key }) => (op === 'set' && key === inkKey('2026-10') && (hits += 1) === 1 ? { corrupt: '{}' } : null));
+  backend.failWhen(({ op, key }) => (op === 'set' && key === inkRecordKey('2026-10', 'r4') && (hits += 1) === 1 ? { corrupt: '{}' } : null));
   const r = store.commit('judge', judgeMutation('大'));
   backend.failWhen(null);
   assert.equal(r.ok, false);
@@ -584,8 +587,9 @@ test(`[${B.name}] ` + 'backup v2: good file replaces whitelisted keys, leaves se
   const r = store.replaceWithBackup(backupFrom(other));
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(backend.getItem(recordsKey('2026-09')), null, 'month absent from backup removed');
-  assert.equal(backend.getItem(inkKey('2026-09')), null, 'ink month absent from backup removed');
-  assert.ok(backend.getItem(inkKey('2026-08')), 'ink month from backup written');
+  assert.equal(backend.getItem(inkRecordKey('2026-09', 'r2')), null, 'ink absent from backup removed');
+  assert.ok(backend.getItem(inkRecordKey('2026-08', 'r7')), 'ink from the backup month table written one key per record');
+  assert.equal(backend.getItem(inkKey('2026-08')), null, 'never as a month key');
   assert.deepEqual(store.getInk(store.getState().records['2026-08'][0]), inkEntry());
   assert.ok(backend.getItem(recordsKey('2026-08')));
   assert.equal(backend.getItem(KEYS.sessions), sessionsBefore);

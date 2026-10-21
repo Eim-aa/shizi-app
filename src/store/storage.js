@@ -11,7 +11,7 @@
 // writeAll(entries, {label})：
 //   0. 读每个键的原值 prev；与新值相同的条目跳过；
 //   1. 先写提交日志 shizi.v2.txn = {label, at, keys, prev, phase:'writing'} 并读回核对；
-//   2. 按固定顺序写数据键：ink.<月>（升序）→ records.<月>（升序）→ sched → custom → wordOff → settings → photos → legacy
+//   2. 按固定顺序写数据键：ink.<月>.<id>（单条墨迹，B2.3）→ ink.<月>（旧月键，迁移时删）→ records.<月>（升序）→ sched → custom → wordOff → settings → photos → legacy
 //      → backupMeta → funnel → safety → （其他）→ meta → sessions（最后：它决定恢复阶段）；null = removeItem；
 //   3. 逐键 getItem 读回比对；
 //   4. 删除 txn（删不掉就改写 phase:'done'，启动修复时按「已完成」处理）。
@@ -110,7 +110,7 @@ function makeInjectedError(kind) {
 
 // ---------------------------------------------------------------- 写入顺序
 
-const WRITE_ORDER = ['ink', 'records', 'sched', 'custom', 'wordOff', 'settings', 'photos', 'legacy', 'backupMeta', 'funnel', 'safety', '*', 'meta', 'sessions'];
+const WRITE_ORDER = ['inkRecord', 'ink', 'records', 'sched', 'custom', 'wordOff', 'settings', 'photos', 'legacy', 'backupMeta', 'funnel', 'safety', '*', 'meta', 'sessions'];
 
 export function writeRank(key) {
   const spec = specForKey(key);

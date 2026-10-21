@@ -16,10 +16,12 @@ export function normalizePrefer(prefer) {
 }
 
 /**
- * 一条存下的墨迹里有没有笔画（不解码）：v3 打包 {s:[base64…]} / 旧 v2 {s:[[…]]}，只看有没有非空的一笔。
+ * 一条存下的墨迹里有没有笔画（不解码）：v4 原始点 {r:[打包串…]} / v3 打包 {s:[base64…]} / 旧 v2 {s:[[…]]}，只看有没有非空的一笔。
  */
 export function inkHasStrokes(ink) {
-  return !!(ink && typeof ink === 'object' && Array.isArray(ink.s) && ink.s.some(row => row && row.length > 0));
+  if (!ink || typeof ink !== 'object') return false;
+  if (Array.isArray(ink.r)) return ink.r.some(str => typeof str === 'string' && str.length > 0);
+  return Array.isArray(ink.s) && ink.s.some(row => row && row.length > 0);
 }
 
 /**

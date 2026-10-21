@@ -29,6 +29,10 @@ export const features = Object.freeze({
 // ---- 墨迹容量（P05；P31 已决定 D27 开启后生效）----
 // P05 墨迹总预算（字节，UTF-16 估算）
 export const inkBudgetBytes = 1.5 * 1024 * 1024;
+// P05 网页（localStorage）上判断墨迹的存储编码：'v3' 打包（抽点、宽度烘焙）。原生 SQLite 用 nativeStorage.inkFormat（'raw' 原始点，B2.3）。
+// 原因：原始点（Ink v4）实测约为 v3 的 2.9 倍（120Hz 常用 300 字 × 2 份 1.77 vs 0.62MiB，test/core/ink-math.test.mjs B2.3），
+// localStorage 5MiB 装不下 D27 不回收的「每字第一次 + 最近一次」；store/store.js 按后端选（ctx.inkFormat）。
+export const inkFormat = 'v3';
 // P326 墨迹预算随「每组字数」（D66 ⑭，产品体验评审 P3-04；store/budget.js inkBudgetOf）。超过预算时只回收「每字第一次 / 最近一次」以外的墨迹
 // （看后自写过期的、旧数据的中间次），第一次与最近一次永不回收（D27），所以预算越大、看后写的作品留得越久。
 // 实测（D66 ⑭，scripts/sim 真实格式笔迹：笔顺中线模拟书写 → ink v3，平均约 1.4–1.5KB/条（UTF-16）；S8 同一用户一年）：
@@ -402,6 +406,9 @@ export const nativeStorage = Object.freeze({
   recordsBudgetBytes: 16 * 1024 * 1024,
   // P05 墨迹 ≈ 2.2 万份（约 1.5KB/份）：D27 每字两份可容约 1.1 万字，超过 8105 字全库两份；不再随每组字数分档
   inkBudgetBytes: 32 * 1024 * 1024,
+  // P05 判断墨迹的存储编码：'raw' = Ink v4 原始点（B2.3，规格 §6.4 DQ2-C；原生渲染器逐样本回放）。实测 120Hz 约 3.0KiB/份（UTF-16 估算），
+  // Pencil 240Hz 约 5.7KiB/份：上面的预算约容 1.1 万 / 5.7 千份。
+  inkFormat: 'raw',
 });
 // P28 records 折叠的天数阈值
 export const recordsFoldAfterDays = 400;

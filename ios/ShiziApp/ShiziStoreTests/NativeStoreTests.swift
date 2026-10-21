@@ -52,6 +52,7 @@ final class NativeStoreTests: XCTestCase {
             "shizi.v2.meta", "shizi.v2.custom", "shizi.v2.wordOff", "shizi.v2.photos", "shizi.v2.legacy", "shizi.v2.backupMeta",
             "shizi.v2.funnel", "shizi.v2.safety", "shizi.v2.route", "shizi.corrupt.shizi.v2.sched", "shizi.memory.v1",
             "shizi.v2.records.bogus", "shizi.v2.unknownThing",
+            "shizi.v2.ink.2026-10.r12", "shizi.v2.ink.2026-10.r0", "shizi.v2.ink.2026-10.s1", "shizi.v2.ink.2026-10.", "shizi.v2.ink.2026-13.r1",
         ]
         for key in keys {
             let slot = NativeStoreSlot.slot(for: key)
@@ -60,6 +61,10 @@ final class NativeStoreTests: XCTestCase {
         }
         XCTAssertEqual(NativeStoreSlot.slot(for: "shizi.v2.records.2026-09"), .monthly(table: "records", month: "2026-09"))
         XCTAssertEqual(NativeStoreSlot.slot(for: "shizi.v2.records.bogus"), .aux(key: "shizi.v2.records.bogus"))
+        // B2.3 schema 2：单条墨迹键 → ink_records 一行；不合格的 id / 月份落 aux（键 ↔ 行仍一一对应）
+        XCTAssertEqual(NativeStoreSlot.slot(for: "shizi.v2.ink.2026-10.r12"), .inkRecord(month: "2026-10", id: "r12"))
+        XCTAssertEqual(NativeStoreSlot.slot(for: "shizi.v2.ink.2026-10"), .monthly(table: "ink", month: "2026-10"))
+        XCTAssertEqual(NativeStoreSlot.slot(for: "shizi.v2.ink.2026-10.r0"), .aux(key: "shizi.v2.ink.2026-10.r0"))
         XCTAssertNil(NativeStoreSlot.slot(for: "other.key"))
     }
 
@@ -120,6 +125,76 @@ final class NativeStoreTests: XCTestCase {
         XCTAssertNil(try again.value(for: "shizi.v2.route"))
         XCTAssertNil(try again.value(for: "shizi.v2.records.2026-09"))
         XCTAssertEqual(try again.loadAll().count, rows.count - 2)
+    }
+
+    // MARK: schema 2（B2.3：墨迹每条一行）
+
+    func testInkRecordRowsRoundTripAndLoadSorted() throws {
+        let store = try makeStore()
+        XCTAssertEqual(store.userVersion, 2)
+        let rows: [(String, String)] = [
+            ("shizi.v2.ink.2026-10.r12", #"{"v":4,"c":345,"r":["A8gBkAMALiIIsQKOO1w="],"g":[0]}"#),
+            ("shizi.v2.ink.2026-10.r3", #"{"v":3,"c":345,"s":["AAAA"]}"#),
+            ("shizi.v2.ink.2026-09", #"{"r1":{"v":3,"c":345,"s":["AAAA"]}}"#),
+            ("shizi.v2.ink.2026-09.r2", #"{"v":3,"c":345,"s":["BBBB"]}"#),
+        ]
+        try store.apply(rows.map { op($0.0, $0.1) })
+        XCTAssertEqual(try store.loadAll().map { $0.0 }, rows.map { $0.0 }.sorted { $0.utf16.lexicographicallyPrecedes($1.utf16) })
+        for (key, value) in rows { XCTAssertEqual(try store.value(for: key), value, key) }
+        XCTAssertEqual(try store.stats().tables["ink_records"]?.rows, 3)
+        XCTAssertEqual(try store.stats().tables["ink"]?.rows, 1, "legacy month row stays readable")
+        try store.apply([op("shizi.v2.ink.2026-10.r12", nil), op("shizi.v2.ink.2026-09", nil)])
+        XCTAssertNil(try store.value(for: "shizi.v2.ink.2026-10.r12"))
+        XCTAssertEqual(try store.loadAll().count, 2)
+    }
+
+    /// 把一个 schema 2 的库退回 schema 1 的样子（没有 ink_records、user_version = 1），模拟 B2.3 之前的库。
+    private func makeSchema1Store(rows: [(String, String)]) throws {
+        let store = try makeStore()
+        try store.apply(rows.map { op($0.0, $0.1) })
+        try store.exec("DROP TABLE ink_records")
+        try store.exec("PRAGMA user_version = 1")
+        store.close()
+    }
+
+    func testUpgradeFromSchema1KeepsEveryRowAndIsReentrant() throws {
+        let legacy: [(String, String)] = [
+            ("shizi.v2.ink.2026-09", #"{"r1":{"v":3,"c":345,"s":["AAAA"]},"r2":{"v":2,"c":345,"s":[[1,2,3]]}}"#),
+            ("shizi.v2.records.2026-09", #"[{"id":"r1"}]"#),
+            ("shizi.v2.meta", #"{"schema":2,"serial":2}"#),
+        ]
+        try makeSchema1Store(rows: legacy)
+        let before = NativeStore.digest(legacy.sorted { $0.0.utf16.lexicographicallyPrecedes($1.0.utf16) })
+        let store = try makeStore()
+        XCTAssertEqual(store.userVersion, 2)
+        XCTAssertNotNil(try store.meta("schema2At"))
+        XCTAssertEqual(try store.digestOfRows().digest, before.digest, "every row byte-equal after the structural upgrade")
+        // 旧月行照常可读可写；新的单条行可写（JS store 启动时把旧月行拆成单条行，store.js migrateInkSchema）
+        try store.apply([op("shizi.v2.ink.2026-09.r1", #"{"v":3,"c":345,"s":["AAAA"]}"#), op("shizi.v2.ink.2026-09", nil)])
+        XCTAssertEqual(try store.stats().tables["ink"]?.rows, 0)
+        store.close()
+        // 再开一次：已是 schema 2，什么都不做
+        let again = try makeStore()
+        XCTAssertEqual(again.userVersion, 2)
+        XCTAssertEqual(try again.loadAll().count, 3)
+    }
+
+    func testUpgradeFailureRollsBackKeepsDataAndRecordsADiagnostic() throws {
+        let legacy: [(String, String)] = [("shizi.v2.ink.2026-09", #"{"r1":{"v":3,"c":345,"s":["AAAA"]}}"#), ("shizi.v2.meta", "{}")]
+        try makeSchema1Store(rows: legacy)
+        let broken = NativeStore(fileURL: dir.appendingPathComponent("t.sqlite"))
+        broken.failUpgrade = 2
+        XCTAssertThrowsError(try broken.open()) { error in
+            XCTAssertEqual((error as? NativeStoreError)?.code, "E_SQLITE")
+        }
+        XCTAssertNil(broken.db, "not opened")
+        // 下次启动：升级重做成功，数据一字不少，诊断里有上次失败的记录
+        let store = try makeStore()
+        XCTAssertEqual(store.userVersion, 2)
+        XCTAssertEqual(try store.loadAll().map { $0.1 }, legacy.map { $0.1 })
+        let diag = try store.diagEntries().compactMap { $0 as? [String: Any] }
+        XCTAssertEqual(diag.last?["kind"] as? String, "schema-upgrade-failed")
+        XCTAssertEqual((diag.last?["from"] as? NSNumber)?.intValue, 1)
     }
 
     func testApplyIsAtomic() throws {
@@ -198,9 +273,19 @@ final class NativeStoreTests: XCTestCase {
             try store.apply([op("shizi.v2.settings", #"{"sound":\#(i % 2 == 0)}"#)])
             small.append((CFAbsoluteTimeGetCurrent() - t1) * 1000)
         }
+        // B2.3 schema 2：同样形状的判断，但墨迹只写这一条（Ink v4 一份约 1.5KB UTF-8，120Hz 常用字实测）
+        let one = #"{"v":4,"c":345,"r":[""# + String(repeating: "AbCd", count: 360) + #""],"g":[0]}"#
+        var judge2: [Double] = []
+        for i in 0..<30 {
+            let t0 = CFAbsoluteTimeGetCurrent()
+            try store.apply([op("shizi.v2.ink.2026-10.r\(100 + i)", one), op("shizi.v2.records.2026-10", records + " \(i)"), op("shizi.v2.sched", sched + " \(i)")])
+            judge2.append((CFAbsoluteTimeGetCurrent() - t0) * 1000)
+        }
         let p50 = { (xs: [Double]) -> Double in xs.sorted()[xs.count / 2] }
         print(String(format: "[shizi] native apply timing: judge-shaped (%d bytes) p50 %.2fms max %.2fms; small p50 %.2fms max %.2fms",
                      records.utf8.count + ink.utf8.count + sched.utf8.count, p50(judge), judge.max() ?? 0, p50(small), small.max() ?? 0))
+        print(String(format: "[shizi] native apply timing (B2.3 schema 2): judge-shaped with one ink row (%d bytes; ink %d → %d bytes) p50 %.2fms max %.2fms",
+                     records.utf8.count + one.utf8.count + sched.utf8.count, ink.utf8.count, one.utf8.count, p50(judge2), judge2.max() ?? 0))
         XCTAssertLessThan(p50(judge), 500)
     }
 

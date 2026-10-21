@@ -8,7 +8,7 @@ import { makeRecord, isJudged, JUDGMENTS } from '../../core/records.js';
 import { HINTS_SHAPE_MAX } from '../../core/schema.js';
 import { advance, currentCardKey, withCurrent } from '../../core/sessions.js';
 import { applyJudgment } from '../../core/fsrs.js';
-import { buildStroke, encodeInk, encodeRawStrokes } from '../../core/ink-math.js';
+import { encodeRawStrokes, encodeStoredInk } from '../../core/ink-math.js';
 import { allRecords, appendRecordToDraft } from './answer.js';
 
 // ---------------------------------------------------------------- 纯函数（草稿变换）
@@ -88,8 +88,8 @@ export function judgeInDraft(draft, o) {
   appendRecordToDraft(draft, record);
   let inkWritten = false;
   if (inkEnabled(o)) {
-    const built = strokes.filter(x => Array.isArray(x) && x.length).map(raw => buildStroke(raw, { final: true }));
-    setInk(draft, record, encodeInk(built, { policy }));
+    // B2.3：原生存原始点（Ink v4，宽度由读的人按笔锋模型重算），网页 localStorage 存 v3（o.inkFormat = ctx.inkFormat，policy P05）
+    setInk(draft, record, encodeStoredInk(strokes, { policy, format: o.inkFormat }));
     inkWritten = true;
   }
   // D27：新判断成了「最近一次」，上一次的最近一次（不是第一次时）墨迹回收；第一次与这一次留下。
@@ -115,7 +115,7 @@ export function commitJudgment(store, { slot, cardKey, judgment, strokes, hints 
   if (!s || currentCardKey(s) !== cardKey) return STALE;
   let out = null;
   const result = store.commit('write:judge', (draft, ctx) => {
-    out = judgeInDraft(draft, { slot, cardKey, judgment, strokes, hints, at: ctx.now, nextId: ctx.nextId, perRecordInk, policy });
+    out = judgeInDraft(draft, { slot, cardKey, judgment, strokes, hints, at: ctx.now, nextId: ctx.nextId, perRecordInk, policy, inkFormat: ctx.inkFormat });
   });
   return result && result.ok && out ? { ...result, record: out.record, reused: out.reused } : result;
 }

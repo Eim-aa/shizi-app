@@ -16,17 +16,21 @@
 //
 // 状态形状：{meta, records:{'YYYY-MM': Record[] | folded}, sched, ink:{'YYYY-MM': {[recordId]: Ink}}（Ink v3，读兼容 v2）, custom, wordOff,
 //            settings, photos, legacy, backupMeta, sessions, funnel, safety}；缺的域为 null，records / ink 至少是 {}。
-// ink 按记录所属月份分键（shizi.v2.ink.<YYYY-MM>，M0 验收 F3 裁定）；读写一律走 getInk / setInk / deleteInk，
+// ink 在内存里按记录所属月份分组（state.ink[月][id]，M0 验收 F3 裁定）；读写一律走 getInk / setInk / deleteInk，
 // 不要自己拼月份——月份口径见 schema.inkMonthOf。
+// B2.3 ink schema 2：落盘每条墨迹一个键 shizi.v2.ink.<月>.<id>（原生 SQLite ink_records 一行），setInk 只让这一条变脏、
+// 只写这一条；值是 Ink v4 原始点（core/ink-math encodeInkRaw）。旧月键（schema 1）启动时逐月迁移（migrateInkSchema），
+// 迁移前后 state 形状不变；备份文件仍按月分组（core/backup.js backupEntries 由 state 生成，与落盘键无关）。
 
 import {
   BACKUP_WHITELIST, DOMAINS, KEYS, V2_PREFIX, CORRUPT_PREFIX,
-  inkIdOf, inkMonthOf, isInkKey, isMonthKey, isMonthlyDomain, isPlainObject, isRecordsKey, keyForDomain, monthOfKey,
-  parseAndValidate, parseBackupV2, serialOf, specForKey, validateValue,
+  inkIdOf, inkKey, inkMonthOf, inkRecordKey, isInkStorageKey, isMonthKey, isMonthlyDomain, isPlainObject, isRecordId, isRecordsKey,
+  keyForDomain, monthOfKey, parseAndValidate, parseBackupV2, parseInkRecordKey, serialOf, specForKey, validateInk, validateValue,
 } from '../core/schema.js';
 import { BlockingStorageError, createStorage } from './storage.js';
 import { entryBytes, needsRecovery, recover, resolveBudgets } from './budget.js';
 import { now as envNow } from '../platform/env.js';
+import * as policy from '../config/policy.js';
 
 // ---------------------------------------------------------------- 工具
 
@@ -96,12 +100,27 @@ function isEmptyMonth(value) {
   return isPlainObject(value) && value.folded !== true && Object.keys(value).length === 0;
 }
 
-/** 状态 → Map<key, value>（空月份、null 域不出现）。 */
-function stateToEntries(state) {
+/**
+ * 状态 → Map<key, value>（空月份、null 域不出现）。
+ * ink（B2.3 ink schema 2）：每条墨迹一个键 shizi.v2.ink.<月>.<id>；例外是 legacy 里还没迁移的旧月键——
+ * 这个月的表与读入时浅相等（没动过）就仍按旧月键原样出现（不重写）；一旦有变化，这个月在本次提交里整体改成单条键、删掉旧月键。
+ * @param {Map<string, object>|null} legacy  月份 → 读入时那张旧月表（null = 全部按单条键）
+ */
+function stateToEntries(state, legacy = null) {
   const map = new Map();
   for (const domain of DOMAINS) {
     const value = state[domain];
-    if (isMonthlyDomain(domain)) {
+    if (domain === 'ink') {
+      for (const month of Object.keys(value || {})) {
+        const table = value[month];
+        if (isEmptyMonth(table)) continue;
+        if (legacy && legacy.has(month) && shallowEqual(legacy.get(month), table)) {
+          map.set(inkKey(month), table);
+          continue;
+        }
+        for (const id of Object.keys(table)) map.set(inkRecordKey(month, id), table[id]);
+      }
+    } else if (isMonthlyDomain(domain)) {
       for (const month of Object.keys(value || {})) {
         if (isEmptyMonth(value[month])) continue;
         map.set(keyForDomain(domain, month), value[month]);
@@ -207,10 +226,13 @@ export function deleteInk(draft, record) {
 /**
  * @param {{storage?: object, now?: () => number, budgets?: object, freeze?: boolean}} options
  */
-export function createStore({ storage = createStorage(), now = envNow, budgets = null, freeze = true, backendInfo = null } = {}) {
+export function createStore({ storage = createStorage(), now = envNow, budgets = null, freeze = true, backendInfo = null, inkFormat = null } = {}) {
+  // B2.3：判断墨迹的存储编码（policy P05）：原生 SQLite 'raw'（Ink v4 原始点），localStorage 'v3'（容量）。经 commit 的 ctx.inkFormat 交给写墨的 mutate。
+  const inkFormatOf = inkFormat || (storage && storage.kind === 'native' ? policy.nativeStorage.inkFormat : policy.inkFormat);
   let state = deepFreeze(emptyState());
   let lastRaw = new Map(); // 上次落盘（或读入）的 v2 域键 → 原始字串
   let lastValues = new Map(); // 同一批键 → 已发布（冻结）的值
+  let legacyInk = new Map(); // B2.3：还没迁成单条键的旧 ink 月键（schema 1）：月份 → 读入时的月表
   let serial = 0;
   const listeners = new Set();
   const budgetConfig = resolveBudgets(budgets);
@@ -223,6 +245,8 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     lastRepair: null,
     // B1：这次启动用的是哪种持久化（'native' 原生 SQLite | 'localStorage'）及迁移 / 回退信息（store/native-boot.js prepareStorage）。
     backend: Object.assign({ kind: storage && storage.kind ? storage.kind : 'localStorage' }, backendInfo || {}),
+    // B2.3：墨迹落盘形态。{schema: 2 | 1, legacyMonths, migrated?, records?, failed?, ms?}——schema 1 = 还有旧月键没迁完（迁移失败时 failed 记原因）。
+    inkSchema: null,
   };
 
   const publishFreeze = value => (freeze ? deepFreeze(value) : value);
@@ -247,19 +271,97 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     return status.usage;
   }
 
+  /**
+   * 读全部 v2 键。ink：单条键（schema 2）按月拼回 state.ink[月][id]；旧月键（schema 1）整张表读入并记进 legacy
+   * （同一个月两种键都有时——迁移只会整月原子地换，正常不会出现——单条键优先，这个月不再算 legacy，下次提交整月改成单条键）。
+   */
   function readState() {
     const next = emptyState();
     const raws = new Map();
+    const monthTables = new Map();
+    const recordTables = new Map();
     for (const [key, raw] of storage.readAll(V2_PREFIX)) {
       const spec = specForKey(key);
       if (!spec || !spec.domain || raw === null) continue;
       const parsed = parseAndValidate(key, raw);
       if (!parsed.ok) continue; // repair() 已隔离；这里只防御
-      if (isMonthlyDomain(spec.domain)) next[spec.domain][monthOfKey(key)] = parsed.value;
-      else next[spec.domain] = parsed.value;
       raws.set(key, raw);
+      if (spec.id === 'inkRecord') {
+        const { month, id } = parseInkRecordKey(key);
+        if (!recordTables.has(month)) recordTables.set(month, {});
+        recordTables.get(month)[id] = parsed.value;
+      } else if (spec.id === 'ink') {
+        monthTables.set(monthOfKey(key), parsed.value);
+      } else if (isMonthlyDomain(spec.domain)) {
+        next[spec.domain][monthOfKey(key)] = parsed.value;
+      } else {
+        next[spec.domain] = parsed.value;
+      }
     }
-    return { next, raws };
+    const legacy = new Map();
+    for (const month of new Set([...monthTables.keys(), ...recordTables.keys()])) {
+      const old = monthTables.get(month);
+      const rows = recordTables.get(month);
+      next.ink[month] = Object.assign({}, old || {}, rows || {});
+      if (old && !rows) legacy.set(month, old);
+    }
+    return { next, raws, legacy };
+  }
+
+  /**
+   * B2.3 ink schema 1 → 2：把还在旧月键里的墨迹逐月改成单条键。每个月一次 storage.writeAll（一个原子事务：写这个月每一条 + 删旧月键），
+   * 写前逐条形状校验（validateInk），写入时逐键读回核对（localStorage）/ 校验和 + 读回（原生）。
+   * 任一月失败：这个月的事务回滚（旧月键原样还在，数据一字不丢），停止迁移，记 status.inkSchema.failed 与诊断（原生库 diag）；
+   * 已迁完的月份保留。可重入：下次启动只迁剩下的旧月键；在那之前读写照常（没迁的月份按旧月键读，有改动的那次提交顺手整月迁掉）。
+   */
+  function migrateInkSchema() {
+    const started = now();
+    const months = Array.from(legacyInk.keys()).sort();
+    const report = { schema: months.length ? 1 : 2, legacyMonths: months.length, migrated: 0, records: 0, failed: null };
+    if (!months.length) return report;
+    for (const month of months) {
+      const table = state.ink[month];
+      const entries = [];
+      let bad = null;
+      for (const id of Object.keys(table || {})) {
+        const err = isRecordId(id) ? validateInk(table[id], `${month}.${id}`) : `${month}.${id}: bad record id`;
+        if (err) {
+          bad = { month, id, stage: 'validate', reason: err };
+          break;
+        }
+        entries.push([inkRecordKey(month, id), JSON.stringify(table[id])]);
+      }
+      if (bad) {
+        report.failed = bad;
+        break;
+      }
+      entries.push([inkKey(month), null]);
+      const failure = write(entries, 'ink-schema-2');
+      if (failure) {
+        report.failed = { month, stage: 'write', error: failure.kind, reason: failure.reason };
+        break;
+      }
+      legacyInk.delete(month);
+      for (const [key, raw] of entries) {
+        if (raw === null) lastRaw.delete(key);
+        else lastRaw.set(key, raw);
+      }
+      report.migrated += 1;
+      report.records += entries.length - 1;
+    }
+    lastValues = stateToEntries(state, legacyInk);
+    report.schema = legacyInk.size ? 1 : 2;
+    report.ms = now() - started;
+    if (report.failed) {
+      if (typeof console !== 'undefined') console.warn('[shizi] ink schema 2 migration stopped:', JSON.stringify(report.failed));
+      try {
+        const backend = storage.backend;
+        if (backend && typeof backend.diag === 'function') backend.diag(Object.assign({ kind: 'ink-schema-2-failed' }, report.failed));
+      } catch (error) {
+        // 诊断写不进去不影响启动
+      }
+    }
+    return report;
   }
 
   /**
@@ -274,6 +376,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       state = deepFreeze(emptyState());
       lastRaw = new Map();
       lastValues = new Map();
+      legacyInk = new Map();
       notify({ type: 'status' });
       return { available: false, kind: probe.kind };
     }
@@ -291,11 +394,13 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     status.lastRepair = report;
     status.blocked = storage.blocked ? { reason: storage.blocked.reason, keys: storage.blocked.keys } : null;
     if (report.quarantined.length) status.corruptNotice = { keys: report.quarantined.map(q => q.key) };
-    const { next, raws } = readState();
+    const { next, raws, legacy } = readState();
     state = publishFreeze(next);
     lastRaw = raws;
-    lastValues = stateToEntries(state);
+    legacyInk = legacy;
+    lastValues = stateToEntries(state, legacyInk);
     serial = deriveSerial(state);
+    status.inkSchema = status.blocked ? { schema: legacyInk.size ? 1 : 2, legacyMonths: legacyInk.size, migrated: 0, records: 0, failed: null } : migrateInkSchema();
     refreshUsage();
     notify({ type: 'load' });
     return { available: true, repair: report, corruptNotice: status.corruptNotice };
@@ -306,8 +411,8 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
    * 冻结模式下，值与上次发布的值浅相等（同一批冻结引用）即视为未变，直接复用上次的字串，
    * 避免每次提交都把 records/ink/sched（合计可达 3MB）重新序列化。
    */
-  function plan(draft) {
-    const next = stateToEntries(draft);
+  function plan(draft, { convertAll = false } = {}) {
+    const next = stateToEntries(draft, convertAll ? null : legacyInk);
     const entries = [];
     const raws = new Map();
     for (const [key, value] of next) {
@@ -362,12 +467,14 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
    * 返回 {written:[key], blocked: error|null}。
    */
   function persistSideRecovery(draft, dirty, label) {
-    const next = stateToEntries(draft);
+    const next = stateToEntries(draft, legacyInk);
     const side = [];
     for (const [key, oldRaw] of lastRaw) {
       if (dirty.has(key)) continue;
       const spec = specForKey(key);
-      if (!spec || !isMonthlyDomain(spec.domain)) continue; // recover 只动 records / ink 月键
+      if (!spec || !isMonthlyDomain(spec.domain)) continue; // recover 只动 records 月键与 ink
+      // 旧 ink 月键（schema 1）不走旁路：它一变就要整月改成单条键（新键 + 删旧键必须在同一个事务里），留给主提交。
+      if (spec.id === 'ink') continue;
       if (!next.has(key)) side.push({ key, raw: null, size: entryBytes(key, oldRaw) });
       else if (!shallowEqual(lastValues.get(key), next.get(key))) {
         const value = next.get(key);
@@ -379,23 +486,37 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     const written = [];
     for (const { key, raw } of side) {
       const spec = specForKey(key);
-      const month = monthOfKey(key);
+      const one = parseInkRecordKey(key); // 单条墨迹键：月表里的一条
+      const month = one ? one.month : monthOfKey(key);
       const failure = write([[key, raw]], `${label}:recover`, { single: true });
       if (failure && failure.kind === 'blocked') return { written, blocked: failure };
       const published = state[spec.domain] || {};
       if (failure) {
         // 没写进去：草稿里还原成已发布的值，重试提交不带它。
         if (!isPlainObject(draft[spec.domain])) draft[spec.domain] = {};
-        if (Object.prototype.hasOwnProperty.call(published, month)) draft[spec.domain][month] = published[month];
+        if (one) {
+          const table = published[month];
+          if (isPlainObject(table) && Object.prototype.hasOwnProperty.call(table, one.id)) {
+            draft.ink[month] = Object.assign({}, draft.ink[month] || {}, { [one.id]: table[one.id] });
+          }
+        } else if (Object.prototype.hasOwnProperty.call(published, month)) {
+          draft[spec.domain][month] = published[month];
+        }
         continue;
       }
       const domainNext = Object.assign({}, published);
-      if (raw === null) delete domainNext[month];
+      if (one) {
+        const table = Object.assign({}, published[month] || {});
+        if (raw === null) delete table[one.id];
+        else table[one.id] = next.get(key);
+        if (Object.keys(table).length) domainNext[month] = table;
+        else delete domainNext[month];
+      } else if (raw === null) delete domainNext[month];
       else domainNext[month] = next.get(key);
       state = publishFreeze(Object.assign({}, state, { [spec.domain]: domainNext }));
       if (raw === null) lastRaw.delete(key);
       else lastRaw.set(key, raw);
-      lastValues = stateToEntries(state);
+      lastValues = stateToEntries(state, legacyInk);
       written.push(key);
     }
     if (written.length) {
@@ -410,7 +531,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     let ink = 0;
     for (const [key, raw] of raws) {
       if (isRecordsKey(key)) records += entryBytes(key, raw);
-      else if (isInkKey(key)) ink += entryBytes(key, raw);
+      else if (isInkStorageKey(key)) ink += entryBytes(key, raw);
     }
     return { records, ink };
   }
@@ -433,7 +554,10 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
   function publish(draft, raws, nextSerial, info) {
     state = publishFreeze(draft);
     lastRaw = raws;
-    lastValues = stateToEntries(state);
+    // 写成单条键（或整体替换）的月份不再是旧月键
+    for (const month of Array.from(legacyInk.keys())) if (!raws.has(inkKey(month))) legacyInk.delete(month);
+    if (legacyInk.size === 0 && status.inkSchema && status.inkSchema.schema === 1) status.inkSchema = Object.assign({}, status.inkSchema, { schema: 2 });
+    lastValues = stateToEntries(state, legacyInk);
     serial = nextSerial;
     refreshUsage();
     notify(info);
@@ -446,9 +570,11 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
    */
   function persist(draft, label, nextSerial, { allowRecover = true, replace = false } = {}) {
     const tag = replace ? { replace: true } : null;
+    // 整体替换（seed / 恢复备份）一律写成单条墨迹键（不保留旧月键）
+    const planOpts = { convertAll: replace };
     const nowMs = now();
     syncMonths(draft);
-    let p = plan(draft);
+    let p = plan(draft, planOpts);
     if (p.error) return errorResult(p.error.kind, label, { key: p.error.key, reason: p.error.reason });
     if (!p.entries.length) {
       publish(draft, p.raws, nextSerial, { type: 'commit', label, keys: [], ...tag });
@@ -462,7 +588,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
         if (r.actions.length) {
           recovered.push(...r.actions);
           syncMonths(draft);
-          p = plan(draft);
+          p = plan(draft, planOpts);
           if (p.error) return errorResult(p.error.kind, label, { key: p.error.key, reason: p.error.reason });
         }
       }
@@ -479,7 +605,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
         const side = persistSideRecovery(draft, dirty, label);
         if (side.blocked) return errorResult('blocked', label, { key: side.blocked.key, reason: side.blocked.reason, recoveredAttempted: true });
         syncMonths(draft);
-        p = plan(draft);
+        p = plan(draft, planOpts);
         if (p.error) return errorResult(p.error.kind, label, { key: p.error.key, reason: p.error.reason });
         failure = write(p.entries, label);
       }
@@ -517,6 +643,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
     const ctx = {
       now: now(),
       label,
+      inkFormat: inkFormatOf,
       nextId(prefix) {
         if (prefix !== 'r' && prefix !== 's') throw new Error(`nextId prefix must be 'r' or 's', got ${prefix}`);
         nextSerial += 1;
@@ -643,6 +770,7 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
         usage: status.usage,
         lastRepair: status.lastRepair,
         backend: status.backend,
+        inkSchema: status.inkSchema,
       };
     },
     /** 坏值顶部提示显示过后调用；本次启动不再提示。 */
@@ -656,6 +784,8 @@ export function createStore({ storage = createStorage(), now = envNow, budgets =
       return storage;
     },
     budgets: budgetConfig,
+    /** 判断墨迹的存储编码（'raw' | 'v3'，见 createStore）。 */
+    inkFormat: inkFormatOf,
     refreshUsage,
   };
 }

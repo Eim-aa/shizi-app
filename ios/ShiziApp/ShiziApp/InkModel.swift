@@ -969,3 +969,86 @@ extension InkModel {
         return area * h
     }
 }
+
+// MARK: - 存下的墨迹（Ink v4 原始点，B2.3）→ 原始点，供原生回放
+
+/// Ink v4（src/core/ink-math.js encodeInkRaw）：{v:4, c:345, r:["<base64>"…], g:[ms…]}。
+/// r 每笔一个打包串：首字节 stride（3 | 4），之后每点 zz(Δx)、zz(Δy)、dt、（stride 4）zz(Δp)，LEB128 变长整数；x / y 以 0.1 单位、
+/// dt 以 ms、p 以 0.001 为单位（= encodeRawStrokes 那一行）。g = 每笔起笔距上一笔最后一点的 ms。
+/// 与 JS decodeInkRaw 逐点相同（同一夹具 InkModel/ink-v4-fixture.json：XCTest InkSurfaceTests 与 node test/core/ink-v4.test.mjs 各核一遍）；
+/// 解出的原始点交给 NativeInkStrokeMesh.build / InkModel，与书写时同一管线（规格 §6.4）。
+enum InkStoredInk {
+    /// 一个打包串 → encodeRawStrokes 的一行（[stride, x, y, dt, (p), …]）；坏串返回 nil。
+    static func rawRow(packed: String) -> [Int]? {
+        guard let data = Data(base64Encoded: packed), data.count >= 4 else { return nil }
+        let bytes = [UInt8](data)
+        let stride = Int(bytes[0])
+        guard stride == 3 || stride == 4 else { return nil }
+        var i = 1
+        func next() -> Int? {
+            var u = 0
+            var mul = 1
+            for _ in 0..<5 {
+                guard i < bytes.count else { return nil }
+                let b = Int(bytes[i])
+                i += 1
+                u += (b & 127) * mul
+                if b < 128 { return u }
+                mul *= 128
+            }
+            return nil
+        }
+        func unzz(_ u: Int) -> Int { u % 2 == 0 ? u / 2 : -(u + 1) / 2 }
+        var row = [stride]
+        var px = 0, py = 0, pp = 0
+        while i < bytes.count {
+            guard let dx = next(), let dy = next(), let dt = next() else { return nil }
+            px += unzz(dx)
+            py += unzz(dy)
+            row += [px, py, dt]
+            if stride == 4 {
+                guard let dp = next() else { return nil }
+                pp += unzz(dp)
+                row.append(pp)
+            }
+        }
+        return row.count > 1 ? row : nil
+    }
+
+    /// 已解析的墨迹对象 → 每笔原始点（t 为整份墨迹从 0 起的累计 ms）。不是 v4 或任何一笔坏了返回 nil（调用方按「没有笔迹」处理）。
+    static func decode(_ ink: [String: Any]) -> [[InkRawPoint]]? {
+        guard (ink["v"] as? NSNumber)?.intValue == 4,
+              let c = (ink["c"] as? NSNumber)?.doubleValue, c > 0,
+              let r = ink["r"] as? [String],
+              let g = (ink["g"] as? [NSNumber])?.map({ $0.intValue }),
+              g.count == r.count, g.allSatisfy({ $0 >= 0 })
+        else { return nil }
+        let scale = 345 / c
+        var out: [[InkRawPoint]] = []
+        var offset = 0.0
+        for (k, packed) in r.enumerated() {
+            guard let row = rawRow(packed: packed) else { return nil }
+            let stride = row[0]
+            offset += Double(g[k])
+            var t = 0.0
+            var pts: [InkRawPoint] = []
+            var j = 1
+            while j + stride - 1 < row.count {
+                t += Double(row[j + 2])
+                var q = InkRawPoint(x: Double(row[j]) / 10 * scale, y: Double(row[j + 1]) / 10 * scale, t: t + offset)
+                if stride == 4, row[j + 3] > 0 { q.p = Double(row[j + 3]) / 1000 }
+                pts.append(q)
+                j += stride
+            }
+            if let last = pts.last { offset = last.t }
+            out.append(pts)
+        }
+        return out
+    }
+
+    /// JSON 字串（store 里一条墨迹的原始值，例如 shizi.v2.ink.<月>.<id> 那一行的 body）→ 每笔原始点。
+    static func decode(json: String) -> [[InkRawPoint]]? {
+        guard let data = json.data(using: .utf8), let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return nil }
+        return decode(obj)
+    }
+}

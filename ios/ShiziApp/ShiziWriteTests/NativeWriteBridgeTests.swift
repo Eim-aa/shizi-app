@@ -169,6 +169,37 @@ final class NativeWriteBridgeTests: XCTestCase {
         XCTAssertNotNil(((st["sessions"] as? [String: Any])?["lastEnded"] as? [String: Any])?["A"])
     }
 
+    /// B2.2：原生页自己的提示路径（hint op → 真 store）：每点一次多给一段、画在书写格里；写过的那笔收掉；点到整字 = 看过答案、按钮留着变灰。
+    func testHintThroughTheNativePageUpToTheWholeChar() async throws {
+        let vc = try await startGroup()
+        let key = try XCTUnwrap(vc.cardKey)
+        try await waitUntil("hint state") { vc.hintButtonKindForTesting == "available" }
+        vc.perform(Selector(("tapHint")))
+        try await waitUntil("first hint stored") {
+            ((self.sessionA((try? await self.state()) ?? [:])?["current"] as? [String: Any])?["hints"] as? Int) == 1
+        }
+        try await waitUntil("hint drawn") { !vc.hintLayerForTesting.shownStrokes.isEmpty }
+        XCTAssertEqual(vc.hintLayerForTesting.shownStrokes.first, 0, "the first segment starts at stroke 0")
+        // 写下第 1 笔（按笔顺序号对上提示的第 0 笔）：那一笔提示淡出后不再画
+        vc.nativeInkDidEndStroke(try XCTUnwrap(vc.inkViewForTesting), raw: Self.stroke.map { InkRawPoint(x: $0[0], y: $0[1], t: $0[2]) })
+        try await waitUntil("absorbed") { !vc.hintLayerForTesting.shownStrokes.contains(0) }
+        // 一直点到整字（每次等回包；按钮最后变灰）
+        var taps = 1
+        while vc.hintButtonKindForTesting == "available", taps < 40 {
+            let before = vc.hint?.used ?? 0
+            vc.perform(Selector(("tapHint")))
+            try await waitUntil("hint #\(taps + 1)") { (vc.hint?.used ?? 0) > before }
+            taps += 1
+        }
+        XCTAssertEqual(vc.hintButtonKindForTesting, "exhausted")
+        XCTAssertEqual(vc.cardKey, key, "stays on the card to keep writing")
+        XCTAssertEqual(vc.phase, .recall)
+        let st = try await state()
+        let cur = try XCTUnwrap(sessionA(st)?["current"] as? [String: Any])
+        XCTAssertEqual(cur["answerSeen"] as? Bool, true, "the whole char given = answer seen (D64 ①)")
+        XCTAssertEqual(cur["hints"] as? Int, vc.hint?.used)
+    }
+
     private static func literal(_ s: String) -> String {
         let data = try! JSONSerialization.data(withJSONObject: [s])
         let arr = String(data: data, encoding: .utf8)!

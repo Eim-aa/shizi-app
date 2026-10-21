@@ -12,8 +12,8 @@ import { ROOT } from './core/helpers.mjs';
 import { NATIVE_WRITE_COPY_KEYS } from '../src/ui/screens/write/native-session.js';
 
 const DIR = path.join(ROOT, 'ios/ShiziApp/ShiziApp');
-const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift'];
-const SURFACE = ['NativeInkView.swift', 'InkModel.swift'];
+const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift'];
+const SURFACE = ['NativeInkView.swift', 'InkModel.swift', 'NativeInkWire.swift'];
 const HAN = /[㐀-鿿＀-￯　-〿]/;
 
 /** 去掉 // 行注释与块注释后的源码（字符串里的 // 不在这些文件里出现）。 */
@@ -67,4 +67,14 @@ test('native ink surface: Release component since B2.1; spike overlay, golden se
   // Release 可执行文件含书写面：ObjC 名固定（verify-archive.sh 按它查）
   assert.match(lines.join('\n'), /@objc\(ShiziNativeInkView\)\s*\nfinal class NativeInkView/);
   assert.match(fs.readFileSync(path.join(ROOT, 'ios/ShiziApp/scripts/verify-archive.sh'), 'utf8'), /ShiziNativeInkView/);
+});
+
+test('B2.2: the native write page does not depend on the DEBUG spike (wire / colour tools are the Release NativeInkWire)', () => {
+  for (const f of FILES) {
+    const src = code(fs.readFileSync(path.join(DIR, f), 'utf8'));
+    assert.ok(!/NativeInkSpike/.test(src), `${f} references the spike`);
+  }
+  const spike = fs.readFileSync(path.join(DIR, 'NativeInkSpike.swift'), 'utf8');
+  assert.match(spike, /NativeInkWire\.parseColor/);
+  assert.match(spike, /NativeInkWire\.rawStrokes/);
 });

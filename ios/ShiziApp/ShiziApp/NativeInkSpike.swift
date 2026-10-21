@@ -123,33 +123,9 @@ final class NativeInkSpike: NSObject {
         }
     }
 
-    /// "#RRGGBB" / "#RGB" / "rgb(r, g, b)" / "rgba(…)" → 0–1。
-    static func parseColor(_ s: String?) -> SIMD4<Float>? {
-        guard let s = s?.trimmingCharacters(in: .whitespaces), !s.isEmpty else { return nil }
-        if s.hasPrefix("#") {
-            var hex = String(s.dropFirst())
-            if hex.count == 3 { hex = hex.map { "\($0)\($0)" }.joined() }
-            guard hex.count >= 6, let n = UInt32(hex.prefix(6), radix: 16) else { return nil }
-            return SIMD4(Float((n >> 16) & 0xFF) / 255, Float((n >> 8) & 0xFF) / 255, Float(n & 0xFF) / 255, 1)
-        }
-        if let open = s.firstIndex(of: "("), let close = s.lastIndex(of: ")") {
-            let parts = s[s.index(after: open)..<close].split(whereSeparator: { $0 == "," || $0 == " " || $0 == "/" }).compactMap { Float($0) }
-            guard parts.count >= 3 else { return nil }
-            return SIMD4(parts[0] / 255, parts[1] / 255, parts[2] / 255, parts.count > 3 ? parts[3] : 1)
-        }
-        return nil
-    }
-
-    static func rawStrokes(_ any: Any?) -> [[InkRawPoint]] {
-        ((any as? [[[NSNumber]]]) ?? []).map { stroke in
-            stroke.compactMap { r in
-                guard r.count >= 3 else { return nil }
-                var q = InkRawPoint(x: r[0].doubleValue, y: r[1].doubleValue, t: r[2].doubleValue)
-                if r.count > 3, r[3].doubleValue > 0 { q.p = r[3].doubleValue }
-                return q
-            }
-        }
-    }
+    /// 颜色与笔画格式：B2.2 起在 Release 工具 NativeInkWire（原生写字页也用它，不再依赖本 spike）。
+    static func parseColor(_ s: String?) -> SIMD4<Float>? { NativeInkWire.parseColor(s) }
+    static func rawStrokes(_ any: Any?) -> [[InkRawPoint]] { NativeInkWire.rawStrokes(any) }
 
     private func syncStrokes(_ any: Any?) {
         guard let v = ensureView() else { return }

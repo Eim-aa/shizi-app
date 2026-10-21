@@ -15,9 +15,20 @@ import WebKit
 // 冷启动 / 页面重载：路由恢复出写字条目 → 宿主再发 open → 已有同槽写字页时只重新同步快照，否则不带动画直接盖上。
 
 extension WebViewController: NativeWriteCoordinating {
+    /// 真机试用：带 `-shizi-native-write` 启动一次后记在 UserDefaults，之后从主屏打开也保持开启；
+    /// 带 `-shizi-native-write-off` 启动一次即关闭（仍只在 DEBUG 构建里有这一套）。
     static var nativeWriteEnabled: Bool {
         let p = ProcessInfo.processInfo
-        return p.arguments.contains("-shizi-native-write") || p.environment["SHIZI_NATIVE_WRITE"] == "1"
+        let key = "shizi.debug.nativeWrite"
+        if p.arguments.contains("-shizi-native-write-off") {
+            UserDefaults.standard.set(false, forKey: key)
+            return false
+        }
+        if p.arguments.contains("-shizi-native-write") || p.environment["SHIZI_NATIVE_WRITE"] == "1" {
+            UserDefaults.standard.set(true, forKey: key)
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: key)
     }
 
     func installNativeWriteUserScriptIfNeeded(_ controller: WKUserContentController) {

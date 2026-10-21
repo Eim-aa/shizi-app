@@ -44,7 +44,7 @@ ios/ShiziApp/scripts/verify-archive.sh work/Shizi.xcarchive
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziStoreTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
 ```
 
-原生写字页（B2.0 纵切，DEBUG 启动参数 `-shizi-native-write` / `SHIZI_NATIVE_WRITE=1`，默认关；架构见 `docs/engineering/v10/B2-原生写字架构.md`）的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入）：
+原生写字页（B2.0 纵切，DEBUG 启动参数 `-shizi-native-write` / `SHIZI_NATIVE_WRITE=1`，默认关；架构见 `docs/engineering/v10/B2-原生写字架构.md`）的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入），以及原生书写面（B2.1 起 Release 组件）的 `InkSurfaceTests`（笔锋模型金标准、点处理与几何、Pencil / 手掌 / 换字持住）：
 
 ```bash
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziWriteTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO

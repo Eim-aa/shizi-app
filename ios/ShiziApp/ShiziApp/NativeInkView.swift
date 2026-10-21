@@ -63,7 +63,7 @@ enum NativeInkPencilAction: String, Equatable {
 /// 规则（时间单位 s，与 UITouch.timestamp 同一时基；长度单位 pt）：
 ///   1. 同一时刻只写一笔；一笔进行中其余触点一律忽略——唯一例外：手指在写时 Pencil 落下，手指那笔取消（多半是掌托 / 握笔的手指），改写 Pencil 这笔。
 ///   2. Pencil 刚用过时手指不落墨：Pencil 正在写，或上一次 Pencil 接触（落笔、移动、抬笔、悬停）在 pencilGrace 秒之内；
-///      系统「只用 Apple Pencil 绘图」打开时（UIPencilInteraction.prefersPencilOnlyDrawing），本次运行里用过 Pencil 之后手指一直不落墨。
+///      系统「只用 Apple Pencil 绘图」打开时（UIPencilInteraction.prefersPencilOnlyDrawing），这块书写面上用过 Pencil 之后手指一直不落墨。
 ///   3. 手掌：手指接触半径 ≥ palmRadius 直接不落墨；落笔后半径涨到 ≥ palmRadius，或半径 ≥ palmSuspectRadius 且最初 palmStill 秒内
 ///      几乎没动（< palmStillDistance）——判为手掌，这一笔取消（不固化、不计笔数）。
 ///   4. 手指只在没用过 Pencil（或已过 pencilGrace、且没开「只用 Apple Pencil 绘图」）时写字：iPhone（没有 Pencil）上手指照常写，规则 2 不生效。

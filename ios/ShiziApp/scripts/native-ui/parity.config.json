@@ -1,0 +1,7 @@
+{
+  "//": "QA-H1 逐屏对比容差（文字高度另用 textHeight：两边行高 / 字体度量不同；pt / 0–255 通道 / pt / 字重 -1…1）。ignore：明确不比的差异（state / type / label 任意组合；label 为语义键或归一后的文字）。",
+  "tolerance": { "pos": 1, "size": 1, "textHeight": 4, "color": 8, "font": 0.5, "weight": 0.1 },
+  "ignore": [
+    { "type": "extra", "label": "hintLayer", "//": "提示层是原生的叠层视图，没有文字" }
+  ]
+}

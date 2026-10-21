@@ -60,7 +60,7 @@ test -n "$app_minimum_os" || { echo "Missing MinimumOSVersion" >&2; exit 65; }
 test -n "$app_executable" && test -f "${APP}/${app_executable}" || { echo "Archived executable is missing" >&2; exit 65; }
 
 # M5-3：DEBUG 冒烟与测试宿主注入（NativeSmoke.swift、?test=1 + __shiziNativeDev）不得进 Release 可执行文件。
-for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "shizi-ink-selfcheck" "touchToTargetMs" "__shiziNativeWrite" "-shizi-native-write" "shizi-native-write-metrics.json"; do
+for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "shizi-ink-selfcheck" "touchToTargetMs" "__shiziNativeWrite" "-shizi-native-write" "shizi-native-write-metrics.json" "-shizi-qa" "qa-probe" "NativeQAHarness"; do
   if LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}"; then
     echo "Release executable contains Debug native-smoke marker: ${marker}" >&2
     exit 65

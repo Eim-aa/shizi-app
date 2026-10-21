@@ -302,6 +302,7 @@ final class WebViewController: UIViewController {
         sendContentSize(currentContentSizeCategory)
         #if DEBUG
         runNativeSmokeIfNeeded()
+        runQAHarnessIfNeeded() // QA-H1：状态注入 / 逐屏取证 / 探针（NativeQAHarness.swift，只在启动参数 -shizi-qa* 下）
         #endif
     }
 

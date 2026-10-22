@@ -121,6 +121,7 @@ extension WebViewController {
         } catch {
             return "prepare js: \(error)"
         }
+        await qaRememberClock()
         if let n = Self.qaArg("-shizi-qa-fail-next").flatMap(Int.init), n > 0 {
             // D07 三段式：接下来 n 次写入失败（页面测试钩子 failNextWrite，与 e2e / ShiziWriteTests 同一个）
             _ = await qaJS("return window.__shiziTest.failNextWrite(\(n), {kind:'generic'});")
@@ -164,6 +165,12 @@ extension WebViewController {
         let settle: UInt64 = state == .trace ? 2_400_000_000 : (state == .changeSheet ? 1_200_000_000 : 900_000_000)
         try? await Task.sleep(nanoseconds: settle)
         return nil
+    }
+
+    /// B2.9b：注入后页面时钟的偏移存下来（QAClock），之后的冷启动、原生时间戳都用它；没钉时钟（偏移 < 1s）则清掉。
+    private func qaRememberClock() async {
+        let off = (await qaJS("return window.__shiziTest ? window.__shiziTest.now() - Date.now() : 0;") as? NSNumber)?.doubleValue ?? 0
+        QAClock.offsetMs = abs(off) >= 1000 ? off : nil
     }
 
     private func qaTap(_ ui: String, _ what: String, times: Int) async {
@@ -419,7 +426,9 @@ extension WebViewController {
                         e["iconFrame"] = ["x": r(fi.minX), "y": r(fi.minY), "w": r(fi.width), "h": r(fi.height)]
                     }
                     if let tl = b.titleLabel, !(tl.text ?? "").isEmpty {
-                        let ft = tl.convert(tl.textRect(forBounds: tl.bounds, limitedToNumberOfLines: tl.numberOfLines), to: window)
+                        // 字在标题标签里竖向居中（UILabel 的画法；标签比字高时 textRect 给的是贴顶的框）
+                        let tr = tl.textRect(forBounds: tl.bounds, limitedToNumberOfLines: tl.numberOfLines)
+                        let ft = tl.convert(CGRect(x: tr.minX, y: (tl.bounds.height - tr.height) / 2, width: tr.width, height: tr.height), to: window)
                         e["textFrame"] = ["x": r(ft.minX), "y": r(ft.minY), "w": r(ft.width), "h": r(ft.height)]
                     }
                 } else if let l = v as? UILabel, let t = l.text, !t.isEmpty {
@@ -436,14 +445,72 @@ extension WebViewController {
                     case .right: tx = l.bounds.width - tr.width
                     default: break
                     }
-                    let ft = l.convert(CGRect(x: tx, y: (l.bounds.height - tr.height) / 2, width: tr.width, height: tr.height), to: window)
+                    var th = tr.height
+                    // 钉住行盒的标签（fixLineBox：宋体标题等）：网页的文字框是字体内容区（升部 + 降部，Range.getClientRects），不是行盒——同口径换算（中线不变）
+                    if let a = l.attributedText, a.length > 0, let ps = a.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle, ps.minimumLineHeight > 0,
+                       let f = a.attribute(.font, at: 0, effectiveRange: nil) as? UIFont {
+                        let lines = max(1, (tr.height / ps.minimumLineHeight).rounded())
+                        th = (lines - 1) * ps.minimumLineHeight + (f.ascender - f.descender)
+                    }
+                    let ft = l.convert(CGRect(x: tx, y: (l.bounds.height - th) / 2, width: tr.width, height: th), to: window)
                     e["textFrame"] = ["x": r(ft.minX), "y": r(ft.minY), "w": r(ft.width), "h": r(ft.height)]
                     e["align"] = l.textAlignment == .center ? "center" : (l.textAlignment == .right ? "right" : "left")
                 } else if name != nil || v.accessibilityIdentifier != nil || v is NativeInkView {
                     e["kind"] = "view"
                 }
+                // B2.9b「AX5 不溢出」：字是否被截断（行数不够 / 单行放不下）、是否被祖先裁掉（滚动视图按内容区算：滚得到就不算裁掉）
+                let textView: UILabel? = (v as? UILabel) ?? (v as? UIButton)?.titleLabel
+                if let l = textView, !(l.text ?? "").isEmpty, l.bounds.width > 2 {
+                    let need = l.sizeThatFits(CGSize(width: l.bounds.width, height: .greatestFiniteMagnitude))
+                    let natural = l.sizeThatFits(CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude))
+                    // 钉住行盒的标签按行数比（字在行盒里的上下偏移会让量出来的高多几 pt，不是截断）
+                    let box = ((l.attributedText?.length ?? 0) > 0 ? (l.attributedText?.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)?.minimumLineHeight : nil) ?? 0
+                    let per = box > 0 ? box : l.font.lineHeight
+                    let lines = max(1, (need.height / max(1, per)).rounded())
+                    let room = max(1, (l.bounds.height / max(1, per)).rounded())
+                    let truncated = l.numberOfLines == 1 ? natural.width > l.bounds.width + 1
+                        : (box > 0 ? lines > room : need.height > l.bounds.height + 1.5) || (l.numberOfLines > 1 && lines > CGFloat(l.numberOfLines))
+                    if truncated { e["truncated"] = true; e["textNeed"] = ["h": r(need.height), "lines": lines, "room": room, "box": r(box), "fontLine": r(l.font.lineHeight)] }
+                    // clip：滚动视图按内容区（滚得到），其余裁切祖先按自身框；visible：此刻真能看见的部分（滚动视图按可见框），重叠只比看得见的部分
+                    var clip = CGRect.infinite
+                    var visible = window.bounds
+                    var scrolls = false
+                    var a: UIView? = l.superview
+                    while let anc = a, anc !== window {
+                        if let sv = anc as? UIScrollView {
+                            scrolls = true
+                            let origin = CGPoint(x: -sv.contentInset.left, y: -sv.contentInset.top)
+                            clip = clip.intersection(sv.convert(CGRect(origin: origin, size: CGSize(width: max(sv.contentSize.width, sv.bounds.width), height: max(sv.contentSize.height + sv.contentInset.top + sv.contentInset.bottom, sv.bounds.height))), to: window))
+                            visible = visible.intersection(sv.convert(sv.bounds, to: window))
+                        } else if anc.clipsToBounds {
+                            clip = clip.intersection(anc.convert(anc.bounds, to: window))
+                            visible = visible.intersection(anc.convert(anc.bounds, to: window))
+                        }
+                        a = anc.superview
+                    }
+                    if !scrolls { clip = clip.intersection(window.bounds) }
+                    let lf = l.convert(l.textRect(forBounds: l.bounds, limitedToNumberOfLines: l.numberOfLines), to: window)
+                    if !clip.insetBy(dx: -0.5, dy: -0.5).contains(lf) { e["clipped"] = true }
+                    if lf.minX < -0.5 || lf.maxX > window.bounds.width + 0.5 { e["offscreenX"] = true }
+                    let own = (v is UIButton) ? v.convert(v.bounds, to: window) : lf
+                    let vis = own.intersection(visible)
+                    e["visibleFrame"] = vis.isNull || vis.isEmpty ? NSNull() : ["x": r(vis.minX), "y": r(vis.minY), "w": r(vis.width), "h": r(vis.height)] as Any
+                }
+                // 所在的层：弹层 / 确认框 / 撤销条是盖在页面上的浮层（按设计会盖住页面），重叠只在同一层里查
+                var layer = "page"
+                var anc: UIView? = v
+                while let x = anc {
+                    if let n = names[ObjectIdentifier(x)], let dot = n.firstIndex(of: "."), ["sheet", "endDialog", "undoBar"].contains(String(n[..<dot])) { layer = String(n[..<dot]); break }
+                    if names[ObjectIdentifier(x)] == "sheet.view" { layer = "sheet"; break }
+                    if x is NativeUndoBarView { layer = "undoBar"; break }
+                    if x is NativeEndDialogView { layer = "endDialog"; break }
+                    anc = x.superview
+                }
+                if !e.isEmpty { e["layer"] = layer }
                 if !e.isEmpty, onScreen, !(v.superview is UIButton) {
                     e["frame"] = ["x": r(f.minX), "y": r(f.minY), "w": r(f.width), "h": r(f.height)]
+                    // 只给读屏的元素（1 × 1、裁掉；网页 .sz-page__title--hidden 同一判据：框不超过 2 × 2）
+                    if f.width <= 2 && f.height <= 2 { e["srOnly"] = true }
                     if let name { e["prop"] = name }
                     if let id = v.accessibilityIdentifier { e["id"] = id }
                     if v.isAccessibilityElement || v is UIButton {
@@ -734,6 +801,30 @@ enum QATrace {
     }
 }
 
+/// B2.9b：QA 时钟。注入把页面时钟钉在固定日子时（结果页状态：2026-10-22 09:00，或 -shizi-qa-clock），这个钟就是全 App 唯一的「现在」：
+/// 页面 now()（注入后量出偏移 = 页面 now − 真实时间，存在 UserDefaults）、杀进程重开后的页面（WebViewController 在 documentStart 注入
+/// window.__shiziQAClockOffset，src/platform/env.js 模块求值时读，路由恢复 routeRestore 也用它）与原生（SQLite 时间戳、提醒排期）。
+/// 不钉时钟的注入清掉偏移（之后用真实时间）。只在 DEBUG 测试宿主。
+enum QAClock {
+    static let key = "shizi.qa.clockOffsetMs"
+
+    static var offsetMs: Double? {
+        get { WebViewController.nativeTestHostEnabled ? UserDefaults.standard.object(forKey: key) as? Double : nil }
+        set {
+            if let v = newValue { UserDefaults.standard.set(v, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+    }
+
+    static func nowMs() -> Double { Date().timeIntervalSince1970 * 1000 + (offsetMs ?? 0) }
+    static func date() -> Date { Date(timeIntervalSince1970: nowMs() / 1000) }
+
+    /// documentStart 注入的脚本（没有偏移 → nil）。
+    static var script: String? {
+        guard let v = offsetMs else { return nil }
+        return "window.__shiziQAClockOffset = \(String(format: "%.0f", v));"
+    }
+}
+
 /// 本次启动是否已经注入过（只在第一次 pageReady 注入）。
 enum QARun {
     static var started = false
@@ -815,6 +906,7 @@ final class QAProbe {
         }
         out["pageReady"] = host.pageReady
         out["transitions"] = QATrace.events
+        out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）
         out["navRunning"] = NativeWriteTransitions.running
         if let s = seedResult { out["seed"] = s ?? "ok" }
         if let data = try? JSONSerialization.data(withJSONObject: out, options: [.sortedKeys]), let s = String(data: data, encoding: .utf8) {
@@ -842,7 +934,11 @@ final class QAProbe {
     try { const { getRouter } = await import('/src/ui/router.js'); const r = getRouter().getState(); route = { top: r.top ? r.top.n : null, depth: r.depth, tab: r.tab, overlay: !!r.topIsOverlay }; } catch (e) {}
     let webNav = [];
     try { const { navTrace } = await import('/src/ui/paper-transition.js'); webNav = [...navTrace]; } catch (e) {}
+    // B2.9b：冷启动判定（route-memory lastPlan：ok / stale / invalid:<页> …）与页面此刻的时钟（QA 钉住时跨重开保持）
+    let coldPlan = null;
+    try { const { getRouteMemory } = await import('/src/ui/route-memory.js'); const m = getRouteMemory(); coldPlan = m ? m.lastPlan() : null; } catch (e) {}
     return {
+      coldPlan, clock: T.now(),
       hooks: true, records: recs.length, kinds, judgedWrong: judged.filter(r => r.judgment === 'wrong').length, judgedCorrect: judged.filter(r => r.judgment === 'correct').length,
       chars: chars.size, answerSeenInk: seenInk, sched: Object.keys(st.sched || {}).length, sessions: sess, route, topScreen: app ? app.dataset.topScreen : null, navAnim: app ? app.dataset.navAnim : null, webNav,
     };

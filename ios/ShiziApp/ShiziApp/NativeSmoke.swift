@@ -73,6 +73,10 @@ extension WebViewController {
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
+        // B2.9b：QA 注入钉过的时钟跨杀进程重开保持（QAClock；页面 env.js 模块求值时读）
+        if let clock = QAClock.script {
+            controller.addUserScript(WKUserScript(source: clock, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
     }
 
     func applySmokeLaunchArguments() {

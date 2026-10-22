@@ -139,13 +139,64 @@ struct NativeType {
     private let raw: [String: CGFloat]
     private let category: UIContentSizeCategory
 
+    /// B2.9b：网页 AX 档位（0 = 不是 AX 档；页面 typeBundle 的 ax）与逐元素取值（roles：角色 → 量到的 fs / lh / minH / padTop …，
+    /// 附属元素在 r2…r5 下；native-session.js NATIVE_AX_ROLES 同一组探针）。
+    let axLevel: Int
+    private let roles: [String: [String: Any]]
+
     init(_ payload: Any? = nil) {
         var r: [String: CGFloat] = [:]
-        for (k, v) in (payload as? [String: Any]) ?? [:] {
+        let dict = (payload as? [String: Any]) ?? [:]
+        for (k, v) in dict {
+            if k == "ax" { continue }
             if let n = v as? NSNumber, n.doubleValue > 0 { r[k] = CGFloat(n.doubleValue) }
         }
         raw = r
         category = UIApplication.shared.preferredContentSizeCategory
+        axLevel = (dict["ax"] as? NSNumber)?.intValue ?? 0
+        roles = (dict["roles"] as? [String: [String: Any]]) ?? [:]
+    }
+
+    /// AX 档且页面给了逐元素取值（同一系统字号档位时才算数，见 value）。
+    var ax: Bool { axLevel > 0 && UIApplication.shared.preferredContentSizeCategory == category }
+
+    /// 角色的某个量（pt）；sub = "r2"… 取附属元素。没有 → nil。
+    func role(_ name: String, _ key: String, sub: String? = nil) -> CGFloat? {
+        guard ax, let r = roles[name] else { return nil }
+        let d = sub.flatMap { r[$0] as? [String: Any] } ?? (sub == nil ? r : nil)
+        guard let n = d?[key] as? NSNumber, n.doubleValue.isFinite else { return nil }
+        return CGFloat(n.doubleValue)
+    }
+
+    /// 角色的字体（系统字体 + 苹方 UI 正文款，同 font(_:)）；没有 → nil。
+    func roleFont(_ name: String, sub: String? = nil, weight: UIFont.Weight = .regular) -> UIFont? {
+        guard let size = role(name, "fs", sub: sub) else { return nil }
+        return Self.compose(size: size, weight: weight)
+    }
+
+    /// 角色的行高（取整到整 pt，同 line）。
+    func roleLine(_ name: String, sub: String? = nil) -> CGFloat? { role(name, "lh", sub: sub).map { floor($0) } }
+
+    /// AX 档主按钮的高（网页 components/ax.js：min-height var(--btn-h)、height auto、上下内边距 6，字可折行）：max(最小高, 行数 × 行高 + 上下内边距)。
+    /// role / sub 指向量到的那颗按钮（minH / lh / padTop）；不在 AX 档 → nil。
+    func axButtonHeight(_ role: String, sub: String? = nil, title: String?, font: UIFont?, width: CGFloat) -> CGFloat? {
+        guard ax, let minH = self.role(role, "minH", sub: sub) else { return nil }
+        let lh = roleLine(role, sub: sub) ?? floor(font?.lineHeight ?? 0)
+        let pad = self.role(role, "padTop", sub: sub) ?? 0
+        var lines: CGFloat = 1
+        if let title, let font, width > 0 {
+            let k = Self.cjkTrack(size: font.pointSize, weight: Self.weight(of: font))
+            let tw = (title as NSString).size(withAttributes: [.font: font]).width + CGFloat(title.unicodeScalars.filter { $0.value >= 0x2E80 }.count) * k
+            lines = max(1, ceil((tw - 0.5) / width))
+        }
+        return max(minH, lines * lh + 2 * pad)
+    }
+
+    static func compose(size: CGFloat, weight: UIFont.Weight) -> UIFont {
+        let sys = UIFont.systemFont(ofSize: size, weight: weight)
+        let cjk = cjkFont(size: size, weight: weight)
+        let d = sys.fontDescriptor.addingAttributes([.cascadeList: [cjk.fontDescriptor]])
+        return UIFont(descriptor: d, size: size)
     }
 
     private static let fallback: [String: (CGFloat, UIFont.TextStyle)] = [
@@ -168,11 +219,7 @@ struct NativeType {
     /// 系统字体，中文字形接到苹方 UI 的正文款（cascade）：系统在大字号下会给中文换成展示款（字距更紧），网页（WebKit）一直用正文款，
     /// 不接的话 XXXL 下「改为写对」这类字比网页窄 3pt。拉丁字母 / 数字 / 行高仍是 SF（与网页 -apple-system 同）。
     func font(_ name: String, weight: UIFont.Weight = .regular) -> UIFont {
-        let size = value(name)
-        let sys = UIFont.systemFont(ofSize: size, weight: weight)
-        let cjk = Self.cjkFont(size: size, weight: weight)
-        let d = sys.fontDescriptor.addingAttributes([.cascadeList: [cjk.fontDescriptor]])
-        return UIFont(descriptor: d, size: size)
+        Self.compose(size: value(name), weight: weight)
     }
 
     static func hasCJKPunctuation(_ s: String) -> Bool {
@@ -198,34 +245,158 @@ struct NativeType {
     static func set(_ label: UILabel, _ text: String?, font: UIFont, color: UIColor, align: NSTextAlignment = .natural, line: CGFloat? = nil) {
         let punct = text.map(hasCJKPunctuation) ?? false
         let f = punct ? cjkFont(size: font.pointSize, weight: weight(of: font)) : font
+        let track = text.map(hasCJK) == true ? cjkTrack(size: font.pointSize, weight: weight(of: font)) : 0
         label.attributedText = nil
         label.font = f
         label.textColor = color
         label.textAlignment = align
-        guard let text, !text.isEmpty, punct || line != nil else {
+        guard let text, !text.isEmpty, punct || line != nil || track != 0 else {
             label.text = text
             return
         }
         let p = NSMutableParagraphStyle()
         p.alignment = align
         p.lineSpacing = max(0, (line ?? 0) - f.lineHeight)
-        let out = NSMutableAttributedString(string: text, attributes: [.font: f, .foregroundColor: color, .paragraphStyle: p])
-        if punct {
-            let sf = UIFont.systemFont(ofSize: font.pointSize, weight: weight(of: font))
-            var i = 0
-            for ch in text {
-                let n = (String(ch) as NSString).length
-                if !ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 }) {
-                    let want = (String(ch) as NSString).size(withAttributes: [.font: sf]).width
-                    let have = (String(ch) as NSString).size(withAttributes: [.font: f]).width
-                    out.addAttribute(.kern, value: want - have, range: NSRange(location: i, length: n))
-                }
-                i += n
+        // 网页行高比字体自然行高小（AX 档苹方 1.4em、行高 1.18em）：行盒钉成网页行高，否则 n 行的字放不进 n × 行高的盒子、最后一行被截掉（B2.9b AX-01）
+        var shift: CGFloat = 0
+        if let line, line > 0, line < f.lineHeight - 0.01 {
+            p.minimumLineHeight = line
+            p.maximumLineHeight = line
+            p.lineSpacing = 0
+            shift = (line - f.lineHeight) / 4 // 字在行盒里竖向居中（同 NativeResultViewController.fixLineBox）
+        }
+        if label.numberOfLines == 1 { p.lineBreakMode = label.lineBreakMode } // 多行时保持按词折行（富文本里的截断方式会让多行标签只剩一行）
+        // 字距 0 先铺满：CoreText 在带字距的文字后面接一段不带字距的文字时会给后者补默认字距（「修改 ›」的「›」宽 2.7pt），显式 0 就不会
+        var attrs: [NSAttributedString.Key: Any] = [.font: f, .foregroundColor: color, .paragraphStyle: p, .kern: 0]
+        if shift != 0 { attrs[.baselineOffset] = shift }
+        let out = NSMutableAttributedString(string: text, attributes: attrs)
+        let sf = UIFont.systemFont(ofSize: font.pointSize, weight: weight(of: font))
+        var i = 0
+        for ch in text {
+            let n = (String(ch) as NSString).length
+            let cjk = ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 })
+            if punct, !cjk {
+                let want = (String(ch) as NSString).size(withAttributes: [.font: sf]).width
+                let have = (String(ch) as NSString).size(withAttributes: [.font: f]).width
+                out.addAttribute(.kern, value: want - have, range: NSRange(location: i, length: n))
+            } else if cjk, track != 0 {
+                out.addAttribute(.kern, value: track, range: NSRange(location: i, length: n))
             }
+            i += n
         }
         label.attributedText = out
     }
 
+    static func hasCJK(_ s: String) -> Bool { s.unicodeScalars.contains { $0.value >= 0x2E80 } }
+
+    /// B2.9b：中文字距与网页一致。WebKit 按**实际字号**取苹方 UI 正文款 trak 表的字距；原生为保住正文款字形把光学尺寸钉在 17（cjkFont，R9-B），
+    /// CoreText 于是按 17 取字距。大字号下（AX 档 22–53pt）两边每个中文字相差 0.1–0.8pt（「写好了」53pt 差 2.4pt）。
+    /// 返回每个中文字形要补的字距（pt）=（trak(字号) − trak(17)）÷ upem × 字号；字号 17 时为 0。表取字体自带的，不抄数值。
+    static func cjkTrack(size: CGFloat, weight: UIFont.Weight) -> CGFloat {
+        let key = weight.rawValue
+        if trakCache[key] == nil {
+            let f = cjkFont(size: 17, weight: weight) as CTFont
+            trakCache[key] = parseTrak(f).map { (upem: CGFloat(CTFontGetUnitsPerEm(f)), sizes: $0.sizes, values: $0.values) } ?? (upem: 0, sizes: [], values: [])
+        }
+        guard let t = trakCache[key], t.upem > 0, !t.sizes.isEmpty else { return 0 }
+        func at(_ x: CGFloat) -> CGFloat {
+            if x <= t.sizes[0] { return t.values[0] }
+            for j in 1..<t.sizes.count where x <= t.sizes[j] {
+                let u = (x - t.sizes[j - 1]) / (t.sizes[j] - t.sizes[j - 1])
+                return t.values[j - 1] + (t.values[j] - t.values[j - 1]) * u
+            }
+            return t.values[t.values.count - 1]
+        }
+        let d = (at(size) - at(17)) / t.upem * size
+        return abs(d) < 0.005 ? 0 : d
+    }
+
+    private static var trakCache: [CGFloat: (upem: CGFloat, sizes: [CGFloat], values: [CGFloat])] = [:]
+
+    /// 'trak' 表（Apple 字体格式）的水平字距：取 track 值最接近 0 的那一条（苹方 UI 只有一条）。
+    static func parseTrak(_ f: CTFont) -> (sizes: [CGFloat], values: [CGFloat])? {
+        guard let data = CTFontCopyTable(f, CTFontTableTag(kCTFontTableTrak), []) as Data?, data.count >= 12 else { return nil }
+        let b = [UInt8](data)
+        func u16(_ o: Int) -> Int { o + 1 < b.count ? Int(b[o]) << 8 | Int(b[o + 1]) : 0 }
+        func i16(_ o: Int) -> Int { let v = u16(o); return v >= 0x8000 ? v - 0x10000 : v }
+        func fixed(_ o: Int) -> CGFloat { CGFloat(Int32(bitPattern: UInt32(u16(o)) << 16 | UInt32(u16(o + 2)))) / 65536 }
+        let horiz = u16(6)
+        guard horiz > 0, horiz + 8 <= b.count else { return nil }
+        let nTracks = u16(horiz), nSizes = u16(horiz + 2), sizeOff = u16(horiz + 4) << 16 | u16(horiz + 6)
+        guard nTracks > 0, nSizes > 0, sizeOff + 4 * nSizes <= b.count else { return nil }
+        let sizes = (0..<nSizes).map { fixed(sizeOff + 4 * $0) }
+        var best: (track: CGFloat, off: Int)?
+        for t in 0..<nTracks {
+            let e = horiz + 8 + t * 8
+            let tr = fixed(e)
+            if best == nil || abs(tr) < abs(best!.track) { best = (tr, u16(e + 6)) }
+        }
+        guard let off = best?.off, off + 2 * nSizes <= b.count else { return nil }
+        return (sizes, (0..<nSizes).map { CGFloat(i16(off + 2 * $0)) })
+    }
+
+    /// 「修改 ›」这类「字 + ›」文字链（网页 ChangeLink：字与「›」是 inline-flex 的两项，间距 4）：标题里的空格按 4 排，中文字距同 cjkTrack。
+    /// 按钮字体（系统字体时重新接上苹方 UI 正文款的 cascade：从 titleLabel 读回的字体不一定还带着它，富文本里不带的话中文会落到别的款）。
+    static func titleFont(_ b: UIButton) -> UIFont? {
+        guard let f = b.titleLabel?.font else { return nil }
+        return f.fontName.hasPrefix(".SF") ? compose(size: f.pointSize, weight: weight(of: f)) : f
+    }
+
+    static func linkTitle(_ b: UIButton) {
+        guard let t = b.title(for: .normal), let f = titleFont(b), t.contains(" ") else { trackTitle(b); return }
+        let k = cjkTrack(size: f.pointSize, weight: weight(of: f))
+        // 空格实际的宽按上下文量（紧跟中文时空格随中文那一款排，比 SF 的空格宽）
+        let ns = t as NSString
+        let sp = ns.range(of: " ")
+        let probe = NSAttributedString(string: t, attributes: [.font: f, .kern: 0])
+        let space = probe.attributedSubstring(from: NSRange(location: 0, length: sp.location + 1)).size().width
+            - probe.attributedSubstring(from: NSRange(location: 0, length: sp.location)).size().width
+        for st in [UIControl.State.normal, .disabled, .highlighted] {
+            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .foregroundColor: b.titleColor(for: st) ?? b.currentTitleColor, .kern: 0])
+            var i = 0
+            for ch in t {
+                let n = (String(ch) as NSString).length
+                if ch == " " { out.addAttribute(.kern, value: 4 - space, range: NSRange(location: i, length: n)) }
+                else if k != 0, ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 }) { out.addAttribute(.kern, value: k, range: NSRange(location: i, length: n)) }
+                i += n
+            }
+            b.setAttributedTitle(out, for: st)
+        }
+    }
+
+    /// 按钮标题的显示宽（有富文本标题时按富文本量，含字距）。
+    static func titleWidth(_ b: UIButton) -> CGFloat {
+        if let a = b.attributedTitle(for: .normal), a.length > 0 { return ceil(a.size().width * 3) / 3 }
+        return width(b.titleLabel ?? UILabel())
+    }
+
+    /// 按钮标题的中文字距（cjkTrack）：各状态的标题改成带字距的富文本（字体 = titleLabel.font，颜色 = 该状态的标题色）；不需要时清掉富文本。
+    /// 标题 / 字体 / 颜色变了之后调用。
+    static func trackTitle(_ b: UIButton) {
+        let states: [UIControl.State] = [.normal, .disabled, .highlighted]
+        guard let t = b.title(for: .normal), let f = titleFont(b), hasCJK(t) else {
+            if b.attributedTitle(for: .normal) != nil { states.forEach { b.setAttributedTitle(nil, for: $0) } }
+            return
+        }
+        let k = cjkTrack(size: f.pointSize, weight: weight(of: f))
+        guard k != 0 else {
+            if b.attributedTitle(for: .normal) != nil { states.forEach { b.setAttributedTitle(nil, for: $0) } }
+            return
+        }
+        let p = NSMutableParagraphStyle()
+        p.alignment = b.titleLabel?.textAlignment ?? .center
+        p.lineBreakMode = b.titleLabel?.numberOfLines == 1 ? (b.titleLabel?.lineBreakMode ?? .byTruncatingMiddle) : .byWordWrapping
+        for st in states {
+            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .foregroundColor: b.titleColor(for: st) ?? b.currentTitleColor, .paragraphStyle: p, .kern: 0])
+            var i = 0
+            for ch in t {
+                let n = (String(ch) as NSString).length
+                if ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 }) { out.addAttribute(.kern, value: k, range: NSRange(location: i, length: n)) }
+                i += n
+            }
+            b.setAttributedTitle(out, for: st)
+        }
+    }
 
     /// 宋（ShiziSerifSC，网页 --song；包里 Web/fonts 的 woff2，CoreText 直接读）。弹层标题这类网页用宋体的地方；读不到时退回系统字体。
     static func song(size: CGFloat, weight: UIFont.Weight) -> UIFont {
@@ -245,7 +416,9 @@ struct NativeType {
     static func height(_ label: UILabel, width: CGFloat, line: CGFloat) -> CGFloat {
         guard !(label.text ?? "").isEmpty else { return 0 }
         let h = label.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height
-        let lines = max(1, (h / max(1, label.font.lineHeight)).rounded())
+        // 钉住了行盒（fixLineBox：最小行高）时按行盒数行，否则按字体行高
+        let fixed = (label.attributedText?.length ?? 0) > 0 ? (label.attributedText?.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)?.minimumLineHeight ?? 0 : 0
+        let lines = max(1, (h / max(1, fixed > 0 ? fixed : label.font.lineHeight)).rounded())
         return lines * line
     }
 
@@ -597,8 +770,12 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         // 标题用宋（网页 .sz-sheet__title：--song 22 / 30，500）
         titleLabel.font = NativeType.song(size: type.value("fs22"), weight: .medium)
         titleLabel.textColor = ink1
-        titleLabel.text = model.title ?? tr("X-JUDGE.changeTitle", ["char": model.char])
         titleLabel.numberOfLines = 0
+        // 行盒 = 网页行高 lh22（宋体自然行高 1.46em 比它高：不钉住的话 AX 档两行放不进算出来的盒子，被截成一行省略号）
+        let songTitle = NativeType.song(size: type.value("fs22"), weight: .medium)
+        titleLabel.font = songTitle
+        titleLabel.attributedText = NSAttributedString(string: model.title ?? tr("X-JUDGE.changeTitle", ["char": model.char]), attributes: [.font: songTitle, .foregroundColor: ink1])
+        NativeResultViewController.fixLineBox(titleLabel, line: type.line("lh22"))
         titleLabel.accessibilityTraits = [.header]
         titleLabel.accessibilityIdentifier = "native-change-title"
 
@@ -652,14 +829,17 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
 
         for (l, key) in [(mineLabel, "R-W09.labelMine"), (refLabel, "R-W09.labelReference")] {
             NativeType.set(l, tr(key), font: type.font("fs13"), color: ink3, align: .center)
-            l.isAccessibilityElement = false // 旁注只留视觉，读屏名称在两张卡上
         }
+        // B2.9b：读屏同网页（弹层小卡是图、不读；读两条旁注「你写的」「标准写法」，没墨时读格里那句）
+        mineCard.isAccessibilityElement = false
+        refCard.isAccessibilityElement = false
 
         noteLabel.numberOfLines = 0
         noteLabel.accessibilityIdentifier = "native-change-note"
 
         configureText(detailButton, title: tr("X-DETAIL.viewChar"), color: ink2, id: "native-change-detail")
         detailButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
+        detailButton.contentHorizontalAlignment = .left
         detailButton.accessibilityLabel = tr("X-DETAIL.viewChar").replacingOccurrences(of: "\u{203A}", with: "").trimmingCharacters(in: .whitespaces)
         detailButton.addAction(UIAction { [weak self] _ in self?.viewChar() }, for: .touchUpInside)
         detailButton.isHidden = model.char.isEmpty
@@ -692,6 +872,9 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     private func configurePrimary(_ b: UIButton, title: String, id: String) {
         b.setTitle(title, for: .normal)
         b.titleLabel?.font = type.font("fs17", weight: .medium)
+        b.titleLabel?.numberOfLines = 0
+        b.titleLabel?.textAlignment = .center
+        b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24) // 网页 .sz-btn--primary padding 0 24（AX 档折行时同宽）
         b.backgroundColor = style.color("btn-bg", style.color("ink1", .label))
         b.setTitleColor(style.color("btn-fg", style.color("paper", .systemBackground)), for: .normal)
         b.layer.cornerRadius = 12
@@ -705,6 +888,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         let note = failed ? tr("R-W10.changeFailed") : (model.note ?? tr(model.judgment == "correct" ? "R-W10.changeBodyCorrect" : "R-W10.changeBodyWrong"))
         NativeType.set(noteLabel, note, font: type.font("fs13"), color: style.color("ink3", .secondaryLabel), align: .center, line: type.line("lh13"))
         flipButton.isHidden = failed || !model.changeable
+        NativeType.trackTitle(flipButton)
         failCancel.isHidden = !failed || !model.changeable
         failRetry.isHidden = !failed || !model.changeable
         view.setNeedsLayout()
@@ -719,13 +903,17 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         var y: CGFloat = 24
         // 标题行：标题右侧给「取消」留 64（网页 .sz-change .sz-sheet__title padding-right）
         let lh22 = type.line("lh22")
-        let titleH = NativeType.height(titleLabel, width: inner - 64, line: lh22)
+        let cancelW = NativeType.titleWidth(cancelButton) + 24
+        // 标题右侧给「取消」留 64（网页）；AX 档「取消」本身比 64 宽时让到它左边 8（网页这里标题会压在「取消」下面，B2.9b 不照搬）
+        let titleW = min(inner - 64, w - 8 - cancelW - 8 - gutter)
+        let titleH = NativeType.height(titleLabel, width: titleW, line: lh22)
         let headH = max(lh22, titleH)
-        let cancelW = NativeType.width(cancelButton.titleLabel ?? UILabel()) + 24
+        // AX 档文字按钮按字号长高（网页 components/ax.js .sz-btn--text：min-height max(44, 1.3em + 12)，量到的值）
+        let cancelH = max(44, type.role("change", "minH") ?? 44)
         if layout {
-            titleLabel.frame = CGRect(x: gutter, y: y, width: inner - 64, height: titleH)
+            titleLabel.frame = CGRect(x: gutter, y: y, width: titleW, height: titleH)
             // 「取消」：距弹层顶 18、右缘外伸 4（文字右缘对齐页边）
-            cancelButton.frame = CGRect(x: w - 8 - cancelW, y: 18, width: cancelW, height: 44)
+            cancelButton.frame = CGRect(x: w - 8 - cancelW, y: 18, width: cancelW, height: cancelH)
         }
         y += headH + gap
         let card = floor((inner - 12) / 2)
@@ -745,13 +933,14 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         if layout { noteLabel.frame = CGRect(x: gutter, y: y, width: inner, height: noteH) }
         y += noteH + gap
         if !detailButton.isHidden {
+            let dh = max(44, type.role("change", "minH", sub: "r2") ?? 44)
             if layout {
-                let dw = NativeType.width(detailButton.titleLabel ?? UILabel()) + 8
-                detailButton.frame = CGRect(x: gutter - 4, y: y, width: dw, height: 44)
+                let dw = NativeType.titleWidth(detailButton) + 8
+                detailButton.frame = CGRect(x: gutter - 4, y: y, width: dw, height: dh)
             }
-            y += 44 + gap
+            y += dh + gap
         }
-        let btnH = type.value("btn-h")
+        let btnH = type.axButtonHeight("change", sub: "r3", title: flipButton.title(for: .normal), font: flipButton.titleLabel?.font, width: inner - 48) ?? type.value("btn-h") // 主按钮左右内边距 24
         guard model.changeable else {
             // 只看不改（看过答案 / 跳过，K25）：没有主按钮，弹层在「看这个字 ›」后结束
             return y - gap + max(32, safeBottom)
@@ -775,6 +964,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         scroll.frame = view.bounds
+        [cancelButton, detailButton, flipButton, failCancel, failRetry].forEach { NativeType.trackTitle($0) } // 中文字距同网页（B2.9b）
         let safeBottom = presentationController?.containerView?.safeAreaInsets.bottom ?? view.safeAreaInsets.bottom
         let h = layoutContent(width: view.bounds.width, safeBottom: safeBottom, layout: true)
         scroll.contentSize = CGSize(width: view.bounds.width, height: h)
@@ -783,7 +973,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         // 决定型弹层：焦点落在弹层标题，不落在任何按钮上（D03）
-        UIAccessibility.post(notification: .screenChanged, argument: titleLabel)
+        NativeA11y.screenChanged(titleLabel)
     }
 
     override func accessibilityPerformEscape() -> Bool {
@@ -866,7 +1056,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
             }
             self.failed = true
             self.render()
-            UIAccessibility.post(notification: .announcement, argument: self.noteLabel.text)
+            NativeA11y.announce(self.noteLabel.text)
         }
     }
 }

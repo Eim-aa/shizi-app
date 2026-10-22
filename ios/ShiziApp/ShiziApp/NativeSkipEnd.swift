@@ -245,29 +245,56 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
         return bs.reduce(0) { $0 + buttonWidth($1) } + CGFloat(max(0, bs.count - 1)) * 4
     }
 
-    /// 按给定宽度算出整条的高度：max(48, max(字高, 44) + 上下 8 + 上下细边)。
     /// 细边宽（网页 border:1px，border-box：边在盒内、内边距之外）。
     private var edge: CGFloat { layer.borderWidth }
 
-    func height(for width: CGFloat) -> CGFloat {
-        let textW = max(60, width - 16 - 8 - 12 - 2 * edge - buttonsWidth())
-        let h = NativeType.height(label, width: textW, line: type.line("lh15"))
-        return max(48, max(h, 44) + 16 + 2 * edge)
+    /// 「撤销」等文字按钮的高：44；AX 档按字号长高（网页 components/ax.js .sz-btn--text min-height max(44, 1.3em + 12)，量到的值）。
+    private var buttonH: CGFloat { max(44, type.role("undoBar", "minH") ?? 44) }
+    /// 字与按钮之间 / 折行后两行之间的间距（网页 gap s3）。
+    private var colGap: CGFloat { type.role("undoBar", "colGap", sub: "r2") ?? 12 }
+    private var rowGap: CGFloat { type.role("undoBar", "gap", sub: "r2") ?? 12 }
+
+    /// 网页 .sz-skipbar 的 flex-wrap：字（单行的自然宽）+ 间距 + 按钮放不下一行时，按钮折到下一行行首（AX 档「已跳过「永」」49pt 时就是这样）。
+    private func plan(width: CGFloat) -> (wrap: Bool, textW: CGFloat, textH: CGFloat, height: CGFloat) {
+        let inner = max(0, width - 16 - 8 - 2 * edge)
+        let bw = buttonsWidth()
+        let natural = ceil(NativeType.width(label))
+        let wrap = natural + colGap + bw > inner + 0.5
+        let textW = wrap ? inner : max(60, inner - colGap - bw)
+        let textH = NativeType.height(label, width: textW, line: type.line("lh15"))
+        let content = wrap ? textH + rowGap + buttonH : max(textH, buttonH)
+        return (wrap, textW, textH, max(48, content + 16 + 2 * edge))
     }
+
+    /// 按给定宽度算出整条的高度：max(48, 内容高 + 上下 8 + 上下细边)。
+    func height(for width: CGFloat) -> CGFloat { plan(width: width).height }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         if layer.shadowOpacity > 0 { layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: layer.cornerRadius).cgPath }
-        var x = bounds.width - 8 - edge
-        for b in buttons().reversed() {
-            let w = buttonWidth(b)
-            x -= w
-            b.frame = CGRect(x: x, y: (bounds.height - 44) / 2, width: w, height: 44)
-            x -= 4
+        buttons().forEach { NativeType.trackTitle($0) } // 中文字距同网页（B2.9b）
+        accessibilityElements = [label] + buttons() // 读屏：先读「已跳过「永」」再读「撤销」（网页 DOM 顺序；几何排序会把靠上的按钮排前）
+        let p = plan(width: bounds.width)
+        let left = 16 + edge
+        if p.wrap {
+            let top = (bounds.height - (p.textH + rowGap + buttonH)) / 2
+            label.frame = CGRect(x: left, y: top, width: p.textW, height: p.textH)
+            var x = left
+            for b in buttons() {
+                let w = buttonWidth(b)
+                b.frame = CGRect(x: x, y: top + p.textH + rowGap, width: w, height: buttonH)
+                x += w + 4
+            }
+        } else {
+            var x = bounds.width - 8 - edge
+            for b in buttons().reversed() {
+                let w = buttonWidth(b)
+                x -= w
+                b.frame = CGRect(x: x, y: (bounds.height - buttonH) / 2, width: w, height: buttonH)
+                x -= 4
+            }
+            label.frame = CGRect(x: left, y: (bounds.height - p.textH) / 2, width: p.textW, height: p.textH)
         }
-        let textW = max(0, x + 4 - 12 - 16 - edge)
-        let h = NativeType.height(label, width: textW, line: type.line("lh15"))
-        label.frame = CGRect(x: 16 + edge, y: (bounds.height - h) / 2, width: textW, height: h)
     }
 
     var undoButtonForTesting: UIButton { undoButton }
@@ -363,7 +390,7 @@ final class NativeEndDialogView: UIView {
         isFailed = failed
         render()
         setNeedsLayout()
-        UIAccessibility.post(notification: .layoutChanged, argument: bodyLabel)
+        NativeA11y.layoutChanged(bodyLabel)
     }
 
     private func render() {
@@ -373,6 +400,9 @@ final class NativeEndDialogView: UIView {
         // 普通按钮（墨四描边、17 / 500 墨一）；失败态换成文字按钮「先不保存」（15，ink2，在左栏居中）
         leftButton.titleLabel?.font = isFailed ? type.font("fs15") : type.font("fs17", weight: .medium)
         leftButton.setTitleColor(isFailed ? palette.ink2 : palette.ink1, for: .normal)
+        // 键的左右内边距 24（网页 .sz-btn--primary / --secondary padding 0 24）：AX 档字折行时每行能放几个字与网页相同；失败态的文字按钮 4
+        leftButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: isFailed ? 4 : 24, bottom: 0, right: isFailed ? 4 : 24)
+        rightButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24)
         leftButton.layer.borderWidth = isFailed ? 0 : 1
         leftButton.layer.borderColor = palette.ink4.cgColor
         leftButton.accessibilityIdentifier = isFailed ? "native-write-end-fail-cancel" : "native-write-end-confirm"
@@ -401,14 +431,19 @@ final class NativeEndDialogView: UIView {
         let w = bounds.width - 2 * gutter
         let padX: CGFloat = 20
         let innerW = w - 2 * padX
+        [leftButton, rightButton].forEach { NativeType.trackTitle($0) } // 中文字距同网页（B2.9b）
         let source = isFailed ? strings.failed : strings.body
         // 网页 p 的 text-wrap: pretty（两行时末行太短就在句读后折行）
         NativeType.set(bodyLabel, NativeType.pretty(source, font: bodyLabel.font, width: innerW), font: type.font("fs15"), color: palette.ink2, line: type.line("lh15"))
         bodyLabel.accessibilityLabel = source
         let bodyH = NativeType.height(bodyLabel, width: innerW, line: type.line("lh15"))
         let lineH = ceil(type.font("fs17").lineHeight)
-        let btnH = needsTwoLines(innerW) ? max(type.value("btn-h"), lineH * 2 + 20) : type.value("btn-h")
         let half = (innerW - 12) / 2
+        // AX 档（B2.9b）：两键按网页 components/ax.js 排——min-height --btn-h、上下内边距 6、字按行数长高（两键一行同高，取高的）
+        let axH = [(leftButton, "r"), (rightButton, "r2")].compactMap { b, sub in
+            type.axButtonHeight("confirm", sub: sub == "r" ? nil : sub, title: b.title(for: .normal), font: b.titleLabel?.font, width: half - 48)
+        }.max()
+        let btnH = axH ?? (needsTwoLines(innerW) ? max(type.value("btn-h"), lineH * 2 + 20) : type.value("btn-h"))
         let contentH = 24 + bodyH + 12 + 4 + btnH + 20
         let safe = safeAreaInsets
         let maxH = bounds.height - safe.top - safe.bottom - 48

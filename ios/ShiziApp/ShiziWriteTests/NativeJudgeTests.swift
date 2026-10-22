@@ -87,6 +87,40 @@ final class NativeJudgeTests: XCTestCase {
         try await waitUntil("judge keys ready") { vc.judgeKeysReadyForTesting }
     }
 
+    // MARK: B2.9b 读屏：两指 Z 形 = 左上（N3）与播报（网页 sr-live.js 同一组句子）
+
+    /// 两指 Z 形（accessibilityPerformEscape）在每个阶段都等于点左上：判断阶段 = 接着写（T-phase 倒放）、确认框开着 = 关框接着写、回忆阶段 = 离开；
+    /// 一路上的读屏通知：每笔「已写 n 笔」、撤销到空、进判断页 / 回到回忆 screenChanged（焦点在页标题）。
+    func testB29b_escapeIsTheTopLeftActionAndAnnouncementsFollowTheWeb() async throws {
+        let vc = try await startGroup()
+        let copy = await copyOf(["X-WRITE.liveStroke", "X-WRITE.liveUndoEmpty", "R-W03.titleCompare"])
+        var mark = NativeA11y.total
+        func since() -> [String] { Array(NativeA11y.events.suffix(max(0, NativeA11y.total - mark))) }
+        vc.nativeInkDidEndStroke(try XCTUnwrap(vc.inkViewForTesting), raw: Self.stroke)
+        XCTAssertEqual(since(), ["announce:" + (copy["X-WRITE.liveStroke"] ?? "").replacingOccurrences(of: "{n}", with: "1")])
+        mark = NativeA11y.total
+        vc.perform(Selector(("tapUndo")))
+        XCTAssertEqual(since(), ["announce:" + (copy["X-WRITE.liveUndoEmpty"] ?? "")])
+        try enterCompare(vc)
+        XCTAssertEqual(NativeA11y.events.last, "screen:" + (copy["R-W03.titleCompare"] ?? ""))
+        // 判断阶段：Z 形 = 接着写
+        XCTAssertTrue(vc.accessibilityPerformEscape())
+        try await waitUntil("recall again") { vc.phase == .recall && !vc.reversingForTesting }
+        XCTAssertTrue(NativeA11y.events.last?.hasPrefix("screen:") == true)
+        XCTAssertNotNil(web.nativeWriteTop, "还在写字页")
+        // 确认框开着：Z 形 = 接着写（关框，不离开）
+        if !vc.endButtonHiddenForTesting {
+            vc.perform(Selector(("tapEnd")))
+            try await waitUntil("end dialog") { vc.endDialogForTesting != nil }
+            XCTAssertTrue(vc.accessibilityPerformEscape())
+            try await waitUntil("end dialog closed") { vc.endDialogForTesting == nil }
+            XCTAssertNotNil(web.nativeWriteTop, "关框后还在写字页")
+        }
+        // 回忆阶段：Z 形 = 离开（与「‹」同一个动作）
+        XCTAssertTrue(vc.accessibilityPerformEscape())
+        try await waitUntil("left the write page") { self.web.nativeWriteTop == nil }
+    }
+
     // MARK: 判断页完整版
 
     func testCompareIsTheTwoCellPageWithHeaderTimingAndSameStyleKeys() async throws {

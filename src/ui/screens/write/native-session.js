@@ -30,6 +30,8 @@ import { inviteChangeTime, inviteReminder } from '../../../platform/reminder.js'
 import { keySound, warmSounds } from '../../../platform/sound.js';
 import { handoffLeaveUndo } from './skip.js';
 import { openCharDetail } from '../detail/open.js';
+import { pyOf, refCardLabel } from './ref-label.js';
+import { loadStrokes } from '../../../data/strokes.js';
 import {
   createWriteSessionApi as createSessionApi, writeSnapshot, strokesToWire, strokesFromWire, copyBundle, NATIVE_WRITE_COPY_KEYS, NATIVE_WRITE_OPS,
 } from '../../../session/write-api.js';
@@ -86,7 +88,114 @@ export function typeBundle(win = globalWin()) {
   } catch (error) {
     // node:test / 无 DOM
   }
+  const ax = axRoleBundle(win);
+  if (ax) {
+    out.ax = ax.level;
+    out.roles = ax.roles;
+  }
   return out;
+}
+
+/**
+ * B2.9b：AX1–AX5 版式的逐元素字阶 / 尺寸（单一来源 = 网页写字页 / 判断页 / 结果页 / 弹层的同一组 CSS）。
+ * AX 档里网页按元素分层封顶（write/index.js、prompt.js、foot.js、compare.js、components/ax.js 的 :root[data-ax] 规则），不是直接取 --fsN：
+ * 这里把每种元素按网页的类名结构挂一份看不见的探针，读浏览器算出的字号 / 行高 / 最小高 / 内边距 / 宽（pt），原生照此排，不抄取值表。
+ * 每条：[角色, 探针 HTML（data-r 标记要量的元素，data-r2… 是同一角色的附属元素）, 量哪些]。
+ */
+const W_PAGE = inner => `<div class="sz-page" data-testid="write-screen">${inner}</div>`;
+const R_PAGE = inner => `<div class="sz-page" data-testid="result-screen">${inner}</div>`;
+export const NATIVE_AX_ROLES = Object.freeze([
+  // 写字页页头：跳过 / 结束这组（headact 文字按钮）、进度、阶段标题
+  ['headAct', W_PAGE('<header class="sz-page__head"><span class="sz-page__trail"><span class="sz-write__headtools"><span class="sz-write__headact"><button class="sz-btn sz-btn--text" data-r>x</button></span></span></span></header>')],
+  ['progress', W_PAGE('<header class="sz-page__head"><span class="sz-page__center"><span class="sz-write__progress" data-r>1</span></span></header>')],
+  ['title', W_PAGE('<header class="sz-page__head"><span class="sz-page__lead"></span><h1 class="sz-page__title" data-r>x</h1><span class="sz-page__trail"></span></header>')],
+  // 格下：撤销 / 清空（图标 data-r2）、说明位（说明 data-r 的最小高与上内边距，字 data-r2，格下整体 data-r3 的最小高）
+  ['tool', W_PAGE('<div class="sz-write"><div class="sz-write__below"><div class="sz-write__tools"><button class="sz-write__tool" data-r><svg data-r2></svg>x</button></div></div></div>')],
+  ['note', W_PAGE('<div class="sz-write"><div class="sz-write__below" data-r3><div class="sz-write__note" data-r><span data-r2>x</span></div></div></div>')],
+  ['noteTight', W_PAGE('<div class="sz-write" data-tight="true"><div class="sz-write__below" data-r3><div class="sz-write__note" data-r><span data-r2>x</span></div></div></div>')],
+  // 底栏：求助行（按钮 data-r、图标 data-r2、底栏 data-r3 的行距、求助行 data-r4）与主按钮（data-r5）；Tight = 书写格放不下 220 时（P278 data-compact）
+  ['help', W_PAGE('<div class="sz-write__foot" data-r3><div class="sz-write__links" data-r4><div class="sz-write__slot"><button class="sz-btn sz-btn--text" data-r><span class="sz-write__ic" data-r2></span>x</button></div></div><button class="sz-btn sz-btn--primary" data-r5>x</button></div>')],
+  ['helpTight', W_PAGE('<div class="sz-write__foot" data-compact="true" data-r3><div class="sz-write__links" data-r4><div class="sz-write__slot"><button class="sz-btn sz-btn--text" data-r><span class="sz-write__ic" data-r2></span>x</button></div></div><button class="sz-btn sz-btn--primary" data-r5>x</button></div>')],
+  // 判断两键（data-r）与两键的排法（data-r2：一列 = 上下排）
+  ['judge', W_PAGE('<div class="sz-judge__btns" data-r2><button class="sz-judge__btn" data-r>x</button><button class="sz-judge__btn">x</button></div>')],
+  // 题面：拼音上方留白（wordwrap 上内边距 data-r）、题面格边长（data-r2）、拼音（data-r3）、提示行（data-r5）
+  ['prompt', W_PAGE('<div class="sz-prompt"><div class="sz-prompt__wordwrap" data-r><div class="sz-prompt__word"><span class="sz-prompt__cell" data-kind="blank" data-r2><span class="sz-prompt__py" data-r3>x</span></span></div></div><p class="sz-prompt__hint" data-r5>x</p></div>')],
+  // 结果页：底栏文字按钮行（按钮 data-r、行 data-r2、主按钮 data-r3、底栏 data-r4）；没放进图里的一行（「放进图里」data-r、行主体 data-r2、状态字 data-r3、「修改 ›」data-r4、行 data-r5）
+  ['resultFoot', R_PAGE('<div class="sz-page__foot" data-r4><div class="sz-result__textrow" data-r2><button class="sz-btn sz-btn--text sz-result__textbtn" data-r>x</button></div><button class="sz-btn sz-btn--primary" data-r3>x</button></div>')],
+  ['exrow', R_PAGE('<div class="sz-exrows"><div class="sz-exrow" data-r5><button class="sz-exrow__open" data-r2><span class="sz-exrow__cell sz-exrow__cell--ax"></span><span class="sz-exrow__t" data-r3>x</span></button><button class="sz-btn sz-btn--text sz-line__change" data-r4>x</button><button class="sz-btn sz-btn--text" data-r>x</button></div></div>')],
+  // 改判 / 对照弹层：「取消」（data-r）、「看这个字 ›」（data-r2）、主按钮（data-r3）
+  ['change', '<div class="sz-sheet"><div class="sz-change"><button class="sz-btn sz-btn--text sz-change__cancel" data-r>x</button><button class="sz-btn sz-btn--text sz-change__view" data-r2>x</button><button class="sz-btn sz-btn--primary" data-r3>x</button></div></div>'],
+  // 居中确认框（结束这组）：两键（次 data-r、主 data-r2）
+  ['confirm', '<div class="sz-confirm"><div class="sz-confirm__actions"><button class="sz-btn sz-btn--secondary" data-r>x</button><button class="sz-btn sz-btn--primary" data-r2>x</button></div></div>'],
+  // 跳过撤销条：「撤销」（data-r）、条（data-r2：内边距、行距、列距）
+  ['undoBar', W_PAGE('<div class="sz-undobar sz-skipbar" data-r2><span class="sz-undobar__text"><span>x</span></span><button class="sz-btn sz-btn--text" data-r>x</button></div>')],
+]);
+
+function measureRole(doc, win, host, html) {
+  host.innerHTML = html;
+  const out = {};
+  const px = v => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? Math.round(n * 100) / 100 : undefined;
+  };
+  const put = (k, v) => { if (v !== undefined) out[k] = v; };
+  const main = host.querySelector('[data-r]');
+  if (main) {
+    const cs = win.getComputedStyle(main);
+    put('fs', px(cs.fontSize));
+    put('lh', px(cs.lineHeight));
+    put('minH', px(cs.minHeight));
+    put('padTop', px(cs.paddingTop));
+    put('marginTop', px(cs.marginTop));
+    put('marginLeft', px(cs.marginLeft));
+    put('marginBottom', px(cs.marginBottom));
+    const fw = Number(cs.fontWeight);
+    if (Number.isFinite(fw)) out.weight = fw;
+    put('h', px(main.getBoundingClientRect().height));
+  }
+  for (const n of [2, 3, 4, 5]) {
+    const el = host.querySelector(`[data-r${n}]`);
+    if (!el) continue;
+    const cs = win.getComputedStyle(el);
+    const rc = el.getBoundingClientRect();
+    const sub = {};
+    const sput = (k, v) => { if (v !== undefined) sub[k] = v; };
+    sput('fs', px(cs.fontSize));
+    sput('lh', px(cs.lineHeight));
+    sput('minH', px(cs.minHeight));
+    sput('padTop', px(cs.paddingTop));
+    sput('marginTop', px(cs.marginTop));
+    sput('w', px(rc.width));
+    sput('h', px(rc.height));
+    sput('gap', px(cs.rowGap));
+    sput('colGap', px(cs.columnGap));
+    sput('marginLeft', px(cs.marginLeft));
+    sput('marginBottom', px(cs.marginBottom));
+    const cols = String(cs.gridTemplateColumns || '').trim();
+    if (cols && cols !== 'none') sub.cols = cols.split(/\s+/).length;
+    out[`r${n}`] = sub;
+  }
+  return out;
+}
+
+/** 量网页 AX 档的逐元素取值；不在 AX 档 → {level: 0, roles: {}}；无 DOM → null。 */
+export function axRoleBundle(win = globalWin()) {
+  try {
+    const doc = win.document;
+    const root = doc.documentElement;
+    const level = parseInt(root.getAttribute('data-ax'), 10) || 0;
+    if (!level) return { level: 0, roles: {} };
+    const host = doc.createElement('div');
+    host.setAttribute('aria-hidden', 'true');
+    host.style.cssText = `position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;width:${win.innerWidth || 390}px`;
+    (doc.querySelector('.sz-app') || doc.body).appendChild(host);
+    const roles = {};
+    for (const [name, html] of NATIVE_AX_ROLES) roles[name] = measureRole(doc, win, host, html);
+    host.remove();
+    return { level, roles };
+  } catch (error) {
+    return null;
+  }
 }
 
 /**
@@ -123,6 +232,12 @@ export function createWriteSessionApi(deps = {}) {
     },
     colors: deps.colors || (() => colorBundle()),
     type: deps.type || (() => typeBundle()),
+    // B2.9b：参考字形的读屏名称（判断页参考卡 / 描一遍的答案字），网页 compare.js / answer.js 同一个 refCardLabel；笔顺数据先取到（判断页与描一遍网页也是数据就绪后读）
+    refLabel: deps.refLabel || (async ({ char, cardKey }) => {
+      let data = null;
+      try { data = await loadStrokes(char); } catch (error) { data = null; }
+      return refCardLabel({ char, py: pyOf(cardKey), strokeData: { status: data ? 'ready' : 'missing', data } });
+    }),
     result: deps.result || RESULT_DEPS,
   });
 }

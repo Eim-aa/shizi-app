@@ -1115,7 +1115,12 @@ extension WebViewController {
                         guard generation == self.reminderSyncGeneration else { return }
                         // web 侧的 permission 可能来自换机恢复的备份，调度前以本机授权状态为准
                         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
-                        Self.scheduleReminderWindow(Self.reminderPlan(request, now: Date()))
+                        #if DEBUG
+                        let now = WebViewController.nativeTestHostEnabled ? QAClock.date() : Date() // B2.9b：QA 时钟
+                        #else
+                        let now = Date()
+                        #endif
+                        Self.scheduleReminderWindow(Self.reminderPlan(request, now: now))
                     }
                 }
             }

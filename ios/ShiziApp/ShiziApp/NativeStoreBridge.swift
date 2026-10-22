@@ -136,6 +136,10 @@ final class NativeStoreBridge {
         if let store { return store }
         do {
             let s = NativeStore(fileURL: try fileURLProvider())
+            #if DEBUG
+            // B2.9b：QA 注入钉住的时钟也是原生时间戳的钟（QAClock，只在测试宿主）
+            if WebViewController.nativeTestHostEnabled { s.now = { QAClock.nowMs() } }
+            #endif
             try s.open()
             store = s
             openFailure = nil

@@ -12,6 +12,7 @@
 		1A0000000000000000B27006 /* ResultFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B27005 /* ResultFlowTests.swift */; };
 		1A00000000000000000A1116 /* WriteFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1115 /* WriteFlowTests.swift */; };
 		1A00000000000000000A1118 /* KnownIssueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1117 /* KnownIssueTests.swift */; };
+		1A00000000000000000A1131 /* AccessibilityFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1130 /* AccessibilityFlowTests.swift */; };
 		1A00000000000000000A1102 /* NativeQAHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1101 /* NativeQAHarness.swift */; };
 		1A0000000000000000B24602 /* NativeTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B24601 /* NativeTrace.swift */; };
 		1A0000000000000000B24604 /* NativeSkipEnd.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B24603 /* NativeSkipEnd.swift */; };
@@ -73,6 +74,7 @@
 		1A0000000000000000B27005 /* ResultFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1115 /* WriteFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1117 /* KnownIssueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownIssueTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000A1130 /* AccessibilityFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1120 /* ShiziUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShiziUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A00000000000000000A1101 /* NativeQAHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeQAHarness.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A6 /* NativeHintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeHintTests.swift; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 				1A0000000000000000B27005 /* ResultFlowTests.swift */,
 				1A00000000000000000A1115 /* WriteFlowTests.swift */,
 				1A00000000000000000A1117 /* KnownIssueTests.swift */,
+				1A00000000000000000A1130 /* AccessibilityFlowTests.swift */,
 			);
 			path = ShiziUITests;
 			sourceTree = "<group>";
@@ -478,6 +481,7 @@
 				1A0000000000000000B27006 /* ResultFlowTests.swift in Sources */,
 				1A00000000000000000A1116 /* WriteFlowTests.swift in Sources */,
 				1A00000000000000000A1118 /* KnownIssueTests.swift in Sources */,
+				1A00000000000000000A1131 /* AccessibilityFlowTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

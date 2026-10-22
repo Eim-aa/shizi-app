@@ -96,6 +96,9 @@ final class QA {
     var kinds: [String: Int] { probe["kinds"] as? [String: Int] ?? [:] }
     var records: Int { probe["records"] as? Int ?? -1 }
     var transitions: [String] { probe["transitions"] as? [String] ?? [] }
+    /// B2.9b：冷启动判定（route-memory lastPlan：{reason, restored}）与页面时钟（ms，QA 钉住时跨重开保持）。
+    var coldPlan: [String: Any] { probe["coldPlan"] as? [String: Any] ?? [:] }
+    var clockMs: Double { (probe["clock"] as? NSNumber)?.doubleValue ?? 0 }
     /// B2.8：网页 root.js 的转场记录（push:native = 让给原生；push:slide / pop:paper … = 网页自己播）。
     var webNav: [String] { probe["webNav"] as? [String] ?? [] }
 

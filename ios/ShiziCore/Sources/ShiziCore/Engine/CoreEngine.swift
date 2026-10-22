@@ -24,7 +24,7 @@ public final class CoreEngine {
 
     typealias Op = (CoreEngine, JSObject) throws -> JSValue
 
-    static let ops: [String: Op] = coreOps.merging(configOps) { a, _ in a }.merging(schemaOps) { a, _ in a }
+    static let ops: [String: Op] = coreOps.merging(configOps) { a, _ in a }.merging(schemaOps) { a, _ in a }.merging(b43Ops) { a, _ in a }
 
     static let coreOps: [String: Op] = [
         "hello": { _, _ in

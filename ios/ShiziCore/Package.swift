@@ -11,13 +11,15 @@ let package = Package(
         .executable(name: "shizi-core-cli", targets: ["shizi-core-cli"]),
     ],
     targets: [
-        .target(name: "ShiziCore", path: "Sources/ShiziCore", resources: [.copy("Resources")]),
+        // 调试构建也开 -O：容量实测类的转写测试（300 个真字 × 多份编码）在 -Onone 下要几分钟，-O 下几秒；断言与 @testable 不受影响。
+        .target(name: "ShiziCore", path: "Sources/ShiziCore", resources: [.copy("Resources")], swiftSettings: [.unsafeFlags(["-O"], .when(configuration: .debug))]),
         .executableTarget(name: "shizi-core-cli", dependencies: ["ShiziCore"], path: "Sources/shizi-core-cli"),
         .testTarget(
             name: "ShiziCoreTests",
             dependencies: ["ShiziCore"],
             path: "Tests/ShiziCoreTests",
-            resources: [.copy("Fixtures")]
+            resources: [.copy("Fixtures")],
+            swiftSettings: [.unsafeFlags(["-O"], .when(configuration: .debug))]
         ),
     ]
 )

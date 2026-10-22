@@ -1,0 +1,52 @@
+{
+  "promptCopy": {
+    "repeatInstruction": "空格里是同一个字，只写一次。",
+    "fallbackHint": "这个字暂时没有常用词，按拼音写就好",
+    "repeatBlankLabel": "同一个字的另一处空格",
+    "missingPinyin": "？",
+    "repeatBlankGlyph": "□"
+  },
+  "libraries": [
+    {
+      "id": "core3500",
+      "label": "常用字",
+      "officialTotal": 3500,
+      "field": "norm",
+      "value": "一级"
+    },
+    {
+      "id": "adv3000",
+      "label": "次常用字",
+      "officialTotal": 3000,
+      "field": "norm",
+      "value": "二级"
+    },
+    {
+      "id": "rare",
+      "label": "少见字",
+      "officialTotal": 1605,
+      "field": "norm",
+      "value": "三级"
+    },
+    {
+      "id": "curriculum2500",
+      "label": "课本字",
+      "officialTotal": 2500,
+      "field": "edu",
+      "value": "表一"
+    }
+  ],
+  "defaults": {
+    "rank": 999999,
+    "strokes": 0,
+    "parts": 1,
+    "topic": "综合",
+    "d": 50,
+    "band": "进阶",
+    "edu": null,
+    "common": 0,
+    "norm": "一级",
+    "std": 0,
+    "ctx": "dict"
+  }
+}

@@ -21,14 +21,25 @@ export const PROMPT_COPY = Object.freeze({
   repeatBlankGlyph: '□',
 });
 
+// 四库的规则表（B4.3：数据与判定分开，ShiziCore 导出这张表供 Swift 版读取，原生源码不写汉字）。
+// field = 卡片字段，value = 该字段等于什么算属于这个库。
+export const LIBRARY_RULES = Object.freeze([
+  Object.freeze({ id: 'core3500', label: '常用字', officialTotal: 3500, field: 'norm', value: '一级' }),
+  Object.freeze({ id: 'adv3000', label: '次常用字', officialTotal: 3000, field: 'norm', value: '二级' }),
+  Object.freeze({ id: 'rare', label: '少见字', officialTotal: 1605, field: 'norm', value: '三级' }),
+  Object.freeze({ id: 'curriculum2500', label: '课本字', officialTotal: 2500, field: 'edu', value: '表一' }),
+]);
+
 // 四库。id 沿旧值（存储键 shizi.library.v1 与内容门禁 identitySha256 都依赖它）；
 // label 为第十稿四库名（R-L01 / 文案 D4，原「义教」库更名）；officialTotal 为官方字表总数（可练数由 test 计）。
-export const LIBRARIES = Object.freeze([
-  Object.freeze({ id: 'core3500', label: '常用字', officialTotal: 3500, test: card => card.norm === '一级' }),
-  Object.freeze({ id: 'adv3000', label: '次常用字', officialTotal: 3000, test: card => card.norm === '二级' }),
-  Object.freeze({ id: 'rare', label: '少见字', officialTotal: 1605, test: card => card.norm === '三级' }),
-  Object.freeze({ id: 'curriculum2500', label: '课本字', officialTotal: 2500, test: card => card.edu === '表一' }),
-]);
+export const LIBRARIES = Object.freeze(LIBRARY_RULES.map(rule => Object.freeze({
+  id: rule.id, label: rule.label, officialTotal: rule.officialTotal, test: card => card[rule.field] === rule.value,
+})));
+
+// buildCards 的缺省值（SEED 行缺字段时的卡片字段）。B4.3 起单独导出，ShiziCore 读同一张表。
+export const CARD_DEFAULTS = Object.freeze({
+  rank: 999999, strokes: 0, parts: 1, topic: '综合', d: 50, band: '进阶', edu: null, common: 0, norm: '一级', std: 0, ctx: 'dict',
+});
 
 const hasOwn = (object, key) => object != null && Object.prototype.hasOwnProperty.call(object, key);
 
@@ -76,9 +87,9 @@ export function buildCards({ seed, overrides } = {}) {
     const chars = Array.from(w.ans);
     const pys = w.py.split(/\s+/);
     const meta = {
-      rank: w.rank || 999999, strokes: w.strokes || 0, parts: w.parts || 1, topic: w.topic || '综合',
-      d: w.d || 50, band: w.band || '进阶', edu: w.edu || null, common: w.common || 0, norm: w.norm || '一级',
-      std: w.std || 0, ctx: w.ctx || 'dict', ...(w.promptHint ? { promptHint: w.promptHint } : {}),
+      rank: w.rank || CARD_DEFAULTS.rank, strokes: w.strokes || CARD_DEFAULTS.strokes, parts: w.parts || CARD_DEFAULTS.parts, topic: w.topic || CARD_DEFAULTS.topic,
+      d: w.d || CARD_DEFAULTS.d, band: w.band || CARD_DEFAULTS.band, edu: w.edu || CARD_DEFAULTS.edu, common: w.common || CARD_DEFAULTS.common, norm: w.norm || CARD_DEFAULTS.norm,
+      std: w.std || CARD_DEFAULTS.std, ctx: w.ctx || CARD_DEFAULTS.ctx, ...(w.promptHint ? { promptHint: w.promptHint } : {}),
     };
     if (Number.isInteger(w.ci)) {
       const ci = w.ci;

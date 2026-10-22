@@ -34,7 +34,7 @@ test('Swift CoreEngine op table = JS reference op table', () => {
   // B4.1 起 op 分在三个文件：CoreEngine（空规则 + dates）、ConfigOps（配置 / 题库 / 题记 / 文案 / 落款汉字数字）、SchemaOps（形状表 / 模型往返）。
   const dir = path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Engine');
   const swiftOps = [];
-  for (const f of ['CoreEngine.swift', 'ConfigOps.swift', 'SchemaOps.swift']) {
+  for (const f of ['CoreEngine.swift', 'ConfigOps.swift', 'SchemaOps.swift', 'B43Ops.swift', 'B43Ops2.swift']) {
     swiftOps.push(...[...fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^\s{8}"([a-zA-Z0-9.]+)": \{/gm)].map((m) => m[1]));
   }
   assert.deepEqual(swiftOps.sort(), createJsEngine().ops());

@@ -16,6 +16,8 @@
 //   deck-meta.json     DECK_KEY / DECK_FINGERPRINT
 //   signature.json     落款汉字数字用到的字（src/core/dates.js CN_NUMERALS：digits / zero / units / two）
 //   copy.json          src/config/copy 合并后的 COPY（键 → 字串 | 字串数组）
+//   card-rules.json    卡片规则数据（B4.3）：{promptCopy: 题面字串（PROMPT_COPY）, libraries: 四库规则表（LIBRARY_RULES）, defaults: buildCards 缺省值（CARD_DEFAULTS）}
+//   unicode-scripts.json  JS 正则 \p{Script=Han} / \p{Script=Latin} 的码点区间 {han: [[lo, hi]…], latin: […]}（node 的 Unicode 版本；Swift 标准库没有 Script 属性）
 //   deck.json          题库：{seed: SEED, overrides: CONTEXT_OVERRIDES, groups: GROUPS}（deck-data.js + data/context-overrides.js）
 //
 // 生成物提交进仓库（和 deck-data.js / char-order.js 一样）；Xcode 工程接入（B4.5）时在构建阶段跑本脚本，`--check` 守不同步。
@@ -90,10 +92,35 @@ function deckText() {
   return '{"seed":[\n' + seed.map((r) => JSON.stringify(r)).join(',\n') + '\n],\n"overrides":' + JSON.stringify(overrides) + ',\n"groups":' + JSON.stringify(groups) + '}\n';
 }
 
+/** 正则断言为真的码点区间（闭区间）。 */
+function codePointRanges(re) {
+  const out = [];
+  let start = -1;
+  for (let c = 0; c <= 0x10ffff; c += 1) {
+    const ok = re.test(String.fromCodePoint(c));
+    if (ok && start < 0) start = c;
+    if (!ok && start >= 0) {
+      out.push([start, c - 1]);
+      start = -1;
+    }
+  }
+  if (start >= 0) out.push([start, 0x10ffff]);
+  return out;
+}
+
+/** B4.3 的两份规则数据（不进 sources()：它们不是 JS 引擎的 config.get 名）。 */
+export async function cardSources() {
+  const cards = await imp('src/core/cards.js');
+  return {
+    'card-rules': { promptCopy: cards.PROMPT_COPY, libraries: cards.LIBRARY_RULES, defaults: cards.CARD_DEFAULTS },
+    'unicode-scripts': { han: codePointRanges(/\p{Script=Han}/u), latin: codePointRanges(/\p{Script=Latin}/u) },
+  };
+}
+
 /** 全部生成物：{文件名: 文本}。 */
 export async function generate() {
   const out = {};
-  for (const [name, value] of Object.entries(await sources())) {
+  for (const [name, value] of Object.entries({ ...(await sources()), ...(await cardSources()) })) {
     assertJsonSafe(value, name);
     out[name + '.json'] = pretty(value);
   }

@@ -8,6 +8,7 @@
 //   'number-format'      回包文字里 clock 写成「123.0」——值相等、字节不等，验证逐字节比对。
 import * as dates from '../../../src/core/dates.js';
 import { makeB41Ops } from './js-ops-b41.mjs';
+import { makeB43Ops } from './js-ops-b43.mjs';
 
 export const PROTOCOL_VERSION = 1;
 
@@ -136,6 +137,9 @@ export function createJsEngine({ fault = null } = {}) {
 
     // B4.1：配置 / 题库 / 题记 / 文案 / 落款汉字数字 / 形状表 / 模型往返（js-ops-b41.mjs）
     ...makeB41Ops({ required, str, finite, int, badArgs }),
+
+    // B4.3：记录 / 查字 / 卡片 / 结构 / 作品成员 / 取墨 / 首练结果页 / 提醒题目 / 墨编解码（js-ops-b43.mjs）
+    ...makeB43Ops({ required, str, finite, int, badArgs }),
   };
 
   const snapshot = () => ({ clock: st.clock, kv: st.kv });

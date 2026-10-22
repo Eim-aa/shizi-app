@@ -90,7 +90,10 @@ export async function selfTest({ seeds = 50, steps = 300, swift = false, swiftPa
 
   for (const [specA, specB, kind, maxLen] of [['js', 'js~localDay-boundary', 'value', 3], ['js', 'js-cli~number-format', 'encoding', 1]]) {
     await withEngines([specA, specB], opts, async (a, b) => {
-      const r = await runSeeds(a, b, { seeds, steps });
+      // 只用协议 / 时钟 / 日期 / kv 这几类 op：埋错的位置在这里，随着各域 op 越加越多，不能让「抓得到」靠运气（B4.3 起）
+      const keep = (op) => op.startsWith('dates.') || op.startsWith('clock.') || op.startsWith('kv.') || ['echo', 'state', 'reset'].includes(op);
+      const available = new Set([...(await commonOps(a, b))].filter(keep));
+      const r = await runSeeds(a, b, { seeds, steps, available });
       const got = r.ok ? null : r.shrunk;
       const pass = got && got.failure.diff.kind === kind && got.seq.length <= maxLen;
       if (!pass) ok = false;

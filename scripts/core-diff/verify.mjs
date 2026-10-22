@@ -5,7 +5,10 @@
 //   3. 配置 / 数据资源与 src/ 同步（scripts/build_core_config.mjs --check）、金标准夹具与 JS 代码同步（scripts/core-golden/golden.mjs --check）
 //   4. 差分驱动自检（JS ↔ JS、埋错必抓 + 缩小、协议语料 JS ↔ Swift）
 //   5. 随机差分 JS ↔ Swift：Asia/Shanghai 200 种子 × 300 步；America/New_York、Australia/Lord_Howe、America/Santiago 各 50 × 300
-//   6. 调度模拟器 JS ↔ Swift（B4.2，schedule-sim --engine both）：20 个场景压到 30 天；--nightly 跑满天数
+//   5b. B4.4：store 域单独加量（store / storage / budget / backup / migrate，含写失败 / 撞配额 / 中断注入）：Shanghai 200 × 300、New_York 50 × 300；
+//       备份双向往返实跑（scripts/core-diff/backup-roundtrip.mjs：Swift 导出 → JS 恢复、JS 导出 → Swift 恢复，两种后端）
+//   6. 调度模拟器 JS ↔ Swift（B4.2，schedule-sim --engine both；B4.4 起 --swift-store core：Swift 一侧开组等提交在 ShiziCore 的真 Store 上跑）：
+//      20 个场景压到 30 天；--nightly 跑满天数
 //   7. 转写清单与测试同步（不同步只警告：别的卡加测试不该卡住这里）
 // 选项：--nightly（Shanghai 5000 种子、其余各 500；模拟器跑满天数）；--skip-swift-test；--no-build（用已编好的命令行）。
 import { spawnSync } from 'node:child_process';
@@ -37,8 +40,12 @@ step('差分驱动自检', process.execPath, ['scripts/core-diff/run.mjs', '--se
 for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 5000 : 200], ['America/New_York', nightly ? 500 : 50], ['Australia/Lord_Howe', nightly ? 500 : 50], ['America/Santiago', nightly ? 500 : 50]]) {
   step(`随机差分 js ↔ swift（${tz}）`, process.execPath, ['scripts/core-diff/run.mjs', '--a', 'js', '--b', 'swift', '--seeds', String(seeds), '--steps', '300', '--tz', tz]);
 }
+for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 2000 : 200], ['America/New_York', nightly ? 300 : 50]]) {
+  step(`随机差分 store 域 js ↔ swift（${tz}）`, process.execPath, ['scripts/core-diff/run.mjs', '--a', 'js', '--b', 'swift', '--only', 'store', '--seeds', String(seeds), '--steps', '300', '--tz', tz]);
+}
+step('备份双向往返（Swift → JS、JS → Swift）', process.execPath, ['scripts/core-diff/backup-roundtrip.mjs', '--seeds', nightly ? '400' : '60']);
 step(`调度模拟器 js ↔ swift（20 个场景${nightly ? '' : '，每个压到 30 天'}）`, process.execPath, [
-  'scripts/sim/schedule-sim.mjs', '--engine', 'both', ...(nightly ? [] : ['--days', '30']), '--out', path.join(ROOT, 'scripts/sim/out/both'),
+  'scripts/sim/schedule-sim.mjs', '--engine', 'both', '--swift-store', 'core', ...(nightly ? [] : ['--days', '30']), '--out', path.join(ROOT, 'scripts/sim/out/both'),
 ]);
 step('转写清单同步', process.execPath, ['scripts/core-diff/transcription-list.mjs', '--check'], { warnOnly: true });
 finish();

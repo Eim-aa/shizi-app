@@ -8,13 +8,13 @@
 //   node scripts/core-diff/run.mjs --tz America/New_York        时区（两边一致：本进程与子进程都用这个 TZ）
 //   node scripts/core-diff/run.mjs --self-test [--swift]        驱动自检（见 lib/selftest.mjs）
 //   node scripts/core-diff/run.mjs --replay out/repro-12.jsonl  按文件重放并逐行打印两边回包
-//   --seed-start N   从第 N 个种子起；--swift-bin <path>  指定命令行
+//   --seed-start N   从第 N 个种子起；--swift-bin <path>  指定命令行；--only store,schema  只用这些域（B4.4）
 // 退出码：0 无差异；1 有差异；2 环境问题（例如 Swift 命令行没编）。
 import fs from 'node:fs';
 import path from 'node:path';
 
 function parseArgs(argv) {
-  const o = { a: 'js', b: 'swift', seeds: 200, steps: 300, seedStart: 1, tz: null, selfTest: false, swift: false, replay: null, swiftBin: null };
+  const o = { a: 'js', b: 'swift', seeds: 200, steps: 300, seedStart: 1, tz: null, selfTest: false, swift: false, replay: null, swiftBin: null, only: null };
   for (let i = 0; i < argv.length; i += 1) {
     const k = argv[i];
     if (k === '--a') o.a = argv[++i];
@@ -27,6 +27,7 @@ function parseArgs(argv) {
     else if (k === '--swift') o.swift = true;
     else if (k === '--replay') o.replay = argv[++i];
     else if (k === '--swift-bin') o.swiftBin = argv[++i];
+    else if (k === '--only') o.only = argv[++i].split(',');
     else throw new Error('unknown argument: ' + k);
   }
   return o;
@@ -72,10 +73,10 @@ async function main() {
       return bad ? 1 : 0;
     }
     const t0 = Date.now();
-    const r = await runSeeds(a, b, { seedStart: args.seedStart, seeds: args.seeds, steps: args.steps });
+    const r = await runSeeds(a, b, { seedStart: args.seedStart, seeds: args.seeds, steps: args.steps, only: args.only });
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
     if (r.ok) {
-      out(`${a.name} ↔ ${b.name}（TZ=${process.env.TZ}）：${args.seeds} 个种子 × ${args.steps} 步，共 ${r.steps} 步，0 差异（op ${r.ops.size} 个，${secs} 秒）`);
+      out(`${a.name} ↔ ${b.name}（TZ=${process.env.TZ}${args.only ? '，域 ' + args.only.join('+') : ''}）：${args.seeds} 个种子 × ${args.steps} 步，共 ${r.steps} 步，0 差异（op ${r.ops.size} 个，${secs} 秒）`);
       return 0;
     }
     out(describeFailure(r, a, b));

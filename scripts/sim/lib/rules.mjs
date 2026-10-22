@@ -131,6 +131,8 @@ function makeMirrorSync(sw) {
 
 export function swiftRules({ now }) {
   const sw = openSyncSwift();
+  // B4.4：SHIZI_SIM_STORE=core（schedule-sim --swift-store core）时，开组等提交类规则在 ShiziCore 的真 Store（ScheduleStore 的 B4.4 实现）上跑
+  const core = process.env.SHIZI_SIM_STORE === 'core' ? { store: 'core' } : {};
   const sync = makeMirrorSync(sw);
   const call = (op, args) => sw.call(op, args);
 
@@ -187,7 +189,7 @@ export function swiftRules({ now }) {
     sw,
     expireStale(store, { now: n }) {
       sync(store.getState());
-      return applyCommits(store, call('start.expireStale', { state: 'mirror', now: nowOf(n), serial: store.serial }));
+      return applyCommits(store, call('start.expireStale', { state: 'mirror', now: nowOf(n), serial: store.serial, ...core }));
     },
     aStartInfo(store) {
       sync(store.getState());
@@ -199,11 +201,11 @@ export function swiftRules({ now }) {
     },
     startNextA(store, { now: n }) {
       sync(store.getState());
-      return applyCommits(store, call('start.startNextA', { state: 'mirror', now: nowOf(n), serial: store.serial }));
+      return applyCommits(store, call('start.startNextA', { state: 'mirror', now: nowOf(n), serial: store.serial, ...core }));
     },
     startPicked(store, { keys }) {
       sync(store.getState());
-      return applyCommits(store, call('start.startPicked', { state: 'mirror', keys, deck: 'real', now: now(), serial: store.serial }));
+      return applyCommits(store, call('start.startPicked', { state: 'mirror', keys, deck: 'real', now: now(), serial: store.serial, ...core }));
     },
     commitJudgment(store, { slot, cardKey, judgment, strokes, hints = 0, perRecordInk } = {}) {
       if (!hasInk(strokes)) return EMPTY;

@@ -270,7 +270,7 @@ final class NativeWriteViewController: UIViewController {
     // MARK: 生命周期
 
     override func loadView() {
-        let v = UIView()
+        let v = NativeWritePageView()
         v.backgroundColor = color("paper", UIColor(named: "Paper") ?? .systemBackground)
         view = v
     }
@@ -282,6 +282,7 @@ final class NativeWriteViewController: UIViewController {
             return
         }
         ink = inkView
+        (view as? NativeWritePageView)?.ink = inkView
         ink.latency = NativeWriteMetrics.shared.inkLatency
         ink.delegate = self
         ink.isAccessibilityElement = true
@@ -2191,7 +2192,62 @@ final class NativeWriteViewController: UIViewController {
     }
 }
 
+/// 写字页根视图（D72 ③ 格外起笔、滑进书写格）：页面空白处起手的触摸（UIKit 命中根视图，或命中不接触摸的说明 / 题面 / 底栏底板、
+/// 由响应链转上来）交给书写面「待进入」，滑进可写的书写格时在进入点开始这一笔（NativeInkView approach*）。
+/// 不抢按钮：起手命中按钮 / 可点控件（或它们里面）的触摸 UIKit 交给控件，到不了这里；保险起见这里再按命中视图链排除 UIControl。
+/// 不抢返回：左缘返回起手区（edgeBackZone）里起手的不跟踪，仍归左缘返回（R10-A 规则不变）；返回识别成功时 UIKit 发 touchesCancelled，正在写的这笔丢弃。
+/// 进入时要格就在手指下（hitTest 落到书写面）：判断页等不可写阶段书写面不接触摸、弹层盖住时命中的是弹层，都不开始。
+final class NativeWritePageView: UIView {
+    weak var ink: NativeInkView?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isMultipleTouchEnabled = true // 掌托与 Pencil 可能同时在格外落下：每个触点都要收到
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// 这个触摸能不能当「格外起笔」跟踪：不在左缘返回起手区，不在书写面里（格内起手归书写面自己），命中视图链上没有可点控件。
+    static func approachStarts(at p: CGPoint, hitView: UIView?, root: UIView, inkFrame: CGRect) -> Bool {
+        guard p.x >= NativeWriteViewController.edgeBackZone, !inkFrame.contains(p) else { return false }
+        var v = hitView
+        while let cur = v, cur !== root {
+            if cur is UIControl { return false }
+            v = cur.superview
+        }
+        return true
+    }
+
+    private func enters(_ pInInk: CGPoint) -> Bool {
+        guard let ink else { return false }
+        return hitTest(ink.convert(pInInk, to: self), with: nil) === ink
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let ink, ink.drawable, !ink.isHidden else { return }
+        let ok = touches.filter { Self.approachStarts(at: $0.location(in: self), hitView: $0.view, root: self, inkFrame: ink.frame) }
+        if !ok.isEmpty { ink.approachBegan(ok) }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        ink?.approachMoved(touches, with: event, enters: enters)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        ink?.approachEnded(touches, with: event, enters: enters)
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        ink?.approachCancelled(touches)
+    }
+}
+
 extension NativeWriteViewController: UIGestureRecognizerDelegate {
+    /// 左缘返回起手区宽（pt）：UIKit 系统左缘识别器的起手区（_edgeRegionSize，iOS 26.5 实读 40.2pt，R10-A）。
+    /// 书写格以外、这一条里起手的触摸归左缘返回，不当格外起笔（D72 ③）。
+    static let edgeBackZone: CGFloat = 40.2
+
     /// 左缘返回只收书写格以外起手的触摸：能落笔时（书写面可写、没隐藏）格里按下的触摸归书写（R10-A）。
     static func edgeBackReceives(touchAt p: CGPoint, inkFrame: CGRect, inkDrawable: Bool) -> Bool {
         !(inkDrawable && inkFrame.contains(p))

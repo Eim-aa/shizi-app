@@ -635,6 +635,109 @@ final class NativeInkView: UIView {
         cancelStroke(reason: "touches-cancelled", notify: true)
     }
 
+    // MARK: 格外起笔、滑进格内（D72 ③）
+    //
+    // 写字页根视图把「页面空白处起手」的触摸（不在按钮 / 可点控件上、不在左缘返回起手区——由写字页筛，NativeWritePageView）交到这里：
+    // 先「待进入」，只记上一采样；轨迹第一次进入书写面时，在进入点（轨迹与格边的交点，时间按两采样插值）开始这一笔，之后照常写，
+    // 格外那段不画、不存。进入点照常走 inputBegan：一次一笔、Pencil 优先、手掌（只在用过 Pencil 后）、换字 250ms 持住都一样。
+    // 进入时由调用方确认格就在手指下（hitTest 落到书写面：可写、没被弹层盖住）。起手在格内的笔仍走上面的 touchesBegan，不变。
+
+    /// 格外起手、还没进格的触点 → 上一采样（书写面坐标）。
+    private var approaching: [ObjectIdentifier: Sample] = [:]
+
+    /// 进入点：a 在 rect 外、b 在 rect 内（rect.contains）时，线段 a→b 与 rect 边的第一个交点；时间、接触半径、压力、倾角按同一比例插值，
+    /// 落在哪条边就把那个坐标贴到边上（不留浮点误差）。不是「外 → 内」时 nil。
+    static func entryPoint(from a: Sample, to b: Sample, in rect: CGRect) -> Sample? {
+        guard !rect.contains(a.location), rect.contains(b.location) else { return nil }
+        let dx = b.location.x - a.location.x, dy = b.location.y - a.location.y
+        var u: CGFloat = 0
+        var edgeX: CGFloat?, edgeY: CGFloat?
+        // 各方向的「进入」参数取最大（Liang–Barsky）；a 在外，至少有一个方向起作用
+        if a.location.x < rect.minX, dx > 0 { let v = (rect.minX - a.location.x) / dx; if v >= u { u = v; edgeX = rect.minX; edgeY = nil } }
+        if a.location.x > rect.maxX, dx < 0 { let v = (rect.maxX - a.location.x) / dx; if v >= u { u = v; edgeX = rect.maxX; edgeY = nil } }
+        if a.location.y < rect.minY, dy > 0 { let v = (rect.minY - a.location.y) / dy; if v >= u { u = v; edgeY = rect.minY; edgeX = nil } }
+        if a.location.y > rect.maxY, dy < 0 { let v = (rect.maxY - a.location.y) / dy; if v >= u { u = v; edgeY = rect.maxY; edgeX = nil } }
+        u = min(1, max(0, u))
+        func lerp(_ p: CGFloat, _ q: CGFloat) -> CGFloat { p + (q - p) * u }
+        var s = b
+        s.location = CGPoint(x: edgeX ?? lerp(a.location.x, b.location.x), y: edgeY ?? lerp(a.location.y, b.location.y))
+        s.timestamp = a.timestamp + (b.timestamp - a.timestamp) * Double(u)
+        s.majorRadius = lerp(a.majorRadius, b.majorRadius)
+        s.force = lerp(a.force, b.force)
+        s.maximumPossibleForce = b.maximumPossibleForce
+        s.altitude = lerp(a.altitude, b.altitude)
+        return s
+    }
+
+    /// 页面空白处落下的触点：开始「待进入」。
+    func approachBegan(_ touches: Set<UITouch>) {
+        for t in touches { approachBegan(Sample(t, in: self), id: ObjectIdentifier(t)) }
+    }
+
+    func approachBegan(_ s: Sample, id: ObjectIdentifier) {
+        if s.kind == .pencil { inputPolicy.notePencil(at: s.timestamp) }
+        approaching[id] = s
+    }
+
+    /// 根视图转来的移动：已在写的那一笔照常；待进入的找进入点。enters：进入后第一个格内采样处，格是否就在手指下（调用方 hitTest）。
+    func approachMoved(_ touches: Set<UITouch>, with event: UIEvent?, enters: (CGPoint) -> Bool) {
+        for t in touches {
+            let id = ObjectIdentifier(t)
+            let co = (event?.coalescedTouches(for: t) ?? [t]).map { Sample($0, in: self) }
+            let pre = (event?.predictedTouches(for: t) ?? []).map { Sample($0, in: self) }
+            if current == id {
+                inputMoved(co, predicted: pre, last: Sample(t, in: self), id: id)
+            } else if approaching[id] != nil {
+                approachMoved(co, predicted: pre, last: Sample(t, in: self), id: id, enters: enters)
+            }
+        }
+    }
+
+    /// 待进入的触点移动（测试直接调）：进格就在进入点开始这一笔，余下的采样照常写。
+    func approachMoved(_ coalesced: [Sample], predicted pre: [Sample], last: Sample, id: ObjectIdentifier, enters: (CGPoint) -> Bool) {
+        guard var prev = approaching[id] else { return }
+        let samples = coalesced.isEmpty ? [last] : coalesced
+        for (i, s) in samples.enumerated() {
+            if s.kind == .pencil { inputPolicy.notePencil(at: s.timestamp) }
+            guard bounds.contains(s.location), let e = Self.entryPoint(from: prev, to: s, in: bounds) else { prev = s; continue }
+            approaching[id] = nil
+            guard drawable, !isHidden, enters(s.location) else {
+                #if DEBUG
+                logStroke("approach-blocked")
+                #endif
+                return
+            }
+            #if DEBUG
+            logStroke(String(format: "enter x=%.1f y=%.1f", Double(e.location.x), Double(e.location.y)))
+            #endif
+            guard inputBegan(e, id: id) else { return }
+            inputMoved(Array(samples[i...]), predicted: pre, last: last, id: id)
+            return
+        }
+        approaching[id] = prev
+    }
+
+    /// 根视图转来的抬起：已在写的照常抬笔；待进入的若最后一段进了格，先开始再抬笔，否则作罢。
+    func approachEnded(_ touches: Set<UITouch>, with event: UIEvent?, enters: (CGPoint) -> Bool) {
+        for t in touches {
+            let id = ObjectIdentifier(t)
+            let co = (event?.coalescedTouches(for: t) ?? []).map { Sample($0, in: self) }
+            let last = Sample(t, in: self)
+            if approaching[id] != nil { approachMoved(co, predicted: [], last: last, id: id, enters: enters) }
+            approaching[id] = nil
+            if current == id { inputEnded(co, last: last, id: id) }
+        }
+    }
+
+    /// 根视图转来的取消（例如左缘返回识别成功）：待进入的作罢；已在写的按中断丢弃（与格内起手同语义）。
+    func approachCancelled(_ touches: Set<UITouch>) {
+        for t in touches {
+            let id = ObjectIdentifier(t)
+            approaching[id] = nil
+            if current == id { cancelStroke(reason: "touches-cancelled", notify: true) }
+        }
+    }
+
     // MARK: 采样 → 笔（触摸与测试同一条路）
 
     /// 落下一个触点；返回是否成了「写字的那一个」。

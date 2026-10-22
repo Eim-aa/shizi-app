@@ -424,3 +424,186 @@ final class EdgeBackVsInkTests: XCTestCase {
 }
 
 // D72 ②（取代 D71 ① 的 ink-model-1.0 参数）：书写面的墨与网页同一算法，见 WebInkTests.swift。
+
+// R11-B（D72 ③）：格外（页面空白处）起手、滑进书写格——在进入点（轨迹与格边的交点，时间插值）开始这一笔，格外那段不画；
+// 起手在按钮上 / 左缘返回起手区里的不当格外起笔；进入点照常走落笔规则（一次一笔、Pencil 优先、手掌、换字持住）。
+@MainActor
+final class EnterFromOutsideTests: XCTestCase {
+    private typealias Sample = NativeInkView.Sample
+    private let ids = (0..<4).map { _ in NSObject() }
+    private func id(_ i: Int) -> ObjectIdentifier { ObjectIdentifier(ids[i]) }
+    private let yes: (CGPoint) -> Bool = { _ in true }
+
+    private func surface() throws -> (NativeInkView, Recorder) {
+        let renderer = try XCTUnwrap(NativeInkRenderer(), "Metal")
+        let v = try XCTUnwrap(NativeInkView(frame: CGRect(x: 21, y: 200, width: 345, height: 345), renderer: renderer))
+        let r = Recorder()
+        v.delegate = r
+        v.inputPolicy = NativeInkInputPolicy()
+        return (v, r)
+    }
+
+    private func s(_ x: CGFloat, _ y: CGFloat, _ t: TimeInterval, kind: NativeInkInputPolicy.Kind = .finger, r: CGFloat = 8) -> Sample {
+        Sample(location: CGPoint(x: x, y: y), timestamp: t, kind: kind, majorRadius: r)
+    }
+
+    private func pen(_ x: CGFloat, _ y: CGFloat, _ t: TimeInterval) -> Sample {
+        Sample(location: CGPoint(x: x, y: y), timestamp: t, kind: .pencil, force: 1, maximumPossibleForce: 4)
+    }
+
+    // MARK: 进入点插值（纯函数）
+
+    func testEntryPointOnEachEdgeWithInterpolatedTime() throws {
+        let rect = CGRect(x: 0, y: 0, width: 345, height: 345)
+        // 从上方：(100, -20) → (120, 20)，过 y = 0 在一半处
+        var e = try XCTUnwrap(NativeInkView.entryPoint(from: s(100, -20, 1.0), to: s(120, 20, 1.02), in: rect))
+        XCTAssertEqual(e.location.y, 0)
+        XCTAssertEqual(e.location.x, 110, accuracy: 1e-9)
+        XCTAssertEqual(e.timestamp, 1.01, accuracy: 1e-12)
+        // 从右侧：(360, 50) → (340, 60)，过 x = 345 在 3/4 处
+        e = try XCTUnwrap(NativeInkView.entryPoint(from: s(360, 50, 2.0), to: s(340, 60, 2.04), in: rect))
+        XCTAssertEqual(e.location.x, 345)
+        XCTAssertEqual(e.location.y, 57.5, accuracy: 1e-9)
+        XCTAssertEqual(e.timestamp, 2.03, accuracy: 1e-12)
+        // 从下方：(200, 400) → (200, 300)，过 y = 345 在 55% 处
+        e = try XCTUnwrap(NativeInkView.entryPoint(from: s(200, 400, 3.0), to: s(200, 300, 3.1), in: rect))
+        XCTAssertEqual(e.location.y, 345)
+        XCTAssertEqual(e.location.x, 200)
+        XCTAssertEqual(e.timestamp, 3.055, accuracy: 1e-12)
+        // 从左侧
+        e = try XCTUnwrap(NativeInkView.entryPoint(from: s(-10, 100, 4.0), to: s(30, 100, 4.04), in: rect))
+        XCTAssertEqual(e.location.x, 0)
+        XCTAssertEqual(e.timestamp, 4.01, accuracy: 1e-12)
+    }
+
+    func testEntryPointThroughACornerTakesTheLaterEdge() throws {
+        let rect = CGRect(x: 0, y: 0, width: 345, height: 345)
+        // (-10, -40) → (10, 20)：先过 x = 0（u = 0.5，那时 y = -10 仍在格外），再过 y = 0（u = 2/3）——进入点在上边
+        let e = try XCTUnwrap(NativeInkView.entryPoint(from: s(-10, -40, 0), to: s(10, 20, 0.06), in: rect))
+        XCTAssertEqual(e.location.y, 0)
+        XCTAssertEqual(e.location.x, -10 + 20.0 * 2 / 3, accuracy: 1e-9)
+        XCTAssertEqual(e.timestamp, 0.04, accuracy: 1e-12)
+        XCTAssertGreaterThanOrEqual(e.location.x, 0, "entry lies on the grid edge")
+    }
+
+    func testEntryPointInterpolatesPencilFields() throws {
+        let rect = CGRect(x: 0, y: 0, width: 345, height: 345)
+        let a = Sample(location: CGPoint(x: 100, y: -10), timestamp: 0, kind: .pencil, force: 1, maximumPossibleForce: 4, altitude: 1.0)
+        let b = Sample(location: CGPoint(x: 100, y: 10), timestamp: 0.02, kind: .pencil, force: 3, maximumPossibleForce: 4, altitude: 1.2)
+        let e = try XCTUnwrap(NativeInkView.entryPoint(from: a, to: b, in: rect))
+        XCTAssertEqual(e.kind, .pencil)
+        XCTAssertEqual(e.force, 2, accuracy: 1e-9)
+        XCTAssertEqual(e.altitude, 1.1, accuracy: 1e-9)
+        XCTAssertEqual(e.timestamp, 0.01, accuracy: 1e-12)
+    }
+
+    func testNoEntryUnlessOutsideToInside() {
+        let rect = CGRect(x: 0, y: 0, width: 345, height: 345)
+        XCTAssertNil(NativeInkView.entryPoint(from: s(10, 10, 0), to: s(20, 20, 0.01), in: rect), "inside → inside")
+        XCTAssertNil(NativeInkView.entryPoint(from: s(-10, 10, 0), to: s(-5, 20, 0.01), in: rect), "outside → outside")
+        XCTAssertNil(NativeInkView.entryPoint(from: s(10, 10, 0), to: s(-5, 20, 0.01), in: rect), "inside → outside")
+    }
+
+    // MARK: 书写面上走一遍
+
+    func testSlidingInStartsTheStrokeAtTheEdgeAndDropsTheOutsidePart() throws {
+        let (ink, rec) = try surface()
+        // 书写面坐标：格上方 30pt 起手，往下滑进格
+        ink.approachBegan(s(150, -30, 10.00), id: id(0))
+        ink.approachMoved([s(150, -15, 10.01)], predicted: [], last: s(150, -15, 10.01), id: id(0), enters: yes)
+        XCTAssertFalse(ink.isWriting, "outside part is not ink")
+        ink.approachMoved([s(150, 5, 10.02), s(152, 25, 10.03)], predicted: [], last: s(152, 25, 10.03), id: id(0), enters: yes)
+        XCTAssertTrue(ink.isWriting)
+        XCTAssertEqual(rec.events, ["begin"])
+        ink.inputEnded([], last: s(155, 80, 10.06), id: id(0))
+        let st = try XCTUnwrap(rec.strokes.first)
+        XCTAssertEqual(st[0].y, 0, accuracy: 1e-9, "starts on the top edge")
+        XCTAssertEqual(st[0].x, 150, accuracy: 1e-9)
+        XCTAssertEqual(st[0].t, 10_017.5, accuracy: 1e-6, "time interpolated between the two samples")
+        XCTAssertEqual(st.count, 4, "entry + two inside samples + lift")
+        XCTAssertTrue(st.allSatisfy { $0.y >= 0 }, "nothing from outside the grid")
+    }
+
+    func testEnteringOnTheLastEventStillCounts() throws {
+        let (ink, rec) = try surface()
+        ink.approachBegan(s(400, 100, 1.0), id: id(0))
+        ink.approachMoved([s(360, 100, 1.01)], predicted: [], last: s(360, 100, 1.01), id: id(0), enters: yes)
+        ink.approachMoved([s(330, 100, 1.02)], predicted: [], last: s(330, 100, 1.02), id: id(0), enters: yes)
+        ink.inputEnded([], last: s(300, 100, 1.03), id: id(0))
+        XCTAssertEqual(rec.events, ["begin", "end"])
+        XCTAssertEqual(try XCTUnwrap(rec.strokes.first?.first).x, 345, accuracy: 1e-9, "right edge")
+    }
+
+    func testCoveredOrNotDrawableGridDoesNotStart() throws {
+        let (ink, rec) = try surface()
+        ink.approachBegan(s(150, -30, 1.0), id: id(0))
+        ink.approachMoved([s(150, 10, 1.02)], predicted: [], last: s(150, 10, 1.02), id: id(0), enters: { _ in false }) // 弹层盖着
+        XCTAssertFalse(ink.isWriting)
+        ink.drawable = false // 判断页
+        ink.approachBegan(s(150, -30, 2.0), id: id(1))
+        ink.approachMoved([s(150, 10, 2.02)], predicted: [], last: s(150, 10, 2.02), id: id(1), enters: yes)
+        XCTAssertFalse(ink.isWriting)
+        XCTAssertEqual(rec.events, [])
+    }
+
+    func testOneStrokeAtATimeAndPencilFirstApplyAtTheEntry() throws {
+        let (ink, rec) = try surface()
+        // 格内已在写一笔手指：另一根手指从格外滑进来不开第二笔
+        XCTAssertTrue(ink.inputBegan(s(100, 100, 5.0), id: id(0)))
+        ink.approachBegan(s(150, -30, 5.0), id: id(1))
+        ink.approachMoved([s(150, 10, 5.02)], predicted: [], last: s(150, 10, 5.02), id: id(1), enters: yes)
+        XCTAssertEqual(rec.events, ["begin"], "busy: one stroke at a time")
+        // Pencil 从格外滑进来：取消手指那笔（掌托 / 握笔的手指），改写 Pencil
+        ink.approachBegan(pen(200, -20, 5.03), id: id(2))
+        ink.approachMoved([pen(200, 20, 5.05)], predicted: [], last: pen(200, 20, 5.05), id: id(2), enters: yes)
+        XCTAssertEqual(rec.events, ["begin", "cancel:palm", "begin"])
+        // Pencil 刚用过：手指从格外滑进来不落墨
+        ink.inputEnded([], last: pen(200, 60, 5.08), id: id(2))
+        ink.approachBegan(s(150, -30, 5.2), id: id(3))
+        ink.approachMoved([s(150, 10, 5.22)], predicted: [], last: s(150, 10, 5.22), id: id(3), enters: yes)
+        XCTAssertFalse(ink.isWriting, "pencil-recent")
+    }
+
+    func testPalmAfterPencilIsRejectedAtTheEntry() throws {
+        let (ink, rec) = try surface()
+        ink.inputPolicy.notePencil(at: 0)
+        ink.approachBegan(s(150, -30, 10.0, r: 34), id: id(0))
+        ink.approachMoved([s(150, 10, 10.02, r: 34)], predicted: [], last: s(150, 10, 10.02, r: 34), id: id(0), enters: yes)
+        XCTAssertFalse(ink.isWriting)
+        XCTAssertEqual(rec.events, [])
+    }
+
+    func testEntryBeforeTheArmTimeIsHeldThenDrawn() throws {
+        let (ink, rec) = try surface()
+        let now = CACurrentMediaTime()
+        ink.acceptFrom = now + 0.25 // 换字后 250ms（P227）
+        ink.approachBegan(s(150, -30, now), id: id(0))
+        ink.approachMoved([s(150, 10, now + 0.02)], predicted: [], last: s(150, 10, now + 0.02), id: id(0), enters: yes)
+        XCTAssertTrue(ink.isWriting)
+        XCTAssertTrue(ink.hasHeldInput, "held like any stroke begun inside the 250ms window")
+        XCTAssertEqual(rec.events, [])
+        ink.releaseHeldIfDue(now + 0.3)
+        XCTAssertEqual(rec.events, ["begin"])
+    }
+
+    // MARK: 写字页：哪些起手可以当格外起笔
+
+    func testPageStartsOnlyFromBlankSpaceOutsideTheEdgeZone() {
+        let root = UIView(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let ink = CGRect(x: 21, y: 200, width: 348, height: 348)
+        let panel = UIView(frame: CGRect(x: 0, y: 560, width: 390, height: 60))
+        root.addSubview(panel)
+        let button = UIButton(type: .system)
+        button.frame = CGRect(x: 20, y: 0, width: 80, height: 44)
+        panel.addSubview(button)
+        let label = UILabel()
+        button.addSubview(label)
+        XCTAssertTrue(NativeWritePageView.approachStarts(at: CGPoint(x: 200, y: 150), hitView: root, root: root, inkFrame: ink), "blank above")
+        XCTAssertTrue(NativeWritePageView.approachStarts(at: CGPoint(x: 200, y: 580), hitView: panel, root: root, inkFrame: ink), "blank part of a panel")
+        XCTAssertFalse(NativeWritePageView.approachStarts(at: CGPoint(x: 60, y: 580), hitView: button, root: root, inkFrame: ink), "on a button")
+        XCTAssertFalse(NativeWritePageView.approachStarts(at: CGPoint(x: 60, y: 580), hitView: label, root: root, inkFrame: ink), "inside a button")
+        XCTAssertFalse(NativeWritePageView.approachStarts(at: CGPoint(x: 10, y: 150), hitView: root, root: root, inkFrame: ink), "left edge back zone")
+        XCTAssertFalse(NativeWritePageView.approachStarts(at: CGPoint(x: 40, y: 150), hitView: root, root: root, inkFrame: ink), "still inside the 40.2pt zone")
+        XCTAssertFalse(NativeWritePageView.approachStarts(at: CGPoint(x: 200, y: 300), hitView: root, root: root, inkFrame: ink), "inside the grid belongs to the grid")
+    }
+}

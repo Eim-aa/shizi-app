@@ -149,6 +149,67 @@ final class WriteFlowTests: XCTestCase {
         }
     }
 
+    /// R11-B（D72 ③）：从格上方 / 右侧 / 下方的页面空白处起手、滑进书写格——出墨、笔数 +1、这一笔从格边开始（日志 enter 点在边上）。
+    func test206_strokeStartedOutsideTheGridBeginsAtTheEdge() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        let g = qa.el("native-write-grid")
+        XCTAssertTrue(g.waitForExistence(timeout: 5))
+        let f = g.frame
+        let origin = qa.app.coordinate(withNormalizedOffset: .zero)
+        // 名字、起点（屏幕 pt）、终点（屏幕 pt）、进入点在哪条边上（书写面坐标的 x 或 y）
+        let cases: [(String, CGPoint, CGPoint, String)] = [
+            ("above", CGPoint(x: f.midX - 30, y: f.minY - 14), CGPoint(x: f.midX - 30, y: f.minY + 120), String(format: "y=%.1f", 0.0)),
+            ("right", CGPoint(x: f.maxX + 12, y: f.minY + f.height * 0.4), CGPoint(x: f.maxX - 140, y: f.minY + f.height * 0.4), String(format: "x=%.1f", Double(f.width))),
+            ("below", CGPoint(x: f.midX, y: f.maxY + 26), CGPoint(x: f.midX + 10, y: f.maxY - 140), String(format: "y=%.1f", Double(f.height))),
+        ]
+        for (i, (name, a, b, edge)) in cases.enumerated() {
+            let from = origin.withOffset(CGVector(dx: a.x, dy: a.y))
+            from.press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: b.x, dy: b.y)), withVelocity: 400, thenHoldForDuration: 0.02)
+            Thread.sleep(forTimeInterval: 0.35)
+            let n = qa.native
+            let log = n["inkLog"] as? [String] ?? []
+            XCTAssertTrue(qa.nativeShown, "\(name): still on the page")
+            XCTAssertEqual(n["strokes"] as? Int, i + 1, "\(name): one more stroke; log=\(log.suffix(4))")
+            XCTAssertEqual(log.last?.hasPrefix("ended"), true, "\(name): stroke kept; log=\(log.suffix(4))")
+            let enter = log.suffix(4).first { $0.hasPrefix("enter ") } ?? ""
+            XCTAssertTrue(enter.contains(edge), "\(name): stroke starts on the grid edge (\(edge)); got \(enter); log=\(log.suffix(4))")
+        }
+        qa.waitProbe("session strokes") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["strokes"] as? Int == cases.count }
+    }
+
+    /// R11-B（D72 ③）：起手在按钮（撤销）上、滑进书写格——仍是按钮：滑走 = 取消按钮，不出墨、不撤销。
+    func test207_strokeStartedOnAButtonStaysTheButton() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        qa.stroke()
+        XCTAssertEqual(qa.native["strokes"] as? Int, 1)
+        Thread.sleep(forTimeInterval: 0.5) // 0.4s 防误点之外：按下撤销是有效的按下
+        let undo = qa.el("native-write-undo")
+        XCTAssertTrue(undo.exists)
+        let g = qa.el("native-write-grid")
+        let into = g.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.4))
+        undo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.05, thenDragTo: into, withVelocity: 400, thenHoldForDuration: 0.02)
+        Thread.sleep(forTimeInterval: 0.5)
+        let n = qa.native
+        XCTAssertEqual(n["strokes"] as? Int, 1, "no ink and no undo; log=\((n["inkLog"] as? [String] ?? []).suffix(4))")
+        XCTAssertFalse((n["inkLog"] as? [String] ?? []).suffix(3).contains { $0.hasPrefix("enter ") }, "button touch never becomes a stroke")
+    }
+
+    /// R11-B（D72 ③）：起手在屏幕左缘、滑进书写格——仍是左缘返回（R10-A 规则不变）：离开写字页，不出墨。
+    func test208_strokeStartedAtTheLeftEdgeIsStillBack() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        let f = qa.el("native-write-grid").frame
+        let origin = qa.app.coordinate(withNormalizedOffset: .zero)
+        origin.withOffset(CGVector(dx: 2, dy: f.midY)).press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: f.midX + 120, dy: f.midY)),
+                                                              withVelocity: 900, thenHoldForDuration: 0)
+        Thread.sleep(forTimeInterval: 0.9)
+        qa.waitNative(false)
+        qa.waitRouteTop("home")
+        XCTAssertEqual(qa.session()["strokes"] as? Int, 0, "the edge swipe wrote nothing")
+    }
+
     // MARK: §3 提示
 
     /// §3（D64 ①）：每点一次多给一段，可点到整字；整字给完按钮变灰、记看过答案。

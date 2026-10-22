@@ -41,9 +41,16 @@ enum QAState: String, CaseIterable {
     case resultEarly = "result-early" // 这次选的字判断 2 字后「结束这组」（中途结束：「还有 3 个字没写。」）
     case resultUndo = "result-undo" // 最后一字跳过 → 结果页带着写字页交过来的撤销条（S4）
     case resultSheet = "result-sheet" // 今天的练习结果页点写错那一行的「修改 ›」：对照与改判弹层
+    // B2.9a 重写错字页（D66 ③）：今天的练习结果页（同 result-daily 数据）点「重写错字」
+    case redo // 第 1 个字，写的阶段，没写（「写好了」不可点）
+    case redoInk = "redo-ink" // 写了两笔（「写好了」可点）
+    case redoCheck = "redo-check" // 写好了 → 对照（判断页两格、没有判断键；求助行「再写一次」、主按钮「下一个」）
+    case redoLast = "redo-last" // 最后一个字写好了的对照（主按钮「完成」）
 
     /// 结果页的状态（B2.7）。
     static let resultStates: [QAState] = [.result, .resultDaily, .resultFirst, .resultEarly, .resultUndo, .resultSheet]
+    /// 重写错字页的状态（B2.9a）。
+    static let redoStates: [QAState] = [.redo, .redoInk, .redoCheck, .redoLast]
     /// 逐屏对比覆盖的状态（home 三态不是写字 / 结果页）。
     static var parityStates: [QAState] { allCases.filter { ![.home, .homeUsed, .homeMid].contains($0) } }
 }
@@ -107,6 +114,7 @@ extension WebViewController {
             try? await Task.sleep(nanoseconds: 150_000_000)
         }
         // 2. 数据与写字页（页面里）
+        if QAState.redoStates.contains(state) { return await qaPrepareRedo(state, ui: ui) }
         do {
             let v = try await webView.callAsyncJavaScript(Self.qaPrepareJS, arguments: ["state": state.rawValue, "chars": Self.qaChars, "clock": Self.qaClock], in: nil, contentWorld: .page)
             if let d = v as? [String: Any], (d["ok"] as? Bool) != true { return "prepare: \(d["error"] ?? "?")" }
@@ -186,6 +194,102 @@ extension WebViewController {
                 let sel = Self.qaWebSelectors[what] ?? ""
                 _ = await qaJS("const el=document.querySelector(\(Self.jsonLiteral(sel) ?? "''"));if(!el||el.disabled)return false;el.click();return true;")
             }
+        }
+    }
+
+    // MARK: B2.9a 重写错字页
+
+    /// 重写错字页的状态：先造 result-daily 的数据与结果页，再点「重写错字」（原生结果页按钮 / 网页按钮），在重写错字页上按状态写 / 点。
+    private func qaPrepareRedo(_ state: QAState, ui: String) async -> String? {
+        if let err = await qaPrepare(.resultDaily, ui: ui) { return err }
+        if ui == "native" {
+            guard let rv = nativeResultTop, let b = qaButton(in: rv.view, id: "native-result-redo"), !b.isHidden else { return "native result has no redo button" }
+            b.sendActions(for: .touchUpInside)
+            guard await qaWait(6, { self.nativeRedoTop != nil && self.presentedViewController?.isBeingPresented == false }) else { return "native redo page did not appear" }
+        } else {
+            _ = await qaJS("const el=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"result-redo\"]');if(!el)return false;el.click();return true;")
+            guard await qaWait(6, { await self.qaJS("const a=document.querySelector('.sz-app');const l=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"redo-screen\"]');return !!a && a.dataset.navAnim==='idle' && !!l;") as? Bool == true }) else { return "web redo page did not appear" }
+        }
+        try? await Task.sleep(nanoseconds: 700_000_000) // 换字落笔门限 250ms + 0.4s 防误点
+        if state == .redoLast {
+            // 看答案 → 下一个，走到最后一个字（与真人同一组按钮）
+            for _ in 0..<8 {
+                guard let (i, total) = await qaRedoProgress(ui), i < total - 1 else { break }
+                await qaRedoTap(ui, "answer")
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                await qaRedoTap(ui, "next")
+                try? await Task.sleep(nanoseconds: 900_000_000)
+            }
+        }
+        if state != .redo {
+            await qaRedoStrokes(ui)
+            try? await Task.sleep(nanoseconds: 500_000_000)
+        }
+        if state == .redoCheck || state == .redoLast {
+            await qaRedoTap(ui, "done")
+        }
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        return nil
+    }
+
+    /// 两边同一组笔画（345 单位，与写字页 recall-ink 注入的两笔同形：一横一竖，每 16ms 一点）。
+    static let qaRedoLines: [[(Double, Double)]] = [
+        (0..<14).map { (i: Int) -> (Double, Double) in let d = Double(i); return (70 + 15 * d, 150 + d) },
+        (0..<14).map { (i: Int) -> (Double, Double) in let d = Double(i); return (172 + 0.5 * d, 60 + 17 * d) },
+    ]
+
+    /// 原生：交给书写面同一个抬笔回调（与真笔写完一笔同一路径）；网页：在书写格的 live 画布上按 16ms 间隔派发指针事件（InkGrid 同一个 onDown / onMove / onUp）。
+    private func qaRedoStrokes(_ ui: String) async {
+        if ui == "native" {
+            guard let vc = nativeRedoTop, let ink = vc.inkViewForTesting else { return }
+            for (k, line) in Self.qaRedoLines.enumerated() {
+                let t0 = CACurrentMediaTime() * 1000 + Double(k) * 1000
+                vc.nativeInkDidEndStroke(ink, raw: line.enumerated().map { InkRawPoint(x: $0.element.0, y: $0.element.1, t: t0 + Double($0.offset) * 16) })
+            }
+            return
+        }
+        let lines = Self.qaRedoLines.map { $0.map { [$0.0, $0.1] } }
+        _ = try? await webView.callAsyncJavaScript(Self.qaWebStrokesJS, arguments: ["lines": lines], in: nil, contentWorld: .page)
+    }
+
+    static let qaWebStrokesJS = #"""
+    const c = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid-live"]');
+    if (!c) return false;
+    const rc = c.getBoundingClientRect();
+    const side = Math.min(rc.width, rc.height), ox = (rc.width - side) / 2, oy = (rc.height - side) / 2;
+    const at = (q) => ({ clientX: rc.left + ox + q[0] * side / 345, clientY: rc.top + oy + q[1] * side / 345 });
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    let id = 40;
+    for (const line of lines) {
+      id += 1;
+      const base = { pointerId: id, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, button: 0, buttons: 1 };
+      c.dispatchEvent(new PointerEvent('pointerdown', { ...base, ...at(line[0]) }));
+      for (let i = 1; i < line.length; i += 1) { await wait(16); c.dispatchEvent(new PointerEvent('pointermove', { ...base, ...at(line[i]) })); }
+      c.dispatchEvent(new PointerEvent('pointerup', { ...base, buttons: 0, ...at(line[line.length - 1]) }));
+      await wait(200);
+    }
+    return true;
+    """#
+
+    private func qaRedoProgress(_ ui: String) async -> (Int, Int)? {
+        if ui == "native" {
+            guard let vc = nativeRedoTop else { return nil }
+            return (vc.redoIndexForTesting, vc.redoTotalForTesting)
+        }
+        let v = await qaJS("const w=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"redo-screen\"] .sz-write');return w?[Number(w.dataset.index),Number(w.dataset.total)]:null;") as? [NSNumber]
+        guard let v, v.count == 2 else { return nil }
+        return (v[0].intValue, v[1].intValue)
+    }
+
+    /// 重写错字页的按钮：answer（看答案）/ next（下一个 / 完成）/ done（写好了）/ again（再写一次）。
+    private func qaRedoTap(_ ui: String, _ what: String) async {
+        let ids = ["answer": ("native-redo-show-answer", "redo-show-answer"), "next": ("native-redo-next", "redo-next"), "done": ("native-redo-done", "redo-done"), "again": ("native-redo-again", "redo-again")]
+        guard let (nid, wid) = ids[what] else { return }
+        if ui == "native" {
+            guard let vc = nativeRedoTop, let b = qaButton(in: vc.view, id: nid), b.isEnabled, !b.isHidden else { return }
+            b.sendActions(for: .touchUpInside)
+        } else {
+            _ = await qaJS("const el=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"\(wid)\"]');if(!el||el.disabled)return false;el.click();return true;")
         }
     }
 
@@ -694,6 +798,7 @@ final class QAProbe {
             case .retrace: phase = "retrace"
             }
             out["native"] = ["shown": true, "slot": vc.slot, "cardKey": vc.cardKey ?? "", "phase": phase, "strokes": vc.strokes.count,
+                             "redo": vc.redo, "redoIndex": vc.redoIndexForTesting, "redoTotal": vc.redoTotalForTesting,
                              "undoBar": vc.undoBarForTesting != nil, "endDialog": vc.endDialogForTesting != nil,
                              "sheet": vc.presentedViewController != nil, "cursor": vc.snapshot["cursor"] as? Int ?? -1,
                              "inkLog": vc.inkViewForTesting?.strokeLog ?? []]

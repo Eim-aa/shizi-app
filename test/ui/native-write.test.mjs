@@ -35,6 +35,8 @@ import * as sessionStartModule from '../../src/core/session-start.js';
 import { deckAdapter } from '../../src/data/deck.js';
 import { now as envNow } from '../../src/platform/env.js';
 import { commitInviteShown, commitInviteAnswer } from '../../src/core/first-result.js';
+import { redoCharsOf, redoQueueOf } from '../../src/ui/screens/write/redo.js';
+import { capitalCard, withWordOff } from '../../src/data/deck.js';
 
 loadFSRSGlobal();
 
@@ -89,7 +91,7 @@ function apiOn(store, navigate = quietNav) {
 }
 
 test('ops: the named set; unknown op is rejected without throwing', () => {
-  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip']);
+  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip', 'redoOpen', 'redoNext', 'redoExit']);
   const r = apiOn(fakeStore()).call('nope', {});
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'unknown-op');
@@ -1152,4 +1154,83 @@ test('B2.7 resultInvite: shown / no / yes (denied, failed) / time = the web useR
   const changed = await apiResult(timeApi, { reminder: { changeTime } }).call('resultInvite', { slot: 'A', sessionId: 's1', action: 'time', hour: 7, minute: 30 });
   assert.equal(changed.ok, true);
   assert.equal(changed.text, t('X-INVITE.accepted', { time: '7:30' }));
+});
+
+// ---------------------------------------------------------------- B2.9a 重写错字（D66 ③，确认单 §9）
+
+/** 网页重写错字页（write/redo.js RedoScreen）每个字的所见：字表 redoCharsOf、队列 redoQueueOf、题面 = Prompt 组件调用的同一组函数（recall / compare 都不填答案字）。 */
+function webRedoView(state, params, i) {
+  const chars = redoCharsOf(params);
+  const queue = redoQueueOf(chars);
+  const cardKey = queue[i];
+  const model = promptCells(withWordOff(capitalCard(cardForKey(cardKey), queue), state.wordOff), { revealed: false });
+  return {
+    cardKey, char: chars[i], cursor: i, total: chars.length, last: i === chars.length - 1,
+    prompt: { cells: model.cells.map(c => ({ kind: c.kind, text: c.text, label: c.label, fill: c.fill || null })), hint: model.hint },
+  };
+}
+
+const redoViewOf = snap => ({ cardKey: snap.cardKey, char: snap.char, cursor: snap.cursor, total: snap.total, last: snap.last, prompt: snap.prompt });
+
+test('B2.9a redo: redoOpen / redoNext walk the same chars and prompts as the web redo page; the last one is done (= web next() → one nav.back)', () => {
+  const store = fakeStore();
+  const backs = [];
+  const api = apiOn(store, { ...quietNav, redoBack: () => backs.push('back') });
+  const params = { chars: ['永', '龘', '和', '永', 'ab', '春'] }; // 网页同一整理：去重、去掉不能练的 / 非单字
+  const open = api.call('redoOpen', params);
+  assert.equal(open.ok, true);
+  assert.deepEqual(open.chars, ['永', '和', '春']);
+  assert.equal(open.snapshot.kind, 'redo');
+  // 网页路径：RedoScreen 的 st.i 从 0 走到最后一个；API 路径：redoOpen 的快照，之后每次「下一个」redoNext 给下一个字
+  const seen = [redoViewOf(open.snapshot)];
+  for (let i = 0; ; i += 1) {
+    const r = api.call('redoNext', { chars: open.chars, index: i });
+    assert.equal(r.ok, true);
+    if (r.done) { assert.equal(i, open.chars.length - 1, 'done only on the last char'); break; }
+    seen.push(redoViewOf(r.snapshot));
+  }
+  const web = open.chars.map((_, i) => webRedoView(store.getState(), params, i));
+  assert.deepEqual(seen, web);
+  // 快照形状：写字页同一形状、只练习（没有会话 / 结果行 / 提示 / 跳过 / 结束）；答案字不在读屏名称里（D16）
+  for (const k of ['strokes', 'hints', 'answerSeen', 'canEnd', 'firstTip', 'sessionId', 'hintRange', 'answerPhase']) assert.ok(k in open.snapshot, k);
+  assert.deepEqual([open.snapshot.phase, open.snapshot.strokes, open.snapshot.canEnd, open.snapshot.firstTip, open.snapshot.line.state], ['recall', [], false, false, 'none']);
+  for (const c of open.snapshot.prompt.cells) if (c.kind !== 'text') assert.ok(!String(c.label || '').includes('永') && c.text !== '永' && !c.fill);
+  // 「完成」/「‹」/ 左缘：redoExit = 网页的一次 nav.back（回结果页）
+  assert.equal(api.call('redoExit', {}).ok, true);
+  assert.deepEqual(backs, ['back']);
+});
+
+test('B2.9a redo: practice only — open / next / exit never commit and leave the store exactly as it was (no record, schedule, session, ink)', () => {
+  const store = fakeStore();
+  // 一组判断过两字（有记录 / FSRS / 墨迹），再进重写错字
+  const api = apiOn(store, { ...quietNav, redoBack() {} });
+  for (const j of ['wrong', 'correct']) {
+    const k = writeSnapshot(store.getState(), 'A').cardKey;
+    assert.equal(api.call('judge', { slot: 'A', cardKey: k, judgment: j, strokes: strokesToWire([STROKE_A]), hints: 0 }).ok, true);
+  }
+  const before = JSON.stringify(store.getState());
+  const commits = store.labels.length;
+  const open = api.call('redoOpen', { chars: ['永', '和'] });
+  api.call('redoNext', { chars: open.chars, index: 0 });
+  api.call('redoNext', { chars: open.chars, index: 1 });
+  api.call('redoExit', {});
+  assert.equal(store.labels.length, commits, 'no commit at all');
+  assert.equal(JSON.stringify(store.getState()), before, 'store unchanged');
+});
+
+test('B2.9a redo: nothing practicable → invalid (the web page backs out too); a bad index is refused; no redoBack wired → refused', () => {
+  const api = apiOn(fakeStore());
+  assert.equal(api.call('redoOpen', { chars: ['龘'] }).ok, false);
+  assert.equal(api.call('redoOpen', {}).ok, false);
+  assert.equal(api.call('redoNext', { chars: ['永'], index: 3 }).ok, false);
+  assert.equal(api.call('redoNext', { chars: ['永'], index: -1 }).ok, false);
+  assert.deepEqual(api.call('redoNext', { chars: ['永'], index: 0 }).done, true);
+  assert.equal(api.call('redoExit', {}).ok, false);
+  // 原生用到的文案键都随 open / redoOpen 下发（页名、说明、再写一次、完成）
+  for (const k of ['X-REDO.title', 'X-REDO.note', 'X-REDO.again', 'X-RESULT.done', 'R-W29.btnDone', 'R-W07.btnShowAnswer', 'R-W07.btnNext']) {
+    assert.ok(NATIVE_WRITE_COPY_KEYS.includes(k), k);
+  }
+  const open = apiOn(fakeStore()).call('redoOpen', { chars: ['和'] });
+  assert.equal(open.copy['X-REDO.note'], t('X-REDO.note'));
+  assert.ok(open.ink && open.timing && open.layout && open.motion, 'same look parameters as open');
 });

@@ -93,17 +93,14 @@ final class KnownIssueTests: XCTestCase {
         XCTAssertEqual(body.label, "还有 4 个字没写，结束后就不写了。判断过的 1 个字已经记下。")
     }
 
-    /// NF-04（低）：结果页「重写错字」应是原生页（确认单 §9 沿用写字页）；现状仍是网页。
+    /// NF-04（低，B2.9a 修好，普通断言）：结果页「重写错字」是原生页（确认单 §9 沿用写字页）。
     func testNF04_redoPageIsNative() {
         let qa = QA(seed: "result-daily")
         qa.launch()
         qa.waitRouteTop("result")
         qa.tap(qa.buttonContaining("重写错字"), "重写错字")
-        Thread.sleep(forTimeInterval: 1.2)
-        let shown = qa.nativeShown
-        QAIssue.expectFail("NF-04", "重写错字页仍是网页版（B2.9）") {
-            XCTAssertTrue(shown, "redo page is native")
-        }
+        qa.waitNative(true)
+        XCTAssertEqual(qa.native["redo"] as? Bool, true, "redo page is native")
     }
 
     /// NF-05（D70，R9-C 已修）：看答案后「凭记忆写」的笔迹不存（不进作品「看后写的」、不进字库缩略图），网页与原生都一样。普通断言。

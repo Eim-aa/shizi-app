@@ -23,7 +23,10 @@
       "result-first": "work-cell-0",
       "result-early": "work-cell-0",
       "result-undo": "work-cell-0",
-      "result-sheet": "change-mine"
+      "result-sheet": "change-mine",
+      "redo-ink": "grid",
+      "redo-check": "grid",
+      "redo-last": "grid"
     },
     "inset": 2,
     "threshold": 0.5,

@@ -7337,6 +7337,7 @@ src/session/ops/hint.js
 src/session/ops/judge.js
 src/session/ops/line.js
 src/session/ops/prompt.js
+src/session/ops/redo.js
 src/session/ops/result.js
 src/session/ops/skip.js
 src/session/ops/strokes.js

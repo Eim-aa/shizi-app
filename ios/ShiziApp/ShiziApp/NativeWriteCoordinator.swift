@@ -37,6 +37,8 @@ extension WebViewController: NativeWriteCoordinating {
     }
 
     var nativeWriteTop: NativeWriteViewController? { presentedViewController as? NativeWriteViewController }
+    /// B2.9a：原生重写错字页（与写字页同一个类，redo 模式）。
+    var nativeRedoTop: NativeWriteViewController? { nativeWriteTop.flatMap { $0.redo ? $0 : nil } }
     /// B2.7：原生结果页（与写字页同一种覆盖呈现）。
     var nativeResultTop: NativeResultViewController? { presentedViewController as? NativeResultViewController }
 
@@ -54,7 +56,7 @@ extension WebViewController: NativeWriteCoordinating {
                 return
             }
             NativeWriteMetrics.shared.recordJs("open", ms: (payload["ms"] as? NSNumber)?.doubleValue ?? 0)
-            if let top = nativeWriteTop, top.slot == slot, !top.exitHandled {
+            if let top = nativeWriteTop, top.slot == slot, !top.exitHandled, !top.redo {
                 top.resync(payload: payload)
                 return
             }
@@ -91,9 +93,11 @@ extension WebViewController: NativeWriteCoordinating {
             NativeResultCover.cover(top.view, in: view)
             Self.dismissWhenSettled(top) { NativeResultCover.fadeLater() }
             QATrace.note("result:close away=\((body["away"] as? Bool) == true)")
+        case "redo-open", "redo-close":
+            handleRedoMessage(op, body) // B2.9a 原生重写错字页（本文件末尾）
         case "close":
             // 宿主条目被别处卸掉（深链换组、跨天作废、store 整体替换）：原生页跟着离开，不再发 exit
-            if let top = nativeWriteTop, top.slot == slot, !top.exitHandled {
+            if let top = nativeWriteTop, top.slot == slot, !top.exitHandled, !top.redo {
                 top.exitHandled = true
                 top.dismiss(animated: false)
             }
@@ -284,6 +288,44 @@ final class NativeWriteSlide: NSObject, UIViewControllerAnimatedTransitioning {
             v.alpha = 1
             v.layer.shadowOpacity = 0
             ctx.completeTransition(ok)
+        }
+    }
+}
+// MARK: - B2.9a 原生重写错字页（呈现先用最简单的推入；B2.8 在转场段落接 D62 时把这里的 present 换进同一个转场对象）
+
+extension WebViewController {
+    /// 页面重写错字宿主条目（NativeRedoHost）的消息：redo-open = 推入原生重写错字页（结果页让开时留下的截图在推入完成后收掉）；
+    /// redo-close = 条目被别处卸掉（深链 / store 整体替换），原生页跟着离开、不发 redoExit。
+    func handleRedoMessage(_ op: String, _ body: [String: Any]) {
+        if op == "redo-close" {
+            if let top = nativeRedoTop, !top.exitHandled {
+                top.exitHandled = true
+                top.dismiss(animated: false)
+            }
+            return
+        }
+        let payload = body["payload"] as? [String: Any] ?? [:]
+        guard (payload["ok"] as? Bool) == true, payload["snapshot"] is [String: Any] else {
+            NSLog("[shizi] native-redo open without chars")
+            return
+        }
+        if let top = nativeRedoTop, !top.exitHandled {
+            top.resync(payload: payload) // 页面重载后同一条目再发：只换外观，第几个字留在原生
+            return
+        }
+        let vc = NativeWriteViewController(slot: "redo", payload: payload, bridge: NativeWriteBridge(webView: webView), redo: true)
+        vc.coordinator = self
+        vc.modalPresentationStyle = .overFullScreen
+        vc.transitioningDelegate = vc.transitions
+        let animate = body["animate"] as? Bool ?? true
+        QATrace.note("redo:open via=\(body["via"] as? String ?? "") animate=\(animate)")
+        let show: () -> Void = { [weak self] in self?.present(vc, animated: animate) { NativeResultCover.clear() } }
+        if let other = presentedViewController {
+            (other as? NativeWriteViewController)?.exitHandled = true
+            (other as? NativeResultViewController)?.exitHandled = true
+            Self.dismissWhenSettled(other, then: show)
+        } else {
+            show()
         }
     }
 }

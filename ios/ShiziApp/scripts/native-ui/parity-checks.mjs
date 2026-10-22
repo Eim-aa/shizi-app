@@ -50,7 +50,7 @@ export const CHECKS = [
   },
   {
     id: 'NP-05', status: 'pass', level: '高', title: '书写格纸色格底与十字辅助线与网页一致',
-    states: ['recall', 'judge', 'trace', 'retrace'],
+    states: ['recall', 'judge', 'trace', 'retrace', 'redo', 'redo-check'],
     eval({ px, tolerance }) {
       const d = colorDelta(px.web.gridBg, px.native.gridBg);
       const bgOk = d !== null && d <= tolerance.color;
@@ -62,7 +62,7 @@ export const CHECKS = [
     // R11-A（D72 ②，取消 D71 ① 的豁免）：原生墨与网页同一算法。粗细 = 同一组注入笔画（中线相同）的墨面积比 = 平均笔宽比；
     // 口径与容差见 parity.config.json ink（compare.mjs inkCompare）。横画粗（单列像素）只记录。
     id: 'NP-07', status: 'pass', level: '中', title: '同一组笔画的墨粗细与网页一致（平均笔宽 ±10%）（NP-21 结果页缩略墨迹同源）',
-    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-daily', 'result-first', 'result-early', 'result-undo', 'result-sheet'],
+    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-daily', 'result-first', 'result-early', 'result-undo', 'result-sheet', 'redo-ink', 'redo-check', 'redo-last'],
     eval({ px, ink }) {
       const c = px.ink;
       if (!c || c.error) return { pass: false, detail: c ? c.error : '没有墨区取样' };
@@ -72,7 +72,7 @@ export const CHECKS = [
   },
   {
     id: 'NP-22', status: 'pass', level: '中', title: '同一组笔画的墨区与网页重合（R11-A，D72 ②：原生墨与网页同一算法）',
-    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-daily', 'result-first', 'result-early', 'result-undo', 'result-sheet'],
+    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-daily', 'result-first', 'result-early', 'result-undo', 'result-sheet', 'redo-ink', 'redo-check', 'redo-last'],
     eval({ px, ink }) {
       const c = px.ink;
       if (!c || c.error) return { pass: false, detail: c ? c.error : '没有墨区取样' };

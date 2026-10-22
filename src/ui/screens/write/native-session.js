@@ -22,7 +22,8 @@ import { resultView } from '../result/native-view.js';
 import { commitLeave } from '../../../session/result-ops.js';
 import { getStore } from '../../../store/store.js';
 import { NONE_SCREEN } from '../session/none.js';
-import { openRedo } from './redo.js';
+// B2.9a：不 import write/redo.js（它要 import 本模块的 NativeRedoHost，避免循环导入）；字表整理用会话层同一个 redoCharsOf，屏名同 REDO_SCREEN
+import { redoCharsOf } from '../../../session/write-ops.js';
 import { inviteChangeTime, inviteReminder } from '../../../platform/reminder.js';
 import { keySound, warmSounds } from '../../../platform/sound.js';
 import { handoffLeaveUndo } from './skip.js';
@@ -115,6 +116,8 @@ export function createWriteSessionApi(deps = {}) {
         if (!ok) awayEntry = null;
         return ok;
       },
+      // B2.9a：原生重写错字页离开（‹ / 左缘右滑 / 最后一个字「完成」）——网页 RedoScreen 同为一次 nav.back，回到结果页（结果宿主再请原生淡入）
+      redoBack: () => nav.back({ cause: 'native' }),
     },
     colors: deps.colors || (() => colorBundle()),
     type: deps.type || (() => typeBundle()),
@@ -138,7 +141,12 @@ const RESULT_DEPS = Object.freeze({
     else nav.back();
   },
   toWrite: slot => nav.replace('write', { slot }, { animate: true }),
-  redo: chars => openRedo(chars),
+  redo: chars => {
+    const list = redoCharsOf({ chars });
+    if (!list.length) return false;
+    nav.push('redo', { chars: list }); // = write/redo.js openRedo（普通推入）
+    return true;
+  },
   detail: char => openCharDetail(char),
   share: args => {
     const fn = resultImageAction();
@@ -215,6 +223,37 @@ export function NativeWriteHost({ params, entry }) {
     };
   }, [entry && entry.id]);
   return html`<div data-testid="write-native-host" data-slot=${slot}></div>`;
+}
+
+/**
+ * B2.9a：重写错字页在开关打开时渲染的宿主（与写字页宿主同一种做法）：不画内容；挂载时请原生推入原生重写错字页
+ * （随消息带整理后的字表、第一个字的快照与外观，原生首帧不等桥），卸载时请原生关掉（深链 / store 整体替换等把条目卸掉时原生跟着离开）。
+ * 原生离开（‹ / 左缘右滑 / 完成）发 redoExit → nav.back 回结果页。没有能练的字时与网页页面同样退回去。
+ */
+export function NativeRedoHost({ params, entry }) {
+  useEffect(() => {
+    installNativeWrite();
+    const router = getRouter();
+    const tr = router ? router.getState().transition : null;
+    const animate = !!(tr && tr.to && entry && tr.to.id === entry.id && tr.animate && !tr.cold);
+    let api = null;
+    try {
+      api = createWriteSessionApi();
+    } catch (error) {
+      api = null;
+    }
+    const opened = api ? api.call('redoOpen', { chars: params && params.chars }) : { ok: false };
+    if (!opened || !opened.ok) {
+      nav.back();
+      return undefined;
+    }
+    const entryId = entry ? entry.id : null;
+    const sent = postNative('nativeWrite', { op: 'redo-open', entryId, animate, via: animate ? 'push' : 'restore', sentAt: Date.now(), payload: opened });
+    return () => {
+      if (sent) postNative('nativeWrite', { op: 'redo-close', entryId });
+    };
+  }, [entry && entry.id]);
+  return html`<div data-testid="redo-native-host"></div>`;
 }
 
 // ---------------------------------------------------------------- B2.7 结果页宿主

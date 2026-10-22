@@ -15,3 +15,4 @@ export * from './ops/end.js';
 export * from './ops/line.js';
 export * from './ops/first-tip.js';
 export * from './ops/prompt.js';
+export * from './ops/redo.js';

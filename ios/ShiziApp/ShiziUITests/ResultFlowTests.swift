@@ -92,7 +92,7 @@ final class ResultFlowTests: XCTestCase {
         XCTAssertFalse(qa.resultShown)
     }
 
-    /// §9 入口：「重写错字」推入（网页重写错字页，B2.9 换原生）；返回时原生结果页重新盖上。
+    /// §9 入口（B2.9a）：「重写错字」推入原生重写错字页；左缘右滑回到结果页，原生结果页重新淡入。
     func test816_redoEntersAndComesBack() {
         let qa = QA(seed: "result-daily")
         qa.launch()
@@ -100,10 +100,110 @@ final class ResultFlowTests: XCTestCase {
         qa.tapNative("native-result-redo")
         qa.waitRouteTop("redo")
         qa.waitResult(false)
+        qa.waitNative(true)
+        XCTAssertEqual(qa.native["redo"] as? Bool, true)
+        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("redo:open via=push") }, "\(qa.transitions)")
         qa.edgeBack()
         qa.waitRouteTop("result")
         qa.waitResult(true)
+        XCTAssertFalse(qa.nativeShown)
         XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("result:open via=return") }, "\(qa.transitions)")
+    }
+
+    /// 结果页数据摘要（只算练习：重写错字前后必须相同）。
+    private func dataOf(_ qa: QA) -> String {
+        let p = qa.probe
+        let keys = ["records", "kinds", "judgedWrong", "judgedCorrect", "sched", "sessions", "answerSeenInk"]
+        let pick = keys.reduce(into: [String: Any]()) { $0[$1] = p[$1] ?? NSNull() }
+        var out = (try? JSONSerialization.data(withJSONObject: pick, options: [.sortedKeys])).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        let r = qa.resultInfo
+        out += " cells=\(r["cells"] ?? "") rows=\(r["rows"] ?? "") session=\(r["sessionId"] ?? "")"
+        return out
+    }
+
+    /// §9（B2.9a）：原生结果页「重写错字」→ 原生重写错字页逐个写：落笔 →「写好了」→ 对照（没有判断键）→「下一个」，最后一个「完成」→ 回到原生结果页；
+    /// 只算练习（D66 ③）：记录、调度、会话、结果页作品与各行都不变。
+    func test819_redoWritesEveryWrongCharThenDone() {
+        let qa = QA(seed: "result-daily")
+        qa.launch()
+        qa.waitResult(true)
+        qa.waitProbe("sealed") { (($0["result"] as? [String: Any])?["sealed"] as? Bool) == true }
+        let before = dataOf(qa)
+        qa.tapNative("native-result-redo")
+        qa.waitNative(true)
+        let total = qa.native["redoTotal"] as? Int ?? 0
+        XCTAssertGreaterThanOrEqual(total, 2, "result-daily has several wrong chars")
+        for i in 0..<total {
+            qa.waitProbe("redo char \(i)") { (($0["native"] as? [String: Any])?["redoIndex"] as? Int) == i && (($0["native"] as? [String: Any])?["phase"] as? String) == "recall" }
+            XCTAssertEqual(qa.el("native-write-progress").label, "第 \(i + 1) 个字，共 \(total) 个")
+            XCTAssertFalse(qa.el("native-redo-done").isEnabled, "写好了 needs a stroke")
+            XCTAssertFalse(qa.el("native-write-skip").exists || qa.el("native-write-hint").exists, "no skip / hint on the redo page")
+            qa.stroke()
+            qa.tapNative("native-redo-done")
+            qa.waitProbe("check \(i)") { (($0["native"] as? [String: Any])?["phase"] as? String) == "compare" }
+            XCTAssertFalse(qa.el("native-write-wrong").exists || qa.el("native-write-correct").exists, "no judge keys")
+            XCTAssertTrue(qa.el("native-redo-again").exists, "再写一次")
+            let next = qa.el("native-redo-next")
+            XCTAssertEqual(next.label, i == total - 1 ? "完成" : "下一个")
+            qa.tap(next, "下一个 / 完成")
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        qa.waitNative(false)
+        qa.waitRouteTop("result")
+        qa.waitResult(true)
+        XCTAssertEqual(dataOf(qa), before, "practice only: nothing written (D66 ③)")
+    }
+
+    /// §9（B2.9a）：中途「‹」回结果页（写的阶段），再进来在对照阶段左缘右滑也回结果页（不是「接着写」）；「看答案」不写也能对照，「再写一次」回空格；数据不变。
+    func test820_redoBackAndEdgeMidway() {
+        let qa = QA(seed: "result-daily")
+        qa.launch()
+        qa.waitResult(true)
+        qa.waitProbe("sealed") { (($0["result"] as? [String: Any])?["sealed"] as? Bool) == true }
+        let before = dataOf(qa)
+        qa.tapNative("native-result-redo")
+        qa.waitNative(true)
+        qa.stroke()
+        qa.tapNative("native-write-back")
+        qa.waitNative(false)
+        qa.waitRouteTop("result")
+        qa.waitResult(true)
+        XCTAssertEqual(dataOf(qa), before)
+
+        qa.tapNative("native-result-redo")
+        qa.waitNative(true)
+        qa.waitProbe("fresh redo page") { (($0["native"] as? [String: Any])?["redoIndex"] as? Int) == 0 && (($0["native"] as? [String: Any])?["strokes"] as? Int) == 0 }
+        qa.tapNative("native-redo-show-answer")
+        qa.waitProbe("check without ink") { (($0["native"] as? [String: Any])?["phase"] as? String) == "compare" }
+        XCTAssertTrue(qa.el("native-write-noink").exists, "这次没写")
+        qa.tapNative("native-redo-again")
+        qa.waitProbe("back to an empty grid") { (($0["native"] as? [String: Any])?["phase"] as? String) == "recall" && (($0["native"] as? [String: Any])?["redoIndex"] as? Int) == 0 }
+        qa.stroke()
+        qa.tapNative("native-redo-done")
+        qa.waitProbe("check") { (($0["native"] as? [String: Any])?["phase"] as? String) == "compare" }
+        qa.edgeBack()
+        qa.waitNative(false)
+        qa.waitRouteTop("result")
+        qa.waitResult(true)
+        XCTAssertEqual(dataOf(qa), before)
+    }
+
+    /// 冷启动（B2.9a）：重写错字页只在内存里（网页 RESTORE_GUARDS.redo = false，同网页）——在重写错字页杀进程重开 → 回到首页，没有原生页，数据不变。
+    func test821_redoColdStartLandsHomeLikeTheWeb() {
+        let qa = QA(seed: "result-daily")
+        qa.launch()
+        qa.waitResult(true)
+        qa.waitProbe("sealed") { (($0["result"] as? [String: Any])?["sealed"] as? Bool) == true }
+        let records = qa.records
+        qa.tapNative("native-result-redo")
+        qa.waitNative(true)
+        qa.stroke()
+        Thread.sleep(forTimeInterval: 1.5) // 路由提示落盘
+        qa.relaunchWithoutSeed()
+        qa.waitRouteTop("home", timeout: 15)
+        XCTAssertFalse(qa.nativeShown)
+        XCTAssertFalse(qa.resultShown)
+        XCTAssertEqual(qa.records, records)
     }
 
     /// 冷启动恢复：停在结果页杀进程重开 → 原生结果页直接盖上（不带转场），同一组。

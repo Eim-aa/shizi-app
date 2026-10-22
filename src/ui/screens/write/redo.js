@@ -21,7 +21,7 @@ import { Button, markStateChange } from '../../components/Button.js';
 import { Icons } from '../../components/icons.js';
 import { InkGrid } from '../../canvas/ink-canvas.js';
 import { t } from '../../../config/copy/index.js';
-import { isPracticable } from '../../../data/deck.js';
+import { redoCharsOf, redoQueueOf } from '../../../session/write-ops.js';
 import { useStrokeData } from './hint-layer.js';
 import { Prompt } from './prompt.js';
 import { CompareStage } from './compare.js';
@@ -31,22 +31,13 @@ import { useAxLevel, useCompact, useFootHairline, useWriteLayout } from './compa
 import { gridLabel } from './sr-live.js';
 import { AX_GRID_MIN } from './layout.js';
 import { PEN_ARM_MS } from './index.js'; // 换字后书写格的落笔门限，与写字页同一个值
+import { NativeRedoHost, nativeWriteEnabled } from './native-session.js';
 
 export const REDO_SCREEN = 'redo';
 const EMPTY = Object.freeze([]);
 
-/** 要重写的字：单个汉字、题库里能练的，去重，保持原顺序。 */
-export function redoCharsOf(params) {
-  const raw = params && Array.isArray(params.chars) ? params.chars : [];
-  const seen = new Set();
-  const out = [];
-  for (const c of raw) {
-    if (typeof c !== 'string' || Array.from(c).length !== 1 || seen.has(c) || !isPracticable(`base:${c}`)) continue;
-    seen.add(c);
-    out.push(c);
-  }
-  return out;
-}
+// 字表整理挪到无 DOM 的会话层（B2.9a，原生重写错字页的 redoOpen / redoNext 用同一个函数）；这里原名转出。
+export { redoCharsOf, redoQueueOf };
 
 /** 打开重写错字页（普通推入）。chars 为空时不打开。 */
 export function openRedo(chars) {
@@ -60,10 +51,10 @@ function clockNow() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
 }
 
-function RedoScreen({ params }) {
+function WebRedoScreen({ params }) {
   const chars = redoCharsOf(params);
   const total = chars.length;
-  const queue = chars.map(c => `base:${c}`);
+  const queue = redoQueueOf(chars);
   const [st, setSt] = useState({ i: 0, stage: 'write', strokes: EMPTY, cleared: null });
   const i = Math.min(st.i, Math.max(0, total - 1));
   const cardKey = queue[i] || null;
@@ -148,4 +139,13 @@ function RedoScreen({ params }) {
   </${Page}>`;
 }
 
-registerScreen(REDO_SCREEN, RedoScreen, { label: t('X-REDO.title') });
+/**
+ * B2.9a：原生写字页开关打开时，重写错字页由原生页面显示（宿主 NativeRedoHost：透明、不画内容；原生页复用写字页的书写格与对照两格，
+ * 经写字会话 API 的 redoOpen / redoNext / redoExit 取同一份字表与题面，同样不写任何东西）。开关关着时就是本页，行为不变。
+ */
+function RedoScreen({ params, entry }) {
+  if (nativeWriteEnabled()) return html`<${NativeRedoHost} params=${params} entry=${entry} />`;
+  return html`<${WebRedoScreen} params=${params} />`;
+}
+
+registerScreen(REDO_SCREEN, RedoScreen, { label: t('X-REDO.title'), nativeHost: () => nativeWriteEnabled() });

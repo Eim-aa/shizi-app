@@ -6,6 +6,7 @@
 //   node scripts/sim/schedule-sim.mjs --days 30           把每个场景的天数压到最多 30 天（快速烟测）
 //   node scripts/sim/schedule-sim.mjs --out some/dir      输出目录（默认 scripts/sim/out）
 //   node scripts/sim/schedule-sim.mjs --group-size 5      所有场景按「每组字数 5」跑（缺省 = 没选过，按 policy.groupSize 20）
+//   node scripts/sim/schedule-sim.mjs --engine js|swift|both   规则引擎（缺省 js；swift / both 由 B4.2 接入，见 lib/engine-select.mjs）
 //
 // 输出（默认 scripts/sim/out/，已 .gitignore）：
 //   report.md                  可读报告（场景预期 vs 实际、偏离、不变量违反、单字间隔表）
@@ -26,16 +27,18 @@ import { csvOf, summarize } from './lib/summary.mjs';
 import { INVARIANTS, INVARIANT_TITLE } from './lib/invariants.mjs';
 import { SCENARIOS } from './scenarios.mjs';
 import { intervalLadders } from './lib/ladders.mjs';
+import { resolveSimEngine } from './lib/engine-select.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 function parseArgs(argv) {
-  const out = { only: null, days: null, out: path.join(HERE, 'out') };
+  const out = { only: null, days: null, out: path.join(HERE, 'out'), engine: 'js' };
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--only') out.only = argv[++i].split(',');
     else if (argv[i] === '--days') out.days = Number(argv[++i]);
     else if (argv[i] === '--out') out.out = path.resolve(argv[++i]);
     else if (argv[i] === '--group-size') out.groupSize = Number(argv[++i]);
+    else if (argv[i] === '--engine') out.engine = argv[++i];
   }
   return out;
 }
@@ -64,6 +67,12 @@ function runOne(def, args) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  const engine = resolveSimEngine(args.engine);
+  if (!engine.ok) {
+    process.stderr.write(engine.message + '\n');
+    process.exitCode = 2;
+    return;
+  }
   fs.mkdirSync(args.out, { recursive: true });
   const defs = SCENARIOS.filter(s => !args.only || args.only.some(p => s.id.startsWith(p)));
   const results = [];

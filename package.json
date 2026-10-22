@@ -24,6 +24,7 @@
     "verify:native-smoke": "python3 ios/ShiziApp/scripts/validate-native-smoke.py",
     "verify:webkit-ax": "node scripts/verify-webkit-ax.mjs",
     "verify:native-ui": "bash ios/ShiziApp/scripts/verify-native-ui.sh",
+    "verify:core-diff": "node scripts/core-diff/verify.mjs",
     "test": "pnpm run verify:data && pnpm run verify:unit && pnpm run verify:copy && pnpm run verify:tokens && pnpm run verify:web"
   },
   "devDependencies": {

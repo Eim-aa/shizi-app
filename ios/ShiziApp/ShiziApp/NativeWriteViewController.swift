@@ -33,6 +33,10 @@ import WebKit
 // 跳过 / 撤销 / 结束这组（B2.6，NativeSkipEnd.swift；确认单 6、7；D68 ③ ④）：页头右上 [结束这组][跳过]；跳过直接生效（skip op），底部「已跳过「X」· 撤销」5 秒（按住暂停、读屏不自动收起、
 //   下一字落笔 / 点提示 / 点看答案 / 开结束确认框就收起），撤销 = undoSkip（字、提示次数、笔画放回）；最后一字跳过 / 带着撤销条离开时，剩余的撤销机会随 exit 交给结果页 / 来源页（S4）。
 //   「结束这组」经 end op 取数字（counts）弹居中确认框（不预选、点遮罩 = 接着写），确认后：有判断 → exit result 换成结果页，零判断 → 回来源。看答案 / 跳过 / 结束写入失败：就地三段式（R-W16）。
+// 重写错字（B2.9a；确认单 §9、D66 ③）：同一个页面换成只练习的模式（redo）——页面给字表与每个字的快照（redoOpen / redoNext，网页 write/redo.js 同一份字表与题面）；
+//   写：题面 → 书写格（同一套书写面、撤销 / 清空、格外起笔、手掌规则）→ 格下说明「再写一遍，只算练习。」→ 求助行「看答案」（无图标，直接去对照）+ 主按钮「写好了」；
+//   对照：判断页的两格版式、没有判断键 → 求助行「再写一次」（空格重写这个字）+ 主按钮「下一个」（最后一个「完成」：滑出回到结果页）。
+//   页头：「‹」整页离开（左缘右滑同义，对照阶段也是离开）、中间「n / 总数」。不发任何写入 op（现场 / 阶段 / 提示 / 判断 / 首练提示），离开发 redoExit。
 // 文案：全部取自页面 src/config/copy（open 回包的 copy 字典与 hint op 的回包），本文件不写任何用户可见的字。
 
 protocol NativeWriteCoordinating: AnyObject {
@@ -55,6 +59,10 @@ final class NativeWriteViewController: UIViewController {
     }
 
     let slot: String
+    /// B2.9a：重写错字页（只练习、不记录；见文件头）。字表随 redoOpen 给出，当前第几个字在快照的 cursor 里。
+    let redo: Bool
+    private var redoChars: [String] = []
+    private var redoBusy = false
     private let bridge: NativeWriteBridge
     weak var coordinator: NativeWriteCoordinating?
     let transitions = NativeWriteTransitions()
@@ -170,6 +178,9 @@ final class NativeWriteViewController: UIViewController {
     private let retraceButton = NativeIconTextButton(type: .system)
     private let nextHelpButton = NativeIconTextButton(type: .system)
     private let flowCancelButton = NativeIconTextButton(type: .system)
+    // B2.9a 重写错字页的求助行：写的时候「看答案」（网页 LinkButton 不带图标）、对照时「再写一次」
+    private let redoAnswerButton = NativeIconTextButton(type: .system)
+    private let redoAgainButton = NativeIconTextButton(type: .system)
     private let doneButton = UIButton(type: .system)
     private let wrongButton = UIButton(type: .system)
     private let correctButton = UIButton(type: .system)
@@ -190,8 +201,10 @@ final class NativeWriteViewController: UIViewController {
     /// 字阶（网页 --fsN / --lhN 同值，R9-A）。
     private var type: NativeTypeScale { NativeTypeScale(type: textType, ax: traitCollection.preferredContentSizeCategory.isAccessibilityCategory) }
 
-    init(slot: String, payload: [String: Any], bridge: NativeWriteBridge) {
+    init(slot: String, payload: [String: Any], bridge: NativeWriteBridge, redo: Bool = false) {
         self.slot = slot
+        self.redo = redo
+        self.redoChars = redo ? (payload["chars"] as? [String] ?? []) : []
         self.bridge = bridge
         self.snapshot = payload["snapshot"] as? [String: Any] ?? [:]
         self.copy = (payload["copy"] as? [String: String]) ?? [:]
@@ -399,6 +412,11 @@ final class NativeWriteViewController: UIViewController {
         wire(nextHelpButton, id: "nextHelp") { $0.runFlow(.answerNext) }
         wire(flowCancelButton, id: "flowCancel") { $0.tapFlowCancel() }
         [answerButton, retraceButton, nextHelpButton, flowCancelButton].forEach { $0.isHidden = true }
+        configureHelp(redoAnswerButton, title: tr("R-W07.btnShowAnswer"), icon: nil, id: "native-redo-show-answer")
+        configureHelp(redoAgainButton, title: tr("X-REDO.again"), icon: nil, id: "native-redo-again")
+        wire(redoAnswerButton, id: "redoAnswer") { $0.tapRedoAnswer() }
+        wire(redoAgainButton, id: "redoAgain") { $0.tapRedoAgain() }
+        [redoAnswerButton, redoAgainButton].forEach { $0.isHidden = true }
         wire(hintButtonView, id: "hint") { $0.tapHint() }
         configurePrimary(doneButton, title: tr("R-W29.btnDone"), id: "native-write-done")
         wire(doneButton, id: "done") { $0.tapPrimary() }
@@ -417,7 +435,7 @@ final class NativeWriteViewController: UIViewController {
         failNote.textColor = color("ink2", .secondaryLabel)
         failNote.textAlignment = .center
         failNote.numberOfLines = 0
-        [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, doneButton, wrongButton, correctButton, failNote, failCancel, failRetry].forEach { footView.addSubview($0) }
+        [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, redoAnswerButton, redoAgainButton, doneButton, wrongButton, correctButton, failNote, failCancel, failRetry].forEach { footView.addSubview($0) }
 
         [backButton, centerLabel, progressLabel, headProgress, endButton, skipButton, stepsView, promptView, gridFrame, noInkLabel, hintLayer, traceLayer, ink, refFrame, undoButton, clearButton, noteView, footView]
             .forEach { view.addSubview($0) }
@@ -460,6 +478,12 @@ final class NativeWriteViewController: UIViewController {
         super.viewDidDisappear(animated)
         guard isBeingDismissed || presentingViewController == nil else { return }
         saveMetrics()
+        if !exitHandled, redo {
+            // B2.9a：重写错字页离开（‹ / 左缘 / 完成）→ 页面 nav.back 回到结果页；什么都不写
+            exitHandled = true
+            bridge.call("redoExit", [:]) { _ in }
+            return
+        }
         if !exitHandled {
             exitHandled = true
             var args: [String: Any] = ["slot": slot, "to": "back"]
@@ -565,7 +589,8 @@ final class NativeWriteViewController: UIViewController {
         applyColors(payload["colors"] as? [String: String])
         applyTiming(payload)
         applyType()
-        if let s = payload["snapshot"] as? [String: Any] { apply(snapshot: s, keepLocal: true) }
+        // B2.9a：重写错字页第几个字只在原生（页面重新发 redoOpen 给的是第一个字），只换外观
+        if !redo, let s = payload["snapshot"] as? [String: Any] { apply(snapshot: s, keepLocal: true) }
     }
 
     private func rebuildPrompt() {
@@ -701,7 +726,7 @@ final class NativeWriteViewController: UIViewController {
     }
 
     private func requestHintState() {
-        guard let key = cardKey else { return }
+        guard !redo, let key = cardKey else { return } // 重写错字页没有提示（网页同）
         bridge.call("hint", hintArgs("state")) { [weak self] reply in
             guard let self, self.cardKey == key, reply.ok else { return }
             self.applyHintModel(reply.body)
@@ -798,8 +823,9 @@ final class NativeWriteViewController: UIViewController {
         let flow = inFlowPhase
         let progressText = tr("R-W01.progress", ["n": n, "total": total])
         let progressSpoken = tr("R-W01.progressLabel", ["n": n, "total": total])
-        switch phase {
+        switch redo ? .recall : phase {
         case .recall:
+            // 重写错字页两个阶段页头中间都是进度（网页 Page center = progress、hideTitle），「‹」读「返回」
             centerLabel.text = progressText
             centerLabel.accessibilityLabel = progressSpoken
             backButton.accessibilityLabel = tr("X-COMMON.back")
@@ -816,10 +842,10 @@ final class NativeWriteViewController: UIViewController {
             progressLabel.text = tr("R-W01.progress", ["n": n, "total": total])
             progressLabel.accessibilityLabel = tr("R-W01.progressLabel", ["n": n, "total": total])
         }
-        progressLabel.isHidden = !compare
+        progressLabel.isHidden = !compare || redo
         // 页头中间：回忆阶段是进度（t15 ink3 等宽数字，网页 .sz-write__progress），其余阶段是标题（17 / 500 ink1，网页 .sz-page__title；R9-A NP-08）
         let ts = type
-        if phase == .recall {
+        if phase == .recall || redo {
             centerLabel.font = ts.font(15, tabular: true)
             centerLabel.textColor = color("ink3", .secondaryLabel)
         } else {
@@ -867,7 +893,9 @@ final class NativeWriteViewController: UIViewController {
             changeButton.accessibilityLabel = action.replacingOccurrences(of: "\u{203A}", with: "").trimmingCharacters(in: .whitespaces)
         }
         let flowNote: String?
-        if flowFail != nil {
+        if redo {
+            flowNote = phase == .recall ? tr("X-REDO.note") : nil // 「再写一遍，只算练习。」（网页 redo-note，写的时候一直在）
+        } else if flowFail != nil {
             flowNote = tr("R-W16.saveFailed")
         } else if phase == .trace {
             flowNote = tr(traceMissing ? "R-W08.answerNote" : "R-W07.answerNote") // 「记为看过答案」只在这一处说
@@ -881,7 +909,7 @@ final class NativeWriteViewController: UIViewController {
         let firstTipOn = firstTipDue && !firstTipGone && phase == .recall && !answerSeen && flowNote == nil && strokes.isEmpty && !penDown
             && (hint?.used ?? 0) == 0 && !lineOn
         if firstTipDue && !firstTipOn && firstTipSent { firstTipGone = true }
-        if firstTipOn && !firstTipSent {
+        if firstTipOn && !firstTipSent && !redo {
             firstTipSent = true
             bridge.send("firstTip", ["slot": slot])
         }
@@ -892,12 +920,12 @@ final class NativeWriteViewController: UIViewController {
         noteDot.isHidden = !hintNoteOn
         noteView.isHidden = compare
         // 页头右上：跳过（回忆阶段、没看过答案）/ 结束这组（除判断页外各阶段；底栏被保存失败占住时不显示）
-        skipButton.isHidden = !(phase == .recall && !answerSeen && cardKey != nil && flowFail != .skip)
+        skipButton.isHidden = redo || !(phase == .recall && !answerSeen && cardKey != nil && flowFail != .skip)
         endButton.isHidden = !(!compare && canEnd && cardKey != nil && flowFail == nil)
         // 求助行：回忆 [提示][看答案]；看过答案后的回忆 [看答案][提示（不可点）]；描一遍 [下一个]；凭记忆写 [再描一遍]；没保存上 [先不保存]
         let kind = hintButton["kind"] as? String ?? "loading"
         let noFail = flowFail == nil
-        let hintShown = noFail && phase == .recall && !(answerSeen && kind != "exhausted")
+        let hintShown = !redo && noFail && phase == .recall && !(answerSeen && kind != "exhausted")
         hintButtonView.isHidden = !hintShown
         if kind == "unavailable" {
             // 没有笔顺数据：灰字「暂时没有提示」，不是按钮（M1-2 NoHintLabel）
@@ -915,19 +943,21 @@ final class NativeWriteViewController: UIViewController {
             hintButtonView.accessibilityTraits = [.button]
         }
         hintButtonView.accessibilityLabel = hintButton["label"] as? String
-        answerButton.isHidden = !(noFail && phase == .recall)
+        answerButton.isHidden = redo || !(noFail && phase == .recall)
+        redoAnswerButton.isHidden = !(redo && phase == .recall)
+        redoAgainButton.isHidden = !(redo && compare)
         retraceButton.isHidden = !(noFail && phase == .retrace)
         nextHelpButton.isHidden = !(noFail && phase == .trace)
         flowCancelButton.isHidden = noFail
         // 主按钮：写好了 / 凭记忆写 / 下一个 / 再试一次（没保存上）
-        doneButton.isHidden = compare
+        doneButton.isHidden = compare && !redo
         let primary = primaryModel()
         doneButton.setTitle(primary.title, for: .normal)
         doneButton.accessibilityIdentifier = primary.id
         doneButton.isEnabled = primary.enabled
         doneButton.backgroundColor = primary.enabled ? color("btn-bg", .label) : color("field", .secondarySystemFill) // 网页 .sz-btn--primary：--btn-bg（R9-A NP-12）
-        wrongButton.isHidden = !compare || failed
-        correctButton.isHidden = !compare || failed
+        wrongButton.isHidden = !compare || failed || redo
+        correctButton.isHidden = !compare || failed || redo
         failNote.isHidden = !(compare && failed)
         failCancel.isHidden = !(compare && failed)
         failRetry.isHidden = !(compare && failed)
@@ -937,6 +967,11 @@ final class NativeWriteViewController: UIViewController {
     }
 
     private func primaryModel() -> (title: String, id: String, enabled: Bool) {
+        if redo {
+            // 重写错字：写好了（没落笔不可点）/ 下一个（最后一个字「完成」）
+            if phase == .compare { return (redoLast ? tr("X-RESULT.done") : tr("R-W07.btnNext"), "native-redo-next", !redoBusy) }
+            return (tr("R-W29.btnDone"), "native-redo-done", !strokes.isEmpty)
+        }
         if flowFail != nil { return (tr("R-W16.retry"), "native-write-retry", true) }
         switch phase {
         case .trace: return (tr("X-ANSWER.btnTraceDone"), "native-write-trace-done", true)
@@ -983,7 +1018,7 @@ final class NativeWriteViewController: UIViewController {
             return bw
         }
         let progressW = { (l: UILabel) in ceil(l.sizeThatFits(CGSize(width: w / 3, height: headH)).width) }
-        if phase == .recall {
+        if phase == .recall || redo {
             if !skipButton.isHidden {
                 right -= place(skipButton, right, 0) + 16
             }
@@ -1009,8 +1044,8 @@ final class NativeWriteViewController: UIViewController {
         let trailLeft = min(right, w - gutter - 44)
         let centerX = gutter + 44 + 8
         centerLabel.frame = CGRect(x: centerX, y: safe.top, width: max(0, trailLeft - 8 - centerX), height: headH)
-        if phase == .recall {
-            // 回忆阶段中间是进度：框 = 字宽 × lh15，在两槽之间居中（网页 .sz-page__center 里的 .sz-write__progress）
+        if phase == .recall || redo {
+            // 回忆阶段（与重写错字页两个阶段）中间是进度：框 = 字宽 × lh15，在两槽之间居中（网页 .sz-page__center 里的 .sz-write__progress）
             let tw = ceil(centerLabel.sizeThatFits(CGSize(width: w, height: headH)).width)
             let lh = type.lineHeight(15)
             let mid = (centerX + trailLeft - 8) / 2
@@ -1036,7 +1071,7 @@ final class NativeWriteViewController: UIViewController {
         let half = (w - 2 * gutter - 12) / 2
         wrongButton.frame = CGRect(x: gutter, y: fy(primaryY), width: half, height: primaryH)
         correctButton.frame = CGRect(x: gutter + half + 12, y: fy(primaryY), width: half, height: primaryH)
-        let helpOrder: [UIButton] = recallSeen ? [answerButton, hintButtonView] : [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton]
+        let helpOrder: [UIButton] = recallSeen ? [answerButton, hintButtonView] : [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, redoAnswerButton, redoAgainButton]
         let helps = helpOrder.filter { !$0.isHidden }
         let slotW = helps.count > 1 ? (w - 2 * gutter - 12) / 2 : w - 2 * gutter
         for (i, b) in helps.enumerated() {
@@ -1232,7 +1267,7 @@ final class NativeWriteViewController: UIViewController {
             b.titleLabel?.adjustsFontForContentSizeCategory = false
             if let icon = b.toolIcon { setIcon(b, icon) }
         }
-        for b in [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton] {
+        for b in [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, redoAnswerButton, redoAgainButton] {
             b.titleLabel?.font = ts.font(17, .medium)
             b.titleLabel?.adjustsFontForContentSizeCategory = false
             if let icon = b.toolIcon { setIcon(b, icon) }
@@ -1286,13 +1321,13 @@ final class NativeWriteViewController: UIViewController {
     private var currentPhaseName: String { phase == .compare ? "compare" : "recall" }
 
     private func persistStrokes() {
-        guard let key = cardKey else { return }
+        guard !redo, let key = cardKey else { return } // 重写错字只算练习：笔画不写回（D66 ③）
         bridge.send("strokes", ["slot": slot, "cardKey": key, "strokes": NativeInkWire.wire(strokes), "phase": currentPhaseName])
     }
 
     @objc private func tapBack() {
         if endDialog != nil { dismissEndDialog(); return } // 确认框开着：读屏 Z 形 / 返回 = 接着写
-        if phase == .compare { continueWriting(); return }
+        if phase == .compare && !redo { continueWriting(); return } // 重写错字页的对照阶段「‹」= 整页离开（网页 Page 返回）
         coordinator?.nativeWriteDidRequestBack(self)
     }
 
@@ -1319,6 +1354,7 @@ final class NativeWriteViewController: UIViewController {
     @objc private func tapDone() {
         guard phase == .recall, !answerSeen, !strokes.isEmpty, let key = cardKey else { return }
         lightHaptic.impactOccurred(intensity: 0.5)
+        if redo { enterCompare(); return } // 重写错字：本地进对照，不写阶段
         bridge.send("phase", ["slot": slot, "cardKey": key, "phase": "compare", "strokes": NativeInkWire.wire(strokes)])
         enterCompare()
     }
@@ -1327,6 +1363,10 @@ final class NativeWriteViewController: UIViewController {
 
     /// 主按钮：写好了 / 凭记忆写 / 下一个 / 再试一次，按当前模式。
     @objc private func tapPrimary() {
+        if redo {
+            if phase == .compare { tapRedoNext() } else { tapDone() }
+            return
+        }
         if let f = flowFail { runFlow(f); return }
         switch phase {
         case .recall: if answerSeen { runFlow(.answerNext) } else { tapDone() }
@@ -1632,7 +1672,7 @@ final class NativeWriteViewController: UIViewController {
         view.setNeedsLayout()
         view.layoutIfNeeded() // 书写格回到动画起点
         phase = .compare
-        armJudgeKeys()
+        if redo { disarmJudgeKeys() } else { armJudgeKeys() } // 重写错字的对照页没有判断键
         refresh()
         renderHint(fadeIn: false)
         // .allowUserInteraction：动画进行中落笔照常生效（T0 规则 3；落笔时 settleAnimations 让动画一帧到终态）
@@ -1829,7 +1869,7 @@ final class NativeWriteViewController: UIViewController {
         case progressLabel: return progressLabel.isHidden ? "" : progressLabel.text ?? ""
         case promptView: return (promptCells.map { $0.accessibilityLabel ?? "" } + [promptHint.text ?? ""]).joined(separator: "|")
         case noteView: return [lineLabel.isHidden ? "" : lineLabel.text ?? "", changeButton.isHidden ? "" : "c", noteLabel.isHidden ? "" : noteLabel.text ?? ""].joined(separator: "|")
-        case footView: return ([hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, doneButton, wrongButton, correctButton, failCancel, failRetry].map { $0.isHidden ? "" : ($0.title(for: .normal) ?? "") } + [failNote.isHidden ? "" : "n"]).joined(separator: "|")
+        case footView: return ([hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, redoAnswerButton, redoAgainButton, doneButton, wrongButton, correctButton, failCancel, failRetry].map { $0.isHidden ? "" : ($0.title(for: .normal) ?? "") } + [failNote.isHidden ? "" : "n"]).joined(separator: "|")
         default: return ""
         }
     }
@@ -1887,6 +1927,47 @@ final class NativeWriteViewController: UIViewController {
         }
         UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
     }
+
+    // MARK: 重写错字（B2.9a；只练习：本地换阶段，换字经 redoNext 取页面给的下一个字快照，离开发 redoExit）
+
+    /// 这是本组最后一个要重写的字（对照页主按钮是「完成」）。
+    private var redoLast: Bool { (snapshot["last"] as? Bool) ?? (cursorNumber >= totalCount) }
+
+    /// 写的时候「看答案」：直接去对照（网页 toCheck，没写也能看；没写时上格「这次没写」）。
+    @objc private func tapRedoAnswer() {
+        guard redo, phase == .recall else { return }
+        enterCompare()
+    }
+
+    /// 对照时「再写一次」：回到这个字的空书写格（网页 again：笔画清空、撤销不能找回）。换阶段走 T-phase 换字转场。
+    @objc private func tapRedoAgain() {
+        guard redo, phase == .compare else { return }
+        var next = snapshot
+        next["strokes"] = [Any]()
+        next["phase"] = "recall"
+        armedCard = cardKey // 同一个字：不重新设落笔门限（网页 armRef 按字）
+        advance(to: next)
+    }
+
+    /// 对照时「下一个 / 完成」：redoNext 给下一个字的快照；最后一个 → 滑出回到结果页（离开时 redoExit）。
+    @objc private func tapRedoNext() {
+        guard redo, phase == .compare, !redoBusy else { return }
+        redoBusy = true
+        refresh()
+        bridge.call("redoNext", ["chars": redoChars, "index": snapshot["cursor"] as? Int ?? 0]) { [weak self] reply in
+            guard let self else { return }
+            self.redoBusy = false
+            guard reply.ok else { self.refresh(); return }
+            if (reply.body["done"] as? Bool) == true {
+                self.coordinator?.nativeWriteDidRequestBack(self)
+                return
+            }
+            if let snap = reply.snapshot { self.advance(to: snap) } else { self.refresh() }
+        }
+    }
+
+    var redoIndexForTesting: Int { snapshot["cursor"] as? Int ?? -1 }
+    var redoTotalForTesting: Int { totalCount }
 
     // MARK: 判断两键的出现与就绪（时刻编排 M1：0–judgeAppear 不显示，之后 60% 且不可点，judgeReady 变实可点；取代看不见的锁）
 
@@ -2131,7 +2212,7 @@ final class NativeWriteViewController: UIViewController {
     private var autoCount = 0
 
     func scheduleAutoStep() {
-        guard Self.autoDrive else { return }
+        guard Self.autoDrive, !redo else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.autoStep() }
     }
 
@@ -2156,7 +2237,7 @@ final class NativeWriteViewController: UIViewController {
         guard endDialog == nil else { return }
         let x = max(0, g.translation(in: view).x), v = g.velocity(in: view).x
         let width = max(1, view.bounds.width)
-        if phase == .compare {
+        if phase == .compare && !redo {
             // 判断阶段：左缘右滑 = 「‹ 接着写」，跟手画面是 T-phase 倒放（上格长回书写格、参考格与两键淡出）；过阈值才完成，否则回弹（N3-3）。
             // 减少动态效果：不跟手，松手按同一阈值判定，完成后 150ms 淡化。
             let commit = BackGestureThreshold.commits(distance: x, velocity: v, width: width)

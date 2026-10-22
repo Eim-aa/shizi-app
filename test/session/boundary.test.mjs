@@ -117,6 +117,7 @@ test('session boundary: the web page modules re-export the very same session fun
     [await ui('write/result-row.js'), ops, ['commitCorrection', 'resultRowModel']],
     [await ui('write/first-tip.js'), ops, ['commitFirstTipSeen', 'firstTipDue']],
     [await ui('write/prompt.js'), ops, ['promptCells', 'blankLabel']],
+    [await ui('write/redo.js'), ops, ['redoCharsOf', 'redoQueueOf']], // B2.9a：原生重写错字页的 redoOpen / redoNext 用同一份字表
     [await ui('result/index.js'), result, ['resultModel', 'commitFinish', 'commitLeave', 'commitResultCorrection', 'commitResultSkipUndo']],
     [await ui('result/work.js'), result, ['commitAdded', 'commitSealed']],
     [await ui('result/first.js'), result, ['firstExtras', 'daysLaterOf']],

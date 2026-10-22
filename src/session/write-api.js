@@ -17,7 +17,7 @@ import {
   answerInkKey, canEndGroup, commitAnswerNext, commitAnswerPhase, commitAnswerSeen, commitComparePhase, commitCorrection, commitEndGroup, commitHint, commitHintStep,
   commitFirstTipSeen, commitJudgment, commitRecover, commitSkip, commitStrokes, commitUndoSkip, endConfirmCounts, firstTipDue, hintAnnouncement, hintButtonModel,
   hintNoteModel, hintSourceOfCount, hintStep, HINT_FADE_IN_MS, HINT_FADE_OUT_MS, HINT_MATCH_MAX_DIST, PEN_ARM_MS, promptCells, REDUCED_FADE_MS,
-  findRecord, recalledInk, resultRowModel, storedStrokes,
+  findRecord, recalledInk, redoCharsOf, redoQueueOf, resultRowModel, storedStrokes,
 } from './write-ops.js';
 import { commitFinish } from './result-ops.js';
 import { createResultOps, NATIVE_RESULT_COPY_KEYS, NATIVE_RESULT_OPS } from './result-api.js';
@@ -25,7 +25,9 @@ import { createResultOps, NATIVE_RESULT_COPY_KEYS, NATIVE_RESULT_OPS } from './r
 export { NATIVE_RESULT_COPY_KEYS, NATIVE_RESULT_OPS };
 
 /** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct，B2.4 / B2.6 加 showAnswer / answerPhase / answerNext / skip / undoSkip / end，R9-A 加 firstTip；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
-export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip']);
+export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip',
+  // B2.9a 重写错字（只练习、不记录）
+  'redoOpen', 'redoNext', 'redoExit']);
 
 /** 原生写字页用到的文案键（值取自 src/config/copy，原生不另存一份）。 */
 export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
@@ -84,6 +86,11 @@ export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'X-WRITE.gridLabel',
   'X-WRITE.gridLabelCount',
   'X-DETAIL.viewChar',
+  // B2.9a 重写错字页（D66 ③）：页名、格下说明、对照页「再写一次」、最后一个字的「完成」
+  'X-REDO.title',
+  'X-REDO.note',
+  'X-REDO.again',
+  'X-RESULT.done',
 ]);
 
 // ---------------------------------------------------------------- 笔画格式
@@ -163,6 +170,26 @@ export function writeSnapshot(state, slot) {
     firstTip: firstTipDue({ settings: state ? state.settings : null, session: s, phase: raw === 'compare' || answerPhase ? 'other' : 'recall' }),
     lastLine: s.lastLine ? { ...s.lastLine } : null,
     line: lineOf(s, state),
+  };
+}
+
+/**
+ * B2.9a 重写错字页（D66 ③）的快照：与 writeSnapshot 同一形状，原生写字页按 kind 'redo' 切到重写错字模式。
+ * 字表与题面与网页 write/redo.js 同一组函数（redoCharsOf / redoQueueOf / promptOf = Prompt 组件的 withWordOff + capitalCard + promptCells）；
+ * 只算练习：没有会话、记录、提示、结果行，笔画只在原生内存里（网页同样只在组件 state 里）。
+ */
+export function redoSnapshot(state, chars, index) {
+  const list = Array.isArray(chars) ? chars : [];
+  const total = list.length;
+  const i = Math.min(Math.max(0, Math.trunc(Number(index) || 0)), Math.max(0, total - 1));
+  const queue = redoQueueOf(list);
+  const cardKey = queue[i] || null;
+  return {
+    slot: 'redo', active: true, kind: 'redo', sessionId: null, cursor: i, total, done: false,
+    cardKey, char: cardKey ? charOfCardKey(cardKey) : '', last: i === total - 1,
+    phase: 'recall', storedPhase: 'recall', answerPhase: null, canEnd: false, strokes: [], hints: 0, hintRange: null, answerSeen: false,
+    prompt: cardKey ? promptOf(state, cardKey, queue, false) : { cells: [], hint: '' },
+    firstTip: false, lastLine: null, line: { state: 'none' },
   };
 }
 
@@ -503,6 +530,34 @@ export function createWriteSessionApi(deps = {}) {
       }
       const r = commitEndGroup(store, { slot, sessionId });
       return r && r.ok ? { ok: true, judgedCount: r.judgedCount, sessionId, snapshot: snapshot(slot) } : flowFail(slot, r);
+    },
+    /**
+     * B2.9a 重写错字（D66 ③，确认单 §9）：只算练习——三个 op 都不调 store.commit、不读写会话 / 记录 / 调度 / 墨迹（契约测试断言 store 不变）。
+     *   redoOpen {chars}：整理字表（网页 redoCharsOf 同一个函数）→ 第一个字的快照 + 外观（文案 / 颜色 / 字阶 / 时刻 / 动效 / 版式 / 墨参数，同 open）；
+     *     没有能练的字 → invalid（网页同样不打开 / 退回去）。
+     *   redoNext {chars, index}：对照页「下一个 / 完成」——不是最后一个 → 下一个字的快照；最后一个 → done（原生随即滑出、离开时 redoExit；
+     *     网页 next() 最后一个同样是一次 nav.back）。
+     *   redoExit：离开（‹ / 左缘右滑 / 完成）= 页面 nav.back 回到结果页（navigate.redoBack）。
+     */
+    redoOpen({ chars }) {
+      const list = redoCharsOf({ chars });
+      if (!list.length) return { ok: false, error: { kind: 'invalid' } };
+      return {
+        ok: true, chars: list, snapshot: redoSnapshot(storeOf().getState(), list, 0), copy: copyBundle(), colors: colors(), type: type(), timing: writeTiming(),
+        motion: writeMotion(), layout: writeLayoutConstants(), ink: writeInk(),
+      };
+    },
+    redoNext({ chars, index }) {
+      const list = redoCharsOf({ chars });
+      const i = Math.trunc(Number(index));
+      if (!list.length || !Number.isInteger(i) || i < 0 || i >= list.length) return { ok: false, error: { kind: 'invalid' } };
+      if (i === list.length - 1) return { ok: true, done: true };
+      return { ok: true, done: false, snapshot: redoSnapshot(storeOf().getState(), list, i + 1) };
+    },
+    redoExit() {
+      if (typeof navigate.redoBack !== 'function') return { ok: false, error: { kind: 'invalid' } };
+      navigate.redoBack();
+      return { ok: true };
     },
     copy({ keys }) {
       return { ok: true, copy: copyBundle(Array.isArray(keys) ? keys : NATIVE_WRITE_COPY_KEYS) };

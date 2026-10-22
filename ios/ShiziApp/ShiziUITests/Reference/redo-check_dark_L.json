@@ -1,0 +1,329 @@
+{
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "redo-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title sz-page__title--hidden",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 83.5
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "h1",
+      "text" : "重写错字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 19,
+        "y" : 83.5
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "第 1 个字，共 3 个",
+      "class" : "sz-write__progress",
+      "color" : "#A0968AFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 30.699999999999999,
+        "x" : 185.59999999999999,
+        "y" : 73
+      },
+      "id" : "redo-progress",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "1 \/ 3",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 30.699999999999999,
+        "x" : 185.59999999999999,
+        "y" : 74
+      }
+    },
+    {
+      "axLabel" : "题目",
+      "class" : "sz-write__prompt sz-prompt",
+      "frame" : {
+        "h" : 80,
+        "w" : 362,
+        "x" : 20,
+        "y" : 128
+      },
+      "id" : "write-prompt",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-prompt__word",
+      "frame" : {
+        "h" : 52,
+        "w" : 104,
+        "x" : 149,
+        "y" : 156
+      },
+      "id" : "write-prompt-word",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "要写的字，第 1 个，读 chūn，一声",
+      "class" : "sz-prompt__cell",
+      "frame" : {
+        "h" : 52,
+        "w" : 52,
+        "x" : 149,
+        "y" : 156
+      },
+      "id" : "write-prompt-cell",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-prompt__py",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 26,
+        "w" : 33.799999999999997,
+        "x" : 158.19999999999999,
+        "y" : 130
+      },
+      "id" : "write-prompt-py",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "chūn",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 33.799999999999997,
+        "x" : 158.19999999999999,
+        "y" : 131
+      }
+    },
+    {
+      "class" : "sz-prompt__cell",
+      "frame" : {
+        "h" : 52,
+        "w" : 52,
+        "x" : 201,
+        "y" : 156
+      },
+      "id" : "write-prompt-cell",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 226,
+        "y" : 160.19999999999999
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "天",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 10.9,
+        "x" : 226,
+        "y" : 158.19999999999999
+      }
+    },
+    {
+      "class" : "sz-compare",
+      "frame" : {
+        "h" : 465,
+        "w" : 233,
+        "x" : 84.5,
+        "y" : 224
+      },
+      "id" : "write-compare",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "你写的，2 笔",
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "sz-compare__card",
+      "frame" : {
+        "h" : 233,
+        "w" : 233,
+        "x" : 84.5,
+        "y" : 224
+      },
+      "id" : "write-compare-mine",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "标准写法：春，chūn，9 画，2 个部件",
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "sz-compare__card",
+      "frame" : {
+        "h" : 233,
+        "w" : 233,
+        "x" : 84.5,
+        "y" : 456
+      },
+      "id" : "write-compare-ref",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-write__foot",
+      "frame" : {
+        "h" : 122,
+        "w" : 362,
+        "x" : 20,
+        "y" : 718
+      },
+      "id" : "redo-foot",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-write__links",
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 718
+      },
+      "id" : "write-links",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-write__linkrow sz-write__slot",
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 718
+      },
+      "id" : "redo-again-slot",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "bg" : "#302B25FF",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 718
+      },
+      "id" : "redo-again",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "再写一次",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 731
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#E2D9C9FF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "redo-next",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "下一个",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 50.600000000000001,
+        "x" : 175.69999999999999,
+        "y" : 802
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "redo-check",
+  "tag" : "dark_L",
+  "ui" : "web"
+}

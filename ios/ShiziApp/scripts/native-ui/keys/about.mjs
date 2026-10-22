@@ -9,7 +9,6 @@ export const KEYS = [
   { key: 'about-build', native: [], web: ['id:about-build'] },
   { key: 'about-motto', native: [], web: ['id:about-motto'] },
   { key: 'about-seal', native: [], web: ['id:about-seal'] },
-  { key: 'seal-shi-mark', native: [], web: ['id:seal-shi-mark'] },
   { key: 'about-rows', native: [], web: ['id:about-rows'] },
   { key: 'about-row-privacy', native: [], web: ['id:about-row-privacy'] },
   { key: 'about-row-credits', native: [], web: ['id:about-row-credits'] },

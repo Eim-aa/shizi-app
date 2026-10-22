@@ -3,7 +3,6 @@
 // 同名元素多个（行、格）时 id:xxx#N 取第 N 个（从 0 起）；不写 #N 则按文档顺序配对。
 export const KEYS = [
   { key: 'all-menu', native: [], web: ['id:all-menu'] },
-  { key: 'sheet-head', native: [], web: ['id:sheet-head'] },
   { key: 'sheet-done', native: [], web: ['id:sheet-done'] },
   { key: 'all-sorts', native: [], web: ['id:all-sorts'] },
   { key: 'all-sort', native: [], web: ['id:all-sort'] }, // 同一屏里出现多次（行 / 格）：按文档顺序配对

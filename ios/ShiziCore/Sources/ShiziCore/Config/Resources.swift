@@ -45,6 +45,10 @@ public enum Config {
     public static let credits: JSValue = get("credits")
     public static let deckMeta: JSValue = get("deck-meta")
     public static let signature: JSValue = get("signature")
+    /// FSRS 参数（src/core/fsrs.js FSRS_CONFIG；B4.2）。
+    public static let fsrsConfig: JSValue = get("fsrs-config")
+    /// 选字用的题库索引（全部卡键、四个字库的成员、缺省字库；B4.2）。
+    public static let deckLibraries: JSValue = get("deck-libraries")
 
     /// 按名取配置（`config.get` op）：policy / policy-meta / motion / char-order / epigraphs / credits / deck-meta / signature / copy。
     public static func named(_ name: String) -> JSValue? {
@@ -58,11 +62,13 @@ public enum Config {
         case "deck-meta": return deckMeta
         case "signature": return signature
         case "copy": return copyData
+        case "fsrs-config": return fsrsConfig
+        case "deck-libraries": return deckLibraries
         default: return nil
         }
     }
 
-    public static let configNames = ["policy", "policy-meta", "motion", "char-order", "epigraphs", "credits", "deck-meta", "signature", "copy"]
+    public static let configNames = ["policy", "policy-meta", "motion", "char-order", "epigraphs", "credits", "deck-meta", "signature", "copy", "fsrs-config", "deck-libraries"]
 
     // ---- policy 取值（路径用「.」分隔，如 "groupMix.valveDays"）----
 

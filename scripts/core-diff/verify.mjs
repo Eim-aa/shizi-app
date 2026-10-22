@@ -5,8 +5,9 @@
 //   3. 配置 / 数据资源与 src/ 同步（scripts/build_core_config.mjs --check）、金标准夹具与 JS 代码同步（scripts/core-golden/golden.mjs --check）
 //   4. 差分驱动自检（JS ↔ JS、埋错必抓 + 缩小、协议语料 JS ↔ Swift）
 //   5. 随机差分 JS ↔ Swift：Asia/Shanghai 200 种子 × 300 步；America/New_York、Australia/Lord_Howe、America/Santiago 各 50 × 300
-//   6. 转写清单与测试同步（不同步只警告：别的卡加测试不该卡住这里）
-// 选项：--nightly（Shanghai 5000 种子、其余各 500）；--skip-swift-test；--no-build（用已编好的命令行）。
+//   6. 调度模拟器 JS ↔ Swift（B4.2，schedule-sim --engine both）：20 个场景压到 30 天；--nightly 跑满天数
+//   7. 转写清单与测试同步（不同步只警告：别的卡加测试不该卡住这里）
+// 选项：--nightly（Shanghai 5000 种子、其余各 500；模拟器跑满天数）；--skip-swift-test；--no-build（用已编好的命令行）。
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,6 +37,9 @@ step('差分驱动自检', process.execPath, ['scripts/core-diff/run.mjs', '--se
 for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 5000 : 200], ['America/New_York', nightly ? 500 : 50], ['Australia/Lord_Howe', nightly ? 500 : 50], ['America/Santiago', nightly ? 500 : 50]]) {
   step(`随机差分 js ↔ swift（${tz}）`, process.execPath, ['scripts/core-diff/run.mjs', '--a', 'js', '--b', 'swift', '--seeds', String(seeds), '--steps', '300', '--tz', tz]);
 }
+step(`调度模拟器 js ↔ swift（20 个场景${nightly ? '' : '，每个压到 30 天'}）`, process.execPath, [
+  'scripts/sim/schedule-sim.mjs', '--engine', 'both', ...(nightly ? [] : ['--days', '30']), '--out', path.join(ROOT, 'scripts/sim/out/both'),
+]);
 step('转写清单同步', process.execPath, ['scripts/core-diff/transcription-list.mjs', '--check'], { warnOnly: true });
 finish();
 

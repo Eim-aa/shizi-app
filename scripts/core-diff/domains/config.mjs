@@ -2,7 +2,7 @@
 import { COPY } from '../../../src/config/copy/index.js';
 import { deckSources } from '../../build_core_config.mjs';
 
-const CONFIG_NAMES = ['policy', 'policy-meta', 'motion', 'char-order', 'epigraphs', 'credits', 'deck-meta', 'signature', 'copy'];
+const CONFIG_NAMES = ['policy', 'policy-meta', 'motion', 'char-order', 'epigraphs', 'credits', 'deck-meta', 'signature', 'copy', 'fsrs-config', 'deck-libraries'];
 const COPY_KEYS = Object.keys(COPY);
 const PLACEHOLDERS = ['n', 'm', 'date', 'char', 'count', 'total', 'name', 'day', 'month', 'year', 'x', 'A', 'z'];
 let deck = null;

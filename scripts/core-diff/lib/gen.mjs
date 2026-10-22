@@ -5,13 +5,14 @@ import protocolDomain from '../domains/protocol.mjs';
 import datesDomain from '../domains/dates.mjs';
 import configDomain from '../domains/config.mjs';
 import schemaDomain from '../domains/schema.mjs';
+import schedDomain from '../domains/sched.mjs';
 import recordsDomain from '../domains/records.mjs';
 import queryDomain from '../domains/query.mjs';
 import cardsDomain from '../domains/cards.mjs';
 import membersDomain from '../domains/members.mjs';
 import inkDomain from '../domains/ink.mjs';
 
-export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain];
+export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain];
 
 /** mulberry32（与 scripts/sim/lib/env.mjs 同一算法）。 */
 export function rng(seed) {

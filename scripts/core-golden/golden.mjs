@@ -18,6 +18,9 @@ import numberFormatDomain from './domains/number-format.mjs';
 import schemaDomain from './domains/schema.mjs';
 import signatureDomain from './domains/signature.mjs';
 import copyDomain from './domains/copy.mjs';
+import fsrsDomain from './domains/fsrs.mjs';
+import scheduleDomain from './domains/schedule.mjs';
+import mixSimDomain from './domains/mix-sim.mjs';
 import recordsDomain from './domains/records.mjs';
 import queryDomain from './domains/query.mjs';
 import cardsDomain from './domains/cards.mjs';
@@ -27,7 +30,7 @@ import contractDomain from './domains/contract.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const FIXTURE_DIR = path.join(ROOT, 'ios/ShiziCore/Tests/ShiziCoreTests/Fixtures');
-export const DOMAINS = [datesDomain, numberFormatDomain, schemaDomain, signatureDomain, copyDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, contractDomain];
+export const DOMAINS = [datesDomain, numberFormatDomain, schemaDomain, signatureDomain, copyDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, contractDomain, fsrsDomain, scheduleDomain, mixSimDomain];
 
 export function withTZ(tz, fn) {
   const prev = process.env.TZ;

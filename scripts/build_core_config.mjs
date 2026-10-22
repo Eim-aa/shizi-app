@@ -60,6 +60,7 @@ export async function sources() {
   const deckMeta = await imp('src/config/deck-meta.js');
   const { CN_NUMERALS } = await imp('src/core/dates.js');
   const { COPY } = await imp('src/config/copy/index.js');
+  const { FSRS_CONFIG } = await imp('src/core/fsrs.js');
   const verifyCopy = await imp('scripts/verify_copy.mjs');
 
   const source = JSON.parse(fs.readFileSync(verifyCopy.PATHS.source, 'utf8'));
@@ -76,7 +77,29 @@ export async function sources() {
     'deck-meta': dataExports(deckMeta),
     signature: CN_NUMERALS,
     copy: COPY,
+    'fsrs-config': { ...FSRS_CONFIG },
+    'deck-libraries': await deckLibraries(),
   };
+}
+
+/**
+ * 选字用的题库索引（B4.2）：全部卡键（SEED 序，去重）、四个字库的成员（data/deck.js libraryOf，SEED 字频序）与缺省字库。
+ * 卡片构建（core/cards.js）在 B4.3；Swift 的选字只要「哪些键属于哪个库、哪些键可练」，这里由 JS 现算后导出，不在 Swift 里重写字库判定。
+ */
+async function deckLibraries() {
+  const deck = await imp('src/data/deck.js');
+  const { LIBRARIES } = await imp('src/core/cards.js');
+  deck.setDeckSource(deckSources());
+  try {
+    const keys = [...deck.getDeck().index.keys()];
+    return {
+      defaultLibraryId: deck.DEFAULT_LIBRARY_ID,
+      keys,
+      libraries: LIBRARIES.map((lib) => ({ id: lib.id, label: lib.label, officialTotal: lib.officialTotal, keys: deck.libraryOf(lib.id).keys })),
+    };
+  } finally {
+    deck.setDeckSource(null);
+  }
 }
 
 /** 题库原始数据 {seed, overrides, groups}（deck-data.js 与 data/context-overrides.js 在 vm 里求值）。 */

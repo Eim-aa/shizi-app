@@ -13,6 +13,8 @@ public final class CoreEngine {
     public private(set) var clock: Double = 0
     public private(set) var kv = JSObject()
     public var dates: Dates
+    /// B4.2：调度模拟器的状态缓存（mirror.patch 增量同步；不进状态快照，见 SchedOps.swift）。
+    var schedMirror = JSObject()
 
     public init(timeZone: TimeZone = .current) {
         dates = Dates(timeZone: timeZone)
@@ -24,7 +26,7 @@ public final class CoreEngine {
 
     typealias Op = (CoreEngine, JSObject) throws -> JSValue
 
-    static let ops: [String: Op] = coreOps.merging(configOps) { a, _ in a }.merging(schemaOps) { a, _ in a }.merging(b43Ops) { a, _ in a }
+    static let ops: [String: Op] = coreOps.merging(configOps) { a, _ in a }.merging(schemaOps) { a, _ in a }.merging(b43Ops) { a, _ in a }.merging(schedOps) { a, _ in a }
 
     static let coreOps: [String: Op] = [
         "hello": { _, _ in

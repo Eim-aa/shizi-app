@@ -15,6 +15,9 @@
 | `Sources/ShiziCore/Deck/` | `DeckData`：deck.json（SEED / GROUPS / CONTEXT_OVERRIDES）的原始数据，懒加载 |
 | `Sources/ShiziCore/Schema/` | `Schema`：`src/core/schema.js` 的 1:1 移植（键表、形状校验、备份外壳），返回的「路径: 原因」字串与 JS 逐字相同 |
 | `Sources/ShiziCore/Models/` | 全部域的模型（记录 / 折叠月 / sched / 墨 v2 v3 v4 / 设置 / 会话 / 保护副本 / 事务日志 …）。**不是 Foundation 的 Codable**（JSONEncoder 没有 JS 的键序与数字格式），而是 `JSCodable`（`init(js:)` / `js`）：解码记下键序，编码先按记下的键序写、新建的按 JS 写入处的规范键序；三态字段（缺省 / null / 值）用 `Field<T>`；数字一律 Double |
+| `Sources/ShiziCore/Records/` | `Records`（`core/records.js`：构造 / 校验 / 更正、最近一次 / 写错过 / 快忘了、按月索引、纸上记录谓词）、`WorkMembers`（作品成员规则）、`InkPick`（D42 取段内留有墨迹的那一次）、`FirstResult`（复现预告 / N 天后再见 / 提醒邀请规则）、`Reminder`（`platform/reminder.js` 的题目选取）、`JSX`（JS 隐式规则：真值、按码元比较、稳定排序、`Number()`、按插入序的 Map / Set）。记录 / 卡片 / 墨迹一律是 `JSValue`（透传原对象，逐字节不变） |
+| `Sources/ShiziCore/Query/` `Cards/` `Structure/` | `Query`（查字 / 拼音 / 输入过滤，汉字判定读 `unicode-scripts.json`）、`Cards`（`buildCards` / 语境覆盖 / 题面模型，题面字串与四库名读 `card-rules.json`）+ `DeckCards`（题库索引、可练、换掉词语）、`Structure`（左右 / 上下结构） |
+| `Sources/ShiziCore/Ink/` | `InkMath`（`core/ink-math.js`：buildStroke、抽点、Ink v3 编码、v2 / v3 / v4 解码、v4 原始点编码、会话现场的原始笔画行）与 `JSMath`（V8 的 `Math.hypot` / `Math.exp` 逐位复刻，见下）。`InkPoint` 带 JS 点对象的键序（`order`），序列化后与 JS 逐字节相同 |
 | `Sources/ShiziCore/Engine/` | `CoreEngine`（op 表 + JSON 行协议）；`ConfigOps` / `SchemaOps`（B4.1 的 op） |
 | `Sources/shizi-core-cli/` | 协议的命令行外壳（macOS），供 node 差分与调度模拟器用 |
 | `Tests/ShiziCoreTests/` | 金标准（`Fixtures/*.json`，node 生成）+ 协议测试 |
@@ -39,6 +42,8 @@ stdin 一行一个请求，stdout 一行一个回包；只有 `\n` 是行尾（U
 
 B4.1 的 op：`config.get {name}`（policy / policy-meta / motion / char-order / epigraphs / credits / deck-meta / signature / copy）、`deck.meta / seed / override / groups`、`epigraphs.index / for / author`、`copy.has / t / format / inkKey / tRef`、`dates.cnDigits / cnNumber / cnCount / signatureDateParts / signatureMonthParts`、`schema.keys / keyInfo / keyFacts / valueFacts / makeKey / keyForDomain / inkOf / validateValue / parseAndValidate / parseBackupV2 / validateRecord / validateRecordsMonth / validateInk / validateSession`、`models.roundtrip {key, value}`（形状表通过的值经模型解码再编码，必须逐字节不变；JS 一侧是恒等）。JS 一侧：`scripts/core-diff/lib/js-ops-b41.mjs`。
 
+B4.3 的 op（`Engine/B43Ops.swift`、`B43Ops2.swift`；JS 一侧 `scripts/core-diff/lib/js-ops-b43.mjs`）：`records.*`（序号 / 校验 / 构造 / 谓词 / 最近一次 / 写错过 / 快忘了 / 更正 / 按月索引 …）、`query.*`、`cards.*` / `deck.*`、`structure.*`、`workMembers.*`、`inkPick.*`、`firstResult.*`（含 `inviteShown` / `inviteAnswer` 的写入规则）、`reminder.*`（题目选取）、`ink.*`（管线、抽点、v3 / v4 编解码）、`jsmath.hypot / exp`。注入函数用数据描述：`hasInk` = `{ids: [记录 id…], throwIds?: […]}`。
+
 B4.0 的 op：`hello`（`{protocol, engine, ops}`）、`state`、`reset {state?}`、`echo {value}`、`kv.set/get/delete/keys`、`clock.set {t}`、`clock.advance {ms}`，以及 `dates.*`（`localDay {t?, dayStartHour?}`、`calendarDay`、`periodOf`、`isValidDay`、`isValidMonth`、`daysInMonth`、`parseDay`、`dayStartMs`、`addDays`、`diffDays`、`monthOf`、`addMonths`、`dayOfYear`、`periodOfHour`、`monthDayParts`；不带 `t` 时取引擎时钟）。JS 一侧：`scripts/core-diff/lib/js-engine.mjs`（同名同校验，只做适配、直接调 `src/`）。
 
 ```sh
@@ -60,6 +65,10 @@ pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子
 | ② 单测转写 | 清单 [B4-单测转写清单.md](../../docs/engineering/v10/B4-单测转写清单.md)（`scripts/core-diff/transcription-list.mjs` 生成） |
 | ③ 调度模拟器 | `scripts/sim/schedule-sim.mjs --engine js\|swift\|both`（swift / both 由 B4.2 接入，挂点 `scripts/sim/lib/engine-select.mjs`） |
 | ④ 随机差分 | `scripts/core-diff/run.mjs`：种子化随机序列 → 两引擎逐步比（值 + 字节）→ 失败自动缩小（ddmin，1-最小）→ `scripts/core-diff/out/repro-<种子>.jsonl`，`--replay` 重放 |
+
+### 与 V8 逐位对齐的数学函数（B4.3）
+
+墨宽（`decodeInk` v4 → `buildStroke`）对 `Math.exp` / `Math.hypot` 的每一位都敏感，落盘与差分都按字节比，所以 `JSMath` 复刻 V8 的实现而不用 libm：`Math.hypot` = 先按最大值缩放再 Kahan 求和（`builtins/math.tq`）；`Math.exp` = fdlibm（`base/ieee754.cc`，含 exp(1) = E 的特例）。**arm64 的 clang 会把 C++ 里的 `a*b+c` 合成 fma，所以参考值依赖平台**：这里的 `exp` 在会被合成的位置用 `addingProduct`，与 arm64 Mac 上的 Node 逐位一致（`scripts/core-diff` 的 `jsmath.exp` 随机差分是证据）；x86-64 的 Node 没有这个合成，金标准要在 arm64 上生成与核对（CI 同 dev 机）。
 
 ### 加一个域（B4.1 起每张卡）
 

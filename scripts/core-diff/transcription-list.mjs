@@ -20,13 +20,13 @@ const N = '不转';
 
 // 文件 → [归类, 卡, 说明]。说明写给转写的人。
 const FILES = {
-  'test/core/after-seen-works.test.mjs': [T, 'B4.3', '作品出口规则（records / work-members）'],
+  'test/core/after-seen-works.test.mjs': [T, 'B4.3', '作品出口规则（records / work-members / ink-pick）；经图片 / 页面视图的断言按同一规则在测试里装配，视图本身 B4.5 / B4.6 接'],
   'test/core/arphic-compliance.test.mjs': [N, '—', '许可与随包文件门禁，留 node（数据不随 B4 变）'],
   'test/core/backup.test.mjs': [T, 'B4.4', '备份解析 / 生成；另加双向夹具（§4.4）'],
   'test/core/cards.test.mjs': [T, 'B4.3', ''],
   'test/core/compliance-removal.test.mjs': [N, '—', '题库 / 笔顺数据门禁留 node；「旧记录降级」一条转写（见逐条）'],
   'test/core/content-blocklist.test.mjs': [N, '—', '题面文字门禁，留 node'],
-  'test/core/contract.test.mjs': [T, 'B4.3', 'core 产出过 schema 形状表；Swift 版对 Codable 模型 + 校验器跑同一组'],
+  'test/core/contract.test.mjs': [T, 'B4.3', 'core 产出过 schema 形状表；Swift 版对 JS 参考实现造出的夹具（contract.json）跑 Schema 校验 + 模型往返'],
   'test/core/core-config.test.mjs': [N, '—', 'B4.1 配置 / 数据资源的 node 门禁（生成物同步、policy 登记、deck.json、形状工厂）'],
   'test/core/core-diff.test.mjs': [N, '—', 'B4.0 等价性底座自身的 node 门禁（金标准同步、差分自检、op 表同名）'],
   'test/core/copy-audit.test.mjs': [N, '—', '文案源门禁；Swift 读生成的 Copy.json（B4.1），不手移植文案'],
@@ -46,7 +46,7 @@ const FILES = {
   'test/core/ink-v4.test.mjs': [T, 'B4.3', ''],
   'test/core/mix.test.mjs': [T, 'B4.2', ''],
   'test/core/new-order.test.mjs': [T, 'B4.2', ''],
-  'test/core/paper-works.test.mjs': [T, 'B4.3', '图片成员部分在 B4.6 复核'],
+  'test/core/paper-works.test.mjs': [T, 'B4.3', '纸上记录成员规则；折叠（budget.recover）B4.4、年报 / 我的视图 B4.5、图片 B4.6 在各自卡接上'],
   'test/core/policy-mix.test.mjs': [T, 'B4.1', ''],
   'test/core/policy.test.mjs': [T, 'B4.1', 'policy 由 node 导出 JSON 比对'],
   'test/core/query.test.mjs': [T, 'B4.3', ''],
@@ -58,7 +58,7 @@ const FILES = {
   'test/core/special.test.mjs': [T, 'B4.2', ''],
   'test/core/spread.test.mjs': [T, 'B4.2', ''],
   'test/core/strokes.test.mjs': [N, '—', '网页笔顺加载器（fetch / LRU）；原生直读 data/*.json'],
-  'test/core/structure.test.mjs': [T, 'B4.3', ''],
+  'test/core/structure.test.mjs': [T, 'B4.3', '规则部分；读屏名称的文字拼装（ref-label.js）留界面层'],
   'test/core/web-ink-golden.test.mjs': [N, '—', '已有 Swift 版（ShiziWriteTests/WebInkTests）'],
   'test/core/work-members.test.mjs': [T, 'B4.3', ''],
   'test/store/budget.test.mjs': [T, 'B4.4', ''],
@@ -72,7 +72,7 @@ const FILES = {
   'test/session/boundary.test.mjs': [N, '—', 'JS 导入图门禁（Swift 包只依赖 Foundation 由 Package.swift 保证）'],
   'test/ui/native-ink.test.mjs': [N, '—', '网页侧原生书写面接线（仅网页）'],
   'test/ui/native-write.test.mjs': [D, 'B4.5', '页面 API 契约 ⑤：同一输入夹具换 SwiftEngine 重跑，回包 == WebEngine'],
-  'test/platform/reminder.test.mjs': [T, 'B4.5', '提醒题目选取是规则（计划 §6.2 未点名，暂归 B4.5）；syncReminder 消息体部分不转'],
+  'test/platform/reminder.test.mjs': [T, 'B4.3', '提醒题目选取是规则（B4.0 暂记 B4.5，主控改派 B4.3）；syncReminder 消息体 / 网页桥部分不转'],
   'test/platform/accessibility.test.mjs': [N, '—', '网页桥（仅网页）'],
   'test/platform/bridge.test.mjs': [N, '—', '网页桥（仅网页）'],
   'test/platform/sound.test.mjs': [N, '—', '网页声音（仅网页）'],
@@ -86,6 +86,7 @@ const OVERRIDES = [
   ['test/core/dates.test.mjs', /isValidDay|localDay|dayStartMs|addDays|monthOf|dayOfYear|period boundaries/, D, 'B4.0', '金标准 dates.json（6 时区）+ 随机差分已覆盖'],
   ['test/core/strokes.test.mjs', /glyph/i, N, '—', '网页画布纯函数（仅网页）'],
   ['test/platform/reminder.test.mjs', /payload|controller|deep link|permission/i, N, '—', '网页 → 原生消息体 / 网页桥的就绪队列与权限回调（B4 后不存在）'],
+  ['test/core/first-result.test.mjs', /special deferral|deferSpecial/, T, 'B4.2', '特别组顺延依赖 sessions / special / session-start（B4.2）与 store.commit（B4.4）；B4.3 的 XCTest 里留 XCTSkip 占位'],
 ];
 
 const SCOPE = ['test/core', 'test/store', 'test/session', 'test/platform'].flatMap((d) =>

@@ -285,12 +285,14 @@ export default async function run(page, ctx) {
   console.log(`    storage after seed: ${fmtMiB(u0.total)} ${JSON.stringify(Object.fromEntries(Object.entries(u0.byBucket).map(([k, v]) => [k, fmtMiB(v)])))}`);
   row('localStorage 总占用（种子后）', fmtMiB(u0.total), '< 3.2MiB', u0.total < LIMITS.totalBytes);
   row('  其中 records / ink / sched', `${fmtMiB(u0.byBucket.records || 0)} / ${fmtMiB(u0.byBucket.ink || 0)} / ${fmtMiB(u0.byBucket.sched || 0)}`, 'P28 1.5MiB / P05 1.5MiB / —', true);
-  // D27（阶段 1 P1-E3）：每字只留第一次 + 最近一次的墨迹（判断时回收中间那次），300 字两份 ≤ 1.2MiB，不必再靠预算回收
+  // D27（阶段 1 P1-E3）：每字只留第一次 + 最近一次的墨迹（判断时回收中间那次），不必再靠预算回收。
+  // 上限 1.2MiB 是 localStorage 时代（5MiB 配额）定的；B1 起数据在 App 的 SQLite，B2.3 起墨迹按记录一行存原始点（ink schema 2），
+  // 300 字两份实测约 2.2MiB。新上限 2.4MiB 只防退化（合计仍守 3.2MiB）；全部墨迹历史（D27 修订）待负责人定后再重定。
   const inkBytes0 = u0.byBucket.ink || 0;
-  row('  ink：300 字 × 第一次 + 最近一次（D27）', fmtMiB(inkBytes0), '≤ 1.2MiB', inkBytes0 <= 1.2 * MiB);
+  row('  ink：300 字 × 第一次 + 最近一次（D27）', fmtMiB(inkBytes0), '≤ 2.4MiB', inkBytes0 <= 2.4 * MiB);
   assert.ok(seeded.inks <= 2 * seeded.chars, `D27: at most first + latest ink per char (${seeded.inks} inks over ${seeded.chars} chars)`);
   assert.equal(seeded.evicted, 0, 'D27 retention alone keeps ink under the P05 budget: budget recovery evicts nothing');
-  assert.ok(inkBytes0 <= 1.2 * MiB, `300 chars × (first + latest) ink = ${fmtMiB(inkBytes0)} ≤ 1.2MiB (ink v3 + P121)`);
+  assert.ok(inkBytes0 <= 2.4 * MiB, `300 chars × (first + latest) ink = ${fmtMiB(inkBytes0)} ≤ 2.4MiB (ink schema 2 + SQLite, B1/B2.3)`);
   const status0 = await page.evaluate(() => window.__shiziTest.getStatus().usage);
   assert.ok(status0 && Math.abs(status0.total - u0.total) < 1024, `store usage estimate agrees (${status0 && status0.total} vs ${u0.total})`);
 

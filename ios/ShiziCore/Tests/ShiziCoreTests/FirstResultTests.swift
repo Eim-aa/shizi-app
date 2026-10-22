@@ -4,8 +4,8 @@ import XCTest
 
 // test/core/first-result.test.mjs 的转写（11 个用例，用例名保留原名）。
 // 第 9 条（commitInviteShown / commitInviteAnswer 经 store.commit）：规则部分（新的 settings 或「跳过」）在这里逐步对照；store 的提交 / 校验 / 发布由 B4.4。
-// 第 10、11 条（特别组顺延：sessions.selectDaily / specialPlan / special.capitalSpecial / session-start.deferSpecial）依赖 B4.2 的 Swift 模块，
-// 清单已改记 B4.2，这里留 XCTSkip 占位，B4.2 并入后在它那张卡里转。
+// 第 10、11 条（特别组顺延：sessions.selectDaily / specialPlan / special.capitalSpecial / session-start.deferSpecial）由 B4.2 转写
+// （store.commit 用 B4.2 的 MemoryScheduleStore；真 store 在 B4.4）。
 
 final class FirstResultTests: XCTestCase {
     let TODAY = "2026-09-24"
@@ -207,11 +207,76 @@ final class FirstResultTests: XCTestCase {
 
     // test/core/first-result.test.mjs: special deferral (D46 ④): only the deferred day skips the special group; the next day it is back if the conditions hold
     func testSpecialDeferralD46OnlyTheDeferredDaySkipsTheSpecialGroupTheNextDayItIsBackIfTheConditionsHold() throws {
-        throw XCTSkip("needs B4.2 (sessions.selectDaily / specialPlan / special.capitalSpecial); the transcription list assigns this case to B4.2")
+        let rules = ScheduleRules(dates: shanghai43)
+        let records = try deferralHistory(10)
+        let cands = ["\u{4EA6}", "\u{9C9C}", "\u{5883}", "\u{989D}"].map { "base:" + $0 } // 亦鲜境额
+        let warm = KeySet(CharOrder.shared.warmup)
+        let isWarm: (String) -> Bool = { warm.contains(String($0.unicodeScalars.dropFirst(5))) }
+        let five = JSValue.number(5)
+        func run(_ today: String, _ deferred: String?) throws -> ScheduleRules.DailyPlan {
+            try rules.selectDaily(sched: .object(JSObject()), records: records, today: today, newCandidates: cands, isWarm: isWarm,
+                                  capitalDeferredDay: deferred.map { .string($0) } ?? .null, groupSize: five)
+        }
+        XCTAssertEqual(try run(TODAY, nil).special?.kind, "capital1")
+        let deferredToday = try run(TODAY, TODAY)
+        XCTAssertNil(deferredToday.special, "deferred today → the ordinary mix")
+        let group1 = Set(CharOrder.shared.capitalGroups[0])
+        XCTAssertFalse(deferredToday.queue.contains { group1.contains(String($0.unicodeScalars.dropFirst(5))) })
+        XCTAssertTrue(deferredToday.queue.count > 0)
+        XCTAssertNil(try rules.specialPlan(sched: .object(JSObject()), records: records, today: TODAY, capitalDeferredDay: .string(TODAY)))
+        let tomorrow = day(1)
+        XCTAssertEqual(try run(tomorrow, TODAY).special?.kind, "capital1", "the day after, the deferral is over")
+        XCTAssertEqual(try rules.specialPlan(sched: .object(JSObject()), records: records, today: tomorrow, capitalDeferredDay: .string(TODAY))?.kind, "capital1")
+        // 顺延不改「出现过」的口径：这一组没有记录，仍然是第 1 组
+        XCTAssertTrue(Special.isDeferred(.string(TODAY), .string(TODAY)))
+        XCTAssertFalse(Special.isDeferred(.string(day(-1)), .string(TODAY)))
+        XCTAssertFalse(Special.isDeferred(.null, .string(TODAY)))
+        XCTAssertNil(Special.capitalSpecial(records: records, groupsTotal: 99, pressure: 0, practicable: { _ in true }, excluded: KeySet(),
+                                            today: .string(TODAY), deferredDay: .string(TODAY)))
+    }
+
+    /// first-result.test.mjs history(groups)：首练 3 字 + 之后每组一个字，每组一天。
+    func deferralHistory(_ groups: Int) throws -> [JSValue] {
+        var out: [JSValue] = []
+        var id = 1
+        func rec(_ c: String, _ dayKey: String, _ session: String) -> JSValue {
+            let at = JSDate.makeLocal(Int(dayKey.prefix(4))!, Int(dayKey.dropFirst(5).prefix(2))! - 1, Int(dayKey.suffix(2))!, hours: 12, shanghai43.timeZone)! + Double(id % 60) * 60000
+            defer { id += 1 }
+            return J(#"{"id":"r\#(id)","cardKey":"base:\#(c)","char":"\#(c)","sessionId":"\#(session)","kind":"judged","at":\#(JSNumber.toString(at)),"localDay":"\#(dayKey)","help":{"hints":0,"answerSeen":false,"traced":false},"judgment":"correct"}"#)
+        }
+        for c in [gan, yingC, shi] { out.append(rec(c, day(-groups - 1), "s1")) }
+        if groups >= 2 {
+            for g in 2...groups { out.append(rec(String(UnicodeScalar(0x6000 + g)!), day(-(groups - g) - 1), "s\(g)")) }
+        }
+        return out
     }
 
     // test/core/first-result.test.mjs: deferSpecial writes settings.capitalDeferredDay once through store.commit; planDaily / planSpecial read it
     func testDeferSpecialWritesSettingsCapitalDeferredDayOnceThroughStoreCommitPlanDailyPlanSpecialReadIt() throws {
-        throw XCTSkip("needs B4.2 (session-start planDaily / planSpecial / deferSpecial) and B4.4 (store.commit); the transcription list assigns this case to B4.2")
+        // store.commit 由 B4.4 的真 store 承担；这里用 B4.2 的 MemoryScheduleStore（同一套 commit 语义）
+        let rules = ScheduleRules(dates: shanghai43)
+        var months = JSObject()
+        for r in try deferralHistory(10) {
+            let m = String(r["localDay"]!.stringValue!.prefix(7))
+            months[m] = .array((months[m]?.arrayValue ?? []) + [r])
+        }
+        var clock = JSDate.makeLocal(2026, 8, 24, hours: 9, shanghai43.timeZone)!
+        let store = MemoryScheduleStore(state: JSObject([("records", .object(months)), ("sched", .object(JSObject())),
+                                                         ("sessions", J(#"{"A":null,"B":null,"lastEnded":{}}"#))]), now: { clock })
+        let cands = ["\u{4EA6}", "\u{9C9C}", "\u{5883}", "\u{989D}"].map { "base:" + $0 }
+        let deck = ScheduleDeck(newCandidates: { _ in cands }, practicable: { $0.hasPrefix("base:") }, currentLibraryId: { _ in .string("core3500") })
+        func state() -> JSValue { .object(store.state) }
+        XCTAssertNil(ScheduleRules.capitalDeferredDayOf(state()))
+        XCTAssertEqual(try rules.planSpecial(state(), today: TODAY, deck: deck)["kind"], .string("capital1"))
+        XCTAssertEqual(try rules.planDaily(state(), today: TODAY, deck: deck)["special"]?["kind"], .string("capital1"))
+        let r = try rules.deferSpecial(store, now: clock)
+        XCTAssertEqual(r["ok"], .bool(true))
+        XCTAssertEqual(ScheduleRules.capitalDeferredDayOf(state()), .string(TODAY))
+        XCTAssertEqual(try rules.planSpecial(state(), today: TODAY, deck: deck), .null)
+        XCTAssertEqual(try rules.planDaily(state(), today: TODAY, deck: deck)["special"], .null)
+        XCTAssertEqual(try rules.deferSpecial(store, now: clock)["skipped"], .bool(true), "second tap the same day writes nothing")
+        XCTAssertEqual(store.commits.filter { $0.label == "session:defer-special" }.count, 1)
+        clock = JSDate.makeLocal(2026, 8, 25, hours: 9, shanghai43.timeZone)!
+        XCTAssertEqual(try rules.planSpecial(state(), today: day(1), deck: deck)["kind"], .string("capital1"))
     }
 }

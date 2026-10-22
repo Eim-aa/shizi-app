@@ -2,6 +2,7 @@
 //   1. 值比对：两边各自 JSON.parse 后逐字段比（对象不看键序；数字 ===）；ok 相同；失败时只比 error.code 与 state，不比 message；
 //   2. 字节比对：值相等且都成功时，两行文字必须逐字节相同（键序、数字格式、转义都照 JS JSON.stringify）。
 // 返回 null（相同）或 { kind: 'value' | 'encoding' | 'unparseable', path, a, b }。
+import { parseJson } from './json-parse.mjs';
 
 export function firstDiff(a, b, path = '$') {
   if (a === b) return null;
@@ -32,7 +33,7 @@ export function firstDiff(a, b, path = '$') {
 
 function parse(line) {
   try {
-    return { v: JSON.parse(line) };
+    return { v: parseJson(line) }; // 同 js-engine：避开 V8 JSON.parse 的快路径 bug（json-parse.mjs）
   } catch {
     return null;
   }

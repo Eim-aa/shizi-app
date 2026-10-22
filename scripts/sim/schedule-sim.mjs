@@ -6,7 +6,7 @@
 //   node scripts/sim/schedule-sim.mjs --days 30           把每个场景的天数压到最多 30 天（快速烟测）
 //   node scripts/sim/schedule-sim.mjs --out some/dir      输出目录（默认 scripts/sim/out）
 //   node scripts/sim/schedule-sim.mjs --group-size 5      所有场景按「每组字数 5」跑（缺省 = 没选过，按 policy.groupSize 20）
-//   node scripts/sim/schedule-sim.mjs --engine js|swift|both   规则引擎（缺省 js；swift / both 由 B4.2 接入，见 lib/engine-select.mjs）
+//   node scripts/sim/schedule-sim.mjs --engine js|swift|both   规则引擎（缺省 js；swift = ShiziCore 算规则，both = 两边同步走逐步比对，见 lib/engine-select.mjs）
 //
 // 输出（默认 scripts/sim/out/，已 .gitignore）：
 //   report.md                  可读报告（场景预期 vs 实际、偏离、不变量违反、单字间隔表）
@@ -60,6 +60,7 @@ function runOne(def, args) {
   const cfg = { ...def };
   if (args.days) cfg.days = Math.min(cfg.days, args.days);
   if (args.groupSize) cfg.groupSize = args.groupSize; // D65 #2：所有场景按这个「每组字数」跑（缺省 = 没选过，按 policy.groupSize）
+  cfg.engine = args.engine;
   const res = runScenario(cfg);
   res.summary = summarize(res);
   return res;
@@ -100,11 +101,23 @@ function main() {
     fs.writeFileSync(path.join(dir, 'groups.json'), JSON.stringify(res.groups, null, 1));
     fs.writeFileSync(path.join(dir, 'summary.json'), JSON.stringify({ id: def.id, name: def.name, summary: res.summary, checks, violations: res.violations.slice(0, 200) }, null, 1));
     results.push({ def, res, checks, baseRes, ms: Date.now() - started });
-    process.stdout.write(`${def.id.padEnd(24)} ${String(Date.now() - started).padStart(6)}ms  偏离 ${checks.filter(c => !c.ok).length}/${checks.length}  不变量违反 ${Object.values(res.summary.violations).reduce((a, v) => a + v.count, 0)}\n`);
+    const diffs = [res, baseRes].filter(Boolean).reduce((n, r) => n + (r.engine.diffs ? r.engine.diffs.count : 0), 0);
+    const engineNote = args.engine === 'both' ? `  JS↔Swift 差异 ${diffs}（${res.engine.diffs.steps} 步）` : '';
+    process.stdout.write(`${def.id.padEnd(24)} ${String(Date.now() - started).padStart(6)}ms  偏离 ${checks.filter(c => !c.ok).length}/${checks.length}  不变量违反 ${Object.values(res.summary.violations).reduce((a, v) => a + v.count, 0)}${engineNote}\n`);
+    if (diffs) for (const x of [res, baseRes].filter(Boolean).flatMap(r => r.engine.diffs.samples).slice(0, 5)) process.stdout.write(`    ${x}\n`);
   }
   const ladders = intervalLadders();
   fs.writeFileSync(path.join(args.out, 'ladders.json'), JSON.stringify(ladders, null, 1));
   fs.writeFileSync(path.join(args.out, 'results.json'), JSON.stringify(results.map(r => ({ id: r.def.id, name: r.def.name, summary: r.res.summary, checks: r.checks })), null, 1));
+  if (args.engine !== 'js') {
+    const engineReport = results.map(r => ({ id: r.def.id, engine: r.res.engine, baseline: r.baseRes ? r.baseRes.engine : null }));
+    fs.writeFileSync(path.join(args.out, 'engine.json'), JSON.stringify({ engine: args.engine, scenarios: engineReport }, null, 1));
+    const total = engineReport.reduce((n, r) => n + (r.engine.diffs ? r.engine.diffs.count : 0) + (r.baseline && r.baseline.diffs ? r.baseline.diffs.count : 0), 0);
+    if (args.engine === 'both') {
+      process.stdout.write(`\nJS↔Swift：${results.length} 个场景，差异 ${total}\n`);
+      if (total) process.exitCode = 1;
+    }
+  }
   fs.writeFileSync(path.join(args.out, 'report.md'), renderReport(results, ladders, args));
   process.stdout.write(`\n报告：${path.relative(process.cwd(), path.join(args.out, 'report.md'))}（共 ${((Date.now() - t0) / 1000).toFixed(1)} 秒）\n`);
 }
@@ -112,7 +125,7 @@ function main() {
 function renderReport(results, ladders, args) {
   const L = [];
   L.push('# 调度模拟报告（自动生成）', '');
-  L.push(`生成于 ${new Date().toISOString().slice(0, 10)}；时区 ${process.env.TZ}；场景 ${results.length} 个${args.days ? `（天数压到 ≤ ${args.days}，仅烟测）` : ''}。`);
+  L.push(`生成于 ${new Date().toISOString().slice(0, 10)}；时区 ${process.env.TZ}；场景 ${results.length} 个${args.days ? `（天数压到 ≤ ${args.days}，仅烟测）` : ''}；规则引擎 ${args.engine}。`);
   L.push('所有选字、记录、评级、间隔都由真实代码算出（`src/core` + `src/config/policy.js`），模拟器只负责「虚拟用户怎么做」。', '');
   L.push('## 总览', '');
   L.push(mdTable(['场景', '天数', '已练汉字', '每天字数(均/最大)', '积压(末30天均/最大)', '偏离预期', '不变量违反'],

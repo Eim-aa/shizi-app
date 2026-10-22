@@ -1,13 +1,13 @@
-// 调度模拟器的引擎选择（B4.0 留的挂点；计划 §4.3 ③）。
-//   js     现行：lib/engine.mjs 直接调 src/ 的规则（缺省）
-//   swift  B4.2 起：每一步的选字 / 判断 / 跳过 / 撤销 / 更正经 ShiziCore 命令行（scripts/core-diff/lib/engines.mjs openEngine('swift')）
-//   both   B4.2 起：同一步同时喂 JS 与 Swift，比整份状态（scripts/core-diff/lib/compare.mjs），27 条不变量对两边都跑
-// 接入做法（B4.2）：lib/engine.mjs 里把真实 commit 函数的调用收进一个「规则适配层」对象（startNextA / commitJudgment / commitSkip …），
-// js 实现 = 现有直接调用；swift 实现 = 把同名 op 发给 shizi-core-cli 并把回包里的状态写回模拟器的 store 视图；both = 两者都跑、逐步比对。
+// 调度模拟器的引擎选择（B4.0 留的挂点，B4.2 接入；计划 §4.3 ③）。
+//   js     现行：lib/engine.mjs 经 lib/rules.mjs 直接调 src/ 的规则（缺省）
+//   swift  选字 / 开组 / 过期 / 判断 / 跳过 / 撤销 / 看答案 / 改判里的规则经 ShiziCore 命令行（lib/sync-engine.mjs 同步调用），
+//          记录构造与存储仍走 JS 的真实 store；27 条不变量照常在 JS 上量 Swift 算出的状态
+//   both   两个 store 同步走（主 = js、影子 = swift），每一步比回包与整份状态，差异记在报告里；有差异退出码 1
+// 需要先编好命令行：swift build -c release --package-path ios/ShiziCore（scripts/core-diff/lib/engines.mjs swiftBin）。
 export const SIM_ENGINES = Object.freeze({
   js: { ready: true },
-  swift: { ready: false, card: 'B4.2', why: 'ShiziCore 还没有出题与调度规则（sessions / session-start / fsrs …）' },
-  both: { ready: false, card: 'B4.2', why: '需要 swift 引擎先就绪' },
+  swift: { ready: true },
+  both: { ready: true },
 });
 
 /** 解析 --engine；未知名字抛错，未就绪返回 { ok: false, message }。 */

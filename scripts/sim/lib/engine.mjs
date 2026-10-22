@@ -1,7 +1,8 @@
 // 调度模拟引擎（r7-S1）。一个虚拟用户按天练习；所有选字、记录、评级、间隔都走真实代码：
 //   选字 = core/session-start.startNextA（→ sessions.selectDaily → mix.planGroup …）
-//   判断 = ui/screens/write/compare.commitJudgment（→ fsrs.applyJudgment）
+//   判断 = session/ops/judge.commitJudgment（→ fsrs.applyJudgment）
 //   跳过 / 看答案 / 撤销 / 更正 = 写字页与结果页真实的 commit 函数
+//   以上规则调用都经 lib/rules.mjs 的规则适配层（cfg.engine：js 缺省 / swift = ShiziCore 命令行 / both = 两边同步走、逐步比对；B4.2）
 //   三档 / 已跳过 = ui/screens/library/model；今日计划 = home/today + planDaily；提醒题目 = platform/reminder
 // 本文件只负责「用户怎么做」（答对率、提示、跳过、哪天不练…）和记账，不含任何调度规则。
 import * as policy from '../../../src/config/policy.js';
@@ -11,12 +12,9 @@ import { charOfCardKey, isJudged, latestJudged } from '../../../src/core/records
 import { isWarmupKey } from '../../../src/core/new-order.js';
 import { dueReviewsDoneOn } from '../../../src/core/mix.js';
 import { dailyReviewCapOf, groupSizeOf } from '../../../src/core/group-size.js';
-import { aStartInfo, expireStale, planDaily, recordsOf, startNextA, startPicked } from '../../../src/core/session-start.js';
+import { recordsOf } from '../../../src/core/session-start.js';
 import { cardForKey, deckAdapter, isPracticable, libraryOf } from '../../../src/data/deck.js';
-import { commitJudgment } from '../../../src/ui/screens/write/compare.js';
-import { commitSkip, commitUndoSkip } from '../../../src/ui/screens/write/skip.js';
-import { commitAnswerNext, commitAnswerSeen } from '../../../src/ui/screens/write/answer.js';
-import { commitResultCorrection } from '../../../src/ui/screens/result/index.js';
+import { dualStore, makeRules } from './rules.mjs';
 import { memoryZones, skippedZone, todayPlanModel } from '../../../src/session/views/library.js';
 import { reminderCandidates, reminderQuestions } from '../../../src/platform/reminder.js';
 import { bootDeck, makeStore, realStrokesOf, rng, STROKES } from './env.mjs';
@@ -56,6 +54,7 @@ export const DEFAULTS = Object.freeze({
   setup: null, // (store, clock) => void：开局前改状态（迁移场景用）
   freeze: true,
   starveDays: 60,
+  engine: 'js', // 规则引擎：js | swift | both（lib/rules.mjs）
   realInk: false, // true：按笔顺中线写出真实格式的笔迹并存墨（perRecordInk），每天记下墨迹 / 记录占用（D66 ⑭ 实测存储）
 });
 
@@ -103,7 +102,18 @@ export function runScenario(input) {
     ? Date.UTC(y0, m0 - 1, d0 + dayIdx + skew, cfg.fixedUtcHour)
     : new Date(y0, m0 - 1, d0 + dayIdx + skew, cfg.hour, cfg.minute, 30).getTime());
   const clock = { t: instantOf(0, 0) };
-  const store = makeStore(clock, { budgets: cfg.budgets, freeze: cfg.freeze });
+  const rules = makeRules(cfg.engine, { now: () => clock.t });
+  const store = cfg.engine === 'both'
+    ? dualStore(makeStore(clock, { budgets: cfg.budgets, freeze: cfg.freeze }), makeStore(clock, { budgets: cfg.budgets, freeze: cfg.freeze }))
+    : makeStore(clock, { budgets: cfg.budgets, freeze: cfg.freeze });
+  try {
+    return runWith(cfg, { clock, rules, store, instantOf, rand, probeRand });
+  } finally {
+    rules.close();
+  }
+}
+
+function runWith(cfg, { clock, rules, store, instantOf, rand, probeRand }) {
   if (cfg.library) store.commit('sim:library', d => { d.settings = { ...(d.settings || {}), library: cfg.library }; });
   if (cfg.groupSize) store.commit('sim:group-size', d => { d.settings = { ...(d.settings || {}), groupSize: cfg.groupSize }; });
   if (cfg.setup) cfg.setup(store, clock);
@@ -234,10 +244,10 @@ export function runScenario(input) {
       if (probeRand() < cfg.probeRate) {
         const foldedBefore = foldedMonths();
         const snap = snapOf(slot);
-        const sk1 = commitSkip(store, { slot, cardKey, hints: 0 });
+        const sk1 = rules.commitSkip(store, { slot, cardKey, hints: 0 });
         let ok = sk1.ok;
         if (ok) {
-          const un = commitUndoSkip(store, { slot, sessionId: session.id, recordId: sk1.record.id });
+          const un = rules.commitUndoSkip(store, { slot, sessionId: session.id, recordId: sk1.record.id });
           ok = un.ok;
         }
         const snap2 = snapOf(slot);
@@ -255,12 +265,12 @@ export function runScenario(input) {
       let hintedFlag = false;
       if (action === 'judged') {
         hintedFlag = hints > 0;
-        const j = commitJudgment(store, { slot, cardKey, judgment, strokes: cfg.realInk ? realStrokesOf(char, (seenToday.get(sk) || 0) % 2) : STROKES, hints, perRecordInk: !!cfg.realInk });
+        const j = rules.commitJudgment(store, { slot, cardKey, judgment, strokes: cfg.realInk ? realStrokesOf(char, (seenToday.get(sk) || 0) % 2) : STROKES, hints, perRecordInk: !!cfg.realInk });
         if (!j.ok) {
           // 判断没存上（真实用户会看到失败提示）。记一次违反，然后让用户放弃这个字（跳过）继续。
           viol('X1-judge-commit-fails', today, `${char}：${JSON.stringify(j.error)}`);
           action = 'judge-failed';
-          const sj = commitSkip(store, { slot, cardKey, hints: 0 });
+          const sj = rules.commitSkip(store, { slot, cardKey, hints: 0 });
           if (!sj.ok) throw new Error('skip after failed judge failed: ' + JSON.stringify(sj.error));
         } else {
         // D66 ①：判断前看过答案的新字不算第一次；当天看答案已记过 Again 的字这次判断不再评级（记「—」）
@@ -279,12 +289,12 @@ export function runScenario(input) {
         }
         }
       } else if (action === 'skip') {
-        const j = commitSkip(store, { slot, cardKey, hints: 0 });
+        const j = rules.commitSkip(store, { slot, cardKey, hints: 0 });
         if (!j.ok) throw new Error('skip failed');
       } else {
-        const a = commitAnswerSeen(store, { slot, cardKey });
+        const a = rules.commitAnswerSeen(store, { slot, cardKey });
         if (!a.ok) throw new Error('answer-seen failed ' + JSON.stringify(a.error));
-        const n = commitAnswerNext(store, { slot, cardKey, strokes: cfg.realInk ? realStrokesOf(char, 1) : null, perRecordInk: !!cfg.realInk });
+        const n = rules.commitAnswerNext(store, { slot, cardKey, strokes: cfg.realInk ? realStrokesOf(char, 1) : null, perRecordInk: !!cfg.realInk });
         if (!n.ok) throw new Error('answer-next failed ' + JSON.stringify(n.error));
         memUpdate({ card, char, outcome: 'seen', p, nowMs: clock.t });
       }
@@ -328,8 +338,8 @@ export function runScenario(input) {
         const rec0 = recordsOf(stateNow()).find(r => r.id === it.recordId);
         const before = JSON.stringify(stateNow().sched[it.cardKey]);
         const to = rec0.judgment === 'correct' ? 'wrong' : 'correct';
-        const c1 = commitResultCorrection(store, { slot, sessionId: s.id, recordId: it.recordId, to });
-        const c2 = c1.ok ? commitResultCorrection(store, { slot, sessionId: s.id, recordId: it.recordId, to: rec0.judgment }) : c1;
+        const c1 = rules.commitResultCorrection(store, { slot, sessionId: s.id, recordId: it.recordId, to });
+        const c2 = c1.ok ? rules.commitResultCorrection(store, { slot, sessionId: s.id, recordId: it.recordId, to: rec0.judgment }) : c1;
         const after = JSON.stringify(stateNow().sched[it.cardKey]);
         probes.correction.n += 1;
         if (!c1.ok || !c2.ok || before !== after) {
@@ -370,7 +380,7 @@ export function runScenario(input) {
       continue;
     }
     // 打开 App：跨天过期
-    expireStale(store, { now: () => clock.t });
+    rules.expireStale(store, { now: () => clock.t });
     // 逾期统计（只在用户练习的日子计）
     {
       const sched = stateNow().sched || {};
@@ -381,9 +391,9 @@ export function runScenario(input) {
       }
     }
     // 今日计划（不写入）
-    const info = aStartInfo(stateNow());
+    const info = rules.aStartInfo(store);
     if (info.kind === 'daily') {
-      const peek = planDaily(stateNow(), { today, deck: deckAdapter, policy });
+      const peek = rules.planDaily(store, { today });
       row.pressureStart = Math.round(peek.pressure * 100) / 100;
       row.newTargetStart = peek.newTarget;
       row.budgetLeftStart = peek.reviewBudgetLeft;
@@ -402,8 +412,8 @@ export function runScenario(input) {
       clock.t = instantOf(dayIdx, skew) + g * 25 * 60000;
       const state0 = stateNow();
       const records = recordsOf(state0);
-      const startInfo = aStartInfo(state0);
-      const res = startNextA(store, { now: () => clock.t, deck: deckAdapter });
+      const startInfo = rules.aStartInfo(store);
+      const res = rules.startNextA(store, { now: () => clock.t });
       if (!res.ok) throw new Error('startNextA failed ' + JSON.stringify(res.error));
       if (res.empty) {
         row.empty = res.libraryExhausted ? '字库写完' : '没有要写的字';
@@ -424,7 +434,7 @@ export function runScenario(input) {
       const lib = libraryOf(stateNow().settings && stateNow().settings.library ? stateNow().settings.library : 'core3500');
       const sched = stateNow().sched || {};
       const fresh = deckAdapter.newCandidates(lib.id).filter(k => !sched[k]).slice(pk.offset || 0, (pk.offset || 0) + pk.n);
-      const r = startPicked(store, { keys: fresh, deck: deckAdapter });
+      const r = rules.startPicked(store, { keys: fresh });
       if (r.started) {
         const plan = { backlog: null, pressure: null, newTarget: null, reviewBudgetLeft: null, special: null, customKeys: [], earlyKeys: [], dueKeys: [], warmKeys: [], newKeys: [] };
         writeSession({ slot: 'B', session: r.session, plan, kind: 'picked', day: today, dayIdx, groupIdx: 100, partialAfter: null });
@@ -433,6 +443,7 @@ export function runScenario(input) {
     }
     row.practiced = true;
     days.push(finishRow(row, today, true));
+    if (rules.checkFull && (dayIdx % 30 === 29 || dayIdx === cfg.days - 1)) rules.checkFull(store, today);
   }
 
   function finishRow(row, today, practiced = false) {
@@ -542,6 +553,7 @@ export function runScenario(input) {
   }
   const final = stateNow();
   return {
+    engine: { kind: rules.kind, diffs: rules.diffs || null, swiftCalls: rules.swiftCalls ? rules.swiftCalls() : null },
     cfg, days, groups, events, violations, probes, memStats, state: final, skewTotal,
     maxOverdueSeen, starveCardDays, sameDay: [...seenToday.values()].filter(n => n > 1).length, seenAgainCount,
   };

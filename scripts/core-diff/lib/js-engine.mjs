@@ -9,6 +9,8 @@
 import * as dates from '../../../src/core/dates.js';
 import { makeB41Ops } from './js-ops-b41.mjs';
 import { makeB43Ops } from './js-ops-b43.mjs';
+import { makeB42Ops } from './js-ops-b42.mjs';
+import { parseJson } from './json-parse.mjs';
 
 export const PROTOCOL_VERSION = 1;
 
@@ -140,6 +142,8 @@ export function createJsEngine({ fault = null } = {}) {
 
     // B4.3：记录 / 查字 / 卡片 / 结构 / 作品成员 / 取墨 / 首练结果页 / 提醒题目 / 墨编解码（js-ops-b43.mjs）
     ...makeB43Ops({ required, str, finite, int, badArgs }),
+    // B4.2：FSRS 与出题调度（js-ops-b42.mjs）
+    ...makeB42Ops({ required, str, finite, int, badArgs }),
   };
 
   const snapshot = () => ({ clock: st.clock, kv: st.kv });
@@ -180,7 +184,7 @@ export function createJsEngine({ fault = null } = {}) {
   function handleLine(line) {
     let req;
     try {
-      req = JSON.parse(line);
+      req = parseJson(line); // 不用 JSON.parse：V8 的一个快路径 bug，见 json-parse.mjs
     } catch (error) {
       return JSON.stringify(fail({}, 'bad-json', String(error.message), true));
     }

@@ -1,0 +1,7 @@
+{
+  "schedulerVersion": "ts-fsrs 5.2.0 / FSRS-6.0",
+  "parameterVersion": "fsrs6-fuzz-365-v2",
+  "requestRetention": 0.9,
+  "maximumInterval": 365,
+  "enableFuzz": true
+}

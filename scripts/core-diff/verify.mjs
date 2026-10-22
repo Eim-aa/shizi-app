@@ -2,7 +2,7 @@
 // pnpm run verify:core-diff（B4.0）：ShiziCore 等价性门禁一条命令跑完。
 //   1. swift build -c release（shizi-core-cli）
 //   2. swift test（ShiziCoreTests：金标准 + 协议）
-//   3. 金标准夹具与 JS 代码同步（scripts/core-golden/golden.mjs --check）
+//   3. 配置 / 数据资源与 src/ 同步（scripts/build_core_config.mjs --check）、金标准夹具与 JS 代码同步（scripts/core-golden/golden.mjs --check）
 //   4. 差分驱动自检（JS ↔ JS、埋错必抓 + 缩小、协议语料 JS ↔ Swift）
 //   5. 随机差分 JS ↔ Swift：Asia/Shanghai 200 种子 × 300 步；America/New_York、Australia/Lord_Howe、America/Santiago 各 50 × 300
 //   6. 转写清单与测试同步（不同步只警告：别的卡加测试不该卡住这里）
@@ -30,6 +30,7 @@ if (!argv.includes('--no-build')) {
   if (!step('swift build -c release', 'swift', ['build', '-c', 'release', '--package-path', PKG])) finish();
 }
 if (!argv.includes('--skip-swift-test')) step('swift test', 'swift', ['test', '--package-path', PKG]);
+step('配置与数据资源同步（build_core_config --check）', process.execPath, ['scripts/build_core_config.mjs', '--check']);
 step('金标准同步', process.execPath, ['scripts/core-golden/golden.mjs', '--check']);
 step('差分驱动自检', process.execPath, ['scripts/core-diff/run.mjs', '--self-test', '--swift']);
 for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 5000 : 200], ['America/New_York', nightly ? 500 : 50], ['Australia/Lord_Howe', nightly ? 500 : 50], ['America/Santiago', nightly ? 500 : 50]]) {

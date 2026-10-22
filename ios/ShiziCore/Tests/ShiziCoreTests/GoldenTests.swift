@@ -69,4 +69,20 @@ final class GoldenTests: XCTestCase {
             }
         }
     }
+
+    // B4.1：形状表正反例（含模型往返逐字节不变）、落款汉字数字与题记、文案取用。
+    func testSchemaGolden() throws {
+        let n = try runOpGolden("schema")
+        XCTAssertGreaterThan(n, 1000)
+    }
+
+    func testSignatureGolden() throws {
+        let n = try runOpGolden("signature")
+        XCTAssertGreaterThan(n, 5000)
+    }
+
+    func testCopyGolden() throws {
+        let n = try runOpGolden("copy")
+        XCTAssertGreaterThan(n, 4000)
+    }
 }

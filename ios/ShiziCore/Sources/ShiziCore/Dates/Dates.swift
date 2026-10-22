@@ -11,6 +11,7 @@ public enum CoreError: Error, Equatable {
     case badArgs(String) // 协议层：参数形状不对（两个引擎同一套校验）
     case badRequest(String)
     case unknownOp(String)
+    case error(String) // JS 普通 Error（既不是 RangeError 也不是 TypeError）
 
     public var code: String {
         switch self {
@@ -19,19 +20,20 @@ public enum CoreError: Error, Equatable {
         case .badArgs: return "bad-args"
         case .badRequest: return "bad-request"
         case .unknownOp: return "unknown-op"
+        case .error: return "error"
         }
     }
 
     public var message: String {
         switch self {
-        case .range(let m), .type(let m), .badArgs(let m), .badRequest(let m), .unknownOp(let m): return m
+        case .range(let m), .type(let m), .badArgs(let m), .badRequest(let m), .unknownOp(let m), .error(let m): return m
         }
     }
 }
 
 public struct Dates {
-    /// policy.dayStartHour 的缺省值（P320 / D66 ⑦）。金标准里带着 JS policy 的值，Swift 测试核对两边相同；B4.1 换成生成的 Policy。
-    public static let defaultDayStartHour = 4
+    /// policy.dayStartHour 的缺省值（P320 / D66 ⑦）：读生成的 policy.json（B4.1），不手抄。
+    public static let defaultDayStartHour = Int(Config.policyNumber("dayStartHour") ?? 0)
 
     public let timeZone: TimeZone
     public init(timeZone: TimeZone) { self.timeZone = timeZone }

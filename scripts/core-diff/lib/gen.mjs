@@ -3,8 +3,10 @@
 // 生成器只造请求，不知道任何规则；可用 op = 两个引擎 hello 回的 op 表的交集（Swift 还没移植的 op 自动不出）。
 import protocolDomain from '../domains/protocol.mjs';
 import datesDomain from '../domains/dates.mjs';
+import configDomain from '../domains/config.mjs';
+import schemaDomain from '../domains/schema.mjs';
 
-export const DOMAINS = [protocolDomain, datesDomain];
+export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain];
 
 /** mulberry32（与 scripts/sim/lib/env.mjs 同一算法）。 */
 export function rng(seed) {

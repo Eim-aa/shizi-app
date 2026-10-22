@@ -24,9 +24,9 @@ final class QA {
     let app = XCUIApplication()
     private(set) var seed: String?
 
-    init(seed: String?, native: Bool = true, failNext: Int = 0) {
+    init(seed: String?, native: Bool = true, failNext: Int = 0, reduceMotion: Bool = false) {
         self.seed = seed
-        app.launchArguments = Self.args(seed: seed, native: native, failNext: failNext)
+        app.launchArguments = Self.args(seed: seed, native: native, failNext: failNext) + (reduceMotion ? ["-shizi-qa-reduce-motion"] : [])
     }
 
     static func args(seed: String?, native: Bool = true, failNext: Int = 0) -> [String] {
@@ -96,6 +96,8 @@ final class QA {
     var kinds: [String: Int] { probe["kinds"] as? [String: Int] ?? [:] }
     var records: Int { probe["records"] as? Int ?? -1 }
     var transitions: [String] { probe["transitions"] as? [String] ?? [] }
+    /// B2.8：网页 root.js 的转场记录（push:native = 让给原生；push:slide / pop:paper … = 网页自己播）。
+    var webNav: [String] { probe["webNav"] as? [String] ?? [] }
 
     // MARK: 元素
 

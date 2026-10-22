@@ -294,7 +294,23 @@ test('open: timing for the native surface comes from the same source as the web 
       confirmFrom: M.scale.confirmFrom, snap: M.role.gestureSnap, easeIn: [...M.bezier.in],
       directionSlop: M.gesture.directionSlop, commitRatio: M.gesture.sheetCommitRatio, commitVelocity: M.gesture.commitVelocity, returnVelocity: M.gesture.returnVelocity,
     },
+    // B2.8：原生进出转场——与网页 root.js（PUSH_MS / 视差 / 跟手完成下限 / 回弹）与 paper-transition.js（policy.paperTransition）同一组
+    nav: {
+      push: { ms: M.role.pushIn, outMs: M.role.pushOut, gestureMinMs: M.role.pushGestureMin, snapMs: M.role.gestureSnap, parallax: M.distance.parallax, ease: [...M.bezier.out] },
+      paper: {
+        openMs: policyModule.paperTransition.openMs, closeMs: policyModule.paperTransition.closeMs, fullMs: policyModule.paperTransition.fullMs,
+        minFinishMs: policyModule.paperTransition.minFinishMs, cancelMs: policyModule.paperTransition.cancelMs,
+        openEase: [...policyModule.paperTransition.openEase], closeEase: [...policyModule.paperTransition.closeEase],
+        dragLeanPt: policyModule.paperTransition.dragLeanPt, dragRadiusPt: policyModule.paperTransition.dragRadiusPt,
+        contentFadeFrom: policyModule.paperTransition.contentFadeFrom, veilTo: policyModule.paperTransition.veilTo,
+      },
+      quiet: { openMs: policyModule.paperTransition.quietOpenMs, closeMs: policyModule.paperTransition.quietCloseMs, scaleFrom: policyModule.paperTransition.quietScaleFrom, dragPt: policyModule.paperTransition.quietDragPt },
+      reduceMs: policyModule.paperTransition.reducedMs,
+      phaseMs: M.dur.fade,
+    },
   });
+  assert.deepEqual([r.motion.nav.push.ms, r.motion.nav.paper.openMs, r.motion.nav.paper.closeMs, r.motion.nav.quiet.openMs, r.motion.nav.quiet.closeMs, r.motion.nav.reduceMs],
+    [300, 420, 360, 220, 180, 150], '交互规范 T0：T-push 300、T-paper 420 / 360、T-quiet 220 / 180、减少动态效果 150');
   assert.deepEqual([r.motion.overlay.sheetIn, r.motion.overlay.sheetOut, r.motion.overlay.scrimIn, r.motion.overlay.scrimOut], [280, 220, 200, 180], 'T-sheet 进 280 / 退 220、遮罩 200 / 180');
   assert.deepEqual([r.motion.settle.lift, r.motion.settle.fadeFrom, r.motion.settle.end, r.motion.settle.countBox], [100, 380, 460, 14], 'M23 判断落定');
   // 版式常量：与网页 layout.js 同一组（01 §6.1）

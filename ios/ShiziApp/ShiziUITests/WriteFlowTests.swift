@@ -60,7 +60,9 @@ final class WriteFlowTests: XCTestCase {
         qa.edgeBack()
         qa.waitNative(false)
         qa.waitRouteTop("home")
-        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("dismiss:slide") }, "interactive slide back: \(qa.transitions)")
+        // 注入的写字页是程序打开的（T-quiet）：左缘跟手画 T-quiet 倒放（N3-3：看它是怎么进来的）
+        XCTAssertTrue(qa.transitions.contains("drag:quiet"), "\(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("dismiss:quiet:interactive"), "interactive back: \(qa.transitions)")
         XCTAssertEqual(qa.session()["strokes"] as? Int, 2)
     }
 
@@ -328,9 +330,14 @@ final class WriteFlowTests: XCTestCase {
         qa.tapNative("native-change-detail")
         qa.waitNative(false)
         qa.waitRouteTop("detail")
+        // B2.8：让开——原生页的样子交给宿主层，网页自己推入字详情（T-push），原生页等页面画好后直接收起
+        XCTAssertTrue(qa.transitions.contains("yield:detail"), "\(qa.transitions)")
+        XCTAssertTrue(qa.webNav.contains("push:slide"), "\(qa.webNav)")
         qa.edgeBack()
         qa.waitNative(true)
         XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("open via=return") }, "\(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("present:none"), "\(qa.transitions)")
+        XCTAssertTrue(qa.webNav.contains("pop:slide"), "the web pops the detail itself over the native page's look: \(qa.webNav)")
         XCTAssertTrue(qa.el("native-write-line-change").waitForExistence(timeout: 4), "result line still there")
         XCTAssertEqual(qa.records, 1, "nothing recorded on the way")
     }
@@ -417,7 +424,7 @@ final class WriteFlowTests: XCTestCase {
         qa.waitRouteTop("result")
         XCTAssertEqual(qa.probe["judgedWrong"] as? Int ?? 0 + (qa.probe["judgedCorrect"] as? Int ?? 0), qa.probe["judgedWrong"] as? Int ?? 0)
         XCTAssertEqual((qa.probe["judgedWrong"] as? Int ?? 0) + (qa.probe["judgedCorrect"] as? Int ?? 0), 5)
-        XCTAssertTrue(qa.transitions.contains("dismiss:fade"), "fade to the result page: \(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("present:phase"), "T-phase into the result page: \(qa.transitions)")
     }
 
     // MARK: 恢复

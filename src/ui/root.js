@@ -45,7 +45,8 @@ import { attachEdgeSwipe, EdgeStrip } from './edge-swipe.js';
 import { clearOverlayGesture, paintOverlayGesture } from './overlay-gesture.js';
 import { markStateChange } from './components/Button.js';
 import {
-  cancelSpec, clearPaper, createPaper, forgetTap, noteTap, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,
+  cancelSpec, clearPaper, createPaper, forgetTap, noteNativePlan, noteTap, onNativeHostChange, PAPER_CSS, planPaper, planPaperDrag, runProgress, setNavBusy, specFor,
+  traceNav,
 } from './paper-transition.js';
 import { Tabs } from './components/Tabs.js';
 import './components/marks.js'; // 朱色白名单组件：写错朱点与印章（D43，P1-E1a）
@@ -297,6 +298,22 @@ function Layer({ router, group, isRoot, visible, isTop, nativeHost = false }) {
   </div></${EntryContext.Provider}>`;
 }
 
+/**
+ * B2.8：这次转场动的那一页是不是原生宿主条目（原生写字页 / 结果页盖在透明宿主层上）——推入 / 换层时看新页，返回 / 换层时看离开的那页。
+ * 写字页登记 nativeHost（开关打开时恒为原生）；结果页登记 nativeHost（顶层、上面没有网页弹层、不在「让开后等回来」）与 nativeHostLeaving。
+ */
+function nativeMoves(t, snap) {
+  if (!t || !t.from || !t.to) return false;
+  const hosted = (e, leaving) => {
+    const d = getScreen(e.n);
+    if (!d) return false;
+    if (leaving && d.nativeHostLeaving) return !!d.nativeHostLeaving(e, snap);
+    return !!(d.nativeHost && d.nativeHost(e, snap));
+  };
+  if ((t.kind === 'push' || t.kind === 'replace') && hosted(t.to, false)) return true;
+  return (t.kind === 'pop' || t.kind === 'replace') && hosted(t.from, true);
+}
+
 function Root({ router, win }) {
   const [snap, setSnap] = useState(() => router.getState());
   const [gestureOn, setGestureOn] = useState(false); // 跟手中（含回弹、提交后等转场）：'page' 底层页露出；'phase' 页内回退（不露出）
@@ -326,13 +343,24 @@ function Root({ router, win }) {
       t.from && gestureRef.current.els && gestureRef.current.els.topId === t.from.id);
     // 减少动态效果下由手势完成的返回：不跟手，松手直接淡化 GESTURE_FADE_MS（R4-G1）。
     const reducedGesture = !!(t.kind === 'pop' && ctrl && !gv && prefersReducedMotion(win) && ctrl.takeReducedCommit());
-    if (t.kind === 'replace' && t.animate && t.from && t.to) {
+    if (nativeMoves(t, snap) && (t.animate || t.kind === 'pop')) {
+      // B2.8：进 / 出原生宿主条目（原生写字页、原生结果页）的这一下由原生 NativeWriteTransitions 画（T-paper / T-push / T-quiet / 淡化），
+      // 宿主层是透明的——网页不再播自己的纸展开 / 推入（NF-01：两边叠播、返回先滑出再缩回）。来源记账照旧（planPaper），计划随 open 交给原生；
+      // 原生页上的点按网页收不到 click：结果页「再写一组」/ 撤销跳过换成写字页按「有被点元素」记（普通推入，D62）。
+      const pages = snap.stack.filter(e => e.k === 's');
+      const under = pages.length >= 2 ? pages[pages.length - 2] : null;
+      const plan = planPaper(t, { reduced: false, root: appRef.current, underId: under ? under.id : null, nativeTap: t.kind === 'replace' });
+      if (t.kind !== 'pop') noteNativePlan(t.to.id, plan, under ? under.id : null, appRef.current);
+      traceNav(`${t.kind}:native`);
+      animRef.current.current = null;
+    } else if (t.kind === 'replace' && t.animate && t.from && t.to) {
       // 同一层换内容。换成写字页且有被点元素（结果页「再写一组」、撤销跳过回到那个字）：新写字页从被点元素长出来（B1，R6-J1，规范 T0 B1），
       // 来源记在结果页下面那一页名下，返回沿原路缩回；没有被点元素时一段 T-phase 淡化，旧页留在下面直到新页淡入完（R5-I2，P1-03 / P2-19）
       const pages = snap.stack.filter(e => e.k === 's');
       const under = pages.length >= 2 ? pages[pages.length - 2] : null;
       const paper = planPaper(t, { reduced: prefersReducedMotion(win), root: appRef.current, underId: under ? under.id : null });
       animRef.current.current = { seq: t.seq, kind: 'replace', paper, mode: paper ? (paper.mode === 'B1' ? 'paper' : paper.mode === 'S' ? 'slide' : 'fade') : 'phase', from: t.from, to: t.to, startS: null, startX: 0, underX: 0, width: 0 };
+      traceNav(`replace:${animRef.current.current.mode}`);
     } else if ((t.animate || fromGesture || reducedGesture) && (t.kind === 'push' || t.kind === 'pop') && t.from && t.to) {
       const start = fromGesture ? BACK_TRANSITION.handoff(gv) : { startX: 0, underX: 0, width: 0 };
       // 写字页进出（W2）：B1 / B3 / 减少动态效果的 150ms 淡化；null = 沿用横推（其它页面）。
@@ -351,6 +379,7 @@ function Root({ router, win }) {
         fromGesture,
         reducedGesture,
       };
+      traceNav(`${t.kind}:${animRef.current.current.mode}`);
     } else {
       animRef.current.current = null;
       // 没有动画的转场（popstate 兜底等）也要让来源记录跟页面栈同步：写字页被弹掉就忘了它的来源
@@ -489,6 +518,12 @@ function Root({ router, win }) {
     if (animation) animation.onfinish = finish;
     timer = setTimeout(finish, opts.duration + M.dur.fade);
   });
+
+  // B2.8：网页转场空闲与否报给原生宿主（回到宿主条目时等网页自己的返回转场放完，再请原生盖上）；宿主显示状态变了重画一次。
+  useLayoutEffect(() => {
+    setNavBusy(!!animRef.current.current || !!gestureOn);
+  });
+  useEffect(() => onNativeHostChange(() => force(n => n + 1)), []);
 
   // 原生左缘返回门控（01 §7）：页面栈深度 / 阻断 / 顶层页面能否返回（ui/back-action.js）变化时同步一次。
   // effect 在子组件之后执行；仍声明 ownsBackGesture 的页面为顶层时 createBackGestureSync 不发（R4-G1 起没有页面这样声明）。

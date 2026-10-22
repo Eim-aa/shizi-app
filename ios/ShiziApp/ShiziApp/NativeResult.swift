@@ -25,6 +25,8 @@ import UIKit
 protocol NativeResultCoordinating: AnyObject {
     /// 写入成功后页面会导航走（再写一组 / 撤销跳过 / 推入重写错字 / 字详情 / 分享）：原生页等宿主的 result-close 再让开。
     func nativeResultWillNavigate(_ vc: NativeResultViewController)
+    /// B2.8：「×」/ 底栏离开——协调者问页面回去的路（纸缩回 / 右滑出 / 安静淡出），放完转场后收起（viewDidDisappear 发 resultExit leave）。
+    func nativeResultLeave(_ vc: NativeResultViewController)
 }
 
 final class NativeResultViewController: UIViewController, UIGestureRecognizerDelegate, UIScrollViewDelegate {
@@ -235,7 +237,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         UIAccessibility.post(notification: .screenChanged, argument: headerLabel)
-        startRevealIfNeeded()
+        transitions.whenSettled { [weak self] in self?.startRevealIfNeeded() } // T0 规则 4：进场转场放完再显现
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -755,7 +757,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     @objc private func tapLeave() {
         guard presentingViewController != nil, !isBeingDismissed else { return }
         dismissUndoForAction()
-        dismiss(animated: true) // 滑出完成后 viewDidDisappear 发 resultExit leave
+        if let coordinator { coordinator.nativeResultLeave(self) } else { dismiss(animated: true) } // 转场放完收起后 viewDidDisappear 发 resultExit leave
     }
 
     /// 「再写一组」（网页 again）：成功后页面就地换成写字页；失败就地三段式。
@@ -870,22 +872,14 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { g !== edgeBack }
 
     @objc private func handleEdgeBack(_ g: UIScreenEdgePanGestureRecognizer) {
-        let x = max(0, g.translation(in: view).x), v = g.velocity(in: view).x
-        let width = max(1, view.bounds.width)
         switch g.state {
         case .began:
             if revealing { skipReveal() }
             dismissUndoForAction()
-            transitions.interactor = UIPercentDrivenInteractiveTransition()
-            dismiss(animated: true)
-        case .changed:
-            transitions.interactor?.update(min(1, x / width))
-        case .ended, .cancelled, .failed:
-            guard let it = transitions.interactor else { return }
-            transitions.interactor = nil
-            if g.state == .ended, BackGestureThreshold.commits(distance: x, velocity: v, width: width) { it.finish() } else { it.cancel() }
+            transitions.drag(g, page: self)
         default:
-            break
+            // B2.8：跟手画回来源的那种转场倒放（同「×」），阈值 BackGestureThreshold；完成后收起，viewDidDisappear 发 resultExit leave
+            transitions.drag(g, page: self)
         }
     }
 

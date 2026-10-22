@@ -44,6 +44,8 @@ protocol NativeWriteCoordinating: AnyObject {
     func nativeWriteDidFinish(_ vc: NativeWriteViewController, sessionId: String)
     /// undo：跳过最后一字后 5 秒撤销机会还在时，随 exit 交给结果页（B2.6）。
     func nativeWriteDidFinish(_ vc: NativeWriteViewController, sessionId: String, undo: [String: Any]?)
+    /// B2.8：改判弹层「看这个字 ›」——协调者把原生页的样子交给宿主层、请页面推入字详情、页面画好后收起原生页（推入由网页播）。
+    func nativeWriteOpenDetail(_ vc: NativeWriteViewController, char: String)
 }
 
 final class NativeWriteViewController: UIViewController {
@@ -2006,6 +2008,7 @@ final class NativeWriteViewController: UIViewController {
 
     /// 落笔 / 点按时正在进行的版式动画与换字转场一帧到终态（T0 规则 3：动画不挡输入，这次输入照常生效）。
     private func settleAnimations() {
+        transitions.finishNow() // 进场转场还在跑：一帧到终态（B2.8，T0 规则 3）
         settleReverse()
         view.layer.removeAllAnimations()
         for v in view.subviews {
@@ -2079,6 +2082,10 @@ final class NativeWriteViewController: UIViewController {
     /// 详情返回时宿主重新请原生盖上（open via 'return'，笔画 / 结果行从快照恢复）。
     func openCharDetail(_ char: String) {
         guard !exitHandled else { return }
+        if let coordinator {
+            coordinator.nativeWriteOpenDetail(self, char: char)
+            return
+        }
         bridge.call("exit", ["slot": slot, "to": "detail", "char": char]) { [weak self] reply in
             guard let self, reply.ok else { return }
             self.exitHandled = true
@@ -2259,16 +2266,10 @@ final class NativeWriteViewController: UIViewController {
             guard !submitting else { return }
             settleAnimations()
             ink?.cancelStroke(reason: "edge-back", notify: false) // 落笔中被手势打断：这一笔丢弃（与网页 pointercancel 同语义）
-            transitions.interactor = UIPercentDrivenInteractiveTransition()
-            dismiss(animated: true)
-        case .changed:
-            transitions.interactor?.update(min(1, x / width))
-        case .ended, .cancelled, .failed:
-            guard let it = transitions.interactor else { return }
-            transitions.interactor = nil
-            if g.state == .ended, BackGestureThreshold.commits(distance: x, velocity: v, width: width) { it.finish() } else { it.cancel() }
+            transitions.drag(g, page: self)
         default:
-            break
+            // B2.8：跟手画的是这一页进来时的那种转场倒放（纸缩回 / 右滑出 / 安静淡出），阈值 BackGestureThreshold；完成后收起，viewDidDisappear 发 exit back
+            transitions.drag(g, page: self)
         }
     }
 }

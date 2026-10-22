@@ -14,8 +14,10 @@
 // 开关：只在 iOS DEBUG 壳、启动参数 -shizi-native-write（SHIZI_NATIVE_WRITE=1）时，原生在文档开始注入 window.__shiziNativeWrite = true；
 // 默认关，关着时本模块什么都不装、写字页与正式流程完全相同。
 
-import { html, useEffect, useRef } from '../../../../vendor/ui.js';
+import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
 import { getRouter, nav } from '../../router.js';
+import { nativeBackPlan, nativePlanOf, notifyNativeHostChange, onNativeHostChange, whenNavIdle } from '../../paper-transition.js';
+import { M } from '../../../config/motion.js';
 import { postNative, isNative } from '../../../platform/bridge.js';
 import { handoffSkipUndo, leaveTo, openResult, resultImageAction, takeSkipUndo } from '../result/index.js';
 import { resultView } from '../result/native-view.js';
@@ -170,13 +172,75 @@ let installed = null;
 let awayEntry = null;
 
 
-/** 装 window.shiziNativeWrite(op, args) → Promise<结果>（只在开关打开时；幂等）。 */
+/** 装 window.shiziNativeWrite(op, args) → Promise<结果>（只在开关打开时；幂等）。B2.8 同时装导航助手 window.shiziNativeNav。 */
 export function installNativeWrite(win = globalWin(), deps) {
   if (!win || !nativeWriteEnabled(win)) return null;
+  if (!win.shiziNativeNav) win.shiziNativeNav = (op, args) => Promise.resolve(nativeNavCall(op, args, win));
   if (installed && win.shiziNativeWrite) return installed;
   installed = createWriteSessionApi(deps);
   win.shiziNativeWrite = (op, args) => Promise.resolve(installed.call(op, args));
   return installed;
+}
+
+// ---------------------------------------------------------------- B2.8 导航助手（只读 / 只管界面，不写 store）
+
+/** 原生页让开（改判弹层「看这个字 ›」进字详情）时留在宿主层上的「样子」：slot → 原生页截图（data URL）。字详情推入 / 左缘滑回时露出的就是它。 */
+const writeCovers = new Map();
+const coverListeners = new Set();
+
+function setWriteCover(slot, url) {
+  if (url) writeCovers.set(slot, url);
+  else writeCovers.delete(slot);
+  for (const fn of [...coverListeners]) fn(slot);
+}
+
+function appRoot(win = globalWin()) {
+  try {
+    return win.document.querySelector('.sz-app');
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * window.shiziNativeNav(op, args)（B2.8，原生 NativeWriteTransitions 用；不写 store，所以不在写字会话 API 的 op 表里）：
+ *   back  → {ok, plan, top}：顶层宿主条目回到下层页时该怎么走（网页左缘右滑同一个判定 planPaperDrag；plan = {mode:'paper', source, panel} | {mode:'quiet'} | {mode:'push'}，
+ *           paper 的 source.rect 是被点元素此刻的位置（不在了：记下的位置、gone = true））；
+ *   cover → {ok}：宿主层上放 / 收原生页的截图（args.url，空 = 收）；
+ *   fence → {ok}：等页面画完下一帧（两次 requestAnimationFrame）——原生让开前确认网页已换好页，不露出中间状态。
+ */
+export function nativeNavCall(op, args = {}, win = globalWin()) {
+  const a = args || {};
+  if (op === 'back') {
+    const router = getRouter();
+    const st = router ? router.getState() : null;
+    const pages = st ? st.stack.filter(e => e.k === 's') : [];
+    const top = pages[pages.length - 1] || null;
+    const under = pages[pages.length - 2] || null;
+    return { ok: !!top, plan: nativeBackPlan(top, under, appRoot(win)), top: top ? top.n : null };
+  }
+  if (op === 'cover') {
+    const slot = a.slot === 'B' ? 'B' : 'A';
+    const url = typeof a.url === 'string' && a.url ? a.url : null;
+    if (!url || !win || typeof win.Image !== 'function') {
+      setWriteCover(slot, url);
+      return { ok: true };
+    }
+    // 先解码好再放上去（回包之后原生才请页面推入字详情：推入第一帧下面就有图），解码慢也不多等一个 T-phase
+    const img = new win.Image();
+    img.src = url;
+    const decoded = typeof img.decode === 'function' ? img.decode().catch(() => {}) : Promise.resolve();
+    const late = new Promise(resolve => setTimeout(resolve, M.dur.fade));
+    return Promise.race([decoded, late]).then(() => {
+      setWriteCover(slot, url);
+      return { ok: true };
+    });
+  }
+  if (op === 'fence') {
+    const raf = win && typeof win.requestAnimationFrame === 'function' ? win.requestAnimationFrame.bind(win) : fn => Promise.resolve().then(fn); // 没有画面（node）：不等
+    return new Promise(resolve => raf(() => raf(() => resolve({ ok: true }))));
+  }
+  return { ok: false, error: { kind: 'invalid' } };
 }
 
 // ---------------------------------------------------------------- 宿主条目
@@ -193,14 +257,25 @@ export function isNativeHostEntry() {
 export function NativeWriteHost({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
   const sentRef = useRef(false);
+  const [cover, setCover] = useState(() => writeCovers.get(slot) || null);
   useEffect(() => {
+    const on = s => { if (s === slot) setCover(writeCovers.get(slot) || null); };
+    coverListeners.add(on);
+    on(slot);
+    return () => coverListeners.delete(on);
+  }, [slot]);
+  // 布局阶段就发 open（B2.8）：消息先于这一帧网页的画面到原生，原生页盖上之前不露出透明宿主层下面的页面。
+  useLayoutEffect(() => {
     installNativeWrite();
     const router = getRouter();
     const snap = router ? router.getState() : null;
     const tr = snap ? snap.transition : null;
     const animate = !!(tr && tr.to && entry && tr.to.id === entry.id && tr.animate && !tr.cold);
-    // D62：从首页进来（纸展开 / 缩回）与其他入口（推入 / 滑出）的转场不同；冷启动恢复没有转场。
-    const via = !animate ? 'restore' : tr.from && tr.from.n === 'home' ? 'home' : 'push';
+    // D62（B2.8）：转场按网页记账的计划定——首页入口 = 纸展开（home，带被点元素的矩形）、屏上没有来源元素的入口 = 安静淡入（quiet）、
+    // 其他点按入口 = 推入（push）；结果页「再写一组」/ 撤销跳过换成写字页 = again（推入，结果页的样子留在下面）；冷启动恢复没有转场（restore）。
+    const plan = entry ? nativePlanOf(entry.id) : null;
+    const replaced = !!(tr && tr.kind === 'replace' && tr.from && tr.from.n === 'result');
+    const via = !animate ? 'restore' : replaced ? 'again' : plan && plan.mode === 'paper' ? 'home' : plan && plan.mode === 'quiet' ? 'quiet' : 'push';
     let api = null;
     try {
       api = createWriteSessionApi();
@@ -208,22 +283,45 @@ export function NativeWriteHost({ params, entry }) {
       api = null;
     }
     const opened = api ? api.call('open', { slot }) : { ok: false };
-    sentRef.current = postNative('nativeWrite', { op: 'open', slot, entryId: entry ? entry.id : null, animate, via, sentAt: Date.now(), payload: opened });
-    // R9-B：从字详情返回（写字条目重新成为顶层）→ 再请原生盖上（via 'return'：原生淡入，笔画 / 结果行从快照恢复）
+    sentRef.current = postNative('nativeWrite', { op: 'open', slot, entryId: entry ? entry.id : null, animate, via, plan, sentAt: Date.now(), payload: opened });
+    // R9-B：从字详情返回（写字条目重新成为顶层）→ 再请原生盖上（via 'return'）。B2.8：等网页自己的返回转场放完（字详情滑出时露出的是宿主层上的原生页截图），
+    // 原生不带转场直接盖上，随后收掉截图。
+    let waiting = false;
+    let cancelWait = null;
+    let coverTimer = null;
     const off = router && typeof router.subscribe === 'function' ? router.subscribe(() => {
       const top = router.getState().top;
-      if (!entry || awayEntry !== entry.id || !top || top.id !== entry.id) return;
-      awayEntry = null;
-      const again = api ? api.call('open', { slot }) : { ok: false };
-      sentRef.current = postNative('nativeWrite', { op: 'open', slot, entryId: entry.id, animate: true, via: 'return', sentAt: Date.now(), payload: again }) || sentRef.current;
+      if (!entry || awayEntry !== entry.id || !top || top.id !== entry.id || waiting) return;
+      waiting = true;
+      cancelWait = whenNavIdle(() => {
+        cancelWait = null;
+        waiting = false;
+        const now = router.getState().top;
+        if (awayEntry !== entry.id || !now || now.id !== entry.id) return;
+        awayEntry = null;
+        const again = api ? api.call('open', { slot }) : { ok: false };
+        sentRef.current = postNative('nativeWrite', { op: 'open', slot, entryId: entry.id, animate: false, via: 'return', sentAt: Date.now(), payload: again }) || sentRef.current;
+        clearTimeout(coverTimer);
+        coverTimer = setTimeout(() => setWriteCover(slot, null), RETURN_COVER_MS);
+      });
     }) : null;
     return () => {
       if (off) off();
+      if (cancelWait) cancelWait();
+      clearTimeout(coverTimer);
+      setWriteCover(slot, null);
       if (sentRef.current) postNative('nativeWrite', { op: 'close', slot, entryId: entry ? entry.id : null });
     };
   }, [entry && entry.id]);
-  return html`<div data-testid="write-native-host" data-slot=${slot}></div>`;
+  return html`<div data-testid="write-native-host" data-slot=${slot} style=${HOST_STYLE}>
+    ${cover ? html`<img src=${cover} alt="" aria-hidden="true" style=${COVER_STYLE} />` : null}
+  </div>`;
 }
+
+/** 原生页回来盖上之后多久收掉宿主层上的截图（它在原生页下面，看不见；留一会儿防原生页还没盖上时露出下层）。 */
+const RETURN_COVER_MS = M.role.pushIn + M.dur.fade;
+const HOST_STYLE = 'position:absolute;inset:0;pointer-events:none';
+const COVER_STYLE = 'position:absolute;inset:0;width:100%;height:100%;display:block';
 
 /**
  * B2.9a：重写错字页在开关打开时渲染的宿主（与写字页宿主同一种做法）：不画内容；挂载时请原生推入原生重写错字页
@@ -231,7 +329,8 @@ export function NativeWriteHost({ params, entry }) {
  * 原生离开（‹ / 左缘右滑 / 完成）发 redoExit → nav.back 回结果页。没有能练的字时与网页页面同样退回去。
  */
 export function NativeRedoHost({ params, entry }) {
-  useEffect(() => {
+  // 布局阶段就发 redo-open（B2.8）：与结果宿主的 result-close 同一帧到原生，结果页的样子直接当推入的下层
+  useLayoutEffect(() => {
     installNativeWrite();
     const router = getRouter();
     const tr = router ? router.getState().transition : null;
@@ -282,12 +381,79 @@ function inStack(entryId) {
 /** 结果条目为进重写错字 / 字详情 / 分享暂时让开（还在栈里）：再成为顶层时宿主带 via 'return' 请原生淡入。 */
 let awayResult = null;
 
-/** 结果条目此刻该不该由原生显示：它是顶层页且上面没有网页弹层（分享等网页弹层开着时显示网页结果页，让弹层盖在它上面）。 */
+/**
+ * B2.8：让开过（推入重写错字 / 字详情、开网页分享弹层）的结果条目。回到顶层后先保持网页结果页，等网页自己的返回转场 / 弹层退场放完，
+ * 才换回原生（宿主发 result-open via 'return'，原生不带转场直接盖上）——返回转场里露出的是网页结果页本身，不是透明宿主层下面的首页。
+ */
+const deferredResults = new Set();
+
+/** 结果条目此刻该不该由原生显示：它是顶层页且上面没有网页弹层（分享等网页弹层开着时显示网页结果页，让弹层盖在它上面），且不在「让开后等回来」。 */
 export function nativeResultShown(entry, snap) {
   if (!nativeWriteEnabled() || !entry) return false;
   const st = snap || (getRouter() ? getRouter().getState() : null);
   if (!st) return false;
-  return !!(st.top && st.top.id === entry.id && !st.topIsOverlay);
+  return !!(st.top && st.top.id === entry.id && !st.topIsOverlay && !deferredResults.has(entry.id));
+}
+
+/** 离开页面栈时这一层是不是原生结果页（原生已自己滑走 / 缩回：网页不再播；还在网页版时照常播）。 */
+export function nativeResultLeaving(entry) {
+  return nativeWriteEnabled() && !(entry && deferredResults.has(entry.id));
+}
+
+/**
+ * 结果条目由原生还是网页显示（ResultEntry 用）：顶层且没有网页弹层 → 原生宿主；让开时 → 网页结果页（推入 / 弹层盖在它上面）；
+ * 回到顶层 → 等网页转场空闲（弹层关掉时再等它的退场 sheetOut）后换回原生；已离开页面栈（返回转场里的旧层）→ 透明宿主。
+ */
+export function useNativeResultHosted(entry) {
+  const enabled = nativeWriteEnabled();
+  const decide = () => !!entry && (nativeResultShown(entry) || !inStack(entry.id));
+  const [hosted, setHosted] = useState(() => enabled && decide());
+  useEffect(() => {
+    if (!enabled || !entry) return undefined;
+    const router = getRouter();
+    if (!router) return undefined;
+    const id = entry.id;
+    let overlayWas = false;
+    let scheduled = false;
+    let cancel = null;
+    let timer = null;
+    const update = () => {
+      const st = router.getState();
+      const inS = st.stack.some(e => e.id === id);
+      const top = !!(st.top && st.top.id === id);
+      const clear = top && !st.topIsOverlay;
+      if (top && st.topIsOverlay) overlayWas = true;
+      if (inS && !clear && !deferredResults.has(id)) deferredResults.add(id);
+      if (inS && clear && deferredResults.has(id) && !scheduled) {
+        scheduled = true;
+        const wait = overlayWas ? M.role.sheetOut : 0;
+        overlayWas = false;
+        cancel = whenNavIdle(() => {
+          cancel = null;
+          timer = setTimeout(() => {
+            timer = null;
+            scheduled = false;
+            const s2 = router.getState();
+            if (!(s2.top && s2.top.id === id && !s2.topIsOverlay)) return;
+            deferredResults.delete(id);
+            notifyNativeHostChange();
+          }, wait);
+        });
+      }
+      setHosted(decide());
+    };
+    update();
+    const offRouter = router.subscribe(update);
+    const offHost = onNativeHostChange(update);
+    return () => {
+      offRouter();
+      offHost();
+      if (cancel) cancel();
+      clearTimeout(timer);
+      if (!inStack(id)) deferredResults.delete(id);
+    };
+  }, [enabled, entry && entry.id]);
+  return enabled && hosted;
 }
 
 /**
@@ -297,7 +463,8 @@ export function nativeResultShown(entry, snap) {
 export function NativeResultHost({ params, entry }) {
   const slot = params && params.slot === 'B' ? 'B' : 'A';
   const sessionId = params && typeof params.sessionId === 'string' ? params.sessionId : '';
-  useEffect(() => {
+  // 布局阶段就发 result-open（B2.8）：原生页先于网页这一帧的画面盖上。
+  useLayoutEffect(() => {
     // 已离开页面栈的条目（返回转场里留着的旧层）：只保持透明，不再请原生
     if (!entry || !inStack(entry.id)) return undefined;
     installNativeWrite();

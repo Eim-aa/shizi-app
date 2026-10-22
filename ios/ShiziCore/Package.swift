@@ -11,7 +11,7 @@ let package = Package(
         .executable(name: "shizi-core-cli", targets: ["shizi-core-cli"]),
     ],
     targets: [
-        .target(name: "ShiziCore", path: "Sources/ShiziCore"),
+        .target(name: "ShiziCore", path: "Sources/ShiziCore", resources: [.copy("Resources")]),
         .executableTarget(name: "shizi-core-cli", dependencies: ["ShiziCore"], path: "Sources/shizi-core-cli"),
         .testTarget(
             name: "ShiziCoreTests",

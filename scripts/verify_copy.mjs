@@ -356,6 +356,8 @@ export function checkPolicySource(policySource, registered) {
   const errors = [];
   const exportsFound = [];
   const referenced = new Set();
+  // B4.1：每个导出与每个嵌套键各自带的 P 编号（Swift 的 policy 覆盖检查读它：{导出名: {p: [...], keys: {键: [...]}}}）。
+  const pMap = {};
   const lines = policySource.split('\n');
   const P_RE = /\bP\d{2,3}b?\b/g;
   const noteRefs = (text, where) => {
@@ -387,6 +389,7 @@ export function checkPolicySource(policySource, registered) {
       const comment = leadingComment(i);
       const sameLine = (trimmed.match(/\/\/.*$/) || [''])[0];
       if (!noteRefs(comment + '\n' + sameLine, 'policy.' + name)) errors.push('policy.' + name + ': export has no P number in its comment');
+      pMap[name] = { p: [...new Set((comment + '\n' + sameLine).match(P_RE) || [])], keys: {} };
       const opens = (line.match(/[{[]/g) || []).length;
       const closes = (line.match(/[}\]]/g) || []).length;
       if (opens > closes && /\{\s*$/.test(line.replace(/\/\/.*$/, '').trimEnd())) {
@@ -404,6 +407,7 @@ export function checkPolicySource(policySource, registered) {
         if (!noteRefs(comment + '\n' + sameLine, 'policy.' + objectName + '.' + prop[1])) {
           errors.push('policy.' + objectName + '.' + prop[1] + ': key has no P number in its comment');
         }
+        pMap[objectName].keys[prop[1]] = [...new Set((comment + '\n' + sameLine).match(P_RE) || [])];
       }
       objectDepth += (code.match(/[{[]/g) || []).length - (code.match(/[}\]]/g) || []).length;
       if (objectDepth <= 0) {
@@ -412,7 +416,7 @@ export function checkPolicySource(policySource, registered) {
       }
     }
   }
-  return { errors, exportsFound, referenced };
+  return { errors, exportsFound, referenced, pMap };
 }
 
 /** policy 全量检查（含动态加载与 03 覆盖）。 */
@@ -441,7 +445,7 @@ export async function checkPolicy(source) {
   }
   for (const p of Object.keys(source.nonRuntimeDecisions || {})) covered.add(p);
   for (const p of registered) if (!covered.has(p)) errors.push(p + ': registered in 03 but not covered by policy.js / copy-source decisions / nonRuntimeDecisions');
-  return { errors, referenced: result.referenced };
+  return { errors, referenced: result.referenced, covered, registered, pMap: result.pMap };
 }
 
 // ---------------------------------------------------------------------------

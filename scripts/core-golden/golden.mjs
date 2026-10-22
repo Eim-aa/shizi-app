@@ -15,10 +15,13 @@ import { fileURLToPath } from 'node:url';
 import { createJsEngine } from '../core-diff/lib/js-engine.mjs';
 import datesDomain from './domains/dates.mjs';
 import numberFormatDomain from './domains/number-format.mjs';
+import schemaDomain from './domains/schema.mjs';
+import signatureDomain from './domains/signature.mjs';
+import copyDomain from './domains/copy.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const FIXTURE_DIR = path.join(ROOT, 'ios/ShiziCore/Tests/ShiziCoreTests/Fixtures');
-export const DOMAINS = [datesDomain, numberFormatDomain];
+export const DOMAINS = [datesDomain, numberFormatDomain, schemaDomain, signatureDomain, copyDomain];
 
 export function withTZ(tz, fn) {
   const prev = process.env.TZ;

@@ -151,6 +151,11 @@ export function monthDayParts(day) {
 
 const CN_DIGITS = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const CN_ZERO = '零';
+const CN_UNITS = ['', '十', '百', '千'];
+const CN_TWO = '两';
+
+/** 落款汉字数字用到的字（B4.1：Swift 版从生成的 signature.json 读，不在源码里写汉字字面量；scripts/build_core_config.mjs 导出）。 */
+export const CN_NUMERALS = Object.freeze({ digits: Object.freeze([...CN_DIGITS]), zero: CN_ZERO, units: Object.freeze([...CN_UNITS]), two: CN_TWO });
 
 /** 年份式逐位汉字：2026 → 二〇二六。 */
 export function cnDigits(n) {
@@ -167,7 +172,7 @@ export function cnNumber(n) {
   const v = Number(n);
   if (!Number.isInteger(v) || v < 0 || v > 9999) throw new RangeError('cnNumber supports integers 0–9999');
   if (v === 0) return CN_DIGITS[0];
-  const units = ['', '十', '百', '千'];
+  const units = CN_UNITS;
   const digits = String(v).split('').map(Number);
   const len = digits.length;
   let out = '';
@@ -184,7 +189,7 @@ export function cnNumber(n) {
       pendingZero = false;
     }
     // 10–19 读作「十…」而不是「一十…」。
-    if (!(d === 1 && unit === '十' && i === 0)) out += CN_DIGITS[d];
+    if (!(d === 1 && unit === CN_UNITS[1] && i === 0)) out += CN_DIGITS[d];
     out += unit;
   }
   return out;
@@ -196,9 +201,9 @@ export function cnNumber(n) {
  */
 export function cnCount(n) {
   const v = Number(n);
-  if (v === 2) return '两';
+  if (v === 2) return CN_TWO;
   const out = cnNumber(v);
-  return /^二[百千]/.test(out) ? `两${out.slice(1)}` : out;
+  return /^二[百千]/.test(out) ? `${CN_TWO}${out.slice(1)}` : out;
 }
 
 /** 日键 → 落款日期各段（汉字数字），配合 copy 的落款模板拼接。 */

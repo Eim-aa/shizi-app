@@ -31,7 +31,11 @@ test('core-diff self-test: js ↔ js-cli agree; planted faults are caught and sh
 });
 
 test('Swift CoreEngine op table = JS reference op table', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Engine/CoreEngine.swift'), 'utf8');
-  const swiftOps = [...src.matchAll(/^\s{8}"([a-zA-Z.]+)": \{/gm)].map((m) => m[1]).sort();
-  assert.deepEqual(swiftOps, createJsEngine().ops());
+  // B4.1 起 op 分在三个文件：CoreEngine（空规则 + dates）、ConfigOps（配置 / 题库 / 题记 / 文案 / 落款汉字数字）、SchemaOps（形状表 / 模型往返）。
+  const dir = path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Engine');
+  const swiftOps = [];
+  for (const f of ['CoreEngine.swift', 'ConfigOps.swift', 'SchemaOps.swift']) {
+    swiftOps.push(...[...fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^\s{8}"([a-zA-Z0-9.]+)": \{/gm)].map((m) => m[1]));
+  }
+  assert.deepEqual(swiftOps.sort(), createJsEngine().ops());
 });

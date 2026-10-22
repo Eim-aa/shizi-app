@@ -1,0 +1,234 @@
+{
+  "bezier": {
+    "linear": [
+      0,
+      0,
+      1,
+      1
+    ],
+    "out": [
+      0.2,
+      0.7,
+      0.2,
+      1
+    ],
+    "in": [
+      0.4,
+      0,
+      1,
+      1
+    ],
+    "inout": [
+      0.4,
+      0,
+      0.2,
+      1
+    ],
+    "paperOpen": [
+      0.3,
+      0,
+      0.1,
+      1
+    ],
+    "gather": [
+      0.5,
+      0,
+      0.15,
+      1
+    ]
+  },
+  "cssVars": {
+    "--dur-instant": "0ms",
+    "--dur-xs": "75ms",
+    "--dur-press": "120ms",
+    "--dur-reduce": "150ms",
+    "--dur-fade": "150ms",
+    "--dur-s": "180ms",
+    "--dur-m": "200ms",
+    "--dur-release": "220ms",
+    "--dur-l": "260ms",
+    "--dur-sheet": "280ms",
+    "--dur-push": "300ms",
+    "--dur-paper-close": "360ms",
+    "--dur-paper-open": "420ms",
+    "--ease-linear": "linear",
+    "--ease-out": "cubic-bezier(.2,.7,.2,1)",
+    "--ease-in": "cubic-bezier(.4,0,1,1)",
+    "--ease-inout": "cubic-bezier(.4,0,.2,1)",
+    "--ease-paper-open": "cubic-bezier(.3,0,.1,1)",
+    "--ease-gather": "cubic-bezier(.5,0,.15,1)"
+  },
+  "distance": {
+    "parallax": 0.3,
+    "paperDragLean": 60,
+    "paperDragRadius": 24,
+    "quietDrag": 40,
+    "textShift": 4
+  },
+  "duration": {
+    "instant": 0,
+    "xs": 75,
+    "press": 120,
+    "reduce": 150,
+    "fade": 150,
+    "s": 180,
+    "m": 200,
+    "release": 220,
+    "l": 260,
+    "sheet": 280,
+    "push": 300,
+    "paperClose": 360,
+    "paperOpen": 420
+  },
+  "easing": {
+    "linear": "linear",
+    "out": "cubic-bezier(.2,.7,.2,1)",
+    "in": "cubic-bezier(.4,0,1,1)",
+    "inout": "cubic-bezier(.4,0,.2,1)",
+    "paperOpen": "cubic-bezier(.3,0,.1,1)",
+    "gather": "cubic-bezier(.5,0,.15,1)"
+  },
+  "gesture": {
+    "edgeZoneNative": 20,
+    "edgeZoneWeb": 12,
+    "directionSlop": 10,
+    "commitRatio": 0.3333333333333333,
+    "commitVelocity": 500,
+    "returnVelocity": -200,
+    "marginSlope": 0.5,
+    "sheetCommitRatio": 0.3333333333333333
+  },
+  "haptic": {
+    "judge": {
+      "native": "UIImpactFeedbackGenerator",
+      "style": "soft",
+      "intensity": 0.7
+    },
+    "seal": {
+      "native": "UIImpactFeedbackGenerator",
+      "style": "rigid",
+      "intensity": 0.8
+    },
+    "light": {
+      "native": "UIImpactFeedbackGenerator",
+      "style": "light",
+      "intensity": 0.5
+    },
+    "select": {
+      "native": "UISelectionFeedbackGenerator"
+    },
+    "none": {}
+  },
+  "moment": {
+    "judgeAppear": 320,
+    "judgeReady": 440,
+    "settleLift": 100,
+    "settleFadeFrom": 380,
+    "settleEnd": 460,
+    "settleCountBox": 14,
+    "settleLiftScale": 0.97,
+    "answerReveal": 400,
+    "workCellIn": 180,
+    "workStagger": 50,
+    "sealDrop": 220,
+    "resultLateIn": 150,
+    "inviteDelay": 600,
+    "handoffHold": 600,
+    "max": 750,
+    "resultMax": 1200,
+    "stepPlayMax": 1600
+  },
+  "role": {
+    "pressIn": 120,
+    "pressOut": 220,
+    "fadeIn": 150,
+    "fadeOut": 150,
+    "textOut": 75,
+    "inkFlip": 200,
+    "phaseReverse": 280,
+    "pushIn": 300,
+    "pushOut": 300,
+    "pushGestureMin": 150,
+    "paperIn": 420,
+    "paperOut": 360,
+    "paperGestureFull": 300,
+    "paperGestureMin": 120,
+    "quietIn": 220,
+    "quietOut": 180,
+    "gestureCancel": 220,
+    "gestureSnap": 200,
+    "sheetIn": 280,
+    "sheetOut": 220,
+    "sheetOutKeyboard": 260,
+    "confirmIn": 200,
+    "confirmOut": 180,
+    "scrimIn": 200,
+    "scrimOut": 180,
+    "toastIn": 150,
+    "toastOut": 150,
+    "hintIn": 150,
+    "hintStrokeOut": 260,
+    "switchToggle": 150,
+    "reduceCrossfade": 150
+  },
+  "roleKeys": {
+    "pressIn": "press",
+    "pressOut": "release",
+    "fadeIn": "fade",
+    "fadeOut": "fade",
+    "textOut": "xs",
+    "inkFlip": "m",
+    "phaseReverse": 280,
+    "pushIn": "push",
+    "pushOut": "push",
+    "pushGestureMin": "fade",
+    "paperIn": "paperOpen",
+    "paperOut": "paperClose",
+    "paperGestureFull": "push",
+    "paperGestureMin": "press",
+    "quietIn": "release",
+    "quietOut": "s",
+    "gestureCancel": "release",
+    "gestureSnap": "m",
+    "sheetIn": "sheet",
+    "sheetOut": "release",
+    "sheetOutKeyboard": "l",
+    "confirmIn": "m",
+    "confirmOut": "s",
+    "scrimIn": "m",
+    "scrimOut": "s",
+    "toastIn": "fade",
+    "toastOut": "fade",
+    "hintIn": "fade",
+    "hintStrokeOut": "l",
+    "switchToggle": "fade",
+    "reduceCrossfade": "reduce"
+  },
+  "scale": {
+    "press": 0.97,
+    "quietFrom": 0.96,
+    "confirmFrom": 0.96,
+    "sealFrom": 1.25
+  },
+  "spring": {
+    "standard": {
+      "response": 0.42,
+      "dampingFraction": 0.88
+    },
+    "soft": {
+      "response": 0.5,
+      "dampingFraction": 0.82
+    }
+  },
+  "timing": {
+    "pressGuard": 400,
+    "toast": 3200,
+    "toastWithAction": 5000,
+    "undoWindow": 5000,
+    "undone": 2400,
+    "loadingQuiet": 400,
+    "loadingText": 2000,
+    "sourceFresh": 2000,
+    "savedFlash": 1500
+  }
+}

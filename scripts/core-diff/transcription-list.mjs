@@ -27,6 +27,7 @@ const FILES = {
   'test/core/compliance-removal.test.mjs': [N, '—', '题库 / 笔顺数据门禁留 node；「旧记录降级」一条转写（见逐条）'],
   'test/core/content-blocklist.test.mjs': [N, '—', '题面文字门禁，留 node'],
   'test/core/contract.test.mjs': [T, 'B4.3', 'core 产出过 schema 形状表；Swift 版对 Codable 模型 + 校验器跑同一组'],
+  'test/core/core-config.test.mjs': [N, '—', 'B4.1 配置 / 数据资源的 node 门禁（生成物同步、policy 登记、deck.json、形状工厂）'],
   'test/core/core-diff.test.mjs': [N, '—', 'B4.0 等价性底座自身的 node 门禁（金标准同步、差分自检、op 表同名）'],
   'test/core/copy-audit.test.mjs': [N, '—', '文案源门禁；Swift 读生成的 Copy.json（B4.1），不手移植文案'],
   'test/core/copy-number-spacing.test.mjs': [N, '—', '同上'],

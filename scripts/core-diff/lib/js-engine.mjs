@@ -7,6 +7,7 @@
 //   'localDay-boundary'  不带 t 的 dates.localDay（取引擎时钟）把分界那一小时也算前一天（< 改成 ≤）——要先 clock.set 到 4 点那一小时才暴露，最短复现 2–3 步；
 //   'number-format'      回包文字里 clock 写成「123.0」——值相等、字节不等，验证逐字节比对。
 import * as dates from '../../../src/core/dates.js';
+import { makeB41Ops } from './js-ops-b41.mjs';
 
 export const PROTOCOL_VERSION = 1;
 
@@ -132,6 +133,9 @@ export function createJsEngine({ fault = null } = {}) {
       return dates.periodOfHour(h);
     },
     'dates.monthDayParts': (a) => dates.monthDayParts(required(a, 'day')),
+
+    // B4.1：配置 / 题库 / 题记 / 文案 / 落款汉字数字 / 形状表 / 模型往返（js-ops-b41.mjs）
+    ...makeB41Ops({ required, str, finite, int, badArgs }),
   };
 
   const snapshot = () => ({ clock: st.clock, kv: st.kv });

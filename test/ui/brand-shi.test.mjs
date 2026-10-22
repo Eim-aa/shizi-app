@@ -43,7 +43,7 @@ test('brand shi: nine strokes, closed outlines, no colour literal anywhere in th
     assert.match(d, /^M[\d.\s,CLZ-]+Z$/, 'a single closed cubic outline per stroke');
     assert.ok(!/[#]|rgb|hsl|white|black/i.test(d));
   }
-  const source = read('src/ui/brand/shi.js');
+  const source = read('src/ui/brand/shi.js') + read('src/core/images/shi-paths.js');
   assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(source), 'no #hex colour in src/ui/brand/shi.js');
   assert.ok(!/\b(rgba?|hsla?)\(/.test(source), 'no rgb()/hsl() in src/ui/brand/shi.js');
   assert.ok(!/\bfill=["'][^"']*["']/.test(source.replace(/fill="currentColor"/g, '')), 'fill is only currentColor');

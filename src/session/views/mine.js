@@ -24,13 +24,13 @@
 // - 某一天的字（R-P05「点有记录的日子列出那天的字」）：那天 judged，同字只留一条，按最近一次的先后（与首页墨迹行同一口径，
 //   home/today.js todayWorkRow）；D42：留的这一条 = 那天内从晚到早第一条留有墨迹的，那天里都没有才留最近一次；折叠日子只有字，没有记录。
 
-import * as defaultPolicy from '../../../config/policy.js';
-import { addDays, addMonths, daysInMonth, diffDays, isValidDay, isValidMonth, localDay, monthOf, parseDay } from '../../../core/dates.js';
-import { foldWorkByDay, isAfterSeenWork, isJudged, sortById } from '../../../core/records.js';
-import { pickRecordInPeriod, storedInkPresent } from '../../../core/ink-pick.js';
-import { isWorkMember, workMembers } from '../../../core/work-members.js';
-import { memoryZones } from '../library/model.js';
-import { recordsSignature } from '../../../core/backup.js';
+import * as defaultPolicy from '../../config/policy.js';
+import { addDays, addMonths, daysInMonth, diffDays, isValidDay, isValidMonth, localDay, monthOf, parseDay } from '../../core/dates.js';
+import { foldWorkByDay, isAfterSeenWork, isJudged, sortById } from '../../core/records.js';
+import { pickRecordInPeriod, storedInkPresent } from '../../core/ink-pick.js';
+import { isWorkMember, workMembers } from '../../core/work-members.js';
+import { memoryZones } from './library.js';
+import { recordsSignature } from '../../core/backup.js';
 
 /** 我的首页字帖列数、最多行数（原型 L26 7 列；R-M05「最近 3 行」）。 */
 export const MINE_SHEET_COLS = 7;

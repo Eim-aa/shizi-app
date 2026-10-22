@@ -5,7 +5,7 @@ import * as policy from '../../src/config/policy.js';
 import {
   BACK_AFTER_DAYS, homeModel, homeViewOf, libraryCountOf, recordsStateOf,
   resumeOf, resumeKeyOf, resumeLineText, resumeLineAria, homeCtaKey, progressText, ctaAria,
-} from '../../src/ui/screens/home/today.js';
+} from '../../src/session/views/home.js';
 import { firstShiSize } from '../../src/ui/screens/home/copybook.js';
 import { EPIGRAPHS, epigraphAuthor } from '../../src/config/epigraphs.js';
 import { COPY, t } from '../../src/config/copy/index.js';
@@ -215,7 +215,7 @@ test('libraryCountOf: distinct chars with a judged record (the N in 「你写过
 });
 
 test('D49: the 「昨天写的字」 row, the epigraph reserve and the intrusion test are gone from the home model (D55 brings back a vertical epigraph, but as the home own markup, not a reserve in the model)', async () => {
-  const today = await import('../../src/ui/screens/home/today.js');
+  const today = await import('../../src/session/views/home.js');
   for (const name of ['lastWrittenRow', 'LAST_ROW_MAX', 'epigraphReserve', 'tieIntrudesEpigraph', 'epigraphColumnHeight', 'EPIGRAPH_COLUMN']) {
     assert.equal(name in today, false, `${name} removed`);
   }

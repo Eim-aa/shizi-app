@@ -19,7 +19,7 @@ import {
 } from './layout.js';
 import { glyphLayout, inkBounds } from './glyph-layout.js';
 import { readLightPalette } from './palette.js';
-import { SHI_BOLD_CENTER, SHI_BOLD_PATHS, SHI_BOLD_TRANSFORM, SHI_SEAL_VIEW } from '../../ui/brand/shi.js';
+import { SHI_BOLD_CENTER, SHI_BOLD_PATHS, SHI_BOLD_TRANSFORM, SHI_SEAL_VIEW } from './shi-paths.js';
 
 export const FONTS = Object.freeze({
   label: '-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif',

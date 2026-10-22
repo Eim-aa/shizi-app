@@ -694,7 +694,7 @@ export default async function run(page, { baseURL, assert, step }) {
   await waitNavIdle(page);
   const SAraw = await raw(page);
   const resumeNow = () => page.evaluate(async () => {
-    const { resumeOf } = await import('/src/ui/screens/home/today.js');
+    const { resumeOf } = await import('/src/session/views/home.js');
     const { now } = await import('/src/platform/env.js');
     const home = document.querySelector('[data-testid="screen-home"]');
     return { resume: resumeOf(window.__shiziTest.getState(), now()).resume, dom: home ? home.dataset.resume : null };

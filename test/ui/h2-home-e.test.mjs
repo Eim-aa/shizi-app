@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { homeModel, homeCtaKey, homeNoteOf } from '../../src/ui/screens/home/today.js';
+import { homeModel, homeCtaKey, homeNoteOf } from '../../src/session/views/home.js';
 import { COPY, t } from '../../src/config/copy/index.js';
 import { validateValue, KEYS } from '../../src/core/schema.js';
 

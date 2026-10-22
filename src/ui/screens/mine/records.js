@@ -47,7 +47,7 @@ import { openDetail } from '../detail/index.js';
 import { hasInkPoints, inkOf, recordHasInk } from '../detail/records.js';
 import { InkMini } from '../write/compare.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
-import { RECORDS_SHEET_COLS, recordsModel } from './model.js';
+import { RECORDS_SHEET_COLS, recordsModel } from '../../../session/views/mine.js';
 import { MonthBody, monthModel, openMonth } from './month.js';
 
 export const RECORDS_SCREEN = 'records';

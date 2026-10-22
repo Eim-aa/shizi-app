@@ -3,10 +3,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   KNOWN_MIN_SUCCESSES, KNOWN_STABILITY_DAYS, MEMORY_ZONES, ZONE_TONE, memoryZoneOf, memoryZones, skippedZone, todayPlanModel, zoneSamples,
-} from '../../src/ui/screens/library/model.js';
+} from '../../src/session/views/library.js';
 import { planDaily } from '../../src/core/session-start.js';
 import * as policy from '../../src/config/policy.js';
-import { normalizeKind, listEntries, listModel } from '../../src/ui/screens/library/list-model.js';
+import { normalizeKind, listEntries, listModel as listModelRaw } from '../../src/session/views/library-list.js';
+import { renderRefs } from '../../src/config/copy/index.js';
+
+const listModel = (...args) => renderRefs(listModelRaw(...args));
 
 const TODAY = '2026-09-24';
 const at = day => new Date(`${day}T09:00:00`).getTime();

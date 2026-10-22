@@ -34,8 +34,8 @@ import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
 import { localDay } from '../../../core/dates.js';
 import { currentLibraryId, deckAdapter } from '../../../data/deck.js';
-import { MEMORY_ZONES, memoryZones, skippedZone, todayPlanModel, zoneSamples } from './model.js';
-import { normalizeKind } from './list-model.js';
+import { MEMORY_ZONES, memoryZones, skippedZone, todayPlanModel, zoneSamples } from '../../../session/views/library.js';
+import { normalizeKind } from '../../../session/views/library-list.js';
 import { Glyph } from './wall.js';
 import { startToday } from '../home/index.js';
 import './list.js'; // M3-2 清单页自注册（library-list）：三档的区详情页复用它（kind = due | shaky | known）

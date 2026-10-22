@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { loadFSRSGlobal, rec } from '../core/helpers.mjs';
 import { startListDefault } from '../../src/ui/screens/library/list.js';
-import { listModel } from '../../src/ui/screens/library/list-model.js';
+import { listModel } from '../../src/session/views/library-list.js';
 import { t } from '../../src/config/copy/index.js';
 import * as policy from '../../src/config/policy.js';
 

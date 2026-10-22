@@ -2,12 +2,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as policy from '../../src/config/policy.js';
-import { t } from '../../src/config/copy/index.js';
+import { t, renderRefs } from '../../src/config/copy/index.js';
 import {
-  allModel, parseFind, pyKey, pyInitial, monthName, takeCells, toggleFold, normalizeFold, normalizeSort, normalizeFilter,
+  allModel as allModelRaw, parseFind, pyKey, pyInitial, monthName as monthNameRaw, takeCells, toggleFold, normalizeFold, normalizeSort, normalizeFilter,
   RENDER_BATCH,
-} from '../../src/ui/screens/library/all-model.js';
-import { libraryHomeModel } from '../../src/ui/screens/library/model.js';
+} from '../../src/session/views/library-all.js';
+
+// B3.4：视图模型给「键 + 参数」；这里照 t() 渲染后核对文案一字不变。
+const allModel = (...args) => renderRefs(allModelRaw(...args));
+const monthName = (...args) => renderRefs(monthNameRaw(...args));
+import { libraryHomeModel } from '../../src/session/views/library.js';
 
 const TODAY = '2026-09-24';
 const at = day => new Date(`${day}T08:00:00`).getTime();

@@ -5,8 +5,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   annualDefaultYear, annualModel, annualPlan, annualYears, firstOfYear, twiceOfYear, yearMonths, yearSlice,
-} from '../../src/ui/screens/mine/annual-model.js';
-import * as annualModule from '../../src/ui/screens/mine/annual-model.js';
+} from '../../src/session/views/annual.js';
+import * as annualModule from '../../src/session/views/annual.js';
 import { ANNUAL_SCREEN, annualDateText, firstLine } from '../../src/ui/screens/mine/annual.js';
 import { annualCoverLine, annualFirstDateText, annualYearText, kuan } from '../../src/ui/work-text.js';
 import { getScreen } from '../../src/ui/router.js';

@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { rec } from './helpers.mjs';
 import { dayMembers, imagePlan, monthCells, monthMembers, sessionWork } from '../../src/core/images/pick.js';
 import { hasInkOfState } from '../../src/core/ink-pick.js';
-import { annualModel, yearSlice } from '../../src/ui/screens/mine/annual-model.js';
-import { dayItems, monthSheet, recordIndex } from '../../src/ui/screens/mine/model.js';
+import { annualModel, yearSlice } from '../../src/session/views/annual.js';
+import { dayItems, monthSheet, recordIndex } from '../../src/session/views/mine.js';
 
 const POINTS = [[{ x: 60, y: 170, w: 11.5 }, { x: 280, y: 172, w: 11.5 }]];
 const STORED = { v: 3, c: 345, s: ['AAAAAAAA'] };

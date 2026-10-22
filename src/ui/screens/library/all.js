@@ -34,7 +34,7 @@ import { Button, markStateChange } from '../../components/Button.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef, renderRefs } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -45,7 +45,7 @@ import { startListDefault } from './list.js';
 import { Glyph, Legend, cellLabel, toneColor, useWallLayout } from './wall.js';
 import {
   allModel, normalizeFilter, normalizeFold, normalizeSort, takeCells, toggleFold, RENDER_BATCH,
-} from './all-model.js';
+} from '../../../session/views/library-all.js';
 
 export const ALL_SCREEN = 'library-all';
 export const ALL_SOURCE_VIEW = 'allWritten';
@@ -184,8 +184,8 @@ function Cell({ cell, getInk, onOpen }) {
 }
 
 function Group({ group, cols, getInk, onOpen, onFold }) {
-  const title = html`<span class="sz-all__name" data-testid="all-group-name">${group.tone != null ? html`<${Swatch} tone=${group.tone} />` : null}${group.name}</span>
-    <span class="sz-all__count" data-testid="all-group-count">${group.count}</span>`;
+  const title = html`<span class="sz-all__name" data-testid="all-group-name">${group.tone != null ? html`<${Swatch} tone=${group.tone} />` : null}${tRef(group.name)}</span>
+    <span class="sz-all__count" data-testid="all-group-count">${tRef(group.count)}</span>`;
   let head = null;
   if (group.head) {
     head = group.fold === 'open'
@@ -195,7 +195,7 @@ function Group({ group, cols, getInk, onOpen, onFold }) {
   }
   return html`<section class="sz-all__group" data-testid="all-group" data-key=${group.key} data-month=${group.month || null}>
     ${head}
-    <div class="sz-all__grid" data-testid="all-cells" role="group" aria-label=${group.name || null} style=${{ '--cols': cols }}>
+    <div class="sz-all__grid" data-testid="all-cells" role="group" aria-label=${tRef(group.name) || null} style=${{ '--cols': cols }}>
       ${group.cells.map(cell => html`<${Cell} key=${cell.char} cell=${cell} getInk=${getInk} onOpen=${onOpen} />`)}
     </div>
   </section>`;
@@ -225,7 +225,7 @@ export const ALL_MENU_OVERLAY = 'library-all-menu';
 
 /** 菜单当前发布的视图（只读快照，e2e 不必每次打开弹层就能核对排序 / 筛选 / 图例 / 说明句）；页面不在时为 null。 */
 export function allMenuSnapshot() {
-  return menuBridge.props;
+  return menuBridge.props ? renderRefs(menuBridge.props) : null;
 }
 
 /** 弹层内容（overlay 组件；root 注入 close / active）。 */
@@ -235,18 +235,18 @@ export function AllMenuSheet({ close, active = true }) {
     ${m && m.showSort
       ? html`<div class="sz-all__sorts" data-testid="all-sorts" role="group">
           ${m.sorts.map(s => html`<${Button} key=${s.key} variant="plain" class="sz-all__sort" data-testid="all-sort" data-key=${s.key}
-            aria-pressed=${s.active ? 'true' : 'false'} rapid=${true} onClick=${() => m.onSort(s.key)}>${s.label}</${Button}>`)}
+            aria-pressed=${s.active ? 'true' : 'false'} rapid=${true} onClick=${() => m.onSort(s.key)}>${tRef(s.label)}</${Button}>`)}
         </div>`
       : null}
     ${m && m.showChips
       ? html`<div class="sz-all__chips" data-testid="all-chips">
           ${m.chips.map(c => html`<${Button} key=${c.key} variant="plain" class="sz-all__chip" data-testid="all-chip" data-key=${c.key}
             data-n=${c.n} aria-pressed=${c.active ? 'true' : 'false'} disabled=${c.disabled} rapid=${true}
-            onClick=${() => m.onChip(c.key)}>${c.label}</${Button}>`)}
+            onClick=${() => m.onChip(c.key)}>${tRef(c.label)}</${Button}>`)}
         </div>`
       : null}
     ${m && m.showLegend ? html`<${Legend} />` : null}
-    ${m && m.note ? html`<p class="sz-all__note" data-testid="all-note">${m.note}</p>` : null}
+    ${m && m.note ? html`<p class="sz-all__note" data-testid="all-note">${tRef(m.note)}</p>` : null}
   </${Sheet}>`;
 }
 
@@ -366,16 +366,16 @@ function AllScreen({ params, entry }) {
           <input class="sz-all__input" type="search" data-testid="all-find" value=${find} aria-label=${t('R-A03.searchAria')}
             placeholder=${t('R-Q01.titleLookup')} autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck=${false}
             enterkeyhint="search" onInput=${e => { setFailed(false); setFind(e.currentTarget.value); }} />
-          ${f.where ? html`<span class="sz-all__where" data-testid="all-find-where" aria-live="polite">${f.where}</span>` : null}
+          ${f.where ? html`<span class="sz-all__where" data-testid="all-find-where" aria-live="polite">${tRef(f.where)}</span>` : null}
         </label>
-        ${f.miss ? html`<p class="sz-all__miss" data-testid="all-find-miss" aria-live="polite">${f.miss}</p>` : null}
+        ${f.miss ? html`<p class="sz-all__miss" data-testid="all-find-miss" aria-live="polite">${tRef(f.miss)}</p>` : null}
       </div>
       ${shown.map(g => html`<${Group} key=${g.key} group=${g} cols=${model.cols} getInk=${getInk} onOpen=${openDetail} onFold=${onFold} />`)}
       ${model.closed.length
         ? html`<ul class="sz-all__closed" data-testid="all-closed">
             ${model.closed.map(m => html`<li key=${m.month}><${Button} variant="plain" class="sz-all__month" data-testid="all-month"
               data-month=${m.month} aria-expanded="false" onClick=${() => onFold(m.month, false)}>
-              <span class="sz-all__mname">${m.name}</span><span class="sz-all__mcount">${t('X-ALL.closedCount', { n: m.count })}</span>
+              <span class="sz-all__mname">${tRef(m.name)}</span><span class="sz-all__mcount">${t('X-ALL.closedCount', { n: m.count })}</span>
             </${Button}></li>`)}
           </ul>`
         : null}

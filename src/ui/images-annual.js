@@ -13,7 +13,7 @@ import { renderWorkPage } from '../core/images/render.js';
 import { renderAnnualCover, renderAnnualLong, renderAnnualTail } from '../core/images/annual-render.js';
 import { ImagePreview, IMAGE_OVERLAY } from './components/image-preview.js';
 import { recordHasInk } from './screens/detail/records.js';
-import { annualPlan } from './screens/mine/annual-model.js';
+import { annualPlan } from '../session/views/annual.js';
 import { inkPointsOf, renderDeps } from './images-entry.js';
 import { annualCoverLine, annualFirstDateText, annualTailDateText, annualYearText, kuan } from './work-text.js';
 

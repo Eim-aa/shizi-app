@@ -41,12 +41,16 @@ function specifiers(src) {
   return out;
 }
 
+const VIEW_FILES = ['home.js', 'library.js', 'library-all.js', 'library-list.js', 'library-switch.js', 'mine.js', 'annual.js', 'detail.js', 'settings.js'];
+
 const rel = p => path.relative(ROOT, p).split(path.sep).join('/');
 const SESSION_FILES = walk(SESSION);
 
-test('session boundary: there is a session layer (write-ops, result-ops, write-api)', () => {
+test('session boundary: there is a session layer (write-ops, result-ops, write-api, views/)', () => {
   const names = SESSION_FILES.map(rel);
   for (const f of ['src/session/write-ops.js', 'src/session/result-ops.js', 'src/session/write-api.js']) assert.ok(names.includes(f), f);
+  // B3.4：纯视图模型在 src/session/views/（上面的传递导入图 / DOM 全局 / 无 window 加载三条自动覆盖它们）
+  for (const f of VIEW_FILES) assert.ok(names.includes(`src/session/views/${f}`), f);
 });
 
 test('session boundary: the transitive import graph of src/session stays in core / store / config / data (no UI, Preact, DOM)', () => {
@@ -118,10 +122,62 @@ test('session boundary: the web page modules re-export the very same session fun
     [await ui('result/first.js'), result, ['firstExtras', 'daysLaterOf']],
     [await ui('write/native-session.js'), api, ['writeSnapshot', 'strokesToWire', 'strokesFromWire', 'copyBundle', 'NATIVE_WRITE_COPY_KEYS', 'NATIVE_WRITE_OPS']],
   ];
+  const view = async f => import(pathToFileURL(path.join(SESSION, 'views', f)).href);
+  const names = async f => Object.keys(await view(f));
+  // 视图模型（B3.4）：有转出的页面模块做同一函数核对；没转出的页面核对源码确实从 session/views/ 导入（不是另存一份）
+  const viewPairs = [
+    [await ui('library/switch.js'), await view('library-switch.js'), ['libraryRows', 'judgedChars']],
+    [await ui('mine/prefs.js'), await view('settings.js'), ['settingsView', 'parseTime', 'timeText', 'defaultRemindTime', 'PERMISSIONS', 'APPEARANCE_ORDER']],
+    [await ui('detail/records.js'), await view('detail.js'), ['baseKey', 'recordsOfChar', 'cellCopy', 'listOf', 'wordView', 'detailModel', 'detailHero', 'inkOf', 'recordHasInk', 'hasInkPoints']],
+  ];
+  for (const [page, layer, list] of viewPairs) pairs.push([page, layer, list]);
+  const direct = [
+    ['home/index.js', 'home.js', ['homeModel', 'homeCtaKey', 'homeNoteOf', 'resumeOf']],
+    ['library/index.js', 'library.js', ['libraryHomeModel', 'memoryZones', 'skippedZone', 'todayPlanModel', 'zoneSamples']],
+    ['library/list.js', 'library-list.js', ['listModel', 'groupFromHereActive', 'listRowMetaParts']],
+    ['library/all.js', 'library-all.js', ['allModel', 'takeCells', 'toggleFold']],
+    ['mine/records.js', 'mine.js', ['recordsModel']],
+    ['mine/annual.js', 'annual.js', ['annualModel', 'annualPlan']],
+  ];
+  for (const [pageFile, viewFile, list] of direct) {
+    const src = fs.readFileSync(path.join(ROOT, 'src/ui/screens', pageFile), 'utf8');
+    assert.ok(src.includes(`session/views/${viewFile}'`), `${pageFile} imports session/views/${viewFile}`);
+    const exported = await names(viewFile);
+    for (const n of list) assert.ok(exported.includes(n), `${viewFile} exports ${n}`);
+  }
   for (const [page, layer, names] of pairs) {
     for (const n of names) {
       assert.equal(typeof layer[n] === 'undefined', false, `session exports ${n}`);
       assert.equal(page[n], layer[n], `${n}: page module must re-export the session function, not a copy`);
     }
+  }
+});
+
+test('B3.4: nothing in core / store / config / data / views reaches src/ui, vendor or a DOM-only platform module (core/images/render.js no longer imports ui/brand)', () => {
+  const NO_DOM = ['src/core/', 'src/store/', 'src/config/', 'src/data/', 'src/session/'];
+  const ALLOW = new Set(['src/platform/env.js', 'src/platform/native-store.js']);
+  const bad = [];
+  const seen = new Set();
+  const queue = [];
+  for (const d of NO_DOM) for (const f of walk(path.join(ROOT, d))) queue.push([f, null]);
+  while (queue.length) {
+    const [file, from] = queue.shift();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const r = rel(file);
+    if (/^src\/(ui|platform)\//.test(r) && !ALLOW.has(r)) { bad.push(`${r} (imported by ${from ? rel(from) : '?'})`); continue; }
+    for (const spec of specifiers(fs.readFileSync(file, 'utf8'))) {
+      if (!spec.startsWith('.')) continue;
+      const target = path.resolve(path.dirname(file), spec);
+      if (fs.existsSync(target)) queue.push([target, file]);
+    }
+  }
+  assert.deepEqual(bad, []);
+});
+
+test('B3.4: view models give copy refs (key + params), never a sentence: library-all / library-list / detail / library-switch / settings import ref, not t', () => {
+  for (const f of ['library-all.js', 'library-list.js', 'detail.js', 'library-switch.js', 'settings.js']) {
+    const code = stripComments(fs.readFileSync(path.join(SESSION, 'views', f), 'utf8'));
+    assert.ok(!/\b(?:t|tInk)\(/.test(code), `${f} must not call t() / tInk()`);
   }
 });

@@ -36,12 +36,12 @@
 // - 「练这些字 →」（R-A02）：自选了还没写（有能练的字时）→ 开这次选的字（来源 allWritten，由页面调 session startPicked）；
 //   三档 → 推入对应的区清单页（kind due / shaky / known，在那里勾选再练）；自选的字不显示（原型 L401）。
 
-import * as defaultPolicy from '../../../config/policy.js';
-import { t, tInk } from '../../../config/copy/index.js';
-import { isValidDay, monthOf } from '../../../core/dates.js';
-import { compareRecordIds, practicedByChar } from '../../../core/records.js';
-import { pyKey } from '../../../core/query.js';
-import { customCharsOf, memoryZones, recordsOfState, toneOf, wallColumns } from './model.js';
+import * as defaultPolicy from '../../config/policy.js';
+import { inkKey, ref } from '../../config/copy/index.js';
+import { isValidDay, monthOf } from '../../core/dates.js';
+import { compareRecordIds, practicedByChar } from '../../core/records.js';
+import { pyKey } from '../../core/query.js';
+import { customCharsOf, memoryZones, recordsOfState, toneOf, wallColumns } from './library.js';
 
 export const SORTS = Object.freeze(['recent', 'py', 'age']);
 /** 筛选（r7-C1 / D61 Q5）：字库首页三档（该复习了 / 还不太熟 / 记住了）+ 自选未写 + 自选字；旧的 wrong / forget 并入 due（写错过 ∪ 快忘了 = 该复习了）。 */
@@ -107,18 +107,18 @@ export function parseFind(text) {
 export function monthName(month, today) {
   const [y, m] = month.split('-').map(Number);
   const thisYear = isValidDay(today) ? Number(today.slice(0, 4)) : y;
-  return y === thisYear ? t('X-ALL.groupMonth', { month: m }) : t('X-ALL.groupMonthYear', { year: y, month: m });
+  return y === thisYear ? ref('X-ALL.groupMonth', { month: m }) : ref('X-ALL.groupMonthYear', { year: y, month: m });
 }
 
 /** 「在 {month} 月」（跨年同上）。 */
 export function foundWhere(month, today) {
   const [y, m] = month.split('-').map(Number);
   const thisYear = isValidDay(today) ? Number(today.slice(0, 4)) : y;
-  return y === thisYear ? t('R-A03.foundIn', { month: m }) : t('X-ALL.foundInYear', { year: y, month: m });
+  return y === thisYear ? ref('R-A03.foundIn', { month: m }) : ref('X-ALL.foundInYear', { year: y, month: m });
 }
 
 function countText(n) {
-  return t('X-ALL.groupCount', { n });
+  return ref('X-ALL.groupCount', { n });
 }
 
 function monthOfRecord(record) {
@@ -184,7 +184,7 @@ export function allModel(state, {
   });
   const hol = (char, { withPy = false } = {}) => ({ char, kind: 'hollow', tone: null, record: null, py: withPy ? py(char) : null, hit: false });
   const hollowGroup = withPy => ({
-    key: 'hollow', head: true, name: t('R-A02.filterCustomUnwritten'), count: countText(hollow.length), tone: null, fold: null,
+    key: 'hollow', head: true, name: ref('R-A02.filterCustomUnwritten'), count: countText(hollow.length), tone: null, fold: null,
     month: null, cells: hollow.map(c => hol(c, { withPy })),
   });
 
@@ -212,22 +212,22 @@ export function allModel(state, {
       const done = byNew.filter(r => custom.includes(r.char));
       groups = [
         hollowGroup(false),
-        { key: 'custom-done', head: true, name: t('X-ALL.groupRecorded'), count: countText(done.length), tone: null, fold: null,
+        { key: 'custom-done', head: true, name: ref('X-ALL.groupRecorded'), count: countText(done.length), tone: null, fold: null,
           month: null, cells: done.map(r => ink(r)) },
       ];
-      note = t('R-A02.customNote');
+      note = ref('R-A02.customNote');
     } else {
       const cells = ZONE_FILTERS.includes(filter) ? zones[filter].items.map(item => ink(item.record)) : hollow.map(c => hol(c));
       groups = [{ key: `f:${filter}`, head: false, name: '', count: '', tone: null, fold: null, month: null, cells }];
-      note = ZONE_FILTERS.includes(filter) ? t(`X-LIBFOUR.zoneTop.${filter}`) : t('R-A02.customUnwrittenNote');
+      note = ZONE_FILTERS.includes(filter) ? ref(`X-LIBFOUR.zoneTop.${filter}`) : ref('R-A02.customUnwrittenNote');
     }
   } else if (sort === 'age') {
     groups = [hollowGroup(false)].concat([3, 2, 1, 0].map(tone => {
       const list = byNew.filter(r => toneOf(r.localDay, today, policy.inkToneDays) === tone).reverse();
-      return { key: `t:${tone}`, head: true, name: t(TONE_NAME_KEYS[tone]), count: countText(list.length), tone, fold: null,
+      return { key: `t:${tone}`, head: true, name: ref(TONE_NAME_KEYS[tone]), count: countText(list.length), tone, fold: null,
         month: null, cells: list.map(r => ink(r)) };
     }));
-    note = t('X-ALL.ageNote');
+    note = ref('X-ALL.ageNote');
   } else if (sort === 'py') {
     const buckets = new Map();
     const sorted = byNew.slice().sort((a, b) => {
@@ -243,10 +243,10 @@ export function allModel(state, {
     const keys = [...buckets.keys()].filter(k => k !== '#').sort();
     if (buckets.has('#')) keys.push('#');
     groups = [hollowGroup(true)].concat(keys.map(k => ({
-      key: `p:${k}`, head: true, name: k === '#' ? t('X-ALL.groupOther') : k, count: countText(buckets.get(k).length), tone: null,
+      key: `p:${k}`, head: true, name: k === '#' ? ref('X-ALL.groupOther') : k, count: countText(buckets.get(k).length), tone: null,
       fold: null, month: null, cells: buckets.get(k).map(r => ink(r, { withPy: true })),
     })));
-    note = t('R-A01.sortPinyinNote');
+    note = ref('R-A01.sortPinyinNote');
   } else {
     const months = new Map();
     for (const r of byNew) {
@@ -262,7 +262,7 @@ export function allModel(state, {
       month: m, cells: months.get(m).map(r => ink(r)),
     })));
     closed = ms.filter(m => !isOpen(m)).map(m => ({ month: m, name: monthName(m, today), count: months.get(m).length }));
-    note = tInk('R-A01.sortRecentNote', undefined, policy);
+    note = ref(inkKey('R-A01.sortRecentNote', policy));
   }
   groups = groups.filter(g => g.cells.length || !g.head);
 
@@ -275,13 +275,13 @@ export function allModel(state, {
   }
 
   let miss = '';
-  if (!found && find.mode === 'char') miss = t('R-A03.notFound', { char: find.char });
-  else if (!found && find.mode === 'pinyin') miss = t('R-A03.notFound', { char: find.raw });
+  if (!found && find.mode === 'char') miss = ref('R-A03.notFound', { char: find.char });
+  else if (!found && find.mode === 'pinyin') miss = ref('R-A03.notFound', { char: find.raw });
 
   const chips = FILTERS.map(key => {
     const n = counts[key];
     const active = key === filter;
-    const label = t(CHIP_KEYS[key], { n });
+    const label = ref(CHIP_KEYS[key], { n });
     return { key, label, n, active, disabled: n === 0 && !active };
   });
 
@@ -293,7 +293,7 @@ export function allModel(state, {
     empty: recorded === 0, // 与字库首页同一口径（只有自选未写也算没有记录，首页不给入口）
     sort,
     filter,
-    sorts: SORTS.map(key => ({ key, label: t(SORT_KEYS[key]), active: key === sort })),
+    sorts: SORTS.map(key => ({ key, label: ref(SORT_KEYS[key]), active: key === sort })),
     showSort: !found && !filter,
     chips,
     showChips: !found,

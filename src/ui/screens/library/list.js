@@ -42,7 +42,7 @@ import { Icons } from '../../components/icons.js';
 import { Chevron } from '../../components/Chevron.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -53,8 +53,8 @@ import { InkMini, recalledInk } from '../write/compare.js';
 import { startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
 import {
-  groupFromHereActive, listModel, normalizeKind, normalizeSel, sameSel, selectAllSel, selectNoneSel, toggleSel,
-} from './list-model.js';
+  groupFromHereActive, listModel, listRowMetaParts, normalizeKind, normalizeSel, sameSel, selectAllSel, selectNoneSel, toggleSel,
+} from '../../../session/views/library-list.js';
 
 export const LIST_SCREEN = 'library-list';
 
@@ -197,7 +197,7 @@ function Thumb({ row, ink }) {
         ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid="list-row-thumb-ink" label=${row.char} />`
         : html`<span class="sz-lrow__noink" data-testid="list-row-thumb-noink">${t('R-D07.noInkLabel')}</span>`}
     </span>
-    ${row.thumbCaption ? html`<span class="sz-lrow__cap" data-testid="list-row-thumb-caption">${row.thumbCaption}</span>` : null}
+    ${row.thumbCaption ? html`<span class="sz-lrow__cap" data-testid="list-row-thumb-caption">${tRef(row.thumbCaption)}</span>` : null}
   </span>`;
 }
 
@@ -214,7 +214,7 @@ function Row({ row, ink, onToggle, onDetail }) {
     <span class="sz-lrow__char" data-testid="list-row-char"><${PracticeGlyph} char=${row.char} face=${0.7} /></span>
     <span class="sz-lrow__main">
       ${w.has ? html`<span class="sz-lrow__word" data-testid="list-row-word">${w.pre}${w.tg ? html`<b>${w.tg}</b>` : null}${w.post}</span>` : null}
-      <span class="sz-lrow__meta" data-testid="list-row-meta">${row.metaParts.map((part, i) => html`${i ? ' ' : ''}<span key=${i}>${part}</span>`)}</span>
+      <span class="sz-lrow__meta" data-testid="list-row-meta">${listRowMetaParts(tRef(row.meta)).map((part, i) => html`${i ? ' ' : ''}<span key=${i}>${part}</span>`)}</span>
     </span>
     ${row.noThumb ? null : html`<${Thumb} row=${row} ink=${ink} />`}`;
   return html`<li class="sz-lrow" data-testid="list-row" data-char=${row.char} data-selectable=${row.selectable ? 'true' : 'false'}
@@ -289,8 +289,8 @@ function ListScreen({ params, entry }) {
   const onDetail = open ? row => open(row.char, { cardKey: row.cardKey, kind }) : null;
 
   if (model.empty) {
-    return html`<${Page} title=${model.title} testid="list-screen">
-      ${EmptyState({ title: model.emptyTitle, body: model.emptyBody, glyph: model.emptyGlyph, attrs: { 'data-kind': kind },
+    return html`<${Page} title=${tRef(model.title)} testid="list-screen">
+      ${EmptyState({ title: tRef(model.emptyTitle), body: tRef(model.emptyBody), glyph: tRef(model.emptyGlyph), attrs: { 'data-kind': kind },
         testids: { root: 'list-empty', cell: 'list-empty-glyph', title: 'list-empty-title', body: 'list-empty-body' } })}
     </${Page}>`;
   }
@@ -298,20 +298,20 @@ function ListScreen({ params, entry }) {
   const shown = restOpen ? model.rows : model.rows.filter(r => r.group === 'top');
   const trailing = model.selectableCount > 0
     ? html`<${Button} variant="plain" class="sz-list__toggle" data-testid="list-toggle-all" rapid=${true}
-        onClick=${toggleAll}>${model.toggleAllLabel}</${Button}>`
+        onClick=${toggleAll}>${tRef(model.toggleAllLabel)}</${Button}>`
     : null;
   // 开组写入失败：底栏就地三段式（S1，components/FailBlock.js，审计 P1-32）——主按钮位置换成「再试一次」（同一个 list-go），上方「先不开始」
   const footer = failed
     ? html`${FailBlock({ layout: 'foot', testid: 'list-start-failure', noteTestid: 'list-start-fail', retryTestid: 'list-go', cancelTestid: 'list-start-cancel', text: t('X-LIST.startFailed'), cancelLabel: t('X-LIST.startStay'), onCancel: () => setFailed(false), onRetry: start })}`
     : html`
-    <p class="sz-list__hint" data-testid="list-hint">${model.hint}</p>
-    <${LiveRegion} text=${model.button.label} testid="list-go-live" />
-    <${Button} variant="primary" data-testid="list-go" disabled=${model.button.disabled} onClick=${start}>${model.button.label}</${Button}>`;
-  return html`<${Page} title=${model.title} trailing=${trailing} footer=${footer} testid="list-screen">
+    <p class="sz-list__hint" data-testid="list-hint">${tRef(model.hint)}</p>
+    <${LiveRegion} text=${tRef(model.button.label)} testid="list-go-live" />
+    <${Button} variant="primary" data-testid="list-go" disabled=${model.button.disabled} onClick=${start}>${tRef(model.button.label)}</${Button}>`;
+  return html`<${Page} title=${tRef(model.title)} trailing=${trailing} footer=${footer} testid="list-screen">
     <div class="sz-list" data-testid="list-body" data-kind=${kind} data-empty="false" data-selected-count=${model.selectedCount}>
       <div class="sz-list__intro">
-        <h2 class="sz-list__head" data-testid="list-head">${model.head}</h2>
-        <p class="sz-list__top" data-testid="list-top">${model.top}</p>
+        <h2 class="sz-list__head" data-testid="list-head">${tRef(model.head)}</h2>
+        <p class="sz-list__top" data-testid="list-top">${tRef(model.top)}</p>
       </div>
       <ul class="sz-list__rows" data-testid="list-rows">
         ${shown.map(row => html`<${Row} key=${row.char} row=${row} ink=${inkOf(store, row.record)}
@@ -319,9 +319,9 @@ function ListScreen({ params, entry }) {
       </ul>
       ${model.restCount > 0
         ? html`<${Button} variant="plain" class="sz-list__rest" data-testid="list-rest-toggle" data-open=${restOpen ? 'true' : 'false'}
-            aria-expanded=${restOpen ? 'true' : 'false'} onClick=${() => setRestOpen(open => !open)}>${restOpen ? model.restHideLabel : model.restLabel}</${Button}>`
+            aria-expanded=${restOpen ? 'true' : 'false'} onClick=${() => setRestOpen(open => !open)}>${tRef(restOpen ? model.restHideLabel : model.restLabel)}</${Button}>`
         : null}
-      <p class="sz-list__note" data-testid="list-note">${model.note}</p>
+      <p class="sz-list__note" data-testid="list-note">${tRef(model.note)}</p>
     </div>
   </${Page}>`;
 }

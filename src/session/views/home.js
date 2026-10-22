@@ -25,12 +25,12 @@
 // - 有没写完的组时主按钮是「继续写字」；A、B 两组都没写完时 A 那一行留作文字按钮「今天的练习 · 接着写」（other，P196）。
 // - 「先写三个大家常忘的字。」（R-H03，D38 首练 3 字）只在 records==='first' 且没有没写完的组时显示（showFirstTip）。
 
-import * as defaultPolicy from '../../../config/policy.js';
-import { epigraphFor } from '../../../config/epigraphs.js';
-import { calendarDay, diffDays, localDay, monthDayParts, periodOf } from '../../../core/dates.js';
-import { hasAnyJudged, isJudged, practicedByChar, todayCount } from '../../../core/records.js';
-import { remainingCount } from '../../../core/sessions.js';
-import { aStartInfo, planDaily, planSpecial, recordsOf, resumableSession } from '../../../core/session-start.js';
+import * as defaultPolicy from '../../config/policy.js';
+import { epigraphFor } from '../../config/epigraphs.js';
+import { calendarDay, diffDays, localDay, monthDayParts, periodOf } from '../../core/dates.js';
+import { hasAnyJudged, isJudged, practicedByChar, todayCount } from '../../core/records.js';
+import { remainingCount } from '../../core/sessions.js';
+import { aStartInfo, planDaily, planSpecial, recordsOf, resumableSession } from '../../core/session-start.js';
 
 /** 离开多少天算「回来」（D41：离开 ≥7 天回来的第一组照常 1 新；首页换成「你写过的 N 个字都还在」，P155）。 */
 export const BACK_AFTER_DAYS = 7;

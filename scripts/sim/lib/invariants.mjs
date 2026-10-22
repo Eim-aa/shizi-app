@@ -10,7 +10,7 @@ import { answerSeenCardKeysOn, charOfCardKey, isJudged, judgedCardKeysOn, skippe
 import { skipDeferredNewKeys } from '../../../src/core/sessions.js';
 import { overdueDays } from '../../../src/core/fsrs.js';
 import { addDays, diffDays } from '../../../src/core/dates.js';
-import { memoryZones, skippedZone, latestJudgedByChar, recordsOfState } from '../../../src/ui/screens/library/model.js';
+import { memoryZones, skippedZone, latestJudgedByChar, recordsOfState } from '../../../src/session/views/library.js';
 
 export const INVARIANTS = Object.freeze([
   { id: 'G1-no-dup-in-group', title: '同一组内不重复（同一个字只出现一次）' },

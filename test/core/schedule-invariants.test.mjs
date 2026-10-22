@@ -9,7 +9,7 @@ import { INVARIANTS } from '../../scripts/sim/lib/invariants.mjs';
 import { bootDeck } from '../../scripts/sim/lib/env.mjs';
 import { reviewCard } from '../../src/core/fsrs.js';
 import { addDays, dayStartMs } from '../../src/core/dates.js';
-import { memoryZones, skippedZone } from '../../src/ui/screens/library/model.js';
+import { memoryZones, skippedZone } from '../../src/session/views/library.js';
 import { makeRecord } from '../../src/core/records.js';
 
 bootDeck();

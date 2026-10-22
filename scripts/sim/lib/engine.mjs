@@ -17,7 +17,7 @@ import { commitJudgment } from '../../../src/ui/screens/write/compare.js';
 import { commitSkip, commitUndoSkip } from '../../../src/ui/screens/write/skip.js';
 import { commitAnswerNext, commitAnswerSeen } from '../../../src/ui/screens/write/answer.js';
 import { commitResultCorrection } from '../../../src/ui/screens/result/index.js';
-import { memoryZones, skippedZone, todayPlanModel } from '../../../src/ui/screens/library/model.js';
+import { memoryZones, skippedZone, todayPlanModel } from '../../../src/session/views/library.js';
 import { reminderCandidates, reminderQuestions } from '../../../src/platform/reminder.js';
 import { bootDeck, makeStore, realStrokesOf, rng, STROKES } from './env.mjs';
 import { inkBytes, recordsBytes } from '../../../src/store/budget.js';

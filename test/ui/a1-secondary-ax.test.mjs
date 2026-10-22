@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { COPY } from '../../src/config/copy/index.js';
-import { recordsModel } from '../../src/ui/screens/mine/model.js';
+import { recordsModel } from '../../src/session/views/mine.js';
 
 const read = f => readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');
 const TODAY = '2026-10-05';

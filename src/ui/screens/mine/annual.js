@@ -31,7 +31,7 @@ import { monthDayParts } from '../../../core/dates.js';
 import { monthCells } from '../../../core/images/pick.js';
 import { inkOf, recordHasInk } from '../detail/records.js';
 import { hasInkOfStore, useStoreState, useToday } from './records.js';
-import { annualDefaultYear, annualModel } from './annual-model.js';
+import { annualDefaultYear, annualModel } from '../../../session/views/annual.js';
 import { openMonth } from './month.js';
 import { annualCoverLine, annualYearText } from '../../work-text.js';
 

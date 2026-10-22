@@ -91,7 +91,7 @@ function apiOn(store, navigate = quietNav) {
 }
 
 test('ops: the named set; unknown op is rejected without throwing', () => {
-  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip', 'redoOpen', 'redoNext', 'redoExit']);
+  assert.deepEqual([...NATIVE_WRITE_OPS], ['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip', 'redoOpen', 'redoNext', 'redoExit', 'refLabel']);
   const r = apiOn(fakeStore()).call('nope', {});
   assert.equal(r.ok, false);
   assert.equal(r.error.kind, 'unknown-op');
@@ -1249,4 +1249,24 @@ test('B2.9a redo: nothing practicable → invalid (the web page backs out too); 
   const open = apiOn(fakeStore()).call('redoOpen', { chars: ['和'] });
   assert.equal(open.copy['X-REDO.note'], t('X-REDO.note'));
   assert.ok(open.ink && open.timing && open.layout && open.motion, 'same look parameters as open');
+});
+
+test('B2.9b refLabel: the page-side labeler (web refCardLabel) answers through the API; read-only; default reads the char only', async () => {
+  const { refCardLabel } = await import('../../src/ui/screens/write/ref-label.js');
+  const store = fakeStore();
+  const before = JSON.stringify(store.getState());
+  const commits = store.labels.length;
+  // 网页路径：判断页参考卡 / 描一遍答案字的名称（笔顺数据就绪：5 画）
+  const data = { strokes: ['a', 'b', 'c', 'd', 'e'], medians: null };
+  const web = refCardLabel({ char: '永', py: 'yǒng', strokeData: { status: 'ready', data } });
+  const api = createWriteSessionApi({ getStore: () => store, refLabel: ({ char }) => refCardLabel({ char, py: 'yǒng', strokeData: { status: 'ready', data } }) });
+  assert.equal(api.call('refLabel', { char: '永', cardKey: 'base:永' }).label, web);
+  // 异步注入（页面侧先取笔顺数据）
+  const asyncApi = createWriteSessionApi({ getStore: () => store, refLabel: async () => web });
+  assert.equal((await asyncApi.call('refLabel', { char: '永' })).label, web);
+  // 页面侧缺省（native-session.js：先取笔顺数据再算，异步）：没有读音时只读字
+  assert.equal((await apiOn(store).call('refLabel', { char: '永' })).label, t('R-W09.refCardLabelChar', { char: '永' }));
+  assert.equal(apiOn(store).call('refLabel', {}).ok, false);
+  assert.equal(store.labels.length, commits, 'no commit');
+  assert.equal(JSON.stringify(store.getState()), before, 'store unchanged');
 });

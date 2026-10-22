@@ -8,7 +8,7 @@ import UIKit
 //   书写格 g   = clamp(258, min(屏宽 − 40, 400, H − 80 − 16 − 88 − 16), 400)；名义版式里 258 仍放不下 → 取剩下的高度，最小 180（P299）
 //   组顶      = max(12, round((H − 组高) × 0.4)) − 页头多出名义的部分；组高 = P + 16 + g + 88（P = 这张卡量到的题面高）
 //   书写格顶边在同一张卡的所有阶段固定（D53 ②，P257）；判断页上下两格 S = min(屏宽 − 40, ⌊(主区高 − 书写格顶 − 16) ÷ 2⌋)，下限 120。
-// AX 档的专门排法（axWriteLayout、并排判断页）在 B2.9；本卡的版式全部按量到的字体行高排，大字号下只会把组往上挤，不会重叠。
+// AX 档（B2.9b）：axWrite / judgeAx = layout.js axWriteLayout / judgeAxLayout（按实际量到的主区高排，书写格下限 220，放不下时格子先让步、再缩题面，P299）。
 
 struct NativeWriteLayoutConstants {
     var min: CGFloat = 258
@@ -20,6 +20,7 @@ struct NativeWriteLayoutConstants {
     var axMin: CGFloat = 220
     var axNoteHeight: CGFloat = 56
     var fitGridMin: CGFloat = 180
+    var promptFitMin: CGFloat = 0.6
     var bottomGap: CGFloat = 16
     var topShare: CGFloat = 0.4
     var topMin: CGFloat = 12
@@ -44,6 +45,7 @@ struct NativeWriteLayoutConstants {
         if let x = v("axMin") { axMin = x }
         if let x = v("axNoteHeight") { axNoteHeight = x }
         if let x = v("fitGridMin") { fitGridMin = x }
+        if let x = v("promptFitMin") { promptFitMin = x }
         if let x = v("bottomGap") { bottomGap = x }
         if let x = v("topShare") { topShare = x }
         if let x = v("topMin") { topMin = x }
@@ -98,6 +100,51 @@ enum NativeWriteLayout {
         let extra = Swift.max(0, headExtra)
         let top = Swift.max(0, groupTop(mainHeight: nominalHeight, groupHeight: promptHeight + k.promptGap + g + k.toolsHeight, k) - extra)
         return (g, top, top + promptHeight + k.promptGap)
+    }
+
+    /// layout.js fitGroup（带题面缩放，AX 档用）：{g, scale}。
+    static func fitGroup(width: CGFloat, mainHeight: CGFloat, promptHeight: CGFloat, below: CGFloat, gFloor: CGFloat, scaleMin: CGFloat, _ k: K) -> (g: CGFloat, scale: CGFloat) {
+        let w = contentWidth(width, k)
+        let room = mainHeight - k.promptGap - below - k.bottomGap
+        let free = room - promptHeight
+        if free >= gFloor || free >= k.fitGridMin { return (floor(Swift.min(w, k.max, free)), 1) }
+        let scale = promptHeight > 0 ? Swift.max(scaleMin, Swift.min(1, floor(((room - k.fitGridMin) / promptHeight) * 1000) / 1000)) : 1
+        let g = Swift.max(k.fitGridMin, floor(Swift.min(w, k.max, room - promptHeight * scale)))
+        return (g, scale)
+    }
+
+    /// layout.js axWriteLayout（AX 档，D51 ⑦ / P225 / P241 / P299）：按实际主区高排；noteHeight = 格下实际高（撤销 / 清空行 + 说明位，至少 axBelow）。
+    static func axWrite(width: CGFloat, mainHeight: CGFloat, promptHeight: CGFloat, noteHeight: CGFloat, _ k: K) -> (g: CGFloat, top: CGFloat, gridTop: CGFloat, below: CGFloat, fits: Bool, tight: Bool, promptScale: CGFloat) {
+        let w = contentWidth(width, k)
+        let axBelow = k.toolRowHeight + k.axNoteHeight
+        let note = Swift.max(axBelow, noteHeight.isFinite ? ceil(noteHeight) : axBelow)
+        let hasH = mainHeight > 0
+        let room = hasH ? mainHeight - promptHeight - k.promptGap - note - k.bottomGap : .infinity
+        let raw = floor(Swift.min(w, k.max, room))
+        let tight = hasH && raw < k.axMin
+        var g = Swift.max(k.axMin, Swift.min(k.max, raw))
+        var scale: CGFloat = 1
+        if tight {
+            let f = fitGroup(width: width, mainHeight: mainHeight, promptHeight: promptHeight, below: note, gFloor: k.axMin, scaleMin: k.promptFitMin, k)
+            g = f.g
+            scale = f.scale
+        }
+        let shown = promptHeight * scale
+        let groupHeight = shown + k.promptGap + g + note
+        let top = groupTop(mainHeight: mainHeight, groupHeight: groupHeight, k)
+        let fits = !hasH || top + groupHeight <= mainHeight + 0.5
+        return (g, top, top + shown + k.promptGap, note, fits, tight, scale)
+    }
+
+    /// layout.js judgeAxLayout（AX 档判断页：上下排与并排（间距 12）各算一次，取格子更大的一种；平手取上下排）。
+    static func judgeAx(width: CGFloat, mainHeight: CGFloat, promptHeight: CGFloat, gap: CGFloat, _ k: K) -> (side: Bool, s: CGFloat, top: CGFloat) {
+        let w = contentWidth(width, k)
+        let stack = floor(Swift.min(w, floor((mainHeight - k.topMin - promptHeight - k.promptGap - k.bottomGap) / 2)))
+        let side = w.isFinite ? floor((w - gap) / 2) : 0
+        if side > stack {
+            return (true, side, groupTop(mainHeight: mainHeight, groupHeight: promptHeight + k.promptGap + side, k))
+        }
+        return (false, Swift.max(120, stack), k.topMin)
     }
 
     /// layout.js judgePairSize：判断页上下两格的边长（下限 120）。
@@ -224,6 +271,7 @@ final class NativeIconTextButton: UIButton {
         guard !measuring, let t = currentTitle, !t.isEmpty else { return 0 }
         measuring = true
         defer { measuring = false }
+        if let a = currentAttributedTitle, a.length > 0 { return a.size().width } // 带中文字距的标题（NativeType.trackTitle）
         guard let l = titleLabel else { return 0 }
         return (t as NSString).size(withAttributes: [.font: l.font as Any]).width
     }
@@ -249,8 +297,8 @@ final class NativeIconTextButton: UIButton {
         guard hasIcon else { return super.titleRect(forContentRect: r) }
         let tw = min(titleWidth, max(0, r.width - iconSize - spacing))
         let x = contentStart(r, total: iconSize + spacing + tw) + iconSize + spacing
-        let th = min(r.height, ceil(super.titleRect(forContentRect: r).height))
-        return CGRect(x: x, y: r.midY - th / 2, width: ceil(tw), height: th)
+        // 标签占满内容区的高（字在里面竖向居中，位置不变）：只按 SF 的行高给，苹方的字形比它高，AX 档会被系统判为「字被裁」
+        return CGRect(x: x, y: r.minY, width: ceil(tw), height: r.height)
     }
 
     override func sizeThatFits(_ size: CGSize) -> CGSize {

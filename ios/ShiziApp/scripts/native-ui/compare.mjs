@@ -179,7 +179,9 @@ for (const name of pairsFound) {
   const { diffs, web, native } = diffState(webJson, natJson, tol);
   const ignored = config.ignore || [];
   // aspects（B2.7）：只在这一条差异的各方面全在列出的范围内时才不比（例：只差网页按钮元素自身的字号 / 颜色这类量法差，位置等其它方面照比）；state 可为数组
+  // sizes（B2.9b）：只在这些字号档（L / XXXL / AX3 / AX5）不比
   const kept = diffs.filter(d => !ignored.some(rule => (!rule.state || (Array.isArray(rule.state) ? rule.state.includes(state) : rule.state === state))
+    && (!rule.sizes || rule.sizes.includes(size))
     && (!rule.type || rule.type === d.type) && (!rule.label || rule.label === d.label)
     && (!rule.aspects || (d.aspects || [d.type]).every(x => rule.aspects.includes(x)))));
   const webPng = join(refDir, `${name}.png`);
@@ -214,6 +216,7 @@ for (const name of pairsFound) {
   for (const c of CHECKS) {
     if (!c.states.includes(state)) continue;
     if (c.appearances && !c.appearances.includes(appearance)) continue;
+    if (c.sizes && !c.sizes.includes(size)) continue; // B2.9b：只在某些字号档跑（AX-01）
     let r;
     try { r = c.eval({ state, tag: `${appearance}_${size}`, appearance, size, web, native, px, screen, tolerance: tol, ink: INK }); } catch (error) { r = { pass: false, detail: `检查出错：${error.message}` }; }
     checks.push({ id: c.id, status: statusOf(c), pass: !!r.pass, detail: r.detail });

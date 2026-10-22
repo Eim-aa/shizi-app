@@ -20,4 +20,8 @@ export const STATE_NAMES = {
 };
 export const APPEARANCES = ['light', 'dark'];
 export const SIZES = ['L', 'XXXL'];
+/** B2.9b：大字号（AX1–AX5 版式）的主要状态 × AX3 / AX5（参考图同样取网页版；AX-01「不溢出」只在这两档跑）。 */
+export const AX_STATES = ['recall', 'recall-ink', 'hint-2', 'trace', 'retrace', 'judge', 'line', 'change-sheet', 'skip-undo', 'end-dialog',
+  'result', 'result-daily', 'result-first', 'result-sheet', 'redo', 'redo-check'];
+export const AX_SIZES = ['AX3', 'AX5'];
 export const SIZE_SIM = { xS: 'extra-small', L: 'large', XL: 'extra-large', XXXL: 'extra-extra-extra-large', AX3: 'accessibility-extra-large', AX5: 'accessibility-extra-extra-extra-large' };

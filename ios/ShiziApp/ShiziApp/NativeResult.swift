@@ -236,7 +236,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        UIAccessibility.post(notification: .screenChanged, argument: headerLabel)
+        NativeA11y.screenChanged(headerLabel)
         transitions.whenSettled { [weak self] in self?.startRevealIfNeeded() } // T0 规则 4：进场转场放完再显现
     }
 
@@ -329,11 +329,15 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         b.setTitleColor(color("ink2", .secondaryLabel), for: .normal)
         b.setTitleColor(color("ink4", .tertiaryLabel), for: .disabled)
         b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
+        b.contentHorizontalAlignment = .left // 字左缘 = 盒左缘 + 4（网页 .sz-btn--text padding 0 4；盒宽按字宽排，左对齐不受字距舍入影响）
         b.accessibilityIdentifier = id
     }
 
     private func configurePrimary(_ b: UIButton, id: String) {
         b.titleLabel?.font = ts.font(17, .medium)
+        b.titleLabel?.numberOfLines = 0
+        b.titleLabel?.textAlignment = .center
+        b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24) // 网页 .sz-btn--primary padding 0 24（AX 档折行时同宽）
         b.backgroundColor = color("btn-bg", .label)
         b.setTitleColor(color("btn-fg", .systemBackground), for: .normal)
         b.layer.cornerRadius = 12
@@ -408,7 +412,11 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
 
         // 底栏：主按钮下沿 = 屏底 − max(24, 下安全区)；文字按钮行（44 + 下外边 8）在主按钮上方，间 12；底栏上内边 12
         let ts = self.ts
-        let primaryH = max(ts.buttonHeight, ts.lh17s)
+        let tt = textType
+        [primaryButton, redoButton, againTextButton, failCancel, failRetry].forEach { NativeType.trackTitle($0) } // 中文字距同网页（B2.9b）
+        // AX 档主按钮：min-height --btn-h、上下内边距 6、字按行数长高（网页 components/ax.js）
+        let primaryH = tt.axButtonHeight("resultFoot", sub: "r3", title: primaryButton.title(for: .normal), font: primaryButton.titleLabel?.font, width: inner - 48)
+            ?? max(ts.buttonHeight, ts.lh17s)
         let primaryY = h - max(24, safe.bottom) - primaryH
         primaryButton.frame = CGRect(x: gutter, y: primaryY, width: inner, height: primaryH)
         failRetry.frame = primaryButton.frame
@@ -424,16 +432,32 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             failNote.frame = CGRect(x: gutter, y: primaryY - 12 - nh, width: inner, height: nh)
             top = failNote.frame.minY
         } else if !textRow.isEmpty {
-            let rowY = primaryY - 12 - 8 - 44
-            var x = gutter - 4
-            for b in textRow {
-                let bw = NativeType.width(b.titleLabel ?? UILabel()) + 8
-                b.frame = CGRect(x: x, y: rowY, width: bw, height: 44)
-                x += bw - 8 + 20 // 两枚文字按钮同一行，字与字之间 20（.sz-result__textrow gap 0 20）
+            // 文字按钮行（.sz-result__textrow：flex-wrap、gap 0 20、下外边 8）：放不下一行时第二枚折到下一行；AX 档按钮按字号长高（量到的 min-height）
+            let bh = max(44, tt.role("resultFoot", "minH") ?? 44)
+            let colGap = tt.role("resultFoot", "colGap", sub: "r2") ?? 20
+            let widths = textRow.map { NativeType.titleWidth($0) + 8 }
+            var lines: [[Int]] = [[]]
+            var used: CGFloat = 0
+            for (i, bw) in widths.enumerated() {
+                let need = (lines[lines.count - 1].isEmpty ? 0 : colGap) + (bw - 8)
+                if !lines[lines.count - 1].isEmpty, used + need > inner + 0.5 { lines.append([]); used = 0 }
+                used += (lines[lines.count - 1].isEmpty ? 0 : colGap) + (bw - 8)
+                lines[lines.count - 1].append(i)
+            }
+            let rowY = primaryY - 12 - 8 - bh * CGFloat(lines.count)
+            for (li, line) in lines.enumerated() {
+                var x = gutter - 4
+                for i in line {
+                    textRow[i].frame = CGRect(x: x, y: rowY + CGFloat(li) * bh, width: widths[i], height: bh)
+                    x += widths[i] - 8 + colGap // 字与字之间 20
+                }
             }
             top = rowY
         }
         footTop = top - 12
+        // B2.9b：读屏顺序同网页 DOM（页头：×、只给读屏的页标题、分享；正文；撤销条；底栏），只放显示着的
+        let order: [UIView?] = [backButton, headerLabel, shareButton, scroll, undoBar, failNote, againTextButton, redoButton, failCancel, primaryButton, failRetry]
+        view.accessibilityElements = order.compactMap { $0 }.filter { !$0.isHidden }
 
         // 撤销条：贴底栏上方 8（网页 SkipUndoDock bottom = 底栏高 + 8）
         if let bar = undoBar {
@@ -483,8 +507,9 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         if !rowViews.isEmpty {
             y += 28
             for r in rowViews {
-                if layout { r.frame = CGRect(x: x, y: y, width: W, height: r.height) }
-                y += r.height
+                let rh = r.height(for: W)
+                if layout { r.frame = CGRect(x: x, y: y, width: W, height: rh) }
+                y += rh
             }
         }
         if !previewLabel.isHidden {
@@ -647,7 +672,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
                 self.invitePhase = "invite"
                 self.inviteView.phase = .invite
                 self.inviteView.failed = true
-                UIAccessibility.post(notification: .announcement, argument: self.tr("X-SETTINGS.saveFailed"))
+                NativeA11y.announce(self.tr("X-SETTINGS.saveFailed"))
             } else if phase == "denied" {
                 self.invitePhase = "denied"
                 self.inviteView.phase = .line(reply.body["text"] as? String ?? self.tr("X-INVITE.denied"), time: nil)
@@ -732,7 +757,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             self.stopUndo()
             self.undoBar?.setFailed(true)
             self.layoutAll()
-            UIAccessibility.post(notification: .announcement, argument: self.tr("R-W16.saveFailed"))
+            NativeA11y.announce(self.tr("R-W16.saveFailed"))
         }
     }
 
@@ -776,7 +801,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             self.stateChangedAt = CACurrentMediaTime()
             self.renderFail()
             self.layoutAll()
-            UIAccessibility.post(notification: .announcement, argument: self.tr("X-RESULT.againFailed"))
+            NativeA11y.announce(self.tr("X-RESULT.againFailed"))
         }
     }
 
@@ -1231,7 +1256,9 @@ final class NativeResultRowView: UIView {
     private let openButton = NativeRowOpenButton(type: .custom)
     private let changeButton = NativeTextButton(type: .system)
     private let addButton = NativeTextButton(type: .system)
-    let height: CGFloat = 52
+    /// 一行的高（标准 52；AX 档折行后按内容，见 plan）。
+    private var type = NativeType()
+    private var glyphSide: CGFloat = 36
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -1249,6 +1276,8 @@ final class NativeResultRowView: UIView {
 
     func configure(row r: [String: Any], glyph: CGFloat, pad: CGFloat, look: Look) {
         row = r
+        type = look.type.type
+        glyphSide = glyph
         openButton.configure(row: r, glyph: glyph, pad: pad, look: look)
         changeButton.isHidden = (r["change"] as? Bool) != true
         addButton.isHidden = (r["add"] as? Bool) != true
@@ -1263,24 +1292,77 @@ final class NativeResultRowView: UIView {
         addButton.titleLabel?.font = look.type.font(15)
         addButton.setTitleColor(look.ink2, for: .normal)
         addButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
+        addButton.contentHorizontalAlignment = .left
         addButton.accessibilityLabel = r["addAria"] as? String
         setNeedsLayout()
     }
 
+    /// AX 档（网页 work.js :root[data-ax] .sz-exrow）：行可折——主体占满一行（高 = max(52, 行高)），「修改 ›」「放进图里」各自按字号长高、左让出字宽 + 12，
+    /// 一行放不下就折到下一行（行距 / 列距 4），整行上下内边距 6。返回各按钮的框与行高；不在 AX 档 → nil。
+    private func axPlan(width: CGFloat) -> (open: CGRect, frames: [(UIButton, CGRect)], height: CGFloat)? {
+        guard type.ax, let pad = type.role("exrow", "padTop", sub: "r5") else { return nil }
+        let gap = type.role("exrow", "gap", sub: "r5") ?? 4
+        let colGap = type.role("exrow", "colGap", sub: "r5") ?? 4
+        let openH = max(type.role("exrow", "minH", sub: "r2") ?? 52, type.roleLine("exrow", sub: "r3") ?? 0)
+        var items: [(UIButton, CGFloat, CGFloat, CGFloat)] = [] // 按钮、外边距左、宽、高
+        if !changeButton.isHidden {
+            items.append((changeButton, type.role("exrow", "marginLeft", sub: "r4") ?? glyphSide + 12, max(44, NativeType.titleWidth(changeButton) + 8),
+                          max(44, type.role("exrow", "minH", sub: "r4") ?? 44)))
+        }
+        if !addButton.isHidden {
+            items.append((addButton, type.role("exrow", "marginLeft") ?? glyphSide + 12, NativeType.titleWidth(addButton) + 8, max(44, type.role("exrow", "minH") ?? 44)))
+        }
+        var y = pad + openH
+        var frames: [(UIButton, CGRect)] = []
+        var line: [(UIButton, CGFloat, CGFloat, CGFloat)] = []
+        var used: CGFloat = 0
+        func flush() {
+            guard !line.isEmpty else { return }
+            let lh = line.map { $0.3 }.max() ?? 0
+            var x: CGFloat = 0
+            for (i, it) in line.enumerated() {
+                x += (i == 0 ? 0 : colGap) + it.1
+                frames.append((it.0, CGRect(x: x, y: y + gap + (lh - it.3) / 2, width: it.2, height: it.3)))
+                x += it.2
+            }
+            y += gap + lh
+            line = []
+            used = 0
+        }
+        for it in items {
+            let need = (line.isEmpty ? 0 : colGap) + it.1 + it.2
+            if !line.isEmpty, used + need > width + 0.5 { flush() }
+            used += (line.isEmpty ? 0 : colGap) + it.1 + it.2
+            line.append(it)
+        }
+        flush()
+        return (CGRect(x: 0, y: pad, width: width, height: openH), frames, y + pad)
+    }
+
+    func height(for width: CGFloat) -> CGFloat { axPlan(width: width)?.height ?? 52 }
+
     override func layoutSubviews() {
         super.layoutSubviews()
+        NativeType.linkTitle(changeButton) // 「修改 ›」：字与「›」间距 4、中文字距同网页（B2.9b）
+        NativeType.trackTitle(addButton)
+        if let p = axPlan(width: bounds.width) {
+            openButton.frame = p.open
+            for (b, f) in p.frames { b.frame = f }
+            return
+        }
+        let height: CGFloat = 52
         var right = bounds.width
         if !addButton.isHidden {
-            let aw = NativeType.width(addButton.titleLabel ?? UILabel()) + 8
+            let aw = NativeType.titleWidth(addButton) + 8
             addButton.frame = CGRect(x: right + 4 - aw, y: (height - 44) / 2, width: aw, height: 44)
             right = addButton.frame.minX
             if !changeButton.isHidden {
-                let cw = max(44, NativeType.width(changeButton.titleLabel ?? UILabel()) + 8)
+                let cw = max(44, NativeType.titleWidth(changeButton) + 8)
                 changeButton.frame = CGRect(x: right - cw, y: (height - 44) / 2, width: cw, height: 44)
                 right = changeButton.frame.minX - 4
             }
         } else if !changeButton.isHidden {
-            let cw = max(44, NativeType.width(changeButton.titleLabel ?? UILabel()) + 8)
+            let cw = max(44, NativeType.titleWidth(changeButton) + 8)
             changeButton.frame = CGRect(x: right - cw, y: (height - 44) / 2, width: cw, height: 44)
             right = changeButton.frame.minX - 4
         }
@@ -1308,8 +1390,18 @@ final class NativeRowOpenButton: UIButton {
         let text = r["text"] as? String ?? ""
         let tag = r["tag"] as? String ?? ""
         let f = look.type.font(17)
-        let s = NSMutableAttributedString(string: text, attributes: [.font: f, .foregroundColor: look.ink2])
-        if !tag.isEmpty { s.append(NSAttributedString(string: " " + tag, attributes: [.font: f, .foregroundColor: look.ink3])) }
+        let s = NSMutableAttributedString(string: text, attributes: [.font: f, .foregroundColor: look.ink2, .kern: 0])
+        if !tag.isEmpty { s.append(NSAttributedString(string: " " + tag, attributes: [.font: f, .foregroundColor: look.ink3, .kern: 0])) }
+        // 中文字距同网页（B2.9b，NativeType.cjkTrack）
+        let k = NativeType.cjkTrack(size: f.pointSize, weight: NativeType.weight(of: f))
+        if k != 0 {
+            var i = 0
+            for ch in s.string {
+                let n = (String(ch) as NSString).length
+                if ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 }) { s.addAttribute(.kern, value: k, range: NSRange(location: i, length: n)) }
+                i += n
+            }
+        }
         setAttributedTitle(s, for: .normal)
         setTitleColor(look.ink2, for: .normal)
         titleLabel?.font = f
@@ -1330,6 +1422,7 @@ final class NativeRowOpenButton: UIButton {
         }
         if let d = r["dot"] as? [String: Any] {
             func v(_ k: String) -> CGFloat { CGFloat((d[k] as? NSNumber)?.doubleValue ?? 0) }
+            dotSpec = (v("cx"), v("cy"), v("d"))
             dot.frame = CGRect(x: v("cx") - v("d") / 2, y: (52 - side) / 2 + v("cy") - v("d") / 2, width: v("d"), height: v("d"))
             dot.layer.cornerRadius = v("d") / 2
             dot.backgroundColor = look.zhu
@@ -1338,6 +1431,7 @@ final class NativeRowOpenButton: UIButton {
             if dot.superview == nil { addSubview(dot) }
         } else {
             dot.isHidden = true
+            dotSpec = nil
         }
         pressColor = look.field
         addTarget(self, action: #selector(down), for: [.touchDown, .touchDragEnter])
@@ -1353,9 +1447,13 @@ final class NativeRowOpenButton: UIButton {
         return CGRect(x: x, y: (bounds.height - lineH) / 2, width: max(0, bounds.width - x), height: lineH)
     }
 
+    /// 朱点（相对字格：中心 cx / cy、直径 d）；行高随 AX 档变时跟着字格竖向居中。
+    private var dotSpec: (cx: CGFloat, cy: CGFloat, d: CGFloat)?
+
     override func layoutSubviews() {
         super.layoutSubviews()
         let y = (bounds.height - glyphSide) / 2
+        if let d = dotSpec { dot.frame = CGRect(x: d.cx - d.d / 2, y: y + d.cy - d.d / 2, width: d.d, height: d.d) }
         let p = glyphSide * pad, inner = glyphSide - 2 * p
         ink?.frame = CGRect(x: p, y: y + p, width: inner, height: inner)
         glyph.frame = CGRect(x: p, y: y + p, width: inner, height: inner)

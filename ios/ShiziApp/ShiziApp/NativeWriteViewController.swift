@@ -2,6 +2,40 @@
 import UIKit
 import WebKit
 
+/// B2.9b：原生写字流程（写字页 / 判断页 / 结果页 / 弹层 / 确认框）的读屏通知一律经这里发：换字 / 换阶段 screenChanged、弹层内换内容 layoutChanged、
+/// 状态变化播报 announcement（排队播，不打断上一句——网页 aria-live=polite 同义）。每一条同时记下（探针 a11y，XCUITest 核对播报队列）。
+enum NativeA11y {
+    private(set) static var events: [String] = []
+    /// 发过的通知总数（只增；events 只留最近 40 条）。
+    private(set) static var total = 0
+
+    private static func note(_ kind: String, _ arg: Any?) {
+        var text = ""
+        if let s = arg as? String { text = s }
+        else if let l = arg as? UILabel { text = l.accessibilityLabel ?? l.text ?? "" }
+        else if let v = arg as? UIView { text = v.accessibilityLabel ?? v.accessibilityIdentifier ?? String(describing: type(of: v)) }
+        events.append("\(kind):\(text)")
+        total += 1
+        if events.count > 40 { events.removeFirst(events.count - 40) }
+    }
+
+    static func screenChanged(_ focus: Any?) {
+        note("screen", focus)
+        UIAccessibility.post(notification: .screenChanged, argument: focus)
+    }
+
+    static func layoutChanged(_ focus: Any?) {
+        note("layout", focus)
+        UIAccessibility.post(notification: .layoutChanged, argument: focus)
+    }
+
+    static func announce(_ text: String?) {
+        guard let text, !text.isEmpty else { return }
+        note("announce", text)
+        UIAccessibility.post(notification: .announcement, argument: NSAttributedString(string: text, attributes: [.accessibilitySpeechQueueAnnouncement: true]))
+    }
+}
+
 // 原生写字页（B2.0 纵切 → B2.2 回忆阶段完整版 + 提示；docs/engineering/v10/B2-原生写字架构.md §6、§11；确认单 2、3）。
 // 只在 DEBUG、启动参数 -shizi-native-write 时出现（主控宣布切换前）。
 //
@@ -148,6 +182,14 @@ final class NativeWriteViewController: UIViewController {
 
     private let backButton = NativeIconTextButton(type: .system)
     private let centerLabel = UILabel()
+    /// B2.9b：页标题只给读屏（网页 Page hideTitle 的 h1：回忆阶段「凭记忆写」、重写错字页「重写错字」；中间显示的是进度）。读屏顺序在「‹」之后、进度之前，换字 / 换阶段焦点落在它上面。
+    private let srTitleLabel = UILabel()
+    /// B2.9b：读屏播报区（网页 write-sr-status，aria-live=polite）：最近一句状态播报留在这里，读屏可以摸回来再听；换字 / 换阶段清空。
+    private let srStatusLabel = UILabel()
+    /// B2.9b：描一遍底栏里只给读屏的答案字（网页 write-answer-char：与判断页参考卡同一句名称）。
+    private let srAnswerLabel = UILabel()
+    /// 参考字形的读屏名称（页面 refLabel op，网页 refCardLabel 同一句）：字 → 名称。
+    private var refLabels: [String: String] = [:]
     private let progressLabel = UILabel() // 判断页页头右侧的计数（回忆阶段计数在中间）
     private let noInkLabel = UILabel() // 没有本人笔画时上格「这次没写」
     private let changeButton = UIButton(type: .system) // 结果行「修改 ›」
@@ -202,6 +244,17 @@ final class NativeWriteViewController: UIViewController {
     private var firstTipSent = false
     /// 字阶（网页 --fsN / --lhN 同值，R9-A）。
     private var type: NativeTypeScale { NativeTypeScale(type: textType, ax: traitCollection.preferredContentSizeCategory.isAccessibilityCategory) }
+    /// B2.9b：AX 档逐元素取值（页面 typeBundle roles = 网页写字页 / 判断页同一组 :root[data-ax] 规则量出的字号 / 行高 / 尺寸）。
+    private var axOn: Bool { textType.ax }
+    private func axFont(_ role: String, sub: String? = nil, _ weight: UIFont.Weight = .regular, else fallback: @autoclosure () -> UIFont) -> UIFont {
+        (axOn ? textType.roleFont(role, sub: sub, weight: weight) : nil) ?? fallback()
+    }
+    private func axValue(_ role: String, _ key: String, sub: String? = nil) -> CGFloat? { axOn ? textType.role(role, key, sub: sub) : nil }
+    /// AX 档格下实际高度只增不减（同一张卡同一阶段；网页 useWriteLayout noteKey，R3-K1 P241）。
+    private var axBelowMemo: (key: String, h: CGFloat)?
+    /// AX 档书写格放不下下限（P278 tight）：底栏收紧（求助行 48、间距 6、主按钮 34pt），网页 data-compact / data-tight。
+    private var axTight = false
+    private var axTightKey = ""
 
     init(slot: String, payload: [String: Any], bridge: NativeWriteBridge, redo: Bool = false) {
         self.slot = slot
@@ -315,6 +368,18 @@ final class NativeWriteViewController: UIViewController {
         centerLabel.lineBreakMode = .byTruncatingTail
         centerLabel.accessibilityIdentifier = "native-write-progress"
         centerLabel.accessibilityTraits = [.header]
+        srTitleLabel.accessibilityTraits = [.header]
+        srTitleLabel.accessibilityIdentifier = "native-write-title"
+        srTitleLabel.clipsToBounds = true
+        srTitleLabel.textColor = .clear
+        for l in [srStatusLabel, srAnswerLabel] {
+            l.clipsToBounds = true
+            l.textColor = .clear
+        }
+        srStatusLabel.accessibilityIdentifier = "native-write-sr-status"
+        srStatusLabel.accessibilityTraits = [.updatesFrequently]
+        srAnswerLabel.accessibilityIdentifier = "native-write-answer-char"
+        srAnswerLabel.accessibilityTraits = [.image]
         progressLabel.textAlignment = .right
         progressLabel.textColor = color("ink3", .secondaryLabel)
         progressLabel.accessibilityIdentifier = "native-write-count"
@@ -439,7 +504,7 @@ final class NativeWriteViewController: UIViewController {
         failNote.numberOfLines = 0
         [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, redoAnswerButton, redoAgainButton, doneButton, wrongButton, correctButton, failNote, failCancel, failRetry].forEach { footView.addSubview($0) }
 
-        [backButton, centerLabel, progressLabel, headProgress, endButton, skipButton, stepsView, promptView, gridFrame, noInkLabel, hintLayer, traceLayer, ink, refFrame, undoButton, clearButton, noteView, footView]
+        [backButton, srTitleLabel, srStatusLabel, srAnswerLabel, centerLabel, progressLabel, headProgress, endButton, skipButton, stepsView, promptView, gridFrame, noInkLabel, hintLayer, traceLayer, ink, refFrame, undoButton, clearButton, noteView, footView]
             .forEach { view.addSubview($0) }
 
         // 左缘右滑 = 左上「‹」：回忆阶段跟手滑回上一页（交互式转场），判断阶段 = 接着写（D58 ① / 确认单 2）。
@@ -472,7 +537,7 @@ final class NativeWriteViewController: UIViewController {
             NativeWriteMetrics.shared.open(sentAtEpochMs: t.sentAtEpochMs, receivedAt: t.receivedAt, appearedAt: CACurrentMediaTime(), receivedEpochMs: t.receivedEpochMs)
             openTiming = nil
         }
-        UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
+        NativeA11y.screenChanged(screenFocus)
         scheduleAutoStep()
     }
 
@@ -579,10 +644,40 @@ final class NativeWriteViewController: UIViewController {
         failed = false
         ink?.syncPageStrokes(strokes)
         refGlyph.char = char
-        refGlyph.accessibilityLabel = tr("R-W09.refCardLabelChar", ["char": char])
+        if !(keepLocal && sameCard) || phase != prevPhase { srStatusLabel.text = nil } // 换字 / 换阶段：上一句播报作废（网页 setMessage('')）
+        requestRefLabel()
         rebuildPrompt()
         refresh()
         view.setNeedsLayout()
+        // 进入描一遍：读一次参考字形画出了哪几笔（网页 sr-live.js traceAnnouncement；每个字一次）
+        if phase == .trace, traceAnnouncedKey != cardKey {
+            traceAnnouncedKey = cardKey
+            let n = glyph?.strokes.count ?? 0
+            if n <= 0 {
+                say(tr("X-WRITE.liveTraceWhole"))
+            } else {
+                let range = n == 1 ? tr("X-WRITE.liveRangeOne", ["a": 1]) : tr("X-WRITE.liveRangeMany", ["a": 1, "b": n])
+                say(tr("X-WRITE.liveTrace", ["range": range]))
+            }
+        }
+    }
+
+    private var traceAnnouncedKey: String?
+
+    /// 笔数变化的播报（网页 sr-live.js strokeAnnouncement 同一套句子）：多一笔「已写 n 笔」、撤销恢复「恢复了，现在是 n 笔」、撤销「撤销了一笔，还有 n 笔」、
+    /// 撤到空「撤销了一笔，格子是空的」、清空「已清空」。只在书写格可写时（判断页不播）。
+    private func announceStrokes(from prev: Int) {
+        let next = strokes.count
+        guard prev != next, ink?.drawable == true else { return }
+        let text: String
+        if next > prev {
+            text = next - prev == 1 ? tr("X-WRITE.liveStroke", ["n": next]) : tr("X-WRITE.liveRestored", ["n": next])
+        } else if next == 0 {
+            text = prev == 1 ? tr("X-WRITE.liveUndoEmpty") : tr("X-WRITE.liveCleared")
+        } else {
+            text = tr("X-WRITE.liveUndo", ["n": next])
+        }
+        say(text)
     }
 
     /// 页面重载（WebContent 进程被回收）后宿主重新发 open：用新的文案 / 颜色 / 快照重新同步。
@@ -605,10 +700,12 @@ final class NativeWriteViewController: UIViewController {
         let ts = type
         // 提示行：t15 ink2、行高 lh15、居中（网页 .sz-prompt__hint）
         let para = NSMutableParagraphStyle()
-        para.minimumLineHeight = ts.lineHeight(15)
-        para.maximumLineHeight = ts.lineHeight(15)
+        // AX 档：提示行 17 / 22pt、拼音 22 / 28pt（网页 prompt.js :root[data-ax] 分层封顶）
+        let hintLine = (axOn ? textType.roleLine("prompt", sub: "r5") : nil) ?? ts.lineHeight(15)
+        para.minimumLineHeight = hintLine
+        para.maximumLineHeight = hintLine
         para.alignment = .center
-        promptHint.attributedText = NSAttributedString(string: hintText, attributes: [.font: ts.font(15), .foregroundColor: color("ink2", .secondaryLabel), .paragraphStyle: para])
+        promptHint.attributedText = NSAttributedString(string: hintText, attributes: [.font: axFont("prompt", sub: "r5", else: ts.font(15)), .foregroundColor: color("ink2", .secondaryLabel), .paragraphStyle: para])
         promptHint.isHidden = hintText.isEmpty
         for c in cells {
             let kind = c["kind"] as? String ?? "text"
@@ -620,7 +717,7 @@ final class NativeWriteViewController: UIViewController {
                 cell.layer.borderColor = color("frame", .separator).cgColor
                 let py = UILabel()
                 py.text = text
-                py.font = ts.font(15) // 拼音 t15 ink2（网页 .sz-prompt__py）
+                py.font = axFont("prompt", sub: "r3", else: ts.font(15)) // 拼音 t15 ink2（网页 .sz-prompt__py；AX 档 22 / 28pt）
                 py.textColor = color("ink2", .secondaryLabel)
                 py.textAlignment = .center
                 py.tag = 1
@@ -634,9 +731,18 @@ final class NativeWriteViewController: UIViewController {
                     g.tag = 3
                     cell.addSubview(g)
                 }
-                cell.isAccessibilityElement = true
-                cell.accessibilityLabel = c["label"] as? String // 只有位置与拼音，不含答案字（D16）
                 cell.accessibilityIdentifier = "native-write-blank"
+                if let label = c["label"] as? String, !label.isEmpty {
+                    cell.isAccessibilityElement = true
+                    cell.accessibilityLabel = label // 只有位置与拼音，不含答案字（D16）
+                } else {
+                    // 描一遍（答案已揭晓、格子没有名称）：读拼音、再读填回的字（网页这一格的拼音与字各自出现在读屏里）
+                    cell.isAccessibilityElement = false
+                    let fillView = cell.subviews.first { $0.tag == 3 }
+                    fillView?.isAccessibilityElement = true
+                    fillView?.accessibilityLabel = c["fill"] as? String
+                    cell.accessibilityElements = [py, fillView].compactMap { $0 }
+                }
             case "repeatBlank":
                 cell.layer.borderWidth = frameW
                 cell.layer.borderColor = color("frame", .separator).cgColor
@@ -763,7 +869,7 @@ final class NativeWriteViewController: UIViewController {
             self.renderHint(fadeIn: true)
             self.selectHaptic.selectionChanged() // F1 haptic.select：提示显影，与第一帧同帧
             self.checkHintCleared()
-            if let say = reply.body["announce"] as? String, !say.isEmpty { UIAccessibility.post(notification: .announcement, argument: say) }
+            if let text = reply.body["announce"] as? String, !text.isEmpty { self.say(text) }
         }
     }
 
@@ -845,14 +951,19 @@ final class NativeWriteViewController: UIViewController {
             progressLabel.accessibilityLabel = tr("R-W01.progressLabel", ["n": n, "total": total])
         }
         progressLabel.isHidden = !compare || redo
+        // 只给读屏的页标题：中间显示进度的阶段（回忆 / 重写错字页）才有；其余阶段标题就是中间那一行（AX 档判断页的也只给读屏，见版式）
+        srTitleLabel.text = redo ? tr("X-REDO.title") : tr("R-W03.titleRecall")
+        srTitleLabel.isHidden = !(phase == .recall || redo)
         // 页头中间：回忆阶段是进度（t15 ink3 等宽数字，网页 .sz-write__progress），其余阶段是标题（17 / 500 ink1，网页 .sz-page__title；R9-A NP-08）
         let ts = type
         if phase == .recall || redo {
-            centerLabel.font = ts.font(15, tabular: true)
+            centerLabel.font = Self.tabular(axFont("progress", else: ts.font(15)))
             centerLabel.textColor = color("ink3", .secondaryLabel)
+            centerLabel.numberOfLines = 1
         } else {
-            centerLabel.font = ts.font(17, .medium)
-            centerLabel.textColor = color("ink1", .label)
+            // AX 档页头标题可折两行（网页 -webkit-line-clamp:2，R3-K1）
+            centerLabel.numberOfLines = axOn ? 2 : 1
+            NativeType.set(centerLabel, centerLabel.text, font: axFont("title", .medium, else: ts.font(17, .medium)), color: color("ink1", .label), align: .center)
         }
         // 没有本人笔画时上格「这次没写」（R-W17；正常流程到不了：没有笔画进不了判断页）
         noInkLabel.isHidden = !compare || !strokes.isEmpty
@@ -883,7 +994,7 @@ final class NativeWriteViewController: UIViewController {
         let line = snapshot["line"] as? [String: Any]
         let lineText = line?["text"] as? String ?? ""
         let lineOn = phase == .recall && !answerSeen && flowFail == nil && strokes.isEmpty && !penDown && !lineText.isEmpty
-        NativeType.set(lineLabel, lineOn ? lineText : nil, font: textType.font("fs13"), color: color("ink3", .secondaryLabel))
+        NativeType.set(lineLabel, lineOn ? lineText : nil, font: axFont("note", sub: "r2", else: textType.font("fs13")), color: color("ink3", .secondaryLabel))
         lineLabel.isHidden = !lineOn
         // 「修改 ›」只对可改的记录开放（sessions.canCorrect → line.canChange；看过答案 / 跳过不可改）
         let action = line?["action"] as? String ?? ""
@@ -917,7 +1028,8 @@ final class NativeWriteViewController: UIViewController {
         }
         // 说明句一律左起（网页 .sz-write__note align-items:flex-start；R9-A NP-11）；含全角标点的句子按 NativeType.set 的苹方 UI 排（与网页同宽）
         let noteText = flowNote ?? (hintNoteOn ? hintNoteText : (firstTipOn ? tr("X-WRITE.firstTip") : nil))
-        NativeType.set(noteLabel, noteText, font: type.font(13), color: color("ink3", .secondaryLabel), line: type.lineHeight(13))
+        NativeType.set(noteLabel, noteText, font: axFont("note", sub: "r2", else: type.font(13)), color: color("ink3", .secondaryLabel),
+                       line: (axOn ? textType.roleLine("note", sub: "r2") : nil) ?? type.lineHeight(13))
         noteLabel.isHidden = noteText == nil
         noteDot.isHidden = !hintNoteOn
         noteView.isHidden = compare
@@ -966,6 +1078,63 @@ final class NativeWriteViewController: UIViewController {
         wrongButton.isEnabled = !submitting && judgeKeysReady
         correctButton.isEnabled = !submitting && judgeKeysReady
         failRetry.isEnabled = !submitting
+        trackTitles()
+    }
+
+    /// B2.9b：读屏顺序 = 网页 DOM 顺序（页头：‹、页标题、中间、右槽；正文：步骤点、题面、书写格 / 对照两格、撤销 / 清空、格下说明；撤销条；底栏），
+    /// 不按几何位置排（UIKit 默认先读位置靠上的右槽按钮，进度就落到了「跳过」后面）。确认框开着时它是模态，只读框里的。
+    private func updateAccessibilityOrder() {
+        var order: [UIView] = [backButton, srTitleLabel, centerLabel, progressLabel, headProgress, endButton, skipButton, stepsView, promptView, noInkLabel]
+        if let ink { order.append(ink) }
+        order += [refFrame, undoButton, clearButton, noteView, srStatusLabel]
+        if let bar = undoBar { order.append(bar) }
+        order += [srAnswerLabel, footView]
+        if let d = endDialog { order.append(d) }
+        // 明示的顺序表里藏起来的视图读屏仍摸得到：只放此刻显示着的（空的播报区不放，网页空的 aria-live 区读屏不停留）
+        view.accessibilityElements = order.filter { !$0.isHidden && !(($0 as? UILabel).map { ($0.text ?? "").isEmpty } ?? false) }
+        noteView.accessibilityElements = [lineLabel, changeButton, noteLabel].filter { !$0.isHidden } // 结果行：正文在前、「修改」在后（网页 DOM 顺序），「·」不读
+    }
+
+    /// 状态播报（网页 sr-live.js：经 aria-live=polite 区域读；那一句留在区域里）。
+    private func say(_ text: String) {
+        guard !text.isEmpty else { return }
+        srStatusLabel.text = text
+        srStatusLabel.accessibilityLabel = text
+        NativeA11y.announce(text)
+        view.setNeedsLayout()
+    }
+
+    /// 参考字形的读屏名称（页面 refLabel op：字、拼音、笔画数、结构，网页 refCardLabel 同一句）；回来前先用「标准写法：字」。
+    private func requestRefLabel() {
+        let c = char
+        guard !c.isEmpty else { return }
+        if let l = refLabels[c] { applyRefLabel(l, for: c); return }
+        applyRefLabel(tr("R-W09.refCardLabelChar", ["char": c]), for: c)
+        bridge.call("refLabel", ["char": c, "cardKey": cardKey ?? ""]) { [weak self] reply in
+            guard let self, let l = reply.body["label"] as? String, !l.isEmpty else { return }
+            self.refLabels[c] = l
+            self.applyRefLabel(l, for: c)
+        }
+    }
+
+    private func applyRefLabel(_ label: String, for c: String) {
+        guard c == char else { return }
+        refGlyph.accessibilityLabel = label
+        srAnswerLabel.text = label
+        srAnswerLabel.accessibilityLabel = label
+    }
+
+    /// 换字 / 换阶段时读屏焦点落在页标题（网页推入后焦点在 h1；回忆阶段那是只给读屏的标题）。
+    private var screenFocus: UIView { srTitleLabel.isHidden ? centerLabel : srTitleLabel }
+
+    /// 按钮标题的中文字距与网页一致（NativeType.trackTitle：WebKit 按实际字号取 trak 字距）。标题 / 字体变了之后调用。
+    private func trackTitles() {
+        for b in [skipButton, endButton, undoButton, clearButton, hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton,
+                  redoAnswerButton, redoAgainButton, doneButton, wrongButton, correctButton, failCancel, failRetry] as [UIButton] {
+            NativeType.trackTitle(b)
+        }
+        // 「修改 ›」：网页是「修改」+ 4 的间距（按钮 inline-flex gap）+「›」，原生标题里的空格按 4 排
+        NativeType.linkTitle(changeButton)
     }
 
     private func primaryModel() -> (title: String, id: String, enabled: Bool) {
@@ -1003,76 +1172,125 @@ final class NativeWriteViewController: UIViewController {
         let safe = view.safeAreaInsets
         let w = view.bounds.width, h = view.bounds.height
         let gutter = k.sideMargin
+        let ax = axOn
+        let compare = phase == .compare
+        // 页头中间是标题（描一遍 / 凭记忆写 / 判断），回忆阶段与重写错字页是进度；AX 档判断页的标题只留给读屏（网页 hideTitle，D49 ⑧）
+        let titleMode = !(phase == .recall || redo)
+        let srTitle = ax && titleMode && compare
 
-        // 页头：名义 44，大字号下按量到的行高长高（多出的部分从组顶扣掉，书写格在页面上的 y 不变）
-        let headH = max(k.nominalHead, ceil(centerLabel.font.lineHeight) + 16)
-        let headExtra = headH - k.nominalHead
+        // 页头：名义 44，大字号下按量到的行高长高（多出的部分从组顶扣掉，书写格在页面上的 y 不变）；AX 档按标题实际行数（至多两行）
+        var headH = ax ? k.nominalHead : max(k.nominalHead, ceil(centerLabel.font.lineHeight) + 16)
         // 页头（网页 Page.js .sz-page__head + write/index.js headtools；R9-A）：左槽 [页边, 页边 + 44]，「‹」44 × 44 左移 17.75（箭头描边外缘落在页边线上）；
         // 右槽贴页边、至少 44 宽；中间（进度或标题）在两槽之间、各让 8 居中。
         // 右槽内容：回忆 [结束这组][16][跳过]，描一遍 / 凭记忆写 [进度 +4][结束这组]，判断 [进度 +4]。「结束这组」左右各有 4 的内边距，「跳过」没有（字形外缘贴页边）。
-        let headY = safe.top + (headH - 44) / 2
-        backButton.frame = CGRect(x: gutter - 17.75, y: headY, width: 44, height: 44)
-        var right = w - gutter
-        // 文字按钮按字的实宽排（不取整，网页同），框取整后左右各让出一半，字仍落在实宽的位置上
-        let place = { (b: NativeIconTextButton, right: CGFloat, pad: CGFloat) -> CGFloat in
-            let tw = b.textWidth, bw = tw + 2 * pad, fw = ceil(tw) + 2 * pad
-            b.frame = CGRect(x: right - bw - (fw - bw) / 2, y: headY, width: fw, height: 44)
-            return bw
-        }
-        let progressW = { (l: UILabel) in ceil(l.sizeThatFits(CGSize(width: w / 3, height: headH)).width) }
-        if phase == .recall || redo {
-            if !skipButton.isHidden {
-                right -= place(skipButton, right, 0) + 16
+        func layoutHead(_ headH: CGFloat) -> CGFloat {
+            let headY = safe.top + (headH - 44) / 2
+            backButton.frame = CGRect(x: gutter - 17.75, y: headY, width: 44, height: 44)
+            var right = w - gutter
+            // 文字按钮按字的实宽排（不取整，网页同），框取整后左右各让出一半，字仍落在实宽的位置上
+            let place = { (b: NativeIconTextButton, right: CGFloat, pad: CGFloat) -> CGFloat in
+                let tw = b.textWidth, bw = tw + 2 * pad, fw = ceil(tw) + 2 * pad
+                b.frame = CGRect(x: right - bw - (fw - bw) / 2, y: headY, width: fw, height: 44)
+                return bw
             }
-            if !endButton.isHidden {
-                right -= place(endButton, right, 4)
-            } else if !skipButton.isHidden {
-                right += 16
-            }
-        } else if phase == .compare {
-            let pw = progressW(progressLabel)
-            progressLabel.frame = CGRect(x: right - 4 - pw, y: safe.top, width: pw, height: headH)
-            right -= pw + 4
-        } else {
-            if !endButton.isHidden {
-                right -= place(endButton, right, 4)
-            }
-            if !headProgress.isHidden {
-                let pw = progressW(headProgress)
-                headProgress.frame = CGRect(x: right - 4 - pw, y: safe.top, width: pw, height: headH)
+            let progressW = { (l: UILabel) in ceil(l.sizeThatFits(CGSize(width: w / 3, height: headH)).width) }
+            if phase == .recall || redo {
+                if !skipButton.isHidden {
+                    right -= place(skipButton, right, 0) + 16
+                }
+                if !endButton.isHidden {
+                    right -= place(endButton, right, 4)
+                } else if !skipButton.isHidden {
+                    right += 16
+                }
+            } else if compare {
+                let pw = progressW(progressLabel)
+                progressLabel.frame = CGRect(x: right - 4 - pw, y: safe.top, width: pw, height: headH)
                 right -= pw + 4
+            } else {
+                if !endButton.isHidden {
+                    right -= place(endButton, right, 4)
+                }
+                if !headProgress.isHidden {
+                    let pw = progressW(headProgress)
+                    headProgress.frame = CGRect(x: right - 4 - pw, y: safe.top, width: pw, height: headH)
+                    right -= pw + 4
+                }
             }
+            return min(right, w - gutter - 44)
         }
-        let trailLeft = min(right, w - gutter - 44)
+        var trailLeft = layoutHead(headH)
         let centerX = gutter + 44 + 8
-        centerLabel.frame = CGRect(x: centerX, y: safe.top, width: max(0, trailLeft - 8 - centerX), height: headH)
-        if phase == .recall || redo {
+        centerLabel.clipsToBounds = srTitle
+        if srTitle {
+            // 只给读屏（网页 .sz-page__title--hidden：1 × 1、裁掉）：读屏名称与 screenChanged 落点照旧
+            centerLabel.frame = CGRect(x: gutter - 1, y: safe.top + 21.5, width: 1, height: 1)
+        } else if !titleMode {
             // 回忆阶段（与重写错字页两个阶段）中间是进度：框 = 字宽 × lh15，在两槽之间居中（网页 .sz-page__center 里的 .sz-write__progress）
             let tw = ceil(centerLabel.sizeThatFits(CGSize(width: w, height: headH)).width)
-            let lh = type.lineHeight(15)
+            let lh = (ax ? textType.roleLine("progress") : nil) ?? type.lineHeight(15)
             let mid = (centerX + trailLeft - 8) / 2
             centerLabel.frame = CGRect(x: mid - tw / 2, y: safe.top + (headH - lh) / 2, width: tw, height: lh)
+        } else if ax {
+            // AX 档标题：两槽之间、左右各 4 的内边距，至多两行（网页 -webkit-line-clamp:2），页头随之长高、两侧按钮竖向居中
+            let tw = max(0, trailLeft - 8 - centerX - 8)
+            let lh = textType.roleLine("title") ?? ceil(centerLabel.font.lineHeight)
+            let fit = centerLabel.sizeThatFits(CGSize(width: tw, height: .greatestFiniteMagnitude)).height
+            let lines = min(2, max(1, (fit / max(1, centerLabel.font.lineHeight)).rounded()))
+            let th = lines * lh
+            if th > headH {
+                headH = th
+                trailLeft = layoutHead(headH)
+            }
+            centerLabel.frame = CGRect(x: centerX + 4, y: safe.top + (headH - th) / 2, width: max(0, trailLeft - 8 - centerX - 8), height: th)
+        } else {
+            centerLabel.frame = CGRect(x: centerX, y: safe.top, width: max(0, trailLeft - 8 - centerX), height: headH)
         }
+        let headExtra = ax ? 0 : headH - k.nominalHead
 
-        // 底栏：主按钮下沿 = 屏底 − max(24, 下安全区)；求助行在主按钮正上方 20
+        // 底栏：主按钮下沿 = 屏底 − max(24, 下安全区)；求助行在主按钮正上方 20（AX 档：网页 foot.js / components/ax.js 量到的行高、最小高与间距；放不下 220 时收紧，P278）
         let footBottom = max(k.footBottomMin, safe.bottom)
-        // 主按钮高 = max(--btn-h, lh17s)、求助行高 = max(48, lh17)（网页 .sz-btn--primary / .sz-write__links；AX 档求助行 56 起，B2.9）
+        // 主按钮高 = max(--btn-h, lh17s)、求助行高 = max(48, lh17)（网页 .sz-btn--primary / .sz-write__links）
         let ts = type
-        let primaryH = max(ts.buttonHeight, ts.lh17s)
-        let helpH = ts.ax ? max(56, ceil(hintButtonView.titleLabel?.font.lineHeight ?? 22) + 26) : max(48, ts.lineHeight(17))
+        let helpRole = axTight ? "helpTight" : "help"
+        var primaryH = max(ts.buttonHeight, ts.lh17s)
+        var helpH = ts.ax ? max(56, ceil(hintButtonView.titleLabel?.font.lineHeight ?? 22) + 26) : max(48, ts.lineHeight(17))
+        var footGap: CGFloat = 20
+        if ax {
+            // 主按钮：min-height calc(1.3em + 20px)（写字页底栏），字折行时按行数 × 行高 + 上下内边距
+            let lh5 = textType.roleLine(helpRole, sub: "r5") ?? ts.lh17s
+            let pad5 = axValue(helpRole, "padTop", sub: "r5") ?? 0
+            let avail = w - 2 * gutter - 32
+            let titleW = ceil((doneButton.currentTitle as NSString? ?? "").size(withAttributes: [.font: doneButton.titleLabel?.font as Any]).width)
+            let lines = max(1, ceil(titleW / max(1, avail)))
+            primaryH = max(axValue(helpRole, "minH", sub: "r5") ?? primaryH, lines * lh5 + 2 * pad5)
+            // 求助行：行的最小高（.sz-write__links 56 / 收紧 48）撑满按钮（align-items:stretch）
+            helpH = max(axValue(helpRole, "minH", sub: "r4") ?? 0, axValue(helpRole, "minH") ?? helpH, textType.roleLine(helpRole) ?? 0)
+            footGap = axValue(helpRole, "gap", sub: "r3") ?? footGap
+        }
         let primaryY = h - footBottom - primaryH
-        let helpY = primaryY - 20 - helpH
+        let helpY = primaryY - footGap - helpH
+        // AX 档判断两键上下排（网页 components/ax.js：.sz-judge__btns 一列，键高 calc(1.3em + 28px)，间距 12），求助行的留空行不占位（.sz-write__links--ghost display:none）
+        let judgeStack = ax && compare && !redo && (axValue("judge", "cols", sub: "r2") ?? 2) == 1
+        let judgeH = ax ? max(axValue("judge", "minH") ?? primaryH, primaryH) : primaryH
+        let judgeGap = axValue("judge", "gap", sub: "r2") ?? 12
         // 保存失败：说明句在求助行上面一行，底栏比平时高出这一截（网页底栏同一结构：说明 → 20 → 求助行 → 20 → 主按钮，说明 margin-bottom 6）
         let noteH = failed ? ceil(failNote.sizeThatFits(CGSize(width: w - 2 * gutter, height: .greatestFiniteMagnitude)).height) : 0
         let noteExtra = failed ? noteH + 26 : 0
-        let footTopBase = helpY - 12
+        let recallFootTop = helpY - 12
+        let footTopBase = judgeStack && !failed ? h - footBottom - 2 * judgeH - judgeGap - 12 : recallFootTop
         let footTop = footTopBase - noteExtra
         footView.frame = CGRect(x: 0, y: footTop, width: w, height: h - footTop)
         let fy = { (y: CGFloat) in y - footTop }
         doneButton.frame = CGRect(x: gutter, y: fy(primaryY), width: w - 2 * gutter, height: primaryH)
-        let half = (w - 2 * gutter - 12) / 2
-        wrongButton.frame = CGRect(x: gutter, y: fy(primaryY), width: half, height: primaryH)
-        correctButton.frame = CGRect(x: gutter + half + 12, y: fy(primaryY), width: half, height: primaryH)
+        if judgeStack {
+            correctButton.frame = CGRect(x: gutter, y: fy(h - footBottom - judgeH), width: w - 2 * gutter, height: judgeH)
+            wrongButton.frame = CGRect(x: gutter, y: correctButton.frame.minY - judgeGap - judgeH, width: w - 2 * gutter, height: judgeH)
+        } else {
+            let half = (w - 2 * gutter - 12) / 2
+            wrongButton.frame = CGRect(x: gutter, y: fy(primaryY), width: half, height: primaryH)
+            correctButton.frame = CGRect(x: gutter + half + 12, y: fy(primaryY), width: half, height: primaryH)
+        }
         let helpOrder: [UIButton] = recallSeen ? [answerButton, hintButtonView] : [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, redoAnswerButton, redoAgainButton]
         let helps = helpOrder.filter { !$0.isHidden }
         let slotW = helps.count > 1 ? (w - 2 * gutter - 12) / 2 : w - 2 * gutter
@@ -1084,27 +1302,147 @@ final class NativeWriteViewController: UIViewController {
         failNote.frame = CGRect(x: gutter, y: fy(helpY) - 26 - noteH, width: w - 2 * gutter, height: noteH)
 
         // 题面：拼音行 + 4 + 52 的格（有提示行时下面再一行）；P = 量到的整个题面高
-        let cell: CGFloat = 52
-        // 拼音行：max(24, lh15)，与格间 4（网页 .sz-prompt__wordwrap padding-top）；AX 档按量到的行高（B2.9）
-        let pyLine = ts.ax ? ceil(ts.font(15).lineHeight) : ts.lineHeight(15)
-        let pyH = ts.ax ? pyLine + 4 : max(24, pyLine)
+        // AX 档（网页 prompt.js）：格 = 52 × min(--k, 1.6)，拼音上方留白 34 / 40，拼音 22 / 28pt，提示行离格 8（提示行元素 AX 档总有 8 的上外边距）
+        let cell: CGFloat = axValue("prompt", "w", sub: "r2") ?? 52
+        // 拼音行：max(24, lh15)，与格间 4（网页 .sz-prompt__wordwrap padding-top）
+        let pyLine = (ax ? textType.roleLine("prompt", sub: "r3") : nil) ?? (ts.ax ? ceil(ts.font(15).lineHeight) : ts.lineHeight(15))
+        let pyH = ax ? (axValue("prompt", "padTop") ?? pyLine + 8) - 4 : (ts.ax ? pyLine + 4 : max(24, pyLine))
         let count = CGFloat(max(1, promptCells.count))
         let rowW = min(w - 2 * gutter, cell * count)
         let cw = rowW / count
-        let hintH = promptHint.isHidden ? 0 : ceil(promptHint.sizeThatFits(CGSize(width: w - 2 * gutter, height: .greatestFiniteMagnitude)).height) + 10 // 提示行离格 10
+        let hintGap: CGFloat = ax ? (axValue("prompt", "marginTop", sub: "r5") ?? 8) : 10 // 提示行离格 10（AX 档 8）
+        let hintText = promptHint.isHidden ? 0 : ceil(promptHint.sizeThatFits(CGSize(width: w - 2 * gutter, height: .greatestFiniteMagnitude)).height)
+        let hintH = ax ? hintGap + hintText : (promptHint.isHidden ? 0 : hintText + hintGap)
         let promptH = pyH + 4 + cw + hintH
+
+        // 格下说明位的内容（结果行 / 说明）：先排内容，AX 档格下高度要用（axWriteLayout 的 N）
+        let noteW = w - 2 * gutter // 说明位取内容宽（网页 .sz-write__below 与正文同宽，r7-W3）
+        var ny: CGFloat = 0
+        if !lineLabel.isHidden {
+            // 网页 .sz-line（R9-B，NP-14）：13 / 20 一行「正文 · 修改 ›」，列间 8、折行时行间 4；「修改 ›」按钮盒 = 文字宽 + 8（至少 44）× 44，
+            // 盒子左缘比字左缘外伸 4，下沿对齐行底再 +（说明位 40 − 行高）/ 2，比行多出的高度全部伸向上面（点击区整块 44，NP-01）
+            // AX 档：行高取格下字的行高（30），「修改 ›」的外边距盒 40 撑起这一行（网页 flex align-items:center）
+            let rowH = (ax ? textType.roleLine("note", sub: "r2") : nil) ?? textType.line("lh13")
+            let lh = NativeType.height(lineLabel, width: noteW, line: rowH)
+            if changeButton.isHidden {
+                lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: lh)
+                lineDot.frame = .zero
+                ny = lh
+            } else {
+                let lw = NativeType.width(lineLabel)
+                let dotW = NativeType.width(lineDot)
+                let cw = NativeType.titleWidth(changeButton)
+                let bw = max(44, cw + 8)
+                if ax {
+                    let rowBox = max(rowH, 40)
+                    let inset = (rowBox - rowH) / 2
+                    if lw + 8 + dotW + 8 + cw <= noteW {
+                        lineLabel.frame = CGRect(x: 0, y: inset, width: lw, height: rowH)
+                        lineDot.frame = CGRect(x: lw + 8, y: inset, width: dotW, height: rowH)
+                        changeButton.frame = CGRect(x: lw + 8 + dotW + 8 - 4, y: (rowBox - 40) / 2 - 4, width: bw, height: 44)
+                        ny = rowBox
+                    } else {
+                        lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: lh)
+                        let y2 = lh + 4
+                        lineDot.frame = CGRect(x: 0, y: y2 + inset, width: dotW, height: rowH)
+                        changeButton.frame = CGRect(x: dotW + 8 - 4, y: y2 + (rowBox - 40) / 2 - 4, width: bw, height: 44)
+                        ny = y2 + rowBox
+                    }
+                } else {
+                    let below = max(0, (k.noteHeight - rowH) / 2) // 行下沿到说明位下沿
+                    if lw + 8 + dotW + 8 + cw <= noteW {
+                        lineLabel.frame = CGRect(x: 0, y: 0, width: lw, height: rowH)
+                        lineDot.frame = CGRect(x: lw + 8, y: 0, width: dotW, height: rowH)
+                        changeButton.frame = CGRect(x: lw + 8 + dotW + 8 - 4, y: rowH + below - 44, width: bw, height: 44)
+                        ny = rowH
+                    } else {
+                        // 折行：正文占满一行（可多行），「· 修改 ›」接在下一行行首（flex-wrap，行间 4）
+                        lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: lh)
+                        let y2 = lh + 4
+                        lineDot.frame = CGRect(x: 0, y: y2, width: dotW, height: rowH)
+                        changeButton.frame = CGRect(x: dotW + 8 - 4, y: y2 + rowH / 2 - 24, width: bw, height: 44)
+                        ny = y2 + rowH
+                    }
+                }
+                // 字的竖向中线对齐行中线：按钮盒上内边距 = 2 ×（行中线 − 盒顶）− 44
+                let rowMid = lineDot.frame.midY
+                changeButton.contentEdgeInsets = UIEdgeInsets(top: max(0, 2 * (rowMid - changeButton.frame.minY) - 44), left: 4, bottom: 0, right: 4)
+            }
+        }
+        if !noteLabel.isHidden {
+            let nw = noteW - (noteDot.isHidden ? 0 : 14)
+            // AX 档：盒高 = 行数 × 网页行高（字在行里竖向居中，同网页半行距）
+            let nh = ax ? NativeType.height(noteLabel, width: nw, line: textType.roleLine("note", sub: "r2") ?? noteLabel.font.lineHeight)
+                : ceil(noteLabel.sizeThatFits(CGSize(width: nw, height: .greatestFiniteMagnitude)).height)
+            let dx: CGFloat = noteDot.isHidden ? 0 : 14 // 提示说明有朱点；看答案流程的说明 / 没保存上居中、无点
+            noteLabel.frame = CGRect(x: dx, y: ny, width: noteW - dx, height: nh)
+            noteDot.frame = CGRect(x: 0, y: ny + (noteLabel.font.lineHeight - 6) / 2, width: 6, height: 6)
+            ny = noteLabel.frame.maxY
+        }
+        // AX 档格下：撤销 / 清空行（离格 4 + 44；收紧时贴格）+ 说明位（上内边距 8、至少两行高，网页 .sz-write__note；收紧时去掉内边距）
+        let noteRole = axTight ? "noteTight" : "note"
+        let notePad: CGFloat = ax ? (axValue(noteRole, "padTop") ?? 8) : 0
+        let noteBox: CGFloat = ax ? max(axValue(noteRole, "minH") ?? k.axNoteHeight, notePad + ny) : k.noteHeight
+        let toolGap: CGFloat = ax && axTight ? 0 : 4
+        let toolRow: CGFloat = ax ? 44 + toolGap : k.toolRowHeight
+        var belowH = (toolRow + noteBox).rounded()
+        if ax {
+            let key = "\(cardKey ?? "")|\(phase)"
+            if let m = axBelowMemo, m.key == key { belowH = max(belowH, m.h) }
+            axBelowMemo = (key, belowH)
+        }
 
         let headBottom = safe.top + headH
         let mainH = footTopBase - headBottom
-        let nominal = NativeWriteLayout.nominalMainHeight(pageHeight: h, safeTop: safe.top, footBottom: footBottom, k)
-        let L = NativeWriteLayout.write(width: w, nominalHeight: nominal, promptHeight: promptH, headExtra: headExtra, k)
-        // 大字号下页头 / 底栏比名义高：组超出主区时整体上移（不与底栏重叠），书写格边长不变（D36）
-        let overflow = max(0, L.top + promptH + k.promptGap + L.g + k.toolsHeight - mainH)
-        let top = max(0, L.top - overflow)
-        let g = L.g
+        var top: CGFloat
+        var g: CGFloat
+        var promptScale: CGFloat = 1
+        var compareSide = false
+        var compareS: CGFloat = 0
+        var recallTop: CGFloat
+        var recallG: CGFloat
+        if ax {
+            // AX 档（layout.js axWriteLayout / judgeAxLayout）：按实际主区高排（网页量的是 clientHeight / offsetHeight，整数）
+            let P = promptH.rounded()
+            let recallMain = (recallFootTop - headBottom).rounded()
+            let A = NativeWriteLayout.axWrite(width: w, mainHeight: recallMain, promptHeight: P, noteHeight: belowH, k)
+            recallTop = A.top
+            recallG = A.g
+            top = A.top
+            g = A.g
+            promptScale = A.promptScale
+            // P278：书写格放不下 220 → 底栏收紧（封顶后同一字号 / 尺寸不再放回，网页 footCompactKey）
+            let viewKey = "\(textType.axLevel)|\(w)|\(h)"
+            if A.tight, !axTight || axTightKey != viewKey {
+                axTight = true
+                axTightKey = viewKey
+                applyType()
+                view.setNeedsLayout()
+            } else if axTight, axTightKey != viewKey {
+                axTight = false
+                applyType()
+                view.setNeedsLayout()
+            }
+            if compare {
+                let J = NativeWriteLayout.judgeAx(width: w, mainHeight: (mainH - noteExtra).rounded(), promptHeight: P * promptScale, gap: 12, k)
+                top = J.top
+                compareSide = J.side
+                compareS = J.s
+            }
+        } else {
+            let nominal = NativeWriteLayout.nominalMainHeight(pageHeight: h, safeTop: safe.top, footBottom: footBottom, k)
+            let L = NativeWriteLayout.write(width: w, nominalHeight: nominal, promptHeight: promptH, headExtra: headExtra, k)
+            // 大字号下页头 / 底栏比名义高：组超出主区时整体上移（不与底栏重叠），书写格边长不变（D36）
+            let overflow = max(0, L.top + promptH + k.promptGap + L.g + k.toolsHeight - mainH)
+            top = max(0, L.top - overflow)
+            g = L.g
+            recallTop = top
+            recallG = g
+        }
+        promptView.transform = .identity
         promptView.frame = CGRect(x: 0, y: headBottom + top, width: w, height: promptH)
         promptRow.frame = CGRect(x: (w - rowW) / 2, y: pyH + 4, width: rowW, height: cw)
-        promptHint.frame = CGRect(x: gutter, y: promptRow.frame.maxY + 10, width: w - 2 * gutter, height: max(0, hintH - 10))
+        promptHint.frame = CGRect(x: gutter, y: promptRow.frame.maxY + hintGap, width: w - 2 * gutter, height: hintText)
         for (i, c) in promptCells.enumerated() {
             c.frame = CGRect(x: CGFloat(i) * cw, y: 0, width: cw, height: cw)
             for sub in c.subviews {
@@ -1117,65 +1455,47 @@ final class NativeWriteViewController: UIViewController {
                 }
             }
         }
+        if promptScale < 1 {
+            // P299：题面整体按可用高度缩小（网页 transform scale，原点上边中点；量到的题面高不受影响）
+            let f = promptView.frame
+            promptView.transform = CGAffineTransform(translationX: 0, y: -f.height * (1 - promptScale) / 2).scaledBy(x: promptScale, y: promptScale)
+        }
+        let shownPrompt = promptH * promptScale
 
-        // 书写格：边长与顶边由名义版式定（同一张卡的所有阶段不动）
-        let gridTop = headBottom + top + promptH + k.promptGap
-        let gridRect = CGRect(x: (w - g) / 2, y: gridTop, width: g, height: g)
+        // 书写格：边长与顶边由名义版式定（同一张卡的所有阶段不动；AX 档按实际主区高）
+        let gridGap: CGFloat = ax && axTight ? 8 : k.promptGap
+        let gridTop = headBottom + top + shownPrompt + gridGap
+        let recallGridTop = headBottom + recallTop + shownPrompt + gridGap
+        let gridRect = CGRect(x: (w - recallG) / 2, y: recallGridTop, width: recallG, height: recallG)
+        _ = g
         // 格下：撤销贴格左沿、清空贴格右沿（离格 4、高 44），说明位在它下面
-        let toolW = max(88, g / 2 - 8)
-        undoButton.frame = CGRect(x: gridRect.minX, y: gridRect.maxY + 4, width: toolW, height: 44)
-        clearButton.frame = CGRect(x: gridRect.maxX - toolW, y: gridRect.maxY + 4, width: toolW, height: 44)
+        let toolW = max(88, gridRect.width / 2 - 8)
+        undoButton.frame = CGRect(x: gridRect.minX, y: gridRect.maxY + toolGap, width: toolW, height: 44)
+        clearButton.frame = CGRect(x: gridRect.maxX - toolW, y: gridRect.maxY + toolGap, width: toolW, height: 44)
         undoButton.contentHorizontalAlignment = .leading
         clearButton.contentHorizontalAlignment = .trailing
-        let noteTop = gridRect.maxY + k.toolRowHeight
-        let noteW = w - 2 * gutter // 说明位取内容宽（网页 .sz-write__below 与正文同宽，r7-W3）
-        var ny: CGFloat = 0
-        if !lineLabel.isHidden {
-            // 网页 .sz-line（R9-B，NP-14）：13 / 20 一行「正文 · 修改 ›」，列间 8、折行时行间 4；「修改 ›」按钮盒 = 文字宽 + 8（至少 44）× 44，
-            // 盒子左缘比字左缘外伸 4，下沿对齐行底再 +（说明位 40 − 行高）/ 2，比行多出的高度全部伸向上面（点击区整块 44，NP-01）
-            let rowH = textType.line("lh13")
-            let lh = NativeType.height(lineLabel, width: noteW, line: rowH)
-            if changeButton.isHidden {
-                lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: lh)
-                lineDot.frame = .zero
-                ny = lh
-            } else {
-                let lw = NativeType.width(lineLabel)
-                let dotW = NativeType.width(lineDot)
-                let cw = NativeType.width(changeButton.titleLabel ?? UILabel())
-                let bw = max(44, cw + 8)
-                let below = max(0, (k.noteHeight - rowH) / 2) // 行下沿到说明位下沿
-                if lw + 8 + dotW + 8 + cw <= noteW {
-                    lineLabel.frame = CGRect(x: 0, y: 0, width: lw, height: rowH)
-                    lineDot.frame = CGRect(x: lw + 8, y: 0, width: dotW, height: rowH)
-                    changeButton.frame = CGRect(x: lw + 8 + dotW + 8 - 4, y: rowH + below - 44, width: bw, height: 44)
-                    ny = rowH
-                } else {
-                    // 折行：正文占满一行（可多行），「· 修改 ›」接在下一行行首（flex-wrap，行间 4）
-                    lineLabel.frame = CGRect(x: 0, y: 0, width: noteW, height: lh)
-                    let y2 = lh + 4
-                    lineDot.frame = CGRect(x: 0, y: y2, width: dotW, height: rowH)
-                    changeButton.frame = CGRect(x: dotW + 8 - 4, y: y2 + rowH / 2 - 24, width: bw, height: 44)
-                    ny = y2 + rowH
-                }
-                // 字的竖向中线对齐行中线：按钮盒上内边距 = 2 ×（行中线 − 盒顶）− 44
-                let rowMid = lineDot.frame.midY
-                changeButton.contentEdgeInsets = UIEdgeInsets(top: max(0, 2 * (rowMid - changeButton.frame.minY) - 44), left: 4, bottom: 0, right: 4)
-            }
+        let noteTop = gridRect.maxY + toolRow
+        if ax {
+            noteView.frame = CGRect(x: gutter, y: noteTop + notePad, width: noteW, height: max(ny, 1))
+        } else {
+            noteView.frame = CGRect(x: gutter, y: noteTop + max(0, (k.noteHeight - ny) / 2), width: noteW, height: max(ny, 1))
         }
-        if !noteLabel.isHidden {
-            let nh = ceil(noteLabel.sizeThatFits(CGSize(width: noteW - (noteDot.isHidden ? 0 : 14), height: .greatestFiniteMagnitude)).height)
-            let dx: CGFloat = noteDot.isHidden ? 0 : 14 // 提示说明有朱点；看答案流程的说明 / 没保存上居中、无点
-            noteLabel.frame = CGRect(x: dx, y: ny, width: noteW - dx, height: nh)
-            noteDot.frame = CGRect(x: 0, y: ny + (noteLabel.font.lineHeight - 6) / 2, width: 6, height: 6)
-            ny = noteLabel.frame.maxY
-        }
-        noteView.frame = CGRect(x: gutter, y: noteTop + max(0, (k.noteHeight - ny) / 2), width: noteW, height: max(ny, 1))
 
         recallGridRect = gridRect
         if !reversing { // 判断 → 回忆倒放中：书写格 / 参考格的位置由动画驱动（版式不覆盖）
-            if phase != .compare {
+            if !compare {
                 gridFrame.frame = gridRect
+            } else if ax {
+                // AX 档判断页（judgeAxLayout）：并排（间距 12）或上下排（共用一条格线）
+                let s = compareS
+                if compareSide {
+                    gridFrame.frame = CGRect(x: gutter, y: gridTop, width: s, height: s)
+                    refFrame.frame = CGRect(x: w - gutter - s, y: gridTop, width: s, height: s)
+                } else {
+                    gridFrame.frame = CGRect(x: (w - s) / 2, y: gridTop, width: s, height: s)
+                    refFrame.frame = CGRect(x: (w - s) / 2, y: gridTop + s - frameW, width: s, height: s)
+                }
+                refGlyph.frame = refFrame.bounds
             } else {
                 // 判断：上下两格（同一顶边、同一中线，共用一条格线 = 第二格上移 frameW；D46 ⑪）。边长按「主区高 − 说明句」算（保存失败时底栏长高）
                 let s = min(g, NativeWriteLayout.judgePair(width: w, mainHeight: mainH - noteExtra, gridTop: gridTop - headBottom, k))
@@ -1200,6 +1520,11 @@ final class NativeWriteViewController: UIViewController {
             bar.frame = CGRect(x: gutter, y: footTop - 8 - bh, width: bw, height: bh)
         }
         endDialog?.frame = view.bounds
+        srTitleLabel.frame = CGRect(x: gutter - 1, y: safe.top + 21.5, width: 1, height: 1)
+        srStatusLabel.frame = CGRect(x: gutter - 1, y: safe.top + 43, width: 1, height: 1)
+        srAnswerLabel.frame = CGRect(x: gutter - 1, y: footTop, width: 1, height: 1)
+        srAnswerLabel.isHidden = phase != .trace
+        updateAccessibilityOrder()
         startStepPlayIfNeeded()
     }
 
@@ -1236,6 +1561,7 @@ final class NativeWriteViewController: UIViewController {
     /// 主按钮（网页 .sz-btn--primary：--btn-bg 底、--btn-fg 字、17 / 500、圆角 12；禁用 field 底 ink4 字；字号在 applyType）。
     private func configurePrimary(_ b: UIButton, title: String, id: String) {
         b.setTitle(title, for: .normal)
+        b.contentEdgeInsets = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24) // 网页 .sz-btn--primary padding 0 24（AX 档折行时同宽）
         b.backgroundColor = color("btn-bg", .label)
         b.setTitleColor(color("btn-fg", .systemBackground), for: .normal)
         b.setTitleColor(color("ink4", .tertiaryLabel), for: .disabled)
@@ -1246,7 +1572,9 @@ final class NativeWriteViewController: UIViewController {
     /// 图标的两张图：可点 / 禁用（网页 currentColor：可点时文字按钮 ink2、求助行图标 ink2，禁用 ink4）。AX 档放大（撤销 / 清空 24、求助 22，B2.9 前的近似）。
     private func setIcon(_ b: NativeIconTextButton, _ icon: NativeWriteIcon) {
         let ax = type.ax
-        let size: CGFloat = icon == .undo || icon == .clear ? (ax ? 24 : 20) : (icon == .back ? 22 : (ax ? 22 : 18))
+        // AX 档的图标尺寸取网页同一条规则量到的值（.sz-write__tool svg 24、.sz-write__ic 22）；页面没给时按 B2.9 前的近似
+        let size: CGFloat = icon == .undo || icon == .clear ? (axValue("tool", "w", sub: "r2") ?? (ax ? 24 : 20))
+            : (icon == .back ? 22 : (axValue("help", "w", sub: "r2") ?? (ax ? 22 : 18)))
         let on = icon == .back ? color("ink1", .label) : color("ink2", .secondaryLabel)
         b.iconSize = size
         b.setImage(icon.image(on, size: size), for: .normal)
@@ -1259,31 +1587,48 @@ final class NativeWriteViewController: UIViewController {
         setIcon(backButton, .back)
         backButton.titleLabel?.font = ts.font(15) // 页头按钮继承正文 t15（网页 button font:inherit）；「‹」没有字
         for l in [progressLabel, headProgress] {
-            l.font = ts.font(15, tabular: true)
+            l.font = Self.tabular(axFont("progress", else: ts.font(15)))
             l.adjustsFontForContentSizeCategory = false
             l.textColor = color("ink3", .secondaryLabel)
         }
         centerLabel.adjustsFontForContentSizeCategory = false
-        for b in [skipButton, endButton, undoButton, clearButton] {
-            b.titleLabel?.font = ts.font(17)
+        // AX 档（B2.9b）：页头文字按钮 / 格下撤销清空 / 求助行 / 说明位各按网页的分层封顶取值（17 / 22pt），不是 --fs17 本身
+        for b in [skipButton, endButton] {
+            b.titleLabel?.font = axFont("headAct", else: ts.font(17))
+            b.titleLabel?.adjustsFontForContentSizeCategory = false
+        }
+        for b in [undoButton, clearButton] {
+            b.titleLabel?.font = axFont("tool", else: ts.font(17))
             b.titleLabel?.adjustsFontForContentSizeCategory = false
             if let icon = b.toolIcon { setIcon(b, icon) }
         }
+        let helpFont = axFont(axTight ? "helpTight" : "help", .medium, else: ts.font(17, .medium))
         for b in [hintButtonView, answerButton, retraceButton, nextHelpButton, flowCancelButton, redoAnswerButton, redoAgainButton] {
-            b.titleLabel?.font = ts.font(17, .medium)
+            b.titleLabel?.font = helpFont
             b.titleLabel?.adjustsFontForContentSizeCategory = false
             if let icon = b.toolIcon { setIcon(b, icon) }
         }
-        for b in [failCancel, doneButton, failRetry] {
-            b.titleLabel?.font = ts.font(17, .medium)
+        failCancel.titleLabel?.font = helpFont
+        failCancel.titleLabel?.adjustsFontForContentSizeCategory = false
+        for b in [doneButton, failRetry] {
+            b.titleLabel?.font = axFont(axTight ? "helpTight" : "help", sub: "r5", .medium, else: ts.font(17, .medium))
             b.titleLabel?.adjustsFontForContentSizeCategory = false
+            b.titleLabel?.numberOfLines = axOn ? 0 : 1
+            b.titleLabel?.textAlignment = .center
         }
-        noteLabel.font = ts.font(13)
+        noteLabel.font = axFont("note", sub: "r2", else: ts.font(13))
         noteLabel.adjustsFontForContentSizeCategory = false
         promptHint.adjustsFontForContentSizeCategory = false
         guideLayer.strokeColor = color("guide", .separator).cgColor
         for f in [gridFrame, refFrame] { f.backgroundColor = color("sheet", .secondarySystemBackground) }
+        trackTitles()
         view.setNeedsLayout()
+    }
+
+    /// 等宽数字（网页 font-variant-numeric: tabular-nums）。
+    static func tabular(_ f: UIFont) -> UIFont {
+        let d = f.fontDescriptor.addingAttributes([.featureSettings: [[UIFontDescriptor.FeatureKey.type: kNumberSpacingType, UIFontDescriptor.FeatureKey.selector: kMonospacedNumbersSelector]]])
+        return UIFont(descriptor: d, size: f.pointSize)
     }
 
     /// 十字虚线：线宽 0.75、虚线 4 4（345 单位，随格子缩放）；判断页不画（网页对照卡没有）。
@@ -1334,6 +1679,8 @@ final class NativeWriteViewController: UIViewController {
     }
 
     @objc private func tapUndo() {
+        let prev = strokes.count
+        defer { announceStrokes(from: prev) }
         if !strokes.isEmpty { strokes.removeLast() } else if let c = cleared { strokes = c; cleared = nil } else { return }
         ink.syncPageStrokes(strokes)
         restoreHint(toCount: strokes.count)
@@ -1344,6 +1691,8 @@ final class NativeWriteViewController: UIViewController {
 
     @objc private func tapClear() {
         guard !strokes.isEmpty else { return }
+        let prev = strokes.count
+        defer { announceStrokes(from: prev) }
         cleared = strokes
         strokes = []
         ink.syncPageStrokes(strokes)
@@ -1451,7 +1800,7 @@ final class NativeWriteViewController: UIViewController {
         markStateChange()
         refresh()
         view.setNeedsLayout()
-        UIAccessibility.post(notification: .announcement, argument: tr("R-W16.saveFailed"))
+        NativeA11y.announce(tr("R-W16.saveFailed"))
     }
 
     // MARK: 跳过与撤销（B2.6）
@@ -1521,7 +1870,7 @@ final class NativeWriteViewController: UIViewController {
         view.setNeedsLayout()
         view.layoutIfNeeded()
         UIView.animate(withDuration: reduceMotion ? dur("reduce") : (dur("fade") > 0 ? dur("fade") : 0.15), delay: 0, options: [.curveLinear, .allowUserInteraction]) { bar.alpha = 1 }
-        UIAccessibility.post(notification: .announcement, argument: bar.strings.text)
+        NativeA11y.announce(bar.strings.text)
     }
 
     private func expireUndo() {
@@ -1556,7 +1905,7 @@ final class NativeWriteViewController: UIViewController {
             self.undoBar?.setFailed(true)
             self.view.setNeedsLayout()
             self.markStateChange()
-            UIAccessibility.post(notification: .announcement, argument: self.tr("R-W16.saveFailed"))
+            NativeA11y.announce(self.tr("R-W16.saveFailed"))
         }
     }
 
@@ -1609,7 +1958,7 @@ final class NativeWriteViewController: UIViewController {
         d.frame = view.bounds
         d.layoutIfNeeded()
         d.animateIn(overlaySpec, reduce: reduceMotion) // T-confirm（R9-B）
-        UIAccessibility.post(notification: .screenChanged, argument: d)
+        NativeA11y.screenChanged(d)
     }
 
     func dismissEndDialog() {
@@ -1650,6 +1999,7 @@ final class NativeWriteViewController: UIViewController {
     /// 减少动态效果：不缩放，整页 150ms 交叉淡化，两键直接可点（T0-3）。
     private func enterCompare() {
         phase = .compare
+        srStatusLabel.text = nil // 换阶段：上一句播报作废（网页 sr-live.js 换 key 清空）
         markStateChange()
         reverseFinished = false
         if reduceMotion {
@@ -1661,7 +2011,7 @@ final class NativeWriteViewController: UIViewController {
                 self.view.layoutIfNeeded()
             }
             disarmJudgeKeys()
-            UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
+            NativeA11y.screenChanged(screenFocus)
             return
         }
         // 参考格先就位（不从零尺寸长出来），随两格版式一起出现
@@ -1688,7 +2038,7 @@ final class NativeWriteViewController: UIViewController {
         UIView.animate(withDuration: dur("inkFlip"), delay: dur("fade"), options: [.curveLinear, .allowUserInteraction]) {
             self.refFrame.alpha = 1
         }
-        UIAccessibility.post(notification: .screenChanged, argument: centerLabel) // 焦点落在页标题，不落在任何判断键上（D03）
+        NativeA11y.screenChanged(screenFocus) // 焦点落在页标题，不落在任何判断键上（D03）
     }
 
     /// 「‹ 接着写」（点按）：判断 → 回忆的 T-phase 倒放（phaseReverse，ease.out）。
@@ -1784,6 +2134,7 @@ final class NativeWriteViewController: UIViewController {
         guard phase == .compare, let key = cardKey else { return }
         failed = false
         phase = .recall
+        srStatusLabel.text = nil
         markStateChange()
         bridge.send("phase", ["slot": slot, "cardKey": key, "phase": "recall"])
         refFrame.alpha = 1
@@ -1793,7 +2144,7 @@ final class NativeWriteViewController: UIViewController {
         renderHint(fadeIn: false)
         view.setNeedsLayout()
         view.layoutIfNeeded()
-        UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
+        NativeA11y.screenChanged(screenFocus)
     }
 
     /// 倒放进行中被打断（落笔 / 点按）：一帧到终态，状态切到回忆（T0 规则 3）。
@@ -1927,7 +2278,7 @@ final class NativeWriteViewController: UIViewController {
             overlay?.removeFromSuperview()
             if self?.transitionOverlay === overlay { self?.transitionOverlay = nil }
         }
-        UIAccessibility.post(notification: .screenChanged, argument: centerLabel)
+        NativeA11y.screenChanged(screenFocus)
     }
 
     // MARK: 重写错字（B2.9a；只练习：本地换阶段，换字经 redoNext 取页面给的下一个字快照，离开发 redoExit）
@@ -2039,16 +2390,20 @@ final class NativeWriteViewController: UIViewController {
     /// 结果行字阶（网页 .sz-line：13 / 20，正文 ink3、「·」ink4、「修改 ›」ink1；R9-B）与判断两键字阶（17 / 500）。
     private func styleResultLine() {
         lineLabel.adjustsFontForContentSizeCategory = false
-        NativeType.set(lineDot, "\u{00B7}", font: textType.font("fs13"), color: color("ink4", .tertiaryLabel), align: .center)
+        let lineFont = axFont("note", sub: "r2", else: textType.font("fs13")) // AX 档：格下一律 17 / 22pt（网页 .sz-write__below *）
+        NativeType.set(lineDot, "\u{00B7}", font: lineFont, color: color("ink4", .tertiaryLabel), align: .center)
         changeButton.titleLabel?.adjustsFontForContentSizeCategory = false
-        changeButton.titleLabel?.font = textType.font("fs13")
+        changeButton.titleLabel?.font = lineFont
         if !lineLabel.isHidden, let t = lineLabel.text {
-            NativeType.set(lineLabel, t, font: textType.font("fs13"), color: color("ink3", .secondaryLabel))
+            NativeType.set(lineLabel, t, font: lineFont, color: color("ink3", .secondaryLabel))
         }
         for b in [wrongButton, correctButton] {
             b.titleLabel?.adjustsFontForContentSizeCategory = false
-            b.titleLabel?.font = textType.font("fs17", weight: .medium)
+            b.titleLabel?.font = axFont("judge", .medium, else: textType.font("fs17", weight: .medium))
+            b.titleLabel?.numberOfLines = axOn ? 0 : 1
+            b.titleLabel?.textAlignment = .center
         }
+        trackTitles()
         view.setNeedsLayout()
     }
 
@@ -2160,7 +2515,7 @@ final class NativeWriteViewController: UIViewController {
                 self.failed = true
                 self.refresh()
                 self.view.setNeedsLayout()
-                UIAccessibility.post(notification: .announcement, argument: self.failNote.text)
+                NativeA11y.announce(self.failNote.text)
                 return
             }
             self.failed = false
@@ -2361,6 +2716,8 @@ extension NativeWriteViewController: NativeInkViewDelegate {
 
     func nativeInkDidEndStroke(_ view: NativeInkView, raw: [InkRawPoint]) {
         guard phase != .compare else { return }
+        let prev = strokes.count
+        defer { announceStrokes(from: prev) }
         strokes.append(raw)
         cleared = nil
         penDown = true

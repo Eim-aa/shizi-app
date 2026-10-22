@@ -37,7 +37,7 @@ test('colour delta is the max channel difference', () => {
 test('every named check (AI report NP-*) has an id, a status and states', () => {
   const ids = new Set();
   for (const c of CHECKS) {
-    assert.match(c.id, /^(NP|L4)-\d\d$/); // NP：AI 报告编号；L4：设计系统规则（D71 ③）
+    assert.match(c.id, /^(NP|L4|AX)-\d\d$/); // NP：AI 报告编号；L4：设计系统规则（D71 ③）；AX：大字号不溢出（B2.9b，交互规范 A1）
     assert.ok(!ids.has(c.id), `duplicate ${c.id}`);
     ids.add(c.id);
     assert.ok(['expected-fail', 'pass'].includes(c.status));
@@ -69,4 +69,16 @@ test('L4-01: a floating bar painted with the primary button fill fails; the rais
   assert.ok(c.eval({ appearance: 'dark', web: screen('#2A2520FF', 24), native: screen('#2A2520FF', 24) }).pass);
   assert.equal(c.eval({ appearance: 'dark', web: screen('#2A2520FF', 24), native: screen('#E2D9C9FF', 24) }).pass, false, 'native alone regressing fails too');
   assert.ok(Math.abs(contrastRatio('#26211D', '#FBF8F2') - 15.03) < 0.01);
+});
+
+test('AX-01 (B2.9b): truncation, clipping and overlap within one layer fail; overlays over the page do not', () => {
+  const ax = CHECKS.find(c => c.id === 'AX-01');
+  assert.deepEqual(ax.sizes, ['AX3', 'AX5']);
+  const el = (text, frame, extra = {}) => ({ kind: 'text', text, frame, textFrame: frame, layer: 'page', ...extra });
+  const ok = ax.eval({ native: [el('甲', { x: 20, y: 100, w: 50, h: 30 }), el('乙', { x: 20, y: 140, w: 50, h: 30 }),
+    el('浮', { x: 20, y: 100, w: 300, h: 60 }, { layer: 'undoBar' })] });
+  assert.equal(ok.pass, true, ok.detail);
+  assert.equal(ax.eval({ native: [el('甲', { x: 20, y: 100, w: 50, h: 30 }, { truncated: true })] }).pass, false);
+  assert.equal(ax.eval({ native: [el('甲', { x: 20, y: 100, w: 50, h: 30 }, { clipped: true })] }).pass, false);
+  assert.equal(ax.eval({ native: [el('甲', { x: 20, y: 100, w: 50, h: 30 }), el('乙', { x: 40, y: 110, w: 50, h: 30 })] }).pass, false);
 });

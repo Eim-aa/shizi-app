@@ -1,0 +1,316 @@
+{
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "write-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "接着写",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "write-continue",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title sz-page__title--hidden",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 83.5
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "h1",
+      "text" : "写对了吗",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 207.09999999999999,
+        "x" : 19,
+        "y" : 82.5
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "第 1 个字，共 5 个",
+      "class" : "sz-write__progress",
+      "color" : "#A0968AFF",
+      "fontSize" : 22,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 46.899999999999999,
+        "x" : 335.10000000000002,
+        "y" : 69
+      },
+      "id" : "write-progress",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "1 \/ 5",
+      "textFrame" : {
+        "h" : 27,
+        "w" : 42.899999999999999,
+        "x" : 335.10000000000002,
+        "y" : 70
+      }
+    },
+    {
+      "axLabel" : "题目",
+      "class" : "sz-write__prompt sz-prompt",
+      "frame" : {
+        "h" : 131.19999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 184
+      },
+      "id" : "write-prompt",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-prompt__word",
+      "frame" : {
+        "h" : 83.200000000000003,
+        "w" : 166.40000000000001,
+        "x" : 117.8,
+        "y" : 224
+      },
+      "id" : "write-prompt-word",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "要写的字，第 1 个，读 yǒng，三声",
+      "class" : "sz-prompt__cell",
+      "frame" : {
+        "h" : 83.200000000000003,
+        "w" : 83.200000000000003,
+        "x" : 117.8,
+        "y" : 224
+      },
+      "id" : "write-prompt-cell",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-prompt__py",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 28,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 40,
+        "w" : 59.700000000000003,
+        "x" : 129.59999999999999,
+        "y" : 184
+      },
+      "id" : "write-prompt-py",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "yǒng",
+      "textFrame" : {
+        "h" : 34,
+        "w" : 59.700000000000003,
+        "x" : 129.59999999999999,
+        "y" : 185
+      }
+    },
+    {
+      "class" : "sz-prompt__cell",
+      "frame" : {
+        "h" : 83.200000000000003,
+        "w" : 83.200000000000003,
+        "x" : 201,
+        "y" : 224
+      },
+      "id" : "write-prompt-cell",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 241.5,
+        "y" : 231.30000000000001
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "远",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 10.9,
+        "x" : 241.5,
+        "y" : 229.30000000000001
+      }
+    },
+    {
+      "class" : "sz-compare",
+      "frame" : {
+        "h" : 175,
+        "w" : 362,
+        "x" : 20,
+        "y" : 331.19999999999999
+      },
+      "id" : "write-compare",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "你写的，2 笔",
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "sz-compare__card",
+      "frame" : {
+        "h" : 175,
+        "w" : 175,
+        "x" : 20,
+        "y" : 331.19999999999999
+      },
+      "id" : "write-compare-mine",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "标准写法：永，yǒng，5 画，上下结构",
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "sz-compare__card",
+      "frame" : {
+        "h" : 175,
+        "w" : 175,
+        "x" : 207,
+        "y" : 331.19999999999999
+      },
+      "id" : "write-compare-ref",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-write__sr",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 105
+      },
+      "id" : "write-sr-status",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-write__foot sz-write__foot--judge",
+      "frame" : {
+        "h" : 205.80000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 634.20000000000005
+      },
+      "id" : "write-judge-foot",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-judge__btn",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 96.900000000000006,
+        "w" : 362,
+        "x" : 20,
+        "y" : 634.20000000000005
+      },
+      "id" : "write-judge-wrong",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "写错了",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 155.30000000000001,
+        "x" : 123.40000000000001,
+        "y" : 650.70000000000005
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-judge__btn",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 96.900000000000006,
+        "w" : 362,
+        "x" : 20,
+        "y" : 743.10000000000002
+      },
+      "id" : "write-judge-correct",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "写对了",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 155.30000000000001,
+        "x" : 123.40000000000001,
+        "y" : 759.5
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "judge",
+  "tag" : "dark_AX5",
+  "ui" : "web"
+}

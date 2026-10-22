@@ -3,7 +3,7 @@
 #
 #   1. 新建专用模拟器（iPhone 17 / iOS 26.5，名字「QA-H1 <时间>」），结束时删除——不碰别人的模拟器；
 #   2. 构建 DEBUG 包与 ShiziUITests（xcodebuild build-for-testing）；
-#   3. 逐屏对比：原生版按「状态 × 浅 / 深 × L / XXXL」取证（截图 + 元素清单），与仓库里的网页参考
+#   3. 逐屏对比：原生版按「状态 × 浅 / 深 × L / XXXL」+「主要状态 × 浅 / 深 × AX3 / AX5」（B2.9b，config.mjs AX_STATES）取证（截图 + 元素清单），与仓库里的网页参考
 #      （ios/ShiziApp/ShiziUITests/Reference/，文件名 = 状态_外观_字号）比，输出差异报告与并排图；
 #   4. 流程用例：XCUITest（确认单 1–9 的路线 + 两份 AI 报告的已知问题，已知问题标「预期失败（待修）」）；
 #   5. 汇总通过 / 失败清单与总耗时。
@@ -86,13 +86,20 @@ flows_line="（未跑）"
 if [ "$do_parity" = 1 ]; then
   state_args=()
   [ -n "$states" ] && state_args=(--states "$states")
+  # B2.9b：AX3 / AX5 只取主要状态（--states 给了就取交集）
+  ax_states="$(node -e "import('$TOOLS/config.mjs').then(c=>{const want='$states'.split(',').filter(Boolean);console.log(c.AX_STATES.filter(s=>!want.length||want.includes(s)).join(','))})")"
   if [ "$update_ref" = 1 ]; then
     log "capture web reference → $REF"
     mkdir -p "$REF"
     node "$TOOLS/capture.mjs" --udid "$UDID" --ui web --out "$REF" ${state_args[@]+"${state_args[@]}"} || status=1
+    if [ -n "$ax_states" ]; then node "$TOOLS/capture.mjs" --udid "$UDID" --ui web --out "$REF" --states "$ax_states" --sizes AX3,AX5 || status=1; fi
   fi
   log "capture native"
   node "$TOOLS/capture.mjs" --udid "$UDID" --ui native --out "$OUT/native" ${state_args[@]+"${state_args[@]}"} >"$OUT/capture-native.log" 2>&1 || { status=1; tail -5 "$OUT/capture-native.log"; }
+  if [ -n "$ax_states" ]; then
+    log "capture native (AX3 / AX5: $ax_states)"
+    node "$TOOLS/capture.mjs" --udid "$UDID" --ui native --out "$OUT/native" --states "$ax_states" --sizes AX3,AX5 >>"$OUT/capture-native.log" 2>&1 || { status=1; tail -5 "$OUT/capture-native.log"; }
+  fi
   log "compare"
   if parity_line="$(node "$TOOLS/compare.mjs" --ref "$REF" --native "$OUT/native" --out "$OUT/parity" | head -1)"; then :; else status=1; fi
   echo "  $parity_line"

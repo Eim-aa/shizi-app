@@ -218,6 +218,7 @@ final class ResultFlowTests: XCTestCase {
     }
 
     /// 冷启动（B2.9a）：重写错字页只在内存里（网页 RESTORE_GUARDS.redo = false，同网页）——在重写错字页杀进程重开 → 回到首页，没有原生页，数据不变。
+    /// B2.9b：断言落首页的原因正是 redo 守卫（冷启动判定 invalid:redo），不是路由过期（stale）——QA 时钟钉住、跨重开保持，路由提示是新鲜的。
     func test821_redoColdStartLandsHomeLikeTheWeb() {
         let qa = QA(seed: "result-daily")
         qa.launch()
@@ -226,25 +227,37 @@ final class ResultFlowTests: XCTestCase {
         let records = qa.records
         qa.tapNative("native-result-redo")
         qa.waitNative(true)
+        qa.waitRouteTop("redo")
         qa.stroke()
         Thread.sleep(forTimeInterval: 1.5) // 路由提示落盘
         qa.relaunchWithoutSeed()
         qa.waitRouteTop("home", timeout: 15)
+        XCTAssertEqual(qa.coldPlan["reason"] as? String, "invalid:redo", "cold start must drop the route because of the redo guard, not staleness: \(qa.coldPlan)")
+        XCTAssertEqual(qa.coldPlan["restored"] as? Bool, false)
         XCTAssertFalse(qa.nativeShown)
         XCTAssertFalse(qa.resultShown)
         XCTAssertEqual(qa.records, records)
     }
 
     /// 冷启动恢复：停在结果页杀进程重开 → 原生结果页直接盖上（不带转场），同一组。
+    /// B2.9b：结果页状态把时钟钉在 2026-10-22 09:00（QA 时钟），重开后页面 / 路由恢复仍用这个钟——与真实日期无关，每天都过。
     func test817_coldRestoreShowsTheSameResult() {
         let qa = QA(seed: "result")
         qa.launch()
         qa.waitResult(true)
         let sid = qa.resultInfo["sessionId"] as? String
+        let pinned = qa.clockMs
         qa.relaunchWithoutSeed()
         qa.waitResult(true, timeout: 15)
+        XCTAssertEqual(qa.coldPlan["reason"] as? String, "ok", "\(qa.coldPlan)")
         XCTAssertEqual(qa.resultInfo["sessionId"] as? String, sid)
         XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("result:open via=restore animate=false") }, "\(qa.transitions)")
+        // 钉住的钟跨杀进程保持：重开后仍是那一天（与注入时相差的只是真实流逝的几十秒）
+        let after = qa.clockMs
+        XCTAssertGreaterThanOrEqual(after, pinned)
+        XCTAssertLessThan(after - pinned, 10 * 60 * 1000, "page clock after relaunch \(after) vs pinned \(pinned)")
+        let day = Calendar.current.dateComponents([.year, .month, .day], from: Date(timeIntervalSince1970: after / 1000))
+        XCTAssertEqual([day.year, day.month, day.day], [2026, 10, 22])
     }
 
     /// 首练结果页：标题、提醒邀请（落印后淡入）、「完成」离开。

@@ -58,7 +58,22 @@ export function isNativeShell(win = globalWin()) {
 
 // ---------------------------------------------------------------- 时钟
 
-let clockOffsetMs = 0;
+/**
+ * B2.9b：QA 注入固定的时钟在测试宿主里是全 App 唯一的时钟（iOS DEBUG 壳把偏移存下、每次启动在 documentStart 注入
+ * window.__shiziQAClockOffset）——杀进程重开后页面、路由恢复（routeRestore 6 小时 / 不跨日）与原生用同一个「现在」。
+ * 只在测试宿主（isTestHost）生效；正式包不注入，恒为 0。
+ */
+export function injectedClockOffset(win = globalWin()) {
+  try {
+    if (!win || !isTestHost(win)) return 0;
+    const v = Number(win.__shiziQAClockOffset);
+    return Number.isFinite(v) ? v : 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+let clockOffsetMs = injectedClockOffset();
 
 /**
  * 应用内「现在」（ms）。业务代码取时间一律走这里（或 store 传给 mutate 的 ctx.now），

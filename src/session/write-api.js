@@ -27,7 +27,9 @@ export { NATIVE_RESULT_COPY_KEYS, NATIVE_RESULT_OPS };
 /** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct，B2.4 / B2.6 加 showAnswer / answerPhase / answerNext / skip / undoSkip / end，R9-A 加 firstTip；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
 export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip',
   // B2.9a 重写错字（只练习、不记录）
-  'redoOpen', 'redoNext', 'redoExit']);
+  'redoOpen', 'redoNext', 'redoExit',
+  // B2.9b 读屏：参考字形的名称（判断页参考卡、描一遍的答案字，网页 ref-label.js refCardLabel 同一句；只读）
+  'refLabel']);
 
 /** 原生写字页用到的文案键（值取自 src/config/copy，原生不另存一份）。 */
 export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
@@ -85,6 +87,16 @@ export const NATIVE_WRITE_COPY_KEYS = Object.freeze([
   'X-PROMPT.groupLabel',
   'X-WRITE.gridLabel',
   'X-WRITE.gridLabelCount',
+  // B2.9b 读屏播报（网页 sr-live.js 同一组句子）：笔数变化、描一遍出现
+  'X-WRITE.liveStroke',
+  'X-WRITE.liveRestored',
+  'X-WRITE.liveUndo',
+  'X-WRITE.liveUndoEmpty',
+  'X-WRITE.liveCleared',
+  'X-WRITE.liveRangeOne',
+  'X-WRITE.liveRangeMany',
+  'X-WRITE.liveTrace',
+  'X-WRITE.liveTraceWhole',
   'X-DETAIL.viewChar',
   // B2.9a 重写错字页（D66 ③）：页名、格下说明、对照页「再写一次」、最后一个字的「完成」
   'X-REDO.title',
@@ -325,6 +337,7 @@ export function writeLayoutConstants() {
     axMin: g.axMin,
     axNoteHeight: g.axNoteHeight,
     fitGridMin: g.fitGridMin,
+    promptFitMin: g.promptFitMin, // B2.9b：AX 档放不下时题面缩放下限（layout.js fitGroup，P299）
     bottomGap: g.bottomGap,
     topShare: g.topShare,
     topMin: g.topMin,
@@ -424,6 +437,8 @@ export function createWriteSessionApi(deps = {}) {
   const navigate = deps.navigate || NO_NAVIGATE;
   const colors = deps.colors || (() => ({}));
   const type = deps.type || (() => ({}));
+  // B2.9b：参考字形的读屏名称（字、拼音、笔画数、结构 / 部件数）由页面侧注入（要题库读音与笔顺数据，ui/screens/write/ref-label.js）；没注入时只读字
+  const refLabelOf = deps.refLabel || (({ char }) => t('R-W09.refCardLabelChar', { char }));
   // B2.7：结果页的 op（result-api.js）；页面的视图、导航、提醒权限与盖章声由页面侧注入（deps.result）
   const resultOps = createResultOps({ storeOf, strokesOf: sheetStrokes, result: deps.result || {} });
 
@@ -580,6 +595,12 @@ export function createWriteSessionApi(deps = {}) {
     },
     copy({ keys }) {
       return { ok: true, copy: copyBundle(Array.isArray(keys) ? keys : NATIVE_WRITE_COPY_KEYS) };
+    },
+    /** B2.9b：参考字形的读屏名称（只读，不写 store）。页面侧可能要先取笔顺数据（异步）。 */
+    refLabel({ char, cardKey }) {
+      if (typeof char !== 'string' || !char) return { ok: false, error: { kind: 'invalid' } };
+      const v = refLabelOf({ char, cardKey: typeof cardKey === 'string' ? cardKey : null });
+      return v && typeof v.then === 'function' ? v.then(label => ({ ok: true, label: String(label || '') })) : { ok: true, label: String(v || '') };
     },
     ...resultOps,
     /**

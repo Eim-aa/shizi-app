@@ -60,7 +60,7 @@ import { SkipUndoDock } from '../write/skip.js';
 import { openRedo } from '../write/redo.js'; // D66 ③ 重写错字
 import { ViewCharLink } from '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）+「看这个字 ›」
 import { NONE_SCREEN } from '../session/none.js';
-import { NativeResultHost, nativeResultShown, nativeWriteEnabled } from '../write/native-session.js'; // B2.7 原生结果页（开关关时不用）
+import { NativeResultHost, nativeResultLeaving, nativeResultShown, nativeWriteEnabled, useNativeResultHosted } from '../write/native-session.js'; // B2.7 原生结果页（开关关时不用）
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
 import { WorkRows, WorkSection, commitAdded, commitSealed, shouldPlayReveal } from './work.js';
@@ -504,18 +504,9 @@ function ResultScreen({ params, entry }) {
  * 离开页面栈后（返回转场里留着的旧层）保持透明宿主。开关关着时就是网页结果页，行为不变。
  */
 function ResultEntry(props) {
-  const enabled = nativeWriteEnabled();
-  const entry = props.entry;
-  const decide = snap => !!entry && (nativeResultShown(entry, snap) || !inRouterStack(entry.id));
-  const [hosted, setHosted] = useState(() => enabled && decide());
-  useEffect(() => {
-    if (!enabled) return undefined;
-    const router = getRouter();
-    if (!router) return undefined;
-    setHosted(decide(router.getState()));
-    return router.subscribe(snap => setHosted(decide(snap)));
-  }, [enabled, entry && entry.id]);
-  if (!enabled) return html`<${ResultScreen} ...${props} />`;
+  // B2.8：让开后回到顶层时先保持网页结果页，等网页返回转场 / 弹层退场放完再换回原生（native-session.js useNativeResultHosted）
+  const hosted = useNativeResultHosted(props.entry);
+  if (!nativeWriteEnabled()) return html`<${ResultScreen} ...${props} />`;
   return hosted ? html`<${NativeResultHost} ...${props} />` : html`<${ResultScreen} ...${props} />`;
 }
 
@@ -523,5 +514,5 @@ registerScreen(RESULT_SCREEN, ResultEntry, {
   label: t('X-RESULT.headerDaily'),
   // B2.7：顶层且上面没有网页弹层时由原生结果页显示（本层透明、下层可见）；离开时留着的旧层同样透明（原生已滑走，不再滑一张空纸）
   nativeHost: (entry, snap) => nativeResultShown(entry, snap),
-  nativeHostLeaving: () => nativeWriteEnabled(),
+  nativeHostLeaving: entry => nativeResultLeaving(entry),
 });

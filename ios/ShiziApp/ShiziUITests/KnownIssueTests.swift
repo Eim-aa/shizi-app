@@ -66,7 +66,8 @@ final class KnownIssueTests: XCTestCase {
 
     // MARK: NF（流程报告）
 
-    /// NF-01（高 · 已知 B2.8）：首页入口应是「纸展开 / 缩回」一个动作（D62），现状原生推入、网页纸展开叠播。
+    /// NF-01（B2.8 修好，普通断言）：首页入口是「纸展开 / 缩回」一个动作（D62）——原生画 T-paper，网页不再叠播（webNav push:native / pop:native），
+    /// 返回直接缩回按钮（不先滑出），同一时刻只有一个转场。
     func testNF01_homeEntryUsesThePaperTransition() {
         let qa = QA(seed: "home-mid")
         qa.launch()
@@ -74,14 +75,19 @@ final class KnownIssueTests: XCTestCase {
         qa.waitNative(true)
         let t = qa.transitions
         XCTAssertTrue(t.contains { $0.hasPrefix("open via=home") }, "home entry: \(t)")
+        XCTAssertTrue(t.contains("present:paper"), "home entry unfolds the paper: \(t)")
+        XCTAssertFalse(t.contains("present:push"), "home entry must not slide in: \(t)")
+        XCTAssertTrue(qa.webNav.contains("push:native"), "the web leaves the entry to native: \(qa.webNav)")
+        XCTAssertFalse(qa.webNav.contains("push:paper"), "the web does not unfold its own paper underneath: \(qa.webNav)")
         qa.tapNative("native-write-back")
         qa.waitNative(false)
+        qa.waitRouteTop("home")
         let back = qa.transitions
-        Thread.sleep(forTimeInterval: 1.0) // 已知问题的断言放在页面静止之后（失败时 XCTest 取界面快照，动画中会卡住）
-        QAIssue.expectFail("NF-01", "首页入口仍是原生推入（present:slide），与网页纸展开叠播；返回先滑出再缩回；B2.8 做 D62 纸展开") {
-            XCTAssertFalse(t.contains("present:slide"), "home entry must not slide in: \(t)")
-            XCTAssertFalse(back.contains("dismiss:slide"), "home exit must fold back into the button, not slide out: \(back)")
-        }
+        XCTAssertTrue(back.contains("dismiss:paper"), "home exit folds back into the button: \(back)")
+        XCTAssertFalse(back.contains("dismiss:push"), "home exit must not slide out: \(back)")
+        XCTAssertFalse(back.contains("overlap"), "one transition at a time: \(back)")
+        XCTAssertTrue(qa.webNav.contains("pop:native"), "\(qa.webNav)")
+        XCTAssertFalse(qa.webNav.contains("pop:paper"), "the web does not fold a second paper after native: \(qa.webNav)")
     }
 
     /// NF-03（低，R9-C 改文案、原生照 API 取）：「结束这组」确认框文案与确认单 §7 一致。普通断言。

@@ -99,3 +99,21 @@ test('B2.5: the judge page times come from the page (motion.settle / easeOut), n
   assert.match(vc, /NativeSettleSpec\(motion:/);
   assert.match(vc, /NativeBezier\.timing\(easeOut\)/);
 });
+
+test('B2.8: page transitions live in one object (NativeWriteTransitions) and take every time / curve / distance from the page (motion.nav)', () => {
+  const src = code(fs.readFileSync(path.join(DIR, 'NativeWriteCoordinator.swift'), 'utf8'));
+  // 交互规范 T0 的时长（300 / 420 / 360 / 220 / 180 / 150 ms）、视差 0.3、0.96 起始缩放、贝塞尔控制点都只在 open 回包 motion.nav 里
+  assert.ok(!/withDuration:\s*[0-9]/.test(src), 'no literal UIView durations');
+  assert.ok(!/\b0\.(35|3|42|36|22|18|15|96)\b/.test(src), 'no hard-coded transition seconds / scale');
+  assert.ok(!/\b(300|420|360|220|180|150)\b/.test(src), 'no hard-coded transition milliseconds');
+  assert.ok(!/0\.2,\s*0\.7|\.3,\s*0,\s*\.1/.test(src), 'no hard-coded bezier');
+  assert.match(src, /final class NativeWriteTransitions: NSObject/);
+  assert.match(src, /static func update\(payload: \[String: Any\]\)/);
+  assert.equal((src.match(/class NativeWriteTransitions\b/g) || []).length, 1, 'one transition object');
+  // 写字页 / 结果页的左缘右滑都交给同一个对象（跟手画同一个 frame(s)），不再用 UIPercentDrivenInteractiveTransition
+  for (const f of ['NativeWriteViewController.swift', 'NativeResult.swift']) {
+    const vc = code(fs.readFileSync(path.join(DIR, f), 'utf8'));
+    assert.match(vc, /transitions\.drag\(g, page: self\)/, `${f}: edge back drives the transition object`);
+    assert.ok(!/UIPercentDrivenInteractiveTransition/.test(vc), `${f}: no UIKit percent-driven transition`);
+  }
+});

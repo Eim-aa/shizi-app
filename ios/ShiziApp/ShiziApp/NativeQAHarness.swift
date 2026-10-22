@@ -132,7 +132,7 @@ extension WebViewController {
         if QAState.resultStates.contains(state) {
             // B2.7：等结果页出现（原生：原生结果页盖上；网页：结果页是顶层且转场结束）、作品显现与落印、提醒邀请（落印后 600ms 淡入）
             if ui == "native" {
-                guard await qaWait(6, { self.nativeResultTop != nil && self.presentedViewController?.isBeingPresented == false }) else { return "native result page did not appear" }
+                guard await qaWait(6, { self.nativeResultTop != nil && self.presentedViewController?.isBeingPresented == false && NativeWriteTransitions.running == 0 }) else { return "native result page did not appear" }
             } else {
                 guard await qaWait(6, { await self.qaJS("const a=document.querySelector('.sz-app');const l=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"result-screen\"]');return !!a && a.dataset.navAnim==='idle' && !!l;") as? Bool == true }) else { return "web result page did not appear" }
             }
@@ -145,7 +145,7 @@ extension WebViewController {
         }
         // 3. 等写字页出现、转场结束
         if ui == "native" {
-            guard await qaWait(5, { self.nativeWriteTop != nil && self.presentedViewController?.isBeingPresented == false }) else { return "native page did not appear" }
+            guard await qaWait(5, { self.nativeWriteTop != nil && self.presentedViewController?.isBeingPresented == false && NativeWriteTransitions.running == 0 }) else { return "native page did not appear" }
         } else {
             guard await qaWait(5, { await self.qaJS("const a=document.querySelector('.sz-app');const l=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"write-screen\"]');return !!a && a.dataset.navAnim==='idle' && !!l;") as? Bool == true }) else { return "web write page did not appear" }
         }
@@ -724,12 +724,13 @@ extension WebViewController {
     """#
 }
 
-/// 原生写字页转场记录（QA-H1：探针带出最近 8 条，XCUITest 核对 D62 转场类型，NF-01）。
+/// 原生写字页转场记录（QA-H1：探针带出最近 24 条，XCUITest 核对 D62 转场类型，NF-01；B2.8：present:/dismiss:<paper|push|quiet|phase|fade|none>、
+/// drag:<种类>、dismiss:<种类>:interactive、yield:<detail|result>、close、cover:fade、overlap（两个原生转场同时在跑）。
 enum QATrace {
     private(set) static var events: [String] = []
     static func note(_ s: String) {
         events.append(s)
-        if events.count > 8 { events.removeFirst(events.count - 8) }
+        if events.count > 24 { events.removeFirst(events.count - 24) }
     }
 }
 
@@ -814,6 +815,7 @@ final class QAProbe {
         }
         out["pageReady"] = host.pageReady
         out["transitions"] = QATrace.events
+        out["navRunning"] = NativeWriteTransitions.running
         if let s = seedResult { out["seed"] = s ?? "ok" }
         if let data = try? JSONSerialization.data(withJSONObject: out, options: [.sortedKeys]), let s = String(data: data, encoding: .utf8) {
             label.accessibilityValue = s
@@ -838,9 +840,11 @@ final class QAProbe {
     const app = document.querySelector('.sz-app');
     let route = null;
     try { const { getRouter } = await import('/src/ui/router.js'); const r = getRouter().getState(); route = { top: r.top ? r.top.n : null, depth: r.depth, tab: r.tab, overlay: !!r.topIsOverlay }; } catch (e) {}
+    let webNav = [];
+    try { const { navTrace } = await import('/src/ui/paper-transition.js'); webNav = [...navTrace]; } catch (e) {}
     return {
       hooks: true, records: recs.length, kinds, judgedWrong: judged.filter(r => r.judgment === 'wrong').length, judgedCorrect: judged.filter(r => r.judgment === 'correct').length,
-      chars: chars.size, answerSeenInk: seenInk, sched: Object.keys(st.sched || {}).length, sessions: sess, route, topScreen: app ? app.dataset.topScreen : null, navAnim: app ? app.dataset.navAnim : null,
+      chars: chars.size, answerSeenInk: seenInk, sched: Object.keys(st.sched || {}).length, sessions: sess, route, topScreen: app ? app.dataset.topScreen : null, navAnim: app ? app.dataset.navAnim : null, webNav,
     };
     """#
 }

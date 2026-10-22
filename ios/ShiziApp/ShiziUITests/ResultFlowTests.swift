@@ -17,8 +17,10 @@ final class ResultFlowTests: XCTestCase {
         qa.waitResult(true)
         XCTAssertFalse(qa.nativeShown, "the native write page is gone")
         qa.waitRouteTop("result")
-        XCTAssertTrue(qa.transitions.contains("dismiss:fade"), "\(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("present:phase"), "T-phase into the result page: \(qa.transitions)")
         XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("result:open via=write") }, "\(qa.transitions)")
+        XCTAssertFalse(qa.transitions.contains("overlap"), "\(qa.transitions)")
+        XCTAssertFalse(qa.webNav.contains { $0.hasPrefix("replace:") && $0 != "replace:native" }, "the web does not animate the hosted result: \(qa.webNav)")
         XCTAssertEqual(qa.records, 5)
         XCTAssertEqual(qa.resultInfo["variant"] as? String, "picked")
         XCTAssertTrue(qa.el("native-result-work").waitForExistence(timeout: 3))
@@ -35,6 +37,8 @@ final class ResultFlowTests: XCTestCase {
         qa.waitResult(false)
         qa.waitRouteTop("home")
         XCTAssertEqual(qa.records, 5)
+        // 注入的结果条目是程序直接推入的（没有写字页的来源记录）：回来源按网页同一判定 = 普通右滑出（planPaperDrag → 横推）
+        XCTAssertTrue(qa.transitions.contains("dismiss:push"), "×: \(qa.transitions)")
 
         let qa2 = QA(seed: "result")
         qa2.launch()
@@ -42,7 +46,8 @@ final class ResultFlowTests: XCTestCase {
         qa2.edgeBack()
         qa2.waitResult(false)
         qa2.waitRouteTop("home")
-        XCTAssertTrue(qa2.transitions.contains { $0.hasPrefix("dismiss:slide") }, "slides out to the right: \(qa2.transitions)")
+        XCTAssertTrue(qa2.transitions.contains("dismiss:push:interactive"), "edge: slide out following the finger: \(qa2.transitions)")
+        XCTAssertTrue(qa2.webNav.contains("pop:native"), "\(qa2.webNav)")
     }
 
     /// §8 / D70：「再写一组」→ 新写字页（原生）→ 返回回首页。
@@ -55,9 +60,15 @@ final class ResultFlowTests: XCTestCase {
         qa.waitNative(true)
         XCTAssertFalse(qa.resultShown)
         XCTAssertEqual(qa.session("A")["cursor"] as? Int, 0, "a new group")
+        // D62 / IC-23：「再写一组」= 普通推入（新写字页从右推入盖在结果页上），网页不另播
+        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("open via=again") }, "\(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("present:push"), "\(qa.transitions)")
+        XCTAssertTrue(qa.webNav.contains("replace:native"), "\(qa.webNav)")
         qa.tapNative("native-write-back")
         qa.waitNative(false)
         qa.waitRouteTop("home") // D70
+        XCTAssertTrue(qa.transitions.contains("dismiss:push"), "D70: slides out to the right, home underneath: \(qa.transitions)")
+        XCTAssertFalse(qa.transitions.contains("overlap"), "\(qa.transitions)")
     }
 
     /// D19 / D66 ④：写错那一行「修改 ›」→ 对照与改判弹层 →「改为写对」：只改这一次（记录条数不变、写错数 −1）。
@@ -87,6 +98,7 @@ final class ResultFlowTests: XCTestCase {
         qa.waitProbe("undo bar on the result page") { (($0["result"] as? [String: Any])?["undoBar"] as? Bool) == true }
         qa.tapUndoBar()
         qa.waitNative(true)
+        XCTAssertTrue(qa.transitions.contains("present:push"), "undo skip: the write page pushes in over the result page: \(qa.transitions)")
         qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 4 }
         XCTAssertEqual(qa.kinds["skipped"] ?? 0, 0)
         XCTAssertFalse(qa.resultShown)
@@ -103,11 +115,26 @@ final class ResultFlowTests: XCTestCase {
         qa.waitNative(true)
         XCTAssertEqual(qa.native["redo"] as? Bool, true)
         XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("redo:open via=push") }, "\(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("present:push"), "B2.8: result → redo is T-push: \(qa.transitions)")
+        XCTAssertTrue(qa.webNav.contains("push:native"), "the web leaves the push to native: \(qa.webNav)")
+        qa.waitProbe("transition settled") { ($0["navRunning"] as? Int) == 0 }
         qa.edgeBack()
         qa.waitRouteTop("result")
         qa.waitResult(true)
         XCTAssertFalse(qa.nativeShown)
         XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("result:open via=return") }, "\(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("present:none"), "back: native result covers without a second transition: \(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("dismiss:push:interactive"), "the edge drag follows the T-push reverse: \(qa.transitions)")
+        XCTAssertFalse(qa.transitions.contains("overlap"), "\(qa.transitions)")
+        assertSingleReturn(qa)
+    }
+
+    /// B2.8：回到结果页只有一段转场——重写错字页 T-push 倒放之后，原生结果页不带转场盖上（不再滑出后再淡入）。
+    private func assertSingleReturn(_ qa: QA, file: StaticString = #filePath, line: UInt = #line) {
+        let t = qa.transitions
+        guard let i = t.lastIndex(where: { $0.hasPrefix("dismiss:push") }) else { XCTFail("no T-push reverse: \(t)", file: file, line: line); return }
+        let after = t[(i + 1)...]
+        XCTAssertFalse(after.contains { $0.hasPrefix("present:") && $0 != "present:none" }, "a second transition after the return: \(t)", file: file, line: line)
     }
 
     /// 结果页数据摘要（只算练习：重写错字前后必须相同）。
@@ -151,6 +178,8 @@ final class ResultFlowTests: XCTestCase {
         qa.waitNative(false)
         qa.waitRouteTop("result")
         qa.waitResult(true)
+        XCTAssertTrue(qa.transitions.contains("dismiss:push"), "完成 = T-push reverse: \(qa.transitions)")
+        assertSingleReturn(qa)
         XCTAssertEqual(dataOf(qa), before, "practice only: nothing written (D66 ③)")
     }
 

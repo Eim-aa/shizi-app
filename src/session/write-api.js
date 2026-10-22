@@ -243,6 +243,25 @@ export function writeMotion() {
       easeIn: [...M.bezier.in],
       directionSlop: M.gesture.directionSlop, commitRatio: M.gesture.sheetCommitRatio, commitVelocity: M.gesture.commitVelocity, returnVelocity: M.gesture.returnVelocity,
     },
+    nav: writeNavMotion(),
+  };
+}
+
+/**
+ * B2.8：原生写字页 / 结果页进出的转场（交互规范 T0：T-push / T-paper / T-quiet、减少动态效果淡化、同一层换内容的 T-phase 淡化），
+ * 与网页 root.js / paper-transition.js 同一组值（src/config/motion.js 与 policy.paperTransition）；原生 NativeWriteTransitions 只从这里取数。
+ */
+export function writeNavMotion() {
+  const P = policy.paperTransition;
+  return {
+    push: { ms: M.role.pushIn, outMs: M.role.pushOut, gestureMinMs: M.role.pushGestureMin, snapMs: M.role.gestureSnap, parallax: M.distance.parallax, ease: [...M.bezier.out] },
+    paper: {
+      openMs: P.openMs, closeMs: P.closeMs, fullMs: P.fullMs, minFinishMs: P.minFinishMs, cancelMs: P.cancelMs, openEase: [...P.openEase], closeEase: [...P.closeEase],
+      dragLeanPt: P.dragLeanPt, dragRadiusPt: P.dragRadiusPt, contentFadeFrom: P.contentFadeFrom, veilTo: P.veilTo,
+    },
+    quiet: { openMs: P.quietOpenMs, closeMs: P.quietCloseMs, scaleFrom: P.quietScaleFrom, dragPt: P.quietDragPt },
+    reduceMs: P.reducedMs,
+    phaseMs: M.dur.fade,
   };
 }
 

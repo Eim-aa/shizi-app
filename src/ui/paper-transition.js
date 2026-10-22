@@ -180,7 +180,7 @@ export function paperSourceOf(entryId) {
  * @param {{kind:string, from:object, to:object}} t  router 的 transition
  * @param {{reduced:boolean, root:Element|null}} o
  */
-export function planPaper(t, { reduced, root, underId = null }) {
+export function planPaper(t, { reduced, root, underId = null, nativeTap = false }) {
   if (!t || !t.from || !t.to) return null;
   if (t.kind === 'push' || t.kind === 'replace') {
     if (t.to.n !== 'write' || (t.kind === 'replace' && t.from.n === 'write')) {
@@ -194,7 +194,8 @@ export function planPaper(t, { reduced, root, underId = null }) {
     if (t.kind === 'replace') {
       // 结果页「再写一组」/ 撤销跳过回到那个字：D62 起不是首页入口，有被点元素时就是普通推入（新写字页从右推入盖在被换掉的结果页上），
       // 来源记在结果页下面那一页名下，返回同样是普通右滑出。没有被点元素（程序换页）时保持同一层换内容的 T-phase 淡化（返回 null，root.js 照旧）。
-      if (!src) return null;
+      // nativeTap（B2.8）：原生结果页上的点按（网页收不到 click）——同样算被点元素，普通推入。
+      if (!src && !nativeTap) return null;
       if (underId) sources.set(underId, PUSHED);
       return reduced ? null : { mode: 'S', dir: 'open' };
     }
@@ -473,3 +474,102 @@ export const PAPER_CSS = `
   font-family:${T.hei};font-size:${T.fs17};line-height:${T.lh17s};font-weight:500;opacity:0}
 .sz-paper-ink>span{opacity:0;white-space:nowrap}
 `;
+
+// ---------------------------------------------------------------- B2.8 原生宿主：转场交给原生，网页只记账
+
+// 原生写字页 / 结果页（B2，宿主条目透明）进出时，转场由原生 NativeWriteTransitions 一个对象画（T-paper / T-push / T-quiet / 减少动态效果淡化）；
+// 网页对宿主条目不再播自己的纸展开 / 推入（root.js 跳过动画），但来源记账照旧走 planPaper——「这一页是怎么进来的、返回怎么回去」仍只有网页这一份真相，
+// 原生经 shiziNativeNav 读：进来时随 open 消息带 nativePlanOf，返回前问 nativeBackPlan（被点元素此刻的位置与字）。
+
+const nativePlans = new Map(); // 宿主条目 id → 进来时的计划（可序列化）
+
+function plainRect(r) {
+  return r ? { x: r.x, y: r.y, w: r.w, h: r.h } : null;
+}
+
+function panelRectOf(underId, root) {
+  const under = root && underId ? root.querySelector(`.sz-layer[data-entry="${underId}"]`) : null;
+  const panel = under ? under.querySelector('.sz-tabroot__panel') : null;
+  return panel ? plainRect(rectOf(panel)) : null;
+}
+
+/**
+ * 计划 → 原生能读的形状：{mode:'paper', source:{rect, radius, label, bg, fg, solid, gone, key}, panel} | {mode:'quiet'} | {mode:'push'}。
+ * B1 → paper（panel = 下层 tab 根内容区的矩形：纸展开时它淡出，标签栏不动）；B3 → quiet；其余（null / 'S' 普通推入）→ push。
+ */
+export function nativePlanShape(plan, underId = null, root = null) {
+  if (plan && plan.mode === 'B1' && plan.source) {
+    const s = plan.source;
+    return {
+      mode: 'paper',
+      source: { rect: plainRect(s.rect), radius: s.radius, label: s.label || '', bg: s.bg || '', fg: s.fg || '', solid: s.solid !== false, gone: !!s.gone, key: s.key || null },
+      panel: panelRectOf(underId, root),
+    };
+  }
+  if (plan && plan.mode === 'B3') return { mode: 'quiet' };
+  return { mode: 'push' };
+}
+
+/** root.js：网页把一次进宿主条目的转场让给原生时，记下计划（宿主挂载时随 open 带给原生）。 */
+export function noteNativePlan(entryId, plan, underId = null, root = null) {
+  if (!entryId) return;
+  nativePlans.set(entryId, nativePlanShape(plan, underId, root));
+  if (nativePlans.size > 16) nativePlans.delete(nativePlans.keys().next().value);
+}
+
+/** 宿主条目进来时的计划；没有记录（冷启动恢复等没有转场的进入）时 null。 */
+export function nativePlanOf(entryId) {
+  return nativePlans.get(entryId) || null;
+}
+
+/**
+ * 原生页返回前问：顶层宿主条目（写字页 / 结果页）回到下层页面时该怎么走——与网页左缘右滑同一个判定（planPaperDrag），被点元素还在就量它此刻的位置与字。
+ * 不消耗来源记录（真正出栈时 planPaper pop 才删）。
+ */
+export function nativeBackPlan(topEntry, underEntry, root = null) {
+  if (!topEntry || !underEntry) return { mode: 'push' };
+  return nativePlanShape(planPaperDrag(topEntry, underEntry, root), underEntry.id, root);
+}
+
+// 网页转场是否空闲（root.js 每次渲染后报）：原生宿主「回来」时等网页自己的返回转场放完再请原生盖上（B2.8：同一时刻只有一个转场在跑）。
+let navBusy = false;
+const idleWaiters = new Set();
+
+export function setNavBusy(busy) {
+  navBusy = !!busy;
+  if (navBusy || !idleWaiters.size) return;
+  const list = [...idleWaiters];
+  idleWaiters.clear();
+  for (const fn of list) fn();
+}
+
+export function navIsIdle() {
+  return !navBusy;
+}
+
+/** 网页转场空闲时调用 fn（已空闲：立即）。返回取消函数。 */
+export function whenNavIdle(fn) {
+  if (!navBusy) {
+    fn();
+    return () => {};
+  }
+  idleWaiters.add(fn);
+  return () => idleWaiters.delete(fn);
+}
+
+// 宿主显示状态变了（结果页从网页版换回原生宿主）：root.js 重画一次，让宿主层透明、下层可见。
+const hostListeners = new Set();
+export function onNativeHostChange(fn) {
+  hostListeners.add(fn);
+  return () => hostListeners.delete(fn);
+}
+export function notifyNativeHostChange() {
+  for (const fn of [...hostListeners]) fn();
+}
+
+/** 网页转场记录（QA 探针读最近 12 条：'push:paper' / 'pop:slide' / 'push:native'（让给原生）……；B2.8 核对「同一时刻只有一个转场」）。 */
+export const navTrace = [];
+export function traceNav(s) {
+  navTrace.push(s);
+  if (navTrace.length > 12) navTrace.splice(0, navTrace.length - 12);
+}

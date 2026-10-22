@@ -221,4 +221,43 @@ final class NativeWriteBridgeTests: XCTestCase {
         let arr = String(data: data, encoding: .utf8)!
         return String(arr.dropFirst().dropLast())
     }
+
+    // MARK: B2.8 边界：宿主被别处卸掉、页面重载
+
+    /// 写字条目被别处移出页面栈（跨天作废 / 深链换组 / 阻断页都是这条路：宿主卸载发 close）：原生页立即收起、样子留在原处，
+    /// 等页面画好后 T-fade 淡出（不闪、不留残影）；不发 exit（页面栈不再被多弹一次）。
+    func testB28_hostRemovedElsewhereStepsAsideWithoutAFlash() async throws {
+        let vc = try await startGroup()
+        try await waitUntil("enter transition settled") { NativeWriteTransitions.running == 0 }
+        _ = try await js("(await import('/src/ui/router.js')).nav.back(); return true;")
+        try await waitUntil("native page gone") { self.web.nativeWriteTop == nil }
+        XCTAssertTrue(vc.exitHandled, "no exit back after the host was removed")
+        XCTAssertTrue(QATrace.events.contains("close"), "\(QATrace.events)")
+        try await waitUntil("the look faded out", timeout: 5) { NativeResultCover.current == nil }
+        XCTAssertTrue(QATrace.events.contains("cover:fade"), "\(QATrace.events)")
+        let top = try await js("return (await import('/src/ui/router.js')).getRouter().getState().top.n;") as? String
+        XCTAssertEqual(top, "home", "popped once, not twice")
+    }
+
+    /// 页面重载（WebContent 进程被回收 / 整页重载）：路由恢复出写字条目 → 原生页留在屏上、只重新同步；恢复不出（组已没了）→ 等待后收起淡出。
+    func testB28_pageReloadKeepsOrReleasesTheNativePage() async throws {
+        let vc = try await startGroup()
+        try await waitUntil("enter transition settled") { NativeWriteTransitions.running == 0 }
+        web.webView.reload()
+        web.nativePageWillReload()
+        try await waitUntil("page ready again", timeout: 20) { self.web.pageReady }
+        try await Task.sleep(nanoseconds: UInt64((NativeNavState.reattachWait + 0.8) * 1_000_000_000))
+        XCTAssertTrue(web.nativeWriteTop === vc, "the route restored the write entry: the same native page stays")
+        XCTAssertFalse(QATrace.events.contains("reload:unclaimed"), "\(QATrace.events)")
+
+        // 组没了（数据清空）再重载：页面恢复不出写字条目 → 原生页收起
+        _ = try await js("window.__shiziTest.reset(); return true;")
+        web.webView.reload()
+        web.nativePageWillReload()
+        try await waitUntil("page ready again", timeout: 20) { self.web.pageReady }
+        try await waitUntil("unclaimed native page released", timeout: NativeNavState.reattachWait + 5) { self.web.nativeWriteTop == nil }
+        XCTAssertTrue(QATrace.events.contains("reload:unclaimed") || QATrace.events.contains("close"), "\(QATrace.events)")
+        try await waitUntil("the look faded out", timeout: 5) { NativeResultCover.current == nil }
+    }
 }
+

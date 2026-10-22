@@ -49,6 +49,25 @@ final class NativeWriteBridge {
     }
 
     /// 发出去不等（strokes / phase）。失败只记进量测，不打扰书写（P52）。
+    /// B2.8：页面的导航助手 window.shiziNativeNav（back / cover / fence；不写 store）。与 call 同一条 callAsyncJavaScript 队列，所以和随后的写字 op 按发出顺序执行。
+    func callNav(_ op: String, _ args: [String: Any] = [:], completion: @escaping (NativeWriteReply) -> Void) {
+        let t0 = CACurrentMediaTime()
+        guard let webView else {
+            completion(NativeWriteReply(ok: false, body: ["error": ["kind": "transport"]], wallMs: 0))
+            return
+        }
+        webView.callAsyncJavaScript(
+            "if (typeof window.shiziNativeNav !== 'function') return {ok:false, error:{kind:'unavailable'}}; return await window.shiziNativeNav(op, args);",
+            arguments: ["op": op, "args": args],
+            in: nil,
+            in: .page
+        ) { result in
+            var body: [String: Any] = ["ok": false, "error": ["kind": "transport"]]
+            if case .success(let value) = result, let dict = value as? [String: Any] { body = dict }
+            completion(NativeWriteReply(ok: (body["ok"] as? Bool) == true, body: body, wallMs: (CACurrentMediaTime() - t0) * 1000))
+        }
+    }
+
     func send(_ op: String, _ args: [String: Any]) {
         call(op, args) { reply in
             if !reply.ok { NSLog("[shizi] native-write %@ failed: %@", op, reply.errorKind ?? "?") }

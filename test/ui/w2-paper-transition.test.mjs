@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as policy from '../../src/config/policy.js';
 import {
   cubicBezier, OPEN_EASE, CLOSE_EASE, specFor, cancelSpec, runProgress, markPaperSource, planPaper, planPaperDrag, resetPaperSources, hasPaperSource, MAX_FRAME_MS,
-  noteTap, paperSourceOf, alphaOf, SOURCE_SELECTOR,
+  noteTap, paperSourceOf, alphaOf, SOURCE_SELECTOR, nativePlanShape, noteNativePlan, nativePlanOf, nativeBackPlan, setNavBusy, whenNavIdle, navIsIdle,
 } from '../../src/ui/paper-transition.js';
 
 const read = rel => readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
@@ -152,7 +152,7 @@ test('planPaperDrag: the write page is a B1 paper when its source is known, B3 o
 
 test('root.js wiring: BACK_TRANSITION hands the progress to the paper (begin / frame / clear take the gesture context); the router progress API is untouched', () => {
   const root = read('src/ui/root.js');
-  assert.match(root, /import \{\s*cancelSpec, clearPaper, createPaper, forgetTap, noteTap, PAPER_CSS, planPaper, planPaperDrag, runProgress, specFor,\s*\} from '\.\/paper-transition\.js';/);
+  assert.match(root, /import \{\s*cancelSpec, clearPaper, createPaper, forgetTap, noteNativePlan, noteTap, onNativeHostChange, PAPER_CSS, planPaper, planPaperDrag, runProgress, setNavBusy, specFor,\s*traceNav,\s*\} from '\.\/paper-transition\.js';/);
   assert.match(root, /begin\(top, under, ctx\)/);
   assert.match(root, /frame\(top, under, view, ctx\)/);
   assert.match(root, /clear\(el, ctx\)/);
@@ -280,3 +280,60 @@ test('03 / copy-source: P282–P284 are registered (D57), P280 / P281 too; P260 
   const src = JSON.parse(read('docs/engineering/v10/copy-source.json'));
   for (const id of ['P280', 'P281', 'P282', 'P283', 'P284']) assert.ok(src.nonRuntimeDecisions[id], `${id} in nonRuntimeDecisions`);
 });
+
+test('B2.8 native hosts: the plan handed to native is the web bookkeeping (home button → paper with its rect; no source → quiet; other taps → push); the way back is planPaperDrag', () => {
+  resetPaperSources();
+  const home = { id: 'h8', n: 'home' };
+  const write = { id: 'w8', n: 'write' };
+  markPaperSource(el({ x: 20, y: 700, w: 353, h: 54 }, '开始写字'), 'home-cta');
+  const plan = planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null });
+  noteNativePlan(write.id, plan, home.id, null);
+  const shaped = nativePlanOf(write.id);
+  assert.equal(shaped.mode, 'paper');
+  assert.deepEqual(shaped.source.rect, { x: 20, y: 700, w: 353, h: 54 });
+  assert.equal(shaped.source.key, 'home-cta');
+  assert.equal(shaped.panel, null, 'no DOM in node: no panel rect');
+  assert.equal(nativeBackPlan(write, home, null).mode, 'paper', 'back: fold into the same button (re-measured when it is on screen)');
+  // a programmatic push (notification / deep link / seed) is quiet both ways
+  planPaper({ kind: 'pop', from: write, to: home }, { reduced: false, root: null });
+  const quiet = planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null });
+  assert.deepEqual(nativePlanShape(quiet), { mode: 'quiet' });
+  assert.deepEqual(nativeBackPlan(write, home, null), { mode: 'quiet' });
+  // a native tap on the result page (「再写一组」/ undo-skip): a tapped replace → push in, and the way back (D70: to home) is a plain slide
+  const result = { id: 'r8', n: 'result' };
+  const again = planPaper({ kind: 'replace', from: result, to: write }, { reduced: false, root: null, underId: home.id, nativeTap: true });
+  assert.deepEqual(nativePlanShape(again), { mode: 'push' });
+  assert.deepEqual(paperSourceOf(home.id), { pushed: true });
+  assert.deepEqual(nativeBackPlan(write, home, null), { mode: 'push' });
+  assert.deepEqual(nativeBackPlan(null, home, null), { mode: 'push' });
+  resetPaperSources();
+});
+
+test('B2.8 nav idle bus: whenNavIdle runs at once when idle, otherwise when root reports idle; cancel works', () => {
+  setNavBusy(false);
+  let n = 0;
+  whenNavIdle(() => { n += 1; });
+  assert.equal(n, 1);
+  setNavBusy(true);
+  assert.equal(navIsIdle(), false);
+  whenNavIdle(() => { n += 10; });
+  const cancel = whenNavIdle(() => { n += 100; });
+  cancel();
+  assert.equal(n, 1);
+  setNavBusy(false);
+  assert.equal(n, 11);
+  assert.equal(navIsIdle(), true);
+});
+
+test('B2.8 root.js wiring: transitions into / out of a native host are left to native (no web paper / slide for the hosted layer), bookkeeping stays, idle is reported', () => {
+  const src = read('src/ui/root.js');
+  assert.match(src, /function nativeMoves\(t, snap\)/);
+  assert.match(src, /if \(nativeMoves\(t, snap\) && \(t\.animate \|\| t\.kind === 'pop'\)\) \{/);
+  assert.match(src, /planPaper\(t, \{ reduced: false, root: appRef\.current, underId: under \? under\.id : null, nativeTap: t\.kind === 'replace' \}\)/);
+  assert.match(src, /traceNav\(`\$\{t\.kind\}:native`\)/);
+  assert.match(src, /setNavBusy\(!!animRef\.current\.current \|\| !!gestureOn\)/);
+  const ns = read('src/ui/screens/write/native-session.js');
+  assert.match(ns, /window\.shiziNativeNav|win\.shiziNativeNav = /);
+  assert.match(ns, /useLayoutEffect\(\(\) => \{\n    installNativeWrite\(\);/, 'the write host posts open before the frame is painted');
+});
+

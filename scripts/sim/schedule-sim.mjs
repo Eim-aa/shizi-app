@@ -7,6 +7,7 @@
 //   node scripts/sim/schedule-sim.mjs --out some/dir      输出目录（默认 scripts/sim/out）
 //   node scripts/sim/schedule-sim.mjs --group-size 5      所有场景按「每组字数 5」跑（缺省 = 没选过，按 policy.groupSize 20）
 //   node scripts/sim/schedule-sim.mjs --engine js|swift|both   规则引擎（缺省 js；swift = ShiziCore 算规则，both = 两边同步走逐步比对，见 lib/engine-select.mjs）
+//   node scripts/sim/schedule-sim.mjs --engine both --swift-store core   B4.4：Swift 一侧开组等提交在 ShiziCore 的真 Store 上跑（ScheduleStore 的 B4.4 实现）
 //
 // 输出（默认 scripts/sim/out/，已 .gitignore）：
 //   report.md                  可读报告（场景预期 vs 实际、偏离、不变量违反、单字间隔表）
@@ -39,6 +40,7 @@ function parseArgs(argv) {
     else if (argv[i] === '--out') out.out = path.resolve(argv[++i]);
     else if (argv[i] === '--group-size') out.groupSize = Number(argv[++i]);
     else if (argv[i] === '--engine') out.engine = argv[++i];
+    else if (argv[i] === '--swift-store') process.env.SHIZI_SIM_STORE = argv[++i];
   }
   return out;
 }

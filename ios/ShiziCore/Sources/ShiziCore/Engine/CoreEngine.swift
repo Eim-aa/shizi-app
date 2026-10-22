@@ -6,27 +6,42 @@ import Foundation
 //   回包：{"id"?: any, "ok": true, "reply": any, "state": {...}} | {"id"?: any, "ok": false, "error": {"code", "message"}, "state": {...}}
 // 状态快照 = 引擎全部可观察状态（B4.0 只有 clock 与通用 kv；B4.4 起换成 store 的各域）。op 先校验后改状态：失败的 op 不改状态。
 
+/// 镜像自上次同步到 mirrorStore 以来动过的部分（B4.4）。
+struct MirrorDirty {
+    var domains = Set<String>()
+    var months = Set<String>()
+    var sched = KeySet()
+}
+
 public final class CoreEngine {
     public static let protocolVersion = 1
     public static let engineName = "swift"
 
-    public private(set) var clock: Double = 0
+    public internal(set) var clock: Double = 0
     public private(set) var kv = JSObject()
     public var dates: Dates
     /// B4.2：调度模拟器的状态缓存（mirror.patch 增量同步；不进状态快照，见 SchedOps.swift）。
     var schedMirror = JSObject()
+    /// B4.4：store 会话（store.open 建；reset 清；存在时进状态快照的 store 段，见 StoreOps.swift）。
+    var storeSession: StoreSession?
+    /// B4.4：调度模拟器的 Swift store 镜像（mirror.patch 的 store 版，见 SchedOps.swift）。
+    var mirrorStore: Store?
+    var mirrorNow: Double = 0
+    var mirrorDirty = MirrorDirty()
 
     public init(timeZone: TimeZone = .current) {
         dates = Dates(timeZone: timeZone)
     }
 
     public var snapshot: JSValue {
-        .object(JSObject([("clock", .number(clock)), ("kv", .object(kv))]))
+        var o = JSObject([("clock", .number(clock)), ("kv", .object(kv))])
+        if let s = storeSession { o["store"] = s.snapshot }
+        return .object(o)
     }
 
     typealias Op = (CoreEngine, JSObject) throws -> JSValue
 
-    static let ops: [String: Op] = coreOps.merging(configOps) { a, _ in a }.merging(schemaOps) { a, _ in a }.merging(b43Ops) { a, _ in a }.merging(schedOps) { a, _ in a }
+    static let ops: [String: Op] = coreOps.merging(configOps) { a, _ in a }.merging(schemaOps) { a, _ in a }.merging(b43Ops) { a, _ in a }.merging(schedOps) { a, _ in a }.merging(b44Ops) { a, _ in a }
 
     static let coreOps: [String: Op] = [
         "hello": { _, _ in
@@ -50,6 +65,7 @@ public final class CoreEngine {
             }
             e.clock = clock
             e.kv = kv
+            e.storeSession = nil
             return .null
         },
         "echo": { _, a in try required(a, "value") },

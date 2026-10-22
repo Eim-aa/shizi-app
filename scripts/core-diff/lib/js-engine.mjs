@@ -10,6 +10,7 @@ import * as dates from '../../../src/core/dates.js';
 import { makeB41Ops } from './js-ops-b41.mjs';
 import { makeB43Ops } from './js-ops-b43.mjs';
 import { makeB42Ops } from './js-ops-b42.mjs';
+import { makeB44Ops } from './js-ops-b44.mjs';
 import { parseJson } from './json-parse.mjs';
 
 export const PROTOCOL_VERSION = 1;
@@ -60,6 +61,8 @@ function nullProto(obj) {
 export function createJsEngine({ fault = null } = {}) {
   const st = { clock: 0, kv: Object.create(null) };
   const policyOf = (a) => (has(a, 'dayStartHour') ? { dayStartHour: a.dayStartHour } : undefined);
+  // B4.4：store / storage / budget / backup / migrate（js-ops-b44.mjs）；store 会话进状态快照
+  const b44 = makeB44Ops({ required, str, finite, int, badArgs, clock: () => st.clock, setClock: (t) => { st.clock = t; } });
   const tOf = (a) => (has(a, 't') ? a.t : st.clock);
 
   const OPS = {
@@ -79,6 +82,7 @@ export function createJsEngine({ fault = null } = {}) {
       }
       st.clock = clock;
       st.kv = kv;
+      b44.reset();
       return null;
     },
     echo: (a) => required(a, 'value'),
@@ -144,9 +148,14 @@ export function createJsEngine({ fault = null } = {}) {
     ...makeB43Ops({ required, str, finite, int, badArgs }),
     // B4.2：FSRS 与出题调度（js-ops-b42.mjs）
     ...makeB42Ops({ required, str, finite, int, badArgs }),
+    // B4.4：store / storage / budget / backup / migrate / 原生校验和（js-ops-b44.mjs）
+    ...b44.ops,
   };
 
-  const snapshot = () => ({ clock: st.clock, kv: st.kv });
+  const snapshot = () => {
+    const store = b44.snapshot();
+    return store ? { clock: st.clock, kv: st.kv, store } : { clock: st.clock, kv: st.kv };
+  };
 
   function fail(out, code, message, withState) {
     out.ok = false;

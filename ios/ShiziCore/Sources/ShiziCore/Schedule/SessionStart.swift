@@ -11,6 +11,8 @@ public struct CommitContext {
     public let now: Double
     public let label: String
     public internal(set) var serial: Double
+    /// 判断墨迹的存储编码（store.js ctx.inkFormat，policy P05）：原生 'raw'，localStorage 'v3'（B4.4 的 Store 按后端给）。
+    public internal(set) var inkFormat: String = "v3"
 
     public init(now: Double, label: String, serial: Double) {
         self.now = now

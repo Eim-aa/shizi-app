@@ -11,8 +11,9 @@ import queryDomain from '../domains/query.mjs';
 import cardsDomain from '../domains/cards.mjs';
 import membersDomain from '../domains/members.mjs';
 import inkDomain from '../domains/ink.mjs';
+import storeDomain from '../domains/store.mjs';
 
-export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain];
+export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain, storeDomain];
 
 /** mulberry32（与 scripts/sim/lib/env.mjs 同一算法）。 */
 export function rng(seed) {
@@ -92,14 +93,16 @@ export function makeCtx(r) {
  * @param {number} seed
  * @param {number} steps
  * @param {Set<string>} available  两个引擎都支持的 op
+ * @param {string[]|null} only  只用这些域（B4.4：store 域单独加量跑；缺省全部）
  * @returns {Array<object>}  请求对象（{ __raw } 表示原样发送的坏行）
  */
-export function generate(seed, steps, available) {
+export function generate(seed, steps, available, only = null) {
   const g = makeCtx(rng(seed));
   g.available = available;
   for (const d of DOMAINS) if (d.prepare) d.prepare(g);
   const table = [];
-  for (const d of DOMAINS) for (const [op, spec] of Object.entries(d.ops)) if (spec.always || available.has(op)) table.push([op, spec]);
+  const domains = only ? DOMAINS.filter((d) => only.includes(d.id)) : DOMAINS;
+  for (const d of domains) for (const [op, spec] of Object.entries(d.ops)) if (spec.always || available.has(op)) table.push([op, spec]);
   const entries = table.map(([op, spec]) => [[op, spec], spec.weight]);
   const out = [];
   for (let i = 0; i < steps; i += 1) {

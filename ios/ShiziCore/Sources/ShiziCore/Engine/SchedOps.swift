@@ -101,51 +101,123 @@ extension CoreEngine {
     func patchMirror(_ a: JSObject) throws {
         var next = schedMirror
         if a["set"] != nil {
-            for (k, v) in try CoreEngine.objArg(a, "set").objectValue!.entries { next[k] = v }
+            for (k, v) in try CoreEngine.objArg(a, "set").objectValue!.entries {
+                next[k] = v
+                mirrorDirty.domains.insert(k)
+            }
         }
-        if a["drop"] != nil { for k in try CoreEngine.strArr(a, "drop") { next[k] = nil } }
+        if a["drop"] != nil {
+            for k in try CoreEngine.strArr(a, "drop") {
+                next[k] = nil
+                mirrorDirty.domains.insert(k)
+            }
+        }
         if a["records"] != nil {
             let months = try CoreEngine.objArg(a, "records").objectValue!
             var cur = next["records"]?.objectValue ?? JSObject()
-            for (m, v) in months.entries { cur[m] = v.isNull ? nil : v }
+            for (m, v) in months.entries {
+                cur[m] = v.isNull ? nil : v
+                mirrorDirty.months.insert(m)
+            }
             next["records"] = .object(cur)
         }
         if a["sched"] != nil {
             let entries = try CoreEngine.objArg(a, "sched").objectValue!
             var cur = next["sched"]?.objectValue ?? JSObject()
-            for (k, v) in entries.entries { cur[k] = v.isNull ? nil : v }
+            for (k, v) in entries.entries {
+                cur[k] = v.isNull ? nil : v
+                mirrorDirty.sched.insert(k)
+            }
             next["sched"] = .object(cur)
         }
         schedMirror = next
     }
 
+    /// B4.4：调度模拟器 `store: "core"` 用的真 store（ShiziCore Store，内存磁盘），由镜像增量同步（只提交 mirror.patch 动过的域 / 月 / 调度项）。
+    /// 预算设成永不回收：回收在 JS 一侧的真 store 里照常做（Swift 的镜像没有墨迹），回收本身由随机差分 store 域核对。
+    func syncedMirrorStore() throws -> Store {
+        if let st = mirrorStore {
+            let d = mirrorDirty
+            if d.domains.isEmpty && d.months.isEmpty && d.sched.isEmpty { return st }
+            let mirror = schedMirror
+            let r = st.commit("mirror", reclaim: false) { draft, _ in
+                for k in d.domains where k != "records" { draft[k] = mirror[k] ?? .null }
+                if d.domains.contains("records") {
+                    draft["records"] = mirror["records"] ?? .object(JSObject())
+                } else if !d.months.isEmpty {
+                    var recs = draft["records"]?.objectValue ?? JSObject()
+                    for m in d.months { recs[m] = mirror["records"]?[m] }
+                    draft["records"] = .object(recs)
+                }
+                if !d.sched.isEmpty && !d.domains.contains("sched") {
+                    var sched = draft["sched"]?.objectValue ?? JSObject()
+                    for k in d.sched { sched[k] = mirror["sched"]?[k] }
+                    draft["sched"] = .object(sched)
+                }
+            }
+            guard r["ok"] == .bool(true) else { throw CoreError.error("mirror store sync failed: " + JSONWriter.stringify(r)) }
+            mirrorDirty = MirrorDirty()
+            return st
+        }
+        let disk = MemoryDisk()
+        let st = Store(storage: StoreStorage(disk, now: { [unowned self] in self.mirrorNow }), now: { [unowned self] in self.mirrorNow },
+                       budgets: JSObject([("quotaBytes", .number(1e300)), ("recordsBudgetBytes", .number(1e300)), ("recordsFoldAfterDays", .number(1e300)), ("inkBudgetBytes", .number(1e300))]),
+                       dates: dates)
+        st.load()
+        let r = st.seed(.object(schedMirror), label: "mirror")
+        guard r["ok"] == .bool(true) else { throw CoreError.error("mirror store seed failed: " + JSONWriter.stringify(r)) }
+        mirrorStore = st
+        mirrorDirty = MirrorDirty()
+        return st
+    }
+
+    static func commitEntry(_ label: String, _ before: JSObject, _ after: JSObject, _ serial: Double) -> JSValue {
+        var set = JSObject()
+        var patch: JSObject? = nil
+        for (k, v) in after.entries {
+            if k == "sched" {
+                let b0 = before["sched"]?.objectValue ?? JSObject()
+                for (key, e) in (v.objectValue ?? JSObject()).entries {
+                    if let b = b0[key], JSONWriter.stringify(b) == JSONWriter.stringify(e) { continue }
+                    if patch == nil { patch = JSObject() }
+                    patch![key] = e
+                }
+            } else if before[k].map({ JSONWriter.stringify($0) }) != JSONWriter.stringify(v) {
+                set[k] = v
+            }
+        }
+        var o = JSObject([("label", .string(label)), ("set", .object(set))])
+        if let p = patch { o["schedPatch"] = .object(p) }
+        o["serial"] = .number(serial)
+        return .object(o)
+    }
+
     /// 提交类 op：在内存 store 上跑，回包 {result, commits:[{label, set, schedPatch?, serial}], serial}。
-    static func runStore(_ e: CoreEngine, _ a: JSObject, _ fn: (MemoryScheduleStore, Double) throws -> JSValue) throws -> JSValue {
+    /// `store: "core"`（B4.4，只配 state:"mirror"）：改在 ShiziCore 的真 Store 上跑（ScheduleStore 协议的 B4.4 实现）。
+    static func runStore(_ e: CoreEngine, _ a: JSObject, _ fn: (ScheduleStore, Double) throws -> JSValue) throws -> JSValue {
+        if a["store"] == .string("core") && a["state"] == .string("mirror") {
+            let serial = Double(try int(a, "serial", 1_000_000_000_000))
+            let now = try finite(try required(a, "now"), "now")
+            e.mirrorNow = now
+            let store = try e.syncedMirrorStore()
+            store.setSerial(serial)
+            var commits: [JSValue] = []
+            var before = store.state
+            let unsubscribe = store.subscribe { st, info in
+                guard info["type"] == .string("commit") else { return }
+                commits.append(commitEntry(info["label"]?.stringValue ?? "", before, st, store.serial))
+                before = st
+            }
+            defer { unsubscribe() }
+            let result = try fn(store, now)
+            return obj([("result", result), ("commits", .array(commits)), ("serial", .number(store.serial))])
+        }
         guard case .object(let state) = try e.stateArg(a) else { throw CoreError.badArgs("state must be an object") }
         let serial = Double(try int(a, "serial", 1_000_000_000_000))
         let now = try finite(try required(a, "now"), "now")
         let store = MemoryScheduleStore(state: state, now: { now }, serial: serial)
         let result = try fn(store, now)
-        let commits: [JSValue] = store.commits.map { c in
-            var set = JSObject()
-            var patch: JSObject? = nil
-            for (k, v) in c.after.entries {
-                if k == "sched" {
-                    let before = c.before["sched"]?.objectValue ?? JSObject()
-                    for (key, e) in (v.objectValue ?? JSObject()).entries {
-                        if let b = before[key], JSONWriter.stringify(b) == JSONWriter.stringify(e) { continue }
-                        if patch == nil { patch = JSObject() }
-                        patch![key] = e
-                    }
-                } else if c.before[k].map({ JSONWriter.stringify($0) }) != JSONWriter.stringify(v) {
-                    set[k] = v
-                }
-            }
-            var o = JSObject([("label", .string(c.label)), ("set", .object(set))])
-            if let p = patch { o["schedPatch"] = .object(p) }
-            o["serial"] = .number(c.serial)
-            return .object(o)
-        }
+        let commits: [JSValue] = store.commits.map { c in commitEntry(c.label, c.before, c.after, c.serial) }
         return obj([("result", result), ("commits", .array(commits)), ("serial", .number(store.serial))])
     }
 

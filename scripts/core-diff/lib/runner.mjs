@@ -62,11 +62,11 @@ export async function shrink(a, b, seq, failure) {
 }
 
 /** 跑一批种子；第一处失败时缩小并返回。 */
-export async function runSeeds(a, b, { seedStart = 1, seeds = 200, steps = 300, onSeed = null, available = null } = {}) {
+export async function runSeeds(a, b, { seedStart = 1, seeds = 200, steps = 300, onSeed = null, available = null, only = null } = {}) {
   const ops = available || (await commonOps(a, b));
   let total = 0;
   for (let s = seedStart; s < seedStart + seeds; s += 1) {
-    const seq = generate(s, steps, ops);
+    const seq = generate(s, steps, ops, only);
     const f = await runSeq(a, b, seq);
     total += f ? f.step + 1 : seq.length;
     if (f) {

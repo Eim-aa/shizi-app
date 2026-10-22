@@ -1,0 +1,596 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "「宝」的记录",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "detail-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "detail-ref",
+      "name" : "标准写法",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "detail-word",
+      "name" : "宝刀",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "detail-swap",
+      "name" : "换个词语",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "detail-add",
+      "name" : "加入自选",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "detail-practice",
+      "name" : "练这个字",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-detail",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "detail-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title sz-page__title--hidden",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 83.5
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "h1",
+      "text" : "「宝」的记录",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 101.09999999999999,
+        "x" : 19,
+        "y" : 83.5
+      }
+    },
+    {
+      "class" : "sz-live",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 121
+      },
+      "id" : "detail-live",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-dhead",
+      "frame" : {
+        "h" : 294,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "detail-card",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "标准写法",
+      "bg" : "#FBF8F2FF",
+      "border" : "#95826BFF",
+      "borderWidth" : 1,
+      "class" : "sz-compare__card",
+      "frame" : {
+        "h" : 175,
+        "w" : 175,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "detail-ref",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__py",
+      "color" : "#564E46FF",
+      "fontSize" : 17,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 28.600000000000001,
+        "x" : 20,
+        "y" : 313
+      },
+      "id" : "detail-pinyin",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "bǎo",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 28.600000000000001,
+        "x" : 20,
+        "y" : 313
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__meta",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 28.199999999999999,
+        "x" : 56.600000000000001,
+        "y" : 314
+      },
+      "id" : "detail-strokes",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "8 画",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 28.199999999999999,
+        "x" : 56.600000000000001,
+        "y" : 315
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__label",
+      "color" : "#564E46FF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 348
+      },
+      "id" : "detail-word-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "词语",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 25.800000000000001,
+        "x" : 20,
+        "y" : 350
+      }
+    },
+    {
+      "axLabel" : "宝刀",
+      "bg" : "#FBF8F2FF",
+      "border" : "#95826BFF",
+      "borderWidth" : 1,
+      "class" : "sz-dcard__tiles",
+      "frame" : {
+        "h" : 38,
+        "w" : 74,
+        "x" : 20,
+        "y" : 378
+      },
+      "id" : "detail-word",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-dcard__tile",
+      "frame" : {
+        "h" : 36,
+        "w" : 36,
+        "x" : 21,
+        "y" : 379
+      },
+      "id" : "detail-word-tile",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#26211DFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 38,
+        "y" : 382
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "宝"
+    },
+    {
+      "class" : "sz-dcard__tile",
+      "frame" : {
+        "h" : 36,
+        "w" : 36,
+        "x" : 57,
+        "y" : 379
+      },
+      "id" : "detail-word-tile",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#26211DFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 74.5,
+        "y" : 382
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "刀"
+    },
+    {
+      "class" : "sz-drec",
+      "frame" : {
+        "h" : 26,
+        "w" : 362,
+        "x" : 20,
+        "y" : 448
+      },
+      "id" : "detail-records",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drec__count",
+      "color" : "#564E46FF",
+      "fontSize" : 22,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 88,
+        "x" : 20,
+        "y" : 448
+      },
+      "id" : "detail-records-count",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "还没写过",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 88,
+        "x" : 20,
+        "y" : 442
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drec__first",
+      "color" : "#26211DFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 193.5,
+        "x" : 188.5,
+        "y" : 452
+      },
+      "id" : "detail-records-empty",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "你每次写过的字都会留在这里",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 193.5,
+        "x" : 188.5,
+        "y" : 453
+      }
+    },
+    {
+      "class" : "sz-dsrc",
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 506
+      },
+      "id" : "detail-source",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dsrc__label",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 44,
+        "x" : 20,
+        "y" : 509
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "字源",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 25.800000000000001,
+        "x" : 20,
+        "y" : 511
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dsrc__text",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 26,
+        "w" : 310,
+        "x" : 72,
+        "y" : 506
+      },
+      "id" : "detail-source-text",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "珍也。从宀从王从贝，缶声",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 204,
+        "x" : 72,
+        "y" : 508
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dsrc__from",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 310,
+        "x" : 72,
+        "y" : 536
+      },
+      "id" : "detail-source-from",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "《说文解字》",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 77.400000000000006,
+        "x" : 72,
+        "y" : 538
+      }
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-drows",
+      "frame" : {
+        "h" : 175.69999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 590
+      },
+      "id" : "detail-rows",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-drow",
+      "frame" : {
+        "h" : 71.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 590.29999999999995
+      },
+      "id" : "detail-image",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drow__title sz-drow__title--off",
+      "color" : "#6E655BFF",
+      "fontSize" : 17,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 223.30000000000001,
+        "x" : 20,
+        "y" : 602.29999999999995
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "做成图片",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 20,
+        "y" : 602.29999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drow__sub",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 223.30000000000001,
+        "x" : 20,
+        "y" : 627.29999999999995
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "先写一次这个字，才能做成图片。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 223.19999999999999,
+        "x" : 20,
+        "y" : 628.29999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-drow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 661.70000000000005
+      },
+      "id" : "detail-swap",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "换个词语",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 20,
+        "y" : 676.5
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-drow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 713.70000000000005
+      },
+      "id" : "detail-add",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "加入自选",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 20,
+        "y" : 728.5
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "detail-practice",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "练这个字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 802
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "detail-none",
+  "tag" : "light_L",
+  "ui" : "web"
+}

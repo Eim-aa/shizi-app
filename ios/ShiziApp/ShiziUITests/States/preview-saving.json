@@ -1,0 +1,38 @@
+{
+  "state": "preview-saving",
+  "name": "图片预览 · 保存中（等原生回包）",
+  "screen": "result",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "image-preview",
+  "base": "result",
+  "setup": [
+    {
+      "op": "stubNative"
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "result-share"
+      },
+      "times": 1
+    },
+    {
+      "wait": 1800
+    },
+    {
+      "tap": {
+        "webTestid": "image-save"
+      },
+      "times": 1
+    },
+    {
+      "wait": 700
+    }
+  ]
+}

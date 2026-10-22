@@ -1,0 +1,33 @@
+{
+  "state": "hint-2",
+  "name": "提示 2 段",
+  "order": 5,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] .sz-hintbtn",
+        "native": "native-write-hint",
+        "nativeSelector": "tapHint"
+      },
+      "times": 2
+    }
+  ],
+  "parity": true
+}

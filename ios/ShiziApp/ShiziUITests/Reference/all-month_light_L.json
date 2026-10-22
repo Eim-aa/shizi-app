@@ -1,0 +1,1126 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "已练汉字",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "all-menu-open",
+      "name" : "排序 · 筛选",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-find",
+      "name" : "在已练汉字里查字",
+      "role" : "textbox",
+      "tag" : "input"
+    },
+    {
+      "id" : "all-group-head",
+      "name" : "10月 27 个字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cells",
+      "name" : "10月",
+      "role" : "group",
+      "tag" : "div"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "狗，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "猫，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "鱼，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "春，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "云，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "日，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "大，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "天，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "山，写错过",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "小，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "火，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "书，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "和，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "学，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "国，一周内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "雪，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "中，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "土，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "月，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "永，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "人，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "字，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "鸟，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "风，写错过",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "雨，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "花，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "木，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-group-head",
+      "name" : "9月 5 个字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cells",
+      "name" : "9月",
+      "role" : "group",
+      "tag" : "div"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "习，写错过",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "水，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "地，一个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "金，三个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-cell",
+      "name" : "法，三个月内",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "all-month",
+      "name" : "8月 4 个字 ›",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "all-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 227.30000000000001,
+        "x" : 72,
+        "y" : 73
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 151.90000000000001,
+        "y" : 73
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 82.700000000000003,
+        "x" : 303.30000000000001,
+        "y" : 62
+      },
+      "id" : "all-menu-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "排序 · 筛选",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 74.700000000000003,
+        "x" : 307.30000000000001,
+        "y" : 74
+      }
+    },
+    {
+      "class" : "sz-lib sz-all",
+      "frame" : {
+        "h" : 500.60000000000002,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "all-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "在已练汉字里查字",
+      "class" : "sz-all__input",
+      "frame" : {
+        "h" : 30,
+        "w" : 300,
+        "x" : 66,
+        "y" : 132
+      },
+      "id" : "all-find",
+      "kind" : "view",
+      "tag" : "input"
+    },
+    {
+      "class" : "sz-all__group",
+      "frame" : {
+        "h" : 233,
+        "w" : 362,
+        "x" : 20,
+        "y" : 196
+      },
+      "id" : "all-group",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-all__head",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 362,
+        "x" : 20,
+        "y" : 196
+      },
+      "id" : "all-group-head",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "10月 27 个字",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 362,
+        "x" : 20,
+        "y" : 194
+      }
+    },
+    {
+      "axLabel" : "10月",
+      "class" : "sz-all__grid",
+      "frame" : {
+        "h" : 181,
+        "w" : 362,
+        "x" : 20,
+        "y" : 248
+      },
+      "id" : "all-cells",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "狗，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 20,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "猫，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 65.299999999999997,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "鱼，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 110.5,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "春，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 155.80000000000001,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "云，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 201,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "日，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 246.30000000000001,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "大，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 291.5,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "天，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 336.80000000000001,
+        "y" : 248
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "山，写错过",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 20,
+        "y" : 293.30000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 20,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "山",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 10.9,
+        "x" : 41.600000000000001,
+        "y" : 290.30000000000001
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "小，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 65.299999999999997,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "火，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 110.5,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "书，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 155.80000000000001,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "和，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 201,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "学，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 246.30000000000001,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "国，一周内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 291.5,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "雪，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 336.80000000000001,
+        "y" : 293.30000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "中，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 20,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "土，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 65.299999999999997,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "月，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 110.5,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "永，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 155.80000000000001,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "人，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 201,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "字，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 246.30000000000001,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "鸟，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 291.5,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "风，写错过",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 336.80000000000001,
+        "y" : 338.5
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 336.80000000000001,
+        "y" : 338.5
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "风",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 10.9,
+        "x" : 358.39999999999998,
+        "y" : 335.5
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "雨，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 20,
+        "y" : 383.80000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "花，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 65.299999999999997,
+        "y" : 383.80000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "木，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 110.5,
+        "y" : 383.80000000000001
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "class" : "sz-all__group",
+      "frame" : {
+        "h" : 97.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 449
+      },
+      "id" : "all-group",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-all__head",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 362,
+        "x" : 20,
+        "y" : 449
+      },
+      "id" : "all-group-head",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "9月 5 个字",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 362,
+        "x" : 20,
+        "y" : 447
+      }
+    },
+    {
+      "axLabel" : "9月",
+      "class" : "sz-all__grid",
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 501
+      },
+      "id" : "all-cells",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "习，写错过",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 20,
+        "y" : 501
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 20,
+        "y" : 501
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "习",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 10.9,
+        "x" : 41.600000000000001,
+        "y" : 498
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "水，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 65.299999999999997,
+        "y" : 501
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "地，一个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 110.5,
+        "y" : 501
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "金，三个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 155.80000000000001,
+        "y" : 501
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "法，三个月内",
+      "class" : "sz-btn sz-btn--plain sz-all__cell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 45.299999999999997,
+        "w" : 45.299999999999997,
+        "x" : 201,
+        "y" : 501
+      },
+      "id" : "all-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-all__closed",
+      "frame" : {
+        "h" : 52.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 570.29999999999995
+      },
+      "id" : "all-closed",
+      "kind" : "view",
+      "tag" : "ul"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-all__month",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 570.60000000000002
+      },
+      "id" : "all-month",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "8月 4 个字 ›",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 585.39999999999998
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "all-month",
+  "tag" : "light_L",
+  "ui" : "web"
+}

@@ -1,0 +1,213 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "练习范围",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "libswitch-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "libswitch-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 28,
+        "y" : 106
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "练习范围",
+      "textFrame" : {
+        "h" : 49,
+        "w" : 156.59999999999999,
+        "x" : 36,
+        "y" : 105
+      }
+    },
+    {
+      "class" : "sz-live",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 175
+      },
+      "id" : "libswitch-live",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-libsw__list",
+      "frame" : {
+        "h" : 975,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "libswitch-list",
+      "kind" : "view",
+      "tag" : "ul"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 272.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "textFrame" : {
+        "h" : 254,
+        "w" : 362,
+        "x" : 20,
+        "y" : 185
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 234.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 448.30000000000001
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "textFrame" : {
+        "h" : 216,
+        "w" : 362,
+        "x" : 20,
+        "y" : 457.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 234.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 682.70000000000005
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "textFrame" : {
+        "h" : 216,
+        "w" : 362,
+        "x" : 20,
+        "y" : 691.70000000000005
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX3",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "switch",
+  "tag" : "light_AX3",
+  "ui" : "web"
+}

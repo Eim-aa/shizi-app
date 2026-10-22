@@ -1,0 +1,25 @@
+{
+  "state": "preview-3x4",
+  "name": "图片预览 · 这次的图片 3:4（5 字默认）",
+  "screen": "result",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "image-preview",
+  "base": "result",
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "result-share"
+      },
+      "times": 1
+    },
+    {
+      "wait": 1800
+    }
+  ],
+  "ax": true
+}

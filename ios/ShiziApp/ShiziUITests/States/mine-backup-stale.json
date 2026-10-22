@@ -1,0 +1,118 @@
+{
+  "state": "mine-backup-stale",
+  "name": "我的 · 30 天没备份（备份行提示）",
+  "screen": "mine",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ready": {
+    "web": "screen-mine"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2026-08-03",
+        "days": 80,
+        "perDay": 2,
+        "chars": "永和春日月山水火木金土人大小中国学习写字书法天地花鸟风云雨雪",
+        "seed": 7,
+        "wrongEvery": 9
+      }
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "龙",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "龙",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-08-30"
+        }
+      ]
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "鱼猫狗",
+          "at": "2026-10-21T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "patch",
+      "domain": "backupMeta",
+      "value": {
+        "lastExportAt": 1789002000000,
+        "lastExportSig": "old",
+        "lastConclusion": null
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    }
+  ],
+  "ax": true
+}

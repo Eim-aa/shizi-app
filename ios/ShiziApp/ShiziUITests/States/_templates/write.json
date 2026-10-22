@@ -1,0 +1,5 @@
+{
+  "ready": { "web": "write-screen", "native": "write", "timeout": 5 },
+  "settleBefore": 700,
+  "settle": 900
+}

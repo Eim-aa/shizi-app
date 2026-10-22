@@ -1,0 +1,47 @@
+{
+  "state": "records-empty",
+  "name": "练习记录 · 这个月没有记录（前后月有）",
+  "screen": "records",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ready": {
+    "web": "records-screen"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "山水",
+          "day": "2026-07-05"
+        },
+        {
+          "chars": "火木",
+          "day": "2026-07-06"
+        },
+        {
+          "chars": "金土",
+          "day": "2026-10-02"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "records",
+      "params": {
+        "month": "2026-09"
+      }
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import WebKit
 // QA-H1：原生界面自动化测试框架的 App 内一半（只在 DEBUG 编译；Release 不含，verify-archive.sh / verify_assets 断言）。
 //
 // 三种用法，全部由启动参数打开（默认什么都不做）：
-//   1. 状态注入（-shizi-qa-seed <状态>）：页面就绪后清空数据，把写字页带到指定状态（见 QAState）。
+//   1. 状态注入（-shizi-qa-seed <状态>）：页面就绪后清空数据，把 App 带到指定状态（夹具 ShiziUITests/States/<状态>.json，见 QAFixtures.swift）。
 //      XCUITest（ShiziUITests）用它一键起步；同一套状态网页版（-shizi-native-write-off）与原生版（-shizi-native-write）都能到。
 //   2. 逐屏取证（-shizi-qa parity -shizi-qa-ui native|web -shizi-qa-states a,b,… -shizi-qa-tag <外观_字号>）：
 //      逐个状态注入 → 等动画落定 → 把元素清单（位置尺寸 / 文案 / 颜色 / 字号 / 可点）写到 Documents/qa/<ui>/<状态>_<tag>.json →
@@ -16,56 +16,17 @@ import WebKit
 // 状态注入走的是正式代码：会话由 core/session-start.startPicked 开、推进与阶段由写字会话 API（与原生页同一批提交函数）提交，
 // 打开写字页走 session/index.js openWrite（网页路由 → 原生宿主），点按走原生页自己的按钮动作 / 网页按钮 click。
 
-enum QAState: String, CaseIterable {
-    case home // 只清数据、停在首页（流程测试的起点；首页按钮是「开始写字」首练）
-    case homeUsed = "home-used" // 首练 3 字已写完（有记录、字库有字），停在首页：下一组是今天的练习
-    case homeMid = "home-mid" // 在 home-used 之上开了今天的练习并判断了 1 字，停在首页（「继续写字」）
-    case firstRecall = "first-recall" // 首次练习（A 槽 3 字）第 1 字：格下一次性说明（first-tip）
-    case recall // 第 1 字 / 5，回忆阶段，没写
-    case recallInk = "recall-ink" // 写了两笔（「写好了」可点）
-    case hint1 = "hint-1" // 点一次提示
-    case hint2 = "hint-2" // 点两次提示
-    case hintFull = "hint-full" // 点到整字给完（按钮变灰，记看过答案）
-    case trace // 看答案 → 描一遍
-    case retrace // 凭记忆写
-    case judge // 判断页（两笔）
-    case line // 第 1 字判断为写错后到第 2 字：格下结果行「修改 ›」
-    case changeSheet = "change-sheet" // 改判弹层
-    case skipUndo = "skip-undo" // 跳过第 1 字：撤销条
-    case endDialog = "end-dialog" // 判断过 1 字后点「结束这组」：确认框
-    case last // 前 4 字判断过，第 5 字（最后一字）
-    case lastJudge = "last-judge" // 最后一字的判断页（判断后直接结果页）
-    case result // 「这次选的字」一组写完的结果页（B2.7 起原生：作品、落款与印、没放进图里的行、底栏「回到首页」）
-    case resultDaily = "result-daily" // 今天的练习一组写完的结果页（有写错的字：「再写一组」「重写错字」、行上「修改 ›」「放进图里」）
-    case resultFirst = "result-first" // 首练 3 字写完的结果页（标题、提醒邀请、「完成」+「再写一组」「重写错字」）
-    case resultEarly = "result-early" // 这次选的字判断 2 字后「结束这组」（中途结束：「还有 3 个字没写。」）
-    case resultUndo = "result-undo" // 最后一字跳过 → 结果页带着写字页交过来的撤销条（S4）
-    case resultSheet = "result-sheet" // 今天的练习结果页点写错那一行的「修改 ›」：对照与改判弹层
-    // B2.9a 重写错字页（D66 ③）：今天的练习结果页（同 result-daily 数据）点「重写错字」
-    case redo // 第 1 个字，写的阶段，没写（「写好了」不可点）
-    case redoInk = "redo-ink" // 写了两笔（「写好了」可点）
-    case redoCheck = "redo-check" // 写好了 → 对照（判断页两格、没有判断键；求助行「再写一次」、主按钮「下一个」）
-    case redoLast = "redo-last" // 最后一个字写好了的对照（主按钮「完成」）
-
-    /// 结果页的状态（B2.7）。
-    static let resultStates: [QAState] = [.result, .resultDaily, .resultFirst, .resultEarly, .resultUndo, .resultSheet]
-    /// 重写错字页的状态（B2.9a）。
-    static let redoStates: [QAState] = [.redo, .redoInk, .redoCheck, .redoLast]
-    /// 逐屏对比覆盖的状态（home 三态不是写字 / 结果页）。
-    static var parityStates: [QAState] { allCases.filter { ![.home, .homeUsed, .homeMid].contains($0) } }
-}
-
 extension WebViewController {
     // MARK: 启动参数
 
-    private static func qaArg(_ flag: String) -> String? {
+    static func qaArg(_ flag: String) -> String? {
         let a = ProcessInfo.processInfo.arguments
         guard let i = a.firstIndex(of: flag), i + 1 < a.count else { return nil }
         return a[i + 1]
     }
 
     static var qaMode: String? { qaArg("-shizi-qa") }
-    static var qaSeed: QAState? { qaArg("-shizi-qa-seed").flatMap(QAState.init(rawValue:)) }
+    static var qaSeed: String? { qaArg("-shizi-qa-seed") }
     static var qaProbeEnabled: Bool { ProcessInfo.processInfo.arguments.contains("-shizi-qa-probe") }
     static var qaEnabled: Bool { qaMode != nil || qaSeed != nil || qaProbeEnabled }
 
@@ -98,224 +59,11 @@ extension WebViewController {
         }
     }
 
-    // MARK: 状态注入
-
-    /// 把 App 带到 state。返回 nil = 成功，否则是错误说明。
-    func qaPrepare(_ state: QAState, ui: String) async -> String? {
-        // 1. 收掉现有原生页
-        if let top = nativeWriteTop {
-            top.exitHandled = true
-            top.dismiss(animated: false)
-            try? await Task.sleep(nanoseconds: 150_000_000)
-        }
-        if let top = nativeResultTop {
-            top.exitHandled = true
-            top.dismiss(animated: false)
-            try? await Task.sleep(nanoseconds: 150_000_000)
-        }
-        // 2. 数据与写字页（页面里）
-        if QAState.redoStates.contains(state) { return await qaPrepareRedo(state, ui: ui) }
-        do {
-            let v = try await webView.callAsyncJavaScript(Self.qaPrepareJS, arguments: ["state": state.rawValue, "chars": Self.qaChars, "clock": Self.qaClock], in: nil, contentWorld: .page)
-            if let d = v as? [String: Any], (d["ok"] as? Bool) != true { return "prepare: \(d["error"] ?? "?")" }
-        } catch {
-            return "prepare js: \(error)"
-        }
-        await qaRememberClock()
-        if let n = Self.qaArg("-shizi-qa-fail-next").flatMap(Int.init), n > 0 {
-            // D07 三段式：接下来 n 次写入失败（页面测试钩子 failNextWrite，与 e2e / ShiziWriteTests 同一个）
-            _ = await qaJS("return window.__shiziTest.failNextWrite(\(n), {kind:'generic'});")
-        }
-        if [.home, .homeUsed, .homeMid].contains(state) {
-            try? await Task.sleep(nanoseconds: 900_000_000)
-            return nil
-        }
-        if QAState.resultStates.contains(state) {
-            // B2.7：等结果页出现（原生：原生结果页盖上；网页：结果页是顶层且转场结束）、作品显现与落印、提醒邀请（落印后 600ms 淡入）
-            if ui == "native" {
-                guard await qaWait(6, { self.nativeResultTop != nil && self.presentedViewController?.isBeingPresented == false && NativeWriteTransitions.running == 0 }) else { return "native result page did not appear" }
-            } else {
-                guard await qaWait(6, { await self.qaJS("const a=document.querySelector('.sz-app');const l=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"result-screen\"]');return !!a && a.dataset.navAnim==='idle' && !!l;") as? Bool == true }) else { return "web result page did not appear" }
-            }
-            try? await Task.sleep(nanoseconds: 2_600_000_000)
-            if state == .resultSheet {
-                await qaTap(ui, "result-change", times: 1)
-                try? await Task.sleep(nanoseconds: 1_200_000_000)
-            }
-            return nil
-        }
-        // 3. 等写字页出现、转场结束
-        if ui == "native" {
-            guard await qaWait(5, { self.nativeWriteTop != nil && self.presentedViewController?.isBeingPresented == false && NativeWriteTransitions.running == 0 }) else { return "native page did not appear" }
-        } else {
-            guard await qaWait(5, { await self.qaJS("const a=document.querySelector('.sz-app');const l=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"write-screen\"]');return !!a && a.dataset.navAnim==='idle' && !!l;") as? Bool == true }) else { return "web write page did not appear" }
-        }
-        try? await Task.sleep(nanoseconds: 700_000_000) // 0.4s 防误点 + 判断键 440ms
-        // 4. 界面上的点按（与真人同一个按钮动作）
-        switch state {
-        case .hint1: await qaTap(ui, "hint", times: 1)
-        case .hint2: await qaTap(ui, "hint", times: 2)
-        case .hintFull: await qaTap(ui, "hint", times: 8)
-        case .changeSheet: await qaTap(ui, "change", times: 1)
-        case .skipUndo: await qaTap(ui, "skip", times: 1)
-        case .endDialog: await qaTap(ui, "end", times: 1)
-        default: break
-        }
-        // 5. 落定：提示淡入 / 弹层 / 撤销条 / 笔顺快放（≤ 1.6s）
-        let settle: UInt64 = state == .trace ? 2_400_000_000 : (state == .changeSheet ? 1_200_000_000 : 900_000_000)
-        try? await Task.sleep(nanoseconds: settle)
-        return nil
-    }
-
     /// B2.9b：注入后页面时钟的偏移存下来（QAClock），之后的冷启动、原生时间戳都用它；没钉时钟（偏移 < 1s）则清掉。
-    private func qaRememberClock() async {
+    func qaRememberClock() async {
         let off = (await qaJS("return window.__shiziTest ? window.__shiziTest.now() - Date.now() : 0;") as? NSNumber)?.doubleValue ?? 0
         QAClock.offsetMs = abs(off) >= 1000 ? off : nil
     }
-
-    private func qaTap(_ ui: String, _ what: String, times: Int) async {
-        for i in 0..<times {
-            if i > 0 { try? await Task.sleep(nanoseconds: 550_000_000) } // 同一按钮两次按下隔 0.4s
-            if ui == "native" {
-                if what.hasPrefix("result-") {
-                    guard let rv = nativeResultTop else { return }
-                    if let b = qaButton(in: rv.view, id: Self.qaNativeIds[what] ?? ""), b.isEnabled, !b.isHidden { b.sendActions(for: .touchUpInside) }
-                    continue
-                }
-                guard let vc = nativeWriteTop else { return }
-                let sel: String
-                switch what {
-                case "hint": sel = "tapHint"
-                case "change": sel = "tapChange"
-                case "skip": sel = "tapSkip"
-                case "end": sel = "tapEnd"
-                default: return
-                }
-                // 走按钮自己的 action（含 0.4s 防误点），没有就直接调动作函数
-                if let b = qaButton(in: vc.view, id: Self.qaNativeIds[what] ?? ""), b.isEnabled, !b.isHidden {
-                    b.sendActions(for: .touchUpInside)
-                } else {
-                    vc.perform(Selector((sel)))
-                }
-            } else {
-                let sel = Self.qaWebSelectors[what] ?? ""
-                _ = await qaJS("const el=document.querySelector(\(Self.jsonLiteral(sel) ?? "''"));if(!el||el.disabled)return false;el.click();return true;")
-            }
-        }
-    }
-
-    // MARK: B2.9a 重写错字页
-
-    /// 重写错字页的状态：先造 result-daily 的数据与结果页，再点「重写错字」（原生结果页按钮 / 网页按钮），在重写错字页上按状态写 / 点。
-    private func qaPrepareRedo(_ state: QAState, ui: String) async -> String? {
-        if let err = await qaPrepare(.resultDaily, ui: ui) { return err }
-        if ui == "native" {
-            guard let rv = nativeResultTop, let b = qaButton(in: rv.view, id: "native-result-redo"), !b.isHidden else { return "native result has no redo button" }
-            b.sendActions(for: .touchUpInside)
-            guard await qaWait(6, { self.nativeRedoTop != nil && self.presentedViewController?.isBeingPresented == false }) else { return "native redo page did not appear" }
-        } else {
-            _ = await qaJS("const el=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"result-redo\"]');if(!el)return false;el.click();return true;")
-            guard await qaWait(6, { await self.qaJS("const a=document.querySelector('.sz-app');const l=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"redo-screen\"]');return !!a && a.dataset.navAnim==='idle' && !!l;") as? Bool == true }) else { return "web redo page did not appear" }
-        }
-        try? await Task.sleep(nanoseconds: 700_000_000) // 换字落笔门限 250ms + 0.4s 防误点
-        if state == .redoLast {
-            // 看答案 → 下一个，走到最后一个字（与真人同一组按钮）
-            for _ in 0..<8 {
-                guard let (i, total) = await qaRedoProgress(ui), i < total - 1 else { break }
-                await qaRedoTap(ui, "answer")
-                try? await Task.sleep(nanoseconds: 700_000_000)
-                await qaRedoTap(ui, "next")
-                try? await Task.sleep(nanoseconds: 900_000_000)
-            }
-        }
-        if state != .redo {
-            await qaRedoStrokes(ui)
-            try? await Task.sleep(nanoseconds: 500_000_000)
-        }
-        if state == .redoCheck || state == .redoLast {
-            await qaRedoTap(ui, "done")
-        }
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        return nil
-    }
-
-    /// 两边同一组笔画（345 单位，与写字页 recall-ink 注入的两笔同形：一横一竖，每 16ms 一点）。
-    static let qaRedoLines: [[(Double, Double)]] = [
-        (0..<14).map { (i: Int) -> (Double, Double) in let d = Double(i); return (70 + 15 * d, 150 + d) },
-        (0..<14).map { (i: Int) -> (Double, Double) in let d = Double(i); return (172 + 0.5 * d, 60 + 17 * d) },
-    ]
-
-    /// 原生：交给书写面同一个抬笔回调（与真笔写完一笔同一路径）；网页：在书写格的 live 画布上按 16ms 间隔派发指针事件（InkGrid 同一个 onDown / onMove / onUp）。
-    private func qaRedoStrokes(_ ui: String) async {
-        if ui == "native" {
-            guard let vc = nativeRedoTop, let ink = vc.inkViewForTesting else { return }
-            for (k, line) in Self.qaRedoLines.enumerated() {
-                let t0 = CACurrentMediaTime() * 1000 + Double(k) * 1000
-                vc.nativeInkDidEndStroke(ink, raw: line.enumerated().map { InkRawPoint(x: $0.element.0, y: $0.element.1, t: t0 + Double($0.offset) * 16) })
-            }
-            return
-        }
-        let lines = Self.qaRedoLines.map { $0.map { [$0.0, $0.1] } }
-        _ = try? await webView.callAsyncJavaScript(Self.qaWebStrokesJS, arguments: ["lines": lines], in: nil, contentWorld: .page)
-    }
-
-    static let qaWebStrokesJS = #"""
-    const c = document.querySelector('.sz-layer[data-top="true"] [data-testid="write-grid-live"]');
-    if (!c) return false;
-    const rc = c.getBoundingClientRect();
-    const side = Math.min(rc.width, rc.height), ox = (rc.width - side) / 2, oy = (rc.height - side) / 2;
-    const at = (q) => ({ clientX: rc.left + ox + q[0] * side / 345, clientY: rc.top + oy + q[1] * side / 345 });
-    const wait = (ms) => new Promise(r => setTimeout(r, ms));
-    let id = 40;
-    for (const line of lines) {
-      id += 1;
-      const base = { pointerId: id, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, button: 0, buttons: 1 };
-      c.dispatchEvent(new PointerEvent('pointerdown', { ...base, ...at(line[0]) }));
-      for (let i = 1; i < line.length; i += 1) { await wait(16); c.dispatchEvent(new PointerEvent('pointermove', { ...base, ...at(line[i]) })); }
-      c.dispatchEvent(new PointerEvent('pointerup', { ...base, buttons: 0, ...at(line[line.length - 1]) }));
-      await wait(200);
-    }
-    return true;
-    """#
-
-    private func qaRedoProgress(_ ui: String) async -> (Int, Int)? {
-        if ui == "native" {
-            guard let vc = nativeRedoTop else { return nil }
-            return (vc.redoIndexForTesting, vc.redoTotalForTesting)
-        }
-        let v = await qaJS("const w=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"redo-screen\"] .sz-write');return w?[Number(w.dataset.index),Number(w.dataset.total)]:null;") as? [NSNumber]
-        guard let v, v.count == 2 else { return nil }
-        return (v[0].intValue, v[1].intValue)
-    }
-
-    /// 重写错字页的按钮：answer（看答案）/ next（下一个 / 完成）/ done（写好了）/ again（再写一次）。
-    private func qaRedoTap(_ ui: String, _ what: String) async {
-        let ids = ["answer": ("native-redo-show-answer", "redo-show-answer"), "next": ("native-redo-next", "redo-next"), "done": ("native-redo-done", "redo-done"), "again": ("native-redo-again", "redo-again")]
-        guard let (nid, wid) = ids[what] else { return }
-        if ui == "native" {
-            guard let vc = nativeRedoTop, let b = qaButton(in: vc.view, id: nid), b.isEnabled, !b.isHidden else { return }
-            b.sendActions(for: .touchUpInside)
-        } else {
-            _ = await qaJS("const el=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"\(wid)\"]');if(!el||el.disabled)return false;el.click();return true;")
-        }
-    }
-
-    static let qaNativeIds = ["hint": "native-write-hint", "change": "native-write-line-change", "skip": "native-write-skip", "end": "native-write-end",
-                              "result-change": "native-result-row-change"]
-    static let qaWebSelectors = [
-        "result-change": ".sz-layer[data-top=\"true\"] [data-testid=\"result-exrow-change\"]",
-        "hint": ".sz-layer[data-top=\"true\"] .sz-hintbtn",
-        "change": ".sz-layer[data-top=\"true\"] .sz-line__change",
-        "skip": ".sz-layer[data-top=\"true\"] [data-testid=\"write-skip\"]",
-        "end": ".sz-layer[data-top=\"true\"] [data-testid=\"write-end\"]",
-    ]
-
-    private func qaButton(in root: UIView, id: String) -> UIButton? {
-        if let b = root as? UIButton, b.accessibilityIdentifier == id { return b }
-        for s in root.subviews { if let b = qaButton(in: s, id: id) { return b } }
-        return nil
-    }
-
     func qaJS(_ body: String) async -> Any? {
         try? await webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page)
     }
@@ -334,13 +82,13 @@ extension WebViewController {
     private func qaRunParity() async {
         let ui = Self.qaArg("-shizi-qa-ui") ?? (NativeWriteDetect.enabled ? "native" : "web")
         let tag = Self.qaArg("-shizi-qa-tag") ?? "light_L"
-        let states = (Self.qaArg("-shizi-qa-states")?.split(separator: ",").compactMap { QAState(rawValue: String($0)) }) ?? QAState.parityStates
+        let states = Self.qaArg("-shizi-qa-states")?.split(separator: ",").map(String.init) ?? QAFixture.parityNames(native: ui == "native")
         let fm = FileManager.default
         let outDir = Self.qaDir.appendingPathComponent(ui, isDirectory: true)
         try? fm.createDirectory(at: outDir, withIntermediateDirectories: true)
         for (i, st) in states.enumerated() {
             let err = await qaPrepare(st, ui: ui)
-            var dump: [String: Any] = ["state": st.rawValue, "ui": ui, "tag": tag, "ok": err == nil]
+            var dump: [String: Any] = ["state": st, "ui": ui, "tag": tag, "ok": err == nil]
             if let err { dump["error"] = err }
             let win = view.window
             dump["screen"] = ["w": win?.bounds.width ?? 0, "h": win?.bounds.height ?? 0, "scale": win?.screen.scale ?? 0,
@@ -351,12 +99,13 @@ extension WebViewController {
                 dump["elements"] = qaNativeElements()
             } else {
                 dump["elements"] = (await qaJS(Self.qaWebDumpJS)) ?? []
+                dump["ax"] = (await qaJS(Self.qaWebAxJS)) ?? [] // B3.3：读屏名称表（aria-label / role / aria-live），原生页之后逐项比 label
             }
-            let file = outDir.appendingPathComponent("\(st.rawValue)_\(tag).json")
+            let file = outDir.appendingPathComponent("\(st)_\(tag).json")
             if let data = try? JSONSerialization.data(withJSONObject: dump, options: [.prettyPrinted, .sortedKeys]) { try? data.write(to: file) }
             // 通知宿主截图，等回执
             let ack = Self.qaDir.appendingPathComponent("ack-\(i)")
-            try? "\(i) \(st.rawValue)".write(to: Self.qaDir.appendingPathComponent("ready"), atomically: true, encoding: .utf8)
+            try? "\(i) \(st)".write(to: Self.qaDir.appendingPathComponent("ready"), atomically: true, encoding: .utf8)
             _ = await qaWait(90) { fm.fileExists(atPath: ack.path) }
         }
         try? "done".write(to: Self.qaDir.appendingPathComponent("done"), atomically: true, encoding: .utf8)
@@ -395,6 +144,14 @@ extension WebViewController {
             }
             if let bar = vc.undoBarForTesting { collectNames(bar, prefix: "undoBar.") }
             if let dlg = vc.endDialogForTesting { collectNames(dlg, prefix: "endDialog.") }
+        }
+        // B3.3：别的原生页（页面卡新加的宿主）：呈现出来的控制器按成员名取语义键，弹层同写字页的 sheet. 前缀
+        if nativeResultTop == nil, nativeWriteTop == nil, let p = presentedViewController {
+            collectNames(p, prefix: "")
+            if let sheet = p.presentedViewController {
+                collectNames(sheet, prefix: "sheet.")
+                names[ObjectIdentifier(sheet.view)] = "sheet.view"
+            }
         }
         var out: [[String: Any]] = []
         func visible(_ v: UIView) -> Bool {
@@ -553,168 +310,11 @@ extension WebViewController {
 
     // MARK: 页面脚本
 
-    /// 注入：清空 →（可选固定时钟）→ 开「这次选的字」5 个字 → 按状态经写字会话 API 提交 → 打开写字页（网页路由；开关开着时是原生宿主）。
-    static let qaPrepareJS = #"""
-    const T = window.__shiziTest;
-    if (!T) return { ok: false, error: 'no __shiziTest (need -shizi-test-host)' };
-    const { nav } = await import('/src/ui/router.js');
-    try { nav.switchTab('home'); } catch (e) {}
-    await new Promise(r => setTimeout(r, 120));
-    T.reset();
-    if (clock) T.setClock(clock);
-    // B2.7 结果页状态：取证数据要可复现——「N 天后再见」的天数来自 FSRS（fuzz 种子含复习时刻，毫秒级），每次取证时刻不同天数就不同。
-    // 造数据期间把页面时钟钉在固定时刻（每次读数 +5ms，顺序确定），造完从那一刻起照常流逝；网页参考与原生取证因此是同一份数据、同一个落款日期。
-    let unpin = () => {};
-    if (state.startsWith('result')) {
-      const FIX = new Date(2026, 9, 22, 9, 0, 0).getTime();
-      const real = Date.now;
-      let k = 0;
-      Date.now = () => FIX + (k += 5);
-      unpin = () => { const at = Date.now(); Date.now = real; T.setClock(at); };
-    }
-    if (state === 'home') return { ok: true };
-    const { getStore } = await import('/src/store/store.js');
-    const core = await import('/src/core/session-start.js');
-    const { deckAdapter } = await import('/src/data/deck.js');
-    const env = await import('/src/platform/env.js');
-    const store = getStore();
-    if (state === 'result-first') {
-      const { createWriteSessionApi } = await import('/src/ui/screens/write/native-session.js');
-      const { writeSnapshot } = await import('/src/session/write-api.js');
-      const api = createWriteSessionApi({ navigate: { back() {}, toResult() {} } });
-      const S = [Array.from({ length: 14 }, (_, i) => [70 + 15 * i, 150 + i, 1000 + i * 16]), Array.from({ length: 14 }, (_, i) => [172 + 0.5 * i, 60 + 17 * i, 2000 + i * 16])];
-      const a = core.startNextA(store, { now: env.now, deck: deckAdapter, source: { view: 'home' } });
-      if (!a || !a.ok || !a.started) return { ok: false, error: 'startNextA(first) ' + JSON.stringify(a) };
-      const sid = writeSnapshot(store.getState(), 'A').sessionId;
-      for (const j of ['wrong', 'correct', 'correct']) {
-        const k = writeSnapshot(store.getState(), 'A').cardKey;
-        api.call('phase', { slot: 'A', cardKey: k, phase: 'compare', strokes: S });
-        const r = api.call('judge', { slot: 'A', cardKey: k, judgment: j, strokes: S, hints: 0 });
-        if (!r.ok) return { ok: false, error: 'judge ' + JSON.stringify(r.error) };
-      }
-      unpin(); nav.push('result', { slot: 'A', sessionId: sid });
-      return { ok: true };
-    }
-    if (state === 'home-used' || state === 'home-mid' || state === 'result-daily' || state === 'result-sheet') {
-      const { createWriteSessionApi } = await import('/src/ui/screens/write/native-session.js');
-      const { writeSnapshot } = await import('/src/session/write-api.js');
-      const api = createWriteSessionApi({ navigate: { back() {}, toResult() {} } });
-      const S = [Array.from({ length: 14 }, (_, i) => [70 + 15 * i, 150 + i, 1000 + i * 16])];
-      const runA = (n, js) => {
-        for (let i = 0; i < n; i += 1) {
-          const k = writeSnapshot(store.getState(), 'A').cardKey;
-          api.call('phase', { slot: 'A', cardKey: k, phase: 'compare', strokes: S });
-          const r = api.call('judge', { slot: 'A', cardKey: k, judgment: js[i % js.length], strokes: S, hints: 0 });
-          if (!r.ok) throw new Error('judge ' + JSON.stringify(r.error));
-        }
-      };
-      try {
-        const a = core.startNextA(store, { now: env.now, deck: deckAdapter, source: { view: 'home' } });
-        if (!a || !a.ok || !a.started) return { ok: false, error: 'startNextA(first) ' + JSON.stringify(a) };
-        runA(3, ['wrong', 'correct', 'correct']);
-        if (state === 'home-mid' || state === 'result-daily' || state === 'result-sheet') {
-          const b = core.startNextA(store, { now: env.now, deck: deckAdapter, source: { view: 'home' } });
-          if (!b || !b.ok || !b.started) return { ok: false, error: 'startNextA(daily) ' + JSON.stringify(b) };
-          if (state === 'home-mid') runA(1, ['correct']);
-          else {
-            const sid = writeSnapshot(store.getState(), 'A').sessionId;
-            const total = writeSnapshot(store.getState(), 'A').total;
-            runA(total, ['wrong', 'correct', 'correct']);
-            unpin(); nav.push('result', { slot: 'A', sessionId: sid }); // 写完的组：结果条目直接入栈（网页 / 原生同一条路由）
-            return { ok: true };
-          }
-        }
-      } catch (e) { return { ok: false, error: String(e && e.message || e) }; }
-      try { nav.switchTab('home'); } catch (e) {}
-      return { ok: true };
-    }
-    if (state === 'first-recall') {
-      const a = core.startNextA(store, { now: env.now, deck: deckAdapter, source: { view: 'home' } });
-      if (!a || !a.ok || !a.started) return { ok: false, error: 'startNextA(first) ' + JSON.stringify(a) };
-      const { openWrite } = await import('/src/ui/screens/session/index.js');
-      openWrite('A');
-      return { ok: true };
-    }
-    const started = core.startPicked(store, { keys: chars, source: { view: 'home' }, deck: deckAdapter });
-    if (!started || !started.ok) return { ok: false, error: 'startPicked ' + JSON.stringify(started) };
-    const { createWriteSessionApi } = await import('/src/ui/screens/write/native-session.js');
-    const { writeSnapshot } = await import('/src/session/write-api.js');
-    const api = createWriteSessionApi();
-    const snap = () => writeSnapshot(store.getState(), 'B');
-    const line = (x0, y0, dx, dy, t0) => Array.from({ length: 14 }, (_, i) => [x0 + dx * i, y0 + dy * i, t0 + i * 16]);
-    const S = [line(70, 150, 15, 1, 1000), line(172, 60, 0.5, 17, 2000)];
-    const must = (label, x) => { if (!x || !x.ok) throw new Error(label + ' ' + JSON.stringify(x && x.error)); return x; };
-    const judgeOne = (judgment) => {
-      const k = snap().cardKey;
-      must('phase', api.call('phase', { slot: 'B', cardKey: k, phase: 'compare', strokes: S }));
-      return must('judge', api.call('judge', { slot: 'B', cardKey: k, judgment, strokes: S, hints: 0 }));
-    };
-    try {
-      const k = snap().cardKey;
-      switch (state) {
-        case 'recall-ink':
-          must('strokes', api.call('strokes', { slot: 'B', cardKey: k, strokes: S, phase: 'recall' }));
-          break;
-        case 'trace':
-          must('showAnswer', api.call('showAnswer', { slot: 'B', cardKey: k }));
-          break;
-        case 'retrace':
-          must('showAnswer', api.call('showAnswer', { slot: 'B', cardKey: k }));
-          must('answerPhase', api.call('answerPhase', { slot: 'B', cardKey: k, phase: 'retrace', strokes: [] }));
-          break;
-        case 'judge':
-          must('phase', api.call('phase', { slot: 'B', cardKey: k, phase: 'compare', strokes: S }));
-          break;
-        case 'line': case 'change-sheet': case 'end-dialog':
-          judgeOne('wrong');
-          break;
-        case 'last':
-          for (let i = 0; i < 4; i += 1) judgeOne(i % 2 ? 'correct' : 'wrong');
-          break;
-        case 'last-judge':
-          for (let i = 0; i < 4; i += 1) judgeOne(i % 2 ? 'correct' : 'wrong');
-          must('phase', api.call('phase', { slot: 'B', cardKey: snap().cardKey, phase: 'compare', strokes: S }));
-          break;
-        case 'result': {
-          const sid = snap().sessionId;
-          for (let i = 0; i < 5; i += 1) judgeOne(i % 2 ? 'correct' : 'wrong');
-          unpin(); nav.push('result', { slot: 'B', sessionId: sid });
-          return { ok: true };
-        }
-        case 'result-early': {
-          // 判断 2 字后「结束这组」（与写字页确认框「结束这组」同一个 end op），中途结束的结果页
-          const sid = snap().sessionId;
-          judgeOne('wrong');
-          judgeOne('correct');
-          must('end', api.call('end', { slot: 'B', sessionId: sid }));
-          unpin(); nav.push('result', { slot: 'B', sessionId: sid });
-          return { ok: true };
-        }
-        case 'result-undo': {
-          // 前 4 字判断过，最后一字跳过 → 写字页把撤销机会交给结果页（exit result + undo；取证时撤销条留够久，不在截图前收起）
-          const sid = snap().sessionId;
-          for (let i = 0; i < 4; i += 1) judgeOne(i % 2 ? 'correct' : 'wrong');
-          const sk = must('skip', api.call('skip', { slot: 'B', cardKey: snap().cardKey }));
-          const { handoffSkipUndo } = await import('/src/ui/screens/result/index.js');
-          handoffSkipUndo({ ...sk.undo, slot: 'B', strokes: null, until: performance.now() + 600000 });
-          unpin(); nav.push('result', { slot: 'B', sessionId: sid });
-          return { ok: true };
-        }
-        default: break;
-      }
-    } catch (e) {
-      return { ok: false, error: String(e && e.message || e) };
-    }
-    const { openWrite } = await import('/src/ui/screens/session/index.js');
-    openWrite('B');
-    return { ok: true, snapshot: snap() };
-    """#
-
     /// 网页元素清单：顶层图层与其上的弹层 / 确认框 / 撤销条里可见的控件与文字（与原生清单同一形状）。
     static let qaWebDumpJS = #"""
     const app = document.querySelector('.sz-app');
     const top = document.querySelector('.sz-layer[data-top="true"]');
-    const roots = [top, ...document.querySelectorAll('.sz-sheet, .sz-confirm, .sz-undobar, .sz-toast, [role="dialog"], [role="alertdialog"]')].filter(Boolean);
+    const roots = [top, ...document.querySelectorAll('.sz-sheet, .sz-confirm, .sz-undobar, .sz-toast, .sz-corrupt, [role="dialog"], [role="alertdialog"]')].filter(Boolean);
     const uniq = new Set();
     const out = [];
     const W = window.innerWidth, H = window.innerHeight;

@@ -1,0 +1,38 @@
+{
+  "state": "last-judge",
+  "name": "最后一字（判断）",
+  "order": 15,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong",
+        "correct"
+      ],
+      "n": 4
+    },
+    {
+      "op": "call",
+      "name": "phase",
+      "args": {
+        "phase": "compare",
+        "strokes": "two"
+      }
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "parity": true
+}

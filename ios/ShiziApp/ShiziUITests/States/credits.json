@@ -1,0 +1,26 @@
+{
+  "state": "credits",
+  "name": "致谢（程序 / 字形和字源 / 字体）",
+  "screen": "about-credits",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "about-credits",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "about-credits-screen"
+  },
+  "ax": true
+}

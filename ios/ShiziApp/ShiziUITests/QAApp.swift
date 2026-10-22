@@ -19,6 +19,13 @@ enum QAIssue {
     }
 }
 
+enum QAPending {
+    /// 流程测试骨架（B3B4 §5.2）：还没填的用例，报「跳过」并写明由哪张卡填（flows-summary 记为待办，不算失败）。
+    static func skip(_ card: String, _ what: String) throws {
+        throw XCTSkip("待 \(card)：\(what)")
+    }
+}
+
 @MainActor
 final class QA {
     let app = XCUIApplication()

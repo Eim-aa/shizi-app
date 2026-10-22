@@ -1,0 +1,263 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "开源致谢",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "name" : "程序",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "about-credit-toggle",
+      "name" : "Hanzi Writer 3.7.3，许可全文",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "about-credits-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 28,
+        "y" : 106
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "开源致谢",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 207.09999999999999,
+        "x" : 36,
+        "y" : 105
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__intro",
+      "color" : "#564E46FF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 174,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "about-credits-intro",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "用到的开源程序、数据和字体，谢谢作者。",
+      "textFrame" : {
+        "h" : 175,
+        "w" : 335,
+        "x" : 20,
+        "y" : 189
+      }
+    },
+    {
+      "class" : "sz-about__group",
+      "frame" : {
+        "h" : 1517,
+        "w" : 362,
+        "x" : 20,
+        "y" : 396
+      },
+      "id" : "about-credits-group",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__gtitle",
+      "color" : "#26211DFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 396
+      },
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "程序",
+      "textFrame" : {
+        "h" : 78,
+        "w" : 106,
+        "x" : 20,
+        "y" : 386
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 419,
+        "w" : 362,
+        "x" : 20,
+        "y" : 463
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 116,
+        "w" : 362,
+        "x" : 20,
+        "y" : 475
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "Hanzi Writer 3.7.3",
+      "textFrame" : {
+        "h" : 117,
+        "w" : 237.19999999999999,
+        "x" : 20,
+        "y" : 474
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 595
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 228,
+        "x" : 20,
+        "y" : 594
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 156,
+        "w" : 362,
+        "x" : 20,
+        "y" : 651
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/chanind\/hanzi-writer",
+      "textFrame" : {
+        "h" : 157,
+        "w" : 353.5,
+        "x" : 20,
+        "y" : 650
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Hanzi Writer 3.7.3，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 180.09999999999999,
+        "x" : 16,
+        "y" : 811
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 172.09999999999999,
+        "x" : 20,
+        "y" : 813
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "credits",
+  "tag" : "light_AX5",
+  "ui" : "web"
+}

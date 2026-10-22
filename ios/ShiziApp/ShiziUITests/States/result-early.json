@@ -1,0 +1,52 @@
+{
+  "state": "result-early",
+  "name": "结果页 · 中途结束",
+  "order": 19,
+  "screen": "result",
+  "template": "result",
+  "native": true,
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "mark",
+      "slot": "B",
+      "sid": "sid"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong",
+        "correct"
+      ],
+      "n": 2
+    },
+    {
+      "op": "call",
+      "name": "end",
+      "args": {
+        "sessionId": "$sid"
+      }
+    },
+    {
+      "op": "unpinClock"
+    },
+    {
+      "op": "push",
+      "screen": "result",
+      "params": {
+        "slot": "B",
+        "sessionId": "$sid"
+      }
+    }
+  ],
+  "parity": true
+}

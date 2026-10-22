@@ -1,0 +1,5 @@
+{
+  "ready": { "timeout": 6 },
+  "settleBefore": 500,
+  "settle": 500
+}

@@ -1,0 +1,20 @@
+{
+  "state": "block-migration",
+  "name": "阻断 · 迁移失败",
+  "screen": "block",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "blockMode",
+      "kind": "migration"
+    }
+  ],
+  "ready": {
+    "web": "block-screen"
+  }
+}

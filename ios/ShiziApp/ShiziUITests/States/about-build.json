@@ -1,0 +1,36 @@
+{
+  "state": "about-build",
+  "name": "关于 · 版本行展开完整 BUILD",
+  "screen": "about",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "about",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "about-screen"
+  },
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "about-build"
+      },
+      "times": 1
+    },
+    {
+      "wait": 500
+    }
+  ]
+}

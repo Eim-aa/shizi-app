@@ -1,0 +1,41 @@
+{
+  "state": "end-dialog",
+  "name": "结束确认框",
+  "order": 13,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong"
+      ],
+      "n": 1
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "overlay": "write-end-dialog",
+  "steps": [
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"write-end\"]",
+        "native": "native-write-end",
+        "nativeSelector": "tapEnd"
+      },
+      "times": 1
+    }
+  ],
+  "parity": true
+}

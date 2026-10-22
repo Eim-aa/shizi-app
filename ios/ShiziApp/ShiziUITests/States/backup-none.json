@@ -1,0 +1,25 @@
+{
+  "state": "backup-none",
+  "name": "备份 · 没有记录（导出与清空灰）",
+  "screen": "backup",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "backup",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "backup-screen"
+  }
+}

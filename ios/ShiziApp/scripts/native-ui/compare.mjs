@@ -1,6 +1,7 @@
 // QA-H1 逐屏对比：网页参考（标准答案）vs 原生取证。
 //
-// usage: node compare.mjs --ref <参考目录> --native <原生取证目录> --out <输出目录> [--config parity.config.json]
+// usage: node compare.mjs --ref <参考目录> --native <原生取证目录> --out <输出目录> [--config parity.config.json] [--states a,b]
+// 只比夹具 native: true 的状态（registry.mjs STATES）；其余参考图是 reference-only（还没有原生页），只在汇总里记数。--states 再限定到这几个状态。
 // 方法：以「元素清单 + 位置尺寸 + 文案 + 颜色」为主（elements.mjs 配对，容差见 parity.config.json），不做整图像素比；
 //   格里的墨另比像素（R11-A，D72 ②：原生墨与网页同一算法）：parity.config.json ink.states 列出的状态，在各自的墨格（网页 / 原生各取自己的框）
 //   里按同一网格取墨区掩膜，比墨区 IoU 与平均粗细（墨面积比，同一组注入笔画、中线相同）——NP-07 / NP-22。
@@ -13,14 +14,21 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { diffState } from './elements.mjs';
 import { CHECKS, COVERED_ELSEWHERE } from './parity-checks.mjs';
-import { STATE_NAMES } from './config.mjs';
+import { STATE_NAMES, STATES } from './config.mjs';
+import { loadParity } from './registry.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, arr) => (a.startsWith('--') ? [...acc, [a.slice(2), arr[i + 1]]] : acc), []));
 const refDir = args.ref;
 const natDir = args.native;
 const outDir = args.out;
-const config = JSON.parse(readFileSync(args.config || join(here, 'parity.config.json'), 'utf8'));
+// 全局口径（容差、墨迹口径）在 parity.config.json；逐项豁免 / 忽略 / 墨格语义键按屏在 parity/<屏>.json（registry.mjs loadParity 合并）
+const baseConfig = JSON.parse(readFileSync(args.config || join(here, 'parity.config.json'), 'utf8'));
+const parity = loadParity();
+const config = { ...baseConfig, ignore: [...(baseConfig.ignore || []), ...parity.ignore], waive: { ...(baseConfig.waive || {}), ...parity.waive }, ink: { ...(baseConfig.ink || {}), states: { ...((baseConfig.ink || {}).states || {}), ...parity.ink.states } } };
+const onlyStates = args.states && args.states !== 'true' ? new Set(args.states.split(',').filter(Boolean)) : null;
+const nativeStates = new Set(STATES);
+const referenceOnly = new Set();
 const tol = config.tolerance;
 /** 逐项豁免（parity.config.json waive：编号 → 理由）：照跑照记，失败不算回归。 */
 const waived = Object.fromEntries(Object.entries(config.waive || {}).filter(([k]) => !k.startsWith('//')));
@@ -172,9 +180,11 @@ for (const name of pairsFound) {
   const m = /^(.+)_(light|dark)_([A-Za-z0-9]+)$/.exec(name);
   if (!m) continue;
   const [, state, appearance, size] = m;
+  if (!nativeStates.has(state)) { referenceOnly.add(state); continue; }
+  if (onlyStates && !onlyStates.has(state)) continue;
   const webJson = JSON.parse(readFileSync(join(refDir, `${name}.json`), 'utf8'));
   const natPath = join(natDir, `${name}.json`);
-  if (!existsSync(natPath)) { results.push({ name, state, appearance, size, error: '没有原生取证' }); continue; }
+  if (!existsSync(natPath)) { if (onlyStates) continue; /* --states 只比取过的 */ results.push({ name, state, appearance, size, error: '没有原生取证' }); continue; }
   const natJson = JSON.parse(readFileSync(natPath, 'utf8'));
   const { diffs, web, native } = diffState(webJson, natJson, tol);
   const ignored = config.ignore || [];
@@ -244,6 +254,7 @@ const md = [];
 md.push('# 原生 vs 网页 逐屏对比报告（QA-H1）', '');
 md.push(`- 对比 ${results.length} 屏（状态 × 外观 × 字号），差异 **${total}** 条（一个元素各方面合一条；原生缺少 / 多出各一条）；容差：位置 ±${tol.pos}pt、尺寸 ±${tol.size}pt、颜色通道 ±${tol.color}、字号 ±${tol.font}pt、字重 ±${tol.weight}`);
 md.push(`- 按类别（一条可含多类）：${Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${TYPE[k] || k} ${v}`).join('、') || '无'}`);
+md.push(`- 只有网页参考、还没有原生页的状态（夹具 native 不是 true，不对比）：${referenceOnly.size} 个`);
 md.push(`- 具名检查（AI 报告 NP-*）：预期失败（待修）${expectedFail.length} 条、意外通过 ${unexpectedPass.length} 条、回归 ${regressions.length} 条、豁免 ${waivedRuns.length} 条`);
 const errs = results.filter(r => r.error || (r.errors && r.errors.length) || r.ok === false);
 if (errs.length) md.push(`- 取证出错 ${errs.length} 屏：${errs.map(r => `${r.name}（${r.error || r.errors.join('；')}）`).join('，')}`);
@@ -266,5 +277,6 @@ for (const r of results) {
 writeFileSync(join(outDir, 'report.md'), md.join('\n'));
 writeFileSync(join(outDir, 'report.json'), JSON.stringify({ total, byType, checks: checkSummary, results }, null, 2));
 console.log(`compared ${results.length} screens: ${total} diffs (${Object.entries(byType).map(([k, v]) => `${k} ${v}`).join(', ')}); NP checks expected-fail ${expectedFail.length}, unexpected-pass ${unexpectedPass.length}, regressions ${regressions.length}, waived ${waivedRuns.length}`);
+console.log(`reference-only: ${referenceOnly.size} states have a web reference but no native page yet (not compared)`);
 console.log(`report: ${join(outDir, 'report.md')}`);
 process.exitCode = regressions.length ? 1 : 0;

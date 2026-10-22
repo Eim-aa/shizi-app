@@ -1,0 +1,34 @@
+{
+  "state": "skip-undo",
+  "name": "跳过撤销条",
+  "order": 12,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "floater": "undo-bar",
+  "steps": [
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"write-skip\"]",
+        "native": "native-write-skip",
+        "nativeSelector": "tapSkip"
+      },
+      "times": 1
+    }
+  ],
+  "parity": true
+}

@@ -1,0 +1,154 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "「雪」的旧记录",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "photo-image",
+      "name" : "旧版本拍下的照片",
+      "role" : "img",
+      "tag" : "img"
+    }
+  ],
+  "elements" : [
+    {
+      "bg" : "#1B1814FF",
+      "class" : "sz-dphoto t-dark",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "photo-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 28,
+        "y" : 106
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "「雪」的旧记录",
+      "textFrame" : {
+        "h" : 49,
+        "w" : 274,
+        "x" : 36,
+        "y" : 105
+      }
+    },
+    {
+      "class" : "sz-dphoto__img",
+      "frame" : {
+        "h" : 460,
+        "w" : 362,
+        "x" : 20,
+        "y" : 187.30000000000001
+      },
+      "id" : "photo-image",
+      "kind" : "view",
+      "tag" : "img"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dphoto__cap",
+      "color" : "#A0968AFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 42,
+        "w" : 362,
+        "x" : 20,
+        "y" : 668
+      },
+      "id" : "photo-caption",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "旧记录",
+      "textFrame" : {
+        "h" : 40,
+        "w" : 97.099999999999994,
+        "x" : 20,
+        "y" : 669
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dphoto__body",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 126,
+        "w" : 362,
+        "x" : 20,
+        "y" : 716
+      },
+      "id" : "photo-body",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "旧版本拍照的记录，只能看，不能做图。备份时会一起存下。",
+      "textFrame" : {
+        "h" : 128,
+        "w" : 317.69999999999999,
+        "x" : 20,
+        "y" : 715
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX3",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "photo",
+  "tag" : "dark_AX3",
+  "ui" : "web"
+}

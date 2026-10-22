@@ -1,0 +1,22 @@
+{
+  "state": "first-recall",
+  "name": "首练第 1 字（一次性说明）",
+  "order": 1,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "setup": [
+    {
+      "op": "openApi",
+      "slot": "A"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "openWrite",
+      "slot": "A"
+    }
+  ],
+  "parity": true
+}

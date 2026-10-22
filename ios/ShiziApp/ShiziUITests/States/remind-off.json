@@ -1,0 +1,25 @@
+{
+  "state": "remind-off",
+  "name": "提醒 · 关",
+  "screen": "remind",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "remind",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "remind-screen"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "state": "home-first",
+  "name": "首页 · 首次打开（品牌时刻 · 框中「拾」）",
+  "screen": "home",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ax": true,
+  "setup": [],
+  "ready": {
+    "web": "screen-home"
+  },
+  "settle": 800
+}

@@ -1,0 +1,30 @@
+{
+  "state": "line",
+  "name": "格下结果行（修改 ›）",
+  "order": 10,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong"
+      ],
+      "n": 1
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "parity": true
+}

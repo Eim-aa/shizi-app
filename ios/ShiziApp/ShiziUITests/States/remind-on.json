@@ -1,0 +1,41 @@
+{
+  "state": "remind-on",
+  "name": "提醒 · 开（20:30）",
+  "screen": "remind",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "patch",
+      "domain": "settings",
+      "value": {
+        "remind": {
+          "enabled": true,
+          "hour": 20,
+          "minute": 30,
+          "permission": "granted"
+        }
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "remind",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "remind-screen"
+  },
+  "ax": true
+}

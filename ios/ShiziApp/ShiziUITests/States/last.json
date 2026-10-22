@@ -1,0 +1,30 @@
+{
+  "state": "last",
+  "name": "最后一字（回忆）",
+  "order": 14,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong",
+        "correct"
+      ],
+      "n": 4
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "parity": true
+}

@@ -1,0 +1,708 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "未熟悉",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "list-toggle-all",
+      "name" : "全不选",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-head",
+      "name" : "先练这 5 个",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "取消选择「狗」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "狗 小狗 最近 10月21日 · 写过 1 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "取消选择「鱼」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "鱼 金鱼 最近 10月21日 · 写过 1 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "取消选择「猫」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "猫 小猫 最近 10月21日 · 写过 1 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "取消选择「法」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "法 法律 最近 9月11日 · 写过 2 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "取消选择「字」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "字 汉字 最近 10月8日 · 写过 2 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-go-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "练这些字"
+    },
+    {
+      "id" : "list-go",
+      "name" : "练这些字",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "list-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 253.30000000000001,
+        "x" : 72,
+        "y" : 73
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "未熟悉",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 50.600000000000001,
+        "x" : 173.40000000000001,
+        "y" : 73
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-list__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 52.700000000000003,
+        "x" : 333.30000000000001,
+        "y" : 62
+      },
+      "id" : "list-toggle-all",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "全不选",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 44.600000000000001,
+        "x" : 337.30000000000001,
+        "y" : 74
+      }
+    },
+    {
+      "class" : "sz-list",
+      "frame" : {
+        "h" : 562,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "list-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-list__head",
+      "color" : "#26211DFF",
+      "fontSize" : 28,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 36,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "list-head",
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "先练这 5 个",
+      "textFrame" : {
+        "h" : 42,
+        "w" : 142.19999999999999,
+        "x" : 20,
+        "y" : 119
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-list__top",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 166
+      },
+      "id" : "list-top",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "未熟悉的字，过几天会回来。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 193.5,
+        "x" : 20,
+        "y" : 167
+      }
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 1,
+      "class" : "sz-list__rows",
+      "frame" : {
+        "h" : 426,
+        "w" : 362,
+        "x" : 20,
+        "y" : 212
+      },
+      "id" : "list-rows",
+      "kind" : "view",
+      "tag" : "ul"
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 213
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「狗」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 233
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 248
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 213
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 233
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "狗 小狗 最近 10月21日 · 写过 1 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 234.40000000000001,
+        "x" : 58,
+        "y" : 228
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 298
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「鱼」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 318
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 333
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 298
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 318
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "鱼 金鱼 最近 10月21日 · 写过 1 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 234.40000000000001,
+        "x" : 58,
+        "y" : 313
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 383
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「猫」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 403
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 418
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 383
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 403
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "猫 小猫 最近 10月21日 · 写过 1 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 234.40000000000001,
+        "x" : 58,
+        "y" : 398
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 468
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「法」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 488
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 503
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 468
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 488
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "法 法律 最近 9月11日 · 写过 2 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 225.19999999999999,
+        "x" : 58,
+        "y" : 483
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 553
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「字」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 573
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 588
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 553
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 573
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "字 汉字 最近 10月8日 · 写过 2 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 225.19999999999999,
+        "x" : 58,
+        "y" : 568
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-list__note",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 662
+      },
+      "id" : "list-note",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "点圆圈选字，点这一行看记录。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 208.40000000000001,
+        "x" : 20,
+        "y" : 663
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-list__hint",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 754
+      },
+      "id" : "list-hint",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "选了 5 个字 · 写完会回到这里。",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 183.30000000000001,
+        "x" : 109.40000000000001,
+        "y" : 755
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-live",
+      "color" : "#26211DFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 753
+      },
+      "id" : "list-go-live",
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "练这些字",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 59.5,
+        "x" : 19,
+        "y" : 754
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "list-go",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "练这些字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 802
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "list-shaky",
+  "tag" : "light_L",
+  "ui" : "web"
+}

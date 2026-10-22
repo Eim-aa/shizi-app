@@ -1,0 +1,8 @@
+{
+  "state": "home",
+  "name": "首页起点（清空数据）",
+  "screen": "home",
+  "parity": false,
+  "template": "home",
+  "setup": []
+}

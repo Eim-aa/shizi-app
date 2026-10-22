@@ -1,0 +1,23 @@
+{
+  "state": "recall",
+  "name": "回忆（没写）",
+  "order": 2,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "parity": true
+}

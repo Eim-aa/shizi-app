@@ -1,0 +1,26 @@
+{
+  "state": "redo-check",
+  "name": "重写错字 · 对照（下一个）",
+  "order": 24,
+  "screen": "redo",
+  "native": true,
+  "base": "_redo-open",
+  "settle": 1000,
+  "ax": true,
+  "steps": [
+    {
+      "strokes": "redo"
+    },
+    {
+      "wait": 500
+    },
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"redo-done\"]",
+        "native": "native-redo-done"
+      },
+      "times": 1
+    }
+  ],
+  "parity": true
+}

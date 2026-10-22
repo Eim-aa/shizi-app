@@ -1,0 +1,1061 @@
+{
+  "ax" : [
+    {
+      "name" : "我的",
+      "role" : "tabpanel",
+      "tag" : "div"
+    },
+    {
+      "name" : "我的",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "mine-remind",
+      "name" : "提醒",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-library",
+      "name" : "练习范围",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-appearance-seg",
+      "name" : "外观",
+      "role" : "radiogroup",
+      "tag" : "div"
+    },
+    {
+      "id" : "mine-appearance-option",
+      "name" : "跟随系统",
+      "role" : "radio",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-appearance-option",
+      "name" : "日间",
+      "role" : "radio",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-appearance-option",
+      "name" : "夜间",
+      "role" : "radio",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-group-size-seg",
+      "name" : "每组字数",
+      "role" : "radiogroup",
+      "tag" : "div"
+    },
+    {
+      "id" : "mine-group-size-option",
+      "name" : "5 个",
+      "role" : "radio",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-group-size-option",
+      "name" : "10 个",
+      "role" : "radio",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-group-size-option",
+      "name" : "20 个",
+      "role" : "radio",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-group-size-option",
+      "name" : "30 个",
+      "role" : "radio",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-menu-backup",
+      "name" : "备份",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-menu-annual",
+      "name" : "年度报告",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "mine-menu-about",
+      "name" : "关于拾字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "",
+      "role" : "tablist",
+      "tag" : "div"
+    },
+    {
+      "id" : "tab-home",
+      "name" : "写字",
+      "role" : "tab",
+      "tag" : "button"
+    },
+    {
+      "id" : "tab-library",
+      "name" : "字库",
+      "role" : "tab",
+      "tag" : "button"
+    },
+    {
+      "id" : "tab-mine",
+      "name" : "我的",
+      "role" : "tab",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-tabpage",
+      "frame" : {
+        "h" : 893,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "screen-mine",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-tabpage__title",
+      "color" : "#26211DFF",
+      "fontSize" : 37.799999,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 78
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 55,
+        "w" : 75.599999999999994,
+        "x" : 20,
+        "y" : 74
+      }
+    },
+    {
+      "class" : "sz-mine",
+      "frame" : {
+        "h" : 727,
+        "w" : 362,
+        "x" : 20,
+        "y" : 134
+      },
+      "id" : "mine-home",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-mine__ov",
+      "frame" : {
+        "h" : 113.7,
+        "w" : 362,
+        "x" : 20,
+        "y" : 146
+      },
+      "id" : "mine-overview",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-mine__stat",
+      "frame" : {
+        "h" : 113,
+        "w" : 120.7,
+        "x" : 20,
+        "y" : 146.30000000000001
+      },
+      "id" : "mine-stat-streak",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__num",
+      "color" : "#26211DFF",
+      "fontSize" : 45.900002000000001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 56,
+        "w" : 28.800000000000001,
+        "x" : 20,
+        "y" : 162.30000000000001
+      },
+      "id" : "mine-stat-num",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "0",
+      "textFrame" : {
+        "h" : 56,
+        "w" : 28.800000000000001,
+        "x" : 20,
+        "y" : 162.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__unit",
+      "color" : "#6E655BFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 20.100000000000001,
+        "x" : 52.799999999999997,
+        "y" : 184.30000000000001
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "天",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 20.100000000000001,
+        "x" : 52.799999999999997,
+        "y" : 186.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__cap",
+      "color" : "#6E655BFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 120.7,
+        "x" : 20,
+        "y" : 220.30000000000001
+      },
+      "id" : "mine-stat-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "连续练习",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 222.30000000000001
+      }
+    },
+    {
+      "class" : "sz-mine__stat",
+      "frame" : {
+        "h" : 113,
+        "w" : 120.7,
+        "x" : 140.69999999999999,
+        "y" : 146.30000000000001
+      },
+      "id" : "mine-stat-total",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__num",
+      "color" : "#26211DFF",
+      "fontSize" : 45.900002000000001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 56,
+        "w" : 28.800000000000001,
+        "x" : 153,
+        "y" : 162.30000000000001
+      },
+      "id" : "mine-stat-num",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "0",
+      "textFrame" : {
+        "h" : 56,
+        "w" : 28.800000000000001,
+        "x" : 153,
+        "y" : 162.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__unit",
+      "color" : "#6E655BFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 20.100000000000001,
+        "x" : 185.80000000000001,
+        "y" : 184.30000000000001
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "天",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 20.100000000000001,
+        "x" : 185.80000000000001,
+        "y" : 186.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__cap",
+      "color" : "#6E655BFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 108.3,
+        "x" : 153,
+        "y" : 220.30000000000001
+      },
+      "id" : "mine-stat-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "累计练习",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 153,
+        "y" : 222.30000000000001
+      }
+    },
+    {
+      "class" : "sz-mine__stat",
+      "frame" : {
+        "h" : 113,
+        "w" : 120.7,
+        "x" : 261.30000000000001,
+        "y" : 146.30000000000001
+      },
+      "id" : "mine-stat-chars",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__num",
+      "color" : "#26211DFF",
+      "fontSize" : 45.900002000000001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 56,
+        "w" : 28.800000000000001,
+        "x" : 273.69999999999999,
+        "y" : 162.30000000000001
+      },
+      "id" : "mine-stat-num",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "0",
+      "textFrame" : {
+        "h" : 56,
+        "w" : 28.800000000000001,
+        "x" : 273.69999999999999,
+        "y" : 162.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__unit",
+      "color" : "#6E655BFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 20.100000000000001,
+        "x" : 306.39999999999998,
+        "y" : 184.30000000000001
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "字",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 20.100000000000001,
+        "x" : 306.39999999999998,
+        "y" : 186.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-mine__cap",
+      "color" : "#6E655BFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 108.3,
+        "x" : 273.69999999999999,
+        "y" : 220.30000000000001
+      },
+      "id" : "mine-stat-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 273.69999999999999,
+        "y" : 222.30000000000001
+      }
+    },
+    {
+      "class" : "sz-empty",
+      "frame" : {
+        "h" : 77,
+        "w" : 362,
+        "x" : 20,
+        "y" : 285.69999999999999
+      },
+      "id" : "mine-empty",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-empty__title",
+      "color" : "#26211DFF",
+      "fontSize" : 29.700001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 40,
+        "w" : 148.5,
+        "x" : 20,
+        "y" : 285.69999999999999
+      },
+      "id" : "mine-empty-title",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "还没有记录",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 148.5,
+        "x" : 20,
+        "y" : 283.69999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-empty__body",
+      "color" : "#564E46FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 340.89999999999998,
+        "x" : 20,
+        "y" : 333.69999999999999
+      },
+      "id" : "mine-empty-body",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "写字并点写对或写错，这里就有记录。",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 340.89999999999998,
+        "x" : 20,
+        "y" : 335.69999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "提醒",
+      "class" : "sz-btn sz-btn--plain sz-rrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 389
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 410.30000000000001
+      },
+      "id" : "mine-remind",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "提醒 关",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 346,
+        "x" : 20,
+        "y" : 402.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "练习范围",
+      "class" : "sz-btn sz-btn--plain sz-rrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 445
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 466.30000000000001
+      },
+      "id" : "mine-library",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "练习范围 常用字",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 346,
+        "x" : 20,
+        "y" : 458.30000000000001
+      }
+    },
+    {
+      "class" : "sz-rrow sz-rrow--shell sz-rrow--seg",
+      "frame" : {
+        "h" : 56.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 501
+      },
+      "id" : "mine-appearance",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-rrow__nm",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 45.200000000000003,
+        "x" : 20,
+        "y" : 514.5
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "外观",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 45.200000000000003,
+        "x" : 20,
+        "y" : 514.5
+      }
+    },
+    {
+      "axLabel" : "外观",
+      "bg" : "#E4DDD0FF",
+      "class" : "sz-seg",
+      "frame" : {
+        "h" : 48,
+        "w" : 236.40000000000001,
+        "x" : 145.59999999999999,
+        "y" : 505
+      },
+      "id" : "mine-appearance-seg",
+      "kind" : "view",
+      "radius" : 12,
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "bg" : "#FBF8F2FF",
+      "class" : "sz-btn sz-btn--plain sz-seg__opt",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 44,
+        "w" : 104.2,
+        "x" : 147.59999999999999,
+        "y" : 507
+      },
+      "id" : "mine-appearance-option",
+      "kind" : "button",
+      "radius" : 9,
+      "tag" : "button",
+      "text" : "跟随系统",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 80.200000000000003,
+        "x" : 159.59999999999999,
+        "y" : 516.5
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-seg__opt",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 64.099999999999994,
+        "x" : 251.80000000000001,
+        "y" : 507
+      },
+      "id" : "mine-appearance-option",
+      "kind" : "button",
+      "radius" : 9,
+      "tag" : "button",
+      "text" : "日间",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 40.100000000000001,
+        "x" : 263.80000000000001,
+        "y" : 516.5
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-seg__opt",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 64.099999999999994,
+        "x" : 315.89999999999998,
+        "y" : 507
+      },
+      "id" : "mine-appearance-option",
+      "kind" : "button",
+      "radius" : 9,
+      "tag" : "button",
+      "text" : "夜间",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 40.100000000000001,
+        "x" : 327.89999999999998,
+        "y" : 516.5
+      }
+    },
+    {
+      "class" : "sz-rrow sz-rrow--shell sz-rrow--seg",
+      "frame" : {
+        "h" : 56.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 557.29999999999995
+      },
+      "id" : "mine-group-size",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-rrow__nm",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 90.5,
+        "x" : 20,
+        "y" : 570.79999999999995
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "每组字数",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 20,
+        "y" : 570.79999999999995
+      }
+    },
+    {
+      "axLabel" : "每组字数",
+      "bg" : "#E4DDD0FF",
+      "class" : "sz-seg sz-seg--num",
+      "frame" : {
+        "h" : 48,
+        "w" : 180,
+        "x" : 202,
+        "y" : 561.29999999999995
+      },
+      "id" : "mine-group-size-seg",
+      "kind" : "view",
+      "radius" : 12,
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "5 个",
+      "class" : "sz-btn sz-btn--plain sz-seg__opt",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 204,
+        "y" : 563.29999999999995
+      },
+      "id" : "mine-group-size-option",
+      "kind" : "button",
+      "radius" : 9,
+      "tag" : "button",
+      "text" : "5",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 12.199999999999999,
+        "x" : 219.90000000000001,
+        "y" : 572.79999999999995
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "10 个",
+      "class" : "sz-btn sz-btn--plain sz-seg__opt",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 248,
+        "y" : 563.29999999999995
+      },
+      "id" : "mine-group-size-option",
+      "kind" : "button",
+      "radius" : 9,
+      "tag" : "button",
+      "text" : "10",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 24.399999999999999,
+        "x" : 257.80000000000001,
+        "y" : 572.79999999999995
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "20 个",
+      "bg" : "#FBF8F2FF",
+      "class" : "sz-btn sz-btn--plain sz-seg__opt",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 292,
+        "y" : 563.29999999999995
+      },
+      "id" : "mine-group-size-option",
+      "kind" : "button",
+      "radius" : 9,
+      "tag" : "button",
+      "text" : "20",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 24.899999999999999,
+        "x" : 301.5,
+        "y" : 572.79999999999995
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "30 个",
+      "class" : "sz-btn sz-btn--plain sz-seg__opt",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 336,
+        "y" : 563.29999999999995
+      },
+      "id" : "mine-group-size-option",
+      "kind" : "button",
+      "radius" : 9,
+      "tag" : "button",
+      "text" : "30",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 24.399999999999999,
+        "x" : 345.80000000000001,
+        "y" : 572.79999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "备份",
+      "class" : "sz-btn sz-btn--plain sz-rrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 640
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 661.29999999999995
+      },
+      "id" : "mine-menu-backup",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "备份 还没有备份",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 346,
+        "x" : 20,
+        "y" : 653.29999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "年度报告",
+      "class" : "sz-btn sz-btn--plain sz-rrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 696
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 717.29999999999995
+      },
+      "id" : "mine-menu-annual",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "年度报告 2026",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 346,
+        "x" : 20,
+        "y" : 709.29999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "关于拾字",
+      "class" : "sz-btn sz-btn--plain sz-rrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 752
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 773.29999999999995
+      },
+      "id" : "mine-menu-about",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "关于拾字",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 20,
+        "y" : 765.29999999999995
+      }
+    },
+    {
+      "class" : "sz-mine__ver",
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 834
+      },
+      "id" : "mine-version",
+      "kind" : "view",
+      "tag" : "p"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-ver",
+      "color" : "#6E655BFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 193.19999999999999,
+        "x" : 104.40000000000001,
+        "y" : 836
+      },
+      "id" : "version-text",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "版本 1.0.0（20261023）",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 193.19999999999999,
+        "x" : 104.40000000000001,
+        "y" : 836
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-tabs__tab",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48.700000000000003,
+        "w" : 134,
+        "x" : 0,
+        "y" : 791.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 55,
+        "y" : 796.20000000000005
+      },
+      "id" : "tab-home",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "写字",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 21.899999999999999,
+        "x" : 56.100000000000001,
+        "y" : 821.20000000000005
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-tabs__tab",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48.700000000000003,
+        "w" : 134,
+        "x" : 134,
+        "y" : 791.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 189,
+        "y" : 796.20000000000005
+      },
+      "id" : "tab-library",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 21.899999999999999,
+        "x" : 190.09999999999999,
+        "y" : 821.20000000000005
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-tabs__tab",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48.700000000000003,
+        "w" : 134,
+        "x" : 268,
+        "y" : 791.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 323,
+        "y" : 796.20000000000005
+      },
+      "id" : "tab-mine",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 21.899999999999999,
+        "x" : 324.10000000000002,
+        "y" : 821.20000000000005
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "mine-empty",
+  "tag" : "light_XXXL",
+  "ui" : "web"
+}

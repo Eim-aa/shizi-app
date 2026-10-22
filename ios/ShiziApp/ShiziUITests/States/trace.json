@@ -1,0 +1,28 @@
+{
+  "state": "trace",
+  "name": "看答案 · 描一遍",
+  "order": 7,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "call",
+      "name": "showAnswer"
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "settle": 2400,
+  "parity": true
+}

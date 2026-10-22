@@ -1,0 +1,175 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "提醒",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "remind-switch",
+      "name" : "练习提醒",
+      "role" : "switch",
+      "tag" : "button"
+    },
+    {
+      "id" : "remind-time",
+      "name" : "",
+      "role" : "textbox",
+      "tag" : "input"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "remind-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 28,
+        "y" : 106
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "提醒",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 103.5,
+        "x" : 36,
+        "y" : 105
+      }
+    },
+    {
+      "class" : "sz-remind",
+      "frame" : {
+        "h" : 344,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "remind-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "border" : "#38322BFF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-btn sz-btn--plain sz-remind__row",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 219.69999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "remind-switch",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "练习提醒 通知给一个词和拼音，想想是哪个字。",
+      "textFrame" : {
+        "h" : 220,
+        "w" : 258.10000000000002,
+        "x" : 20,
+        "y" : 189.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-remind__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 124,
+        "w" : 199.30000000000001,
+        "x" : 20,
+        "y" : 409.69999999999999
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "提醒时间",
+      "textFrame" : {
+        "h" : 126,
+        "w" : 155.30000000000001,
+        "x" : 20,
+        "y" : 408.69999999999999
+      }
+    },
+    {
+      "bg" : "#302B25FF",
+      "class" : "sz-remind__time",
+      "frame" : {
+        "h" : 58,
+        "w" : 150.69999999999999,
+        "x" : 231.30000000000001,
+        "y" : 442.69999999999999
+      },
+      "id" : "remind-time",
+      "kind" : "view",
+      "radius" : 12,
+      "tag" : "input"
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "remind-on",
+  "tag" : "dark_AX5",
+  "ui" : "web"
+}

@@ -3,8 +3,10 @@
 #
 #   1. 新建专用模拟器（iPhone 17 / iOS 26.5，名字「QA-H1 <时间>」），结束时删除——不碰别人的模拟器；
 #   2. 构建 DEBUG 包与 ShiziUITests（xcodebuild build-for-testing）；
-#   3. 逐屏对比：原生版按「状态 × 浅 / 深 × L / XXXL」+「主要状态 × 浅 / 深 × AX3 / AX5」（B2.9b，config.mjs AX_STATES）取证（截图 + 元素清单），与仓库里的网页参考
-#      （ios/ShiziApp/ShiziUITests/Reference/，文件名 = 状态_外观_字号）比，输出差异报告与并排图；
+#   3. 逐屏对比：状态 = ShiziUITests/States/<状态>.json 夹具（B3.3 数据驱动：路由 / 造数据 / 钉时钟 / 点按都在夹具里，网页参考、原生取证、XCUITest 同一份）。
+#      原生版按「状态 × 浅 / 深 × 字号」取证（截图 + 元素清单；字号档由夹具决定：默认 L / XXXL，ax: true 再加 AX3 / AX5，sizes 可直接指定），
+#      与仓库里的网页参考（ios/ShiziApp/ShiziUITests/Reference/，文件名 = 状态_外观_字号）比，输出差异报告与并排图。只比夹具 native: true 的状态，
+#      其余状态只有网页参考（reference-only，页面卡原生化合并时把夹具改成 native: true）；
 #   4. 流程用例：XCUITest（确认单 1–9 的路线 + 两份 AI 报告的已知问题，已知问题标「预期失败（待修）」）；
 #   5. 汇总通过 / 失败清单与总耗时。
 #
@@ -12,7 +14,8 @@
 #   ios/ShiziApp/scripts/verify-native-ui.sh                 全部（对比 + 流程）
 #   ios/ShiziApp/scripts/verify-native-ui.sh --parity-only   只做逐屏对比
 #   ios/ShiziApp/scripts/verify-native-ui.sh --flows-only    只跑流程用例
-#   ios/ShiziApp/scripts/verify-native-ui.sh --update-reference   重新生成网页参考图（改了网页写字页或固定条件之后），再对比
+#   ios/ShiziApp/scripts/verify-native-ui.sh --update-reference   重新生成网页参考图（改了网页页面或固定条件之后），再对比
+#   ios/ShiziApp/scripts/verify-native-ui.sh --reference-only --states home-fresh,library-empty   只取这些状态的网页参考图（新增夹具时用；不跑原生对比与流程用例）
 #   ios/ShiziApp/scripts/verify-native-ui.sh --states recall,judge   只对比这些状态
 #   KEEP_SIM=1 …                                             结束时不删模拟器（调试用）
 # 输出：ios/ShiziApp/build/native-ui/<时间>/（summary.md、parity/report.md、parity/side-by-side/*.png、flows.md、flows.xcresult）。
@@ -32,12 +35,14 @@ RUNTIME="com.apple.CoreSimulator.SimRuntime.iOS-26-5"
 do_parity=1
 do_flows=1
 update_ref=0
+ref_only=0
 states=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --parity-only) do_flows=0 ;;
     --flows-only) do_parity=0 ;;
     --update-reference) update_ref=1 ;;
+    --reference-only) update_ref=1; ref_only=1; do_flows=0 ;;
     --states) states="$2"; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
@@ -86,23 +91,22 @@ flows_line="（未跑）"
 if [ "$do_parity" = 1 ]; then
   state_args=()
   [ -n "$states" ] && state_args=(--states "$states")
-  # B2.9b：AX3 / AX5 只取主要状态（--states 给了就取交集）
-  ax_states="$(node -e "import('$TOOLS/config.mjs').then(c=>{const want='$states'.split(',').filter(Boolean);console.log(c.AX_STATES.filter(s=>!want.length||want.includes(s)).join(','))})")"
+  # 字号档：每一档只取夹具要这一档的状态（capture.mjs 按夹具的 sizes / ax 过滤）
+  SIZES_ALL="L,XXXL,AX3,AX5"
   if [ "$update_ref" = 1 ]; then
     log "capture web reference → $REF"
     mkdir -p "$REF"
-    node "$TOOLS/capture.mjs" --udid "$UDID" --ui web --out "$REF" ${state_args[@]+"${state_args[@]}"} || status=1
-    if [ -n "$ax_states" ]; then node "$TOOLS/capture.mjs" --udid "$UDID" --ui web --out "$REF" --states "$ax_states" --sizes AX3,AX5 || status=1; fi
+    node "$TOOLS/capture.mjs" --udid "$UDID" --ui web --out "$REF" --sizes "$SIZES_ALL" ${state_args[@]+"${state_args[@]}"} || status=1
   fi
-  log "capture native"
-  node "$TOOLS/capture.mjs" --udid "$UDID" --ui native --out "$OUT/native" ${state_args[@]+"${state_args[@]}"} >"$OUT/capture-native.log" 2>&1 || { status=1; tail -5 "$OUT/capture-native.log"; }
-  if [ -n "$ax_states" ]; then
-    log "capture native (AX3 / AX5: $ax_states)"
-    node "$TOOLS/capture.mjs" --udid "$UDID" --ui native --out "$OUT/native" --states "$ax_states" --sizes AX3,AX5 >>"$OUT/capture-native.log" 2>&1 || { status=1; tail -5 "$OUT/capture-native.log"; }
+  if [ "$ref_only" = 1 ]; then
+    parity_line="（只取网页参考）"
+  else
+    log "capture native"
+    node "$TOOLS/capture.mjs" --udid "$UDID" --ui native --out "$OUT/native" --sizes "$SIZES_ALL" ${state_args[@]+"${state_args[@]}"} >"$OUT/capture-native.log" 2>&1 || { status=1; tail -5 "$OUT/capture-native.log"; }
+    log "compare"
+    if parity_line="$(node "$TOOLS/compare.mjs" --ref "$REF" --native "$OUT/native" --out "$OUT/parity" ${state_args[@]+"${state_args[@]}"} | head -1)"; then :; else status=1; fi
+    echo "  $parity_line"
   fi
-  log "compare"
-  if parity_line="$(node "$TOOLS/compare.mjs" --ref "$REF" --native "$OUT/native" --out "$OUT/parity" | head -1)"; then :; else status=1; fi
-  echo "  $parity_line"
 fi
 
 # 4. 流程用例

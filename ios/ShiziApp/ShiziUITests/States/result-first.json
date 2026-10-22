@@ -1,0 +1,48 @@
+{
+  "state": "result-first",
+  "name": "结果页 · 首练（标题 + 提醒邀请）",
+  "order": 18,
+  "screen": "result",
+  "template": "result",
+  "native": true,
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ax": true,
+  "setup": [
+    {
+      "op": "openApi",
+      "slot": "A"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "mark",
+      "slot": "A",
+      "sid": "sid"
+    },
+    {
+      "op": "judge",
+      "slot": "A",
+      "judgments": [
+        "wrong",
+        "correct",
+        "correct"
+      ],
+      "strokes": "two"
+    },
+    {
+      "op": "unpinClock"
+    },
+    {
+      "op": "push",
+      "screen": "result",
+      "params": {
+        "slot": "A",
+        "sessionId": "$sid"
+      }
+    }
+  ],
+  "parity": true
+}

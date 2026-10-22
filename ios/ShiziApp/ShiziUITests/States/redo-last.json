@@ -1,0 +1,50 @@
+{
+  "state": "redo-last",
+  "name": "重写错字 · 最后一个字的对照（完成）",
+  "order": 25,
+  "screen": "redo",
+  "native": true,
+  "base": "_redo-open",
+  "settle": 1000,
+  "steps": [
+    {
+      "repeat": 2,
+      "steps": [
+        {
+          "tap": {
+            "web": ".sz-layer[data-top=\"true\"] [data-testid=\"redo-show-answer\"]",
+            "native": "native-redo-show-answer"
+          },
+          "times": 1
+        },
+        {
+          "wait": 700
+        },
+        {
+          "tap": {
+            "web": ".sz-layer[data-top=\"true\"] [data-testid=\"redo-next\"]",
+            "native": "native-redo-next"
+          },
+          "times": 1
+        },
+        {
+          "wait": 900
+        }
+      ]
+    },
+    {
+      "strokes": "redo"
+    },
+    {
+      "wait": 500
+    },
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"redo-done\"]",
+        "native": "native-redo-done"
+      },
+      "times": 1
+    }
+  ],
+  "parity": true
+}

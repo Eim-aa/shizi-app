@@ -1,0 +1,377 @@
+{
+  "ax" : [
+    {
+      "id" : "backup-clear-sheet",
+      "name" : "清空记录？",
+      "role" : "alertdialog",
+      "tag" : "div"
+    },
+    {
+      "name" : "清空记录？",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "backup-clear-stay",
+      "name" : "先不清空",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "backup-clear-retry",
+      "name" : "再试一次",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "backup-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "备份"
+    },
+    {
+      "class" : "sz-bk",
+      "frame" : {
+        "h" : 293.69999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "backup-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-bk__status",
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "backup-status",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-bk__label",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "backup-last-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "上次备份"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-bk__date",
+      "color" : "#26211DFF",
+      "fontSize" : 28,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 152
+      },
+      "id" : "backup-last-date",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "还没有备份"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-bk__intro",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 206
+      },
+      "id" : "backup-intro",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "记录只在这台手机上，换手机前先导出备份。"
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-bk__list",
+      "frame" : {
+        "h" : 155.69999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 260
+      },
+      "id" : "backup-list",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-bk__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 71.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 260.30000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 289.30000000000001
+      },
+      "id" : "backup-restore",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "恢复备份 会替换现有记录，离开前可撤销",
+      "textFrame" : {
+        "h" : 45,
+        "w" : 208.40000000000001,
+        "x" : 20,
+        "y" : 272.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-btn sz-btn--plain sz-bk__row sz-bk__row--danger",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 363.69999999999999
+      },
+      "id" : "backup-clear",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "清空记录",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 20,
+        "y" : 378.69999999999999
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary sz-bk__export",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "backup-export",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "导出备份",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 802
+      }
+    },
+    {
+      "bg" : "#FBF8F2FF",
+      "class" : "sz-confirm",
+      "frame" : {
+        "h" : 178,
+        "w" : 362,
+        "x" : 20,
+        "y" : 348
+      },
+      "id" : "backup-clear-sheet",
+      "kind" : "view",
+      "radius" : 24,
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-confirm__title",
+      "color" : "#26211DFF",
+      "fontSize" : 22,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 30,
+        "w" : 322,
+        "x" : 40,
+        "y" : 372
+      },
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "清空记录？",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 110,
+        "x" : 40,
+        "y" : 370
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-confirm__body",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 322,
+        "x" : 40,
+        "y" : 414
+      },
+      "id" : "backup-clear-body",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "没保存上，记录都还在。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 163.69999999999999,
+        "x" : 40,
+        "y" : 415
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--secondary",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 155,
+        "x" : 40,
+        "y" : 452
+      },
+      "id" : "backup-clear-stay",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "先不清空",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 83.799999999999997,
+        "y" : 468
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 155,
+        "x" : 207,
+        "y" : 452
+      },
+      "id" : "backup-clear-retry",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "再试一次",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 250.80000000000001,
+        "y" : 468
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "backup-fail",
+  "tag" : "light_L",
+  "ui" : "web"
+}

@@ -1,0 +1,35 @@
+{
+  "state": "retrace",
+  "name": "凭记忆写",
+  "order": 8,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "call",
+      "name": "showAnswer"
+    },
+    {
+      "op": "call",
+      "name": "answerPhase",
+      "args": {
+        "phase": "retrace",
+        "strokes": []
+      }
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "parity": true
+}

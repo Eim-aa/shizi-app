@@ -49,3 +49,44 @@ export function useNearViewport(ref) {
   }, []);
   return near;
 }
+
+// 视口外的「附近」格子分批再画（练习记录 200 格首屏 P-perf）：挂载当帧只画真正在视口里的格子，离视口一屏以内、还看不见的
+// 排进共用队列，每个宏任务放行一小批——画面静止时与一次画完相同（它们本来就在屏外），首屏少花这几十格的绘制。
+const TURN_BATCH = 12;
+let turnQueue = [];
+let turnTimer = null;
+
+function pumpTurns() {
+  turnTimer = null;
+  const batch = turnQueue.splice(0, TURN_BATCH);
+  for (const job of batch) if (!job.dead) job.go();
+  if (turnQueue.length) turnTimer = setTimeout(pumpTurns, 0);
+}
+
+function inViewportNow(el) {
+  const r = el.getBoundingClientRect();
+  const h = window.innerHeight || document.documentElement.clientHeight || 0;
+  return r.bottom > 0 && r.top < h; // 只比纵向：推入转场中的图层还在右侧屏外，但纵向已在视口
+}
+
+/**
+ * 轮到画了没有（near 为真后才有意义）：视口里的格子立即为真；还在屏外（只是离得近）的排队分批为真。一旦为真不再变回。
+ * @param {{current: Element|null}} ref
+ * @param {boolean} near  useNearViewport 的结果
+ */
+export function usePaintTurn(ref, near) {
+  const [turn, setTurn] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!near || turn || !el) return undefined;
+    if (inViewportNow(el)) {
+      setTurn(true);
+      return undefined;
+    }
+    const job = { dead: false, go: () => setTurn(true) };
+    turnQueue.push(job);
+    if (turnTimer === null) turnTimer = setTimeout(pumpTurns, 0);
+    return () => { job.dead = true; };
+  }, [near]);
+  return turn;
+}

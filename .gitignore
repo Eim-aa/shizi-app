@@ -19,3 +19,6 @@ AuthKey_*.p8
 *.ipa
 *.xcarchive
 scripts/sim/out/
+ios/ShiziCore/.build/
+ios/ShiziCore/.swiftpm/
+scripts/core-diff/out/

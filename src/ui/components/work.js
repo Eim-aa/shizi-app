@@ -22,6 +22,7 @@ import { inkBounds } from '../../core/images/glyph-layout.js';
 import { INK_PAD, dotLayout, sheetGrid, sheetTags } from '../../core/images/layout.js';
 import { paintBrushStroke } from '../canvas/brush.js';
 import { builtFromRaw, useNearViewport, useThemeVersion } from '../screens/write/compare.js';
+import { usePaintTurn } from './near.js';
 import { isPracticable } from '../../data/deck.js';
 import { useStrokeData } from '../screens/write/hint-layer.js';
 
@@ -139,6 +140,8 @@ export function CellCanvas({ ch, ink = null, mode = 'hand', size, pad = INK_PAD,
   const theme = useThemeVersion();
   // M6-3（61-perf）：一屏几十到三百格的字帖只画视口附近的格子（同 InkMini）
   const near = useNearViewport(ref);
+  const turn = usePaintTurn(ref, near);
+  const ready = near && turn; // 视口里的格子当帧画，屏外附近的分批画（near.js usePaintTurn）
   const points = useMemo(() => builtInk(ink), [ink]);
   const under = mode === 'under' || !points;
   // 题库外的字（迁移来的旧记录等）没有笔顺数据文件：不去取（免得 404），直接退回楷体整字（render.js paintFallbackGlyph）
@@ -148,7 +151,7 @@ export function CellCanvas({ ch, ink = null, mode = 'hand', size, pad = INK_PAD,
   const waiting = near && under && !data && !!strokeData && strokeData.status === 'loading';
   useLayoutEffect(() => {
     const canvas = ref.current;
-    if (!canvas || !(size > 0) || !near) return;
+    if (!canvas || !(size > 0) || !ready) return;
     const dpr = Math.max(1, Math.min(4, (typeof window !== 'undefined' && window.devicePixelRatio) || 1));
     const px = Math.max(1, Math.round(size * dpr));
     if (canvas.width !== px) canvas.width = px;
@@ -168,7 +171,7 @@ export function CellCanvas({ ch, ink = null, mode = 'hand', size, pad = INK_PAD,
     canvas.dataset.painted = 'true';
     canvas.dataset.strokes = String(res.strokes);
     canvas.dataset.glyph = res.glyph || 'ink'; // outline = 轮廓衬底；fallback = 楷体回退；ink = 本人笔迹
-  }, [size, theme, points, under, data, ch, pad, near, waiting]);
+  }, [size, theme, points, under, data, ch, pad, ready, waiting]);
   return html`<canvas ref=${ref} aria-hidden="true" data-testid=${testid} data-mode=${under ? 'under' : 'hand'}
     style=${{ width: `${size}px`, height: `${size}px` }}></canvas>`;
 }

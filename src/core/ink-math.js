@@ -639,7 +639,7 @@ export function isInk(ink) {
  * 回放 / 缩略图渲染前再走 catmullRom（resampleForReplay）保证外观与书写时一致（01 §3.5）。
  */
 export function decodeInk(ink, opts = {}) {
-  if (isInkV4(ink)) return decodeInkV4(ink, opts);
+  if (ink && typeof ink === 'object' && ink.v === 4) return decodeInkV4(ink, opts); // 合法性由解码本身判（不合法返回 null），不先整份解包校验一遍
   const base = num(opts.base, opts.policy ? inkParams(opts.policy).base : INK.base);
   const scale = GRID / 1000;
   if (isInkV3(ink)) {
@@ -913,7 +913,9 @@ const decodedV4 = new WeakMap(); // 墨迹对象（store 里冻结、引用稳�
 function decodeInkV4(ink, opts) {
   const plain = !opts || Object.keys(opts).length === 0;
   if (plain && decodedV4.has(ink)) return decodedV4.get(ink);
-  const out = decodeInkRaw(ink).map(s => buildStroke(s, Object.assign({}, opts, { final: true })).map(q => {
+  const raw = decodeInkRaw(ink);
+  if (!raw) return null;
+  const out = raw.map(s => buildStroke(s, Object.assign({}, opts, { final: true })).map(q => {
     const o = { x: q.x, y: q.y, w: q.w, t: q.t };
     if (q.p !== undefined) o.p = q.p;
     return o;

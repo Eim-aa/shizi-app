@@ -1,0 +1,178 @@
+{
+  "ax" : [
+    {
+      "id" : "block-screen",
+      "name" : "无法保存",
+      "role" : "alertdialog",
+      "tag" : "section"
+    },
+    {
+      "id" : "block-title",
+      "name" : "无法保存",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "block-retry",
+      "name" : "再试一次",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "bg" : "#F4EFE6FF",
+      "class" : "sz-block",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "block-screen",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-block__title",
+      "color" : "#26211DFF",
+      "fontSize" : 22,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 30,
+        "w" : 362,
+        "x" : 20,
+        "y" : 303
+      },
+      "id" : "block-title",
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "无法保存",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 88,
+        "x" : 20,
+        "y" : 301
+      }
+    },
+    {
+      "class" : "sz-block__body",
+      "frame" : {
+        "h" : 148,
+        "w" : 362,
+        "x" : 20,
+        "y" : 365
+      },
+      "id" : "block-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-block__line",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 365
+      },
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "可能是空间不够，或浏览器不让保存。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 253,
+        "x" : 20,
+        "y" : 366
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-block__line",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 395
+      },
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "解决前暂不能写字，免得白写。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 208.40000000000001,
+        "x" : 20,
+        "y" : 396
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-block__line",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 88,
+        "w" : 362,
+        "x" : 20,
+        "y" : 425
+      },
+      "id" : "block-migration",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "之前的记录没能导入这一版，旧记录还原样留在这台手机上，没有丢。如果是存储空间不充足，先空出一些再点下面的按钮重新导入；一直不行的话，不要清理浏览器，也不要删掉拾字。",
+      "textFrame" : {
+        "h" : 85,
+        "w" : 312.5,
+        "x" : 20,
+        "y" : 426
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 545
+      },
+      "id" : "block-retry",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "再试一次",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 561
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "block-migration",
+  "tag" : "light_L",
+  "ui" : "web"
+}

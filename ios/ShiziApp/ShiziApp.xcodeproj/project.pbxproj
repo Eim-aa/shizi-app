@@ -63,6 +63,18 @@
 		1A0000000000000000B31018 /* ShiziKitCopy.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31017 /* ShiziKitCopy.json */; };
 		1A0000000000000000B3101A /* ShiziKitTokens.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31019 /* ShiziKitTokens.json */; };
 		1A0000000000000000B3101C /* NativeWriteMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3101B /* NativeWriteMetrics.swift */; };
+		1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3320 /* HomeFlowTests.swift */; };
+		1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3322 /* LibraryFlowTests.swift */; };
+		1A00000000000000000B3325 /* DetailFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3324 /* DetailFlowTests.swift */; };
+		1A00000000000000000B3327 /* QueryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3326 /* QueryFlowTests.swift */; };
+		1A00000000000000000B3329 /* MineFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3328 /* MineFlowTests.swift */; };
+		1A00000000000000000B332B /* BackupFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332A /* BackupFlowTests.swift */; };
+		1A00000000000000000B332D /* ImageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332C /* ImageFlowTests.swift */; };
+		1A00000000000000000B332F /* NavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332E /* NavigationTests.swift */; };
+		1A00000000000000000B3331 /* RestoreAndDeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */; };
+		1A00000000000000000B3333 /* BlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3332 /* BlockTests.swift */; };
+		1A00000000000000000B3335 /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3334 /* AccessibilityAuditTests.swift */; };
+		1A00000000000000000B3302 /* QAFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3301 /* QAFixtures.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -146,6 +158,18 @@
 		1A0000000000000000B31017 /* ShiziKitCopy.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ShiziKitCopy.json; sourceTree = "<group>"; };
 		1A0000000000000000B31019 /* ShiziKitTokens.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ShiziKitTokens.json; sourceTree = "<group>"; };
 		1A0000000000000000B3101B /* NativeWriteMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteMetrics.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3320 /* HomeFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3322 /* LibraryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3324 /* DetailFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3326 /* QueryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3328 /* MineFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B332A /* BackupFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B332C /* ImageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B332E /* NavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreAndDeepLinkTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3332 /* BlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3334 /* AccessibilityAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3301 /* QAFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAFixtures.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -250,6 +274,7 @@
 				1A00000000000000000000E0 /* NativeStore.swift */,
 				1A00000000000000000000E2 /* NativeStoreBridge.swift */,
 				1A00000000000000000A1101 /* NativeQAHarness.swift */,
+				1A00000000000000000B3301 /* QAFixtures.swift */,
 				1A0000000000000000000026 /* Assets.xcassets */,
 				1A0000000000000000000028 /* Info.plist */,
 				1A000000000000000000002A /* PrivacyInfo.xcprivacy */,
@@ -284,6 +309,17 @@
 				1A00000000000000000A1115 /* WriteFlowTests.swift */,
 				1A00000000000000000A1117 /* KnownIssueTests.swift */,
 				1A00000000000000000A1130 /* AccessibilityFlowTests.swift */,
+				1A00000000000000000B3320 /* HomeFlowTests.swift */,
+				1A00000000000000000B3322 /* LibraryFlowTests.swift */,
+				1A00000000000000000B3324 /* DetailFlowTests.swift */,
+				1A00000000000000000B3326 /* QueryFlowTests.swift */,
+				1A00000000000000000B3328 /* MineFlowTests.swift */,
+				1A00000000000000000B332A /* BackupFlowTests.swift */,
+				1A00000000000000000B332C /* ImageFlowTests.swift */,
+				1A00000000000000000B332E /* NavigationTests.swift */,
+				1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */,
+				1A00000000000000000B3332 /* BlockTests.swift */,
+				1A00000000000000000B3334 /* AccessibilityAuditTests.swift */,
 			);
 			path = ShiziUITests;
 			sourceTree = "<group>";
@@ -534,6 +570,7 @@
 				1A0000000000000000B31014 /* ShiziTransitions.swift in Sources */,
 				1A0000000000000000B31016 /* ShiziUndoBar.swift in Sources */,
 				1A0000000000000000B3101C /* NativeWriteMetrics.swift in Sources */,
+				1A00000000000000000B3302 /* QAFixtures.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -562,6 +599,17 @@
 				1A00000000000000000A1116 /* WriteFlowTests.swift in Sources */,
 				1A00000000000000000A1118 /* KnownIssueTests.swift in Sources */,
 				1A00000000000000000A1131 /* AccessibilityFlowTests.swift in Sources */,
+				1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */,
+				1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */,
+				1A00000000000000000B3325 /* DetailFlowTests.swift in Sources */,
+				1A00000000000000000B3327 /* QueryFlowTests.swift in Sources */,
+				1A00000000000000000B3329 /* MineFlowTests.swift in Sources */,
+				1A00000000000000000B332B /* BackupFlowTests.swift in Sources */,
+				1A00000000000000000B332D /* ImageFlowTests.swift in Sources */,
+				1A00000000000000000B332F /* NavigationTests.swift in Sources */,
+				1A00000000000000000B3331 /* RestoreAndDeepLinkTests.swift in Sources */,
+				1A00000000000000000B3333 /* BlockTests.swift in Sources */,
+				1A00000000000000000B3335 /* AccessibilityAuditTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

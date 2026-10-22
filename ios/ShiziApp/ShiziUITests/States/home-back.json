@@ -1,0 +1,45 @@
+{
+  "state": "home-back",
+  "name": "首页 · 离开 ≥ 7 天回来",
+  "screen": "home",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-14T09:30:00"
+  },
+  "ax": true,
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "醋",
+          "at": "2026-09-20T20:00:00"
+        },
+        {
+          "char": "膝",
+          "at": "2026-09-21T20:00:00"
+        },
+        {
+          "char": "屉",
+          "at": "2026-09-22T20:00:00"
+        },
+        {
+          "char": "鼎",
+          "at": "2026-09-23T20:00:00"
+        },
+        {
+          "char": "窗",
+          "at": "2026-09-24T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    }
+  ],
+  "ready": {
+    "web": "screen-home"
+  }
+}

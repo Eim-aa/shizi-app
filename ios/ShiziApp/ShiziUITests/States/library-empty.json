@@ -1,0 +1,20 @@
+{
+  "state": "library-empty",
+  "name": "字库 · 空（没有记录，三档全 0）",
+  "screen": "library",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "library"
+    }
+  ],
+  "ready": {
+    "web": "screen-library"
+  }
+}

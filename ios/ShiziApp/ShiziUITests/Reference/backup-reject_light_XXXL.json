@@ -1,0 +1,339 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "备份",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "backup-note",
+      "name" : "",
+      "role" : "alert",
+      "tag" : "div"
+    },
+    {
+      "id" : "backup-restore",
+      "name" : "恢复备份 会替换现有记录，离开前可撤销",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "backup-clear",
+      "name" : "清空记录",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "backup-export",
+      "name" : "导出备份",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "backup-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "备份",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 45.200000000000003,
+        "x" : 178.40000000000001,
+        "y" : 69.5
+      }
+    },
+    {
+      "class" : "sz-bk",
+      "frame" : {
+        "h" : 444.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "backup-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-bk__status",
+      "frame" : {
+        "h" : 66,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "backup-status",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-bk__label",
+      "color" : "#6E655BFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "backup-last-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "上次备份",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 125
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-bk__date",
+      "color" : "#26211DFF",
+      "fontSize" : 37.799999,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 159
+      },
+      "id" : "backup-last-date",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "还没有备份",
+      "textFrame" : {
+        "h" : 55,
+        "w" : 189,
+        "x" : 20,
+        "y" : 146
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-bk__intro",
+      "color" : "#564E46FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 220
+      },
+      "id" : "backup-intro",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "记录只在这台手机上，换手机前先导出备份。",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 280.69999999999999,
+        "x" : 20,
+        "y" : 222
+      }
+    },
+    {
+      "bg" : "#E4DDD0FF",
+      "class" : "sz-bk__note",
+      "frame" : {
+        "h" : 53,
+        "w" : 362,
+        "x" : 20,
+        "y" : 310
+      },
+      "id" : "backup-note",
+      "kind" : "view",
+      "radius" : 12,
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-bk__notetext",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 312,
+        "x" : 54,
+        "y" : 322
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "这不是拾字的备份，记录没有变。",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 300.80000000000001,
+        "x" : 54,
+        "y" : 324
+      }
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-bk__list",
+      "frame" : {
+        "h" : 171.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 395
+      },
+      "id" : "backup-list",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-bk__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 85.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 395.30000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 431.30000000000001
+      },
+      "id" : "backup-restore",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "恢复备份 会替换现有记录，离开前可撤销",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 280.69999999999999,
+        "x" : 20,
+        "y" : 407.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-btn sz-btn--plain sz-bk__row sz-bk__row--danger",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 53.700000000000003,
+        "w" : 362,
+        "x" : 20,
+        "y" : 512.70000000000005
+      },
+      "id" : "backup-clear",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "清空记录",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 20,
+        "y" : 525
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary sz-bk__export",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "backup-export",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "导出备份",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 155.80000000000001,
+        "y" : 798.5
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "backup-reject",
+  "tag" : "light_XXXL",
+  "ui" : "web"
+}

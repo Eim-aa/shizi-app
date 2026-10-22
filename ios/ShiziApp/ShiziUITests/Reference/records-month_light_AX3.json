@@ -1,0 +1,403 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "练习记录",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "records-month",
+      "name" : "10月",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "records-prev",
+      "name" : "上个月",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "disabled" : true,
+      "id" : "records-next",
+      "name" : "下个月",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "records-calendar",
+      "name" : "10月",
+      "role" : "group",
+      "tag" : "div"
+    },
+    {
+      "id" : "records-day",
+      "name" : "10月1日 · 写了 2 个字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "records-day",
+      "name" : "10月2日 · 写了 2 个字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "records-day",
+      "name" : "10月3日 · 写了 2 个字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "records-day",
+      "name" : "10月4日 · 写了 2 个字",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "records-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 28,
+        "y" : 106
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "练习记录",
+      "textFrame" : {
+        "h" : 49,
+        "w" : 156.59999999999999,
+        "x" : 36,
+        "y" : 105
+      }
+    },
+    {
+      "class" : "sz-rec",
+      "frame" : {
+        "h" : 3203,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "records-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-rec__month",
+      "color" : "#26211DFF",
+      "fontSize" : 48,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 56,
+        "w" : 97.700000000000003,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "records-month",
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "10月",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 97.700000000000003,
+        "x" : 20,
+        "y" : 169
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-rec__year",
+      "color" : "#6E655BFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 42,
+        "w" : 81.299999999999997,
+        "x" : 127.7,
+        "y" : 192
+      },
+      "id" : "records-year",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "2026",
+      "textFrame" : {
+        "h" : 40,
+        "w" : 81.299999999999997,
+        "x" : 127.7,
+        "y" : 193
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "上个月",
+      "class" : "sz-btn sz-btn--plain sz-rec__arrow",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 298,
+        "y" : 183
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 18,
+        "w" : 18,
+        "x" : 311,
+        "y" : 196
+      },
+      "id" : "records-prev",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "下个月",
+      "class" : "sz-btn sz-btn--plain sz-rec__arrow",
+      "color" : "#8E8477FF",
+      "enabled" : false,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 346,
+        "y" : 183
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 18,
+        "w" : 18,
+        "x" : 359,
+        "y" : 196
+      },
+      "id" : "records-next",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-rec__title",
+      "color" : "#26211DFF",
+      "fontSize" : 44,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 266
+      },
+      "id" : "records-title",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "10月写了 21 天",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 289.69999999999999,
+        "x" : 20,
+        "y" : 260
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-rec__legend",
+      "color" : "#564E46FF",
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 362,
+        "x" : 20,
+        "y" : 324
+      },
+      "id" : "records-legend",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "墨点表示这天有记录，不分对错。",
+      "textFrame" : {
+        "h" : 86,
+        "w" : 282.39999999999998,
+        "x" : 20,
+        "y" : 323
+      }
+    },
+    {
+      "axLabel" : "10月",
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-rec__axlist",
+      "frame" : {
+        "h" : 2527.1999999999998,
+        "w" : 362,
+        "x" : 20,
+        "y" : 440
+      },
+      "id" : "records-calendar",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-rec__axrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 40,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 120.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 440.30000000000001
+      },
+      "id" : "records-day",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "10月1日 · 写了 2 个字",
+      "textFrame" : {
+        "h" : 97,
+        "w" : 332.80000000000001,
+        "x" : 20,
+        "y" : 451.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-rec__axrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 40,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 120.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 560.70000000000005
+      },
+      "id" : "records-day",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "10月2日 · 写了 2 个字",
+      "textFrame" : {
+        "h" : 97,
+        "w" : 337.69999999999999,
+        "x" : 20,
+        "y" : 571.70000000000005
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-rec__axrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 40,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 120.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 681
+      },
+      "id" : "records-day",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "10月3日 · 写了 2 个字",
+      "textFrame" : {
+        "h" : 97,
+        "w" : 338.69999999999999,
+        "x" : 20,
+        "y" : 692
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-rec__axrow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 40,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 120.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 801.29999999999995
+      },
+      "id" : "records-day",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "10月4日 · 写了 2 个字",
+      "textFrame" : {
+        "h" : 97,
+        "w" : 339.19999999999999,
+        "x" : 20,
+        "y" : 812.29999999999995
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX3",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "records-month",
+  "tag" : "light_AX3",
+  "ui" : "web"
+}

@@ -1,0 +1,24 @@
+{
+  "state": "result-sheet",
+  "name": "结果页 · 对照与改判弹层",
+  "order": 21,
+  "screen": "result",
+  "overlay": "result-sheet",
+  "native": true,
+  "ax": true,
+  "base": "result-daily",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "steps": [
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"result-exrow-change\"]",
+        "native": "native-result-row-change"
+      },
+      "times": 1
+    }
+  ],
+  "settle": 1200,
+  "parity": true
+}

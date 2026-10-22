@@ -1,0 +1,83 @@
+{
+  "state": "home-leave-undo",
+  "name": "首页 · 写字页跳过后离开，撤销条跟到首页",
+  "screen": "home",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T19:30:00"
+  },
+  "floater": "leave-undo",
+  "ready": {
+    "web": "write-screen"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "疆",
+          "at": "2026-10-04T20:00:00"
+        },
+        {
+          "char": "酱",
+          "at": "2026-10-04T20:01:00"
+        },
+        {
+          "char": "肆",
+          "at": "2026-10-04T20:02:00"
+        },
+        {
+          "char": "酝",
+          "at": "2026-10-04T20:03:00"
+        },
+        {
+          "char": "春",
+          "at": "2026-10-04T20:04:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "leaveUndoCleanup"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "openWrite",
+      "slot": "A"
+    }
+  ],
+  "steps": [
+    {
+      "ready": {
+        "web": "write-screen"
+      }
+    },
+    {
+      "wait": 700
+    },
+    {
+      "tap": {
+        "webTestid": "write-skip"
+      },
+      "times": 1
+    },
+    {
+      "wait": 300
+    },
+    {
+      "tap": {
+        "webTestid": "page-back"
+      },
+      "times": 1
+    },
+    {
+      "wait": 600
+    }
+  ]
+}

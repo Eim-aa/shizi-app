@@ -1,0 +1,11 @@
+{
+  "state": "redo",
+  "name": "重写错字 · 第 1 个字（没写）",
+  "order": 22,
+  "screen": "redo",
+  "native": true,
+  "base": "_redo-open",
+  "settle": 1000,
+  "ax": true,
+  "parity": true
+}

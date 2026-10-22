@@ -1,0 +1,186 @@
+{
+  "state": "month-ink",
+  "name": "月字帖 · 留墨完整的一个月",
+  "screen": "month",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "一",
+          "day": "2026-09-01",
+          "variant": 0
+        },
+        {
+          "char": "二",
+          "day": "2026-09-01",
+          "variant": 1
+        },
+        {
+          "char": "三",
+          "day": "2026-09-02",
+          "variant": 2
+        },
+        {
+          "char": "四",
+          "day": "2026-09-02",
+          "variant": 3
+        },
+        {
+          "char": "五",
+          "day": "2026-09-03",
+          "variant": 4
+        },
+        {
+          "char": "六",
+          "day": "2026-09-03",
+          "variant": 5
+        },
+        {
+          "char": "七",
+          "day": "2026-09-04",
+          "variant": 6
+        },
+        {
+          "char": "八",
+          "day": "2026-09-04",
+          "variant": 7
+        },
+        {
+          "char": "九",
+          "day": "2026-09-05",
+          "variant": 8
+        },
+        {
+          "char": "十",
+          "day": "2026-09-05",
+          "variant": 9
+        },
+        {
+          "char": "上",
+          "day": "2026-09-06",
+          "variant": 10
+        },
+        {
+          "char": "下",
+          "day": "2026-09-06",
+          "variant": 11
+        },
+        {
+          "char": "左",
+          "day": "2026-09-07",
+          "variant": 12
+        },
+        {
+          "char": "右",
+          "day": "2026-09-07",
+          "variant": 13
+        },
+        {
+          "char": "前",
+          "day": "2026-09-08",
+          "variant": 14
+        },
+        {
+          "char": "后",
+          "day": "2026-09-08",
+          "variant": 15
+        },
+        {
+          "char": "东",
+          "day": "2026-09-09",
+          "variant": 16
+        },
+        {
+          "char": "西",
+          "day": "2026-09-09",
+          "variant": 17
+        },
+        {
+          "char": "南",
+          "day": "2026-09-10",
+          "variant": 18
+        },
+        {
+          "char": "北",
+          "day": "2026-09-10",
+          "variant": 19
+        },
+        {
+          "char": "春",
+          "day": "2026-09-11",
+          "variant": 20
+        },
+        {
+          "char": "夏",
+          "day": "2026-09-11",
+          "variant": 21
+        },
+        {
+          "char": "秋",
+          "day": "2026-09-12",
+          "variant": 22
+        },
+        {
+          "char": "冬",
+          "day": "2026-09-12",
+          "variant": 23
+        },
+        {
+          "char": "红",
+          "day": "2026-09-13",
+          "variant": 24
+        },
+        {
+          "char": "黄",
+          "day": "2026-09-13",
+          "variant": 25
+        },
+        {
+          "char": "蓝",
+          "day": "2026-09-14",
+          "variant": 26
+        },
+        {
+          "char": "绿",
+          "day": "2026-09-14",
+          "variant": 27
+        },
+        {
+          "char": "白",
+          "day": "2026-09-15",
+          "variant": 28
+        },
+        {
+          "char": "黑",
+          "day": "2026-09-15",
+          "variant": 29
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "month",
+      "params": {
+        "month": "2026-09"
+      }
+    }
+  ],
+  "ready": {
+    "web": "month-screen"
+  },
+  "ax": true
+}

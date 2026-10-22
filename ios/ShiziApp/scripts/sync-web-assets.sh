@@ -27,7 +27,12 @@ test -d "${DEST}/data"
 # P1-S2 原生书写面 spike（只在 Debug）：笔锋模型金标准向量与参考实现摘要进包，供 -shizi-ink-selfcheck 在模拟器 / 真机上自检。
 INK_DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/InkModel"
 rm -rf "${INK_DEST}"
+# B3.3 QA-H1 夹具（只在 Debug）：ShiziUITests/States 整个进包的 QAStates/，NativeQAHarness / QAFixtures 按状态名读（Release 不含）
+QA_DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/QAStates"
+rm -rf "${QA_DEST}"
 if [ "${CONFIGURATION:-}" = "Debug" ]; then
+  mkdir -p "${QA_DEST}"
+  rsync -a "${SRCROOT}/ShiziUITests/States/" "${QA_DEST}/"
   INK_SRC="${REPO_ROOT}/docs/engineering/v10/phase1/ink-model"
   mkdir -p "${INK_DEST}"
   cp "${INK_SRC}/vectors.json" "${INK_SRC}/out/reference-dump.json" "${INK_SRC}/ink-v4-fixture.json" "${INK_DEST}/"

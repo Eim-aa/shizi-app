@@ -1,0 +1,287 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "开源致谢",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "name" : "程序",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "about-credit-toggle",
+      "name" : "Hanzi Writer 3.7.3，许可全文",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "about-credits-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "开源致谢",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 73
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__intro",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "about-credits-intro",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "用到的开源程序、数据和字体，谢谢作者。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 282.80000000000001,
+        "x" : 20,
+        "y" : 123
+      }
+    },
+    {
+      "class" : "sz-about__group",
+      "frame" : {
+        "h" : 1431,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "about-credits-group",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__gtitle",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "程序",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 34,
+        "x" : 20,
+        "y" : 174
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 971,
+        "w" : 362,
+        "x" : 20,
+        "y" : 207
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 219
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "Hanzi Writer 3.7.3",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 120.5,
+        "x" : 20,
+        "y" : 220
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 245
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 73,
+        "x" : 20,
+        "y" : 246
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 269
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/chanind\/hanzi-writer",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 239.80000000000001,
+        "x" : 20,
+        "y" : 270
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Hanzi Writer 3.7.3，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 59.600000000000001,
+        "x" : 16,
+        "y" : 293
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 51.600000000000001,
+        "x" : 20,
+        "y" : 306
+      }
+    },
+    {
+      "align" : "left",
+      "bg" : "#2A2520FF",
+      "class" : "sz-about__text",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 824,
+        "w" : 362,
+        "x" : 20,
+        "y" : 341
+      },
+      "id" : "about-credit-text",
+      "kind" : "text",
+      "tag" : "pre",
+      "text" : "vendor\/hanzi-writer.min.js (moved from the repository root in v10 M0-1, bytes unchanged) vendors the browser distribution of chanind\/hanzi-writer (https:\/\/github.com\/chanind\/hanzi-writer) version 3.7.3. Vendored SHA-256: 17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e642 Hanzi Writer is licensed under the MIT License, Copyright (c) 2014 David Chanin. The complete notice is included at licenses\/hanzi-writer-LICENSE.txt. — licenses\/hanzi-writer-LICENSE.txt — The MIT License (MIT) Copyright (c) 2014 David Chanin Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and\/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+      "textFrame" : {
+        "h" : 798,
+        "w" : 340,
+        "x" : 32,
+        "y" : 354
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "credits-license",
+  "tag" : "dark_L",
+  "ui" : "web"
+}

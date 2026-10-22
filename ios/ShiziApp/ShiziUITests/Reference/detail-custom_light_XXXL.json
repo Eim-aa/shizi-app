@@ -1,0 +1,596 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "「瓜」的记录",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "detail-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "detail-ref",
+      "name" : "标准写法",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "detail-word",
+      "name" : "瓜分",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "detail-swap",
+      "name" : "换个词语",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "detail-remove",
+      "name" : "移出自选 记录不删，只是不再算自选字。",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "detail-practice",
+      "name" : "练这个字",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-detail",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "detail-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title sz-page__title--hidden",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 83.5
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "h1",
+      "text" : "「瓜」的记录",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 135.69999999999999,
+        "x" : 19,
+        "y" : 83.5
+      }
+    },
+    {
+      "class" : "sz-live",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 121
+      },
+      "id" : "detail-live",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-dhead",
+      "frame" : {
+        "h" : 307,
+        "w" : 362,
+        "x" : 20,
+        "y" : -15
+      },
+      "id" : "detail-card",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "标准写法",
+      "bg" : "#FBF8F2FF",
+      "border" : "#95826BFF",
+      "borderWidth" : 1,
+      "class" : "sz-compare__card",
+      "frame" : {
+        "h" : 175,
+        "w" : 175,
+        "x" : 20,
+        "y" : -15
+      },
+      "id" : "detail-ref",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__py",
+      "color" : "#564E46FF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 37.200000000000003,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "detail-pinyin",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "guā",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 37.200000000000003,
+        "x" : 20,
+        "y" : 176
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__meta",
+      "color" : "#6E655BFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 36.799999999999997,
+        "x" : 65.200000000000003,
+        "y" : 176
+      },
+      "id" : "detail-strokes",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "5 画",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 36.799999999999997,
+        "x" : 65.200000000000003,
+        "y" : 178
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__label",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 217
+      },
+      "id" : "detail-word-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "词语",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 34.799999999999997,
+        "x" : 20,
+        "y" : 220
+      }
+    },
+    {
+      "axLabel" : "瓜分",
+      "bg" : "#FBF8F2FF",
+      "border" : "#95826BFF",
+      "borderWidth" : 1,
+      "class" : "sz-dcard__tiles",
+      "frame" : {
+        "h" : 38,
+        "w" : 74,
+        "x" : 20,
+        "y" : 254
+      },
+      "id" : "detail-word",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-dcard__tile",
+      "frame" : {
+        "h" : 36,
+        "w" : 36,
+        "x" : 21,
+        "y" : 255
+      },
+      "id" : "detail-word-tile",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#26211DFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 38,
+        "y" : 258
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "瓜"
+    },
+    {
+      "class" : "sz-dcard__tile",
+      "frame" : {
+        "h" : 36,
+        "w" : 36,
+        "x" : 57,
+        "y" : 255
+      },
+      "id" : "detail-word-tile",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#26211DFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 74.5,
+        "y" : 258
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "分"
+    },
+    {
+      "class" : "sz-drec",
+      "frame" : {
+        "h" : 62,
+        "w" : 362,
+        "x" : 20,
+        "y" : 324
+      },
+      "id" : "detail-records",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drec__count",
+      "color" : "#564E46FF",
+      "fontSize" : 29.700001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 118.8,
+        "x" : 20,
+        "y" : 324
+      },
+      "id" : "detail-records-count",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "还没写过",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 118.8,
+        "x" : 20,
+        "y" : 316
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drec__first",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 260.69999999999999,
+        "x" : 20,
+        "y" : 357
+      },
+      "id" : "detail-records-empty",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "你每次写过的字都会留在这里",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 260.69999999999999,
+        "x" : 20,
+        "y" : 359
+      }
+    },
+    {
+      "class" : "sz-dsrc",
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 418
+      },
+      "id" : "detail-source",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dsrc__label",
+      "color" : "#6E655BFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 44,
+        "x" : 20,
+        "y" : 423
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "字源",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 34.799999999999997,
+        "x" : 20,
+        "y" : 426
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dsrc__text",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 35,
+        "w" : 310,
+        "x" : 72,
+        "y" : 418
+      },
+      "id" : "detail-source-text",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "像瓜在藤蔓上的形状",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 206.5,
+        "x" : 72,
+        "y" : 421
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dsrc__from",
+      "color" : "#6E655BFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 310,
+        "x" : 72,
+        "y" : 457
+      },
+      "id" : "detail-source-from",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "《说文解字》",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 104.40000000000001,
+        "x" : 72,
+        "y" : 460
+      }
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-drows",
+      "frame" : {
+        "h" : 224.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 518
+      },
+      "id" : "detail-rows",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-drow",
+      "frame" : {
+        "h" : 85.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 518.29999999999995
+      },
+      "id" : "detail-image",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drow__title sz-drow__title--off",
+      "color" : "#6E655BFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 300.80000000000001,
+        "x" : 20,
+        "y" : 530.29999999999995
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "做成图片",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 20,
+        "y" : 530.29999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drow__sub",
+      "color" : "#6E655BFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 300.80000000000001,
+        "x" : 20,
+        "y" : 562.29999999999995
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "先写一次这个字，才能做成图片。",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 300.80000000000001,
+        "x" : 20,
+        "y" : 564.29999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-drow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 53.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 603.70000000000005
+      },
+      "id" : "detail-swap",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "换个词语",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 20,
+        "y" : 615.70000000000005
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-drow",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 85.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 657
+      },
+      "id" : "detail-remove",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "移出自选 记录不删，只是不再算自选字。",
+      "textFrame" : {
+        "h" : 57,
+        "w" : 243.5,
+        "x" : 20,
+        "y" : 669
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "detail-practice",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "练这个字",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 155.80000000000001,
+        "y" : 798.5
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "detail-custom",
+  "tag" : "light_XXXL",
+  "ui" : "web"
+}

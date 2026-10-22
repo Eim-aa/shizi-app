@@ -1,0 +1,25 @@
+{
+  "state": "annual-empty",
+  "name": "年报 · 今年还没有记录",
+  "screen": "annual",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "annual",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "annual-screen"
+  }
+}

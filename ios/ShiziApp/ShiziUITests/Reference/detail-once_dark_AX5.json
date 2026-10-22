@@ -1,0 +1,410 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "「鱼」的记录",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "detail-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "detail-hero-cell",
+      "name" : "第一次：10月21日 · 写对",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "detail-hero-ink",
+      "name" : "鱼",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "detail-word",
+      "name" : "金鱼",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "detail-ref",
+      "name" : "标准写法",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "detail-practice",
+      "name" : "练这个字",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-detail",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "detail-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title sz-page__title--hidden",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 6,
+        "w" : 364,
+        "x" : 19,
+        "y" : 105
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "「鱼」的记录",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 310.60000000000002,
+        "x" : 27,
+        "y" : 104
+      }
+    },
+    {
+      "class" : "sz-live",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 125
+      },
+      "id" : "detail-live",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-dhead",
+      "frame" : {
+        "h" : 668,
+        "w" : 362,
+        "x" : 20,
+        "y" : 126
+      },
+      "id" : "detail-card",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-dhero",
+      "frame" : {
+        "h" : 474,
+        "w" : 362,
+        "x" : 20,
+        "y" : 126
+      },
+      "id" : "detail-hero",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "第一次：10月21日 · 写对",
+      "class" : "sz-dhero__btn",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 474,
+        "w" : 362,
+        "x" : 20,
+        "y" : 126
+      },
+      "id" : "detail-hero-cell",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "第一次 · 10月21日",
+      "textFrame" : {
+        "h" : 105,
+        "w" : 319.5,
+        "x" : 41.299999999999997,
+        "y" : 495
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__py",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 53,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62,
+        "w" : 54.299999999999997,
+        "x" : 20,
+        "y" : 616
+      },
+      "id" : "detail-pinyin",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "yú",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 54.299999999999997,
+        "x" : 20,
+        "y" : 615
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__meta",
+      "color" : "#A0968AFF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 88,
+        "x" : 82.299999999999997,
+        "y" : 620
+      },
+      "id" : "detail-strokes",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "8 画",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 88,
+        "x" : 82.299999999999997,
+        "y" : 619
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-dcard__label",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 302,
+        "x" : 20,
+        "y" : 690
+      },
+      "id" : "detail-word-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "词语",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 86,
+        "x" : 20,
+        "y" : 692
+      }
+    },
+    {
+      "axLabel" : "金鱼",
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "sz-dcard__tiles",
+      "frame" : {
+        "h" : 38,
+        "w" : 74,
+        "x" : 20,
+        "y" : 756
+      },
+      "id" : "detail-word",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-dcard__tile",
+      "frame" : {
+        "h" : 36,
+        "w" : 36,
+        "x" : 21,
+        "y" : 757
+      },
+      "id" : "detail-word-tile",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 38,
+        "y" : 760
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "金"
+    },
+    {
+      "class" : "sz-dcard__tile",
+      "frame" : {
+        "h" : 36,
+        "w" : 36,
+        "x" : 57,
+        "y" : 757
+      },
+      "id" : "detail-word-tile",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 74.5,
+        "y" : 760
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "鱼"
+    },
+    {
+      "axLabel" : "标准写法",
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "sz-compare__card",
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 338,
+        "y" : 616
+      },
+      "id" : "detail-ref",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-drec",
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 826
+      },
+      "id" : "detail-records",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-drec__count",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 56,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 58,
+        "w" : 222.80000000000001,
+        "x" : 20,
+        "y" : 826
+      },
+      "id" : "detail-records-count",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "写过 1 次",
+      "textFrame" : {
+        "h" : 82,
+        "w" : 222.80000000000001,
+        "x" : 20,
+        "y" : 814
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#E2D9C9FF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 88,
+        "w" : 362,
+        "x" : 20,
+        "y" : 752
+      },
+      "id" : "detail-practice",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "练这个字",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 207.09999999999999,
+        "x" : 97.5,
+        "y" : 764
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "detail-once",
+  "tag" : "dark_AX5",
+  "ui" : "web"
+}

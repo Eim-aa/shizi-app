@@ -1,0 +1,427 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "年度报告",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "annual-adjust",
+      "name" : "调整图片",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "annual-year",
+      "name" : "二〇二六",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "annual-first-cell",
+      "name" : "「云」当时的笔迹",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "annual-month",
+      "name" : "7月，3 个字，点开看字帖",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "annual-month",
+      "name" : "8月，25 个字，点开看字帖",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "annual-month",
+      "name" : "9月，24 个字，点开看字帖",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "annual-save-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "annual-save",
+      "name" : "保存图片",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "annual-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 208.59999999999999,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "年度报告",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 131.09999999999999,
+        "y" : 69.5
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "调整图片",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 101.40000000000001,
+        "x" : 284.60000000000002,
+        "y" : 62
+      },
+      "id" : "annual-adjust",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "调整图片 ›",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 93.400000000000006,
+        "x" : 288.60000000000002,
+        "y" : 71.5
+      }
+    },
+    {
+      "class" : "sz-ann",
+      "frame" : {
+        "h" : 1451.5999999999999,
+        "w" : 370,
+        "x" : 16,
+        "y" : 122
+      },
+      "id" : "annual-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-ann__year",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 45.900002000000001,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 183.59999999999999,
+        "x" : 16,
+        "y" : 122
+      },
+      "id" : "annual-year",
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "二〇二六",
+      "textFrame" : {
+        "h" : 67,
+        "w" : 183.59999999999999,
+        "x" : 16,
+        "y" : 116
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-ann__line",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 35,
+        "w" : 370,
+        "x" : 16,
+        "y" : 186
+      },
+      "id" : "annual-head",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "这一年，你拾回三十六个字。",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 294,
+        "x" : 16,
+        "y" : 189
+      }
+    },
+    {
+      "class" : "sz-ann__first",
+      "frame" : {
+        "h" : 148,
+        "w" : 370,
+        "x" : 16,
+        "y" : 245
+      },
+      "id" : "annual-first",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "「云」当时的笔迹",
+      "bg" : "#24201BFF",
+      "class" : "sz-ann__fcell",
+      "frame" : {
+        "h" : 132,
+        "w" : 132,
+        "x" : 16,
+        "y" : 245
+      },
+      "id" : "annual-first-cell",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "class" : "",
+      "frame" : {
+        "h" : 132,
+        "w" : 132,
+        "x" : 16,
+        "y" : 245
+      },
+      "id" : "annual-first-canvas",
+      "kind" : "view",
+      "tag" : "canvas"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-ann__flabel",
+      "color" : "#A0968AFF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 124.59999999999999,
+        "x" : 168,
+        "y" : 313
+      },
+      "id" : "annual-first-label",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "今年首字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 168,
+        "y" : 315
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-ann__fdate",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 124.59999999999999,
+        "x" : 168,
+        "y" : 344
+      },
+      "id" : "annual-first-date",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "8月3日的笔迹",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 124.59999999999999,
+        "x" : 168,
+        "y" : 346
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "7月，3 个字，点开看字帖",
+      "border" : "#38322BFF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-ann__month",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 138.30000000000001,
+        "w" : 370,
+        "x" : 16,
+        "y" : 393
+      },
+      "id" : "annual-month",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "7月 3 字",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 370,
+        "x" : 16,
+        "y" : 405.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "8月，25 个字，点开看字帖",
+      "border" : "#38322BFF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-ann__month",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 273.30000000000001,
+        "w" : 370,
+        "x" : 16,
+        "y" : 531.29999999999995
+      },
+      "id" : "annual-month",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "8月 25 字",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 370,
+        "x" : 16,
+        "y" : 543.70000000000005
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "9月，24 个字，点开看字帖",
+      "border" : "#38322BFF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-ann__month",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 228.30000000000001,
+        "w" : 370,
+        "x" : 16,
+        "y" : 804.70000000000005
+      },
+      "id" : "annual-month",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "9月 24 字",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 370,
+        "x" : 16,
+        "y" : 817
+      }
+    },
+    {
+      "class" : "sz-live",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 785
+      },
+      "id" : "annual-save-live",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "bg" : "#E2D9C9FF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "annual-save",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "保存图片",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 155.80000000000001,
+        "y" : 798.5
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "annual-report",
+  "tag" : "dark_XXXL",
+  "ui" : "web"
+}

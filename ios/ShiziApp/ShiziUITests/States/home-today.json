@@ -1,0 +1,45 @@
+{
+  "state": "home-today",
+  "name": "首页 · 今天写完（再写一组）",
+  "screen": "home",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T12:30:00"
+  },
+  "ax": false,
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "疆",
+          "at": "2026-10-05T08:00:00",
+          "judgment": "correct"
+        },
+        {
+          "char": "酱",
+          "at": "2026-10-05T08:01:00",
+          "judgment": "correct"
+        },
+        {
+          "char": "肆",
+          "at": "2026-10-05T08:02:00",
+          "judgment": "wrong"
+        },
+        {
+          "char": "酝",
+          "at": "2026-10-05T08:03:00",
+          "judgment": "correct"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    }
+  ],
+  "ready": {
+    "web": "screen-home"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "state": "recall-ink",
+  "name": "回忆（写了两笔）",
+  "order": 3,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "call",
+      "name": "strokes",
+      "args": {
+        "strokes": "two",
+        "phase": "recall"
+      }
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "parity": true
+}

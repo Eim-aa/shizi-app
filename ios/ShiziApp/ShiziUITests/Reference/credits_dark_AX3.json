@@ -1,0 +1,410 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "开源致谢",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "name" : "程序",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "about-credit-toggle",
+      "name" : "Hanzi Writer 3.7.3，许可全文",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "about-credit-toggle",
+      "name" : "Preact 10.29.8，许可全文",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "about-credits-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 28,
+        "y" : 106
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "开源致谢",
+      "textFrame" : {
+        "h" : 49,
+        "w" : 156.59999999999999,
+        "x" : 36,
+        "y" : 105
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__intro",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "about-credits-intro",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "用到的开源程序、数据和字体，谢谢作者。",
+      "textFrame" : {
+        "h" : 86,
+        "w" : 353,
+        "x" : 20,
+        "y" : 175
+      }
+    },
+    {
+      "class" : "sz-about__group",
+      "frame" : {
+        "h" : 999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 292
+      },
+      "id" : "about-credits-group",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__gtitle",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 42,
+        "w" : 362,
+        "x" : 20,
+        "y" : 292
+      },
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "程序",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 80,
+        "x" : 20,
+        "y" : 283
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 237,
+        "w" : 362,
+        "x" : 20,
+        "y" : 343
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 42,
+        "w" : 362,
+        "x" : 20,
+        "y" : 355
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "Hanzi Writer 3.7.3",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 271.10000000000002,
+        "x" : 20,
+        "y" : 354
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 38,
+        "w" : 362,
+        "x" : 20,
+        "y" : 401
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 40,
+        "w" : 172.19999999999999,
+        "x" : 20,
+        "y" : 400
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 76,
+        "w" : 362,
+        "x" : 20,
+        "y" : 443
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/chanind\/hanzi-writer",
+      "textFrame" : {
+        "h" : 78,
+        "w" : 344.30000000000001,
+        "x" : 20,
+        "y" : 442
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Hanzi Writer 3.7.3，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 137.40000000000001,
+        "x" : 16,
+        "y" : 523
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 40,
+        "w" : 129.40000000000001,
+        "x" : 20,
+        "y" : 525
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 237,
+        "w" : 362,
+        "x" : 20,
+        "y" : 580
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 42,
+        "w" : 362,
+        "x" : 20,
+        "y" : 592
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "Preact 10.29.8",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 225,
+        "x" : 20,
+        "y" : 591
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 38,
+        "w" : 362,
+        "x" : 20,
+        "y" : 638
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 40,
+        "w" : 172.19999999999999,
+        "x" : 20,
+        "y" : 637
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 76,
+        "w" : 362,
+        "x" : 20,
+        "y" : 680
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/preactjs\/preact",
+      "textFrame" : {
+        "h" : 78,
+        "w" : 357,
+        "x" : 20,
+        "y" : 679
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Preact 10.29.8，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 137.40000000000001,
+        "x" : 16,
+        "y" : 760
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 40,
+        "w" : 129.40000000000001,
+        "x" : 20,
+        "y" : 762
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 237,
+        "w" : 362,
+        "x" : 20,
+        "y" : 817
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 42,
+        "w" : 362,
+        "x" : 20,
+        "y" : 829
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "htm 3.1.1",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 134.30000000000001,
+        "x" : 20,
+        "y" : 828
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX3",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "credits",
+  "tag" : "dark_AX3",
+  "ui" : "web"
+}

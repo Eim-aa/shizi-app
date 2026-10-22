@@ -1,0 +1,134 @@
+{
+  "state": "detail-photo-row",
+  "name": "字详情 · 有旧版本的记录行",
+  "screen": "detail",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ready": {
+    "web": "detail-screen"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2026-08-03",
+        "days": 80,
+        "perDay": 2,
+        "chars": "永和春日月山水火木金土人大小中国学习写字书法天地花鸟风云雨雪",
+        "seed": 7,
+        "wrongEvery": 9
+      }
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "龙",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "龙",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-08-30"
+        }
+      ]
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "鱼猫狗",
+          "at": "2026-10-21T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "patch",
+      "domain": "photos",
+      "value": {
+        "雪": {
+          "day": "2026-05-01",
+          "at": 1777600800000,
+          "dataURL": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAoCAIAAABmcd1FAAAApklEQVR4nGN8dOcCA20AE43MZRg1evAa7eYR4OYRQBOjSQKjRqOBUaMJGO1GdLIlCBjRClU3yozetWMDnM2CRw4TQCzGpQbNWdQM612oVg6PFEJFMGo09Y2OikqIikrAFGehxEQGMFi2bAFWBSxkG7oMh4nkGB0VlSAiJECMocQaHYXkcZIKLxbKPU6a0VGUGYrP6GWUGToUsswAGM042uFABUPTaACKYizsIkD0mwAAAABJRU5ErkJggg=="
+        }
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "push",
+      "screen": "detail",
+      "params": {
+        "char": "雪"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "js": "document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"detail-legacy\"]').scrollIntoView({ block: 'center' });"
+    },
+    {
+      "wait": 300
+    }
+  ]
+}

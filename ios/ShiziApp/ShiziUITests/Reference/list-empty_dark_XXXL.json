@@ -1,0 +1,183 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "待复习",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "list-empty-title",
+      "name" : "暂时没有字",
+      "role" : "heading",
+      "tag" : "h2"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "list-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "待复习",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 67.799999999999997,
+        "x" : 167.09999999999999,
+        "y" : 69.5
+      }
+    },
+    {
+      "class" : "sz-empty",
+      "frame" : {
+        "h" : 720,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "list-empty",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "bg" : "#24201BFF",
+      "class" : "sz-empty__cell",
+      "frame" : {
+        "h" : 97.200000000000003,
+        "w" : 97.200000000000003,
+        "x" : 152.40000000000001,
+        "y" : 390.89999999999998
+      },
+      "id" : "list-empty-glyph",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-pg__sr",
+      "color" : "#7A7064FF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 200,
+        "y" : 409.30000000000001
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "复"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-empty__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 29.700001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 40,
+        "w" : 148.5,
+        "x" : 126.8,
+        "y" : 504.10000000000002
+      },
+      "id" : "list-empty-title",
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "暂时没有字",
+      "textFrame" : {
+        "h" : 44,
+        "w" : 148.5,
+        "x" : 126.8,
+        "y" : 502.10000000000002
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-empty__body",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 220.59999999999999,
+        "x" : 90.700000000000003,
+        "y" : 552.10000000000002
+      },
+      "id" : "list-empty-body",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "待复习的字会放在这里。",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 220.59999999999999,
+        "x" : 90.700000000000003,
+        "y" : 554.10000000000002
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "list-empty",
+  "tag" : "dark_XXXL",
+  "ui" : "web"
+}

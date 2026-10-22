@@ -63,7 +63,7 @@ test -n "$app_executable" && test -f "${APP}/${app_executable}" || { echo "Archi
 # B3.1：原生写字流程（写字 / 判断 / 结果 / 重写错字页与 ShiziKit）转正进 Release，开关 -shizi-native-write / __shiziNativeWrite（默认关，到 B3.F）随之进包，
 #   从本表移出；仍只在 DEBUG 的：纵切量测（NativeWriteMetrics、shizi-native-write-metrics.json）、QA-H1 测试宿主（-shizi-qa*、qa-probe、QATrace、QAProbe、
 #   NativeQAHarness）——原生页面只经 ShiziProbe 留钩子，Release 里是空操作。
-for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "shizi-ink-selfcheck" "touchToTargetMs" "shizi-native-write-metrics.json" "NativeWriteMetrics" "SHIZI_NW_AUTO" "-shizi-qa" "qa-probe" "NativeQAHarness" "QATrace" "QAProbe"; do
+for marker in "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "shizi-ink-selfcheck" "touchToTargetMs" "shizi-native-write-metrics.json" "NativeWriteMetrics" "SHIZI_NW_AUTO" "-shizi-qa" "qa-probe" "NativeQAHarness" "QATrace" "QAProbe" "QAFixture" "QAStates"; do
   if LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}"; then
     echo "Release executable contains Debug native-smoke marker: ${marker}" >&2
     exit 65
@@ -86,6 +86,8 @@ done
 
 # P1-S2：原生书写面 spike 的笔锋模型金标准文件只在 Debug 构建复制进包（sync-web-assets.sh）。
 test ! -e "${APP}/InkModel" || { echo "Release app contains Debug-only InkModel/ self-check files" >&2; exit 65; }
+# B3.3：QA-H1 状态夹具（ShiziUITests/States → QAStates/，sync-web-assets.sh 只在 Debug 复制）
+test ! -e "${APP}/QAStates" || { echo "Release app contains Debug-only QAStates/ fixtures" >&2; exit 65; }
 
 if [ -n "${EXPECTED_BUNDLE_ID:-}" ] && [ "$app_bundle_id" != "$EXPECTED_BUNDLE_ID" ]; then
   echo "Expected bundle ID ${EXPECTED_BUNDLE_ID}, got ${app_bundle_id}" >&2

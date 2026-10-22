@@ -1,0 +1,32 @@
+// home 的语义键（B3.3 从网页参考生成，状态：home-back、home-exhausted、home-first、home-fresh、home-progress、home-special、home-start-fail、home-today）。
+// key = 语义键（取网页 data-testid）；web = 网页 data-testid（id:）；native = 原生成员名 / accessibilityIdentifier（prop: / id:）——页面卡原生化时填，空 = 还没有原生页。
+// 同名元素多个（行、格）时 id:xxx#N 取第 N 个（从 0 起）；不写 #N 则按文档顺序配对。
+export const KEYS = [
+  { key: 'screen-home', native: [], web: ['id:screen-home'] },
+  { key: 'home-date', native: [], web: ['id:home-date'] },
+  { key: 'home-title', native: [], web: ['id:home-title'] },
+  { key: 'home-main', native: [], web: ['id:home-main'] },
+  { key: 'home-group', native: [], web: ['id:home-group'] },
+  { key: 'home-brand-shi', native: [], web: ['id:home-brand-shi'] },
+  { key: 'brand-shi-mark', native: [], web: ['id:brand-shi-mark'] },
+  { key: 'home-epigraph', native: [], web: ['id:home-epigraph'] },
+  { key: 'home-back-note', native: [], web: ['id:home-back-note'] },
+  { key: 'home-foot', native: [], web: ['id:home-foot'] },
+  { key: 'home-start-live', native: [], web: ['id:home-start-live'] },
+  { key: 'home-pick', native: [], web: ['id:home-pick'] },
+  { key: 'home-start', native: [], web: ['id:home-start'] },
+  { key: 'demo-push', native: [], web: ['id:demo-push'] },
+  { key: 'write-test-entry', native: [], web: ['id:write-test-entry'] },
+  { key: 'tab-home', native: [], web: ['id:tab-home'] },
+  { key: 'tab-library', native: [], web: ['id:tab-library'] },
+  { key: 'tab-mine', native: [], web: ['id:tab-mine'] },
+  { key: 'home-first', native: [], web: ['id:home-first'] },
+  { key: 'home-motto', native: [], web: ['id:home-motto'] },
+  { key: 'home-seal', native: [], web: ['id:home-seal'] },
+  { key: 'home-first-tip', native: [], web: ['id:home-first-tip'] },
+  { key: 'home-capital-body', native: [], web: ['id:home-capital-body'] },
+  { key: 'home-capital-defer', native: [], web: ['id:home-capital-defer'] },
+  { key: 'home-start-fail', native: [], web: ['id:home-start-fail'] },
+  { key: 'home-start-fail-cancel', native: [], web: ['id:home-start-fail-cancel'] },
+  { key: 'home-start-fail-retry', native: [], web: ['id:home-start-fail-retry'] },
+];

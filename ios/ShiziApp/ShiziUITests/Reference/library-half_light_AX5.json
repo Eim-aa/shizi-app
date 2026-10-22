@@ -1,0 +1,599 @@
+{
+  "ax" : [
+    {
+      "name" : "字库",
+      "role" : "tabpanel",
+      "tag" : "div"
+    },
+    {
+      "name" : "字库",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "library-query-open",
+      "name" : "搜索汉字或拼音",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "library-range",
+      "name" : "练习范围 常用字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "library-today",
+      "name" : "今日练习 还剩 3 个",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "library-all-open",
+      "name" : "全部已练汉字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "library-zone",
+      "name" : "待复习 6",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "library-zone",
+      "name" : "未熟悉 7",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "library-zone",
+      "name" : "已熟悉 25",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "",
+      "role" : "tablist",
+      "tag" : "div"
+    },
+    {
+      "id" : "tab-home",
+      "name" : "写字",
+      "role" : "tab",
+      "tag" : "button"
+    },
+    {
+      "id" : "tab-library",
+      "name" : "字库",
+      "role" : "tab",
+      "tag" : "button"
+    },
+    {
+      "id" : "tab-mine",
+      "name" : "我的",
+      "role" : "tab",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-tabpage",
+      "frame" : {
+        "h" : 809.29999999999995,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "screen-library",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-tabpage__title",
+      "color" : "#26211DFF",
+      "fontSize" : 58,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 78
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 84,
+        "w" : 116,
+        "x" : 20,
+        "y" : 70
+      }
+    },
+    {
+      "class" : "sz-lib",
+      "frame" : {
+        "h" : 649.29999999999995,
+        "w" : 362,
+        "x" : 20,
+        "y" : 152
+      },
+      "id" : "library-home",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-lib__query",
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 152
+      },
+      "id" : "library-search",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "",
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 152
+      },
+      "id" : "library-query-slot",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "bg" : "#E4DDD0FF",
+      "class" : "sz-btn sz-btn--plain sz-libq",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 152
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 18,
+        "w" : 18,
+        "x" : 36,
+        "y" : 171
+      },
+      "id" : "library-query-open",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "搜索汉字或拼音",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 301.10000000000002,
+        "x" : 64,
+        "y" : 153
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libr__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 120.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 216.30000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 269.80000000000001
+      },
+      "id" : "library-range",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "练习范围 常用字",
+      "textFrame" : {
+        "h" : 121,
+        "w" : 207.09999999999999,
+        "x" : 20,
+        "y" : 215.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libr__row sz-libr__row--two",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 120.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 347
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 400.5
+      },
+      "id" : "library-today",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "今日练习 还剩 3 个",
+      "textFrame" : {
+        "h" : 121,
+        "w" : 207.09999999999999,
+        "x" : 20,
+        "y" : 346
+      }
+    },
+    {
+      "class" : "sz-libr__h",
+      "frame" : {
+        "h" : 64,
+        "w" : 362,
+        "x" : 20,
+        "y" : 477.30000000000001
+      },
+      "id" : "library-written",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-libr__ht",
+      "color" : "#26211DFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 62,
+        "w" : 207.09999999999999,
+        "x" : 20,
+        "y" : 478.30000000000001
+      },
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 207.09999999999999,
+        "x" : 20,
+        "y" : 477.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-libr__hn",
+      "color" : "#6E655BFF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 59.899999999999999,
+        "x" : 229.09999999999999,
+        "y" : 480.30000000000001
+      },
+      "id" : "library-written-count",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "38",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 59.899999999999999,
+        "x" : 229.09999999999999,
+        "y" : 479.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "全部已练汉字",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 40,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 64,
+        "w" : 103.3,
+        "x" : 291,
+        "y" : 477.30000000000001
+      },
+      "id" : "library-all-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "全部 ›",
+      "textFrame" : {
+        "h" : 49,
+        "w" : 103.3,
+        "x" : 291,
+        "y" : 484.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libr__row sz-libr__row--zone",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 541.60000000000002
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 566.10000000000002
+      },
+      "id" : "library-zone",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "待复习 6",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 197.30000000000001,
+        "x" : 20,
+        "y" : 540.60000000000002
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libr__row sz-libr__row--zone",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 604
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 628.5
+      },
+      "id" : "library-zone",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "未熟悉 7",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 197.30000000000001,
+        "x" : 20,
+        "y" : 603
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libr__row sz-libr__row--zone",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 666.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 690.79999999999995
+      },
+      "id" : "library-zone",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "已熟悉 25",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 227.19999999999999,
+        "x" : 20,
+        "y" : 665.29999999999995
+      }
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-libr__blk",
+      "frame" : {
+        "h" : 62.700000000000003,
+        "w" : 362,
+        "x" : 20,
+        "y" : 738.60000000000002
+      },
+      "id" : "library-skipped-block",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-libr__row sz-libr__row--zero",
+      "frame" : {
+        "h" : 62.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 739
+      },
+      "id" : "library-skipped",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-libr__nm",
+      "color" : "#6E655BFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 62,
+        "w" : 155.30000000000001,
+        "x" : 20,
+        "y" : 739
+      },
+      "id" : "library-skipped-name",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "已跳过",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 155.30000000000001,
+        "x" : 20,
+        "y" : 738
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-libr__cnt",
+      "color" : "#6E655BFF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 30,
+        "x" : 187.30000000000001,
+        "y" : 741
+      },
+      "id" : "library-skipped-count",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "0",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 30,
+        "x" : 187.30000000000001,
+        "y" : 740
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-tabs__tab",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48.700000000000003,
+        "w" : 134,
+        "x" : 0,
+        "y" : 791.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 55,
+        "y" : 796.20000000000005
+      },
+      "id" : "tab-home",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "写字",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 21.899999999999999,
+        "x" : 56.100000000000001,
+        "y" : 821.20000000000005
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-tabs__tab",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48.700000000000003,
+        "w" : 134,
+        "x" : 134,
+        "y" : 791.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 189,
+        "y" : 796.20000000000005
+      },
+      "id" : "tab-library",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 21.899999999999999,
+        "x" : 190.09999999999999,
+        "y" : 821.20000000000005
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-tabs__tab",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 48.700000000000003,
+        "w" : 134,
+        "x" : 268,
+        "y" : 791.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 323,
+        "y" : 796.20000000000005
+      },
+      "id" : "tab-mine",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 21.899999999999999,
+        "x" : 324.10000000000002,
+        "y" : 821.20000000000005
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "library-half",
+  "tag" : "light_AX5",
+  "ui" : "web"
+}

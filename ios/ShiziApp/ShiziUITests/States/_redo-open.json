@@ -1,0 +1,25 @@
+{
+  "state": "_redo-open",
+  "internal": true,
+  "base": "result-daily",
+  "settle": 0,
+  "steps": [
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"result-redo\"]",
+        "native": "native-result-redo"
+      },
+      "times": 1
+    },
+    {
+      "ready": {
+        "web": "redo-screen",
+        "native": "redo",
+        "timeout": 6
+      }
+    },
+    {
+      "wait": 700
+    }
+  ]
+}

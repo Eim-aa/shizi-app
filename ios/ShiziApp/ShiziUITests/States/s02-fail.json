@@ -1,0 +1,80 @@
+{
+  "state": "s02-fail",
+  "name": "S02 · 结束那组开新的失败（留在框内三段式）",
+  "screen": "home",
+  "native": false,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T19:30:00"
+  },
+  "overlay": "s02",
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "疆",
+          "at": "2026-10-04T20:00:00"
+        },
+        {
+          "char": "酱",
+          "at": "2026-10-04T20:01:00"
+        },
+        {
+          "char": "肆",
+          "at": "2026-10-04T20:02:00"
+        },
+        {
+          "char": "酝",
+          "at": "2026-10-04T20:03:00"
+        },
+        {
+          "char": "春",
+          "at": "2026-10-04T20:04:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "correct",
+        "wrong"
+      ],
+      "n": 2
+    },
+    {
+      "op": "switchTab",
+      "tab": "home"
+    }
+  ],
+  "ready": {
+    "web": "screen-home"
+  },
+  "steps": [
+    {
+      "js": "const { startPicked } = await import('/src/ui/screens/session/index.js'); startPicked(['火'], { source: { view: 'home' } });"
+    },
+    {
+      "wait": 800
+    },
+    {
+      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
+    },
+    {
+      "tap": {
+        "webTestid": "s02-end-start"
+      },
+      "times": 1
+    },
+    {
+      "wait": 600
+    }
+  ]
+}

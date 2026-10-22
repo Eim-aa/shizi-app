@@ -1,0 +1,266 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "练习范围",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "libswitch-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "libswitch-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "练习范围",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 73
+      }
+    },
+    {
+      "class" : "sz-live",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 121
+      },
+      "id" : "libswitch-live",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-libsw__list",
+      "frame" : {
+        "h" : 377,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "libswitch-list",
+      "kind" : "view",
+      "tag" : "ul"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 134
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 216.30000000000001
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 228.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 310.69999999999999
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 322.69999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94,
+        "w" : 362,
+        "x" : 20,
+        "y" : 405
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 417
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-libsw__source",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 531
+      },
+      "id" : "libswitch-source",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "参考《通用规范汉字表》，部分字暂未收录。",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 258,
+        "x" : 20,
+        "y" : 532
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "switch",
+  "tag" : "light_L",
+  "ui" : "web"
+}

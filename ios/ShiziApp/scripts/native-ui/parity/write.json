@@ -1,0 +1,259 @@
+{
+  "//": "写字页 / 结果页 / 重写错字页的逐项豁免与墨迹取样（B3.3 起按屏分文件；registry.mjs loadParity 合并）。ignore = 不比的差异（state/sizes/type/label/aspects + 理由 //）；waive = 具名检查编号 → 理由；ink.states = 状态 → 墨格语义键。",
+  "ignore": [
+    {
+      "type": "extra",
+      "label": "hintLayer",
+      "//": "提示层是原生的叠层视图，没有文字"
+    },
+    {
+      "state": "end-dialog",
+      "type": "size",
+      "label": "end-body",
+      "//": "R9-B：iOS 中文排版把行末句号「。」压成半宽（TextKit 规则，WebKit 不压），两行正文第一行的文字框窄约 7pt；字形位置、折行处、行距与网页一致，只差这一处量法"
+    },
+    {
+      "state": "change-sheet",
+      "type": "size",
+      "label": "hé",
+      "//": "R9-A：弹层 / 确认框盖着写字页时，网页整页 aria-hidden，取证脚本不给底下文字的文字框（只剩 span 盒：拼音行高 22 + 下内边距 4 = 26），只能拿原生标签框（22）比盒高；拼音的字号、位置、宽度与其它状态逐项一致"
+    },
+    {
+      "state": "end-dialog",
+      "type": "size",
+      "label": "hé",
+      "//": "R9-A：弹层 / 确认框盖着写字页时，网页整页 aria-hidden，取证脚本不给底下文字的文字框（只剩 span 盒：拼音行高 22 + 下内边距 4 = 26），只能拿原生标签框（22）比盒高；拼音的字号、位置、宽度与其它状态逐项一致"
+    },
+    {
+      "label": "exrow-open",
+      "aspects": [
+        "color",
+        "font"
+      ],
+      "//": "B2.7：结果页「没放进图里」那一行是一个按钮，网页取证读的是按钮元素自身的字号 / 颜色（继承正文 15、ink1），字实际在内层 span（.sz-exrow__t 17、ink2）；原生按钮的标题就是那行字（17、ink2）。位置、文字框、文案照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "result-title",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "result-sub",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "preview",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "invite-body",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result-first"
+      ],
+      "label": "invite-title",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：邀请问句（17 / 500，13 个全角字）在 XXXL 下原生比网页宽 1.7pt（苹方正文款中粗与 WebKit 的字宽累计差，每字约 0.13pt）；位置、字号、字重、颜色照比"
+    },
+    {
+      "state": [
+        "change-sheet",
+        "result-sheet"
+      ],
+      "sizes": [
+        "AX3"
+      ],
+      "label": "change-note",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：弹层说明句（p，text-wrap: pretty）在 AX3：WebKit 的 pretty 折行按整段均衡挑折行点（「改了只换掉这一次，」/「不会多算一次。」），原生按词贪心折（第一行排满）——行数相同（两行）、字号、行高、竖向位置一致，只差每行的宽与居中后第一行字的左缘。这句不经网页量折行点（结果页段落那样的 webLineStarts）：弹层文字来自无 DOM 的会话 op"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "sheet",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "change-mine",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "change-ref",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "change-note",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "「春」写错了",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "取消",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "你写的",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "标准写法",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "change-detail",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    },
+    {
+      "state": "result-sheet",
+      "sizes": [
+        "AX5"
+      ],
+      "label": "改为写对",
+      "aspects": [
+        "position",
+        "size"
+      ],
+      "//": "B2.9b：网页 AX5 对照弹层的标题「「春」写错了」（宋 56pt，6 个字 336pt）不折行、压在右上「取消」下面（网页缺陷：.sz-sheet__title 的 balance + strict 折行在这里找不到折行点），原生按「标题右侧给取消留 64」折成两行、不重叠（交互规范 A1：不截断、不重叠）；标题多一行（66pt），其下各元素与弹层顶随之差约 50 / 16pt，字号、横向位置、宽度一致。网页缺陷记在交接里"
+    }
+  ],
+  "waive": {},
+  "ink": {
+    "states": {
+      "recall-ink": "grid",
+      "judge": "grid",
+      "last-judge": "grid",
+      "change-sheet": "change-mine",
+      "result": "work-cell-0",
+      "result-daily": "work-cell-0",
+      "result-first": "work-cell-0",
+      "result-early": "work-cell-0",
+      "result-undo": "work-cell-0",
+      "result-sheet": "change-mine",
+      "redo-ink": "grid",
+      "redo-check": "grid",
+      "redo-last": "grid"
+    }
+  }
+}

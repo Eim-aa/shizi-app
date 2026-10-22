@@ -1,0 +1,568 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "开源致谢",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "name" : "程序",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "about-credit-toggle",
+      "name" : "Hanzi Writer 3.7.3，许可全文",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "about-credit-toggle",
+      "name" : "Preact 10.29.8，许可全文",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "about-credit-toggle",
+      "name" : "htm 3.1.1，许可全文",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "about-credits-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "开源致谢",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 155.80000000000001,
+        "y" : 69.5
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__intro",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "about-credits-intro",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "用到的开源程序、数据和字体，谢谢作者。",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 280.69999999999999,
+        "x" : 20,
+        "y" : 124
+      }
+    },
+    {
+      "class" : "sz-about__group",
+      "frame" : {
+        "h" : 721,
+        "w" : 362,
+        "x" : 20,
+        "y" : 212
+      },
+      "id" : "about-credits-group",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__gtitle",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 212
+      },
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "程序",
+      "textFrame" : {
+        "h" : 34,
+        "w" : 45.899999999999999,
+        "x" : 20,
+        "y" : 209
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 250
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 262
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "Hanzi Writer 3.7.3",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 155.30000000000001,
+        "x" : 20,
+        "y" : 264
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 295
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 94.700000000000003,
+        "x" : 20,
+        "y" : 297
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 326
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/chanind\/hanzi-writer",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 310.10000000000002,
+        "x" : 20,
+        "y" : 328
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Hanzi Writer 3.7.3，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 357
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 367.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 414
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 426
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "Preact 10.29.8",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 127.5,
+        "x" : 20,
+        "y" : 428
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 459
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 94.700000000000003,
+        "x" : 20,
+        "y" : 461
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 490
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/preactjs\/preact",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 267,
+        "x" : 20,
+        "y" : 492
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Preact 10.29.8，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 521
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 531.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 578
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 590
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "htm 3.1.1",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 77.200000000000003,
+        "x" : 20,
+        "y" : 592
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 623
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 625
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 654
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/developit\/htm",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 256,
+        "x" : 20,
+        "y" : 656
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "htm 3.1.1，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 685
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 695.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 191,
+        "w" : 362,
+        "x" : 20,
+        "y" : 742
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 754
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "ts-fsrs 5.2.0",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 107.09999999999999,
+        "x" : 20,
+        "y" : 756
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 787
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 94.700000000000003,
+        "x" : 20,
+        "y" : 789
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 818
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/open-spaced-repetition\/ts-fsrs",
+      "textFrame" : {
+        "h" : 49,
+        "w" : 196.19999999999999,
+        "x" : 20,
+        "y" : 820
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "credits",
+  "tag" : "dark_XXXL",
+  "ui" : "web"
+}

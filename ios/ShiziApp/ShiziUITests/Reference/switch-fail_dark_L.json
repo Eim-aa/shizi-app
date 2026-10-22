@@ -1,0 +1,374 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "练习范围",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "libswitch-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "没保存上，刚才的选择没记下。"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-row",
+      "name" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-stay",
+      "name" : "先不换",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "libswitch-retry",
+      "name" : "再试一次",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "libswitch-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "练习范围",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 73
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-live",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 121
+      },
+      "id" : "libswitch-live",
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "没保存上，刚才的选择没记下。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 208.40000000000001,
+        "x" : 19,
+        "y" : 122
+      }
+    },
+    {
+      "class" : "sz-libsw__list",
+      "frame" : {
+        "h" : 377,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "libswitch-list",
+      "kind" : "view",
+      "tag" : "ul"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 134
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 216.30000000000001
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 228.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 310.69999999999999
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 322.69999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-libsw__row",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 94,
+        "w" : 362,
+        "x" : 20,
+        "y" : 405
+      },
+      "id" : "libswitch-row",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "textFrame" : {
+        "h" : 70,
+        "w" : 362,
+        "x" : 20,
+        "y" : 417
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-libsw__source",
+      "color" : "#A0968AFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 531
+      },
+      "id" : "libswitch-source",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "参考《通用规范汉字表》，部分字暂未收录。",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 258,
+        "x" : 20,
+        "y" : 532
+      }
+    },
+    {
+      "class" : "sz-fail",
+      "frame" : {
+        "h" : 140,
+        "w" : 362,
+        "x" : 20,
+        "y" : 700
+      },
+      "id" : "libswitch-fail",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-fail__note",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 700
+      },
+      "id" : "libswitch-fail-note",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "没保存上，刚才的选择没记下。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 208.40000000000001,
+        "x" : 96.799999999999997,
+        "y" : 701
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--text sz-fail__cancel",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 52.700000000000003,
+        "x" : 16,
+        "y" : 734
+      },
+      "id" : "libswitch-stay",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "先不换",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 44.600000000000001,
+        "x" : 20,
+        "y" : 746
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#E2D9C9FF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "libswitch-retry",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "再试一次",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 167.30000000000001,
+        "y" : 802
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "switch-fail",
+  "tag" : "dark_L",
+  "ui" : "web"
+}

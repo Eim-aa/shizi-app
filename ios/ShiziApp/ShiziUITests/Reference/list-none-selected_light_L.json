@@ -1,0 +1,747 @@
+{
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "待复习",
+      "role" : "heading",
+      "tag" : "h1"
+    },
+    {
+      "id" : "list-toggle-all",
+      "name" : "全选",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-head",
+      "name" : "先练这 6 个",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "选择「山」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "山 山地 10月18日写错 · 共 8 次 写错那次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "选择「风」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "风 风险 10月5日写错 · 共 5 次 写错那次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "选择「习」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "习 学习 9月26日写错 · 共 3 次 写错那次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "选择「写」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "写 写字 最近 8月26日 · 写过 5 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "选择「地」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "地 地方 最近 9月24日 · 写过 5 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-select",
+      "name" : "选择「土」",
+      "role" : "checkbox",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-row-open",
+      "name" : "土 土地 最近 10月12日 · 写过 7 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "list-go-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "先选字"
+    },
+    {
+      "disabled" : true,
+      "id" : "list-go",
+      "name" : "先选字",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "list-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "返回",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--back",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "kind" : "text",
+      "tag" : "h1",
+      "text" : "待复习",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 50.600000000000001,
+        "x" : 175.69999999999999,
+        "y" : 73
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--plain sz-list__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 342,
+        "y" : 62
+      },
+      "id" : "list-toggle-all",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "全选",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 29.800000000000001,
+        "x" : 349.10000000000002,
+        "y" : 74
+      }
+    },
+    {
+      "class" : "sz-list",
+      "frame" : {
+        "h" : 647,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "list-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-list__head",
+      "color" : "#26211DFF",
+      "fontSize" : 28,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 36,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "list-head",
+      "kind" : "text",
+      "tag" : "h2",
+      "text" : "先练这 6 个",
+      "textFrame" : {
+        "h" : 42,
+        "w" : 142.19999999999999,
+        "x" : 20,
+        "y" : 119
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-list__top",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 166
+      },
+      "id" : "list-top",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "待复习的字，包括上次写错的。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 208.40000000000001,
+        "x" : 20,
+        "y" : 167
+      }
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 1,
+      "class" : "sz-list__rows",
+      "frame" : {
+        "h" : 511,
+        "w" : 362,
+        "x" : 20,
+        "y" : 212
+      },
+      "id" : "list-rows",
+      "kind" : "view",
+      "tag" : "ul"
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 213
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "选择「山」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 233
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 213
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 233
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "山 山地 10月18日写错 · 共 8 次 写错那次",
+      "textFrame" : {
+        "h" : 57,
+        "w" : 303.89999999999998,
+        "x" : 58,
+        "y" : 228
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 298
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "选择「风」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 318
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 298
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 318
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "风 风险 10月5日写错 · 共 5 次 写错那次",
+      "textFrame" : {
+        "h" : 57,
+        "w" : 303.89999999999998,
+        "x" : 58,
+        "y" : 313
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 383
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "选择「习」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 403
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 383
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 403
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "习 学习 9月26日写错 · 共 3 次 写错那次",
+      "textFrame" : {
+        "h" : 57,
+        "w" : 303.89999999999998,
+        "x" : 58,
+        "y" : 398
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 468
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "选择「写」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 488
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 468
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 488
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "写 写字 最近 8月26日 · 写过 5 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 225.19999999999999,
+        "x" : 58,
+        "y" : 483
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 553
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "选择「地」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 573
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 553
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 573
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "地 地方 最近 9月24日 · 写过 5 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 225.19999999999999,
+        "x" : 58,
+        "y" : 568
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 85,
+        "w" : 362,
+        "x" : 20,
+        "y" : 638
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "选择「土」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 658
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 323,
+        "x" : 59,
+        "y" : 638
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 59,
+        "y" : 658
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "土 土地 最近 10月12日 · 写过 7 次",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 234.40000000000001,
+        "x" : 58,
+        "y" : 653
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-list__note",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 747
+      },
+      "id" : "list-note",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "点圆圈选字，点这一行看记录。",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 208.40000000000001,
+        "x" : 20,
+        "y" : 748
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-list__hint",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 754
+      },
+      "id" : "list-hint",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "写完会回到这里。",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 103.2,
+        "x" : 149.40000000000001,
+        "y" : 755
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-live",
+      "color" : "#26211DFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 753
+      },
+      "id" : "list-go-live",
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : "先选字",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 44.600000000000001,
+        "x" : 19,
+        "y" : 754
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#E4DDD0FF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#8E8477FF",
+      "enabled" : false,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "list-go",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "先选字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 50.600000000000001,
+        "x" : 175.69999999999999,
+        "y" : 802
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "list-none-selected",
+  "tag" : "light_L",
+  "ui" : "web"
+}

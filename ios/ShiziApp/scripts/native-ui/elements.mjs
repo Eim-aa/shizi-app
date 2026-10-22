@@ -25,17 +25,29 @@ export const KEYS = [
   { key: 'show-answer', native: ['prop:answerButton'], web: ['id:write-show-answer'] },
   { key: 'judge-wrong', native: ['prop:wrongButton'], web: ['id:write-judge-wrong'] },
   { key: 'judge-correct', native: ['prop:correctButton'], web: ['id:write-judge-correct'] },
-  { key: 'primary', native: ['prop:doneButton'], web: ['id:write-done', 'id:write-trace-done', 'id:write-answer-next', 'id:write-next'] },
+  { key: 'primary', native: ['prop:doneButton', 'prop:primaryButton'], web: ['id:write-done', 'id:write-trace-done', 'id:write-answer-next', 'id:write-next', 'id:result-again', 'id:result-done', 'id:result-leave'] },
   { key: 'undo-bar', native: ['id:native-write-undo-bar'], web: ['id:write-skip-undo'] },
   { key: 'undo-bar-text', native: ['id:native-write-undo-text'], web: ['id:write-skip-undo-text'] },
   { key: 'end-dialog', native: ['id:native-write-end-dialog'], web: ['id:write-end-dialog'] },
   { key: 'end-body', native: ['id:native-write-end-body'], web: ['id:write-end-body'] },
-  { key: 'sheet', native: ['prop:sheet.view'], web: ['id:write-change-sheet'] },
-  { key: 'change-detail', native: [], web: ['id:write-change-detail'] },
+  { key: 'sheet', native: ['prop:sheet.view'], web: ['id:write-change-sheet', 'id:result-sheet'] },
+  { key: 'change-detail', native: [], web: ['id:write-change-detail', 'id:result-sheet-detail'] },
   { key: 'change-title', native: ['id:native-change-title'], web: [] },
-  { key: 'change-mine', native: ['id:native-change-mine'], web: ['id:write-change-mine'] },
-  { key: 'change-ref', native: ['id:native-change-ref'], web: ['id:write-change-ref'] },
-  { key: 'change-note', native: ['id:native-change-note'], web: ['id:write-change-note'] },
+  { key: 'change-mine', native: ['id:native-change-mine'], web: ['id:write-change-mine', 'id:result-sheet-mine'] },
+  { key: 'change-ref', native: ['id:native-change-ref'], web: ['id:write-change-ref', 'id:result-sheet-ref'] },
+  { key: 'change-note', native: ['id:native-change-note'], web: ['id:write-change-note', 'id:result-sheet-note'] },
+  // B2.7 原生结果页（网页 result/index.js、work.js、first.js）
+  { key: 'share', native: ['prop:shareButton'], web: ['id:result-share'] },
+  { key: 'work', native: ['prop:workView'], web: ['id:work'] },
+  // 作品第一格（墨迹像素比较的取样格，parity.config.json ink）
+  { key: 'work-cell-0', native: ['id:native-result-cell#0'], web: ['id:work-cell#0'] },
+  { key: 'seal', native: ['id:native-result-seal'], web: ['id:work-seal'] },
+  { key: 'exrow-open', native: ['id:native-result-row-open'], web: ['id:result-exrow-open'] },
+  { key: 'preview', native: ['id:native-result-preview'], web: ['id:result-preview'] },
+  { key: 'result-title', native: ['id:native-result-title'], web: ['id:result-title'] },
+  { key: 'result-sub', native: ['id:native-result-sub'], web: ['id:result-sub'] },
+  { key: 'invite-body', native: ['id:native-result-invite-body'], web: ['id:result-invite-body'] },
+  { key: 'invite-title', native: ['id:native-result-invite-title'], web: ['id:result-invite-title'] },
 ];
 
 export const normText = t => String(t || '').replace(/\s+/g, '').replace(/[›>]+$/, '›');
@@ -60,6 +72,8 @@ export function assignKeys(list, side) {
     if (side === 'native' && e.id === 'native-write-progress') { e.key = /^\d+ \/ \d+$/.test(String(e.text || '').trim()) ? 'progress' : 'title'; continue; }
     // 主按钮只认底栏满宽的那一枚（.sz-btn--primary）：描一遍阶段求助行的「下一个」也用 write-answer-next 这个 testid（answer.js nextLink），它按文字配对
     if (side === 'web' && e.id === 'write-answer-next' && !/\bsz-btn--primary\b/.test(e.class || '')) continue;
+    // 首练结果页的「再写一组」是主按钮正上方的文字按钮（与主按钮同一个 testid result-again），按文字配对
+    if (side === 'web' && e.id === 'result-again' && !/\bsz-btn--primary\b/.test(e.class || '')) continue;
     for (const k of KEYS) {
       const hit = k[side].some(sel => {
         const [type, rest] = sel.split(':');

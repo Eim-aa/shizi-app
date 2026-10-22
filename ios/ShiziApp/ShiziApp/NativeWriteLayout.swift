@@ -136,13 +136,14 @@ struct NativeTypeScale {
 // MARK: 线形图标（R9-A：网页 src/ui/components/icons.js 同一组路径，线宽 1.5、圆端圆角；不随字号放大）
 
 enum NativeWriteIcon {
-    case back, undo, clear, answer, hint
+    case back, undo, clear, answer, hint, close, share
 
     /// 网页的栅格（viewBox 边长）与视觉尺寸。
-    var box: CGFloat { self == .back ? 22 : 20 }
+    var box: CGFloat { self == .back || self == .share ? 22 : 20 }
     var size: CGFloat {
         switch self {
-        case .back: return 22
+        case .back, .share: return 22
+        case .close: return 20
         case .undo, .clear: return 20
         case .answer, .hint: return 18
         }
@@ -167,6 +168,14 @@ enum NativeWriteIcon {
             p.move(to: CGPoint(x: 6.5, y: 8.2)); p.addLine(to: CGPoint(x: 13.5, y: 8.2))
             p.move(to: CGPoint(x: 10, y: 5.6)); p.addLine(to: CGPoint(x: 10, y: 14.6))
             p.move(to: CGPoint(x: 6.6, y: 14.2)); p.addLine(to: CGPoint(x: 13.2, y: 12.9))
+        case .close: // B2.7 结果页左上「×」（icons.js close）
+            p.move(to: CGPoint(x: 5, y: 5)); p.addLine(to: CGPoint(x: 15, y: 15))
+            p.move(to: CGPoint(x: 15, y: 5)); p.addLine(to: CGPoint(x: 5, y: 15))
+        case .share: // B2.7 结果页右上「分享」（icons.js share）
+            p.move(to: CGPoint(x: 11, y: 14)); p.addLine(to: CGPoint(x: 11, y: 3.5))
+            p.move(to: CGPoint(x: 7.2, y: 7)); p.addLine(to: CGPoint(x: 11, y: 3.2)); p.addLine(to: CGPoint(x: 14.8, y: 7))
+            p.move(to: CGPoint(x: 6, y: 10)); p.addLine(to: CGPoint(x: 5, y: 10)); p.addLine(to: CGPoint(x: 5, y: 18)); p.addLine(to: CGPoint(x: 17, y: 18))
+            p.addLine(to: CGPoint(x: 17, y: 10)); p.addLine(to: CGPoint(x: 16, y: 10))
         case .hint: // 实心的一点起笔（icons.js SolidIcons.hint）
             p.move(to: CGPoint(x: 6.2, y: 3.6))
             p.addCurve(to: CGPoint(x: 14.6, y: 12.6), controlPoint1: CGPoint(x: 9.8, y: 4.8), controlPoint2: CGPoint(x: 13.4, y: 8.1))

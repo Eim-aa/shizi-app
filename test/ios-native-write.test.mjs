@@ -10,10 +10,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './core/helpers.mjs';
 import { NATIVE_WRITE_COPY_KEYS } from '../src/ui/screens/write/native-session.js';
+import { NATIVE_RESULT_COPY_KEYS } from '../src/session/result-api.js';
 
 const DIR = path.join(ROOT, 'ios/ShiziApp/ShiziApp');
-const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift', 'NativeTrace.swift', 'NativeSkipEnd.swift'];
-const SURFACE = ['NativeInkView.swift', 'InkModel.swift', 'NativeInkWire.swift'];
+const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift', 'NativeTrace.swift', 'NativeSkipEnd.swift',
+  'NativeResult.swift']; // B2.7 原生结果页
+// B2.7：画墨接口 NativeInkPaint 与书写面同为 Release 组件（R11-A 的网页同算法墨换进来的地方）
+const SURFACE = ['NativeInkView.swift', 'InkModel.swift', 'NativeInkWire.swift', 'NativeInkPaint.swift'];
 const HAN = /[㐀-鿿＀-￯　-〿]/;
 
 /** 去掉 // 行注释与块注释后的源码（字符串里的 // 不在这些文件里出现）。 */
@@ -27,6 +30,13 @@ test('native write sources: no Chinese string literals (copy comes from src/conf
     const bad = literals.filter(s => HAN.test(s));
     assert.deepEqual(bad, [], `${f} has user-visible literals`);
   }
+});
+
+test('B2.7 native result page: every copy key it asks for is shipped in resultLook (write keys + NATIVE_RESULT_COPY_KEYS)', () => {
+  const src = fs.readFileSync(path.join(DIR, 'NativeResult.swift'), 'utf8');
+  const used = [...new Set([...src.matchAll(/tr\("([A-Z][\w-]*\.\w+)"/g)].map(m => m[1]))];
+  assert.ok(used.length >= 10);
+  for (const k of used) assert.ok(NATIVE_WRITE_COPY_KEYS.includes(k) || NATIVE_RESULT_COPY_KEYS.includes(k), `${k} missing from the result copy keys`);
 });
 
 test('native write sources: every copy key the page asks for is shipped in the open payload', () => {

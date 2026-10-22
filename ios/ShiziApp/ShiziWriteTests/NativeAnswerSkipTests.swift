@@ -228,9 +228,8 @@ final class NativeAnswerSkipTests: XCTestCase {
         try await waitUntil("result page") {
             (try? await self.js("return (await import('/src/ui/router.js')).getRouter().getState().top.n;")) as? String == "result"
         }
-        try await waitUntil("undo bar on the result page") {
-            (try? await self.js("return !!document.querySelector('[data-testid=\"write-skip-undo\"]');")) as? Bool == true
-        }
+        // B2.7：结果页是原生的，撤销机会交给原生结果页的撤销条（S4）
+        try await waitUntil("undo bar on the native result page") { self.web.nativeResultTop?.undoBarForTesting != nil }
     }
 
     // MARK: 结束这组（B2.6）

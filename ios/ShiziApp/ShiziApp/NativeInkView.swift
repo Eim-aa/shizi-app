@@ -149,9 +149,14 @@ final class NativeInkStrokeMesh {
 
     /// 一笔抬笔后的几何（R11-A，D72 ②）：网页同一算法 WebInk.buildStroke(final: true) → brush.js 同一画法的三角形。
     /// params 为 nil（页面还没下发 ink 表）时没有几何——书写面只在写字页 open 之后存在，open 一定带 ink（契约 test/ui/native-write.test.mjs）。
-    static func build(raw: [InkRawPoint], params: WebInkParams?) -> NativeInkStrokeMesh {
+    static func build(raw: [InkRawPoint], params: WebInkParams?, widthScale: Double = 1) -> NativeInkStrokeMesh {
         var v: [Float] = []
-        if let params { WebInk.triangles(WebInk.buildStroke(raw, final: true, params: params).points, into: &v) }
+        if let params {
+            var pts = WebInk.buildStroke(raw, final: true, params: params).points
+            // B2.7：小方框里的只读墨（结果页作品格 / 行）按网页 paintHand 的 widthScale 抬到最小物理线宽（core/images/layout.js inkWidthScale）
+            if widthScale != 1 { pts = pts.map { var q = $0; q.w *= widthScale; return q } }
+            WebInk.triangles(pts, into: &v)
+        }
         return NativeInkStrokeMesh(raw: raw, vertices: v)
     }
 
@@ -339,6 +344,10 @@ final class NativeInkView: UIView {
     var params: WebInkParams? = WebInkParams.current {
         didSet { if params != oldValue { rebuildMeshes() } }
     }
+    /// B2.7：只读墨的线宽倍数（画墨接口 NativeInkPaint 设；书写面恒为 1）。
+    var widthScale: Double = 1 {
+        didSet { if widthScale != oldValue { rebuildMeshes() } }
+    }
     /// T2 盲测候选（DEBUG 的 NativeInkSpike 设）：非 nil 时改用 ink-model-1.0 画；产品路径（写字页 / 判断页）不设。
     var inkModel: InkParams? {
         didSet { rebuildMeshes() }
@@ -501,7 +510,7 @@ final class NativeInkView: UIView {
     /// 一笔的几何（产品：网页同一算法；inkModel 设了时用 ink-model-1.0）。
     func mesh(_ raw: [InkRawPoint]) -> NativeInkStrokeMesh {
         if let k = inkModel { return NativeInkStrokeMesh.build(raw: raw, inkModel: k) }
-        return NativeInkStrokeMesh.build(raw: raw, params: params)
+        return NativeInkStrokeMesh.build(raw: raw, params: params, widthScale: widthScale)
     }
 
     /// 参数变了（页面重新同步下发新表 / 换笔模型）：已画的笔按新参数重算。

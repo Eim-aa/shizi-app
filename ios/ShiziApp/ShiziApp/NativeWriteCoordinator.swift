@@ -37,6 +37,8 @@ extension WebViewController: NativeWriteCoordinating {
     }
 
     var nativeWriteTop: NativeWriteViewController? { presentedViewController as? NativeWriteViewController }
+    /// B2.7：原生结果页（与写字页同一种覆盖呈现）。
+    var nativeResultTop: NativeResultViewController? { presentedViewController as? NativeResultViewController }
 
     func handleNativeWriteMessage(_ body: [String: Any]) {
         guard Self.nativeWriteEnabled else { return }
@@ -56,10 +58,6 @@ extension WebViewController: NativeWriteCoordinating {
                 top.resync(payload: payload)
                 return
             }
-            if let other = presentedViewController {
-                (other as? NativeWriteViewController)?.exitHandled = true
-                other.dismiss(animated: false)
-            }
             let vc = NativeWriteViewController(slot: slot, payload: payload, bridge: NativeWriteBridge(webView: webView))
             vc.coordinator = self
             vc.openTiming = ((body["sentAt"] as? NSNumber)?.doubleValue ?? receivedEpochMs, receivedAt, receivedEpochMs)
@@ -70,7 +68,29 @@ extension WebViewController: NativeWriteCoordinating {
             if (body["via"] as? String) == "return" { vc.transitions.fadeNext = true }
             QATrace.note("open via=\(body["via"] as? String ?? "") animate=\(animate)") // QA-H1 测试钩子：转场核对（NF-01）
             // D62：首页入口应是「纸展开」、其他入口推入（B2.8 做）；B2.0 一律推入，冷启动恢复不带动画
-            present(vc, animated: animate)
+            let show: () -> Void = { [weak self] in self?.present(vc, animated: animate) { NativeResultCover.clear() } }
+            if let other = presentedViewController {
+                (other as? NativeWriteViewController)?.exitHandled = true
+                if let r = other as? NativeResultViewController {
+                    // B2.7：结果页「再写一组」/ 撤销跳过 → 新写字页：结果页的样子先留在原处，写字页照常推入盖在它上面
+                    r.exitHandled = true
+                    NativeResultCover.cover(r.view, in: view)
+                }
+                Self.dismissWhenSettled(other, then: show)
+            } else {
+                show()
+            }
+        case "result-open":
+            handleResultOpen(body)
+        case "result-close":
+            // B2.7：结果条目被移出页面栈（离开 / 再写一组 / 撤销跳过），或为重写错字 / 字详情 / 网页分享弹层让开：原生结果页让开。
+            // 已经滑走的（「×」/ 左缘）不再处理；接着有写字页要盖上的，由 open 接手（结果页的样子留到写字页推入完）；否则原位淡出露出网页。
+            guard let top = nativeResultTop, top.slot == slot, !top.isBeingDismissed else { return }
+            if let sid = body["sessionId"] as? String, sid != top.sessionId { return }
+            top.exitHandled = true
+            NativeResultCover.cover(top.view, in: view)
+            Self.dismissWhenSettled(top) { NativeResultCover.fadeLater() }
+            QATrace.note("result:close away=\((body["away"] as? Bool) == true)")
         case "close":
             // 宿主条目被别处卸掉（深链换组、跨天作废、store 整体替换）：原生页跟着离开，不再发 exit
             if let top = nativeWriteTop, top.slot == slot, !top.exitHandled {
@@ -100,11 +120,103 @@ extension WebViewController: NativeWriteCoordinating {
         vc.endUndo()
         var args: [String: Any] = ["slot": vc.slot, "to": "result", "sessionId": sessionId]
         if let undo { args["undo"] = undo }
-        // 先让页面把写字条目就地换成结果页（D20 无中间页），再淡出原生页露出它
-        NativeWriteBridge(webView: webView).call("exit", args) { _ in
-            vc.transitions.fadeNext = true
-            vc.dismiss(animated: true)
+        // 先让页面把写字条目就地换成结果页（D20 无中间页）；B2.7 起结果页是原生的：页面的结果宿主随即发 result-open，
+        // 由 handleResultOpen 把写字页淡成原生结果页。页面没请原生结果页（找不到这一组）时保底：淡出露出网页。
+        NativeWriteBridge(webView: webView).call("exit", args) { [weak self, weak vc] _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                guard let self, let vc, self.presentedViewController === vc, !vc.isBeingDismissed else { return }
+                vc.transitions.fadeNext = true
+                vc.dismiss(animated: true)
+            }
         }
+    }
+
+    // MARK: B2.7 原生结果页
+
+    /// 不带动画收起一张覆盖页；它还在呈现转场里（刚淡入 / 推入）时等转场完再收（UIKit 转场中途 dismiss 会被忽略）。
+    static func dismissWhenSettled(_ vc: UIViewController, then: (() -> Void)? = nil) {
+        if vc.isBeingPresented || vc.isBeingDismissed, let tc = vc.transitionCoordinator {
+            tc.animate(alongsideTransition: nil) { _ in
+                if vc.presentingViewController != nil { vc.dismiss(animated: false, completion: then) } else { then?() }
+            }
+            return
+        }
+        vc.dismiss(animated: false, completion: then)
+    }
+
+    private func handleResultOpen(_ body: [String: Any]) {
+        let slot = body["slot"] as? String == "B" ? "B" : "A"
+        let sid = body["sessionId"] as? String ?? ""
+        let payload = body["payload"] as? [String: Any] ?? [:]
+        let look = body["look"] as? [String: Any] ?? [:]
+        guard (payload["ok"] as? Bool) == true, let v = payload["view"] as? [String: Any], (v["found"] as? Bool) == true else {
+            NSLog("[shizi] native-result open without a group (slot %@)", slot)
+            return
+        }
+        let via = body["via"] as? String ?? ""
+        if let top = nativeResultTop, top.slot == slot, top.sessionId == sid, !top.exitHandled {
+            top.apply(view: v)
+            return
+        }
+        let vc = NativeResultViewController(slot: slot, sessionId: sid, look: look, view: v, bridge: NativeWriteBridge(webView: webView))
+        vc.coordinator = self
+        vc.modalPresentationStyle = .overFullScreen
+        vc.transitioningDelegate = vc.transitions
+        QATrace.note("result:open via=\(via) animate=\((body["animate"] as? Bool) ?? true)")
+        if let w = nativeWriteTop {
+            // 写完最后一字（或结束这组有判断）：写字页的样子留在原处，原生结果页在它上面淡入（D20 无中间页；不再淡出到网页结果页）
+            w.exitHandled = true
+            NativeResultCover.cover(w.view, in: view)
+            QATrace.note("dismiss:fade")
+            vc.transitions.fadeNext = true
+            Self.dismissWhenSettled(w) { [weak self] in self?.present(vc, animated: true) { NativeResultCover.clear() } }
+            return
+        }
+        let animate = (body["animate"] as? Bool) ?? true
+        if via == "return" || via == "write" { vc.transitions.fadeNext = true }
+        let show: () -> Void = { [weak self] in self?.present(vc, animated: animate) { NativeResultCover.clear() } }
+        if let other = presentedViewController {
+            (other as? NativeResultViewController)?.exitHandled = true
+            (other as? NativeWriteViewController)?.exitHandled = true
+            Self.dismissWhenSettled(other, then: show)
+        } else {
+            show()
+        }
+    }
+}
+
+extension WebViewController: NativeResultCoordinating {
+    func nativeResultWillNavigate(_ vc: NativeResultViewController) {}
+}
+
+/// 换页时的「旧页样子」（B2.7）：原生页换成另一张原生页 / 让给网页时，先把旧页的截图留在原处，新页盖上（或网页就位）后再收掉，不露出中间的网页层。
+enum NativeResultCover {
+    private static weak var current: UIView?
+
+    static func cover(_ v: UIView, in host: UIView) {
+        clear()
+        guard let snap = v.snapshotView(afterScreenUpdates: false) else { return }
+        snap.frame = host.bounds
+        snap.isUserInteractionEnabled = false
+        host.addSubview(snap)
+        current = snap
+    }
+
+    /// 没有新的原生页接手：留一小会儿（等网页换好页），再 150ms 原位淡出。
+    static func fadeLater() {
+        guard let snap = current else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            guard current === snap else { return }
+            UIView.animate(withDuration: UIAccessibility.isReduceMotionEnabled ? 0.15 : 0.15, delay: 0, options: [.curveLinear]) { snap.alpha = 0 } completion: { _ in
+                snap.removeFromSuperview()
+                if current === snap { current = nil }
+            }
+        }
+    }
+
+    static func clear() {
+        current?.removeFromSuperview()
+        current = nil
     }
 }
 

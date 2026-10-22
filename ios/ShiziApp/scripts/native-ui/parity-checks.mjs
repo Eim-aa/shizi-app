@@ -62,7 +62,7 @@ export const CHECKS = [
     // R11-A（D72 ②，取消 D71 ① 的豁免）：原生墨与网页同一算法。粗细 = 同一组注入笔画（中线相同）的墨面积比 = 平均笔宽比；
     // 口径与容差见 parity.config.json ink（compare.mjs inkCompare）。横画粗（单列像素）只记录。
     id: 'NP-07', status: 'pass', level: '中', title: '同一组笔画的墨粗细与网页一致（平均笔宽 ±10%）（NP-21 结果页缩略墨迹同源）',
-    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet'],
+    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-daily', 'result-first', 'result-early', 'result-undo', 'result-sheet'],
     eval({ px, ink }) {
       const c = px.ink;
       if (!c || c.error) return { pass: false, detail: c ? c.error : '没有墨区取样' };
@@ -72,7 +72,7 @@ export const CHECKS = [
   },
   {
     id: 'NP-22', status: 'pass', level: '中', title: '同一组笔画的墨区与网页重合（R11-A，D72 ②：原生墨与网页同一算法）',
-    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet'],
+    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-daily', 'result-first', 'result-early', 'result-undo', 'result-sheet'],
     eval({ px, ink }) {
       const c = px.ink;
       if (!c || c.error) return { pass: false, detail: c ? c.error : '没有墨区取样' };
@@ -248,5 +248,5 @@ export const COVERED_ELSEWHERE = {
   'NP-01': 'XCUITest KnownIssueTests.testNP01_changeLinkWholeHitArea（真实点按「修改 ›」44pt 热区上沿；R9-B 修好，普通断言）',
   'NP-06': 'XCUITest KnownIssueTests.testNP06_judgeSaveFailureThreeSteps（-shizi-qa-fail-next 注入写失败）',
   'NP-18': '并入 NP-09（撤销 / 清空图标）',
-  'NP-21': '并入 NP-07 / NP-22（原生墨与网页同一算法 buildStroke；结果页仍是网页）',
+  'NP-21': '并入 NP-07 / NP-22（原生墨与网页同一算法 buildStroke；B2.7 结果页原生后作品格的墨同样按像素比）',
 };

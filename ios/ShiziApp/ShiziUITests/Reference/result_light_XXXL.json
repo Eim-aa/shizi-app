@@ -1,0 +1,604 @@
+{
+  "elements" : [
+    {
+      "class" : "sz-page",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "result-screen",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "关闭",
+      "class" : "sz-btn sz-btn--icon sz-page__ico--close",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 3.7999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 20,
+        "w" : 20,
+        "x" : 15.800000000000001,
+        "y" : 74
+      },
+      "id" : "page-back",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-page__title sz-page__title--hidden",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 83.5
+      },
+      "kind" : "text",
+      "srOnly" : true,
+      "tag" : "h1",
+      "text" : "自己选的",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 19,
+        "y" : 83.5
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "分享这次的图片",
+      "class" : "sz-btn sz-btn--icon",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 353.30000000000001,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 364.30000000000001,
+        "y" : 73
+      },
+      "id" : "result-share",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "class" : "sz-result",
+      "frame" : {
+        "h" : 528.70000000000005,
+        "w" : 362,
+        "x" : 20,
+        "y" : 133.69999999999999
+      },
+      "id" : "result-body",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "axLabel" : "这次的字：和、日，2 个，10月22日",
+      "class" : "sz-work",
+      "frame" : {
+        "h" : 219,
+        "w" : 362,
+        "x" : 20,
+        "y" : 137.69999999999999
+      },
+      "id" : "work",
+      "kind" : "view",
+      "tag" : "section"
+    },
+    {
+      "class" : "sz-work__grid",
+      "frame" : {
+        "h" : 181,
+        "w" : 362,
+        "x" : 20,
+        "y" : 137.69999999999999
+      },
+      "id" : "work-grid",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "bg" : "#FBF8F2FF",
+      "class" : "sz-work__sheet",
+      "frame" : {
+        "h" : 181,
+        "w" : 362,
+        "x" : 20,
+        "y" : 137.69999999999999
+      },
+      "id" : "work-sheet",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "和，写对，点两下对照和修改",
+      "class" : "sz-wcell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 181,
+        "w" : 181,
+        "x" : 20,
+        "y" : 137.69999999999999
+      },
+      "id" : "work-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "日，写对，点两下对照和修改",
+      "class" : "sz-wcell",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 181,
+        "w" : 181,
+        "x" : 201,
+        "y" : 137.69999999999999
+      },
+      "id" : "work-cell",
+      "kind" : "button",
+      "tag" : "button"
+    },
+    {
+      "class" : "sz-work__sign",
+      "frame" : {
+        "h" : 24,
+        "w" : 362,
+        "x" : 20,
+        "y" : 332.69999999999999
+      },
+      "id" : "work-sign",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-work__kuan",
+      "color" : "#564E46FF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 208,
+        "x" : 142,
+        "y" : 334.69999999999999
+      },
+      "id" : "work-kuan",
+      "kind" : "text",
+      "tag" : "span",
+      "text" : "二〇二六年十月二十二日 自选两字",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 208,
+        "x" : 142,
+        "y" : 334.69999999999999
+      }
+    },
+    {
+      "bg" : "#B03A27FF",
+      "class" : "sz-seal",
+      "frame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 358,
+        "y" : 332.69999999999999
+      },
+      "id" : "work-seal",
+      "kind" : "view",
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-seal__glyph",
+      "frame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 358,
+        "y" : 332.69999999999999
+      },
+      "id" : "seal-shi-mark",
+      "kind" : "view",
+      "tag" : "svg"
+    },
+    {
+      "class" : "sz-exrows",
+      "frame" : {
+        "h" : 156,
+        "w" : 362,
+        "x" : 20,
+        "y" : 384.69999999999999
+      },
+      "id" : "result-excluded",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "class" : "sz-exrow",
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 384.69999999999999
+      },
+      "id" : "result-exrow",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "永，写错了",
+      "class" : "sz-exrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 219.59999999999999,
+        "x" : 20,
+        "y" : 384.69999999999999
+      },
+      "id" : "result-exrow-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "写错了",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 67.799999999999997,
+        "x" : 68,
+        "y" : 396.19999999999999
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--text sz-line__change",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 54.200000000000003,
+        "x" : 243.59999999999999,
+        "y" : 388.69999999999999
+      },
+      "id" : "result-exrow-change",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "修改 ›",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 46.200000000000003,
+        "x" : 247.59999999999999,
+        "y" : 399.19999999999999
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "把「永」放进图里",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 88.200000000000003,
+        "x" : 297.80000000000001,
+        "y" : 388.69999999999999
+      },
+      "id" : "result-add",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "放进图里",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 80.200000000000003,
+        "x" : 301.80000000000001,
+        "y" : 398.19999999999999
+      }
+    },
+    {
+      "class" : "sz-exrow",
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 436.69999999999999
+      },
+      "id" : "result-exrow",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "春，写错了",
+      "class" : "sz-exrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 219.59999999999999,
+        "x" : 20,
+        "y" : 436.69999999999999
+      },
+      "id" : "result-exrow-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "写错了",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 67.799999999999997,
+        "x" : 68,
+        "y" : 448.19999999999999
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--text sz-line__change",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 54.200000000000003,
+        "x" : 243.59999999999999,
+        "y" : 440.69999999999999
+      },
+      "id" : "result-exrow-change",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "修改 ›",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 46.200000000000003,
+        "x" : 247.59999999999999,
+        "y" : 451.19999999999999
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "把「春」放进图里",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 88.200000000000003,
+        "x" : 297.80000000000001,
+        "y" : 440.69999999999999
+      },
+      "id" : "result-add",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "放进图里",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 80.200000000000003,
+        "x" : 301.80000000000001,
+        "y" : 450.19999999999999
+      }
+    },
+    {
+      "class" : "sz-exrow",
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 488.69999999999999
+      },
+      "id" : "result-exrow",
+      "kind" : "view",
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "月，写错了",
+      "class" : "sz-exrow__open",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 219.59999999999999,
+        "x" : 20,
+        "y" : 488.69999999999999
+      },
+      "id" : "result-exrow-open",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "写错了",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 67.799999999999997,
+        "x" : 68,
+        "y" : 500.19999999999999
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--text sz-line__change",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 54.200000000000003,
+        "x" : 243.59999999999999,
+        "y" : 492.69999999999999
+      },
+      "id" : "result-exrow-change",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "修改 ›",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 46.200000000000003,
+        "x" : 247.59999999999999,
+        "y" : 503.19999999999999
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "把「月」放进图里",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 88.200000000000003,
+        "x" : 297.80000000000001,
+        "y" : 492.69999999999999
+      },
+      "id" : "result-add",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "放进图里",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 80.200000000000003,
+        "x" : 301.80000000000001,
+        "y" : 502.19999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-result__preview",
+      "color" : "#564E46FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 560.70000000000005
+      },
+      "id" : "result-preview",
+      "kind" : "text",
+      "tag" : "p",
+      "text" : "「永」「春」「月」明天再见，「日」6 天后再见，「和」10 天后再见。",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 340.89999999999998,
+        "x" : 20,
+        "y" : 562.70000000000005
+      }
+    },
+    {
+      "class" : "sz-live",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 132.69999999999999
+      },
+      "id" : "result-live",
+      "kind" : "view",
+      "srOnly" : true,
+      "tag" : "span"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--text sz-result__textbtn",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 88.200000000000003,
+        "x" : 16,
+        "y" : 722
+      },
+      "id" : "result-redo",
+      "kind" : "button",
+      "tag" : "button",
+      "text" : "重写错字",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 80.200000000000003,
+        "x" : 20,
+        "y" : 731.5
+      }
+    },
+    {
+      "align" : "center",
+      "bg" : "#26211DFF",
+      "class" : "sz-btn sz-btn--primary",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "result-leave",
+      "kind" : "button",
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "回到首页",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 155.80000000000001,
+        "y" : 798.5
+      }
+    }
+  ],
+  "ok" : true,
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "result",
+  "tag" : "light_XXXL",
+  "ui" : "web"
+}

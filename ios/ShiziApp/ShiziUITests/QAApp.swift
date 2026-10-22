@@ -83,6 +83,13 @@ final class QA {
     }
 
     var native: [String: Any] { probe["native"] as? [String: Any] ?? [:] }
+    /// B2.7：原生结果页（探针 result）。
+    var resultInfo: [String: Any] { probe["result"] as? [String: Any] ?? [:] }
+    var resultShown: Bool { resultInfo["shown"] as? Bool == true }
+
+    func waitResult(_ shown: Bool, timeout: TimeInterval = 8, file: StaticString = #filePath, line: UInt = #line) {
+        waitProbe(shown ? "native result shown" : "native result gone", timeout: timeout, file: file, line: line) { (($0["result"] as? [String: Any])?["shown"] as? Bool ?? false) == shown }
+    }
     var nativeShown: Bool { native["shown"] as? Bool == true }
     func session(_ slot: String = "B") -> [String: Any] { (probe["sessions"] as? [String: Any])?[slot] as? [String: Any] ?? [:] }
     var route: [String: Any] { probe["route"] as? [String: Any] ?? [:] }

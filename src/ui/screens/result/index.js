@@ -60,6 +60,7 @@ import { SkipUndoDock } from '../write/skip.js';
 import { openRedo } from '../write/redo.js'; // D66 ③ 重写错字
 import { ViewCharLink } from '../write/result-row.js'; // .sz-change* 弹层样式（与写字页修改判断弹层同一版式）+「看这个字 ›」
 import { NONE_SCREEN } from '../session/none.js';
+import { NativeResultHost, nativeResultShown, nativeWriteEnabled } from '../write/native-session.js'; // B2.7 原生结果页（开关关时不用）
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { ReminderInvite, ReviewPreview, firstExtras, useReminderInvite } from './first.js';
 import { WorkRows, WorkSection, commitAdded, commitSealed, shouldPlayReveal } from './work.js';
@@ -102,7 +103,7 @@ injectStyles('result', `
 .sz-page[data-testid="result-screen"] .sz-page__foot[data-under="true"]{box-shadow:0 calc(${T.hair} * -1) 0 ${T.line}}
 `);
 
-function dateText(day) {
+export function dateText(day) {
   if (!day) return '';
   return t('R-H02.dateFormat', monthDayParts(day));
 }
@@ -142,6 +143,11 @@ export function setResultImageAction(fn) {
   hooks.image = typeof fn === 'function' ? fn : null;
 }
 
+/** B2.7：右上「分享」此刻的去处（原生结果页经 resultExit share 调它；没注册时 null）。 */
+export function resultImageAction() {
+  return hooks.image;
+}
+
 /** 写字页换成结果页（最后一字推进后 / 结束这组有判断）。 */
 export function openResult(slot, sessionId) {
   nav.replace(RESULT_SCREEN, { slot, sessionId });
@@ -172,7 +178,7 @@ function useStoreState() {
 }
 
 /** 某条记录的本人笔迹（judged，或看过答案后自己写的那份，Q1）：存下的墨迹（perRecordInk 开）→ 本页面会话里刚判断时记下的笔画 → 没有。 */
-function inkOf(store, record) {
+export function inkOf(store, record) {
   if (!record) return { points: null, strokes: null };
   if (store) {
     let ink = null;
@@ -492,4 +498,30 @@ function ResultScreen({ params, entry }) {
   </${Page}>`;
 }
 
-registerScreen(RESULT_SCREEN, ResultScreen, { label: t('X-RESULT.headerDaily') });
+/**
+ * B2.7：结果条目。原生写字页开关打开时，结果页由原生页面显示（宿主 NativeResultHost：透明、不画内容）；
+ * 为进重写错字 / 字详情 / 网页分享弹层让开时（条目还在栈里、但不是顶层或上面有网页弹层）显示网页结果页本身，弹层与推入转场盖在它上面；
+ * 离开页面栈后（返回转场里留着的旧层）保持透明宿主。开关关着时就是网页结果页，行为不变。
+ */
+function ResultEntry(props) {
+  const enabled = nativeWriteEnabled();
+  const entry = props.entry;
+  const decide = snap => !!entry && (nativeResultShown(entry, snap) || !inRouterStack(entry.id));
+  const [hosted, setHosted] = useState(() => enabled && decide());
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const router = getRouter();
+    if (!router) return undefined;
+    setHosted(decide(router.getState()));
+    return router.subscribe(snap => setHosted(decide(snap)));
+  }, [enabled, entry && entry.id]);
+  if (!enabled) return html`<${ResultScreen} ...${props} />`;
+  return hosted ? html`<${NativeResultHost} ...${props} />` : html`<${ResultScreen} ...${props} />`;
+}
+
+registerScreen(RESULT_SCREEN, ResultEntry, {
+  label: t('X-RESULT.headerDaily'),
+  // B2.7：顶层且上面没有网页弹层时由原生结果页显示（本层透明、下层可见）；离开时留着的旧层同样透明（原生已滑走，不再滑一张空纸）
+  nativeHost: (entry, snap) => nativeResultShown(entry, snap),
+  nativeHostLeaving: () => nativeWriteEnabled(),
+});

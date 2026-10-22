@@ -12,8 +12,19 @@
     "//": "具名检查（NP-*）的逐项豁免：照跑、照记实测值，失败不算回归（报告里显示「豁免」与理由）。只放负责人定过的条目，不放宽容差。NP-07 的豁免已随 D72 ② 取消（R11-A）。"
   },
   "ink": {
-    "//": "R11-A（D72 ②）墨迹像素比较：states = 状态 → 墨格的语义键（elements.mjs；网页 / 原生各取自己的框）。同一组注入笔画（NativeQAHarness 两笔）。掩膜：墨格内 N×N（N = 网页墨格边长 pt，1 倍图）、内缩 inset pt 避开格线，与格底亮度差 > max(40, 格内最大差 × threshold) 记为墨。iou = 逐像素交并比下限；iou1 = 容 1 像素（边缘抗锯齿 / 亚像素对位：双方墨点落在对方墨 1 像素内的比例，取小者）下限；thickness = 墨面积比（原生 / 网页，中线相同时 = 平均笔宽比）与 1 的允许偏差（±10%）。",
-    "states": { "recall-ink": "grid", "judge": "grid", "last-judge": "grid", "change-sheet": "change-mine" },
+    "//": "R11-A（D72 ②）墨迹像素比较：states = 状态 → 墨格的语义键（elements.mjs；网页 / 原生各取自己的框）。同一组注入笔画（NativeQAHarness 两笔）。掩膜：墨格内 N×N（N = 网页墨格边长 pt，1 倍图）、内缩 inset pt 避开格线，与格底亮度差 > max(40, 格内最大差 × threshold) 记为墨。iou = 逐像素交并比下限；iou1 = 容 1 像素（边缘抗锯齿 / 亚像素对位：双方墨点落在对方墨 1 像素内的比例，取小者）下限；thickness = 墨面积比（原生 / 网页，中线相同时 = 平均笔宽比）与 1 的允许偏差（±10%）。 B2.7：结果页取作品第一格（work-cell-0，格内 12% 内边里的墨，网页 paintCellContent 同一线宽倍数），对照弹层取「你写的」小卡。",
+    "states": {
+      "recall-ink": "grid",
+      "judge": "grid",
+      "last-judge": "grid",
+      "change-sheet": "change-mine",
+      "result": "work-cell-0",
+      "result-daily": "work-cell-0",
+      "result-first": "work-cell-0",
+      "result-early": "work-cell-0",
+      "result-undo": "work-cell-0",
+      "result-sheet": "change-mine"
+    },
     "inset": 2,
     "threshold": 0.5,
     "iou": 0.8,
@@ -43,6 +54,84 @@
       "type": "size",
       "label": "hé",
       "//": "R9-A：弹层 / 确认框盖着写字页时，网页整页 aria-hidden，取证脚本不给底下文字的文字框（只剩 span 盒：拼音行高 22 + 下内边距 4 = 26），只能拿原生标签框（22）比盒高；拼音的字号、位置、宽度与其它状态逐项一致"
+    },
+    {
+      "label": "exrow-open",
+      "aspects": [
+        "color",
+        "font"
+      ],
+      "//": "B2.7：结果页「没放进图里」那一行是一个按钮，网页取证读的是按钮元素自身的字号 / 颜色（继承正文 15、ink1），字实际在内层 span（.sz-exrow__t 17、ink2）；原生按钮的标题就是那行字（17、ink2）。位置、文字框、文案照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "result-title",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "result-sub",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "preview",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result",
+        "result-daily",
+        "result-first",
+        "result-early",
+        "result-undo",
+        "result-sheet"
+      ],
+      "label": "invite-body",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：结果页的段落含成对全角标点（「」，。），iOS 文字排版把相邻 / 行末的全角标点挤成半宽（TextKit 标点挤压），WebKit 不挤，行宽窄几到二十几 pt；折行点由页面用网页同一组 CSS 量出后交给原生（native-view.js webLineStarts），行数、每行起止字与网页相同，左缘与竖向位置照比"
+    },
+    {
+      "state": [
+        "result-first"
+      ],
+      "label": "invite-title",
+      "aspects": [
+        "size"
+      ],
+      "//": "B2.7：邀请问句（17 / 500，13 个全角字）在 XXXL 下原生比网页宽 1.7pt（苹方正文款中粗与 WebKit 的字宽累计差，每字约 0.13pt）；位置、字号、字重、颜色照比"
     }
   ]
 }

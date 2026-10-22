@@ -300,11 +300,9 @@ final class WriteFlowTests: XCTestCase {
         qa.launch()
         XCTAssertEqual(qa.el("native-write-progress").label, "第 5 个字，共 5 个")
         qa.tapNative("native-write-skip")
-        qa.waitNative(false)
-        qa.waitRouteTop("result")
-        let undo = qa.button("撤销")
-        XCTAssertTrue(undo.waitForExistence(timeout: 3), "skip undo handed to the result page (S4)")
-        undo.tap()
+        // 撤销窗口只有 5 秒：直接等撤销条（原生结果页上），路由与写字页的断言放到撤销之后
+        qa.waitProbe("skip undo handed to the result page (S4)") { (($0["result"] as? [String: Any])?["undoBar"] as? Bool) == true } // B2.7：原生结果页的撤销条
+        qa.tapUndoBar()
         qa.waitNative(true)
         qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 4 }
         XCTAssertEqual(qa.kinds["skipped"] ?? 0, 0)

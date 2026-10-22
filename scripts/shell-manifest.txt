@@ -7341,6 +7341,7 @@ src/session/ops/result.js
 src/session/ops/skip.js
 src/session/ops/strokes.js
 src/session/ops/work.js
+src/session/result-api.js
 src/session/result-ops.js
 src/session/write-api.js
 src/session/write-ops.js
@@ -7436,6 +7437,7 @@ src/ui/screens/mine/records.js
 src/ui/screens/mine/remind.js
 src/ui/screens/result/first.js
 src/ui/screens/result/index.js
+src/ui/screens/result/native-view.js
 src/ui/screens/result/work.js
 src/ui/screens/session/index.js
 src/ui/screens/session/none.js

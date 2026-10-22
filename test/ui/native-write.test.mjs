@@ -23,6 +23,18 @@ import * as policyModule from '../../src/config/policy.js';
 import { hintSourceOf, hintStep, commitHintStep, commitHint } from '../../src/ui/screens/write/hint-layer.js';
 import { setCardResolver } from '../../src/data/deck.js';
 import { t } from '../../src/config/copy/index.js';
+import { NATIVE_RESULT_COPY_KEYS, NATIVE_RESULT_OPS } from '../../src/session/write-api.js';
+import { resultModel, inkPresent, commitResultCorrection, commitAdded, commitSealed, commitResultSkipUndo, leaveOf } from '../../src/session/result-ops.js';
+import { inkOf as resultInkOf } from '../../src/ui/screens/result/index.js';
+import { resultView } from '../../src/ui/screens/result/native-view.js';
+import { revealPlan } from '../../src/ui/screens/result/work.js';
+import { resultGrid } from '../../src/core/images/layout.js';
+import { kuan } from '../../src/ui/work-text.js';
+import { M as motionM } from '../../src/config/motion.js';
+import * as sessionStartModule from '../../src/core/session-start.js';
+import { deckAdapter } from '../../src/data/deck.js';
+import { now as envNow } from '../../src/platform/env.js';
+import { commitInviteShown, commitInviteAnswer } from '../../src/core/first-result.js';
 
 loadFSRSGlobal();
 
@@ -892,4 +904,252 @@ test('prompt fill: the blank cell carries the answer only in the trace phase (we
   assert.equal(r.snapshot.prompt.cells[1].fill, '永');
   const back = apiOn(store).call('answerPhase', { slot: 'A', cardKey: 'base:永', phase: 'retrace', strokes: [] });
   assert.ok(back.snapshot.prompt.cells.every(c => c.fill === null));
+});
+
+// ---------------------------------------------------------------- B2.7 原生结果页
+
+/** 写完一组（3 字：写对 / 写错 / 写对），会话移入 lastEnded（与网页写字页同一路径）。 */
+function finishedGroup(plan = ['correct', 'wrong', 'correct']) {
+  const store = fakeStore();
+  // 真 store 的 getInk：按记录的月份与 id 取存下的墨迹（结果页格子 / 弹层取墨同一个入口）
+  store.getInk = record => {
+    const m = store.getState().ink[String(record.localDay || '').slice(0, 7)];
+    return m && m[record.inkId || record.id] ? m[record.inkId || record.id] : null;
+  };
+  for (const j of plan) webJudge(store, j, [STROKE_A]);
+  return store;
+}
+
+function apiResult(store, result = {}) {
+  return createWriteSessionApi({ getStore: () => store, navigate: quietNav, colors: () => ({}), result: { view: undefined, ...result } });
+}
+
+test('B2.7 ops: the result set is named; resultLook carries copy (incl. the result keys), timing and the result motion from config/motion', () => {
+  assert.deepEqual([...NATIVE_RESULT_OPS], ['result', 'resultCell', 'resultCorrect', 'resultAdd', 'resultSealed', 'resultUndoSkip', 'resultAgain', 'resultExit', 'resultInvite']);
+  const look = apiResult(fakeStore()).call('resultLook', {});
+  assert.equal(look.ok, true);
+  for (const k of NATIVE_RESULT_COPY_KEYS) assert.equal(look.copy[k], t(k), k);
+  assert.equal(look.motion.result.sealDrop, motionM.moment.sealDrop);
+  assert.equal(look.motion.result.inviteDelay, motionM.moment.inviteDelay);
+  assert.equal(look.motion.result.sealFrom, motionM.scale.sealFrom);
+  assert.equal(look.skipUndo.ms, policyModule.skipUndo.ms);
+});
+
+test('B2.7 result op = the web result page mount (commitFinish, idempotent) + the view of the same resultModel', () => {
+  // 写完但还在槽里（结束写入失败）：网页结果页挂载时补写结束；API 同一次 commit
+  const mk = () => {
+    const s = fakeStore();
+    for (const j of ['correct', 'wrong']) webJudge(s, j, [STROKE_A]);
+    const st = s.getState().sessions.A;
+    commitComparePhase(s, { slot: 'A', cardKey: st.queue[2], phase: 'compare', strokes: [STROKE_A] });
+    commitJudgment(s, { slot: 'A', cardKey: st.queue[2], judgment: 'correct', strokes: [STROKE_A], hints: 0 });
+    return s;
+  };
+  const viaWeb = mk();
+  const viaApi = mk();
+  assert.ok(viaApi.getState().sessions.A, 'complete but still in the slot');
+  commitFinish(viaWeb, { slot: 'A', sessionId: 's1' });
+  const r = apiResult(viaApi).call('result', { slot: 'A', sessionId: 's1', width: 402 });
+  assert.equal(r.ok, true);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  const m = resultModel(viaWeb.getState(), { slot: 'A', sessionId: 's1' });
+  assert.deepEqual(r.view.cells.map(c => [c.char, c.kind, c.judgment, c.canChange]), m.cells.map(c => [c.char, c.kind, c.judgment, c.canChange]));
+  assert.equal(r.view.variant, 'daily');
+  // 再开一次：不再写
+  const n = viaApi.labels.length;
+  apiResult(viaApi).call('result', { slot: 'A', sessionId: 's1' });
+  assert.equal(viaApi.labels.length, n, 'already ended → no commit');
+});
+
+test('B2.7 result view (page side): work cells / rows / kuan / reveal come from the web result page functions', () => {
+  const store = finishedGroup();
+  const v = resultView(store, { slot: 'A', sessionId: 's1', width: 402 });
+  const m = resultModel(store.getState(), { slot: 'A', sessionId: 's1', hasInk: record => inkPresent(resultInkOf(store, record)) });
+  assert.equal(v.found, true);
+  assert.deepEqual(v.work.cells.map(c => c.char), m.work.cells.map(c => c.char));
+  assert.deepEqual(v.rows.map(r => [r.char, r.state]), m.work.rows.filter(r => r.state !== 'in' && r.state !== 'added').map(r => [r.char, r.state]));
+  const grid = resultGrid(m.work.cells.length, 402);
+  assert.deepEqual([v.work.cols, v.work.rows, v.work.c], [grid.cols, grid.rows, grid.c]);
+  assert.equal(v.work.kuan, kuan({ day: m.day, n: m.work.cells.length, picked: false }));
+  assert.deepEqual(v.reveal.plan, revealPlan(m.work.cells.length));
+  assert.equal(v.reveal.sealed, false);
+  assert.equal(v.footer.kind, 'again');
+  assert.equal(v.footer.redo, true, 'a wrong char → 重写错字');
+  const wrongRow = v.rows.find(r => r.judgment === 'wrong');
+  assert.equal(wrongRow.change, true, 'D66 ④: the wrong row has 修改 ›');
+  assert.equal(wrongRow.add, true);
+  assert.equal(strokesFromWire(v.work.cells[0].strokes).length, 1, 'cell ink = the stored raw points');
+  assert.deepEqual(strokesFromWire(v.work.cells[0].strokes)[0].map(p => [p.x, p.y]), STROKE_A.map(p => [p.x, p.y]));
+});
+
+test('B2.7 resultCell: the sheet model is the web ResultCellSheet (title / note / top label / flip); skipped and answer-seen only look', () => {
+  const store = finishedGroup();
+  const api = apiResult(store);
+  const recs = Object.values(store.getState().records).flat();
+  const wrong = recs.find(r => r.judgment === 'wrong');
+  const c = api.call('resultCell', { slot: 'A', sessionId: 's1', recordId: wrong.id });
+  assert.equal(c.ok, true);
+  assert.equal(c.changeable, true);
+  assert.equal(c.title, t('R-R02.sheetTitleWrong', { char: wrong.char }));
+  assert.equal(c.note, t('R-R02.sheetNoteChange'));
+  assert.equal(c.topLabel, t('R-R02.sheetCancel'));
+  assert.equal(c.flipLabel, t('X-JUDGE.changeToCorrect'));
+  assert.equal(c.strokes.length, 1, 'own strokes from the stored ink');
+  const skipped = api.call('resultCell', { slot: 'A', sessionId: 's1', kind: 'skipped', char: '永' });
+  assert.equal(skipped.changeable, false);
+  assert.equal(skipped.title, t('R-R02.sheetTitleSkipped', { char: '永' }));
+  assert.equal(skipped.topLabel, t('R-R02.sheetClose'));
+  assert.equal(skipped.flipLabel, null);
+  assert.deepEqual(skipped.strokes, []);
+});
+
+test('B2.7 resultCorrect = commitResultCorrection field by field (D19: same record, corrections appended, sched replayed); once only; failure changes nothing', () => {
+  const viaWeb = finishedGroup();
+  const viaApi = finishedGroup();
+  const wrong = Object.values(viaWeb.getState().records).flat().find(r => r.judgment === 'wrong');
+  const w = commitResultCorrection(viaWeb, { slot: 'A', sessionId: 's1', recordId: wrong.id, to: 'correct' });
+  const api = apiResult(viaApi);
+  const failing = finishedGroup();
+  const before = JSON.stringify(failing.getState());
+  failing.failures = 1;
+  const f = apiResult(failing).call('resultCorrect', { slot: 'A', sessionId: 's1', recordId: wrong.id, to: 'correct' });
+  assert.equal(f.ok, false);
+  assert.equal(JSON.stringify(failing.getState()), before, 'D07: the failed write changed nothing');
+  assert.equal(apiResult(failing).call('resultCorrect', { slot: 'A', sessionId: 's1', recordId: wrong.id, to: 'correct' }).ok, true, 'the retry applies');
+  const r = api.call('resultCorrect', { slot: 'A', sessionId: 's1', recordId: wrong.id, to: 'correct' });
+  assert.equal(w.ok, true);
+  assert.equal(r.ok, true);
+  assert.equal(r.judgment, 'correct');
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  const again = api.call('resultCorrect', { slot: 'A', sessionId: 's1', recordId: wrong.id, to: 'correct' });
+  assert.equal(again.ok, true, 'a resend with the same target is idempotent');
+  assert.deepEqual(viaApi.getState().records, viaWeb.getState().records, 'no second correction appended');
+  assert.equal(Object.values(viaApi.getState().records).flat().length, 3, 'D19: never an extra record');
+  const stale = api.call('resultCorrect', { slot: 'A', sessionId: 'nope', recordId: wrong.id, to: 'wrong' });
+  assert.equal(stale.error.kind, 'stale');
+});
+
+test('B2.7 resultAdd / resultSealed = commitAdded / commitSealed (web path), the seal sound is asked for once per group', () => {
+  const viaWeb = finishedGroup();
+  const viaApi = finishedGroup();
+  const wrong = Object.values(viaWeb.getState().records).flat().find(r => r.judgment === 'wrong');
+  commitAdded(viaWeb, { slot: 'A', sessionId: 's1', recordId: wrong.id });
+  commitSealed(viaWeb, { slot: 'A', sessionId: 's1' });
+  const sounds = [];
+  const api = apiResult(viaApi, { seal: key => sounds.push(key) });
+  assert.equal(api.call('resultAdd', { slot: 'A', sessionId: 's1', recordId: wrong.id }).ok, true);
+  assert.equal(api.call('resultSealed', { slot: 'A', sessionId: 's1' }).ok, true);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  const again = api.call('resultSealed', { slot: 'A', sessionId: 's1', sound: false });
+  assert.equal(again.already, true, 'idempotent: sealedAt is not rewritten');
+  assert.deepEqual(sounds, ['A:s1']);
+});
+
+test('B2.7 resultUndoSkip = commitResultSkipUndo (session back in the slot, record removed, strokes written back), then the page goes back to the write page', () => {
+  const mk = () => {
+    const s = fakeStore();
+    webJudge(s, 'correct', [STROKE_A]);
+    webJudge(s, 'wrong', [STROKE_A]);
+    const r = commitSkip(s, { slot: 'A', cardKey: 'base:春', hints: 0 });
+    commitFinish(s, { slot: 'A', sessionId: 's1' });
+    return { s, recordId: r.record.id };
+  };
+  const web = mk();
+  const nat = mk();
+  const rows = encodeRawStrokes([STROKE_B]);
+  commitResultSkipUndo(web.s, { slot: 'A', sessionId: 's1', recordId: web.recordId, strokes: rows });
+  const calls = [];
+  const r = apiResult(nat.s, { toWrite: slot => calls.push(['write', slot]) }).call('resultUndoSkip', { slot: 'A', sessionId: 's1', recordId: nat.recordId, strokes: rows });
+  assert.equal(r.ok, true);
+  assert.deepEqual(nat.s.getState(), web.s.getState());
+  assert.deepEqual(calls, [['write', 'A']]);
+  const again = apiResult(nat.s, { toWrite: () => calls.push('x') }).call('resultUndoSkip', { slot: 'A', sessionId: 's1', recordId: nat.recordId });
+  assert.equal(again.ok, false);
+  assert.equal(again.error.kind, 'stale');
+  assert.equal(calls.length, 1);
+});
+
+test('B2.7 resultAgain = the web 再写一组 (startNextA with the group source), then the page replaces the result with the write page (D70)', () => {
+  const viaWeb = finishedGroup();
+  const viaApi = finishedGroup();
+  const src = resultModel(viaWeb.getState(), { slot: 'A', sessionId: 's1' }).source;
+  const w = sessionStartModule.startNextA(viaWeb, { now: envNow, deck: deckAdapter, source: src && src.view ? { ...src } : { view: 'home' } });
+  const calls = [];
+  const r = apiResult(viaApi, { again: x => calls.push(x) }).call('resultAgain', { slot: 'A', sessionId: 's1' });
+  assert.equal(r.ok, w.ok);
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  assert.deepEqual(viaApi.labels, viaWeb.labels);
+  assert.equal(calls.length, w.ok ? 1 : 0);
+});
+
+test('B2.7 resultExit: leave → the web leaveTo(model.leave); redo → the wrong chars of this group; detail / share pass through; nothing is written', () => {
+  const store = finishedGroup();
+  const before = JSON.stringify(store.getState());
+  const calls = [];
+  const api = apiResult(store, {
+    leave: l => calls.push(['leave', l.view, l.label]), redo: chars => { calls.push(['redo', chars]); return true; },
+    detail: c => { calls.push(['detail', c]); return true; }, share: a => { calls.push(['share', a.slot, a.sessionId]); return true; },
+  });
+  assert.equal(api.call('resultExit', { slot: 'A', sessionId: 's1', to: 'leave' }).ok, true);
+  assert.equal(api.call('resultExit', { slot: 'A', sessionId: 's1', to: 'redo' }).ok, true);
+  assert.equal(api.call('resultExit', { slot: 'A', sessionId: 's1', to: 'detail', char: '和' }).ok, true);
+  assert.equal(api.call('resultExit', { slot: 'A', sessionId: 's1', to: 'share' }).ok, true);
+  assert.equal(api.call('resultExit', { slot: 'A', sessionId: 's1', to: 'detail' }).ok, false);
+  assert.deepEqual(calls, [['leave', 'home', leaveOf({ view: 'home' }).label], ['redo', ['和']], ['detail', '和'], ['share', 'A', 's1']]);
+  assert.equal(JSON.stringify(store.getState()), before);
+});
+
+test('B2.7 resultInvite: shown / no / yes (denied, failed) / time = the web useReminderInvite commits', async () => {
+  const mkStore = () => {
+    const s = finishedGroup();
+    const subs = new Set();
+    s.subscribe = fn => { subs.add(fn); return () => subs.delete(fn); };
+    s.emit = () => { for (const fn of subs) fn(s.getState()); };
+    return s;
+  };
+  // shown + no
+  const viaWeb = mkStore();
+  const viaApi = mkStore();
+  commitInviteShown(viaWeb, { sessionId: 's1' });
+  commitInviteAnswer(viaWeb, 'no');
+  const api = apiResult(viaApi);
+  const shown = await api.call('resultInvite', { slot: 'A', sessionId: 's1', action: 'shown' });
+  assert.equal(shown.ok, true);
+  assert.equal(typeof shown.evening, 'boolean');
+  const no = await api.call('resultInvite', { slot: 'A', sessionId: 's1', action: 'no' });
+  assert.equal(no.phase, 'gone');
+  assert.deepEqual(viaApi.getState(), viaWeb.getState());
+  // yes → 系统权限后来被拒：记 yes 再记 denied（与网页 hook 同序）
+  const deniedWeb = mkStore();
+  const deniedApi = mkStore();
+  const invite = async (store, time) => {
+    store.commit('settings:remind', draft => { draft.settings = { ...(draft.settings || {}), remind: { ...((draft.settings || {}).remind || {}), enabled: true, hour: time.hour, minute: time.minute, permission: 'unknown' } }; });
+    return { ok: true, requested: true };
+  };
+  await invite(deniedWeb, { hour: 9, minute: 0 });
+  commitInviteAnswer(deniedWeb, 'yes');
+  const p = apiResult(deniedApi, { reminder: { invite, waitMs: 2000 } }).call('resultInvite', { slot: 'A', sessionId: 's1', action: 'yes' });
+  setTimeout(() => {
+    deniedApi.commit('settings:permission', draft => { draft.settings.remind.permission = 'denied'; });
+    deniedApi.emit();
+  }, 10);
+  const d = await p;
+  assert.equal(d.phase, 'denied');
+  assert.equal(d.text, t('X-INVITE.denied'));
+  deniedWeb.commit('settings:permission', draft => { draft.settings.remind.permission = 'denied'; });
+  commitInviteAnswer(deniedWeb, 'denied');
+  const strip = st => ({ ...st, settings: { ...st.settings, remind: { ...st.settings.remind, hour: 0, minute: 0 } } });
+  assert.deepEqual(strip(deniedApi.getState()), strip(deniedWeb.getState()));
+  // 写不进去：phase failed，什么都不答
+  const failApi = mkStore();
+  const failed = await apiResult(failApi, { reminder: { invite: async () => ({ ok: false, error: { kind: 'generic' } }) } }).call('resultInvite', { slot: 'A', sessionId: 's1', action: 'yes' });
+  assert.equal(failed.ok, false);
+  assert.equal(failed.phase, 'failed');
+  // 改时间：页面 inviteChangeTime；回包带新的一行
+  const timeApi = mkStore();
+  const changeTime = async (store, { hour, minute }) => store.commit('settings:time', draft => { draft.settings = { ...(draft.settings || {}), remind: { hour, minute } }; });
+  const changed = await apiResult(timeApi, { reminder: { changeTime } }).call('resultInvite', { slot: 'A', sessionId: 's1', action: 'time', hour: 7, minute: 30 });
+  assert.equal(changed.ok, true);
+  assert.equal(changed.text, t('X-INVITE.accepted', { time: '7:30' }));
 });

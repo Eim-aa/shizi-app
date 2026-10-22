@@ -226,6 +226,7 @@ struct NativeType {
         label.attributedText = out
     }
 
+
     /// 宋（ShiziSerifSC，网页 --song；包里 Web/fonts 的 woff2，CoreText 直接读）。弹层标题这类网页用宋体的地方；读不到时退回系统字体。
     static func song(size: CGFloat, weight: UIFont.Weight) -> UIFont {
         let medium = weight.rawValue >= UIFont.Weight.medium.rawValue
@@ -466,6 +467,13 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         let judgment: String // 此刻记录里的判断
         let paper: Bool
         let strokes: [[InkRawPoint]]
+        /// B2.7 结果页的对照弹层（网页 ResultCellSheet，与写字页改判弹层同一版式）：标题 / 说明 / 右上 / 主按钮文字由页面给；看过答案、跳过的字只看不改（changeable = false，没有主按钮）。
+        var title: String?
+        var note: String?
+        var topLabel: String?
+        var flipLabel: String?
+        var emptyText: String?
+        var changeable = true
 
         init?(_ body: [String: Any]) {
             guard (body["ok"] as? Bool) == true, let id = body["recordId"] as? String, let char = body["char"] as? String,
@@ -475,6 +483,22 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
             judgment = j
             paper = (body["paper"] as? Bool) == true
             strokes = NativeInkWire.rawStrokes(body["strokes"])
+        }
+
+        /// B2.7：结果页 resultCell 回包。
+        init?(result body: [String: Any]) {
+            guard (body["ok"] as? Bool) == true, let char = body["char"] as? String else { return nil }
+            recordId = body["recordId"] as? String ?? ""
+            self.char = char
+            judgment = body["judgment"] as? String ?? ""
+            paper = (body["paper"] as? Bool) == true
+            strokes = NativeInkWire.rawStrokes(body["strokes"])
+            title = body["title"] as? String
+            note = body["note"] as? String
+            topLabel = body["topLabel"] as? String
+            flipLabel = body["flipLabel"] as? String
+            emptyText = body["emptyText"] as? String
+            changeable = (body["changeable"] as? Bool) == true && (judgment == "correct" || judgment == "wrong")
         }
 
         /// 主按钮要改成的判断（与记录里的相反；明示给 op）。
@@ -488,6 +512,8 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     private let onApplied: ([String: Any]?) -> Void
     /// 「看这个字 ›」：弹层已关，写字页接着去字详情。
     var onViewChar: ((String) -> Void)?
+    /// B2.7：改判的提交（结果页走 resultCorrect）；nil = 写字页的 correct op。参数是目标判断。
+    var applyCall: ((String, @escaping (NativeWriteReply) -> Void) -> Void)?
     private(set) var failed = false
     private var busy = false
 
@@ -497,7 +523,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     private let mineCard = UIView()
     private let refCard = UIView()
     private let refGlyph = NativeGlyphView()
-    private var inkView: NativeInkView?
+    private var inkView: UIView?
     private let mineEmpty = UILabel()
     private let dashed = CAShapeLayer()
     private let mineLabel = UILabel()
@@ -571,12 +597,12 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         // 标题用宋（网页 .sz-sheet__title：--song 22 / 30，500）
         titleLabel.font = NativeType.song(size: type.value("fs22"), weight: .medium)
         titleLabel.textColor = ink1
-        titleLabel.text = tr("X-JUDGE.changeTitle", ["char": model.char])
+        titleLabel.text = model.title ?? tr("X-JUDGE.changeTitle", ["char": model.char])
         titleLabel.numberOfLines = 0
         titleLabel.accessibilityTraits = [.header]
         titleLabel.accessibilityIdentifier = "native-change-title"
 
-        configureText(cancelButton, title: tr("X-JUDGE.changeCancel"), color: ink2, id: "native-change-cancel")
+        configureText(cancelButton, title: model.topLabel ?? tr("X-JUDGE.changeCancel"), color: ink2, id: "native-change-cancel")
         cancelButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
         cancelButton.addAction(UIAction { [weak self] _ in self?.close() }, for: .touchUpInside)
 
@@ -600,17 +626,12 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         if model.paper {
             emptyText = tr("X-JUDGE.paperMineBox")
             mineCard.accessibilityLabel = emptyText
-        } else if nStrokes > 0, let ink = NativeInkView.make(frame: .zero) {
-            ink.drawable = false
-            ink.isUserInteractionEnabled = false
-            ink.isAccessibilityElement = false
-            if let c = style.inkTint { ink.inkColor = c }
-            ink.syncPageStrokes(model.strokes)
+        } else if nStrokes > 0, let ink = NativeInkPaint.view(strokes: model.strokes, side: 1, color: style.inkTint) { // B2.7：画墨接口（R11-A 换实现）
             mineCard.addSubview(ink)
             inkView = ink
             mineCard.accessibilityLabel = tr("R-W09.mineCardLabel", ["n": nStrokes])
         } else {
-            emptyText = tr("R-D07.noInkLarge")
+            emptyText = model.emptyText ?? tr("R-D07.noInkLarge")
             mineCard.accessibilityLabel = emptyText
         }
         if let emptyText {
@@ -680,12 +701,12 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
 
     /// 主按钮文字 / 说明 / 失败三段式（就地换，不开第二层）。
     private func render() {
-        flipButton.setTitle(tr(model.judgment == "correct" ? "X-JUDGE.changeToWrong" : "X-JUDGE.changeToCorrect"), for: .normal)
-        let note = failed ? tr("R-W10.changeFailed") : tr(model.judgment == "correct" ? "R-W10.changeBodyCorrect" : "R-W10.changeBodyWrong")
+        flipButton.setTitle(model.flipLabel ?? tr(model.judgment == "correct" ? "X-JUDGE.changeToWrong" : "X-JUDGE.changeToCorrect"), for: .normal)
+        let note = failed ? tr("R-W10.changeFailed") : (model.note ?? tr(model.judgment == "correct" ? "R-W10.changeBodyCorrect" : "R-W10.changeBodyWrong"))
         NativeType.set(noteLabel, note, font: type.font("fs13"), color: style.color("ink3", .secondaryLabel), align: .center, line: type.line("lh13"))
-        flipButton.isHidden = failed
-        failCancel.isHidden = !failed
-        failRetry.isHidden = !failed
+        flipButton.isHidden = failed || !model.changeable
+        failCancel.isHidden = !failed || !model.changeable
+        failRetry.isHidden = !failed || !model.changeable
         view.setNeedsLayout()
         if let c = presentationController?.containerView { c.setNeedsLayout() }
     }
@@ -731,6 +752,10 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
             y += 44 + gap
         }
         let btnH = type.value("btn-h")
+        guard model.changeable else {
+            // 只看不改（看过答案 / 跳过，K25）：没有主按钮，弹层在「看这个字 ›」后结束
+            return y - gap + max(32, safeBottom)
+        }
         if layout {
             flipButton.frame = CGRect(x: gutter, y: y, width: inner, height: btnH)
             let half = floor((inner - 12) / 2)
@@ -826,7 +851,10 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     func apply() {
         guard !busy else { return }
         busy = true
-        bridge.call("correct", ["slot": slot, "recordId": model.recordId, "to": model.target, "action": "apply"]) { [weak self] reply in
+        let call: (@escaping (NativeWriteReply) -> Void) -> Void = { [bridge, slot, model, applyCall] done in
+            if let applyCall { applyCall(model.target, done) } else { bridge.call("correct", ["slot": slot, "recordId": model.recordId, "to": model.target, "action": "apply"], completion: done) }
+        }
+        call { [weak self] reply in
             guard let self else { return }
             self.busy = false
             // 网页同样：成功或结果行已不是这条记录（stale）都关弹层

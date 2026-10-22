@@ -705,7 +705,12 @@ function Root({ router, win }) {
   }
   // B2.0 原生宿主：顶层页由原生页面盖着显示，网页这一层透明，下层页保持可见（原生左缘滑回时露出的就是它）。
   const topDef = snap.top ? getScreen(snap.top.n) : null;
-  const nativeHostId = topDef && topDef.nativeHost && topDef.nativeHost(snap.top) ? topId : null;
+  const nativeHostId = topDef && topDef.nativeHost && topDef.nativeHost(snap.top, snap) ? topId : null;
+  const leavingHost = g => {
+    if (!g.leaving) return false;
+    const d = getScreen(g.screen.n);
+    return !!(d && d.nativeHostLeaving && d.nativeHostLeaving(g.screen, snap));
+  };
   if (nativeHostId && groups.length >= 2) visible.add(groups[groups.length - 2].screen.id);
   const dragging = !anim && gestureOn === 'page' && groups.length >= 2;
   if (dragging) visible.add(groups[groups.length - 2].screen.id);
@@ -722,7 +727,7 @@ function Root({ router, win }) {
       isRoot=${i === 0}
       visible=${visible.has(g.screen.id)}
       isTop=${g.screen.id === topId}
-      nativeHost=${g.screen.id === nativeHostId}
+      nativeHost=${g.screen.id === nativeHostId || leavingHost(g)}
     />`)}
     ${webEdge && !anim ? html`<${EdgeStrip} />` : null}
     ${anim ? null : html`<${LeaveUndoHost} snap=${snap} onUndone=${slot => nav.push('write', { slot })} />`}

@@ -20,6 +20,9 @@ import {
   findRecord, recalledInk, resultRowModel, storedStrokes,
 } from './write-ops.js';
 import { commitFinish } from './result-ops.js';
+import { createResultOps, NATIVE_RESULT_COPY_KEYS, NATIVE_RESULT_OPS } from './result-api.js';
+
+export { NATIVE_RESULT_COPY_KEYS, NATIVE_RESULT_OPS };
 
 /** 会话 API 的操作（B2.0 实现前 6 个，B2.2 加 hint，B2.5 加 correct，B2.4 / B2.6 加 showAnswer / answerPhase / answerNext / skip / undoSkip / end，R9-A 加 firstTip；其余在后续卡补，名称先占住，见架构文档 §3.2）。 */
 export const NATIVE_WRITE_OPS = Object.freeze(['open', 'strokes', 'phase', 'judge', 'exit', 'copy', 'hint', 'correct', 'showAnswer', 'answerPhase', 'answerNext', 'skip', 'undoSkip', 'end', 'firstTip']);
@@ -217,6 +220,18 @@ export function writeMotion() {
 }
 
 /**
+ * 结果页的显现与落印时刻（B2.7；result/work.js revealPlan 与 CSS 同一组值，src/config/motion.js）：cellIn 格淡入、stagger 格间错开上限、kuanIn 落款淡入、
+ * sealDrop 印落下全程（含回弹）、rebound 回弹、sealFrom 印起始缩放、sealContact 着纸缩放、max 整段上限、lateIn 印落下后正文与底栏淡入、inviteDelay 邀请淡入延迟、
+ * inviteIn 邀请淡入（T-push 时长，8pt 上移）。
+ */
+export function resultMotion() {
+  return {
+    cellIn: M.moment.workCellIn, stagger: M.moment.workStagger, kuanIn: M.dur.fade, sealDrop: M.moment.sealDrop, rebound: M.dur.press,
+    sealFrom: M.scale.sealFrom, sealContact: 0.92, max: M.moment.max, lateIn: M.moment.resultLateIn, inviteDelay: M.moment.inviteDelay, inviteIn: M.dur.push,
+  };
+}
+
+/**
  * 描一遍前笔顺快放与描红画法的参数（B2.4；glyph.js playbackPlan / drawGlyphHook 同一组值，单一来源 policy）：
  * maxMs 总时长上限（含起始淡化与笔间隔，D68 ②）、speed 动画速度、gapMs 笔间隔上限、fadeMs 起始淡化、hookWidthPt / hookWidthMoreContrastPt 双钩线宽。
  */
@@ -291,7 +306,7 @@ export function copyBundle(keys = NATIVE_WRITE_COPY_KEYS) {
  * 改判弹层「你的书写」的原始笔画（桥上紧凑格式）：存下的墨迹（v4 原始点；v3 / v2 旧数据取解出的点，原生按笔锋模型近似重算宽度，规格 §6.4）→
  * 本页面刚判断时记下的笔画（perRecordInk 关时）→ 没有（[]，弹层显示「这一次没有留下笔迹」）。网页弹层 result-row.js inkOfRecord 的同一个次序。
  */
-function sheetStrokes(store, record) {
+export function sheetStrokes(store, record) {
   let ink = null;
   try {
     ink = store.getInk(record);
@@ -363,6 +378,8 @@ export function createWriteSessionApi(deps = {}) {
   const navigate = deps.navigate || NO_NAVIGATE;
   const colors = deps.colors || (() => ({}));
   const type = deps.type || (() => ({}));
+  // B2.7：结果页的 op（result-api.js）；页面的视图、导航、提醒权限与盖章声由页面侧注入（deps.result）
+  const resultOps = createResultOps({ storeOf, strokesOf: sheetStrokes, result: deps.result || {} });
 
   const snapshot = slot => writeSnapshot(storeOf().getState(), slot);
 
@@ -490,6 +507,17 @@ export function createWriteSessionApi(deps = {}) {
     copy({ keys }) {
       return { ok: true, copy: copyBundle(Array.isArray(keys) ? keys : NATIVE_WRITE_COPY_KEYS) };
     },
+    ...resultOps,
+    /**
+     * B2.7：原生结果页打开时要的外观与文案（宿主条目挂载时随 open 消息一起推给原生，首帧不等桥）：
+     * 固定文案（NATIVE_RESULT_COPY_KEYS 与写字页的键）、颜色与字阶的此刻计算值、动效时刻（写字页同一组 + 结果页的显现 / 落印 / 邀请时刻）。
+     */
+    resultLook() {
+      return {
+        ok: true, copy: copyBundle([...NATIVE_WRITE_COPY_KEYS, ...NATIVE_RESULT_COPY_KEYS]), colors: colors(), type: type(), timing: writeTiming(),
+        motion: { ...writeMotion(), result: resultMotion() }, skipUndo: writeSkipUndo(), ink: writeInk(),
+      };
+    },
     /** 首练第 1 字的一次性提示出现了（R9-A NP-02）：与网页 useFirstTip 同一个 commitFirstTipSeen（只记一次；P52 失败不阻断）。 */
     firstTip() {
       const r = commitFirstTipSeen(storeOf());
@@ -562,6 +590,10 @@ export function createWriteSessionApi(deps = {}) {
         out = fn(args || {});
       } catch (error) {
         out = { ok: false, error: { kind: 'exception', reason: String(error && error.message) } };
+      }
+      // B2.7：提醒邀请要等系统权限（异步）；其余 op 同步
+      if (out && typeof out.then === 'function') {
+        return out.then(v => ({ ...v, ms: Math.round((clock() - t0) * 100) / 100 }), error => ({ ok: false, error: { kind: 'exception', reason: String(error && error.message) }, ms: Math.round((clock() - t0) * 100) / 100 }));
       }
       return { ...out, ms: Math.round((clock() - t0) * 100) / 100 };
     },

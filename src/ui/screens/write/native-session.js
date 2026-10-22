@@ -17,7 +17,14 @@
 import { html, useEffect, useRef } from '../../../../vendor/ui.js';
 import { getRouter, nav } from '../../router.js';
 import { postNative, isNative } from '../../../platform/bridge.js';
-import { handoffSkipUndo, openResult } from '../result/index.js';
+import { handoffSkipUndo, leaveTo, openResult, resultImageAction, takeSkipUndo } from '../result/index.js';
+import { resultView } from '../result/native-view.js';
+import { commitLeave } from '../../../session/result-ops.js';
+import { getStore } from '../../../store/store.js';
+import { NONE_SCREEN } from '../session/none.js';
+import { openRedo } from './redo.js';
+import { inviteChangeTime, inviteReminder } from '../../../platform/reminder.js';
+import { keySound, warmSounds } from '../../../platform/sound.js';
 import { handoffLeaveUndo } from './skip.js';
 import { openCharDetail } from '../detail/open.js';
 import {
@@ -28,7 +35,9 @@ import {
 export { writeSnapshot, strokesToWire, strokesFromWire, copyBundle, NATIVE_WRITE_COPY_KEYS, NATIVE_WRITE_OPS };
 
 /** 原生要的颜色令牌（取页面此刻计算值：浅 / 深色与网页同源，见 tokens.css）。toast-shadow 是 box-shadow 串（原生 NativeInkWire.shadow 解析），其余是颜色。 */
-export const NATIVE_WRITE_COLOR_TOKENS = Object.freeze(['paper', 'hand', 'ref', 'frame', 'line', 'ink1', 'ink2', 'ink3', 'ink4', 'field', 'danzhu', 'toast-bg', 'toast-fg', 'toast-act', 'toast-line', 'toast-shadow', 'scrim', 'elev', 'sheet', 'btn-bg', 'btn-fg', 'guide']);
+export const NATIVE_WRITE_COLOR_TOKENS = Object.freeze(['paper', 'hand', 'ref', 'frame', 'line', 'ink1', 'ink2', 'ink3', 'ink4', 'field', 'danzhu', 'toast-bg', 'toast-fg', 'toast-act', 'toast-line', 'toast-shadow', 'scrim', 'elev', 'sheet', 'btn-bg', 'btn-fg', 'guide',
+  // B2.7 结果页：衬底字、写错朱点、印（朱色白名单只在原生结果页的作品与行里用，同网页 marks.js）
+  'under', 'zhu', 'seal', 'on-seal']);
 
 /** R9-B：原生要的字阶令牌（--fs13 / --lh13 …；R10-B 加圆角容器档 r-box 给 L4 浮条，取页面此刻计算值，pt；系统字号连续倍率 --k 与 AX 档取值表都在 tokens.css，原生不抄表）。 */
 export const NATIVE_WRITE_TYPE_TOKENS = Object.freeze(['fs13', 'lh13', 'fs15', 'lh15', 'fs17', 'lh17', 'lh17s', 'fs22', 'lh22', 'fs28', 'btn-h', 'r-box']);
@@ -109,8 +118,40 @@ export function createWriteSessionApi(deps = {}) {
     },
     colors: deps.colors || (() => colorBundle()),
     type: deps.type || (() => typeBundle()),
+    result: deps.result || RESULT_DEPS,
   });
 }
+
+/**
+ * B2.7：原生结果页要页面给的东西（视图、导航、提醒权限、盖章声）。都是网页结果页同一批函数：
+ *   view = native-view.js resultView；leave = leaveTo（R5-I2：来源是 tab 根且就在下面时 nav.back，否则跳回 tab 根）；
+ *   again = 网页 again 的导航那一半（开组成功 → 就地换成写字页，D70：之后返回回首页；没有字 → 无字可写页）；
+ *   toWrite = 撤销跳过成功后就地换回写字页；redo / detail = 推入重写错字 / 字详情（结果条目留在栈里，返回时宿主再请原生盖上）；
+ *   share = 右上「分享」（网页这次的图片，B3 再换原生）；reminder = platform/reminder.js；seal = 盖章声 s1（同组只响一次）。
+ */
+const RESULT_DEPS = Object.freeze({
+  view: (store, args) => resultView(store, args),
+  leave: leave => leaveTo(leave),
+  again: r => {
+    if (r.started || r.occupied) nav.replace('write', { slot: 'A' }, { animate: true });
+    else if (r.empty) nav.replace(NONE_SCREEN, { exhausted: !!r.libraryExhausted }, { animate: true });
+    else nav.back();
+  },
+  toWrite: slot => nav.replace('write', { slot }, { animate: true }),
+  redo: chars => openRedo(chars),
+  detail: char => openCharDetail(char),
+  share: args => {
+    const fn = resultImageAction();
+    if (typeof fn !== 'function') return false;
+    fn(args);
+    return true;
+  },
+  reminder: { invite: inviteReminder, changeTime: inviteChangeTime },
+  seal: key => {
+    const play = () => keySound('seal', { key });
+    if (!play()) warmSounds({ events: ['seal'] }).then(play, play);
+  },
+});
 
 function clockNow() {
   return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
@@ -174,6 +215,84 @@ export function NativeWriteHost({ params, entry }) {
     };
   }, [entry && entry.id]);
   return html`<div data-testid="write-native-host" data-slot=${slot}></div>`;
+}
+
+// ---------------------------------------------------------------- B2.7 结果页宿主
+
+function clientWidth(win = globalWin()) {
+  try {
+    return win.document.documentElement.clientWidth || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+function axNow(win = globalWin()) {
+  try {
+    return win.document.documentElement.hasAttribute('data-ax');
+  } catch (error) {
+    return false;
+  }
+}
+
+function inStack(entryId) {
+  const router = getRouter();
+  return !!(router && entryId && router.getState().stack.some(e => e.id === entryId));
+}
+
+/** 结果条目为进重写错字 / 字详情 / 分享暂时让开（还在栈里）：再成为顶层时宿主带 via 'return' 请原生淡入。 */
+let awayResult = null;
+
+/** 结果条目此刻该不该由原生显示：它是顶层页且上面没有网页弹层（分享等网页弹层开着时显示网页结果页，让弹层盖在它上面）。 */
+export function nativeResultShown(entry, snap) {
+  if (!nativeWriteEnabled() || !entry) return false;
+  const st = snap || (getRouter() ? getRouter().getState() : null);
+  if (!st) return false;
+  return !!(st.top && st.top.id === entry.id && !st.topIsOverlay);
+}
+
+/**
+ * 结果页在开关打开时渲染的宿主（B2.7）：不画内容；成为顶层时请原生盖上原生结果页（随消息带视图与外观，原生首帧不等桥），
+ * 卸载时请原生关掉。写字页交接来的跳过撤销机会在这里取走（取一次即清），随视图交给原生。
+ */
+export function NativeResultHost({ params, entry }) {
+  const slot = params && params.slot === 'B' ? 'B' : 'A';
+  const sessionId = params && typeof params.sessionId === 'string' ? params.sessionId : '';
+  useEffect(() => {
+    // 已离开页面栈的条目（返回转场里留着的旧层）：只保持透明，不再请原生
+    if (!entry || !inStack(entry.id)) return undefined;
+    installNativeWrite();
+    const router = getRouter();
+    const tr = router ? router.getState().transition : null;
+    const returning = awayResult === entry.id;
+    awayResult = null;
+    const restore = !returning && !!(tr && (tr.cold || tr.cause === 'restore' || tr.cause === 'start' || !tr.animate) && !(tr.from && tr.from.n === 'write'));
+    const via = returning ? 'return' : restore ? 'restore' : tr && tr.from && tr.from.n === 'write' ? 'write' : 'push';
+    let api = null;
+    try {
+      api = createWriteSessionApi();
+    } catch (error) {
+      api = null;
+    }
+    const undo = takeSkipUndo(slot, sessionId);
+    const look = api ? api.call('resultLook', {}) : { ok: false };
+    const opened = api ? api.call('result', { slot, sessionId, width: clientWidth(), ax: axNow(), undo }) : { ok: false };
+    const sent = postNative('nativeWrite', { op: 'result-open', slot, sessionId, entryId: entry.id, animate: !restore, via, sentAt: Date.now(), look, payload: opened });
+    return () => {
+      if (sent) postNative('nativeWrite', { op: 'result-close', slot, sessionId, entryId: entry.id, away: inStack(entry.id) });
+      if (inStack(entry.id)) {
+        awayResult = entry.id;
+        return;
+      }
+      // 被移出页面栈（离开 / 再写一组 / 撤销跳过）→ 清 lastEnded[slot]（01 §3.3，与网页结果页卸载时同一个 commitLeave）
+      try {
+        commitLeave(getStore(), { slot, sessionId });
+      } catch (error) {
+        // 清不掉不影响（下次开同槽时一并清）
+      }
+    };
+  }, [entry && entry.id]);
+  return html`<div data-testid="result-native-host" data-slot=${slot}></div>`;
 }
 
 installNativeWrite();

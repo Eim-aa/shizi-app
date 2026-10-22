@@ -30,7 +30,7 @@ export { WORK_LABELS, locateSession, setAddedInDraft, commitAdded, commitSealed 
 /** 作品下一行里字的边长（pt；AX 档 52，D49）与格内内边（字面约 88%，字是图，不随字号放大——AX 档单独取 52）。 */
 export const ROW_GLYPH = 36;
 export const ROW_GLYPH_AX = 52;
-const ROW_PAD = 0.03;
+export const ROW_PAD = 0.03;
 
 // ---------------------------------------------------------------- 作品显现与落印（D51 ②，网页阶段的最小过渡；完整编排属阶段 2 原生）
 
@@ -126,17 +126,17 @@ injectStyles('result-work', `
 
 // ---------------------------------------------------------------- 视图
 
-function stateWord(entry) {
+export function stateWord(entry) {
   if (entry.tag === 'afterSeen') return t('X-WORK.cellStateAfterSeen');
   return t(entry.judgment === 'wrong' ? 'X-WORK.cellStateWrong' : 'X-WORK.cellStateCorrect');
 }
 
-function judgmentWord(entry) {
+export function judgmentWord(entry) {
   return t(entry.judgment === 'wrong' ? 'X-WORK.statusWrong' : 'X-WORK.statusCorrect');
 }
 
 /** 衬底一行（整组没有墨）格下的状态字：纸上那一字写「纸上」（D47，交接 §4.2 / §10.2）。 */
-function statusWord(entry) {
+export function statusWord(entry) {
   if (entry.state === 'paper') return t('X-WORK.statusPaper');
   if (entry.kind === 'skipped') return t('X-WORK.statusSkipped');
   if (entry.kind === 'answer-seen') return t('X-WORK.statusSeen');
@@ -144,7 +144,7 @@ function statusWord(entry) {
 }
 
 /** 衬底一行里一格的读屏状态：纸上「写对，纸上」（交接 §5.5），其余同格下状态字。 */
-function cellStateOf(entry) {
+export function cellStateOf(entry) {
   return entry.state === 'paper' ? t('X-WORK.paperState', { state: judgmentWord(entry) }) : statusWord(entry);
 }
 
@@ -262,7 +262,7 @@ export function WorkSection({ work, day, dateText, inkOf, onOpen, picked = false
     onOpen=${cell => onOpen(work.entries[cell.index])} label=${workAria(work.cells.map(e => e.char), work.cells.length, dateText)} />`;
 }
 
-function rowText(entry, quiet = false) {
+export function rowText(entry, quiet = false) {
   switch (entry.state) {
     case 'addable':
     case 'added':
@@ -280,7 +280,7 @@ function rowText(entry, quiet = false) {
 }
 
 /** 纸上行的读屏名称：「{字}，写对，纸上」（交接 §5.5）；其余行读「{字}，{状态}」，字在文字里已经没有了（D49）。 */
-function rowAria(entry, quiet = false) {
+export function rowAria(entry, quiet = false) {
   if (entry.state === 'paper') return t('X-WORK.rowPaperAria', { char: entry.char, state: judgmentWord(entry) });
   return t('X-WORK.rowAria', { char: entry.char, state: rowText(entry, quiet) });
 }

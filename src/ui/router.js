@@ -54,6 +54,8 @@ export function registerScreen(name, component, opts = {}) {
     ownsBackGesture: opts.ownsBackGesture === true,
     // B2.0：本屏此刻由原生页面显示（返回 true 时根组件让下层页保持可见、本层透明不接收触摸；见 write/native-session.js）。
     nativeHost: typeof opts.nativeHost === 'function' ? opts.nativeHost : null,
+    // B2.7：本屏离开页面栈、返回转场里留着的旧层也保持透明（原生页已自己滑走）
+    nativeHostLeaving: typeof opts.nativeHostLeaving === 'function' ? opts.nativeHostLeaving : null,
   };
   registry.set(name, def);
   return def;

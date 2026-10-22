@@ -178,7 +178,10 @@ for (const name of pairsFound) {
   const natJson = JSON.parse(readFileSync(natPath, 'utf8'));
   const { diffs, web, native } = diffState(webJson, natJson, tol);
   const ignored = config.ignore || [];
-  const kept = diffs.filter(d => !ignored.some(rule => (!rule.state || rule.state === state) && (!rule.type || rule.type === d.type) && (!rule.label || rule.label === d.label)));
+  // aspects（B2.7）：只在这一条差异的各方面全在列出的范围内时才不比（例：只差网页按钮元素自身的字号 / 颜色这类量法差，位置等其它方面照比）；state 可为数组
+  const kept = diffs.filter(d => !ignored.some(rule => (!rule.state || (Array.isArray(rule.state) ? rule.state.includes(state) : rule.state === state))
+    && (!rule.type || rule.type === d.type) && (!rule.label || rule.label === d.label)
+    && (!rule.aspects || (d.aspects || [d.type]).every(x => rule.aspects.includes(x)))));
   const webPng = join(refDir, `${name}.png`);
   const natPng = join(natDir, `${name}.png`);
   const screen = webJson.screen;

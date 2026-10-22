@@ -35,11 +35,17 @@ enum QAState: String, CaseIterable {
     case endDialog = "end-dialog" // 判断过 1 字后点「结束这组」：确认框
     case last // 前 4 字判断过，第 5 字（最后一字）
     case lastJudge = "last-judge" // 最后一字的判断页（判断后直接结果页）
-    case result // 「这次选的字」一组写完的结果页（网页）
-    case resultDaily = "result-daily" // 今天的练习一组写完的结果页（有写错的字：「再写一组」「重写错字」）
+    case result // 「这次选的字」一组写完的结果页（B2.7 起原生：作品、落款与印、没放进图里的行、底栏「回到首页」）
+    case resultDaily = "result-daily" // 今天的练习一组写完的结果页（有写错的字：「再写一组」「重写错字」、行上「修改 ›」「放进图里」）
+    case resultFirst = "result-first" // 首练 3 字写完的结果页（标题、提醒邀请、「完成」+「再写一组」「重写错字」）
+    case resultEarly = "result-early" // 这次选的字判断 2 字后「结束这组」（中途结束：「还有 3 个字没写。」）
+    case resultUndo = "result-undo" // 最后一字跳过 → 结果页带着写字页交过来的撤销条（S4）
+    case resultSheet = "result-sheet" // 今天的练习结果页点写错那一行的「修改 ›」：对照与改判弹层
 
-    /// 逐屏对比覆盖的状态（home / result 不是写字页）。
-    static var parityStates: [QAState] { allCases.filter { ![.home, .homeUsed, .homeMid, .result, .resultDaily].contains($0) } }
+    /// 结果页的状态（B2.7）。
+    static let resultStates: [QAState] = [.result, .resultDaily, .resultFirst, .resultEarly, .resultUndo, .resultSheet]
+    /// 逐屏对比覆盖的状态（home 三态不是写字 / 结果页）。
+    static var parityStates: [QAState] { allCases.filter { ![.home, .homeUsed, .homeMid].contains($0) } }
 }
 
 extension WebViewController {
@@ -95,6 +101,11 @@ extension WebViewController {
             top.dismiss(animated: false)
             try? await Task.sleep(nanoseconds: 150_000_000)
         }
+        if let top = nativeResultTop {
+            top.exitHandled = true
+            top.dismiss(animated: false)
+            try? await Task.sleep(nanoseconds: 150_000_000)
+        }
         // 2. 数据与写字页（页面里）
         do {
             let v = try await webView.callAsyncJavaScript(Self.qaPrepareJS, arguments: ["state": state.rawValue, "chars": Self.qaChars, "clock": Self.qaClock], in: nil, contentWorld: .page)
@@ -106,8 +117,22 @@ extension WebViewController {
             // D07 三段式：接下来 n 次写入失败（页面测试钩子 failNextWrite，与 e2e / ShiziWriteTests 同一个）
             _ = await qaJS("return window.__shiziTest.failNextWrite(\(n), {kind:'generic'});")
         }
-        if [.home, .homeUsed, .homeMid, .result, .resultDaily].contains(state) {
+        if [.home, .homeUsed, .homeMid].contains(state) {
             try? await Task.sleep(nanoseconds: 900_000_000)
+            return nil
+        }
+        if QAState.resultStates.contains(state) {
+            // B2.7：等结果页出现（原生：原生结果页盖上；网页：结果页是顶层且转场结束）、作品显现与落印、提醒邀请（落印后 600ms 淡入）
+            if ui == "native" {
+                guard await qaWait(6, { self.nativeResultTop != nil && self.presentedViewController?.isBeingPresented == false }) else { return "native result page did not appear" }
+            } else {
+                guard await qaWait(6, { await self.qaJS("const a=document.querySelector('.sz-app');const l=document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"result-screen\"]');return !!a && a.dataset.navAnim==='idle' && !!l;") as? Bool == true }) else { return "web result page did not appear" }
+            }
+            try? await Task.sleep(nanoseconds: 2_600_000_000)
+            if state == .resultSheet {
+                await qaTap(ui, "result-change", times: 1)
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+            }
             return nil
         }
         // 3. 等写字页出现、转场结束
@@ -137,6 +162,11 @@ extension WebViewController {
         for i in 0..<times {
             if i > 0 { try? await Task.sleep(nanoseconds: 550_000_000) } // 同一按钮两次按下隔 0.4s
             if ui == "native" {
+                if what.hasPrefix("result-") {
+                    guard let rv = nativeResultTop else { return }
+                    if let b = qaButton(in: rv.view, id: Self.qaNativeIds[what] ?? ""), b.isEnabled, !b.isHidden { b.sendActions(for: .touchUpInside) }
+                    continue
+                }
                 guard let vc = nativeWriteTop else { return }
                 let sel: String
                 switch what {
@@ -159,8 +189,10 @@ extension WebViewController {
         }
     }
 
-    static let qaNativeIds = ["hint": "native-write-hint", "change": "native-write-line-change", "skip": "native-write-skip", "end": "native-write-end"]
+    static let qaNativeIds = ["hint": "native-write-hint", "change": "native-write-line-change", "skip": "native-write-skip", "end": "native-write-end",
+                              "result-change": "native-result-row-change"]
     static let qaWebSelectors = [
+        "result-change": ".sz-layer[data-top=\"true\"] [data-testid=\"result-exrow-change\"]",
         "hint": ".sz-layer[data-top=\"true\"] .sz-hintbtn",
         "change": ".sz-layer[data-top=\"true\"] .sz-line__change",
         "skip": ".sz-layer[data-top=\"true\"] [data-testid=\"write-skip\"]",
@@ -235,6 +267,14 @@ extension WebViewController {
                 }
                 m = mm.superclassMirror
             }
+        }
+        if let rv = nativeResultTop {
+            collectNames(rv, prefix: "")
+            if let sheet = rv.presentedViewController {
+                collectNames(sheet, prefix: "sheet.")
+                names[ObjectIdentifier(sheet.view)] = "sheet.view"
+            }
+            if let bar = rv.undoBarForTesting { collectNames(bar, prefix: "undoBar.") }
         }
         if let vc = nativeWriteTop {
             collectNames(vc, prefix: "")
@@ -351,13 +391,40 @@ extension WebViewController {
     await new Promise(r => setTimeout(r, 120));
     T.reset();
     if (clock) T.setClock(clock);
+    // B2.7 结果页状态：取证数据要可复现——「N 天后再见」的天数来自 FSRS（fuzz 种子含复习时刻，毫秒级），每次取证时刻不同天数就不同。
+    // 造数据期间把页面时钟钉在固定时刻（每次读数 +5ms，顺序确定），造完从那一刻起照常流逝；网页参考与原生取证因此是同一份数据、同一个落款日期。
+    let unpin = () => {};
+    if (state.startsWith('result')) {
+      const FIX = new Date(2026, 9, 22, 9, 0, 0).getTime();
+      const real = Date.now;
+      let k = 0;
+      Date.now = () => FIX + (k += 5);
+      unpin = () => { const at = Date.now(); Date.now = real; T.setClock(at); };
+    }
     if (state === 'home') return { ok: true };
     const { getStore } = await import('/src/store/store.js');
     const core = await import('/src/core/session-start.js');
     const { deckAdapter } = await import('/src/data/deck.js');
     const env = await import('/src/platform/env.js');
     const store = getStore();
-    if (state === 'home-used' || state === 'home-mid' || state === 'result-daily') {
+    if (state === 'result-first') {
+      const { createWriteSessionApi } = await import('/src/ui/screens/write/native-session.js');
+      const { writeSnapshot } = await import('/src/session/write-api.js');
+      const api = createWriteSessionApi({ navigate: { back() {}, toResult() {} } });
+      const S = [Array.from({ length: 14 }, (_, i) => [70 + 15 * i, 150 + i, 1000 + i * 16]), Array.from({ length: 14 }, (_, i) => [172 + 0.5 * i, 60 + 17 * i, 2000 + i * 16])];
+      const a = core.startNextA(store, { now: env.now, deck: deckAdapter, source: { view: 'home' } });
+      if (!a || !a.ok || !a.started) return { ok: false, error: 'startNextA(first) ' + JSON.stringify(a) };
+      const sid = writeSnapshot(store.getState(), 'A').sessionId;
+      for (const j of ['wrong', 'correct', 'correct']) {
+        const k = writeSnapshot(store.getState(), 'A').cardKey;
+        api.call('phase', { slot: 'A', cardKey: k, phase: 'compare', strokes: S });
+        const r = api.call('judge', { slot: 'A', cardKey: k, judgment: j, strokes: S, hints: 0 });
+        if (!r.ok) return { ok: false, error: 'judge ' + JSON.stringify(r.error) };
+      }
+      unpin(); nav.push('result', { slot: 'A', sessionId: sid });
+      return { ok: true };
+    }
+    if (state === 'home-used' || state === 'home-mid' || state === 'result-daily' || state === 'result-sheet') {
       const { createWriteSessionApi } = await import('/src/ui/screens/write/native-session.js');
       const { writeSnapshot } = await import('/src/session/write-api.js');
       const api = createWriteSessionApi({ navigate: { back() {}, toResult() {} } });
@@ -374,7 +441,7 @@ extension WebViewController {
         const a = core.startNextA(store, { now: env.now, deck: deckAdapter, source: { view: 'home' } });
         if (!a || !a.ok || !a.started) return { ok: false, error: 'startNextA(first) ' + JSON.stringify(a) };
         runA(3, ['wrong', 'correct', 'correct']);
-        if (state === 'home-mid' || state === 'result-daily') {
+        if (state === 'home-mid' || state === 'result-daily' || state === 'result-sheet') {
           const b = core.startNextA(store, { now: env.now, deck: deckAdapter, source: { view: 'home' } });
           if (!b || !b.ok || !b.started) return { ok: false, error: 'startNextA(daily) ' + JSON.stringify(b) };
           if (state === 'home-mid') runA(1, ['correct']);
@@ -382,11 +449,7 @@ extension WebViewController {
             const sid = writeSnapshot(store.getState(), 'A').sessionId;
             const total = writeSnapshot(store.getState(), 'A').total;
             runA(total, ['wrong', 'correct', 'correct']);
-            const { openWrite } = await import('/src/ui/screens/session/index.js');
-            const { openResult } = await import('/src/ui/screens/result/index.js');
-            openWrite('A');
-            await new Promise(r => setTimeout(r, 400));
-            openResult('A', sid);
+            unpin(); nav.push('result', { slot: 'A', sessionId: sid }); // 写完的组：结果条目直接入栈（网页 / 原生同一条路由）
             return { ok: true };
           }
         }
@@ -444,11 +507,26 @@ extension WebViewController {
         case 'result': {
           const sid = snap().sessionId;
           for (let i = 0; i < 5; i += 1) judgeOne(i % 2 ? 'correct' : 'wrong');
-          const { openWrite } = await import('/src/ui/screens/session/index.js');
-          const { openResult } = await import('/src/ui/screens/result/index.js');
-          openWrite('B'); // 与写完最后一字同一条路：写字条目就地换成结果页
-          await new Promise(r => setTimeout(r, 400));
-          openResult('B', sid);
+          unpin(); nav.push('result', { slot: 'B', sessionId: sid });
+          return { ok: true };
+        }
+        case 'result-early': {
+          // 判断 2 字后「结束这组」（与写字页确认框「结束这组」同一个 end op），中途结束的结果页
+          const sid = snap().sessionId;
+          judgeOne('wrong');
+          judgeOne('correct');
+          must('end', api.call('end', { slot: 'B', sessionId: sid }));
+          unpin(); nav.push('result', { slot: 'B', sessionId: sid });
+          return { ok: true };
+        }
+        case 'result-undo': {
+          // 前 4 字判断过，最后一字跳过 → 写字页把撤销机会交给结果页（exit result + undo；取证时撤销条留够久，不在截图前收起）
+          const sid = snap().sessionId;
+          for (let i = 0; i < 4; i += 1) judgeOne(i % 2 ? 'correct' : 'wrong');
+          const sk = must('skip', api.call('skip', { slot: 'B', cardKey: snap().cardKey }));
+          const { handoffSkipUndo } = await import('/src/ui/screens/result/index.js');
+          handoffSkipUndo({ ...sk.undo, slot: 'B', strokes: null, until: performance.now() + 600000 });
+          unpin(); nav.push('result', { slot: 'B', sessionId: sid });
           return { ok: true };
         }
         default: break;
@@ -621,6 +699,13 @@ final class QAProbe {
                              "inkLog": vc.inkViewForTesting?.strokeLog ?? []]
         } else {
             out["native"] = ["shown": false]
+        }
+        // B2.7：原生结果页（作品格数、没放进图里的行数、撤销条、弹层、提醒邀请的阶段）
+        if let rv = host.nativeResultTop {
+            out["result"] = ["shown": true, "slot": rv.slot, "sessionId": rv.sessionId, "variant": rv.variant, "cells": rv.workCellCount, "rows": rv.rowCount,
+                             "undoBar": rv.undoBarForTesting != nil, "sheet": rv.presentedViewController != nil, "invite": rv.invitePhase, "sealed": rv.sealedForTesting]
+        } else {
+            out["result"] = ["shown": false]
         }
         out["pageReady"] = host.pageReady
         out["transitions"] = QATrace.events

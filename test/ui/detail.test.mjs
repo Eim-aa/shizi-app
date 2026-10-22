@@ -14,8 +14,11 @@ import { hasContextWord, withWordOff } from '../../src/data/deck.js';
 import { t } from '../../src/config/copy/index.js';
 import * as policy from '../../src/config/policy.js';
 import {
-  detailModel, listOf, cellCopy, wordView, recordsOfChar, loadEtymology, setEtymology, etymologyOf, ETYMOLOGY_URL,
+  detailModel, listOf, cellCopy as cellCopyRaw, wordView, recordsOfChar, loadEtymology, setEtymology, etymologyOf, ETYMOLOGY_URL,
 } from '../../src/ui/screens/detail/records.js';
+import { renderRefs } from '../../src/config/copy/index.js';
+
+const cellCopy = record => renderRefs(cellCopyRaw(record));
 import {
   commitWordOff, commitWordOn, commitRemoveCustom, commitRestoreCustom, LABELS,
 } from '../../src/ui/screens/detail/actions.js';

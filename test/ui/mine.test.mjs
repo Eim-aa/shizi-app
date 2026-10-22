@@ -5,7 +5,7 @@ import * as policy from '../../src/config/policy.js';
 import {
   recordIndex, practiceDaySet, streakDays, overviewModel, calendarModel, monthSheet, sheetPreview, dayItems, mineModel, recordsModel, clampMonth,
   weekdayIndex, lastBackupDay, backupHint, storagePressureNear, firstRecordMonth, MINE_SHEET_COLS, MINE_SHEET_ROWS,
-} from '../../src/ui/screens/mine/model.js';
+} from '../../src/session/views/mine.js';
 import { recordsSignature } from '../../src/core/backup.js';
 
 const TODAY = '2026-09-24'; // 周四

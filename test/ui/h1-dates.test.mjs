@@ -3,8 +3,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { COPY, t } from '../../src/config/copy/index.js';
-import { cellCopy } from '../../src/ui/screens/detail/records.js';
-import { listRowMetaParts } from '../../src/ui/screens/library/list-model.js';
+import { cellCopy as cellCopyRaw } from '../../src/ui/screens/detail/records.js';
+import { renderRefs } from '../../src/config/copy/index.js';
+
+const cellCopy = record => renderRefs(cellCopyRaw(record));
+import { listRowMetaParts } from '../../src/session/views/library-list.js';
 
 test('运行时文案里没有「数字 / 占位符 + 空格 + 月 / 日 / 年」，也没有「月 / 日 / 年 + 空格 + 数字 / 占位符」', () => {
   const bad = Object.entries(COPY).filter(([, v]) => typeof v === 'string' && (/[}\d] (月|日|年)/.test(v) || /(月|日|年) [{\d]/.test(v)));

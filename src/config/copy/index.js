@@ -81,6 +81,42 @@ export function tInk(base, vars, policy = defaultPolicy) {
   return t(inkKey(base, policy), vars);
 }
 
+/**
+ * 文案引用「键 + 参数」（B3.4）：形如 { copy: 键, params }（字段名用 copy，避开视图模型里常见的 key 字段）：视图模型（src/session/views/）不拼用户可见的句子，只给这个引用；网页用 tRef 渲染成 t(key, params)，
+ * 原生用 Copy 渲染（B4 后不变）。参数值可以再是一个引用（例如日期句嵌进「写错」那一句），tRef 递归展开。
+ */
+export function ref(key, params) {
+  return params === undefined ? Object.freeze({ copy: key }) : Object.freeze({ copy: key, params });
+}
+
+/** 是不是文案引用。 */
+export function isRef(value) {
+  return !!value && typeof value === 'object' && !Array.isArray(value) && typeof value.copy === 'string';
+}
+
+/** 把文案引用渲染成句子（等于 t(ref.copy, ref.params)，参数里的引用先展开）；null / '' / 非引用的字符串原样返回（空串不当键）。 */
+export function tRef(value) {
+  if (!isRef(value)) return value == null ? '' : value;
+  let vars = value.params;
+  if (vars && typeof vars === 'object') {
+    vars = {};
+    for (const k of Object.keys(value.params)) vars[k] = isRef(value.params[k]) ? tRef(value.params[k]) : value.params[k];
+  }
+  return t(value.copy, vars);
+}
+
+/** 把任意结构里的文案引用全部渲染成句子（深拷贝；测试用它对「视图模型 → t() 渲染」做一字不差的核对，也是原生渲染前的参照实现）。 */
+export function renderRefs(value) {
+  if (isRef(value)) return tRef(value);
+  if (Array.isArray(value)) return value.map(renderRefs);
+  if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    const out = {};
+    for (const k of Object.keys(value)) out[k] = renderRefs(value[k]);
+    return out;
+  }
+  return value;
+}
+
 /** 是否有这个键。 */
 export function has(key) {
   return Object.prototype.hasOwnProperty.call(COPY, key);

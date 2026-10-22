@@ -12,7 +12,7 @@ import { ROOT } from './helpers.mjs';
 import { setDeckSource, deckAdapter, isPracticable, cardForKey, libraryIdsOfKey } from '../../src/data/deck.js';
 import { planDaily } from '../../src/core/session-start.js';
 import { reminderCandidates } from '../../src/platform/reminder.js';
-import { listModel } from '../../src/ui/screens/library/list-model.js';
+import { listModel } from '../../src/session/views/library-list.js';
 import { buildBackupV2, serializeBackup, inspectBackup, stateOfEntries } from '../../src/core/backup.js';
 import { makeRecord } from '../../src/core/records.js';
 import { CHAR_ORDER } from '../../src/config/char-order.js';

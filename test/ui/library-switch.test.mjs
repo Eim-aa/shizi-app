@@ -8,7 +8,7 @@ import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  libraryRows, judgedChars, countSegments, commitLibrary, switchLibrary, SwitchFail, libraryName, libraryDesc,
+  libraryRows as libraryRowsRaw, judgedChars, countSegments, commitLibrary, switchLibrary, SwitchFail, libraryName, libraryDesc,
   LIBRARY_SWITCH_SCREEN, SWITCH_LABEL,
 } from '../../src/ui/screens/library/switch.js';
 import { getScreen } from '../../src/ui/router.js';
@@ -19,8 +19,11 @@ import * as policy from '../../src/config/policy.js';
 import { createStore } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
 import { KEYS } from '../../src/core/schema.js';
-import { t } from '../../src/config/copy/index.js';
+import { t, renderRefs } from '../../src/config/copy/index.js';
 import { MemoryStorage } from '../store/helpers.mjs';
+
+// B3.4：换库行模型给文案引用；这里照 t() 渲染后核对文案一字不变。
+const libraryRows = (...args) => renderRefs(libraryRowsRaw(...args));
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const NOW = new Date(2026, 8, 24, 12).getTime();

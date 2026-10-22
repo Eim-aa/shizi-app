@@ -6,15 +6,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadFSRSGlobal, rec } from '../core/helpers.mjs';
 import {
-  LIST_KINDS, VIEW_OF_KIND, normalizeKind, recordsOfState, dateText, wordParts, listEntries, listModel, normalizeSel, sameSel,
-  toggleSel, selectAllSel, selectNoneSel, buttonLabel, hintText, groupFromHereActive,
-} from '../../src/ui/screens/library/list-model.js';
+  LIST_KINDS, VIEW_OF_KIND, normalizeKind, recordsOfState, dateText as dateTextRaw, wordParts, listEntries, listModel as listModelRaw, normalizeSel, sameSel,
+  toggleSel, listRowMetaParts, selectAllSel, selectNoneSel, buttonLabel as buttonLabelRaw, hintText as hintTextRaw, groupFromHereActive,
+} from '../../src/session/views/library-list.js';
+
+// B3.4：视图模型给「键 + 参数」；这里照 t() 渲染后核对文案一字不变。
+const listModel = (...args) => renderRefs(listModelRaw(...args));
+const dateText = day => renderRefs(dateTextRaw(day));
+const buttonLabel = n => renderRefs(buttonLabelRaw(n));
+const hintText = n => renderRefs(hintTextRaw(n));
 import { judgeInDraft } from '../../src/ui/screens/write/compare.js';
 import { correctResultInDraft } from '../../src/ui/screens/result/index.js';
 import { createSession, endSlot } from '../../src/core/sessions.js';
 import { forgetList, wrongList } from '../../src/core/records.js';
 import { applyJudgment } from '../../src/core/fsrs.js';
-import { t } from '../../src/config/copy/index.js';
+import { t, renderRefs } from '../../src/config/copy/index.js';
 import { localDay } from '../../src/core/dates.js';
 import * as policy from '../../src/config/policy.js';
 import { listDefaultSelectOf } from '../../src/core/group-size.js';
@@ -99,7 +105,7 @@ test('R-E03 rows: word with the target bold, meta line, 写错那次 caption onl
   assert.deepEqual(row.word, { pre: '', tg: '永', post: '远', has: true });
   assert.equal(row.meta, '9月24日写错 · 共 2 次');
   assert.equal(row.meta, t('R-E03.wrongMeta', { date: dateText('2026-09-24'), n: 2 }));
-  assert.deepEqual(row.metaParts, ['9月24日写错 ·', '共 2 次'], 'H1: 间隔号随前一段，不落行首');
+  assert.deepEqual(listRowMetaParts(row.meta), ['9月24日写错 ·', '共 2 次'], 'H1: 间隔号随前一段，不落行首');
   assert.equal(row.thumbCaption, t('R-E03.wrongThumb'));
   assert.equal(m.note, t('R-E03.wrongNote'), 'D27: default perRecordInk=true → 右边小图是你写错的那一次 (the latest is always kept)');
   const OFF = { ...policy, features: { ...policy.features, perRecordInk: false } };

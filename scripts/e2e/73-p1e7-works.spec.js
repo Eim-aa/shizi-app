@@ -518,7 +518,7 @@ export default async function (page, ctx) {
   await closeShare(page);
   ctx.step('annual long image over the height limit is cut by month, no char dropped');
   const split = await page.evaluate(async () => {
-    const { annualPlan } = await import('/src/ui/screens/mine/annual-model.js');
+    const { annualPlan } = await import('/src/session/views/annual.js');
     const { renderAnnualLong } = await import('/src/core/images/annual-render.js');
     const { requireCanvasFont } = await import('/src/data/font-loader.js');
     const { loadStrokes } = await import('/src/data/strokes.js');

@@ -12,16 +12,8 @@
 // （测试里手动设的 data-theme 不会被冲掉）。设置页（ui/screens/mine/prefs.js）只写 store，不碰 DOM。
 import * as policy from '../config/policy.js';
 
-export const APPEARANCES = Object.freeze(['light', 'dark', 'auto']);
-export const DEFAULT_APPEARANCE = 'auto';
-
-/** settings → {theme:'auto'|'light'|'dark'}（缺省与非法值按 'auto'）。 */
-export function appearanceOf(settings, { features = policy.features } = {}) {
-  const raw = settings && typeof settings.appearance === 'string' ? settings.appearance : DEFAULT_APPEARANCE;
-  const allowed = !features || features.appearanceSwitch !== false;
-  const theme = allowed && APPEARANCES.indexOf(raw) >= 0 ? raw : DEFAULT_APPEARANCE;
-  return { theme };
-}
+import { APPEARANCES, DEFAULT_APPEARANCE, appearanceOf } from '../core/appearance.js';
+export { APPEARANCES, DEFAULT_APPEARANCE, appearanceOf };
 
 function rootOf(doc) {
   return doc && doc.documentElement ? doc.documentElement : null;

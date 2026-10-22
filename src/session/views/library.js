@@ -23,13 +23,13 @@
 //   'records' 口径时只数有记录的字。没截断时 N = 0，不显示（R-L02 / 走查-L09：大数字才是进完整页的常设入口）。
 // - 空态：没有 judged 记录（原型 noRec = nRec===0；只有自选未写时也是空态，原型 hasWall = nRec>0）。
 
-import * as defaultPolicy from '../../../config/policy.js';
-import { diffDays, isValidDay } from '../../../core/dates.js';
-import { compareRecordIds, forgetList, isJudged, practicedByChar } from '../../../core/records.js';
-import { overdueDays } from '../../../core/fsrs.js';
-import { homeModel } from '../home/today.js';
-import { aStartInfo, planDaily } from '../../../core/session-start.js';
-import { selectFirst } from '../../../core/sessions.js';
+import * as defaultPolicy from '../../config/policy.js';
+import { diffDays, isValidDay } from '../../core/dates.js';
+import { compareRecordIds, forgetList, isJudged, practicedByChar } from '../../core/records.js';
+import { overdueDays } from '../../core/fsrs.js';
+import { homeModel } from './home.js';
+import { aStartInfo, planDaily } from '../../core/session-start.js';
+import { selectFirst } from '../../core/sessions.js';
 
 /** 墙最多几行（R-L02 / 原型 L363 cols*8）。 */
 export const WALL_MAX_ROWS = 8;

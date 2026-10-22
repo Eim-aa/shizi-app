@@ -16,15 +16,15 @@
 // - 卷尾「同一个字，两次」（P161）：今年里同时有两份留有墨迹的记录（第一次与最近一次，D27）、两次相隔天数最大的字；并列取今年先写到的；没有则不出卷尾。
 // - 空态：今年没有任何记录。去年有记录、今年没有也是空态。
 
-import { diffDays, isValidDay, monthOf, parseDay } from '../../../core/dates.js';
-import { foldWorkByDay } from '../../../core/records.js';
-import { isWorkMember } from '../../../core/work-members.js';
-import * as defaultPolicy from '../../../config/policy.js';
-import { monthCells, monthMembers } from '../../../core/images/pick.js';
-import { paginate, retagPages } from '../../../core/images/paginate.js';
-import { dayTag } from '../../../core/images/layout.js';
-import { recordIndex, workRecordsOf } from './model.js';
-import { pickInkRecord, storedInkPresent } from '../../../core/ink-pick.js';
+import { diffDays, isValidDay, monthOf, parseDay } from '../../core/dates.js';
+import { foldWorkByDay } from '../../core/records.js';
+import { isWorkMember } from '../../core/work-members.js';
+import * as defaultPolicy from '../../config/policy.js';
+import { monthCells, monthMembers } from '../../core/images/pick.js';
+import { paginate, retagPages } from '../../core/images/paginate.js';
+import { dayTag } from '../../core/images/layout.js';
+import { recordIndex, workRecordsOf } from './mine.js';
+import { pickInkRecord, storedInkPresent } from '../../core/ink-pick.js';
 
 function yearOfDay(day) {
   return isValidDay(day) ? parseDay(day).year : null;

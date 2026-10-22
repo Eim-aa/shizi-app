@@ -8,8 +8,8 @@ import { dayMembers, glyphMember, imagePlan, monthCells, monthMembers, sessionWo
 import { foldWorkByDay, isWorkRecord, withoutPaper } from '../../src/core/records.js';
 import { validateRecordsMonth } from '../../src/core/schema.js';
 import { recover } from '../../src/store/budget.js';
-import { annualModel, annualPlan, yearMonths, yearSlice } from '../../src/ui/screens/mine/annual-model.js';
-import { calendarModel, dayItems, mineModel, monthSheet, recordIndex, overviewModel, recordsModel } from '../../src/ui/screens/mine/model.js';
+import { annualModel, annualPlan, yearMonths, yearSlice } from '../../src/session/views/annual.js';
+import { calendarModel, dayItems, mineModel, monthSheet, recordIndex, overviewModel, recordsModel } from '../../src/session/views/mine.js';
 
 const INK = [[{ x: 60, y: 170, w: 11.5 }, { x: 280, y: 172, w: 11.5 }]];
 const inkOf = r => (r.source === 'paper' ? null : INK);

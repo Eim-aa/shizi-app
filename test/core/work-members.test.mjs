@@ -6,8 +6,8 @@ import { isWorkMember, workMemberRecords, workMembers } from '../../src/core/wor
 import { buildWork } from '../../src/core/images/work.js';
 import { dayMembers, imagePlan, monthCells, monthMembers } from '../../src/core/images/pick.js';
 import { hasInkOfState } from '../../src/core/ink-pick.js';
-import { monthSheet, dayItems, recordIndex } from '../../src/ui/screens/mine/model.js';
-import { annualModel, yearSlice } from '../../src/ui/screens/mine/annual-model.js';
+import { monthSheet, dayItems, recordIndex } from '../../src/session/views/mine.js';
+import { annualModel, yearSlice } from '../../src/session/views/annual.js';
 import { at, rec } from './helpers.mjs';
 
 const POINTS = [[{ x: 60, y: 170, w: 11.5 }, { x: 280, y: 172, w: 11.5 }]];

@@ -25,11 +25,10 @@ import { FailBlock } from '../../components/FailBlock.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { getStore } from '../../../store/store.js';
-import { LIBRARIES } from '../../../core/cards.js';
-import { flattenRecords } from '../../../core/query.js';
-import { isJudged } from '../../../core/records.js';
-import { currentLibraryId, libraryOf } from '../../../data/deck.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef } from '../../../config/copy/index.js';
+import { judgedChars, libraryDescRef, libraryNameRef, libraryRows } from '../../../session/views/library-switch.js';
+
+export { judgedChars, libraryRows };
 
 export const LIBRARY_SWITCH_SCREEN = 'library-switch';
 export const SWITCH_LABEL = 'library:switch';
@@ -38,51 +37,11 @@ export const SWITCH_LABEL = 'library:switch';
 
 /** 库名 / 一句说明（copy R-L06.lib.<id>.*）。 */
 export function libraryName(id) {
-  return t(`R-L06.lib.${id}.name`);
+  return tRef(libraryNameRef(id));
 }
 
 export function libraryDesc(id) {
-  return t(`R-L06.lib.${id}.desc`);
-}
-
-/**
- * 有记录的字（D23：写对 / 写错的 judged 记录，按字去重）。records 域为按月对象（含折叠月的 kept）。
- * @returns {Set<string>} 字
- */
-export function judgedChars(state) {
-  const out = new Set();
-  const records = flattenRecords(state && state.records);
-  for (const r of records) if (isJudged(r) && typeof r.char === 'string' && r.char) out.add(r.char);
-  return out;
-}
-
-/**
- * 换库列表的行模型。
- * @param {object|null} state            store 状态（settings / records）
- * @param {object} [o]
- * @param {(id:string) => {keys:string[]}|null} [o.libraryOf]   库 → 题库里属于该库的 cardKey（默认 data/deck.js）
- * @param {(settings) => string} [o.currentId]                  当前库 id（默认 data/deck.js：settings.library → P73 默认库）
- * @returns {{id, name, desc, total, recorded, current, countLine}[]}
- */
-export function libraryRows(state, { libraryOf: lib = libraryOf, currentId = currentLibraryId } = {}) {
-  const current = currentId(state && state.settings);
-  const chars = judgedChars(state);
-  return LIBRARIES.map(def => {
-    const keys = (lib(def.id) || { keys: [] }).keys || [];
-    const keySet = new Set(keys);
-    let recorded = 0;
-    for (const c of chars) if (keySet.has(`base:${c}`)) recorded += 1;
-    const total = keys.length;
-    return {
-      id: def.id,
-      name: libraryName(def.id),
-      desc: libraryDesc(def.id),
-      total,
-      recorded,
-      current: def.id === current,
-      countLine: t('R-L06.countLine', { n: total, m: recorded }),
-    };
-  });
+  return tRef(libraryDescRef(id));
 }
 
 /** 数量行按「 · 」拆成整段（每段不折断，折行时整段换行）。 */
@@ -172,14 +131,14 @@ export function SwitchFail({ onStay, onRetry }) {
 // ---------------------------------------------------------------- 页面
 
 function Row({ row, onPick }) {
-  const segs = countSegments(row.countLine);
+  const segs = countSegments(tRef(row.countLine));
   return html`<li class="sz-libsw__item">
     <${Button} variant="plain" class="sz-libsw__row" data-testid="libswitch-row" data-lib=${row.id}
       data-current=${row.current ? 'true' : 'false'} aria-current=${row.current ? 'true' : undefined}
       onClick=${() => onPick(row)}>
       <span class="sz-libsw__main">
-        <span class="sz-libsw__name" data-testid="libswitch-row-name">${row.name}</span>
-        <span class="sz-libsw__desc" data-testid="libswitch-row-desc">${row.desc}</span>
+        <span class="sz-libsw__name" data-testid="libswitch-row-name">${tRef(row.name)}</span>
+        <span class="sz-libsw__desc" data-testid="libswitch-row-desc">${tRef(row.desc)}</span>
         <span class="sz-libsw__count" data-testid="libswitch-row-count" data-total=${row.total} data-recorded=${row.recorded}>${
           segs.map((s, i) => html`${i ? ' · ' : ''}<span class="sz-libsw__seg">${s}</span>`)}</span>
       </span>

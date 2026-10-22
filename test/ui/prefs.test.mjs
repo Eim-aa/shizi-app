@@ -17,7 +17,7 @@ import * as policy from '../../src/config/policy.js';
 import { createStore } from '../../src/store/store.js';
 import { createStorage } from '../../src/store/storage.js';
 import { KEYS } from '../../src/core/schema.js';
-import { t } from '../../src/config/copy/index.js';
+import { t, tRef } from '../../src/config/copy/index.js';
 import { MemoryStorage } from '../store/helpers.mjs';
 
 const NOW = new Date(2026, 8, 24, 12).getTime();
@@ -84,7 +84,7 @@ const fakeDoc = () => ({ documentElement: new FakeRoot() });
 test('settingsView: defaults — P73 library, remind off at policy.remindDefault (P18), auto; no large field (D29)', () => {
   const v = settingsView(null);
   assert.equal(v.library, policy.defaultLibrary);
-  assert.equal(v.libraryName, '常用字');
+  assert.equal(tRef(v.libraryName), '常用字');
   assert.ok(!('sound' in v) && !('writeMode' in v), 'D63: no 声音 / 写字方式 in the view');
   assert.deepEqual(v.remind, { enabled: false, hour: 20, minute: 0, permission: 'unknown' });
   assert.equal(v.denied, false);
@@ -93,7 +93,7 @@ test('settingsView: defaults — P73 library, remind off at policy.remindDefault
   assert.equal(v.appearanceSwitch, true, 'P51 features.appearanceSwitch');
 
   const w = settingsView({ library: 'curriculum2500', sound: false, writeMode: 'paper', remind: { enabled: true, hour: 7, minute: 5, permission: 'denied' }, large: true, appearance: 'dark' });
-  assert.equal(w.libraryName, '课本字');
+  assert.equal(tRef(w.libraryName), '课本字');
   assert.deepEqual(w.remind, { enabled: true, hour: 7, minute: 5, permission: 'denied' });
   assert.equal(w.denied, true);
   assert.equal(w.on, false, 'E3: denied by the phone → the switch shows off even though the stored choice is on');

@@ -42,7 +42,7 @@ import { useCompact } from '../write/compact.js';
 import { expireStale, openWrite, resumeSlot, startA, startPicked } from '../session/index.js';
 import { setNoneActions } from '../session/none.js';
 import { openLibrarySwitch } from '../library/switch.js';
-import { homeModel, homeCtaKey, homeNoteOf, resumeLineText, resumeLineAria, progressText, ctaAria } from './today.js';
+import { homeModel, homeCtaKey, homeNoteOf, resumeLineText, resumeLineAria, progressText, ctaAria } from '../../../session/views/home.js';
 import { BrandShi, firstShiSize, useElementWidth } from './copybook.js';
 import { ShiMark } from '../../brand/shi.js';
 import { useAxLevel } from '../../components/ax.js';

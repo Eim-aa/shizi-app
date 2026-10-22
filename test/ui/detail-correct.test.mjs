@@ -11,7 +11,7 @@ import { findFsrsBefore, schedAfterCorrection } from '../../src/core/correct.js'
 import { createSession, endSlot } from '../../src/core/sessions.js';
 import { makeRecord } from '../../src/core/records.js';
 import { replay } from '../../src/core/fsrs.js';
-import { memoryZoneOf } from '../../src/ui/screens/library/model.js';
+import { memoryZoneOf } from '../../src/session/views/library.js';
 
 loadFSRSGlobal();
 

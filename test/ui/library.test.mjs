@@ -5,7 +5,7 @@ import * as policy from '../../src/config/policy.js';
 import {
   libraryHomeModel, toneOf, wallColumns, firstRecordDay, customCharsOf, latestJudgedByChar, recordsOfState, cardMini,
   WALL_MAX_ROWS,
-} from '../../src/ui/screens/library/model.js';
+} from '../../src/session/views/library.js';
 
 const TODAY = '2026-09-24';
 const at = day => new Date(`${day}T08:00:00`).getTime();

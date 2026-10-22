@@ -11,12 +11,12 @@
 //
 // 纯函数：不访问 store / DOM；题库查找与可练谓词由调用方注入（页面传 data/deck.js，单测传假卡）。
 
-import * as defaultPolicy from '../../../config/policy.js';
-import { listDefaultSelectOf } from '../../../core/group-size.js';
-import { t, tInk } from '../../../config/copy/index.js';
-import { monthDayParts } from '../../../core/dates.js';
-import { forgetList, judgedCountOfCard, wrongCountOfCard, wrongList } from '../../../core/records.js';
-import { memoryZones, skippedZone } from './model.js';
+import * as defaultPolicy from '../../config/policy.js';
+import { listDefaultSelectOf } from '../../core/group-size.js';
+import { inkKey, ref } from '../../config/copy/index.js';
+import { monthDayParts } from '../../core/dates.js';
+import { forgetList, judgedCountOfCard, wrongCountOfCard, wrongList } from '../../core/records.js';
+import { memoryZones, skippedZone } from './library.js';
 
 // wrong / forget：全部字页「写错过 / 快忘了」筛选的去处（M3-4）；due / shaky / known：字库首页三档记忆状态的区详情页（r7-L1，D60）。
 export const LIST_KINDS = Object.freeze(['wrong', 'forget', 'due', 'shaky', 'known', 'skipped']);
@@ -65,11 +65,11 @@ export function recordsOfState(state) {
   return out;
 }
 
-/** 界面日期「{month} 月 {day} 日」（R-H02.dateFormat，与结果页同一格式）。 */
+/** 界面日期「{month} 月 {day} 日」（R-H02.dateFormat，与结果页同一格式）的文案引用（无日期 → ''）。 */
 export function dateText(day) {
   if (!day) return '';
   try {
-    return t('R-H02.dateFormat', monthDayParts(day));
+    return ref('R-H02.dateFormat', monthDayParts(day));
   } catch (error) {
     return '';
   }
@@ -154,14 +154,14 @@ export function selectNoneSel() {
 
 /** 底部按钮文案（R-E02：≥2「练这些字」、1「练这个字」、0「先选一个字」真禁用）。 */
 export function buttonLabel(n) {
-  if (n > 1) return t('R-E02.btnMany');
-  if (n === 1) return t('R-E02.btnOne');
-  return t('R-E02.btnNone');
+  if (n > 1) return ref('R-E02.btnMany');
+  if (n === 1) return ref('R-E02.btnOne');
+  return ref('R-E02.btnNone');
 }
 
 /** 底部说明（R-E02 / Y05：0 个时只「写完会回到这里。」）。 */
 export function hintText(n) {
-  return n > 0 ? t('R-E02.selected', { n }) : t('R-E02.selectedZero');
+  return n > 0 ? ref('R-E02.selected', { n }) : ref('R-E02.selectedZero');
 }
 
 /**
@@ -197,8 +197,8 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
     const rowWrong = isWrong || (zone && e.record.judgment === 'wrong');
     const skipped = kind === 'skipped';
     const seenOnly = zone && e.record.kind === 'answer-seen'; // D66 ⑤：只看过答案、还没判断过的字（在「待复习」）
-    const meta = skipped ? t('X-LIBFOUR.skippedMeta', { date }) : seenOnly ? t('X-LIBFOUR.seenMeta', { date })
-      : rowWrong ? t('R-E03.wrongMeta', { date, n: e.count }) : t('R-E03.forgetMeta', { date, n: e.count });
+    const meta = skipped ? ref('X-LIBFOUR.skippedMeta', { date }) : seenOnly ? ref('X-LIBFOUR.seenMeta', { date })
+      : rowWrong ? ref('R-E03.wrongMeta', { date, n: e.count }) : ref('R-E03.forgetMeta', { date, n: e.count });
     return {
       char: e.char,
       cardKey: e.cardKey,
@@ -208,8 +208,7 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
       count: e.count,
       word: wordParts(card && card.word, e.char),
       meta,
-      metaParts: listRowMetaParts(meta),
-      thumbCaption: rowWrong ? t('R-E03.wrongThumb') : '',
+      thumbCaption: rowWrong ? ref('R-E03.wrongThumb') : '',
       noThumb: skipped || seenOnly, // 已跳过 / 只看过答案的字没有判断的笔迹，不画「没有笔迹」小图
       selectable,
       selected,
@@ -225,26 +224,26 @@ export function listModel(state, { kind: rawKind, sel = null, today, policy = de
   return {
     kind,
     view: VIEW_OF_KIND[kind],
-    title: zone ? t(`X-LIBFOUR.zone.${kind}`) : isWrong ? t('R-E04.titleWrong') : t('R-E04.titleForget'),
+    title: zone ? ref(`X-LIBFOUR.zone.${kind}`) : isWrong ? ref('R-E04.titleWrong') : ref('R-E04.titleForget'),
     empty: rows.length === 0,
-    emptyGlyph: zone ? t(`X-LIBFOUR.emptyGlyph.${kind}`) : isWrong ? t('X-LIST.emptyGlyphWrong') : t('X-LIST.emptyGlyphForget'),
-    emptyTitle: zone ? t('X-LIBFOUR.zoneEmptyTitle') : isWrong ? t('R-E04.wrongEmpty') : t('X-LIST.forgetEmptyTitle'),
-    emptyBody: zone ? t(`X-LIBFOUR.zoneEmptyBody.${kind}`) : isWrong ? t('X-LIST.wrongEmptyBody') : t('R-E04.forgetEmpty'),
+    emptyGlyph: zone ? ref(`X-LIBFOUR.emptyGlyph.${kind}`) : isWrong ? ref('X-LIST.emptyGlyphWrong') : ref('X-LIST.emptyGlyphForget'),
+    emptyTitle: zone ? ref('X-LIBFOUR.zoneEmptyTitle') : isWrong ? ref('R-E04.wrongEmpty') : ref('X-LIST.forgetEmptyTitle'),
+    emptyBody: zone ? ref(`X-LIBFOUR.zoneEmptyBody.${kind}`) : isWrong ? ref('X-LIST.wrongEmptyBody') : ref('R-E04.forgetEmpty'),
     // 「先练这 N 个」= 最该练的那一组（不足 5 个按实际数）；一个都练不了时退回总数。与当前勾选无关，勾选看底栏。
-    head: topSelectable > 0 ? t('X-LIST.firstHead', { n: topSelectable }) : t('X-LIST.countHead', { n: rows.length }),
+    head: topSelectable > 0 ? ref('X-LIST.firstHead', { n: topSelectable }) : ref('X-LIST.countHead', { n: rows.length }),
     topCount: topRows.length,
     restCount,
-    restLabel: restCount > 0 ? t('X-LIST.restShow', { n: restCount }) : '',
-    restHideLabel: restCount > 0 ? t('X-LIST.restHide', { n: restCount }) : '',
+    restLabel: restCount > 0 ? ref('X-LIST.restShow', { n: restCount }) : '',
+    restHideLabel: restCount > 0 ? ref('X-LIST.restHide', { n: restCount }) : '',
     customSel: chosen !== null,
-    top: zone ? t(`X-LIBFOUR.zoneTop.${kind}`) : isWrong ? t('R-E04.wrongTop') : t('R-E04.forgetTop'),
-    note: isWrong ? tInk('R-E03.wrongNote', undefined, policy) : tInk('R-E03.forgetNote', undefined, policy),
+    top: zone ? ref(`X-LIBFOUR.zoneTop.${kind}`) : isWrong ? ref('R-E04.wrongTop') : ref('R-E04.forgetTop'),
+    note: isWrong ? ref(inkKey('R-E03.wrongNote', policy)) : ref(inkKey('R-E03.forgetNote', policy)),
     rows,
     selectedKeys,
     selectedCount: n,
     selectableCount,
     allSelected: selectableCount > 0 && n === selectableCount,
-    toggleAllLabel: selectableCount > 0 && n === selectableCount ? t('X-LIST.selectNone') : t('X-LIST.selectAll'),
+    toggleAllLabel: selectableCount > 0 && n === selectableCount ? ref('X-LIST.selectNone') : ref('X-LIST.selectAll'),
     hint: hintText(n),
     button: { label: buttonLabel(n), disabled: n === 0 },
   };

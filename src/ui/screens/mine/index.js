@@ -32,13 +32,13 @@ import { EmptyState } from '../../components/EmptyState.js';
 import { Row, RowBlock } from '../../components/Rows.js';
 import { useAxLevel } from '../../components/ax.js';
 import { injectStyles, T } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { sheetColumns } from '../../../core/images/layout.js';
-import { mineModel } from './model.js';
+import { mineModel } from '../../../session/views/mine.js';
 import { getStore } from '../../../store/store.js';
 import { storagePressureOf } from '../../../store/budget.js';
-import { annualDefaultYear } from './annual-model.js';
+import { annualDefaultYear } from '../../../session/views/annual.js';
 import {
   dayText, go, hasInkOfStore, MINE_ROUTES, openRecords, useStoreState, useToday,
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
@@ -162,7 +162,7 @@ function MineScreen() {
       <${RowBlock}>
         <${Row} testid="mine-remind" name=${t('R-M03.remind')} value=${remindValue(view.remind, view.on)} valueTestid="mine-remind-value"
           extra=${{ 'data-on': view.on ? 'true' : 'false' }} onClick=${() => go(MINE_ROUTES.remind)} />
-        <${Row} testid="mine-library" name=${t('R-S01.library')} value=${view.libraryName} valueTestid="mine-library-value"
+        <${Row} testid="mine-library" name=${t('R-S01.library')} value=${tRef(view.libraryName)} valueTestid="mine-library-value"
           extra=${{ 'data-library': view.library }} onClick=${() => go(MINE_ROUTES.library)} />
         ${view.appearanceSwitch ? html`<${AppearanceRow} current=${view.appearance} />` : null}
         <${GroupSizeRow} current=${view.groupSize} />

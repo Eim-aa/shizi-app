@@ -395,13 +395,13 @@ final class NativeInkView: UIView {
     private var hoverRecognizer: UIHoverGestureRecognizer?
     private var pencilInteraction: UIPencilInteraction?
 
+    /// 外部动画每帧追加的绘制（返回 nil 表示动画结束）：判断落定 M23（NativeSettle，B2.5 起是产品功能，B3.1 进 Release）与 spike 叠层的落定原型。
+    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)?
+    /// 每帧画完后的钩子（判断落定在「第一帧」同帧发触觉，F1）。
+    var afterFrame: ((CFTimeInterval) -> Void)?
     #if DEBUG
     /// T1 测量（DEBUG）：触点 → 帧预计上屏 / 真正上屏。
     var latency = NativeInkLatency()
-    /// spike 叠层的落定原型等外部动画每帧追加的绘制（返回 nil 表示动画结束；DEBUG）。
-    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)?
-    /// 每帧画完后的钩子（DEBUG：落定原型用来在「第一帧」同帧发触觉）。
-    var afterFrame: ((CFTimeInterval) -> Void)?
     private var fade: (start: CFTimeInterval, ms: Double, from: Float)?
     /// 每一笔的结局（DEBUG，R10-A：笔画「写完消失」排查）：began / ended / held / cancel:<原因> / refused:<原因>，最近 64 条。
     /// 探针（QAProbe native.inkLog）与控制台（[shizi] ink …）都看得到。
@@ -936,13 +936,9 @@ final class NativeInkView: UIView {
         #endif
         releaseHeldIfDue(CACurrentMediaTime())
         if isHidden { return }
-        #if DEBUG
         let extra = overlayFrame?(link.targetTimestamp)
         if overlayFrame != nil, extra == nil { overlayFrame = nil; needsRender = true }
         let hasExtra = extra != nil
-        #else
-        let hasExtra = false
-        #endif
         guard needsRender || liveDirty || hasExtra else { return }
         let callback = CACurrentMediaTime()
         if liveDirty, !raw.isEmpty, !held {
@@ -976,9 +972,7 @@ final class NativeInkView: UIView {
                 batches.append(.init(vertices: dot, buffer: nil, count: dot.count / 2, uniforms: hu, blend: true))
             }
         }
-        #if DEBUG
         if let extra { batches.append(contentsOf: extra) }
-        #endif
         let cpu = (CACurrentMediaTime() - callback) * 1000
         lastFrameCpuMs = cpu
         #if DEBUG
@@ -991,9 +985,7 @@ final class NativeInkView: UIView {
         let ok = renderer.render(layer: metalLayer, batches: batches, presented: nil)
         #endif
         needsRender = !ok
-        #if DEBUG
         afterFrame?(link.targetTimestamp)
-        #endif
         // 代理迟迟没同步回来（例如这一笔被丢弃）：2s 后不再显示待确认的笔
         if !pendingStrokes.isEmpty, current == nil, CACurrentMediaTime() - pendingSince > 2 {
             #if DEBUG

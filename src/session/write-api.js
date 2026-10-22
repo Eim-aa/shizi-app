@@ -437,6 +437,12 @@ export function createWriteSessionApi(deps = {}) {
   const navigate = deps.navigate || NO_NAVIGATE;
   const colors = deps.colors || (() => ({}));
   const type = deps.type || (() => ({}));
+  // B3.1：页面此刻的主题（'light' | 'dark'，含「我的 › 外观」的强制浅 / 深）。原生的颜色取 ShiziKit 生成值，按这个主题选浅 / 深一套；没注入时不给（原生跟系统）
+  const theme = deps.theme || (() => undefined);
+  const themeField = () => {
+    const t = theme();
+    return t === 'light' || t === 'dark' ? { theme: t } : {};
+  };
   // B2.9b：参考字形的读屏名称（字、拼音、笔画数、结构 / 部件数）由页面侧注入（要题库读音与笔顺数据，ui/screens/write/ref-label.js）；没注入时只读字
   const refLabelOf = deps.refLabel || (({ char }) => t('R-W09.refCardLabelChar', { char }));
   // B2.7：结果页的 op（result-api.js）；页面的视图、导航、提醒权限与盖章声由页面侧注入（deps.result）
@@ -462,7 +468,7 @@ export function createWriteSessionApi(deps = {}) {
       const rec = commitRecover(store, { slot });
       return {
         ok: true, recovered: !!(rec && rec.ok && !rec.noop), snapshot: snapshot(slot), copy: copyBundle(), colors: colors(), type: type(), timing: writeTiming(),
-        motion: writeMotion(), layout: writeLayoutConstants(), trace: writeTrace(), skipUndo: writeSkipUndo(), ink: writeInk(),
+        motion: writeMotion(), layout: writeLayoutConstants(), trace: writeTrace(), skipUndo: writeSkipUndo(), ink: writeInk(), ...themeField(),
       };
     },
     /** 抬笔 / 撤销 / 清空后的现场写回（P52：不阻断，失败只回报）。 */
@@ -578,7 +584,7 @@ export function createWriteSessionApi(deps = {}) {
       if (!list.length) return { ok: false, error: { kind: 'invalid' } };
       return {
         ok: true, chars: list, snapshot: redoSnapshot(storeOf().getState(), list, 0), copy: copyBundle(), colors: colors(), type: type(), timing: writeTiming(),
-        motion: writeMotion(), layout: writeLayoutConstants(), ink: writeInk(),
+        motion: writeMotion(), layout: writeLayoutConstants(), ink: writeInk(), ...themeField(),
       };
     },
     redoNext({ chars, index }) {
@@ -610,7 +616,7 @@ export function createWriteSessionApi(deps = {}) {
     resultLook() {
       return {
         ok: true, copy: copyBundle([...NATIVE_WRITE_COPY_KEYS, ...NATIVE_RESULT_COPY_KEYS]), colors: colors(), type: type(), timing: writeTiming(),
-        motion: { ...writeMotion(), result: resultMotion() }, skipUndo: writeSkipUndo(), ink: writeInk(),
+        motion: { ...writeMotion(), result: resultMotion() }, skipUndo: writeSkipUndo(), ink: writeInk(), ...themeField(),
       };
     },
     /** 首练第 1 字的一次性提示出现了（R9-A NP-02）：与网页 useFirstTip 同一个 commitFirstTipSeen（只记一次；P52 失败不阻断）。 */

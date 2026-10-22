@@ -303,8 +303,8 @@ final class WebViewController: UIViewController {
         #if DEBUG
         runNativeSmokeIfNeeded()
         runQAHarnessIfNeeded() // QA-H1：状态注入 / 逐屏取证 / 探针（NativeQAHarness.swift，只在启动参数 -shizi-qa* 下）
-        nativePageDidBecomeReady() // B2.8：重载前盖着的原生页，页面没有再认领就收起（NativeWriteCoordinator.swift）
         #endif
+        nativePageDidBecomeReady() // B2.8：重载前盖着的原生页，页面没有再认领就收起（NativeWriteCoordinator.swift）
     }
 
     // MARK: - 读屏状态（阶段 0 B2 / D36 / P116）
@@ -379,8 +379,8 @@ final class WebViewController: UIViewController {
         #if DEBUG
         installNativeDevUserScriptIfNeeded(controller)
         installNativeInkUserScriptIfNeeded(controller)
-        installNativeWriteUserScriptIfNeeded(controller)
         #endif
+        installNativeWriteUserScriptIfNeeded(controller) // B3.1：原生写字流程进 Release，开关（默认关）到 B3.F 为止
         if let source = Self.initialContentSizeScript(category ?? currentContentSizeCategory) {
             controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
@@ -777,17 +777,13 @@ extension WebViewController: WKNavigationDelegate {
         pageReady = false
         reminderDispatchInFlight = false
         backGestureEnabled = true
-        #if DEBUG
         nativePageWillReload() // B2.8：原生写字页 / 结果页先留在屏上，等页面就绪后看宿主是否认领
-        #endif
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         // 提醒深链的 key 保留，重载后页面发 pageReady 时再派发（01 §8.2）。
         pageReady = false
-        #if DEBUG
         nativePageWillReload()
-        #endif
         loadApp()
     }
 }
@@ -844,9 +840,9 @@ extension WebViewController: WKScriptMessageHandler {
             handleNativeSmokeControl(body)
         case "nativeInk":
             handleNativeInkMessage(body)
-        case "nativeWrite":
-            handleNativeWriteMessage(body)
         #endif
+        case "nativeWrite":
+            handleNativeWriteMessage(body) // B3.1：Release 组件（开关关着时直接忽略，NativeWriteCoordinator.swift）
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")
         case "sound":

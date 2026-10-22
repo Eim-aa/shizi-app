@@ -1,4 +1,3 @@
-#if DEBUG
 import UIKit
 
 // 原生写字页的提示层（B2.2；D64 ①、D53 ① ⑧；01 §6.4）。
@@ -246,4 +245,3 @@ final class NativeHintLayerView: UIView {
     /// 测试与诊断：此刻画出的提示笔。
     var shownStrokes: [Int] { shown.sorted() }
 }
-#endif

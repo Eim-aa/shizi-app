@@ -11,7 +11,7 @@
 // （透明、不画内容，下层页保持可见，见 root.js nativeHost），挂载时 postMessage({type:'nativeWrite', op:'open'}) 让原生推入写字页，
 // 卸载时 op:'close'；原生返回 / 写完最后一字时调用 exit，由本模块 nav.back() / openResult()。
 //
-// 开关：只在 iOS DEBUG 壳、启动参数 -shizi-native-write（SHIZI_NATIVE_WRITE=1）时，原生在文档开始注入 window.__shiziNativeWrite = true；
+// 开关：iOS 壳启动参数 -shizi-native-write（SHIZI_NATIVE_WRITE=1；B3.1 起 Release 壳也有、默认关，B3.F 去掉）时，原生在文档开始注入 window.__shiziNativeWrite = true；
 // 默认关，关着时本模块什么都不装、写字页与正式流程完全相同。
 
 import { html, useEffect, useLayoutEffect, useRef, useState } from '../../../../vendor/ui.js';
@@ -51,7 +51,7 @@ function globalWin() {
   return typeof window !== 'undefined' ? window : null;
 }
 
-/** 开关：iOS DEBUG 壳注入了 __shiziNativeWrite 且在原生壳内。 */
+/** 开关：iOS 壳注入了 __shiziNativeWrite 且在原生壳内。 */
 export function nativeWriteEnabled(win = globalWin()) {
   return !!(win && win.__shiziNativeWrite === true && (win.__shiziNativeWriteForce === true || isNative()));
 }
@@ -65,6 +65,17 @@ export function colorBundle(win = globalWin()) {
     // node:test / 无 DOM
   }
   return out;
+}
+
+/** B3.1：页面此刻的主题（:root 的 color-scheme 计算值，tokens.css 浅 / 深块各自声明；含「我的 › 外观」的强制浅 / 深）→ 'light' | 'dark'；无 DOM → undefined。 */
+export function themeOf(win = globalWin()) {
+  try {
+    const scheme = win.getComputedStyle(win.document.documentElement).colorScheme || '';
+    if (!scheme) return undefined; // 读不到（没有 color-scheme 计算值）：不给，原生跟系统
+    return /dark/.test(scheme) ? 'dark' : 'light';
+  } catch (error) {
+    return undefined;
+  }
 }
 
 export function typeBundle(win = globalWin()) {
@@ -232,6 +243,7 @@ export function createWriteSessionApi(deps = {}) {
     },
     colors: deps.colors || (() => colorBundle()),
     type: deps.type || (() => typeBundle()),
+    theme: deps.theme || (() => themeOf()),
     // B2.9b：参考字形的读屏名称（判断页参考卡 / 描一遍的答案字），网页 compare.js / answer.js 同一个 refCardLabel；笔顺数据先取到（判断页与描一遍网页也是数据就绪后读）
     refLabel: deps.refLabel || (async ({ char, cardKey }) => {
       let data = null;

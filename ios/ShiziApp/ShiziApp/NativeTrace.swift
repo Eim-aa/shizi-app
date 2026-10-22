@@ -1,4 +1,3 @@
-#if DEBUG
 import UIKit
 
 // 原生写字页的描一遍：描红层与笔顺快放（B2.4；确认单 4；D64 ②、D68 ②；D53 ①）。
@@ -271,4 +270,3 @@ final class NativeTraceLayerView: UIView {
         done?()
     }
 }
-#endif

@@ -1,43 +1,8 @@
-#if DEBUG
 import UIKit
 import WebKit
 
-/// B2.9b：原生写字流程（写字页 / 判断页 / 结果页 / 弹层 / 确认框）的读屏通知一律经这里发：换字 / 换阶段 screenChanged、弹层内换内容 layoutChanged、
-/// 状态变化播报 announcement（排队播，不打断上一句——网页 aria-live=polite 同义）。每一条同时记下（探针 a11y，XCUITest 核对播报队列）。
-enum NativeA11y {
-    private(set) static var events: [String] = []
-    /// 发过的通知总数（只增；events 只留最近 40 条）。
-    private(set) static var total = 0
-
-    private static func note(_ kind: String, _ arg: Any?) {
-        var text = ""
-        if let s = arg as? String { text = s }
-        else if let l = arg as? UILabel { text = l.accessibilityLabel ?? l.text ?? "" }
-        else if let v = arg as? UIView { text = v.accessibilityLabel ?? v.accessibilityIdentifier ?? String(describing: type(of: v)) }
-        events.append("\(kind):\(text)")
-        total += 1
-        if events.count > 40 { events.removeFirst(events.count - 40) }
-    }
-
-    static func screenChanged(_ focus: Any?) {
-        note("screen", focus)
-        UIAccessibility.post(notification: .screenChanged, argument: focus)
-    }
-
-    static func layoutChanged(_ focus: Any?) {
-        note("layout", focus)
-        UIAccessibility.post(notification: .layoutChanged, argument: focus)
-    }
-
-    static func announce(_ text: String?) {
-        guard let text, !text.isEmpty else { return }
-        note("announce", text)
-        UIAccessibility.post(notification: .announcement, argument: NSAttributedString(string: text, attributes: [.accessibilitySpeechQueueAnnouncement: true]))
-    }
-}
-
 // 原生写字页（B2.0 纵切 → B2.2 回忆阶段完整版 + 提示；docs/engineering/v10/B2-原生写字架构.md §6、§11；确认单 2、3）。
-// 只在 DEBUG、启动参数 -shizi-native-write 时出现（主控宣布切换前）。
+// B3.1 起是 Release 组件（与 ShiziKit 一起进包）；只在开关 -shizi-native-write 打开时出现（默认关，B3.F 翻转导航真相源时去掉开关）。
 //
 // 版式（A7 / D57；01 §6.1；NativeWriteLayout 与网页 layout.js 同一组公式）：
 //   页头：左「‹」（44 × 44，图标外缘落在 20pt 页边线）、中间「n / 总数」（回忆阶段没有可见标题，读屏「第 n 个字，共 m 个」）、右上「跳过」与「结束这组」的位置
@@ -256,7 +221,9 @@ final class NativeWriteViewController: UIViewController {
     private var axTight = false
     private var axTightKey = ""
 
-    init(slot: String, payload: [String: Any], bridge: NativeWriteBridge, redo: Bool = false) {
+    init(slot: String, payload raw: [String: Any], bridge: NativeWriteBridge, redo: Bool = false) {
+        // B3.1：颜色 / 字阶 / 文案 / 动效取 ShiziKit 生成值，回包只给快照、主题、AX 量值与 policy 参数（ShiziLook）
+        let payload = ShiziLook.resolve(raw, page: .write)
         self.slot = slot
         self.redo = redo
         self.redoChars = redo ? (payload["chars"] as? [String] ?? []) : []
@@ -346,12 +313,14 @@ final class NativeWriteViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         guard let inkView = NativeInkView.make(frame: .zero) else {
-            NSLog("[shizi] native-write: Metal unavailable")
+            ShiziProbe.log("native-write: Metal unavailable")
             return
         }
         ink = inkView
         (view as? NativeWritePageView)?.ink = inkView
+        #if DEBUG
         ink.latency = NativeWriteMetrics.shared.inkLatency
+        #endif
         ink.delegate = self
         ink.isAccessibilityElement = true
         ink.accessibilityTraits = [.allowsDirectInteraction]
@@ -534,7 +503,10 @@ final class NativeWriteViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if let t = openTiming {
+            #if DEBUG
             NativeWriteMetrics.shared.open(sentAtEpochMs: t.sentAtEpochMs, receivedAt: t.receivedAt, appearedAt: CACurrentMediaTime(), receivedEpochMs: t.receivedEpochMs)
+            #endif
+            _ = t
             openTiming = nil
         }
         NativeA11y.screenChanged(screenFocus)
@@ -556,7 +528,11 @@ final class NativeWriteViewController: UIViewController {
             var args: [String: Any] = ["slot": slot, "to": "back"]
             if let u = undoHandoff() { args["undo"] = u } // 撤销条还在时离开：剩余的撤销机会交给来源页（S4）
             endUndo()
-            bridge.call("exit", args) { _ in NativeWriteMetrics.shared.save() }
+            bridge.call("exit", args) { _ in
+                #if DEBUG
+                NativeWriteMetrics.shared.save()
+                #endif
+            }
         }
     }
 
@@ -566,8 +542,10 @@ final class NativeWriteViewController: UIViewController {
     var lineShownForTesting: Bool { !lineLabel.isHidden }
 
     func saveMetrics() {
+        #if DEBUG
         NativeWriteMetrics.shared.inkSummary = ink?.latency.summary ?? [:]
         NativeWriteMetrics.shared.save()
+        #endif
     }
 
     /// 读屏两指 Z 形 = 左上「‹」（回忆阶段离开，判断阶段接着写；R5-I2）。
@@ -681,7 +659,8 @@ final class NativeWriteViewController: UIViewController {
     }
 
     /// 页面重载（WebContent 进程被回收）后宿主重新发 open：用新的文案 / 颜色 / 快照重新同步。
-    func resync(payload: [String: Any]) {
+    func resync(payload raw: [String: Any]) {
+        let payload = ShiziLook.resolve(raw, page: .write)
         if let c = payload["copy"] as? [String: String] { copy = c }
         applyColors(payload["colors"] as? [String: String])
         applyTiming(payload)
@@ -1165,7 +1144,10 @@ final class NativeWriteViewController: UIViewController {
         defer {
             if !firstLayoutDone, let t = openTiming {
                 firstLayoutDone = true
+                #if DEBUG
                 NativeWriteMetrics.shared.firstLayout(ms: (CACurrentMediaTime() - t.receivedAt) * 1000)
+                #endif
+                _ = t
             }
         }
         let k = layoutK
@@ -1185,7 +1167,7 @@ final class NativeWriteViewController: UIViewController {
         // 右槽内容：回忆 [结束这组][16][跳过]，描一遍 / 凭记忆写 [进度 +4][结束这组]，判断 [进度 +4]。「结束这组」左右各有 4 的内边距，「跳过」没有（字形外缘贴页边）。
         func layoutHead(_ headH: CGFloat) -> CGFloat {
             let headY = safe.top + (headH - 44) / 2
-            backButton.frame = CGRect(x: gutter - 17.75, y: headY, width: 44, height: 44)
+            backButton.frame = ShiziPageHeader.leadFrame(.back, gutter: gutter, y: headY)
             var right = w - gutter
             // 文字按钮按字的实宽排（不取整，网页同），框取整后左右各让出一半，字仍落在实宽的位置上
             let place = { (b: NativeIconTextButton, right: CGFloat, pad: CGFloat) -> CGFloat in
@@ -1220,11 +1202,11 @@ final class NativeWriteViewController: UIViewController {
             return min(right, w - gutter - 44)
         }
         var trailLeft = layoutHead(headH)
-        let centerX = gutter + 44 + 8
+        let centerX = ShiziPageHeader.centerLeft(gutter: gutter)
         centerLabel.clipsToBounds = srTitle
         if srTitle {
             // 只给读屏（网页 .sz-page__title--hidden：1 × 1、裁掉）：读屏名称与 screenChanged 落点照旧
-            centerLabel.frame = CGRect(x: gutter - 1, y: safe.top + 21.5, width: 1, height: 1)
+            centerLabel.frame = ShiziPageHeader.screenReaderTitleFrame(gutter: gutter, top: safe.top)
         } else if !titleMode {
             // 回忆阶段（与重写错字页两个阶段）中间是进度：框 = 字宽 × lh15，在两槽之间居中（网页 .sz-page__center 里的 .sz-write__progress）
             let tw = ceil(centerLabel.sizeThatFits(CGSize(width: w, height: headH)).width)
@@ -2568,9 +2550,15 @@ final class NativeWriteViewController: UIViewController {
         return played != nil
     }
 
-    // MARK: 量测用自动驾驶（DEBUG：SHIZI_NW_AUTO=1；每个字写一笔合成笔画 →「写好了」→ 判断，写错 / 写对交替）
+    // MARK: 量测用自动驾驶（DEBUG：SHIZI_NW_AUTO=1；每个字写一笔合成笔画 →「写好了」→ 判断，写错 / 写对交替；Release 恒关）
 
-    static var autoDrive: Bool { ProcessInfo.processInfo.environment["SHIZI_NW_AUTO"] == "1" }
+    static var autoDrive: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["SHIZI_NW_AUTO"] == "1"
+        #else
+        return false
+        #endif
+    }
     private var autoCount = 0
 
     func scheduleAutoStep() {
@@ -2739,4 +2727,3 @@ extension NativeWriteViewController: NativeInkViewDelegate {
         }
     }
 }
-#endif

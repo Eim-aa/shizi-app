@@ -223,6 +223,15 @@ test('R9-B: open carries the type tokens the page injects (原生按网页字阶
   assert.deepEqual(apiOn(fakeStore()).call('open', { slot: 'A' }).type, {});
 });
 
+test('B3.1: open / resultLook carry the page theme (原生颜色取 ShiziKit 生成值、按页面主题选浅 / 深)；没注入 / 读不到时不给', () => {
+  const api = createWriteSessionApi({ getStore: () => fakeStore(), navigate: quietNav, colors: () => ({}), theme: () => 'dark' });
+  assert.equal(api.call('open', { slot: 'A' }).theme, 'dark');
+  assert.equal(api.call('resultLook', {}).theme, 'dark');
+  assert.equal('theme' in apiOn(fakeStore()).call('open', { slot: 'A' }), false);
+  const odd = createWriteSessionApi({ getStore: () => fakeStore(), navigate: quietNav, colors: () => ({}), theme: () => 'sepia' });
+  assert.equal('theme' in odd.call('open', { slot: 'A' }), false);
+});
+
 test('D07: a failed judgment changes nothing and does not advance; the retry records once', () => {
   const store = fakeStore();
   const api = apiOn(store);

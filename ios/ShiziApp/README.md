@@ -44,7 +44,7 @@ ios/ShiziApp/scripts/verify-archive.sh work/Shizi.xcarchive
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziStoreTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
 ```
 
-原生写字页（B2.0 纵切，DEBUG 启动参数 `-shizi-native-write` / `SHIZI_NATIVE_WRITE=1`，默认关；架构见 `docs/engineering/v10/B2-原生写字架构.md`）的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入），以及原生书写面（B2.1 起 Release 组件）的 `InkSurfaceTests`（笔锋模型金标准、点处理与几何、Pencil / 手掌 / 换字持住）：
+原生写字页（B2.0 纵切；B3.1 起与共用组件库 `ShiziApp/ShiziKit/` 一起进 Release，开关仍是启动参数 `-shizi-native-write` / `SHIZI_NATIVE_WRITE=1`、默认关，到 B3.F 为止；颜色 / 字阶 / 文案 / 动效取构建期生成的 `ShiziKit/Generated/*.json`，改了 tokens / copy / motion 要跑 `node scripts/build_shizikit.mjs`；架构见 `docs/engineering/v10/B2-原生写字架构.md`、`B3B4-原生化架构与计划.md` §3.2 / §10）的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入），以及原生书写面（B2.1 起 Release 组件）的 `InkSurfaceTests`（笔锋模型金标准、点处理与几何、Pencil / 手掌 / 换字持住）：
 
 ```bash
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziWriteTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO

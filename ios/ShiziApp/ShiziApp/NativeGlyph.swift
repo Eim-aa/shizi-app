@@ -1,4 +1,3 @@
-#if DEBUG
 import UIKit
 
 // 原生练习字字形（B2.0）：与网页同一份数据 data/<字>.json（hanzi-writer 格式，01 §8.7「练习字字形单一来源」），
@@ -121,4 +120,3 @@ final class NativeGlyphView: UIView {
         }
     }
 }
-#endif

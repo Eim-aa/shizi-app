@@ -1,4 +1,3 @@
-#if DEBUG
 import UIKit
 
 // 原生结果页（B2.7；docs/engineering/v10/B2-原生写字架构.md §11 B2.7 / §20；写字流程确认单 §8；D19 / D20 / D46 ⑥ / D49 / D51 ② / D66 ③ ④ ⑮ / D70）。
@@ -118,7 +117,9 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         return s
     }
 
-    private func applyLook(_ look: [String: Any]) {
+    private func applyLook(_ raw: [String: Any]) {
+        // B3.1：颜色 / 字阶 / 文案 / 动效取 ShiziKit 生成值（ShiziLook），look 只给主题、AX 量值与 policy 参数
+        let look = ShiziLook.resolve(raw, page: .result)
         copy = look["copy"] as? [String: String] ?? [:]
         rawColors = look["colors"] as? [String: String] ?? [:]
         for (k, v) in rawColors where !k.hasSuffix("-shadow") {
@@ -406,9 +407,9 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         let gutter: CGFloat = 20
         let inner = w - 2 * gutter
         // 页头（44；左「×」、右「分享」，图标外缘对页边线）
-        backButton.frame = CGRect(x: gutter - 16.25, y: safe.top, width: 44, height: 44)
-        shareButton.frame = CGRect(x: w - gutter + 15.25 - 44, y: safe.top, width: 44, height: 44)
-        headerLabel.frame = CGRect(x: gutter - 1, y: safe.top + 21.5, width: 1, height: 1)
+        backButton.frame = ShiziPageHeader.leadFrame(.close, gutter: gutter, y: safe.top)
+        shareButton.frame = ShiziPageHeader.trailFrame(.share, width: w, gutter: gutter, y: safe.top)
+        headerLabel.frame = ShiziPageHeader.screenReaderTitleFrame(gutter: gutter, top: safe.top)
 
         // 底栏：主按钮下沿 = 屏底 − max(24, 下安全区)；文字按钮行（44 + 下外边 8）在主按钮上方，间 12；底栏上内边 12
         let ts = self.ts
@@ -1719,4 +1720,3 @@ final class NativeAttachmentLabel: UILabel {
         accessibilityLabel = spoken
     }
 }
-#endif

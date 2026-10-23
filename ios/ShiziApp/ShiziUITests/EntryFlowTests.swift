@@ -30,18 +30,47 @@ final class EntryFlowTests: XCTestCase {
         XCTAssertTrue(qa.el("native-write-progress").label.contains("共 3 个"))
         XCTAssertTrue(qa.el("native-write-end").exists == false || qa.el("native-write-end").isHittable == false, "no 结束这组 in the first practice (D66 ⑥)")
         XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("open via=home") }, "\(qa.transitions)")
-        qa.stroke()
+        qa.strokeLanded(1) // R12：先确认原生页收下了这一笔，再测「离开后还在」
         qa.tapNative("native-write-back")
         qa.waitNative(false)
         qa.waitRouteTop("home")
         XCTAssertTrue(qa.buttonContaining("继续写字").waitForExistence(timeout: 4), "home CTA becomes 继续写字")
-        XCTAssertEqual(qa.session("A")["strokes"] as? Int, 1, "the stroke is kept")
+        qa.waitProbe("the stroke is kept") { (($0["sessions"] as? [String: Any])?["A"] as? [String: Any])?["strokes"] as? Int == 1 }
         // 再进：回到同一字、同一笔迹
         qa.tap(qa.buttonContaining("继续写字"), "继续写字")
         qa.waitNative(true)
         XCTAssertEqual(qa.native["strokes"] as? Int, 1)
         XCTAssertEqual(qa.native["cursor"] as? Int, 0)
     }
+
+    /// R12：写完一笔马上离开（‹ / 左缘右滑），桥被人为放慢（每个 op 晚 400ms 交给页面，-shizi-qa-bridge-delay）——这一笔一定在会话里，
+    /// 再进回到同一笔迹。抬笔时发的 strokes 与离开时的整份写回都在 exit 之前（同一条桥队列）。
+    private func strokeThenLeave(edge: Bool) {
+        let qa = QA(seed: "home", extra: ["-shizi-qa-bridge-delay", "400"])
+        qa.launch()
+        // 桥放慢时，冷启动恢复出的上一条写字页（前一个用例停在写字页）收起得也慢：等它收完、导航空闲再点，免得点按落在收起途中
+        qa.waitProbe("restored page gone, nav idle") { p in
+            ((p["native"] as? [String: Any])?["shown"] as? Bool) != true && (p["navRunning"] as? Int ?? 0) == 0 && (p["navAnim"] as? String ?? "idle") == "idle"
+        }
+        Thread.sleep(forTimeInterval: 0.6)
+        qa.tap(qa.buttonContaining("开始写字"), "开始写字")
+        qa.waitNative(true)
+        let g = qa.el("native-write-grid")
+        XCTAssertTrue(g.waitForExistence(timeout: 5))
+        g.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.45)).press(forDuration: 0.05, thenDragTo: g.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5)), withVelocity: 300, thenHoldForDuration: 0.02)
+        // 不等：抬笔后立即离开（strokes op 还在桥上）
+        if edge { qa.edgeBack() } else { qa.el("native-write-back").tap() }
+        qa.waitNative(false)
+        qa.waitRouteTop("home")
+        qa.waitProbe("stroke kept after leaving at once") { (($0["sessions"] as? [String: Any])?["A"] as? [String: Any])?["strokes"] as? Int == 1 }
+        qa.tap(qa.buttonContaining("继续写字"), "继续写字")
+        qa.waitNative(true)
+        XCTAssertEqual(qa.native["strokes"] as? Int, 1, "re-entering shows the stroke")
+        XCTAssertEqual(qa.native["cursor"] as? Int, 0)
+    }
+
+    func test101b_strokeThenImmediateBackUnderSlowBridge() { strokeThenLeave(edge: false) }
+    func test101c_strokeThenImmediateEdgeBackUnderSlowBridge() { strokeThenLeave(edge: true) }
 
     /// §1：首页「继续写字，已写 1 个，共 8 个」→ 回到第 2 字；判断后首页数字变「已写 2 个」。
     func test102_homeContinueAndProgressSync() {

@@ -872,6 +872,24 @@ final class NativeInkView: UIView {
         heldDone = []
     }
 
+    /// R12：页面要离开（‹ / 左缘 / 结束这组 / 收起）——换字门限内已抬笔、持住的笔不等门限，现在就整笔交出（交给代理写回），不随页面丢掉。
+    /// 只交「这个字」的：门限 = .infinity（判断 / 跳过 / 看答案提交中，持住的笔属于下一个字）不交，仍按 D07 等回包；正在写、还没抬笔的不算写完，不交。
+    /// 返回交出了几笔。
+    @discardableResult
+    func flushHeld() -> Int {
+        guard acceptFrom != .infinity, !heldDone.isEmpty else { return 0 }
+        let done = heldDone
+        heldDone = []
+        #if DEBUG
+        logStroke("flush-held \(done.count)")
+        #endif
+        for s in done {
+            delegate?.nativeInkDidBeginStroke(self, at: (s.first?.t ?? 0) / 1000)
+            finish(s)
+        }
+        return done.count
+    }
+
     var isWriting: Bool { current != nil }
     /// 有持住的笔（正在写或已抬笔，等门限）。
     var hasHeldInput: Bool { held || !heldDone.isEmpty }

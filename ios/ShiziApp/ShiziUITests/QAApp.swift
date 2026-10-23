@@ -26,6 +26,25 @@ enum QAPending {
     }
 }
 
+/// R13：负载相关的偶发失败（多台模拟器同时在跑时点按没生效 / 合成触摸被取消 / 超时）统一在这里兜：
+///   · 超时按一个系数放大：环境变量 QA_TIMEOUT_SCALE（xcodebuild 用 TEST_RUNNER_QA_TIMEOUT_SCALE=2 传入），没给就按启动时的负载均值定（空闲 1，机器很忙最高 5）；
+///   · 重试最多一次，每次都打一行 `QA-RETRY …`（verify-native-ui.sh 从 flows.log 收进 flows.md 的「flaky retries」），重试不吞产品失败：
+///     重试后仍没效果的点按只记 `QA-NOEFFECT` 警告（后面的断言照常判），重试后仍没落笔的笔照常 XCTFail。
+enum QALoad {
+    static let scale: Double = {
+        if let s = ProcessInfo.processInfo.environment["QA_TIMEOUT_SCALE"], let v = Double(s), v > 0 { return v }
+        var l = [Double](repeating: 0, count: 1)
+        getloadavg(&l, 1)
+        let ratio = l[0] / Double(max(1, ProcessInfo.processInfo.activeProcessorCount))
+        return min(5, max(1, ratio * 1.5))
+    }()
+    nonisolated(unsafe) static var retries = 0
+    static func retry(_ kind: String, _ detail: String) {
+        retries += 1
+        print("QA-RETRY \(kind) scale=\(String(format: "%.1f", scale)) \(detail)")
+    }
+}
+
 @MainActor
 final class QA {
     let app = XCUIApplication()
@@ -54,6 +73,22 @@ final class QA {
         if let s = probe["seed"] as? String, s != "ok" { XCTFail("seed failed: \(s)", file: file, line: line) }
         // 原生页转场与 0.4s 防误点
         Thread.sleep(forTimeInterval: 0.8)
+        settle(file: file, line: line)
+    }
+
+    /// R13：第一次点按之前，等页面就绪、导航空闲、没有原生写字页在恢复 / 收起途中——连续三次读探针（间隔 0.4s）路由顶层、原生页是否显示、转场记录条数都不变。
+    func settle(file: StaticString = #filePath, line: UInt = #line) {
+        var prev = ""
+        var same = 0
+        waitProbe("settled after launch", timeout: 20, file: file, line: line) { p in
+            guard (p["pageReady"] as? Bool) == true, (p["navRunning"] as? Int ?? 0) == 0, (p["navAnim"] as? String ?? "idle") == "idle" else { same = 0; return false }
+            let n = p["native"] as? [String: Any] ?? [:]
+            let r = p["route"] as? [String: Any] ?? [:]
+            let sig = "\(n["shown"] ?? "-")|\(r["top"] ?? "-")|\(p["topScreen"] ?? "-")|\((p["transitions"] as? [String])?.count ?? 0)"
+            same = sig == prev ? same + 1 : 1
+            prev = sig
+            return same >= 3
+        }
     }
 
     /// 杀进程再开（不带注入：测冷启动恢复）。
@@ -64,6 +99,7 @@ final class QA {
         app.launch()
         waitProbe("relaunch page ready", timeout: 40) { ($0["pageReady"] as? Bool) == true && ($0["hooks"] as? Bool) == true }
         Thread.sleep(forTimeInterval: 1.2)
+        settle()
     }
 
     // MARK: 探针
@@ -77,7 +113,7 @@ final class QA {
 
     @discardableResult
     func waitProbe(_ what: String, timeout: TimeInterval = 8, file: StaticString = #filePath, line: UInt = #line, _ cond: ([String: Any]) -> Bool) -> [String: Any] {
-        let end = Date().addingTimeInterval(timeout)
+        let end = Date().addingTimeInterval(timeout * QALoad.scale)
         var last: [String: Any] = [:]
         while Date() < end {
             last = probe
@@ -120,17 +156,50 @@ final class QA {
     func text(_ label: String) -> XCUIElement { app.staticTexts.matching(NSPredicate(format: "label == %@", label)).firstMatch }
     func textContaining(_ s: String) -> XCUIElement { app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", s)).firstMatch }
 
-    func tap(_ e: XCUIElement, _ what: String, timeout: TimeInterval = 6, file: StaticString = #filePath, line: UInt = #line) {
-        guard e.waitForExistence(timeout: timeout) else {
+    /// 这一刻「看得见的状态」：探针里的路由 / 原生页 / 结果页 / 记录 / 播报 / 转场计数 + 元素自己的存在、标签、值、可用 + 会话与记录种类。
+    private func tapSignature(_ e: XCUIElement) -> String {
+        let p = probe
+        let n = p["native"] as? [String: Any] ?? [:]
+        let r = p["route"] as? [String: Any] ?? [:]
+        let res = p["result"] as? [String: Any] ?? [:]
+        let el = e.exists ? "\(e.label)|\(String(describing: e.value))|\(e.isEnabled)|\(e.isSelected)" : "gone"
+        // 会话 / 记录种类整份（提示次数、跳过、写对写错这些只在会话里变的东西）；不取截图——点按之后马上要点撤销条（5 秒窗口）的用例经不起慢
+        let data = (try? JSONSerialization.data(withJSONObject: ["s": p["sessions"] ?? [:], "k": p["kinds"] ?? [:]], options: [.sortedKeys])) ?? Data()
+        let shot = String(data: data, encoding: .utf8) ?? ""
+        return "\(r["top"] ?? "-")|\(p["topScreen"] ?? "-")|\(n["shown"] ?? "-")|\(n["phase"] ?? "-")|\(n["strokes"] ?? "-")|\(n["cursor"] ?? "-")|\(res["shown"] ?? "-")|\(p["records"] ?? "-")|\((p["a11y"] as? [String])?.count ?? 0)|\((p["transitions"] as? [String])?.count ?? 0)|\((p["webNav"] as? [String])?.count ?? 0)|\(el)|\(shot)"
+    }
+
+    /// 点一下并确认它有效果（R13）：状态 / 路由 / 元素 / 画面任一变化即算有效。机器很忙时点按偶尔被吞（录屏：点按落在上一个页面还在收起 / 恢复的途中，什么都没发生）——
+    /// 没效果就重点一次（只在 tapSignature 全都没变时）（最多一次）、打 QA-RETRY 与探针；重点后还没效果只打 QA-NOEFFECT 警告（可能这一下本来就没有可见效果），不替产品掩盖：后面的断言照常判。
+    func tap(_ e: XCUIElement, _ what: String, timeout: TimeInterval = 6, verify: Bool = true, file: StaticString = #filePath, line: UInt = #line) {
+        guard e.waitForExistence(timeout: timeout * QALoad.scale) else {
             print("QA-H1 element tree when \(what) was not found:\n\(app.debugDescription)")
             XCTFail("not found: \(what)", file: file, line: line)
             return
         }
+        // verify: false = 点完马上有 5 秒撤销窗口的按钮（跳过）：验证本身要读探针，机器忙时会吃掉窗口，不验证
+        guard verify else { e.tap(); Thread.sleep(forTimeInterval: 0.5); return }
+        let before = tapSignature(e)
         e.tap()
         Thread.sleep(forTimeInterval: 0.5) // 换状态后 0.4s 防误点
+        if tapEffective(e, before) { return }
+        guard e.exists else { return }
+        QALoad.retry("tap-no-effect", "\(what) probe=\(probe)")
+        e.tap()
+        Thread.sleep(forTimeInterval: 0.5)
+        if !tapEffective(e, before) { print("QA-NOEFFECT tap \(what) still shows no change after one retry; probe = \(probe)") }
     }
 
-    func tapNative(_ id: String, file: StaticString = #filePath, line: UInt = #line) { tap(el(id), id, file: file, line: line) }
+    private func tapEffective(_ e: XCUIElement, _ before: String) -> Bool {
+        let end = Date().addingTimeInterval(2.5 * QALoad.scale)
+        while true {
+            if tapSignature(e) != before { return true }
+            if Date() >= end { return false }
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+    }
+
+    func tapNative(_ id: String, file: StaticString = #filePath, line: UInt = #line) { tap(el(id), id, verify: id != "native-write-skip", file: file, line: line) }
 
     /// 点撤销条右端的「撤销」（撤销条整体是一个读屏元素，按钮不单独出现在无障碍树里时按位置点）。
     func tapUndoBar(file: StaticString = #filePath, line: UInt = #line) {
@@ -143,30 +212,39 @@ final class QA {
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: w - 44, dy: text.frame.midY)).tap()
     }
 
-    /// 在原生书写格里画一笔（相对坐标 0–1）。
-    func stroke(from: CGVector = CGVector(dx: 0.2, dy: 0.45), to: CGVector = CGVector(dx: 0.8, dy: 0.5), grid: String = "native-write-grid") {
+    /// 在原生书写格里画一笔（相对坐标 0–1），并确认原生页收下了（R13，原 R12 strokeLanded）：原生笔数有变化才返回。
+    /// 机器很忙时 XCTest 合成的拖动偶尔在按下点停住、随后被系统取消（录屏：起笔点停 ~0.9s 后消失，没有移动、没有抬笔；
+    /// 书写面按设计丢弃没写完的一笔，与网页 pointercancel 同语义）——这不是「写完的笔丢了」，按合成触摸失败重画一次（最多一次），
+    /// 打 QA-RETRY 与书写面日志（native.inkLog）；重画后还没收下 = XCTFail（产品问题）。
+    func stroke(from: CGVector = CGVector(dx: 0.2, dy: 0.45), to: CGVector = CGVector(dx: 0.8, dy: 0.5), grid: String = "native-write-grid", file: StaticString = #filePath, line: UInt = #line) {
+        let before = native["strokes"] as? Int
+        for attempt in 0..<2 {
+            drag(from: from, to: to, grid: grid)
+            guard let before else { return } // 原生页不在（别的格子）：无从确认
+            let end = Date().addingTimeInterval(2.5 * QALoad.scale)
+            var last: [String: Any] = [:]
+            while Date() < end {
+                last = native
+                if let n = last["strokes"] as? Int, n != before { return }
+                Thread.sleep(forTimeInterval: 0.25)
+            }
+            if attempt == 0 { QALoad.retry("stroke-not-received", "inkLog=\(last["inkLog"] ?? "-")") }
+        }
+        XCTFail("native page never received the stroke; probe.native = \(native)", file: file, line: line)
+    }
+
+    /// 只拖不确认（要在抬笔后立刻离开等场景用）。
+    func drag(from: CGVector = CGVector(dx: 0.2, dy: 0.45), to: CGVector = CGVector(dx: 0.8, dy: 0.5), grid: String = "native-write-grid") {
         let g = el(grid)
-        XCTAssertTrue(g.waitForExistence(timeout: 5), "grid exists")
+        XCTAssertTrue(g.waitForExistence(timeout: 5 * QALoad.scale), "grid exists")
         g.coordinate(withNormalizedOffset: from).press(forDuration: 0.05, thenDragTo: g.coordinate(withNormalizedOffset: to), withVelocity: 300, thenHoldForDuration: 0.02)
         Thread.sleep(forTimeInterval: 0.35)
     }
 
-    /// 画一笔并确认原生页收下了（R12）：原生笔数到 n 才返回。机器很忙时 XCTest 合成的拖动偶尔在按下点停住、随后被系统取消
-    /// （录屏：起笔点停 ~0.9s 后消失，没有移动、没有抬笔；书写面按设计丢弃没写完的一笔，与网页 pointercancel 同语义）——
-    /// 这不是「写完的笔丢了」，按合成触摸失败重画一次，并把书写面日志（native.inkLog）打进测试输出备查。
+    /// R12 的旧名：画一笔并确认笔数到 n（n 仅作为额外断言）。
     func strokeLanded(_ n: Int, file: StaticString = #filePath, line: UInt = #line) {
-        for attempt in 0..<2 {
-            stroke()
-            let end = Date().addingTimeInterval(2)
-            var last: [String: Any] = [:]
-            while Date() < end {
-                last = native
-                if last["strokes"] as? Int == n { return }
-                Thread.sleep(forTimeInterval: 0.25)
-            }
-            print("QA-H1 synthesized stroke not received (attempt \(attempt)); inkLog = \(last["inkLog"] ?? "-")")
-        }
-        XCTFail("native page never received the stroke; probe.native = \(native)", file: file, line: line)
+        stroke(file: file, line: line)
+        if let c = native["strokes"] as? Int, c != n { XCTFail("expected \(n) strokes after the stroke, native has \(c)", file: file, line: line) }
     }
 
     /// 左缘右滑（N3：= 点左上）。

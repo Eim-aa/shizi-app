@@ -118,6 +118,17 @@ if [ "$do_flows" = 1 ]; then
     -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO \
     -resultBundlePath "$OUT/flows.xcresult" test-without-building >"$OUT/flows.log" 2>&1 || true
   if flows_line="$(node "$TOOLS/flows-summary.mjs" "$OUT/flows.xcresult" "$OUT/flows.md")"; then :; else status=1; fi
+  # R13：测试工具的重试（点按没效果 / 合成触摸被取消）收进 flows.md 的「flaky retries」，保持可见；按「Test Case … started」归属到用例
+  retries="$(awk '/^Test Case .* started\./ { n=$0; sub(/^Test Case .-\[/, "", n); sub(/\]. started.*/, "", n); cur=n } /QA-(RETRY|NOEFFECT)/ { print cur " :: " $0 }' "$OUT/flows.log")"
+  retry_n="$(printf '%s' "$retries" | grep -c 'QA-RETRY' || true)"
+  {
+    echo
+    echo "## flaky retries（测试工具自动重试，最多一次；产品问题不会被吞）"
+    echo
+    echo "- 重试 ${retry_n:-0} 次"
+    if [ -n "$retries" ]; then echo; printf '%s\n' "$retries" | cut -c1-400 | sed 's/^/- /'; fi
+  } >>"$OUT/flows.md"
+  flows_line="$flows_line"$'\n'"flaky retries: ${retry_n:-0} (see flows.md)"
   echo "$flows_line" | sed 's/^/  /'
 fi
 

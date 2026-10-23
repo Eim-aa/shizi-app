@@ -134,6 +134,27 @@ export function markPaperSource(el, key) {
   };
 }
 
+// B3.5a（D62）：原生页上的入口（原生首页主按钮）——网页收不到 click，来源矩形由原生量了随写入 op 交过来；返回时被点元素的「此刻」也由原生报
+// （nativeLive：key → {rect, label}，liveSource 在网页里找不到同 key 的元素时用它）。
+const nativeLive = new Map();
+
+/** 原生入口记成来源（同 markPaperSource，矩形 / 字 / 圆角 / 是否实心由原生给）。 */
+export function markNativePaperSource({ rect, label = '', radius = 12, solid = true, key = null } = {}) {
+  if (!rect || !(rect.w > 0 && rect.h > 0)) return;
+  pending = {
+    el: null, rect: { x: rect.x, y: rect.y, w: rect.w, h: rect.h }, label: solid ? String(label || '') : '', radius, bg: '', fg: '',
+    solid: !!solid, key, at: nowMs(), overlay: false,
+  };
+  if (key) nativeLive.set(key, { rect: pending.rect, label: pending.label });
+}
+
+/** 原生入口此刻的位置与字（原生页排版 / 字变了时报；null 清掉）。 */
+export function setNativeLiveSource(key, live) {
+  if (!key) return;
+  if (live && live.rect && live.rect.w > 0 && live.rect.h > 0) nativeLive.set(key, { rect: { ...live.rect }, label: String(live.label || '') });
+  else nativeLive.delete(key);
+}
+
 /** 捕获阶段的 click（root.js）：从被点的节点往上找到可点元素记成来源。退场余影、禁用的控件不算。 */
 export function noteTap(target) {
   const el = target && typeof target.closest === 'function' ? target.closest(SOURCE_SELECTOR) : null;
@@ -156,6 +177,7 @@ export function forgetTap() {
 export function resetPaperSources() {
   pending = null;
   sources.clear();
+  nativeLive.clear();
 }
 
 export function hasPaperSource(entryId) {
@@ -245,6 +267,8 @@ function liveSource(src, underId, root) {
     const label = src.solid ? ((el.textContent || '').trim() || src.label) : '';
     return { ...src, el, rect, label, radius: radiusOf(el), gone: false };
   }
+  const live = !src.el && src.key ? nativeLive.get(src.key) : null; // 原生入口（B3.5a）：原生报的此刻位置与字
+  if (live) return { ...src, el: null, rect: { ...live.rect }, label: src.solid ? live.label || src.label : '', gone: false };
   if (!under) return { ...src, gone: false }; // 单测（没有 DOM）：沿用记下的
   const W = typeof window !== 'undefined' ? window.innerWidth : 0;
   const H = typeof window !== 'undefined' ? window.innerHeight : 0;

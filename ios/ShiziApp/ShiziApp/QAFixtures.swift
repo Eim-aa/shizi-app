@@ -167,7 +167,7 @@ extension WebViewController {
     }
 
     private func qaNativeReady(_ spec: String) -> Bool {
-        let settled = presentedViewController?.isBeingPresented == false
+        let settled = presentedViewController.map { !$0.isBeingPresented } ?? true // B3.5a：原生 tab 根页不是呈现出来的
         switch spec {
         case "write": return nativeWriteTop != nil && settled && NativeWriteTransitions.running == 0
         case "result": return nativeResultTop != nil && settled && NativeWriteTransitions.running == 0

@@ -2,7 +2,7 @@
   "state": "home-special",
   "name": "首页 · 大写数字特别组（D40）",
   "screen": "home",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -57,9 +57,13 @@
     },
     {
       "op": "seed"
+    },
+    {
+      "op": "nativeRoots"
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-home-start"
   }
 }

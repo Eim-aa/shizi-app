@@ -314,6 +314,45 @@ export function clearLeaveUndo() {
   emitLeaveUndo();
 }
 
+/** 交出去的撤销机会此刻的样子（B3.5a 原生首页画同一条撤销条用）：{slot, char, failed, remainingMs} | null。 */
+export function leaveUndoView() {
+  if (!leaveUndo) return null;
+  const { slot, char, failed } = leaveUndo;
+  return { slot, char, failed: !!failed, remainingMs: Math.max(0, Math.round(leaveUndo.until - clockNow())) };
+}
+
+/** 订阅交出去的撤销机会的变化（返回退订）。 */
+export function onLeaveUndo(fn) {
+  leaveListeners.add(fn);
+  return () => leaveListeners.delete(fn);
+}
+
+/**
+ * 来源页撤销条的「撤销」（网页 LeaveUndoHost 与原生首页同一个函数）：commitUndoSkip；成功 → 结束机会、onUndone(slot)（回到那个字）；
+ * stale → 结束机会；失败 → 撤销条换成三段式（failed）。返回提交结果。
+ */
+export function undoLeave(onUndone) {
+  const cur = leaveUndo;
+  if (!cur) return { ok: false, error: { kind: 'stale' } };
+  const store = storeOrNull();
+  const result = store
+    ? commitUndoSkip(store, { slot: cur.slot, sessionId: cur.sessionId, recordId: cur.recordId, strokes: cur.strokes })
+    : { ok: false, error: { kind: 'unavailable' } };
+  if (result.ok) {
+    clearLeaveUndo();
+    if (onUndone) onUndone(cur.slot);
+    return result;
+  }
+  if (result.error && result.error.kind === 'stale') {
+    clearLeaveUndo();
+    return result;
+  }
+  leaveUndo = { ...cur, failed: true };
+  emitLeaveUndo();
+  markStateChange();
+  return result;
+}
+
 /**
  * 根组件挂的宿主：来源页上的撤销条。交接后第一次看到的（不是写字页的）顶层页面就是它的归属；顶层换了就结束。
  * @param {{snap: object, onUndone: (slot:string) => void}} props
@@ -338,26 +377,7 @@ export function LeaveUndoHost({ snap, onUndone }) {
     }
   }, [topId, settled, u]);
   if (!u || !settled || (u.anchor !== null && u.anchor !== topId)) return null;
-  const undo = () => {
-    const cur = leaveUndo;
-    if (!cur) return;
-    const store = storeOrNull();
-    const result = store
-      ? commitUndoSkip(store, { slot: cur.slot, sessionId: cur.sessionId, recordId: cur.recordId, strokes: cur.strokes })
-      : { ok: false, error: { kind: 'unavailable' } };
-    if (result.ok) {
-      clearLeaveUndo();
-      if (onUndone) onUndone(cur.slot);
-      return;
-    }
-    if (result.error && result.error.kind === 'stale') {
-      clearLeaveUndo();
-      return;
-    }
-    leaveUndo = { ...cur, failed: true };
-    emitLeaveUndo();
-    markStateChange();
-  };
+  const undo = () => { undoLeave(onUndone); };
   // 来源页的底边（撤销条不盖主按钮，S4）：页上有主按钮时停在最下面那个主按钮上方 8；否则 tab 根在 tab 栏上方 8、子页在底栏上方 8。
   let ubb = null;
   if (typeof document !== 'undefined' && topId) {

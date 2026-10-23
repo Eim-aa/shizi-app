@@ -1,32 +1,137 @@
 import XCTest
 
-// B3.3 流程测试骨架（B3B4 §5.2 · 首页）：每个用例先「待办」（XCTSkip），由 B3.5a 的页面卡填实。
-// 填的时候：用 QA(seed: "<夹具状态>") 一键到起点（夹具在 ShiziUITests/States/），数据经探针断言；把 try QAPending.skip(…) 换成真实步骤即可，不改别的文件。
-
+// B3.5a 首页流程（B3B4 §5.2 HomeFlowTests）：原生首页（tab 根页，夹具 op nativeRoots 打开；B3.5d 前默认关）。
+// 探针：stage.root = 原生根页 {screen, hidden, page:{view, cta, ctaId, ctaFrame, failed, undoBar, brand, source}}；route = 网页栈（仍是真相源）；
+// transitions = 原生转场记录（present:paper = T-paper 纸展开，dismiss:paper = 纸缩回）。
 @MainActor
 final class HomeFlowTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
     }
 
-    /// 六态（first / fresh / progress / today / back / special）主按钮各自去处
-    func testSixStatesMainButtonDestinations() throws { try QAPending.skip("B3.5a", "六态（first / fresh / progress / today / back / special）主按钮各自去处") }
+    private func root(_ qa: QA) -> [String: Any] { ((qa.probe["stage"] as? [String: Any])?["root"] as? [String: Any]) ?? [:] }
+    private func page(_ p: [String: Any]) -> [String: Any] { ((p["stage"] as? [String: Any])?["root"] as? [String: Any])?["page"] as? [String: Any] ?? [:] }
 
-    /// T-paper 首帧 = 来源矩形、返回末帧 = 当前矩形（IC-23 原生版）
-    func testPaperTransitionFirstFrameIsSourceRect() throws { try QAPending.skip("B3.5a", "T-paper 首帧 = 来源矩形、返回末帧 = 当前矩形（IC-23 原生版）") }
+    /// 原生首页出来、看得见、转场停了。
+    private func waitHome(_ qa: QA, file: StaticString = #filePath, line: UInt = #line) {
+        qa.waitProbe("native home shown", timeout: 25, file: file, line: line) { p in
+            let r = (p["stage"] as? [String: Any])?["root"] as? [String: Any]
+            return r?["screen"] as? String == "home" && r?["hidden"] as? Bool == false && (p["navRunning"] as? Int) == 0
+                && ((p["route"] as? [String: Any])?["depth"] as? Int) == 0
+        }
+    }
 
-    /// 「自己选字」打开查字弹层（pick）
-    func testPickCharsEntry() throws { try QAPending.skip("B3.5a", "「自己选字」打开查字弹层（pick）") }
+    private func launchHome(_ seed: String) -> QA {
+        let qa = QA(seed: seed)
+        qa.launch()
+        waitHome(qa)
+        Thread.sleep(forTimeInterval: 0.6) // 原生页出现后 0.4s 防误点（同网页 pressGuard）
+        return qa
+    }
 
-    /// 特别组顺延（这次先写平常的字）
-    func testSpecialGroupDeferral() throws { try QAPending.skip("B3.5a", "特别组顺延（这次先写平常的字）") }
+    /// 六态主按钮各自去处：首次打开 / 今天还没写 → 写字页（原生，T-paper）；练习范围学完「换练习范围」→ 换库页（网页，原生根页让开）；开组失败 → 三段式。
+    func testSixStatesMainButtonDestinations() {
+        for seed in ["home-first", "home-fresh", "home-today"] {
+            let qa = launchHome(seed)
+            qa.tapNative("native-home-start")
+            qa.waitNative(true, timeout: 25)
+            qa.waitRouteTop("write", timeout: 20)
+            XCTAssertTrue(qa.transitions.contains("present:paper"), "\(seed): T-paper from the CTA \(qa.transitions)")
+            qa.app.terminate()
+        }
+        let ex = launchHome("home-exhausted")
+        XCTAssertEqual(page(ex.probe)["cta"] as? String, "\u{6362}\u{7EC3}\u{4E60}\u{8303}\u{56F4}") // 换练习范围
+        ex.tapNative("native-home-start")
+        ex.waitRouteTop("library-switch", timeout: 20)
+        ex.waitProbe("root steps aside for the web page") { (($0["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool == true }
+        // 网页换库页返回：原生根页回来
+        ex.tap(ex.button("\u{8FD4}\u{56DE}"), "web back") // 返回
+        waitHome(ex)
+    }
 
-    /// 离开撤销条交接（写字页离开后跟到首页）
-    func testLeaveUndoBarHandoff() throws { try QAPending.skip("B3.5a", "离开撤销条交接（写字页离开后跟到首页）") }
+    /// T-paper 首帧 = 来源矩形、返回末帧 = 当前矩形（IC-23 原生版）：主按钮的真实矩形随 home.start 交给页面（D62），返回时纸缩回原生报的此刻矩形。
+    func testPaperTransitionFirstFrameIsSourceRect() {
+        let qa = launchHome("home-fresh")
+        let p0 = page(qa.probe)
+        let frame = p0["ctaFrame"] as? [Double] ?? []
+        XCTAssertEqual(frame.count, 4)
+        let source = p0["source"] as? String ?? ""
+        XCTAssertTrue(source.contains("\(frame[0])") || source.contains(String(format: "%.1f", frame[0])), "reported source = CTA frame: \(source) vs \(frame)")
+        qa.tapNative("native-home-start")
+        qa.waitNative(true, timeout: 25)
+        let paperOpen = qa.waitProbe("paper open") { (($0["transitions"] as? [String]) ?? []).contains("present:paper") }
+        XCTAssertFalse(((paperOpen["transitions"] as? [String]) ?? []).contains("overlap"))
+        Thread.sleep(forTimeInterval: 0.6)
+        // 返回：纸缩回主按钮（这时字已是「继续写字 · 0 / 3」）
+        qa.tapNative("native-write-back")
+        qa.waitNative(false, timeout: 25)
+        waitHome(qa)
+        XCTAssertTrue(qa.transitions.contains("dismiss:paper"), "\(qa.transitions)")
+        let p1 = page(qa.probe)
+        XCTAssertEqual(p1["view"] as? String, "progress")
+        XCTAssertEqual(p1["ctaFrame"] as? [Double], frame, "the CTA did not move (D53 ③ one bottom line)")
+    }
 
-    /// 首次品牌时刻点击静帧
-    func testFirstBrandMomentTapFreezes() throws { try QAPending.skip("B3.5a", "首次品牌时刻点击静帧") }
+    /// 「自己选字」打开查字弹层（pick；弹层仍是网页的，B3.6 原生化）：原生根页先把样子交给宿主层再让开，关掉弹层后回来。
+    func testPickCharsEntry() {
+        let qa = launchHome("home-fresh")
+        qa.tapNative("native-home-pick")
+        qa.waitProbe("query overlay over the root") { p in
+            ((p["route"] as? [String: Any])?["overlay"] as? Bool) == true && (((p["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool) == true
+        }
+        XCTAssertTrue(qa.text("\u{81EA}\u{5DF1}\u{9009}\u{5B57}").waitForExistence(timeout: 4) || qa.textContaining("\u{81EA}\u{5DF1}\u{9009}\u{5B57}").exists, "pick sheet title")
+        // 「完成」（键盘开着时第一下可能只收键盘：还开着就再点一次）
+        qa.tap(qa.button("\u{5B8C}\u{6210}"), "sheet done")
+        Thread.sleep(forTimeInterval: 1)
+        if (qa.route["overlay"] as? Bool) == true { qa.tap(qa.button("\u{5B8C}\u{6210}"), "sheet done again") }
+        waitHome(qa)
+    }
 
-    /// 冷启动恢复到首页
-    func testColdStartRestoresHome() throws { try QAPending.skip("B3.5a", "冷启动恢复到首页") }
+    /// 特别组顺延（「写平常字」）：顺延 + 开一组平常的（网页 deferCapital），进写字页。
+    func testSpecialGroupDeferral() {
+        let qa = launchHome("home-special")
+        XCTAssertTrue(qa.el("native-home-capital-defer").waitForExistence(timeout: 4))
+        qa.tapNative("native-home-capital-defer")
+        qa.waitNative(true, timeout: 25)
+        qa.waitRouteTop("write", timeout: 20)
+        XCTAssertEqual(qa.session("A")["kind"] as? String, "daily", "a plain daily group, not the capital one")
+    }
+
+    /// 离开撤销条交接（写字页跳过后离开，撤销机会跟到原生首页）；点「撤销」回到那个字。撤销机会只有 5 秒：在测试里现做（夹具 home-leave-undo 的同一串动作）。
+    func testLeaveUndoBarHandoff() {
+        let qa = launchHome("home-fresh")
+        qa.tapNative("native-home-start")
+        qa.waitNative(true, timeout: 25)
+        Thread.sleep(forTimeInterval: 0.5)
+        // 撤销机会只有 5 秒：跳过 → 返回 → 撤销连着点（不等探针）
+        qa.el("native-write-skip").tap()
+        qa.el("native-write-back").tap()
+        let undo = qa.el("native-write-skip-undo")
+        XCTAssertTrue(undo.waitForExistence(timeout: 3), "the undo bar followed to the native home")
+        undo.tap()
+        qa.waitNative(true, timeout: 25)
+        qa.waitRouteTop("write", timeout: 20)
+        XCTAssertEqual(qa.session("A")["cursor"] as? Int, 0, "back on the skipped char")
+    }
+
+    /// 首次打开的品牌时刻：测试宿主与网页同规则不放动画（brandAllowed：测试宿主要 URL brand=1）——首帧就是静帧、主按钮可点。
+    func testFirstBrandMomentTapFreezes() {
+        let qa = launchHome("home-first")
+        let p = page(qa.probe)
+        XCTAssertEqual(p["view"] as? String, "first")
+        XCTAssertEqual(p["brand"] as? Bool, false, "static frame")
+        XCTAssertTrue(qa.el("native-home-start").exists)
+    }
+
+    /// 冷启动恢复到首页（-shizi-native-roots：tab 根页从启动起就是原生）。
+    func testColdStartRestoresHome() {
+        let qa = launchHome("home-progress")
+        qa.app.terminate()
+        qa.app.launchArguments = QA.args(seed: nil) + ["-shizi-native-roots"]
+        qa.app.launch()
+        qa.waitProbe("relaunch page ready", timeout: 40) { ($0["pageReady"] as? Bool) == true && ($0["hooks"] as? Bool) == true }
+        waitHome(qa)
+        XCTAssertEqual(page(qa.probe)["view"] as? String, "progress")
+        XCTAssertTrue(qa.el("native-home-start").waitForExistence(timeout: 4))
+    }
 }

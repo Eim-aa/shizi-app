@@ -10,6 +10,7 @@
 		1A0000000000000000B32024 /* NativeStageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32023 /* NativeStageFlowTests.swift */; };
 		1A0000000000000000B32022 /* NativeStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32021 /* NativeStageTests.swift */; };
 		1A0000000000000000B32012 /* About.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32011 /* About.swift */; };
+		1A0000000000000000B35A12 /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35A11 /* Home.swift */; };
 		1A0000000000000000B32004 /* ShiziScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32003 /* ShiziScreen.swift */; };
 		1A0000000000000000B32002 /* ShiziEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32001 /* ShiziEngine.swift */; };
 		1A00000000000000000A1112 /* QAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1111 /* QAApp.swift */; };
@@ -103,6 +104,7 @@
 		1A0000000000000000B32023 /* NativeStageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageFlowTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32021 /* NativeStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32011 /* About.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = About.swift; sourceTree = "<group>"; };
+		1A0000000000000000B35A11 /* Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32003 /* ShiziScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziScreen.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32001 /* ShiziEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziEngine.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1111 /* QAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAApp.swift; sourceTree = "<group>"; };
@@ -384,6 +386,7 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000B32011 /* About.swift */,
+				1A0000000000000000B35A11 /* Home.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -560,6 +563,7 @@
 			files = (
 				1A0000000000000000000021 /* AppDelegate.swift in Sources */,
 				1A0000000000000000B32012 /* About.swift in Sources */,
+				1A0000000000000000B35A12 /* Home.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* WebViewController.swift in Sources */,

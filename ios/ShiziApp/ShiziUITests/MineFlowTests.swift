@@ -114,6 +114,12 @@ final class MineFlowTests: XCTestCase {
         let before = settings(qa)["groupSize"] as? Int
         qa.tapNative("native-mine-group-size")
         XCTAssertTrue(qa.el("native-mine-group-size-sheet").waitForExistence(timeout: 6))
+        let window = qa.app.windows.firstMatch
+        let start = window.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.55)).withOffset(CGVector(dx: 2, dy: 0))
+        let short = window.coordinate(withNormalizedOffset: CGVector(dx: 0.18, dy: 0.55))
+        start.press(forDuration: 0.05, thenDragTo: short, withVelocity: 80, thenHoldForDuration: 0.3)
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertTrue(qa.el("native-mine-group-size-sheet").exists, "a short, slow edge drag snaps the sheet back")
         qa.edgeBack()
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: qa.el("native-mine-group-size-sheet"))

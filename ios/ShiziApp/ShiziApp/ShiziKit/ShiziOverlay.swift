@@ -120,15 +120,23 @@ final class NativeSheetAnimator: NSObject, UIViewControllerAnimatedTransitioning
     let presenting: Bool
     let spec: NativeOverlaySpec
     let reduce: Bool
+    let fadeExit: Bool
 
-    init(presenting: Bool, spec: NativeOverlaySpec, reduce: Bool) {
+    init(presenting: Bool, spec: NativeOverlaySpec, reduce: Bool, fadeExit: Bool = false) {
         self.presenting = presenting
         self.spec = spec
         self.reduce = reduce
+        self.fadeExit = fadeExit
+    }
+
+    /// 左缘提交后按 T-fade 原位退场；普通点击 / 下滑仍用 T-sheet。
+    private var fadeDuration: TimeInterval {
+        (((ShiziTokens.motion["duration"] as? [String: Any])?["fade"] as? NSNumber)?.doubleValue ?? 0) / 1000
     }
 
     func transitionDuration(using ctx: UIViewControllerContextTransitioning?) -> TimeInterval {
-        reduce ? spec.reduce : (presenting ? max(spec.sheetIn, spec.scrimIn) : max(spec.sheetOut, spec.scrimOut))
+        if !presenting, fadeExit { return reduce ? spec.reduce : fadeDuration }
+        return reduce ? spec.reduce : (presenting ? max(spec.sheetIn, spec.scrimIn) : max(spec.sheetOut, spec.scrimOut))
     }
 
     func animateTransition(using ctx: UIViewControllerContextTransitioning) {
@@ -153,9 +161,10 @@ final class NativeSheetAnimator: NSObject, UIViewControllerAnimatedTransitioning
                 NativeOverlaySpec.run(spec.scrimIn, NativeOverlaySpec.curve(spec.easeOut, fallback: .easeOut), { scrim?.alpha = 1 }, done: finish)
             }
         } else {
-            if reduce {
-                NativeOverlaySpec.run(spec.reduce, linear, { v.alpha = 0 }, done: finish)
-                NativeOverlaySpec.run(spec.reduce, linear, { scrim?.alpha = 0 }, done: finish)
+            if reduce || fadeExit {
+                let duration = reduce ? spec.reduce : fadeDuration
+                NativeOverlaySpec.run(duration, linear, { v.alpha = 0 }, done: finish)
+                NativeOverlaySpec.run(duration, linear, { scrim?.alpha = 0 }, done: finish)
             } else {
                 // 下滑关闭时弹层带着手指的位移：从当前位置接着滑出
                 let start = v.frame.offsetBy(dx: 0, dy: v.transform.ty)

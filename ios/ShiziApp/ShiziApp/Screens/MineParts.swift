@@ -373,6 +373,7 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
     private var failed = false
     private var pending: ChoiceID?
     private var finished = false
+    private var edgeExit = false
     var current: ChoiceID
 
     private var m: ShiziMetrics { cfg.metrics }
@@ -403,7 +404,7 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
     }
 
     func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        NativeSheetAnimator(presenting: false, spec: spec, reduce: reduceMotion)
+        NativeSheetAnimator(presenting: false, spec: spec, reduce: reduceMotion, fadeExit: edgeExit)
     }
 
     // MARK: 视图
@@ -563,10 +564,30 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
     @objc private func escapeKey() { close() }
 
     @objc private func edgeBack(_ g: UIScreenEdgePanGestureRecognizer) {
-        guard g.state == .ended, let container = g.view else { return }
+        guard let container = g.view else { return }
         let dx = max(0, g.translation(in: container).x)
         let vx = g.velocity(in: container).x
-        if vx > spec.commitVelocity || (dx > container.bounds.width * spec.commitRatio && vx > spec.returnVelocity) { close() }
+        let width = max(1, container.bounds.width)
+        let scrim = (presentationController as? NativeSheetPresentation)?.scrim
+        switch g.state {
+        case .began, .changed:
+            guard !reduceMotion else { return }
+            view.transform = CGAffineTransform(translationX: dx, y: 0)
+            scrim?.alpha = max(0, 1 - dx / width)
+        case .ended, .cancelled:
+            let commit = g.state == .ended && (vx > spec.commitVelocity || (dx > width * spec.commitRatio && vx > spec.returnVelocity))
+            if commit {
+                edgeExit = true
+                close()
+            } else if !reduceMotion {
+                NativeOverlaySpec.run(spec.snap, NativeOverlaySpec.curve(spec.easeOut, fallback: .easeOut), {
+                    self.view.transform = .identity
+                    scrim?.alpha = 1
+                })
+            }
+        default:
+            break
+        }
     }
 
     override func accessibilityPerformEscape() -> Bool {

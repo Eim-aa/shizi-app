@@ -183,6 +183,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
     private var lastDeferredSource: String = ""
     private var clock: Timer?
     private var foreground: NSObjectProtocol?
+    private var assistiveObservers: [NSObjectProtocol] = []
     /// 品牌时刻同一次进程里只放一次（网页 brandPlayed，同一次页面加载）。
     private static var brandPlayed = false
     private var brandPlaying = false
@@ -243,11 +244,17 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
             self?.expire()
             self?.reload()
         }
+        for name in [UIAccessibility.voiceOverStatusDidChangeNotification, UIAccessibility.switchControlStatusDidChangeNotification] {
+            assistiveObservers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.undoLife?.assistiveChanged(NativeUndoLifetime.systemAssistive)
+            })
+        }
     }
 
     deinit {
         clock?.invalidate()
         if let foreground { NotificationCenter.default.removeObserver(foreground) }
+        assistiveObservers.forEach { NotificationCenter.default.removeObserver($0) }
         undoLife?.stop()
     }
 

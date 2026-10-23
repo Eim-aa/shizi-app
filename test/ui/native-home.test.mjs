@@ -116,6 +116,29 @@ test('B3.5a D07: a failed start returns {ok:false, error:{kind}}, the store does
   assert.equal(labels.length, 1, 'one commit for the retry');
 });
 
+test('B3.5a home.deferSpecial = web deferral and start: same store, commits and route; failed deferral stays in place', () => {
+  const seed = store => store.commit('test-seed-special', draft => {
+    draft.records = { '2026-09': Array.from({ length: 10 }, (_, i) => ({
+      id: `r${i + 1}`, cardKey: `base:${String.fromCodePoint(0x6100 + i)}`, char: String.fromCodePoint(0x6100 + i),
+      sessionId: `s${i + 1}`, kind: 'judged', judgment: 'correct',
+      at: new Date('2026-09-28T20:00:00').getTime() + i * 60000, localDay: '2026-09-28',
+      help: { hints: 0, answerSeen: false, traced: false },
+    })) };
+  });
+  const result = samePaths(seed, () => home.deferCapital(), 'home.deferSpecial');
+  // node 契约环境没有装题库，顺延后的普通开组会去没字页；App 的真题库由流程用例验证。
+  assert.deepEqual(result.web.stack, ['home', 'session-none']);
+  assert.equal(result.api.store.getState().settings.capitalDeferredDay, '2026-10-05');
+  const { api, store, storage, labels } = boot(seed);
+  const before = store.getState();
+  storage.failNextWrite(1, { kind: 'generic' });
+  assert.equal(api.call('home.deferSpecial').ok, false);
+  assert.deepEqual(store.getState(), before);
+  assert.deepEqual(labels, []);
+  assert.equal(api.call('home.deferSpecial').ok, true);
+  assert.equal(store.getState().settings.capitalDeferredDay, '2026-10-05');
+});
+
 test('B3.5a leave-undo: view.home carries the handed-over undo; home.undoLeave on a finished chance is stale', () => {
   const { api } = boot();
   handoffLeaveUndo({ slot: 'A', sessionId: 's', recordId: 'r', char: '永', strokes: [], until: 1e15, failed: false });
@@ -165,4 +188,19 @@ test('B3.5a tab roots stay web until __shiziNativeRoots (B3.5d flips all three w
   } finally {
     unregisterScreen('b35a-web');
   }
+});
+
+test('B3.5a D62: the secondary resume entry follows its current native rect independently of the main CTA', () => {
+  const { api, router } = boot();
+  const rect = { x: 100, y: 620, w: 200, h: 44 };
+  assert.equal(api.call('home.resumeOther', { source: { rect, solid: false } }).ok, true);
+  const [root, write] = router.getState().stack;
+  const plan = planPaper({ kind: 'push', from: root, to: write }, { reduced: false, root: null });
+  assert.equal(plan.mode, 'B1');
+  assert.deepEqual(plan.source.rect, rect);
+  api.call('home.source', { key: 'home-start', rect: { ...rect, y: 710 }, label: 'main' });
+  api.call('home.source', { key: 'other-line', rect: { ...rect, y: 600 }, label: 'secondary' });
+  const back = nativeBackPlan(write, root, null);
+  assert.deepEqual(back.source.rect, { ...rect, y: 600 });
+  assert.equal(back.source.label, '', 'text entry keeps the paper source label empty');
 });

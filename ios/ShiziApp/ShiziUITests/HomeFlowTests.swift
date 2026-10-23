@@ -31,7 +31,7 @@ final class HomeFlowTests: XCTestCase {
 
     /// 六态主按钮各自去处：首次打开 / 今天还没写 → 写字页（原生，T-paper）；练习范围学完「换练习范围」→ 换库页（网页，原生根页让开）；开组失败 → 三段式。
     func testSixStatesMainButtonDestinations() {
-        for seed in ["home-first", "home-fresh", "home-today"] {
+        for seed in ["home-first", "home-fresh", "home-progress", "home-today", "home-back", "home-special"] {
             let qa = launchHome(seed)
             qa.tapNative("native-home-start")
             qa.waitNative(true, timeout: 25)
@@ -49,6 +49,18 @@ final class HomeFlowTests: XCTestCase {
         waitHome(ex)
     }
 
+    /// 开组失败就地保留；重试只开一组，成功后进入写字页。
+    func testStartFailureRetriesInPlace() {
+        let qa = launchHome("home-start-fail")
+        XCTAssertEqual(page(qa.probe)["failed"] as? Bool, true)
+        XCTAssertTrue(qa.el("native-home-start-fail-cancel").exists)
+        XCTAssertEqual(qa.route["top"] as? String, "home")
+        qa.tapNative("native-home-start")
+        qa.waitNative(true, timeout: 25)
+        qa.waitRouteTop("write", timeout: 20)
+        XCTAssertEqual(qa.session("A")["cursor"] as? Int, 0)
+    }
+
     /// T-paper 首帧 = 来源矩形、返回末帧 = 当前矩形（IC-23 原生版）：主按钮的真实矩形随 home.start 交给页面（D62），返回时纸缩回原生报的此刻矩形。
     func testPaperTransitionFirstFrameIsSourceRect() {
         let qa = launchHome("home-fresh")
@@ -56,7 +68,9 @@ final class HomeFlowTests: XCTestCase {
         let frame = p0["ctaFrame"] as? [Double] ?? []
         XCTAssertEqual(frame.count, 4)
         let source = p0["source"] as? String ?? ""
-        XCTAssertTrue(source.contains("\(frame[0])") || source.contains(String(format: "%.1f", frame[0])), "reported source = CTA frame: \(source) vs \(frame)")
+        let reported = source.data(using: .utf8).flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
+        let rect = reported?["rect"] as? [String: Double] ?? [:]
+        XCTAssertEqual([rect["x"], rect["y"], rect["w"], rect["h"]].compactMap { $0 }, frame, "reported source = CTA frame")
         qa.tapNative("native-home-start")
         qa.waitNative(true, timeout: 25)
         let paperOpen = qa.waitProbe("paper open") { (($0["transitions"] as? [String]) ?? []).contains("present:paper") }
@@ -108,6 +122,9 @@ final class HomeFlowTests: XCTestCase {
         qa.el("native-write-back").tap()
         let undo = qa.el("native-write-skip-undo")
         XCTAssertTrue(undo.waitForExistence(timeout: 3), "the undo bar followed to the native home")
+        // S4：按住超过原来5秒的截止时刻仍可撤销；网页宿主不能在原生条下面另开一个计时器。
+        qa.el("native-write-undo-text").press(forDuration: 6)
+        XCTAssertTrue(undo.exists, "holding the native bar pauses its lifetime")
         undo.tap()
         qa.waitNative(true, timeout: 25)
         qa.waitRouteTop("write", timeout: 20)

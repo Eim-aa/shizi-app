@@ -557,14 +557,15 @@ function withNativeSource(source, key, action) {
 setHomeActions({
   start: ({ source }) => withNativeSource(source, 'home-start', () => startMain()),
   resumeOther: ({ source }) => withNativeSource(source, 'other-line', () => resumeOther()),
-  deferSpecial: () => deferCapital(),
+  deferSpecial: ({ source }) => withNativeSource(source, 'home-capital-defer', () => deferCapital()),
   switchLibrary: () => openLibrarySwitch(),
   pick: () => {
     openPick();
     return { ok: true };
   },
   source: ({ key, rect, label }) => {
-    setNativeLiveSource(key === 'other-line' ? 'other-line' : 'home-start', rect ? { rect, label } : null);
+    const sourceKey = ['other-line', 'home-capital-defer'].includes(key) ? key : 'home-start';
+    setNativeLiveSource(sourceKey, rect ? { rect, label } : null);
     return { ok: true };
   },
   undoLeave: () => undoLeave(slot => nav.push('write', { slot })),

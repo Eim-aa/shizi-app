@@ -5,7 +5,7 @@
 //   home.expire {}               跨天过期（P37，core/session-start.expireStale；网页首页挂载 / 回前台时做的同一件事）
 //   home.start {source?}         主按钮「开始写字 / 继续写字 / 再写一组」（网页 startMain）；source = 原生主按钮此刻的真实矩形（D62 T-paper 来源）
 //   home.resumeOther {source?}   A、B 都没写完时的「今天的字 · 接着写」行（网页 resumeOther）
-//   home.deferSpecial {}         「写平常字」：特别组顺延后开一组平常的（网页 deferCapital）
+//   home.deferSpecial {source?}  「写平常字」：特别组顺延后开一组平常的（网页 deferCapital）
 //   home.switchLibrary {}        「换练习范围」→ 推入换库页（网页 openLibrarySwitch）
 //   home.pick {}                 「自己选字」→ 查字弹层 pick（网页 openPick；弹层仍是网页的，B3.6 原生化）
 //   home.source {rect, label}    原生主按钮此刻的位置与字（写字页 T-paper 缩回时的落点，paper-transition liveSource 读）

@@ -179,6 +179,8 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
     private var ctaBreakWidth: CGFloat = 0
     private var hideEpigraph = false
     private var lastSource: String = ""
+    private var lastOtherSource: String = ""
+    private var lastDeferredSource: String = ""
     private var clock: Timer?
     private var foreground: NSObjectProtocol?
     /// 品牌时刻同一次进程里只放一次（网页 brandPlayed，同一次页面加载）。
@@ -226,14 +228,17 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         wire(ctaButton) { ($0 as? HomeScreen)?.tapCta() }
         wire(otherButton) { ($0 as? HomeScreen)?.tapOther() }
         wire(pickButton) { ($0 as? HomeScreen)?.tapPick() }
-        wire(deferButton) { ($0 as? HomeScreen)?.run("home.deferSpecial", [:]) }
+        wire(deferButton) { ($0 as? HomeScreen)?.tapDefer() }
         wire(failCancel) { ($0 as? HomeScreen)?.cancelFail() }
         super.viewDidLoad()
         scroll.isScrollEnabled = false
         scroll.alwaysBounceVertical = false
         // 跨天过期（P37）与日期 / 时段：挂载、回前台、每 30 秒（网页 useHomeClock / CLOCK_TICK_MS）
         expire()
-        clock = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in self?.reload() }
+        clock = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            self?.expire()
+            self?.reload()
+        }
         foreground = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
             self?.expire()
             self?.reload()
@@ -934,7 +939,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
     // MARK: 离开撤销条（S4：写字页跳过后离开，撤销机会跟到首页；网页 LeaveUndoHost 同一份状态）
 
     private func renderUndo(_ m: View) {
-        guard let u = m.leaveUndo, u.remainingMs > 0 || u.failed else {
+        guard let u = m.leaveUndo else {
             endUndo()
             return
         }
@@ -942,6 +947,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
             if u.failed != bar.isFailed { bar.setFailed(u.failed) }
             return
         }
+        guard u.remainingMs > 0 || u.failed else { return }
         let mt = metrics
         let theme: ShiziTokens.Theme = traitCollection.userInterfaceStyle == .dark ? .dark : .light
         let raw = ShiziTokens.colorStrings(theme)
@@ -963,6 +969,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         undoBar = bar
         let life = NativeUndoLifetime(ms: max(1, u.remainingMs)) { [weak self] in
             guard let self, self.undoBar?.isFailed != true else { return }
+            self.stage?.engine.raw("home.undoLeaveCancel", [:]) { _ in }
             self.endUndo()
         }
         undoLife = life
@@ -1012,14 +1019,38 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         return ["rect": ["x": r.minX, "y": r.minY, "w": r.width, "h": r.height], "label": label, "radius": b.layer.cornerRadius, "solid": solid]
     }
 
+    private func sourceKey(_ source: [String: Any]) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: source, options: [.sortedKeys]),
+              let key = String(data: data, encoding: .utf8) else { return "" }
+        return key
+    }
+
     /// 排版 / 字变了：把主按钮此刻的位置与字报给页面（写字页返回时纸缩回这里）。
     private func reportSource() {
         guard let engine = stage?.engine, ctaButton.window != nil, !view.isHidden else { return }
         let s = source(ctaButton, solid: true)
-        let key = "\(s)"
-        guard key != lastSource else { return }
-        lastSource = key
-        engine.raw("home.source", ["key": "home-start", "rect": s["rect"] as Any, "label": s["label"] as Any]) { _ in }
+        let key = sourceKey(s)
+        if key != lastSource {
+            lastSource = key
+            engine.raw("home.source", ["key": "home-start", "rect": s["rect"] as Any, "label": s["label"] as Any]) { _ in }
+        }
+        // A / B 都暂停时的次入口也可能是纸展开来源；返回时用它当前的位置，消失后清掉旧矩形。
+        let other = otherButton.isHidden ? nil : source(otherButton, solid: false)
+        let otherKey = other.map { sourceKey($0) } ?? "hidden"
+        if otherKey != lastOtherSource {
+            lastOtherSource = otherKey
+            var args: [String: Any] = ["key": "other-line"]
+            if let other { args["rect"] = other["rect"]; args["label"] = other["label"] }
+            engine.raw("home.source", args) { _ in }
+        }
+        let deferred = deferButton.isHidden ? nil : source(deferButton, solid: false)
+        let deferredKey = deferred.map { sourceKey($0) } ?? "hidden"
+        if deferredKey != lastDeferredSource {
+            lastDeferredSource = deferredKey
+            var args: [String: Any] = ["key": "home-capital-defer"]
+            if let deferred { args["rect"] = deferred["rect"]; args["label"] = deferred["label"] }
+            engine.raw("home.source", args) { _ in }
+        }
     }
 
     private func tapCta() {
@@ -1037,6 +1068,10 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
 
     private func tapOther() {
         run("home.resumeOther", ["source": source(otherButton, solid: false)])
+    }
+
+    private func tapDefer() {
+        run("home.deferSpecial", ["source": source(deferButton, solid: false)])
     }
 
     /// 「自己选字」：查字弹层仍是网页的（B3.6 原生化）——先把首页的样子交给宿主层（弹层从第一帧起盖在它上面），再开弹层，原生根页随即让开。
@@ -1065,7 +1100,10 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         let again: () -> Void = { [weak self] in
             guard let self else { return }
             var a = args
-            if a["source"] != nil { a["source"] = self.source(op == "home.resumeOther" ? self.otherButton : self.ctaButton, solid: op != "home.resumeOther") }
+            if a["source"] != nil {
+                let button = op == "home.resumeOther" ? self.otherButton : op == "home.deferSpecial" ? self.deferButton : self.ctaButton
+                a["source"] = self.source(button, solid: button === self.ctaButton)
+            }
             self.run(op, a)
         }
         ShiziProbe.note("home:\(op)")

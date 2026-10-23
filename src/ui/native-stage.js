@@ -12,15 +12,17 @@
 // 推送：store 每次成功提交后 {op:'changed', domains}；阻断状态变化 {op:'status', status:'ready'|'blocked', reason}。
 
 import { html, useEffect, useLayoutEffect, useState } from '../../vendor/ui.js';
-import { getRouter, nav, setNativeScreenGate } from './router.js';
+import { getRouter, getScreen, nav, setNativeScreenGate } from './router.js';
 import { nativePlanOf, whenNavIdle } from './paper-transition.js';
 import { M } from '../config/motion.js';
 import { postNative } from '../platform/bridge.js';
 import { isNativeShell } from '../platform/env.js';
+import { getTextSize } from '../platform/text-size.js';
 import { aboutBuild } from './screens/mine/about.js';
 import { getStore } from '../store/store.js';
 import { createAppApi, createChangeFeed } from '../session/api/index.js';
 import { blockReasonOf } from './screens/block/index.js';
+import { decorateMineReply } from './screens/mine/native-view.js'; // B3.5c：我的页的折行点（页面侧量，B2.7 的做法）
 
 function globalWin() {
   return typeof window !== 'undefined' ? window : null;
@@ -37,9 +39,19 @@ export function hasNativeScreen(name, win = globalWin()) {
   return list.includes(name);
 }
 
-/** 这一屏此刻由原生显示：开关开着、原生有类（registerScreen 的 native:true 只是「可以原生」，找不到类就照旧是网页）。 */
+/**
+ * 根页开关（B3.5c）：tab 根页（registerScreen tab:true）的原生版在 B3.5d（Tab 栏与三个根页同开）之前一律挡着——一半原生根页、一半网页根页会让 Tab 栏与页面来回跳。
+ * 壳在启动参数 -shizi-native-roots（或环境变量 SHIZI_NATIVE_ROOTS=1）时注入 window.__shiziNativeRoots = true；B3.5d 把它并进总开关。
+ */
+export function nativeRootsEnabled(win = globalWin()) {
+  return !!(win && win.__shiziNativeRoots === true);
+}
+
+/** 这一屏此刻由原生显示：开关开着、原生有类（registerScreen 的 native:true 只是「可以原生」，找不到类就照旧是网页）；tab 根页还要根页开关（B3.5c）。 */
 export function nativeScreenOn(name, win = globalWin()) {
-  return nativeStageEnabled(win) && hasNativeScreen(name, win);
+  if (!nativeStageEnabled(win) || !hasNativeScreen(name, win)) return false;
+  const def = getScreen(name);
+  return !(def && def.tab) || nativeRootsEnabled(win);
 }
 
 setNativeScreenGate(name => nativeScreenOn(name));
@@ -149,7 +161,13 @@ export function stageCall(op, args, win = globalWin()) {
     return { ok: true, entryId: under ? under.id : null, screen: under ? under.n : null, native: !!(under && nativeScreenOn(under.n, win)) };
   }
   if (!api) return { ok: false, error: { kind: 'unavailable' } };
-  return api.call(op, a);
+  return decorateReply(op, api.call(op, a), a.width);
+}
+
+/** 视图回包要页面侧加料的（折行点）：同步 / 异步回包都处理。 */
+function decorateReply(op, reply, width) {
+  if (op !== 'view.mine') return reply;
+  return reply && typeof reply.then === 'function' ? reply.then(r => decorateMineReply(r, width)) : decorateMineReply(reply, width);
 }
 
 // ---------------------------------------------------------------- 宿主条目
@@ -167,7 +185,7 @@ export function nativeRunBelow(snap, entryId, withViews = false, win = globalWin
   const pages = snap ? snap.stack.filter(e => e.k === 's') : [];
   const i = pages.findIndex(e => e.id === entryId);
   const out = [];
-  for (let j = i - 1; j >= 1; j -= 1) {
+  for (let j = i - 1; j >= 0; j -= 1) { // B3.5c：j = 0 是 tab 根页——原生根页开着（根页开关）时它也在原生栈里
     const e = pages[j];
     if (!nativeScreenOn(e.n, win)) break;
     const item = { entryId: e.id, screen: e.n, params: e.p || {} };
@@ -188,7 +206,25 @@ function underOf(snap, entryId) {
 
 function viewPayload(name, params) {
   if (!api) return { ok: false, error: { kind: 'unavailable' } };
-  return api.call(`view.${name}`, { ...(params || {}) });
+  const env = viewEnv();
+  return decorateReply(`view.${name}`, api.call(`view.${name}`, { ...env, ...(params || {}) }), env.width);
+}
+
+/** 视图 op 的环境参数（B3.5c）：页宽与 AX 档位——版式几何（字帖格宽 / 列数）按它算，原生页首帧不用再拉一次。 */
+function viewEnv(win = globalWin()) {
+  let width = 0;
+  try {
+    width = win.document.documentElement.clientWidth || 0;
+  } catch (error) {
+    width = 0;
+  }
+  let ax = 0;
+  try {
+    ax = getTextSize().ax || 0;
+  } catch (error) {
+    ax = 0;
+  }
+  return width > 0 ? { width, ax } : { ax };
 }
 
 /** 发 open（视图回包若是 Promise，等它好了再发）。返回是否发出。 */

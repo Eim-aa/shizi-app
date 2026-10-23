@@ -11,59 +11,12 @@
 
 import { getStore } from '../../../store/store.js';
 import { postNative } from '../../../platform/bridge.js';
-import { APPEARANCES } from '../../../platform/appearance.js';
 import * as policy from '../../../config/policy.js';
-import { isGroupSizeOption } from '../../../core/group-size.js';
+import { LABELS, commitSettings, commitGroupSize, commitAppearance } from '../../../session/prefs-ops.js';
 import { PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView } from '../../../session/views/settings.js';
 
-export const LABELS = Object.freeze({
-  remind: 'settings:remind',
-  remindTime: 'settings:remind-time',
-  permission: 'settings:remind-permission',
-  appearance: 'settings:appearance',
-  groupSize: 'settings:group-size', // D65 ②
-  textSizeNotice: 'settings:text-size-notice', // 静默去掉旧 large 字段的提交标签
-});
-
+export { LABELS, commitSettings, commitGroupSize, commitAppearance }; // B3.5c：提交函数在会话层（session/prefs-ops.js），网页与 App API 同一个
 export { PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView };
-
-function sameJSON(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-/**
- * 一次 commit 把 fields 合进 settings（只改给出的字段，其余保留）。值没变不写，返回 {ok:true, keys:[], skipped:true}。
- * fields.remind 若给出，与原 remind 合并（保留 permission 等）。
- */
-export function commitSettings(store, label, fields) {
-  const cur = store.getState().settings || {};
-  const next = { ...cur };
-  for (const key of Object.keys(fields)) {
-    if (key === 'remind') next.remind = { ...(cur.remind || {}), ...fields.remind };
-    else next[key] = fields[key];
-  }
-  if (sameJSON(next, cur) && store.getState().settings) return { ok: true, keys: [], skipped: true };
-  return store.commit(label, draft => {
-    const base = draft.settings || {};
-    const merged = { ...base };
-    for (const key of Object.keys(fields)) {
-      if (key === 'remind') merged.remind = { ...(base.remind || {}), ...fields.remind };
-      else merged[key] = fields[key];
-    }
-    draft.settings = merged;
-  });
-}
-
-/** 每组字数（D65 ②，P314）：只收 policy.groupSizeOptions 里的值；改了从下一组起生效（开着的组不变）。 */
-export function commitGroupSize(store, value, { p = policy } = {}) {
-  if (!isGroupSizeOption(value, p)) throw new RangeError(`unknown group size: ${value}`);
-  return commitSettings(store, LABELS.groupSize, { groupSize: value });
-}
-
-export function commitAppearance(store, value) {
-  if (APPEARANCES.indexOf(value) < 0) throw new RangeError(`unknown appearance: ${value}`);
-  return commitSettings(store, LABELS.appearance, { appearance: value });
-}
 
 /**
  * 提醒开关。打开时若还没存过时间，补上缺省时间（P18），让存下的就是界面显示的。

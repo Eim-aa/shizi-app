@@ -2,7 +2,7 @@
   "state": "mine-records",
   "name": "我的 · 有记录（概览 + 月字帖块 + 设置行）",
   "screen": "mine",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -104,6 +104,9 @@
     }
   ],
   "ready": {
-    "web": "screen-mine"
+    "web": "screen-mine",
+    "native": "id:native-screen-mine",
+    "timeout": 20,
+    "rootsOnly": true
   }
 }

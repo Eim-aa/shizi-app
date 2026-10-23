@@ -34,13 +34,13 @@ import { useAxLevel } from '../../components/ax.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t, tRef } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
-import { sheetColumns } from '../../../core/images/layout.js';
 import { mineModel } from '../../../session/views/mine.js';
+import { backupValueRef, mineSheetRows } from '../../../session/views/mine-page.js';
 import { getStore } from '../../../store/store.js';
 import { storagePressureOf } from '../../../store/budget.js';
 import { annualDefaultYear } from '../../../session/views/annual.js';
 import {
-  dayText, go, hasInkOfStore, MINE_ROUTES, openRecords, useStoreState, useToday,
+  go, hasInkOfStore, MINE_ROUTES, openRecords, useStoreState, useToday,
 } from './records.js'; // 练习记录页自注册（records）；首页墨迹行「今天的记录」也在那里注册
 import { MonthBody, mineSheetModel, monthModel } from './month.js';
 import { AppearanceRow } from './appearance.js';
@@ -102,11 +102,7 @@ function Overview({ overview }) {
   </div>`;
 }
 
-/** 整月字数 → 「我的」页放几个字：两行（列数按整月字数定，月字帖页同一个规则 sheetColumns；AX 档四列，格子随字号放大，设计稿 AX5）。 */
-export function mineSheetRows(n, ax = 0) {
-  const cols = ax > 0 && n > 0 ? Math.min(4, sheetColumns(n)) : sheetColumns(n);
-  return { cols, max: cols * 2 };
-}
+export { mineSheetRows }; // B3.5c：会话层（session/views/mine-page.js），原生页同一个
 
 function Sheet({ model, state }) {
   const { sheet } = model;
@@ -149,9 +145,7 @@ function MineScreen() {
   const last = model.lastBackup;
   const annualYear = useMemo(() => annualDefaultYear(state, today), [state, today]); // D66 ⑪：今年没有记录而往年有时指向最近有记录的一年
   const hint = model.backupHint; // D66 ⑱：≥ 30 天没备份 / 笔迹存储接近上限时写在「备份」行右值里（不加红点、不弹窗）
-  const backupValue = hint
-    ? (hint.kind === 'pressure' ? t('X-MINE.backupNearFull') : t('X-MINE.backupStale', { n: hint.days }))
-    : last ? t('R-M03.lastBackup', { date: dayText(last) }) : t('R-M03.noBackup');
+  const backupValue = tRef(backupValueRef(model));
   return html`<${TabPage} title=${MINE_LABEL} testid="screen-mine">
     <div class="sz-mine" data-testid="mine-home" data-state=${model.empty ? 'empty' : 'records'} data-today=${today} data-month=${model.month}>
       <${Overview} overview=${model.overview} />
@@ -180,4 +174,5 @@ function MineScreen() {
   </${TabPage}>`;
 }
 
-registerScreen(MINE_TAB, MineScreen, { tab: true, order: 2, label: MINE_LABEL, icon: ICON });
+// B3.5c：native:true = 原生「我的」（Screens/Mine.swift，ShiziScreen_mine）；tab 根页在 B3.5d 三根页同开之前由「根页开关」挡着（window.__shiziNativeRoots，ui/native-stage.js nativeScreenOn），默认仍是网页。
+registerScreen(MINE_TAB, MineScreen, { tab: true, order: 2, label: MINE_LABEL, icon: ICON, native: true });

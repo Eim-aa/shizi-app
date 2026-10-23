@@ -19,7 +19,7 @@ struct NativeJudgeStyle {
 ///   → 说明（13 / 20，ink3，居中）→「看这个字 ›」（15，ink2，文字按钮，左对齐页边）→ 主按钮（btn-h，墨底）。
 /// 点主按钮 → correct op（apply，明示目标判断，重发不会改回去）；成功或 stale 关弹层并把回包快照交给写字页；失败就地换三段式（说明 → [先不改 | 再试一次]），
 /// 记录与 FSRS 不变。「看这个字 ›」（D66 ⑮）：关弹层，写字页让开、推入这个字的详情（onViewChar）。
-final class NativeChangeSheetViewController: UIViewController, UIViewControllerTransitioningDelegate, UIGestureRecognizerDelegate {
+final class NativeChangeSheetViewController: UIViewController, UIViewControllerTransitioningDelegate, UIGestureRecognizerDelegate, NativeSheetSizing {
     struct Model {
         let recordId: String
         let char: String

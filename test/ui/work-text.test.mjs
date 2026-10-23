@@ -70,7 +70,7 @@ test('年报纸面文字 (§8.2): 卷首年份 / 一句话 / 日期；2 写「�
   assert.equal(annualTailDateText('2026-10-02'), '十月二日');
 });
 
-test('no source file builds a 落款 by hand: the signature templates are only used inside work-text.js', () => {
+test('no source file builds a 落款 by hand: the signature templates are only used inside work-text.js and its session-layer reference form (session/views/kuan.js)', () => {
   const root = fileURLToPath(new URL('../../src', import.meta.url));
   const files = [];
   const walk = dir => {
@@ -81,6 +81,6 @@ test('no source file builds a 落款 by hand: the signature templates are only u
     }
   };
   walk(root);
-  const users = files.filter(f => /X-WORK\.kuanJoin|R-I01\.signature(Date|Month)/.test(readFileSync(f, 'utf8')) && !/config\/copy\/|work-text\.js$/.test(f));
+  const users = files.filter(f => /X-WORK\.kuanJoin|R-I01\.signature(Date|Month)/.test(readFileSync(f, 'utf8')) && !/config\/copy\/|work-text\.js$|session\/views\/kuan\.js$/.test(f));
   assert.deepEqual(users.map(f => f.slice(root.length)), [], 'the templates are filled in one place');
 });

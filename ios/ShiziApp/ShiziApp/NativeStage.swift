@@ -74,7 +74,10 @@ final class NativeStage: NSObject {
     /// 文档开始注入：原生开关、有类的屏名清单（网页 ui/native-stage.js 读）。
     static func userScript() -> String {
         let list = (try? JSONSerialization.data(withJSONObject: ShiziScreenRegistry.screens)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziNativeScreens = \(list);"
+        // B3.5c 根页开关：tab 根页的原生版在 B3.5d 之前挡着（ui/native-stage.js nativeRootsEnabled）；启动参数 -shizi-native-roots 或 SHIZI_NATIVE_ROOTS=1 打开
+        let p = ProcessInfo.processInfo
+        let roots = p.arguments.contains("-shizi-native-roots") || p.environment["SHIZI_NATIVE_ROOTS"] == "1"
+        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziNativeScreens = \(list);" + (roots ? " window.__shiziNativeRoots = true;" : "")
     }
 
     // MARK: 页面推来的消息（type 'native'）

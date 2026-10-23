@@ -19,17 +19,18 @@ import { LiveRegion } from '../../components/LiveRegion.js';
 import { quickShare, useSaveFlow } from '../../image-quick.js';
 import { MonthPaper, builtInk, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
-import { localDay, monthDayParts, monthOf } from '../../../core/dates.js';
-import { MINE_SHEET_MAX_CHARS, dayTag } from '../../../core/images/layout.js';
+import { localDay, monthOf } from '../../../core/dates.js';
+import { MINE_SHEET_MAX_CHARS } from '../../../core/images/layout.js';
 import { monthCells } from '../../../core/images/pick.js';
 import { now as envNow } from '../../../platform/env.js';
 import { openDetail } from '../detail/index.js';
 import { inkOf, recordHasInk } from '../detail/records.js';
 import { kuan } from '../../work-text.js';
 import { useStoreState } from './records.js';
+import { cellLabelRef, trimSheetCells } from '../../../session/views/mine-page.js'; // B3.5c：格的读屏名与「我的」页字帖的取舍在会话层（网页与 App API 同一个）
 
 export const MONTH_SCREEN = 'month';
 
@@ -59,13 +60,7 @@ function currentStore() {
  * 取到的墨迹在另一天时补一句「9 月 28 日 的笔迹」（N2-07）。
  */
 export function cellLabel(cell) {
-  if (cell.mode === 'under') return t('X-WORK.monthCellNoInk', { char: cell.ch });
-  const date = cell.day ? t('R-H02.dateFormat', monthDayParts(cell.day)) : '';
-  const inkDay = cell.record && cell.record.localDay;
-  if (inkDay && cell.day && inkDay !== cell.day) {
-    return t('X-WORK.cellInkDay', { char: cell.ch, date, inkDate: t('R-H02.dateFormat', monthDayParts(inkDay)) });
-  }
-  return t('X-MINE.cellLabel', { char: cell.ch, date });
+  return tRef(cellLabelRef(cell));
 }
 
 /**
@@ -107,15 +102,9 @@ export function monthModel(state, month, { store = currentStore(), policy = defa
  * @returns {{model, truncated:boolean, hidden:number, total:number}}
  */
 export function mineSheetModel(model, max = MINE_SHEET_MAX_CHARS) {
-  if (model.n <= max) return { model, truncated: false, hidden: 0, total: model.n };
-  const cells = model.cells.slice(model.n - max);
-  let prev = null;
-  const tagged = cells.map(c => {
-    const tag = c.day && c.day !== prev ? dayTag(c.day) : '';
-    if (c.day) prev = c.day;
-    return { ...c, tag };
-  });
-  return { model: { ...model, cells: tagged, n: tagged.length }, truncated: true, hidden: model.n - max, total: model.n };
+  const r = trimSheetCells(model.cells, max);
+  if (!r.truncated) return { model, truncated: false, hidden: 0, total: model.n };
+  return { model: { ...model, cells: r.cells, n: r.cells.length }, truncated: true, hidden: r.hidden, total: r.total };
 }
 
 // ---------------------------------------------------------------- 视图

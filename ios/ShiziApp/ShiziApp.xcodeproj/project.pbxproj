@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1A0000000000000000B35C04 /* MineParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35C03 /* MineParts.swift */; };
+		1A0000000000000000B35C02 /* Mine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35C01 /* Mine.swift */; };
 		1A0000000000000000B32024 /* NativeStageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32023 /* NativeStageFlowTests.swift */; };
 		1A0000000000000000B32022 /* NativeStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32021 /* NativeStageTests.swift */; };
 		1A0000000000000000B32012 /* About.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32011 /* About.swift */; };
@@ -100,6 +102,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		1A0000000000000000B35C03 /* MineParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineParts.swift; sourceTree = "<group>"; };
+		1A0000000000000000B35C01 /* Mine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mine.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32023 /* NativeStageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageFlowTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32021 /* NativeStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32011 /* About.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = About.swift; sourceTree = "<group>"; };
@@ -384,6 +388,8 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000B32011 /* About.swift */,
+				1A0000000000000000B35C03 /* MineParts.swift */,
+				1A0000000000000000B35C01 /* Mine.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -560,6 +566,8 @@
 			files = (
 				1A0000000000000000000021 /* AppDelegate.swift in Sources */,
 				1A0000000000000000B32012 /* About.swift in Sources */,
+				1A0000000000000000B35C04 /* MineParts.swift in Sources */,
+				1A0000000000000000B35C02 /* Mine.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* WebViewController.swift in Sources */,

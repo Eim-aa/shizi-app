@@ -69,6 +69,11 @@ struct NativeOverlaySpec {
     }
 }
 
+/// 弹层自己说要多高（B3.5c：不再只认改判弹层；选择弹层也走这个）。
+protocol NativeSheetSizing: AnyObject {
+    func preferredHeight(width: CGFloat, safeBottom: CGFloat) -> CGFloat
+}
+
 /// 底部弹层的呈现（网页 Sheet.js：满宽贴底、上两角 24、max-height 88%、遮罩 --scrim；点遮罩 = 关）。
 final class NativeSheetPresentation: UIPresentationController {
     let scrim = UIView()
@@ -86,7 +91,7 @@ final class NativeSheetPresentation: UIPresentationController {
 
     override var frameOfPresentedViewInContainerView: CGRect {
         guard let c = containerView else { return .zero }
-        let want = (presentedViewController as? NativeChangeSheetViewController)?.preferredHeight(width: c.bounds.width, safeBottom: c.safeAreaInsets.bottom) ?? c.bounds.height / 2
+        let want = (presentedViewController as? NativeSheetSizing)?.preferredHeight(width: c.bounds.width, safeBottom: c.safeAreaInsets.bottom) ?? c.bounds.height / 2
         let h = min(want, floor(c.bounds.height * 0.88))
         return CGRect(x: 0, y: c.bounds.height - h, width: c.bounds.width, height: h)
     }

@@ -2,7 +2,7 @@
   "state": "home-start-fail",
   "name": "首页 · 开组失败（三段式）",
   "screen": "home",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -36,23 +36,26 @@
     },
     {
       "op": "seed"
+    },
+    {
+      "op": "nativeRoots"
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-home-start"
   },
   "steps": [
     {
-      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
-    },
-    {
       "tap": {
-        "webTestid": "home-start"
+        "webTestid": "home-start",
+        "native": "native-home-start"
       },
       "times": 1
     },
     {
       "wait": 500
     }
-  ]
+  ],
+  "failNext": 1
 }

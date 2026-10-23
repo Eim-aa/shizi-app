@@ -26,7 +26,9 @@
 // - 「先写三个大家常忘的字。」（R-H03，D38 首练 3 字）只在 records==='first' 且没有没写完的组时显示（showFirstTip）。
 
 import * as defaultPolicy from '../../config/policy.js';
-import { epigraphFor } from '../../config/epigraphs.js';
+import { EPIGRAPHS, epigraphAuthor, epigraphFor } from '../../config/epigraphs.js';
+import { ref } from '../../config/copy/index.js';
+import { SHI_CENTER, SHI_PATHS, SHI_VIEW, sealGlyphPath } from '../../core/images/shi-paths.js';
 import { calendarDay, diffDays, localDay, monthDayParts, periodOf } from '../../core/dates.js';
 import { hasAnyJudged, isJudged, practicedByChar, todayCount } from '../../core/records.js';
 import { remainingCount } from '../../core/sessions.js';
@@ -213,4 +215,74 @@ export function ctaAria(model, translate) {
   const label = translate(homeCtaKey(model));
   const line = model.resume !== 'none' ? model.primary : null;
   return line ? translate('X-HOME.continueAria', { label, n: line.done, total: line.total }) : label;
+}
+
+// ---------------------------------------------------------------- 原生首页（B3.5a，App API view.home）
+
+/** 文案「翻译」成引用（键 + 参数）：上面这些派生函数传它就给原生用的引用、传 t 就给网页用的句子——同一条规则。 */
+const asRef = (key, vars) => ref(key, vars);
+
+let brandCache = null;
+/** 品牌「拾」（ShiMark，A1 墨重）的路径：换算到视框单位方块（0–1，左上原点），每段 [M x y] / [C …] / [Z]（同 sealGlyphPath 的形状；原生按边长缩放后填色）。 */
+export function brandGlyphPath() {
+  if (brandCache) return brandCache;
+  const ox = SHI_CENTER.x - SHI_VIEW / 2;
+  const oy = SHI_CENTER.y - SHI_VIEW / 2;
+  const u = (x, y) => [Math.round(((x - ox) / SHI_VIEW) * 1e5) / 1e5, Math.round(((y - oy) / SHI_VIEW) * 1e5) / 1e5];
+  const out = [];
+  for (const d of SHI_PATHS) {
+    for (const m of d.matchAll(/([MCZ])([^MCZ]*)/g)) {
+      if (m[1] === 'Z') { out.push(['Z']); continue; }
+      const nums = (m[2].match(/-?\d*\.?\d+(?:e-?\d+)?/g) || []).map(Number);
+      const seg = [m[1]];
+      for (let i = 0; i + 1 < nums.length; i += 2) seg.push(...u(nums[i], nums[i + 1]));
+      out.push(seg);
+    }
+  }
+  brandCache = out;
+  return out;
+}
+
+/**
+ * 原生首页的视图（view.home）：同一个 homeModel 的结果 + 网页 home/index.js 渲染时用的同一组派生（homeCtaKey / homeNoteOf / ctaAria / resumeLine*，
+ * 传引用「翻译」），只给文案引用（键 + 参数）不拼句子。ui：只在界面层的状态（品牌时刻能不能放、离开撤销条），由网页首页模块登记、App API 合进来。
+ */
+export function homeView(state, nowMs, { policy = defaultPolicy, deck = null, ui = null } = {}) {
+  const model = homeModel(state, nowMs, { policy, deck });
+  const ctaKey = homeCtaKey(model);
+  const line = model.resume !== 'none' ? model.primary : null;
+  const note = homeNoteOf(model);
+  const other = model.other;
+  const ep = model.epigraph;
+  return {
+    view: model.view,
+    records: model.records,
+    resume: model.resume,
+    period: model.period,
+    today: model.today,
+    title: ref('R-H01.title'),
+    date: ref('R-H02.line', { date: ref('R-H02.dateFormat', model.dateParts), period: ref(`R-H02.period.${model.period}`) }),
+    shiLabel: ref('X-HOME.shiLabel'),
+    epigraph: { index: EPIGRAPHS.indexOf(ep), lines: [...ep.lines], author: epigraphAuthor(ep), label: `${ep.lines.join('')}${ep.source}` },
+    motto: [ref('X-HOME.mottoLine1'), ref('X-HOME.mottoLine2'), ref('X-HOME.mottoLine3')],
+    cta: {
+      label: ref(ctaKey),
+      // D66 ⑧：进行中时主按钮字后接「 · 7 / 20」；换练习范围时不接
+      progress: line && !model.switchLibrary ? progressText(line, asRef) : null,
+      aria: model.switchLibrary ? ref(ctaKey) : ctaAria(model, asRef),
+      action: model.switchLibrary ? 'switchLibrary' : 'start',
+    },
+    note: note ? { kind: model.view === 'special' ? 'capital' : 'back', text: ref(note.key, note.vars) } : null,
+    capital: model.capital,
+    firstTip: model.view === 'first' ? ref('R-H03.firstVisit') : null,
+    other: other ? { slot: other.slot, kind: other.kind, remaining: other.remaining, text: resumeLineText(other, asRef), aria: resumeLineAria(other, asRef) } : null,
+    pick: model.showPick ? ref('X-HOME.pick') : null,
+    defer: model.view === 'special' ? ref('X-HOME.capitalDefer') : null,
+    fail: { text: ref('X-HOME.startFailed'), cancel: ref('R-H06.cancel'), retry: ref('R-H06.retry') },
+    undo: { undo: ref('R-W20.undo'), failed: ref('R-W16.saveFailed'), cancel: ref('R-W16.cancel'), retry: ref('R-W16.retry') },
+    shi: brandGlyphPath(),
+    seal: sealGlyphPath(),
+    brand: !!(ui && ui.brand),
+    leaveUndo: ui && ui.leaveUndo ? { ...ui.leaveUndo, text: ref('R-W20.skippedToast', { char: ui.leaveUndo.char }) } : null,
+  };
 }

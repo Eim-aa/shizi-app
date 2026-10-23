@@ -2,7 +2,7 @@
   "state": "home-leave-undo",
   "name": "首页 · 写字页跳过后离开，撤销条跟到首页",
   "screen": "home",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -10,7 +10,8 @@
   },
   "floater": "leave-undo",
   "ready": {
-    "web": "write-screen"
+    "web": "write-screen",
+    "native": "write"
   },
   "setup": [
     {
@@ -45,6 +46,9 @@
       "op": "leaveUndoCleanup"
     },
     {
+      "op": "nativeRoots"
+    },
+    {
       "op": "startNextA"
     },
     {
@@ -55,7 +59,8 @@
   "steps": [
     {
       "ready": {
-        "web": "write-screen"
+        "web": "write-screen",
+        "native": "write"
       }
     },
     {
@@ -63,7 +68,8 @@
     },
     {
       "tap": {
-        "webTestid": "write-skip"
+        "webTestid": "write-skip",
+        "native": "native-write-skip"
       },
       "times": 1
     },
@@ -72,12 +78,19 @@
     },
     {
       "tap": {
-        "webTestid": "page-back"
+        "webTestid": "page-back",
+        "native": "native-write-back"
       },
       "times": 1
     },
     {
       "wait": 600
+    },
+    {
+      "ready": {
+        "native": "id:native-home-start",
+        "timeout": 6
+      }
     }
   ]
 }

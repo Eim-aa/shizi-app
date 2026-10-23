@@ -52,8 +52,12 @@ final class NativeStageTests: XCTestCase {
         XCTAssertTrue(ShiziScreenRegistry.screenClass("about-privacy") == AboutPrivacyScreen.self)
         XCTAssertNil(ShiziScreenRegistry.screenClass("library-all"), "not native yet → no class → the web keeps the page")
         XCTAssertEqual(ShiziScreenRegistry.className("about-credits"), "ShiziScreen_about_credits")
-        XCTAssertEqual(ShiziScreenRegistry.screens, ["about", "about-credits", "about-letter", "about-privacy"])
-        XCTAssertTrue(NativeStage.userScript().contains("window.__shiziNativeScreens = [\"about\",\"about-credits\",\"about-letter\",\"about-privacy\"]"))
+        // 页面卡陆续加类（B3.5a 起 home …）：清单含关于四页、有序，注入的就是这份清单
+        let screens = ShiziScreenRegistry.screens
+        XCTAssertTrue(Set(["about", "about-credits", "about-letter", "about-privacy"]).isSubset(of: Set(screens)), "\(screens)")
+        XCTAssertEqual(screens, screens.sorted())
+        let json = String(data: try! JSONSerialization.data(withJSONObject: screens), encoding: .utf8)! // swiftlint:disable:this force_try
+        XCTAssertTrue(NativeStage.userScript().contains("window.__shiziNativeScreens = \(json)"))
     }
 
     func testB32_copyRefsAndCodableReplies() throws {

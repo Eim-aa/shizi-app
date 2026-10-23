@@ -46,6 +46,10 @@ import { homeModel, homeCtaKey, homeNoteOf, resumeLineText, resumeLineAria, prog
 import { BrandShi, firstShiSize, useElementWidth } from './copybook.js';
 import { ShiMark } from '../../brand/shi.js';
 import { useAxLevel } from '../../components/ax.js';
+import { markNativePaperSource, setNativeLiveSource } from '../../paper-transition.js';
+import { clearLeaveUndo, leaveUndoView, onLeaveUndo, undoLeave } from '../write/skip.js';
+import { setHomeActions } from '../../../session/api/home.js';
+import { postNative } from '../../../platform/bridge.js';
 // 写字页自注册（M1-1）：首页是它的入口页，随首页一起加载。
 import '../write/index.js';
 
@@ -540,4 +544,37 @@ function CapitalHint({ kind }) {
   </div>`;
 }
 
-registerScreen(HOME_TAB, HomeScreen, { tab: true, order: 0, label: HOME_LABEL, icon: ICON });
+// ---------------------------------------------------------------- 原生首页（B3.5a）
+// 原生首页（ios Screens/Home.swift，ShiziScreen_home）经 App API 的 home.* op 调这里的同一批函数（网页路径 == API 路径）；
+// tab 根页在 B3.5d 与 Tab 栏同开之前只在 window.__shiziNativeRoots（QA / -shizi-native-roots）打开时由原生显示（ui/native-stage.js）。
+
+/** 主按钮 / 「今天的字」行：原生量的真实矩形记成写字页 T-paper 的来源（D62），再走与网页同一个动作。 */
+function withNativeSource(source, key, action) {
+  if (source && source.rect) markNativePaperSource({ ...source, key });
+  return action();
+}
+
+setHomeActions({
+  start: ({ source }) => withNativeSource(source, 'home-start', () => startMain()),
+  resumeOther: ({ source }) => withNativeSource(source, 'other-line', () => resumeOther()),
+  deferSpecial: () => deferCapital(),
+  switchLibrary: () => openLibrarySwitch(),
+  pick: () => {
+    openPick();
+    return { ok: true };
+  },
+  source: ({ key, rect, label }) => {
+    setNativeLiveSource(key === 'other-line' ? 'other-line' : 'home-start', rect ? { rect, label } : null);
+    return { ok: true };
+  },
+  undoLeave: () => undoLeave(slot => nav.push('write', { slot })),
+  undoLeaveCancel: () => {
+    clearLeaveUndo();
+    return { ok: true };
+  },
+  ui: () => ({ brand: brandAllowed(), leaveUndo: leaveUndoView() }),
+});
+// 离开撤销条不是 store 的变化：变了也推一次 changed，原生首页重拉 view.home
+onLeaveUndo(() => postNative('native', { op: 'changed', domains: ['ui'], label: 'leave-undo' }));
+
+registerScreen(HOME_TAB, HomeScreen, { tab: true, order: 0, label: HOME_LABEL, icon: ICON, native: true });

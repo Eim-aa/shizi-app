@@ -209,6 +209,7 @@ injectStyles('root', `
   -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 .sz-layer{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:${T.paper};display:flex;flex-direction:column}
 .sz-layer[data-native-host]{background:transparent;pointer-events:none}
+.sz-layer[data-native-host] .sz-tabs,.sz-layer[data-native-host]>:not(.sz-layer__screen){pointer-events:auto} /* B3.5a：原生 tab 根页只盖内容区，Tab 栏与盖在根页上的网页弹层（原生根页让开时）仍可点 */
 .sz-layer--moving{box-shadow:-1px 0 0 ${T.line}}
 .sz-layer--snap{transition:transform ${SNAP_MS}ms ${PUSH_EASING}}
 .sz-layer--under{pointer-events:none}
@@ -249,7 +250,8 @@ const tabScroll = new Map(); // tab 名 → scrollTop
 
 function TabRoot({ entry }) {
   const def = getScreen(entry.n);
-  const Comp = def ? def.component : null;
+  // B3.5a：tab 根页原生化后（闸见 native-stage.js nativeRootsOn）内容区换成原生宿主，Tab 栏仍是这里的网页 Tabs（B3.5d 换原生 Tab 栏）
+  const Comp = def ? (def.native && nativeScreenShown(entry.n) ? NativeScreenHost : def.component) : null;
   const items = listTabs().map(t => ({ id: t.name, label: t.label, icon: t.icon, panelId: 'sz-tabpanel' }));
   const panelRef = useRef(null);
   const shownRef = useRef(entry.n);

@@ -2,7 +2,7 @@
   "state": "home-today",
   "name": "首页 · 今天写完（再写一组）",
   "screen": "home",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -37,9 +37,13 @@
     },
     {
       "op": "seed"
+    },
+    {
+      "op": "nativeRoots"
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-home-start"
   }
 }

@@ -1,0 +1,86 @@
+{
+  "//": "原生首页（B3.5a，tab 根页）的逐项豁免。原生根页只盖 Tab 内容区；Tab 栏到 B3.5d 之前仍是网页 Tabs（不在原生元素清单里），开发入口只在测试宿主。",
+  "ignore": [
+    {
+      "label": "tab-home",
+      "aspects": ["missing"],
+      "//": "B3.5a：Tab 栏仍是网页的（同一个 Tabs.js 元素，原生根页不盖它）；B3.5d 换原生 UITabBar 时按 TAB-01 另比"
+    },
+    {
+      "label": "tab-library",
+      "aspects": ["missing"],
+      "//": "同上（网页 Tab 栏）"
+    },
+    {
+      "label": "tab-mine",
+      "aspects": ["missing"],
+      "//": "同上（网页 Tab 栏）"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "home-group",
+      "aspects": ["position", "size"],
+      "//": "B3.5a 网页 bug（参考图本身）：AX5 特别组那天网页 useShiAvail 来回翻——题记收起时量 scrollHeight 没有上内边距 8（156），够放就放出来，放出来再量（164）又不够就收起，ResizeObserver 一直循环；同一个状态的参考 JSON 与截图、浅色与深色停在不同的一边（「拾」70 + 题记 / 「拾」128 收起题记）。原生按规则（题记 164 放不下 → 收起、「拾」128）排，不翻"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "home-brand-shi",
+      "aspects": ["position", "size"],
+      "//": "同上（网页 AX5 特别组来回翻）"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "brand-shi-mark",
+      "aspects": ["position", "size"],
+      "//": "同上"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "home-capital-body",
+      "aspects": ["position"],
+      "//": "同上（组高不同，下面那一句随之上下）"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "home-epigraph",
+      "aspects": ["missing", "extra"],
+      "//": "同上（题记在网页那一边是放出来的）"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "我书意造本无法，",
+      "aspects": ["missing", "extra"],
+      "//": "同上"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "点画信手烦推求。",
+      "aspects": ["missing", "extra"],
+      "//": "同上"
+    },
+    {
+      "state": "home-special",
+      "sizes": ["AX5"],
+      "label": "苏轼",
+      "aspects": ["missing", "extra"],
+      "//": "同上"
+    },
+    {
+      "label": "demo-push",
+      "aspects": ["missing"],
+      "//": "测试宿主才有的开发入口（演示子页，落在首屏下面、不是用户文案；home/index.js .sz-home__dev），原生不做"
+    },
+    {
+      "label": "write-test-entry",
+      "aspects": ["missing"],
+      "//": "同上（测试宿主的「写字（测试）」开发入口）"
+    }
+  ]
+}

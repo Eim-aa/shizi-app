@@ -247,7 +247,6 @@ final class MineFailBlock: UIView {
         retry.layer.cornerRadius = m.value("r-ctl")
         retry.layer.cornerCurve = .continuous
         NativeType.trackTitle(retry)
-        UIAccessibility.post(notification: .announcement, argument: fail.note.text)
     }
 
     @discardableResult
@@ -370,6 +369,7 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
     private var blankImage = UIImage()
     private let failBlock = MineFailBlock()
     private let pan = UIPanGestureRecognizer()
+    private let edge = UIScreenEdgePanGestureRecognizer()
     private var failed = false
     private var pending: ChoiceID?
     private var finished = false
@@ -547,7 +547,26 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        // 弹层优先接管左缘（含遮罩区域），与下面是否为 Tab 根无关（N4）。
+        edge.edges = .left
+        edge.addTarget(self, action: #selector(edgeBack(_:)))
+        presentationController?.containerView?.addGestureRecognizer(edge)
+        becomeFirstResponder()
         NativeA11y.screenChanged(titleLabel) // 决定型弹层：焦点落在弹层标题（D03）
+    }
+
+    override var canBecomeFirstResponder: Bool { true }
+    override var keyCommands: [UIKeyCommand]? {
+        [UIKeyCommand(input: UIKeyCommand.inputEscape, modifierFlags: [], action: #selector(escapeKey))]
+    }
+
+    @objc private func escapeKey() { close() }
+
+    @objc private func edgeBack(_ g: UIScreenEdgePanGestureRecognizer) {
+        guard g.state == .ended, let container = g.view else { return }
+        let dx = max(0, g.translation(in: container).x)
+        let vx = g.velocity(in: container).x
+        if vx > spec.commitVelocity || (dx > container.bounds.width * spec.commitRatio && vx > spec.returnVelocity) { close() }
     }
 
     override func accessibilityPerformEscape() -> Bool {
@@ -574,6 +593,7 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
             } else {
                 self.failed = true
                 self.refreshOptions()
+                NativeA11y.announce(self.cfg.fail.note.text)
             }
         }
     }

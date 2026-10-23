@@ -10,7 +10,7 @@ final class MineFlowTests: XCTestCase {
     }
 
     /// 「我的」原生（根页开关打开）：探针里原生栈只有 mine。
-    private func openMine(_ qa: QA, seed: String = "mine-records") {
+    private func openMine(_ qa: QA) {
         qa.launch()
         qa.waitProbe("native mine") { (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
         Thread.sleep(forTimeInterval: 0.6) // 新状态 0.4s 防误点
@@ -35,6 +35,9 @@ final class MineFlowTests: XCTestCase {
         qa.tap(seg.element(boundBy: 1), "appearance › light")
         qa.waitProbe("appearance light saved, native theme light") { ($0["settings"] as? [String: Any])?["appearance"] as? String == "light" && (($0["theme"] as? [String: Any])?["override"] as? Int) == 1 }
         XCTAssertTrue(seg.element(boundBy: 1).isSelected)
+        qa.tap(seg.element(boundBy: 0), "appearance › follow system")
+        qa.waitProbe("appearance auto saved, native theme follows system") { ($0["settings"] as? [String: Any])?["appearance"] as? String == "auto" && (($0["theme"] as? [String: Any])?["override"] as? Int) == 0 }
+        XCTAssertTrue(seg.element(boundBy: 0).isSelected)
     }
 
     /// 每组字数改了从下一组起生效：点第 1 段（5）→ 存下 5，选中态换过去；失败时行下就地三段式，再试一次成功后收起（D07）。
@@ -51,6 +54,20 @@ final class MineFlowTests: XCTestCase {
         qa.waitProbe("group size 5 saved") { ($0["settings"] as? [String: Any])?["groupSize"] as? Int == 5 }
         XCTAssertFalse(qa.el("native-mine-fail-retry").exists, "the failure block goes away")
         XCTAssertTrue(seg.element(boundBy: 0).isSelected)
+        // 两个入口都读同一个设置：下一组从首页开成 5 个，回字库后「今日练习」续同一组。
+        qa.tap(qa.button("习字"), "home tab")
+        qa.waitRouteTop("home")
+        qa.tap(qa.buttonContaining("开始写字"), "home starts the next group")
+        qa.waitNative(true)
+        XCTAssertEqual(qa.session("A")["total"] as? Int, 5)
+        qa.tapNative("native-write-back")
+        qa.waitNative(false)
+        qa.tap(qa.button("字库"), "library tab")
+        qa.waitRouteTop("library")
+        qa.tap(qa.buttonContaining("今日练习"), "library resumes the same group")
+        qa.waitNative(true)
+        XCTAssertEqual(qa.session("A")["total"] as? Int, 5)
+        XCTAssertEqual(settings(qa)["groupSize"] as? Int, 5)
     }
 
     /// AX5 改选择弹层：AX 档外观 / 每组字数是「名称 …… 值 ›」，点开底部弹层，选一项即写并关。
@@ -67,6 +84,42 @@ final class MineFlowTests: XCTestCase {
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: qa.el("native-mine-group-size-sheet"))
         waitForExpectations(timeout: 6)
+    }
+
+    /// 打开选择弹层不播失败；写失败留在弹层、旧值不变，只在失败时读出三段式说明；重试写同一个目标并关闭。
+    func testAx5ChoiceFailureAnnouncesOnlyAfterFailure() throws {
+        let qa = QA(seed: "mine-records", failNext: 1, extra: ["-shizi-native-roots", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        openMine(qa)
+        let before = settings(qa)["groupSize"] as? Int
+        let failure = "announce:没保存上，刚才的选择没记下。"
+        qa.tapNative("native-mine-group-size")
+        XCTAssertTrue(qa.el("native-mine-group-size-sheet").waitForExistence(timeout: 6))
+        XCTAssertFalse((qa.probe["a11y"] as? [String] ?? []).contains(failure), "opening the sheet does not announce a save failure")
+        let opts = options(qa, "native-mine-group-size-sheet-option")
+        qa.tap(opts.element(boundBy: 0), "sheet › 5 (fails)")
+        XCTAssertTrue(qa.el("native-mine-group-size-sheet-fail-retry").waitForExistence(timeout: 6))
+        XCTAssertEqual(settings(qa)["groupSize"] as? Int, before)
+        qa.waitProbe("failure announced once") { ($0["a11y"] as? [String] ?? []).filter { $0 == failure }.count == 1 }
+        qa.tapNative("native-mine-group-size-sheet-fail-retry")
+        qa.waitProbe("group size 5 saved after retry") { ($0["settings"] as? [String: Any])?["groupSize"] as? Int == 5 }
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: qa.el("native-mine-group-size-sheet"))
+        waitForExpectations(timeout: 6)
+    }
+
+    /// Tab 根没有页面返回，但上面的弹层始终可以左缘右滑关闭（N4）；设置没有被改动。
+    func testAx5ChoiceSheetEdgeClosesOnlySheet() throws {
+        let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        openMine(qa)
+        let before = settings(qa)["groupSize"] as? Int
+        qa.tapNative("native-mine-group-size")
+        XCTAssertTrue(qa.el("native-mine-group-size-sheet").waitForExistence(timeout: 6))
+        qa.edgeBack()
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: qa.el("native-mine-group-size-sheet"))
+        waitForExpectations(timeout: 6)
+        XCTAssertEqual(settings(qa)["groupSize"] as? Int, before)
+        XCTAssertEqual((qa.probe["stage"] as? [String: Any])?["screens"] as? [String], ["mine"])
     }
 
     /// 让给网页再回来（备份页还不是原生的，B3.10）：原生「我的」→ 点备份行 → 网页备份页（原生栈收起）→ 左缘返回 → 原生「我的」盖回来；

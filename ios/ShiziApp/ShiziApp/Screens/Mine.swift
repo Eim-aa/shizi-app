@@ -753,8 +753,12 @@ final class MineScreen: ShiziScreenViewController {
             let reply = await engine.raw(op, ["value": value.json])
             let ok = (reply["ok"] as? Bool) == true
             if ok {
-                if which == "appearance" { ShiziTheme.apply(value.text, window: self?.view.window) } // 原生主题立刻跟着切
-                self?.reload()
+                if let self {
+                    // 先更新 lastView 再改窗口外观：traitCollectionDidChange 会同步重画 lastView，
+                    // 若先切主题而 lastView 还是旧的 appearance，render 会把窗口又切回旧样式。
+                    let body = await engine.raw("view.mine", self.fetchArgs())
+                    self.apply(payload: body)
+                }
             }
             done(ok)
         }

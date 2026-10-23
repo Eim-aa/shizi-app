@@ -2,7 +2,7 @@
   "state": "photo",
   "name": "旧记录 · 有照片",
   "screen": "detail-photo",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -10,7 +10,9 @@
   },
   "settle": 1200,
   "ready": {
-    "web": "photo-screen"
+    "web": "photo-screen",
+    "native": "id:native-detail-photo-screen",
+    "timeout": 20
   },
   "setup": [
     {

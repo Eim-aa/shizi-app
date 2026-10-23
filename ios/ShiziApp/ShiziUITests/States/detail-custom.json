@@ -2,18 +2,26 @@
   "state": "detail-custom",
   "name": "字详情 · 自选字（从自选的字移除）",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   },
   "steps": [
     {
       "js": "document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"detail-remove\"]').scrollIntoView({ block: 'center' });"
+    },
+    {
+      "tap": {
+        "native": "native-detail-qa-scroll-remove"
+      },
+      "times": 1
     },
     {
       "wait": 300

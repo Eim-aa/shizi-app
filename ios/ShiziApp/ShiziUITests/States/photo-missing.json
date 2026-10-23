@@ -2,14 +2,16 @@
   "state": "photo-missing",
   "name": "旧记录 · 照片没了",
   "screen": "detail-photo",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "photo-screen"
+    "web": "photo-screen",
+    "native": "id:native-detail-photo-screen",
+    "timeout": 20
   },
   "setup": [
     {

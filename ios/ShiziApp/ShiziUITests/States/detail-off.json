@@ -2,7 +2,7 @@
   "state": "detail-off",
   "name": "字详情 · 换掉词语（横幅 + 撤销条）",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -110,12 +110,15 @@
     }
   ],
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "detail-swap"
+        "webTestid": "detail-swap",
+        "native": "native-detail-swap"
       },
       "times": 1
     },

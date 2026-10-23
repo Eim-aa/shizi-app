@@ -48,6 +48,7 @@ import {
 } from './actions.js';
 import { PHOTO_SCREEN } from './photos.js'; // 旧记录页自注册
 import { openCharDetail } from './open.js';
+import { setDetailHooks } from '../../../session/api/detail.js';
 
 export const DETAIL_SCREEN = 'detail';
 export const LIST_SCREEN_NAME = 'library-list'; // M3-2 清单页（params {kind:'wrong'|'forget'}）
@@ -82,6 +83,7 @@ const hooks = { image: null, list: { wrong: null, forget: null } };
 /** M4-5：「把这个字做成图片」的去处 fn({char, cardKey, record})；null 取消（R-D04）。 */
 export function setDetailImageAction(fn) {
   hooks.image = typeof fn === 'function' ? fn : null;
+  setDetailHooks({ image: hooks.image }); // B3.7：原生字详情的「做成图片」是同一个去处（App API detail.image）
 }
 
 /** 写错过 / 快忘了行的去处（缺省为已注册的 'library-list' 页）。 */
@@ -286,4 +288,7 @@ function DetailScreen({ params, entry }) {
   </div>`;
 }
 
-registerScreen(DETAIL_SCREEN, DetailScreen, { label: '' });
+// B3.7：原生字详情的「练这个字」是同一个 startPicked（App API detail.practice）
+setDetailHooks({ practice: startPicked });
+
+registerScreen(DETAIL_SCREEN, DetailScreen, { label: '', native: true });

@@ -1,0 +1,84 @@
+{
+  "//": "B3.7 字详情与旧记录页的逐项豁免。L / XXXL 除下面第二条（滚动边界）外不豁免；每条具名 + 理由。",
+  "ignore": [
+    {
+      "state": "detail-photo-row",
+      "sizes": [
+        "XXXL"
+      ],
+      "label": "detail-pinyin",
+      "aspects": [
+        "missing"
+      ],
+      "//": "B3.7：夹具把「旧记录」行滚到正中后，拼音与「N 画」两行恰好滚到页顶之外、下沿 y = 0；网页取证按「下沿 < 0 才算看不见」收进清单，原生按「与屏幕有面积重叠」不收（边界取法差，页面上这两行此刻看不见）"
+    },
+    {
+      "state": "detail-photo-row",
+      "sizes": [
+        "XXXL"
+      ],
+      "label": "detail-strokes",
+      "aspects": [
+        "missing"
+      ],
+      "//": "B3.7：夹具把「旧记录」行滚到正中后，拼音与「N 画」两行恰好滚到页顶之外、下沿 y = 0；网页取证按「下沿 < 0 才算看不见」收进清单，原生按「与屏幕有面积重叠」不收（边界取法差，页面上这两行此刻看不见）"
+    },
+    {
+      "state": [
+        "detail-many",
+        "detail-once"
+      ],
+      "sizes": [
+        "AX3",
+        "AX5"
+      ],
+      "label": "detail-hero-cell",
+      "aspects": [
+        "size"
+      ],
+      "//": "B3.7：AX 档头图格的说明（「第一次 · 10月13日」）文字宽差 ≤ 1.8pt（0.6%）、行数 / 行高 / 起点一致：网页按实际字号取苹方字距表，原生为保住正文款字形把光学尺寸钉在 17，大字号下每个中文字相差约 0.1–0.2pt（同 B2.9b cjkTrack 的残差）；L / XXXL 逐项一致"
+    },
+    {
+      "state": "photo",
+      "sizes": [
+        "AX3",
+        "AX5"
+      ],
+      "label": "title",
+      "aspects": [
+        "size"
+      ],
+      "//": "B3.7：同 B3.2 关于页（parity/about.json）：AX 档多行文字 WebKit 的 text-wrap:pretty 按整段均衡各行长度，TextKit 没有对应折行；行数、行高、起点一致，只有各行长度不同、文字框宽不同"
+    },
+    {
+      "state": "photo",
+      "sizes": [
+        "AX3",
+        "AX5"
+      ],
+      "label": "photo-body",
+      "aspects": [
+        "size"
+      ],
+      "//": "B3.7：同 B3.2 关于页（parity/about.json）：AX 档多行文字 WebKit 的 text-wrap:pretty 按整段均衡各行长度，TextKit 没有对应折行；行数、行高、起点一致，只有各行长度不同、文字框宽不同"
+    },
+    {
+      "state": "photo",
+      "sizes": [
+        "AX3",
+        "AX5"
+      ],
+      "label": "photo-image",
+      "aspects": [
+        "position"
+      ],
+      "//": "B3.7：AX 档正文区放不下时网页把 3:4 的框收矮，里面的 <img>（height:100%，在收矮的网格里按图的比例撑开）溢出框、被框裁掉，量出的图元素框落在框的下半（AX3 低 11pt、AX5 低 139pt）；原生同样把框收到同高、同位置，图按 contain 完整留在框里，不照搬网页被裁掉的溢出"
+    }
+  ],
+  "waive": {},
+  "ink": {
+    "states": {
+      "detail-zoom-ink": "detail-zoom-ink"
+    }
+  }
+}

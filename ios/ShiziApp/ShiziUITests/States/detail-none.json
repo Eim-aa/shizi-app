@@ -2,7 +2,7 @@
   "state": "detail-none",
   "name": "字详情 · 没写过（参考字形头图）",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -110,6 +110,8 @@
     }
   ],
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   }
 }

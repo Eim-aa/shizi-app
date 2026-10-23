@@ -2,7 +2,7 @@
   "state": "detail-zoom-fail",
   "name": "字详情 · 放大后改判失败（三段式）",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -111,12 +111,15 @@
     }
   ],
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "detail-hero-cell"
+        "webTestid": "detail-hero-cell",
+        "native": "native-detail-hero-cell"
       },
       "times": 1
     },
@@ -124,16 +127,15 @@
       "wait": 700
     },
     {
-      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
-    },
-    {
       "tap": {
-        "web": "[data-testid=\"detail-zoom-flip\"]"
+        "web": "[data-testid=\"detail-zoom-flip\"]",
+        "native": "native-detail-qa-flip"
       },
       "times": 1
     },
     {
       "wait": 500
     }
-  ]
+  ],
+  "failNext": 1
 }

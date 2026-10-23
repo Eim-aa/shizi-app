@@ -2,7 +2,7 @@
   "state": "detail-once",
   "name": "字详情 · 写过一次（一格居中）",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -110,7 +110,9 @@
     }
   ],
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   },
   "ax": true
 }

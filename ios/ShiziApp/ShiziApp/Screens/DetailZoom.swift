@@ -122,6 +122,8 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
     private let failCancel = NativeTextButton(type: .custom)
     private let failRetry = UIButton(type: .custom)
     private let pan = UIPanGestureRecognizer()
+    private let edge = UIScreenEdgePanGestureRecognizer()
+    private var exitsFromEdge = false
     private lazy var haptic = UIImpactFeedbackGenerator(style: .soft)
     private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled || ShiziProbe.forceReduceMotion }
 
@@ -157,7 +159,7 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
     }
 
     func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
-        DetailSheetAnimator(presenting: false, spec: overlay, reduce: reduceMotion)
+        DetailSheetAnimator(presenting: false, spec: overlay, reduce: reduceMotion || exitsFromEdge)
     }
 
     // MARK: 视图
@@ -240,6 +242,11 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
         pan.delegate = self
         pan.addTarget(self, action: #selector(panned(_:)))
         view.addGestureRecognizer(pan)
+        edge.edges = .left
+        edge.delegate = self
+        edge.addTarget(self, action: #selector(edgePanned(_:)))
+        pan.require(toFail: edge)
+        scroll.panGestureRecognizer.require(toFail: edge)
         render()
     }
 
@@ -345,7 +352,13 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        presentationController?.containerView?.addGestureRecognizer(edge)
         NativeA11y.screenChanged(titleLabel)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        edge.view?.removeGestureRecognizer(edge)
     }
 
     override func accessibilityPerformEscape() -> Bool {
@@ -356,9 +369,35 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
     // MARK: 下滑关闭
 
     func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
+        if g === edge { return !isBeingDismissed && !isBeingPresented }
         guard g === pan else { return true }
         let v = pan.velocity(in: view)
         return v.y > 0 && v.y > abs(v.x) && scroll.contentOffset.y <= 0
+    }
+
+    /// N3-6：左缘只移动最上面的弹层；提交后从松手位置淡出，取消则回弹（同 overlay-gesture.js）。
+    @objc private func edgePanned(_ g: UIScreenEdgePanGestureRecognizer) {
+        guard let container = presentationController?.containerView else { return }
+        let dx = max(0, g.translation(in: container).x)
+        let width = max(1, container.bounds.width)
+        let scrim = (presentationController as? DetailSheetPresentation)?.scrim
+        switch g.state {
+        case .changed:
+            guard !reduceMotion else { return }
+            view.transform = CGAffineTransform(translationX: dx, y: 0)
+            scrim?.alpha = max(0, 1 - dx / width)
+        case .ended, .cancelled:
+            if g.state == .ended && BackGestureThreshold.commits(distance: dx, velocity: g.velocity(in: container).x, width: width) {
+                exitsFromEdge = true
+                close()
+            } else if !reduceMotion {
+                NativeOverlaySpec.run(overlay.snap, NativeOverlaySpec.curve(overlay.easeOut, fallback: .easeOut), {
+                    self.view.transform = .identity
+                    scrim?.alpha = 1
+                })
+            }
+        default: break
+        }
     }
 
     @objc private func panned(_ g: UIPanGestureRecognizer) {
@@ -393,11 +432,11 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
         dismiss(animated: true)
     }
 
-    /// 主按钮 / 再试一次：同一个动作（detail.correct 缺省反过来）；成功或 stale 关弹层，失败就地三段式。
+    /// 主按钮 / 再试一次：始终提交打开弹层时明确显示的目标判断，重发不会反改；成功或 stale 关弹层，失败就地三段式。
     func apply() {
         guard !busy, let screen else { return }
         busy = true
-        screen.correct(recordId: recordId) { [weak self] r in
+        screen.correct(recordId: recordId, to: judgment == "correct" ? "wrong" : "correct") { [weak self] r in
             guard let self else { return }
             self.busy = false
             let ok = (r["ok"] as? Bool) == true

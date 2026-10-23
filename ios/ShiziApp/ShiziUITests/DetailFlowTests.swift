@@ -99,6 +99,34 @@ final class DetailFlowTests: XCTestCase {
         qa.waitRouteTop("detail")
     }
 
+    /// 左缘首先只关闭放大弹层，字详情和记录保持原样。
+    func testZoomEdgeClosesOnlyTheSheet() {
+        let qa = open("detail-many")
+        let before = qa.records
+        qa.tapNative("native-detail-hero-cell")
+        XCTAssertTrue(qa.el("native-detail-zoom-close").waitForExistence(timeout: 5))
+        qa.edgeBack()
+        qa.waitProbe("zoom closed by edge") { _ in !qa.el("native-detail-zoom-close").exists }
+        waitStage(qa, ["detail"])
+        qa.waitRouteTop("detail")
+        XCTAssertEqual(qa.records, before)
+    }
+
+    /// 写失败后保留同一张弹层，重试成功关闭；记录条数不增加。
+    func testZoomCorrectionFailureAndRetry() {
+        let qa = open("detail-zoom-fail")
+        let before = qa.records
+        XCTAssertTrue(qa.el("native-detail-zoom-fail-retry").waitForExistence(timeout: 5))
+        XCTAssertTrue(qa.el("native-detail-zoom-note").exists)
+        qa.tapNative("native-detail-zoom-fail-retry")
+        qa.waitProbe("retry closes zoom") { _ in !qa.el("native-detail-zoom-close").exists }
+        waitStage(qa, ["detail"])
+        XCTAssertEqual(qa.records, before)
+        qa.tapNative("native-detail-hero-cell")
+        XCTAssertTrue(qa.el("native-detail-zoom-flip").waitForExistence(timeout: 5))
+        XCTAssertFalse(qa.el("native-detail-zoom-fail-retry").exists)
+    }
+
     /// 让给网页再回来（B3.2 记录里留给本页的流程用例）：字详情 →（网页的）待复习清单 → 返回，原生字详情盖回来（open via 'return'，不带转场）。
     func testYieldToWebAndComeBack() {
         let qa = open("detail-wrong")

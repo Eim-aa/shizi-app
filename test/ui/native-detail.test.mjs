@@ -180,6 +180,21 @@ test('B3.7 detail.correct: unknown / not-correctable record is stale, nothing wr
   assert.equal((await a.call('detail.restoreCustom', {})).error.kind, 'invalid');
 });
 
+test('B3.7 detail.correct: retrying the displayed target never flips the record back', async () => {
+  const { store, storage } = freshStore(seedState());
+  const a = api(store);
+  const record = Object.values(store.getState().records).flat().find(r => r.char === '永' && r.judgment === 'wrong');
+  const args = { recordId: record.id, to: 'correct' };
+  const before = JSON.stringify(store.getState());
+  storage.failNextWrite(1, { kind: 'generic' });
+  assert.equal((await a.call('detail.correct', args)).ok, false);
+  assert.equal(JSON.stringify(store.getState()), before);
+  assert.equal((await a.call('detail.correct', args)).ok, true);
+  const once = JSON.stringify(store.getState().records);
+  assert.equal((await a.call('detail.correct', args)).ok, true);
+  assert.equal(JSON.stringify(store.getState().records), once, 'same target changes this judgment once');
+});
+
 test('B3.7 detail.practice / detail.image go through the destinations the web page registers', async () => {
   const { store } = freshStore(seedState());
   const a = api(store);

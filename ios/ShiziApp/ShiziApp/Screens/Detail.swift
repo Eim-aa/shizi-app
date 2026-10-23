@@ -724,8 +724,8 @@ final class DetailScreen: ShiziScreenViewController {
     }
 
     /// 放大弹层里改判：返回回包（成功 / stale 关弹层，失败就地三段式）。
-    func correct(recordId: String, done: @escaping ([String: Any]) -> Void) {
-        call("detail.correct", ["recordId": recordId]) { [weak self] r in
+    func correct(recordId: String, to judgment: String, done: @escaping ([String: Any]) -> Void) {
+        call("detail.correct", ["recordId": recordId, "to": judgment]) { [weak self] r in
             done(r)
             if (r["ok"] as? Bool) == true { self?.reload() }
         }
@@ -1105,11 +1105,14 @@ final class DetailScreen: ShiziScreenViewController {
     private func layoutHeroInk(_ i: Int, side: CGFloat) {
         let sq = heroSquares[i]
         let c = heroCells[i]
-        sq.ink?.removeFromSuperview()
-        sq.ink = nil
-        if c.hasInk, let v = NativeInkPaint.view(strokes: detailRawStrokes(c.strokes), side: max(1, side - 2 * metrics.value("frame-w")), color: detailInkColor(traitCollection), widthScale: detailInkScale(side - 2)) {
-            sq.addSubview(v)
-            sq.ink = v
+        if sq.inkSide != side {
+            sq.ink?.removeFromSuperview()
+            sq.ink = nil
+            sq.inkSide = side
+            if c.hasInk, let v = NativeInkPaint.view(strokes: detailRawStrokes(c.strokes), side: max(1, side - 2 * metrics.value("frame-w")), color: detailInkColor(traitCollection), widthScale: detailInkScale(side - 2)) {
+                sq.addSubview(v)
+                sq.ink = v
+            }
         }
         sq.glyph?.frame = sq.bounds.insetBy(dx: 0, dy: 0)
         if let g = sq.glyph {
@@ -1126,12 +1129,15 @@ final class DetailScreen: ShiziScreenViewController {
         let c = model!.records.cells[i]
         let frameW = mt.value("frame-w")
         sq.frame = CGRect(x: b.frame.minX, y: b.frame.minY, width: cw, height: cw)
-        sq.ink?.removeFromSuperview()
-        sq.ink = nil
-        if c.hasInk, let v = NativeInkPaint.view(strokes: detailRawStrokes(c.strokes), side: max(1, cw - 2 * frameW), color: detailInkColor(traitCollection), widthScale: detailInkScale(cw - 2 * frameW)) {
-            sq.addSubview(v)
-            sq.ink = v
-            v.frame = CGRect(x: frameW, y: frameW, width: cw - 2 * frameW, height: cw - 2 * frameW)
+        if sq.inkSide != cw {
+            sq.ink?.removeFromSuperview()
+            sq.ink = nil
+            sq.inkSide = cw
+            if c.hasInk, let v = NativeInkPaint.view(strokes: detailRawStrokes(c.strokes), side: max(1, cw - 2 * frameW), color: detailInkColor(traitCollection), widthScale: detailInkScale(cw - 2 * frameW)) {
+                sq.addSubview(v)
+                sq.ink = v
+                v.frame = CGRect(x: frameW, y: frameW, width: cw - 2 * frameW, height: cw - 2 * frameW)
+            }
         }
         var srY: CGFloat = 0
         if let g = sq.glyph {

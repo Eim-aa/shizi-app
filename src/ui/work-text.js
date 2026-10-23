@@ -4,22 +4,13 @@
 // 落款是这个产品的签名：结果页、这次 / 这天的图片、月字帖（页面与导出图）、年报册页、「我的」里的月字帖缩略图都经 kuan()，格式只有一种：
 //   「{汉字年月日}　{汉字数}字」，字数永远带（一个字也写「一字」，V2-05），右对齐，印跟在末字右下；月份落款没有日。
 // 界面里的日期（「10月」「9月」「10月4日」）写在 copy 里，月 / 日 / 年紧跟数字、不留空格，与落款一种写法（H1 / 03 P224，设计说明第 8 条）；落款里全是汉字（T2-04）。
-import { t } from '../config/copy/index.js';
-import { cnCount, cnDigits, cnNumber, isValidDay, localDay, signatureDateParts, signatureMonthParts } from '../core/dates.js';
-import { now as envNow } from '../platform/env.js';
-
-/** 落款日期：日子缺（会话没有时间戳的异常数据）时退回今天，不让页面因为一个落款报错。 */
-function dateText(day) {
-  return t('R-I01.signatureDate', signatureDateParts(isValidDay(day) ? day : localDay(envNow())));
-}
-
-function monthText(month) {
-  return t('R-I01.signatureMonth', signatureMonthParts(month));
-}
+import { t, tRef } from '../config/copy/index.js';
+import { cnCount, cnDigits, signatureDateParts } from '../core/dates.js';
+import { kuanRef, partRef } from '../session/views/kuan.js'; // B3.5c：落款的规则在会话层（引用形态），网页 kuan() 与原生页（App API）同一个
 
 /** 「其一」「其二」…：分张落款的末尾（i 从 1 数）。 */
 export function partLabel(i) {
-  return t('X-WORK.kuanPart', { n: cnNumber(i) });
+  return tRef(partRef(i));
 }
 
 /**
@@ -32,12 +23,8 @@ export function partLabel(i) {
  *   brand：年报卷首的品牌落款「拾字　年报」；
  *   picked：自己选字的这一组（T2-03）→「二〇二六年十月四日　自选五字」，数量照样带。
  */
-export function kuan({ day = null, month = null, n = null, part = 0, of = 1, brand = false, picked = false } = {}) {
-  if (brand) return t('X-WORK.annualBrand');
-  const date = month ? monthText(month) : dateText(day);
-  const countKey = picked ? 'X-WORK.kuanCountPicked' : 'X-WORK.kuanCount';
-  const base = Number.isFinite(n) && n >= 0 ? t('X-WORK.kuanJoin', { date, n: t(countKey, { n: cnCount(n) }) }) : date;
-  return part && of > 1 ? t('X-WORK.kuanJoinPart', { kuan: base, part: partLabel(part) }) : base;
+export function kuan(o = {}) {
+  return tRef(kuanRef(o));
 }
 
 /**

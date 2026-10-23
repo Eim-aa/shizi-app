@@ -20,7 +20,7 @@ import UIKit
 //   「重写错字」/「看这个字 ›」/「分享」= resultExit（页面推入 / 打开网页弹层，结果条目留在栈里，宿主关掉原生页；回来时再盖上）。
 // 撤销条：写字页交过来的跳过撤销机会（剩余时长照旧，S4），R10-B 浮条样式（NativeUndoBarView）；撤销 = resultUndoSkip，页面就地换回写字页。
 
-/// 原生结果页的协调者（WebViewController，NativeWriteCoordinator.swift）。
+/// 原生结果页的协调者（NativeStage，NativeStage.swift）。
 protocol NativeResultCoordinating: AnyObject {
     /// 写入成功后页面会导航走（再写一组 / 撤销跳过 / 推入重写错字 / 字详情 / 分享）：原生页等宿主的 result-close 再让开。
     func nativeResultWillNavigate(_ vc: NativeResultViewController)

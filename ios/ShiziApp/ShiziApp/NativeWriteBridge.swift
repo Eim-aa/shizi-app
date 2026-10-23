@@ -25,6 +25,7 @@ final class NativeWriteBridge {
     }
 
     /// 调用一个会话操作。webView 不在 / JS 抛错 / 回包不是对象 → ok:false、error.kind = transport（对 judge 而言 = 「没保存上」三段式）。
+    /// B3.2：与 App API 同一条通道（WebEngine.evaluate，函数 window.shiziNativeWrite）。
     func call(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
         #if DEBUG
         if Self.qaDelay(op, { self.callNow(op, args, completion: completion) }) { return }
@@ -56,21 +57,7 @@ final class NativeWriteBridge {
     #endif
 
     private func callNow(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
-        let t0 = CACurrentMediaTime()
-        guard let webView else {
-            completion(NativeWriteReply(ok: false, body: ["error": ["kind": "transport"]], wallMs: 0))
-            return
-        }
-        webView.callAsyncJavaScript(
-            "if (typeof window.shiziNativeWrite !== 'function') return {ok:false, error:{kind:'unavailable'}}; return await window.shiziNativeWrite(op, args);",
-            arguments: ["op": op, "args": args],
-            in: nil,
-            in: .page
-        ) { result in
-            let wall = (CACurrentMediaTime() - t0) * 1000
-            var body: [String: Any] = ["error": ["kind": "transport"]]
-            if case .success(let value) = result, let dict = value as? [String: Any] { body = dict }
-            if case .failure(let error) = result { body = ["ok": false, "error": ["kind": "transport", "reason": error.localizedDescription]] }
+        WebEngine.evaluate(webView, function: "shiziNativeWrite", op: op, args: args) { body, wall in
             let reply = NativeWriteReply(ok: (body["ok"] as? Bool) == true, body: body, wallMs: wall)
             #if DEBUG
             NativeWriteMetrics.shared.bridge(op: op, reply: reply)
@@ -89,20 +76,8 @@ final class NativeWriteBridge {
     }
 
     private func callNavNow(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
-        let t0 = CACurrentMediaTime()
-        guard let webView else {
-            completion(NativeWriteReply(ok: false, body: ["error": ["kind": "transport"]], wallMs: 0))
-            return
-        }
-        webView.callAsyncJavaScript(
-            "if (typeof window.shiziNativeNav !== 'function') return {ok:false, error:{kind:'unavailable'}}; return await window.shiziNativeNav(op, args);",
-            arguments: ["op": op, "args": args],
-            in: nil,
-            in: .page
-        ) { result in
-            var body: [String: Any] = ["ok": false, "error": ["kind": "transport"]]
-            if case .success(let value) = result, let dict = value as? [String: Any] { body = dict }
-            completion(NativeWriteReply(ok: (body["ok"] as? Bool) == true, body: body, wallMs: (CACurrentMediaTime() - t0) * 1000))
+        WebEngine.evaluate(webView, function: "shiziNativeNav", op: op, args: args) { body, wall in
+            completion(NativeWriteReply(ok: (body["ok"] as? Bool) == true, body: body, wallMs: wall))
         }
     }
 

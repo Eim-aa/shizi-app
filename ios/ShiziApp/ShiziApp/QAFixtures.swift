@@ -132,6 +132,7 @@ extension WebViewController {
 
     /// 收掉现有原生页（写字 / 结果 / 其它原生宿主）。
     private func qaDismissNativePages() async {
+        await stage.resetScreensForTesting() // B3.2：通用原生页（关于等）先交出，收起时不发 nav.back
         if let top = nativeWriteTop {
             top.exitHandled = true
             top.dismiss(animated: false)
@@ -173,7 +174,7 @@ extension WebViewController {
         case "redo": return nativeRedoTop != nil && settled
         default:
             // "id:<accessibilityIdentifier>"：页面里有这个元素，且转场结束（页面卡的原生页用这个，不必改这里）
-            guard spec.hasPrefix("id:"), let root = presentedViewController?.view else { return false }
+            guard spec.hasPrefix("id:"), let root = stage.topScreen?.view ?? presentedViewController?.view else { return false } // B3.2：通用原生栈取顶层页
             return settled && NativeWriteTransitions.running == 0 && qaFindView(in: root, id: String(spec.dropFirst(3))) != nil
         }
     }
@@ -203,7 +204,7 @@ extension WebViewController {
         for i in 0..<times {
             if i > 0 { try? await Task.sleep(nanoseconds: UInt64(gap) * 1_000_000) } // 同一按钮两次按下隔 0.4s
             if ui == "native" {
-                guard let host = presentedViewController else { return }
+                guard let host = stage.topScreen ?? presentedViewController else { return } // B3.2：通用原生栈取顶层页
                 let id = spec["native"] as? String ?? ""
                 // 走按钮自己的 action（含 0.4s 防误点），没有就直接调动作函数
                 if let b = qaFindView(in: host.view, id: id) as? UIButton, b.isEnabled, !b.isHidden {

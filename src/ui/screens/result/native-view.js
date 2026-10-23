@@ -19,32 +19,10 @@ import { cellStateOf, revealPlan, ROW_GLYPH, ROW_GLYPH_AX, ROW_PAD, rowAria, row
 import { inviteExample } from './first.js';
 import { changeLabel } from '../write/result-row.js';
 import { dateText, inkOf, resultImageAction } from './index.js';
-import { SHI_BOLD_CENTER, SHI_BOLD_PATHS, SHI_BOLD_TRANSFORM, SHI_SEAL_VIEW } from '../../brand/shi.js';
+import { sealGlyphPath } from '../../../core/images/shi-paths.js';
 
-let sealCache = null;
-/**
- * 印文「拾」（marks.js SealGlyph 同一组 path 与视框）：换算到印的单位方块（0–1，左上原点），每段 [M x y] / [C x1 y1 x2 y2 x y] / [Z]。
- * 原生按印的边长缩放后填 --on-seal；印内缩 7% 的细线由原生画（marks.js .sz-seal::before 同一规则）。
- */
-export function sealGlyphPath() {
-  if (sealCache) return sealCache;
-  const { tx, ty, scale } = SHI_BOLD_TRANSFORM;
-  const ox = SHI_BOLD_CENTER.x - SHI_SEAL_VIEW / 2;
-  const oy = SHI_BOLD_CENTER.y - SHI_SEAL_VIEW / 2;
-  const u = (x, y) => [Math.round(((x * scale + tx - ox) / SHI_SEAL_VIEW) * 1e5) / 1e5, Math.round(((y * scale + ty - oy) / SHI_SEAL_VIEW) * 1e5) / 1e5];
-  const out = [];
-  for (const d of SHI_BOLD_PATHS) {
-    for (const m of d.matchAll(/([MCZ])([^MCZ]*)/g)) {
-      const nums = (m[2].match(/-?\d*\.?\d+(?:e-?\d+)?/g) || []).map(Number);
-      if (m[1] === 'Z') { out.push(['Z']); continue; }
-      const seg = [m[1]];
-      for (let i = 0; i + 1 < nums.length; i += 2) seg.push(...u(nums[i], nums[i + 1]));
-      out.push(seg);
-    }
-  }
-  sealCache = out;
-  return out;
-}
+// B3.2：印文路径换算挪到 core/images/shi-paths.js（关于页的视图模型也要它；会话层不导入 UI）——同一个函数原名转出。
+export { sealGlyphPath };
 
 function clientWidth() {
   try {

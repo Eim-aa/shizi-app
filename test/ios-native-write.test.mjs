@@ -15,11 +15,13 @@ import { NATIVE_RESULT_COPY_KEYS } from '../src/session/result-api.js';
 import { COPY } from '../src/config/copy/index.js';
 
 const DIR = path.join(ROOT, 'ios/ShiziApp/ShiziApp');
-const FILES = ['NativeWriteViewController.swift', 'NativeWriteCoordinator.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift', 'NativeTrace.swift',
+const FILES = ['NativeWriteViewController.swift', 'NativeStage.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift', 'NativeTrace.swift',
   'NativeResult.swift', // B2.7 原生结果页
   // B3.1 ShiziKit：从上面这些文件里提出来的共用组件（原 NativeSkipEnd.swift → ShiziUndoBar / ShiziConfirm；NativeJudge 的字阶 / 弹层 / 按钮；转场对象）
   'ShiziKit/NativeType.swift', 'ShiziKit/ShiziA11y.swift', 'ShiziKit/ShiziButtons.swift', 'ShiziKit/ShiziChangeSheet.swift', 'ShiziKit/ShiziConfirm.swift', 'ShiziKit/ShiziOverlay.swift',
-  'ShiziKit/ShiziPageHeader.swift', 'ShiziKit/ShiziProbe.swift', 'ShiziKit/ShiziTokens.swift', 'ShiziKit/ShiziTransitions.swift', 'ShiziKit/ShiziUndoBar.swift'];
+  'ShiziKit/ShiziPageHeader.swift', 'ShiziKit/ShiziProbe.swift', 'ShiziKit/ShiziTokens.swift', 'ShiziKit/ShiziTransitions.swift', 'ShiziKit/ShiziUndoBar.swift',
+  // B3.2：NativeStage（原 NativeWriteCoordinator.swift）、引擎、原生页底座与试点页
+  'ShiziKit/ShiziEngine.swift', 'ShiziKit/ShiziScreen.swift', 'Screens/About.swift'];
 // B2.7：画墨接口 NativeInkPaint 与书写面同为 Release 组件（R11-A 的网页同算法墨换进来的地方）；B3.1 挪进 ShiziKit/Ink/
 const SURFACE = ['ShiziKit/Ink/NativeInkView.swift', 'ShiziKit/Ink/InkModel.swift', 'ShiziKit/Ink/NativeInkWire.swift', 'ShiziKit/Ink/NativeInkPaint.swift', 'ShiziKit/Ink/WebInk.swift'];
 const HAN = /[㐀-鿿＀-￯　-〿]/;
@@ -129,7 +131,7 @@ test('B2.5: the judge page times come from the page (motion.settle / easeOut), n
 
 test('B2.8: page transitions live in one object (NativeWriteTransitions) and take every time / curve / distance from the page (motion.nav)', () => {
   // B3.1：转场对象挪进 ShiziKit/ShiziTransitions.swift（协调者只剩消息分派）；时长等改取 ShiziKit 生成值（= 回包 motion.nav 同一份）
-  const src = code(['NativeWriteCoordinator.swift', 'ShiziKit/ShiziTransitions.swift'].map(f => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n'));
+  const src = code(['NativeStage.swift', 'ShiziKit/ShiziTransitions.swift'].map(f => fs.readFileSync(path.join(DIR, f), 'utf8')).join('\n'));
   // 交互规范 T0 的时长（300 / 420 / 360 / 220 / 180 / 150 ms）、视差 0.3、0.96 起始缩放、贝塞尔控制点都只在 open 回包 motion.nav 里
   assert.ok(!/withDuration:\s*[0-9]/.test(src), 'no literal UIView durations');
   assert.ok(!/\b0\.(35|3|42|36|22|18|15|96)\b/.test(src), 'no hard-coded transition seconds / scale');

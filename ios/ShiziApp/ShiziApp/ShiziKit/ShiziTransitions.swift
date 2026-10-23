@@ -2,6 +2,9 @@ import QuartzCore
 import UIKit
 
 // ShiziKit（B3.1）：原生页转场（B2.8 NativeWriteTransitions，原在 NativeWriteCoordinator.swift）。
+// B3.2（计划 §3.3）：推广为全部原生页的转场对象——T-push（下层视差：网页根视图，或下面那张原生页）、T-paper（来源矩形由 open.plan 带来）、
+// T-quiet、减少动态效果 150ms 淡化；时长 / 曲线取生成的 motion 令牌（NativeNavMotion.ensure）。原生 ↔ 网页之间的转场由「上面那一层」播：
+// 网页页面盖住原生页时原生先截图留在宿主层再让开（NativeStage.yieldToWeb / B2 nativeWriteOpenDetail）。类名 B3.F 前统一改名（ShiziTransitions）。
 
 /// 有 NativeWriteTransitions 的原生页（写字页、结果页、B2.9a 重写错字页）。
 protocol NativeTransitionPage: UIViewController {
@@ -94,6 +97,12 @@ struct NativeNavMotion {
     /// 最近一次 open / result-open 带来的参数；还没有时一律不带转场（直接到终态）。
     static var current: NativeNavMotion?
 
+    /// B3.2：通用原生屏（NativeStage）没有 open 回包里的 motion——还没有参数时取 ShiziKit 生成值（= 写字页回包 motion.nav 同一份）。
+    static func ensure() {
+        guard current == nil else { return }
+        update(payload: [:])
+    }
+
     static func update(payload raw: [String: Any]) {
         // B3.1：转场时长 / 曲线、纸边颜色、按钮字号取 ShiziKit 生成值（结果页 look 的 motion 带 result 一组）
         let payload = ShiziLook.resolve(raw, page: (raw["motion"] as? [String: Any])?["result"] != nil ? .result : .write)
@@ -148,6 +157,8 @@ final class NativeWriteTransitions: NSObject, UIViewControllerTransitioningDeleg
     var fadeNext = false
     /// 已经在回去（点按或松手完成）：不再接受第二次返回。
     var isLeaving = false
+    /// B3.2 量测：进场转场画出第一帧时调用一次（点按 → 转场第一帧，NativeStage.recordLatency）。
+    var onFirstFrame: (() -> Void)?
 
     private weak var page: UIViewController?
     private var kind: NativeNavKind = .none
@@ -362,6 +373,10 @@ final class NativeWriteTransitions: NSObject, UIViewControllerTransitioningDeleg
 
     fileprivate func tick() {
         guard let r = run else { return }
+        if let f = onFirstFrame {
+            onFirstFrame = nil
+            f()
+        }
         let u = r.ms <= 0 ? 1 : min(1, (CACurrentMediaTime() - r.t0) * 1000 / r.ms)
         frame(r.from + (r.to - r.from) * CGFloat(r.ease(u)), drag: dragFollows)
         if u >= 1 { complete() }

@@ -56,6 +56,8 @@ final class WebViewController: UIViewController {
 
     private let schemeHandler: LocalWebSchemeHandler
     var webView: WKWebView!
+    /// B3.2：原生层的协调者（写字 / 结果页 + 通用原生屏 + 引擎；NativeStage.swift）。
+    lazy var stage = NativeStage(host: self)
     // 用户脚本（文档开始时注入的系统字号；DEBUG 冒烟标记）挂在这个控制器上；每次加载前重建（见「系统字号」一节）。
     private var scriptController: WKUserContentController!
     /// 左缘返回（01 §7 / P272）：系统边缘识别器（屏幕左缘，与系统导航返回同一判定）。
@@ -304,7 +306,7 @@ final class WebViewController: UIViewController {
         runNativeSmokeIfNeeded()
         runQAHarnessIfNeeded() // QA-H1：状态注入 / 逐屏取证 / 探针（NativeQAHarness.swift，只在启动参数 -shizi-qa* 下）
         #endif
-        nativePageDidBecomeReady() // B2.8：重载前盖着的原生页，页面没有再认领就收起（NativeWriteCoordinator.swift）
+        nativePageDidBecomeReady() // B2.8：重载前盖着的原生页，页面没有再认领就收起（NativeStage.swift）
     }
 
     // MARK: - 读屏状态（阶段 0 B2 / D36 / P116）
@@ -842,7 +844,9 @@ extension WebViewController: WKScriptMessageHandler {
             handleNativeInkMessage(body)
         #endif
         case "nativeWrite":
-            handleNativeWriteMessage(body) // B3.1：Release 组件（开关关着时直接忽略，NativeWriteCoordinator.swift）
+            handleNativeWriteMessage(body) // B3.1：Release 组件（开关关着时直接忽略；B3.2 起由 NativeStage 接，NativeStage.swift）
+        case "native":
+            handleNativeScreenMessage(body) // B3.2：通用原生屏（open / close）与引擎推送（changed / status）
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")
         case "sound":

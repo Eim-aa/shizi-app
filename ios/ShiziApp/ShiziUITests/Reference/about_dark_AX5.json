@@ -13,7 +13,7 @@
     },
     {
       "id" : "about-build",
-      "name" : "版本 1.0.0，20261023，点按看完整构建号",
+      "name" : "版本 1.0.0，20261001，点按看完整构建号",
       "role" : "button",
       "tag" : "button"
     },
@@ -134,7 +134,7 @@
     },
     {
       "align" : "center",
-      "axLabel" : "版本 1.0.0，20261023，点按看完整构建号",
+      "axLabel" : "版本 1.0.0，20261001，点按看完整构建号",
       "class" : "sz-btn sz-btn--plain sz-about__build",
       "color" : "#C2B8A8FF",
       "enabled" : true,
@@ -149,11 +149,11 @@
       "id" : "about-build",
       "kind" : "button",
       "tag" : "button",
-      "text" : "版本 1.0.0（20261023）",
+      "text" : "版本 1.0.0（20261001）",
       "textFrame" : {
         "h" : 117,
-        "w" : 322,
-        "x" : 40,
+        "w" : 316.69999999999999,
+        "x" : 42.700000000000003,
         "y" : 367
       }
     },

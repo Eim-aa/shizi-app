@@ -78,3 +78,28 @@ export const SHI_SEAL_VIEW = 1340;
 export const SHI_BOLD_CENTER = Object.freeze({ x: 510, y: 499 });
 export const SHI_SEAL_VIEWBOX = `${SHI_BOLD_CENTER.x - SHI_SEAL_VIEW / 2} ${SHI_BOLD_CENTER.y - SHI_SEAL_VIEW / 2} ${SHI_SEAL_VIEW} ${SHI_SEAL_VIEW}`;
 export const SHI_BOLD_TRANSFORM_ATTR = `translate(${SHI_BOLD_TRANSFORM.tx} ${SHI_BOLD_TRANSFORM.ty}) scale(${SHI_BOLD_TRANSFORM.scale})`;
+
+let sealCache = null;
+/**
+ * 印文「拾」（ui/components/marks.js SealGlyph 同一组 path 与视框）：换算到印的单位方块（0–1，左上原点），每段 [M x y] / [C x1 y1 x2 y2 x y] / [Z]。
+ * 原生按印的边长缩放后填色（B2.7 结果页的印、B3.2 关于页题句末的印）；印内缩 7% 的细线由原生画（marks.js .sz-seal::before 同一规则）。
+ */
+export function sealGlyphPath() {
+  if (sealCache) return sealCache;
+  const { tx, ty, scale } = SHI_BOLD_TRANSFORM;
+  const ox = SHI_BOLD_CENTER.x - SHI_SEAL_VIEW / 2;
+  const oy = SHI_BOLD_CENTER.y - SHI_SEAL_VIEW / 2;
+  const u = (x, y) => [Math.round(((x * scale + tx - ox) / SHI_SEAL_VIEW) * 1e5) / 1e5, Math.round(((y * scale + ty - oy) / SHI_SEAL_VIEW) * 1e5) / 1e5];
+  const out = [];
+  for (const d of SHI_BOLD_PATHS) {
+    for (const m of d.matchAll(/([MCZ])([^MCZ]*)/g)) {
+      const nums = (m[2].match(/-?\d*\.?\d+(?:e-?\d+)?/g) || []).map(Number);
+      if (m[1] === 'Z') { out.push(['Z']); continue; }
+      const seg = [m[1]];
+      for (let i = 0; i + 1 < nums.length; i += 2) seg.push(...u(nums[i], nums[i + 1]));
+      out.push(seg);
+    }
+  }
+  sealCache = out;
+  return out;
+}

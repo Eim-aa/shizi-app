@@ -77,6 +77,10 @@ extension WebViewController {
         if let clock = QAClock.script {
             controller.addUserScript(WKUserScript(source: clock, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
+        // B3.2：QA（逐屏取证 / 夹具注入 / 探针）里版本行钉住——BUILD 每次重生成清单都变，关于页与「我的」页底的版本行参考要可复现（about.js aboutBuild）
+        if Self.qaEnabled {
+            controller.addUserScript(WKUserScript(source: "window.__shiziQABuild = {version:'1.0.0', build:'20261001-000000000000'};", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
     }
 
     func applySmokeLaunchArguments() {

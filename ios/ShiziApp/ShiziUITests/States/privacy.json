@@ -2,7 +2,7 @@
   "state": "privacy",
   "name": "隐私",
   "screen": "about-privacy",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,7 +20,8 @@
     }
   ],
   "ready": {
-    "web": "about-privacy-screen"
+    "web": "about-privacy-screen",
+    "native": "id:native-about-privacy-p"
   },
   "ax": true
 }

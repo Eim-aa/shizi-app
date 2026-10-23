@@ -265,6 +265,17 @@ extension WebViewController {
                     let own = (v is UIButton) ? v.convert(v.bounds, to: window) : lf
                     let vis = own.intersection(visible)
                     e["visibleFrame"] = vis.isNull || vis.isEmpty ? NSNull() : ["x": r(vis.minX), "y": r(vis.minY), "w": r(vis.width), "h": r(vis.height)] as Any
+                } else if v is ShiziRowButton {
+                    // B3.7：自己不画字的整块按钮（字详情的头图格 / 记录格，字在它里面的标签里）：此刻看得见的部分 = 按滚动区 / 裁切祖先的可见框裁过的框（AX-01 重叠只比看得见的）
+                    var visible = window.bounds
+                    var a: UIView? = v.superview
+                    while let anc = a, anc !== window {
+                        if let sv = anc as? UIScrollView { visible = visible.intersection(sv.convert(sv.bounds, to: window)) }
+                        else if anc.clipsToBounds { visible = visible.intersection(anc.convert(anc.bounds, to: window)) }
+                        a = anc.superview
+                    }
+                    let vis = v.convert(v.bounds, to: window).intersection(visible)
+                    e["visibleFrame"] = vis.isNull || vis.isEmpty ? NSNull() : ["x": r(vis.minX), "y": r(vis.minY), "w": r(vis.width), "h": r(vis.height)] as Any
                 }
                 // 所在的层：弹层 / 确认框 / 撤销条是盖在页面上的浮层（按设计会盖住页面），重叠只在同一层里查
                 var layer = "page"

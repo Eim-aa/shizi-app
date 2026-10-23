@@ -2,14 +2,16 @@
   "state": "detail-photo-row",
   "name": "字详情 · 有旧版本的记录行",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   },
   "setup": [
     {
@@ -126,6 +128,12 @@
   "steps": [
     {
       "js": "document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"detail-legacy\"]').scrollIntoView({ block: 'center' });"
+    },
+    {
+      "tap": {
+        "native": "native-detail-qa-scroll-legacy"
+      },
+      "times": 1
     },
     {
       "wait": 300

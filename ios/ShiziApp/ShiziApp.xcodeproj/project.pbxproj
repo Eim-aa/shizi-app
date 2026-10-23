@@ -80,6 +80,10 @@
 		1A00000000000000000B3333 /* BlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3332 /* BlockTests.swift */; };
 		1A00000000000000000B3335 /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3334 /* AccessibilityAuditTests.swift */; };
 		1A00000000000000000B3302 /* QAFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3301 /* QAFixtures.swift */; };
+		1A0000000000000000B37002 /* Detail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37001 /* Detail.swift */; };
+		1A0000000000000000B37004 /* DetailZoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37003 /* DetailZoom.swift */; };
+		1A0000000000000000B37006 /* DetailPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37005 /* DetailPhoto.swift */; };
+		1A0000000000000000B37008 /* DetailParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37007 /* DetailParts.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -180,6 +184,10 @@
 		1A00000000000000000B3332 /* BlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3334 /* AccessibilityAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3301 /* QAFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAFixtures.swift; sourceTree = "<group>"; };
+		1A0000000000000000B37001 /* Detail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detail.swift; sourceTree = "<group>"; };
+		1A0000000000000000B37003 /* DetailZoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailZoom.swift; sourceTree = "<group>"; };
+		1A0000000000000000B37005 /* DetailPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPhoto.swift; sourceTree = "<group>"; };
+		1A0000000000000000B37007 /* DetailParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailParts.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -384,6 +392,10 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000B32011 /* About.swift */,
+				1A0000000000000000B37001 /* Detail.swift */,
+				1A0000000000000000B37003 /* DetailZoom.swift */,
+				1A0000000000000000B37005 /* DetailPhoto.swift */,
+				1A0000000000000000B37007 /* DetailParts.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -560,6 +572,10 @@
 			files = (
 				1A0000000000000000000021 /* AppDelegate.swift in Sources */,
 				1A0000000000000000B32012 /* About.swift in Sources */,
+				1A0000000000000000B37006 /* DetailPhoto.swift in Sources */,
+				1A0000000000000000B37004 /* DetailZoom.swift in Sources */,
+				1A0000000000000000B37002 /* Detail.swift in Sources */,
+				1A0000000000000000B37008 /* DetailParts.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* WebViewController.swift in Sources */,

@@ -321,24 +321,23 @@ final class WriteFlowTests: XCTestCase {
         XCTAssertTrue(qa.el("native-write-line").label.contains("写对"), "line: \(qa.el("native-write-line").label)")
     }
 
-    /// D66 ⑮（R9-B，NP-04）：改判弹层「看这个字 ›」→ 关弹层、推入这个字的详情；详情返回 → 回到原生写字页，结果行仍在、不多记。
+    /// D66 ⑮（R9-B，NP-04；B3.7 起字详情是原生页）：改判弹层「看这个字 ›」→ 关弹层、推入这个字的原生详情（T-push，盖在原生写字页上面——不再让开给网页）；
+    /// 详情返回 → 写字页就在下面（同一个对象），结果行仍在、不多记。
     func test504_changeSheetViewCharOpensTheDetailAndComesBack() {
         let qa = QA(seed: "line")
         qa.launch()
         qa.tapNative("native-write-line-change")
         XCTAssertTrue(qa.el("native-change-title").waitForExistence(timeout: 5), "change sheet shown")
         qa.tapNative("native-change-detail")
-        qa.waitNative(false)
         qa.waitRouteTop("detail")
-        // B2.8：让开——原生页的样子交给宿主层，网页自己推入字详情（T-push），原生页等页面画好后直接收起
-        XCTAssertTrue(qa.transitions.contains("yield:detail"), "\(qa.transitions)")
-        XCTAssertTrue(qa.webNav.contains("push:slide"), "\(qa.webNav)")
+        XCTAssertTrue(qa.el("native-detail-practice").waitForExistence(timeout: 6), "native detail page on top")
+        XCTAssertTrue(qa.transitions.contains("screen:open detail via=push"), "\(qa.transitions)")
+        XCTAssertTrue(qa.transitions.contains("yield:under-native"), "write page stays under the native detail: \(qa.transitions)")
+        XCTAssertTrue(qa.webNav.contains("push:native"), "\(qa.webNav)")
         qa.edgeBack()
-        qa.waitNative(true)
-        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("open via=return") }, "\(qa.transitions)")
-        XCTAssertTrue(qa.transitions.contains("present:none"), "\(qa.transitions)")
-        XCTAssertTrue(qa.webNav.contains("pop:slide"), "the web pops the detail itself over the native page's look: \(qa.webNav)")
+        qa.waitRouteTop("write")
         XCTAssertTrue(qa.el("native-write-line-change").waitForExistence(timeout: 4), "result line still there")
+        XCTAssertTrue(qa.nativeShown, "the same native write page")
         XCTAssertEqual(qa.records, 1, "nothing recorded on the way")
     }
 

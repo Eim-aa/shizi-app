@@ -2,15 +2,17 @@
 // 网页页面从这里 import 同一批函数；用户可见的句子只给「文案键 + 参数」（cellCopy），网页用 tRef 渲染。
 
 import * as defaultPolicy from '../../config/policy.js';
-import { ref } from '../../config/copy/index.js';
+import { canCorrectHere } from '../ops/detail.js';
+import { inkKey, ref } from '../../config/copy/index.js';
 import { monthDayParts } from '../../core/dates.js';
 import { compareRecordIds, isJudged, isPaperRecord, sortById } from '../../core/records.js';
 import { flattenRecords } from '../../core/query.js';
 import { promptModel } from '../../core/cards.js';
-import { decodeInk, resampleForReplay } from '../../core/ink-math.js';
+import { decodeInk, inkParams, resampleForReplay } from '../../core/ink-math.js';
 import { inkHasStrokes } from '../../core/ink-pick.js';
 import { cardForKey, hasContextWord, withWordOff } from '../../data/deck.js';
 import { promptCopy, recalledInk } from '../write-ops.js';
+import { sheetStrokes } from '../write-api.js';
 import { memoryZoneOf } from './library.js';
 
 export function baseKey(char) {
@@ -192,4 +194,143 @@ export function recordHasInk(store, record) {
 
 export function hasInkPoints(ink) {
   return !!(ink && ((ink.points && ink.points.length) || (ink.strokes && ink.strokes.length)));
+}
+
+// ---------------------------------------------------------------- 原生字详情的视图（B3.7：App API view.detail / view.detail-photo）
+
+export const DETAIL_SCREEN = 'detail';
+export const DETAIL_PHOTO_SCREEN = 'detail-photo';
+export const LIST_SCREEN_NAME = 'library-list';
+
+/** localDay → 「{month}月{day}日」的文案引用（坏日期给 ''，网页 dayText 同一规则）。 */
+export function dayRef(day) {
+  try {
+    return ref('R-H02.dateFormat', monthDayParts(day));
+  } catch (error) {
+    return '';
+  }
+}
+
+/** 一条记录的墨：strokes 是桥上的紧凑原始笔画（没有墨时 []）。网页格子取同一条记录的 inkOf（hasInkPoints）判有没有。 */
+function inkWire(store, record) {
+  const has = hasInkPoints(inkOf(store, record));
+  return { has, strokes: has ? sheetStrokes(store, record) : [] };
+}
+
+/**
+ * 原生字详情的视图（网页字详情页渲染用的同一个 detailModel / detailHero / cellCopy，只多一层「文案引用 + 笔画」的壳）。
+ * 页面里的临时状态（撤销条、失败三段式、放大弹层）是原生页自己的，不在这里。
+ * @param {object} store
+ * @param {string} char
+ * @param {{today: string, etymology?: {gloss: string, source: string}|null, imageAction?: boolean, listAction?: boolean}} o
+ *   imageAction：「做成图片」有没有去处（M4-5 注册后才显示这一行，R-D04）；etymology：这个字的字源（没有 = 整块不显示，R-D09）。
+ */
+export function detailView(store, char, { today, etymology = null, imageAction = false } = {}) {
+  const state = store.getState();
+  const model = detailModel(state, char, { today, hasInk: record => hasInkPoints(inkOf(store, record)) });
+  const hero = detailHero(model);
+  const cellTitle = record => cellCopy(record).title;
+  const labelRef = kind => ref(kind === 'first' ? 'X-DETAIL.heroFirst' : 'X-DETAIL.heroLatest');
+  const heroCells = hero.cells.map(c => {
+    const ink = inkWire(store, c.record);
+    const title = cellTitle(c.record);
+    return {
+      kind: c.kind,
+      title,
+      changeable: canCorrectHere(c.record),
+      recordId: c.record.id,
+      judgment: c.record.judgment,
+      wrong: c.record.judgment === 'wrong',
+      hasInk: ink.has,
+      strokes: ink.strokes,
+      caption: ref('X-DETAIL.heroCaption', { label: labelRef(c.kind), date: dayRef(c.record.localDay) }),
+      aria: ref('X-DETAIL.heroCellLabel', { label: labelRef(c.kind), text: ink.has ? title : ref('X-DETAIL.cellNoInkLabel', { text: title }) }),
+    };
+  });
+  // 历次格：头图那两次不在这里重画（V3-04）
+  const heroIds = new Set(hero.cells.map(c => c.record.id));
+  const source = Array.isArray(model.cells) ? model.cells : model.judged;
+  const inkFirst = model.inkFirst !== undefined ? model.inkFirst : model.first;
+  const inkLatest = model.inkLatest !== undefined ? model.inkLatest : model.latest;
+  const cells = source.filter(record => !heroIds.has(record.id)).map(record => {
+    const ink = inkWire(store, record);
+    const c = cellCopy(record);
+    return {
+      recordId: record.id,
+      title: c.title,
+      changeable: canCorrectHere(record),
+      judgment: record.judgment,
+      wrong: record.judgment === 'wrong',
+      hasInk: ink.has,
+      strokes: ink.strokes,
+      first: inkFirst === record,
+      latest: inkLatest === record,
+      date: c.date,
+      caption: c.caption,
+      aria: ink.has ? c.title : ref('X-DETAIL.cellNoInkLabel', { text: c.title }),
+    };
+  });
+  const paperRows = (Array.isArray(model.paperRows) ? model.paperRows : []).map(record => {
+    const date = dayRef(record.localDay);
+    const caption = ref(record.judgment === 'wrong' ? 'X-RESULT.cellWrong' : 'X-RESULT.cellCorrect');
+    return { recordId: record.id, judgment: record.judgment, date, caption, tag: ref('X-DETAIL.paperTag'), label: ref('X-DETAIL.paperRowLabel', { date, caption }) };
+  });
+  const word = model.word;
+  const rows = [];
+  if (model.list) rows.push({ key: 'list', kind: model.list, title: ref('X-LIBFOUR.zone.due'), sub: ref(model.list === 'wrong' ? 'R-D01.wrongLine' : 'R-D01.forgetLine'), to: { screen: LIST_SCREEN_NAME, params: { kind: 'due' } } });
+  if (model.due) rows.push({ key: 'next', title: ref('R-D02.nextReview', { date: dayRef(model.due) }) });
+  if (imageAction) {
+    rows.push(model.image === 'ok'
+      ? { key: 'image', state: 'ok', title: ref('R-D04.makeImage') }
+      : { key: 'image', state: model.image, title: ref('R-D04.makeImage'), note: ref(model.image === 'noInk' ? inkKey('R-D04.noInkNote') : 'R-D04.noRecordNote') });
+  }
+  if (model.photo) rows.push({ key: 'legacy', title: ref('X-DETAIL.legacyEntry'), to: { screen: DETAIL_PHOTO_SCREEN, params: { char } } });
+  if (model.canSwapWord) rows.push({ key: 'swap', title: ref('R-D05.swapWord') });
+  if (model.custom) rows.push({ key: 'remove', title: ref('R-D06.rowTitle'), sub: ref('R-D06.rowSub') });
+  if (!model.custom && model.practicable) rows.push({ key: 'add', title: ref('R-Q05.btnAdd') });
+  return {
+    char,
+    cardKey: model.cardKey,
+    ink: { ...inkParams(defaultPolicy) }, // 原生画墨（WebInk）的参数表：与写字页 / 结果页回包的 ink 同一张（policy.ink + INK_SPEC）
+    title: ref('X-DETAIL.pageTitle', { char }),
+    practicable: model.practicable,
+    practice: ref('R-D08.btnPractice'),
+    pinyin: model.pinyin,
+    strokes: model.strokes ? { n: model.strokes, label: ref('X-DETAIL.strokes', { n: model.strokes }) } : null,
+    word: model.card
+      ? { hasWord: word.hasWord, label: ref(word.hasWord ? 'X-DETAIL.wordLabel' : 'X-DETAIL.glossLabel'), text: word.hasWord ? model.card.word : '', tiles: word.tiles, gloss: word.gloss }
+      : null,
+    originalWord: model.originalWord,
+    wordOff: model.wordOff,
+    hero: { kind: hero.kind, cells: heroCells },
+    refLabel: ref('R-W09.labelReference'),
+    records: model.count
+      ? { count: model.count, countLabel: ref('R-D03.count', { n: model.count }), cells, paperRows }
+      : { count: 0, countLabel: ref('R-D03.none'), empty: ref('X-DETAIL.emptyNote'), cells: [], paperRows: [] },
+    source: etymology ? { label: ref('X-DETAIL.sourceLabel'), gloss: etymology.gloss, from: etymology.source || '' } : null,
+    rows,
+    custom: model.custom,
+    list: model.list,
+  };
+}
+
+/** photos[char]（只读）；没有（或不是图片 data URL）返回 null。 */
+export function photoOf(state, char) {
+  const photos = state && state.photos && typeof state.photos === 'object' ? state.photos : null;
+  if (!photos || !Object.prototype.hasOwnProperty.call(photos, char)) return null;
+  const p = photos[char];
+  return p && typeof p.dataURL === 'string' && p.dataURL.indexOf('data:image/') === 0 ? p : null;
+}
+
+/** 旧记录页的视图（只读；照片是 data URL，没了 = null，只留标题与说明）。 */
+export function photoView(state, char) {
+  const p = photoOf(state, char);
+  return {
+    char,
+    title: ref('R-D10.title', { char }),
+    alt: ref('X-DETAIL.photoAlt'),
+    caption: ref('X-DETAIL.legacyEntry'),
+    body: ref('R-D10.body'),
+    photo: p ? p.dataURL : null,
+  };
 }

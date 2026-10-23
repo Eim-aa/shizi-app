@@ -15,6 +15,7 @@ import { Page } from '../../components/Page.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
+import { photoOf } from '../../../session/views/detail.js';
 
 export const PHOTO_SCREEN = 'detail-photo';
 
@@ -31,13 +32,8 @@ injectStyles('detail-photo', `
 .sz-dphoto__body{margin:0;font-size:${T.fs15};line-height:${T.lh15};color:${T.ink2}}
 `);
 
-/** photos[char]（只读）；没有返回 null。 */
-export function photoOf(state, char) {
-  const photos = state && state.photos && typeof state.photos === 'object' ? state.photos : null;
-  if (!photos || !Object.prototype.hasOwnProperty.call(photos, char)) return null;
-  const p = photos[char];
-  return p && typeof p.dataURL === 'string' && p.dataURL.indexOf('data:image/') === 0 ? p : null;
-}
+// B3.7：photos[char] 的读取挪到 src/session/views/detail.js（App API 的 view.detail-photo 共用），这里转出同一个函数。
+export { photoOf };
 
 function usePhoto(char) {
   const read = () => {
@@ -81,4 +77,4 @@ function PhotoScreen({ params }) {
   </div>`;
 }
 
-registerScreen(PHOTO_SCREEN, PhotoScreen, { label: t('X-DETAIL.legacyEntry') });
+registerScreen(PHOTO_SCREEN, PhotoScreen, { label: t('X-DETAIL.legacyEntry'), native: true });

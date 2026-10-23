@@ -59,6 +59,8 @@ final class ShiziRowButton: UIButton {
     let valueLabel = UILabel()
     /// chevron 的尺寸（网页 .sz-chev 8 × 13）。
     var chevronSize = CGSize.zero
+    /// 图像框的位置（按钮坐标）：设了就用它（字库首页：搜索图标在左、样字行里按钮的「图标」是第一枚样字——B3.5b）；不设 = 右缘的 chevron。
+    var iconFrame: CGRect?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -73,6 +75,7 @@ final class ShiziRowButton: UIButton {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func imageRect(forContentRect r: CGRect) -> CGRect {
+        if let iconFrame { return iconFrame }
         guard chevronSize.width > 0 else { return .zero }
         return CGRect(x: bounds.maxX - chevronSize.width, y: (bounds.height - chevronSize.height) / 2, width: chevronSize.width, height: chevronSize.height)
     }
@@ -133,6 +136,10 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     private(set) var lastView: Any?
 
     var metrics = ShiziMetrics()
+
+    /// root-pending（B3.5b 起）：tab 根页的原生类先放着，不进注入网页的原生屏清单（网页照旧画自己的根页），B3.5d 三个根页同开时去掉。
+    /// 调试 / QA 要看：启动参数 `-shizi-native-roots`（NativeStage.swift ShiziScreenRegistry.screens）。
+    class var rootPending: Bool { false }
 
     required init(screen: String, entryId: String, params: [String: Any]) {
         self.screen = screen

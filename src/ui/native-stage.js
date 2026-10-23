@@ -100,6 +100,15 @@ export function installNativeStage(win = globalWin(), deps = {}) {
 
 // ---------------------------------------------------------------- 界面一侧的 op（不进 App API：它们碰 DOM）
 
+/**
+ * 界面一侧的 App 操作（B3.5b）：原生页要网页界面做一件事（例：字库搜索框打开网页的查字弹层——原生查字弹层 B3.6 之前）时，页面文件自己登记一个 op，
+ * 原生经 shiziNative(op) 调用（先走 stage.cover 让开）。登记在页面自己的文件里，不改这个文件；原生查字弹层上线后随之删除。
+ */
+const uiOps = new Map();
+export function registerStageOp(op, fn) {
+  if (typeof op === 'string' && typeof fn === 'function') uiOps.set(op, fn);
+}
+
 /** 原生页让给网页页面时留在宿主层上的「样子」：entryId → 截图（data URL）。网页推入 / 左缘滑回时露出的是它。 */
 const covers = new Map();
 const coverListeners = new Set();
@@ -147,6 +156,13 @@ export function stageCall(op, args, win = globalWin()) {
     const pages = router ? router.getState().stack.filter(e => e.k === 's') : [];
     const under = pages[pages.length - 2] || null;
     return { ok: true, entryId: under ? under.id : null, screen: under ? under.n : null, native: !!(under && nativeScreenOn(under.n, win)) };
+  }
+  if (uiOps.has(op)) {
+    try {
+      return uiOps.get(op)(a);
+    } catch (error) {
+      return { ok: false, error: { kind: 'exception' } };
+    }
   }
   if (!api) return { ok: false, error: { kind: 'unavailable' } };
   return api.call(op, a);

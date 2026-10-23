@@ -44,7 +44,8 @@ enum ShiziScreenRegistry {
             let name = String(cString: names[i])
             guard name.hasPrefix(prefix) else { continue }
             let screen = String(name.dropFirst(prefix.count)).replacingOccurrences(of: "_", with: "-")
-            if screenClass(screen) != nil { out.append(screen) }
+            // root-pending（tab 根页，B3.5b 起）：开关 -shizi-native-roots 没开时先不告诉网页（B3.5d 三个根页同开时去掉）
+            if let cls = screenClass(screen), !cls.rootPending || UserDefaults.standard.bool(forKey: "shizi-native-roots") { out.append(screen) }
         }
         return out.sorted()
     }()
@@ -289,7 +290,7 @@ final class NativeStage: NSObject {
     }
 
     /// 让给网页页面：原生页截图交给宿主层（解码好才回包）→ go（网页换页）→ 等页面画完一帧 → 原生栈整个收起（不带转场，不发 nav.back）。
-    private func yieldToWeb(from page: ShiziScreenViewController, go: @escaping () -> Void) {
+    func yieldToWeb(from page: ShiziScreenViewController, go: @escaping () -> Void) {
         tapAt = nil
         page.transitions.finishNow()
         let url = WebViewController.snapshotURL(page.view)

@@ -41,7 +41,8 @@ import { startToday } from '../home/index.js';
 import './list.js'; // M3-2 清单页自注册（library-list）：三档的区详情页复用它（kind = due | shaky | known）
 import './switch.js'; // M3-5 换库页自注册（library-switch）
 import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all）
-import { LibraryQueryBox } from './query-entry.js'; // M3-3 顶部查字框（lookup 查字弹层）
+import { LibraryQueryBox, openLibraryQuery } from './query-entry.js'; // M3-3 顶部查字框（lookup 查字弹层）
+import { registerStageOp } from '../../native-stage.js';
 
 // tab 名取自文案表（copy/common.js X-TABS）。
 export const LIBRARY_LABEL = t('X-TABS.library');
@@ -318,4 +319,11 @@ function LibraryScreen() {
   </${TabPage}>`;
 }
 
-registerScreen(LIBRARY_TAB, LibraryScreen, { tab: true, order: 1, label: LIBRARY_LABEL, icon: ICON });
+// B3.5b：原生字库首页（Screens/Library.swift，视图 api/library.js view.library）。tab 根：原生类带 root-pending 标记，Swift 一侧不把 'library' 放进
+// 注入的原生屏清单——B3.5d 三个根页同开时摘掉标记，这一行 native:true 不再改。
+// 原生页的搜索框在原生查字弹层（B3.6）之前，让开给网页的查字弹层（screenshot-cover，同 native-stage.js stage.cover）：原生经这个 op 调 openLibraryQuery。
+registerStageOp('library.openQuery', () => {
+  openLibraryQuery();
+  return { ok: true };
+});
+registerScreen(LIBRARY_TAB, LibraryScreen, { tab: true, order: 1, label: LIBRARY_LABEL, icon: ICON, native: true });

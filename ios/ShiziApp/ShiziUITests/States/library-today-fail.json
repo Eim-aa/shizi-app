@@ -2,14 +2,15 @@
   "state": "library-today-fail",
   "name": "字库 · 点今日练习开组失败（三段式）",
   "screen": "library",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-library-screen"
   },
   "setup": [
     {
@@ -101,22 +102,27 @@
       "op": "seed"
     },
     {
+      "op": "nativeRoots",
+      "screens": [
+        "library"
+      ]
+    },
+    {
       "op": "switchTab",
       "tab": "library"
     }
   ],
   "steps": [
     {
-      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
-    },
-    {
       "tap": {
-        "webTestid": "library-today"
+        "webTestid": "library-today",
+        "native": "native-library-today"
       },
       "times": 1
     },
     {
       "wait": 500
     }
-  ]
+  ],
+  "failNext": 1
 }

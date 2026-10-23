@@ -1,0 +1,41 @@
+{
+  "//": "字库首页（B3.5b，tab 根页）的逐项豁免。其余全部 0 差异不豁免。",
+  "ignore": [
+    {
+      "state": ["library-empty", "library-records", "library-half", "library-done", "library-today-fail"],
+      "type": "missing",
+      "label": "tab-home",
+      "//": "B3.5b：网页底部的 Tab 栏（tab-home / tab-library / tab-mine）是网页根外壳画的，原生根页整页盖在它上面、不画 Tab 栏；原生 Tab 栏（UITabBarController）由 B3.5d 实现，到时 TAB-01 具名豁免记录 iOS 26 浮起玻璃样式的差异"
+    },
+    {
+      "state": ["library-empty", "library-records", "library-half", "library-done", "library-today-fail"],
+      "type": "missing",
+      "label": "tab-library",
+      "//": "B3.5b：同上（tab-library）"
+    },
+    {
+      "state": ["library-empty", "library-records", "library-half", "library-done", "library-today-fail"],
+      "type": "missing",
+      "label": "tab-mine",
+      "//": "B3.5b：同上（tab-mine）"
+    },
+    {
+      "label": "library-all-open",
+      "sizes": ["AX3", "AX5"],
+      "aspects": ["size", "position"],
+      "//": "B3.5b：「全部 ›」文字框宽 AX3 差 2.2pt、AX5 差 4.3pt（约 0.1 个字号；按钮靠右对齐，AX3 左缘随之差 1.8pt）：AX 档网页里这一个空格比 L / XXXL 档的固定宽（NativeType.linkTitle 按 15pt 实测的 4pt）宽一点，没有找到随字号变化的公式；位置、高、颜色、字号一致，L / XXXL 0 差异"
+    },
+    {
+      "label": "library-today",
+      "sizes": ["XXXL"],
+      "aspects": ["position"],
+      "//": "B3.5b：今日练习行名称与第二行小字是同一个标签的两段（取证按 UILabel 的行盒推算文字内容区），XXXL 档推算的内容区比网页（两段文字节点的框并集）高 3pt、中线差 1.5pt；行框、两段字的真实位置、字号、颜色逐项一致（L 档 0 差异）"
+    },
+    {
+      "state": "library-records",
+      "label": "library-skipped",
+      "aspects": ["position", "size", "text"],
+      "//": "B3.5b：已跳过一行的样字是轮廓字形：网页里每个字形旁放着一份视觉隐藏的字（读屏读它；取证的按钮文字与文字框并集因此多出「鸡 虫」那一段）；原生的字形是画出来的、字在读屏名里（accessibilityLabel 同为「已跳过 2 鸡 虫」），按钮文字与文字框只含名称与数"
+    }
+  ]
+}

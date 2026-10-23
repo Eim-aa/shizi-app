@@ -2,14 +2,15 @@
   "state": "library-done",
   "name": "字库 · 今日练习写完",
   "screen": "library",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-library-screen"
   },
   "setup": [
     {
@@ -124,6 +125,12 @@
     },
     {
       "op": "seed"
+    },
+    {
+      "op": "nativeRoots",
+      "screens": [
+        "library"
+      ]
     },
     {
       "op": "switchTab",

@@ -249,7 +249,8 @@ const tabScroll = new Map(); // tab 名 → scrollTop
 
 function TabRoot({ entry }) {
   const def = getScreen(entry.n);
-  const Comp = def ? def.component : null;
+  // B3.5b：native 的 tab 根页（root-pending，开关 / 清单放行时）渲染成原生宿主，同 Layer 里的 native 屏
+  const Comp = def ? (def.native && nativeScreenShown(entry.n) ? NativeScreenHost : def.component) : null;
   const items = listTabs().map(t => ({ id: t.name, label: t.label, icon: t.icon, panelId: 'sz-tabpanel' }));
   const panelRef = useRef(null);
   const shownRef = useRef(entry.n);

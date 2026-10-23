@@ -516,6 +516,7 @@ final class NativeWriteViewController: UIViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         guard isBeingDismissed || presentingViewController == nil else { return }
+        commitBeforeLeaving() // R12：exit 之前（同一条桥队列，按发出顺序执行）
         saveMetrics()
         if !exitHandled, redo {
             // B2.9a：重写错字页离开（‹ / 左缘 / 完成）→ 页面 nav.back 回到结果页；什么都不写
@@ -1654,9 +1655,22 @@ final class NativeWriteViewController: UIViewController {
         bridge.send("strokes", ["slot": slot, "cardKey": key, "strokes": NativeInkWire.wire(strokes), "phase": currentPhaseName])
     }
 
+    /// R12（规则：写完的笔离开前一定交到页面）：页面要离开时——换字门限内持住、已抬笔的笔现在交出（不等门限、不随页面丢），
+    /// 再把本字的现场整份写回一次（strokes op，页面无差别时 noop）。抬笔时已经发过（P52），这一次补上抬笔那次没送到 / 没写上的情况
+    /// （页面重载中、写入失败）。经同一条 callAsyncJavaScript 队列，一定先于随后的 exit 执行。
+    /// 不交：正在写、还没抬笔的一笔（没写完，左缘 / 系统取消照旧丢弃）；提交中（判断 / 跳过 / 看答案回包前，门限 .infinity）持住的笔属于下一个字（D07）。
+    /// 重写错字页只算练习，什么都不写。每次离开都调用：‹、左缘、结束这组（零判断回来源）、页面收起（close）、viewDidDisappear 兜底。
+    func commitBeforeLeaving() {
+        guard !redo else { return }
+        ink?.flushHeld()
+        guard !submitting, phase != .compare else { return } // 判断页的现场由 phase op 写过；提交中不和 judge 抢
+        persistStrokes()
+    }
+
     @objc private func tapBack() {
         if endDialog != nil { dismissEndDialog(); return } // 确认框开着：读屏 Z 形 / 返回 = 接着写
         if phase == .compare && !redo { continueWriting(); return } // 重写错字页的对照阶段「‹」= 整页离开（网页 Page 返回）
+        commitBeforeLeaving()
         coordinator?.nativeWriteDidRequestBack(self)
     }
 
@@ -2609,6 +2623,7 @@ final class NativeWriteViewController: UIViewController {
             guard !submitting else { return }
             settleAnimations()
             ink?.cancelStroke(reason: "edge-back", notify: false) // 落笔中被手势打断：这一笔丢弃（与网页 pointercancel 同语义）
+            commitBeforeLeaving() // R12：已抬笔、持住的笔先交出（左缘松手回弹时也无害：到点本来就交）
             transitions.drag(g, page: self)
         default:
             // B2.8：跟手画的是这一页进来时的那种转场倒放（纸缩回 / 右滑出 / 安静淡出），阈值 BackGestureThreshold；完成后收起，viewDidDisappear 发 exit back

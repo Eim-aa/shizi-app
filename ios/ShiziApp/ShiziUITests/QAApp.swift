@@ -31,9 +31,9 @@ final class QA {
     let app = XCUIApplication()
     private(set) var seed: String?
 
-    init(seed: String?, native: Bool = true, failNext: Int = 0, reduceMotion: Bool = false) {
+    init(seed: String?, native: Bool = true, failNext: Int = 0, reduceMotion: Bool = false, extra: [String] = []) {
         self.seed = seed
-        app.launchArguments = Self.args(seed: seed, native: native, failNext: failNext) + (reduceMotion ? ["-shizi-qa-reduce-motion"] : [])
+        app.launchArguments = Self.args(seed: seed, native: native, failNext: failNext) + (reduceMotion ? ["-shizi-qa-reduce-motion"] : []) + extra
     }
 
     static func args(seed: String?, native: Bool = true, failNext: Int = 0) -> [String] {
@@ -149,6 +149,24 @@ final class QA {
         XCTAssertTrue(g.waitForExistence(timeout: 5), "grid exists")
         g.coordinate(withNormalizedOffset: from).press(forDuration: 0.05, thenDragTo: g.coordinate(withNormalizedOffset: to), withVelocity: 300, thenHoldForDuration: 0.02)
         Thread.sleep(forTimeInterval: 0.35)
+    }
+
+    /// 画一笔并确认原生页收下了（R12）：原生笔数到 n 才返回。机器很忙时 XCTest 合成的拖动偶尔在按下点停住、随后被系统取消
+    /// （录屏：起笔点停 ~0.9s 后消失，没有移动、没有抬笔；书写面按设计丢弃没写完的一笔，与网页 pointercancel 同语义）——
+    /// 这不是「写完的笔丢了」，按合成触摸失败重画一次，并把书写面日志（native.inkLog）打进测试输出备查。
+    func strokeLanded(_ n: Int, file: StaticString = #filePath, line: UInt = #line) {
+        for attempt in 0..<2 {
+            stroke()
+            let end = Date().addingTimeInterval(2)
+            var last: [String: Any] = [:]
+            while Date() < end {
+                last = native
+                if last["strokes"] as? Int == n { return }
+                Thread.sleep(forTimeInterval: 0.25)
+            }
+            print("QA-H1 synthesized stroke not received (attempt \(attempt)); inkLog = \(last["inkLog"] ?? "-")")
+        }
+        XCTFail("native page never received the stroke; probe.native = \(native)", file: file, line: line)
     }
 
     /// 左缘右滑（N3：= 点左上）。

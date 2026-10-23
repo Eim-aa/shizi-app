@@ -26,6 +26,36 @@ final class NativeWriteBridge {
 
     /// 调用一个会话操作。webView 不在 / JS 抛错 / 回包不是对象 → ok:false、error.kind = transport（对 judge 而言 = 「没保存上」三段式）。
     func call(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
+        #if DEBUG
+        if Self.qaDelay(op, { self.callNow(op, args, completion: completion) }) { return }
+        #endif
+        callNow(op, args, completion: completion)
+    }
+
+    #if DEBUG
+    /// R12 测试钩子（只在 DEBUG）：启动参数 -shizi-qa-bridge-delay <ms> 让每个写字 / 导航 op 晚这么久才交给 WebKit（模拟页面忙、桥慢），
+    /// 发出顺序不变（每个 op 的出发时刻不早于前一个）。返回是否已改为延后发出。
+    private static let qaDelayMs: Double = {
+        let a = ProcessInfo.processInfo.arguments
+        guard let i = a.firstIndex(of: "-shizi-qa-bridge-delay"), i + 1 < a.count else { return 0 }
+        return Double(a[i + 1]) ?? 0
+    }()
+    private static var qaNextAt: DispatchTime = .now()
+    private static var qaDelayed = false
+    private static func qaDelay(_ op: String, _ go: @escaping () -> Void) -> Bool {
+        guard qaDelayMs > 0, !qaDelayed else { return false }
+        let at = max(DispatchTime.now() + qaDelayMs / 1000, qaNextAt)
+        qaNextAt = at
+        DispatchQueue.main.asyncAfter(deadline: at) {
+            qaDelayed = true
+            defer { qaDelayed = false }
+            go()
+        }
+        return true
+    }
+    #endif
+
+    private func callNow(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
         let t0 = CACurrentMediaTime()
         guard let webView else {
             completion(NativeWriteReply(ok: false, body: ["error": ["kind": "transport"]], wallMs: 0))
@@ -52,6 +82,13 @@ final class NativeWriteBridge {
     /// 发出去不等（strokes / phase）。失败只记进量测，不打扰书写（P52）。
     /// B2.8：页面的导航助手 window.shiziNativeNav（back / cover / fence；不写 store）。与 call 同一条 callAsyncJavaScript 队列，所以和随后的写字 op 按发出顺序执行。
     func callNav(_ op: String, _ args: [String: Any] = [:], completion: @escaping (NativeWriteReply) -> Void) {
+        #if DEBUG
+        if Self.qaDelay(op, { self.callNavNow(op, args, completion: completion) }) { return }
+        #endif
+        callNavNow(op, args, completion: completion)
+    }
+
+    private func callNavNow(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
         let t0 = CACurrentMediaTime()
         guard let webView else {
             completion(NativeWriteReply(ok: false, body: ["error": ["kind": "transport"]], wallMs: 0))

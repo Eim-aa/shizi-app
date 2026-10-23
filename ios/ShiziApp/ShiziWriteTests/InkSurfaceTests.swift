@@ -279,6 +279,36 @@ final class InkSurfaceTests: XCTestCase {
         XCTAssertEqual(s[0].y, 10, accuracy: 1e-6, "same top edge, 1pt = 1 unit at 345pt")
     }
 
+    /// R12：页面离开时，门限内已抬笔、持住的笔不等门限立刻整笔交出（不丢）；还在写的一笔不算写完、不交。
+    func testFlushHeldDeliversLiftedHeldStrokesNow() throws {
+        let (ink, rec) = try surface()
+        let now = CACurrentMediaTime()
+        ink.acceptFrom = now + 0.25
+        ink.inputBegan(Sample(location: CGPoint(x: 30, y: 30), timestamp: now, kind: .finger, majorRadius: 8), id: id(0))
+        ink.inputEnded([], last: Sample(location: CGPoint(x: 120, y: 40), timestamp: now + 0.05, kind: .finger, majorRadius: 8), id: id(0))
+        ink.inputBegan(Sample(location: CGPoint(x: 30, y: 90), timestamp: now + 0.1, kind: .finger, majorRadius: 8), id: id(1)) // 第二笔还没抬
+        XCTAssertEqual(rec.events, [])
+        XCTAssertEqual(ink.flushHeld(), 1)
+        XCTAssertEqual(rec.events, ["begin", "end"], "the lifted stroke is handed over without waiting for the arm time")
+        XCTAssertEqual(rec.strokes.first?.count, 2)
+        XCTAssertTrue(ink.isWriting, "the stroke still being written is not finished, not flushed")
+        XCTAssertEqual(ink.flushHeld(), 0, "nothing twice")
+        ink.releaseHeldIfDue(now + 1)
+        XCTAssertEqual(rec.events, ["begin", "end", "begin"], "no duplicate end when the arm time comes")
+    }
+
+    /// R12：门限 .infinity（提交中，持住的笔属于下一个字）——离开时不交给当前字（D07）。
+    func testFlushHeldKeepsStrokesWaitingForTheNextCard() throws {
+        let (ink, rec) = try surface()
+        let now = CACurrentMediaTime()
+        ink.acceptFrom = .infinity
+        ink.inputBegan(Sample(location: CGPoint(x: 30, y: 30), timestamp: now, kind: .finger, majorRadius: 8), id: id(0))
+        ink.inputEnded([], last: Sample(location: CGPoint(x: 120, y: 40), timestamp: now + 0.05, kind: .finger, majorRadius: 8), id: id(0))
+        XCTAssertEqual(ink.flushHeld(), 0)
+        XCTAssertEqual(rec.events, [])
+        XCTAssertTrue(ink.hasHeldInput)
+    }
+
     func testHeldInputIsDroppedWhenTheJudgmentDidNotSave() throws {
         let (ink, rec) = try surface()
         ink.acceptFrom = .infinity

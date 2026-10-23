@@ -140,6 +140,60 @@ final class NativeWriteBridgeTests: XCTestCase {
         XCTAssertEqual(backend, "native")
     }
 
+    private func storedStrokeCount() async throws -> Int {
+        let st = try await state()
+        return ((sessionA(st)?["current"] as? [String: Any])?["strokes"] as? [Any])?.count ?? 0
+    }
+
+    private func liftedStroke(_ ink: NativeInkView) {
+        let now = CACurrentMediaTime()
+        let id = ObjectIdentifier(ink.layer) // 测试里一次只有一笔
+        ink.inputBegan(NativeInkView.Sample(location: CGPoint(x: 40, y: 60), timestamp: now, kind: .finger, majorRadius: 8), id: id)
+        ink.inputEnded([], last: NativeInkView.Sample(location: CGPoint(x: 160, y: 70), timestamp: now + 0.1, kind: .finger, majorRadius: 8), id: id)
+    }
+
+    /// R12：换字门限内（P227 持住）写完、抬笔的一笔，页面马上离开——离开前整笔交出并写进会话，不等门限、不随页面丢。
+    func testR12_heldStrokeIsFlushedAndCommittedWhenLeaving() async throws {
+        let vc = try await startGroup()
+        let ink = try XCTUnwrap(vc.inkViewForTesting)
+        ink.acceptFrom = CACurrentMediaTime() + 30 // 门限还远：这一笔只会被持住
+        liftedStroke(ink)
+        XCTAssertTrue(ink.hasHeldInput)
+        XCTAssertEqual(vc.strokes.count, 0, "held: the page has not heard of it yet")
+        vc.commitBeforeLeaving()
+        XCTAssertFalse(ink.hasHeldInput)
+        XCTAssertEqual(vc.strokes.count, 1, "flushed into the page's strokes")
+        try await waitUntil("held stroke committed") { (try? await self.storedStrokeCount()) == 1 }
+    }
+
+    /// R12：提交中（门限 .infinity：判断 / 跳过回包前）持住的笔属于下一个字——离开时不交给当前字（D07）。
+    func testR12_strokeHeldForTheNextCardIsNotFlushedIntoThisOne() async throws {
+        let vc = try await startGroup()
+        let ink = try XCTUnwrap(vc.inkViewForTesting)
+        ink.acceptFrom = .infinity
+        liftedStroke(ink)
+        vc.commitBeforeLeaving()
+        XCTAssertTrue(ink.hasHeldInput, "still waiting for the next card")
+        XCTAssertEqual(vc.strokes.count, 0)
+        ink.dropHeld()
+        ink.acceptFrom = 0
+    }
+
+    /// R12：抬笔时的 strokes 写入没写上（页面重载中 / 写入失败；P52 只记不重试）——离开时整份现场再写一次，笔画进会话。
+    func testR12_leavingRewritesStrokesThatDidNotSaveAtPenUp() async throws {
+        let vc = try await startGroup()
+        let ink = try XCTUnwrap(vc.inkViewForTesting)
+        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        ink.acceptFrom = 0
+        liftedStroke(ink)
+        XCTAssertEqual(vc.strokes.count, 1)
+        try await Task.sleep(nanoseconds: 300_000_000)
+        let afterPenUp = try await storedStrokeCount()
+        XCTAssertEqual(afterPenUp, 0, "the pen-up write failed (injected)")
+        vc.commitBeforeLeaving()
+        try await waitUntil("rewritten on leaving") { (try? await self.storedStrokeCount()) == 1 }
+    }
+
     func testFailedJudgeDoesNotAdvanceAndRetryRecordsOnce() async throws {
         let vc = try await startGroup()
         let key = try XCTUnwrap(vc.cardKey)

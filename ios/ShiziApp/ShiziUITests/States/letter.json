@@ -2,7 +2,7 @@
   "state": "letter",
   "name": "写给你的信",
   "screen": "about-letter",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,7 +20,8 @@
     }
   ],
   "ready": {
-    "web": "about-letter-screen"
+    "web": "about-letter-screen",
+    "native": "id:native-about-letter-address"
   },
   "ax": true
 }

@@ -2,7 +2,7 @@
   "state": "credits",
   "name": "致谢（程序 / 字形和字源 / 字体）",
   "screen": "about-credits",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,7 +20,8 @@
     }
   ],
   "ready": {
-    "web": "about-credits-screen"
+    "web": "about-credits-screen",
+    "native": "id:native-about-credits-intro"
   },
   "ax": true
 }

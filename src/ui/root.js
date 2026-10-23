@@ -34,9 +34,11 @@ import {
   nav,
   NATIVE_ESCAPE_EVENT,
   NATIVE_PROGRESS_EVENT,
+  nativeScreenShown,
   pageDepth,
   setActiveRouter,
 } from './router.js';
+import { installNativeStage, NativeScreenHost } from './native-stage.js'; // B3.2 NativeStage 的网页一半：原生屏宿主、App API（window.shiziNative）、changed 推送
 import { setBackGestureEnabled } from '../platform/bridge.js';
 import { M, prefersReducedMotion as reducedMotionOf } from '../config/motion.js';
 import { isNativeShell, isStandalone, isTestHost } from '../platform/env.js';
@@ -279,9 +281,11 @@ function Layer({ router, group, isRoot, visible, isTop, nativeHost = false }) {
   const def = getScreen(e.n);
   const Comp = def ? def.component : null;
   const topOverlay = group.overlays.length ? group.overlays[group.overlays.length - 1].id : null;
+  // B3.2：native 屏在原生有类、开关打开时渲染成原生宿主（ui/native-stage.js），不画网页组件
+  const Shown = def && def.native && nativeScreenShown(e.n) ? NativeScreenHost : Comp;
   const content = isRoot
     ? html`<${TabRoot} entry=${e} />`
-    : Comp ? html`<${Comp} params=${e.p} entry=${e} />` : null;
+    : Shown ? html`<${Shown} params=${e.p} entry=${e} />` : null;
   // transform 与 sz-layer--moving/--snap/--under 由转场与跟手手势直接写 DOM（style 里不带 transform，Preact 不会覆盖）。
   const style = { visibility: visible ? 'visible' : 'hidden' };
   return html`<${EntryContext.Provider} value=${e.id}><div
@@ -800,6 +804,7 @@ export async function mountRoot(container, { win = window, defaultTab = 'home' }
   const detach = attachWindow(router, win);
   const unpin = pinDocument(win);
   router.start({ defaultTab });
+  installNativeStage(win); // B3.2：开关打开时装 window.shiziNative 与 changed / status 推送（关着时什么都不做）
   memory.attach(router);
   setRouteMemory(memory);
   render(html`<${Root} router=${router} win=${win} />`, container);

@@ -40,6 +40,20 @@ export const PENDING_TIMEOUT_MS = 1000;
 
 const registry = new Map();
 
+// B3.2：native:true 的屏「可以原生」——此刻是否由原生显示由 NativeStage 的网页一半判定（开关打开且原生有同名类，ui/native-stage.js 设这个闸）。
+// 本模块不碰 DOM / 全局，所以判定是注入的；没设时一律是网页。
+let nativeScreenGate = () => false;
+
+export function setNativeScreenGate(fn) {
+  nativeScreenGate = typeof fn === 'function' ? fn : () => false;
+}
+
+/** 这一屏此刻是否由原生显示（native:true 且闸放行）。 */
+export function nativeScreenShown(name) {
+  const def = registry.get(name);
+  return !!(def && def.native && nativeScreenGate(name));
+}
+
 export function registerScreen(name, component, opts = {}) {
   if (typeof name !== 'string' || !name) throw new TypeError('registerScreen: name must be a non-empty string');
   if (typeof component !== 'function') throw new TypeError(`registerScreen(${name}): component must be a function`);
@@ -53,7 +67,9 @@ export function registerScreen(name, component, opts = {}) {
     // 01 §7：本屏在顶层期间自己管原生左缘返回手势门控；根组件此时不发 backGestureEnabled（R4-G1 起写字页不再声明，目前没有页面用）。
     ownsBackGesture: opts.ownsBackGesture === true,
     // B2.0：本屏此刻由原生页面显示（返回 true 时根组件让下层页保持可见、本层透明不接收触摸；见 write/native-session.js）。
-    nativeHost: typeof opts.nativeHost === 'function' ? opts.nativeHost : null,
+    nativeHost: typeof opts.nativeHost === 'function' ? opts.nativeHost : opts.native === true ? () => nativeScreenGate(name) : null,
+    // B3.2：本屏可以由原生显示（NativeStage；原生有 ShiziScreen_<屏名> 类时宿主代替网页组件，root.js Layer）
+    native: opts.native === true,
     // B2.7：本屏离开页面栈、返回转场里留着的旧层也保持透明（原生页已自己滑走）
     nativeHostLeaving: typeof opts.nativeHostLeaving === 'function' ? opts.nativeHostLeaving : null,
   };

@@ -2,7 +2,7 @@
   "state": "about-build",
   "name": "关于 · 版本行展开完整 BUILD",
   "screen": "about",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,12 +20,14 @@
     }
   ],
   "ready": {
-    "web": "about-screen"
+    "web": "about-screen",
+    "native": "id:native-about-build"
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "about-build"
+        "webTestid": "about-build",
+        "native": "native-about-build"
       },
       "times": 1
     },

@@ -128,6 +128,7 @@ extension WebViewController {
                 m = mm.superclassMirror
             }
         }
+        for page in stage.screens { collectNames(page, prefix: "") } // B3.2 通用原生页（backButton 等成员名）
         if let rv = nativeResultTop {
             collectNames(rv, prefix: "")
             if let sheet = rv.presentedViewController {
@@ -164,8 +165,10 @@ extension WebViewController {
             }
             return alpha > 0.02
         }
+        // B3.2：原生栈里被盖住的下层页不取（网页同样只取顶层图层）
+        let covered = Set(stage.screens.dropLast().map { ObjectIdentifier($0.view) })
         func walk(_ v: UIView) {
-            if v is WKWebView { return }
+            if v is WKWebView || covered.contains(ObjectIdentifier(v)) { return }
             if v.window != nil, visible(v), v.bounds.width > 0.5, v.bounds.height > 0.5 {
                 let f = v.convert(v.bounds, to: window)
                 let onScreen = f.intersects(window.bounds)
@@ -174,6 +177,7 @@ extension WebViewController {
                 if let b = v as? UIButton {
                     e["kind"] = "button"
                     e["text"] = (b.currentTitle ?? b.titleLabel?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let rb = b as? ShiziRowButton { e["text"] = rb.composedText } // B3.2 列表行：按钮里两段字（网页按钮的字 = 里面全部文字）
                     e["color"] = hex(b.currentTitleColor, v)
                     e["enabled"] = b.isEnabled
                     if let font = b.titleLabel?.font { e["fontSize"] = font.pointSize; e["fontWeight"] = weight(font) }
@@ -182,7 +186,16 @@ extension WebViewController {
                         e["hasIcon"] = true; e["tint"] = hex(b.tintColor, v)
                         e["iconFrame"] = ["x": r(fi.minX), "y": r(fi.minY), "w": r(fi.width), "h": r(fi.height)]
                     }
-                    if let tl = b.titleLabel, !(tl.text ?? "").isEmpty {
+                    if let rb = b as? ShiziRowButton {
+                        // 两段字的文字框并集（网页按钮 = 全部文字节点的并集）
+                        var u = CGRect.null
+                        for l in [rb.label, rb.valueLabel] where !l.isHidden && !(l.text ?? "").isEmpty {
+                            let tr = l.textRect(forBounds: l.bounds, limitedToNumberOfLines: l.numberOfLines)
+                            let tx = l.textAlignment == .right ? l.bounds.width - tr.width : l.textAlignment == .center ? (l.bounds.width - tr.width) / 2 : tr.minX
+                            u = u.union(l.convert(CGRect(x: tx, y: (l.bounds.height - tr.height) / 2, width: tr.width, height: tr.height), to: window))
+                        }
+                        if !u.isNull { e["textFrame"] = ["x": r(u.minX), "y": r(u.minY), "w": r(u.width), "h": r(u.height)] }
+                    } else if let tl = b.titleLabel, !(tl.text ?? "").isEmpty {
                         // 字在标题标签里竖向居中（UILabel 的画法；标签比字高时 textRect 给的是贴顶的框）
                         let tr = tl.textRect(forBounds: tl.bounds, limitedToNumberOfLines: tl.numberOfLines)
                         let ft = tl.convert(CGRect(x: tr.minX, y: (tl.bounds.height - tr.height) / 2, width: tr.width, height: tr.height), to: window)
@@ -504,6 +517,8 @@ final class QAProbe {
         } else {
             out["result"] = ["shown": false]
         }
+        // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
+        out["stage"] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies]
         out["pageReady"] = host.pageReady
         out["transitions"] = QATrace.events
         out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）

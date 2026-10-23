@@ -2,7 +2,7 @@
   "state": "about",
   "name": "关于 · 版本行 + 三行入口",
   "screen": "about",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,7 +20,8 @@
     }
   ],
   "ready": {
-    "web": "about-screen"
+    "web": "about-screen",
+    "native": "id:native-about-build"
   },
   "ax": true
 }

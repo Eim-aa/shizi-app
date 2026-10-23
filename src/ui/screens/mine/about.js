@@ -29,49 +29,45 @@ import { Button } from '../../components/Button.js';
 import { Chevron } from '../../components/Chevron.js';
 import { SealGlyph } from '../../components/marks.js';
 import { injectStyles, T } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
-import { isNativeShell } from '../../../platform/env.js';
+import { t, tRef } from '../../../config/copy/index.js';
+import { isNativeShell, isTestHost } from '../../../platform/env.js';
 import { BUILD, VERSION } from '../../../build-info.js';
-import { CREDITS, LICENSE_TEXTS } from '../../../config/credits.js';
+import { CREDITS } from '../../../config/credits.js';
+// B3.2：模型挪进 src/session/views/about.js（App API view.about* 与本页同一组函数；本页按引用渲染）
+import {
+  CREDIT_KINDS,
+  aboutModel, privacyModel, creditsModel, letterModel, creditGroupRefs, versionRefs, buildDay, stripArrow, creditFullText, creditName,
+} from '../../../session/views/about.js';
 
+export { CREDIT_KINDS, buildDay, stripArrow, creditFullText, creditName };
+
+// 屏名（视图模型 views/about.js 里的行去处用同一组名字；test/ui/native-about.test.mjs 核对两边一致）
 export const ABOUT_SCREEN = 'about';
 export const ABOUT_PRIVACY_SCREEN = 'about-privacy';
 export const ABOUT_CREDITS_SCREEN = 'about-credits';
 export const ABOUT_LETTER_SCREEN = 'about-letter';
 
-export const CREDIT_KINDS = Object.freeze(['code', 'data', 'font']);
-const GROUP_KEY = Object.freeze({ code: 'X-ABOUT.groupCode', data: 'X-ABOUT.groupData', font: 'X-ABOUT.groupFont' });
-
-// ---------------------------------------------------------------- 纯函数（test/ui/about.test.mjs）
-
-/** BUILD「20261001-abcdef123456」的日期部分；形状不对就原样返回。 */
-export function buildDay(build = BUILD) {
-  const m = /^(\d{8})-/.exec(String(build));
-  return m ? m[1] : String(build);
-}
+// ---------------------------------------------------------------- 渲染规则（原生 ShiziScreen_about* 同一套）
 
 /** 版本行文案与读屏名：「版本 1.0（20261001）」（D36 / P90；完整 BUILD 点按展开）。 */
 export function versionTexts(version = VERSION, build = BUILD) {
-  const vars = { version, day: buildDay(build) };
-  return { line: t('X-ABOUT.version', vars), aria: t('X-ABOUT.versionAria', vars), full: t('X-ABOUT.buildFull', { build }) };
+  const v = versionRefs(version, build);
+  return { line: tRef(v.line), aria: tRef(v.aria), full: tRef(v.full) };
 }
 
-/** 行尾的「 ›」只是视觉箭头：行标签 / 读屏名里去掉。 */
-export function stripArrow(text) {
-  return String(text).replace(/\s*›\s*$/, '');
+/** 一行的标签 / 值 / 读屏名（标签去掉行尾 ›；有值时读屏名 =「标签，值去掉 ›」）。 */
+export function rowTexts(row) {
+  const label = stripArrow(tRef(row.label));
+  const value = row.value ? tRef(row.value) : null;
+  return { label, value, aria: value ? `${label}，${stripArrow(value)}` : label };
 }
 
-/** 关于页三行：{key, label, value, to, aria}。 */
+/** 关于页三行：{key, label, value, to, aria}（value：隐私行是文字；其余行渲染成 chevron，值是「›」）。 */
 export function aboutRows() {
-  const privacy = t('X-ABOUT.privacy');
-  const privacyValue = t('R-AB01.privacyRow');
-  const credits = stripArrow(t('R-AB01.openSourceRow'));
-  const letter = t('R-AB01.letterTitle');
-  return [
-    { key: 'privacy', label: privacy, value: privacyValue, to: ABOUT_PRIVACY_SCREEN, aria: `${privacy}，${stripArrow(privacyValue)}` },
-    { key: 'credits', label: credits, value: t('X-ABOUT.more'), to: ABOUT_CREDITS_SCREEN, aria: credits },
-    { key: 'letter', label: letter, value: t('X-ABOUT.more'), to: ABOUT_LETTER_SCREEN, aria: letter },
-  ];
+  return aboutModel({ version: VERSION, build: BUILD }).rows.map(r => {
+    const x = rowTexts(r);
+    return { key: r.key, label: x.label, value: x.value === null ? t('X-ABOUT.more') : x.value, to: r.to, aria: x.aria };
+  });
 }
 
 /**
@@ -79,7 +75,7 @@ export function aboutRows() {
  * 网页 / 主屏 PWA 联网只用来取更新与笔顺。native 可注入（测试）。
  */
 export function privacyParagraphs({ native = isNativeShell() } = {}) {
-  return [t('X-ABOUT.privacy1'), t('X-ABOUT.privacy2'), t(native ? 'X-ABOUT.privacy3Native' : 'X-ABOUT.privacy3Web'), t('X-ABOUT.privacy4')];
+  return privacyModel({ native }).paragraphs.map(tRef);
 }
 
 /**
@@ -87,22 +83,17 @@ export function privacyParagraphs({ native = isNativeShell() } = {}) {
  * @returns {{kind, title, items: object[]}[]}
  */
 export function creditGroups(credits = CREDITS) {
-  return CREDIT_KINDS.map(kind => ({
-    kind,
-    title: t(GROUP_KEY[kind]),
-    items: credits.filter(c => c.kind === kind),
-  })).filter(g => g.items.length > 0);
+  return creditGroupRefs(credits).map(g => ({ kind: g.kind, title: tRef(g.title), items: g.items }));
 }
 
-/** 一项的展开全文：NOTICES 原文 + 引用的许可全文（按引用顺序）。 */
-export function creditFullText(credit, texts = LICENSE_TEXTS) {
-  const parts = [credit.notice];
-  for (const p of credit.licenseFiles || []) if (texts[p]) parts.push(`— ${p} —\n\n${texts[p].trimEnd()}`);
-  return parts.filter(Boolean).join('\n\n');
-}
-
-export function creditName(credit) {
-  return credit.version ? `${credit.name} ${credit.version}` : credit.name;
+/**
+ * 关于页显示的版本与构建号：VERSION / BUILD（build-info.js）。测试宿主里可由 window.__shiziQABuild = {version, build} 钉住
+ * （QA-H1 逐屏取证：BUILD 每次重生成清单都变，参考图要可复现；原生页的 view.about 读同一个函数）。
+ */
+export function aboutBuild(win = typeof window !== 'undefined' ? window : null) {
+  const pin = win && isTestHost(win) ? win.__shiziQABuild : null;
+  if (pin && typeof pin.version === 'string' && typeof pin.build === 'string') return { version: pin.version, build: pin.build };
+  return { version: VERSION, build: BUILD };
 }
 
 export function openAbout() {
@@ -146,7 +137,7 @@ injectStyles('about', `
 // ---------------------------------------------------------------- 视图
 
 /** 版本行文字（关于页与「我的」页底共用，E7）：同一个函数、同一种显示；dir=ltr + isolate，括号不会被双向算法挪位。 */
-export function VersionText({ version = VERSION, build = BUILD } = {}) {
+export function VersionText({ version = aboutBuild().version, build = aboutBuild().build } = {}) {
   return html`<span class="sz-ver" dir="ltr" data-testid="version-text">${versionTexts(version, build).line}</span>`;
 }
 
@@ -164,35 +155,37 @@ function BuildLine(props) {
 }
 
 export function AboutView({ onOpen = to => nav.push(to), version = VERSION, build = BUILD } = {}) {
-  const rows = aboutRows();
-  return html`<${Page} title=${t('X-ABOUT.title')} testid="about-screen">
+  const model = aboutModel({ version, build });
+  const rows = model.rows.map(r => ({ ...r, ...rowTexts(r) }));
+  return html`<${Page} title=${tRef(model.title)} testid="about-screen">
     <div class="sz-about__head" data-testid="about-head">
       <img class="sz-about__logo" src="icon-512.png" alt="" width="64" height="64" aria-hidden="true" data-testid="about-logo" />
-      <p class="sz-about__name" data-testid="about-name">${t('X-ABOUT.appName')}</p>
+      <p class="sz-about__name" data-testid="about-name">${tRef(model.name)}</p>
       <${BuildLine} version=${version} build=${build} />
     </div>
-    <p class="sz-about__motto" data-testid="about-motto">${t('X-ABOUT.motto').map((line, i) => html`${i ? html`<br />` : null}${line}`)}<span class="sz-about__seal" aria-hidden="true" data-testid="about-seal"><${SealGlyph} /></span></p>
+    <p class="sz-about__motto" data-testid="about-motto">${tRef(model.motto).map((line, i) => html`${i ? html`<br />` : null}${line}`)}<span class="sz-about__seal" aria-hidden="true" data-testid="about-seal"><${SealGlyph} /></span></p>
     <ul class="sz-about__rows" data-testid="about-rows">
       ${rows.map(r => html`<li key=${r.key}>
         <${Button} variant="plain" class="sz-about__row" data-testid=${`about-row-${r.key}`} data-to=${r.to}
           aria-label=${r.aria} onClick=${() => onOpen(r.to)}>
           <span class="sz-about__label">${r.label}</span>
-          <span class=${r.key === 'privacy' ? 'sz-about__value' : 'sz-about__value sz-about__value--arrow'} aria-hidden="true">${r.key === 'privacy' ? r.value : html`<${Chevron} />`}</span>
+          <span class=${r.value !== null ? 'sz-about__value' : 'sz-about__value sz-about__value--arrow'} aria-hidden="true">${r.value !== null ? r.value : html`<${Chevron} />`}</span>
         </${Button}>
       </li>`)}
     </ul>
   </${Page}>`;
 }
 
-export function PrivacyView() {
-  return html`<${Page} title=${t('X-ABOUT.privacy')} testid="about-privacy-screen">
-    ${privacyParagraphs().map((p, i) => html`<p class="sz-about__p" key=${i} data-testid="about-privacy-p">${p}</p>`)}
+export function PrivacyView({ native = isNativeShell() } = {}) {
+  const model = privacyModel({ native });
+  return html`<${Page} title=${tRef(model.title)} testid="about-privacy-screen">
+    ${model.paragraphs.map((p, i) => html`<p class="sz-about__p" key=${i} data-testid="about-privacy-p">${tRef(p)}</p>`)}
   </${Page}>`;
 }
 
-function CreditItem({ credit }) {
+function CreditItem({ credit, toggle }) {
   const [open, setOpen] = useState(false);
-  const name = creditName(credit);
+  const name = credit.name;
   const textId = `about-credit-text-${credit.id}`;
   return html`<li class="sz-about__item" data-testid="about-credit" data-id=${credit.id} data-kind=${credit.kind}
     data-open=${open ? 'true' : 'false'}>
@@ -200,33 +193,37 @@ function CreditItem({ credit }) {
     ${credit.license ? html`<p class="sz-about__meta" data-testid="about-credit-license">${credit.license}</p>` : null}
     ${credit.url ? html`<p class="sz-about__meta sz-about__url" data-testid="about-credit-url">${credit.url}</p>` : null}
     <${Button} variant="plain" class="sz-about__toggle" data-testid="about-credit-toggle" aria-expanded=${open ? 'true' : 'false'}
-      aria-controls=${textId} aria-label=${`${name}，${t('X-ABOUT.licenseMore')}`} onClick=${() => setOpen(v => !v)}
-      >${t('X-ABOUT.licenseMore')}</${Button}>
-    ${open ? html`<pre class="sz-about__text" id=${textId} data-testid="about-credit-text" lang="en">${creditFullText(credit)}</pre>` : null}
+      aria-controls=${textId} aria-label=${`${name}，${toggle}`} onClick=${() => setOpen(v => !v)}
+      >${toggle}</${Button}>
+    ${open ? html`<pre class="sz-about__text" id=${textId} data-testid="about-credit-text" lang="en">${credit.text}</pre>` : null}
   </li>`;
 }
 
 export function CreditsView({ credits = CREDITS } = {}) {
-  return html`<${Page} title=${t('X-ABOUT.creditsTitle')} testid="about-credits-screen">
-    <p class="sz-about__intro" data-testid="about-credits-intro">${t('X-ABOUT.creditsIntro')}</p>
-    ${creditGroups(credits).map(g => html`<section class="sz-about__group" key=${g.kind} data-testid="about-credits-group" data-kind=${g.kind}>
-      <h2 class="sz-about__gtitle">${g.title}</h2>
-      <ul class="sz-about__items">${g.items.map(c => html`<${CreditItem} key=${c.id} credit=${c} />`)}</ul>
+  const model = creditsModel(credits);
+  const toggle = tRef(model.toggle);
+  return html`<${Page} title=${tRef(model.title)} testid="about-credits-screen">
+    <p class="sz-about__intro" data-testid="about-credits-intro">${tRef(model.intro)}</p>
+    ${model.groups.map(g => html`<section class="sz-about__group" key=${g.kind} data-testid="about-credits-group" data-kind=${g.kind}>
+      <h2 class="sz-about__gtitle">${tRef(g.title)}</h2>
+      <ul class="sz-about__items">${g.items.map(c => html`<${CreditItem} key=${c.id} credit=${c} toggle=${toggle} />`)}</ul>
     </section>`)}
   </${Page}>`;
 }
 
 export function LetterView() {
-  return html`<${Page} title=${t('R-AB01.letterTitle')} testid="about-letter-screen">
-    <p class="sz-about__address" data-testid="about-letter-address" data-pending="P21">${t('R-AB01.letterAddressPending')}</p>
+  const model = letterModel();
+  return html`<${Page} title=${tRef(model.title)} testid="about-letter-screen">
+    <p class="sz-about__address" data-testid="about-letter-address" data-pending="P21">${tRef(model.address)}</p>
   </${Page}>`;
 }
 
 function AboutScreen() {
-  return html`<${AboutView} />`;
+  return html`<${AboutView} ...${aboutBuild()} />`;
 }
 
-registerScreen(ABOUT_SCREEN, AboutScreen, { label: t('X-ABOUT.title') });
-registerScreen(ABOUT_PRIVACY_SCREEN, () => html`<${PrivacyView} />`, { label: t('X-ABOUT.privacy') });
-registerScreen(ABOUT_CREDITS_SCREEN, () => html`<${CreditsView} />`, { label: t('X-ABOUT.creditsTitle') });
-registerScreen(ABOUT_LETTER_SCREEN, () => html`<${LetterView} />`, { label: t('R-AB01.letterTitle') });
+// B3.2 试点：四屏都可以原生（原生类 ShiziScreen_about / _about_privacy / _about_credits / _about_letter，ios/ShiziApp/ShiziApp/Screens/About.swift）
+registerScreen(ABOUT_SCREEN, AboutScreen, { label: t('X-ABOUT.title'), native: true });
+registerScreen(ABOUT_PRIVACY_SCREEN, () => html`<${PrivacyView} />`, { label: t('X-ABOUT.privacy'), native: true });
+registerScreen(ABOUT_CREDITS_SCREEN, () => html`<${CreditsView} />`, { label: t('X-ABOUT.creditsTitle'), native: true });
+registerScreen(ABOUT_LETTER_SCREEN, () => html`<${LetterView} />`, { label: t('R-AB01.letterTitle'), native: true });

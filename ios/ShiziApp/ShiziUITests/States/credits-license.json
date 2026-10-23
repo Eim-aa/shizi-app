@@ -2,7 +2,7 @@
   "state": "credits-license",
   "name": "致谢 · 展开一项许可全文",
   "screen": "about-credits",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,12 +20,14 @@
     }
   ],
   "ready": {
-    "web": "about-credits-screen"
+    "web": "about-credits-screen",
+    "native": "id:native-about-credits-intro"
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "about-credit-toggle"
+        "webTestid": "about-credit-toggle",
+        "native": "native-about-credit-toggle"
       },
       "times": 1
     },

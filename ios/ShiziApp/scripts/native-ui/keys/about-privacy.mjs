@@ -2,6 +2,6 @@
 // key = 语义键（取网页 data-testid）；web = 网页 data-testid（id:）；native = 原生成员名 / accessibilityIdentifier（prop: / id:）——页面卡原生化时填，空 = 还没有原生页。
 // 同名元素多个（行、格）时 id:xxx#N 取第 N 个（从 0 起）；不写 #N 则按文档顺序配对。
 export const KEYS = [
-  { key: 'about-privacy-screen', native: [], web: ['id:about-privacy-screen'] },
-  { key: 'about-privacy-p', native: [], web: ['id:about-privacy-p'] }, // 同一屏里出现多次（行 / 格）：按文档顺序配对
+  { key: 'about-privacy-screen', native: ['id:native-about-privacy-screen'], web: ['id:about-privacy-screen'] },
+  { key: 'about-privacy-p', native: ['id:native-about-privacy-p'], web: ['id:about-privacy-p'] }, // 同一屏里出现多次（行 / 格）：按文档顺序配对
 ];

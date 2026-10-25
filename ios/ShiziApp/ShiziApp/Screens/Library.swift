@@ -65,6 +65,8 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         /// 样字（按钮里的视图；网页上是 svg / canvas，QA 取证按 innerText 取，原生报在那一行的字里）。
         var samples: [UIView] = []
         var zeroMode = false
+        /// 这一行有第二行小字（今日练习行）：名称与小字是两行，文字框按两行的并集量（网页的字体内容区，原生是行盒——见 layoutRow 里的上移量）。
+        var hasCap = false
         /// 按钮里的第二段字是「值」（练习范围 / 今日练习，右对齐）还是「数」（三档 / 已跳过，紧跟名称）。
         enum Role { case none, value, count }
         var role = Role.none
@@ -143,11 +145,12 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         content.addSubview(searchButton)
         wire(searchButton) { page in (page as? LibraryScreen)?.openQuery() }
         LibPress.attach(searchButton)
-        let rowIds = ["native-library-range", "native-library-today", "native-library-zone", "native-library-zone", "native-library-zone", "native-library-skipped"]
-        for (row, id) in zip(allRows, rowIds) {
+        // 行 id：三档用 -0/-1/-2（XCUITest 要点其中一行），其余用本行自己的名字
+        let rowIds = ["native-library-range", "native-library-today", "native-library-zone-0", "native-library-zone-1", "native-library-zone-2", "native-library-skipped"]
+        let rowBases = ["range", "today", "zone", "zone", "zone", "skipped"]
+        for ((row, id), base) in zip(zip(allRows, rowIds), rowBases) {
             row.button.accessibilityIdentifier = id
             row.zero.accessibilityIdentifier = id
-            let base = id.replacingOccurrences(of: "native-library-", with: "")
             if base == "zone" || base == "skipped" {
                 row.zeroName.accessibilityIdentifier = "native-library-\(base)-name"
                 row.zeroCount.accessibilityIdentifier = "native-library-\(base)-count"
@@ -200,12 +203,9 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m
         guard isViewLoaded else { return }
+        applyTitle()
         let mt = metrics
         let ax = axLayout
-        // 大标题（宋 28 / 500，行高 lh28）
-        NativeType.set(titleLabel, m.title.text, font: NativeType.song(size: mt.value("fs28"), weight: .medium), color: color("ink1"), line: mt.line("lh28"))
-        ShiziFonts.untrack(titleLabel)
-        titleLabel.accessibilityLabel = m.title.text
         // 搜索框（按钮 15、墨一；图标 18、字 17 / 墨二，AX 档字换 13）
         let placeholder = m.search.placeholder.text
         searchButton.titleLabel?.font = mt.font(15)
@@ -245,6 +245,16 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         view.setNeedsLayout()
     }
 
+    /// 大标题（网页 .sz-tabpage__title：宋体 28 / 500，行高 lh28，在滚动内容里，不在固定页头）。
+    /// 基类在 AX 档会拿空标题重排标题标签（页头第二行，ShiziParagraph.place），本页的标题在正文里，所以每次排版后把字与字体放回去。
+    private func applyTitle() {
+        guard let m = model else { return }
+        let mt = metrics
+        NativeType.set(titleLabel, m.title.text, font: NativeType.song(size: mt.value("fs28"), weight: .medium), color: color("ink1"), line: mt.line("lh28"))
+        ShiziFonts.untrack(titleLabel)
+        titleLabel.accessibilityLabel = m.title.text
+    }
+
     private func configure(_ row: Row, zone z: Zone, tone spec: View.SampleSpec) {
         let name = z.name.text
         // 读屏名（网页：名称、数、无墨迹样字的字——轮廓字形里放一份视觉隐藏的字）
@@ -258,6 +268,7 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         row.zeroMode = !tappable
         row.button.isHidden = !tappable
         row.zero.isHidden = tappable
+        row.hasCap = cap != nil && !ax
         let nameFont = mt.font(17, .medium)
         if tappable {
             let b = row.button
@@ -458,7 +469,11 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
     private func startToday() {
         guard let stage, stage.isTop(self), !starting else { return }
         starting = true
-        stage.engine.raw("library.startToday", [:]) { [weak self] reply in
+        // D62：从字库进写字页是普通推入（T-push），不是纸展开——把被点的这一行当来源报给网页：
+        // 网页按「被点进来的、又不是从首页进来的」记成普通推入（paper-transition.js planPaper 的 PUSHED 分支），转场与网页自己点这一行时一致。
+        var args: [String: Any] = [:]
+        if todayRow.button.window != nil { args["source"] = source(todayRow.button) }
+        stage.engine.raw("library.startToday", args) { [weak self] reply in
             guard let self else { return }
             self.starting = false
             if (reply["ok"] as? Bool) == true {
@@ -476,6 +491,8 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        // 基类在 AX 档会用空标题重排标题标签（页头第二行）：本页的标题在正文里，排版后放回去
+        applyTitle()
         let w = view.bounds.width
         guard w > 0, model != nil else { return }
         backButton.isHidden = true
@@ -579,6 +596,8 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         let ax = axLayout
         let gapX = mt.space(2)
         let lh17 = mt.line("lh17s"), lh15 = mt.line("lh15")
+        // 今日练习行（名称 + 小字两行）的上移量：见 todayCapShift 的说明
+        let capShift: CGFloat = row.hasCap ? Self.todayCapShift(mt) : 0
         let tappable = !row.zeroMode
         let nameL = tappable ? row.button.label : row.zeroName
         let countL: UILabel? = tappable ? (row.role == .count ? row.button.valueLabel : nil) : row.zeroCount
@@ -638,7 +657,7 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
             if two { contentH = max(contentH, nameH) }
             rowH = max(minH, contentH + hair)
             let inner = rowH - hair
-            nameL.frame = CGRect(x: 0, y: (inner - nameH) / 2, width: nw, height: nameH)
+            nameL.frame = CGRect(x: 0, y: (inner - nameH) / 2 - capShift, width: nw, height: nameH)
             if let c = countL { c.frame = CGRect(x: nw + gapX, y: (inner - lh15) / 2, width: cw, height: lh15) }
             if let v = valueL { v.frame = CGRect(x: rightEdge - vw, y: (inner - vh) / 2, width: vw, height: vh) }
             for s in row.samples { s.frame.origin.y = (inner - sampleSide) / 2 }
@@ -653,6 +672,25 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
     }
 
     // MARK: 小东西
+
+    /// 被点的这一行此刻在窗口里的矩形（D62：写字页进场的来源；网页据此记成普通推入，不是纸展开）。
+    /// 这一行是普通行（没有实心底），所以不带字（网页那边纸来源的字只对实心来源有意义）。
+    private func source(_ v: UIView) -> [String: Any] {
+        let r = v.convert(v.bounds, to: nil)
+        return ["rect": ["x": r.minX, "y": r.minY, "w": r.width, "h": r.height], "label": "", "radius": 0, "solid": false]
+    }
+
+    /// 今日练习行（名称 + 小字两行）整体上移的量（pt）。
+    ///
+    /// 网页那一块的文字框是**字体内容区**（升部 + 降部，Range.getClientRects），不是行盒：名称那行的内容区与行盒几乎同高
+    /// （字阶 17 的 lh17s 就是按内容区取的），小字那行矮一截（行高 lh13 − 内容区高 = 半行距）。两行的并集因此比行盒矮，
+    /// 网页那一块的中线比「行盒中线」高 (lh13 − 内容区高) / 4（两行各出一半）。
+    /// 原生按行盒排（字号、行距、位置与网页一致），把这一块整体上移同样的量，两行文字并集的中线与网页一致
+    /// （QA-H1 逐屏对比：字库 · 今日练习行，XXXL 档原来差 1.5pt）。
+    /// 内容区高按网页的苹方 SC 量：字号 × 1.267（实测 fs13 → 16.5、fs15 → 19）。
+    private static func todayCapShift(_ mt: ShiziMetrics) -> CGFloat {
+        (mt.line("lh13") - mt.value("fs13") * 1.267) / 4
+    }
 
     private func tabular(_ f: UIFont) -> UIFont {
         let d = f.fontDescriptor.addingAttributes([.featureSettings: [[UIFontDescriptor.FeatureKey.type: kNumberSpacingType, UIFontDescriptor.FeatureKey.selector: kMonospacedNumbersSelector]]])

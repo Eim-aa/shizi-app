@@ -12,7 +12,7 @@ export const KEYS = [
   { key: 'library-written', native: ['id:native-library-written'], web: ['id:library-written'] },
   { key: 'library-written-count', native: ['id:native-library-written-count'], web: ['id:library-written-count'] },
   { key: 'library-all-open', native: ['id:native-library-all-open'], web: ['id:library-all-open'] },
-  { key: 'library-zone', native: ['id:native-library-zone'], web: ['id:library-zone'] }, // 同一屏里出现多次（行 / 格）：按文档顺序配对
+  { key: 'library-zone', native: ['id:native-library-zone-0', 'id:native-library-zone-1', 'id:native-library-zone-2'], web: ['id:library-zone'] }, // 同一屏里出现多次（三档三行）：按文档顺序配对
   { key: 'library-skipped-block', native: ['id:native-library-skipped-block'], web: ['id:library-skipped-block'] },
   { key: 'library-skipped', native: ['id:native-library-skipped'], web: ['id:library-skipped'] },
   { key: 'library-skipped-name', native: ['id:native-library-skipped-name'], web: ['id:library-skipped-name'] },

@@ -44,6 +44,7 @@ import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all
 import { LibraryQueryBox, openLibraryQuery } from './query-entry.js'; // M3-3 顶部查字框（lookup 查字弹层）
 import { setLibraryActions } from '../../../session/api/library.js';
 import { clearLeaveUndo, leaveUndoView, onLeaveUndo, undoLeave } from '../write/skip.js';
+import { markNativePaperSource } from '../../paper-transition.js';
 import { postNative } from '../../../platform/bridge.js';
 
 // tab 名取自文案表（copy/common.js X-TABS）。
@@ -335,7 +336,14 @@ registerScreen(LIBRARY_TAB, LibraryScreen, { tab: true, order: 1, label: LIBRARY
 //   openQuery        顶部查字框 → 查字弹层（原生查字弹层 B3.6 之前仍是网页的；原生先把样子的截图交给宿主层再开弹层）。
 //   undoLeave        离开撤销条（写字页跳过后离开，撤销机会跟到字库；网页 write/skip.js 同一份状态）。
 setLibraryActions({
-  startToday: () => startToday({ source: LIBRARY_TODAY_SOURCE }),
+  // D62：从字库进写字页是普通推入（T-push），不是纸展开。原生点按把「被点的那一行」当来源报过来
+  // （网页同一套来源语义：被点进来的、又不是从首页进来的 → 普通推入；paper-transition.js planPaper 的 PUSHED 分支）。
+  // 网页自己点这一行时由 root.js 的 noteTap 记来源，同一条路；原生这边没有 DOM 可点，所以由页面代记。
+  startToday: (args) => {
+    const src = args && args.source;
+    if (src && src.rect) markNativePaperSource({ ...src, key: 'library-today' });
+    return startToday({ source: LIBRARY_TODAY_SOURCE });
+  },
   openQuery: () => {
     openLibraryQuery();
     return { ok: true };

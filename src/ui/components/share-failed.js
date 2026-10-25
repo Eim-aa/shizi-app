@@ -8,9 +8,10 @@
 // 用户在分享面板里取消不算失败，原生不回调。备份页用 onShareFailed 清掉等待中的导出记账（没有导出就不记）。
 // 由 ui/screens/mine/backup.js 导入（启动时随 root 加载），pageReady 之前已注册（54-native-bridge 的时序约定）。
 
-import { registerNativeHandler } from '../../platform/bridge.js';
+import { registerNativeHandler, postNative } from '../../platform/bridge.js';
 import { showToast } from './Toast.js';
 import { t } from '../../config/copy/index.js';
+import { isNativeShell } from '../../platform/env.js';
 
 export const SHARE_FAILED_KEYS = Object.freeze({
   backup: 'X-SHARE.backupFailed',
@@ -18,6 +19,23 @@ export const SHARE_FAILED_KEYS = Object.freeze({
   link: 'X-SHARE.linkFailed',
 });
 export const SHARE_FAILED_GENERIC = 'X-SHARE.failed';
+
+/** 原生有没有提示条（B3.11：原生壳里提示条由原生出，壳注入的原生屏名清单里有 image-toast）。 */
+export function nativeToastOn(win = typeof window !== 'undefined' ? window : null) {
+  if (!isNativeShell(win)) return false;
+  const list = win && Array.isArray(win.__shiziNativeScreens) ? win.__shiziNativeScreens : [];
+  return list.indexOf('image-toast') >= 0;
+}
+
+let toastSeq = 0;
+
+/** 请原生出一条提示条（原生壳里；失败的地方已经不在屏上时用，F3 ①）。 */
+export function postNativeToast(text, kind = 'failure') {
+  toastSeq += 1;
+  const entryId = `image-toast-${toastSeq}`;
+  postNative('native', { op: 'open', screen: 'image-toast', entryId, params: { text: String(text || ''), kind }, via: 'quiet' });
+  return entryId;
+}
 
 const listeners = new Set();
 
@@ -46,7 +64,11 @@ export function receiveShareFailed(info) {
       console.warn('[shizi] shareFailed listener failed:', error);
     }
   }
-  if (!shown) showToast(shareFailedText(kind), { kind: 'failure' });
+  if (!shown) {
+    // 原生壳里：提示条由原生出（B3.11；网页这一侧不出，免得两条叠着）
+    if (nativeToastOn()) postNativeToast(shareFailedText(kind));
+    else showToast(shareFailedText(kind), { kind: 'failure' });
+  }
   return true;
 }
 

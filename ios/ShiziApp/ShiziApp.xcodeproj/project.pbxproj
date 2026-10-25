@@ -10,6 +10,8 @@
 		1A0000000000000000B32024 /* NativeStageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32023 /* NativeStageFlowTests.swift */; };
 		1A0000000000000000B32022 /* NativeStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32021 /* NativeStageTests.swift */; };
 		1A0000000000000000B32012 /* About.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32011 /* About.swift */; };
+		1A0000000000000000B31312 /* Remind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31311 /* Remind.swift */; };
+		1A0000000000000000B31112 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31111 /* Backup.swift */; };
 		1A0000000000000000B35A12 /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35A11 /* Home.swift */; };
 		1A0000000000000000B32004 /* ShiziScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32003 /* ShiziScreen.swift */; };
 		1A0000000000000000B32002 /* ShiziEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32001 /* ShiziEngine.swift */; };
@@ -75,6 +77,7 @@
 		1A00000000000000000B3327 /* QueryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3326 /* QueryFlowTests.swift */; };
 		1A00000000000000000B3329 /* MineFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3328 /* MineFlowTests.swift */; };
 		1A00000000000000000B332B /* BackupFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332A /* BackupFlowTests.swift */; };
+		1A00000000000000000B3431 /* RemindFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3430 /* RemindFlowTests.swift */; };
 		1A00000000000000000B332D /* ImageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332C /* ImageFlowTests.swift */; };
 		1A00000000000000000B332F /* NavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332E /* NavigationTests.swift */; };
 		1A00000000000000000B3331 /* RestoreAndDeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */; };
@@ -104,6 +107,8 @@
 		1A0000000000000000B32023 /* NativeStageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageFlowTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32021 /* NativeStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32011 /* About.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = About.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31311 /* Remind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Remind.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31111 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
 		1A0000000000000000B35A11 /* Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32003 /* ShiziScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziScreen.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32001 /* ShiziEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziEngine.swift; sourceTree = "<group>"; };
@@ -176,6 +181,7 @@
 		1A00000000000000000B3326 /* QueryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3328 /* MineFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B332A /* BackupFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3430 /* RemindFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B332C /* ImageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B332E /* NavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreAndDeepLinkTests.swift; sourceTree = "<group>"; };
@@ -330,6 +336,7 @@
 				1A00000000000000000B3326 /* QueryFlowTests.swift */,
 				1A00000000000000000B3328 /* MineFlowTests.swift */,
 				1A00000000000000000B332A /* BackupFlowTests.swift */,
+				1A00000000000000000B3430 /* RemindFlowTests.swift */,
 				1A00000000000000000B332C /* ImageFlowTests.swift */,
 				1A00000000000000000B332E /* NavigationTests.swift */,
 				1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */,
@@ -386,6 +393,8 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000B32011 /* About.swift */,
+				1A0000000000000000B31311 /* Remind.swift */,
+				1A0000000000000000B31111 /* Backup.swift */,
 				1A0000000000000000B35A11 /* Home.swift */,
 			);
 			path = Screens;
@@ -563,6 +572,8 @@
 			files = (
 				1A0000000000000000000021 /* AppDelegate.swift in Sources */,
 				1A0000000000000000B32012 /* About.swift in Sources */,
+				1A0000000000000000B31312 /* Remind.swift in Sources */,
+				1A0000000000000000B31112 /* Backup.swift in Sources */,
 				1A0000000000000000B35A12 /* Home.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
@@ -637,6 +648,7 @@
 				1A00000000000000000B3327 /* QueryFlowTests.swift in Sources */,
 				1A00000000000000000B3329 /* MineFlowTests.swift in Sources */,
 				1A00000000000000000B332B /* BackupFlowTests.swift in Sources */,
+				1A00000000000000000B3431 /* RemindFlowTests.swift in Sources */,
 				1A00000000000000000B332D /* ImageFlowTests.swift in Sources */,
 				1A00000000000000000B332F /* NavigationTests.swift in Sources */,
 				1A00000000000000000B3331 /* RestoreAndDeepLinkTests.swift in Sources */,

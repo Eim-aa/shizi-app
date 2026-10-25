@@ -112,6 +112,18 @@ final class DetailFlowTests: XCTestCase {
         XCTAssertEqual(qa.records, before)
     }
 
+    /// 关掉放大弹层后立刻再点记录格：弹层要开（上一张还在退场时点按不能被吞掉——网页版是 DOM 叠层，关掉就能立刻再开）。
+    func testReopenZoomRightAfterClosing() {
+        let qa = open("detail-many")
+        Thread.sleep(forTimeInterval: 0.5)
+        qa.tapNative("native-detail-hero-cell")
+        XCTAssertTrue(qa.el("native-detail-zoom-close").waitForExistence(timeout: 5), "zoom sheet shown")
+        qa.tapNative("native-detail-zoom-close")
+        qa.waitProbe("zoom closed") { _ in !qa.el("native-detail-zoom-close").exists }
+        qa.tapNative("native-detail-hero-cell")
+        XCTAssertTrue(qa.el("native-detail-zoom-flip").waitForExistence(timeout: 5), "the zoom sheet opens again right after the previous one left")
+    }
+
     /// 写失败后保留同一张弹层，重试成功关闭；记录条数不增加。
     func testZoomCorrectionFailureAndRetry() {
         let qa = open("detail-zoom-fail")

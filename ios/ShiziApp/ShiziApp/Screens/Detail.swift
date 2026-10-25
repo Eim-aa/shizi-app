@@ -709,7 +709,15 @@ final class DetailScreen: ShiziScreenViewController {
     // MARK: 放大弹层
 
     private func openZoom(cell index: Int) {
-        guard let m = model, presentedViewController == nil else { return }
+        guard let m = model else { return }
+        // 上一个放大弹层还在退场：等它退完再开（网页版是 DOM 叠层，关掉就能立刻再开；原生有呈现状态，
+        // 退场没结束时 presentedViewController 还挂着，直接开会被吞掉、点按像没反应）
+        if let sheet = presentedViewController as? DetailZoomSheet {
+            guard sheet.isClosing else { return } // 弹层还开着：不叠着开第二张
+            sheet.onDismissed = { [weak self] in self?.openZoom(cell: index) }
+            return
+        }
+        guard presentedViewController == nil else { return }
         let record: (id: String, title: String, strokes: [[InkRawPoint]], judgment: String, changeable: Bool)
         if index < m.hero.cells.count {
             let c = m.hero.cells[index]

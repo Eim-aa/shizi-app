@@ -107,6 +107,11 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
     private let overlay = NativeOverlaySpec(motion: ShiziTokens.pageMotion(.write))
     private(set) var failed = false
     private var busy = false
+    /// 正在退场（close() 已调用、退场动画还没走完）。原生有呈现状态：退场没结束时页面上的点按会被「弹层还在」挡住，
+    /// 网页版是 DOM 叠层（关掉就能立刻再开），所以这里给页面一个「等它退完再开下一张」的钩子。
+    private(set) var isClosing = false
+    /// 退场完成时叫一次（页面等它退完再开下一张放大弹层）。
+    var onDismissed: (() -> Void)?
 
     private let scroll = UIScrollView()
     private let titleLabel = UILabel()
@@ -181,6 +186,9 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
         scroll.alwaysBounceVertical = false
         scroll.showsVerticalScrollIndicator = false
         scroll.contentInsetAdjustmentBehavior = .never
+        // 同页面的滚动区（ShiziScreen）：按钮不等滚动手势判定就收到点按（这里有下滑关闭 + 左缘两个手势，
+        // 延迟点按会让「再试一次」看着像没反应）
+        scroll.delaysContentTouches = false
         view.addSubview(scroll)
 
         let song = NativeType.song(size: mt.value("fs22"), weight: .medium)
@@ -359,6 +367,8 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         edge.view?.removeGestureRecognizer(edge)
+        // 退场完成：页面等这一下再开下一张放大弹层（否则关掉弹层后立刻点记录格，点按会被「弹层还在」吞掉）
+        if isBeingDismissed || isMovingFromParent { fireDismissed() }
     }
 
     override func accessibilityPerformEscape() -> Bool {
@@ -429,7 +439,15 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
 
     func close() {
         guard presentingViewController != nil, !isBeingDismissed else { return }
-        dismiss(animated: true)
+        isClosing = true
+        dismiss(animated: true) { [weak self] in self?.fireDismissed() }
+    }
+
+    /// 退场完成只叫一次（页面等它退完再开下一张放大弹层）。
+    private func fireDismissed() {
+        let done = onDismissed
+        onDismissed = nil
+        done?()
     }
 
     /// 主按钮 / 再试一次：始终提交打开弹层时明确显示的目标判断，重发不会反改；成功或 stale 关弹层，失败就地三段式。

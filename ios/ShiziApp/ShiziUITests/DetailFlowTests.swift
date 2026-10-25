@@ -144,12 +144,19 @@ final class DetailFlowTests: XCTestCase {
     }
 
     /// 结果页对照弹层「看这个字 ›」→ 原生字详情盖在原生结果页上面（不再让开给网页），返回回到同一个结果页。
+    /// 弹层自己开：夹具 result-sheet 的那一步是给网页取证用的（原生取证时改判弹层是结果页 present 出来的另一张控制器，
+    /// 夹具的原生点按够不到它——见 QAFixtures.qaTap 只在 host.view 里找），所以这里从结果页点「修改 ›」把弹层打开。
     func testEnterFromResultAndComeBack() {
-        let qa = QA(seed: "result-sheet")
+        let qa = QA(seed: "result-daily")
         qa.launch()
+        qa.waitResult(true)
+        qa.tapNative("native-result-row-change")
+        XCTAssertTrue(qa.el("native-change-title").waitForExistence(timeout: 6), "change sheet shown")
         qa.tapNative("native-change-detail")
         qa.waitRouteTop("detail")
         XCTAssertTrue(qa.el("native-detail-practice").waitForExistence(timeout: 6), "native detail page on top")
+        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("screen:open detail via=") }, "\(qa.transitions)")
+        // 结果页不收起：原生字详情盖在它上面（让开时看到上面有原生页 → 留在下面，返回后回同一个结果页）
         XCTAssertTrue(qa.transitions.contains("yield:under-native"), "\(qa.transitions)")
         qa.edgeBack()
         qa.waitResult(true)

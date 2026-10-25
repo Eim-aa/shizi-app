@@ -7331,7 +7331,6 @@ src/platform/share.js
 src/platform/sound.js
 src/platform/sw.js
 src/platform/test-hooks.js
-src/platform/text-lines.js
 src/platform/text-size.js
 src/session/api/about.js
 src/session/api/backup.js
@@ -7365,6 +7364,7 @@ src/session/ops/strokes.js
 src/session/ops/work.js
 src/session/result-api.js
 src/session/result-ops.js
+src/session/text-lines.js
 src/session/views/about.js
 src/session/views/annual.js
 src/session/views/detail.js
@@ -7488,6 +7488,7 @@ src/ui/screens/write/ref-label.js
 src/ui/screens/write/result-row.js
 src/ui/screens/write/skip.js
 src/ui/screens/write/sr-live.js
+src/ui/text-lines.js
 src/ui/work-text.js
 sw-manifest.js
 sw.js

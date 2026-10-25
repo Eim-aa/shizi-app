@@ -16,7 +16,7 @@ import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { getStore } from '../../../store/store.js';
 import { postNative } from '../../../platform/bridge.js';
-import { domLineStarts, registerTextLines, screenWidth, textUnits } from '../../../platform/text-lines.js';
+import { domLineStarts, registerTextLines, screenWidth, textUnits } from '../../text-lines.js';
 import { t, tRef } from '../../../config/copy/index.js';
 import {
   commitRemindEnabled, commitRemindTime, parseTime, remindOf, requestReminderPermission, syncReminder, timeText,
@@ -176,7 +176,7 @@ registerScreen(REMIND_SCREEN, RemindScreen, { label: t('R-M03.remind'), native: 
 // ---------------------------------------------------------------- 网页的折行点（B3.10：原生要跟网页折在同一处）
 //
 // 开关行的小字是 text-wrap: pretty（.sz-remind__sub）：WebKit 的折法不是贪心折行，
-// 原生按这里量出的行起点断行（src/platform/text-lines.js；与结果页 native-view.js 的 webLineStarts 同一做法）。
+// 原生按这里量出的行起点断行（src/ui/text-lines.js；与结果页 native-view.js 的 webLineStarts 同一做法）。
 // 副本照网页的层级排（.sz-page__body → .sz-remind → .sz-remind__row → .sz-remind__main → .sz-remind__sub）：
 // 开关本体（44 宽）也在副本里，小字的可用宽才与网页一样（行宽 − 44 − 间距 12）。
 

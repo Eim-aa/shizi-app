@@ -50,7 +50,7 @@ import * as policy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow, isNativeShell } from '../../../platform/env.js';
 import { postNative, registerNativeHandler } from '../../../platform/bridge.js';
-import { domLineStarts, registerTextLines, screenWidth, textUnits } from '../../../platform/text-lines.js';
+import { domLineStarts, registerTextLines, screenWidth, textUnits } from '../../text-lines.js';
 import { shareBackupFile } from '../../../platform/share.js';
 import { onShareFailed } from '../../components/share-failed.js'; // P96（M6-6）：注册 shiziShareFailed；备份分享没打开 → 不记导出
 import { monthDayParts, isValidDay } from '../../../core/dates.js';
@@ -550,7 +550,7 @@ export function openBackup() {
 // ---------------------------------------------------------------- 网页的折行点（B3.10：原生要跟网页折在同一处）
 //
 // 备份页的段落是 text-wrap: pretty（src/config/base.css 的 p{text-wrap:pretty}）：WebKit 的折法不是贪心折行，
-// 原生按这里量出的行起点断行（src/platform/text-lines.js；与结果页 native-view.js 的 webLineStarts 同一做法）。
+// 原生按这里量出的行起点断行（src/ui/text-lines.js；与结果页 native-view.js 的 webLineStarts 同一做法）。
 // 副本照网页的层级排：正文里的段落套 .sz-page__body（宽度与中文标点挤压都与网页一致），
 // 确认框的正文套 .sz-confirm（浮层不在 .sz-page__body 里，没有标点挤压）。
 

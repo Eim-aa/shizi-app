@@ -4,7 +4,7 @@
 // 本文件只由 B3.10 改；index.js 的导入清单是固定的，页面卡不改任何共享文件。
 //
 //   view.remind {}              → {ok, view}：views/settings.js 的 remindView（= 网页提醒页渲染用的同一个模型）
-//                                 同回包还有 lines（网页量出的折行点，原生照它断行；见 src/platform/text-lines.js）
+//                                 同回包还有 lines（网页量出的折行点，原生照它断行；见 src/session/text-lines.js）
 //   remind.enabled {on}         开关（网页 commitRemindEnabled）：开着时补上缺省时间（P18）
 //   remind.time {hour, minute}  改时间（网页 commitRemindTime）
 //   reminder.status {permission} 原生回报的通知权限 → settings.remind.permission（网页 applyReminderStatus 的写入那一半）
@@ -19,7 +19,7 @@ import { localDay } from '../../core/dates.js';
 import { deckAdapter } from '../../data/deck.js';
 import { now as envNow } from '../../platform/env.js';
 import { tRef } from '../../config/copy/index.js';
-import { textLineStarts } from '../../platform/text-lines.js';
+import { textLineStarts } from '../text-lines.js';
 
 /** store 提交结果 → 回包（D07：失败回 {ok:false, error:{kind}}）。 */
 function replyOf(r) {

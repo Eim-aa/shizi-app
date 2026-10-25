@@ -4,7 +4,7 @@
 // 本文件只由 B3.10 改；index.js 的导入清单是固定的，页面卡不改任何共享文件。
 //
 //   view.backup {}              → {ok, view}：core/backup.js 的 backupView（= 网页备份页渲染用的同一个模型）
-//                                 同回包还有 lines（网页量出的折行点，原生照它断行；见 src/platform/text-lines.js）
+//                                 同回包还有 lines（网页量出的折行点，原生照它断行；见 src/session/text-lines.js）
 //   backup.export {}            打包一份备份（网页 doExport 的打包那一半）：回 {name, text, sig, at}，原生拿去分享
 //   backup.exportDone {sig}     分享完成，记账「上次备份」（网页 finishExport → markExported）
 //   backup.picked {text}        原生选好了文件（网页 shiziBackupPicked 的同一件事）：预检 → 回预览模型或说明框（同回包带 lines）
@@ -23,7 +23,7 @@ import {
 } from '../../core/backup.js';
 import { now as envNow } from '../../platform/env.js';
 import { tRef } from '../../config/copy/index.js';
-import { textLineStarts } from '../../platform/text-lines.js';
+import { textLineStarts } from '../text-lines.js';
 
 /** store 提交结果 → 回包（D07：失败回 {ok:false, error:{kind}}）；备份的失败还带阶段（保护副本 / 替换 / 清空）。 */
 function replyOf(r) {

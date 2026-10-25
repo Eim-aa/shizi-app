@@ -5,18 +5,7 @@ import UIKit
 // 根页开关（window.__shiziNativeRoots，启动参数 -shizi-native-roots）挡着，默认仍是网页。
 // 版式按网页 CSS 逐项排（index.js .sz-mine__* / Rows.js .sz-rrow / choice.js .sz-seg / Sheet.js .sz-sheet / work.js MonthPaper），数值取 ShiziTokens，文案取视图模型的引用。
 // 外观 / 每组字数：标准字号行内分段（点一下即写，失败行下就地三段式，D07）；AX 档「名称 …… 当前值 ›」点开底部选择弹层（MineParts.swift）。
-// 外观写成功后立刻把原生主题（窗口 overrideUserInterfaceStyle）切过去，原生页与网页一起变。零件在 MineParts.swift。
-
-// MARK: - 原生主题
-
-enum ShiziTheme {
-    /// 设置里的外观（auto | light | dark）→ 窗口的界面风格（auto = 跟随系统）。
-    static func apply(_ appearance: String, window: UIWindow?) {
-        let style: UIUserInterfaceStyle = appearance == "light" ? .light : appearance == "dark" ? .dark : .unspecified
-        guard let window, window.overrideUserInterfaceStyle != style else { return }
-        window.overrideUserInterfaceStyle = style
-    }
-}
+// 外观由 platform/appearance.js 的唯一订阅同步到 NativeStage / ShiziTheme，窗口统一跟随；零件在 MineParts.swift。
 
 // MARK: - 视图模型
 
@@ -292,7 +281,6 @@ final class MineScreen: ShiziScreenViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if let m = model { ShiziTheme.apply(m.choices.appearance.value.text, window: view.window) }
         NativeA11y.screenChanged(heading)
     }
 
@@ -320,7 +308,6 @@ final class MineScreen: ShiziScreenViewController {
         strokes = (paper?["cells"] as? [[String: Any]] ?? []).map { NativeInkWire.rawStrokes($0["strokes"]) }
         sealPath = paper?["sealPath"] as? [[Any]] ?? []
         renderModel(m)
-        ShiziTheme.apply(m.choices.appearance.value.text, window: view.window)
         // 首帧的页宽 / AX 档与真实的不同（视图是页面按它自己的值算的）：带真实值重拉一次
         if let env = m.env, view.bounds.width > 0, (abs(CGFloat(env.width) - view.bounds.width) > 0.5 || env.ax != ax), !refetched {
             refetched = true
@@ -754,8 +741,8 @@ final class MineScreen: ShiziScreenViewController {
             let ok = (reply["ok"] as? Bool) == true
             if ok {
                 if let self {
-                    // 先更新 lastView 再改窗口外观：traitCollectionDidChange 会同步重画 lastView，
-                    // 若先切主题而 lastView 还是旧的 appearance，render 会把窗口又切回旧样式。
+                    // 拉回成功提交后的选择值；窗口样式由引擎的单一外观订阅同步，
+                    // render 不写窗口，traitCollectionDidChange 不能用旧快照反切主题。
                     let body = await engine.raw("view.mine", self.fetchArgs())
                     self.apply(payload: body)
                 }

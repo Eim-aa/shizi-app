@@ -11,6 +11,7 @@
 // 再订阅 store：只有 appearance 的值真变了才改属性——seed / reset 等不涉及它的通知不碰 <html>
 // （测试里手动设的 data-theme 不会被冲掉）。设置页（ui/screens/mine/prefs.js）只写 store，不碰 DOM。
 import * as policy from '../config/policy.js';
+import { postNative } from './bridge.js';
 
 import { APPEARANCES, DEFAULT_APPEARANCE, appearanceOf } from '../core/appearance.js';
 export { APPEARANCES, DEFAULT_APPEARANCE, appearanceOf };
@@ -45,7 +46,7 @@ function sameView(a, b) {
  * @param {object} [store]  缺省取 store/store.js 的 getStore()（动态取，避免 node 下加载 storage）
  * @returns {() => void} 取消订阅
  */
-export function startAppearance(store = null, { doc = globalDoc(), features = policy.features, getStore = null } = {}) {
+export function startAppearance(store = null, { doc = globalDoc(), features = policy.features, getStore = null, post = postNative } = {}) {
   let s = store;
   try {
     if (!s && typeof getStore === 'function') s = getStore();
@@ -62,6 +63,9 @@ export function startAppearance(store = null, { doc = globalDoc(), features = po
     const next = appearanceOf(settings, { features });
     if (sameView(next, last)) return;
     last = applyAppearance(settings, { doc, features }) || next;
+    // B3.5c：挂 UI 前的初始值、每次成功提交 / 备份整体替换都走同一个订阅。
+    // 消息先于页面 open，壳按发送顺序应用；原生页面不再各自写窗口外观。
+    post('native', { op: 'appearance', value: last.theme });
   };
   try {
     sync(s.getState());

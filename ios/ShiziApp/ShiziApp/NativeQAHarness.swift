@@ -527,7 +527,7 @@ final class QAProbe {
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
         out["stage"] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies]
         out["pageReady"] = host.pageReady
-        out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1] // B3.5c：原生主题（0 跟随系统 / 1 浅 / 2 深）
+        out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events
         out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）
         out["navRunning"] = NativeWriteTransitions.running

@@ -1,6 +1,26 @@
 import UIKit
 import WebKit
 
+/// 窗口外观的唯一应用点。UserDefaults 仅缓存最近已提交的显示偏好供启动首帧使用；
+/// 引擎 store 就绪后立即覆盖缓存，不写回 store，也不参与任何规则计算。
+enum ShiziTheme {
+    private static let cacheKey = "shizi.native.appearance"
+    private(set) static var bootOverride = UIUserInterfaceStyle.unspecified.rawValue
+
+    static func boot(window: UIWindow) {
+        let cached = UserDefaults.standard.string(forKey: cacheKey) ?? "auto"
+        apply(cached, window: window)
+        bootOverride = window.overrideUserInterfaceStyle.rawValue
+    }
+
+    static func apply(_ appearance: String, window: UIWindow?) {
+        guard ["auto", "light", "dark"].contains(appearance) else { return }
+        UserDefaults.standard.set(appearance, forKey: cacheKey)
+        let style: UIUserInterfaceStyle = appearance == "light" ? .light : appearance == "dark" ? .dark : .unspecified
+        if let window, window.overrideUserInterfaceStyle != style { window.overrideUserInterfaceStyle = style }
+    }
+}
+
 // NativeStage：原生层的唯一协调者（B3.2；计划 B3B4-原生化架构与计划.md §3.3 段 1、§3.4；B2.8 的写字 / 结果协调推广而来，B2 记录见 B2-原生写字架构.md §4 / §23）。
 //
 // 段 1：网页路由仍是真相源。原生页 = 网页栈里的「原生宿主条目」（透明、不画内容），宿主挂载时发来 open、卸载时 close；本对象把
@@ -85,6 +105,8 @@ final class NativeStage: NSObject {
     func handleScreenMessage(_ body: [String: Any]) {
         engine.webView = host.webView
         switch body["op"] as? String ?? "" {
+        case "appearance":
+            if let value = body["value"] as? String { ShiziTheme.apply(value, window: host.view.window) }
         case "open":
             enqueue { [weak self] done in self?.openScreen(body, done: done) ?? done() }
         case "close":
@@ -758,7 +780,7 @@ extension WebViewController {
 
     func handleNativeWriteMessage(_ body: [String: Any]) { stage.handleWriteMessage(body) }
     func handleNativeScreenMessage(_ body: [String: Any]) {
-        guard Self.nativeWriteEnabled else { return }
+        guard Self.nativeWriteEnabled || body["op"] as? String == "appearance" else { return }
         stage.handleScreenMessage(body)
     }
 

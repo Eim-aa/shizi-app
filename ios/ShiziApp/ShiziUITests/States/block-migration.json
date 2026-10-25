@@ -2,7 +2,7 @@
   "state": "block-migration",
   "name": "阻断 · 迁移失败",
   "screen": "block",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -15,6 +15,7 @@
     }
   ],
   "ready": {
-    "web": "block-screen"
+    "web": "block-screen",
+    "native": "id:native-block-title"
   }
 }

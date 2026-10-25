@@ -48,6 +48,18 @@ final class RemindFlowTests: XCTestCase {
         XCTFail("\(id)：\(wantId) \(want ? "没有出现" : "没有消失")", file: file, line: line)
     }
 
+    /// 等某个元素的读屏名字变成想要的样子（时间框显示的是 HH:MM）。
+    private func waitLabel(_ qa: QA, _ id: String, _ want: String, timeout: TimeInterval = 8, file: StaticString = #filePath, line: UInt = #line) {
+        let end = Date().addingTimeInterval(timeout * QALoad.scale)
+        var last = qa.el(id).label
+        while Date() < end {
+            last = qa.el(id).label
+            if last == want { return }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        XCTFail("\(id) 的名字：期望「\(want)」，实际「\(last)」", file: file, line: line)
+    }
+
     // MARK: 用例
 
     /// 开关：关 → 开（多一行「提醒时间」）→ 关（时间行收起来）。
@@ -87,19 +99,37 @@ final class RemindFlowTests: XCTestCase {
         XCTAssertFalse(qa.el("native-remind-fail-note").exists, "写成了就没有失败块")
     }
 
-    /// 时间：点时间框 → 时间轮 →「完成」→ 写进 store（失败时是时间这一项的三段式）；点遮罩 = 取消，不写。
+    /// 时间：点时间框 → 时间轮 →「完成」→ 写进 store（时间框显示新的时刻）；再点一次 → 点遮罩 = 取消，不写。
+    /// 时间轮开在与 store 不同的时刻（QA 启动参数 -shizi-qa-remind-picker-time）：「值没变不写」（网页同一口径 commitSettings），
+    /// 轮上的时刻与 store 相同的话确认了也写不进去，看不见写入。
     func testTimePickerConfirmsAndWrites() {
-        // failNext 1：时间这一次的写入失败 → 三段式（失败的字段是时间）
-        let qa = launchRemind("remind-on", failNext: 1)
+        let qa = launchRemind("remind-on", extra: ["-shizi-qa-remind-picker-time", "07:05"])
         XCTAssertTrue(qa.el("native-remind-time").waitForExistence(timeout: 10), "时间行")
         let field = qa.el("native-remind-time")
+        XCTAssertEqual(field.label, "20:30", "store 里的时刻")
+        // 点时间框 → 时间轮
         field.tap()
         XCTAssertTrue(qa.el("native-remind-time-done").waitForExistence(timeout: 8), "时间轮")
-        tapUntil(qa, "native-remind-time-done", "native-remind-fail-note", true)
+        // 「完成」→ 时间轮收起来 + 写进 store（时间框显示新的时刻）
+        tapUntil(qa, "native-remind-time-done", "native-remind-time-done", false)
+        waitLabel(qa, "native-remind-time", "07:05")
         // 取消：时间轮收起来，不写（点面板上方的遮罩）
-        field.tap()
+        qa.el("native-remind-time").tap()
         XCTAssertTrue(qa.el("native-remind-time-done").waitForExistence(timeout: 8), "时间轮")
         qa.app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
         waitExists(qa, "native-remind-time-done", false)
+        XCTAssertEqual(qa.el("native-remind-time").label, "07:05", "取消：不写，时刻没变")
+    }
+
+    /// 时间这一项的写入失败：三段式（「先不保存」→ 收起来，时刻还是原来那个）。
+    func testTimeWriteFailureShowsThreeSteps() {
+        let qa = launchRemind("remind-on", failNext: 1, extra: ["-shizi-qa-remind-picker-time", "07:05"])
+        XCTAssertTrue(qa.el("native-remind-time").waitForExistence(timeout: 10), "时间行")
+        qa.el("native-remind-time").tap()
+        XCTAssertTrue(qa.el("native-remind-time-done").waitForExistence(timeout: 8), "时间轮")
+        tapUntil(qa, "native-remind-time-done", "native-remind-fail-note", true)
+        XCTAssertEqual(qa.el("native-remind-time").label, "20:30", "没写成：时刻没变")
+        tapUntil(qa, "native-remind-fail-cancel", "native-remind-fail-note", false)
+        XCTAssertEqual(qa.el("native-remind-time").label, "20:30", "仍然没写成")
     }
 }

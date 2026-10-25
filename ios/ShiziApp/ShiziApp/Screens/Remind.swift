@@ -487,10 +487,22 @@ final class RemindScreen: ShiziScreenViewController {
     /// QA 运行（逐屏取证 / 流程测试）：判定跟宿主的 QA 开关一致（NativeQAHarness 的 qaEnabled：探针 / 夹具 / -shizi-qa 都算）。
     private static var qaMode: Bool { WebViewController.qaEnabled }
 
+    /// QA 运行（流程测试）：让时间轮开在一个与 store 里的时刻不同的值（-shizi-qa-remind-picker-time HH:MM）。
+    /// 「值没变不写」（commitSettings，网页同一口径）：轮上的时刻与 store 相同的话，确认了也不会写，流程测试看不见写入。
+    private static var qaPickerTime: (hour: Int, minute: Int)? {
+        guard qaMode else { return nil }
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "-shizi-qa-remind-picker-time"), i + 1 < args.count else { return nil }
+        let parts = args[i + 1].split(separator: ":")
+        guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]), (0...23).contains(hour), (0...59).contains(minute) else { return nil }
+        return (hour, minute)
+    }
+
     /// 时间轮：改完写 store（失败 → 三段式）。
     private func presentTimePicker() {
         guard let m = model else { return }
-        let overlay = ShiziTimePickerView(hour: m.remind.hour, minute: m.remind.minute)
+        let start = Self.qaPickerTime ?? (m.remind.hour, m.remind.minute)
+        let overlay = ShiziTimePickerView(hour: start.hour, minute: start.minute)
         overlay.accessibilityIdentifier = "native-remind-time-picker"
         overlay.onDone = { [weak self] hour, minute in
             self?.timePicker?.removeFromSuperview()

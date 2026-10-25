@@ -32,4 +32,6 @@ writeFileSync(out, md.join('\n') + '\n');
 // B3.3：流程测试骨架（B3B4 §5.2）里还没填的用例是 XCTSkip（「待办」），不算在用例数里，另报一个数
 console.log(`flows: ${cases.length - count('skipped')} cases — pass ${count('pass')}, expected-fail ${count('expected')}, unexpected-pass ${count('unexpected-pass')}, FAIL ${count('fail')}, pending ${count('skipped')}`);
 for (const c of cases.filter(x => x.kind === 'fail' || x.kind === 'unexpected-pass')) console.log(`  ${c.kind === 'fail' ? 'FAIL' : 'UNEXPECTED PASS'} ${c.suite}.${c.name}: ${(c.msgs[0] || '').split('\n')[0].slice(0, 200)}`);
-process.exitCode = count('fail') ? 1 : 0;
+// 意外通过需要移除已过期的预期失败包装；没有实际执行用例也不能报绿。
+if (cases.length === count('skipped')) console.error('FAIL: no executable flow cases in the result bundle');
+process.exitCode = count('fail') || count('unexpected-pass') || cases.length === count('skipped') ? 1 : 0;

@@ -2,7 +2,7 @@
   "state": "remind-off",
   "name": "提醒 · 关",
   "screen": "remind",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,6 +20,7 @@
     }
   ],
   "ready": {
-    "web": "remind-screen"
+    "web": "remind-screen",
+    "native": "id:native-remind-body"
   }
 }

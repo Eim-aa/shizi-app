@@ -2,7 +2,7 @@
   "state": "backup-restore-undo",
   "name": "备份 · 替换后的撤销条（离开前可撤销）",
   "screen": "backup",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -169,7 +169,7 @@
       "op": "seed"
     },
     {
-      "op": "stashBackup"
+      "op": "stashBackupPick"
     },
     {
       "op": "resetData"
@@ -273,18 +273,25 @@
     }
   ],
   "ready": {
-    "web": "backup-screen"
+    "web": "backup-screen",
+    "native": "id:native-backup-body"
   },
   "steps": [
     {
       "js": "window.shiziBackupPicked(window.__qaBackupText);"
     },
     {
+      "tap": {
+        "native": "native-backup-restore"
+      }
+    },
+    {
       "wait": 800
     },
     {
       "tap": {
-        "webTestid": "backup-restore-ok"
+        "webTestid": "backup-restore-ok",
+        "native": "native-backup-restore-ok"
       },
       "times": 1
     },

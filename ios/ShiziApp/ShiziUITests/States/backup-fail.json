@@ -2,7 +2,7 @@
   "state": "backup-fail",
   "name": "备份 · 清空失败（三段式）",
   "screen": "backup",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -108,12 +108,14 @@
     }
   ],
   "ready": {
-    "web": "backup-screen"
+    "web": "backup-screen",
+    "native": "id:native-backup-body"
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "backup-clear"
+        "webTestid": "backup-clear",
+        "native": "native-backup-clear"
       },
       "times": 1
     },
@@ -121,16 +123,15 @@
       "wait": 800
     },
     {
-      "js": "window.__shiziTest.failNextWrite(2, { kind: 'generic' });"
-    },
-    {
       "tap": {
-        "webTestid": "backup-clear-ok"
+        "webTestid": "backup-clear-ok",
+        "native": "native-backup-clear-ok"
       },
       "times": 1
     },
     {
       "wait": 900
     }
-  ]
+  ],
+  "failNext": 2
 }

@@ -2,7 +2,7 @@
   "state": "backup-reject",
   "name": "备份 · 预检拒收（不是备份文件）",
   "screen": "backup",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -98,6 +98,9 @@
       "op": "seed"
     },
     {
+      "op": "stashBadBackup"
+    },
+    {
       "op": "switchTab",
       "tab": "mine"
     },
@@ -108,11 +111,18 @@
     }
   ],
   "ready": {
-    "web": "backup-screen"
+    "web": "backup-screen",
+    "native": "id:native-backup-body"
   },
   "steps": [
     {
       "js": "window.shiziBackupPicked('{\"not\":\"a backup\"}');"
+    },
+    {
+      "tap": {
+        "native": "native-backup-restore"
+      },
+      "times": 1
     },
     {
       "wait": 600

@@ -2,7 +2,7 @@
   "state": "backup-none",
   "name": "备份 · 没有记录（导出与清空灰）",
   "screen": "backup",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,6 +20,7 @@
     }
   ],
   "ready": {
-    "web": "backup-screen"
+    "web": "backup-screen",
+    "native": "id:native-backup-body"
   }
 }

@@ -85,8 +85,8 @@ function textUnits(node) {
   return units;
 }
 
-/** 一段纯文字在某组 CSS 类下的折行点（按 Array.from 的字计）。 */
-function textLineStarts(text, { wrapClass, tag = 'p', cls }, width) {
+/** 一段纯文字在某组 CSS 类下的折行点（按 Array.from 的字计）。B3.11：图片预览的说明句也是 text-wrap: pretty 的段落，页面卡也用它量。 */
+export function textLineStarts(text, { wrapClass, tag = 'p', cls }, width) {
   if (!text) return null;
   return webLineStarts(host => {
     const wrap = document.createElement('div');

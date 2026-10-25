@@ -11,7 +11,7 @@
 //   与结果页格子、单字详情、清单小图同一取法）→ 没有 = 无墨（作品里不收；月字帖 / 年报里画 under 衬底；I03 不借别次）。
 // D42：这次 / 这天 / 这个月按时间段取「某一次」，每字先在该时间段内按偏好顺序找留有墨迹的那一次（core/ink-pick.js），段内一份都没有才算无墨。
 // 所有函数只读 store；唯一的写是分享弹层里「也放进来」（经 result/index.js commitAdded → store.commit，写进本组会话的 added）。
-import { nav } from './router.js';
+import { nav, registerScreen } from './router.js';
 import { getStore } from '../store/store.js';
 import { t, tInk } from '../config/copy/index.js';
 import * as defaultPolicy from '../config/policy.js';
@@ -35,6 +35,7 @@ import { recordHasInk } from './screens/detail/records.js';
 import { kuan } from './work-text.js';
 import { buildAnnualJob } from './images-annual.js';
 import { setImageActions } from '../session/api/image.js';
+import { textLineStarts } from './screens/result/native-view.js';
 import { postNative } from '../platform/bridge.js';
 import { isNativeShell } from '../platform/env.js';
 
@@ -269,7 +270,8 @@ export function openNativePreview(scope) {
 /** 原生弹层关掉了：原生发 image.closed，网页把这条原生屏从原生栈里收掉（不发 nav.back —— 网页栈里没有这一层）。 */
 export function closeNativePreview(entryId) {
   if (!entryId) return { ok: true };
-  postNative('native', { op: 'close', screen: 'image-preview', entryId });
+  const screen = String(entryId).indexOf('image-toast') === 0 ? 'image-toast' : 'image-preview';
+  postNative('native', { op: 'close', screen, entryId });
   return { ok: true };
 }
 
@@ -302,15 +304,45 @@ export function chipThumb(ch, ink, size = 32) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return '';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const style = typeof getComputedStyle === 'function' ? getComputedStyle(canvas) : null;
+    // 颜色取令牌（--hand / --under 在 :root 上）；取不到就不出图（不写死颜色）
+    const style = typeof getComputedStyle === 'function' ? getComputedStyle(document.documentElement) : null;
     const hand = style && style.getPropertyValue('--hand').trim();
     const under = style && style.getPropertyValue('--under').trim();
-    const palette = { hand: hand || '#1B1814', under: under || '#8C8579' };
+    if (!hand) return '';
     paintCellContent(ctx, { ch, ink: points, mode: 'hand' }, { x: 0, y: 0, c: size },
-      { palette, unit: 1, paintStroke: paintBrushStroke });
+      { palette: { hand, under: under || hand }, unit: 1, paintStroke: paintBrushStroke });
     return canvas.toDataURL('image/png');
   } catch (error) {
     return '';
+  }
+}
+
+/**
+ * 说明句的折行点（网页量的，给原生照着换行）。
+ * .sz-img__note 是 text-wrap: pretty 的段落：WebKit 按整段平衡折行，原生（CoreText）贪心折行，两边折点不一样——
+ * 与结果页同一做法（B2.7 native-view.js webLineStarts）：页面里用同一组 CSS 类排一份看不见的副本，量出每一行从第几个字开始。
+ * @param {string} text 段落文字
+ * @param {string} wrapClass 容器的类（网页上这段所在的容器）
+ * @param {string} cls 段落自己的类
+ */
+export function lineStartsOf(text, wrapClass, cls) {
+  if (!text || typeof document === 'undefined') return null;
+  const vw = document.documentElement.clientWidth || 402;
+  const width = Math.max(1, vw - 2 * gutterPx()); // .sz-sheet 的左右内边
+  try {
+    return textLineStarts(text, { wrapClass, cls }, width);
+  } catch (error) {
+    return null;
+  }
+}
+
+/** 页边（--gutter）的数值；T.gutter 是 CSS 变量字符串（var(--gutter)），这里要的是数值（与结果页 sw − 40 同一口径）。 */
+function gutterPx() {
+  try {
+    const n = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gutter'));
+    return Number.isFinite(n) && n > 0 ? n : 20;
+  } catch (error) {
+    return 20;
   }
 }
 
@@ -325,6 +357,12 @@ export function imageView(scope, ratio, ctx = null) {
   const saveLabel = typeof job.saveLabel === 'function' ? job.saveLabel(total)
     : (total > 1 ? t('X-WORK.saveMany', { m: total }) : t('X-IMAGES.save'));
   const chips = typeof job.chips === 'function' ? job.chips() : [];
+  const failTexts = {
+    share: failText({ kind: 'share' }),
+    render: failText({ reason: 'render' }),
+    denied: failText({ reason: 'denied' }),
+    save: failText({ reason: 'download' }),
+  };
   return {
     kind: job.kind,
     title: job.title,
@@ -334,17 +372,19 @@ export function imageView(scope, ratio, ctx = null) {
     pageCount: total,
     status,
     note,
+    noteStarts: lineStartsOf(note, 'sz-img', 'sz-img__note'),
     boardNote,
     saveLabel,
     shareLabel: t('R-B10.share'),
     chips: chips.map(c => ({ recordId: c.recordId, ch: c.ch, on: !!c.on, thumb: chipThumb(c.ch, c.ink) })),
     alt: job.alt ? { label: job.alt.label, note: job.alt.note || '' } : null,
-    failText: {
-      share: failText({ kind: 'share' }),
-      render: failText({ reason: 'render' }),
-      denied: failText({ reason: 'denied' }),
-      save: failText({ reason: 'download' }),
-    },
+    failText: failTexts,
+    // 失败说明句（.sz-fail__note）也是 text-wrap: pretty 的段落：折行点按四种文案各量一次
+    failStarts: Object.fromEntries(
+      Object.entries(failTexts)
+        .map(([k, v]) => [k, lineStartsOf(v, 'sz-fail', 'sz-fail__note')])
+        .filter(([, v]) => v != null),
+    ),
   };
 }
 
@@ -426,5 +466,11 @@ setImageActions({
   save: (args, ctx) => imageSave(args && args.scope, args && args.ratio, args && args.mode, ctx),
   closed: args => closeNativePreview(args && args.entryId),
 });
+
+// B3.11：图片预览弹层与失败提示条的原生宿主屏（原生有 ShiziScreen_image_preview / ShiziScreen_image_toast 两个类时由原生出，
+// 壳把有类的屏名清单注入 window.__shiziNativeScreens）。网页这一侧只是「声明这两个屏有原生实现」——
+// 真正开弹层走原生消息（native 屏 + open），网页路由里没有这两屏。
+registerScreen('image-preview', () => null, { native: true });
+registerScreen('image-toast', () => null, { native: true });
 
 registerImageEntries();

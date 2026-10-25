@@ -273,8 +273,9 @@ let titleSeq = 0;
  * @param {string} [props.testid]
  * @param {'done'|'own'} [props.dismiss]  默认 'done'：标题行右端画「完成」；'own' = 弹层自己已有可见的取消 / 关闭，不画
  * @param {string} [props.doneTestid]  「完成」按钮的 data-testid（默认 sheet-done）
+ * @param {string} [props.titleTestid]  标题的 data-testid（默认没有；B3.11：图片预览弹层的标题与底页标题同名，逐屏对比要靠它配对）
  */
-export function Sheet({ title, onClose, active = true, testid, dismiss = 'done', doneTestid = 'sheet-done', children }) {
+export function Sheet({ title, onClose, active = true, testid, dismiss = 'done', doneTestid = 'sheet-done', titleTestid, children }) {
   const panelRef = useRef(null);
   const titleIdRef = useRef(null);
   if (!titleIdRef.current) titleIdRef.current = `sz-sheet-title-${(titleSeq += 1)}`;
@@ -289,7 +290,7 @@ export function Sheet({ title, onClose, active = true, testid, dismiss = 'done',
       data-dismiss=${done ? 'done' : 'own'} aria-labelledby=${title ? titleIdRef.current : undefined}>
       ${title || done
     ? html`<div class="sz-sheet__head" data-testid="sheet-head">
-        ${title ? html`<h2 class="sz-sheet__title" id=${titleIdRef.current}>${title}</h2>` : null}
+        ${title ? html`<h2 class="sz-sheet__title" id=${titleIdRef.current} data-testid=${titleTestid}>${title}</h2>` : null}
         ${done ? html`<${Button} variant="text" class="sz-sheet__done" data-testid=${doneTestid} onClick=${close}>${t('X-COMMON.done')}</${Button}>` : null}
       </div>`
     : null}

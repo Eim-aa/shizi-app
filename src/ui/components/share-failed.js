@@ -64,11 +64,12 @@ export function receiveShareFailed(info) {
       console.warn('[shizi] shareFailed listener failed:', error);
     }
   }
-  if (!shown) {
-    // 原生壳里：提示条由原生出（B3.11；网页这一侧不出，免得两条叠着）
-    if (nativeToastOn()) postNativeToast(shareFailedText(kind));
-    else showToast(shareFailedText(kind), { kind: 'failure' });
+  // 原生壳里：提示条由原生出（B3.11；网页这一侧不出，免得两条叠着）
+  if (!shown && nativeToastOn()) {
+    postNativeToast(shareFailedText(kind));
+    shown = true;
   }
+  if (!shown) showToast(shareFailedText(kind), { kind: 'failure' });
   return true;
 }
 

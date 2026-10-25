@@ -7365,13 +7365,16 @@ src/session/result-api.js
 src/session/result-ops.js
 src/session/views/about.js
 src/session/views/annual.js
+src/session/views/block.js
 src/session/views/detail.js
 src/session/views/home.js
 src/session/views/library-all.js
 src/session/views/library-list.js
 src/session/views/library-switch.js
 src/session/views/library.js
+src/session/views/lines.js
 src/session/views/mine.js
+src/session/views/session.js
 src/session/views/settings.js
 src/session/write-api.js
 src/session/write-ops.js
@@ -7407,6 +7410,7 @@ src/ui/components/corrupt-notice.js
 src/ui/components/exit.js
 src/ui/components/icons.js
 src/ui/components/image-preview.js
+src/ui/components/lines.js
 src/ui/components/marks.js
 src/ui/components/near.js
 src/ui/components/query/CharCard.js

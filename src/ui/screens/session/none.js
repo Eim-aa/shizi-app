@@ -10,6 +10,10 @@
 // 字库写完（exhausted）时主按钮是「更换字库」（原型 noChars L125–L127：主按钮 更换字库 → libSwitch、链接 看写错过的字 ›；
 // P83），「自己选字」降为次按钮；其余情形主按钮仍是「自己选字」。
 //
+// B3.12 原生化：这一屏可以由原生显示（registerScreen 的 native:true；原生类 ShiziScreen_session_none，
+// ios/ShiziApp/ShiziApp/Screens/SessionNone.swift）。原生渲染用的是同一份模型（session/views/session.js noneView）与同一组登记的入口
+// （session/api/session.js setNoneActions——网页模块把**同一个函数对象**登记进来，网页路径 == API 路径）。
+//
 // data-testid：session-none、session-none-cell、session-none-title、session-none-body、session-none-nochars、
 //              session-none-libswitch、session-none-pick、session-none-wrong。
 
@@ -18,39 +22,47 @@ import { registerScreen, nav } from '../../router.js';
 import { Page } from '../../components/Page.js';
 import { Button } from '../../components/Button.js';
 import { EmptyState } from '../../components/EmptyState.js';
-import { t } from '../../../config/copy/index.js';
+// 量网页的折行点（空状态的段落）：本模块加载时把「量」的实现登记进会话层（src/session/views/lines.js 的槽位）。
+import '../../components/lines.js';
+import { t, tRef } from '../../../config/copy/index.js';
+import { setNoneActions, noneActions } from '../../../session/api/session.js';
+import { noneView } from '../../../session/views/session.js';
 
 export const NONE_SCREEN = 'session-none';
 
-const actions = { pick: null, wrongList: null, libSwitch: null };
-
-/** 注册「自己选字」「看写错过的字」「更换字库」的去处（M2-1 / M2-0 / M3-2 / M3-5 调用）；传 null 取消。 */
-export function setNoneActions(next) {
-  if (!next || typeof next !== 'object') return;
-  if ('pick' in next) actions.pick = typeof next.pick === 'function' ? next.pick : null;
-  if ('wrongList' in next) actions.wrongList = typeof next.wrongList === 'function' ? next.wrongList : null;
-  if ('libSwitch' in next) actions.libSwitch = typeof next.libSwitch === 'function' ? next.libSwitch : null;
-}
+// 入口的登记放在会话层（原生与网页共用一份）：本模块转出去，别处（首页 / 字库清单 / 换库页）照旧从这里 import。
+export { setNoneActions };
 
 
 function NoneScreen({ params }) {
   const exhausted = !!(params && params.exhausted);
-  const pick = actions.pick;
-  const wrongList = actions.wrongList;
-  const libSwitch = exhausted ? actions.libSwitch : null;
+  const actions = noneActions();
+  // 网页与原生渲染的是同一份模型（session/views/session.js noneView）：网页路径 == API 路径。
+  const model = noneView({
+    exhausted,
+    pick: !!actions.pick,
+    wrongList: !!actions.wrongList,
+    libSwitch: !!actions.libSwitch,
+  });
+  // 模型给的是入口的名字（pick / libSwitch / wrongList），动作是登记进来的那一个函数对象。
+  const go = to => {
+    const fn = actions[to];
+    if (typeof fn === 'function') fn();
+  };
   const footer = html`
-    ${libSwitch ? html`<${Button} variant="primary" data-testid="session-none-libswitch" onClick=${() => libSwitch()}>${t('X-SESSION.noneLibSwitch')}</${Button}>` : null}
-    ${pick ? html`<${Button} variant=${libSwitch ? 'secondary' : 'primary'} data-testid="session-none-pick" onClick=${() => pick()}>${t('X-SESSION.nonePick')}</${Button}>` : null}`;
-  return html`<${Page} title=${t('X-TABS.write')} footer=${libSwitch || pick ? footer : null} testid="session-none">
+    ${model.primary ? html`<${Button} variant="primary" data-testid=${model.primary.to === 'libSwitch' ? 'session-none-libswitch' : 'session-none-pick'} onClick=${() => go(model.primary.to)}>${tRef(model.primary.label)}</${Button}>` : null}
+    ${model.secondary ? html`<${Button} variant="secondary" data-testid="session-none-pick" onClick=${() => go(model.secondary.to)}>${tRef(model.secondary.label)}</${Button}>` : null}`;
+  return html`<${Page} title=${tRef(model.title)} footer=${model.primary || model.secondary ? footer : null} testid="session-none">
     ${EmptyState({
-      title: t('R-H11.title'), body: exhausted ? [t('R-H11.body'), t('R-H11.noCharsBody')] : t('R-H11.body'), attrs: { 'data-exhausted': exhausted ? 'true' : 'false' },
-      action: exhausted && wrongList ? { label: t('R-H11.noCharsLink'), onClick: () => wrongList(), testid: 'session-none-wrong' } : null,
+      title: tRef(model.empty.title), body: [...model.empty.body, ...model.empty.extra].map(tRef), attrs: { 'data-exhausted': model.exhausted ? 'true' : 'false' },
+      action: model.empty.action ? { label: tRef(model.empty.action.label), onClick: () => go(model.empty.action.to), testid: 'session-none-wrong' } : null,
       testids: { root: 'session-none-body-wrap', cell: 'session-none-cell', title: 'session-none-title', body: 'session-none-body', extra: ['session-none-nochars'] },
     })}
   </${Page}>`;
 }
 
-registerScreen(NONE_SCREEN, NoneScreen, { label: t('R-H11.title') });
+// B3.12：这一屏可以由原生显示（原生有 ShiziScreen_session_none 类且开关打开时，root.js 画成原生宿主）。
+registerScreen(NONE_SCREEN, NoneScreen, { label: t('R-H11.title'), native: true });
 
 /** 推入「现在没有要写的字」页。 */
 export function openNonePage({ exhausted = false } = {}) {

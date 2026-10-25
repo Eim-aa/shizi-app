@@ -1,8 +1,8 @@
 {
   "state": "preview-annual-long",
   "name": "图片预览 · 年报「存成一张长图」",
-  "screen": "annual",
-  "native": false,
+  "screen": "image-preview",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -10,7 +10,8 @@
   },
   "overlay": "image-preview",
   "ready": {
-    "web": "annual-screen"
+    "web": "annual-screen",
+    "native": "id:native-image-preview-screen"
   },
   "setup": [
     {
@@ -112,6 +113,10 @@
       "op": "push",
       "screen": "annual",
       "params": {}
+    },
+    {
+      "op": "openImage",
+      "sel": "[data-testid=\"annual-adjust\"]"
     }
   ],
   "steps": [
@@ -126,7 +131,8 @@
     },
     {
       "tap": {
-        "webTestid": "image-long"
+        "webTestid": "image-long",
+        "native": "qa-image-long"
       },
       "times": 1
     },

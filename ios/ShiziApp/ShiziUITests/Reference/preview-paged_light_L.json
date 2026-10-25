@@ -7,6 +7,7 @@
       "tag" : "div"
     },
     {
+      "id" : "image-title",
       "name" : "8月字帖",
       "role" : "heading",
       "tag" : "h2"
@@ -2265,6 +2266,7 @@
         "x" : 20,
         "y" : 257
       },
+      "id" : "image-title",
       "kind" : "text",
       "tag" : "h2",
       "text" : "8月字帖",

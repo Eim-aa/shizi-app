@@ -2,7 +2,7 @@
   "state": "preview-saved",
   "name": "图片预览 · 保存键原地变「已存好」",
   "screen": "result",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -13,13 +13,18 @@
   "setup": [
     {
       "op": "stubNative"
+    },
+    {
+      "op": "stubSave",
+      "success": true
     }
   ],
   "settle": 0,
   "steps": [
     {
       "tap": {
-        "webTestid": "result-share"
+        "webTestid": "result-share",
+        "native": "native-result-share"
       },
       "times": 1
     },
@@ -28,7 +33,8 @@
     },
     {
       "tap": {
-        "webTestid": "image-save"
+        "webTestid": "image-save",
+        "native": "qa-image-save"
       },
       "times": 1
     },

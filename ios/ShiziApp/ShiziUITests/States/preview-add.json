@@ -2,7 +2,7 @@
   "state": "preview-add",
   "name": "图片预览 · 「也放进来」选中一个写错的字",
   "screen": "result",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -13,7 +13,8 @@
   "steps": [
     {
       "tap": {
-        "webTestid": "result-share"
+        "webTestid": "result-share",
+        "native": "native-result-share"
       },
       "times": 1
     },
@@ -22,7 +23,8 @@
     },
     {
       "tap": {
-        "webTestid": "image-chip"
+        "webTestid": "image-chip",
+        "native": "qa-image-chip"
       },
       "times": 1
     },

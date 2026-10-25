@@ -2,7 +2,7 @@
   "state": "preview-3x4",
   "name": "图片预览 · 这次的图片 3:4（5 字默认）",
   "screen": "result",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -13,7 +13,8 @@
   "steps": [
     {
       "tap": {
-        "webTestid": "result-share"
+        "webTestid": "result-share",
+        "native": "native-result-share"
       },
       "times": 1
     },

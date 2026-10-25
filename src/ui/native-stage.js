@@ -12,7 +12,8 @@
 // 推送：store 每次成功提交后 {op:'changed', domains}；阻断状态变化 {op:'status', status:'ready'|'blocked', reason}。
 
 import { html, useEffect, useLayoutEffect, useState } from '../../vendor/ui.js';
-import { getRouter, nav, setNativeScreenGate } from './router.js';
+import { getRouter, getScreen, nav, setNativeScreenGate } from './router.js';
+import { exitMs } from './components/exit.js';
 import { nativePlanOf, whenNavIdle } from './paper-transition.js';
 import { M } from '../config/motion.js';
 import { postNative } from '../platform/bridge.js';
@@ -37,9 +38,19 @@ export function hasNativeScreen(name, win = globalWin()) {
   return list.includes(name);
 }
 
+/**
+ * B3.5a：tab 根页（首页 / 字库 / 我的）原生了也先关着——三个根页与 Tab 栏在 B3.5d 同一波打开（计划 §3.3「Tab 根」），之前只有
+ * window.__shiziNativeRoots = true（QA 夹具 op nativeRoots、启动参数 -shizi-native-roots）时才由原生显示。B3.5d 删掉这一闸。
+ */
+export function nativeRootsOn(win = globalWin()) {
+  return !!(win && win.__shiziNativeRoots === true);
+}
+
 /** 这一屏此刻由原生显示：开关开着、原生有类（registerScreen 的 native:true 只是「可以原生」，找不到类就照旧是网页）。 */
 export function nativeScreenOn(name, win = globalWin()) {
-  return nativeStageEnabled(win) && hasNativeScreen(name, win);
+  if (!(nativeStageEnabled(win) && hasNativeScreen(name, win))) return false;
+  const def = getScreen(name);
+  return !(def && def.tab) || nativeRootsOn(win);
 }
 
 setNativeScreenGate(name => nativeScreenOn(name));
@@ -180,6 +191,28 @@ export function nativeRunBelow(snap, entryId, withViews = false, win = globalWin
   return out;
 }
 
+/** tab 根页的宿主：铺满 tab 内容区（不盖 Tab 栏；原生根页同样只盖到 Tab 栏上沿），截图按内容区铺。 */
+const ROOT_HOST_STYLE = 'position:relative;height:100%;pointer-events:none';
+
+/** 这一条是不是页面栈的底（tab 根页）。 */
+export function isRootEntry(snap, entryId) {
+  return !!(snap && snap.stack && snap.stack.length && snap.stack[0].id === entryId);
+}
+
+/**
+ * tab 根页的原生层此刻要不要让开：顶层是网页页面（不是原生宿主条目）或根页上开着网页弹层。
+ * 顶层是原生宿主（写字 / 结果 / 通用原生页）时不让开——它们盖在原生根页上面。
+ */
+export function rootCovered(snap, entryId) {
+  const top = snap ? snap.top : null;
+  if (!top) return false;
+  if (top.id === entryId) return !!snap.topIsOverlay;
+  const def = getScreen(top.n);
+  if (!def) return true;
+  if (def.nativeHost) return !def.nativeHost(top, snap) || !!snap.topIsOverlay;
+  return true;
+}
+
 function underOf(snap, entryId) {
   const pages = snap ? snap.stack.filter(e => e.k === 's') : [];
   const i = pages.findIndex(e => e.id === entryId);
@@ -224,12 +257,41 @@ export function NativeScreenHost({ params, entry }) {
     const plan = nativePlanOf(id);
     const via = !animate ? 'restore' : tr.kind === 'replace' ? 'replace' : plan && plan.mode === 'quiet' ? 'quiet' : 'push';
     const under = underOf(snap, id);
-    const base = () => ({ op: 'open', screen: name, entryId: id, params: params || {}, underId: under ? under.id : null, underScreen: under ? under.n : null, sentAt: Date.now() });
+    const root = isRootEntry(snap, id);
+    let covered = root ? rootCovered(snap, id) : false;
+    const base = () => ({ op: 'open', screen: name, entryId: id, params: params || {}, underId: under ? under.id : null, underScreen: under ? under.n : null, sentAt: Date.now(),
+      ...(root ? { root: true, covered } : {}) });
     let sent = sendOpen({ ...base(), via, plan, run: nativeRunBelow(snap, id) }, viewPayload(name, params));
     let waiting = false;
     let cancelWait = null;
     let coverTimer = null;
-    const off = router && typeof router.subscribe === 'function' ? router.subscribe(() => {
+    let rootTimer = null;
+    // B3.5a tab 根页：原生根页是窗口里 WKWebView 上面的一层（不随网页栈出入）——网页页面 / 网页弹层盖到它上面时让开（covered），
+    // 盖着它的网页页面 / 弹层走了再回来（等网页转场与弹层退场余影放完，open via 'return' 带新视图）。
+    const offRoot = root && router && typeof router.subscribe === 'function' ? router.subscribe(next => {
+      const now = rootCovered(next, id);
+      if (now === covered) return;
+      const overlayLeft = covered && !now && !next.topIsOverlay;
+      covered = now;
+      clearTimeout(rootTimer);
+      if (cancelWait) { cancelWait(); cancelWait = null; }
+      if (now) {
+        postNative('native', { op: 'root', screen: name, entryId: id, covered: true });
+        return;
+      }
+      rootTimer = setTimeout(() => {
+        cancelWait = whenNavIdle(() => {
+          cancelWait = null;
+          const snapNow = router.getState();
+          if (rootCovered(snapNow, id) || !snapNow.stack.length || snapNow.stack[0].id !== id) return;
+          covered = false;
+          sent = sendOpen({ ...base(), via: 'return', plan: null, run: [] }, viewPayload(name, snapNow.stack[0].p)) || sent;
+          clearTimeout(coverTimer);
+          coverTimer = setTimeout(() => setCover(id, null), RETURN_COVER_MS);
+        });
+      }, overlayLeft ? exitMs('sheet') : 0);
+    }) : null;
+    const off = !root && router && typeof router.subscribe === 'function' ? router.subscribe(() => {
       const top = router.getState().top;
       if (!away.has(id) || !top || top.id !== id || waiting) return;
       waiting = true;
@@ -246,14 +308,17 @@ export function NativeScreenHost({ params, entry }) {
     }) : null;
     return () => {
       if (off) off();
+      if (offRoot) offRoot();
       if (cancelWait) cancelWait();
       clearTimeout(coverTimer);
+      clearTimeout(rootTimer);
       away.delete(id);
       setCover(id, null);
       if (sent) postNative('native', { op: 'close', screen: name, entryId: id });
     };
   }, [id]);
-  return html`<div data-testid="native-host" data-screen=${name} style=${HOST_STYLE}>
+  const snapNow = getRouter() ? getRouter().getState() : null;
+  return html`<div data-testid="native-host" data-screen=${name} style=${isRootEntry(snapNow, id) ? ROOT_HOST_STYLE : HOST_STYLE}>
     ${cover ? html`<img src=${cover} alt="" aria-hidden="true" style=${COVER_STYLE} />` : null}
   </div>`;
 }

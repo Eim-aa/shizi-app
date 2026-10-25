@@ -25,13 +25,7 @@
       "role" : "status",
       "srOnly" : true,
       "tag" : "span",
-      "text" : "没保存上，刚才的选择没记下。"
-    },
-    {
-      "id" : "home-start-fail-cancel",
-      "name" : "先不保存",
-      "role" : "button",
-      "tag" : "button"
+      "text" : ""
     },
     {
       "id" : "home-pick",
@@ -40,8 +34,8 @@
       "tag" : "button"
     },
     {
-      "id" : "home-start-fail-retry",
-      "name" : "再试一次",
+      "id" : "home-start",
+      "name" : "再写一组",
       "role" : "button",
       "tag" : "button"
     },
@@ -144,7 +138,7 @@
     {
       "class" : "sz-home__main",
       "frame" : {
-        "h" : 469,
+        "h" : 564,
         "w" : 362,
         "x" : 20,
         "y" : 101
@@ -159,7 +153,7 @@
         "h" : 194.40000000000001,
         "w" : 232,
         "x" : 85,
-        "y" : 223.80000000000001
+        "y" : 271.30000000000001
       },
       "id" : "home-group",
       "kind" : "view",
@@ -172,7 +166,7 @@
         "h" : 128,
         "w" : 128,
         "x" : 85,
-        "y" : 290.19999999999999
+        "y" : 337.69999999999999
       },
       "id" : "home-brand-shi",
       "kind" : "view",
@@ -184,7 +178,7 @@
         "h" : 158.69999999999999,
         "w" : 158.69999999999999,
         "x" : 69.599999999999994,
-        "y" : 274.89999999999998
+        "y" : 322.39999999999998
       },
       "id" : "brand-shi-mark",
       "kind" : "view",
@@ -197,7 +191,7 @@
         "h" : 194.40000000000001,
         "w" : 86,
         "x" : 231,
-        "y" : 223.80000000000001
+        "y" : 271.30000000000001
       },
       "id" : "home-epigraph",
       "kind" : "view",
@@ -213,7 +207,7 @@
         "h" : 194.40000000000001,
         "w" : 26,
         "x" : 291,
-        "y" : 223.80000000000001
+        "y" : 271.30000000000001
       },
       "kind" : "text",
       "tag" : "span",
@@ -229,7 +223,7 @@
         "h" : 194.40000000000001,
         "w" : 26,
         "x" : 261,
-        "y" : 223.80000000000001
+        "y" : 271.30000000000001
       },
       "kind" : "text",
       "tag" : "span",
@@ -245,7 +239,7 @@
         "h" : 194.40000000000001,
         "w" : 26,
         "x" : 231,
-        "y" : 223.80000000000001
+        "y" : 271.30000000000001
       },
       "kind" : "text",
       "tag" : "span",
@@ -254,96 +248,27 @@
     {
       "class" : "sz-home__foot",
       "frame" : {
-        "h" : 221,
+        "h" : 126,
         "w" : 362,
         "x" : 20,
-        "y" : 570
+        "y" : 665
       },
       "id" : "home-foot",
       "kind" : "view",
       "tag" : "div"
     },
     {
-      "align" : "left",
       "class" : "sz-live",
-      "color" : "#ECE4D6FF",
-      "fontSize" : 20.25,
-      "fontWeight" : 0,
       "frame" : {
         "h" : 1,
         "w" : 1,
         "x" : 200.5,
-        "y" : 569
+        "y" : 664
       },
       "id" : "home-start-live",
-      "kind" : "text",
-      "srOnly" : true,
-      "tag" : "span",
-      "text" : "没保存上，刚才的选择没记下。",
-      "textFrame" : {
-        "h" : 25,
-        "w" : 280.69999999999999,
-        "x" : 200.5,
-        "y" : 571
-      }
-    },
-    {
-      "class" : "sz-home__fail",
-      "frame" : {
-        "h" : 83,
-        "w" : 345,
-        "x" : 28.5,
-        "y" : 570
-      },
-      "id" : "home-start-fail",
       "kind" : "view",
-      "tag" : "div"
-    },
-    {
-      "align" : "center",
-      "class" : "sz-home__failnote",
-      "color" : "#C2B8A8FF",
-      "fontSize" : 20.25,
-      "fontWeight" : 0,
-      "frame" : {
-        "h" : 29,
-        "w" : 345,
-        "x" : 28.5,
-        "y" : 570
-      },
-      "kind" : "text",
-      "tag" : "p",
-      "text" : "没保存上，刚才的选择没记下。",
-      "textFrame" : {
-        "h" : 25,
-        "w" : 280.69999999999999,
-        "x" : 60.600000000000001,
-        "y" : 572
-      }
-    },
-    {
-      "align" : "center",
-      "class" : "sz-btn sz-btn--text",
-      "color" : "#C2B8A8FF",
-      "enabled" : true,
-      "fontSize" : 20.25,
-      "fontWeight" : 0,
-      "frame" : {
-        "h" : 44,
-        "w" : 88.200000000000003,
-        "x" : 156.90000000000001,
-        "y" : 609
-      },
-      "id" : "home-start-fail-cancel",
-      "kind" : "button",
-      "tag" : "button",
-      "text" : "先不保存",
-      "textFrame" : {
-        "h" : 25,
-        "w" : 80.200000000000003,
-        "x" : 160.90000000000001,
-        "y" : 618.5
-      }
+      "srOnly" : true,
+      "tag" : "span"
     },
     {
       "align" : "center",
@@ -371,7 +296,7 @@
     },
     {
       "align" : "center",
-      "axLabel" : "再试一次",
+      "axLabel" : "再写一组",
       "bg" : "#E2D9C9FF",
       "class" : "sz-btn sz-btn--primary sz-home__cta",
       "color" : "#1B1814FF",
@@ -384,11 +309,11 @@
         "x" : 81,
         "y" : 713
       },
-      "id" : "home-start-fail-retry",
+      "id" : "home-start",
       "kind" : "button",
       "radius" : 12,
       "tag" : "button",
-      "text" : "再试一次",
+      "text" : "再写一组",
       "textFrame" : {
         "h" : 28,
         "w" : 90.5,

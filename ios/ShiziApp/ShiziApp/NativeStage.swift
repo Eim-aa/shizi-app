@@ -22,6 +22,11 @@ import WebKit
 //      页面重载：原生页留在屏上；宿主按同一串屏名重新认领 = 只换条目 id 与视图；1.5s 没人认领 → 同上收起淡出。
 // 引擎（ShiziEngine / WebEngine）：页面推来的 changed / status 转给它，原生页订阅 changes、按 status 禁用按钮与重拉视图。
 
+/// 原生 tab 根页给 QA 探针的摘要（B3.5a；NativeStage.rootProbe 带出）。
+protocol ShiziRootProbing: AnyObject {
+    var rootProbe: [String: Any] { get }
+}
+
 /// 屏名 ⇄ 原生类（约定：ObjC 名 ShiziScreen_<屏名，- 换 _>）。
 enum ShiziScreenRegistry {
     static let prefix = "ShiziScreen_"
@@ -74,7 +79,9 @@ final class NativeStage: NSObject {
     /// 文档开始注入：原生开关、有类的屏名清单（网页 ui/native-stage.js 读）。
     static func userScript() -> String {
         let list = (try? JSONSerialization.data(withJSONObject: ShiziScreenRegistry.screens)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziNativeScreens = \(list);"
+        // B3.5a：tab 根页原生到 B3.5d 才与 Tab 栏同开；之前只有 -shizi-native-roots（或 QA 夹具 op nativeRoots）打开（网页 native-stage.js nativeRootsOn）
+        let roots = ProcessInfo.processInfo.arguments.contains("-shizi-native-roots") ? " window.__shiziNativeRoots = true;" : ""
+        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziNativeScreens = \(list);" + roots
     }
 
     // MARK: 页面推来的消息（type 'native'）
@@ -82,10 +89,16 @@ final class NativeStage: NSObject {
     func handleScreenMessage(_ body: [String: Any]) {
         engine.webView = host.webView
         switch body["op"] as? String ?? "" {
+        case "open" where (body["root"] as? Bool) == true:
+            enqueue { [weak self] done in self?.openRoot(body, done: done) ?? done() }
         case "open":
             enqueue { [weak self] done in self?.openScreen(body, done: done) ?? done() }
+        case "close" where rootScreen != nil && (body["entryId"] as? String) == rootScreen?.entryId:
+            enqueue { [weak self] done in self?.closeRoot(done: done) ?? done() }
         case "close":
             enqueue { [weak self] done in self?.closeScreen(body, done: done) ?? done() }
+        case "root":
+            enqueue { [weak self] done in self?.coverRoot(body, done: done) ?? done() }
         case "changed":
             _ = engine.receiveChanged(body)
         case "status":
@@ -115,10 +128,113 @@ final class NativeStage: NSObject {
 
     // MARK: 通用原生屏
 
-    /// 顶层原生屏（没有 = nil）。
-    var topScreen: ShiziScreenViewController? { screens.last }
+    /// 顶层原生屏（没有 = nil）。没有呈现中的原生页时，看得见的原生 tab 根页（B3.5a）也算。
+    var topScreen: ShiziScreenViewController? {
+        if let s = screens.last { return s }
+        guard host.presentedViewController == nil, let r = rootScreen, !r.view.isHidden else { return nil }
+        return r
+    }
 
-    func isTop(_ page: ShiziScreenViewController) -> Bool { screens.last === page }
+    // MARK: tab 根页（B3.5a）
+    //
+    // 原生 tab 根页不是呈现出来的覆盖页，而是 WebViewController 的子控制器、视图插在 WKWebView 正上方，只盖到 Tab 栏上沿（Tab 栏仍是网页的，
+    // B3.5d 换原生 Tab 栏）：写字 / 结果 / 通用原生页照旧呈现在它上面，收起后露出的就是它（原生 → 原生 T-paper，B2.8 同一套转场）。
+    // 网页页面 / 网页弹层盖到根页上时（open / root 消息带 covered），等网页画好一帧再藏起来；盖着的走了网页发 open via 'return'，直接露出、换视图。
+
+    /// 原生 tab 根页（没有 = nil）。
+    private(set) var rootScreen: ShiziScreenViewController?
+    /// 页面重载后根页被重新认领过（没有 = 等待时间到了收掉）。
+    private var rootClaimed = true
+
+    /// Tab 栏的高（网页 Tabs.js：49 + 下安全区），原生根页只盖到它上沿。
+    private var rootFrame: CGRect {
+        let b = host.view.bounds
+        let bar = 49 + host.view.safeAreaInsets.bottom
+        return CGRect(x: 0, y: 0, width: b.width, height: max(0, b.height - bar))
+    }
+
+    private func openRoot(_ body: [String: Any], done: @escaping () -> Void) {
+        guard WebViewController.nativeWriteEnabled, let name = body["screen"] as? String, let entryId = body["entryId"] as? String,
+              let cls = ShiziScreenRegistry.screenClass(name) else { done(); return }
+        NativeNavState.shared.heard()
+        NativeNavMotion.ensure()
+        rootClaimed = true
+        let payload = body["payload"] as? [String: Any] ?? [:]
+        let params = body["params"] as? [String: Any] ?? [:]
+        let covered = (body["covered"] as? Bool) == true
+        ShiziProbe.note("root:open \(name) via=\(body["via"] as? String ?? "?") covered=\(covered)")
+        if let r = rootScreen, r.screen == name, r.entryId == entryId || NativeNavState.shared.awaitingReattach {
+            r.entryId = entryId
+            r.update(params: params)
+            r.apply(payload: payload)
+            setRootHidden(covered, done: done)
+            return
+        }
+        removeRoot()
+        let vc = cls.init(screen: name, entryId: entryId, params: params)
+        vc.stage = self
+        vc.apply(payload: payload)
+        host.addChild(vc)
+        vc.view.frame = rootFrame
+        vc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        host.view.insertSubview(vc.view, aboveSubview: host.webView)
+        vc.didMove(toParent: host)
+        rootScreen = vc
+        vc.view.isHidden = covered
+        done()
+    }
+
+    /// 网页页面 / 弹层盖上来（covered）：网页画好一帧后藏起（推入 / 弹层从第一帧起盖在根页的样子上：stage.cover 交过的截图）。
+    private func coverRoot(_ body: [String: Any], done: @escaping () -> Void) {
+        guard let r = rootScreen, (body["entryId"] as? String) == r.entryId else { done(); return }
+        ShiziProbe.note("root:covered \(body["covered"] as? Bool == true)")
+        setRootHidden((body["covered"] as? Bool) == true, done: done)
+    }
+
+    private func setRootHidden(_ hidden: Bool, done: @escaping () -> Void) {
+        guard let r = rootScreen else { done(); return }
+        if !hidden {
+            r.view.isHidden = false
+            r.view.frame = rootFrame
+            done()
+            return
+        }
+        guard !r.view.isHidden else { done(); return }
+        engine.raw("stage.fence", [:]) { [weak r] _ in
+            r?.view.isHidden = true
+            done()
+        }
+    }
+
+    /// 根页的宿主卸掉了（切 tab、阻断页、整体重建）：网页画好下一帧再拿掉（切 tab 无动画，网页那一帧已经是新 tab）。
+    private func closeRoot(done: @escaping () -> Void) {
+        guard let r = rootScreen else { done(); return }
+        r.exitHandled = true
+        ShiziProbe.note("root:close \(r.screen)")
+        engine.raw("stage.fence", [:]) { [weak self, weak r] _ in
+            if let self, let r, self.rootScreen === r { self.removeRoot() }
+            done()
+        }
+    }
+
+    private func removeRoot() {
+        guard let r = rootScreen else { return }
+        rootScreen = nil
+        r.exitHandled = true
+        r.willMove(toParent: nil)
+        r.view.removeFromSuperview()
+        r.removeFromParent()
+    }
+
+    /// 探针：原生根页（屏名、是否藏着、页面自己的摘要）。
+    var rootProbe: [String: Any]? {
+        guard let r = rootScreen else { return nil }
+        var out: [String: Any] = ["screen": r.screen, "hidden": r.view.isHidden, "frame": [r.view.frame.minX, r.view.frame.minY, r.view.frame.width, r.view.frame.height]]
+        if let p = (r as? ShiziRootProbing)?.rootProbe { out["page"] = p }
+        return out
+    }
+
+    func isTop(_ page: ShiziScreenViewController) -> Bool { topScreen === page }
 
     /// 呈现链最上面的控制器（新原生页盖在它上面）。
     private func topPresented() -> UIViewController {
@@ -319,6 +435,18 @@ final class NativeStage: NSObject {
 
     func pageWillReload() {
         engine.pageWillReload()
+        rootClaimed = rootScreen == nil
+    }
+
+    /// 重载后等待时间到了根页还没被认领（路由没恢复出这个 tab）：收掉。
+    func releaseUnclaimedRoot() {
+        enqueue { [weak self] done in
+            guard let self, !self.rootClaimed else { done(); return }
+            self.rootClaimed = true
+            ShiziProbe.note("reload:root-unclaimed")
+            self.removeRoot()
+            done()
+        }
     }
 
     func pageDidBecomeReady() {
@@ -637,6 +765,9 @@ final class NativeStage: NSObject {
     /// 页面就绪：重载前盖着的原生页，若页面在等待时间内没有再发 open / result-open（路由没有恢复出这一页），样子留着、原生页收起、等页面画好再淡出。
     func nativePageDidBecomeReady() {
         pageDidBecomeReady()
+        if rootScreen != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.reattachWait) { [weak self] in self?.releaseUnclaimedRoot() }
+        }
         guard WebViewController.nativeWriteEnabled, NativeNavState.shared.awaitingReattach else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.reattachWait) { [weak self] in
             guard let self, NativeNavState.shared.takeUnclaimed(), let page = self.host.presentedViewController as? NativeTransitionPage else { return }

@@ -518,7 +518,9 @@ final class QAProbe {
             out["result"] = ["shown": false]
         }
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
-        out["stage"] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies]
+        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies]
+        if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
+        out["stage"] = stageOut
         out["pageReady"] = host.pageReady
         out["transitions"] = QATrace.events
         out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）

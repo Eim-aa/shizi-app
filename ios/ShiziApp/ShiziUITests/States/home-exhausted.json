@@ -2,7 +2,7 @@
   "state": "home-exhausted",
   "name": "首页 · 练习范围学完",
   "screen": "home",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -15,9 +15,13 @@
     },
     {
       "op": "seed"
+    },
+    {
+      "op": "nativeRoots"
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-home-start"
   }
 }

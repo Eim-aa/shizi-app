@@ -73,6 +73,21 @@
         "position"
       ],
       "//": "B3.7：AX 档正文区放不下时网页把 3:4 的框收矮，里面的 <img>（height:100%，在收矮的网格里按图的比例撑开）溢出框、被框裁掉，量出的图元素框落在框的下半（AX3 低 11pt、AX5 低 139pt）；原生同样把框收到同高、同位置，图按 contain 完整留在框里，不照搬网页被裁掉的溢出"
+    },
+    {
+      "state": [
+        "detail-many",
+        "detail-once"
+      ],
+      "sizes": [
+        "AX3",
+        "AX5"
+      ],
+      "label": "title",
+      "aspects": [
+        "missing"
+      ],
+      "//": "B3.7（网页缺陷，原生按正确行为做，等主控登记）：字详情页的标题只给读屏（Page.js hideTitle=true → .sz-page__title--hidden，1×1 裁掉），L / XXXL 档网页也看不见；但 AX 档 components/ax.js 的通用规则 .sz-page .sz-page__head>.sz-page__title 把它改成 position:relative + flex:1 0 100% + overflow:visible，--hidden 的 clip:rect(0 0 0 0) 只对绝对定位元素生效，于是只给读屏的标题在 AX 档漏画出来（40pt，压在头图格上，见并排图），取证脚本因此判它「不是读屏专用」。网页自己的写字页 / 结果页都有专门规则把 --hidden 标题在 AX 档重新藏好（write/index.js、result/index.js），字详情页缺这一条。原生保持只给读屏（AX 档也不画），不照搬网页的漏画；按 B3B4 §10.9「页面卡发现参考图本身有问题（网页 bug）→ 不改网页，记具名豁免 + 理由，原生按正确行为做」处理"
     }
   ],
   "waive": {},

@@ -7308,6 +7308,7 @@ src/core/mix.js
 src/core/new-order.js
 src/core/query.js
 src/core/records.js
+src/core/reminder.js
 src/core/schema.js
 src/core/session-start.js
 src/core/sessions.js
@@ -7330,6 +7331,7 @@ src/platform/share.js
 src/platform/sound.js
 src/platform/sw.js
 src/platform/test-hooks.js
+src/platform/text-lines.js
 src/platform/text-size.js
 src/session/api/about.js
 src/session/api/backup.js

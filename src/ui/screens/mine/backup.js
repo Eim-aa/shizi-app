@@ -45,18 +45,19 @@ import { UndoBar } from '../../components/UndoBar.js';
 import { FailBlock } from '../../components/FailBlock.js';
 import { Confirm } from '../../components/Confirm.js';
 import { injectStyles, T } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef } from '../../../config/copy/index.js';
 import * as policy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow, isNativeShell } from '../../../platform/env.js';
 import { postNative, registerNativeHandler } from '../../../platform/bridge.js';
+import { domLineStarts, registerTextLines, screenWidth, textUnits } from '../../../platform/text-lines.js';
 import { shareBackupFile } from '../../../platform/share.js';
 import { onShareFailed } from '../../components/share-failed.js'; // P96（M6-6）：注册 shiziShareFailed；备份分享没打开 → 不记导出
 import { monthDayParts, isValidDay } from '../../../core/dates.js';
 import {
-  BACKUP_MAX_BYTES, backupFileName, backupStatus, buildBackupV2, clearAllRecords, conclusionOfSafety, confirmModel,
-  dropSafety, inspectBackup, markExported, recordsSignature, restoreFromBackup, safetyMatchesCurrent, safetyOf,
-  serializeBackup, STAGES, undoFromSafety, judgedCharsOf,
+  BACKUP_MAX_BYTES, backupFileName, backupStatus, backupView, buildBackupV2, clearAllRecords, clearSheetView,
+  conclusionOfSafety, dropSafety, inspectBackup, markExported, recordsSignature, restoreConfirmView, restoreFromBackup,
+  safetyMatchesCurrent, safetyOf, serializeBackup, STAGES, undoFromSafety, judgedCharsOf,
 } from '../../../core/backup.js';
 
 export const BACKUP_SCREEN = 'backup';
@@ -242,26 +243,26 @@ onShareFailed(kind => {
  * 替换时正文后多一行「会丢失哪几天的记录」。
  */
 export function RestoreConfirm({ model, onConfirm, onExport = null, close, active = true }) {
-  const replace = model.mode === 'replace';
-  const date = dateText(model.day);
-  const body = replace ? t('R-B03.replaceBody', { date, n: model.n, m: model.m }) : t('R-B03.restoreBody', { date, n: model.n });
-  const loss = replace ? lossText(model.loss) : '';
-  return html`<${Confirm} testid="backup-restore-confirm" attrs=${{ 'data-mode': model.mode }}
+  const v = restoreConfirmView(model.state, model.report, { showLoss: model.showLoss });
+  const replace = v.mode === 'replace';
+  const loss = v.lossText ? tRef(v.lossText) : '';
+  return html`<${Confirm} testid="backup-restore-confirm" attrs=${{ 'data-mode': v.mode }}
     testids=${{ title: 'backup-restore-confirm-title', body: 'backup-restore-confirm-body', cancel: 'backup-restore-cancel', confirm: 'backup-restore-ok' }}
-    title=${t(replace ? 'X-BACKUP.replaceTitle' : 'R-B03.restoreTitle')} body=${body}
-    cancelLabel=${t('X-BACKUP.confirmCancel')} confirmLabel=${replace ? t('X-BACKUP.replaceOk') : t('R-B03.restoreBtn')}
+    title=${tRef(v.title)} body=${tRef(v.body)}
+    cancelLabel=${tRef(v.cancel)} confirmLabel=${tRef(v.ok)}
     onConfirm=${onConfirm} close=${close} active=${active}>
-    ${loss ? html`<p class="sz-bk__loss" data-testid="backup-restore-confirm-loss" data-from=${model.loss.from} data-to=${model.loss.to}>${loss}</p>` : null}
-    ${loss && onExport ? html`<${Button} variant="text" class="sz-bk__exportfirst" data-testid="backup-restore-export" onClick=${onExport}>${t('X-BACKUP.exportFirst')}</${Button}>` : null}
+    ${loss ? html`<p class="sz-bk__loss" data-testid="backup-restore-confirm-loss" data-from=${v.loss.from} data-to=${v.loss.to}>${loss}</p>` : null}
+    ${loss && onExport ? html`<${Button} variant="text" class="sz-bk__exportfirst" data-testid="backup-restore-export" onClick=${onExport}>${tRef(v.exportFirst)}</${Button}>` : null}
   </${Confirm}>`;
 }
 
 /** 清空确认框（同一个 Confirm）；failed 时换成「没保存上，记录都还在。」+ 先不清空 / 再试一次。 */
 export function ClearSheet({ n, failed = false, onConfirm, close, active = true }) {
-  return html`<${Confirm} testid="backup-clear-sheet" attrs=${{ 'data-state': failed ? 'failed' : 'ask' }}
-    testids=${{ body: 'backup-clear-body', cancel: failed ? 'backup-clear-stay' : 'backup-clear-cancel', confirm: failed ? 'backup-clear-retry' : 'backup-clear-ok' }}
-    title=${t('X-BACKUP.clearTitle')} body=${failed ? t('X-BACKUP.clearFailed') : t('R-B03.clearBody', { n })}
-    cancelLabel=${failed ? t('X-BACKUP.clearStay') : t('X-BACKUP.confirmCancel')} confirmLabel=${failed ? t('X-BACKUP.retry') : t('X-BACKUP.clearOk')}
+  const v = clearSheetView(n, { failed });
+  return html`<${Confirm} testid="backup-clear-sheet" attrs=${{ 'data-state': v.failed ? 'failed' : 'ask' }}
+    testids=${{ body: 'backup-clear-body', cancel: v.failed ? 'backup-clear-stay' : 'backup-clear-cancel', confirm: v.failed ? 'backup-clear-retry' : 'backup-clear-ok' }}
+    title=${tRef(v.title)} body=${tRef(v.body)}
+    cancelLabel=${tRef(v.cancel)} confirmLabel=${tRef(v.ok)}
     onConfirm=${onConfirm} close=${close} active=${active} />`;
 }
 
@@ -304,7 +305,11 @@ function BackupScreen({ entry }) {
 
   const openConfirm = report => {
     const store = storeOrNull();
-    const model = confirmModel(store ? store.getState() : null, report, { showLoss: policy.replaceConfirmShowsLostRange !== false });
+    const model = {
+      state: store ? store.getState() : null,
+      report,
+      showLoss: policy.replaceConfirmShowsLostRange !== false,
+    };
     let overlayId = null;
     let done = false;
     const onConfirm = () => {
@@ -480,10 +485,10 @@ function BackupScreen({ entry }) {
   const live = undo && !undo.done ? conclusionOfSafety(safetyOf(state), state) : null;
   // D24 / 03 P183：撤销底栏还在时用现场结论（live）；离开再进来留下 backupMeta.lastConclusion（结论句保留到下次导出）；没有结论句才按现在的记录与上次导出时间算。
   // 已失效的「离开这一页前可以撤销」不再出现：没有记录时「从备份文件恢复」下面不放它（Q2-8 留下的这一半保留）。
-  const status = backupStatus(state, { conclusion: live });
+  const model = backupView(state, { conclusion: live });
   const undoOn = !!undo && !undo.done;
-  const has = status.hasRecords;
-  const lines = status.lines.map(lineText);
+  const has = model.hasRecords;
+  const lines = model.statusLines.map(tRef);
   const noteTone = 'error';
   const [l1, l2] = undo ? undoLines(undo.kind, undo.failed) : ['', ''];
 
@@ -495,19 +500,18 @@ function BackupScreen({ entry }) {
     // 主按钮在 Page 底栏（与全 App 同一条底线，B2 / I3 · P1-16）；撤销期间由撤销条暂时替换；导出没成：底栏就地三段式（S1，审计 P1-30）
     : exportFail && has
       ? html`${FailBlock({ layout: 'foot', testid: 'backup-export-fail', text: t('X-BACKUP.exportFailed'), cancelLabel: t('X-BACKUP.exportStay'), onCancel: () => setExportFail(false), onRetry: doExport })}`
-      : html`<${Button} variant="primary" class="sz-bk__export" data-testid="backup-export" disabled=${!has} onClick=${doExport}>${t('R-B02.export')}</${Button}>`;
+      : html`<${Button} variant="primary" class="sz-bk__export" data-testid="backup-export" disabled=${!has} onClick=${doExport}>${tRef(model.export.label)}</${Button}>`;
 
   return html`<${Page} title=${t('R-M03.backup')} testid="backup-screen" footer=${footer}>
     <div class="sz-bk" data-testid="backup-body" data-state=${undo ? (undo.done ? 'undone' : 'undo') : 'idle'}
-      data-records=${status.count} data-undo-kind=${undo ? undo.kind : ''}>
+      data-records=${model.count} data-undo-kind=${undo ? undo.kind : ''}>
       <div class="sz-bk__status" data-testid="backup-status">
-        <span class="sz-bk__label" data-testid="backup-last-label">${t('R-B02.lastBackupLabel')}</span>
-        <span class="sz-bk__date" data-testid="backup-last-date" data-day=${status.date.kind === 'day' ? status.date.day : ''}>${
-          status.date.kind === 'day' ? dateText(status.date.day) : t('R-B02.noBackup')}</span>
+        <span class="sz-bk__label" data-testid="backup-last-label">${tRef(model.lastLabel)}</span>
+        <span class="sz-bk__date" data-testid="backup-last-date" data-day=${model.lastDay || ''}>${tRef(model.lastDate)}</span>
         ${lines.length ? html`<span class="sz-bk__line" data-testid="backup-status-note" role="status"
-          data-keys=${status.lines.map(l => l.key).join(' ')}>${lines.join('')}</span>` : null}
+          data-keys=${model.noteKeys.join(' ')}>${lines.join('')}</span>` : null}
       </div>
-      ${undoOn ? null : html`<p class="sz-bk__intro" data-testid="backup-intro">${t(has ? 'X-BACKUP.intro' : 'X-BACKUP.introEmpty')}</p>`}
+      ${undoOn ? null : html`<p class="sz-bk__intro" data-testid="backup-intro">${tRef(model.intro)}</p>`}
       ${note && note.retry
         ? html`<div class="sz-bk__note" data-testid="backup-note" data-kind=${note.kind} data-tone="error">
             ${FailBlock({ testid: 'backup-note-fail', noteTestid: 'backup-note-text', retryTestid: 'backup-note-retry', cancelTestid: 'backup-note-cancel', text: t(NOTE_KEYS[note.kind]), retryLabel: t('X-BACKUP.retry'), cancelLabel: t('X-BACKUP.restoreStay'), onRetry: retry, onCancel: () => { pendingRef.current = null; setNote(null); } })}
@@ -520,14 +524,14 @@ function BackupScreen({ entry }) {
       <div class="sz-bk__list" data-testid="backup-list" data-bk-end="1">
         <${Button} variant="plain" class="sz-bk__row" data-testid="backup-restore" aria-haspopup="dialog" onClick=${pick}>
           <span class="sz-bk__rowl">
-            <span class="sz-bk__rowt" data-testid="backup-restore-title">${t('X-BACKUP.restoreRow')}</span>
-            ${undoOn || !has ? null : html`<span class="sz-bk__rows" data-testid="backup-restore-sub">${t('X-BACKUP.restoreRowSub')}</span>`}
+            <span class="sz-bk__rowt" data-testid="backup-restore-title">${tRef(model.restore.label)}</span>
+            ${undoOn || !has ? null : html`<span class="sz-bk__rows" data-testid="backup-restore-sub">${tRef(model.restore.sub)}</span>`}
           </span>
           <span class="sz-bk__rowr" aria-hidden="true"><${Chevron} /></span>
         </${Button}>
         <${Button} variant="plain" class="sz-bk__row sz-bk__row--danger" data-testid="backup-clear" disabled=${!has}
           aria-haspopup="dialog" onClick=${openClear}>
-          <span class="sz-bk__rowl"><span class="sz-bk__rowt">${t('X-BACKUP.clearRow')}</span></span>
+          <span class="sz-bk__rowl"><span class="sz-bk__rowt">${tRef(model.clear.label)}</span></span>
         </${Button}>
       </div>
       <input ref=${fileRef} class="sz-bk__file" type="file" accept="application/json,.json" tabindex="-1" aria-hidden="true"
@@ -536,9 +540,52 @@ function BackupScreen({ entry }) {
   </${Page}>`;
 }
 
-registerScreen(BACKUP_SCREEN, BackupScreen, { label: t('R-M03.backup') });
+registerScreen(BACKUP_SCREEN, BackupScreen, { label: t('R-M03.backup'), native: true });
 
 /** 推入备份与恢复页。 */
 export function openBackup() {
   nav.push(BACKUP_SCREEN, {});
 }
+
+// ---------------------------------------------------------------- 网页的折行点（B3.10：原生要跟网页折在同一处）
+//
+// 备份页的段落是 text-wrap: pretty（src/config/base.css 的 p{text-wrap:pretty}）：WebKit 的折法不是贪心折行，
+// 原生按这里量出的行起点断行（src/platform/text-lines.js；与结果页 native-view.js 的 webLineStarts 同一做法）。
+// 副本照网页的层级排：正文里的段落套 .sz-page__body（宽度与中文标点挤压都与网页一致），
+// 确认框的正文套 .sz-confirm（浮层不在 .sz-page__body 里，没有标点挤压）。
+
+/** 正文里的段落（.sz-page__body → 正文块）：量出每一行从第几个字开始。 */
+function bodyLineStarts(cls, text) {
+  return domLineStarts(host => {
+    const body = document.createElement('div');
+    body.className = 'sz-page__body';
+    const block = document.createElement('div');
+    block.className = 'sz-bk';
+    const el = document.createElement('p');
+    el.className = cls;
+    const node = document.createTextNode(text);
+    el.appendChild(node);
+    block.appendChild(el);
+    body.appendChild(block);
+    host.appendChild(body);
+    return textUnits(node);
+  }, screenWidth());
+}
+
+/** 确认框的正文（.sz-confirm → .sz-confirm__body）：量出每一行从第几个字开始。 */
+function confirmLineStarts(text) {
+  return domLineStarts(host => {
+    const panel = document.createElement('div');
+    panel.className = 'sz-confirm';
+    const el = document.createElement('p');
+    el.className = 'sz-confirm__body';
+    const node = document.createTextNode(text);
+    el.appendChild(node);
+    panel.appendChild(el);
+    host.appendChild(panel);
+    return textUnits(node);
+  }, screenWidth());
+}
+
+registerTextLines('backup.intro', text => bodyLineStarts('sz-bk__intro', text));
+registerTextLines('backup.confirmBody', text => confirmLineStarts(text));

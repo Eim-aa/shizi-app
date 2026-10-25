@@ -2,14 +2,15 @@
   "state": "library-half",
   "name": "字库 · 今日练习写到一半",
   "screen": "library",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-library-screen"
   },
   "setup": [
     {
@@ -121,6 +122,10 @@
     },
     {
       "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "nativeRoots",
       "tab": "library"
     }
   ],

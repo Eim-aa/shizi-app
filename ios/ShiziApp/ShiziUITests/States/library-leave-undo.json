@@ -2,7 +2,7 @@
   "state": "library-leave-undo",
   "name": "字库 · 写字页跳过后离开，撤销条跟到字库",
   "screen": "library",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -10,7 +10,8 @@
   },
   "floater": "leave-undo",
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-library-screen"
   },
   "setup": [
     {
@@ -107,18 +108,24 @@
     {
       "op": "switchTab",
       "tab": "library"
+    },
+    {
+      "op": "nativeRoots",
+      "tab": "library"
     }
   ],
   "steps": [
     {
       "tap": {
-        "webTestid": "library-today"
+        "webTestid": "library-today",
+        "native": "native-library-today"
       },
       "times": 1
     },
     {
       "ready": {
-        "web": "write-screen"
+        "web": "write-screen",
+        "native": "write"
       }
     },
     {
@@ -126,7 +133,8 @@
     },
     {
       "tap": {
-        "webTestid": "write-skip"
+        "webTestid": "write-skip",
+        "native": "native-write-skip"
       },
       "times": 1
     },
@@ -135,7 +143,8 @@
     },
     {
       "tap": {
-        "webTestid": "page-back"
+        "webTestid": "page-back",
+        "native": "native-write-back"
       },
       "times": 1
     },

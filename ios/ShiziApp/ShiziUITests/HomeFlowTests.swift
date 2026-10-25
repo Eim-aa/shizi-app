@@ -29,12 +29,30 @@ final class HomeFlowTests: XCTestCase {
         return qa
     }
 
+    /// 点原生主按钮进写字页：等原生写字页出现。
+    /// 机器忙或页面刚换过状态时，第一次点按可能落在防误点窗口里（网页 Button.js pressGuard：换状态后 0.4s 不响应，原生同规则），
+    /// 这一次点按不算数：出了窗口再点一次（同 QAApp.strokeLanded 对合成触摸的重试做法）。
+    private func tapCtaIntoWrite(_ qa: QA, _ seed: String, file: StaticString = #filePath, line: UInt = #line) {
+        qa.tapNative("native-home-start", file: file, line: line)
+        for attempt in 0..<2 {
+            let end = Date().addingTimeInterval(attempt == 0 ? 5 : 15)
+            while Date() < end {
+                if qa.nativeShown { return }
+                Thread.sleep(forTimeInterval: 0.25)
+            }
+            print("QA-H1 主按钮点按没进写字页（\(seed)，第 \(attempt + 1) 次）")
+            Thread.sleep(forTimeInterval: 1.0) // 出了防误点窗口再点
+            if qa.nativeShown { return }
+            qa.tapNative("native-home-start", file: file, line: line)
+        }
+        qa.waitNative(true, timeout: 10, file: file, line: line)
+    }
+
     /// 六态主按钮各自去处：首次打开 / 今天还没写 → 写字页（原生，T-paper）；练习范围学完「换练习范围」→ 换库页（网页，原生根页让开）；开组失败 → 三段式。
     func testSixStatesMainButtonDestinations() {
         for seed in ["home-first", "home-fresh", "home-progress", "home-today", "home-back", "home-special"] {
             let qa = launchHome(seed)
-            qa.tapNative("native-home-start")
-            qa.waitNative(true, timeout: 25)
+            tapCtaIntoWrite(qa, seed)
             qa.waitRouteTop("write", timeout: 20)
             XCTAssertTrue(qa.transitions.contains("present:paper"), "\(seed): T-paper from the CTA \(qa.transitions)")
             qa.app.terminate()
@@ -55,7 +73,8 @@ final class HomeFlowTests: XCTestCase {
         XCTAssertEqual(page(qa.probe)["failed"] as? Bool, true)
         XCTAssertTrue(qa.el("native-home-start-fail-cancel").exists)
         XCTAssertEqual(qa.route["top"] as? String, "home")
-        qa.tapNative("native-home-start")
+        // 失败态的主按钮就是「再试一次」（网页此时的主按钮 data-testid 也换成 home-start-fail-retry，网页失败态是同一个按钮换字）
+        qa.tapNative("native-home-start-fail-retry")
         qa.waitNative(true, timeout: 25)
         qa.waitRouteTop("write", timeout: 20)
         XCTAssertEqual(qa.session("A")["cursor"] as? Int, 0)

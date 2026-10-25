@@ -22,6 +22,13 @@ import { nativeScreenOn, rootCovered, isRootEntry } from '../../src/ui/native-st
 
 const NOW = '2026-10-05T19:30:00';
 
+// 两条路径（网页函数 / App API）各自 boot 一次，两次之间真实时钟会走过一两毫秒：platform/env.js 的 setClockOverride 是「平移」不是「冻结」，
+// 于是会话里的 startedAt / updatedAt 差 1ms——那是时钟噪声，不是两条路径的差别。把 Date.now 冻在同一个瞬间，两条路径的会话时刻就逐字相同
+// （其余字段仍然整份 deepEqual，不放宽任何别的断言）。只在本文件里冻：node --test 每个文件一个进程。
+const REAL_NOW = Date.now;
+const FROZEN_NOW = REAL_NOW.call(Date);
+Date.now = () => FROZEN_NOW;
+
 /** 一套干净的 store + 路由（每条路径各一套，同一时钟）。 */
 function boot(seed) {
   setClockOverride(NOW);

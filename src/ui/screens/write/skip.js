@@ -33,6 +33,7 @@ import { assistiveTechActive, onAccessibilityStatus } from '../../../platform/ac
 import { getStore } from '../../../store/store.js';
 import { encodeRawStrokes } from '../../../core/ink-math.js';
 import './answer.js';
+import { nativeScreenOn } from '../../native-stage.js';
 
 /** 跳过后可撤销的时长（走查-W16；04 §4 撤销寿命四种之一；D36 / P115：5 秒，原 3 秒）。 */
 export const SKIP_UNDO_MS = defaultPolicy.skipUndo.ms;
@@ -377,6 +378,9 @@ export function LeaveUndoHost({ snap, onUndone }) {
     }
   }, [topId, settled, u]);
   if (!u || !settled || (u.anchor !== null && u.anchor !== topId)) return null;
+  // 原生来源页承接后只由原生 NativeUndoLifetime 计时；保留上面的路由归属/离页清理。
+  // 避免底下不可见的 SkipUndoDock 在原生按住或读屏时仍于 5 秒后结束机会。
+  if (nativeScreenOn(topName)) return null;
   const undo = () => { undoLeave(onUndone); };
   // 来源页的底边（撤销条不盖主按钮，S4）：页上有主按钮时停在最下面那个主按钮上方 8；否则 tab 根在 tab 栏上方 8、子页在底栏上方 8。
   let ubb = null;

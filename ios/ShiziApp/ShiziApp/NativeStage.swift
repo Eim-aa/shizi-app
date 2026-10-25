@@ -234,7 +234,7 @@ final class NativeStage: NSObject {
         return out
     }
 
-    func isTop(_ page: ShiziScreenViewController) -> Bool { screens.last === page }
+    func isTop(_ page: ShiziScreenViewController) -> Bool { topScreen === page }
 
     /// 呈现链最上面的控制器（新原生页盖在它上面）。
     private func topPresented() -> UIViewController {

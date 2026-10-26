@@ -1,8 +1,8 @@
 {
   "state": "query-pick-n",
   "name": "自己选字 · 选了三个（练这 3 个字）",
-  "screen": "home",
-  "native": false,
+  "screen": "query",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -37,10 +37,25 @@
     },
     {
       "op": "seed"
+    },
+    {
+      "op": "nativeRoots",
+      "tab": "home"
+    },
+    {
+      "op": "openQuery",
+      "mode": "pick",
+      "text": "永和春日月",
+      "selected": [
+        "永",
+        "和",
+        "春"
+      ]
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-query-ready"
   },
   "steps": [
     {

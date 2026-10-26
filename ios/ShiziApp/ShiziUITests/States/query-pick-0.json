@@ -1,8 +1,8 @@
 {
   "state": "query-pick-0",
   "name": "自己选字 · 多个字，一个都没选（先选一个字）",
-  "screen": "home",
-  "native": false,
+  "screen": "query",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -37,10 +37,20 @@
     },
     {
       "op": "seed"
+    },
+    {
+      "op": "nativeRoots",
+      "tab": "home"
+    },
+    {
+      "op": "openQuery",
+      "mode": "pick",
+      "text": "永和春日月"
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-query-ready"
   },
   "steps": [
     {

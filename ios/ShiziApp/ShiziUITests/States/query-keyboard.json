@@ -1,8 +1,8 @@
 {
   "state": "query-keyboard",
   "name": "查字 · 软键盘抬起时",
-  "screen": "library",
-  "native": false,
+  "screen": "query",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -99,12 +99,18 @@
       "op": "seed"
     },
     {
-      "op": "switchTab",
+      "op": "nativeRoots",
       "tab": "library"
+    },
+    {
+      "op": "openQuery",
+      "mode": "lookup",
+      "text": "yong"
     }
   ],
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-query-ready"
   },
   "steps": [
     {

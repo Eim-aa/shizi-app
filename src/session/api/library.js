@@ -59,7 +59,7 @@ export const OPS = Object.freeze({
   // 今日练习：网页字库页的 startToday（= 首页 startToday / resumeOther：先续今天的练习（A 槽），没有就开下一组；不碰自己选的那一组）。
   // D62：从字库进写字页是普通推入（T-push），不是纸展开——网页那一侧不记纸来源，原生不报矩形。
   'library.startToday': args => act('startToday', args),
-  // 搜索框 → 查字弹层（原生查字弹层 B3.6 之前仍是网页的：原生先把样子的截图交给宿主层，再开网页弹层）。
+  // 搜索框 → 查字弹层（原生壳内 openQuery 推入原生查字屏，盖在原生字库页上，B3.6）。
   'library.openQuery': args => act('openQuery', args),
   // 离开撤销条（写字页跳过后离开，撤销机会跟到字库；网页 write/skip.js 同一份状态）。
   'library.undoLeave': () => act('undoLeave'),

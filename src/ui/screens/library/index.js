@@ -333,7 +333,7 @@ registerScreen(LIBRARY_TAB, LibraryScreen, { tab: true, order: 1, label: LIBRARY
 // 动作登记（会话层不导入 UI，页面文件登记自己的函数；与首页 setHomeActions 同一套做法）：
 //   startToday       今日练习行 = 首页 startToday（resumeOther：先续今天的练习 A 槽，没有就开下一组；不碰自己选的那一组 B）。
 //                    D62：从字库进写字页是普通推入（T-push），不是纸展开——这里不记纸来源（原生也不报矩形）。
-//   openQuery        顶部查字框 → 查字弹层（原生查字弹层 B3.6 之前仍是网页的；原生先把样子的截图交给宿主层再开弹层）。
+//   openQuery        顶部查字框 → 查字弹层（原生壳内推入原生查字屏，B3.6）。
 //   undoLeave        离开撤销条（写字页跳过后离开，撤销机会跟到字库；网页 write/skip.js 同一份状态）。
 setLibraryActions({
   // D62：从字库进写字页是普通推入（T-push），不是纸展开。原生点按把「被点的那一行」当来源报过来

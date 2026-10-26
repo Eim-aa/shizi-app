@@ -15,15 +15,23 @@
 //              s02-retry、s02-fail-cancel。
 
 import { html, useRef } from '../../../../vendor/ui.js';
-import { nav } from '../../router.js';
+import { getRouter, nav, registerScreen } from '../../router.js';
 import { Button } from '../../components/Button.js';
 import { useDialogFocus } from '../../components/Sheet.js';
 import { Announce, FailBlock } from '../../components/FailBlock.js';
 import '../../components/Confirm.js'; // .sz-overlay / .sz-confirm 样式
 import { injectStyles, T } from '../../components/styles.js';
 import { format, t } from '../../../config/copy/index.js';
+import { nativeScreenOn } from '../../native-stage.js';
+import { setS02Actions, setQueryLayout } from '../../../session/api/query.js';
+import { s02BodyLineStarts } from '../../components/query/layout.js';
 
 export const S02_OVERLAY = 's02';
+/**
+ * 原生 S02 的屏名（与 Swift 的 ShiziScreen_s02 一一对应）。
+ * 常量名里不带数字：契约测试扫 registerScreen 的正则只认字母与下划线（原生类的名字可以带数字）。
+ */
+export const CONFIRM_SCREEN = 's02';
 
 injectStyles('session-s02', `
 .sz-s02__actions{margin-top:4px;display:flex;flex-direction:column;gap:12px}
@@ -91,6 +99,15 @@ export function S02Dialog({ chars, failed = false, onContinue, onEndStart, close
  * @returns overlay id
  */
 export function openS02({ chars, onContinue, onEndStart, onStarted }) {
+  if (nativeScreenOn(CONFIRM_SCREEN)) {
+    // 原生确认框（B3.6）：推入一屏原生宿主；三个键经 App API（s02.decide）回到网页这一侧的同一批回调。
+    // close = 网页版的 nav.closeOverlay：先关框、再开写字页（与网页同一时序；不然出栈的会是后推入的写字页）。
+    setS02Actions({ onContinue, onEndStart, onStarted, close: closeNativeS02 });
+    // 正文的折行点（网页量的；原生按这些位置换行）。
+    setQueryLayout({ s02Body: s02BodyLineStarts });
+    nav.push(CONFIRM_SCREEN, { chars: [...(chars || [])] });
+    return CONFIRM_SCREEN;
+  }
   let id = null;
   let done = false;
   const endStart = () => {
@@ -114,3 +131,18 @@ export function openS02({ chars, onContinue, onEndStart, onStarted }) {
     { name: S02_OVERLAY });
   return id;
 }
+
+/** 收起原生 S02（= 网页版 nav.closeOverlay）：它在栈顶时出栈（宿主卸载 → 原生收起）。 */
+function closeNativeS02() {
+  const router = getRouter();
+  const top = router ? router.getState().top : null;
+  if (top && top.n === CONFIRM_SCREEN) nav.back();
+}
+
+// 原生确认框那一屏的网页兜底（原生开关关着时万一被推入）：画网页版确认框。
+function S02Fallback(p) {
+  const params = (p && p.params) || {};
+  return html`<${S02Dialog} chars=${params.chars || []} failed=${false} active=${false} />`;
+}
+
+registerScreen(CONFIRM_SCREEN, S02Fallback, { native: true });

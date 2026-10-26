@@ -105,18 +105,16 @@ final class HomeFlowTests: XCTestCase {
         XCTAssertEqual(p1["ctaFrame"] as? [Double], frame, "the CTA did not move (D53 ③ one bottom line)")
     }
 
-    /// 「自己选字」打开查字弹层（pick；弹层仍是网页的，B3.6 原生化）：原生根页先把样子交给宿主层再让开，关掉弹层后回来。
+    /// 「自己选字」打开原生查字弹层（pick；B3.6 Screens/Query.swift）：网页 openPick 推入原生查字屏，盖在原生首页上面（首页不让开）；「完成」关掉后回到首页。
     func testPickCharsEntry() {
         let qa = launchHome("home-fresh")
         qa.tapNative("native-home-pick")
-        qa.waitProbe("query overlay over the root") { p in
-            ((p["route"] as? [String: Any])?["overlay"] as? Bool) == true && (((p["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool) == true
+        qa.waitProbe("native query sheet over the root") { p in
+            ((p["stage"] as? [String: Any])?["screens"] as? [String]) == ["query"] && (((p["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool) == false
         }
-        XCTAssertTrue(qa.text("\u{81EA}\u{5DF1}\u{9009}\u{5B57}").waitForExistence(timeout: 4) || qa.textContaining("\u{81EA}\u{5DF1}\u{9009}\u{5B57}").exists, "pick sheet title")
-        // 「完成」（键盘开着时第一下可能只收键盘：还开着就再点一次）
-        qa.tap(qa.button("\u{5B8C}\u{6210}"), "sheet done")
-        Thread.sleep(forTimeInterval: 1)
-        if (qa.route["overlay"] as? Bool) == true { qa.tap(qa.button("\u{5B8C}\u{6210}"), "sheet done again") }
+        XCTAssertTrue(qa.el("native-query-sheet").waitForExistence(timeout: 5 * QALoad.scale), "the native pick sheet")
+        XCTAssertEqual(qa.el("native-query-title").label, "\u{81EA}\u{5DF1}\u{9009}\u{5B57}", "pick sheet title")
+        qa.tapNative("native-query-done")
         waitHome(qa)
     }
 

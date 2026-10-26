@@ -30,15 +30,17 @@ final class NoneFlowTests: XCTestCase {
         XCTAssertFalse(qa.el("native-session-none-wrong").exists, "没到「看写错过的字」那一态")
     }
 
-    /// 「自己选字」：原生页让给网页（查字弹层是网页的弹层，B3.6 才原生化），原生栈收起。
-    func test911_nonePickYieldsToTheWeb() {
+    /// 「自己选字」：原生查字弹层（B3.6）推在这一页上面（不让给网页）；「完成」关掉后回到这一页。
+    func test911_nonePickOpensTheNativeSheet() {
         let qa = QA(seed: "none-pick")
         qa.launch()
         waitStage(qa, ["session-none"])
         Thread.sleep(forTimeInterval: 0.5) // 新状态 0.4s 防误点
         qa.tapNative("native-session-none-pick")
-        waitStage(qa, [])
-        qa.waitProbe("query overlay") { (($0["route"] as? [String: Any])?["overlay"] as? Bool) == true }
+        waitStage(qa, ["session-none", "query"])
+        XCTAssertTrue(qa.el("native-query-sheet").waitForExistence(timeout: 5 * QALoad.scale), "the native pick sheet")
+        qa.tapNative("native-query-done")
+        waitStage(qa, ["session-none"])
     }
 
     /// 「练习范围学完」：主按钮是「换范围」，「自己选字」降为次按钮，空状态里多一段说明与「待复习 ›」。

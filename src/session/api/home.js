@@ -7,7 +7,7 @@
 //   home.resumeOther {source?}   A、B 都没写完时的「今天的字 · 接着写」行（网页 resumeOther）
 //   home.deferSpecial {source?}  「写平常字」：特别组顺延后开一组平常的（网页 deferCapital）
 //   home.switchLibrary {}        「换练习范围」→ 推入换库页（网页 openLibrarySwitch）
-//   home.pick {}                 「自己选字」→ 查字弹层 pick（网页 openPick；弹层仍是网页的，B3.6 原生化）
+//   home.pick {}                 「自己选字」→ 查字弹层 pick（网页 openPick；原生壳内推入原生查字屏，B3.6）
 //   home.source {rect, label}    原生主按钮此刻的位置与字（写字页 T-paper 缩回时的落点，paper-transition liveSource 读）
 //   home.undoLeave {}            离开撤销条的「撤销」/「再试一次」（网页 LeaveUndoHost 同一个 undoLeave → commitUndoSkip，成功后回到那个字）
 //   home.undoLeaveCancel {}      撤销没保存上时的「先不保存」（网页 onCancelFail 同一件事：结束这次撤销机会）

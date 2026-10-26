@@ -514,17 +514,23 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         let progress = failed ? nil : m.cta.progress.map { t($0) }
         let fg = color("btn-fg")
         let size = mt.value("fs17")
-        let line: CGFloat? = axLayout ? mt.line("lh17s") : nil
-        let build: (String, String?) -> NSMutableAttributedString = { [unowned self] label, progress in
+        var line: CGFloat? = axLayout ? mt.line("lh17s") : nil
+        let make: (String, String?, CGFloat?) -> NSMutableAttributedString = { [unowned self] label, progress, line in
             let out = NSMutableAttributedString(attributedString: self.mixed(label, size: size, weight: .medium, color: fg, align: .center, line: line))
             if let progress { out.append(self.mixed(" \u{00B7} " + progress, size: size, weight: .regular, color: fg, align: .center, line: line, tabular: true)) }
             return out
         }
-        var out = build(label, progress)
+        var out = make(label, progress, line)
         var full = out.string
-        // AX 档字可折行（ax.js white-space:normal）：按 WebKit 的折行机会（空格后、中文字之间）贪心折，TextKit 的按词折会把「2 / 5」整个挪下去
-        ctaBreakWidth = view.bounds.width - 2 * mt.gutter - 48
-        if axLayout, ctaBreakWidth > 0, out.size().width > ctaBreakWidth + 0.5 {
+        // 字可折行：AX 档（ax.js white-space:normal，满宽）；非 AX 档 240 宽的主按钮在大字号下字也会折（XXXL「继续写自选字 · 2 / 5」，B3.6 在 S02 下面的首页上看到）——
+        // 网页按钮行高 lh17s、min-height btn-h。按 WebKit 的折行机会（空格后、中文字之间）贪心折，TextKit 的按词折会把「2 / 5」整个挪下去
+        ctaBreakWidth = (axLayout ? view.bounds.width - 2 * mt.gutter : min(ctaWidth, view.bounds.width - 2 * mt.gutter)) - 48
+        if !axLayout, ctaBreakWidth > 0, out.size().width > ctaBreakWidth + 0.5 {
+            line = mt.line("lh17s")
+            out = make(label, progress, line)
+            full = out.string
+        }
+        if ctaBreakWidth > 0, out.size().width > ctaBreakWidth + 0.5 {
             let chars = Array(full)
             var cut: Int?
             for i in 1..<chars.count {
@@ -722,6 +728,10 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
             ctaH = max(btnH, lines * mt.line("lh17s") + 12)
         } else {
             ctaW = min(ctaWidth, innerW)
+            if abs(ctaBreakWidth - (ctaW - 48)) > 0.5 { styleCta(m, failed: failedAction != nil) }
+            // 折成多行时（大字号）：网页 min-height btn-h、行高 lh17s、上下内边距 0
+            let lines = CGFloat((ctaButton.title(for: .normal) ?? "").components(separatedBy: "\n").count)
+            if lines > 1 { ctaH = max(btnH, lines * mt.line("lh17s")) }
         }
         y -= ctaH
         ctaButton.frame = CGRect(x: (W - ctaW) / 2, y: y, width: ctaW, height: ctaH)
@@ -1081,11 +1091,10 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         run("home.deferSpecial", ["source": source(deferButton, solid: false)])
     }
 
-    /// 「自己选字」：查字弹层仍是网页的（B3.6 原生化）——先把首页的样子交给宿主层（弹层从第一帧起盖在它上面），再开弹层，原生根页随即让开。
+    /// 「自己选字」：查字弹层是原生的（B3.6，Screens/Query.swift）——网页 openPick 推入原生查字屏，盖在本页上面，本页不让开。
     private func tapPick() {
-        yieldThen { page in
-            page.stage?.engine.raw("home.pick", [:]) { _ in }
-        }
+        guard let stage, stage.isTop(self) else { return }
+        stage.engine.raw("home.pick", [:]) { _ in }
     }
 
     /// 要盖上网页页面 / 弹层的动作：截图先交给宿主层（stage.cover，解码好才回包），再做。

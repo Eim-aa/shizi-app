@@ -32,7 +32,7 @@ export default async function i2ScreensB(page, ctx) {
     redo: { chars: ['完'] }, // D66 ③ 重写错字页：要有可练的字才不会立刻退回去
     '_demo/sub': { level: 1 },
   };
-  const SKIP = new Set(['write', 'result', 'block', 'image-preview', 'image-toast']); // 写字页见 1，结果页见 4；后三个是原生宿主屏，不是可推入页面（ic-lib NATIVE_HOST_SCREENS）
+  const SKIP = new Set(['write', 'result', 'block', 'image-preview', 'image-toast', 'query', 's02']); // 写字页见 1，结果页见 4；其余是原生宿主屏，不是可推入页面（ic-lib NATIVE_HOST_SCREENS）
   const screens = await page.evaluate(async () => (await import('/src/ui/router.js')).listScreens().filter(d => !d.tab).map(d => d.name));
   assert.ok(screens.length >= 15, `registered sub screens: ${screens.join(', ')}`);
   for (const [i, name] of screens.entries()) {

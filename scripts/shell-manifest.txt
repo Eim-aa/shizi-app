@@ -7381,6 +7381,7 @@ src/session/views/library.js
 src/session/views/lines.js
 src/session/views/mine-page.js
 src/session/views/mine.js
+src/session/views/query.js
 src/session/views/session.js
 src/session/views/settings.js
 src/session/write-api.js
@@ -7426,6 +7427,7 @@ src/ui/components/query/QuerySheet.js
 src/ui/components/query/demo.js
 src/ui/components/query/index.js
 src/ui/components/query/input.js
+src/ui/components/query/layout.js
 src/ui/components/share-failed.js
 src/ui/components/styles.js
 src/ui/components/tab-icons.js

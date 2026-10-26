@@ -231,11 +231,18 @@ final class SessionNoneScreen: ShiziScreenViewController {
     private func tapPrimary() {
         guard let m = model else { return }
         let to = m.primary?.to ?? "pick"
-        yieldToWeb(to == "libSwitch" ? "session.libSwitch" : "session.pick")
+        if to == "libSwitch" { yieldToWeb("session.libSwitch") } else { openPick() }
     }
 
     private func tapSecondary() {
-        yieldToWeb("session.pick")
+        openPick()
+    }
+
+    /// 「自己选字」：查字弹层是原生的（B3.6，Screens/Query.swift）——网页 openPick 推入原生查字屏，盖在本页上面，本页不让开
+    /// （让给网页会把原生栈连同新推入的查字屏一起收起）。
+    private func openPick() {
+        guard let stage, stage.isTop(self) else { return }
+        stage.engine.raw("session.pick", [:]) { _ in }
     }
 
     /// 让给网页：先把这一页的样子交给宿主层（stage.cover），网页做它的动作（同一个 op、同一个函数对象），画好一帧后原生页让开；

@@ -193,7 +193,9 @@ for (const name of pairsFound) {
   const kept = diffs.filter(d => !ignored.some(rule => (!rule.state || (Array.isArray(rule.state) ? rule.state.includes(state) : rule.state === state))
     && (!rule.sizes || rule.sizes.includes(size))
     && (!rule.type || rule.type === d.type) && (!rule.label || rule.label === d.label)
-    && (!rule.aspects || (d.aspects || [d.type]).every(x => rule.aspects.includes(x)))));
+    && (!rule.aspects || (d.aspects || [d.type]).every(x => rule.aspects.includes(x)))
+    // axis:'y'（B3.6 / D75）：只不比竖向差（位置只差 y、尺寸只差高）；横向位置与宽照比
+    && (!rule.axis || (rule.axis === 'y' && d.vertical === true))));
   const webPng = join(refDir, `${name}.png`);
   const natPng = join(natDir, `${name}.png`);
   const screen = webJson.screen;

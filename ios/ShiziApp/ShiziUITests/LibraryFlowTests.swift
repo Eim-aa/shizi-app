@@ -61,15 +61,16 @@ final class LibraryFlowTests: XCTestCase {
         waitLibrary(qa)
     }
 
-    /// 搜索框 → 查字弹层（lookup；原生查字弹层 B3.6 之前仍是网页的：原生先把样子的截图交给宿主层再开弹层）。
+    /// 搜索框 → 原生查字弹层（lookup；B3.6 Screens/Query.swift）：网页 openLibraryQuery 推入原生查字屏，盖在原生字库页上面（字库页不让开）。
     func testSearchOpensQuery() {
         let qa = launchLibrary("library-empty")
         XCTAssertTrue(qa.el("native-library-query-open").waitForExistence(timeout: 5))
         qa.tapNative("native-library-query-open")
-        qa.waitProbe("query overlay over the root") { p in
-            ((p["route"] as? [String: Any])?["overlay"] as? Bool) == true && (((p["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool) == true
+        qa.waitProbe("native query sheet over the root") { p in
+            ((p["stage"] as? [String: Any])?["screens"] as? [String]) == ["query"] && (((p["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool) == false
         }
-        XCTAssertTrue(qa.text("\u{67E5}\u{5B57}").waitForExistence(timeout: 5), "the lookup sheet is open")
+        XCTAssertTrue(qa.el("native-query-sheet").waitForExistence(timeout: 5 * QALoad.scale), "the native lookup sheet is open")
+        XCTAssertEqual(qa.el("native-query-title").label, "\u{67E5}\u{5B57}", "lookup sheet title")
     }
 
     /// 今日练习开组失败 → 就地三段式（说明 +「先不保存」+「再试一次」）；重试成功才进写字页。

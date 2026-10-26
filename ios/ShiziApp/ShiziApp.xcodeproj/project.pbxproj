@@ -19,6 +19,7 @@
 		1A0000000000000000B31402 /* CorruptNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31401 /* CorruptNotice.swift */; };
 		1A0000000000000000B31602 /* ShiziPageText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31601 /* ShiziPageText.swift */; };
 		1A00000000000000000B3152 /* NoneFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3151 /* NoneFlowTests.swift */; };
+		1A0000000000000000B36A12 /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B36A11 /* Query.swift */; };
 		1A0000000000000000B35A12 /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35A11 /* Home.swift */; };
 		1A0000000000000000B35B12 /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35B11 /* Library.swift */; };
 		1A0000000000000000B3B112 /* ImagePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3B111 /* ImagePreview.swift */; };
@@ -130,6 +131,7 @@
 		1A0000000000000000B31401 /* CorruptNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorruptNotice.swift; sourceTree = "<group>"; };
 		1A0000000000000000B31601 /* ShiziPageText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziPageText.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3151 /* NoneFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoneFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B36A11 /* Query.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Query.swift; sourceTree = "<group>"; };
 		1A0000000000000000B35A11 /* Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
 		1A0000000000000000B35B11 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
 		1A0000000000000000B3B111 /* ImagePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreview.swift; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 				1A0000000000000000B32011 /* About.swift */,
 				1A0000000000000000B31311 /* Remind.swift */,
 				1A0000000000000000B31111 /* Backup.swift */,
+				1A0000000000000000B36A11 /* Query.swift */,
 				1A0000000000000000B35A11 /* Home.swift */,
 				1A0000000000000000B35B11 /* Library.swift */,
 				1A0000000000000000B3B111 /* ImagePreview.swift */,
@@ -616,6 +619,7 @@
 				1A0000000000000000B32012 /* About.swift in Sources */,
 				1A0000000000000000B31312 /* Remind.swift in Sources */,
 				1A0000000000000000B31112 /* Backup.swift in Sources */,
+				1A0000000000000000B36A12 /* Query.swift in Sources */,
 				1A0000000000000000B35A12 /* Home.swift in Sources */,
 				1A0000000000000000B35B12 /* Library.swift in Sources */,
 				1A0000000000000000B3B112 /* ImagePreview.swift in Sources */,

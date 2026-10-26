@@ -7,7 +7,7 @@
     "records", "month", "annual", "remind", "backup",
     "about", "about-privacy", "about-credits", "about-letter",
     "write", "result", "redo", "session-none", "block",
-    "image-preview", "image-toast"
+    "image-preview", "image-toast", "query", "s02"
   ],
   "overlays": [
     "query", "s02", "detail-zoom", "library-all-menu", "mine-group-size", "mine-appearance", "backup-restore", "backup-clear", "image-preview",

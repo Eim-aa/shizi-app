@@ -1,8 +1,8 @@
 {
   "state": "query-empty",
   "name": "查字 · 刚打开（lookup，没输入）",
-  "screen": "library",
-  "native": false,
+  "screen": "query",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -99,12 +99,17 @@
       "op": "seed"
     },
     {
-      "op": "switchTab",
+      "op": "nativeRoots",
       "tab": "library"
+    },
+    {
+      "op": "openQuery",
+      "mode": "lookup"
     }
   ],
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-query-ready"
   },
   "steps": [
     {

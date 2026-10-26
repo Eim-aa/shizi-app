@@ -445,12 +445,10 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         push(route.screen, params: route.params ?? [:])
     }
 
-    /// 搜索框：让给网页的查字弹层（原生查字弹层 B3.6 之前）。先把本页的样子交给宿主层（stage.cover），再开弹层。
+    /// 搜索框：查字弹层是原生的（B3.6，Screens/Query.swift）——网页 openLibraryQuery 推入原生查字屏，盖在本页上面，本页不让开。
     private func openQuery() {
         guard let stage, stage.isTop(self) else { return }
-        yieldThen { page in
-            page.stage?.engine.raw("library.openQuery", [:]) { _ in }
-        }
+        stage.engine.raw("library.openQuery", [:]) { _ in }
     }
 
     /// 要盖上网页页面 / 弹层的动作：截图先交给宿主层（stage.cover，解码好才回包），再做。

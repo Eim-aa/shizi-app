@@ -1383,6 +1383,7 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
     /// 夹具的点按只在**宿主页**的视图里找 accessibilityIdentifier（qaTap：stage.topScreen / presentedViewController 的视图）；
     /// 弹层是模态呈现的，夹具点不到它 → 在宿主页放几个不可见的转发按钮（1 × 1、alpha 0.01：不进元素清单），把点按转给弹层。
     /// 只有测试宿主（-shizi-test-host）才装；正式包没有这几个按钮。
+    #if DEBUG
     func installQAProxies(in host: UIView) {
         guard WebViewController.nativeTestHostEnabled, qaProxies.isEmpty, let model else { return }
         let firstChip = model.chips.first?.recordId ?? ""
@@ -1405,6 +1406,9 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
             qaProxies.append(b)
         }
     }
+    #else
+    func installQAProxies(in host: UIView) {}
+    #endif
 
     /// 弹层关掉了：转发按钮一起收掉。
     func removeQAProxies() {

@@ -778,6 +778,7 @@ final class BackupScreen: ShiziScreenViewController {
     /// 写成临时文件后走**与系统选择器同一条预检**（WebViewController.precheckBackupFile）。
     /// 只有带 -shizi-qa 启动参数的 QA 运行走这条路；正式包走 UIDocumentPickerViewController。
     /// QA 运行（逐屏取证 / 流程测试）：判定跟宿主的 QA 开关一致（NativeQAHarness 的 qaEnabled：探针 / 夹具 / -shizi-qa 都算）。
+    #if DEBUG
     private static var qaFileMode: Bool { WebViewController.qaEnabled }
 
     private func qaPickFile(_ done: @escaping (URL?) -> Void) {
@@ -808,6 +809,10 @@ final class BackupScreen: ShiziScreenViewController {
             }
         }
     }
+    #else
+    private static let qaFileMode = false
+    private func qaPickFile(_ done: @escaping (URL?) -> Void) { done(nil) }
+    #endif
 
     /// 原生预检（复用 WebViewController 的正式预检：64MB 上限 + 拾字外壳）→ 通过了交给会话层，拒收了显示说明框。
     private func precheckAndPick(_ url: URL) {

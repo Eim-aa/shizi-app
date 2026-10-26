@@ -222,6 +222,7 @@ final class RemindScreen: ShiziScreenViewController {
     /// QA 运行（流程测试）：用启动参数模拟「通知被手机关掉」（-shizi-qa-remind-permission denied）。
     /// App 里系统权限是权威的（启动时 startReminder 会把真实权限写回 store，夹具种下的 denied 会被覆盖），
     /// 这条通道让流程测试能测到被拒版面；逐屏对比不传这个参数，网页参考与原生版面都不受影响。
+    #if DEBUG
     private func applyQAPermissionOnce() {
         guard !qaPermissionApplied else { return }
         let args = ProcessInfo.processInfo.arguments
@@ -233,6 +234,9 @@ final class RemindScreen: ShiziScreenViewController {
     }
 
     private var qaPermissionApplied = false
+    #else
+    private func applyQAPermissionOnce() {}
+    #endif
 
     // MARK: 视图
 
@@ -485,10 +489,15 @@ final class RemindScreen: ShiziScreenViewController {
 
     /// QA 运行（逐屏取证 / 流程测试）：见 requestPermission 的说明。
     /// QA 运行（逐屏取证 / 流程测试）：判定跟宿主的 QA 开关一致（NativeQAHarness 的 qaEnabled：探针 / 夹具 / -shizi-qa 都算）。
+    #if DEBUG
     private static var qaMode: Bool { WebViewController.qaEnabled }
+    #else
+    private static let qaMode = false
+    #endif
 
     /// QA 运行（流程测试）：让时间轮开在一个与 store 里的时刻不同的值（-shizi-qa-remind-picker-time HH:MM）。
     /// 「值没变不写」（commitSettings，网页同一口径）：轮上的时刻与 store 相同的话，确认了也不会写，流程测试看不见写入。
+    #if DEBUG
     private static var qaPickerTime: (hour: Int, minute: Int)? {
         guard qaMode else { return nil }
         let args = ProcessInfo.processInfo.arguments
@@ -497,6 +506,9 @@ final class RemindScreen: ShiziScreenViewController {
         guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]), (0...23).contains(hour), (0...59).contains(minute) else { return nil }
         return (hour, minute)
     }
+    #else
+    private static var qaPickerTime: (hour: Int, minute: Int)? { nil }
+    #endif
 
     /// 时间轮：改完写 store（失败 → 三段式）。
     private func presentTimePicker() {

@@ -66,7 +66,9 @@ test('月字帖页 / 单字详情：月字帖日期角标骑在格线上、AX �
 });
 
 test('字帖格读屏名称带日期（角标是 aria-hidden 的，AX 档不画也不丢信息）', () => {
+  // B3.9：格子的读屏名规则挪到会话层的视图模型（src/session/views/mine-sub.js，文案键 + 参数）；格子本身仍在 records.js 画。
+  const model = read('src/session/views/mine-sub.js');
+  assert.match(model, /X-MINE\.cellLabel', \{ char: cell\.ch, date \}/);
   const src = read('src/ui/screens/mine/records.js');
-  assert.match(src, /X-MINE\.cellLabel', \{ char: cell\.char, date: dayText\(cell\.day\) \}/);
   assert.match(src, /<span class="sz-scell__tag" aria-hidden="true">/);
 });

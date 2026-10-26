@@ -2,7 +2,7 @@
   "state": "month-under",
   "name": "月字帖 · 有些字没留下笔迹（衬底字）",
   "screen": "month",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {

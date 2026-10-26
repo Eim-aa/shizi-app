@@ -21,7 +21,8 @@ import { paintCellContent } from '../../core/images/render.js';
 import { inkBounds } from '../../core/images/glyph-layout.js';
 import { INK_PAD, dotLayout, sheetGrid, sheetTags } from '../../core/images/layout.js';
 import { paintBrushStroke } from '../canvas/brush.js';
-import { builtFromRaw, useNearViewport, useThemeVersion } from '../screens/write/compare.js';
+import { builtInk } from '../../core/ink-build.js';
+import { useNearViewport, useThemeVersion } from '../screens/write/compare.js';
 import { usePaintTurn } from './near.js';
 import { isPracticable } from '../../data/deck.js';
 import { useStrokeData } from '../screens/write/hint-layer.js';
@@ -113,12 +114,8 @@ export function frameRects(n, cols, c) {
   return [{ x: 0, y: 0, w: cols * c, h: (rows - 1) * c }, { x: 0, y: (rows - 1) * c, w: lastCols * c, h: c }];
 }
 
-/** 本人墨：{points, strokes}（detail/records.js inkOf 的形状）→ 管线点列 | null。 */
-export function builtInk(ink) {
-  if (!ink) return null;
-  const built = Array.isArray(ink.points) && ink.points.length ? ink.points : Array.isArray(ink.strokes) && ink.strokes.length ? builtFromRaw(ink.strokes) : null;
-  return built && built.some(s => Array.isArray(s) && s.length) ? built : null;
-}
+/** 本人墨：{points, strokes}（detail/records.js inkOf 的形状）→ 管线点列 | null。B3.9 起实现在 core/ink-build.js（会话层也要用）。 */
+export { builtInk };
 
 // ---------------------------------------------------------------- 一格
 

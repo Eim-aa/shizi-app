@@ -2,7 +2,7 @@
   "state": "records-empty",
   "name": "练习记录 · 这个月没有记录（前后月有）",
   "screen": "records",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {

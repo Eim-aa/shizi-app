@@ -2,7 +2,7 @@
   "state": "annual-report",
   "name": "年报 · 一卷（卷首 + 每月 + 卷尾）",
   "screen": "annual",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {

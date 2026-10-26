@@ -3,6 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { monthModel } from '../../src/ui/screens/mine/month.js';
+import { tRef } from '../../src/config/copy/index.js';
 import { buildStroke, encodeInk } from '../../src/core/ink-math.js';
 import * as policy from '../../src/config/policy.js';
 import { MONTH_PAPER_TAG_CSS } from '../../src/ui/components/work.js';
@@ -30,7 +31,7 @@ test('month page: the corner number is the sort day (firstDay), not the day of t
   const m = monthModel(state, '2026-09', { store, policy });
   assert.deepEqual(m.cells.map(c => c.ch), ['永', '和', '山', '水']);
   assert.deepEqual(m.cells.map(c => c.tag), ['2', '', '5', '28']);
-  assert.equal(m.cells[0].record, 'r4', '永 draws the 9-28 ink (D42: the 9-02 ink was recycled)');
+  assert.equal(m.cells[0].recordId, 'r4', '永 draws the 9-28 ink (D42: the 9-02 ink was recycled)');
   assert.equal(m.cells[0].day, '2026-09-02', '…but sits and is numbered on 9-02');
   const numbers = m.cells.map(c => c.tag).filter(Boolean).map(Number);
   assert.deepEqual(numbers, [...numbers].sort((a, b) => a - b));
@@ -39,8 +40,9 @@ test('month page: the corner number is the sort day (firstDay), not the day of t
 test('month page: a cell whose ink comes from another day says so in its screen-reader name only (N2-07)', () => {
   const { state, store } = fixture();
   const m = monthModel(state, '2026-09', { store, policy });
-  assert.equal(m.cells[0].label, '永 · 9月2日，9月28日的笔迹');
-  assert.equal(m.cells[1].label, '和 · 9月2日', 'same day: the plain name');
+  // B3.9：格子的读屏名在视图模型里给「文案键 + 参数」（B3.4 规则），网页用 tRef 渲染、原生用 ShiziCopy 渲染。
+  assert.equal(tRef(m.cells[0].label), '永 · 9月2日，9月28日的笔迹');
+  assert.equal(tRef(m.cells[1].label), '和 · 9月2日', 'same day: the plain name');
 });
 
 test('D57 · C1: the day number rides the cell\'s top line (centred on it) with a paper-coloured backing that breaks the line; it does not enter the cell', () => {

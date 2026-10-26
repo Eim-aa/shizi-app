@@ -2,7 +2,7 @@
   "state": "records-month",
   "name": "练习记录 · 本月（月历 + 月字帖）",
   "screen": "records",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {

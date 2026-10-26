@@ -2,7 +2,7 @@
   "state": "annual-empty",
   "name": "年报 · 今年还没有记录",
   "screen": "annual",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {

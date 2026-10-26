@@ -31,3 +31,13 @@ export function kuanRef({ day = null, month = null, n = null, part = 0, of = 1, 
   const base = Number.isFinite(n) && n >= 0 ? ref('X-WORK.kuanJoin', { date, n: ref(countKey, { n: cnCount(n) }) }) : date;
   return part && of > 1 ? ref('X-WORK.kuanJoinPart', { kuan: base, part: partRef(part) }) : base;
 }
+
+/** 年报卷首的年份「二〇二六」（B3.9：原生页不能自己算汉字数字，由会话层给）。 */
+export function annualYearText(year) {
+  return cnDigits(year);
+}
+
+/** 年报卷首那句话的文案引用（B3.9）。 */
+export function annualCoverLineRef(n) {
+  return ref('X-WORK.annualCoverLine', { n: cnCount(n) });
+}

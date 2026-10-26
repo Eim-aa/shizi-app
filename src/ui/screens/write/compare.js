@@ -39,7 +39,7 @@ import { BACK_ICON } from '../../components/Page.js';
 import { useNearViewport } from '../../components/near.js';
 import { t } from '../../../config/copy/index.js';
 import { getStore } from '../../../store/store.js';
-import { buildStroke, GRID, INK } from '../../../core/ink-math.js';
+import { GRID, INK } from '../../../core/ink-math.js';
 import { paintBrushStroke } from '../../canvas/brush.js';
 import { drawGlyph, glyphColor } from '../../canvas/glyph.js';
 import { GlyphFallback } from './glyph-fallback.js';
@@ -183,10 +183,8 @@ function inkColor(el) {
   }
 }
 
-/** 原始笔画 → 管线点列（绝对宽 w，345 空间）。 */
-export function builtFromRaw(strokes) {
-  return (strokes || []).filter(s => Array.isArray(s) && s.length).map(raw => buildStroke(raw, { final: true }));
-}
+/** 原始笔画 → 管线点列（绝对宽 w，345 空间）。B3.9 起实现在 core/ink-build.js（会话层的视图模型也要用；本模块继续转出同一函数）。 */
+export { builtFromRaw } from '../../../core/ink-build.js';
 
 /**
  * 把管线点列画进一张小卡。线宽与写字格同一视觉粗细：笔迹在 345 单位坐标里保持原宽、随显示尺寸等比缩放（R2-R1 / V2-03：不再统一加粗 1.41 倍），

@@ -22,18 +22,19 @@ import { Icons } from '../../components/icons.js';
 import { Button, pressFeedbackHandlers } from '../../components/Button.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
-import { CellCanvas, builtInk, useAxSize, useScreenWidth } from '../../components/work.js';
+import { CellCanvas, useAxSize, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { monthDayParts } from '../../../core/dates.js';
-import { monthCells } from '../../../core/images/pick.js';
 import { inkOf, recordHasInk } from '../detail/records.js';
 import { hasInkOfStore, useStoreState, useToday } from './records.js';
-import { annualDefaultYear, annualModel } from '../../../session/views/annual.js';
+import { annualDefaultYear } from '../../../session/views/annual.js';
+import { annualView } from '../../../session/views/mine-sub.js';
+import { setMineSubActions } from '../../../session/api/mine-sub.js';
 import { openMonth } from './month.js';
-import { annualCoverLine, annualYearText } from '../../work-text.js';
+import { registerMineSubLineBreaker } from './line-starts.js';
 
 export const ANNUAL_SCREEN = 'annual';
 
@@ -109,17 +110,8 @@ export function firstLine(day, hasInk) {
 
 const CELL_PRESS = pressFeedbackHandlers(() => false);
 
-/** 年报每月的格子（点进月字帖的同一组：每字取本月留墨的第一次，没墨画衬底）。 */
-export function monthSections(state, model, store) {
-  return model.months.map(m => {
-    const r = monthCells(state, m.month, {
-      inkOf: record => builtInk(inkOf(store, record)),
-      hasInk: record => recordHasInk(store, record),
-      policy: defaultPolicy,
-    });
-    return { ...m, cells: r.cells.map((cell, i) => ({ key: `${cell.ch}-${i}`, ch: cell.ch, ink: cell.ink ? { points: cell.ink } : null, mode: cell.mode })) };
-  });
-}
+/** 年报每月的格子：B3.9 起由会话层 annualView 给（src/session/views/mine-sub.js），网页与原生同一组模型。 */
+
 
 function MonthSection({ section, cols, c }) {
   return html`<button type="button" class="sz-ann__month" ...${CELL_PRESS} data-testid="annual-month" data-month=${section.month} data-n=${section.cells.length}
@@ -141,20 +133,19 @@ function AnnualEmpty() {
     testids: { root: 'annual-empty', cell: 'annual-empty-glyph', title: 'annual-empty-title', body: 'annual-empty-body' } });
 }
 
-function Report({ model, state, onYear }) {
-  const store = currentStore();
+function Report({ model, onYear }) {
   const sw = useScreenWidth();
   const ax = useAxSize();
-  const sections = useMemo(() => monthSections(state, model, store), [state, model, store]);
+  const sections = model.months;
   const cols = ax ? 6 : 8;
   const c = ax ? Math.floor((sw - 40) / 6) : Math.min(45, Math.floor((sw - 40) / 8));
   const first = model.first;
-  const firstInk = first && first.record ? inkOf(store, first.record) : null;
-  const firstBuilt = builtInk(firstInk);
+  const firstInk = first ? first.ink : null;
+  const firstBuilt = !!firstInk;
   const twice = model.twice;
   return html`
     <div class="sz-ann__yhead">
-      <h2 class="sz-ann__year" data-testid="annual-year" data-year=${model.year}>${annualYearText(model.year)}</h2>
+      <h2 class="sz-ann__year" data-testid="annual-year" data-year=${model.year}>${model.coverYear}</h2>
       ${model.years.length > 1
         ? html`<span class="sz-ann__arrows" data-testid="annual-years" data-years=${model.years.join(' ')}>
             <${Button} variant="plain" class="sz-ann__arrow" data-testid="annual-prev" disabled=${model.prevYear == null}
@@ -164,17 +155,17 @@ function Report({ model, state, onYear }) {
           </span>`
         : null}
     </div>
-    <p class="sz-ann__line" data-testid="annual-head" data-n=${model.count}>${annualCoverLine(model.count)}</p>
+    <p class="sz-ann__line" data-testid="annual-head" data-n=${model.count}>${tRef(model.coverLine)}</p>
     ${first
       ? html`<div class="sz-ann__first" data-testid="annual-first" data-char=${first.char} data-day=${first.day}
-          data-record=${first.record ? first.record.id : ''} data-ink=${firstBuilt ? 'true' : 'false'}>
+          data-record=${first.recordId || ''} data-ink=${firstBuilt ? 'true' : 'false'}>
           <span class="sz-ann__fcell" data-testid="annual-first-cell" role="img"
             aria-label=${firstBuilt ? t('X-ANNUAL.firstInk', { char: first.char }) : t('X-ANNUAL.firstNoInk', { char: first.char })}>
             <${CellCanvas} ch=${first.char} ink=${firstInk} mode=${firstBuilt ? 'hand' : 'under'} size=${132} testid="annual-first-canvas" />
           </span>
           <span class="sz-ann__fside">
             <span class="sz-ann__flabel" data-testid="annual-first-label">${t('X-WORK.annualFirstLabel')}</span>
-            <span class="sz-ann__fdate" data-testid="annual-first-date">${firstLine(first.day, !!firstBuilt)}</span>
+            <span class="sz-ann__fdate" data-testid="annual-first-date">${tRef(first.date)}</span>
           </span>
         </div>`
       : null}
@@ -184,11 +175,11 @@ function Report({ model, state, onYear }) {
           <h3 class="sz-ann__twicetitle">${t('X-WORK.annualTwiceTitle')}</h3>
           <div class="sz-ann__twicerow">
             ${[['first', twice.first], ['last', twice.last]].map(([key, side]) => html`<div key=${key} class="sz-ann__twiceitem">
-              <span class="sz-ann__tcell" data-testid=${`annual-twice-${key}`} data-record=${side.record.id} data-day=${side.day} role="img"
-                aria-label=${t(key === 'first' ? 'X-WORK.annualFirstCellAria' : 'X-WORK.annualLastCellAria', { char: twice.char })}>
-                <${CellCanvas} ch=${twice.char} ink=${inkOf(store, side.record)} mode="hand" size=${140} testid=${`annual-twice-${key}-canvas`} />
+              <span class="sz-ann__tcell" data-testid=${`annual-twice-${key}`} data-record=${side.recordId} data-day=${side.day} role="img"
+                aria-label=${tRef(side.label)}>
+                <${CellCanvas} ch=${twice.char} ink=${side.ink} mode="hand" size=${140} testid=${`annual-twice-${key}-canvas`} />
               </span>
-              <span class="sz-ann__tdate" data-testid="annual-twice-date">${annualDateText(side.day)}</span>
+              <span class="sz-ann__tdate" data-testid="annual-twice-date">${tRef(side.date)}</span>
             </div>`)}
           </div>
         </section>`
@@ -213,7 +204,10 @@ function AnnualScreen({ params }) {
   // D66 ⑪：看哪一年——params.year（刷新 / 返回能恢复）；没有就取缺省（今年有记录看今年，否则最近有记录的一年）。多于一年时页内用「‹ ›」逐年切换，只有一年不出任何切换。
   const [picked, setPicked] = useState(() => (params && Number.isInteger(params.year) ? params.year : null));
   const year = picked != null ? picked : annualDefaultYear(state, today);
-  const model = useMemo(() => annualModel(state, today, { hasInk: hasInkOfStore(), policy: defaultPolicy, year }), [state, today, year]);
+  const model = useMemo(() => annualView(state, today, {
+    year, policy: defaultPolicy,
+    hasInk: hasInkOfStore(), inkOf: record => inkOf(currentStore(), record),
+  }), [state, today, year]);
   // 切年写回 params（本页在顶层时），刷新 / 从月字帖返回都停在这一年
   const onYear = next => {
     if (!Number.isInteger(next)) return;
@@ -238,9 +232,20 @@ function AnnualScreen({ params }) {
   return html`<${Page} title=${t('X-MINE.annual')} trailing=${trailing} footer=${footer} testid="annual-screen">
     <div class="sz-ann" data-testid="annual-body" data-state=${model.empty ? 'empty' : 'report'} data-year=${model.year}
       data-today=${today} data-count=${model.count} data-days=${model.days} data-months=${model.months.length} style=${model.empty ? { flex: '1' } : null}>
-      ${model.empty ? html`<${AnnualEmpty} />` : html`<${Report} model=${model} state=${state} onYear=${onYear} />`}
+      ${model.empty ? html`<${AnnualEmpty} />` : html`<${Report} model=${model} onYear=${onYear} />`}
     </div>
   </${Page}>`;
 }
 
-registerScreen(ANNUAL_SCREEN, AnnualScreen, { label: t('X-MINE.annual') });
+// 折行点（网页量的）：原生按网页的折行排版（原生排版算法不同，AX 档会折行）。
+registerMineSubLineBreaker();
+
+registerScreen(ANNUAL_SCREEN, AnnualScreen, { label: t('X-MINE.annual'), native: true });
+
+// 原生页的「调整图片 / 保存图片」按钮（B3.11 做原生预览；这里让网页开预览弹层）：登记给 App API 的 mine.image。
+setMineSubActions({
+  annual: async ({ year }) => {
+    await shareAnnual(year);
+    return { ok: true };
+  },
+});

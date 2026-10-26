@@ -35,7 +35,7 @@ import { Icons } from '../../components/icons.js';
 import { Chevron } from '../../components/Chevron.js';
 import { useAxLevel } from '../../components/ax.js';
 import { injectStyles, T, TEX } from '../../components/styles.js';
-import { t } from '../../../config/copy/index.js';
+import { t, tRef } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { now as envNow } from '../../../platform/env.js';
@@ -47,8 +47,11 @@ import { openDetail } from '../detail/index.js';
 import { hasInkPoints, inkOf, recordHasInk } from '../detail/records.js';
 import { InkMini } from '../write/compare.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
-import { RECORDS_SHEET_COLS, recordsModel } from '../../../session/views/mine.js';
-import { MonthBody, monthModel, openMonth } from './month.js';
+import { RECORDS_SHEET_COLS } from '../../../session/views/mine.js';
+import { recordsView } from '../../../session/views/mine-sub.js';
+import { setMineSubActions } from '../../../session/api/mine-sub.js';
+import { MonthBody, monthModel, openMonth, paperCells } from './month.js';
+import { registerMineSubLineBreaker } from './line-starts.js';
 
 export const RECORDS_SCREEN = 'records';
 
@@ -285,20 +288,17 @@ const CELL_PRESS = pressFeedbackHandlers(() => false);
 
 /** 一格：那一次的真实笔迹（InkMini），没有就标准字 +「没有笔迹」（R-D07 / 10.12）；角标日期（R-P02）。 */
 export function SheetCell({ cell, store, testid, showTag = true }) {
-  const ink = useMemo(() => inkOf(store, cell.record), [store, cell.record]);
+  const ink = cell.ink || null;
   const has = hasInkPoints(ink);
   const tag = showTag && cell.tag ? tagText(cell.tag) : '';
-  const inkDay = cell.record && cell.record.localDay;
-  const label = inkDay && cell.day && inkDay !== cell.day
-    ? t('X-WORK.cellInkDay', { char: cell.char, date: dayText(cell.day), inkDate: dayText(inkDay) })
-    : t('X-MINE.cellLabel', { char: cell.char, date: dayText(cell.day) });
-  return html`<button type="button" class="sz-scell" ...${CELL_PRESS} data-testid=${testid} data-char=${cell.char} data-day=${cell.day || ''}
-    data-tag=${tag ? cell.tag : ''} data-record=${cell.record ? cell.record.id : ''} data-ink=${has ? 'true' : 'false'}
-    aria-label=${label} onClick=${() => openCell(cell.char)}>
+  const label = tRef(cell.label);
+  return html`<button type="button" class="sz-scell" ...${CELL_PRESS} data-testid=${testid} data-char=${cell.char || cell.ch} data-day=${cell.day || ''}
+    data-tag=${tag ? cell.tag : ''} data-record=${cell.recordId || cell.record || ''} data-ink=${has ? 'true' : 'false'}
+    aria-label=${label} onClick=${() => openCell(cell.char || cell.ch)}>
     <span class="sz-scell__sq">
       ${has
-        ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid=${`${testid}-ink`} label=${cell.char} />`
-        : html`<${PracticeGlyph} class="sz-scell__glyph" hidden=${true} char=${cell.char} />
+        ? html`<${InkMini} points=${ink.points} strokes=${ink.strokes} testid=${`${testid}-ink`} label=${cell.char || cell.ch} />`
+        : html`<${PracticeGlyph} class="sz-scell__glyph" hidden=${true} char=${cell.char || cell.ch} />
           <span class="sz-scell__noink" aria-hidden="true" data-testid=${`${testid}-noink`}>${t('R-D07.noInkLabel')}</span>`}
     </span>
     ${tag ? html`<span class="sz-scell__tag" aria-hidden="true">${tag}</span>` : null}
@@ -334,8 +334,8 @@ const PREV_ICON = () => Icons.prev();
 const NEXT_ICON = () => Icons.next();
 
 function Calendar({ model, selected, onPick }) {
-  const weekdays = t('X-MINE.weekdays');
-  return html`<div class="sz-rec__cal" data-testid="records-calendar" role="group" aria-label=${t('X-MINE.monthHead', { month: model.monthNum })}>
+  const weekdays = tRef(model.weekdays);
+  return html`<div class="sz-rec__cal" data-testid="records-calendar" role="group" aria-label=${tRef(model.monthHead)}>
     ${weekdays.map(w => html`<span key=${`w${w}`} class="sz-rec__wd" data-testid="records-weekday" aria-hidden="true">${w}</span>`)}
     ${model.calendar.map(cell => {
       if (cell.blank) return html`<span key=${cell.key} class="sz-rec__day" aria-hidden="true"></span>`;
@@ -355,9 +355,9 @@ function Calendar({ model, selected, onPick }) {
 /** AX 档的月历（A2-03）：有记录的每一天一行「10月3日 · 记了 5 个字」，点一行展开 / 收起那天写的字（紧跟在该行下面）；周名与日期不再挤成一串。 */
 function CalendarList({ model, selected, onPick, listRef }) {
   return html`<div class="sz-rec__axlist" data-testid="records-calendar" data-mode="list" role="group"
-    aria-label=${t('X-MINE.monthHead', { month: model.monthNum })}>
+    aria-label=${tRef(model.monthHead)}>
     ${model.dayList.map(row => {
-      const text = row.n ? t('X-MINE.axDayRow', { date: dayText(row.day), n: row.n }) : t('X-MINE.axDayRowPaper', { date: dayText(row.day) });
+      const text = tRef(row.label);
       const open = selected && selected.day === row.day;
       return html`<div key=${row.day} class="sz-rec__axitem">
         <${Button} variant="plain" class="sz-rec__axrow" data-testid="records-day" data-day=${row.day} data-has="true"
@@ -371,30 +371,30 @@ function CalendarList({ model, selected, onPick, listRef }) {
 
 function DayList({ selected, listRef }) {
   // 那天只在纸上写过：日历上仍有点（写过的日子），但没有笔迹可列，不画空字帖（D47，P1-E78）；只留一行说明，免得点开是空的（P1-E2，P172）
-  if (!selected.items.length) {
-    return html`<p class="sz-rec__paperday" data-testid="records-daylist-paper" data-day=${selected.day} ref=${listRef}>${t('X-MINE.paperDayNote')}</p>`;
+  if (selected.paper) {
+    return html`<p class="sz-rec__paperday" data-testid="records-daylist-paper" data-day=${selected.day} ref=${listRef}>${tRef(selected.paperNote)}</p>`;
   }
-  return html`<section class="sz-rec__daylist" data-testid="records-daylist" data-day=${selected.day} data-count=${selected.items.length}
+  const title = tRef(selected.title);
+  return html`<section class="sz-rec__daylist" data-testid="records-daylist" data-day=${selected.day} data-count=${selected.cells.length}
     ref=${listRef}>
-    <h3 class="sz-rec__subtitle" data-testid="records-daylist-title">${t('R-P03.todayChars', { date: dayText(selected.day) })}</h3>
-    <${SheetGrid} cells=${selected.items.map(it => ({ char: it.char, day: selected.day, record: it.record, tag: null }))}
+    <h3 class="sz-rec__subtitle" data-testid="records-daylist-title">${title}</h3>
+    <${SheetGrid} cells=${selected.cells}
       cols=${RECORDS_SHEET_COLS} variant="lines" testid="records-daylist-grid" cellTestid="records-daylist-cell" showTag=${false}
-      label=${t('R-P03.todayChars', { date: dayText(selected.day) })} />
+      label=${title} />
   </section>`;
 }
 
-function MonthSheet({ model, state }) {
-  const { sheet } = model;
-  const title = t('R-P02.sheetTitle', { month: model.monthNum });
+function MonthSheet({ model }) {
+  const sheet = model.sheet;
   // 阶段 1 P1-E7：字帖就是月字帖页那一块（month.js MonthBody：6 列、格内左上角的日期角标、没墨的字画衬底），标题点进月字帖页；任何月份都能保存（D42）。
-  const monthView = useMemo(() => monthModel(state, model.month), [state, model.month]);
-  if (!monthView.n) return null; // 这个月没有字：不画字帖块（标题「{月}还没有记录」与图例已经说了，不再重复说「没有」，审计 P2-22）
-  const save = monthView.n && imageActions.month;
-  return html`<section class="sz-rec__sheet" data-testid="records-sheet" data-month=${sheet.month} data-count=${monthView.n}
-    data-days=${monthView.days} data-current=${model.current ? 'true' : 'false'} data-folded=${sheet.folded ? 'true' : 'false'}>
+  if (!sheet || !sheet.n) return null; // 这个月没有字：不画字帖块（标题「{月}还没有记录」与图例已经说了，不再重复说「没有」，审计 P2-22）
+  const title = tRef(sheet.title);
+  const save = imageActions.month;
+  return html`<section class="sz-rec__sheet" data-testid="records-sheet" data-month=${sheet.month} data-count=${sheet.n}
+    data-days=${sheet.days} data-current=${model.current ? 'true' : 'false'} data-folded=${sheet.folded ? 'true' : 'false'}>
     <div class="sz-rec__shead">
       <h2 class="sz-rec__subtitle" data-testid="records-sheet-title">
-        ${monthView.n
+        ${sheet.n
           ? html`<${Button} variant="plain" class="sz-rec__open" data-testid="records-sheet-open" onClick=${() => openMonth({ month: sheet.month })}>${title}<${Chevron} /></${Button}>`
           : title}
       </h2>
@@ -403,7 +403,7 @@ function MonthSheet({ model, state }) {
             onClick=${() => { const fn = imageActions.month; if (fn) fn({ month: sheet.month, sheet }); }}>${t('R-M01.saveImage')}</${Button}>`
         : null}
     </div>
-    <${MonthBody} model=${monthView} testid="records-sheet-grid" cellTestid="records-sheet-cell" emptyTestid="records-sheet-empty" />
+    <${MonthBody} model=${sheet} testid="records-sheet-grid" cellTestid="records-sheet-cell" emptyTestid="records-sheet-empty" />
   </section>`;
 }
 
@@ -412,9 +412,9 @@ function TodayRow({ row }) {
   if (!row || !fn) return null;
   return html`<div class="sz-rec__todaylist">
     <${Button} variant="plain" class="sz-rec__today" data-testid="records-today" data-day=${row.day} data-n=${row.n}
-      onClick=${() => { const f = imageActions.today; if (f) f({ day: row.day, items: row.items }); }}>
-      <span class="sz-rec__todayt">${t('R-P03.todayChars', { date: dayText(row.day) })}</span>
-      <span class="sz-rec__todays">${t('R-P03.todayImage')}</span>
+      onClick=${() => { const f = imageActions.today; if (f) f({ day: row.day }); }}>
+      <span class="sz-rec__todayt">${tRef(row.title)}</span>
+      <span class="sz-rec__todays">${tRef(row.note)}</span>
     </${Button}>
   </div>`;
 }
@@ -425,8 +425,10 @@ function RecordsScreen({ params, entry }) {
   const state = useStoreState();
   const today = useToday();
   const [view, setView] = useState(() => ({ month: typeof p.month === 'string' ? p.month : '', day: typeof p.day === 'string' ? p.day : '' }));
-  const model = useMemo(() => recordsModel(state, today, { month: view.month, day: view.day, policy: defaultPolicy, hasInk: hasInkOfStore() }),
-    [state, today, view.month, view.day]);
+  const model = useMemo(() => recordsView(state, today, {
+    month: view.month, day: view.day, policy: defaultPolicy,
+    hasInk: hasInkOfStore(), inkOf: record => inkOf(currentStore(), record),
+  }), [state, today, view.month, view.day]);
   const selected = model.selected;
   const listRef = useRef(null);
   const scrolled = useRef(false);
@@ -456,13 +458,12 @@ function RecordsScreen({ params, entry }) {
   };
   const onPick = day => setView(cur => ({ month: model.month, day: cur.day === day ? '' : day }));
 
-  const titleKey = model.recordDays ? 'R-P01.monthDays' : 'X-MINE.monthNone';
   return html`<${Page} title=${t('R-M01.practiceLog')} testid="records-screen">
     <div class="sz-rec" data-testid="records-body" data-month=${model.month} data-current=${model.current ? 'true' : 'false'}
       data-record-days=${model.recordDays} data-selected=${selected ? selected.day : ''} data-today=${today}>
       <div class="sz-rec__mhead">
         <span class="sz-rec__mtitle">
-          <h2 class="sz-rec__month" data-testid="records-month" data-month=${model.month}>${t('X-MINE.monthHead', { month: model.monthNum })}</h2>
+          <h2 class="sz-rec__month" data-testid="records-month" data-month=${model.month}>${tRef(model.monthHead)}</h2>
           <span class="sz-rec__year" data-testid="records-year">${model.year}</span>
         </span>
         <span class="sz-rec__arrows">
@@ -473,20 +474,37 @@ function RecordsScreen({ params, entry }) {
         </span>
       </div>
       <div class="sz-rec__head">
-        <p class="sz-rec__title" data-testid="records-title">${t(titleKey, { month: model.monthNum, n: model.recordDays })}</p>
-        <p class="sz-rec__legend" data-testid="records-legend">${t(model.recordDays ? 'R-P01.legend' : 'R-P04.empty')}</p>
+        <p class="sz-rec__title" data-testid="records-title">${tRef(model.title)}</p>
+        <p class="sz-rec__legend" data-testid="records-legend">${tRef(model.legend)}</p>
       </div>
       ${ax > 0
         ? html`<${CalendarList} model=${model} selected=${selected} onPick=${onPick} listRef=${listRef} />`
         : html`<${Calendar} model=${model} selected=${selected ? selected.day : ''} onPick=${onPick} />
           ${selected ? html`<${DayList} selected=${selected} listRef=${listRef} />` : null}`}
-      <${MonthSheet} model=${model} state=${state} />
+      <${MonthSheet} model=${model} />
       <${TodayRow} row=${model.todayRow} />
     </div>
   </${Page}>`;
 }
 
-registerScreen(RECORDS_SCREEN, RecordsScreen, { label: t('R-M01.practiceLog') });
+// 折行点（网页量的）：原生按网页的折行排版（原生排版算法不同，AX 档会折行）。
+registerMineSubLineBreaker();
+
+registerScreen(RECORDS_SCREEN, RecordsScreen, { label: t('R-M01.practiceLog'), native: true });
 
 // 首页墨迹行点进「今天的记录」（M2-1 ink-row.js 的注册口）。
 setTodayRecordsAction(openTodayRecords);
+
+// 原生页的「保存图片」按钮（B3.11 做原生预览；这里让网页开预览弹层）：登记给 App API 的 mine.image。
+setMineSubActions({
+  month: async ({ month }) => {
+    const { openMonthImage } = await import('../../images-entry.js');
+    openMonthImage({ month });
+    return { ok: true };
+  },
+  day: async ({ day }) => {
+    const { openDayImage } = await import('../../images-entry.js');
+    openDayImage({ day });
+    return { ok: true };
+  },
+});

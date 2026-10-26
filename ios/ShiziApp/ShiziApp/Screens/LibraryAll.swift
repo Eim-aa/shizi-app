@@ -123,7 +123,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
 
     /// 网页量出来的值（B3.8）：组头的高、说明句（pretty）的折行点、页头尾端按钮的宽、弹层排序键的折行点（见 web-metrics.js）。
     struct WebMetrics: Decodable {
-        let headHeights: [Double]?
+        let headHeights: [Double?]?
         let note: [Int]?
         let menuWidth: Double?
         let sortLines: [[Int]?]?
@@ -172,6 +172,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
     /// 页头尾端「排序 · 筛选」（网页 .sz-btn--text：文字宽 + 8、左右外边距 −4）。
     var trailButtonWidth: CGFloat {
         guard let m = model, m.showSort || m.showChips else { return 44 }
+        if let w = webMetrics?.menuWidth, w > 0 { return CGFloat(w) } // 网页量出来的宽（字宽 + 内边距）
         return LibraryCommon.textWidth(t("X-ALL.menuLabel"), metrics.font(15)) + 8
     }
 
@@ -225,6 +226,9 @@ final class LibraryAllScreen: ShiziScreenViewController {
         model = m
         if let payload = lastPayload, let ink = payload["ink"] as? [String: Any] {
             inkStrokes = (try? ShiziDecode.value(ink, as: [String: [[LibraryInkView.Point]]].self)) ?? [:]
+        }
+        if let payload = lastPayload, let met = payload["metrics"] {
+            webMetrics = try? ShiziDecode.value(met, as: WebMetrics.self)
         }
         setTitle(t("X-LIBHOME.recordedLabel"))
         renderModel(m)
@@ -541,7 +545,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
     /// 「排序 · 筛选」弹层。
     private func openMenu() {
         guard let m = model else { return }
-        let sheet = LibraryAllMenuController(model: m)
+        let sheet = LibraryAllMenuController(model: m, noteStarts: webMetrics?.note, sortLines: webMetrics?.sortLines)
         sheet.onSort = { [weak self] key in
             guard let self else { return }
             self.markStateChange()
@@ -598,7 +602,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
             let groupTop = y + mt.space(1) // 组的上外边距 s1
             let isHead = group.head
             let isFoldButton = isHead && group.fold == "open"
-            let headH: CGFloat = isHead ? groupHeadHeight(isButton: isFoldButton) : 0
+            let headH: CGFloat = isHead ? (webHeadHeight(groupIndex - 1) ?? groupHeadHeight(isButton: isFoldButton)) : 0
             let gridTop = headH > 0 ? headH + mt.space(2) : 0
             // 墙格
             let pyH = group.cells.first?.py != nil ? mt.line("lh11") : 0
@@ -673,6 +677,11 @@ final class LibraryAllScreen: ShiziScreenViewController {
     /// 网页这一行是 flex + align-items:baseline：行盒高 = max(名字的基线以上) + max(名字 / 计数的基线以下)。
     /// 计数段的行盒按主字体（系统字体 SF）的度量算——网页 .sz-all__count 继承的是 --hei（-apple-system），
     /// 段里虽然有中文（苹方回退），行盒仍按主字体的升降部；用苹方 UI 的降部会多算 0.7pt（AX3）。
+    private func webHeadHeight(_ i: Int) -> CGFloat? {
+        guard let hs = webMetrics?.headHeights, i >= 0, i < hs.count, let h = hs[i], h > 0 else { return nil }
+        return CGFloat(h)
+    }
+
     private func groupHeadHeight(isButton: Bool) -> CGFloat {
         let mt = metrics
         let nameLine = mt.line("lh22")
@@ -801,7 +810,13 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
     private let showChips: Bool
     private let showLegend: Bool
 
-    init(model: LibraryAllScreen.View) {
+    /// 网页量出来的折行点（说明句 / 排序三键里的字）；没有就按原生自己的折行。
+    private let noteStarts: [Int]?
+    private let sortLines: [[Int]?]?
+
+    init(model: LibraryAllScreen.View, noteStarts: [Int]? = nil, sortLines: [[Int]?]? = nil) {
+        self.noteStarts = noteStarts
+        self.sortLines = sortLines
         self.sorts = model.sorts
         self.chips = model.chips
         self.note = model.note.text
@@ -963,7 +978,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         }
         // 说明句
         if !note.isEmpty {
-            let lines = LibraryText.lines(note, font: mt.font(13), width: innerW, line: mt.line("lh13"))
+            let lines = LibraryText.lineCount(note, starts: noteStarts, font: mt.font(13), width: innerW, line: mt.line("lh13"))
             m.note = CGFloat(lines) * mt.line("lh13")
         }
         return m
@@ -1072,7 +1087,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         if m.note > 0 {
             noteLabel.isHidden = false
             noteLabel.numberOfLines = 0
-            NativeType.set(noteLabel, note, font: mt.font(13), color: color("ink3"), line: mt.line("lh13"))
+            NativeType.set(noteLabel, LibraryText.joined(note, noteStarts), font: mt.font(13), color: color("ink3"), line: mt.line("lh13"))
             noteLabel.frame = CGRect(x: gutter, y: y, width: innerW, height: m.note)
         } else {
             noteLabel.isHidden = true

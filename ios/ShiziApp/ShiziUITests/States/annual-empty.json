@@ -20,6 +20,7 @@
     }
   ],
   "ready": {
-    "web": "annual-screen"
+    "web": "annual-screen",
+    "native": "id:native-annual-body"
   }
 }

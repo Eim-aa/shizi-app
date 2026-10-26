@@ -180,7 +180,8 @@
     }
   ],
   "ready": {
-    "web": "month-screen"
+    "web": "month-screen",
+    "native": "id:native-month-body"
   },
   "ax": true
 }

@@ -9,7 +9,8 @@
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "annual-screen"
+    "web": "annual-screen",
+    "native": "id:native-annual-body"
   },
   "setup": [
     {

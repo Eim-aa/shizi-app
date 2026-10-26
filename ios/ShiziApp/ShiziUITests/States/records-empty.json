@@ -9,7 +9,8 @@
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "records-screen"
+    "web": "records-screen",
+    "native": "id:native-records-body"
   },
   "setup": [
     {

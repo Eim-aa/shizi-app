@@ -108,7 +108,8 @@
     }
   ],
   "ready": {
-    "web": "records-screen"
+    "web": "records-screen",
+    "native": "id:native-records-body"
   },
   "ax": true
 }

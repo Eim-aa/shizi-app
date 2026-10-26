@@ -43,9 +43,27 @@ class ShiziLineButton: UIButton {
 
     override var currentTitle: String? { composed.isEmpty ? super.currentTitle : composed }
 
+    /// 把 composed 画在按钮里（页头右槽 / 弹层「完成」/ 主按钮这类整块只有一段字的按钮）。
+    /// 字画在一个不进取证的子标签里（取证不进按钮的子节点），按钮自己仍按 composed / lineFont 给文字与字号。
+    var drawsComposed = false
+    private let drawnLabel = UILabel()
+
     override func layoutSubviews() {
         super.layoutSubviews()
         if let f = lineFont { titleLabel?.font = f }
+        guard drawsComposed else { drawnLabel.isHidden = true; return }
+        if drawnLabel.superview == nil {
+            drawnLabel.isUserInteractionEnabled = false
+            drawnLabel.isAccessibilityElement = false
+            drawnLabel.textAlignment = .center
+            drawnLabel.numberOfLines = 0
+            addSubview(drawnLabel)
+        }
+        drawnLabel.isHidden = false
+        drawnLabel.text = composed
+        drawnLabel.font = lineFont ?? titleLabel?.font ?? .systemFont(ofSize: 17)
+        drawnLabel.textColor = titleColor(for: isEnabled ? .normal : .disabled) ?? titleColor(for: .normal)
+        drawnLabel.frame = bounds
     }
 
     override func imageRect(forContentRect r: CGRect) -> CGRect {
@@ -63,6 +81,9 @@ class ShiziLineButton: UIButton {
 /// 主按钮（网页 .sz-btn--primary：btn-bg 底、btn-fg 字 17 / 500、圆角 r-ctl、满宽、最小高 btn-h）。
 /// 禁用态（网页 .sz-btn--primary[disabled]）：field 底、ink4 字。
 final class ShiziPrimaryButton: ShiziLineButton {
+    override init(frame: CGRect) { super.init(frame: frame); drawsComposed = true }
+    required init?(coder: NSCoder) { super.init(coder: coder); drawsComposed = true }
+
     func style(enabled: Bool, title: String, font: UIFont, radius: CGFloat, bg: UIColor, fg: UIColor, disabledBg: UIColor, disabledFg: UIColor) {
         composed = title
         lineFont = font
@@ -252,10 +273,12 @@ final class LibraryScreenKit {
         self.failCancelText = failCancelText
         if let trailId {
             let b = ShiziLineButton(type: .custom)
+            b.drawsComposed = true
             b.accessibilityIdentifier = trailId
             trail = b
             screen.wire(b) { _ in onTrail?() }
         }
+        failCancel.drawsComposed = true
         failBox.accessibilityIdentifier = "\(failIdPrefix)-fail"
         failNote.accessibilityIdentifier = "\(failIdPrefix)-fail-note"
         failCancel.accessibilityIdentifier = "\(failIdPrefix)-fail-cancel"

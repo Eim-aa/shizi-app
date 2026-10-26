@@ -274,6 +274,7 @@ final class LibraryListScreen: ShiziScreenViewController {
         NativeType.set(topLabel, LibraryText.joined(m.top.text, webMetrics?.top), font: mt.font(15), color: color("ink2"), line: mt.line("lh15"))
         noteLabel.numberOfLines = 0
         NativeType.set(noteLabel, LibraryText.joined(m.note.text, webMetrics?.note), font: mt.font(15), color: color("ink2"), line: mt.line("lh15"))
+        restButton.drawsComposed = true
         restButton.composed = (restOpen ? m.restHideLabel : m.restLabel).text
         restButton.lineFont = mt.font(15)
         restButton.setTitleColor(color("ink2"), for: .normal)

@@ -267,6 +267,9 @@ final class LibraryAllScreen: ShiziScreenViewController {
         findField.backgroundColor = color("field")
         findField.layer.cornerRadius = mt.value("r-ctl")
         if m.find.found { findField.backgroundColor = color("sheet") }
+        // 网页 .sz-all__find--hit：找到了 → 面板底色 + 1pt 内描边（ink2）
+        findField.layer.borderWidth = m.find.found ? 1 : 0
+        findField.layer.borderColor = color("ink2").resolvedColor(with: traitCollection).cgColor
         findIcon.image = LibraryIcon.search(color("ink2"))
         findIcon.contentMode = .scaleAspectFit
         findInput.backgroundColor = .clear
@@ -292,6 +295,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         // 收起的月份
         syncClosed(m)
         // 「看这些字 ›」
+        listButton.drawsComposed = true
         listButton.composed = t("X-ALL.viewThese")
         listButton.lineFont = mt.font(15)
         listButton.setTitleColor(color("ink2"), for: .normal)
@@ -643,6 +647,18 @@ final class LibraryAllScreen: ShiziScreenViewController {
                     b.setImage(nil, for: .normal)
                 }
                 inkView.frame = CGRect(x: cx + cellW * 0.04, y: cy + cellW * 0.04, width: cellW * 0.92, height: cellW * 0.92)
+                // 写错过的朱点（网页 .sz-lib__mark：右 9% 上 9%，6pt 圆）与查找命中的圈（.sz-all__ring：内缩 1pt、2pt 内描边）
+                let mark = b.viewWithTag(9001) ?? { let v = UIView(); v.tag = 9001; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
+                mark.isHidden = cell.kind != "wrong"
+                mark.backgroundColor = color("zhu")
+                mark.layer.cornerRadius = 3
+                mark.frame = CGRect(x: cellW * 0.91 - 6, y: cellW * 0.09, width: 6, height: 6)
+                let ring = b.viewWithTag(9002) ?? { let v = UIView(); v.tag = 9002; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
+                ring.isHidden = !cell.hit
+                ring.layer.cornerRadius = mt.value("r-work")
+                ring.layer.borderWidth = 2
+                ring.layer.borderColor = color("ink1").resolvedColor(with: traitCollection).cgColor
+                ring.frame = CGRect(x: 1, y: 1, width: cellW - 2, height: cellW - 2)
                 let pyLabel = gv.pyLabels[ci]
                 pyLabel.frame = CGRect(x: 0, y: cellW - 2, width: cellW, height: mt.line("lh11"))
             }
@@ -979,6 +995,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         titleLabel.frame = CGRect(x: 0, y: (headH - mt.line("lh17s")) / 2, width: innerW - 100, height: mt.line("lh17s"))
         let doneText = t("X-COMMON.done")
         let doneW = LibraryCommon.textWidth(doneText, mt.font(15)) + 8
+        doneButton.drawsComposed = true
         doneButton.composed = doneText
         doneButton.lineFont = mt.font(15)
         doneButton.setTitleColor(color("ink2"), for: .normal)

@@ -833,7 +833,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
 
     /// 弹层标题的字体（网页 .sz-sheet__title 的字体族是 --hei：系统字体按实际字号取款，字宽与网页一致）。
     /// 共用的 NativeType.compose 把光学尺寸钉在 17（苹方正文款，R9-B），20pt 以上苹方的字宽与网页差 0.9pt/字 —— 这一处按网页的取法。
-    private var menuTitleFont: UIFont { UIFont.systemFont(ofSize: metrics.value("fs17"), weight: .medium) }
+    private var menuTitleFont: UIFont { metrics.font(17, .medium) }
 
     private func color(_ name: String) -> UIColor { ShiziTokens.dynamicColor(name) ?? .label }
 
@@ -1014,12 +1014,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         head.frame = CGRect(x: gutter, y: y, width: innerW, height: headH)
         // 标题与「完成」在页头里（网页 .sz-sheet__head：标题左、完成右）
         titleLabel.numberOfLines = 1
-        // 网页标题是系统字体（大字号下 CoreText 自带的展示款字距）；不走 NativeType.set 的中文补字距（那是给钉在 17 光学尺寸的苹方正文款补的，
-        // 这里再补一次会比网页宽 1.6–3pt）
-        titleLabel.attributedText = nil
-        titleLabel.font = menuTitleFont
-        titleLabel.textColor = color("ink1")
-        titleLabel.text = t("X-ALL.menuLabel")
+        NativeType.set(titleLabel, t("X-ALL.menuLabel"), font: menuTitleFont, color: color("ink1"), line: mt.line("lh17s"))
         titleLabel.frame = CGRect(x: 0, y: (headH - mt.line("lh17s")) / 2, width: innerW - 100, height: mt.line("lh17s"))
         let doneText = t("X-COMMON.done")
         let doneW = LibraryCommon.textWidth(doneText, mt.font(15)) + 8

@@ -2,7 +2,7 @@
   "state": "all-pinyin",
   "name": "全部字 · 按拼音",
   "screen": "library-all",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -114,6 +114,7 @@
     }
   ],
   "ready": {
-    "web": "all-screen"
+    "web": "all-screen",
+    "native": "id:native-library-all-screen"
   }
 }

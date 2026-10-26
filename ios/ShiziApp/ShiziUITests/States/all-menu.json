@@ -2,7 +2,7 @@
   "state": "all-menu",
   "name": "全部字 · 排序 · 筛选弹层",
   "screen": "library-all",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -113,12 +113,14 @@
     }
   ],
   "ready": {
-    "web": "all-screen"
+    "web": "all-screen",
+    "native": "id:native-library-all-screen"
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "all-menu-open"
+        "webTestid": "all-menu-open",
+        "native": "native-library-all-menu-open"
       },
       "times": 1
     },

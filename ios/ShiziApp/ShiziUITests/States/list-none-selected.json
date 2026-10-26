@@ -2,7 +2,7 @@
   "state": "list-none-selected",
   "name": "区详情 · 全不选（底部键「先选一个字」）",
   "screen": "library-list",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -110,12 +110,14 @@
     }
   ],
   "ready": {
-    "web": "list-screen"
+    "web": "list-screen",
+    "native": "id:native-library-list-screen"
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "list-toggle-all"
+        "webTestid": "list-toggle-all",
+        "native": "native-library-list-toggle-all"
       },
       "times": 1
     },

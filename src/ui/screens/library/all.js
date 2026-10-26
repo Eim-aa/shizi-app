@@ -46,6 +46,8 @@ import { Glyph, Legend, cellLabel, toneColor, useWallLayout } from './wall.js';
 import {
   allModel, normalizeFilter, normalizeFold, normalizeSort, takeCells, toggleFold, RENDER_BATCH,
 } from '../../../session/views/library-all.js';
+import { setLibrarySubActions, setLibrarySubMeasure } from '../../../session/api/library-sub.js';
+import { contentWidth, groupHeadHeight, sortButtonLines, textButtonWidth, textLineStarts } from './web-metrics.js';
 
 export const ALL_SCREEN = 'library-all';
 export const ALL_SOURCE_VIEW = 'allWritten';
@@ -320,7 +322,7 @@ function AllScreen({ params, entry }) {
     const go = model.go;
     if (!go) return;
     // 该复习了 / 还不太熟 / 记住了：一次点击直接开始一组（默认勾选的那些字，I3 · P0-06）；要先看清单走旁边的「看这些字 ›」
-    const r = go.kind === 'list' ? startListDefault(go.listKind) : startPicked(go.keys, { source: { view: ALL_SOURCE_VIEW } });
+    const r = startAllGroup(go);
     if (!r || !r.ok) {
       setFailed(true);
       markStateChange();
@@ -386,4 +388,41 @@ function AllScreen({ params, entry }) {
   </${Page}>`;
 }
 
-registerScreen(ALL_SCREEN, AllScreen, { label: t('X-LIBHOME.recordedLabel') });
+/**
+ * 「练这些字」：网页路径与 App API 路径调的是**同一个函数**（B3.8 契约）。
+ * 自选了还没写 → 开这次选的字；三档 → 开那一组（默认勾选的那些字）。
+ */
+export function startAllGroup(go) {
+  if (!go) return { ok: false, error: { kind: 'invalid' } };
+  return go.kind === 'list' ? startListDefault(go.listKind) : startPicked(go.keys, { source: { view: ALL_SOURCE_VIEW } });
+}
+
+// 原生页（ShiziScreen_library_all）走 App API：同一组函数对象。
+setLibrarySubActions({
+  startAll: ({ kind, listKind, keys } = {}) => startAllGroup({ kind, listKind, keys }),
+});
+
+/**
+ * 网页量测（B3.8）：原生这一页要用几处「网页量出来的值」——组头的高、说明句（text-wrap: pretty）的折行点、
+ * 页头尾端「排序 · 筛选」按钮的宽、弹层里排序三键的折行点。量法见 ./web-metrics.js。
+ * 量出来的值随 view.library-all 的回包信封（metrics）交给原生；模型本身不动。
+ */
+setLibrarySubMeasure({
+  all: (view) => {
+    const w = contentWidth();
+    if (!w) return null;
+    const groups = view.groups || [];
+    const headHeights = groups.map(g => groupHeadHeight(tRef(g.name), tRef(g.count), g.fold === 'open', w));
+    const note = view.note ? tRef(view.note) : '';
+    const sorts = view.sorts || [];
+    const sortWidth = sorts.length ? (w - 6) / sorts.length : 0;
+    return {
+      headHeights,
+      note: note ? textLineStarts(note, { wrapClass: 'sz-all', cls: 'sz-all__note' }, w) : null,
+      menuWidth: textButtonWidth(t('X-ALL.menuLabel'), w),
+      sortLines: sorts.map(s => sortButtonLines(tRef(s.label), sortWidth)),
+    };
+  },
+});
+
+registerScreen(ALL_SCREEN, AllScreen, { label: t('X-LIBHOME.recordedLabel'), native: true });

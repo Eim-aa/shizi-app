@@ -2,7 +2,7 @@
   "state": "list-empty",
   "name": "区详情 · 空（这一档没有字）",
   "screen": "library-list",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -22,6 +22,7 @@
     }
   ],
   "ready": {
-    "web": "list-screen"
+    "web": "list-screen",
+    "native": "id:native-library-list-screen"
   }
 }

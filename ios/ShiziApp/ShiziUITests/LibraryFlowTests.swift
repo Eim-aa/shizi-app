@@ -117,20 +117,5 @@ final class LibraryFlowTests: XCTestCase {
         XCTFail("the undo bar never followed to the native library; probe = \(last)")
     }
 
-    // ---------------------------------------------------------------- B3.8（字库子页原生化）
-
-    /// 三档 / 已跳过 → 区详情 → 勾选 → 练这些字（T-push）→ 返回
-    func testTierToListToPickedSession() throws { try QAPending.skip("B3.8", "三档 / 已跳过 → 区详情 → 勾选 → 练这些字（T-push）→ 返回") }
-
-    /// 全部字：排序 / 筛选 / 查找
-    func testAllCharsSortFilterFind() throws { try QAPending.skip("B3.8", "全部字：排序 / 筛选 / 查找") }
-
-    /// 全部字：params 冷启动恢复
-    func testAllCharsParamsColdRestore() throws { try QAPending.skip("B3.8", "全部字：params 冷启动恢复") }
-
-    /// 换库成功即返回（不提示）
-    func testSwitchLibrarySuccessReturnsAtOnce() throws { try QAPending.skip("B3.8", "换库成功即返回（不提示）") }
-
-    /// 换库失败三段式
-    func testSwitchLibraryFailureThreeStage() throws { try QAPending.skip("B3.8", "换库失败三段式") }
+    // B3.8：字库子页的流程用例（清单 / 全部字 / 换库）已搬到 LibrarySubFlowTests。
 }

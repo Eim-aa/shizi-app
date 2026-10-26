@@ -70,6 +70,7 @@ final class LibrarySwitchScreen: ShiziScreenViewController {
         super.viewDidLoad()
         kit.attach()
         listMarker.accessibilityIdentifier = "native-library-switch-list"
+        listMarker.isUserInteractionEnabled = false // 只是取证用的标记框：盖在行上面会吃掉点按
         sourceLabel.accessibilityIdentifier = "native-library-switch-source"
         content.addSubview(listMarker)
         content.addSubview(sourceLabel)

@@ -189,6 +189,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
                    onFailCancel: { [weak self] in self?.clearFailed() }, onFailRetry: { [weak self] in self?.retryFailed() })
         super.viewDidLoad()
         kit.attach()
+        bodyMarker.isUserInteractionEnabled = false // 取证用的标记框，不吃点按
         bodyMarker.accessibilityIdentifier = "native-library-all-body"
         findField.accessibilityIdentifier = "native-library-all-find-field"
         findInput.accessibilityIdentifier = "native-library-all-find"
@@ -317,6 +318,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
             gv.nameLabel.accessibilityIdentifier = "native-library-all-group-name"
             gv.countLabel.accessibilityIdentifier = "native-library-all-group-count"
             gv.cellsMarker.accessibilityIdentifier = "native-library-all-cells"
+            gv.cellsMarker.isUserInteractionEnabled = false
             groupViews.append(gv)
             content.addSubview(gv)
             wire(gv.headButton) { [weak gv] page in (page as? LibraryAllScreen)?.foldGroup(gv) }

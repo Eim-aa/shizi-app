@@ -38,6 +38,8 @@ final class LibraryListRowView: UIView {
         isAccessibilityElement = false
         addSubview(select)
         addSubview(open)
+        dot.isUserInteractionEnabled = false
+        check.isUserInteractionEnabled = false
         dot.layer.borderWidth = 1.5
         dot.layer.cornerRadius = 13
         select.addSubview(dot)
@@ -205,6 +207,7 @@ final class LibraryListScreen: ShiziScreenViewController {
                    onFailCancel: { [weak self] in self?.clearFailed() }, onFailRetry: { [weak self] in self?.retryFailed() })
         super.viewDidLoad()
         kit.attach()
+        for v in [bodyMarker, rowsMarker, emptyMarker] { v.isUserInteractionEnabled = false } // 取证用的标记框，不吃点按
         bodyMarker.accessibilityIdentifier = "native-library-list-body"
         rowsMarker.accessibilityIdentifier = "native-library-list-rows"
         emptyMarker.accessibilityIdentifier = "native-library-list-empty"

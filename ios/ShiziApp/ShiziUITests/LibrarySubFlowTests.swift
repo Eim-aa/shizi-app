@@ -47,35 +47,8 @@ final class LibrarySubFlowTests: XCTestCase {
         qa.tapNative("native-library-list-go")
         qa.waitNative(true, timeout: 30)
         qa.waitRouteTop("write", timeout: 20)
-        XCTAssertEqual(qa.session("A")["cursor"] as? Int, 0, "刚开的组从头开始")
-    }
-
-    /// 临时：量一下网页对不上的那几处字体度量（诊断用，交付前删）。
-    func testTempFontMetrics() {
-        func w(_ s: String, _ f: UIFont) -> CGFloat { (s as NSString).size(withAttributes: [.font: f]).width }
-        func wKern0(_ s: String, _ f: UIFont) -> CGFloat { (s as NSString).size(withAttributes: [.font: f, .kern: 0]).width }
-        for (name, fs17, fs15) in [("L", CGFloat(17), CGFloat(15)), ("XXXL", CGFloat(22.95), CGFloat(20.25)), ("AX3", CGFloat(40), CGFloat(36)), ("AX5", CGFloat(53), CGFloat(49))] {
-            let sysR = UIFont.systemFont(ofSize: fs15, weight: .regular)
-            let sysM = UIFont.systemFont(ofSize: fs17, weight: .medium)
-            print("WIDTH \(name) fs15=\(fs15) fs17=\(fs17)")
-            print("WIDTH \(name) label17: plain=\(w("排序 · 筛选", sysM)) kern0=\(wKern0("排序 · 筛选", sysM))")
-            print("WIDTH \(name) label15: plain=\(w("排序 · 筛选", sysR)) kern0=\(wKern0("排序 · 筛选", sysR))")
-            print("WIDTH \(name) pieces15: 排序=\(w("排序", sysR)) space=\(w(" ", sysR)) dot=\(w("·", sysR)) 筛选=\(w("筛选", sysR))")
-            print("WIDTH \(name) pieces17: 排序=\(w("排序", sysM)) space=\(w(" ", sysM)) dot=\(w("·", sysM)) 筛选=\(w("筛选", sysM))")
-        }
-        for (name, fs22, lh22, fs15, lh15) in [("AX3", CGFloat(44), CGFloat(52), CGFloat(36), CGFloat(42)), ("AX5", CGFloat(56), CGFloat(66), CGFloat(49), CGFloat(58))] {
-            let sf = UIFont.systemFont(ofSize: fs15, weight: .regular)
-            let probe = UIFont.systemFont(ofSize: 17, weight: .regular)
-            let ct = CTFontCreateForString(probe as CTFont, "\u{6C38}" as CFString, CFRange(location: 0, length: 1))
-            let desc = CTFontDescriptorCreateCopyWithAttributes(CTFontCopyFontDescriptor(ct), [kCTFontOpticalSizeAttribute: 17] as CFDictionary)
-            let cjk = CTFontCreateWithFontDescriptor(desc, fs15, nil) as UIFont
-            print("METRIC \(name) sf asc=\(sf.ascender) desc=\(sf.descender) lh=\(sf.lineHeight)")
-            print("METRIC \(name) cjk asc=\(cjk.ascender) desc=\(cjk.descender) lh=\(cjk.lineHeight)")
-            print("METRIC \(name) songA=\(fs22 * 1.15091) songD=\(fs22 * 0.28599)")
-        }
-        for (size, asc, desc) in [(CGFloat(22), CGFloat(25.322), CGFloat(6.292)), (CGFloat(29.7), CGFloat(34.185), CGFloat(8.494)), (CGFloat(44), CGFloat(50.644), CGFloat(12.584)), (CGFloat(56), CGFloat(64.456), CGFloat(16.015))] {
-            print("SONG size=\(size) asc=\(asc) desc=\(desc)")
-        }
+        // 勾选开组走 startPicked → 会话槽 B（今日练习才是 A）
+        XCTAssertEqual(qa.session("B")["cursor"] as? Int, 0, "刚开的组从头开始")
     }
 
     /// 底栏提示现在的字（勾选后会变）。
@@ -88,23 +61,28 @@ final class LibrarySubFlowTests: XCTestCase {
         waitScreen(qa, "library-all")
         XCTAssertTrue(qa.el("native-library-all-menu-open").waitForExistence(timeout: 6), "页头的「排序 · 筛选」")
         XCTAssertTrue(qa.el("native-library-all-cell").exists, "字墙的格子")
-        // 排序：选「多久没写」→ 分组换了（格子数变了）
-        let cellsBefore = qaCellCount(qa)
-        qa.tapNative("native-library-all-menu-open")
+        // 排序：选「多久没写」→ 分组换了（第一组的组名变了）
+        let groupBefore = qaFirstGroupName(qa) // 拼音分组的第一组名（字母）；换成「多久没写」后变成档位名
+        XCTAssertFalse(groupBefore.isEmpty, "拼音分组有组名")
+        // 打开弹层不改探针里的任何东西（tapSignature 看不见弹层），用 verify: false 点一下，免得「没效果」的重点把弹层又点掉
+        qa.tap(qa.el("native-library-all-menu-open"), "open sort sheet", verify: false)
         let sorts = qaQuery(qa, "native-library-all-sort")
         XCTAssertTrue(sorts.element(boundBy: 0).waitForExistence(timeout: 6), "排序三键")
         qa.tap(sorts.element(boundBy: 2), "sort by age")
         qa.waitProbe("sort applied", timeout: 10) { _ in
-            self.qaCellCount(qa) != cellsBefore
+            self.qaFirstGroupName(qa) != groupBefore
         }
         // 筛选：选「待复习」→ 底栏主键变成区清单（页面多一个「看这些字 ›」）
-        qa.tapNative("native-library-all-menu-open")
+        // 弹层选完排序还开着（网页同样），筛选项就在同一张弹层里
         let chips = qaQuery(qa, "native-library-all-chip")
         XCTAssertTrue(chips.element(boundBy: 0).waitForExistence(timeout: 6), "筛选项")
-        qa.tap(chips.element(boundBy: 0), "chip due")
+        // 筛选项是开关：「没效果就重点」会把它点回去，所以不验证
+        qa.tap(chips.element(boundBy: 0), "chip due", verify: false)
         qa.waitProbe("filter applied", timeout: 10) { _ in
             self.qaHasElement(qa, "native-library-all-list")
         }
+        // 关掉弹层（完成），回到页面查找
+        qa.tap(qa.el("native-library-all-sheet-done"), "close the sheet", verify: false)
         // 查找：输入一个字 → 只剩命中那个月
         let input = qa.el("native-library-all-find")
         XCTAssertTrue(input.waitForExistence(timeout: 6), "查字框")
@@ -115,7 +93,7 @@ final class LibrarySubFlowTests: XCTestCase {
         }
     }
 
-    private func qaCellCount(_ qa: QA) -> Int { qaQuery(qa, "native-library-all-cell").count }
+    private func qaFirstGroupName(_ qa: QA) -> String { qa.el("native-library-all-group-name").label }
     private func qaHasElement(_ qa: QA, _ id: String) -> Bool { qa.el(id).exists }
     private func qaTextOf(_ qa: QA, _ id: String) -> String { qa.el(id).label }
 
@@ -144,14 +122,12 @@ final class LibrarySubFlowTests: XCTestCase {
     }
 
     /// 换库失败就地三段式：说明 + 先不换 + 再试一次；再试一次成功就返回。
+    /// 夹具 switch-fail 自己在起点就点过一次（注入写失败），所以一进来就是失败态。
     func testSwitchLibraryFailureThreeStage() {
-        let qa = QA(seed: "switch-fail", failNext: 1)
+        let qa = QA(seed: "switch-fail")
         qa.launch()
         waitScreen(qa, "library-switch")
-        let row = qa.app.descendants(matching: .any).matching(identifier: "native-library-switch-row-1").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 6), "换库页的第二行（不是当前库）")
-        qa.tap(row, "switch fails")
-        XCTAssertTrue(qa.el("native-library-switch-fail-note").waitForExistence(timeout: 8), "失败说明")
+        XCTAssertTrue(qa.el("native-library-switch-fail-note").waitForExistence(timeout: 10), "失败说明")
         XCTAssertTrue(qa.el("native-library-switch-fail-cancel").exists, "先不换")
         XCTAssertTrue(qa.el("native-library-switch-fail-retry").exists, "再试一次")
         // 再试一次 → 这次写成功 → 返回

@@ -107,7 +107,9 @@ export function diffElement(w, n, tol) {
   const parts = diffPair(w, n, tol);
   if (!parts.length) return null;
   const aspects = [...new Set(parts.map(p => p.type))];
-  return { type: aspects[0], aspects, label: parts[0].label, msg: parts.map(p => p.msg).join('；'), w, n };
+  // vertical（B3.6 / D75）：只有竖向差（位置只差 y、尺寸只差高）——豁免规则 axis:'y' 只认这种差异，横向与宽照比
+  const vertical = parts.every(p => p.vertical === true);
+  return { type: aspects[0], aspects, label: parts[0].label, msg: parts.map(p => p.msg).join('；'), vertical, w, n };
 }
 
 /** 一对元素逐方面的差异。tol：{pos, size, color, font, weight}。 */
@@ -121,8 +123,8 @@ export function diffPair(w, n, tol) {
   // 文字：比左缘与竖向中线（行高 / 字体度量不同，不比文字框顶边），高度用 textHeight 容差
   const dx = fn.x - fw.x, dy = useText ? (fn.y + fn.h / 2) - (fw.y + fw.h / 2) : fn.y - fw.y, dw = fn.w - fw.w, dh = fn.h - fw.h;
   const hTol = useText ? (tol.textHeight ?? tol.size) : tol.size;
-  if (Math.abs(dx) > tol.pos || Math.abs(dy) > tol.pos) out.push({ type: 'position', label, msg: `${what} 网页 (${fw.x}, ${fw.y}) 原生 (${fn.x}, ${fn.y})，差 (${r1(dx)}, ${r1(dy)})pt${useText ? '（竖向按中线）' : ''}`, w, n });
-  if (Math.abs(dw) > tol.size || Math.abs(dh) > hTol) out.push({ type: 'size', label, msg: `${useText ? '文字' : ''}尺寸 网页 ${fw.w}×${fw.h} 原生 ${fn.w}×${fn.h}，差 (${r1(dw)}, ${r1(dh)})pt`, w, n });
+  if (Math.abs(dx) > tol.pos || Math.abs(dy) > tol.pos) out.push({ type: 'position', label, msg: `${what} 网页 (${fw.x}, ${fw.y}) 原生 (${fn.x}, ${fn.y})，差 (${r1(dx)}, ${r1(dy)})pt${useText ? '（竖向按中线）' : ''}`, vertical: Math.abs(dx) <= tol.pos, w, n });
+  if (Math.abs(dw) > tol.size || Math.abs(dh) > hTol) out.push({ type: 'size', label, msg: `${useText ? '文字' : ''}尺寸 网页 ${fw.w}×${fw.h} 原生 ${fn.w}×${fn.h}，差 (${r1(dw)}, ${r1(dh)})pt`, vertical: Math.abs(dw) <= tol.size, w, n });
   if (w.key && (w.text || n.text) && normText(w.text) !== normText(n.text)) out.push({ type: 'text', label, msg: `文案 网页「${w.text || ''}」原生「${n.text || ''}」`, w, n });
   const cd = colorDelta(w.color, n.color);
   if (cd !== null && cd > tol.color) out.push({ type: 'color', label, msg: `文字色 网页 ${w.color} 原生 ${n.color}`, w, n });

@@ -214,4 +214,38 @@ final class QueryFlowTests: XCTestCase {
         let after = qa.session("B")
         XCTAssertEqual(after["cursor"] as? Int, before["cursor"] as? Int, "nothing was written")
     }
+
+    /// 字卡「练这个字」（查字，R-Q07）：写字页推在弹层上面；从写字页返回回到同一张字卡（输入还在），「完成」再关掉弹层回到字库。
+    func testPracticeFromCardReturnsToTheCard() {
+        let qa = QA(seed: "query-card")
+        qa.launch()
+        waitSheet(qa)
+        qa.tapNative("native-query-card-practice")
+        qa.waitNative(true, timeout: 20)
+        XCTAssertEqual(qa.route["top"] as? String, "write", "the write page is on top of the sheet")
+        qa.tapNative("native-write-back")
+        qa.waitNative(false, timeout: 20)
+        qa.waitProbe("back on the sheet") { (($0["route"] as? [String: Any])?["top"] as? String) == "query" && (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["query"] }
+        XCTAssertTrue(qa.el("native-query-card").waitForExistence(timeout: 8 * QALoad.scale), "the same card again")
+        XCTAssertEqual(qa.el("native-query-card-word").label, "\u{6C38}\u{8FDC}", "the card of the same char")
+        qa.tapNative("native-query-done")
+        waitSheetGone(qa)
+        qa.waitProbe("back on the library") { (($0["route"] as? [String: Any])?["top"] as? String) == "library" }
+    }
+
+    /// 自己选字「练这个字」：网页回调先关弹层（api.close）再开写字页——弹层出栈，写字页在上面；返回回到首页（与网页同）。
+    func testPickPracticeClosesTheSheetFirst() {
+        let qa = QA(seed: "query-pick-1")
+        qa.launch()
+        waitSheet(qa)
+        qa.tapNative("native-query-go")
+        qa.waitNative(true, timeout: 20)
+        qa.waitProbe("the sheet left the stack") { p in
+            ((p["stage"] as? [String: Any])?["screens"] as? [String] ?? []).isEmpty && ((p["route"] as? [String: Any])?["top"] as? String) == "write"
+        }
+        qa.tapNative("native-write-back")
+        qa.waitNative(false, timeout: 20)
+        qa.waitProbe("back on the home page") { (($0["route"] as? [String: Any])?["top"] as? String) == "home" }
+        XCTAssertFalse(qa.el("native-query-sheet").exists, "the sheet does not come back")
+    }
 }

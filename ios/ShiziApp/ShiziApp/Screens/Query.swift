@@ -229,7 +229,7 @@ final class QueryOverlayLayer: UIViewController {
     }
 
     /// The screen is going: drop the layer without handing the views back.
-    fileprivate func leaveQuietly(_ done: @escaping () -> Void) {
+    func leaveQuietly(_ done: @escaping () -> Void) {
         guard presentingViewController != nil, !isBeingDismissed else { done(); return }
         isLeaving = true
         dismiss(animated: false) { [weak self] in
@@ -252,6 +252,13 @@ final class QueryOverlayHost {
     let readyMarker = UIView()
     private weak var page: ShiziScreenViewController?
     private var adopted = false
+    /// The page closes itself (its own exit already played: Done / scrim / swipe / box buttons).
+    var selfClosing = false
+    /// The page handed its look to the stage before a page from the web side covers it (no exit of its own).
+    var yielding = false
+    /// The exit played when the web side takes the page away (api.close: the web closes the sheet before it opens the next
+    /// page): copies of the scrim and the panel play the overlay's exit in `container` (under the incoming page), the page goes at once.
+    var leaveResidue: ((UIView) -> Void)?
 
     init(readyId: String) {
         readyMarker.alpha = 0.01
@@ -294,17 +301,30 @@ final class QueryOverlayHost {
         }
     }
 
-    private func takeViewsBack() {
+    /// The views are drawn in the presented layer right now.
+    var viewsInLayer: Bool { views.first?.superview === layer.view && layer.presentingViewController != nil }
+
+    /// Puts the views back on the page (the stage snapshots the page's view when a page from the web side covers it).
+    func takeViewsBack() {
         guard let page else { return }
         views.forEach { page.view.addSubview($0) }
         gestures.forEach { page.view.addGestureRecognizer($0) }
         page.view.setNeedsLayout()
     }
 
+    /// The views go back on the page and the (then empty) layer goes away quietly: the page is an ordinary page again.
+    func releaseLayer(then done: @escaping () -> Void) {
+        takeViewsBack()
+        guard page?.presentedViewController === layer else { done(); return }
+        layer.leaveQuietly(done)
+    }
+
     /// From the page's dismiss override: true = the layer goes first (quietly), then `dismissPage` runs; false = dismiss
     /// the page as usual (no layer up, or the layer itself is the one leaving).
     func dismissLayerFirst(then dismissPage: @escaping () -> Void) -> Bool {
         guard let page, page.presentedViewController === layer, !layer.isLeaving else { return false }
+        // Taken away by the web side (not its own close, not a hand-over): the exit plays on copies under the next page.
+        if !selfClosing, !yielding, viewsInLayer, let container = page.presentingViewController?.view { leaveResidue?(container) }
         layer.leaveQuietly { [weak page] in
             guard page?.presentingViewController != nil else { return }
             dismissPage()
@@ -583,13 +603,6 @@ final class QueryScreen: ShiziScreenViewController {
     /// The keyboard's top edge in the view's coordinates (nil = the keyboard is down).
     private var keyboardTop: CGFloat?
 
-    /// The gap between the sheet's bottom edge and the top of the keyboard: the height of WebKit's form bar (the bar
-    /// with the up / down / done keys that WebKit puts above the keyboard for a focused field). The web reference
-    /// (Reference/query-*.png, English keyboard) has a 403pt keyboard area on the 402x874 screen = the 335pt keyboard +
-    /// the 68pt bar, so its sheet ends at y = 471. The native raises the system keyboard without that bar and keeps the
-    /// same 68pt above it, so with the same keyboard the sheet ends where the reference has it. (The keyboard itself
-    /// differs by language: the pinyin keyboard is 336pt, 1pt taller than the English one.)
-    private static let keyboardTopGap: CGFloat = 68
     private var rowViews: [QueryCharRow] = []
     /// The ink of the card (the pipeline points; the ink view is made when the cell's side is known).
     private var cardInk: [[[Double]]]?
@@ -658,7 +671,14 @@ final class QueryScreen: ShiziScreenViewController {
         // While the IME is composing, the pinyin in the field is not the query yet (the web's composition gate).
         committedText = (params["composing"] as? Bool) == true ? "" : fieldText
         selected = (params["selected"] as? [String]) ?? []
+        // Back from the write page (the sheet handed itself over before it, nav.setParams kept its state): the card / the
+        // input come back as they were and the sheet is simply there again (no entrance).
+        cur = params["cur"] as? String ?? ""
+        resumed = (params["resume"] as? Bool) == true
     }
+
+    /// The sheet comes back after the write page (R-Q07): no entrance of its own.
+    private var resumed = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -791,7 +811,7 @@ final class QueryScreen: ShiziScreenViewController {
         sheet.addSubview(foot)
         stylePrimary(goButton, id: "native-query-go")
         foot.addSubview(goButton)
-        wire(goButton) { ($0 as? QueryScreen)?.startPractice(from: "bar") }
+        wire(goButton) { ($0 as? QueryScreen)?.startPractice(from: ($0 as? QueryScreen)?.model?.view == "card" ? "card" : "bar") } // the card's "practice this char" / the pick bar
 
         // The failure block (the web's FailBlock, layout dialog): the note + [let it go | try again].
         // It sits inside the foot (the web's .sz-query__foot) and is its own element (query-card-add-fail).
@@ -824,6 +844,7 @@ final class QueryScreen: ShiziScreenViewController {
         view.addGestureRecognizer(edgePan)
         overlay.views = [scrim, sheet]
         overlay.gestures = [edgePan]
+        overlay.leaveResidue = { [weak self] container in self?.playResidue(in: container) }
     }
 
     deinit {
@@ -842,7 +863,7 @@ final class QueryScreen: ShiziScreenViewController {
     /// The sheet's own entrance (once the layer is up): the scrim fades in + the panel slides up (the web's T-sheet).
     private func enter() {
         let spec = QueryOverlay.spec
-        if NativeWriteTransitions.reduceMotion {
+        if NativeWriteTransitions.reduceMotion || resumed {
             scrim.alpha = 1
             sheet.alpha = 1
         } else {
@@ -1267,7 +1288,9 @@ final class QueryScreen: ShiziScreenViewController {
         let keyboardUp = keyboardTop != nil
         // The sheet's bottom edge rides on the top of the keyboard area. The web keeps a bar above the keyboard (the
         // browser's bar for the focused field), so the native keeps the same gap and the visible area matches.
-        let bottom = keyboardUp ? max(0, (keyboardTop ?? H) - Self.keyboardTopGap) : H
+        // D75: the sheet sits on the keyboard. The web reference has WebKit's 68pt form bar (prev / next / done) between
+        // them - an artifact of the web shell, not part of the design; the native has no such bar.
+        let bottom = keyboardUp ? max(0, keyboardTop ?? H) : H
         let visibleH = bottom
         let full = sheetFull
         let minH = floor(visibleH * 0.64)
@@ -1723,7 +1746,7 @@ final class QueryScreen: ShiziScreenViewController {
         inputField.textColor = color("ink1")
         inputField.tintColor = color("ink1")
         inputField.keyboardType = .default
-        // The sheet rides on the keyboard plus WebKit's form bar height (see keyboardTopGap), as the web reference does.
+        // The sheet rides on the keyboard (D75: no gap for WebKit's form bar).
         inputField.returnKeyType = .done
         // The web's field keeps autocorrect / spellcheck off (input.js: autocorrect="off" spellcheck="false"); the native
         // keeps the system defaults so the user's own keyboard (and its Chinese input) is never switched away.
@@ -1782,6 +1805,7 @@ final class QueryScreen: ShiziScreenViewController {
 
     /// Leave the screen (the base class's requestBack: the native already played the exit, so the page fades).
     private func finishSheet() {
+        overlay.selfClosing = true
         enteredKind = .fade
         requestBack()
     }
@@ -1870,20 +1894,76 @@ final class QueryScreen: ShiziScreenViewController {
         guard !chars.isEmpty else { return }
         guard let engine = stage?.engine else { return }
         busy = true
-        engine.raw("query.pick", ["chars": chars, "from": from]) { [weak self] reply in
+        // Lookup's "practice this char" keeps the sheet under the write page (R-Q07: back from writing lands on the card):
+        // hand the look to the stage first and keep the state in the route, so the sheet comes back as it was.
+        let handOver = mode == "lookup" && from == "card"
+        let go = { [weak self] in
             guard let self else { return }
-            self.busy = false
-            guard (reply["ok"] as? Bool) == true else {
-                // The failure stays in place: the input and the card are kept (the web's R-H06).
-                self.goFailure = GoFailure(chars: chars, from: from)
-                self.applyFailureState()
-                self.view.setNeedsLayout()
-                NativeA11y.announce(self.failNote.text)
-                return
+            engine.raw("query.pick", ["chars": chars, "from": from]) { [weak self] reply in
+                guard let self else { return }
+                self.overlay.yielding = false
+                self.pickReplied(reply, chars: chars, from: from)
             }
-            // The web's callback closes the sheet before it opens the write page: the reply carries close.
-            if (reply["close"] as? Bool) == true { self.closeSheet() }
         }
+        if handOver { yieldBeforeWrite(then: go) } else { go() }
+    }
+
+    /// Before the write page covers the sheet: the state goes into the route (nav.setParams), the views go back on the page
+    /// (the stage keeps a snapshot of the page under the write page) and the web side marks the entry as handed over
+    /// (stage.cover: back on top, the web side opens the sheet again via 'return').
+    private func yieldBeforeWrite(then go: @escaping () -> Void) {
+        guard let engine = stage?.engine else { go(); return }
+        overlay.yielding = true
+        let patch: [String: Any] = ["text": committedText, "cur": cur, "selected": selected, "composing": false, "resume": true]
+        engine.raw("nav.setParams", ["patch": patch]) { [weak self] _ in
+            guard let self else { return }
+            self.inputField.resignFirstResponder()
+            self.overlay.releaseLayer { [weak self] in
+                guard let self else { return }
+                self.view.layoutIfNeeded()
+                var args: [String: Any] = ["entryId": self.entryId]
+                if let url = WebViewController.snapshotURL(self.view) { args["url"] = url }
+                engine.raw("stage.cover", args) { _ in go() }
+            }
+        }
+    }
+
+    /// The copies of the scrim and the panel play the T-sheet exit under the next page (the web side closed the sheet).
+    private func playResidue(in container: UIView) {
+        guard let snap = sheet.snapshotView(afterScreenUpdates: false) else { return }
+        let spec = QueryOverlay.spec
+        let shade = UIView(frame: container.bounds)
+        shade.backgroundColor = scrim.backgroundColor
+        shade.alpha = scrim.alpha
+        shade.isUserInteractionEnabled = false
+        snap.frame = sheet.convert(sheet.bounds, to: container)
+        snap.isUserInteractionEnabled = false
+        container.addSubview(shade)
+        container.addSubview(snap)
+        let reduce = NativeWriteTransitions.reduceMotion
+        let out = reduce ? spec.reduce : max(spec.sheetOut, spec.scrimOut)
+        UIView.animate(withDuration: reduce ? spec.reduce : spec.sheetOut, delay: 0, options: [.curveEaseIn]) {
+            if reduce { snap.alpha = 0 } else { snap.transform = CGAffineTransform(translationX: 0, y: snap.bounds.height) }
+        }
+        UIView.animate(withDuration: reduce ? spec.reduce : spec.scrimOut, delay: 0, options: [.curveEaseIn]) { shade.alpha = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + out + 0.02) {
+            snap.removeFromSuperview()
+            shade.removeFromSuperview()
+        }
+    }
+
+    private func pickReplied(_ reply: [String: Any], chars: [String], from: String) {
+        self.busy = false
+        guard (reply["ok"] as? Bool) == true else {
+            // The failure stays in place: the input and the card are kept (the web's R-H06).
+            self.goFailure = GoFailure(chars: chars, from: from)
+            self.applyFailureState()
+            self.view.setNeedsLayout()
+            NativeA11y.announce(self.failNote.text)
+            return
+        }
+        // The web's callback closes the sheet before it opens the write page: the reply carries close.
+        if (reply["close"] as? Bool) == true { self.closeSheet() }
     }
 
     /// The "let it go" button of the three-part failure.
@@ -2066,6 +2146,7 @@ final class S02Screen: ShiziScreenViewController {
         dialog.accessibilityIdentifier = "native-s02-dialog"
         view.addSubview(dialog)
         overlay.views = [scrim, dialog]
+        overlay.leaveResidue = { [weak self] container in self?.playResidue(in: container) }
 
         bodyLabel.numberOfLines = 0
         bodyLabel.accessibilityIdentifier = "native-s02-body"
@@ -2282,6 +2363,28 @@ final class S02Screen: ShiziScreenViewController {
     }
 
     /// The box fades out (T-confirm) and then leaves the screen.
+    /// The copies of the scrim and the box play the T-confirm exit under the next page (the web side closed the box).
+    private func playResidue(in container: UIView) {
+        guard let snap = dialog.snapshotView(afterScreenUpdates: false) else { return }
+        let spec = QueryOverlay.spec
+        let shade = UIView(frame: container.bounds)
+        shade.backgroundColor = scrim.backgroundColor
+        shade.alpha = scrim.alpha
+        shade.isUserInteractionEnabled = false
+        snap.frame = dialog.convert(dialog.bounds, to: container)
+        snap.isUserInteractionEnabled = false
+        container.addSubview(shade)
+        container.addSubview(snap)
+        let reduce = NativeWriteTransitions.reduceMotion
+        let out = reduce ? spec.reduce : max(spec.scrimOut, spec.confirmOut)
+        UIView.animate(withDuration: reduce ? spec.reduce : spec.confirmOut, delay: 0, options: [.curveEaseIn]) { snap.alpha = 0 }
+        UIView.animate(withDuration: reduce ? spec.reduce : spec.scrimOut, delay: 0, options: [.curveEaseIn]) { shade.alpha = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + out + 0.02) {
+            snap.removeFromSuperview()
+            shade.removeFromSuperview()
+        }
+    }
+
     private func closeDialog() {
         let spec = QueryOverlay.spec
         if NativeWriteTransitions.reduceMotion {
@@ -2294,6 +2397,7 @@ final class S02Screen: ShiziScreenViewController {
     }
 
     private func finishDialog() {
+        overlay.selfClosing = true
         enteredKind = .fade
         requestBack()
     }

@@ -23,6 +23,46 @@
       "type": "extra",
       "label": "输入一个字或一个词",
       "//": "输入框的占位文字：网页是 input 的 placeholder（CSS ::placeholder 伪元素，不是 DOM 节点，网页元素清单里没有它）；原生 UITextField 的占位文字是一个真实的标签（UITextFieldLabel），取证会收进来。占位文字本身照网页的字、字号、颜色画（并排图可见位置一致），只豁免这一项「原生多出」。"
+    },
+    {
+      "state": "query-add-fail",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
+    },
+    {
+      "state": "query-card",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
+    },
+    {
+      "state": "query-empty",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
+    },
+    {
+      "state": "query-ime",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
+    },
+    {
+      "state": "query-keyboard",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
+    },
+    {
+      "state": "query-pick-0",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
+    },
+    {
+      "state": "query-pick-1",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
+    },
+    {
+      "state": "query-pick-n",
+      "axis": "y",
+      "//": "WebKit 表单辅助栏 68pt 是网页外壳产物，原生没有；弹层贴键盘（D75）。只不比竖向差（位置只差 y、尺寸只差高；compare.mjs 的 axis:'y'），横向位置与宽照比。"
     }
   ],
   "waive": {},

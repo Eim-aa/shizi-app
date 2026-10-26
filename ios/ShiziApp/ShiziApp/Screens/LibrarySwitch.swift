@@ -201,8 +201,12 @@ final class LibrarySwitchScreen: ShiziScreenViewController {
             let h = box.height + (isLast ? 0 : LibraryCommon.hair)
             rv.frame = CGRect(x: x, y: y, width: width, height: h)
             rv.button.frame = CGRect(x: x, y: y, width: width, height: h)
-            rv.button.layer.borderWidth = isLast ? 0 : LibraryCommon.hair
-            rv.button.layer.borderColor = color("line").cgColor
+            // 行底线（网页 border-bottom：只有底边，最后一行没有）
+            rv.button.layer.borderWidth = 0
+            let bottom = rv.button.viewWithTag(9103) ?? { let v = UIView(); v.tag = 9103; v.isUserInteractionEnabled = false; rv.button.addSubview(v); return v }()
+            bottom.isHidden = isLast
+            bottom.backgroundColor = color("line")
+            bottom.frame = CGRect(x: 0, y: h - LibraryCommon.hair, width: width, height: LibraryCommon.hair)
             let mainW = box.mainWidth
             let contentH = box.height - 20
             let mainH = box.nameHeight + 3 + box.descHeight + 3 + box.countHeight

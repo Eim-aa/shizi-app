@@ -11,6 +11,8 @@
 // App API：window.shiziNative(op, args) → Promise（src/session/api/index.js；另加三个只管界面的 stage.* op：cover / fence / under）。
 // 推送：store 每次成功提交后 {op:'changed', domains}；阻断状态变化 {op:'status', status:'ready'|'blocked', reason}。
 
+import { getTextSize } from '../platform/text-size.js';
+import { decorateMineReply } from './screens/mine/native-view.js'; // B3.5c：我的页的折行点（页面侧量，B2.7 的做法）
 import { html, useEffect, useLayoutEffect, useState } from '../../vendor/ui.js';
 import { getRouter, getScreen, nav, setNativeScreenGate } from './router.js';
 import { exitMs } from './components/exit.js';
@@ -160,7 +162,22 @@ export function stageCall(op, args, win = globalWin()) {
     return { ok: true, entryId: under ? under.id : null, screen: under ? under.n : null, native: !!(under && nativeScreenOn(under.n, win)) };
   }
   if (!api) return { ok: false, error: { kind: 'unavailable' } };
-  return api.call(op, a);
+  return decorateReply(op, api.call(op, a), a && a.width);
+}
+
+/** B3.5c：页面侧量的折行点等「只有页面能算」的补充（B2.7 webLineStarts 做法），按视图 op 挂上。 */
+function decorateReply(op, reply, width) {
+  if (op !== 'view.mine') return reply;
+  return reply && typeof reply.then === 'function' ? reply.then(r => decorateMineReply(r, width)) : decorateMineReply(reply, width);
+}
+
+/** 视图请求带上页面此刻的宽与大字号档（原生排版要与网页同一折行）。 */
+function viewEnv(win = globalWin()) {
+  let width = 0;
+  try { width = win.document.documentElement.clientWidth || 0; } catch (error) { width = 0; }
+  let ax = 0;
+  try { ax = getTextSize().ax || 0; } catch (error) { ax = 0; }
+  return width > 0 ? { width, ax } : { ax };
 }
 
 // ---------------------------------------------------------------- 宿主条目
@@ -221,7 +238,8 @@ function underOf(snap, entryId) {
 
 function viewPayload(name, params) {
   if (!api) return { ok: false, error: { kind: 'unavailable' } };
-  return api.call(`view.${name}`, { ...(params || {}) });
+  const env = viewEnv();
+  return decorateReply(`view.${name}`, api.call(`view.${name}`, { ...env, ...(params || {}) }), env.width);
 }
 
 /** 发 open（视图回包若是 Promise，等它好了再发）。返回是否发出。 */

@@ -11,35 +11,15 @@
 
 import { getStore } from '../../../store/store.js';
 import { postNative } from '../../../platform/bridge.js';
-import { APPEARANCES } from '../../../platform/appearance.js';
 import * as policy from '../../../config/policy.js';
-import { isGroupSizeOption } from '../../../core/group-size.js';
-import { PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView, REMIND_LABELS, commitSettings, commitRemindEnabled, commitRemindTime, remindOf, applyReminderStatus as commitReminderStatus } from '../../../session/views/settings.js';
+import { LABELS, commitSettings, commitGroupSize, commitAppearance } from '../../../session/prefs-ops.js';
+import { PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView, commitRemindEnabled, commitRemindTime, remindOf, applyReminderStatus as commitReminderStatus } from '../../../session/views/settings.js';
 
-export const LABELS = Object.freeze({
-  remind: REMIND_LABELS.remind,
-  remindTime: REMIND_LABELS.remindTime,
-  permission: REMIND_LABELS.permission,
-  appearance: 'settings:appearance',
-  groupSize: 'settings:group-size', // D65 ②
-  textSizeNotice: 'settings:text-size-notice', // 静默去掉旧 large 字段的提交标签
-});
-
+export { LABELS, commitSettings, commitGroupSize, commitAppearance }; // B3.5c：外观 / 每组字数的提交函数在会话层（session/prefs-ops.js），网页与 App API 同一个
 export {
   PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView,
-  commitSettings, commitRemindEnabled, commitRemindTime, remindOf,
-};
-
-/** 每组字数（D65 ②，P314）：只收 policy.groupSizeOptions 里的值；改了从下一组起生效（开着的组不变）。 */
-export function commitGroupSize(store, value, { p = policy } = {}) {
-  if (!isGroupSizeOption(value, p)) throw new RangeError(`unknown group size: ${value}`);
-  return commitSettings(store, LABELS.groupSize, { groupSize: value });
-}
-
-export function commitAppearance(store, value) {
-  if (APPEARANCES.indexOf(value) < 0) throw new RangeError(`unknown appearance: ${value}`);
-  return commitSettings(store, LABELS.appearance, { appearance: value });
-}
+  commitRemindEnabled, commitRemindTime, remindOf,
+}; // B3.10：提醒的提交函数在 session/views/settings.js
 
 /**
  * 提醒开关。打开时若还没存过时间，补上缺省时间（P18），让存下的就是界面显示的。

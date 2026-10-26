@@ -2,7 +2,7 @@
   "state": "mine-choice-sheet",
   "name": "我的 · 每组字数选择弹层（AX 档）",
   "screen": "mine",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -14,7 +14,10 @@
     "AX5"
   ],
   "ready": {
-    "web": "screen-mine"
+    "web": "screen-mine",
+    "native": "id:native-screen-mine",
+    "timeout": 20,
+    "rootsOnly": true
   },
   "setup": [
     {
@@ -113,7 +116,8 @@
   "steps": [
     {
       "tap": {
-        "webTestid": "mine-group-size"
+        "webTestid": "mine-group-size",
+        "native": "native-mine-group-size"
       },
       "times": 1
     },

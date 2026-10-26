@@ -149,7 +149,7 @@ extension WebViewController {
         // B3.3：别的原生页（页面卡新加的宿主）：呈现出来的控制器按成员名取语义键，弹层同写字页的 sheet. 前缀
         if nativeResultTop == nil, nativeWriteTop == nil, let p = presentedViewController {
             collectNames(p, prefix: "")
-            if let sheet = p.presentedViewController {
+            if let sheet = p.presentedViewController, !(sheet is ShiziScreenViewController) { // 呈现在上面的原生页（B3.5c：根页之上推入的子页）不是弹层
                 collectNames(sheet, prefix: "sheet.")
                 names[ObjectIdentifier(sheet.view)] = "sheet.view"
             }
@@ -192,7 +192,14 @@ extension WebViewController {
                         for l in [rb.label, rb.valueLabel] where !l.isHidden && !(l.text ?? "").isEmpty {
                             let tr = l.textRect(forBounds: l.bounds, limitedToNumberOfLines: l.numberOfLines)
                             let tx = l.textAlignment == .right ? l.bounds.width - tr.width : l.textAlignment == .center ? (l.bounds.width - tr.width) / 2 : tr.minX
-                            u = u.union(l.convert(CGRect(x: tx, y: (l.bounds.height - tr.height) / 2, width: tr.width, height: tr.height), to: window))
+                            var th = tr.height
+                            // 钉住行盒的标签（宋体标题）：同上面文字标签的口径，网页文字框 = 字体内容区（升部 + 降部），中线不变
+                            if let a = l.attributedText, a.length > 0, let ps = a.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle, ps.minimumLineHeight > 0,
+                               let f = a.attribute(.font, at: 0, effectiveRange: nil) as? UIFont {
+                                let lines = max(1, (tr.height / ps.minimumLineHeight).rounded())
+                                th = (lines - 1) * ps.minimumLineHeight + (f.ascender - f.descender)
+                            }
+                            u = u.union(l.convert(CGRect(x: tx, y: (l.bounds.height - th) / 2, width: tr.width, height: th), to: window))
                         }
                         if !u.isNull { e["textFrame"] = ["x": r(u.minX), "y": r(u.minY), "w": r(u.width), "h": r(u.height)] }
                     } else if let tl = b.titleLabel, !(tl.text ?? "").isEmpty {
@@ -533,6 +540,7 @@ final class QAProbe {
         if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
         out["stage"] = stageOut
         out["pageReady"] = host.pageReady
+        out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events
         out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）
         out["navRunning"] = NativeWriteTransitions.running
@@ -568,6 +576,7 @@ final class QAProbe {
     return {
       coldPlan, clock: T.now(),
       hooks: true, records: recs.length, kinds, judgedWrong: judged.filter(r => r.judgment === 'wrong').length, judgedCorrect: judged.filter(r => r.judgment === 'correct').length,
+      settings: { appearance: (st.settings || {}).appearance || 'auto', groupSize: (st.settings || {}).groupSize || null }, // B3.5c：我的页设置行的流程测试读
       chars: chars.size, answerSeenInk: seenInk, sched: Object.keys(st.sched || {}).length, sessions: sess, route, topScreen: app ? app.dataset.topScreen : null, navAnim: app ? app.dataset.navAnim : null, webNav,
     };
     """#

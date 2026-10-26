@@ -2,7 +2,7 @@
   "state": "mine-empty",
   "name": "我的 · 空（没有记录）",
   "screen": "mine",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -15,6 +15,9 @@
     }
   ],
   "ready": {
-    "web": "screen-mine"
+    "web": "screen-mine",
+    "native": "id:native-screen-mine",
+    "timeout": 20,
+    "rootsOnly": true
   }
 }

@@ -762,7 +762,7 @@ export function checkNumerals(copyModules, source) {
 }
 
 /** 汉字数字转换函数（core/dates.js cnNumber / cnCount / cnDigits / signature*Parts）只许落款代码用。 */
-export const CN_HELPER_FILES = Object.freeze(['src/core/dates.js', 'src/ui/images-entry.js', 'src/ui/screens/mine/records.js', 'src/ui/work-text.js']);
+export const CN_HELPER_FILES = Object.freeze(['src/core/dates.js', 'src/ui/images-entry.js', 'src/ui/screens/mine/records.js', 'src/ui/work-text.js', 'src/session/views/kuan.js']);
 
 export function checkNumeralHelpers(root = ROOT) {
   const errors = [];

@@ -2,14 +2,17 @@
   "state": "mine-full-warn",
   "name": "我的 · 存储快满了（备份行提示）",
   "screen": "mine",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "screen-mine"
+    "web": "screen-mine",
+    "native": "id:native-screen-mine",
+    "timeout": 20,
+    "rootsOnly": true
   },
   "setup": [
     {

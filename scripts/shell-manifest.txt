@@ -7364,6 +7364,7 @@ src/session/ops/result.js
 src/session/ops/skip.js
 src/session/ops/strokes.js
 src/session/ops/work.js
+src/session/prefs-ops.js
 src/session/result-api.js
 src/session/result-ops.js
 src/session/text-lines.js
@@ -7372,11 +7373,13 @@ src/session/views/annual.js
 src/session/views/block.js
 src/session/views/detail.js
 src/session/views/home.js
+src/session/views/kuan.js
 src/session/views/library-all.js
 src/session/views/library-list.js
 src/session/views/library-switch.js
 src/session/views/library.js
 src/session/views/lines.js
+src/session/views/mine-page.js
 src/session/views/mine.js
 src/session/views/session.js
 src/session/views/settings.js
@@ -7465,6 +7468,7 @@ src/ui/screens/mine/choice.js
 src/ui/screens/mine/group-size.js
 src/ui/screens/mine/index.js
 src/ui/screens/mine/month.js
+src/ui/screens/mine/native-view.js
 src/ui/screens/mine/prefs.js
 src/ui/screens/mine/records.js
 src/ui/screens/mine/remind.js

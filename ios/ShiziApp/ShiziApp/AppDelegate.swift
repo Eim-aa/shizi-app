@@ -11,6 +11,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         let window = UIWindow(frame: UIScreen.main.bounds)
+        ShiziTheme.boot(window: window)
         window.rootViewController = WebViewController()
         window.makeKeyAndVisible()
         self.window = window

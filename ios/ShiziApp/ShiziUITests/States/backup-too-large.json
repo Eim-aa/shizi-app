@@ -1,0 +1,41 @@
+{
+  "state": "backup-too-large",
+  "name": "备份 · 预检拒收（文件超过 64MB 上限）",
+  "screen": "backup",
+  "native": true,
+  "parity": false,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "鱼猫狗",
+          "at": "2026-10-21T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "stashTooLargeBackup"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "backup",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "backup-screen",
+    "native": "id:native-backup-body"
+  }
+}

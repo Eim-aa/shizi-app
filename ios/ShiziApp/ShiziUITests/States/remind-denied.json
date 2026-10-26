@@ -2,7 +2,7 @@
   "state": "remind-denied",
   "name": "提醒 · 系统通知被拒（手机设置 ›）",
   "screen": "remind",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -35,6 +35,7 @@
     }
   ],
   "ready": {
-    "web": "remind-screen"
+    "web": "remind-screen",
+    "native": "id:native-remind-body"
   }
 }

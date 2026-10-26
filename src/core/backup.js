@@ -25,8 +25,8 @@ import {
   isBackupKey, isLocalDay, isMonthKey, isMonthlyDomain, isPlainObject, keyForDomain, monthOfKey,
   parseBackupV2, specForKey,
 } from './schema.js';
-import { localDay } from './dates.js';
-import { t } from '../config/copy/index.js';
+import { isValidDay, localDay, monthDayParts } from './dates.js';
+import { ref, t } from '../config/copy/index.js';
 
 /**
  * 备份文件大小上限（字节）：与 iOS 原生预检同口径（01 §8.1、M5-3「超过上限显示 R-B06 文案」）。
@@ -593,4 +593,143 @@ export function markExported(store, { at, sig = null }) {
   return store.commit(LABELS.exported, draft => {
     draft.backupMeta = { lastExportAt: at, lastExportSig: signature };
   });
+}
+
+// ---------------------------------------------------------------- 备份页的视图模型（B3.10）
+//
+// 网页备份页（ui/screens/mine/backup.js）与原生备份页（Screens/Backup.swift）渲染的是**同一个函数的结果**：
+// 网页 import 这个函数，App API 的 view.backup 也调它（契约 test/ui/native-backup.test.mjs）。
+// 只给文案引用（键 + 参数）与数据，不拼句子（B3.4）：网页用 tRef 渲染，原生用 ShiziCopy 渲染。
+
+/** 界面日期「{month}月{day}日」（R-H02.dateFormat）的文案引用。 */
+export function dateRef(day) {
+  if (!isValidDay(day)) return ref('R-H02.dateFormat', { month: '', day: '' });
+  return ref('R-H02.dateFormat', monthDayParts(day));
+}
+
+/** 状态句（backupStatus 的一行 {key, vars}）→ 文案引用。 */
+export function lineRef(line) {
+  if (!line) return null;
+  if (line.key === 'R-B01.conclusionRestore') {
+    const day = line.vars && line.vars.day;
+    return ref('R-B01.conclusionRestore', {
+      date: isValidDay(day) ? dateRef(day) : '',
+      n: line.vars && Number.isInteger(line.vars.n) ? line.vars.n : 0,
+    });
+  }
+  return ref(line.key, line.vars);
+}
+
+/** 丢失日期范围句（P26 / K04）的文案引用。 */
+export function lossRef(loss) {
+  if (!loss) return null;
+  if (loss.from === loss.to) return ref('X-BACKUP.lossDay', { date: dateRef(loss.from) });
+  return ref('X-BACKUP.lossRange', { from: dateRef(loss.from), to: dateRef(loss.to) });
+}
+
+/**
+ * 备份页（view.backup）的视图模型。
+ * @param {object} state store 状态
+ * @param {{conclusion?: {kind,date,count}|null}} [opts] 撤销底栏在时的结论（覆盖 backupMeta 里的）
+ */
+export function backupView(state, { conclusion = null } = {}) {
+  const status = backupStatus(state, { conclusion });
+  const day = status.date.kind === 'day' ? status.date.day : null;
+  return {
+    title: ref('R-M03.backup'),
+    /** 顶部状态块：标签、上次备份的日期（或「还没有备份」）、状态句。 */
+    lastLabel: ref('R-B02.lastBackupLabel'),
+    lastDate: day ? dateRef(day) : ref('R-B02.noBackup'),
+    lastDay: day,
+    /** 状态句（0 或 1 行；结论句 + 「现在没有记录。」时两行）。 */
+    statusLines: status.lines.map(lineRef),
+    noteKeys: status.lines.map(l => l.key),
+    /** 正文第一句（有记录 / 没记录两版）。 */
+    intro: ref(status.hasRecords ? 'X-BACKUP.intro' : 'X-BACKUP.introEmpty'),
+    hasRecords: status.hasRecords,
+    count: status.count,
+    /** 列表两行：恢复备份（带副行）、清空记录。 */
+    restore: { label: ref('X-BACKUP.restoreRow'), sub: ref('X-BACKUP.restoreRowSub') },
+    clear: { label: ref('X-BACKUP.clearRow') },
+    /** 底栏主按钮。 */
+    export: { label: ref('R-B02.export') },
+    /** 撤销条的两行（按种类与成败）。 */
+    undo: {
+      restore: { l1: ref('R-B01.undoL1'), l2: ref('R-B01.undoL2') },
+      clear: { l1: ref('R-B01.clearUndoL1'), l2: ref('R-B01.clearUndoL2') },
+      failedRestore: { l1: ref('R-B05.undoFailedRestore'), l2: ref('R-B05.undoAgain') },
+      failedClear: { l1: ref('R-B05.undoFailedClear'), l2: ref('R-B05.undoAgain') },
+    },
+    /** 说明框（R-B04 / R-B06）：带「再试一次」的两版与不带的一版。 */
+    noteBox: {
+      protectFailed: { kind: 'protectFailed', text: ref('R-B04.protectFailed'), retry: ref('X-BACKUP.retry'), stay: ref('X-BACKUP.restoreStay') },
+      notBackup: { kind: 'notBackup', text: ref('R-B06.notBackup'), retry: null, stay: null },
+      restoreFailed: { kind: 'restoreFailed', text: ref('R-B06.restoreFailed'), retry: ref('X-BACKUP.retry'), stay: ref('X-BACKUP.restoreStay') },
+    },
+    /** 导出没成时的底栏三段式。 */
+    exportFail: { text: ref('X-BACKUP.exportFailed'), stay: ref('X-BACKUP.exportStay'), retry: ref('X-BACKUP.retry') },
+    /** 清空确认框（R-B03）：正常态与失败态。 */
+    clearSheet: {
+      title: ref('X-BACKUP.clearTitle'),
+      body: ref('R-B03.clearBody', { n: status.count }),
+      cancel: ref('X-BACKUP.confirmCancel'),
+      ok: ref('X-BACKUP.clearOk'),
+      failed: { body: ref('X-BACKUP.clearFailed'), cancel: ref('X-BACKUP.clearStay'), retry: ref('X-BACKUP.retry') },
+    },
+    /** 替换 / 恢复确认框（R-B03）：按模式换标题、正文与确认键。 */
+    restoreConfirm: {
+      replaceTitle: ref('X-BACKUP.replaceTitle'),
+      restoreTitle: ref('R-B03.restoreTitle'),
+      replaceBody: ref('R-B03.replaceBody'),
+      restoreBody: ref('R-B03.restoreBody'),
+      cancel: ref('X-BACKUP.confirmCancel'),
+      replaceOk: ref('X-BACKUP.replaceOk'),
+      restoreOk: ref('R-B03.restoreBtn'),
+      lossRange: ref('X-BACKUP.lossRange'),
+      lossDay: ref('X-BACKUP.lossDay'),
+      exportFirst: ref('X-BACKUP.exportFirst'),
+    },
+  };
+}
+
+/**
+ * 替换 / 恢复确认框的模型（文案引用 + 数据）：有记录 → 替换措辞（标题「用备份替换现在的记录？」+ R-B03.replaceBody + 丢失范围）；
+ * 没有记录（Y04）→「用这份备份恢复记录？」+ R-B03.restoreBody +「恢复」。
+ * @param {object} state store 状态
+ * @param {object} report inspectBackup 的成功结果
+ * @param {{showLoss?:boolean}} [opts]
+ */
+export function restoreConfirmView(state, report, { showLoss = true } = {}) {
+  const m = confirmModel(state, report, { showLoss });
+  const replace = m.mode === 'replace';
+  const day = isValidDay(m.day) ? dateRef(m.day) : '';
+  return {
+    mode: m.mode,
+    day: m.day,
+    n: m.n,
+    m: m.m,
+    loss: m.loss,
+    title: replace ? ref('X-BACKUP.replaceTitle') : ref('R-B03.restoreTitle'),
+    body: replace ? ref('R-B03.replaceBody', { date: day, n: m.n, m: m.m }) : ref('R-B03.restoreBody', { date: day, n: m.n }),
+    cancel: ref('X-BACKUP.confirmCancel'),
+    ok: replace ? ref('X-BACKUP.replaceOk') : ref('R-B03.restoreBtn'),
+    lossText: lossRef(m.loss),
+    exportFirst: m.loss ? ref('X-BACKUP.exportFirst') : null,
+  };
+}
+
+/**
+ * 清空确认框的模型（文案引用 + 数据）：n = 现在记录的字数（R-B03.clearBody）。
+ * @param {number} n judged 记录的字数
+ * @param {boolean} [failed] 清空没成：正文换「没保存上，记录都还在。」+ 先不清空 / 再试一次
+ */
+export function clearSheetView(n, { failed = false } = {}) {
+  return {
+    failed,
+    title: ref('X-BACKUP.clearTitle'),
+    body: failed ? ref('X-BACKUP.clearFailed') : ref('R-B03.clearBody', { n }),
+    cancel: failed ? ref('X-BACKUP.clearStay') : ref('X-BACKUP.confirmCancel'),
+    ok: failed ? ref('X-BACKUP.retry') : ref('X-BACKUP.clearOk'),
+    n,
+  };
 }

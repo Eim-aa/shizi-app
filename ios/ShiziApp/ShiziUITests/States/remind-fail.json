@@ -2,7 +2,7 @@
   "state": "remind-fail",
   "name": "提醒 · 开关写入失败（三段式）",
   "screen": "remind",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -20,20 +20,20 @@
     }
   ],
   "ready": {
-    "web": "remind-screen"
+    "web": "remind-screen",
+    "native": "id:native-remind-body"
   },
   "steps": [
     {
-      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
-    },
-    {
       "tap": {
-        "webTestid": "remind-switch"
+        "webTestid": "remind-switch",
+        "native": "native-remind-switch"
       },
       "times": 1
     },
     {
       "wait": 600
     }
-  ]
+  ],
+  "failNext": 1
 }

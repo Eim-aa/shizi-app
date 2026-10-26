@@ -2,7 +2,7 @@
   "state": "remind-on",
   "name": "提醒 · 开（20:30）",
   "screen": "remind",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -35,7 +35,8 @@
     }
   ],
   "ready": {
-    "web": "remind-screen"
+    "web": "remind-screen",
+    "native": "id:native-remind-body"
   },
   "ax": true
 }

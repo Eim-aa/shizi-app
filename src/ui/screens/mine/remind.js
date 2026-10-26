@@ -16,10 +16,12 @@ import { FailBlock } from '../../components/FailBlock.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { getStore } from '../../../store/store.js';
 import { postNative } from '../../../platform/bridge.js';
-import { t } from '../../../config/copy/index.js';
+import { domLineStarts, registerTextLines, screenWidth, textUnits } from '../../text-lines.js';
+import { t, tRef } from '../../../config/copy/index.js';
 import {
-  commitRemindEnabled, commitRemindTime, parseTime, remindOf, requestReminderPermission, settingsView, syncReminder, timeText,
+  commitRemindEnabled, commitRemindTime, parseTime, remindOf, requestReminderPermission, syncReminder, timeText,
 } from './prefs.js';
+import { remindView } from '../../../session/views/settings.js';
 
 export const REMIND_SCREEN = 'remind';
 
@@ -70,30 +72,30 @@ function useSettingsState() {
   return state;
 }
 
-/** 提醒页正文（纯视图，无 hooks；单测直接调用）。 */
+/** 提醒页正文（纯视图，无 hooks；单测直接调用）。view = session/views/settings.js 的 remindView（与原生页同一个模型）。 */
 export function RemindBody({ view, fail = null, on }) {
   const remind = view.remind;
-  const sub = view.denied ? t('R-S02.title') : t('R-S01.remindNote');
+  const sub = tRef(view.remindPage.sub[view.denied ? 'denied' : 'on']);
   return html`<div class="sz-remind" data-testid="remind-body">
     <${Button} variant="plain" class="sz-remind__row" role="switch" aria-checked=${view.on ? 'true' : 'false'}
       aria-labelledby="sz-remind-title" aria-describedby="sz-remind-sub" data-testid="remind-switch" onClick=${on.toggle}>
       <span class="sz-remind__main">
-        <span class="sz-remind__title" id="sz-remind-title">${t('X-SETTINGS.remindLabel')}</span>
+        <span class="sz-remind__title" id="sz-remind-title">${tRef(view.remindPage.label)}</span>
         <span class="sz-remind__sub" id="sz-remind-sub" data-testid="remind-sub">${sub}</span>
       </span>
       <span class="sz-remind__switch" aria-hidden="true"><span class="sz-remind__knob"></span></span>
     </${Button}>
     ${view.on ? html`<div class="sz-remind__row">
-      <label class="sz-remind__main" for="sz-remind-time"><span class="sz-remind__title">${t('X-SETTINGS.remindTime')}</span></label>
+      <label class="sz-remind__main" for="sz-remind-time"><span class="sz-remind__title">${tRef(view.remindPage.timeLabel)}</span></label>
       <input class="sz-remind__time" id="sz-remind-time" type="time" step="60" required value=${timeText(remind.hour, remind.minute)}
         data-value=${timeText(remind.hour, remind.minute)} data-testid="remind-time" onChange=${on.time} />
     </div>` : null}
     ${view.denied ? html`<p class="sz-remind__note" data-testid="remind-denied">
-      <span>${t('R-S02.body')}</span><br />
-      <${Button} variant="text" data-testid="remind-open-system" onClick=${on.openSystem}>${t('R-S02.link')}</${Button}>
+      <span>${tRef(view.remindPage.note.body)}</span><br />
+      <${Button} variant="text" data-testid="remind-open-system" onClick=${on.openSystem}>${tRef(view.remindPage.note.link)}</${Button}>
     </p>` : null}
     ${fail ? html`<div class="sz-remind__fail">${FailBlock({
-      testid: 'remind-fail', text: t('X-SETTINGS.saveFailed'), cancelLabel: t('X-SETTINGS.cancel'), retryLabel: t('X-SETTINGS.retry'),
+      testid: 'remind-fail', text: tRef(view.remindPage.fail.text), cancelLabel: tRef(view.remindPage.fail.cancel), retryLabel: tRef(view.remindPage.fail.retry),
       attrs: { 'data-field': fail.field }, onCancel: on.failCancel, onRetry: on.failRetry,
     })}</div>` : null}
   </div>`;
@@ -102,7 +104,7 @@ export function RemindBody({ view, fail = null, on }) {
 function RemindScreen() {
   const state = useSettingsState();
   const [fail, setFail] = useState(null); // {field, run}
-  const view = settingsView(state.settings);
+  const view = remindView(state.settings);
 
   const run = (field, fn, after = null) => {
     let result;
@@ -169,4 +171,47 @@ export function openRemind() {
   return true;
 }
 
-registerScreen(REMIND_SCREEN, RemindScreen, { label: t('R-M03.remind') });
+registerScreen(REMIND_SCREEN, RemindScreen, { label: t('R-M03.remind'), native: true });
+
+// ---------------------------------------------------------------- 网页的折行点（B3.10：原生要跟网页折在同一处）
+//
+// 开关行的小字是 text-wrap: pretty（.sz-remind__sub）：WebKit 的折法不是贪心折行，
+// 原生按这里量出的行起点断行（src/ui/text-lines.js；与结果页 native-view.js 的 webLineStarts 同一做法）。
+// 副本照网页的层级排（.sz-page__body → .sz-remind → .sz-remind__row → .sz-remind__main → .sz-remind__sub）：
+// 开关本体（44 宽）也在副本里，小字的可用宽才与网页一样（行宽 − 44 − 间距 12）。
+
+function remindSubLineStarts(text, extra) {
+  return domLineStarts(host => {
+    const body = document.createElement('div');
+    body.className = 'sz-page__body';
+    const block = document.createElement('div');
+    block.className = 'sz-remind';
+    const row = document.createElement('button');
+    row.className = 'sz-btn sz-btn--plain sz-remind__row';
+    const main = document.createElement('span');
+    main.className = 'sz-remind__main';
+    const title = document.createElement('span');
+    title.className = 'sz-remind__title';
+    title.textContent = (extra && extra.title) || '';
+    const sub = document.createElement('span');
+    sub.className = 'sz-remind__sub';
+    const node = document.createTextNode(text);
+    sub.appendChild(node);
+    main.appendChild(title);
+    main.appendChild(sub);
+    const sw = document.createElement('span');
+    sw.className = 'sz-remind__switch';
+    sw.setAttribute('aria-hidden', 'true');
+    const knob = document.createElement('span');
+    knob.className = 'sz-remind__knob';
+    sw.appendChild(knob);
+    row.appendChild(main);
+    row.appendChild(sw);
+    block.appendChild(row);
+    body.appendChild(block);
+    host.appendChild(body);
+    return textUnits(node);
+  }, screenWidth());
+}
+
+registerTextLines('remind.sub', (text, extra) => remindSubLineStarts(text, extra));

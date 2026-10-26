@@ -14,45 +14,21 @@ import { postNative } from '../../../platform/bridge.js';
 import { APPEARANCES } from '../../../platform/appearance.js';
 import * as policy from '../../../config/policy.js';
 import { isGroupSizeOption } from '../../../core/group-size.js';
-import { PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView } from '../../../session/views/settings.js';
+import { PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView, REMIND_LABELS, commitSettings, commitRemindEnabled, commitRemindTime, remindOf, applyReminderStatus as commitReminderStatus } from '../../../session/views/settings.js';
 
 export const LABELS = Object.freeze({
-  remind: 'settings:remind',
-  remindTime: 'settings:remind-time',
-  permission: 'settings:remind-permission',
+  remind: REMIND_LABELS.remind,
+  remindTime: REMIND_LABELS.remindTime,
+  permission: REMIND_LABELS.permission,
   appearance: 'settings:appearance',
   groupSize: 'settings:group-size', // D65 ②
   textSizeNotice: 'settings:text-size-notice', // 静默去掉旧 large 字段的提交标签
 });
 
-export { PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView };
-
-function sameJSON(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b);
-}
-
-/**
- * 一次 commit 把 fields 合进 settings（只改给出的字段，其余保留）。值没变不写，返回 {ok:true, keys:[], skipped:true}。
- * fields.remind 若给出，与原 remind 合并（保留 permission 等）。
- */
-export function commitSettings(store, label, fields) {
-  const cur = store.getState().settings || {};
-  const next = { ...cur };
-  for (const key of Object.keys(fields)) {
-    if (key === 'remind') next.remind = { ...(cur.remind || {}), ...fields.remind };
-    else next[key] = fields[key];
-  }
-  if (sameJSON(next, cur) && store.getState().settings) return { ok: true, keys: [], skipped: true };
-  return store.commit(label, draft => {
-    const base = draft.settings || {};
-    const merged = { ...base };
-    for (const key of Object.keys(fields)) {
-      if (key === 'remind') merged.remind = { ...(base.remind || {}), ...fields.remind };
-      else merged[key] = fields[key];
-    }
-    draft.settings = merged;
-  });
-}
+export {
+  PERMISSIONS, APPEARANCE_ORDER, parseTime, timeText, defaultRemindTime, settingsView,
+  commitSettings, commitRemindEnabled, commitRemindTime, remindOf,
+};
 
 /** 每组字数（D65 ②，P314）：只收 policy.groupSizeOptions 里的值；改了从下一组起生效（开着的组不变）。 */
 export function commitGroupSize(store, value, { p = policy } = {}) {
@@ -67,36 +43,18 @@ export function commitAppearance(store, value) {
 
 /**
  * 提醒开关。打开时若还没存过时间，补上缺省时间（P18），让存下的就是界面显示的。
+ * （写入本体在会话层 session/views/settings.js，B3.10：App API 与网页调同一个函数对象。）
  */
-export function commitRemindEnabled(store, on, { p = policy } = {}) {
-  const cur = (store.getState().settings || {}).remind || {};
-  const patch = { enabled: !!on };
-  if (on) {
-    const def = defaultRemindTime(p);
-    if (!Number.isInteger(cur.hour)) patch.hour = def.hour;
-    if (!Number.isInteger(cur.minute)) patch.minute = def.minute;
-  }
-  return commitSettings(store, LABELS.remind, { remind: patch });
-}
-
-export function commitRemindTime(store, hour, minute) {
-  return commitSettings(store, LABELS.remindTime, { remind: { hour, minute } });
-}
 
 /**
  * 原生回报的通知权限（shiziReminderStatus({permission})）→ settings.remind.permission。
+ * 写入在会话层（session/views/settings.js，B3.10：App API 调同一个函数对象），这里补一次同步提醒内容。
  * M5-5 用 registerNativeHandler('shiziReminderStatus', payload => applyReminderStatus(getStore(), payload)) 接上。
  */
 export function applyReminderStatus(store, payload) {
-  const raw = payload && typeof payload === 'object' ? payload.permission : payload;
-  const permission = PERMISSIONS.indexOf(raw) >= 0 ? raw : 'unknown';
-  const result = commitSettings(store, LABELS.permission, { remind: { permission } });
+  const result = commitReminderStatus(store, payload);
   if (result.ok && !result.skipped) syncReminder(remindOf(store));
   return result;
-}
-
-export function remindOf(store) {
-  return settingsView(store.getState().settings).remind;
 }
 
 let reminderSync = null;

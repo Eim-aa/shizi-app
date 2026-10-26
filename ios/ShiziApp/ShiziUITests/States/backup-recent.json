@@ -2,7 +2,7 @@
   "state": "backup-recent",
   "name": "备份 · 现在的记录都已备份",
   "screen": "backup",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -112,7 +112,8 @@
     }
   ],
   "ready": {
-    "web": "backup-screen"
+    "web": "backup-screen",
+    "native": "id:native-backup-body"
   },
   "ax": true
 }

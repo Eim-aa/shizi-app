@@ -2,7 +2,7 @@
   "state": "backup-stale",
   "name": "备份 · 上次备份以后记录有改动",
   "screen": "backup",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -113,6 +113,7 @@
     }
   ],
   "ready": {
-    "web": "backup-screen"
+    "web": "backup-screen",
+    "native": "id:native-backup-body"
   }
 }

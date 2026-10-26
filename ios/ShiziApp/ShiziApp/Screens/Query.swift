@@ -192,6 +192,127 @@ enum QueryOverlay {
     }
 }
 
+// MARK: - The overlay layer (the sheet / the box sits in its own presented layer)
+
+/// The layer an overlay screen draws its scrim and panel in: a transparent controller presented over the screen, like
+/// the other native sheets (the change sheet, the choice sheets, the image preview) - so the panel is its own layer above
+/// the page below it (the AX checks look for overlaps inside one layer; the page below is covered by design).
+final class QueryOverlayLayer: UIViewController {
+    /// Someone else takes the layer away while its screen stays (another native page is pushed above the sheet): the
+    /// screen takes its views back so the sheet stays where it is under the new page.
+    var onRelease: (() -> Void)?
+    /// The screen itself is leaving: the layer goes quietly (no release).
+    fileprivate(set) var isLeaving = false
+
+    init() {
+        super.init(nibName: nil, bundle: nil)
+        modalPresentationStyle = .overFullScreen
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not used") }
+
+    override func loadView() {
+        let v = UIView()
+        v.backgroundColor = .clear
+        view = v
+    }
+
+    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        if !isLeaving, presentedViewController == nil { onRelease?() }
+        let was = isLeaving
+        isLeaving = true
+        super.dismiss(animated: false) { [weak self] in
+            self?.isLeaving = was
+            completion?()
+        }
+    }
+
+    /// The screen is going: drop the layer without handing the views back.
+    fileprivate func leaveQuietly(_ done: @escaping () -> Void) {
+        guard presentingViewController != nil, !isBeingDismissed else { done(); return }
+        isLeaving = true
+        dismiss(animated: false) { [weak self] in
+            self?.isLeaving = false
+            done()
+        }
+    }
+}
+
+/// The overlay part of an overlay screen (the query sheet, the S02 box): the screen is a transparent page in the native
+/// stack; its scrim and panel are drawn in a presented QueryOverlayLayer once the page has appeared (the layout keeps
+/// using the page's bounds: the layer covers the same screen). The screens call in from their own overrides
+/// (loadView / viewDidLoad / traitCollectionDidChange / viewDidAppear / dismiss).
+final class QueryOverlayHost {
+    let layer = QueryOverlayLayer()
+    /// The views drawn in the layer (the scrim, the panel) and the gestures on the layer's view.
+    var views: [UIView] = []
+    var gestures: [UIGestureRecognizer] = []
+    /// The QA marker "the layer is up" (the fixtures wait for it: 1 x 1, alpha 0.01, not in the element list).
+    let readyMarker = UIView()
+    private weak var page: ShiziScreenViewController?
+    private var adopted = false
+
+    init(readyId: String) {
+        readyMarker.alpha = 0.01
+        readyMarker.isUserInteractionEnabled = false
+        readyMarker.isAccessibilityElement = false
+        readyMarker.accessibilityIdentifier = readyId
+    }
+
+    /// The page's view: transparent (the page under the overlay shows through); the base class's chrome is hidden.
+    static func clearView() -> UIView {
+        let v = UIView()
+        v.backgroundColor = .clear
+        return v
+    }
+
+    /// From the page's viewDidLoad (after super): undo the base class's page colour and chrome.
+    func pageDidLoad(_ page: ShiziScreenViewController) {
+        self.page = page
+        page.view.backgroundColor = .clear
+        page.backButton.isHidden = true
+        page.titleLabel.isHidden = true
+        page.scroll.isHidden = true
+        page.screenMarker.isHidden = true
+        layer.onRelease = { [weak self] in self?.takeViewsBack() }
+    }
+
+    /// Moves the views into the layer and presents it (once, after the page appeared); then() runs when it is up.
+    func adopt(then: @escaping () -> Void) {
+        guard let page, !adopted, page.presentedViewController == nil, page.presentingViewController != nil else { then(); return }
+        adopted = true
+        layer.loadViewIfNeeded()
+        layer.view.frame = page.view.bounds
+        views.forEach { layer.view.addSubview($0) }
+        gestures.forEach { layer.view.addGestureRecognizer($0) }
+        page.present(layer, animated: false) { [weak self, weak page] in
+            guard let self, let page else { return }
+            self.readyMarker.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+            page.view.addSubview(self.readyMarker)
+            then()
+        }
+    }
+
+    private func takeViewsBack() {
+        guard let page else { return }
+        views.forEach { page.view.addSubview($0) }
+        gestures.forEach { page.view.addGestureRecognizer($0) }
+        page.view.setNeedsLayout()
+    }
+
+    /// From the page's dismiss override: true = the layer goes first (quietly), then `dismissPage` runs; false = dismiss
+    /// the page as usual (no layer up, or the layer itself is the one leaving).
+    func dismissLayerFirst(then dismissPage: @escaping () -> Void) -> Bool {
+        guard let page, page.presentedViewController === layer, !layer.isLeaving else { return false }
+        layer.leaveQuietly { [weak page] in
+            guard page?.presentingViewController != nil else { return }
+            dismissPage()
+        }
+        return true
+    }
+}
+
 // MARK: - The check mark inside the picked checkbox (the web's Icons.check)
 
 /// The check mark inside the picked checkbox (the web's Icons.check: 13 x 13, the paper color).
@@ -333,6 +454,7 @@ final class QueryCharRow: UIView {
         super.init(frame: frame)
         dot.isUserInteractionEnabled = false
         dot.layer.borderWidth = 1.5
+        dot.layer.cornerRadius = 12 // the web's .sz-qrow__dot: a 24 circle
         dot.layer.borderColor = UIColor.clear.cgColor
         addSubview(dot)
         selectButton.backgroundColor = .clear
@@ -392,6 +514,9 @@ final class QueryScreen: ShiziScreenViewController {
             let meta: QueryCopyRef?
             let stat: QueryCopyRef
             let ink: [[[Double]]]?
+            /// The same record's raw strokes on the bridge ([[x, y, t, p]...], the detail page's view.detail shape): the native
+            /// paints them with the web's ink algorithm (the web's InkMini paints the resampled points above).
+            let inkStrokes: [[[Double]]]?
             /// The web's line break points of the two secondary buttons (the page measured them).
             let addLines: [Int]?
             let detailLines: [Int]?
@@ -467,6 +592,9 @@ final class QueryScreen: ShiziScreenViewController {
     private var rowViews: [QueryCharRow] = []
     /// The ink of the card (the pipeline points; the ink view is made when the cell's side is known).
     private var cardInk: [[[Double]]]?
+    private var cardInkKey = ""
+    /// The dashed frame of the empty "your writing" cell (the web's .sz-qcard__empty: frame-w dashed frame).
+    private let mineDash = CAShapeLayer()
     /// The card's two captions (the web's .sz-qcard__label).
     private var mineCaptionText = ""
     private var refCaptionText = ""
@@ -531,19 +659,9 @@ final class QueryScreen: ShiziScreenViewController {
         selected = (params["selected"] as? [String]) ?? []
     }
 
-    override func loadView() {
-        let v = UIView()
-        v.backgroundColor = .clear // the layer below is the web page
-        view = v
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        backButton.isHidden = true
-        titleLabel.isHidden = true
-        scroll.isHidden = true
-        screenMarker.isHidden = true
-
+        overlay.pageDidLoad(self)
         scrim.backgroundColor = color("scrim")
         scrim.accessibilityIdentifier = "native-query-scrim"
         scrim.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapScrim)))
@@ -614,6 +732,10 @@ final class QueryScreen: ShiziScreenViewController {
         mineCell.clipsToBounds = true
         cardBox.addSubview(mineCell)
         mineCell.addSubview(mineInk)
+        mineDash.fillColor = UIColor.clear.cgColor
+        mineDash.lineWidth = 1
+        mineDash.lineDashPattern = [4, 3]
+        mineCell.layer.addSublayer(mineDash)
         mineEmpty.numberOfLines = 0
         mineEmpty.textAlignment = .center
         mineCell.addSubview(mineEmpty)
@@ -699,6 +821,8 @@ final class QueryScreen: ShiziScreenViewController {
         edgePan.delegate = self
         edgePan.addTarget(self, action: #selector(edgePanned(_:)))
         view.addGestureRecognizer(edgePan)
+        overlay.views = [scrim, sheet]
+        overlay.gestures = [edgePan]
     }
 
     deinit {
@@ -707,7 +831,15 @@ final class QueryScreen: ShiziScreenViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // The sheet's own entrance: the scrim fades in + the panel slides up (the web's T-sheet).
+        guard !entered else { return }
+        entered = true
+        overlay.adopt { [weak self] in self?.enter() }
+    }
+
+    private var entered = false
+
+    /// The sheet's own entrance (once the layer is up): the scrim fades in + the panel slides up (the web's T-sheet).
+    private func enter() {
         let spec = QueryOverlay.spec
         if NativeWriteTransitions.reduceMotion {
             scrim.alpha = 1
@@ -734,6 +866,33 @@ final class QueryScreen: ShiziScreenViewController {
         super.viewDidDisappear(animated)
         inputField.resignFirstResponder()
     }
+
+    // MARK: The overlay layer (QueryOverlayHost)
+
+    let overlay = QueryOverlayHost(readyId: "native-query-ready")
+
+    override func loadView() {
+        view = QueryOverlayHost.clearView()
+    }
+
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        // The ink colour is the theme's hand colour: paint the card's ink again on a theme change.
+        if previous?.userInterfaceStyle != traitCollection.userInterfaceStyle { inkSide = 0 }
+        super.traitCollectionDidChange(previous)
+        view.backgroundColor = .clear // the base class paints the page colour again on a theme change
+    }
+
+    /// The page itself is dismissed (back, or released by the stage): the layer goes first, quietly, then the page.
+    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        let handled = overlay.dismissLayerFirst { [weak self] in self?.dismissPage(animated: flag, completion: completion) }
+        if !handled { super.dismiss(animated: flag, completion: completion) }
+    }
+
+    private func dismissPage(animated flag: Bool, completion: (() -> Void)?) {
+        super.dismiss(animated: flag, completion: completion)
+    }
+
+
 
     override func layoutBody(width: CGFloat, x: CGFloat, top: CGFloat) -> CGFloat { top }
 
@@ -769,6 +928,8 @@ final class QueryScreen: ShiziScreenViewController {
 
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: Model.self)
+        // The ink table travels with the view (the detail page's view.detail does the same): the card's ink is painted with it.
+        if let k = WebInkParams((raw as? [String: Any])?["ink"]) { WebInkParams.current = k }
         model = m
         if m.mode == "pick" { mode = "pick" }
         applyModel(m)
@@ -938,10 +1099,15 @@ final class QueryScreen: ShiziScreenViewController {
         applyCaption(refCaption, refCaptionText, wrap: false)
 
         // The ink (the latest judged record): the pipeline points -> the ink view (the web's InkMini).
-        let hasInk = !(c.ink ?? []).isEmpty
-        cardInk = c.ink
+        let hasInk = !(c.inkStrokes ?? []).isEmpty
+        if cardInkKey != c.char || hasInk != (cardInk != nil) { inkSide = 0 } // a new char / ink: paint again
+        cardInkKey = c.char
+        cardInk = hasInk ? c.inkStrokes : nil
         mineInk.isHidden = !hasInk
         mineEmpty.isHidden = hasInk || c.count == 0
+        // The web's .sz-compare__card (with ink: a solid frame on the sheet colour) / .sz-qcard__empty (no ink: a dashed frame).
+        mineDash.isHidden = hasInk
+        mineDash.strokeColor = color("frame").cgColor
         if hasInk {
             mineCell.backgroundColor = color("sheet")
             mineCell.layer.borderWidth = 1
@@ -950,8 +1116,7 @@ final class QueryScreen: ShiziScreenViewController {
             mineCell.accessibilityLabel = t("R-W09.labelMine")
         } else {
             mineCell.backgroundColor = .clear
-            mineCell.layer.borderWidth = 1
-            mineCell.layer.borderColor = color("frame").cgColor
+            mineCell.layer.borderWidth = 0
             mineCell.accessibilityIdentifier = "native-query-card-mine-empty"
             if c.count > 0 {
                 NativeType.set(mineEmpty, t("R-D07.noInkLabel"), font: metrics.font(13), color: color("ink2"),
@@ -962,7 +1127,6 @@ final class QueryScreen: ShiziScreenViewController {
                 mineCell.accessibilityLabel = t("R-W09.labelMine")
             }
         }
-        mineCell.layer.borderWidth = 1
 
         // The two secondary buttons (the web's CardSecondary): the "add" button, the "view records" button.
         // In the failure state the web's CardSecondary is empty (the failure block takes its place).
@@ -1073,12 +1237,6 @@ final class QueryScreen: ShiziScreenViewController {
     /// 0.5px border to one device pixel (0.33pt on a 3x screen), so the native draws the same one-pixel line.
     private var hairline: CGFloat { 1 / (view.window?.screen.scale ?? UIScreen.main.scale) }
 
-    /// WebKit lays the rows on the device pixel grid: the row's height (the content + the hairline) is floored to that
-    /// grid, which is why the web's rows are 68.3 apart and not 68.
-    private func snap(_ v: CGFloat) -> CGFloat {
-        let scale = view.window?.screen.scale ?? UIScreen.main.scale
-        return floor(v * scale) / scale
-    }
 
     // MARK: The layout
 
@@ -1202,8 +1360,8 @@ final class QueryScreen: ShiziScreenViewController {
             var ry: CGFloat = hairline
             for r in rowViews where !r.isHidden {
                 let h = rowHeight(r)
-                // The web's row is its content plus the hairline at the bottom, floored to the device pixel grid.
-                r.frame = CGRect(x: 0, y: ry, width: width, height: snap(h + hairline))
+                // The web's row is its content plus the hairline at the bottom (fractional heights stack up exactly, as in the web's layout).
+                r.frame = CGRect(x: 0, y: ry, width: width, height: h + hairline)
                 layoutRow(r, height: h, width: width)
                 ry += r.frame.height
             }
@@ -1387,14 +1545,22 @@ final class QueryScreen: ShiziScreenViewController {
         refCell.frame = CGRect(x: rightX, y: pad, width: side, height: side)
         mineInk.frame = mineCell.bounds
         // The ink view follows the cell's side (the web's InkMini paints into the card).
-        if let points = cardInk, !points.isEmpty {
+        if let strokes = cardInk, !strokes.isEmpty {
+            // The web's InkMini: the canvas inside the frame (side - 2 x frame-w), the hand colour, the small-card width floor.
+            let frameW = metrics.value("frame-w")
+            let inner = max(1, side - 2 * frameW)
             if inkSide != side {
                 mineInk.subviews.forEach { $0.removeFromSuperview() }
-                if let ink = inkView(points, side: side) { mineInk.addSubview(ink) }
+                if let ink = NativeInkPaint.view(strokes: detailRawStrokes(strokes), side: inner, color: detailInkColor(traitCollection),
+                                                 widthScale: detailInkScale(inner)) {
+                    mineInk.addSubview(ink)
+                }
                 inkSide = side
             }
-            mineInk.subviews.forEach { $0.frame = mineInk.bounds }
+            mineInk.subviews.forEach { $0.frame = CGRect(x: frameW, y: frameW, width: inner, height: inner) }
         }
+        mineDash.frame = mineCell.bounds
+        mineDash.path = UIBezierPath(roundedRect: mineCell.bounds.insetBy(dx: 0.5, dy: 0.5), cornerRadius: max(0, metrics.value("r-work") - 0.5)).cgPath
         mineEmpty.frame = mineCell.bounds.insetBy(dx: 8, dy: 8)
         refGlyph.frame = refCell.bounds
 
@@ -1671,7 +1837,7 @@ final class QueryScreen: ShiziScreenViewController {
                 self.reload()
             } else {
                 self.addFailed = true
-                self.applyFoot(self.model ?? Model.empty)
+                self.applyFailureState()
                 self.view.setNeedsLayout()
                 NativeA11y.announce(self.failNote.text)
             }
@@ -1688,7 +1854,7 @@ final class QueryScreen: ShiziScreenViewController {
             self.busy = false
             if (reply["ok"] as? Bool) != true {
                 self.addFailed = true
-                self.applyFoot(self.model ?? Model.empty)
+                self.applyFailureState()
                 self.view.setNeedsLayout()
             }
         }
@@ -1713,7 +1879,7 @@ final class QueryScreen: ShiziScreenViewController {
             guard (reply["ok"] as? Bool) == true else {
                 // The failure stays in place: the input and the card are kept (the web's R-H06).
                 self.goFailure = GoFailure(chars: chars, from: from)
-                self.applyFoot(self.model ?? Model.empty)
+                self.applyFailureState()
                 self.view.setNeedsLayout()
                 NativeA11y.announce(self.failNote.text)
                 return
@@ -1727,8 +1893,13 @@ final class QueryScreen: ShiziScreenViewController {
     private func cancelFailure() {
         addFailed = false
         goFailure = nil
-        if let m = model { applyFoot(m) }
+        applyFailureState()
         view.setNeedsLayout()
+    }
+
+    /// The failure block came or went: the whole model again (the card's buttons give their place to the block and come back).
+    private func applyFailureState() {
+        if let m = model { applyModel(m) } else { applyFoot(Model.empty) }
     }
 
     /// The "try again" button of the three-part failure: the same action again.
@@ -1824,18 +1995,6 @@ final class QueryScreen: ShiziScreenViewController {
             break
         }
     }
-
-    // MARK: The ink (the web's InkMini)
-
-    /// The pipeline points (the model's card.ink) -> the ink view (the web's InkMini draws them with a constant width).
-    private func inkView(_ points: [[[Double]]], side: CGFloat) -> UIView? {
-        let strokes: [[InkRawPoint]] = points.map { stroke in
-            stroke.enumerated().map { i, p in
-                InkRawPoint(x: p.count > 0 ? p[0] : 0, y: p.count > 1 ? p[1] : 0, t: Double(i) * 8)
-            }
-        }
-        return NativeInkPaint.view(strokes: strokes, side: side, color: nil, widthScale: 1)
-    }
 }
 
 extension QueryScreen.Model {
@@ -1896,19 +2055,9 @@ final class S02Screen: ShiziScreenViewController {
         transitions.fadeNext = true
     }
 
-    override func loadView() {
-        let v = UIView()
-        v.backgroundColor = .clear
-        view = v
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        backButton.isHidden = true
-        titleLabel.isHidden = true
-        scroll.isHidden = true
-        screenMarker.isHidden = true
-
+        overlay.pageDidLoad(self)
         scrim.backgroundColor = color("scrim")
         scrim.accessibilityIdentifier = "native-s02-scrim"
         scrim.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapScrim)))
@@ -1919,6 +2068,7 @@ final class S02Screen: ShiziScreenViewController {
         dialog.layer.cornerCurve = .continuous
         dialog.accessibilityIdentifier = "native-s02-dialog"
         view.addSubview(dialog)
+        overlay.views = [scrim, dialog]
 
         bodyLabel.numberOfLines = 0
         bodyLabel.accessibilityIdentifier = "native-s02-body"
@@ -1940,11 +2090,45 @@ final class S02Screen: ShiziScreenViewController {
         failBlock.addSubview(retryButton)
         wire(failCancelButton) { ($0 as? S02Screen)?.decide("cancel") }
         wire(retryButton) { ($0 as? S02Screen)?.decide("endStart") }
+        // The base class renders the model inside super.viewDidLoad(), before the buttons above got their colours and fonts:
+        // apply it again so the tracked (attributed) titles carry the styled colours.
+        if let m = model { applyModel(m) }
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // T-confirm: the scrim fades in, the box scales up from 0.96 (the web's Confirm.js).
+        guard !entered else { return }
+        entered = true
+        overlay.adopt { [weak self] in self?.enter() }
+    }
+
+    private var entered = false
+
+    // MARK: The overlay layer (QueryOverlayHost)
+
+    let overlay = QueryOverlayHost(readyId: "native-s02-ready")
+
+    override func loadView() {
+        view = QueryOverlayHost.clearView()
+    }
+
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        super.traitCollectionDidChange(previous)
+        view.backgroundColor = .clear // the base class paints the page colour again on a theme change
+    }
+
+    /// The page itself is dismissed (back, or released by the stage): the layer goes first, quietly, then the page.
+    override func dismiss(animated flag: Bool, completion: (() -> Void)? = nil) {
+        let handled = overlay.dismissLayerFirst { [weak self] in self?.dismissPage(animated: flag, completion: completion) }
+        if !handled { super.dismiss(animated: flag, completion: completion) }
+    }
+
+    private func dismissPage(animated flag: Bool, completion: (() -> Void)?) {
+        super.dismiss(animated: flag, completion: completion)
+    }
+
+    /// T-confirm (once the layer is up): the scrim fades in, the box scales up from 0.96 (the web's Confirm.js).
+    private func enter() {
         let spec = QueryOverlay.spec
         if NativeWriteTransitions.reduceMotion {
             scrim.alpha = 1
@@ -2003,8 +2187,14 @@ final class S02Screen: ShiziScreenViewController {
         retryButton.setTitle(retry, for: .normal)
         retryButton.accessibilityLabel = retry
         // The Chinese letter spacing of the titles (the web's font tracking; NativeType.cjkTrack).
-        for b in [continueButton, endStartButton, cancelButton, failCancelButton, retryButton] as [UIButton] {
-            trackTitle(b)
+        // The font is given (an attributed title keeps the font it was made with: reading it back would keep an old size).
+        for b in [continueButton, endStartButton, retryButton] as [UIButton] {
+            b.titleLabel?.font = metrics.font(17, .medium)
+            trackTitle(b, font: metrics.font(17, .medium))
+        }
+        for b in [cancelButton, failCancelButton] as [UIButton] {
+            b.titleLabel?.font = metrics.font(15)
+            trackTitle(b, font: metrics.font(15))
         }
         markStateChange()
         view.setNeedsLayout()

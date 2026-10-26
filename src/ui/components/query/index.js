@@ -14,7 +14,7 @@
 //   网页版（原生开关关着）行为一字不变：仍是遮罩栈里的弹层。
 
 import { html } from '../../../../vendor/ui.js';
-import { nav, registerScreen } from '../../router.js';
+import { getRouter, nav, registerScreen } from '../../router.js';
 import { isTestHost } from '../../../platform/env.js';
 import { normalizeMode } from '../../../core/query.js';
 import { QuerySheet } from './QuerySheet.js';
@@ -41,7 +41,7 @@ export function openQuery({ mode = 'lookup', onPick, onPractice, onDetail, text 
   if (nativeScreenOn(QUERY_SCREEN)) {
     // 原生弹层（B3.6）：推入一屏原生宿主；回调登记在会话层，原生经 query.pick / query.detail 调用（网页路径 == API 路径）。
     // text / selected / composing = 弹层的初始状态（输入原文、预选字、输入法组字中——原生弹层没有网页的输入框可点）。
-    setQueryActions({ onPick, onPractice, onDetail, mode: m });
+    setQueryActions({ onPick, onPractice, onDetail, mode: m, close: closeNativeQuery });
     // 卡片次要键的折行点（网页量的；原生按这些位置换行）。
     setQueryLayout({ cardAction: cardActionLineStarts });
     nav.push(QUERY_SCREEN, {
@@ -50,7 +50,7 @@ export function openQuery({ mode = 'lookup', onPick, onPractice, onDetail, text 
       selected: Array.isArray(selected) ? selected.filter(c => typeof c === 'string') : [],
       composing: composing === true,
     });
-    return { id: QUERY_SCREEN, close: () => nav.back() };
+    return { id: QUERY_SCREEN, close: closeNativeQuery };
   }
   focusProxyInput(); // 同一个点击事件里同步 focus（R-Q08）
   const id = nav.openOverlay(QuerySheet, {
@@ -62,6 +62,16 @@ export function openQuery({ mode = 'lookup', onPick, onPractice, onDetail, text 
     opener,
   }, { name: QUERY_OVERLAY });
   return { id, close: () => nav.closeOverlay(id) };
+}
+
+/**
+ * 收起原生查字屏（= 网页版 nav.closeOverlay）：它在栈顶时出栈（宿主卸载 → 原生收起）。回调里的 api.close() 走这里——
+ * 与网页版同一时序：先关弹层，再开 S02 / 写字页（不然出栈的会是后推入的那一页）。
+ */
+function closeNativeQuery() {
+  const router = getRouter();
+  const top = router ? router.getState().top : null;
+  if (top && top.n === QUERY_SCREEN) nav.back();
 }
 
 // 原生弹层那一屏的网页兜底（原生开关关着时万一被推入）：画网页版弹层。

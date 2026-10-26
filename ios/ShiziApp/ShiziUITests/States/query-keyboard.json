@@ -99,7 +99,7 @@
       "op": "seed"
     },
     {
-      "op": "switchTab",
+      "op": "nativeRoots",
       "tab": "library"
     },
     {
@@ -110,17 +110,23 @@
   ],
   "ready": {
     "web": "screen-library",
-    "native": "id:native-query-sheet"
+    "native": "id:native-query-ready"
   },
   "steps": [
+    {
+      "tap": {
+        "webTestid": "library-query-open"
+      },
+      "times": 1
+    },
     {
       "wait": 700
     },
     {
-      "wait": 1000
+      "js": "const el = document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"query-input\"], [data-testid=\"query-input\"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, \"yong\"); el.dispatchEvent(new Event('input', { bubbles: true }));"
     },
     {
-      "js": "const el = document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"query-input\"], [data-testid=\"query-input\"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, \"yong\"); el.dispatchEvent(new Event('input', { bubbles: true }));"
+      "wait": 1000
     }
   ]
 }

@@ -10,7 +10,8 @@ import * as defaultPolicy from '../../config/policy.js';
 import { libraryById } from '../../core/cards.js';
 import { allCards, cardForKey, currentLibraryId } from '../../data/deck.js';
 import { monthDayParts } from '../../core/dates.js';
-import { decodeInk, resampleForReplay } from '../../core/ink-math.js';
+import { decodeInk, inkParams, resampleForReplay } from '../../core/ink-math.js';
+import { sheetStrokes } from '../write-api.js';
 import {
   charSummary, filterInput, filterNotes, flattenRecords, isPracticable, parsePinyinInput, pickBar, pinyinMatches, pyKey,
   queryView, rowStatus, selectedChars, withCustomAdded, writtenChars,
@@ -129,8 +130,9 @@ export function dateRef(day) {
  * @param {object} o.state     store 的状态
  * @param {object} o.predicates deckPredicates 的结果
  * @param {function} [o.getInk] store.getInk（「你的书写」的笔迹）
+ * @param {object} [o.store] store（原生画墨用的桥上原始笔画：write-api sheetStrokes，与字详情同一份；网页的 InkMini 用 ink 点列）
  */
-export function querySheetModel({ mode, text, cur, selected, state, predicates, getInk = null, policy = defaultPolicy }) {
+export function querySheetModel({ mode, text, cur, selected, state, predicates, getInk = null, store = null, policy = defaultPolicy }) {
   const m = sheetModel({ mode, text, cur, selected, state, predicates, policy });
   const rows = [];
   if (m.view === 'rows') {
@@ -163,11 +165,14 @@ export function querySheetModel({ mode, text, cur, selected, state, predicates, 
       count: m.summary.count,
     };
     if (m.view === 'card') {
+      const ink = inkPointsOf(m.summary, getInk);
       card = {
         ...common,
         meta: cardMetaRef(common.pinyin, common.strokes),
         stat: cardStatRef(m.summary),
-        ink: inkPointsOf(m.summary, getInk),
+        ink,
+        // 原生「你的书写」：同一条记录的原始笔画（桥上的紧凑形状 [[x, y, t, p]…]，字详情 view.detail 同一份），原生按网页同一算法画墨
+        inkStrokes: ink && store ? sheetStrokes(store, m.summary.latest) : [],
       };
     } else {
       bad = {
@@ -195,6 +200,8 @@ export function querySheetModel({ mode, text, cur, selected, state, predicates, 
       ? { key: 'R-Q05.backToList', vars: { n: m.filtered.chars.length } } : null,
     bar: m.bar ? { key: m.bar.key, vars: m.bar.vars || {}, disabled: !!m.bar.disabled } : null,
     chosen: m.chosen,
+    // 原生画「你的书写」（WebInk）的参数表：与字详情 view.detail / 写字页回包的 ink 同一张（policy.ink + INK_SPEC）
+    ink: card && card.inkStrokes.length ? { ...inkParams(policy) } : null,
   };
 }
 

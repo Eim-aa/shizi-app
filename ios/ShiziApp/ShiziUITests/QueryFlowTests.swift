@@ -36,36 +36,36 @@ final class QueryFlowTests: XCTestCase {
         let lookup = QA(seed: "query-empty")
         lookup.launch()
         waitSheet(lookup)
-        XCTAssertEqual(titleOf(lookup), "查字")
+        XCTAssertEqual(titleOf(lookup), "\u{67E5}\u{5B57}")
         XCTAssertTrue(lookup.el("native-query-input").exists, "the query field")
         XCTAssertFalse(lookup.el("native-query-bar").exists, "no pick bar in lookup mode")
 
         // 输入一个字：出字卡（原生重拉 view.query，模型与网页同一份）
         let input = lookup.el("native-query-input")
         input.tap()
-        input.typeText("永")
+        input.typeText("\u{6C38}")
         XCTAssertTrue(lookup.el("native-query-card").waitForExistence(timeout: 8 * QALoad.scale), "the card of the typed char")
-        XCTAssertEqual(lookup.el("native-query-card-word").label, "永远", "the card shows the word")
+        XCTAssertEqual(lookup.el("native-query-card-word").label, "\u{6C38}\u{8FDC}", "the card shows the word")
 
         let pick0 = QA(seed: "query-pick-0")
         pick0.launch()
         waitSheet(pick0)
-        XCTAssertEqual(titleOf(pick0), "自己选字")
+        XCTAssertEqual(titleOf(pick0), "\u{81EA}\u{5DF1}\u{9009}\u{5B57}")
         XCTAssertTrue(pick0.el("native-query-bar").exists, "the pick bar")
         XCTAssertTrue(pick0.el("native-query-go").exists, "the pick button")
-        XCTAssertEqual(pick0.el("native-query-go").label, "先选字", "nothing picked: the button says so")
+        XCTAssertEqual(pick0.el("native-query-go").label, "\u{5148}\u{9009}\u{5B57}", "nothing picked: the button says so")
         XCTAssertFalse(pick0.el("native-query-go").isEnabled, "nothing picked: the button is disabled")
 
         let pick1 = QA(seed: "query-pick-1")
         pick1.launch()
         waitSheet(pick1)
-        XCTAssertEqual(pick1.el("native-query-go").label, "练这个字", "one picked")
+        XCTAssertEqual(pick1.el("native-query-go").label, "\u{7EC3}\u{8FD9}\u{4E2A}\u{5B57}", "one picked")
         XCTAssertTrue(pick1.el("native-query-go").isEnabled)
 
         let pickN = QA(seed: "query-pick-n")
         pickN.launch()
         waitSheet(pickN)
-        XCTAssertEqual(pickN.el("native-query-go").label, "练这 3 个字", "three picked")
+        XCTAssertEqual(pickN.el("native-query-go").label, "\u{7EC3}\u{8FD9} 3 \u{4E2A}\u{5B57}", "three picked")
     }
 
     /// 自己选字：点行首的勾选圈 → 底栏从「先选字」变成「练这个字」（原生重拉 view.query，selected 一起带上）。
@@ -73,10 +73,10 @@ final class QueryFlowTests: XCTestCase {
         let qa = QA(seed: "query-pick-0")
         qa.launch()
         waitSheet(qa)
-        XCTAssertEqual(qa.el("native-query-go").label, "先选字")
+        XCTAssertEqual(qa.el("native-query-go").label, "\u{5148}\u{9009}\u{5B57}")
         qa.tap(qa.el("native-query-row-select"), "the first row's checkbox")
         XCTAssertTrue(qa.el("native-query-go").waitForExistence(timeout: 8 * QALoad.scale))
-        XCTAssertEqual(qa.el("native-query-go").label, "练这个字", "one char picked")
+        XCTAssertEqual(qa.el("native-query-go").label, "\u{7EC3}\u{8FD9}\u{4E2A}\u{5B57}", "one char picked")
         XCTAssertTrue(qa.el("native-query-go").isEnabled, "one char picked: the button is live")
     }
 
@@ -87,10 +87,10 @@ final class QueryFlowTests: XCTestCase {
         waitSheet(qa)
         let add = qa.el("native-query-card-add")
         XCTAssertTrue(add.waitForExistence(timeout: 8 * QALoad.scale), "the add button")
-        XCTAssertEqual(add.label, "加入自选")
-        qa.tap(add, "加入自选")
+        XCTAssertEqual(add.label, "\u{52A0}\u{5165}\u{81EA}\u{9009}")
+        qa.tap(add, "\u{52A0}\u{5165}\u{81EA}\u{9009}")
         XCTAssertTrue(qa.el("native-query-card-add").waitForExistence(timeout: 8 * QALoad.scale))
-        XCTAssertEqual(qa.el("native-query-card-add").label, "已自选", "already in the list")
+        XCTAssertEqual(qa.el("native-query-card-add").label, "\u{5DF2}\u{81EA}\u{9009}", "already in the list")
         XCTAssertFalse(qa.el("native-query-card-add").isEnabled, "the button is greyed out")
         XCTAssertFalse(qa.el("native-query-card-add-fail-note").exists, "no failure block on success")
     }
@@ -142,16 +142,58 @@ final class QueryFlowTests: XCTestCase {
         XCTAssertTrue(qa.el("native-query-hint").exists, "still the hint state")
     }
 
-    /// 加入失败三段式：说明 + [先不加 | 再试一次]；输入与卡片留着。
+    /// 加入失败三段式：说明 + [先不加 | 再试一次]；输入与卡片留着。「先不加」回到卡片按钮；再点「加入自选」这次写进去。
     func testAddFailureThreeStage() {
         let qa = QA(seed: "query-add-fail")
         qa.launch()
         waitSheet(qa)
         XCTAssertTrue(qa.el("native-query-card").exists, "the card is still there")
         XCTAssertTrue(qa.el("native-query-card-add-fail-note").exists, "the note")
-        XCTAssertTrue(qa.el("native-query-card-add-fail-cancel").exists, "先不加")
-        XCTAssertTrue(qa.el("native-query-card-add-fail-retry").exists, "再试一次")
+        XCTAssertEqual(qa.el("native-query-card-add-fail-note").label, "\u{6CA1}\u{52A0}\u{8FDB}\u{81EA}\u{9009}\u{FF0C}\u{8F93}\u{5165}\u{7684}\u{5B57}\u{8FD8}\u{5728}\u{3002}")
+        XCTAssertTrue(qa.el("native-query-card-add-fail-cancel").exists, "\u{5148}\u{4E0D}\u{52A0}")
+        XCTAssertTrue(qa.el("native-query-card-add-fail-retry").exists, "\u{518D}\u{8BD5}\u{4E00}\u{6B21}")
         XCTAssertTrue(qa.el("native-query-input").exists, "the input is still there")
+        XCTAssertFalse(qa.el("native-query-card-add").exists, "the add button gives its place to the failure block")
+        // 「先不加」：三段式收起，卡片按钮回来，什么都没写
+        qa.tapNative("native-query-card-add-fail-cancel")
+        XCTAssertTrue(qa.el("native-query-card-add").waitForExistence(timeout: 5 * QALoad.scale), "the add button is back")
+        XCTAssertFalse(qa.el("native-query-card-add-fail-note").exists, "the failure block is gone")
+        XCTAssertEqual(qa.el("native-query-card-add").label, "\u{52A0}\u{5165}\u{81EA}\u{9009}")
+        // 再点「加入自选」：这次写进去（夹具只让第一次失败），按钮变成禁用的「已自选」
+        qa.tapNative("native-query-card-add")
+        let end = Date().addingTimeInterval(8 * QALoad.scale)
+        while Date() < end && qa.el("native-query-card-add").label != "\u{5DF2}\u{81EA}\u{9009}" { Thread.sleep(forTimeInterval: 0.2) }
+        XCTAssertEqual(qa.el("native-query-card-add").label, "\u{5DF2}\u{81EA}\u{9009}", "added this time")
+    }
+
+    /// 加入失败后「再试一次」= 同一个动作再做一次（夹具只让第一次失败）：三段式收起，按钮变成「已自选」。
+    func testAddFailureRetry() {
+        let qa = QA(seed: "query-add-fail")
+        qa.launch()
+        waitSheet(qa)
+        XCTAssertTrue(qa.el("native-query-card-add-fail-retry").waitForExistence(timeout: 5 * QALoad.scale))
+        qa.tapNative("native-query-card-add-fail-retry")
+        XCTAssertTrue(qa.el("native-query-card-add").waitForExistence(timeout: 8 * QALoad.scale), "the add button is back")
+        XCTAssertEqual(qa.el("native-query-card-add").label, "\u{5DF2}\u{81EA}\u{9009}", "the retry wrote it")
+        XCTAssertFalse(qa.el("native-query-card-add-fail-note").exists, "the failure block is gone")
+    }
+
+    /// S02「开新一组」写失败：留在框内三段式（说明 + [先不保存 | 再试一次]）；「先不保存」关框、什么都没写。
+    func testS02FailureStaysInTheBox() {
+        let qa = QA(seed: "s02-fail")
+        qa.launch()
+        XCTAssertTrue(qa.el("native-s02-dialog").waitForExistence(timeout: 20 * QALoad.scale), "the S02 dialog")
+        XCTAssertTrue(qa.el("native-s02-fail").exists, "the three-part block")
+        XCTAssertEqual(qa.el("native-s02-body").label, "\u{6CA1}\u{4FDD}\u{5B58}\u{4E0A}\u{FF0C}\u{521A}\u{624D}\u{7684}\u{9009}\u{62E9}\u{6CA1}\u{8BB0}\u{4E0B}\u{3002}")
+        XCTAssertTrue(qa.el("native-s02-retry").exists, "\u{518D}\u{8BD5}\u{4E00}\u{6B21}")
+        XCTAssertFalse(qa.el("native-s02-continue").exists, "the three buttons give their place to the block")
+        let before = qa.session("B")
+        qa.tapNative("native-s02-fail-cancel")
+        let end = Date().addingTimeInterval(8 * QALoad.scale)
+        while Date() < end && qa.el("native-s02-dialog").exists { Thread.sleep(forTimeInterval: 0.2) }
+        XCTAssertFalse(qa.el("native-s02-dialog").exists, "the dialog is closed")
+        XCTAssertEqual(qa.session("B")["cursor"] as? Int, before["cursor"] as? Int, "nothing was written")
+        XCTAssertEqual(qa.route["top"] as? String, "home", "back on the home page")
     }
 
     /// S02 三键：接着写 / 开新一组 / 取消；取消关框不写入。
@@ -160,9 +202,9 @@ final class QueryFlowTests: XCTestCase {
         qa.launch()
         XCTAssertTrue(qa.el("native-s02-dialog").waitForExistence(timeout: 20 * QALoad.scale), "the S02 dialog")
         XCTAssertTrue(qa.el("native-s02-body").exists, "the body")
-        XCTAssertTrue(qa.el("native-s02-continue").exists, "接着写")
-        XCTAssertTrue(qa.el("native-s02-end-start").exists, "开新一组")
-        XCTAssertTrue(qa.el("native-s02-cancel").exists, "取消")
+        XCTAssertTrue(qa.el("native-s02-continue").exists, "\u{63A5}\u{7740}\u{5199}")
+        XCTAssertTrue(qa.el("native-s02-end-start").exists, "\u{5F00}\u{65B0}\u{4E00}\u{7EC4}")
+        XCTAssertTrue(qa.el("native-s02-cancel").exists, "\u{53D6}\u{6D88}")
         // 取消：关框、不写入（探针里的会话不变）
         let before = qa.session("B")
         qa.tap(qa.el("native-s02-cancel"), "cancel")

@@ -50,7 +50,7 @@
       "n": 2
     },
     {
-      "op": "switchTab",
+      "op": "nativeRoots",
       "tab": "home"
     },
     {
@@ -59,11 +59,17 @@
   ],
   "ready": {
     "web": "screen-home",
-    "native": "id:native-s02-dialog"
+    "native": "id:native-s02-ready"
   },
   "steps": [
     {
+      "js": "const { startPicked } = await import('/src/ui/screens/session/index.js'); startPicked(['火'], { source: { view: 'home' } });"
+    },
+    {
       "wait": 800
+    },
+    {
+      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
     },
     {
       "tap": {

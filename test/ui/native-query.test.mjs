@@ -176,6 +176,37 @@ test('B3.6 query.pick: the callback can ask the sheet to close (the web side clo
   }
 });
 
+test('B3.6 the registered close runs before the next page opens (the web closes the sheet / box first)', async () => {
+  const calls = [];
+  setQueryActions({
+    onPick: (chars, api) => { api.close(); calls.push('pick'); return { ok: true }; },
+    close: () => calls.push('close-query'),
+  });
+  try {
+    const { api } = boot();
+    assert.deepEqual(await api.call('query.pick', { chars: ['永'], from: 'bar' }), { ok: true, close: false }, 'the web side already closed it');
+    assert.deepEqual(calls, ['close-query', 'pick']);
+  } finally {
+    setQueryActions(null);
+  }
+  calls.length = 0;
+  setS02Actions({
+    onContinue: () => calls.push('continue'),
+    onEndStart: () => { calls.push('endStart'); return { ok: true }; },
+    onStarted: () => calls.push('started'),
+    close: () => calls.push('close-s02'),
+  });
+  try {
+    const { api } = boot();
+    assert.deepEqual(await api.call('s02.decide', { action: 'continue' }), { ok: true, close: false });
+    assert.deepEqual(await api.call('s02.decide', { action: 'endStart' }), { ok: true, close: false });
+    assert.deepEqual(await api.call('s02.decide', { action: 'cancel' }), { ok: true, close: true }, 'cancel: the native box plays its own exit');
+    assert.deepEqual(calls, ['close-s02', 'continue', 'endStart', 'close-s02', 'started']);
+  } finally {
+    setS02Actions(null);
+  }
+});
+
 test('B3.6 view.s02 = the web S02 body and buttons', () => {
   const { api } = boot();
   const v = api.call('view.s02', { chars: ['春', '日', '月'] }).view;

@@ -99,6 +99,7 @@ export const OPS = Object.freeze({
       state,
       predicates,
       getInk: typeof ctx.getStore().getInk === 'function' ? (id => ctx.getStore().getInk(id)) : null,
+      store: ctx.getStore(),
     });
     // 卡片次要键的折行点（网页量的；原生按这些位置换行）。
     if (view.card) {
@@ -125,14 +126,22 @@ export const OPS = Object.freeze({
     if (!chars.length) return fail('invalid');
     const acts = queryActions;
     let closed = false;
-    // 网页弹层的 api.close()：网页版关弹层，原生版由原生自己关（回包里带 close，原生收到就收起）。
-    const api = { mode: chars.length > 1 || a.from === 'bar' ? 'pick' : (acts && acts.mode) || 'lookup', close: () => { closed = true; } };
+    // 网页弹层的 api.close()：网页版关弹层；原生版由登记方（ui/components/query/index.js）当场把原生查字屏出栈（与网页同一时序：
+    // 先关弹层，再开 S02 / 写字页）。登记方没给 close 时，回包带 close，原生自己收起。
+    const api = {
+      mode: chars.length > 1 || a.from === 'bar' ? 'pick' : (acts && acts.mode) || 'lookup',
+      close: () => {
+        if (closed) return;
+        closed = true;
+        if (acts && typeof acts.close === 'function') acts.close();
+      },
+    };
     const cb = a.from === 'card' && acts && typeof acts.onPractice === 'function'
       ? () => acts.onPractice(chars[0], api)
       : (acts && typeof acts.onPick === 'function' ? () => acts.onPick(chars, api) : null);
     if (!cb) return fail('unavailable');
     if (await isFailure(cb())) return fail('generic');
-    return { ok: true, close: closed };
+    return { ok: true, close: closed && !(acts && typeof acts.close === 'function') };
   },
 
   'query.detail': async (args, ctx) => {
@@ -169,10 +178,14 @@ export const OPS = Object.freeze({
     const a = args || {};
     const acts = s02Actions;
     if (!acts) return fail('unavailable');
+    // 登记方给了 close（ui/screens/session/s02.js）：与网页同一时序，先关框（原生 S02 出栈）再开写字页；回包 close:false（已经关了）。
+    // 没给时回包 close:true，原生自己收起。
+    const selfClose = typeof acts.close === 'function';
     if (a.action === 'continue') {
       if (typeof acts.onContinue !== 'function') return fail('unavailable');
+      if (selfClose) acts.close();
       acts.onContinue();
-      return { ok: true, close: true };
+      return { ok: true, close: !selfClose };
     }
     if (a.action === 'cancel') {
       if (typeof acts.onCancel === 'function') acts.onCancel();
@@ -182,8 +195,9 @@ export const OPS = Object.freeze({
       if (typeof acts.onEndStart !== 'function') return fail('unavailable');
       const r = await acts.onEndStart();
       if (!r || r.ok === false) return fail('generic'); // 留在框内三段式（R-G04）
+      if (selfClose) acts.close();
       if (typeof acts.onStarted === 'function') acts.onStarted(r);
-      return { ok: true, close: true };
+      return { ok: true, close: !selfClose };
     }
     return fail('invalid');
   },

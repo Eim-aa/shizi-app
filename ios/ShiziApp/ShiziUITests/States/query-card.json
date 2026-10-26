@@ -100,7 +100,7 @@
       "op": "seed"
     },
     {
-      "op": "switchTab",
+      "op": "nativeRoots",
       "tab": "library"
     },
     {
@@ -111,11 +111,20 @@
   ],
   "ready": {
     "web": "screen-library",
-    "native": "id:native-query-sheet"
+    "native": "id:native-query-ready"
   },
   "steps": [
     {
+      "tap": {
+        "webTestid": "library-query-open"
+      },
+      "times": 1
+    },
+    {
       "wait": 700
+    },
+    {
+      "js": "const el = document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"query-input\"], [data-testid=\"query-input\"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, \"永\"); el.dispatchEvent(new Event('input', { bubbles: true }));"
     },
     {
       "wait": 800

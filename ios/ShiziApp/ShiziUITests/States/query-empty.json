@@ -99,7 +99,7 @@
       "op": "seed"
     },
     {
-      "op": "switchTab",
+      "op": "nativeRoots",
       "tab": "library"
     },
     {
@@ -109,9 +109,15 @@
   ],
   "ready": {
     "web": "screen-library",
-    "native": "id:native-query-sheet"
+    "native": "id:native-query-ready"
   },
   "steps": [
+    {
+      "tap": {
+        "webTestid": "library-query-open"
+      },
+      "times": 1
+    },
     {
       "wait": 700
     }

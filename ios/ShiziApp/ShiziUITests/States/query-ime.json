@@ -99,7 +99,7 @@
       "op": "seed"
     },
     {
-      "op": "switchTab",
+      "op": "nativeRoots",
       "tab": "library"
     },
     {
@@ -111,17 +111,23 @@
   ],
   "ready": {
     "web": "screen-library",
-    "native": "id:native-query-sheet"
+    "native": "id:native-query-ready"
   },
   "steps": [
+    {
+      "tap": {
+        "webTestid": "library-query-open"
+      },
+      "times": 1
+    },
     {
       "wait": 700
     },
     {
-      "wait": 800
+      "js": "const el = document.querySelector('[data-testid=\"query-input\"]'); el.focus(); el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' })); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'yong'); el.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: 'g', inputType: 'insertCompositionText' }));"
     },
     {
-      "js": "const el = document.querySelector('[data-testid=\"query-input\"]'); el.focus(); el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' })); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'yong'); el.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: 'g', inputType: 'insertCompositionText' }));"
+      "wait": 800
     }
   ]
 }

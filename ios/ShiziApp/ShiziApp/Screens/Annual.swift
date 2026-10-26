@@ -368,6 +368,7 @@ final class AnnualScreen: ShiziScreenViewController {
         saveButton.setTitle(m.save.text, for: .normal)
         saveButton.setTitleColor(color("btn-fg"), for: .normal)
         saveButton.titleLabel?.font = NativeType.compose(size: mt.value("fs17"), weight: .medium)
+        NativeType.trackTitle(saveButton)
         saveButton.accessibilityLabel = m.save.text
         saveButton.backgroundColor = color("btn-bg")
         saveButton.layer.cornerRadius = mt.value("r-ctl")
@@ -455,19 +456,22 @@ final class AnnualScreen: ShiziScreenViewController {
         if m.first != nil {
             y += firstTop
             let side = firstSide
-            firstMarker.frame = CGRect(x: bx, y: y, width: bw, height: side + firstBottom)
-            firstCell.frame = CGRect(x: bx, y: y, width: side, height: side)
+            let labelH = mt.line("lh13")
+            let sideX = bx + side + firstGap
+            let sideW = bw - side - firstGap
+            let dateH = NativeType.height(firstDate, width: sideW, line: mt.line("lh15"))
+            // 网页 .sz-ann__first：align-items:flex-end；右侧一列 = 说明 + 4 + 日期 + 内下边距 4，比格子高时整块跟着它高，格子沉到底
+            let sideH = labelH + 4 + dateH + 4
+            let blockH = max(side, sideH)
+            firstMarker.frame = CGRect(x: bx, y: y, width: bw, height: blockH + firstBottom)
+            firstCell.frame = CGRect(x: bx, y: y + blockH - side, width: side, height: side)
             firstCanvas.frame = firstCell.bounds
             firstInk.frame = firstCell.bounds
             firstGlyph.frame = firstCell.bounds
-            let labelH = mt.line("lh13")
-            let sideX = bx + side + firstGap
-            let sideBottom = y + side - 4
-            let sideW = bw - side - firstGap
-            let dateH = NativeType.height(firstDate, width: sideW, line: mt.line("lh15"))
+            let sideBottom = y + blockH - 4
             firstDate.frame = CGRect(x: sideX, y: sideBottom - dateH, width: sideW, height: dateH)
             firstLabel.frame = CGRect(x: sideX, y: sideBottom - dateH - 4 - labelH, width: sideW, height: labelH)
-            y += side + firstBottom
+            y += blockH + firstBottom
         }
         // 每月一段
         let cols = axLayout ? 6 : 8
@@ -512,15 +516,31 @@ final class AnnualScreen: ShiziScreenViewController {
             twiceTitle.frame = CGRect(x: bx, y: y, width: bw, height: titleH)
             // 网页 .sz-ann__twice：标题与那一行之间隔 14
             y += titleH + twiceGap
-            let cellTop = y
-            twiceFirstCell.frame = CGRect(x: bx, y: cellTop, width: twiceSide, height: twiceSide)
-            twiceLastCell.frame = CGRect(x: bx + twiceSide + 12, y: cellTop, width: twiceSide, height: twiceSide)
-            twiceFirstInk.frame = twiceFirstCell.bounds
-            twiceLastInk.frame = twiceLastCell.bounds
             let dateH = mt.line("lh13")
-            twiceFirstDate.frame = CGRect(x: bx, y: cellTop + twiceSide + 8, width: twiceSide, height: dateH)
-            twiceLastDate.frame = CGRect(x: bx + twiceSide + 12, y: cellTop + twiceSide + 8, width: twiceSide, height: dateH)
-            y = cellTop + twiceSide + 8 + dateH + 24
+            if axLayout {
+                // AX 档（网页 :root[data-ax] .sz-ann__twicerow：竖排）：两项上下叠，每项的格子与日期在整宽里居中
+                let cellX = bx + (bw - twiceSide) / 2
+                let firstTop = y
+                twiceFirstCell.frame = CGRect(x: cellX, y: firstTop, width: twiceSide, height: twiceSide)
+                twiceFirstDate.frame = CGRect(x: bx, y: firstTop + twiceSide + 8, width: bw, height: dateH)
+                let lastTop = firstTop + twiceSide + 8 + dateH + 12
+                twiceLastCell.frame = CGRect(x: cellX, y: lastTop, width: twiceSide, height: twiceSide)
+                twiceLastDate.frame = CGRect(x: bx, y: lastTop + twiceSide + 8, width: bw, height: dateH)
+                twiceFirstDate.textAlignment = .center
+                twiceLastDate.textAlignment = .center
+                twiceFirstInk.frame = twiceFirstCell.bounds
+                twiceLastInk.frame = twiceLastCell.bounds
+                y = lastTop + twiceSide + 8 + dateH + 24
+            } else {
+                let cellTop = y
+                twiceFirstCell.frame = CGRect(x: bx, y: cellTop, width: twiceSide, height: twiceSide)
+                twiceLastCell.frame = CGRect(x: bx + twiceSide + 12, y: cellTop, width: twiceSide, height: twiceSide)
+                twiceFirstInk.frame = twiceFirstCell.bounds
+                twiceLastInk.frame = twiceLastCell.bounds
+                twiceFirstDate.frame = CGRect(x: bx, y: cellTop + twiceSide + 8, width: twiceSide, height: dateH)
+                twiceLastDate.frame = CGRect(x: bx + twiceSide + 12, y: cellTop + twiceSide + 8, width: twiceSide, height: dateH)
+                y = cellTop + twiceSide + 8 + dateH + 24
+            }
         }
         bodyMarker.frame = CGRect(x: bx, y: top, width: bw, height: y - top)
         return y

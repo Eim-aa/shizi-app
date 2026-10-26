@@ -99,7 +99,6 @@ final class MonthScreen: ShiziScreenViewController {
         wire(shareButton) { page in (page as? MonthScreen)?.openImage() }
         wire(saveButton) { page in (page as? MonthScreen)?.openImage() }
         super.viewDidLoad()
-        setTitle(t("X-WORK.monthTitle", ["month": ""]))
     }
     override var watchedDomains: [String]? { ["records", "ink"] }
 
@@ -151,10 +150,12 @@ final class MonthScreen: ShiziScreenViewController {
         shareButton.setTitle(t("R-B10.share"), for: .normal)
         shareButton.setTitleColor(color("ink1"), for: .normal)
         shareButton.titleLabel?.font = NativeType.compose(size: mt.value("fs17"), weight: .medium)
+        NativeType.trackTitle(shareButton) // 中文按字体的 trak 表补字距（大字号下网页的字更紧）
         shareButton.accessibilityLabel = t("R-B10.share")
         saveButton.setTitle(t("R-M01.saveImage"), for: .normal)
         saveButton.setTitleColor(color("btn-fg"), for: .normal)
         saveButton.titleLabel?.font = NativeType.compose(size: mt.value("fs17"), weight: .medium)
+        NativeType.trackTitle(saveButton)
         saveButton.accessibilityLabel = t("R-M01.saveImage")
         styleFooterButtons()
         // 说明句（整月有衬底字时才有）
@@ -243,7 +244,7 @@ final class MonthScreen: ShiziScreenViewController {
         let titleH = mt.line("lh28")
         titleLabel2.frame = CGRect(x: x, y: y, width: width, height: titleH)
         y += titleH + headGap
-        let subH = mt.line("lh13")
+        let subH = NativeType.height(subLabel, width: width, line: mt.line("lh13"))
         subLabel.frame = CGRect(x: x, y: y, width: width, height: subH)
         y += subH
         // 字帖的纸

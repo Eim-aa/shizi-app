@@ -144,6 +144,7 @@ final class RecordsScreen: ShiziScreenViewController {
     private var daySignature: String = ""
     private var dayListCells: [ShiziDayCell] = []
     private var sheetCells: [ShiziPaperCell] = []
+    private var sheetOpenAttr = NSAttributedString(string: "")
     private var axRowButtons: [ShiziPlacedTitleButton] = []
     private var model: View?
     private var sealPath: [[Any]] = []
@@ -522,9 +523,10 @@ final class RecordsScreen: ShiziScreenViewController {
         // 富文本标题（字距 0，与网页同宽）：先设标题色再设富文本——setTitleColor 会按按钮的标题属性重建富文本，
         // 把 .kern 丢掉（网页按原始 advance 排字，重建后数字被换成等宽变体，整段宽 2–3pt）。
         sheetOpenButton.setTitleColor(color("ink2"), for: .normal)
-        sheetOpenButton.setAttributedTitle(NSAttributedString(string: sheet.title.text, attributes: [
+        sheetOpenAttr = NSAttributedString(string: sheet.title.text, attributes: [
             .font: song(mt.value("fs22"), .medium), .foregroundColor: color("ink2"), .kern: 0
-        ]), for: .normal)
+        ])
+        sheetOpenButton.setAttributedTitle(sheetOpenAttr, for: .normal)
         sheetOpenButton.accessibilityLabel = sheet.title.text
         sheetOpenButton.iconSize = CGSize(width: 8, height: 13)
         sheetOpenButton.setImage(ShiziChevron.image(color("ink2"), size: CGSize(width: 8, height: 13)), for: .normal)
@@ -689,7 +691,9 @@ final class RecordsScreen: ShiziScreenViewController {
             let headH2: CGFloat = 48
             let openFont = song(mt.value("fs22"), .medium)
             // 标题按富文本量（字距 0，与网页一致）
-            let openTitle = sheetOpenButton.attributedTitle(for: .normal) ?? NSAttributedString(string: "")
+            // 量自己存的富文本：按钮在设图标 / 标题色后会按标题属性重建富文本、丢掉 .kern（数字被换成等宽变体，整段宽 2–3pt）
+            let openTitle = sheetOpenAttr
+            sheetOpenButton.setAttributedTitle(openTitle, for: .normal)
             let titleW = ceil(ShiziMineText.width(openTitle))
             let openW = titleW + 8 + 8
             sheetOpenButton.frame = CGRect(x: x, y: y, width: openW, height: 44)

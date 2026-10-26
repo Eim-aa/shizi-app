@@ -307,9 +307,11 @@ enum ShiziFlex {
 
     /// 行盒里的文字项（行高 = 网页的 line-height；字的内容高 = 字体的升部 + 降部）。
     static func text(_ font: UIFont, line: CGFloat) -> (ascent: CGFloat, descent: CGFloat) {
-        let content = font.ascender - font.descender
-        let half = (line - content) / 2
-        return (half + font.ascender, half - font.descender)
+        // 网页（WebKit）把字体的升部 / 降部各自取整再排行盒（SimpleFontData::platformInit），原生照取整，行高分数时才不差零点几
+        let asc = font.ascender.rounded()
+        let desc = (-font.descender).rounded()
+        let half = (line - (asc + desc)) / 2
+        return (half + asc, half + desc)
     }
 
     /// 基线对齐的一行：各项的顶（相对行顶）与整行的高。
@@ -617,6 +619,7 @@ final class ShiziSheetPaper: UIView {
     var cells: [ShiziPaperCell] = [] { didSet { setNeedsLayout() } }
     private var grid = ShiziSheetGrid(n: 0, width: 0)
     private var frameColor: UIColor = .label
+    private var sheetColor: UIColor = .clear
     private var guideColor: UIColor = .label
     private var guideWidth: CGFloat = 1
     private var frameWidth: CGFloat = 1
@@ -627,6 +630,9 @@ final class ShiziSheetPaper: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        isOpaque = false
+        backgroundColor = .clear
+        contentMode = .redraw
         sign.isUserInteractionEnabled = false
         addSubview(sign)
         kuanLabel.isAccessibilityElement = false
@@ -656,6 +662,7 @@ final class ShiziSheetPaper: UIView {
 
     func style(sheet: UIColor, frame: UIColor, guide: UIColor, guideWidth gw: CGFloat, frameWidth fw: CGFloat,
                kuanColor: UIColor, kuanFont: UIFont, sealFill fill: UIColor, sealGlyph glyphColor: UIColor) {
+        sheetColor = sheet
         frameColor = frame
         guideColor = guide
         guideWidth = gw
@@ -704,6 +711,14 @@ final class ShiziSheetPaper: UIView {
         let cell: CGFloat = g.c
         let rows: Int = g.rows
         let cols: Int = g.cols
+        // 笺面（sheet）：满行时是一整块，末行没满时是上面几行 + 末行一段（网页 .sz-month__sheet 两段）
+        ctx.setFillColor(sheetColor.cgColor)
+        if g.full {
+            ctx.fill(CGRect(x: 0, y: stageTop, width: g.W, height: g.H))
+        } else {
+            if rows > 1 { ctx.fill(CGRect(x: 0, y: stageTop, width: g.W, height: CGFloat(rows - 1) * cell)) }
+            ctx.fill(CGRect(x: 0, y: stageTop + CGFloat(rows - 1) * cell, width: g.lastW, height: cell))
+        }
         // 格间线（guide）：竖线在每行内，横线在行之间
         ctx.saveGState()
         guideColor.setStroke()

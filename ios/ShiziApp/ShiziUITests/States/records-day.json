@@ -112,6 +112,7 @@
   ],
   "ready": {
     "web": "records-screen",
-    "native": "id:native-records-body"
+    "native": "id:native-records-body",
+    "timeout": 20
   }
 }

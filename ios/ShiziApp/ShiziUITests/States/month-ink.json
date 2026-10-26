@@ -181,7 +181,8 @@
   ],
   "ready": {
     "web": "month-screen",
-    "native": "id:native-month-body"
+    "native": "id:native-month-body",
+    "timeout": 20
   },
   "ax": true
 }

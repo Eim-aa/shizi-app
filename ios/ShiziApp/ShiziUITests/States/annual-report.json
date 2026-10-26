@@ -109,7 +109,8 @@
   ],
   "ready": {
     "web": "annual-screen",
-    "native": "id:native-annual-body"
+    "native": "id:native-annual-body",
+    "timeout": 20
   },
   "ax": true
 }

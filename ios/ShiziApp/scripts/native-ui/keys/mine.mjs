@@ -24,7 +24,7 @@ export const KEYS = [
   { key: 'mine-appearance', native: ['id:native-mine-appearance'], web: ['id:mine-appearance'] },
   { key: 'mine-appearance-seg', native: ['id:native-mine-appearance-seg'], web: ['id:mine-appearance-seg'] },
   { key: 'mine-appearance-option', native: ['id:native-mine-appearance-option'], web: ['id:mine-appearance-option'] }, // 同一屏里出现多次（行 / 格）：按文档顺序配对
-  { key: 'sheet-done', native: ['id:native-sheet-done'], web: ['id:sheet-done'] }, // 选择弹层（外观 / 每组字数）标题行右端的「完成」
+  { key: 'mine-sheet-done', native: ['id:native-sheet-done'], web: ['id:sheet-done'] }, // 选择弹层（外观 / 每组字数）标题行右端的「完成」
   { key: 'mine-group-size', native: ['id:native-mine-group-size'], web: ['id:mine-group-size'] },
   { key: 'mine-group-size-seg', native: ['id:native-mine-group-size-seg'], web: ['id:mine-group-size-seg'] },
   { key: 'mine-group-size-option', native: ['id:native-mine-group-size-option'], web: ['id:mine-group-size-option'] }, // 同一屏里出现多次（行 / 格）：按文档顺序配对

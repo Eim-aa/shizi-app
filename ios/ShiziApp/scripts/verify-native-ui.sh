@@ -71,6 +71,12 @@ trap cleanup EXIT
 log "simulator $SIM_NAME ($UDID)"
 xcrun simctl boot "$UDID"
 xcrun simctl bootstatus "$UDID" -b >/dev/null 2>&1 || true
+# R14：键盘钉成 en_US（网页参考与原生取证同一台、同一个键盘）。新模拟器跟随本机语言（zh-Hans）默认拼音键盘 336pt，英文 335pt——
+# 不钉住时键盘高度随新模拟器挑哪个键盘变，带键盘的状态（查字等）逐屏对比跟着变。在任何 App 启动前写好。
+KB="en_US@sw=QWERTY;hw=Automatic"
+xcrun simctl spawn "$UDID" defaults write .GlobalPreferences AppleKeyboards -array "$KB"
+xcrun simctl spawn "$UDID" defaults write .GlobalPreferences AppleKeyboardsExpanded -int 1
+xcrun simctl spawn "$UDID" defaults write com.apple.Preferences KeyboardsCurrentAndNext -array "$KB"
 
 # 2. 构建
 log "build (DEBUG app + ShiziUITests)"

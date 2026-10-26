@@ -204,9 +204,7 @@ final class WriteFlowTests: XCTestCase {
         qa.launch()
         let f = qa.el("native-write-grid").frame
         let origin = qa.app.coordinate(withNormalizedOffset: .zero)
-        origin.withOffset(CGVector(dx: 2, dy: f.midY)).press(forDuration: 0.05, thenDragTo: origin.withOffset(CGVector(dx: f.midX + 120, dy: f.midY)),
-                                                              withVelocity: 900, thenHoldForDuration: 0)
-        Thread.sleep(forTimeInterval: 0.9)
+        qa.edgeBack(from: origin.withOffset(CGVector(dx: 2, dy: f.midY)), to: origin.withOffset(CGVector(dx: f.midX + 120, dy: f.midY)))
         qa.waitNative(false)
         qa.waitRouteTop("home")
         XCTAssertEqual(qa.session()["strokes"] as? Int, 0, "the edge swipe wrote nothing")

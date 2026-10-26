@@ -248,12 +248,38 @@ final class QA {
     }
 
     /// 左缘右滑（N3：= 点左上）。
+    /// 左缘右滑返回。机器很忙时 XCTest 合成的边缘拖动偶尔整个没被识别（R14：模拟器日志里这一下没有任何左缘识别器 began——网页容器、原生页都没有；
+    /// 探针的路由 / 原生栈 / 转场记录 / 网页转场全都没变）——按合成触摸失败重滑一次（最多一次）、打 QA-RETRY；
+    /// 有任何变化（开始跟手、回弹、出栈）都不重滑，重滑后还没效果交给后面的断言判（不替产品掩盖）。
     func edgeBack() {
         let w = app.windows.firstMatch
-        let start = w.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.55)).withOffset(CGVector(dx: 2, dy: 0))
-        let end = w.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.55))
-        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: 900, thenHoldForDuration: 0)
-        Thread.sleep(forTimeInterval: 0.9)
+        edgeBack(from: w.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.55)).withOffset(CGVector(dx: 2, dy: 0)),
+                 to: w.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.55)))
+    }
+
+    /// 从 start 起手的左缘拖动（起手点须在屏幕左缘），同样的「没效果重滑一次」。
+    func edgeBack(from start: XCUICoordinate, to end: XCUICoordinate) {
+        let before = edgeSignature()
+        for attempt in 0..<2 {
+            start.press(forDuration: 0.05, thenDragTo: end, withVelocity: 900, thenHoldForDuration: 0)
+            Thread.sleep(forTimeInterval: 0.9)
+            guard attempt == 0 else { return }
+            let deadline = Date().addingTimeInterval(2.5 * QALoad.scale)
+            while Date() < deadline {
+                if edgeSignature() != before { return }
+                Thread.sleep(forTimeInterval: 0.3)
+            }
+            QALoad.retry("edge-back-no-effect", "probe=\(probe)")
+        }
+    }
+
+    /// 左缘返回「有没有发生任何事」：整份探针（路由、原生栈与根页、宿主呈现链、写字页阶段、结果页、会话、转场记录、网页转场记录……），只去掉自己会走的时钟。
+    /// 宁可多算「有变化」（不重滑），不漏算（漏算会多返回一次：写字页判断阶段的左缘 = 回到写，只有 native.phase 变）。
+    private func edgeSignature() -> String {
+        var p = probe
+        p.removeValue(forKey: "clock")
+        let data = (try? JSONSerialization.data(withJSONObject: p, options: [.sortedKeys])) ?? Data()
+        return String(data: data, encoding: .utf8) ?? ""
     }
 
     func waitNative(_ shown: Bool, timeout: TimeInterval = 8, file: StaticString = #filePath, line: UInt = #line) {

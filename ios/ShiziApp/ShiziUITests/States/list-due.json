@@ -2,7 +2,7 @@
   "state": "list-due",
   "name": "区详情 · 待复习",
   "screen": "library-list",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -111,6 +111,7 @@
     }
   ],
   "ready": {
-    "web": "list-screen"
+    "web": "list-screen",
+    "native": "id:native-library-list-screen"
   }
 }

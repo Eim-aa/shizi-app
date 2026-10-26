@@ -2,7 +2,7 @@
   "state": "list-known",
   "name": "区详情 · 已熟悉",
   "screen": "library-list",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -110,6 +110,7 @@
     }
   ],
   "ready": {
-    "web": "list-screen"
+    "web": "list-screen",
+    "native": "id:native-library-list-screen"
   }
 }

@@ -2,7 +2,7 @@
   "state": "switch",
   "name": "换库 · 四个库带字数",
   "screen": "library-switch",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -108,7 +108,8 @@
     }
   ],
   "ready": {
-    "web": "libswitch-screen"
+    "web": "libswitch-screen",
+    "native": "id:native-library-switch-screen"
   },
   "ax": true
 }

@@ -55,6 +55,8 @@ import { setNoneActions } from '../session/none.js';
 import {
   groupFromHereActive, listModel, listRowMetaParts, normalizeKind, normalizeSel, sameSel, selectAllSel, selectNoneSel, toggleSel,
 } from '../../../session/views/library-list.js';
+import { setLibrarySubActions, setLibrarySubMeasure } from '../../../session/api/library-sub.js';
+import { contentWidth, textLineStarts } from './web-metrics.js';
 
 export const LIST_SCREEN = 'library-list';
 
@@ -277,7 +279,7 @@ function ListScreen({ params, entry }) {
   const start = () => {
     const keys = model.selectedKeys;
     if (!keys.length) return;
-    const r = startPicked(keys, { source: { view: model.view } });
+    const r = startListKeys(keys, model.view);
     if (!r || !r.ok) {
       setFailed(true);
       markStateChange();
@@ -326,4 +328,36 @@ function ListScreen({ params, entry }) {
   </${Page}>`;
 }
 
-registerScreen(LIST_SCREEN, ListScreen, { label: t('R-E04.titleWrong') });
+/**
+ * 开一组（清单页「练这些字」）：网页路径与 App API 路径调的是**同一个函数**（B3.8 契约）。
+ * @param {string[]} keys 选中的字（cardKey）
+ * @param {string} view 来源视图（wrongList / forgetList / dueList …；结果页的离开按钮按它回到本页）
+ */
+export function startListKeys(keys, view) {
+  return startPicked(keys, { source: { view } });
+}
+
+// 原生页（ShiziScreen_library_list）走 App API：同一组函数对象，网页路径 == API 路径。
+setLibrarySubActions({
+  startList: ({ keys, view } = {}) => startListKeys(keys || [], view),
+});
+
+/**
+ * 网页量测（B3.8）：原生这一页的说明句是 text-wrap: pretty 的段落（网页 WebKit 按整段均衡各行长度，
+ * 原生 TextKit 没有这个规则）——网页这边用同一组 CSS 量出每一行从第几个字开始，随 view.library-list
+ * 的回包信封（metrics）交给原生。量法见 ./web-metrics.js。
+ */
+setLibrarySubMeasure({
+  list: (view) => {
+    const w = contentWidth();
+    if (!w) return null;
+    const line = (text, cls, wrapClass) => (text ? textLineStarts(text, { wrapClass, cls }, w) : null);
+    return {
+      top: line(tRef(view.top), 'sz-list__top', 'sz-list'),
+      hint: line(tRef(view.hint), 'sz-list__hint', 'sz-list'),
+      note: line(tRef(view.note), 'sz-list__note', 'sz-list'),
+    };
+  },
+});
+
+registerScreen(LIST_SCREEN, ListScreen, { label: t('R-E04.titleWrong'), native: true });

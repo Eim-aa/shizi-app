@@ -27,6 +27,7 @@ import { injectStyles, T } from '../../components/styles.js';
 import { getStore } from '../../../store/store.js';
 import { t, tRef } from '../../../config/copy/index.js';
 import { judgedChars, libraryDescRef, libraryNameRef, libraryRows } from '../../../session/views/library-switch.js';
+import { setLibrarySubActions } from '../../../session/api/library-sub.js';
 
 export { judgedChars, libraryRows };
 
@@ -183,7 +184,12 @@ function LibrarySwitchScreen() {
   </${Page}>`;
 }
 
-registerScreen(LIBRARY_SWITCH_SCREEN, LibrarySwitchScreen, { label: t('X-LIBSWITCH.title') });
+// 原生页（ShiziScreen_library_switch）走 App API：同一个函数对象（网页路径 == API 路径）。
+setLibrarySubActions({
+  switch: ({ id } = {}) => switchLibrary(id),
+});
+
+registerScreen(LIBRARY_SWITCH_SCREEN, LibrarySwitchScreen, { label: t('X-LIBSWITCH.title'), native: true });
 
 /** 推入换库页（字库页「更换字库 ›」、M3-1 调用）。 */
 export function openLibrarySwitch() {

@@ -279,7 +279,7 @@ extension WebViewController {
                     let own = (v is UIButton) ? v.convert(v.bounds, to: window) : lf
                     let vis = own.intersection(visible)
                     e["visibleFrame"] = vis.isNull || vis.isEmpty ? NSNull() : ["x": r(vis.minX), "y": r(vis.minY), "w": r(vis.width), "h": r(vis.height)] as Any
-                } else if v is ShiziRowButton {
+                } else if v is ShiziRowButton || v is ShiziLineButton {
                     // B3.7：自己不画字的整块按钮（字详情的头图格 / 记录格，字在它里面的标签里）：此刻看得见的部分 = 按滚动区 / 裁切祖先的可见框裁过的框（AX-01 重叠只比看得见的）
                     var visible = window.bounds
                     var a: UIView? = v.superview

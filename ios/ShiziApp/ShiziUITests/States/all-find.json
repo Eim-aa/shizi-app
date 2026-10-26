@@ -2,7 +2,7 @@
   "state": "all-find",
   "name": "全部字 · 查找命中",
   "screen": "library-all",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -114,6 +114,7 @@
     }
   ],
   "ready": {
-    "web": "all-screen"
+    "web": "all-screen",
+    "native": "id:native-library-all-screen"
   }
 }

@@ -405,7 +405,9 @@ extension WebViewController {
           let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
           for (let n = walker.nextNode(); n; n = walker.nextNode()) {
             if (!n.textContent.trim()) continue;
-            if (n.parentElement && n.parentElement.closest('[aria-hidden="true"]') && n.parentElement.closest('[aria-hidden="true"]') !== el && !isBtn) continue;
+            // 只跳过元素自己里面的读屏隐藏装饰；整个图层被 aria-hidden（弹层下面的页，R16）不算——否则弹层下的标题没有 textFrame，对比退回到盒子（含内边距）
+            const hid = n.parentElement && n.parentElement.closest('[aria-hidden="true"]');
+            if (hid && hid !== el && el.contains(hid) && !isBtn) continue;
             const range = document.createRange(); range.selectNodeContents(n);
             for (const q of range.getClientRects()) { if (q.width < 0.1) continue; l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom); }
           }

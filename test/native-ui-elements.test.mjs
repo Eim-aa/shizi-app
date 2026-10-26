@@ -82,3 +82,25 @@ test('AX-01 (B2.9b): truncation, clipping and overlap within one layer fail; ove
   assert.equal(ax.eval({ native: [el('甲', { x: 20, y: 100, w: 50, h: 30 }, { clipped: true })] }).pass, false);
   assert.equal(ax.eval({ native: [el('甲', { x: 20, y: 100, w: 50, h: 30 }), el('乙', { x: 40, y: 110, w: 50, h: 30 })] }).pass, false);
 });
+
+test('a shared web testid claimed by several pages pairs with whichever key the native side has (R16: undo bar)', () => {
+  const web = { elements: [
+    { kind: 'view', id: 'undo-bar', frame: f(12, 712, 378, 62) },
+  ] };
+  const native = { elements: [
+    { kind: 'view', id: 'native-detail-undo-bar', frame: f(12, 712, 378, 62) },
+  ] };
+  const { diffs, pairs } = diffState(web, native, tol);
+  assert.equal(pairs.length, 1, 'paired through the detail page key, not the backup page key that comes first');
+  assert.deepEqual(diffs, []);
+});
+
+test('R16: a shared-component key (shared: true, e.g. the web Sheet head) only counts on screens whose native side has it', async () => {
+  const { KEYS } = await import('../ios/ShiziApp/scripts/native-ui/elements.mjs');
+  assert.ok(KEYS.some(k => k.key === 'sheet-head' && k.shared), 'sheet-head is marked shared');
+  const web = { elements: [{ kind: 'view', id: 'sheet-head', frame: f(0, 400, 402, 56) }] };
+  const other = diffState(web, { elements: [] }, tol);
+  assert.deepEqual(other.diffs, [], 'another sheet without the native head: not reported');
+  const own = diffState({ elements: [{ kind: 'view', id: 'sheet-head', frame: f(0, 400, 402, 56) }] }, { elements: [{ kind: 'view', id: 'native-library-all-sheet-head', frame: f(0, 400, 402, 56) }] }, tol);
+  assert.equal(own.pairs.length, 1, 'the library-all sheet still pairs it');
+});

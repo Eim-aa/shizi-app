@@ -29,14 +29,16 @@ final class LibraryFlowTests: XCTestCase {
         return qa
     }
 
-    /// 分类行进入子页：三档第一行「待复习」→ 区详情（library-list；子页还是网页的，B3.8 原生化）。
-    /// 原生根页让开给网页页面，回来时按原样盖回。
+    /// 分类行进入子页：三档第一行「待复习」→ 区详情（library-list）。R16：B3.8 起清单页已原生——推在原生栈上、根页不让开（盖在下面）。
     func testCategoryRowOpensZoneList() {
         let qa = launchLibrary("library-records")
         XCTAssertTrue(qa.el("native-library-zone-0").waitForExistence(timeout: 5), "the first zone row")
         qa.tapNative("native-library-zone-0")
         qa.waitRouteTop("library-list", timeout: 20)
-        qa.waitProbe("root steps aside for the web page") { ((($0["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool) == true }
+        qa.waitProbe("native list pushed over the root") { p in
+            let stage = p["stage"] as? [String: Any]
+            return (stage?["screens"] as? [String]) == ["library-list"] && ((stage?["root"] as? [String: Any])?["hidden"] as? Bool) == false
+        }
     }
 
     /// 「全部 ›」进入有记录的字（library-all；同样是 nav.push，子页还是网页的）。

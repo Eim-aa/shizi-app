@@ -10,6 +10,10 @@
   },
   "setup": [
     {
+      "op": "systemPermission",
+      "value": "denied"
+    },
+    {
       "op": "patch",
       "domain": "settings",
       "value": {

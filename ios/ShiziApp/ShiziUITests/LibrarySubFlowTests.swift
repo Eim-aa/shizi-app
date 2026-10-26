@@ -69,20 +69,22 @@ final class LibrarySubFlowTests: XCTestCase {
         let sorts = qaQuery(qa, "native-library-all-sort")
         XCTAssertTrue(sorts.element(boundBy: 0).waitForExistence(timeout: 6), "排序三键")
         qa.tap(sorts.element(boundBy: 2), "sort by age")
+        // R16：弹层开着时下面的页对读屏（无障碍树）藏起来（主控决定），页面上的组名 / 清单要关掉弹层再看
+        qa.tap(qa.el("native-library-all-sheet-done"), "close the sheet", verify: false)
         qa.waitProbe("sort applied", timeout: 10) { _ in
             self.qaFirstGroupName(qa) != groupBefore
         }
-        // 筛选：选「待复习」→ 底栏主键变成区清单（页面多一个「看这些字 ›」）
-        // 弹层选完排序还开着（网页同样），筛选项就在同一张弹层里
+        // 筛选：再开弹层选「待复习」→ 底栏主键变成区清单（页面多一个「看这些字 ›」）
+        qa.tap(qa.el("native-library-all-menu-open"), "reopen sort sheet", verify: false)
         let chips = qaQuery(qa, "native-library-all-chip")
         XCTAssertTrue(chips.element(boundBy: 0).waitForExistence(timeout: 6), "筛选项")
         // 筛选项是开关：「没效果就重点」会把它点回去，所以不验证
         qa.tap(chips.element(boundBy: 0), "chip due", verify: false)
+        // 关掉弹层（完成），回到页面
+        qa.tap(qa.el("native-library-all-sheet-done"), "close the sheet", verify: false)
         qa.waitProbe("filter applied", timeout: 10) { _ in
             self.qaHasElement(qa, "native-library-all-list")
         }
-        // 关掉弹层（完成），回到页面查找
-        qa.tap(qa.el("native-library-all-sheet-done"), "close the sheet", verify: false)
         // 查找：输入一个字 → 只剩命中那个月
         let input = qa.el("native-library-all-find")
         XCTAssertTrue(input.waitForExistence(timeout: 6), "查字框")

@@ -50,7 +50,7 @@ final class NativeStageTests: XCTestCase {
     func testB32_screenNamesFindClassesByConvention() {
         XCTAssertTrue(ShiziScreenRegistry.screenClass("about") == AboutScreen.self)
         XCTAssertTrue(ShiziScreenRegistry.screenClass("about-privacy") == AboutPrivacyScreen.self)
-        XCTAssertNil(ShiziScreenRegistry.screenClass("library-all"), "not native yet → no class → the web keeps the page")
+        XCTAssertNil(ShiziScreenRegistry.screenClass("records"), "not native yet → no class → the web keeps the page") // R16：library-all 已由 B3.8 原生化，换一个仍是网页的屏
         XCTAssertEqual(ShiziScreenRegistry.className("about-credits"), "ShiziScreen_about_credits")
         // 页面卡陆续加类（B3.5a 起 home …）：清单含关于四页、有序，注入的就是这份清单
         let screens = ShiziScreenRegistry.screens

@@ -58,12 +58,16 @@ if (!window.__qaModulesWarm) { await ctx.load(); ctx.mods = null; window.__qaMod
 let pinned = false;
 const realNow = Date.now;
 const unpin = () => { if (!pinned) return; pinned = false; const at = Date.now(); Date.now = realNow; T.setClock(at); };
+let pinK = 0;
 if (pin) {
   const FIX = new Date(pin).getTime();
-  let k = 0;
-  Date.now = () => FIX + (k += 5);
+  Date.now = () => FIX + (pinK += 5);
   pinned = true;
 }
+// R16：把钉住的时钟拨到第 tick 次读数（op 的 tick 参数，judge 用）。读时钟的次数在 op 之间会被页面渲染（网页 Preact）与原生根页的
+// 视图请求（原生取证）插进来，次数随界面实现与时序变；op 自己的同步段里没有让出、次数确定。所以写判断记录（FSRS fuzz 种子含复习时刻）
+// 之前把计数拨到夹具写明的值，「N 天后再见」就与谁在前面读过时钟无关（网页参考、原生取证、Chromium 开发工具同一个数）。
+ctx.repin = (tick) => { if (pinned) pinK = Number(tick) * 5; };
 // 钉住之后再调一次 load()：原来的写法是钉住时钟之后才载入各模块，造数据时读时钟的次数要和原来逐位一致（B2.9b 参考图里的「N 天后再见」靠它）。
 await ctx.load();
 const OPS = {};

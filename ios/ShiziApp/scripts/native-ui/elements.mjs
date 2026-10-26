@@ -33,6 +33,9 @@ export function assignKeys(list, side) {
     if (side === 'web' && e.id === 'write-answer-next' && !/\bsz-btn--primary\b/.test(e.class || '')) continue;
     // 首练结果页的「再写一组」是主按钮正上方的文字按钮（与主按钮同一个 testid result-again），按文字配对
     if (side === 'web' && e.id === 'result-again' && !/\bsz-btn--primary\b/.test(e.class || '')) continue;
+    // 同一个网页 testid 可以被几页的键认领（共享组件：撤销条 undo-bar / undo-button 在备份页与字详情页各有一个键名，R16）：
+    // 全部候选记在 keyAlts，配对时取原生那一边真有的那个；e.key 取第一个（没有原生对应时报告用）。
+    const alts = [];
     for (const k of KEYS) {
       const hit = k[side].some(sel => {
         const [type, rest] = sel.split(':');
@@ -41,8 +44,10 @@ export function assignKeys(list, side) {
         if (type === 'id') return e.id === val && (idx === undefined || String(e._idx) === idx);
         return false;
       });
-      if (hit) { e.key = k.key; break; }
+      if (hit) alts.push(k.key);
     }
+    if (alts.length) e.key = alts[0];
+    if (alts.length > 1) e.keyAlts = alts;
   }
   return list;
 }
@@ -55,8 +60,15 @@ export function pairUp(web, native) {
   // 1. 语义键
   for (const w of web) {
     if (!w.key) continue;
-    const n = native.find(x => nLeft.has(x) && x.key === w.key);
-    if (n) { pairs.push([w, n]); wLeft.delete(w); nLeft.delete(n); }
+    const keys = w.keyAlts || [w.key];
+    const n = native.find(x => nLeft.has(x) && keys.includes(x.key));
+    if (n) { w.key = n.key; pairs.push([w, n]); wLeft.delete(w); nLeft.delete(n); }
+  }
+  // 1b. 共享组件的 testid（键里写 shared: true，例：网页 Sheet.js 的 sheet-head / sheet-done）只在原生这一屏真有对应元素时才算键
+  //     （R16：B3.8 给全部字弹层登记了 sheet-head，别的弹层的网页标题行跟着成了「原生缺少」）；没有时当作没有键——结构容器不比，带字的按文字配
+  const sharedKeys = new Set(KEYS.filter(k => k.shared).map(k => k.key));
+  for (const w of wLeft) {
+    if (w.key && sharedKeys.has(w.key) && !native.some(n => n.key === w.key)) { delete w.key; delete w.keyAlts; }
   }
   // 2. 文字（同字多处按距离最近）
   for (const w of [...wLeft]) {

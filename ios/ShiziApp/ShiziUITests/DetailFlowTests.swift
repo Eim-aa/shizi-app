@@ -139,7 +139,8 @@ final class DetailFlowTests: XCTestCase {
         XCTAssertFalse(qa.el("native-detail-zoom-fail-retry").exists)
     }
 
-    /// 让给网页再回来（B3.2 记录里留给本页的流程用例）：字详情 →（网页的）待复习清单 → 返回，原生字详情盖回来（open via 'return'，不带转场）。
+    /// 字详情 → 待复习清单 → 返回（B3.2 留给本页的「让给网页再回来」用例）。R16：B3.8 起清单页已原生，这一跳不再让给网页——
+    /// 清单推在字详情上面（同一个原生栈），左缘返回回到同一张字详情；「让给网页再回来」的覆盖留在 MineFlowTests（练习记录页仍是网页）。
     func testYieldToWebAndComeBack() {
         let qa = open("detail-wrong")
         Thread.sleep(forTimeInterval: 0.5)
@@ -147,11 +148,11 @@ final class DetailFlowTests: XCTestCase {
         if !row.waitForExistence(timeout: 3) { XCTFail("no list row"); return }
         if !row.isHittable { qa.app.swipeUp() }
         qa.tapNative("native-detail-list-row")
-        waitStage(qa, [])
-        XCTAssertTrue(qa.transitions.contains("yield:screen"), "\(qa.transitions)")
+        waitStage(qa, ["detail", "library-list"])
+        XCTAssertFalse(qa.transitions.contains("yield:screen"), "a native page does not yield to the web: \(qa.transitions)")
+        qa.waitProbe("push settled") { ($0["navRunning"] as? Int) == 0 }
         qa.edgeBack()
         waitStage(qa, ["detail"])
-        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("screen:open detail via=return") }, "\(qa.transitions)")
         qa.waitRouteTop("detail")
     }
 

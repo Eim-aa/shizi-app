@@ -267,6 +267,9 @@ final class NativeStage: NSObject {
         guard vc.isViewLoaded else { return false }
         let opaque = (vc.view.backgroundColor?.cgColor.alpha ?? 0) > 0.5
         if vc is ShiziScreenViewController { return opaque }
+        // R16：查字 / S02 的绘制层（B3.6 合并后才有：弹层屏把遮罩与面板放进自己呈现的透明层）是那一页本身，透明、不盖住下面的根页（D75 ②）。
+        // 漏了这一支时 R14 的「其余呈现页盖住」把它算成盖住，取证不取透明弹层下面的根页（全量里 query-* / s02* 每屏十几条「原生缺少」）。
+        if vc is QueryOverlayLayer { return opaque }
         if vc.modalPresentationStyle == .custom {
             guard opaque, let w = vc.view.window else { return false }
             return vc.view.convert(vc.view.bounds, to: w).contains(w.bounds.insetBy(dx: 1, dy: 1))
@@ -292,6 +295,28 @@ final class NativeStage: NSObject {
         guard screens.contains(where: { $0 === page }) else { return false }
         return Self.coveredByPresented(page)
     }
+
+    /// 从 vc 往上有没有任何一层呈现着的模态层（R16，读屏一支）：透明的弹层屏（查字 / S02）、选择弹层、底部弹层、图片弹层都算——
+    /// 弹层下面的内容读屏摸不到、划不到（主控 R16 决定）。正在收起的那一层不算；查字 / S02 自己的绘制层（QueryOverlayLayer）是这一页本身，不算盖住它。
+    static func modalAbove(_ vc: UIViewController) -> Bool {
+        var cur = vc.presentedViewController
+        while let c = cur {
+            if !(c is QueryOverlayLayer), !c.isBeingDismissed { return true }
+            cur = c.presentedViewController
+        }
+        return false
+    }
+
+    /// 这一页对读屏藏起来（R16）：取证用的 isCovered（不透明口径，D75 ②）之外，再加「上面有任何模态层」——读屏口径不跟取证口径走。
+    func isHiddenFromAccessibility(_ page: ShiziScreenViewController) -> Bool {
+        if isCovered(page) { return true }
+        if page === rootScreen { return Self.modalAbove(host) || Self.modalAbove(page) }
+        guard screens.contains(where: { $0 === page }) else { return false }
+        return Self.modalAbove(page)
+    }
+
+    /// 宿主上有没有任何模态层（R16：网页内容——Tab 栏等——在弹层下面同样对读屏藏起来）。
+    var hostHasModal: Bool { Self.modalAbove(host) }
 
     /// 呈现链最上面的控制器（新原生页盖在它上面）。
     private func topPresented() -> UIViewController {
@@ -751,14 +776,16 @@ final class NativeStage: NSObject {
 
     /// 不带动画收起一张覆盖页；它还在 UIKit 呈现转场里时等转场完再收（UIKit 转场中途 dismiss 会被忽略）。
     static func dismissWhenSettled(_ vc: UIViewController, then: (() -> Void)? = nil) {
+        // R16：收起 vc 连同它上面呈现的整条链——由呈现它的那一层发 dismiss。直接对 vc 发 dismiss，vc 上面还有呈现的页时 UIKit 只收起最上面那条
+        // （B3.8 后字库清单 → 字详情 →「练这个字」：清单留在宿主上，新写字页呈现不上去，test105）。
+        let dismissChain: () -> Void = {
+            if let presenter = vc.presentingViewController { presenter.dismiss(animated: false, completion: then) } else { then?() }
+        }
         if vc.isBeingPresented || vc.isBeingDismissed, let tc = vc.transitionCoordinator {
-            tc.animate(alongsideTransition: nil) { _ in
-                if vc.presentingViewController != nil { vc.dismiss(animated: false, completion: then) } else { then?() }
-            }
+            tc.animate(alongsideTransition: nil) { _ in dismissChain() }
             return
         }
-        if vc.presentingViewController == nil { then?(); return }
-        vc.dismiss(animated: false, completion: then)
+        dismissChain()
     }
 
     private func handleResultOpen(_ body: [String: Any]) {

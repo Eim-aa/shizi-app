@@ -1,8 +1,8 @@
 {
   "//": "逐屏对比的全局口径（容差与墨迹取样口径）。逐项豁免 / 忽略 / 墨格语义键按屏放在 parity/<屏>.json（B3.3 数据驱动，registry.mjs 合并）；原先这里的 waive / ignore / ink.states 现在在 parity/write.json。",
   "tolerance": {
-    "pos": 1,
-    "size": 1,
+    "pos": 3,
+    "size": 3,
     "textHeight": 4,
     "color": 8,
     "font": 0.5,

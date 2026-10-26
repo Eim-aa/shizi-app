@@ -166,7 +166,9 @@ extension WebViewController {
             return alpha > 0.02
         }
         // B3.2：原生栈里被盖住的下层页不取（网页同样只取顶层图层）
-        let covered = Set(stage.screens.dropLast().map { ObjectIdentifier($0.view) })
+        var covered = Set(stage.screens.dropLast().map { ObjectIdentifier($0.view) })
+        // 根页之上推入了原生子页、或呈现了原生写字 / 结果 / 弹层：被盖住的原生根页同样不取（网页只取顶层图层；B3.8 发现，主控补呈现页一支）
+        if let root = stage.rootScreen, !stage.screens.isEmpty || presentedViewController != nil { covered.insert(ObjectIdentifier(root.view)) }
         func walk(_ v: UIView) {
             if v is WKWebView || covered.contains(ObjectIdentifier(v)) { return }
             if v.window != nil, visible(v), v.bounds.width > 0.5, v.bounds.height > 0.5 {

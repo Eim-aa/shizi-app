@@ -21,6 +21,8 @@ export const NATIVE_HOST_SCREENS = Object.freeze({
   block: '阻断页（B3.13）：L0 的替身，由壳在 store 阻断时直接打开，不能推入、没有返回（规范 §9 E2）',
   'image-preview': '原生图片预览弹层的宿主（B3.11）：网页组件为空，弹层是 L3',
   'image-toast': '原生分享失败浮条的宿主（B3.11）：网页组件为空，浮条是 L4',
+  query: '原生查字弹层（B3.6）：原生壳内 openQuery 推入的 L3 弹层宿主；网页版仍是遮罩栈里的弹层（components/query），不是可推入页面',
+  s02: '原生 S02 确认框（B3.6）：原生壳内 openS02 推入的 L3 确认框宿主；网页版仍是遮罩栈里的确认框（session/s02.js），不是可推入页面',
 });
 
 /** 页面目录：name、是否 Tab 根、进入方式（info = seedLongText 的结果）。 */

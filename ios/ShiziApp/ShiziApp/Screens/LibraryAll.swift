@@ -669,6 +669,17 @@ final class LibraryAllScreen: ShiziScreenViewController {
             y += mt.space(4) // .sz-all 的 gap s4（项与项之间才有）
             let closedTop = y + mt.space(2)
             closedMarker.frame = CGRect(x: x, y: closedTop, width: width, height: CGFloat(m.closed.count) * 52 + LibraryCommon.hair)
+            // 收起月份的 ul 顶线（.sz-all__closed border-top .5px line）与每个按钮的底线（.sz-all__month border-bottom .5px line）
+            let lineColor = color("line")
+            let topLine = closedMarker.viewWithTag(9101) ?? { let v = UIView(); v.tag = 9101; v.isUserInteractionEnabled = false; closedMarker.addSubview(v); return v }()
+            topLine.backgroundColor = lineColor
+            topLine.frame = CGRect(x: 0, y: 0, width: width, height: LibraryCommon.hair)
+            for (i, b) in monthButtons.enumerated() {
+                let bottom = b.viewWithTag(9102) ?? { let v = UIView(); v.tag = 9102; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
+                bottom.backgroundColor = lineColor
+                bottom.frame = CGRect(x: 0, y: 52 - LibraryCommon.hair, width: width, height: LibraryCommon.hair)
+                _ = i
+            }
             for (i, b) in monthButtons.enumerated() {
                 // 按钮在 ul 里（ul 自己已经贴了页边）
                 b.frame = CGRect(x: 0, y: LibraryCommon.hair + CGFloat(i) * 52, width: width, height: 52)

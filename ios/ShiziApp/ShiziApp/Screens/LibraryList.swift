@@ -19,6 +19,8 @@ final class LibraryListRowView: UIView {
     let open = ShiziLineButton(type: .custom)
     let word = UILabel()
     let meta = UILabel()
+    /// 笔迹小图的方框（网页 .sz-lrow__thumb：44 × 44、frame-w 的 frame 色描边、sheet 底）。
+    let thumb = UIView()
     let inkView = LibraryInkView()
     let noInk = UILabel()
     let caption = UILabel()
@@ -43,6 +45,8 @@ final class LibraryListRowView: UIView {
         select.addSubview(check)
         open.addSubview(word)
         open.addSubview(meta)
+        thumb.isUserInteractionEnabled = false
+        open.addSubview(thumb)
         open.addSubview(inkView)
         open.addSubview(noInk)
         open.addSubview(caption)
@@ -55,7 +59,8 @@ final class LibraryListRowView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     /// 圆点与勾的位置（圆点在按钮里居中，勾在圆点里居中）；选中时圆点填墨色、描边去掉。
-    func layoutDot(selected: Bool) {
+    func layoutDot(selected: Bool, line: UIColor) {
+        dot.layer.borderColor = line.resolvedColor(with: traitCollection).cgColor
         dot.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
         check.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
         dot.layer.borderWidth = selected ? 0 : 1.5
@@ -321,6 +326,10 @@ final class LibraryListScreen: ShiziScreenViewController {
             rv.select.isEnabled = row.selectable
             rv.select.alpha = row.selectable ? 1 : 0
             rv.dotInk = color("ink1")
+            rv.layoutDot(selected: row.selected, line: color("ink4"))
+            rv.thumb.backgroundColor = color("sheet")
+            rv.thumb.layer.borderWidth = mt.value("frame-w")
+            rv.thumb.layer.borderColor = color("frame").resolvedColor(with: traitCollection).cgColor
             // 勾（网页 .sz-lrow__dot 里的对勾：14 × 14，在 44 × 44 的圆点钮里居中）
             rv.select.iconSize = CGSize(width: 14, height: 14)
             rv.select.iconCentered = true
@@ -557,11 +566,14 @@ final class LibraryListScreen: ShiziScreenViewController {
                 let columnX = mainX + box.mainWidth + 12
                 let columnY = 10 + (contentH - box.columnHeight) / 2
                 let thumbX = columnX + (box.columnWidth - 44) / 2
+                rv.thumb.isHidden = false
+                rv.thumb.frame = CGRect(x: thumbX, y: columnY, width: 44, height: 44)
                 rv.inkView.frame = CGRect(x: thumbX, y: columnY, width: 44, height: 44)
                 rv.noInk.frame = CGRect(x: thumbX + (44 - 26.4) / 2, y: columnY, width: 26.4, height: 44)
                 rv.caption.frame = CGRect(x: columnX + (box.columnWidth - rv.caption.intrinsicContentSize.width) / 2, y: columnY + 44 + 2,
                                          width: rv.caption.intrinsicContentSize.width, height: mt.line("lh11"))
             } else {
+                rv.thumb.isHidden = true
                 rv.inkView.frame = .zero
                 rv.noInk.frame = .zero
                 rv.caption.frame = .zero

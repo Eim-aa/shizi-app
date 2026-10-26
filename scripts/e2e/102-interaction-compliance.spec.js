@@ -6,7 +6,7 @@
 // 别的卡还没修的条目见 scripts/e2e/interaction-pending.mjs：命中时打印「pending P… skips IC-…」，不算通过也不算失败。
 // 其余断言分在 102-interaction-compliance-pages2 / -overlays / -feedback / -write 几份里（每份 90s 上限）。
 
-import { CATALOG, DEV_SCREENS, PRESS_MS, TOP, boot, enter, registeredScreens, seedRich, skipIfPending, snapshot, swipeBack, waitIdle } from './ic-lib.mjs';
+import { CATALOG, DEV_SCREENS, NATIVE_HOST_SCREENS, PRESS_MS, TOP, boot, enter, registeredScreens, seedRich, skipIfPending, snapshot, swipeBack, waitIdle } from './ic-lib.mjs';
 import { checkPages } from './ic-pages.mjs';
 
 export const PART1 = ['home', 'library', 'mine', 'write', 'result', 'library-list', 'library-all', 'library-switch', 'detail', 'detail-photo'];
@@ -19,7 +19,7 @@ export default async function interactionCompliance(page, ctx) {
   step('IC-00: every registered screen is in the interaction-compliance catalog (or a declared dev page)');
   const screens = await registeredScreens(page);
   const known = new Set(CATALOG.map(e => e.name));
-  const missing = screens.filter(s => !known.has(s.name) && !DEV_SCREENS[s.name]).map(s => s.name);
+  const missing = screens.filter(s => !known.has(s.name) && !DEV_SCREENS[s.name] && !NATIVE_HOST_SCREENS[s.name]).map(s => s.name);
   assert.deepEqual(missing, [], 'IC-00 registered screens without a catalog entry (add an entry to scripts/e2e/ic-lib.mjs CATALOG)');
   for (const e of CATALOG) assert.ok(screens.some(s => s.name === e.name), `IC-00 catalog entry ${e.name} is a registered screen`);
   for (const s of screens.filter(x => known.has(x.name))) assert.equal(s.tab, !!CATALOG.find(e => e.name === s.name).tab, `IC-00 ${s.name} tab flag`);

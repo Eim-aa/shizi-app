@@ -16,6 +16,13 @@ export const DEV_SCREENS = Object.freeze({
   'query-demo': '开发页（?dev=1）的查字演示',
 });
 
+/** 注册成路由屏、但不是可推入页面的原生宿主（B3 原生化）：没有网页内容或由壳直接打开，交互合规在原生检查（QA-H1 + XCUITest）里做，不进网页遍历。 */
+export const NATIVE_HOST_SCREENS = Object.freeze({
+  block: '阻断页（B3.13）：L0 的替身，由壳在 store 阻断时直接打开，不能推入、没有返回（规范 §9 E2）',
+  'image-preview': '原生图片预览弹层的宿主（B3.11）：网页组件为空，弹层是 L3',
+  'image-toast': '原生分享失败浮条的宿主（B3.11）：网页组件为空，浮条是 L4',
+});
+
 /** 页面目录：name、是否 Tab 根、进入方式（info = seedLongText 的结果）。 */
 export const CATALOG = Object.freeze([
   { name: 'home', tab: true },

@@ -343,7 +343,7 @@ export default async function prefsSpec(page, ctx) {
   await clickSettle(page, 'remind-switch');
   assert.deepEqual((await state(page)).settings.remind, { enabled: true, hour: 20, minute: 0 }, 'enabled at 20:00');
   let msgs = await nativeMessages(page);
-  const types = msgs.map(m => m.type).filter(x => x !== 'backGestureEnabled' && x !== 'pageReady'); // pageReady：每次页面加载一条（M5-3）
+  const types = msgs.map(m => m.type).filter(x => x !== 'backGestureEnabled' && x !== 'pageReady' && x !== 'native'); // pageReady：每次页面加载一条（M5-3）；native：原生页舞台协议（B3.5c 外观同步等），与提醒无关
   assert.deepEqual(types, ['requestReminderPermission', 'syncReminder'], 'permission requested, then synced');
   const sync0 = msgs.filter(m => m.type === 'syncReminder').pop();
   assert.deepEqual({ enabled: sync0.enabled, hour: sync0.hour, minute: sync0.minute }, { enabled: true, hour: 20, minute: 0 }, 'sync payload');

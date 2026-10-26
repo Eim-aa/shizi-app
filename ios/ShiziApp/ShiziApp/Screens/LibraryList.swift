@@ -59,7 +59,9 @@ final class LibraryListRowView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     /// 圆点与勾的位置（圆点在按钮里居中，勾在圆点里居中）；选中时圆点填墨色、描边去掉。
-    func layoutDot(selected: Bool, line: UIColor) {
+    func layoutDot(selected: Bool, line: UIColor, checkImage: UIImage? = nil) {
+        check.image = selected ? checkImage : nil
+        check.contentMode = .center
         dot.layer.borderColor = line.resolvedColor(with: traitCollection).cgColor
         dot.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
         check.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
@@ -326,14 +328,13 @@ final class LibraryListScreen: ShiziScreenViewController {
             rv.select.isEnabled = row.selectable
             rv.select.alpha = row.selectable ? 1 : 0
             rv.dotInk = color("ink1")
-            rv.layoutDot(selected: row.selected, line: color("ink4"))
+            rv.layoutDot(selected: row.selected, line: color("ink4"), checkImage: check)
             rv.thumb.backgroundColor = color("sheet")
             rv.thumb.layer.borderWidth = mt.value("frame-w")
             rv.thumb.layer.borderColor = color("frame").resolvedColor(with: traitCollection).cgColor
             // 勾（网页 .sz-lrow__dot 里的对勾：14 × 14，在 44 × 44 的圆点钮里居中）
             rv.select.iconSize = CGSize(width: 14, height: 14)
             rv.select.iconCentered = true
-            rv.select.setImage(row.selected ? check : nil, for: .normal)
             rv.chevron.image = chevron
             let w = row.word
             let wordText = w.has ? w.pre + w.tg + w.post : ""
@@ -472,7 +473,7 @@ final class LibraryListScreen: ShiziScreenViewController {
         let charSide = 44 * LibraryCommon.scaleK()
         let captionW = row.noThumb ? 0 : LibraryCommon.textWidth(row.thumbCaption.text, mt.font(11))
         let columnW = row.noThumb ? 0 : max(44, captionW)
-        let columnH = row.noThumb ? 0 : 44 + 2 + mt.line("lh11")
+        let columnH = row.noThumb ? 0 : 44 + (row.thumbCaption.text.isEmpty ? 0 : 2 + mt.line("lh11"))
         let openW = max(0, width - 39)
         let gap: CGFloat = 12
         let chevronW: CGFloat = 8

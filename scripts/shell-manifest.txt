@@ -7460,6 +7460,7 @@ src/ui/screens/library/list.js
 src/ui/screens/library/query-entry.js
 src/ui/screens/library/switch.js
 src/ui/screens/library/wall.js
+src/ui/screens/library/web-metrics.js
 src/ui/screens/mine/about.js
 src/ui/screens/mine/annual.js
 src/ui/screens/mine/appearance.js

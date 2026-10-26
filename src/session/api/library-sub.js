@@ -22,7 +22,6 @@ import { getInk } from '../../store/store.js';
 import { localDay } from '../../core/dates.js';
 import { decodeInk, resampleForReplay } from '../../core/ink-math.js';
 import { now as envNow } from '../../platform/env.js';
-import { getTextSize } from '../../platform/text-size.js';
 import * as defaultPolicy from '../../config/policy.js';
 
 // ---------------------------------------------------------------- 动作登记（网页页面模块调用）
@@ -115,11 +114,10 @@ export function listView(state, { kind, sel = null } = {}) {
 
 /**
  * 全部字页视图：网页 all.js 的 allModel（compact = 系统大字号，width = 屏宽；两者决定墙的列数）。
- * large 缺省时取当前系统字号（网页 useWallLayout 读的 :root[data-text-large]；platform/text-size.js 按 --k ≥ policy.compactTextScale 给，
- * 与网页同一口径）；调用方（原生页）也可以显式给。
+ * large 由调用方（原生页）按系统大字号显式给（会话层不读平台模块）；缺省按否。
  */
 export function allView(state, { sort, filter, fold, find = '', width = null, large = undefined } = {}) {
-  const compact = large === undefined ? getTextSize().large : large === true;
+  const compact = large === true;
   return allModel(state, {
     today: today(), policy: defaultPolicy, compact, width: width == null ? null : Number(width),
     sort, filter, fold, find, pyOf, practicable,

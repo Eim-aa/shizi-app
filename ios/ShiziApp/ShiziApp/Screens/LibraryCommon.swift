@@ -506,9 +506,9 @@ enum LibraryText {
     // MARK: WebKit 口径的折行（UAX #14）
 
     /// 不能出现在行首的字（网页 line-break 默认：行首不许是收尾标点）。
-    private static let noStart = Set("。，、；：！？）】》」』〉”’%,.;:!?)]}")
+    private static let noStart = Set("\u{3002}\u{FF0C}\u{3001}\u{FF1B}\u{FF1A}\u{FF01}\u{FF1F}\u{FF09}\u{3011}\u{300B}\u{300D}\u{300F}\u{3009}\u{201D}\u{2019}%,.;:!?)]}")
     /// 不能出现在行尾的字（开引号、开括号等）。
-    private static let noEnd = Set("（【《「『〈“‘([{")
+    private static let noEnd = Set("\u{FF08}\u{3010}\u{300A}\u{300C}\u{300E}\u{3008}\u{201C}\u{2018}([{")
 
     /// 一个折行单元（不可再断的一段）。
     private struct Unit {

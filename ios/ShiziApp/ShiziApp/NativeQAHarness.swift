@@ -147,7 +147,11 @@ extension WebViewController {
             if let dlg = vc.endDialogForTesting { collectNames(dlg, prefix: "endDialog.") }
         }
         // B3.3：别的原生页（页面卡新加的宿主）：呈现出来的控制器按成员名取语义键，弹层同写字页的 sheet. 前缀
-        if nativeResultTop == nil, nativeWriteTop == nil, let p = presentedViewController {
+        if nativeResultTop == nil, nativeWriteTop == nil, let p = presentedViewController, !(p is ShiziScreenViewController), p.modalPresentationStyle == .custom {
+            // R14：宿主直接呈现的弹层（根页的底部选择弹层等）同写字页的弹层，归 sheet 图层
+            collectNames(p, prefix: "sheet.")
+            names[ObjectIdentifier(p.view)] = "sheet.view"
+        } else if nativeResultTop == nil, nativeWriteTop == nil, let p = presentedViewController {
             collectNames(p, prefix: "")
             if let sheet = p.presentedViewController, !(sheet is ShiziScreenViewController) { // 呈现在上面的原生页（B3.5c：根页之上推入的子页）不是弹层
                 collectNames(sheet, prefix: "sheet.")
@@ -167,8 +171,9 @@ extension WebViewController {
         }
         // B3.2：原生栈里被盖住的下层页不取（网页同样只取顶层图层）
         var covered = Set(stage.screens.dropLast().map { ObjectIdentifier($0.view) })
-        // 根页之上推入了原生子页、或呈现了原生写字 / 结果 / 弹层：被盖住的原生根页同样不取（网页只取顶层图层；B3.8 发现，主控补呈现页一支）
-        if let root = stage.rootScreen, !stage.screens.isEmpty || presentedViewController != nil { covered.insert(ObjectIdentifier(root.view)) }
+        // 根页被盖住（NativeStage.isCovered：呈现链里有不透明的原生子页或写字 / 结果页）同样不取（网页只取顶层图层；B3.8 发现，主控补呈现页一支）；
+        // R14 / B3.6：透明的原生弹层屏（查字 / S02）与底部弹层下面的根页看得见，网页参考同样列出它，照取
+        if let root = stage.rootScreen, stage.isCovered(root) { covered.insert(ObjectIdentifier(root.view)) }
         func walk(_ v: UIView) {
             if v is WKWebView || covered.contains(ObjectIdentifier(v)) { return }
             if v.window != nil, visible(v), v.bounds.width > 0.5, v.bounds.height > 0.5 {
@@ -540,6 +545,11 @@ final class QAProbe {
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
         var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies]
         if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
+        // R14：宿主往上的呈现链（类名，底 → 顶；写字 / 结果 / 原生页 / 弹层都在里面）——测试工具判断「左缘返回有没有发生任何事」用
+        var chain: [String] = []
+        var cur = host.presentedViewController
+        while let c = cur { chain.append(String(describing: type(of: c))); cur = c.presentedViewController }
+        stageOut["presented"] = chain
         out["stage"] = stageOut
         out["pageReady"] = host.pageReady
         out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）

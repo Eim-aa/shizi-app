@@ -103,6 +103,18 @@ enum ShiziChevron {
     }
 }
 
+/// 原生页的根视图（子类自定义根视图时继承它）：被盖住的页（NativeStage.isCovered：根页上推入 / 呈现了别的页或弹层、原生栈里的下层页）
+/// 整页不进无障碍树——读屏摸不到、也划不到盖在下面的东西（R14：`.overFullScreen` 呈现时下层视图留在窗口里，系统不替它藏）。
+/// 按此刻的栈动态判断，不在每条呈现 / 收起路径上逐个设置。
+class ShiziScreenView: UIView {
+    weak var page: ShiziScreenViewController?
+
+    override var accessibilityElementsHidden: Bool {
+        get { super.accessibilityElementsHidden || (page.flatMap { p in p.stage.map { $0.isCovered(p) } } ?? false) }
+        set { super.accessibilityElementsHidden = newValue }
+    }
+}
+
 /// B3 原生页的基类。子类实现 render(view:)（解自己的 Codable 视图）与 layoutBody(width:x:top:)（排正文、返回正文底）。
 class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestureRecognizerDelegate {
     let screen: String
@@ -204,12 +216,13 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     // MARK: 生命周期
 
     override func loadView() {
-        let v = UIView()
+        let v = ShiziScreenView()
         v.backgroundColor = color("paper")
         view = v
     }
 
     override func viewDidLoad() {
+        (view as? ShiziScreenView)?.page = self
         super.viewDidLoad()
         backButton.accessibilityIdentifier = "native-page-back"
         backButton.accessibilityLabel = t("X-COMMON.back")
@@ -352,9 +365,9 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
         b.addAction(UIAction { [weak self, weak b] _ in
             guard let self, let b else { return }
             let now = CACurrentMediaTime()
-            if now < self.stateChangedAt + self.pressGuard { return }
+            if now < self.stateChangedAt + self.pressGuard { ShiziProbe.log("press dropped (state guard) \(self.screen)"); return }
             let id = ObjectIdentifier(b)
-            if let last = self.lastPress[id], now < last + self.pressGuard { return }
+            if let last = self.lastPress[id], now < last + self.pressGuard { ShiziProbe.log("press dropped (repeat guard) \(self.screen)"); return }
             self.lastPress[id] = now
             action(self)
         }, for: .touchUpInside)

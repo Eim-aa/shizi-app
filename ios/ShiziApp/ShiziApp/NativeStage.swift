@@ -260,6 +260,39 @@ final class NativeStage: NSObject {
 
     func isTop(_ page: ShiziScreenViewController) -> Bool { topScreen === page }
 
+    /// 呈现着的一层是否把下面整个盖住（R14，B3.6 规则）：原生页（ShiziScreenViewController）看自己的底色——不透明的子页盖住，
+    /// 透明的弹层屏（查字 / S02：遮罩下面的页看得见）不盖；自定义呈现的弹层（底部选择弹层、图片弹层等 .custom）只有不透明且铺满窗口才算；
+    /// 其余呈现页（写字 / 结果页）盖住。
+    static func coversBelow(_ vc: UIViewController) -> Bool {
+        guard vc.isViewLoaded else { return false }
+        let opaque = (vc.view.backgroundColor?.cgColor.alpha ?? 0) > 0.5
+        if vc is ShiziScreenViewController { return opaque }
+        if vc.modalPresentationStyle == .custom {
+            guard opaque, let w = vc.view.window else { return false }
+            return vc.view.convert(vc.view.bounds, to: w).contains(w.bounds.insetBy(dx: 1, dy: 1))
+        }
+        return true
+    }
+
+    /// 从 vc 往上的呈现链里有没有盖住它的一层。
+    static func coveredByPresented(_ vc: UIViewController) -> Bool {
+        var cur = vc.presentedViewController
+        while let c = cur {
+            if coversBelow(c) { return true }
+            cur = c.presentedViewController
+        }
+        return false
+    }
+
+    /// 这一页被盖住了（R14，一条规则管无障碍树与 QA-H1 取证）：根页 = 宿主往上的呈现链里有一层盖住（coversBelow）；
+    /// 原生栈里的页 = 它往上的呈现链里有一层盖住。被盖住的页整页不进无障碍树（ShiziScreenView），QA-H1 也不取被盖住的根页。
+    /// 透明弹层屏 / 底部弹层下面的页仍在（看得见；弹层自己 accessibilityViewIsModal）。
+    func isCovered(_ page: ShiziScreenViewController) -> Bool {
+        if page === rootScreen { return Self.coveredByPresented(host) }
+        guard screens.contains(where: { $0 === page }) else { return false }
+        return Self.coveredByPresented(page)
+    }
+
     /// 呈现链最上面的控制器（新原生页盖在它上面）。
     private func topPresented() -> UIViewController {
         var top: UIViewController = host
@@ -414,7 +447,10 @@ final class NativeStage: NSObject {
 
     /// 推入 screen（原生页里点按）。目标有原生类 → nav.push，宿主回发 open；目标是网页屏 → 先让开（样子交给宿主层）再 nav.push。
     func navigate(from page: ShiziScreenViewController, push screen: String, params: [String: Any] = [:]) {
-        guard isTop(page), !page.transitions.isLeaving else { return }
+        guard isTop(page), !page.transitions.isLeaving else {
+            ShiziProbe.log("navigate \(screen) refused: top=\(topScreen?.screen ?? "-") leaving=\(page.transitions.isLeaving) presented=\(String(describing: host.presentedViewController))")
+            return
+        }
         tapAt = CACurrentMediaTime()
         let args: [String: Any] = ["screen": screen, "params": params]
         if ShiziScreenRegistry.screenClass(screen) != nil {

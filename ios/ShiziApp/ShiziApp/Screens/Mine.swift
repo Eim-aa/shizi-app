@@ -97,17 +97,6 @@ enum ChoiceID: Decodable, Equatable {
     }
 }
 
-// MARK: - 根页的容器视图：底部那一条（网页 Tab 栏的位置）透明、触摸穿过去
-
-final class MineRootView: UIView {
-    var passThroughHeight: CGFloat = 0
-
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        if passThroughHeight > 0, point.y > bounds.height - passThroughHeight { return nil }
-        return super.hitTest(point, with: event)
-    }
-}
-
 // MARK: - 页面
 
 @objc(ShiziScreen_mine)
@@ -170,12 +159,6 @@ final class MineScreen: ShiziScreenViewController {
     }
 
     // MARK: 生命周期
-
-    override func loadView() {
-        let v = MineRootView()
-        v.backgroundColor = .clear
-        view = v
-    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -507,11 +490,9 @@ final class MineScreen: ShiziScreenViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        let w = view.bounds.width, h = view.bounds.height
-        // Tab 栏（网页的）在底部：49 + 下安全区；根页的纸只铺到它上面，那一条透明、触摸穿过去
-        let tabH = 49 + view.safeAreaInsets.bottom
-        (view as? MineRootView)?.passThroughHeight = tabH
-        scroll.frame = CGRect(x: 0, y: 0, width: w, height: max(0, h - tabH))
+        // 根页视图本身只铺到 Tab 栏上沿（NativeStage.rootFrame，B3.5a）：正文铺满整个视图，不再自己扣 Tab 栏
+        // （R14：B3.5c 原先的根页铺满窗口、自己扣掉 49 + 下安全区并让那一条触摸穿透；并到 B3.5a 底座后成了扣两次——正文底下 49pt 一条点不到、滚不到）
+        scroll.frame = view.bounds
         view.backgroundColor = .clear
         scroll.backgroundColor = color("paper")
     }

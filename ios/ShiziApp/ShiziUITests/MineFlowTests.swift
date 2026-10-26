@@ -261,6 +261,9 @@ final class MineFlowTests: XCTestCase {
         qa.tapNative("native-mine-menu-about")
         qa.waitProbe("native about over native mine") { Self.stack($0) == ["mine", "about"] && ($0["navRunning"] as? Int) == 0 }
         Thread.sleep(forTimeInterval: 0.6)
+        // R14：盖在关于页下面的「我的」根页不进无障碍树（读屏摸不到；页头「‹」只剩关于页那一个）
+        XCTAssertFalse(qa.el("native-mine-menu-about").exists, "the covered native root is out of the accessibility tree")
+        XCTAssertEqual(qa.app.descendants(matching: .any).matching(identifier: "native-page-back").count, 1, "only the top page's back button is reachable")
         qa.tapNative("native-page-back")
         qa.waitProbe("back to native mine only") { Self.stack($0) == ["mine"] && (($0["route"] as? [String: Any])?["top"] as? String) == "mine" }
     }

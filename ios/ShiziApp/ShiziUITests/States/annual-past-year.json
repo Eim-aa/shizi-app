@@ -26,8 +26,7 @@
       }
     },
     {
-      "op": "seed",
-      "wait": 1500
+      "op": "foldNow"
     },
     {
       "op": "switchTab",
@@ -38,6 +37,5 @@
       "screen": "annual",
       "params": {}
     }
-  ],
-  "settle": 3000
+  ]
 }

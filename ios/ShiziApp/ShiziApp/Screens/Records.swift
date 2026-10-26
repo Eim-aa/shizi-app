@@ -318,7 +318,8 @@ final class RecordsScreen: ShiziScreenViewController {
             }
         }
         for (i, l) in weekdayLabels.enumerated() {
-            setHei(l, weekdays[i], size: mt.value("fs11"), color: color("ink3"), align: .center, line: mt.line("lh11"))
+            // 行盒高是继承来的 lh15（网页 .sz-rec__wd 没设 line-height）
+            setHei(l, weekdays[i], size: mt.value("fs11"), color: color("ink3"), align: .center, line: mt.line("lh15"))
         }
         // 一天一格（空白格也在：网页的月历按同一组格子排）
         let cells = m.calendar
@@ -688,22 +689,29 @@ final class RecordsScreen: ShiziScreenViewController {
         if let sheet = model?.sheet, sheet.n > 0 {
             y += mt.groupGap
             let sheetTop = y
-            let headH2: CGFloat = 48
             let openFont = song(mt.value("fs22"), .medium)
+            let saveFont = NativeType.compose(size: mt.value("fs15"), weight: .regular)
+            // 网页 .sz-rec__shead：align-items:baseline——两个按钮（min-height 44，字在里面居中）按各自第一行的基线对齐，
+            // 行高 = 对齐后两者更靠下的那个的底（L 档存字钮低 4，大字号下更低）
+            let openLine = mt.line("lh22")
+            let saveLine = mt.line("lh15")
+            let openAscent = (44 - openLine) / 2 + ShiziFlex.text(openFont, line: openLine).ascent
+            let saveAscent = (44 - saveLine) / 2 + ShiziFlex.text(saveFont, line: saveLine).ascent
+            let headRow = ShiziFlex.baselineRow([(box: 44, ascent: openAscent), (box: 44, ascent: saveAscent)])
+            let headH2 = headRow.height
             // 标题按富文本量（字距 0，与网页一致）
             // 量自己存的富文本：按钮在设图标 / 标题色后会按标题属性重建富文本、丢掉 .kern（数字被换成等宽变体，整段宽 2–3pt）
             let openTitle = sheetOpenAttr
             sheetOpenButton.setAttributedTitle(openTitle, for: .normal)
             let titleW = ceil(ShiziMineText.width(openTitle))
             let openW = titleW + 8 + 8
-            sheetOpenButton.frame = CGRect(x: x, y: y, width: openW, height: 44)
-            sheetTitleLabel.frame = CGRect(x: x, y: y, width: openW, height: 44)
-            let saveFont = NativeType.compose(size: mt.value("fs15"), weight: .regular)
+            sheetOpenButton.frame = CGRect(x: x, y: y + headRow.tops[0], width: openW, height: 44)
+            sheetTitleLabel.frame = CGRect(x: x, y: y + headRow.tops[0], width: openW, height: 44)
             let saveTitle = sheetSaveButton.attributedTitle(for: .normal) ?? NSAttributedString(string: "")
             let saveTextW = ceil(saveTitle.size().width)
             let saveW = saveTextW + 8
             // 网页 .sz-btn--text 的负外边距（右边 −4）：按钮的右边比版心多出 4pt
-            sheetSaveButton.frame = CGRect(x: x + width - saveW + 4, y: y + 4, width: saveW, height: 44)
+            sheetSaveButton.frame = CGRect(x: x + width - saveW + 4, y: y + headRow.tops[1], width: saveW, height: 44)
             if let tl = sheetSaveButton.titleLabel {
                 let lh = saveFont.lineHeight
                 tl.frame = CGRect(x: 4, y: (44 - lh) / 2, width: saveTextW, height: lh)
@@ -749,7 +757,9 @@ final class RecordsScreen: ShiziScreenViewController {
         let calH = calPadTop + weekdayHeight + CGFloat(rows) * dayMinHeight + calPadBottom
         calendarMarker.frame = CGRect(x: x, y: y, width: calW, height: calH)
         for (i, l) in weekdayLabels.enumerated() {
-            l.frame = CGRect(x: x + calPadX + CGFloat(i) * colW, y: y + calPadTop, width: colW, height: weekdayHeight)
+            // 网页 .sz-rec__wd：高 26 的网格里行盒比 26 矮就居中、比 26 高（大字号）网格轨道跟着变高、行盒贴顶
+            let wdLine = metrics.line("lh15")
+            l.frame = CGRect(x: x + calPadX + CGFloat(i) * colW, y: y + calPadTop + max(0, (weekdayHeight - wdLine) / 2), width: colW, height: wdLine)
         }
         let days = m.calendar.filter { !$0.blank }
         for (i, cell) in days.enumerated() where i < dayHosts.count {

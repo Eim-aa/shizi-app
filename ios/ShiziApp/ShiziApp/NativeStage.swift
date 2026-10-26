@@ -99,6 +99,8 @@ final class NativeStage: NSObject {
             enqueue { [weak self] done in self?.closeScreen(body, done: done) ?? done() }
         case "root":
             enqueue { [weak self] done in self?.coverRoot(body, done: done) ?? done() }
+        case "corrupt":
+            enqueue { [weak self] done in self?.setCorruptNotice(body, done: done) ?? done() }
         case "changed":
             _ = engine.receiveChanged(body)
         case "status":
@@ -421,6 +423,65 @@ final class NativeStage: NSObject {
                 }
             }
         }
+    }
+
+    /// B3.12 / B3.13：原生页让给网页弹层 / 换页的公开入口（同 yieldToWeb，只是网页那边做的是任意一个 op：
+    /// 查字弹层「自己选字」、清单「看写错过的字」的 nav.replace 等）。原生页让开后，回到这一条时宿主发 open via 'return'，原生页重新盖上。
+    func yieldToWeb(_ op: String, _ args: [String: Any], from page: ShiziScreenViewController) {
+        guard isTop(page), !page.transitions.isLeaving else { return }
+        tapAt = nil
+        page.transitions.finishNow()
+        let url = WebViewController.snapshotURL(page.view)
+        var coverArgs: [String: Any] = ["entryId": page.entryId]
+        if let url { coverArgs["url"] = url }
+        ShiziProbe.note("yield:op \(op)")
+        engine.raw("stage.cover", coverArgs) { [weak self] _ in
+            guard let self else { return }
+            self.engine.raw(op, args) { _ in
+                self.engine.raw("stage.fence", [:]) { _ in
+                    self.enqueue { done in
+                        guard !self.screens.isEmpty else { done(); return }
+                        self.release(from: 0, fade: false, then: done)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: 坏值提示浮条（B3.13；L4 顶部浮条，网页那边只发显示 / 收起）
+
+    /// 坏值提示浮条（原生层上的一个视图；挂在当前原生根页上——根页在网页之上，浮条又在根页之上；没有根页时挂宿主视图）。
+    private var corruptNoticeView: ShiziCorruptNoticeView?
+
+    private func setCorruptNotice(_ body: [String: Any], done: @escaping () -> Void) {
+        let show = (body["show"] as? Bool) == true
+        guard show else {
+            corruptNoticeView?.removeFromSuperview()
+            corruptNoticeView = nil
+            done()
+            return
+        }
+        // 挂在原生根页上（根页 = 原生 tab 根页；它在网页之上）：没有根页时挂宿主视图。
+        let container: UIView = rootScreen?.view ?? host.view
+        if corruptNoticeView == nil {
+            let v = ShiziCorruptNoticeView(frame: .zero)
+            v.onClose = { [weak self] in
+                self?.corruptNoticeView?.removeFromSuperview()
+                self?.corruptNoticeView = nil
+            }
+            corruptNoticeView = v
+            container.addSubview(v)
+        } else if corruptNoticeView?.superview !== container {
+            corruptNoticeView?.removeFromSuperview()
+            corruptNoticeView.map { container.addSubview($0) }
+        }
+        let m = ShiziMetrics()
+        let starts = (body["lines"] as? [NSNumber])?.map { $0.intValue }
+        corruptNoticeView?.configure(text: ShiziCopy.t("X-SYS.corruptNotice"), lines: starts, metrics: m)
+        corruptNoticeView?.layout(in: container.bounds.width, safeTop: container.safeAreaInsets.top, metrics: m)
+        if let v = corruptNoticeView { container.bringSubviewToFront(v) }
+        ShiziProbe.note("corrupt:notice")
+        done()
     }
 
     // MARK: 量测

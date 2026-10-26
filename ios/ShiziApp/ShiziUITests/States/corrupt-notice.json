@@ -2,7 +2,7 @@
   "state": "corrupt-notice",
   "name": "坏值提示 · 启动隔离了坏值，顶部一次",
   "screen": "home",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -39,11 +39,15 @@
       "op": "seed"
     },
     {
+      "op": "nativeRoots"
+    },
+    {
       "op": "corruptNotice",
       "key": "shizi.v2.settings"
     }
   ],
   "ready": {
-    "webSelector": "[data-testid=\"corrupt-notice\"]"
+    "webSelector": "[data-testid=\"corrupt-notice\"]",
+    "native": "id:native-corrupt-notice-text"
   }
 }

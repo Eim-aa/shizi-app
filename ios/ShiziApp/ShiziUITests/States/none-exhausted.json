@@ -2,7 +2,7 @@
   "state": "none-exhausted",
   "name": "没有要写的字（练习范围学完：更换字库 / 看写错过的字）",
   "screen": "session-none",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -110,7 +110,8 @@
     }
   ],
   "ready": {
-    "web": "session-none"
+    "web": "session-none",
+    "native": "id:native-session-none-title"
   },
   "ax": true
 }

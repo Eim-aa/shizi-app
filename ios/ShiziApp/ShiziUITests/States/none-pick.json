@@ -2,7 +2,7 @@
   "state": "none-pick",
   "name": "没有要写的字（自己选字）",
   "screen": "session-none",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -22,6 +22,7 @@
     }
   ],
   "ready": {
-    "web": "session-none"
+    "web": "session-none",
+    "native": "id:native-session-none-title"
   }
 }

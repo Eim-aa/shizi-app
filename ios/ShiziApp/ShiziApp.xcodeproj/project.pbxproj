@@ -12,6 +12,11 @@
 		1A0000000000000000B32012 /* About.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32011 /* About.swift */; };
 		1A0000000000000000B31312 /* Remind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31311 /* Remind.swift */; };
 		1A0000000000000000B31112 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31111 /* Backup.swift */; };
+		1A0000000000000000B31202 /* SessionNone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31201 /* SessionNone.swift */; };
+		1A0000000000000000B31302 /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31301 /* Block.swift */; };
+		1A0000000000000000B31402 /* CorruptNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31401 /* CorruptNotice.swift */; };
+		1A0000000000000000B31602 /* ShiziPageText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31601 /* ShiziPageText.swift */; };
+		1A00000000000000000B3152 /* NoneFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3151 /* NoneFlowTests.swift */; };
 		1A0000000000000000B35A12 /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35A11 /* Home.swift */; };
 		1A0000000000000000B35B12 /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35B11 /* Library.swift */; };
 		1A0000000000000000B3B112 /* ImagePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3B111 /* ImagePreview.swift */; };
@@ -112,6 +117,11 @@
 		1A0000000000000000B32011 /* About.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = About.swift; sourceTree = "<group>"; };
 		1A0000000000000000B31311 /* Remind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Remind.swift; sourceTree = "<group>"; };
 		1A0000000000000000B31111 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31201 /* SessionNone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionNone.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31301 /* Block.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Block.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31401 /* CorruptNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorruptNotice.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31601 /* ShiziPageText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziPageText.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3151 /* NoneFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoneFlowTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B35A11 /* Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
 		1A0000000000000000B35B11 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
 		1A0000000000000000B3B111 /* ImagePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreview.swift; sourceTree = "<group>"; };
@@ -347,6 +357,7 @@
 				1A00000000000000000B332E /* NavigationTests.swift */,
 				1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */,
 				1A00000000000000000B3332 /* BlockTests.swift */,
+				1A00000000000000000B3151 /* NoneFlowTests.swift */,
 				1A00000000000000000B3334 /* AccessibilityAuditTests.swift */,
 			);
 			path = ShiziUITests;
@@ -405,6 +416,10 @@
 				1A0000000000000000B35B11 /* Library.swift */,
 				1A0000000000000000B3B111 /* ImagePreview.swift */,
 				1A0000000000000000B3B121 /* ImagePreviewHost.swift */,
+				1A0000000000000000B31201 /* SessionNone.swift */,
+				1A0000000000000000B31301 /* Block.swift */,
+				1A0000000000000000B31401 /* CorruptNotice.swift */,
+				1A0000000000000000B31601 /* ShiziPageText.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -587,6 +602,10 @@
 				1A0000000000000000B35B12 /* Library.swift in Sources */,
 				1A0000000000000000B3B112 /* ImagePreview.swift in Sources */,
 				1A0000000000000000B3B122 /* ImagePreviewHost.swift in Sources */,
+				1A0000000000000000B31202 /* SessionNone.swift in Sources */,
+				1A0000000000000000B31302 /* Block.swift in Sources */,
+				1A0000000000000000B31402 /* CorruptNotice.swift in Sources */,
+				1A0000000000000000B31602 /* ShiziPageText.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* WebViewController.swift in Sources */,
@@ -665,6 +684,7 @@
 				1A00000000000000000B332F /* NavigationTests.swift in Sources */,
 				1A00000000000000000B3331 /* RestoreAndDeepLinkTests.swift in Sources */,
 				1A00000000000000000B3333 /* BlockTests.swift in Sources */,
+				1A00000000000000000B3152 /* NoneFlowTests.swift in Sources */,
 				1A00000000000000000B3335 /* AccessibilityAuditTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

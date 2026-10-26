@@ -2,10 +2,11 @@
 // key = 语义键（取网页 data-testid）；web = 网页 data-testid（id:）；native = 原生成员名 / accessibilityIdentifier（prop: / id:）——页面卡原生化时填，空 = 还没有原生页。
 // 同名元素多个（行、格）时 id:xxx#N 取第 N 个（从 0 起）；不写 #N 则按文档顺序配对。
 export const KEYS = [
-  { key: 'block-screen', native: [], web: ['id:block-screen'] },
-  { key: 'block-title', native: [], web: ['id:block-title'] },
-  { key: 'block-body', native: [], web: ['id:block-body'] },
-  { key: 'block-retry', native: [], web: ['id:block-retry'] },
-  { key: 'block-export', native: [], web: ['id:block-export'] },
-  { key: 'block-migration', native: [], web: ['id:block-migration'] },
+  { key: 'block-screen', native: ['id:native-block-page'], web: ['id:block-screen'] },
+  { key: 'block-title', native: ['id:native-block-title'], web: ['id:block-title'] },
+  { key: 'block-body', native: ['id:native-block-body'], web: ['id:block-body'] },
+  { key: 'block-retry', native: ['id:native-block-retry'], web: ['id:block-retry'] },
+  { key: 'block-export', native: ['id:native-block-export'], web: ['id:block-export'] },
+  { key: 'block-migration', native: ['id:native-block-migration'], web: ['id:block-migration'] },
+  { key: 'block-still', native: ['id:native-block-still'], web: ['id:block-still'] },
 ];

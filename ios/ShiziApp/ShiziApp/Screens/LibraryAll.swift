@@ -279,7 +279,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         findPlaceholder.font = mt.font(17)
         findPlaceholder.ink = color("ink2")
         if findInput.text != m.find.text { findInput.text = m.find.text }
-        findPlaceholder.isHidden = (findInput.text ?? "").isEmpty
+        findPlaceholder.isHidden = !(findInput.text ?? "").isEmpty
         findWhere.numberOfLines = 0
         NativeType.set(findWhere, m.find.whereText.text, font: mt.font(15), color: color("ink2"), line: mt.line("lh15"))
         findWhere.isHidden = m.find.whereText.text.isEmpty
@@ -465,7 +465,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
     @objc private func findChanged() {
         markStateChange()
         find = findInput.text ?? ""
-        findPlaceholder.isHidden = (findInput.text ?? "").isEmpty
+        findPlaceholder.isHidden = !(findInput.text ?? "").isEmpty
         reload()
     }
 
@@ -614,7 +614,12 @@ final class LibraryAllScreen: ShiziScreenViewController {
             gv.headButton.frame = CGRect(x: 0, y: 0, width: width, height: headH)
             let countW = LibraryCommon.textWidth(group.count.text, mt.fontTabular(15))
             gv.nameLabel.frame = CGRect(x: 0, y: 0, width: width, height: mt.line("lh22"))
-            gv.countLabel.frame = CGRect(x: width - countW, y: headH - mt.line("lh15"), width: countW, height: mt.line("lh15"))
+            // 字数与组名同一条基线（网页 .sz-all__head 是 flex + align-items:baseline）
+            let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
+            let nameBaseline = (mt.line("lh22") - (nameFont.ascender - nameFont.descender)) / 2 + nameFont.ascender
+            let countFont = mt.font(15)
+            let countBaseline = (mt.line("lh15") - (countFont.ascender - countFont.descender)) / 2 + countFont.ascender
+            gv.countLabel.frame = CGRect(x: width - countW, y: nameBaseline - countBaseline, width: countW, height: mt.line("lh15"))
             gv.cellsMarker.frame = CGRect(x: 0, y: gridTop, width: width, height: gridH)
             for (ci, cell) in group.cells.enumerated() where ci < gv.cellButtons.count {
                 let b = gv.cellButtons[ci]
@@ -744,46 +749,9 @@ final class LibraryAllScreen: ShiziScreenViewController {
     }
 }
 
-/// 「排序 · 筛选」弹层的呈现控制器（网页 components/Sheet.js：遮罩 + 贴底面板，面板高度按内容定）。
-/// 遮罩放在呈现容器里（不是面板的子视图），面板就是控制器自己的根视图（网页那边 .sz-sheet 的根就是面板）。
-final class LibraryMenuPresentation: UIPresentationController {
-    let scrim = UIView()
-    var onScrimTap: (() -> Void)?
-
-    init(presented: UIViewController, presenting: UIViewController?) {
-        super.init(presentedViewController: presented, presenting: presenting)
-    }
-
-    override var frameOfPresentedViewInContainerView: CGRect {
-        guard let c = containerView else { return .zero }
-        let content = (presentedViewController as? LibraryAllMenuController)?.panelHeight(width: c.bounds.width, safeBottom: c.safeAreaInsets.bottom) ?? c.bounds.height / 2
-        // 网页 .sz-sheet{max-height:88%}：内容比 88% 屏高还高时，面板截到 88%（内容照排，多的部分在面板外）
-        let want = min(content, c.bounds.height * 0.88)
-        return CGRect(x: 0, y: c.bounds.height - want, width: c.bounds.width, height: want)
-    }
-
-    override func presentationTransitionWillBegin() {
-        guard let c = containerView else { return }
-        scrim.frame = c.bounds
-        scrim.alpha = 0
-        c.insertSubview(scrim, at: 0)
-    }
-
-    override func containerViewWillLayoutSubviews() {
-        super.containerViewWillLayoutSubviews()
-        scrim.frame = containerView?.bounds ?? .zero
-        guard let v = presentedView, v.transform == .identity, !presentedViewController.isBeingPresented, !presentedViewController.isBeingDismissed else { return }
-        v.frame = frameOfPresentedViewInContainerView
-    }
-
-    override func dismissalTransitionDidEnd(_ completed: Bool) {
-        if completed { scrim.removeFromSuperview() }
-    }
-}
-
 /// 「排序 · 筛选」弹层（网页 components/Sheet.js + all.js 的 AllMenuSheet：标题 + 完成 / 排序三键 / 筛选项 / 图例 / 说明句）。
 /// 原生这边是一个呈现出来的控制器（网页那边是遮罩栈里的一层）；控制器的根视图就是面板。
-final class LibraryAllMenuController: UIViewController, UIViewControllerTransitioningDelegate {
+final class LibraryAllMenuController: UIViewController, UIViewControllerTransitioningDelegate, NativeSheetSizing {
     var onSort: ((String) -> Void)?
     var onChip: ((String) -> Void)?
     var onDone: (() -> Void)?
@@ -844,16 +812,25 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
 
     // MARK: 呈现
 
+    private let spec = NativeOverlaySpec(motion: ShiziTokens.pageMotion(.write))
+    private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled || ShiziProbe.forceReduceMotion }
+
     func presentationController(forPresented presented: UIViewController, presenting: UIViewController?, source: UIViewController) -> UIPresentationController? {
-        let p = LibraryMenuPresentation(presented: presented, presenting: presenting)
-        p.scrim.backgroundColor = color("scrim")
-        p.scrim.isAccessibilityElement = false
-        p.scrim.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tapScrim)))
+        let p = NativeSheetPresentation(presented: presented, presenting: presenting, scrimColor: color("scrim"))
         p.onScrimTap = { [weak self] in self?.onDone?() }
         return p
     }
 
-    @objc private func tapScrim() { onDone?() }
+    func animationController(forPresented presented: UIViewController, presenting: UIViewController, source: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+        NativeSheetAnimator(presenting: true, spec: spec, reduce: reduceMotion)
+    }
+
+    func animationController(forDismissed dismissed: UIViewController) -> UIViewControllerAnimatedTransitioning? {
+        NativeSheetAnimator(presenting: false, spec: spec, reduce: reduceMotion)
+    }
+
+    func preferredHeight(width: CGFloat, safeBottom: CGFloat) -> CGFloat { panelHeight(width: width, safeBottom: safeBottom) }
+
 
     // MARK: 视图
 
@@ -1059,12 +1036,11 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                     let l = chipLabels[idx]
                     l.numberOfLines = 1
                     NativeType.set(l, c.label.text, font: mt.font(15), color: c.disabled ? color("ink4") : (c.active ? color("ink1") : color("ink2")), line: mt.line("lh15"))
-                    let dot = chipDots[idx]
-                    dot.backgroundColor = c.active ? color("ink1") : color("ink4")
-                    dot.layer.cornerRadius = 4
-                    dot.frame = CGRect(x: mt.space(4), y: (rowH - 8) / 2, width: 8, height: 8)
-                    let tx = mt.space(4) + 8 + mt.space(2)
-                    l.frame = CGRect(x: tx, y: (rowH - mt.line("lh15")) / 2, width: max(0, item - tx - mt.space(4)), height: mt.line("lh15"))
+                    // 网页的筛选项只有字（左右内边距 s4），没有色点
+                    chipDots[idx].isHidden = true
+                    l.lineBreakMode = .byClip
+                    let tx = mt.space(4)
+                    l.frame = CGRect(x: tx, y: (rowH - mt.line("lh15")) / 2, width: max(0, item - 2 * tx), height: mt.line("lh15"))
                     x += item + mt.space(2)
                     idx += 1
                 }
@@ -1186,11 +1162,20 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                 l.frame = CGRect(x: cx + item.0 - item.1, y: cy, width: item.1, height: lineH)
                 let sw = legendSwatches[i]
                 if i < 4 {
-                    sw.backgroundColor = color(wallToken(i))
+                    // 网页 wall.js 的 Swatch：viewBox 40×14 里的一笔横（宽 20 高 7，缩放 0.5）
+                    sw.backgroundColor = .clear
                     sw.frame = CGRect(x: cx, y: cy + (lineH - 7) / 2, width: 20, height: 7)
-                    sw.layer.cornerRadius = 3.5
+                    let shape: CAShapeLayer
+                    if let existing = sw.layer.sublayers?.first as? CAShapeLayer { shape = existing } else {
+                        shape = CAShapeLayer()
+                        shape.path = LibraryAllMenuController.swatchPath.cgPath
+                        shape.setAffineTransform(CGAffineTransform(scaleX: 0.5, y: 0.5))
+                        shape.frame = CGRect(x: 0, y: 0, width: 20, height: 7)
+                        sw.layer.addSublayer(shape)
+                    }
+                    shape.fillColor = color(wallToken(i)).resolvedColor(with: traitCollection).cgColor
                 } else if i == 4 {
-                    sw.backgroundColor = color("ink1")
+                    sw.backgroundColor = color("zhu")
                     sw.frame = CGRect(x: cx, y: cy + (lineH - 6) / 2, width: 6, height: 6)
                     sw.layer.cornerRadius = 3
                 } else {
@@ -1213,6 +1198,20 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         default: return "wall4"
         }
     }
+
+    /// 网页 wall.js Swatch 的 path（viewBox 40×14）。
+    static let swatchPath: UIBezierPath = {
+        let p = UIBezierPath()
+        p.move(to: CGPoint(x: 1.5, y: 7.6))
+        p.addCurve(to: CGPoint(x: 22, y: 4.9), controlPoint1: CGPoint(x: 6, y: 5.2), controlPoint2: CGPoint(x: 13, y: 4.6))
+        p.addCurve(to: CGPoint(x: 38.2, y: 6.2), controlPoint1: CGPoint(x: 28, y: 5.1), controlPoint2: CGPoint(x: 33, y: 5.4))
+        p.addCurve(to: CGPoint(x: 38.2, y: 7.8), controlPoint1: CGPoint(x: 38.8, y: 6.3), controlPoint2: CGPoint(x: 38.8, y: 7.6))
+        p.addCurve(to: CGPoint(x: 13, y: 9.5), controlPoint1: CGPoint(x: 32, y: 9.6), controlPoint2: CGPoint(x: 22, y: 9.3))
+        p.addCurve(to: CGPoint(x: 2.2, y: 10.4), controlPoint1: CGPoint(x: 8, y: 9.6), controlPoint2: CGPoint(x: 4.4, y: 10.2))
+        p.addCurve(to: CGPoint(x: 1.5, y: 7.6), controlPoint1: CGPoint(x: 0.6, y: 10.5), controlPoint2: CGPoint(x: 0.3, y: 8.3))
+        p.close()
+        return p
+    }()
 
     private func legendText(_ i: Int) -> String {
         switch i {

@@ -148,6 +148,19 @@ export function markNativePaperSource({ rect, label = '', radius = 12, solid = t
   if (key) nativeLive.set(key, { rect: pending.rect, label: pending.label });
 }
 
+/**
+ * R16：原生弹层（查字「练这个字 / 练这 N 个字」、S02 三键）上的点按——网页收不到 click（网页弹层里同一个点按由 noteTap 记成 overlay 来源），
+ * 照网页记成「弹层里的入口」：返回回到的不是那个入口，按 D62 普通推入（不是没有点按的 B3 淡入）。不画纸，所以不要矩形。
+ */
+export function markNativeOverlayTap() {
+  pending = { el: null, rect: { x: 0, y: 0, w: 0, h: 0 }, label: '', radius: 0, bg: '', fg: '', solid: false, key: null, at: nowMs(), overlay: true };
+}
+
+/** 原生弹层的动作回调：先把这次点按记成弹层里的入口（markNativeOverlayTap），再照常调用。 */
+export function overlayTapped(fn) {
+  return typeof fn === 'function' ? (...args) => { markNativeOverlayTap(); return fn(...args); } : fn;
+}
+
 /** 原生入口此刻的位置与字（原生页排版 / 字变了时报；null 清掉）。 */
 export function setNativeLiveSource(key, live) {
   if (!key) return;

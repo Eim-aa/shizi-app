@@ -105,12 +105,13 @@ enum ShiziChevron {
 
 /// 原生页的根视图（子类自定义根视图时继承它）：被盖住的页（NativeStage.isCovered：根页上推入 / 呈现了别的页或弹层、原生栈里的下层页）
 /// 整页不进无障碍树——读屏摸不到、也划不到盖在下面的东西（R14：`.overFullScreen` 呈现时下层视图留在窗口里，系统不替它藏）。
-/// 按此刻的栈动态判断，不在每条呈现 / 收起路径上逐个设置。
+/// 按此刻的栈动态判断，不在每条呈现 / 收起路径上逐个设置。R16：读屏口径 = NativeStage.isHiddenFromAccessibility（上面有任何模态层——
+/// 透明的查字 / S02、选择弹层、底部弹层——也藏）；QA-H1 取证仍按 isCovered 的不透明口径（D75 ②）。
 class ShiziScreenView: UIView {
     weak var page: ShiziScreenViewController?
 
     override var accessibilityElementsHidden: Bool {
-        get { super.accessibilityElementsHidden || (page.flatMap { p in p.stage.map { $0.isCovered(p) } } ?? false) }
+        get { super.accessibilityElementsHidden || (page.flatMap { p in p.stage.map { $0.isHiddenFromAccessibility(p) } } ?? false) }
         set { super.accessibilityElementsHidden = newValue }
     }
 }

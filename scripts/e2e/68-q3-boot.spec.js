@@ -39,6 +39,9 @@ async function coldBoot(browser, ctx, storageState, { native = true } = {}) {
   const context = await browser.newContext({ viewport: ctx.viewport, deviceScaleFactor: 2, locale: 'zh-CN', storageState });
   const page = await context.newPage();
   if (native) await installNativeStub(page);
+  // R16：资源计时缓冲缺省只记 250 条；首屏 modulepreload 已有 239 条（B3.8 合并后），加上脚本 / 样式 / 字体就满了，
+  // 后面的模块不进 getEntriesByType('resource')，这条检查误报「没取」。放大缓冲，量的才是全部请求。
+  await page.addInitScript(() => { try { performance.setResourceTimingBufferSize(2000); } catch (e) {} });
   const errors = [];
   page.on('pageerror', e => errors.push(`pageerror: ${e && e.message}`));
   page.on('console', m => {

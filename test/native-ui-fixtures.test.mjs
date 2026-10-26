@@ -66,3 +66,13 @@ test('registry loads keys / parity / checks from directories', () => {
   const dupes = KEYS.map(k => k.key).filter((k, i, a) => a.indexOf(k) !== i);
   assert.deepEqual(dupes, [], 'semantic keys are unique across screens');
 });
+
+test('R16: result-page fixtures pin the judging clock (judge op tick), so the FSRS fuzz does not depend on earlier clock reads', () => {
+  // 结果页 / 图片预览显示「N 天后再见」（FSRS fuzz，种子含复习时刻）：造数据里每个 judge 都要写 tick（_ops/judge.js、_runtime/prologue.js ctx.repin），
+  // 否则判断时刻随前面网页渲染 / 原生视图请求读时钟的次数变（同一夹具：网页参考 10 天、原生 9 天、Chromium 7 / 8 天）。
+  const resultStates = FIXTURES.filter(f => f.screen === 'result' && (f.setup || []).some(s => s.op === 'judge'));
+  assert.ok(resultStates.length >= 5, 'result fixtures with judge ops');
+  for (const f of resultStates) {
+    for (const s of f.setup.filter(x => x.op === 'judge')) assert.ok(Number.isInteger(s.tick) && s.tick >= 0, `${f.state}: judge op needs an integer tick`);
+  }
+});

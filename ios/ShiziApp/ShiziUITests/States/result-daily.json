@@ -25,7 +25,8 @@
         "correct",
         "correct"
       ],
-      "strokes": "one"
+      "strokes": "one",
+      "tick": 4
     },
     {
       "op": "openApi",
@@ -49,7 +50,8 @@
         "correct"
       ],
       "n": "all",
-      "strokes": "one"
+      "strokes": "one",
+      "tick": 21
     },
     {
       "op": "unpinClock"

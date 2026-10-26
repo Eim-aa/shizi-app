@@ -30,7 +30,8 @@
         "correct",
         "correct"
       ],
-      "strokes": "two"
+      "strokes": "two",
+      "tick": 4
     },
     {
       "op": "unpinClock"

@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as policy from '../../src/config/policy.js';
 import {
   cubicBezier, OPEN_EASE, CLOSE_EASE, specFor, cancelSpec, runProgress, markPaperSource, planPaper, planPaperDrag, resetPaperSources, hasPaperSource, MAX_FRAME_MS,
-  noteTap, paperSourceOf, alphaOf, SOURCE_SELECTOR, nativePlanShape, noteNativePlan, nativePlanOf, nativeBackPlan, setNavBusy, whenNavIdle, navIsIdle,
+  noteTap, paperSourceOf, alphaOf, markNativeOverlayTap, overlayTapped, SOURCE_SELECTOR, nativePlanShape, noteNativePlan, nativePlanOf, nativeBackPlan, setNavBusy, whenNavIdle, navIsIdle,
 } from '../../src/ui/paper-transition.js';
 
 const read = rel => readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
@@ -337,3 +337,22 @@ test('B2.8 root.js wiring: transitions into / out of a native host are left to n
   assert.match(ns, /useLayoutEffect\(\(\) => \{\n    installNativeWrite\(\);/, 'the write host posts open before the frame is painted');
 });
 
+
+test('R16: a tap on a native overlay (query sheet / S02) counts as an overlay entry: plain push in, plain slide back (D62), not the untapped B3 fade', () => {
+  resetPaperSources();
+  const home = { id: 'h', n: 'home' };
+  const lib = { id: 'l', n: 'library' };
+  const write = { id: 'w', n: 'write' };
+  markNativeOverlayTap();
+  assert.equal(planPaper({ kind: 'push', from: lib, to: write }, { reduced: false, root: null }), null, 'from the library: plain push');
+  assert.deepEqual(paperSourceOf('l'), { pushed: true });
+  assert.equal(planPaper({ kind: 'pop', from: write, to: lib }, { reduced: false, root: null }), null, 'back: plain slide');
+  // 首页「自己选字」的弹层：同样不是首页入口（网页弹层里的点按记 overlay，同一规则）
+  let called = 0;
+  overlayTapped(() => { called += 1; })();
+  assert.equal(called, 1);
+  assert.equal(planPaper({ kind: 'push', from: home, to: write }, { reduced: false, root: null }), null, 'from the home pick sheet: plain push');
+  // 没有点按（程序进写字页）仍是 B3
+  assert.equal(planPaper({ kind: 'push', from: home, to: { id: 'w2', n: 'write' } }, { reduced: false, root: null }).mode, 'B3');
+  assert.equal(overlayTapped(undefined), undefined);
+});

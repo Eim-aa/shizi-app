@@ -1,4 +1,6 @@
-// 经写字会话 API 连判几个字（与原生页同一批提交函数）。a: {slot, judgments:[…循环取], n:数字|'all', strokes:'one'|'two'}
+// 经写字会话 API 连判几个字（与原生页同一批提交函数）。a: {slot, judgments:[…循环取], n:数字|'all', strokes:'one'|'two', tick:数字}
+// tick（R16）：判之前把钉住的时钟拨到第 tick 次读数（prologue.js ctx.repin）——这一段同步、读数次数确定，复习时刻因此与前面谁读过时钟无关。
+if (a.tick !== undefined) ctx.repin(a.tick);
 const m = ctx.mods;
 const slot = a.slot || 'B';
 const api = ctx.api(slot);

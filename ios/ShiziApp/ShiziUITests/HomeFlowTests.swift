@@ -61,9 +61,9 @@ final class HomeFlowTests: XCTestCase {
         XCTAssertEqual(page(ex.probe)["cta"] as? String, "\u{6362}\u{7EC3}\u{4E60}\u{8303}\u{56F4}") // 换练习范围
         ex.tapNative("native-home-start")
         ex.waitRouteTop("library-switch", timeout: 20)
-        ex.waitProbe("root steps aside for the web page") { (($0["stage"] as? [String: Any])?["root"] as? [String: Any])?["hidden"] as? Bool == true }
-        // 网页换库页返回：原生根页回来
-        ex.tap(ex.button("\u{8FD4}\u{56DE}"), "web back") // 返回
+        // R16：B3.8 起换库页已原生——推在原生栈上（根页不让开）；「‹」返回回到首页
+        ex.waitProbe("native switch page pushed over the root") { (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["library-switch"] && ($0["navRunning"] as? Int) == 0 }
+        ex.tapNative("native-page-back")
         waitHome(ex)
     }
 

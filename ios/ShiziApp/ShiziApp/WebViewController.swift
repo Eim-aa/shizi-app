@@ -127,7 +127,8 @@ final class WebViewController: UIViewController {
 
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = ShiziWebView(frame: .zero, configuration: configuration)
+        webView.hiddenFromAccessibility = { [weak self] in self?.stage.hostHasModal ?? false }
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = false
@@ -1211,5 +1212,16 @@ extension WebViewController: UIDocumentPickerDelegate {
 
     func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
         deliverBackupRejection(.cancelled)
+    }
+}
+
+/// R16：宿主上呈现着任何模态层（原生页、查字 / S02 弹层屏、选择弹层、底部弹层、写字 / 结果页）时，网页内容（Tab 栏等）对读屏藏起来——
+/// `.overFullScreen` / `.custom` 呈现时下层视图留在窗口里，系统不替它藏（与 ShiziScreenView 同一条规则，按此刻的呈现链动态取）。
+final class ShiziWebView: WKWebView {
+    var hiddenFromAccessibility: () -> Bool = { false }
+
+    override var accessibilityElementsHidden: Bool {
+        get { super.accessibilityElementsHidden || hiddenFromAccessibility() }
+        set { super.accessibilityElementsHidden = newValue }
     }
 }

@@ -27,7 +27,8 @@
         "wrong",
         "correct"
       ],
-      "n": 2
+      "n": 2,
+      "tick": 4
     },
     {
       "op": "call",

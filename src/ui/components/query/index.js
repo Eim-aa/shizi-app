@@ -21,6 +21,7 @@ import { QuerySheet } from './QuerySheet.js';
 import { focusProxyInput } from './input.js';
 import { cardActionLineStarts } from './layout.js';
 import { nativeScreenOn } from '../../native-stage.js';
+import { markNativeOverlayTap, overlayTapped } from '../../paper-transition.js';
 import { setQueryActions, setQueryLayout } from '../../../session/api/query.js';
 
 export { QuerySheet } from './QuerySheet.js';
@@ -41,7 +42,12 @@ export function openQuery({ mode = 'lookup', onPick, onPractice, onDetail, text 
   if (nativeScreenOn(QUERY_SCREEN)) {
     // 原生弹层（B3.6）：推入一屏原生宿主；回调登记在会话层，原生经 query.pick / query.detail 调用（网页路径 == API 路径）。
     // text / selected / composing = 弹层的初始状态（输入原文、预选字、输入法组字中——原生弹层没有网页的输入框可点）。
-    setQueryActions({ onPick, onPractice, onDetail, mode: m, close: closeNativeQuery });
+    // R16：原生弹层上的点按网页收不到 click——「练这个字 / 练这 N 个字」照网页记成弹层里的入口（D62 普通推入）；
+    // 先关弹层（api.close）再开写字页时，出栈那一下会作废记下的点按（root.js forgetTap），关完再记一次。
+    setQueryActions({
+      onPick: overlayTapped(onPick), onPractice: overlayTapped(onPractice), onDetail, mode: m,
+      close: () => { closeNativeQuery(); markNativeOverlayTap(); },
+    });
     // 卡片次要键的折行点（网页量的；原生按这些位置换行）。
     setQueryLayout({ cardAction: cardActionLineStarts });
     nav.push(QUERY_SCREEN, {

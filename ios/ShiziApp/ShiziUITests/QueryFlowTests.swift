@@ -95,6 +95,22 @@ final class QueryFlowTests: XCTestCase {
         XCTAssertFalse(qa.el("native-query-card-add-fail-note").exists, "no failure block on success")
     }
 
+    /// R16（主控决定）：弹层下面的内容读屏摸不到——透明的查字弹层开着时，字库根页的行与网页 Tab 栏都不在无障碍树里；关掉弹层后回来。
+    func testSheetHidesTheRootFromVoiceOver() {
+        let qa = QA(seed: "query-empty")
+        qa.launch()
+        waitSheet(qa)
+        XCTAssertTrue(qa.el("native-query-input").exists, "the sheet itself stays reachable")
+        for id in ["native-library-title", "native-library-all-open", "native-library-query-open", "native-library-range"] {
+            XCTAssertFalse(qa.el(id).exists, "\(id) under the sheet is out of the accessibility tree")
+        }
+        XCTAssertFalse(qa.app.webViews.firstMatch.exists, "the web content (tab bar) under the sheet is out of the accessibility tree")
+        qa.tap(qa.el("native-query-done"), "done")
+        waitSheetGone(qa)
+        XCTAssertTrue(qa.el("native-library-all-open").waitForExistence(timeout: 8 * QALoad.scale), "the root is back in the accessibility tree once the sheet is gone")
+        XCTAssertTrue(qa.app.webViews.firstMatch.exists, "the web content is back too")
+    }
+
     /// 键盘抬起时四个出口（完成 / 遮罩 / 下滑 / 左缘）都能关掉弹层。
     func testKeyboardUpFourExitsStartAtOnce() {
         // 1.「完成」

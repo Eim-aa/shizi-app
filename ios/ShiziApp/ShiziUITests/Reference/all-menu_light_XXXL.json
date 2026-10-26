@@ -126,7 +126,13 @@
       },
       "kind" : "text",
       "tag" : "h1",
-      "text" : "已练汉字"
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 28,
+        "w" : 90.5,
+        "x" : 128,
+        "y" : 69.5
+      }
     },
     {
       "align" : "center",

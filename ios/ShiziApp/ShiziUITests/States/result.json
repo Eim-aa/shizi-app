@@ -28,7 +28,8 @@
         "wrong",
         "correct"
       ],
-      "n": 5
+      "n": 5,
+      "tick": 4
     },
     {
       "op": "unpinClock"

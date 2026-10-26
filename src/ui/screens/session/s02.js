@@ -25,6 +25,7 @@ import { format, t } from '../../../config/copy/index.js';
 import { nativeScreenOn } from '../../native-stage.js';
 import { setS02Actions, setQueryLayout } from '../../../session/api/query.js';
 import { s02BodyLineStarts } from '../../components/query/layout.js';
+import { markNativeOverlayTap, overlayTapped } from '../../paper-transition.js';
 
 export const S02_OVERLAY = 's02';
 /**
@@ -102,7 +103,11 @@ export function openS02({ chars, onContinue, onEndStart, onStarted }) {
   if (nativeScreenOn(CONFIRM_SCREEN)) {
     // 原生确认框（B3.6）：推入一屏原生宿主；三个键经 App API（s02.decide）回到网页这一侧的同一批回调。
     // close = 网页版的 nav.closeOverlay：先关框、再开写字页（与网页同一时序；不然出栈的会是后推入的写字页）。
-    setS02Actions({ onContinue, onEndStart, onStarted, close: closeNativeS02 });
+    // R16：原生框上的点按网页收不到 click——两个开写字页的键照网页记成弹层里的入口（D62 普通推入）；关框出栈会作废记下的点按，关完再记一次。
+    setS02Actions({
+      onContinue: overlayTapped(onContinue), onEndStart: overlayTapped(onEndStart), onStarted,
+      close: () => { closeNativeS02(); markNativeOverlayTap(); },
+    });
     // 正文的折行点（网页量的；原生按这些位置换行）。
     setQueryLayout({ s02Body: s02BodyLineStarts });
     nav.push(CONFIRM_SCREEN, { chars: [...(chars || [])] });

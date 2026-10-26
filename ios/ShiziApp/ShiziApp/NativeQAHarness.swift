@@ -168,7 +168,11 @@ extension WebViewController {
         // B3.2：原生栈里被盖住的下层页不取（网页同样只取顶层图层）
         var covered = Set(stage.screens.dropLast().map { ObjectIdentifier($0.view) })
         // 根页之上推入了原生子页、或呈现了原生写字 / 结果 / 弹层：被盖住的原生根页同样不取（网页只取顶层图层；B3.8 发现，主控补呈现页一支）
-        if let root = stage.rootScreen, !stage.screens.isEmpty || presentedViewController != nil { covered.insert(ObjectIdentifier(root.view)) }
+        // B3.6：透明的原生弹层屏（查字 / S02：页面本身透明、根页在遮罩下面看得见，网页参考同样列出弹层下面的页面）不算盖住——
+        // 原生栈里要有一张不透明的页，或呈现着的不是原生栈的页（写字 / 结果页、其它呈现页：与 acccb85f 相同），根页才算被盖住
+        let opaqueAbove = stage.screens.contains { ($0.view.backgroundColor?.cgColor.alpha ?? 0) > 0.5 }
+        let presentedPage = presentedViewController.map { !($0 is ShiziScreenViewController) } ?? false
+        if let root = stage.rootScreen, opaqueAbove || presentedPage { covered.insert(ObjectIdentifier(root.view)) }
         func walk(_ v: UIView) {
             if v is WKWebView || covered.contains(ObjectIdentifier(v)) { return }
             if v.window != nil, visible(v), v.bounds.width > 0.5, v.bounds.height > 0.5 {

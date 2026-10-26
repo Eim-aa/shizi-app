@@ -3,7 +3,7 @@
 // 汉字数字转换只许落款代码用（scripts/verify_copy.mjs CN_HELPER_FILES 登记了本文件）。
 
 import { ref } from '../../config/copy/index.js';
-import { cnCount, cnNumber, isValidDay, localDay, signatureDateParts, signatureMonthParts } from '../../core/dates.js';
+import { cnCount, cnDigits, cnNumber, isValidDay, localDay, signatureDateParts, signatureMonthParts } from '../../core/dates.js';
 import { now as envNow } from '../../platform/env.js';
 
 /** 落款日期：日子缺（会话没有时间戳的异常数据）时退回今天，不让页面因为一个落款报错。 */

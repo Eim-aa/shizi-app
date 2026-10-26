@@ -30,7 +30,7 @@ import { inkOf, recordHasInk } from '../detail/records.js';
 import { monthView as sessionMonthView } from '../../../session/views/mine-sub.js';
 import { setMineSubActions } from '../../../session/api/mine-sub.js';
 import { useStoreState } from './records.js';
-import { trimSheetCells } from '../../../session/views/mine-page.js'; // B3.5c：格的读屏名与「我的」页字帖的取舍在会话层（网页与 App API 同一个）
+import { cellLabelRef, trimSheetCells } from '../../../session/views/mine-page.js'; // B3.5c：格的读屏名与「我的」页字帖的取舍在会话层（网页与 App API 同一个）
 import { registerMineSubLineBreaker } from './line-starts.js';
 
 export const MONTH_SCREEN = 'month';
@@ -63,7 +63,8 @@ function currentStore() {
  * 取到的墨迹在另一天时补一句「9 月 28 日 的笔迹」（N2-07）。
  */
 export function cellLabel(cell) {
-  return tRef(cell.label);
+  if (typeof cell.label === 'string') return cell.label;
+  return tRef(cell.label || cellLabelRef(cell));
 }
 
 /**
@@ -74,11 +75,13 @@ export function cellLabel(cell) {
  * @returns {{month, monthNum:number, cells:Array, n:number, days:number, under:boolean, kuan:string}}
  */
 export function monthModel(state, month, { store = currentStore(), policy = defaultPolicy } = {}) {
-  return sessionMonthView(state, month, {
+  const view = sessionMonthView(state, month, {
     policy,
     hasInk: record => recordHasInk(store, record),
     inkOf: record => inkOf(store, record),
   });
+  // 网页格的形状不变：record 是记录 id，label 是渲染好的读屏名（会话层给的是引用）。
+  return { ...view, cells: view.cells.map(c => ({ ...c, record: c.recordId, label: tRef(c.label) })) };
 }
 
 /** 模型里的格子 → 月字帖纸（MonthPaper）要的形状（读屏名渲染成句子；record 用 id）。 */
@@ -90,8 +93,8 @@ export function paperCells(model) {
     mode: cell.mode,
     tag: cell.tag,
     day: cell.day,
-    record: cell.recordId,
-    label: tRef(cell.label),
+    record: cell.recordId != null ? cell.recordId : cell.record,
+    label: cellLabel(cell),
   }));
 }
 

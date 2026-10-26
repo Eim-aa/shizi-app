@@ -1038,7 +1038,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                     NativeType.set(l, c.label.text, font: mt.font(15), color: c.disabled ? color("ink4") : (c.active ? color("ink1") : color("ink2")), line: mt.line("lh15"))
                     // 网页的筛选项只有字（左右内边距 s4），没有色点
                     chipDots[idx].isHidden = true
-                    l.lineBreakMode = .byClip
+                    l.lineBreakMode = .byClipping
                     let tx = mt.space(4)
                     l.frame = CGRect(x: tx, y: (rowH - mt.line("lh15")) / 2, width: max(0, item - 2 * tx), height: mt.line("lh15"))
                     x += item + mt.space(2)

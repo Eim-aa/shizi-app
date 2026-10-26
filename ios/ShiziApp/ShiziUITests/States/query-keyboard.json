@@ -1,8 +1,8 @@
 {
   "state": "query-keyboard",
   "name": "查字 · 软键盘抬起时",
-  "screen": "library",
-  "native": false,
+  "screen": "query",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -101,26 +101,26 @@
     {
       "op": "switchTab",
       "tab": "library"
+    },
+    {
+      "op": "openQuery",
+      "mode": "lookup",
+      "text": "yong"
     }
   ],
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-query-sheet"
   },
   "steps": [
-    {
-      "tap": {
-        "webTestid": "library-query-open"
-      },
-      "times": 1
-    },
     {
       "wait": 700
     },
     {
-      "js": "const el = document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"query-input\"], [data-testid=\"query-input\"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, \"yong\"); el.dispatchEvent(new Event('input', { bubbles: true }));"
+      "wait": 1000
     },
     {
-      "wait": 1000
+      "js": "const el = document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"query-input\"], [data-testid=\"query-input\"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, \"yong\"); el.dispatchEvent(new Event('input', { bubbles: true }));"
     }
   ]
 }

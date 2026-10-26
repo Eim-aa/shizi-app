@@ -1,8 +1,8 @@
 {
   "state": "query-ime",
   "name": "查字 · 中文输入法组字中（拼音还没选字，不提前查）",
-  "screen": "library",
-  "native": false,
+  "screen": "query",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -101,26 +101,27 @@
     {
       "op": "switchTab",
       "tab": "library"
+    },
+    {
+      "op": "openQuery",
+      "mode": "lookup",
+      "text": "yong",
+      "composing": true
     }
   ],
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-query-sheet"
   },
   "steps": [
-    {
-      "tap": {
-        "webTestid": "library-query-open"
-      },
-      "times": 1
-    },
     {
       "wait": 700
     },
     {
-      "js": "const el = document.querySelector('[data-testid=\"query-input\"]'); el.focus(); el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' })); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'yong'); el.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: 'g', inputType: 'insertCompositionText' }));"
+      "wait": 800
     },
     {
-      "wait": 800
+      "js": "const el = document.querySelector('[data-testid=\"query-input\"]'); el.focus(); el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' })); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'yong'); el.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: 'g', inputType: 'insertCompositionText' }));"
     }
   ]
 }

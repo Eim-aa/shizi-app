@@ -1,0 +1,498 @@
+{
+  "//": "原生查字弹层（B3.6）的逐项豁免。原生弹层是一层盖在网页之上的原生屏，弹层之下仍然是网页（字库页）；原生取证只取窗口里除 WKWebView 之外的视图（NativeQAHarness：网页那部分跳过），所以网页自身的元素在原生清单里没有——这些是结构性的差别，不是缺陷。弹层本身的元素（query-*）照比，不豁免。",
+  "ignore": [
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "screen-library",
+      "aspects": [
+        "missing"
+      ],
+      "//": "弹层之下是网页的字库页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "title",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的标题）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-home",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的主体）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-search",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的搜索框）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-query-slot",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页里打开查字弹层的入口）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-query-open",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页里打开查字弹层的按钮）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-range",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的「练习范围」）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-today",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的「今日练习」）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-written",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的「已练汉字」区）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "已练汉字",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的「已练汉字」文字）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-written-count",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的已练字数）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-all-open",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的「全部 ›」）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-zone",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的三个分区按钮）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-skipped-block",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的「已跳过」区）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-skipped",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-skipped-name",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的「已跳过」文字）"
+    },
+    {
+      "state": [
+        "query-add-fail",
+        "query-card",
+        "query-empty",
+        "query-ime",
+        "query-keyboard",
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "library-skipped-count",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上（字库页的已跳过字数）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "screen-home",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-date",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-main",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-group",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-brand-shi",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "brand-shi-mark",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-epigraph",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "我书意造本无法，",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "点画信手烦推求。",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "苏轼",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-foot",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-start-live",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-start",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-pick",
+      "aspects": [
+        "missing"
+      ],
+      "//": "自己选字弹层是在网页首页上打开的：弹层之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "home-pick",
+      "aspects": [
+        "position",
+        "size",
+        "color",
+        "font",
+        "text"
+      ],
+      "//": "网页首页的「自己选字」按钮与弹层标题同字：按文字配对时（elements.mjs 的第 2 步）它抢走了原生的弹层标题，这一对不比。弹层标题在另外 5 个查字状态（查字 / 空 / 键盘 / 卡片 / 失败）照比"
+    },
+    {
+      "state": [
+        "query-pick-0",
+        "query-pick-1",
+        "query-pick-n"
+      ],
+      "label": "自己选字",
+      "aspects": [
+        "missing"
+      ],
+      "//": "同上：网页弹层标题是 h2（没有 data-testid，网页元素清单里没有语义键），在这三个自己选字状态里被首页的同名按钮顶掉了，配不上"
+    },
+    {
+      "state": "query-empty",
+      "label": "输入一个字或一个词",
+      "aspects": [
+        "extra"
+      ],
+      "//": "网页的占位文字是 CSS 伪元素（::placeholder），网页元素清单里没有这个节点；原生的 UITextField 占位文字是真实的标签（结构性的量法差）"
+    }
+  ]
+}

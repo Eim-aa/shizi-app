@@ -1,8 +1,8 @@
 {
   "state": "s02",
   "name": "S02 · 上一组还没写完（三键）",
-  "screen": "home",
-  "native": false,
+  "screen": "s02",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -52,15 +52,16 @@
     {
       "op": "switchTab",
       "tab": "home"
+    },
+    {
+      "op": "openS02"
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-s02-dialog"
   },
   "steps": [
-    {
-      "js": "const { startPicked } = await import('/src/ui/screens/session/index.js'); startPicked(['火'], { source: { view: 'home' } });"
-    },
     {
       "wait": 800
     }

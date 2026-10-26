@@ -1,0 +1,95 @@
+{
+  "//": "原生 S02 确认框（B3.6）的逐项豁免。原生确认框是一层盖在网页之上的原生屏，确认框之下仍然是网页（首页）；原生取证只取窗口里除 WKWebView 之外的视图（NativeQAHarness：网页那部分跳过），所以网页自身的元素在原生清单里没有——这些是结构性的差别，不是缺陷。确认框本身的元素（s02-*）照比，不豁免。",
+  "ignore": [
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "screen-home",
+      "aspects": ["missing"],
+      "//": "确认框之下是网页的首页（WKWebView），原生取证跳过网页（NativeQAHarness 只取原生视图）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-date",
+      "aspects": ["missing"],
+      "//": "同上（首页的日期）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-title",
+      "aspects": ["missing"],
+      "//": "同上（首页的标题）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-main",
+      "aspects": ["missing"],
+      "//": "同上（首页的主体）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-group",
+      "aspects": ["missing"],
+      "//": "同上（首页的特别组）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-brand-shi",
+      "aspects": ["missing"],
+      "//": "同上（首页的题句）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "brand-shi-mark",
+      "aspects": ["missing"],
+      "//": "同上（首页题句后的印）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-epigraph",
+      "aspects": ["missing"],
+      "//": "同上（首页的题记）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "我书意造本无法，",
+      "aspects": ["missing"],
+      "//": "同上（首页题记的第一句）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "点画信手烦推求。",
+      "aspects": ["missing"],
+      "//": "同上（首页题记的第二句）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "苏轼",
+      "aspects": ["missing"],
+      "//": "同上（首页题记的落款）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-foot",
+      "aspects": ["missing"],
+      "//": "同上（首页的页脚）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-start-live",
+      "aspects": ["missing"],
+      "//": "同上（首页的「开始练字」）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-pick",
+      "aspects": ["missing"],
+      "//": "同上（首页的「自己选字」）"
+    },
+    {
+      "state": ["s02", "s02-fail"],
+      "label": "home-start",
+      "aspects": ["missing"],
+      "//": "同上（首页的另一个入口）"
+    }
+  ]
+}

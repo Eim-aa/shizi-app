@@ -1,8 +1,8 @@
 {
   "state": "s02-fail",
   "name": "S02 · 结束那组开新的失败（留在框内三段式）",
-  "screen": "home",
-  "native": false,
+  "screen": "s02",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -52,29 +52,29 @@
     {
       "op": "switchTab",
       "tab": "home"
+    },
+    {
+      "op": "openS02"
     }
   ],
   "ready": {
-    "web": "screen-home"
+    "web": "screen-home",
+    "native": "id:native-s02-dialog"
   },
   "steps": [
-    {
-      "js": "const { startPicked } = await import('/src/ui/screens/session/index.js'); startPicked(['火'], { source: { view: 'home' } });"
-    },
     {
       "wait": 800
     },
     {
-      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
-    },
-    {
       "tap": {
-        "webTestid": "s02-end-start"
+        "webTestid": "s02-end-start",
+        "native": "native-s02-end-start"
       },
       "times": 1
     },
     {
       "wait": 600
     }
-  ]
+  ],
+  "failNext": 1
 }

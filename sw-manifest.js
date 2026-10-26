@@ -1,7 +1,7 @@
 // 由 scripts/build_shell_manifest.mjs 生成，勿手改。sw.js 以 importScripts('./sw-manifest.js') 读取（01 §8.3）。
 // 升级的唯一入口：本文件或 sw.js 的字节变化 → 浏览器装新 worker。build 与 src/build-info.js、index.html meta 同源。
 self.SHIZI_SW_MANIFEST = {
-  build: "20261026-c5af8ce7977c",
+  build: "20261026-6809c957d9ee",
   // 核心壳：Cache.addAll 原子预缓存，任何一项失败 = 安装失败
   shell: [
     "core-strokes.js?v=0c49190f86d3",
@@ -136,6 +136,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/session/views/lines.js",
     "src/session/views/mine-page.js",
     "src/session/views/mine.js",
+    "src/session/views/query.js",
     "src/session/views/session.js",
     "src/session/views/settings.js",
     "src/session/write-api.js",
@@ -181,6 +182,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/components/query/demo.js",
     "src/ui/components/query/index.js",
     "src/ui/components/query/input.js",
+    "src/ui/components/query/layout.js",
     "src/ui/components/share-failed.js",
     "src/ui/components/styles.js",
     "src/ui/components/tab-icons.js",

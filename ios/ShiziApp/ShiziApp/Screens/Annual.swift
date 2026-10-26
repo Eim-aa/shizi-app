@@ -401,6 +401,9 @@ final class AnnualScreen: ShiziScreenViewController {
 
     private func pushParams(year: Int) {
         guard let engine = stage?.engine else { return }
+        var next = params
+        next["year"] = year
+        update(params: next)
         Task { @MainActor [weak self] in
             _ = await engine.raw("nav.setParams", ["patch": ["year": year]])
             self?.reload()

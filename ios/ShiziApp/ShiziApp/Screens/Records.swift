@@ -609,8 +609,13 @@ final class RecordsScreen: ShiziScreenViewController {
 
     private func pushParams(month: String?, day: String?) {
         guard let engine = stage?.engine else { return }
+        // 本页自己的参数也要跟着改（重拉视图用它；网页路由那边由 nav.setParams 记下，冷启动可恢复）
+        var next = params
+        if let month { next["month"] = month } else { next.removeValue(forKey: "month") }
+        if let day { next["day"] = day } else { next.removeValue(forKey: "day") }
+        update(params: next)
         Task { @MainActor [weak self] in
-            _ = await engine.raw("nav.setParams", ["patch": ["month": month as Any, "day": day as Any]])
+            _ = await engine.raw("nav.setParams", ["patch": ["month": (month as Any?) ?? NSNull(), "day": (day as Any?) ?? NSNull()]])
             self?.reload()
         }
     }

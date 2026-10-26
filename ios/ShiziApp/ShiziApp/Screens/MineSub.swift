@@ -387,6 +387,9 @@ final class ShiziPaperCell: UIControl {
         tagLabel.isAccessibilityElement = false
         tagLabel.textAlignment = .left
         addSubview(tagLabel)
+        // 格子是一个按钮（读屏与自动化都按它找；名字 = 页面给的读屏名）
+        isAccessibilityElement = true
+        accessibilityTraits = [.button]
         glyphView.padRatio = 0.06
         configure(char: char, mode: mode, ink: ink)
     }

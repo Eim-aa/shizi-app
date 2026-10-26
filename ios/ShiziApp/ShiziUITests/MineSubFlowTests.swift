@@ -97,7 +97,8 @@ final class MineSubFlowTests: XCTestCase {
         qa.launch()
         qa.waitRouteTop("month", timeout: 25)
         XCTAssertTrue(qa.el("native-month-title").waitForExistence(timeout: 10), "the native month page is on screen")
-        let cells = qa.app.buttons.matching(identifier: "native-month-cell")
+        // 格子是按钮，读屏名「{字} · {日期}」（标识在格里的角标标签上，不在按钮上）
+        let cells = qa.app.buttons.matching(NSPredicate(format: "label CONTAINS %@", " · "))
         XCTAssertTrue(cells.firstMatch.waitForExistence(timeout: 8), "the copybook cells are there")
         XCTAssertTrue(cells.count >= 10, "the whole month is laid out (\(cells.count))")
         cells.element(boundBy: 1).tap()

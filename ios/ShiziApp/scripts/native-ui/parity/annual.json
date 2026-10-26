@@ -1,0 +1,21 @@
+{
+  "//": "年报页（B3.9）的逐项豁免。",
+  "ignore": [
+    {
+      "state": [
+        "annual-empty",
+        "annual-report",
+        "annual-past-year"
+      ],
+      "label": "annual-body",
+      "aspects": [
+        "size"
+      ],
+      "//": "B3.9：整页正文是比屏高的滚动内容，网页参考只取到屏内那一段（折线以下的元素没进清单）；正文总高的零点几～几 pt 差来自折线以下、参考里看不到的部分，只比看得见的部分（各元素逐项照比）"
+    }
+  ],
+  "waive": {},
+  "ink": {
+    "states": {}
+  }
+}

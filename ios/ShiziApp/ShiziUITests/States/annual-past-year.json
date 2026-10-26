@@ -26,7 +26,8 @@
       }
     },
     {
-      "op": "seed"
+      "op": "seed",
+      "wait": 1500
     },
     {
       "op": "switchTab",

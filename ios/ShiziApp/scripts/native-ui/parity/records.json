@@ -3,40 +3,71 @@
   "ignore": [
     {
       "label": "month-stage",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__stage（格区，尺寸 = 列宽 × 行数 × 格宽）；原生没有分层的这一层（格区由 ShiziSheetPaper 自己画）"
     },
     {
       "label": "month-sheet",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__sheet（笺面矩形，未满行时是两段）；原生笺面由 ShiziSheetPaper 一次画，没有单独的元素"
     },
     {
       "label": "month-lines",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__lines（格线 SVG）；原生格线是 ShiziSheetPaper 的 draw(_:) 画出来的，没有单独的元素"
     },
     {
       "label": "month-frame",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__frame（外框 path）；原生外框同上，由纸自己画"
     },
     {
       "label": "records-sheet-cell",
-      "aspects": ["color", "font"],
+      "aspects": [
+        "color",
+        "font"
+      ],
       "//": "B3.9：格是一个按钮，网页取证读的是按钮元素自身的字号 / 颜色（继承正文 15、ink1），角标的字实际在内层 span（.sz-mcell__tag 11px、ink3，aria-hidden 不单独取证）；原生把角标做成独立标签（11pt、ink3），字面与网页一致。位置、文字框、文案照比（同 B2.7 结果页 exrow-open 的先例）"
     },
     {
-      "state": ["records-day"],
-      "sizes": ["XXXL"],
+      "state": [
+        "records-day"
+      ],
+      "sizes": [
+        "XXXL"
+      ],
       "label": "records-sheet-cell",
-      "aspects": ["extra"],
+      "aspects": [
+        "extra"
+      ],
       "//": "B3.9：XXXL 下字帖的第二行落在折线以下（视口高 874，格子的顶在 878），网页的取证脚本跳过视口外的元素、原生把整页的元素都取到 → 原生多出这 5 个第二行的格子；它们在网页上是同样的格子（同一个 data-testid、同样的位置与角标），只是没进网页的取证清单"
     },
     {
       "label": "month-note",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "B3.9：练习记录页的说明句正好落在折线以下（顶边 = 视口高 874）。网页的取证脚本按元素的顶边判断是否在屏内（顶边 = 874 = 屏高，仍算在屏内，取到）；原生按元素与屏是否相交判断（正好在屏外，不取）→ 差这一条。两边屏幕上都没有这一句（都在折线以下）"
+    },
+    {
+      "state": [
+        "records-day",
+        "records-empty",
+        "records-month"
+      ],
+      "label": "records-body",
+      "aspects": [
+        "size"
+      ],
+      "//": "B3.9：整页正文是比屏高的滚动内容，网页参考只取到屏内那一段（折线以下的元素没进清单）；正文总高的零点几～几 pt 差来自折线以下、参考里看不到的部分，只比看得见的部分（各元素逐项照比）"
     }
   ]
 }

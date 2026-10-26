@@ -3,28 +3,51 @@
   "ignore": [
     {
       "label": "month-stage",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__stage（格区，尺寸 = 列宽 × 行数 × 格宽）；原生没有分层的这一层（格区由 ShiziSheetPaper 自己画）"
     },
     {
       "label": "month-sheet",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__sheet（笺面矩形，未满行时是两段）；原生笺面由 ShiziSheetPaper 一次画，没有单独的元素"
     },
     {
       "label": "month-lines",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__lines（格线 SVG）；原生格线是 ShiziSheetPaper 的 draw(_:) 画出来的，没有单独的元素"
     },
     {
       "label": "month-frame",
-      "aspects": ["missing"],
+      "aspects": [
+        "missing"
+      ],
       "//": "网页 .sz-month__frame（外框 path）；原生外框同上，由纸自己画"
     },
     {
       "label": "month-cell",
-      "aspects": ["color", "font"],
+      "aspects": [
+        "color",
+        "font"
+      ],
       "//": "B3.9：格是一个按钮，网页取证读的是按钮元素自身的字号 / 颜色（继承正文 15、ink1），角标的字实际在内层 span（.sz-mcell__tag 11px、ink3，aria-hidden 不单独取证）；原生把角标做成独立标签（11pt、ink3），字面与网页一致。位置、文字框、文案照比（同 B2.7 结果页 exrow-open 的先例）"
+    },
+    {
+      "state": [
+        "month-ink",
+        "month-ax5",
+        "month-under"
+      ],
+      "label": "month-body",
+      "aspects": [
+        "size"
+      ],
+      "//": "B3.9：整页正文是比屏高的滚动内容，网页参考只取到屏内那一段（折线以下的元素没进清单）；正文总高的零点几～几 pt 差来自折线以下、参考里看不到的部分，只比看得见的部分（各元素逐项照比）"
     }
   ]
 }

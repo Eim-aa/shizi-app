@@ -312,7 +312,7 @@ public enum Budget {
         return JSObject([("records", .bool(r)), ("aged", .bool(aged)), ("ink", .bool(i)), ("total", .bool(t)), ("any", .bool(r || aged || i))])
     }
 
-    static func foldMonth(_ month: String, _ list: [JSValue], _ keepIds: Set<JSKey>) -> JSObject {
+    static func foldMonth(_ month: String, _ list: [JSValue], _ keepIds: Set<JSKey>, hasInk: InkPick.HasInk? = nil) -> JSObject {
         var byDay = JSObject()
         var chars: [JSValue] = []
         var seenChars = OSet()
@@ -340,6 +340,10 @@ public enum Budget {
         let kept = list.filter { keepIds.contains(JSKey(s: sid($0))) }
         var out = JSObject([("folded", .bool(true)), ("month", .string(month)), ("byDay", .object(byDay)), ("chars", .array(chars)), ("kept", .array(kept))])
         if !paperOnly.isEmpty { out["paperOnly"] = .object(paperOnly) }
+        // R15：作品成员按 isWorkMember 逐条记下（byDay 是「写过的字」，含写错没放进来的、纸上的）；work 总是写，没有 = 旧版折叠。
+        let fw = WorkMembers.foldWorkOf(list, hasInk: hasInk)
+        out["work"] = .object(fw.work)
+        if let wj = fw.workJudged { out["workJudged"] = .object(wj) }
         return out
     }
 
@@ -498,7 +502,10 @@ public enum Budget {
             let listV = records[month]!
             let list = listV.arrayValue ?? []
             let before = entryBytes(Schema.recordsKey(month), JSONWriter.stringify(listV))
-            let value = foldMonth(month, list, keepIds)
+            // 看后自写算不算成员看折叠这一刻存下的墨迹（与折叠前的原始月份同一判据；折掉的记录的墨迹随后才删）
+            let snapshot = JSValue.object(JSObject([("ink", draft["ink"] ?? .null)]))
+            let tz = dates.timeZone
+            let value = foldMonth(month, list, keepIds, hasInk: hasInk ? { rec in InkPick.storedInkPresent(snapshot, rec, timeZone: tz) } : nil)
             let after = entryBytes(Schema.recordsKey(month), JSONWriter.stringify(.object(value)))
             folded = true
             records[month] = .object(value)

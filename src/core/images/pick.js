@@ -114,6 +114,16 @@ export function dayMembers(state, day, { hasInk = null, added = null } = {}) {
   const has = typeof hasInk === 'function' ? hasInk : hasInkOfState(state);
   const pickInk = typeof hasInk === 'function' ? hasInk : null; // 没注入 hasInk 时不做 D42：每字就取那天最近一次
   const inDay = workRecords(state, has, added).filter(r => r.localDay === day);
+  const folded = foldedMonth(state && state.records, day.slice(0, 7));
+  if (folded) {
+    // 折叠月（R15）：成员与先后按折叠时记下的作品成员（那天第一次出现的先后，同未折叠）；记录只能从 kept 里取，取不到 record=null（缺墨，不画）
+    const members = (foldWorkByDay(folded)[day] || []).map(char => {
+      const list = inDay.filter(r => charOf(r) === char);
+      const picked = list.length ? workMembers(list, { prefer: 'last', hasInk: has, pickInk, added })[0] : null;
+      return picked ? { ...picked, firstDay: day } : { char, cardKey: 'base:' + char, record: null, firstDay: day, dot: false };
+    });
+    return { members, day };
+  }
   return { members: workMembers(inDay, { prefer: 'last', order: 'first', hasInk: has, pickInk, added }), day };
 }
 

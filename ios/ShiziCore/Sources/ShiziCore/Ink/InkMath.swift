@@ -779,6 +779,10 @@ public enum InkMath {
     /// v4 没有存宽度：按当前笔锋参数（opts 同 buildStroke）重算；v3 / v2 是烘焙好的宽度。
     public static func decodeInk(_ ink: JSValue?, options o: InkOptions = InkOptions()) throws -> [[InkPoint]]? {
         if isInkV4(ink) { return try decodeInkV4(ink!, o) }
+        // 同 JS：v === 4 就走 v4 解码，形状不合法返回 nil——不先读笔锋参数（参数不全时 JS 回 null，不报错）
+        if let ink = ink, case .object(let obj) = ink, obj["v"] == .number(4) {
+            return decodeInkRaw(ink) == nil ? nil : try decodeInkV4(ink, o)
+        }
         let base = num(o.base, o.policy != nil ? try InkParams(policy: o.policy).base : InkParams.standard.base)
         let scale = grid / 1000
         if isInkV3(ink), case .array(let s)? = ink?["s"] {

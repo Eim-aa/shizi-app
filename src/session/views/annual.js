@@ -73,7 +73,8 @@ export function yearSlice(state, year) {
   for (const [month, fold] of Object.entries(index.folded)) {
     if (!month.startsWith(prefix)) continue;
     // byDay 换成「作品」口径（去掉折叠时记下的只在纸上写过的字）；chars 只用来排序，不单独计数
-    folded[month] = { ...fold, byDay: foldWorkByDay(rawMonths[month]) };
+    // judgedByDay：只算判断记录的成员（「今年第一个字」只看判断，D18；R15）
+    folded[month] = { ...fold, byDay: foldWorkByDay(rawMonths[month]), judgedByDay: foldWorkByDay(rawMonths[month], { judgedOnly: true }) };
   }
   // 有记录的日子：作品记录的日子 + 折叠月份（作品口径）byDay 的日子（index.days 里含纸上记录的日子，这里不用）
   const daySet = new Set(works.map(r => r.localDay));
@@ -104,9 +105,10 @@ export function firstOfYear(slice, { hasInk = null } = {}) {
   const r0 = slice.judged.length ? slice.judged[0] : null;
   let fold = null;
   for (const f of Object.values(slice.folded)) {
-    for (const day of Object.keys(f.byDay).sort()) {
-      if (!f.byDay[day].length) continue;
-      if (!fold || day < fold.day) fold = { day, char: f.byDay[day][0] };
+    const byDay = f.judgedByDay || f.byDay;
+    for (const day of Object.keys(byDay).sort()) {
+      if (!byDay[day].length) continue;
+      if (!fold || day < fold.day) fold = { day, char: byDay[day][0] };
       break;
     }
   }

@@ -141,6 +141,39 @@ final class BudgetTests: XCTestCase {
         XCTAssertNotNil(draft["records"]!["2026-10"]!.arrayValue)
     }
 
+    // test/store/fold-membership.test.mjs（R15）：折叠按作品成员规则逐条记下 work；写错没放进来的、纸上的不进；看后自写有墨的进 work、不进 workJudged
+    func testR15FoldRecordsWorkMembersAtFoldTime() {
+        let paper: [(String, JSValue)] = [("source", .string("paper"))]
+        let records = recs([
+            ("2025-01", [srec(1, cShan, kind: "answer-seen", day: "2025-01-02"), srec(2, cRen, day: "2025-01-03"), srec(3, cKou, judgment: "wrong", day: "2025-01-03"),
+                         srec(4, cDa, day: "2025-01-04", extra: paper), srec(5, cRen, day: "2025-01-04"), srec(6, cKou, day: "2025-01-05"), srec(7, cRen, day: "2025-01-05")]),
+        ])
+        var ink = JSObject()
+        ink["r1"] = inkEntry(4, 1)
+        var draft = JSObject([("records", .object(records)), ("ink", .object(JSObject([("2025-01", .object(ink))]))), ("sessions", J(#"{"A":null,"B":null,"lastEnded":{}}"#))])
+        Budget.recover(&draft, now: NOW, budgets: budgets([("inkBudgetBytes", 1e12)]), dates: shanghai)
+        let fold = draft["records"]!["2025-01"]!
+        XCTAssertEqual(fold["byDay"], J(#"{"2025-01-03":["人","口"],"2025-01-04":["大","人"],"2025-01-05":["口","人"]}"#), "byDay is still every judged char")
+        XCTAssertEqual(fold["work"], J(#"{"2025-01-02":["山"],"2025-01-03":["人"],"2025-01-04":["人"],"2025-01-05":["口","人"]}"#))
+        XCTAssertEqual(fold["workJudged"], J(#"{"2025-01-03":["人"],"2025-01-04":["人"],"2025-01-05":["口","人"]}"#))
+        XCTAssertNil(Schema.validateRecordsMonth(fold, month: "2025-01"))
+        XCTAssertNil(flatInk(draft["ink"])["r1"], "after-seen ink still goes with its record (Q1 / D27 unchanged)")
+        XCTAssertEqual(Records.foldWorkByDay(fold, judgedOnly: true).keys, ["2025-01-03", "2025-01-04", "2025-01-05"])
+        // 去掉 work = 旧折叠：kept 里 口@01-03 只有写错 → 证得出不是成员；看后自写没记下 → 不算
+        var legacy = fold.objectValue!
+        legacy["work"] = nil
+        legacy["workJudged"] = nil
+        XCTAssertEqual(JSValue.object(Records.foldWorkByDay(.object(legacy))), J(#"{"2025-01-03":["人"],"2025-01-04":["人"],"2025-01-05":["口","人"]}"#))
+    }
+
+    // test/store/fold-membership.test.mjs（R15）：没有 ink 域时看后自写不是成员，不写 workJudged
+    func testR15FoldWithoutInkDomain() {
+        var draft = JSObject([("records", .object(recs([("2025-01", [srec(1, cShan, kind: "answer-seen", day: "2025-01-02"), srec(2, cRen, day: "2025-01-03")])])))])
+        Budget.recover(&draft, now: NOW, budgets: budgets([("inkBudgetBytes", 1e12)]), dates: shanghai)
+        XCTAssertEqual(draft["records"]!["2025-01"]!["work"], J(#"{"2025-01-03":["人"]}"#))
+        XCTAssertNil(draft["records"]!["2025-01"]!["workJudged"])
+    }
+
     // test/store/budget.test.mjs: needsRecovery: aged months (> 400 days) trigger even under budget
     func testNeedsRecoveryAgedMonthsTriggerEvenUnderBudget() {
         let state = JSObject([("records", .object(recs([("2025-06", [srec(1, cRen, day: "2025-06-01")]), ("2026-10", [srec(2, cKou, day: "2026-10-01")])]))), ("ink", .object(JSObject()))])

@@ -150,7 +150,7 @@ extension CoreEngine {
         "records.isAfterSeenWork": { _, a in .bool(Records.isAfterSeenWork(try required(a, "record"), try hasInkSpec(a, "hasInk"))) },
         "records.isWorkOrAfterSeen": { _, a in .bool(Records.isWorkOrAfterSeen(try required(a, "record"), try hasInkSpec(a, "hasInk"))) },
         "records.withoutPaper": { _, a in arr(Records.withoutPaper(try records(a))) },
-        "records.foldWorkByDay": { _, a in .object(Records.foldWorkByDay(try required(a, "fold"))) },
+        "records.foldWorkByDay": { _, a in .object(Records.foldWorkByDay(try required(a, "fold"), order: JSX.eq(a["order"], "last") ? "last" : "first", judgedOnly: a["judgedOnly"] == .bool(true))) },
         "records.correctRecord": { _, a in try Records.correctRecord(try required(a, "record"), try required(a, "judgment"), at: try required(a, "at")) },
         "records.replaceRecord": { _, a in arr(try Records.replaceRecord(try records(a), try required(a, "next"))) },
         "records.removeRecord": { _, a in arr(try Records.removeRecord(try records(a), try required(a, "id"))) },

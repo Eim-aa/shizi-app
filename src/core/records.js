@@ -232,23 +232,70 @@ export function withoutPaper(records) {
   return (records || []).filter((r) => !isPaperRecord(r));
 }
 
+const isMap = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+
+/** 一串字去重：'first' 按第一次出现的先后，'last' 按最后一次出现的先后。 */
+function dedupeChars(chars, order) {
+  const out = [];
+  if (order === 'last') {
+    for (let i = chars.length - 1; i >= 0; i -= 1) if (typeof chars[i] === 'string' && !out.includes(chars[i])) out.unshift(chars[i]);
+    return out;
+  }
+  for (const c of chars) if (typeof c === 'string' && !out.includes(c)) out.push(c);
+  return out;
+}
+
 /**
- * 折叠月份（01 §9）里「作品」的 byDay：byDay 去掉只在纸上写过的（日, 字）（fold.paperOnly，折叠时记下，P1-E78）；
- * 去掉后没有字的日子不出现。没有 paperOnly（该月折叠时还没有纸上记录，或没有纸上记录）就是 byDay 本身。
- * 日历「写过的日子」不用它——纸上那天仍算写过（D47）。
+ * 折叠月份（01 §9）里「作品」的 byDay：每天的作品成员字（core/work-members.js isWorkMember 的口径，D51 ⑤ / D47）。
+ *   新折叠（R15，带 fold.work）：直接用折叠时逐条记下的成员——与折叠前的原始月份完全一致。
+ *     opts.order：同一天里字的先后——'first'（缺省）第一次出现的先后（月字帖、年报）；'last' 最近一次出现的先后（某一天的字，同 dayItems 的原始口径）；
+ *     opts.judgedOnly：只算判断记录（年报「今年第一个字」，看过答案不是记录，D18）。
+ *   旧折叠（R15 之前，没有 work）：byDay 是「写过的字」，含写错没放进来的。尽量还原：
+ *     去掉只在纸上写过的（fold.paperOnly，P1-E78）；再去掉 kept 里能证明「那天这个字只写错」的（日, 字）——kept 里那天这个字的屏幕判断记录全是写错、
+ *     没有一条写对。kept 只留每字第一次 / 最近一次判断（D27），其余记录已不在：kept 里没有那天记录的（日, 字）分不出来，按成员算（旧行为）；
+ *     旧折叠也没记下看后自写，它们不算。order 对旧折叠无效（byDay 只留了第一次出现的先后）。
+ * 去掉后没有字的日子不出现。日历「写过的日子」不用它——纸上那天、写错那天仍算写过（D47）。
+ * @param {object} fold  折叠月（含 kept）
+ * @param {{order?:'first'|'last', judgedOnly?:boolean}} [opts]
  * @returns {{[localDay]: string[]}}
  */
-export function foldWorkByDay(fold) {
-  const byDay = fold && fold.byDay && typeof fold.byDay === 'object' ? fold.byDay : {};
-  const paperOnly = fold && fold.paperOnly && typeof fold.paperOnly === 'object' ? fold.paperOnly : null;
+export function foldWorkByDay(fold, { order = 'first', judgedOnly = false } = {}) {
   const out = {};
+  if (!isMap(fold)) return out;
+  const exact = judgedOnly && isMap(fold.workJudged) ? fold.workJudged : isMap(fold.work) ? fold.work : null;
+  if (exact) {
+    for (const [day, chars] of Object.entries(exact)) {
+      if (!Array.isArray(chars)) continue;
+      const list = dedupeChars(chars, order);
+      if (list.length) out[day] = list;
+    }
+    return out;
+  }
+  const byDay = isMap(fold.byDay) ? fold.byDay : {};
+  const paperOnly = isMap(fold.paperOnly) ? fold.paperOnly : null;
+  const wrongOnly = legacyWrongOnly(fold.kept);
   for (const [day, chars] of Object.entries(byDay)) {
     if (!Array.isArray(chars)) continue;
     const skip = paperOnly && Array.isArray(paperOnly[day]) ? paperOnly[day] : null;
-    const kept = skip ? chars.filter((c) => !skip.includes(c)) : chars.slice();
+    const kept = chars.filter((c) => !(skip && skip.includes(c)) && !(typeof c === 'string' && wrongOnly.has(day + '\u0000' + c)));
     if (kept.length) out[day] = kept;
   }
   return out;
+}
+
+/** 旧折叠：kept 里「那天这个字的屏幕判断全是写错」的（日, 字）。 */
+function legacyWrongOnly(kept) {
+  const wrong = new Set();
+  const right = new Set();
+  if (!Array.isArray(kept)) return wrong;
+  for (const r of kept) {
+    if (!isJudged(r) || isPaperRecord(r) || typeof r.localDay !== 'string') continue;
+    const char = typeof r.char === 'string' && r.char ? r.char : charOfCardKey(r.cardKey);
+    if (!char) continue;
+    (r.judgment === 'wrong' ? wrong : right).add(r.localDay + '\u0000' + char);
+  }
+  for (const k of right) wrong.delete(k);
+  return wrong;
 }
 
 /**

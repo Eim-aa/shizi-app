@@ -27,6 +27,8 @@
 import { CORRUPT_PREFIX, inkIdOf, inkMonthOf, inkRecordKey, isPlainObject, recordsKey, serialOf, specForKey } from '../core/schema.js';
 import * as policy from '../config/policy.js';
 import { localDay } from '../core/dates.js';
+import { foldWorkOf } from '../core/work-members.js';
+import { storedInkPresent } from '../core/ink-pick.js';
 
 const MiB = 1024 * 1024;
 
@@ -398,7 +400,7 @@ export function needsRecovery(state, { now, budgets, totalBytes, sizes } = {}) {
   return out;
 }
 
-function foldMonth(month, list, keepIds) {
+function foldMonth(month, list, keepIds, hasInk = null) {
   const byDay = {};
   const chars = [];
   const seen = new Set();
@@ -422,6 +424,11 @@ function foldMonth(month, list, keepIds) {
   const kept = list.filter(rec => keepIds.has(rec.id));
   const out = { folded: true, month, byDay, chars, kept };
   if (Object.keys(paperOnly).length) out.paperOnly = paperOnly;
+  // R15：作品成员按 isWorkMember 逐条记下（byDay 是「写过的字」，含写错没放进来的、纸上的——日历 / 字库用；作品口径不能从它推）。
+  // work 总是写（可为 {}）：有 work = 折叠时已记下成员；没有 = 旧版折叠（读的一方按 foldWorkByDay 的旧数据规则尽量还原）。
+  const { work, workJudged } = foldWorkOf(list, { hasInk });
+  out.work = work;
+  if (workJudged) out.workJudged = workJudged;
   return out;
 }
 
@@ -502,7 +509,8 @@ export function recover(draft, { now, budgets, force = false, needBytes = 0, lim
     if (!(aged || rBytes > b.recordsBudgetBytes || wantMore())) break;
     const list = records[month];
     const before = entryBytes(recordsKey(month), JSON.stringify(list));
-    const value = foldMonth(month, list, retainedIds(index));
+    // 看后自写算不算成员看折叠这一刻存下的墨迹（与折叠前的原始月份同一判据；折掉的记录的墨迹随后才删）
+    const value = foldMonth(month, list, retainedIds(index), hasInk ? rec => storedInkPresent(draft, rec) : null);
     const after = entryBytes(recordsKey(month), JSON.stringify(value));
     if (!folded) {
       records = Object.assign({}, records);

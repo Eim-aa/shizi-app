@@ -304,6 +304,9 @@ public enum Schema {
             ("chars", V.arrayOf(V.char)),
             ("kept", { x, p in validateRecordList(x, p, month) }),
             ("paperOnly", byDay),
+            // R15：折叠时逐条记下的作品成员（可缺省 = 旧折叠）；workJudged 只在有看后自写成员时有
+            ("work", byDay),
+            ("workJudged", byDay),
         ])
         return checkFields(value, path, fields, ["folded", "month", "byDay", "chars", "kept"])
     }

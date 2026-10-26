@@ -127,10 +127,17 @@ test('folded month: wrong chars never draw wrong ink — the member rule applies
   };
   const has = hasInkOfState(st);
   const members = monthMembers(st, '2026-09', { hasInk: has }).members;
-  assert.deepEqual(members.map(m => [m.char, m.record && m.record.id]), [['永', 'r1'], ['赢', null]],
-    'the kept wrong record is never picked; 赢 (only known from byDay) falls back to the under placeholder');
+  // R15：旧折叠（没有 work）里 kept 证明「赢 那天只写错」→ 不是成员（以前按 byDay 画衬底）
+  assert.deepEqual(members.map(m => [m.char, m.record && m.record.id]), [['永', 'r1']],
+    'the kept wrong record is never picked, and kept proves 赢 was wrong-only that day (R15 legacy repair)');
   const cells = monthCells(st, '2026-09', { inkOf: r => (has(r) ? POINTS : null), hasInk: has }).cells;
-  assert.deepEqual(cells.map(c => [c.ch, c.mode, c.dot]), [['永', 'hand', false], ['赢', 'under', false]]);
+  assert.deepEqual(cells.map(c => [c.ch, c.mode, c.dot]), [['永', 'hand', false]]);
   const sheet = monthSheet(recordIndex(st), '2026-09');
-  assert.deepEqual(sheet.cells.map(c => [c.char, c.record && c.record.id]), [['永', 'r1'], ['赢', null]]);
+  assert.deepEqual(sheet.cells.map(c => [c.char, c.record && c.record.id]), [['永', 'r1']]);
+  // 旧折叠里 kept 没有那天记录的字分不出写错，按成员（衬底）
+  const st2 = { ...st, records: { '2026-09': { ...st.records['2026-09'], byDay: { ...st.records['2026-09'].byDay, '2026-09-05': ['赢'] } } } };
+  assert.deepEqual(monthMembers(st2, '2026-09', { hasInk: has }).members.map(m => [m.char, m.firstDay, m.record && m.record.id]), [['永', '2026-09-03', 'r1'], ['赢', '2026-09-05', null]]);
+  // 新折叠（R15，带 work）：成员就是 work 里的字
+  const st3 = { ...st, records: { '2026-09': { ...st.records['2026-09'], work: { '2026-09-03': ['永'] } } } };
+  assert.deepEqual(monthMembers(st3, '2026-09', { hasInk: has }).members.map(m => m.char), ['永']);
 });

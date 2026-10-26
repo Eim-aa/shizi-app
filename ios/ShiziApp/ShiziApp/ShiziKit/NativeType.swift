@@ -98,7 +98,7 @@ struct NativeType {
     }
 
     static func hasCJKPunctuation(_ s: String) -> Bool {
-        s.unicodeScalars.contains { (0x3000...0x303F).contains($0.value) || (0xFF00...0xFFEF).contains($0.value) || $0.value == 0x00B7 }
+        s.unicodeScalars.contains { (0x3000...0x303F).contains($0.value) || (0xFF00...0xFFEF).contains($0.value) }
     }
 
     /// 系统给中文的那一款（苹方 UI）的正文款：按 17pt 取到字体，再换成要的字号（光学尺寸钉在 17，换字号不换款）。
@@ -151,7 +151,7 @@ struct NativeType {
             let n = (String(ch) as NSString).length
             let cjk = ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 })
             if punct, !cjk {
-                let want = sfWidth(ch, sf)
+                let want = (String(ch) as NSString).size(withAttributes: [.font: sf]).width
                 let have = (String(ch) as NSString).size(withAttributes: [.font: f]).width
                 out.addAttribute(.kern, value: want - have, range: NSRange(location: i, length: n))
             } else if cjk, track != 0 {
@@ -160,14 +160,6 @@ struct NativeType {
             i += n
         }
         label.attributedText = out
-    }
-
-    /// 拉丁字符按 SF 的字宽。间隔号「·」（U+00B7）例外：SF 字体本体没有这个字形，系统按回退字体取。
-    /// 网页（WebKit）在 17pt 取到宽款（8.1pt，原生同款），字号到 20pt 以上换成窄款（22.9pt 下 5.7、40pt 下 9.3、53pt 下 12.2）；
-    /// UIKit 一直取宽款（22.9pt 下 10.9），一行「排序 · 筛选」就比网页宽 2.3–6pt。窄款的宽按网页量到的三个字号拟合：0.2139 × 字号 + 0.823。
-    static func sfWidth(_ ch: Character, _ sf: UIFont) -> CGFloat {
-        if ch.unicodeScalars.first?.value == 0x00B7, sf.pointSize >= 20 { return 0.2139 * sf.pointSize + 0.823 }
-        return (String(ch) as NSString).size(withAttributes: [.font: sf]).width
     }
 
     static func hasCJK(_ s: String) -> Bool { s.unicodeScalars.contains { $0.value >= 0x2E80 } }

@@ -1015,6 +1015,18 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         // 标题与「完成」在页头里（网页 .sz-sheet__head：标题左、完成右）
         titleLabel.numberOfLines = 1
         NativeType.set(titleLabel, t("X-ALL.menuLabel"), font: menuTitleFont, color: color("ink1"), line: mt.line("lh17s"))
+        // 标题里的间隔号「·」：网页在 20pt 以上取窄款（22.9pt 下 5.7、40pt 下 9.3、53pt 下 12.2；17pt 下与原生同为宽款），UIKit 一直取宽款；
+        // 只在这一行补字距（按网页量到的三个字号拟合：宽 = 0.2139 × 字号 + 0.823）。其它带「·」的文字网页仍是宽款，不动共用的 NativeType。
+        let titleFont = menuTitleFont
+        if titleFont.pointSize >= 20, let attr = titleLabel.attributedText?.mutableCopy() as? NSMutableAttributedString {
+            let ns = attr.string as NSString
+            let r = ns.range(of: "\u{00B7}")
+            if r.location != NSNotFound {
+                let have = ("\u{00B7}" as NSString).size(withAttributes: [.font: titleFont]).width
+                attr.addAttribute(.kern, value: 0.2139 * titleFont.pointSize + 0.823 - have, range: r)
+                titleLabel.attributedText = attr
+            }
+        }
         titleLabel.frame = CGRect(x: 0, y: (headH - mt.line("lh17s")) / 2, width: innerW - 100, height: mt.line("lh17s"))
         let doneText = t("X-COMMON.done")
         let doneW = LibraryCommon.textWidth(doneText, mt.font(15)) + 8

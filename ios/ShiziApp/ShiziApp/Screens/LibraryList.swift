@@ -59,9 +59,9 @@ final class LibraryListRowView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     /// 圆点与勾的位置（圆点在按钮里居中，勾在圆点里居中）；选中时圆点填墨色、描边去掉。
-    func layoutDot(selected: Bool, line: UIColor, checkImage: UIImage? = nil) {
-        check.image = selected ? checkImage : nil
-        check.contentMode = .center
+    func layoutDot(selected: Bool, line: UIColor) {
+        // 勾是按钮自己的图（取证按按钮的图标比），要画在圆点上面
+        if let iv = select.imageView { select.bringSubviewToFront(iv) }
         dot.layer.borderColor = line.resolvedColor(with: traitCollection).cgColor
         dot.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
         check.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
@@ -328,13 +328,15 @@ final class LibraryListScreen: ShiziScreenViewController {
             rv.select.isEnabled = row.selectable
             rv.select.alpha = row.selectable ? 1 : 0
             rv.dotInk = color("ink1")
-            rv.layoutDot(selected: row.selected, line: color("ink4"), checkImage: check)
+            rv.layoutDot(selected: row.selected, line: color("ink4"))
             rv.thumb.backgroundColor = color("sheet")
             rv.thumb.layer.borderWidth = mt.value("frame-w")
             rv.thumb.layer.borderColor = color("frame").resolvedColor(with: traitCollection).cgColor
             // 勾（网页 .sz-lrow__dot 里的对勾：14 × 14，在 44 × 44 的圆点钮里居中）
             rv.select.iconSize = CGSize(width: 14, height: 14)
             rv.select.iconCentered = true
+            rv.select.setImage(row.selected ? check : nil, for: .normal)
+            rv.layoutDot(selected: row.selected, line: color("ink4"))
             rv.chevron.image = chevron
             let w = row.word
             let wordText = w.has ? w.pre + w.tg + w.post : ""

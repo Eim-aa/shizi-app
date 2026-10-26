@@ -69,7 +69,29 @@ export default {
       args: (g) => {
         const B = b43(g);
         const dayMap = () => { const o = {}; for (let i = 0; i < g.int(0, 3); i += 1) o[g.pick(DAYS)] = g.chance(0.92) ? Array.from({ length: g.int(0, 3) }, () => B.char()) : g.pick([null, 'x', {}]); return o; };
-        return { fold: g.weighted([[() => ({ folded: true, month: g.pick(MONTHS), byDay: dayMap(), chars: [], kept: [], ...(g.chance(0.6) ? { paperOnly: dayMap() } : {}) }), 6], [() => g.pick([null, {}, { byDay: null }, { byDay: {}, paperOnly: [] }, { byDay: { '2026-09-20': ['人'] }, paperOnly: { '2026-09-20': 'x' } }, 5]), 2]])() };
+        // R15：新折叠带 work / workJudged（同字可重复，order / judgedOnly 两种读法）；旧折叠按 kept 里的写错去掉（日, 字），kept 混入纸上 / 写对 / 坏记录
+        const keptOf = (byDay) => {
+          const out = [];
+          for (const [day, chars] of Object.entries(byDay)) {
+            if (!Array.isArray(chars)) continue;
+            for (const c of chars) if (g.chance(0.5)) out.push({ ...B.record(g.int(1, 60), { kind: 'judged' }), localDay: day, char: c, judgment: g.pick(['wrong', 'wrong', 'correct', null]), ...(g.chance(0.15) ? { source: 'paper' } : {}) });
+          }
+          if (g.chance(0.1)) out.push(g.pick([null, 5, 'x', { kind: 'judged', judgment: 'wrong' }, { kind: 'judged', judgment: 'wrong', localDay: '2026-09-20', cardKey: 'base:人' }]));
+          return out;
+        };
+        const seq = () => { const o = {}; for (let i = 0; i < g.int(0, 3); i += 1) o[g.pick(DAYS)] = g.chance(0.92) ? Array.from({ length: g.int(0, 4) }, () => B.char()) : g.pick([null, 'x', {}]); return o; };
+        const fold = () => {
+          const byDay = dayMap();
+          const f = { folded: true, month: g.pick(MONTHS), byDay, chars: [], kept: g.chance(0.7) ? keptOf(byDay) : g.pick([[], null, 'x']), ...(g.chance(0.6) ? { paperOnly: dayMap() } : {}) };
+          if (g.chance(0.5)) f.work = g.chance(0.95) ? seq() : g.pick([null, [], 'x']);
+          if (g.chance(0.25)) f.workJudged = g.chance(0.95) ? seq() : g.pick([null, []]);
+          return f;
+        };
+        return {
+          fold: g.weighted([[fold, 6], [() => g.pick([null, {}, { byDay: null }, { byDay: {}, paperOnly: [] }, { byDay: { '2026-09-20': ['人'] }, paperOnly: { '2026-09-20': 'x' } }, 5]), 2]])(),
+          ...(g.chance(0.5) ? { order: g.pick(['first', 'last']) } : {}),
+          ...(g.chance(0.4) ? { judgedOnly: g.chance(0.5) } : {}),
+        };
       },
     },
     'records.correctRecord': { weight: 2, args: (g) => ({ record: g.chance(0.7) ? b43(g).record(g.int(1, 30), { kind: 'judged' }) : g.badRecord(), judgment: g.weighted([['correct', 4], ['wrong', 4], ['maybe', 1], [null, 1]]), at: g.pick([111, 222.5, g.time(), 0]) }) },

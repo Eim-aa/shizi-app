@@ -72,6 +72,10 @@ export function recordIndex(state) {
         folded[month] = { byDay, chars: Array.isArray(value.chars) ? value.chars.slice() : [] };
         // 折叠时记下的「只在纸上写过」的字（D47，P1-E78）：只带过来，index.days / 日历不受影响；字帖与日子的字表用 foldWorkByDay 去掉它们。
         if (value.paperOnly && typeof value.paperOnly === 'object') folded[month].paperOnly = value.paperOnly;
+        // R15：折叠时逐条记下的作品成员（work / workJudged）与 kept（旧折叠按 kept 尽量还原），foldWorkByDay 读它们。
+        if (value.work && typeof value.work === 'object') folded[month].work = value.work;
+        if (value.workJudged && typeof value.workJudged === 'object') folded[month].workJudged = value.workJudged;
+        if (Array.isArray(value.kept)) folded[month].kept = value.kept;
       }
     }
   }
@@ -177,9 +181,8 @@ export function monthSheet(index, month, { policy = defaultPolicy, hasInk = null
     for (const day of Object.keys(workByDay).sort()) {
       for (const c of workByDay[day]) if (!firstDay.has(c)) firstDay.set(c, day);
     }
-    const order = fold.chars.filter(c => firstDay.has(c));
-    for (const c of firstDay.keys()) if (!order.includes(c)) order.push(c);
-    order.sort((a, b) => (firstDay.get(a) < firstDay.get(b) ? -1 : firstDay.get(a) > firstDay.get(b) ? 1 : 0));
+    // 先后 = 作品成员第一次出现的先后（日子先后，同一天按记录先后），与未折叠时 workMembers order:'first' 一致（R15：不再按含写错的 chars 排）
+    const order = [...firstDay.keys()];
     // 折叠月份只剩 kept：只在 kept 里找（D42），找不到的字 record=null；角标与排序同一个日子（byDay 里最早出现的那天）。
     const keptOf = new Map();
     for (const r of inMonth) {
@@ -221,9 +224,16 @@ export function sheetPreview(sheet, { cols = MINE_SHEET_COLS, rows = MINE_SHEET_
 export function dayItems(index, day, { hasInk = null } = {}) {
   if (!isValidDay(day)) return [];
   const fold = index.folded[monthOf(day)];
-  if (fold) return (foldWorkByDay(fold)[day] || []).map(char => ({ char, record: null }));
   const has = inkChecker(index, hasInk);
   const inDay = workRecordsOf(index).filter(r => r.localDay === day);
+  if (fold) {
+    // 折叠日子：字与先后按折叠时记下的成员（最近一次出现的先后，同未折叠）；记录只能从 kept 里取（D42：那天从晚到早第一条留墨的），取不到 record=null（R15）
+    return (foldWorkByDay(fold, { order: 'last' })[day] || []).map(char => {
+      const list = inDay.filter(r => r.char === char);
+      const picked = list.length ? workMembers(list, { prefer: 'last', hasInk: has })[0] : null;
+      return { char, record: picked ? picked.record : null, dot: picked ? picked.dot : false };
+    });
+  }
   return workMembers(inDay, { prefer: 'last', order: 'last', hasInk: has }).map(m => ({ char: m.char, record: m.record, dot: m.dot }));
 }
 

@@ -151,7 +151,17 @@ final class WorkMembersTests: XCTestCase {
         // 折叠月：byDay 记下全部字；留下来的 kept 里按成员规则取——写错没放进来的记录取不到
         let keptRecords = Query.flattenRecords(st["records"])
         XCTAssertEqual(ids43(keptRecords), ["r1", "r2"])
-        XCTAssertEqual(Records.foldWorkByDay(fold).keys, ["2026-09-03", "2026-09-04"])
+        // R15：旧折叠（没有 work）里 kept 证明「赢 那天只写错」→ 不是成员；kept 里没有那天记录的字分不出，按成员
+        XCTAssertEqual(Records.foldWorkByDay(fold).keys, ["2026-09-03"])
+        var fold2 = fold.objectValue!
+        fold2["byDay"] = obj43([("2026-09-03", arrayOf43([yong43])), ("2026-09-04", arrayOf43([ying43])), ("2026-09-05", arrayOf43([ying43]))])
+        XCTAssertEqual(Records.foldWorkByDay(.object(fold2)).keys, ["2026-09-03", "2026-09-05"])
+        // 新折叠（带 work）：成员就是 work 里的字；order 'last' 按最近一次出现的先后；judgedOnly 读 workJudged
+        fold2["work"] = obj43([("2026-09-03", arrayOf43([yong43, ying43, yong43]))])
+        fold2["workJudged"] = obj43([("2026-09-03", arrayOf43([yong43]))])
+        XCTAssertEqual(Records.foldWorkByDay(.object(fold2))["2026-09-03"], arrayOf43([yong43, ying43]))
+        XCTAssertEqual(Records.foldWorkByDay(.object(fold2), order: "last")["2026-09-03"], arrayOf43([ying43, yong43]))
+        XCTAssertEqual(Records.foldWorkByDay(.object(fold2), judgedOnly: true)["2026-09-03"], arrayOf43([yong43]))
         for (char, want) in [(yong43, "r1"), (ying43, "")] {
             let m = WorkMembers.workMembers(keptRecords.filter { $0["char"] == s43(char) }, prefer: s43("last"), hasInk: has)
             XCTAssertEqual(m.first?.record["id"]?.stringValue ?? "", want, "the kept wrong record is never picked; \(char) falls back to the under placeholder")

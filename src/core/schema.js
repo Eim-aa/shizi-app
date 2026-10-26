@@ -352,7 +352,10 @@ function validateRecordList(list, path, month) {
 
 /**
  * 按月记录键的值：当月 Record[]（按 id 升序），或预算回收折叠后的月汇总（01 §9）：
- *   { folded: true, month, byDay: {[localDay]: [char…]}, chars: [char…], kept: Record[], paperOnly?: {[localDay]: [char…]} }
+ *   { folded: true, month, byDay: {[localDay]: [char…]}, chars: [char…], kept: Record[], paperOnly?: {[localDay]: [char…]},
+ *     work?: {[localDay]: [char…]}, workJudged?: {[localDay]: [char…]} }
+ * work / workJudged（R15，可缺省）：折叠时按作品成员规则（core/work-members.js foldWorkOf）逐条记下的成员字；byDay 是「写过的字」（含写错、纸上），
+ * 作品口径（年报、月字帖、某一天的字）只读 work，见 core/records.js foldWorkByDay（没有 work 的旧折叠按 kept 尽量还原）。
  * paperOnly（可缺省）：byDay 里那天只在纸上写过的字（D47，P1-E78）；年报 / 月字数据此不计它们，日历照常算写过的日子。
  * byDay/chars 供日历与「练习记录」显示；kept 保留该月里仍是「某字最近一次 judged」或「某字第一次 judged」（D27，阶段 1 P1-E3）的记录，
  * 以维持「sched 存在 ⇒ 有 judged 记录」与写错过/快忘了查询（折叠细节见报告里的待定项）。
@@ -367,6 +370,10 @@ export function validateRecordsMonth(value, month, path = 'records') {
     kept: (x, p) => validateRecordList(x, p, month),
     // 可缺省：byDay 里「那天只在纸上写过」的字（D47：不计入年报 / 月字数；折叠时记下，缺省 = 没有）
     paperOnly: (x, p) => checkMap(x, p, key => isLocalDay(key) && monthOfDay(key) === month, v.arrayOf(v.char)),
+    // 可缺省（R15）：折叠时逐条记下的作品成员（每条成员记录一个字，按 id 先后，同字可重复）；缺省 = R15 之前的旧折叠
+    work: (x, p) => checkMap(x, p, key => isLocalDay(key) && monthOfDay(key) === month, v.arrayOf(v.char)),
+    // 可缺省（R15）：只算判断记录的成员；这个月有看后自写成员时才有（否则与 work 相同）
+    workJudged: (x, p) => checkMap(x, p, key => isLocalDay(key) && monthOfDay(key) === month, v.arrayOf(v.char)),
   };
   return checkFields(value, path, fields, ['folded', 'month', 'byDay', 'chars', 'kept']);
 }

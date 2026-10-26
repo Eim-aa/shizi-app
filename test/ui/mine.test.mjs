@@ -146,7 +146,7 @@ test('record days: judged + folded byDay; answer-seen / skipped / legacy.days ex
   assert.equal(fs.folded, true);
   assert.deepEqual(fs.cells.map(c => [c.char, c.tag, c.record]), [['永', '2026-06-03', null], ['和', null, null], ['天', '2026-06-10', null]]);
   assert.equal(fs.days, 2);
-  assert.deepEqual(dayItems(idx, '2026-06-10'), [{ char: '和', record: null }, { char: '天', record: null }]);
+  assert.deepEqual(dayItems(idx, '2026-06-10'), [{ char: '和', record: null, dot: false }, { char: '天', record: null, dot: false }]);
 });
 
 test('calendar: Monday-first blanks, 7-multiple, today / future / has flags', () => {

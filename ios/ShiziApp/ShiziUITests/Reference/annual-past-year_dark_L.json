@@ -25,25 +25,25 @@
     },
     {
       "id" : "annual-first-cell",
-      "name" : "「八」当时的笔迹",
+      "name" : "「东」当时的笔迹",
       "role" : "img",
       "tag" : "span"
     },
     {
       "id" : "annual-month",
-      "name" : "3月，20 个字，点开看字帖",
+      "name" : "3月，18 个字，点开看字帖",
       "role" : "button",
       "tag" : "button"
     },
     {
       "id" : "annual-month",
-      "name" : "4月，21 个字，点开看字帖",
+      "name" : "4月，19 个字，点开看字帖",
       "role" : "button",
       "tag" : "button"
     },
     {
       "id" : "annual-month",
-      "name" : "5月，20 个字，点开看字帖",
+      "name" : "5月，18 个字，点开看字帖",
       "role" : "button",
       "tag" : "button"
     },
@@ -219,7 +219,7 @@
       "tag" : "div"
     },
     {
-      "axLabel" : "「八」当时的笔迹",
+      "axLabel" : "「东」当时的笔迹",
       "bg" : "#24201BFF",
       "class" : "sz-ann__fcell",
       "frame" : {
@@ -252,7 +252,7 @@
       "fontWeight" : 0,
       "frame" : {
         "h" : 20,
-        "w" : 99.5,
+        "w" : 93,
         "x" : 168,
         "y" : 304
       },
@@ -275,24 +275,24 @@
       "fontWeight" : 0,
       "frame" : {
         "h" : 22,
-        "w" : 99.5,
+        "w" : 93,
         "x" : 168,
         "y" : 328
       },
       "id" : "annual-first-date",
       "kind" : "text",
       "tag" : "span",
-      "text" : "5月16日的笔迹",
+      "text" : "3月4日的笔迹",
       "textFrame" : {
         "h" : 19,
-        "w" : 99.5,
+        "w" : 93,
         "x" : 168,
         "y" : 329
       }
     },
     {
       "align" : "left",
-      "axLabel" : "3月，20 个字，点开看字帖",
+      "axLabel" : "3月，18 个字，点开看字帖",
       "border" : "#38322BFF",
       "borderWidth" : 0.33333299999999999,
       "class" : "sz-ann__month",
@@ -309,7 +309,7 @@
       "id" : "annual-month",
       "kind" : "button",
       "tag" : "button",
-      "text" : "3月 20 字",
+      "text" : "3月 18 字",
       "textFrame" : {
         "h" : 33,
         "w" : 370,
@@ -319,7 +319,7 @@
     },
     {
       "align" : "left",
-      "axLabel" : "4月，21 个字，点开看字帖",
+      "axLabel" : "4月，19 个字，点开看字帖",
       "border" : "#38322BFF",
       "borderWidth" : 0.33333299999999999,
       "class" : "sz-ann__month",
@@ -336,7 +336,7 @@
       "id" : "annual-month",
       "kind" : "button",
       "tag" : "button",
-      "text" : "4月 21 字",
+      "text" : "4月 19 字",
       "textFrame" : {
         "h" : 33,
         "w" : 370,
@@ -346,7 +346,7 @@
     },
     {
       "align" : "left",
-      "axLabel" : "5月，20 个字，点开看字帖",
+      "axLabel" : "5月，18 个字，点开看字帖",
       "border" : "#38322BFF",
       "borderWidth" : 0.33333299999999999,
       "class" : "sz-ann__month",
@@ -363,7 +363,7 @@
       "id" : "annual-month",
       "kind" : "button",
       "tag" : "button",
-      "text" : "5月 20 字",
+      "text" : "5月 18 字",
       "textFrame" : {
         "h" : 33,
         "w" : 370,

@@ -105,6 +105,9 @@ public struct FoldedMonth: JSCodable, Equatable {
     public var chars: [String]
     public var kept: [RecordModel]
     public var paperOnly: OrderedMap<[String]>?
+    /// R15：折叠时逐条记下的作品成员（缺省 = 旧折叠）。
+    public var work: OrderedMap<[String]>?
+    public var workJudged: OrderedMap<[String]>?
     var order: [String]?
 
     public init(js: JSValue) throws {
@@ -116,6 +119,8 @@ public struct FoldedMonth: JSCodable, Equatable {
         chars = try r.req("chars", strs)
         kept = try r.req("kept", Conv.array(Conv.model(RecordModel.self)))
         if let p = r.raw("paperOnly") { paperOnly = try OrderedMap(p, "paperOnly", strs) } else { paperOnly = nil }
+        if let p = r.raw("work") { work = try OrderedMap(p, "work", strs) } else { work = nil }
+        if let p = r.raw("workJudged") { workJudged = try OrderedMap(p, "workJudged", strs) } else { workJudged = nil }
         order = r.order
     }
 
@@ -125,6 +130,8 @@ public struct FoldedMonth: JSCodable, Equatable {
         w.add("folded", true); w.add("month", month); w.add("byDay", byDay.encode(strs)); w.add("chars", strs(chars))
         w.add("kept", array: kept) { $0.js }
         if let p = paperOnly { w.add("paperOnly", p.encode(strs)) }
+        if let p = work { w.add("work", p.encode(strs)) }
+        if let p = workJudged { w.add("workJudged", p.encode(strs)) }
         return w.build(order: order)
     }
 }

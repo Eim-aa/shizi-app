@@ -46,6 +46,28 @@ public enum WorkMembers {
         JSX.stableSort(records.filter { isWorkMember($0, hasInk: hasInk, added: added) }) { Records.compareRecordIds($0["id"], $1["id"]) }
     }
 
+    /// 折叠一个月时按作品成员规则逐条记下的成员字（R15，src/core/work-members.js foldWorkOf）：
+    /// work = 每天的成员字（按记录先后、同字可重复）；workJudged = 只算判断记录的成员，这个月没有看后自写成员时为 nil。
+    public static func foldWorkOf(_ list: [JSValue], hasInk: InkPick.HasInk? = nil) -> (work: JSObject, workJudged: JSObject?) {
+        var work = JSObject()
+        var judged = JSObject()
+        var seen = false
+        func push(_ o: inout JSObject, _ day: String, _ c: String) {
+            var arr = o[day]?.arrayValue ?? []
+            arr.append(.string(c))
+            o[day] = .array(arr)
+        }
+        for r in list {
+            if !isWorkMember(r, hasInk: hasInk) { continue }
+            guard case .string(let day)? = r["localDay"] else { continue }
+            let c = charOf(r)
+            if c.isEmpty { continue }
+            push(&work, day, c)
+            if JSX.eq(r["kind"], "judged") { push(&judged, day, c) } else { seen = true }
+        }
+        return (work, seen ? judged : nil)
+    }
+
     static func charOf(_ record: JSValue) -> String {
         if case .string(let c)? = record["char"], !c.isEmpty { return c }
         let key: String = { if case .string(let k)? = record["cardKey"] { return k }; return "" }()

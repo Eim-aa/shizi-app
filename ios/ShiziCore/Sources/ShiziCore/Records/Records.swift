@@ -229,18 +229,63 @@ public enum Records {
 
     public static func withoutPaper(_ records: [JSValue]) -> [JSValue] { records.filter { !isPaperRecord($0) } }
 
-    /// 折叠月份里「作品」的 byDay：去掉只在纸上写过的（日, 字）；去掉后没有字的日子不出现。
-    public static func foldWorkByDay(_ fold: JSValue?) -> JSObject {
+    /// 一串字去重：'first' 按第一次出现的先后，'last' 按最后一次出现的先后（只收字符串）。
+    static func dedupeChars(_ chars: [JSValue], last: Bool) -> [JSValue] {
+        var out: [JSValue] = []
+        let strs = chars.filter { if case .string = $0 { return true }; return false }
+        if last {
+            for c in strs.reversed() where !out.contains(where: { JS.strictEquals($0, c) }) { out.insert(c, at: 0) }
+            return out
+        }
+        for c in strs where !out.contains(where: { JS.strictEquals($0, c) }) { out.append(c) }
+        return out
+    }
+
+    /// 折叠月份里「作品」的 byDay（R15，src/core/records.js foldWorkByDay）：
+    /// 新折叠（带 work）直接用折叠时逐条记下的成员（order 'first' / 'last'；judgedOnly 只算判断记录）；
+    /// 旧折叠（没有 work）：byDay 去掉 paperOnly，再去掉 kept 里证得出「那天这个字只写错」的（日, 字）。去掉后没有字的日子不出现。
+    public static func foldWorkByDay(_ fold: JSValue?, order: String = "first", judgedOnly: Bool = false) -> JSObject {
         var out = JSObject()
-        guard let fold = fold, JSX.truthy(fold) else { return out }
-        let byDay = (fold["byDay"].flatMap { v -> JSObject? in if case .object(let o) = v, JSX.truthy(v) { return o }; return nil }) ?? JSObject()
-        let paperOnly = fold["paperOnly"].flatMap { v -> JSObject? in if case .object(let o) = v { return o }; return nil }
+        guard let fold = fold, case .object = fold else { return out }
+        func map(_ key: String) -> JSObject? { if case .object(let o)? = fold[key] { return o }; return nil }
+        if let exact = (judgedOnly ? map("workJudged") : nil) ?? map("work") {
+            for (day, chars) in exact.entries {
+                guard case .array(let list) = chars else { continue }
+                let d = dedupeChars(list, last: order == "last")
+                if !d.isEmpty { out[day] = .array(d) }
+            }
+            return out
+        }
+        let byDay = map("byDay") ?? JSObject()
+        let paperOnly = map("paperOnly")
+        let wrongOnly = legacyWrongOnly(fold["kept"])
         for (day, chars) in byDay.entries {
             guard case .array(let list) = chars else { continue }
-            var kept = list
-            if let po = paperOnly, case .array(let skip)? = po[day] { kept = list.filter { c in !skip.contains(c) } }
+            var skip: [JSValue]? = nil
+            if let po = paperOnly, case .array(let s)? = po[day] { skip = s }
+            let kept = list.filter { c in
+                if let s = skip, s.contains(c) { return false }
+                if case .string(let ch) = c, wrongOnly.contains(day + "\u{0}" + ch) { return false }
+                return true
+            }
             if !kept.isEmpty { out[day] = .array(kept) }
         }
+        return out
+    }
+
+    /// 旧折叠：kept 里「那天这个字的屏幕判断全是写错」的（日, 字）。
+    static func legacyWrongOnly(_ kept: JSValue?) -> OSet {
+        var wrong = OSet()
+        var right = OSet()
+        guard case .array(let list)? = kept else { return wrong }
+        for r in list {
+            guard isJudged(r), !isPaperRecord(r), case .string(let day)? = r["localDay"] else { continue }
+            let ch: String? = { if case .string(let c)? = r["char"], !c.isEmpty { return c }; return charOfCardKey(r["cardKey"]) }()
+            guard let c = ch, !c.isEmpty else { continue }
+            if JSX.eq(r["judgment"], "wrong") { wrong.insert(day + "\u{0}" + c) } else { right.insert(day + "\u{0}" + c) }
+        }
+        var out = OSet()
+        for k in wrong.items where !right.contains(k) { out.insert(k) }
         return out
     }
 

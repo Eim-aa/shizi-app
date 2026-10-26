@@ -166,7 +166,7 @@ export function makeB43Ops({ required, str, finite, int, badArgs }) {
     'records.isAfterSeenWork': (a) => records.isAfterSeenWork(required(a, 'record'), hasInkSpec(a, 'hasInk')),
     'records.isWorkOrAfterSeen': (a) => records.isWorkOrAfterSeen(required(a, 'record'), hasInkSpec(a, 'hasInk')),
     'records.withoutPaper': (a) => records.withoutPaper(recs(a)),
-    'records.foldWorkByDay': (a) => records.foldWorkByDay(required(a, 'fold')),
+    'records.foldWorkByDay': (a) => records.foldWorkByDay(required(a, 'fold'), { order: a.order === 'last' ? 'last' : 'first', judgedOnly: a.judgedOnly === true }),
     'records.correctRecord': (a) => records.correctRecord(required(a, 'record'), required(a, 'judgment'), required(a, 'at')),
     'records.replaceRecord': (a) => records.replaceRecord(recs(a), required(a, 'next')),
     'records.removeRecord': (a) => records.removeRecord(recs(a), required(a, 'id')),

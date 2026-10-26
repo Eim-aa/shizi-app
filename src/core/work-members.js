@@ -44,6 +44,31 @@ export function workMemberRecords(records, opts = {}) {
   return (records || []).filter(r => isWorkMember(r, opts)).sort((a, b) => compareRecordIds(a.id, b.id));
 }
 
+/**
+ * 折叠一个月（01 §9）时记下的「作品成员」口径（R15）：折叠后 byDay 只剩字，分不出写错、看后自写，
+ * 所以在折叠那一刻按本规则（isWorkMember，月份层面没有 added）把成员逐条记下来，读的一方不再从 byDay 猜。
+ * @param {object[]} list  这个月的原始记录（按 id 升序）
+ * @param {{hasInk?:(record)=>boolean}} [o]  看后自写有没有本人墨（折叠时按草稿里存下的墨迹）
+ * @returns {{work:{[localDay]:string[]}, workJudged:{[localDay]:string[]}|null}}
+ *   work：每天的成员字，按记录 id 先后、同字可重复（每条成员记录一个字——第一次 / 最近一次出现的先后都留得住）；
+ *   workJudged：只算判断记录的成员（年报「今年第一个字」只看判断，D18）；这个月没有看后自写成员时为 null（与 work 相同，不另存）。
+ */
+export function foldWorkOf(list, { hasInk = null } = {}) {
+  const work = {};
+  const judged = {};
+  let seen = false;
+  for (const r of list || []) {
+    if (!isWorkMember(r, { hasInk })) continue;
+    const day = r.localDay;
+    const char = charOf(r);
+    if (typeof day !== 'string' || !char) continue;
+    (work[day] || (work[day] = [])).push(char);
+    if (r.kind === 'judged') (judged[day] || (judged[day] = [])).push(char);
+    else seen = true;
+  }
+  return { work, workJudged: seen ? judged : null };
+}
+
 function charOf(record) {
   if (typeof record.char === 'string' && record.char) return record.char;
   const key = typeof record.cardKey === 'string' ? record.cardKey : '';

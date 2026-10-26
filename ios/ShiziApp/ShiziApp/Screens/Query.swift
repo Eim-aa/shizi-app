@@ -583,12 +583,13 @@ final class QueryScreen: ShiziScreenViewController {
     /// The keyboard's top edge in the view's coordinates (nil = the keyboard is down).
     private var keyboardTop: CGFloat?
 
-    /// The gap between the sheet's bottom edge and the top of the keyboard.
-    /// The web keeps a bar above the keyboard (the browser's bar for the focused field): its keyboard area is 403pt
-    /// (336 keyboard + 67 bar) on a 402x874 screen, so the visible area is 471pt and the sheet's bottom edge sits at
-    /// y = 471. The native raises the same system keyboard (336pt) and keeps the same gap, so the sheet's bottom edge
-    /// lands where the reference has it (Reference/query-*.png).
-    private static let keyboardTopGap: CGFloat = 67
+    /// The gap between the sheet's bottom edge and the top of the keyboard: the height of WebKit's form bar (the bar
+    /// with the up / down / done keys that WebKit puts above the keyboard for a focused field). The web reference
+    /// (Reference/query-*.png, English keyboard) has a 403pt keyboard area on the 402x874 screen = the 335pt keyboard +
+    /// the 68pt bar, so its sheet ends at y = 471. The native raises the system keyboard without that bar and keeps the
+    /// same 68pt above it, so with the same keyboard the sheet ends where the reference has it. (The keyboard itself
+    /// differs by language: the pinyin keyboard is 336pt, 1pt taller than the English one.)
+    private static let keyboardTopGap: CGFloat = 68
     private var rowViews: [QueryCharRow] = []
     /// The ink of the card (the pipeline points; the ink view is made when the cell's side is known).
     private var cardInk: [[[Double]]]?
@@ -1722,14 +1723,10 @@ final class QueryScreen: ShiziScreenViewController {
         inputField.textColor = color("ink1")
         inputField.tintColor = color("ink1")
         inputField.keyboardType = .default
-        // Keyboard convention matches the web: the page there raises the system keyboard and its whole keyboard area
-        // (keyboard + the bar above it) is 403pt, so the visible area is 874 - 403 = 471pt. The native side raises the
-        // same system keyboard (336pt here) and keeps the same gap above it (see keyboardTopGap), so the sheet's bottom
-        // edge lands where the reference has it.
+        // The sheet rides on the keyboard plus WebKit's form bar height (see keyboardTopGap), as the web reference does.
         inputField.returnKeyType = .done
-        // The web's field keeps autocorrect / spellcheck off (input.js: autocorrect="off" spellcheck="false"),
-        // but the native side must not switch the system's keyboard away from the Chinese one: the keyboard's
-        // height (the pinyin candidate row) decides where the sheet's bottom edge sits (the web's 336pt).
+        // The web's field keeps autocorrect / spellcheck off (input.js: autocorrect="off" spellcheck="false"); the native
+        // keeps the system defaults so the user's own keyboard (and its Chinese input) is never switched away.
         inputField.autocapitalizationType = .none
         inputField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
         inputField.leftViewMode = .always

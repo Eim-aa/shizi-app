@@ -2,7 +2,7 @@
   "state": "detail-zoom-noink",
   "name": "字详情 · 放大一次没有笔迹的记录",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -111,12 +111,15 @@
     }
   ],
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   },
   "steps": [
     {
       "tap": {
-        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"detail-cell\"][data-ink=\"false\"]"
+        "web": ".sz-layer[data-top=\"true\"] [data-testid=\"detail-cell\"][data-ink=\"false\"]",
+        "native": "native-detail-cell"
       },
       "times": 1
     },

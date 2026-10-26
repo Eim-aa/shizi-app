@@ -44,7 +44,6 @@ import { canCorrectHere, commitCorrectRecord } from './correct.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 
 export const ZOOM_OVERLAY = 'detail-zoom';
-export const ETYMOLOGY_URL = 'data/etymology.json';
 
 injectStyles('detail-records', `
 .sz-drec{display:flex;flex-direction:column;gap:12px}
@@ -112,55 +111,18 @@ export { baseKey, recordsOfChar, cellCopy, listOf, wordView, detailModel, detail
 
 // ---------------------------------------------------------------- 字源（R-D09）
 
-let etymology = null; // Map<char, {gloss, source}>
-let etymologyPromise = null;
-const etymologyListeners = new Set();
+// B3.7：字源数据的读取与缓存挪到 src/data/etymology.js（App API 的 view.detail 共用），这里转出同一批函数。
+import { ETYMOLOGY_URL, loadEtymology, setEtymology, etymologyOf, onEtymologyLoaded, etymologyReady } from '../../../data/etymology.js';
 
-/** 读 data/etymology.json（一次；失败不缓存，下次打开再试）。 */
-export function loadEtymology(fetchFn = typeof fetch === 'function' ? fetch : null) {
-  if (etymology) return Promise.resolve(etymology);
-  if (etymologyPromise) return etymologyPromise;
-  if (!fetchFn) return Promise.resolve(null);
-  etymologyPromise = Promise.resolve()
-    .then(() => fetchFn(ETYMOLOGY_URL))
-    .then(res => (res && res.ok ? res.json() : null))
-    .then(rows => {
-      if (!Array.isArray(rows)) throw new Error('etymology data unavailable');
-      const map = new Map();
-      for (const row of rows) {
-        if (row && typeof row.char === 'string' && typeof row.gloss === 'string' && row.gloss) {
-          map.set(row.char, { gloss: row.gloss, source: typeof row.source === 'string' ? row.source : '' });
-        }
-      }
-      etymology = map;
-      for (const fn of [...etymologyListeners]) fn(map);
-      return map;
-    })
-    .catch(() => {
-      etymologyPromise = null;
-      return null;
-    });
-  return etymologyPromise;
-}
-
-/** 测试用：注入 / 清掉字源表。 */
-export function setEtymology(rows) {
-  etymologyPromise = null;
-  etymology = Array.isArray(rows) ? new Map(rows.map(r => [r.char, { gloss: r.gloss, source: r.source || '' }])) : null;
-}
-
-export function etymologyOf(char) {
-  return etymology ? etymology.get(char) || null : null;
-}
+export { ETYMOLOGY_URL, loadEtymology, setEtymology, etymologyOf };
 
 export function useEtymology(char) {
   const [, bump] = useState(0);
   useEffect(() => {
-    if (etymology) return undefined;
-    const fn = () => bump(n => n + 1);
-    etymologyListeners.add(fn);
+    if (etymologyReady()) return undefined;
+    const off = onEtymologyLoaded(() => bump(n => n + 1));
     loadEtymology();
-    return () => etymologyListeners.delete(fn);
+    return off;
   }, []);
   return etymologyOf(char);
 }

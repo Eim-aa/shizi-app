@@ -407,7 +407,7 @@ final class NativeStage: NSObject {
     }
 
     /// 让给网页页面：原生页截图交给宿主层（解码好才回包）→ go（网页换页）→ 等页面画完一帧 → 原生栈整个收起（不带转场，不发 nav.back）。
-    private func yieldToWeb(from page: ShiziScreenViewController, go: @escaping () -> Void) {
+    func yieldToWeb(from page: ShiziScreenViewController, go: @escaping () -> Void) {
         tapAt = nil
         page.transitions.finishNow()
         let url = WebViewController.snapshotURL(page.view)
@@ -656,8 +656,17 @@ final class NativeStage: NSObject {
     /// 让开：等页面画完一帧（网页已换好页，推入从第一帧起），原生页不带转场收起。
     private func yield(_ page: UIViewController, bridge: NativeWriteBridge, what: String) {
         ShiziProbe.note("yield:\(what)")
-        bridge.callNav("fence") { [weak page] _ in
+        bridge.callNav("fence") { [weak self, weak page] _ in
             guard let page, page.presentingViewController != nil else { return }
+            // B3.7：让开的目标已经是原生页（字详情）并盖在这一页上面：这一页留在下面（不收起——收起会把盖在它上面的原生页一起带走），
+            // 返回时那页收起、网页出栈，宿主再发 open via 'return'，这一页同一个对象认领（resync）
+            if let self, let above = self.screens.first(where: { !$0.exitHandled && $0.presentingViewController === page }) {
+                _ = above
+                (page as? NativeWriteViewController)?.exitHandled = false
+                (page as? NativeResultViewController)?.exitHandled = false
+                ShiziProbe.note("yield:under-native")
+                return
+            }
             (page as? NativeTransitionPage)?.transitions.finishNow()
             Self.dismissWhenSettled(page)
         }

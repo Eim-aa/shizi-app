@@ -2,7 +2,7 @@
   "state": "detail-zoom-ink",
   "name": "字详情 · 放大一次有笔迹的记录",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -111,12 +111,15 @@
     }
   ],
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   },
   "steps": [
     {
       "tap": {
-        "webTestid": "detail-hero-cell"
+        "webTestid": "detail-hero-cell",
+        "native": "native-detail-hero-cell"
       },
       "times": 1
     },

@@ -25,15 +25,12 @@ import { FailBlock as SharedFailBlock } from '../../components/FailBlock.js';
 import { Chevron } from '../../components/Chevron.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t, tInk } from '../../../config/copy/index.js';
-import { commitAdd } from '../../components/query/QuerySheet.js';
 import { dayText } from './records.js';
 
-export const LABELS = Object.freeze({
-  wordOff: 'detail:word-off',
-  wordOn: 'detail:word-off-undo',
-  remove: 'detail:custom-remove',
-  restore: 'detail:custom-restore',
-});
+// B3.7：写入函数挪到 src/session/ops/detail.js（App API 与网页页面共用同一批函数），这里原样转出。
+import { LABELS, commitWordOff, commitWordOn, commitRemoveCustom, commitRestoreCustom, commitAddCustom } from '../../../session/ops/detail.js';
+
+export { LABELS, commitWordOff, commitWordOn, commitRemoveCustom, commitRestoreCustom, commitAddCustom };
 
 injectStyles('detail-actions', `
 .sz-drows{display:flex;flex-direction:column;border-top:${T.hair} solid ${T.line}}
@@ -50,59 +47,6 @@ button.sz-drow:focus-visible{outline:2px solid ${T.ink1};outline-offset:2px}
 .sz-drow__value{flex:none;font-size:${T.fs15};color:${T.ink3}}
 .sz-dfail{display:flex;flex-direction:column;gap:${T.s3};padding:${T.s3} 0;border-bottom:1px solid ${T.line}}
 `);
-
-// ---------------------------------------------------------------- 写入
-
-/** 「换掉这个词语」：wordOff[cardKey] = now。已换掉时不写。 */
-export function commitWordOff(store, cardKey) {
-  return store.commit(LABELS.wordOff, (draft, ctx) => {
-    const cur = draft.wordOff && typeof draft.wordOff === 'object' ? draft.wordOff : {};
-    if (Object.prototype.hasOwnProperty.call(cur, cardKey)) return;
-    draft.wordOff = { ...cur, [cardKey]: ctx.now };
-  });
-}
-
-/** 撤销「换掉这个词语」：删掉 wordOff[cardKey]。不在里面时不写。 */
-export function commitWordOn(store, cardKey) {
-  return store.commit(LABELS.wordOn, draft => {
-    const cur = draft.wordOff && typeof draft.wordOff === 'object' ? draft.wordOff : null;
-    if (!cur || !Object.prototype.hasOwnProperty.call(cur, cardKey)) return;
-    const next = { ...cur };
-    delete next[cardKey];
-    draft.wordOff = next;
-  });
-}
-
-/** 「从自选的字移除」：custom.added 删掉这个字（记录不动，D21 / R-D06）。返回 commit 结果 + removed。 */
-export function commitRemoveCustom(store, char) {
-  let removed = null;
-  const result = store.commit(LABELS.remove, draft => {
-    const custom = draft.custom && typeof draft.custom === 'object' ? draft.custom : null;
-    const added = custom && Array.isArray(custom.added) ? custom.added : [];
-    const index = added.findIndex(e => e && e.char === char);
-    if (index < 0) return;
-    removed = { entry: { ...added[index] }, index };
-    draft.custom = { ...custom, added: added.filter((_, i) => i !== index) };
-  });
-  return result.ok ? { ...result, removed } : result;
-}
-
-/** 撤销移除：把原来的 {char, at} 放回原来的位置（已在里面时不写）。 */
-export function commitRestoreCustom(store, removed) {
-  return store.commit(LABELS.restore, draft => {
-    if (!removed || !removed.entry) return;
-    const custom = draft.custom && typeof draft.custom === 'object' ? draft.custom : {};
-    const added = Array.isArray(custom.added) ? custom.added : [];
-    if (added.some(e => e && e.char === removed.entry.char)) return;
-    const at = Math.max(0, Math.min(Number.isInteger(removed.index) ? removed.index : added.length, added.length));
-    draft.custom = { ...custom, added: [...added.slice(0, at), { ...removed.entry }, ...added.slice(at)] };
-  });
-}
-
-/** 「加入自选」（D66 ⑮）：与查字卡同一个函数（QuerySheet.commitAdd：已在自选里不写，经 store.commit）。 */
-export function commitAddCustom(store, char) {
-  return commitAdd(store, char);
-}
 
 // ---------------------------------------------------------------- 视图（纯组件）
 

@@ -2,7 +2,7 @@
   "state": "detail-many",
   "name": "字详情 · 多次（记录格）",
   "screen": "detail",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -111,6 +111,8 @@
     }
   ],
   "ready": {
-    "web": "detail-screen"
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
   }
 }

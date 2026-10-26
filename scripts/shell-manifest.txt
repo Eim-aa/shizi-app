@@ -7317,6 +7317,7 @@ src/core/spread.js
 src/core/structure.js
 src/core/work-members.js
 src/data/deck.js
+src/data/etymology.js
 src/data/font-loader.js
 src/data/strokes.js
 src/platform/accessibility.js
@@ -7350,6 +7351,7 @@ src/session/api/session.js
 src/session/api/settings.js
 src/session/api/tabs.js
 src/session/ops/answer.js
+src/session/ops/detail.js
 src/session/ops/end.js
 src/session/ops/first-result.js
 src/session/ops/first-tip.js

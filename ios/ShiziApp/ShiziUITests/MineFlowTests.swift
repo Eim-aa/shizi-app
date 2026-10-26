@@ -10,10 +10,18 @@ final class MineFlowTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// 原生栈（主线采用 B3.5a 的根页底座：根页是 stage.root，不在 stage.screens 里）——看得见的根页 + 推入的原生页，与 B3.5c 原写法的 screens 等价。
+    nonisolated private static func stack(_ p: [String: Any]) -> [String] {
+        let st = p["stage"] as? [String: Any] ?? [:]
+        let pushed = st["screens"] as? [String] ?? []
+        if let r = st["root"] as? [String: Any], let name = r["screen"] as? String, (r["hidden"] as? Bool) != true { return [name] + pushed }
+        return pushed
+    }
+
     /// 「我的」原生（根页开关打开）：探针里原生栈只有 mine。
     private func openMine(_ qa: QA) {
         qa.launch()
-        qa.waitProbe("native mine") { (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
+        qa.waitProbe("native mine") { Self.stack($0) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
         Thread.sleep(forTimeInterval: 0.6) // 新状态 0.4s 防误点
     }
 
@@ -168,11 +176,11 @@ final class MineFlowTests: XCTestCase {
             for _ in 0..<8 where !row.isHittable { scrollDown(qa) }
             XCTAssertTrue(row.isHittable, "row \(id) is on screen")
             tapUntil(qa, row, "row \(id)") { p in
-                (p["route"] as? [String: Any])?["top"] as? String == screen && (p["stage"] as? [String: Any])?["screens"] as? [String] == []
+                (p["route"] as? [String: Any])?["top"] as? String == screen && (p["navRunning"] as? Int) == 0
             }
             Thread.sleep(forTimeInterval: 0.6)
             qa.edgeBack()
-            qa.waitProbe("back on native mine") { (($0["route"] as? [String: Any])?["top"] as? String) == "mine" && (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
+            qa.waitProbe("back on native mine") { (($0["route"] as? [String: Any])?["top"] as? String) == "mine" && Self.stack($0) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
             Thread.sleep(forTimeInterval: 0.6)
         }
     }
@@ -232,26 +240,29 @@ final class MineFlowTests: XCTestCase {
         expectation(for: gone, evaluatedWith: qa.el("native-mine-group-size-sheet"))
         waitForExpectations(timeout: 6)
         XCTAssertEqual(settings(qa)["groupSize"] as? Int, before)
-        XCTAssertEqual((qa.probe["stage"] as? [String: Any])?["screens"] as? [String], ["mine"])
+        XCTAssertEqual(Self.stack(qa.probe), ["mine"])
     }
 
-    /// 让给网页再回来（备份页还不是原生的，B3.10）：原生「我的」→ 点备份行 → 网页备份页（原生栈收起）→ 左缘返回 → 原生「我的」盖回来；
+    /// 让给网页再回来：原生「我的」→ 点练习记录行 → 网页练习记录页（B3.9 合并后改用别的网页页）（原生栈收起）→ 左缘返回 → 原生「我的」盖回来；
     /// 推入原生子页（关于）= 原生栈 [mine, about]，「‹」回到 mine，根页没有「‹」也没有左缘返回。
     func testYieldToWebAndBack() throws {
         let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots"])
         openMine(qa)
         XCTAssertFalse(qa.el("native-page-back").isHittable, "a tab root has no back button")
-        qa.tapNative("native-mine-menu-backup")
-        qa.waitProbe("web backup page, native stack released") { (($0["route"] as? [String: Any])?["top"] as? String) == "backup" && (($0["stage"] as? [String: Any])?["screens"] as? [String]) == [] }
+        // 备份页已原生（B3.10）：让给网页改用「练习记录」（B3.9 合并前仍是网页）
+        let records = qa.el("native-mine-sheet-head")
+        for _ in 0..<8 where !records.isHittable { scrollDown(qa) }
+        qa.tap(records, "row 练习记录")
+        qa.waitProbe("web records page, native root steps aside") { (($0["route"] as? [String: Any])?["top"] as? String) == "records" && Self.stack($0) == [] }
         Thread.sleep(forTimeInterval: 0.6)
         qa.edgeBack()
-        qa.waitProbe("back on native mine") { (($0["route"] as? [String: Any])?["top"] as? String) == "mine" && (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
+        qa.waitProbe("back on native mine") { (($0["route"] as? [String: Any])?["top"] as? String) == "mine" && Self.stack($0) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
         Thread.sleep(forTimeInterval: 0.6)
         qa.tapNative("native-mine-menu-about")
-        qa.waitProbe("native about over native mine") { (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["mine", "about"] && ($0["navRunning"] as? Int) == 0 }
+        qa.waitProbe("native about over native mine") { Self.stack($0) == ["mine", "about"] && ($0["navRunning"] as? Int) == 0 }
         Thread.sleep(forTimeInterval: 0.6)
         qa.tapNative("native-page-back")
-        qa.waitProbe("back to native mine only") { (($0["stage"] as? [String: Any])?["screens"] as? [String]) == ["mine"] && (($0["route"] as? [String: Any])?["top"] as? String) == "mine" }
+        qa.waitProbe("back to native mine only") { Self.stack($0) == ["mine"] && (($0["route"] as? [String: Any])?["top"] as? String) == "mine" }
     }
 
     /// 练习记录翻月 / 展开某天

@@ -41,13 +41,20 @@ export function librarySubActions() {
 /**
  * 网页侧登记的量测（B3.8）：原生排版要用几处「网页量出来的值」（组头的高、pretty 段落的折行点、页头尾端文字按钮的宽）。
  * 量测在页面里做（有 DOM），本文件只把结果放进回包信封的 metrics 字段（视图模型本身不动）。
- * 形状：{list?: (view) => object, all?: (view) => object}。
+ * 形状：{list?: (view) => object, all?: (view) => object, large?: () => boolean}。
  */
 let measurer = null;
 
 export function setLibrarySubMeasure(next) {
   if (!next || typeof next !== 'object') return;
   measurer = { ...(measurer || {}), ...next };
+}
+
+/** 页面此刻是不是系统大字号（网页 :root[data-text-large]）；页面里读 DOM，登记了才有，否则按否。 */
+function largeNow() {
+  const fn = measurer && measurer.large;
+  if (typeof fn !== 'function') return false;
+  try { return fn() === true; } catch (error) { return false; }
 }
 
 /** 量测结果（没有登记量测 / 页面外 → null）。 */
@@ -114,7 +121,7 @@ export function listView(state, { kind, sel = null } = {}) {
 
 /**
  * 全部字页视图：网页 all.js 的 allModel（compact = 系统大字号，width = 屏宽；两者决定墙的列数）。
- * large 由调用方（原生页）按系统大字号显式给（会话层不读平台模块）；缺省按否。
+ * large 由调用方（原生页）显式给；没给时由页面登记的 measure.large 读（会话层不读平台模块、不碰 DOM）；都没有按否。
  */
 export function allView(state, { sort, filter, fold, find = '', width = null, large = undefined } = {}) {
   const compact = large === true;
@@ -177,7 +184,7 @@ export const OPS = Object.freeze({
     const state = ctx.getStore().getState();
     const view = allView(ctx.getStore().getState(), {
       sort: args.sort, filter: args.filter, fold: args.fold, find: typeof args.find === 'string' ? args.find : '',
-      width: args.width ?? null, large: args.large === undefined ? undefined : args.large === true,
+      width: args.width ?? null, large: args.large === undefined ? largeNow() : args.large === true,
     });
     // 墙格里「最近一次笔迹」的小图（网页 wall.js 的 InkMini；按记录 id 给，原生画在格子里）
     const entries = [];

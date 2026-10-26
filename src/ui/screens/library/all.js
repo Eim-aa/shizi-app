@@ -408,6 +408,8 @@ setLibrarySubActions({
  * 量出来的值随 view.library-all 的回包信封（metrics）交给原生；模型本身不动。
  */
 setLibrarySubMeasure({
+  // 系统大字号（网页 useWallLayout 读的同一个 :root[data-text-large]）：首次开页的回包（原生还没带 large）按它定墙的列数
+  large: () => typeof document !== 'undefined' && document.documentElement.hasAttribute('data-text-large'),
   all: (view) => {
     const w = contentWidth();
     if (!w) return null;

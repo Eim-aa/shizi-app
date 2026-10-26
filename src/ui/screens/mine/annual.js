@@ -32,7 +32,6 @@ import { inkOf, recordHasInk } from '../detail/records.js';
 import { hasInkOfStore, useStoreState, useToday } from './records.js';
 import { annualDefaultYear } from '../../../session/views/annual.js';
 import { annualView } from '../../../session/views/mine-sub.js';
-import { setMineSubActions } from '../../../session/api/mine-sub.js';
 import { openMonth } from './month.js';
 import { registerMineSubLineBreaker } from './line-starts.js';
 
@@ -242,10 +241,3 @@ registerMineSubLineBreaker();
 
 registerScreen(ANNUAL_SCREEN, AnnualScreen, { label: t('X-MINE.annual'), native: true });
 
-// 原生页的「调整图片 / 保存图片」按钮（B3.11 做原生预览；这里让网页开预览弹层）：登记给 App API 的 mine.image。
-setMineSubActions({
-  annual: async ({ year }) => {
-    await shareAnnual(year);
-    return { ok: true };
-  },
-});

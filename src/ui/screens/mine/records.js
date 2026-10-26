@@ -49,7 +49,6 @@ import { InkMini } from '../write/compare.js';
 import { PracticeGlyph } from '../../components/PracticeGlyph.js';
 import { RECORDS_SHEET_COLS } from '../../../session/views/mine.js';
 import { recordsView } from '../../../session/views/mine-sub.js';
-import { setMineSubActions } from '../../../session/api/mine-sub.js';
 import { MonthBody, monthModel, openMonth, paperCells } from './month.js';
 import { registerMineSubLineBreaker } from './line-starts.js';
 
@@ -495,16 +494,3 @@ registerScreen(RECORDS_SCREEN, RecordsScreen, { label: t('R-M01.practiceLog'), n
 // 首页墨迹行点进「今天的记录」（M2-1 ink-row.js 的注册口）。
 setTodayRecordsAction(openTodayRecords);
 
-// 原生页的「保存图片」按钮（B3.11 做原生预览；这里让网页开预览弹层）：登记给 App API 的 mine.image。
-setMineSubActions({
-  month: async ({ month }) => {
-    const { openMonthImage } = await import('../../images-entry.js');
-    openMonthImage({ month });
-    return { ok: true };
-  },
-  day: async ({ day }) => {
-    const { openDayImage } = await import('../../images-entry.js');
-    openDayImage({ day });
-    return { ok: true };
-  },
-});

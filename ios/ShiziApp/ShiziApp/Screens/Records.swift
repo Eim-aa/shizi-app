@@ -619,26 +619,20 @@ final class RecordsScreen: ShiziScreenViewController {
 
     private func openImage(_ kind: String) {
         guard let m = model else { return }
-        var args: [String: Any] = ["kind": kind]
-        if kind == "month", let sheet = m.sheet { args["month"] = sheet.month }
-        if kind == "day", let row = m.todayRow { args["day"] = row.day }
-        guard let engine = stage?.engine else { return }
-        Task { @MainActor [weak self] in
-            _ = await engine.raw("mine.image", args)
-            self?.hideForWebPreview()
-        }
+        var scope: [String: Any] = ["kind": kind]
+        if kind == "month", let sheet = m.sheet { scope["month"] = sheet.month }
+        if kind == "day", let row = m.todayRow { scope["day"] = row.day }
+        presentImagePreview(scope: scope)
     }
 
-    /// 让开给网页的图片预览：把这一页的样子交给宿主层（截图留底），网页弹层画在上面。
-    private func hideForWebPreview() {
-        guard let engine = stage?.engine, let window = view.window else { return }
-        let renderer = UIGraphicsImageRenderer(bounds: view.bounds)
-        let image = renderer.image { _ in view.drawHierarchy(in: view.bounds, afterScreenUpdates: false) }
-        guard let data = image.pngData() else { return }
-        let url = "data:image/png;base64,\(data.base64EncodedString())"
+    /// B3.11：图片按钮 → 原生图片预览弹层（与结果页同一条路：NativeImagePreviewController + image.* op）。
+    private func presentImagePreview(scope: [String: Any]) {
+        guard presentedViewController == nil, let engine = stage?.engine else { return }
         Task { @MainActor [weak self] in
-            _ = await engine.raw("stage.cover", ["entryId": self?.entryId ?? "", "url": url])
-            self?.view.isHidden = true
+            guard let self else { return }
+            let sheet = NativeImagePreviewController(engine: engine, scope: scope)
+            guard await sheet.prepare() else { return }
+            self.present(sheet, animated: true)
         }
     }
 

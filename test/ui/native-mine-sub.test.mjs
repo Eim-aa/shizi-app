@@ -1,7 +1,7 @@
 // B3.9 原生「练习记录 / 月字帖 / 年报」的契约（docs/engineering/v10/B3B4-原生化架构与计划.md §3.4「网页路径 == API 路径」）：
 //   1. view.records / view.month / view.annual = 网页三屏渲染用的同一个会话层模型函数（src/session/views/mine-sub.js），逐字相同；
 //   2. 模型只给文案引用（键 + 参数）与数据：网页用 tRef 渲染、原生用 ShiziCopy 渲染，两边的字一字不差；
-//   3. mine.image 让网页开图片预览弹层（原生图片预览归 B3.11）：没有登记的动作 → {ok:false, error:{kind:'unavailable'}}；
+//   3. 图片按钮走原生图片预览（B3.11）：本页 API 没有图片 op；
 //   4. 墨迹：格子里那份本人墨是网页格子画的那一份点列（builtInk），原生按同一份点列画。
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,7 +12,6 @@ import { setClockOverride } from '../../src/platform/env.js';
 import { createAppApi } from '../../src/session/api/index.js';
 import { annualView, monthView, recordsView, sheetGeometry, monthHeadRef, dayTextRef, cellLabelRef } from '../../src/session/views/mine-sub.js';
 import { inkOf, recordHasInk } from '../../src/session/views/detail.js';
-import { setMineSubActions } from '../../src/session/api/mine-sub.js';
 import { tRef, t } from '../../src/config/copy/index.js';
 import '../../src/ui/screens/home/index.js'; // 注册 tab 屏（路由的默认页）
 
@@ -191,21 +190,3 @@ test('B3.9 the sheet geometry is the web sheetGrid rule', () => {
   assert.equal(sheetGeometry(0, 362).n, 0);
 });
 
-test('B3.9 mine.image opens the web preview; without a registered action it is unavailable', async () => {
-  const { api } = boot();
-  setMineSubActions({ month: null, annual: null, day: null });
-  const r = await api.call('mine.image', { kind: 'month', month: '2026-10' });
-  assert.equal(r.ok, false);
-  assert.equal(r.error.kind, 'unavailable');
-  let called = null;
-  setMineSubActions({ month: async args => { called = args; return { ok: true }; } });
-  const r2 = await api.call('mine.image', { kind: 'month', month: '2026-10' });
-  assert.equal(r2.ok, true);
-  assert.deepEqual(called, { kind: 'month', month: '2026-10' });
-  // 出错的动作用同一个失败形状回
-  setMineSubActions({ month: async () => { throw new Error('boom'); } });
-  const r3 = await api.call('mine.image', { kind: 'month' });
-  assert.equal(r3.ok, false);
-  assert.equal(r3.error.kind, 'exception');
-  setMineSubActions({ month: null, annual: null, day: null });
-});

@@ -121,7 +121,7 @@ export function mineSubLineBreaker(kind, text) {
   }
 }
 
-/** 登记折行点的测量（页面模块加载时登记一次；同 src/session/api/mine-sub.js 的 setMineSubActions 做法）。 */
+/** 登记折行点的测量（页面模块加载时登记一次；同 src/session/api/home.js 的登记做法）。 */
 export function registerMineSubLineBreaker() {
   setLineBreaker(mineSubLineBreaker);
 }

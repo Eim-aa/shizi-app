@@ -6,7 +6,7 @@
 //   view.records {month?, day?}  → {ok, view}：练习记录页（src/session/views/mine-sub.js recordsView）
 //   view.month   {month}         → {ok, view}：月字帖页（monthView）
 //   view.annual  {year?}         → {ok, view}：年报页（annualView）
-//   mine.image   {kind, month?, year?, day?}  打开网页的图片预览弹层（B3.11 做原生预览；这里先经 nav 让网页画，宿主层留底让开）
+//   图片按钮：原生直接开原生图片预览（B3.11，NativeImagePreviewController + image.* op，scope = {kind:'month'|'day'|'annual', …}），本文件不再有图片 op
 //
 // 墨迹：格子里那份本人墨由 store 取（views/detail.js inkOf → core/ink-build.js builtInk 的点列），原生按同一份点列画。
 
@@ -15,25 +15,6 @@ import { inkOf, recordHasInk } from '../views/detail.js';
 import { annualDefaultYear } from '../views/annual.js';
 import { localDay, monthOf } from '../../core/dates.js';
 import { now as envNow } from '../../platform/env.js';
-
-let actions = {};
-
-/**
- * 网页界面层登记它的动作（打开网页版的图片预览弹层）：{ month, annual, day }。
- * 会话层不导入 UI：网页「我的」子页模块加载时经 setMineSubActions 登记（与 api/home.js setHomeActions 同一做法）。
- * 传 null 取消某一项；只传一项时另一项保持不变。
- */
-export function setMineSubActions(a) {
-  const next = Object.assign({}, actions);
-  for (const key of ['month', 'annual', 'day']) {
-    if (Object.prototype.hasOwnProperty.call(a || {}, key)) next[key] = typeof a[key] === 'function' ? a[key] : null;
-  }
-  actions = next;
-}
-
-export function mineSubActions() {
-  return actions;
-}
 
 function storeOf(ctx) {
   try {
@@ -80,17 +61,5 @@ export const OPS = Object.freeze({
     const t = todayOf();
     const year = Number.isInteger(a.year) ? a.year : annualDefaultYear(state, t);
     return { ok: true, view: annualView(state, t, { year, ...inkTools(ctx) }) };
-  },
-  // 打开网页版的图片预览弹层（原生图片预览归 B3.11；这里只经 nav 让网页画，宿主层留底让开）。
-  'mine.image': async (args, ctx) => {
-    const kind = args && typeof args.kind === 'string' ? args.kind : '';
-    const fn = actions[kind];
-    if (typeof fn !== 'function') return { ok: false, error: { kind: 'unavailable' } };
-    try {
-      const r = await fn(args || {});
-      return r && r.ok === false ? { ok: false, error: { kind: String(r.error && r.error.kind || 'generic') } } : { ok: true };
-    } catch (error) {
-      return { ok: false, error: { kind: 'exception' } };
-    }
   },
 });

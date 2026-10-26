@@ -66,8 +66,48 @@ final class ShiziPointsInkView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    // 视口附近才画（网页 ui/components/near.js 的做法：离视口一屏以内的格子挂载当帧就画，更远的等滚到附近再画）。
+    // 练习记录一页可有 200 格墨：首屏只画看得见的，其余在 contentOffset 变化时按需补画。
+    private static let nearScreens: CGFloat = 1
+    private var near = false
+    private var offsetObservation: NSKeyValueObservation?
+    private weak var watched: UIScrollView?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        offsetObservation = nil
+        watched = nil
+        guard window != nil else { return }
+        var v: UIView? = superview
+        while let cur = v, !(cur is UIScrollView) { v = cur.superview }
+        if let scroll = v as? UIScrollView {
+            watched = scroll
+            offsetObservation = scroll.observe(\.contentOffset, options: [.new]) { [weak self] _, _ in self?.refreshNear() }
+        }
+        refreshNear()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        refreshNear()
+    }
+
+    private func isNearViewport() -> Bool {
+        guard let window, bounds.width > 0 else { return false }
+        let r = convert(bounds, to: window)
+        let h = window.bounds.height
+        return r.maxY > -h * ShiziPointsInkView.nearScreens && r.minY < h * (1 + ShiziPointsInkView.nearScreens)
+            && r.maxX > -window.bounds.width && r.minX < window.bounds.width * 2
+    }
+
+    private func refreshNear() {
+        guard !near, isNearViewport() else { return }
+        near = true
+        setNeedsDisplay()
+    }
+
     override func draw(_ rect: CGRect) {
-        guard !points.isEmpty, bounds.width > 0 else { return }
+        guard near, !points.isEmpty, bounds.width > 0 else { return }
         let ox = bounds.width * pad
         let inner = bounds.width * (1 - 2 * pad)
         guard inner > 0 else { return }

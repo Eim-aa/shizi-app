@@ -6,7 +6,7 @@ import UIKit
 //   → 落款（宋 13 / 20，右对齐）+ 印（24pt）→ 说明句（整月有衬底字时才有）。
 // 底栏：「分享」/「保存图片」（AX 档排成一列）。页头右侧「调整图片 ›」。
 //
-// 「调整图片 / 保存图片 / 分享」在原生这边交给网页的预览弹层（B3.11 做原生预览）：经 mine.image op 打开，宿主层留底让开。
+// 「调整图片 / 保存图片」在原生这边直接开原生图片预览（B3.11：NativeImagePreviewController + image.* op，与结果页同一条路）。
 //
 // 文案与数据来自会话层（src/session/views/mine-sub.js monthView → App API view.month）；本页不写汉字与数值。
 
@@ -220,24 +220,17 @@ final class MonthScreen: ShiziScreenViewController {
     }
 
     private func openImage() {
-        guard let engine = stage?.engine else { return }
-        let args: [String: Any] = ["kind": "month", "month": month]
-        Task { @MainActor [weak self] in
-            _ = await engine.raw("mine.image", args)
-            self?.hideForWebPreview()
-        }
+        presentImagePreview(scope: ["kind": "month", "month": month])
     }
 
-    /// 让开给网页的图片预览（截图留底）。
-    private func hideForWebPreview() {
-        guard let engine = stage?.engine, let window = view.window else { return }
-        let renderer = UIGraphicsImageRenderer(bounds: view.bounds)
-        let image = renderer.image { _ in view.drawHierarchy(in: view.bounds, afterScreenUpdates: false) }
-        guard let data = image.pngData() else { return }
-        let url = "data:image/png;base64,\(data.base64EncodedString())"
+    /// B3.11：图片按钮 → 原生图片预览弹层（与结果页同一条路：NativeImagePreviewController + image.* op）。
+    private func presentImagePreview(scope: [String: Any]) {
+        guard presentedViewController == nil, let engine = stage?.engine else { return }
         Task { @MainActor [weak self] in
-            _ = await engine.raw("stage.cover", ["entryId": self?.entryId ?? "", "url": url])
-            self?.view.isHidden = true
+            guard let self else { return }
+            let sheet = NativeImagePreviewController(engine: engine, scope: scope)
+            guard await sheet.prepare() else { return }
+            self.present(sheet, animated: true)
         }
     }
 

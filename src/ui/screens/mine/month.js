@@ -28,7 +28,6 @@ import { now as envNow } from '../../../platform/env.js';
 import { openDetail } from '../detail/index.js';
 import { inkOf, recordHasInk } from '../detail/records.js';
 import { monthView as sessionMonthView } from '../../../session/views/mine-sub.js';
-import { setMineSubActions } from '../../../session/api/mine-sub.js';
 import { useStoreState } from './records.js';
 import { cellLabelRef, trimSheetCells } from '../../../session/views/mine-page.js'; // B3.5c：格的读屏名与「我的」页字帖的取舍在会话层（网页与 App API 同一个）
 import { registerMineSubLineBreaker } from './line-starts.js';
@@ -188,10 +187,3 @@ registerMineSubLineBreaker();
 
 registerScreen(MONTH_SCREEN, MonthScreen, { label: MONTH_LABEL, native: true });
 
-// 原生页的「调整图片 / 保存图片」按钮（B3.11 做原生预览；这里让网页开预览弹层）：登记给 App API 的 mine.image。
-setMineSubActions({
-  month: async ({ month }) => {
-    await shareMonth(month);
-    return { ok: true };
-  },
-});

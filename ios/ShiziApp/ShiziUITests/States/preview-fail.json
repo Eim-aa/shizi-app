@@ -2,7 +2,7 @@
   "state": "preview-fail",
   "name": "图片预览 · 保存失败（三段式 + 再试一次）",
   "screen": "result",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -13,12 +13,17 @@
   "setup": [
     {
       "op": "stubNative"
+    },
+    {
+      "op": "stubSave",
+      "success": false
     }
   ],
   "steps": [
     {
       "tap": {
-        "webTestid": "result-share"
+        "webTestid": "result-share",
+        "native": "native-result-share"
       },
       "times": 1
     },
@@ -27,7 +32,8 @@
     },
     {
       "tap": {
-        "webTestid": "image-save"
+        "webTestid": "image-save",
+        "native": "qa-image-save"
       },
       "times": 1
     },

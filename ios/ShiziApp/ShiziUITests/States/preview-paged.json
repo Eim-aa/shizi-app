@@ -1,8 +1,8 @@
 {
   "state": "preview-paged",
   "name": "图片预览 · 超过 80 字分页（月字帖 90 字）",
-  "screen": "month",
-  "native": false,
+  "screen": "image-preview",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -10,7 +10,8 @@
   },
   "overlay": "image-preview",
   "ready": {
-    "web": "month-screen"
+    "web": "month-screen",
+    "native": "id:native-image-preview-screen"
   },
   "setup": [
     {
@@ -35,6 +36,10 @@
       "params": {
         "month": "2026-08"
       }
+    },
+    {
+      "op": "openImage",
+      "sel": "[data-testid=\"month-adjust\"]"
     }
   ],
   "steps": [

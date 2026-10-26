@@ -179,7 +179,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             view.addSubview(b)
         }
         backButton.addAction(UIAction { [weak self] _ in self?.tapLeave() }, for: .touchUpInside)
-        shareButton.addAction(UIAction { [weak self] _ in self?.go("share") }, for: .touchUpInside)
+        shareButton.addAction(UIAction { [weak self] _ in self?.openImagePreview() }, for: .touchUpInside)
         headerLabel.isAccessibilityElement = true
         headerLabel.accessibilityTraits = [.header]
         headerLabel.alpha = 0.011
@@ -823,6 +823,23 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     }
 
     /// 只导航：重写错字 / 分享 / 看这个字（结果条目留在栈里，宿主关掉原生页；回来时再盖上）。
+    /// B3.11：右上「分享」→ 原生图片预览弹层（网页的弹层不再打开；图与文案由页面用同一批函数给，image.render op）。
+    private func openImagePreview() {
+        guard !busy else { return }
+        guard let engine = (coordinator as? NativeStage)?.engine else {
+            go("share") // 没有引擎（老通道）：仍走网页弹层
+            return
+        }
+        dismissUndoForAction()
+        let scope: [String: Any] = ["kind": "session", "slot": slot, "sessionId": sessionId]
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let sheet = NativeImagePreviewController(engine: engine, scope: scope)
+            guard await sheet.prepare() else { return }
+            self.present(sheet, animated: true)
+        }
+    }
+
     private func go(_ to: String, char: String? = nil) {
         guard !busy else { return }
         dismissUndoForAction()

@@ -12,6 +12,7 @@ import { now as envNow } from '../platform/env.js';
 import { renderWorkPage } from '../core/images/render.js';
 import { renderAnnualCover, renderAnnualLong, renderAnnualTail } from '../core/images/annual-render.js';
 import { ImagePreview, IMAGE_OVERLAY } from './components/image-preview.js';
+import { nativePreviewOn, openNativePreview } from './images-entry.js';
 import { recordHasInk } from './screens/detail/records.js';
 import { annualPlan } from '../session/views/annual.js';
 import { inkPointsOf, renderDeps } from './images-entry.js';
@@ -94,5 +95,6 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
 
 /** 打开「保存年报」弹层；返回 overlay id。 */
 export function openAnnualImage(opts) {
+  if (nativePreviewOn()) return openNativePreview({ kind: 'annual', year: opts && opts.year });
   return nav.openOverlay(ImagePreview, { job: buildAnnualJob(opts) }, { name: IMAGE_OVERLAY });
 }

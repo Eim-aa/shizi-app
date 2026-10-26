@@ -14,6 +14,8 @@
 		1A0000000000000000B31112 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31111 /* Backup.swift */; };
 		1A0000000000000000B35A12 /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35A11 /* Home.swift */; };
 		1A0000000000000000B35B12 /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35B11 /* Library.swift */; };
+		1A0000000000000000B3B112 /* ImagePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3B111 /* ImagePreview.swift */; };
+		1A0000000000000000B3B122 /* ImagePreviewHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3B121 /* ImagePreviewHost.swift */; };
 		1A0000000000000000B32004 /* ShiziScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32003 /* ShiziScreen.swift */; };
 		1A0000000000000000B32002 /* ShiziEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32001 /* ShiziEngine.swift */; };
 		1A00000000000000000A1112 /* QAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1111 /* QAApp.swift */; };
@@ -112,6 +114,8 @@
 		1A0000000000000000B31111 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
 		1A0000000000000000B35A11 /* Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
 		1A0000000000000000B35B11 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3B111 /* ImagePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreview.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3B121 /* ImagePreviewHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreviewHost.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32003 /* ShiziScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziScreen.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32001 /* ShiziEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziEngine.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1111 /* QAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAApp.swift; sourceTree = "<group>"; };
@@ -399,6 +403,8 @@
 				1A0000000000000000B31111 /* Backup.swift */,
 				1A0000000000000000B35A11 /* Home.swift */,
 				1A0000000000000000B35B11 /* Library.swift */,
+				1A0000000000000000B3B111 /* ImagePreview.swift */,
+				1A0000000000000000B3B121 /* ImagePreviewHost.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -579,6 +585,8 @@
 				1A0000000000000000B31112 /* Backup.swift in Sources */,
 				1A0000000000000000B35A12 /* Home.swift in Sources */,
 				1A0000000000000000B35B12 /* Library.swift in Sources */,
+				1A0000000000000000B3B112 /* ImagePreview.swift in Sources */,
+				1A0000000000000000B3B122 /* ImagePreviewHost.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* WebViewController.swift in Sources */,

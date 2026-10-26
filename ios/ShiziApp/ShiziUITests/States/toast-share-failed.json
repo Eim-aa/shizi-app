@@ -1,8 +1,8 @@
 {
   "state": "toast-share-failed",
   "name": "Toast · 分享 / 保存失败提示条",
-  "screen": "library",
-  "native": false,
+  "screen": "image-toast",
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -101,10 +101,14 @@
     {
       "op": "switchTab",
       "tab": "library"
+    },
+    {
+      "op": "shareFailed"
     }
   ],
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-toast"
   },
   "steps": [
     {

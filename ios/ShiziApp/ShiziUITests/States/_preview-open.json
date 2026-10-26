@@ -1,0 +1,33 @@
+{
+  "state": "_preview-open",
+  "name": "图片预览 · 弹层已开（流程用例的起点；不取证）",
+  "screen": "result",
+  "parity": false,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "image-preview",
+  "base": "result",
+  "setup": [
+    {
+      "op": "stubNative"
+    },
+    {
+      "op": "stubSave",
+      "success": true
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "result-share",
+        "native": "native-result-share"
+      },
+      "times": 1
+    },
+    {
+      "wait": 1800
+    }
+  ]
+}

@@ -409,7 +409,7 @@ export function ImagePreview({ job, close, active = true, share = shareImageFile
         <${Button} variant="secondary" data-testid="image-share" disabled=${disabled} onClick=${onShare}>${shareLabel}</${Button}>
         <${Button} variant="primary" data-testid="image-save" disabled=${disabled || justSaved} onClick=${onSave}>${mainSave}</${Button}>
       </div>`;
-  return html`<${Sheet} title=${job.title} onClose=${close} active=${active} testid="image-sheet" doneTestid="image-done">
+  return html`<${Sheet} title=${job.title} onClose=${close} active=${active} testid="image-sheet" doneTestid="image-done" titleTestid="image-title">
     <div class="sz-img" data-testid="image-preview" data-kind=${job.kind} data-state=${view.state} data-ratio=${curRatio}
       data-pages=${total} data-page=${page} data-save=${busy === 'save' ? 'busy' : saveState} aria-busy=${slowLoad || slowBusy ? 'true' : undefined}>
       <div class="sz-img__stage" data-testid="image-stage">

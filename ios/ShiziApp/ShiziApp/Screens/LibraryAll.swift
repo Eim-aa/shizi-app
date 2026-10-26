@@ -785,6 +785,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
     var onChip: ((String) -> Void)?
     var onDone: (() -> Void)?
 
+    private let scroll = UIScrollView()
     private let head = UIView()
     private let titleLabel = UILabel()
     private let doneButton = ShiziLineButton(type: .custom)
@@ -832,7 +833,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
 
     /// 弹层标题的字体（网页 .sz-sheet__title 的字体族是 --hei：系统字体按实际字号取款，字宽与网页一致）。
     /// 共用的 NativeType.compose 把光学尺寸钉在 17（苹方正文款，R9-B），20pt 以上苹方的字宽与网页差 0.9pt/字 —— 这一处按网页的取法。
-    private var menuTitleFont: UIFont { UIFont.systemFont(ofSize: metrics.value("fs17"), weight: .medium) }
+    private var menuTitleFont: UIFont { metrics.font(17, .medium) }
 
     private func color(_ name: String) -> UIColor { ShiziTokens.dynamicColor(name) ?? .label }
 
@@ -876,11 +877,18 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         chipsBox.accessibilityIdentifier = "native-library-all-chips"
         legendBox.accessibilityIdentifier = "native-library-all-legend"
         noteLabel.accessibilityIdentifier = "native-library-all-note"
-        view.addSubview(head)
-        view.addSubview(sortsBox)
-        view.addSubview(chipsBox)
-        view.addSubview(legendBox)
-        view.addSubview(noteLabel)
+        // 内容比面板高（AX 档超过 88% 屏高）时在面板里滚（网页 .sz-sheet 同样可滚），原点与面板重合，坐标不变
+        scroll.showsVerticalScrollIndicator = false
+        scroll.showsHorizontalScrollIndicator = false
+        scroll.alwaysBounceVertical = false
+        scroll.contentInsetAdjustmentBehavior = .never
+        scroll.accessibilityIdentifier = "native-library-all-menu-scroll"
+        view.addSubview(scroll)
+        scroll.addSubview(head)
+        scroll.addSubview(sortsBox)
+        scroll.addSubview(chipsBox)
+        scroll.addSubview(legendBox)
+        scroll.addSubview(noteLabel)
         head.addSubview(titleLabel)
         head.addSubview(doneButton)
         for i in 0..<sorts.count {
@@ -998,6 +1006,8 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         let innerW = w - 2 * gutter
         let safeBottom = view.safeAreaInsets.bottom
         let m = sheetMetrics(width: w, safeBottom: safeBottom)
+        scroll.frame = view.bounds
+        scroll.contentSize = CGSize(width: w, height: m.content)
         // 内容（网页 .sz-sheet：上内边距 s6，段间 s4）
         var y: CGFloat = m.padTop
         let headH = m.head
@@ -1028,7 +1038,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                 b.setTitleColor(s.active ? color("ink1") : color("ink2"), for: .normal)
                 b.backgroundColor = s.active ? color("sheet") : .clear
                 b.layer.cornerRadius = mt.value("r-ctl") - 3
-                b.frame = CGRect(x: 3 + CGFloat(i) * bw, y: 3, width: bw, height: sortH)
+                b.frame = CGRect(x: 3 + CGFloat(i) * bw, y: 3, width: bw - 0.05, height: sortH) // 少 0.05pt：三键首尾相接，取证按 0.1pt 取整会量出 0.1pt 的重叠
                 // 按钮里的字（原生按钮不画字，字放在子视图里）
                 let l = sortLabels[i]
                 // 网页 Button.js 的字按词折行；原生按同样的折行点换行（行数与网页一致）

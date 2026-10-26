@@ -30,6 +30,10 @@ import { overdueDays } from '../../core/fsrs.js';
 import { homeModel } from './home.js';
 import { aStartInfo, planDaily } from '../../core/session-start.js';
 import { selectFirst } from '../../core/sessions.js';
+import { decodeInk, decodeInkRaw } from '../../core/ink-math.js';
+import { minInkScale } from '../../core/images/layout.js';
+import { currentLibraryId } from '../../data/deck.js';
+import { ref } from '../../config/copy/index.js';
 
 /** 墙最多几行（R-L02 / 原型 L363 cols*8）。 */
 export const WALL_MAX_ROWS = 8;
@@ -309,4 +313,98 @@ export function todayPlanModel(state, nowMs, { deck, policy = defaultPolicy } = 
     : planDaily(state, { today: home.today, deck, policy }).queue;
   const review = queue.filter(key => !!sched[key]).length;
   return { phase: 'fresh', n: queue.length, review, fresh: queue.length - review, remaining: null };
+}
+
+// ---------------------------------------------------------------- B3.5b：字库首页的视图（view.library；网页页面与原生页读同一份）
+//
+// 网页 src/ui/screens/library/index.js 与原生页 ios/ShiziApp/ShiziApp/Screens/Library.swift 渲染同一份数据：
+// 文案只给「引用 + 数据」（{copy, params}），不拼句子；两边各自渲染（网页 tRef，原生 Copy）。
+// 页面的每个动作（今日练习 / 查字弹层 / 撤销）由网页页面登记给会话层（src/session/api/library.js 的 setLibraryActions），
+// 原生经 App API 的 library.* op 调那些同一个函数——网页路径 == API 路径（test/ui/native-library.test.mjs）。
+
+/** 区行的样字格边长（pt；网页 .sz-libr__sample 34 × 34）与里面墨迹卡的内缩（wall.js .sz-lib__g .sz-compare__card inset 4%）。 */
+export const SAMPLE_PT = 34;
+export const SAMPLE_INK_INSET = 0.04;
+
+/** 本页跳转的目标屏（网页 library/index.js LIBRARY_ROUTES 同名同值；test/ui/native-library.test.mjs 核对）。 */
+export const LIBRARY_PAGE_ROUTES = Object.freeze({ list: 'library-list', all: 'library-all', switch: 'library-switch' });
+
+/** 练习范围一行的库名引用（R-L01：只写库名；与「我的 › 设置 › 练习范围」同一个值）。 */
+export function libraryNameRef(libraryId) {
+  if (libraryId === 'curriculum2500') return ref('R-L01.curriculumName');
+  return ref(`R-L06.lib.${libraryId}.name`);
+}
+
+/** 「今日练习」的值与第二行小字（文案引用；网页 library/index.js todayTexts 按同一规则渲染）。 */
+export function todayRefs(plan) {
+  if (plan.phase === 'half') return { value: ref('X-LIBFOUR.todayHalfValue', { n: plan.n }), sub: ref('X-LIBFOUR.todayHalfSub') };
+  if (plan.phase === 'done') return { value: ref('X-LIBFOUR.todayDoneValue'), sub: ref('X-LIBFOUR.todayDoneSub') };
+  if (plan.n <= 0) return { value: ref('X-LIBFOUR.todayNoneValue'), sub: null };
+  let sub;
+  if (plan.review > 0 && plan.fresh > 0) sub = ref('X-LIBFOUR.todaySubBoth', { n: plan.review, m: plan.fresh });
+  else if (plan.review > 0) sub = ref('X-LIBFOUR.todaySubReview', { n: plan.review });
+  else sub = ref('X-LIBFOUR.todaySubNew', { n: plan.fresh });
+  return { value: ref('X-LIBFOUR.todayValue', { n: plan.n }), sub };
+}
+
+/**
+ * 一条记录的样字墨迹（桥上的紧凑笔画 [[x, y, t, p?]…]）：逐判断笔迹打开（P31）且这条记录有存下的墨迹才有；否则 null（原生画标准字形，
+ * 与网页 library/wall.js Glyph 同一判据：有墨画墨、没墨画轮廓字形）。
+ */
+export function sampleStrokes(record, getInk, policy = defaultPolicy) {
+  if (!record || !policy.features || !policy.features.perRecordInk || typeof getInk !== 'function') return null;
+  let ink = null;
+  try { ink = getInk(record); } catch (error) { ink = null; }
+  if (!ink) return null;
+  const decoded = decodeInk(ink);
+  if (!decoded || !decoded.length) return null;
+  const raw = decodeInkRaw(ink) || decoded.map(pts => pts.map(q => ({ x: q.x, y: q.y, t: q.t, p: q.p })));
+  const wire = raw.map(s => (s || []).map(p => (Number.isFinite(p.p) ? [p.x, p.y, p.t, p.p] : [p.x, p.y, p.t])));
+  return wire.some(s => s.length) ? wire : null;
+}
+
+function zoneView(zone, getInk, policy) {
+  return {
+    kind: zone.kind,
+    name: ref(`X-LIBFOUR.zone.${zone.kind}`),
+    n: zone.n,
+    to: zone.n ? { screen: LIBRARY_PAGE_ROUTES.list, params: { kind: zone.kind } } : null, // 0 个字的行不可点（网页 .sz-libr__row--zero）
+    samples: zoneSamples(zone).map(cell => ({
+      char: cell.char,
+      tone: cell.tone,
+      strokes: sampleStrokes(cell.record, getInk, policy),
+    })),
+  };
+}
+
+/**
+ * 字库首页全部要画的东西（view.library）：文案是引用 + 数据，不拼句子。网页页面（library/index.js）与原生页（Screens/Library.swift）读同一份。
+ * @param {object|null} state  store 状态
+ * @param {number} nowMs       应用时钟
+ * @param {{today:string, deck:object, getInk?:Function, policy?:object, ui?:object}} o
+ */
+export function libraryPageView(state, nowMs, { today, deck, getInk = null, policy = defaultPolicy, ui = null } = {}) {
+  const mem = memoryZones(state, today, {});
+  const skipped = skippedZone(state);
+  const plan = todayPlanModel(state, nowMs, { deck, policy });
+  const refs = todayRefs(plan);
+  const libraryId = currentLibraryId(state && state.settings);
+  return {
+    today,
+    state: mem.recorded ? 'records' : 'empty',
+    recorded: mem.recorded,
+    title: ref('X-TABS.library'),
+    search: { placeholder: ref('X-LIBFOUR.searchPlaceholder') },
+    range: { label: ref('R-S01.library'), value: libraryNameRef(libraryId), libraryId, to: { screen: LIBRARY_PAGE_ROUTES.switch, params: {} } },
+    todayRow: { label: ref('X-LIBFOUR.todayLabel'), phase: plan.phase, n: plan.n, value: refs.value, sub: refs.sub },
+    written: {
+      heading: ref('X-LIBFOUR.writtenHeading'), count: mem.recorded,
+      all: ref('X-LIBFOUR.writtenAll'), allAria: ref('X-LIBFOUR.writtenAllAria'), to: { screen: LIBRARY_PAGE_ROUTES.all, params: {} },
+    },
+    zones: MEMORY_ZONES.map(kind => zoneView(mem.zones[kind], getInk, policy)),
+    skipped: zoneView(skipped, getInk, policy),
+    sample: { side: SAMPLE_PT, inkSide: SAMPLE_PT * (1 - 2 * SAMPLE_INK_INSET), inkScale: minInkScale(SAMPLE_PT * (1 - 2 * SAMPLE_INK_INSET)) },
+    leaveUndo: ui && ui.leaveUndo ? { ...ui.leaveUndo, text: ref('R-W20.skippedToast', { char: ui.leaveUndo.char }) } : null,
+    undo: { undo: ref('R-W20.undo'), failed: ref('R-W16.saveFailed'), cancel: ref('R-W16.cancel'), retry: ref('R-W16.retry') },
+  };
 }

@@ -41,7 +41,11 @@ import { startToday } from '../home/index.js';
 import './list.js'; // M3-2 清单页自注册（library-list）：三档的区详情页复用它（kind = due | shaky | known）
 import './switch.js'; // M3-5 换库页自注册（library-switch）
 import './all.js'; // M3-4 有记录的字（完整页）自注册（library-all）
-import { LibraryQueryBox } from './query-entry.js'; // M3-3 顶部查字框（lookup 查字弹层）
+import { LibraryQueryBox, openLibraryQuery } from './query-entry.js'; // M3-3 顶部查字框（lookup 查字弹层）
+import { setLibraryActions } from '../../../session/api/library.js';
+import { clearLeaveUndo, leaveUndoView, onLeaveUndo, undoLeave } from '../write/skip.js';
+import { markNativePaperSource } from '../../paper-transition.js';
+import { postNative } from '../../../platform/bridge.js';
 
 // tab 名取自文案表（copy/common.js X-TABS）。
 export const LIBRARY_LABEL = t('X-TABS.library');
@@ -318,4 +322,38 @@ function LibraryScreen() {
   </${TabPage}>`;
 }
 
-registerScreen(LIBRARY_TAB, LibraryScreen, { tab: true, order: 1, label: LIBRARY_LABEL, icon: ICON });
+registerScreen(LIBRARY_TAB, LibraryScreen, { tab: true, order: 1, label: LIBRARY_LABEL, icon: ICON, native: true });
+
+// ---------------------------------------------------------------- 原生字库首页（B3.5b）
+//
+// 原生字库首页（ios/ShiziApp/ShiziApp/Screens/Library.swift，ShiziScreen_library）经 App API 的 library.* op 调这里的同一批函数
+// （网页路径 == API 路径，test/ui/native-library.test.mjs）。tab 根页在 B3.5d 与 Tab 栏同开之前只在 window.__shiziNativeRoots
+// （QA 夹具 op nativeRoots / 启动参数 -shizi-native-roots）打开时由原生显示（ui/native-stage.js nativeRootsOn）。
+//
+// 动作登记（会话层不导入 UI，页面文件登记自己的函数；与首页 setHomeActions 同一套做法）：
+//   startToday       今日练习行 = 首页 startToday（resumeOther：先续今天的练习 A 槽，没有就开下一组；不碰自己选的那一组 B）。
+//                    D62：从字库进写字页是普通推入（T-push），不是纸展开——这里不记纸来源（原生也不报矩形）。
+//   openQuery        顶部查字框 → 查字弹层（原生查字弹层 B3.6 之前仍是网页的；原生先把样子的截图交给宿主层再开弹层）。
+//   undoLeave        离开撤销条（写字页跳过后离开，撤销机会跟到字库；网页 write/skip.js 同一份状态）。
+setLibraryActions({
+  // D62：从字库进写字页是普通推入（T-push），不是纸展开。原生点按把「被点的那一行」当来源报过来
+  // （网页同一套来源语义：被点进来的、又不是从首页进来的 → 普通推入；paper-transition.js planPaper 的 PUSHED 分支）。
+  // 网页自己点这一行时由 root.js 的 noteTap 记来源，同一条路；原生这边没有 DOM 可点，所以由页面代记。
+  startToday: (args) => {
+    const src = args && args.source;
+    if (src && src.rect) markNativePaperSource({ ...src, key: 'library-today' });
+    return startToday({ source: LIBRARY_TODAY_SOURCE });
+  },
+  openQuery: () => {
+    openLibraryQuery();
+    return { ok: true };
+  },
+  undoLeave: () => undoLeave(slot => nav.push('write', { slot })),
+  undoLeaveCancel: () => {
+    clearLeaveUndo();
+    return { ok: true };
+  },
+  ui: () => ({ leaveUndo: leaveUndoView() }),
+});
+// 离开撤销条不是 store 的变化：变了也推一次 changed，原生字库页重拉 view.library
+onLeaveUndo(() => postNative('native', { op: 'changed', domains: ['ui'], label: 'leave-undo' }));

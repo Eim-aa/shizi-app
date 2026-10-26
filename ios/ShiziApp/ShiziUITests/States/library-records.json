@@ -2,7 +2,7 @@
   "state": "library-records",
   "name": "字库 · 有记录（三档样字 + 已跳过）",
   "screen": "library",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -10,7 +10,8 @@
   },
   "ax": true,
   "ready": {
-    "web": "screen-library"
+    "web": "screen-library",
+    "native": "id:native-library-screen"
   },
   "setup": [
     {
@@ -116,6 +117,10 @@
     },
     {
       "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "nativeRoots",
       "tab": "library"
     }
   ]

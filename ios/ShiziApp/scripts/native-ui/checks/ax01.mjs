@@ -11,6 +11,8 @@ const nameOf = e => normText(e.text) || e.id || e.prop || '?';
 /** 看得见的框：visibleFrame（滚动区里滚出去的不算；null = 全在可见框外）→ 文字框 → 元素框。 */
 const box = e => (e.visibleFrame !== undefined ? e.visibleFrame : (e.kind === 'text' && e.textFrame ? e.textFrame : e.frame));
 /** 网页只给读屏的隐藏标题。 */
+/** 语义键（页头的返回键 / 标题在原生没有单独的键，按固定标识补上，与网页的 back / title 配对）。 */
+const keyOf = e => e.key || (e.id === 'native-page-back' ? 'back' : e.id === 'native-page-title' ? 'title' : null);
 const hiddenTitle = e => /--hidden\b/.test(e.class || '');
 
 /**
@@ -21,14 +23,14 @@ const hiddenTitle = e => /--hidden\b/.test(e.class || '');
 export function evalAx01(web, native) {
   const webEls = (web || []).filter(e => isText(e) && !e.srOnly);
   const webByKey = new Map();
-  for (const e of webEls) if (e.key) { if (!webByKey.has(e.key)) webByKey.set(e.key, []); webByKey.get(e.key).push(e); }
-  const hiddenKeys = new Set(webEls.filter(hiddenTitle).map(e => e.key).filter(Boolean));
+  for (const e of webEls) if (keyOf(e)) { if (!webByKey.has(keyOf(e))) webByKey.set(keyOf(e), []); webByKey.get(keyOf(e)).push(e); }
+  const hiddenKeys = new Set(webEls.filter(hiddenTitle).map(keyOf).filter(Boolean));
   const els = (native || []).filter(e => isText(e) && !e.srOnly);
   const bad = [];
   const info = [];
   for (const e of els) {
     const name = nameOf(e);
-    const webSame = e.key && (webByKey.get(e.key) || []);
+    const webSame = keyOf(e) && (webByKey.get(keyOf(e)) || []);
     const webHas = flag => webSame && webSame.some(w => w[flag]);
     if (e.truncated) (webHas('truncated') ? info : bad).push(`「${name}」被截断`);
     if (e.clipped) (webHas('clipped') ? info : bad).push(`「${name}」被裁掉`);
@@ -44,7 +46,7 @@ export function evalAx01(web, native) {
     }
     return false;
   };
-  const visible = els.filter(e => !(e.key && hiddenKeys.has(e.key)));
+  const visible = els.filter(e => !(keyOf(e) && hiddenKeys.has(keyOf(e))));
   for (let i = 0; i < visible.length; i += 1) {
     for (let j = i + 1; j < visible.length; j += 1) {
       const a = visible[i], b = visible[j];
@@ -53,7 +55,7 @@ export function evalAx01(web, native) {
       const area = overlapArea(box(a), box(b));
       if (area <= 1) continue;
       const msg = `「${nameOf(a)}」与「${nameOf(b)}」重叠 ${Math.round(area)}pt²`;
-      (webOverlaps(a.key, b.key) ? info : bad).push(msg);
+      (webOverlaps(keyOf(a), keyOf(b)) ? info : bad).push(msg);
     }
   }
   const detail = bad.slice(0, 6).join('；') || `${els.length} 个元素都完整可见${info.length ? `（与网页相同的 ${info.length} 处只记 info：${info.slice(0, 3).join('；')}）` : ''}`;

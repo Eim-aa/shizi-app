@@ -38,5 +38,6 @@
       "screen": "annual",
       "params": {}
     }
-  ]
+  ],
+  "settle": 3000
 }

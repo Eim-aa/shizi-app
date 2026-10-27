@@ -702,14 +702,14 @@ export default async function run(page, ctx) {
   await goTab(page, 'mine');
 
   // ------------------------------------------------------------------ 6. 图片入口桩
-  step('image entries (M4-5 stub): registered → shown, called with {month} / {day, items}');
+  step('image entries (M4-5 stub): registered → shown, called with {month} / {day}');
   await page.evaluate(async () => {
     const { setMineImageActions, getMineImageActions } = await import('/src/ui/screens/mine/records.js');
     window.__origImg = getMineImageActions(); // 重载后是 M4-5 重新注册的真去处
     window.__imgCalls = [];
     setMineImageActions({
       month: p => window.__imgCalls.push({ kind: 'month', month: p.month, n: p.sheet.cells.length }),
-      today: p => window.__imgCalls.push({ kind: 'today', day: p.day, chars: p.items.map(i => i.char) }),
+      today: p => window.__imgCalls.push({ kind: 'today', day: p.day }),
     });
   });
   await seed(page, RICH); // 重新发布状态 → 重画
@@ -727,8 +727,8 @@ export default async function run(page, ctx) {
   const calls = await page.evaluate(() => window.__imgCalls);
   assert.deepEqual(calls, [
     { kind: 'month', month: '2026-09', n: 5 },
-    { kind: 'today', day: TODAY, chars: o9.todayChars.map(c => c.char) },
-  ], 'image actions called with this month / today (each char\'s latest record today)');
+    { kind: 'today', day: TODAY },
+  ], 'image actions called with this month / today (B3.9: the destination takes the day; which chars = the day list oracle above)');
   await page.evaluate(async () => {
     const { setMineImageActions } = await import('/src/ui/screens/mine/index.js');
     setMineImageActions({ month: window.__origImg.month, today: window.__origImg.today });

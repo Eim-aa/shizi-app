@@ -244,7 +244,8 @@ let imageActions = { month: null, today: null };
 /**
  * M4-5 注册「保存图片」的去处（没注册的入口不显示）：
  *   month({month, sheet})        「{month} 月字帖」右侧「保存图片 ›」（我的首页与练习记录同一入口，只有本月，R-M01 / R-P02）
- *   today({day, items})          练习记录页底「{今天}写的字 / 这次的图片 · 保存图片 ›」（今天判断过的字每字最近一次，R-P03）
+ *   today({day})                 练习记录页底「{今天}写的字 / 这次的图片 · 保存图片 ›」（今天判断过的字每字最近一次，R-P03；B3.9 起只给 day，
+ *                                去处按 day 自己取那天的字——images-entry openDayImage 一直只用 day，原生按钮走同一条）
  * 传 null 取消某一项；只传一项时另一项保持不变。要在点击处理里同步调用（iOS 分享）。
  */
 export function setMineImageActions(actions = {}) {

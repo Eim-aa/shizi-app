@@ -113,7 +113,10 @@
     },
     {
       "op": "openImage",
-      "sel": "[data-testid=\"annual-adjust\"]"
+      "sel": "[data-testid=\"annual-adjust\"]",
+      "scope": {
+        "kind": "annual"
+      }
     }
   ],
   "steps": [

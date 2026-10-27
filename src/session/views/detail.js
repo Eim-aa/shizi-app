@@ -1,9 +1,10 @@
 // 字详情的视图模型（B3.4：从 ui/screens/detail/records.js 挪来；无 DOM、无 Preact）。
 // 网页页面从这里 import 同一批函数；用户可见的句子只给「文案键 + 参数」（cellCopy），网页用 tRef 渲染。
 
+import { lineStarts } from '../../core/line-starts.js';
 import * as defaultPolicy from '../../config/policy.js';
 import { canCorrectHere } from '../ops/detail.js';
-import { inkKey, ref } from '../../config/copy/index.js';
+import { inkKey, ref, tRef } from '../../config/copy/index.js';
 import { monthDayParts } from '../../core/dates.js';
 import { compareRecordIds, isJudged, isPaperRecord, sortById } from '../../core/records.js';
 import { flattenRecords } from '../../core/query.js';
@@ -278,7 +279,10 @@ export function detailView(store, char, { today, etymology = null, imageAction =
   const word = model.word;
   const rows = [];
   if (model.list) rows.push({ key: 'list', kind: model.list, title: ref('X-LIBFOUR.zone.due'), sub: ref(model.list === 'wrong' ? 'R-D01.wrongLine' : 'R-D01.forgetLine'), to: { screen: LIST_SCREEN_NAME, params: { kind: 'due' } } });
-  if (model.due) rows.push({ key: 'next', title: ref('R-D02.nextReview', { date: dayRef(model.due) }) });
+  if (model.due) {
+    const title = ref('R-D02.nextReview', { date: dayRef(model.due) });
+    rows.push({ key: 'next', title, starts: lineStarts('detail-next', tRef(title)) });
+  }
   if (imageAction) {
     rows.push(model.image === 'ok'
       ? { key: 'image', state: 'ok', title: ref('R-D04.makeImage') }

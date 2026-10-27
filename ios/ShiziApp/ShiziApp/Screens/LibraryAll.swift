@@ -459,7 +459,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
             b.lineFont = mt.font(15)
             b.setTitleColor(color("ink1"), for: .normal)
             // 月份名 17 / ink1；字数 15 / ink2（网页 .sz-all__mname / .sz-all__mcount）
-            NativeType.set(b.nameLabel, name, font: mt.font(17), color: color("ink1"), line: mt.line("lh17"))
+            NativeType.set(b.nameLabel, name, font: mt.font(17), color: color("ink1"), line: mt.line("lh15"))
             NativeType.set(b.countLabel, count, font: mt.fontTabular(15), color: color("ink2"), line: mt.line("lh15"))
         }
         closedMarker.isHidden = m.closed.isEmpty
@@ -668,9 +668,10 @@ final class LibraryAllScreen: ShiziScreenViewController {
         }
         // 收起的月份（网页 .sz-all__closed：上外边距 s2、顶边 0.5 分隔线）
         if !m.closed.isEmpty {
+            let monthH = max(52, mt.line("lh15") + LibraryCommon.hair)
             y += mt.space(4) // .sz-all 的 gap s4（项与项之间才有）
             let closedTop = y + mt.space(2)
-            closedMarker.frame = CGRect(x: x, y: closedTop, width: width, height: CGFloat(m.closed.count) * 52 + LibraryCommon.hair)
+            closedMarker.frame = CGRect(x: x, y: closedTop, width: width, height: CGFloat(m.closed.count) * monthH + LibraryCommon.hair)
             // 收起月份的 ul 顶线（.sz-all__closed border-top .5px line）与每个按钮的底线（.sz-all__month border-bottom .5px line）
             let lineColor = color("line")
             let topLine = closedMarker.viewWithTag(9101) ?? { let v = UIView(); v.tag = 9101; v.isUserInteractionEnabled = false; closedMarker.addSubview(v); return v }()
@@ -679,17 +680,17 @@ final class LibraryAllScreen: ShiziScreenViewController {
             for (i, b) in monthButtons.enumerated() {
                 let bottom = b.viewWithTag(9102) ?? { let v = UIView(); v.tag = 9102; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
                 bottom.backgroundColor = lineColor
-                bottom.frame = CGRect(x: 0, y: 52 - LibraryCommon.hair, width: width, height: LibraryCommon.hair)
+                bottom.frame = CGRect(x: 0, y: monthH - LibraryCommon.hair, width: width, height: LibraryCommon.hair)
                 _ = i
             }
             for (i, b) in monthButtons.enumerated() {
                 // 按钮在 ul 里（ul 自己已经贴了页边）
-                b.frame = CGRect(x: 0, y: LibraryCommon.hair + CGFloat(i) * 52, width: width, height: 52)
-                b.nameLabel.frame = CGRect(x: 0, y: (52 - mt.line("lh17")) / 2, width: width, height: mt.line("lh17"))
+                b.frame = CGRect(x: 0, y: LibraryCommon.hair + CGFloat(i) * monthH, width: width, height: monthH)
+                b.nameLabel.frame = CGRect(x: 0, y: (monthH - mt.line("lh15")) / 2, width: width, height: mt.line("lh15"))
                 let cw = LibraryCommon.textWidth(b.countLabel.text ?? "", mt.fontTabular(15))
-                b.countLabel.frame = CGRect(x: width - cw, y: (52 - mt.line("lh15")) / 2, width: cw, height: mt.line("lh15"))
+                b.countLabel.frame = CGRect(x: width - cw, y: (monthH - mt.line("lh15")) / 2, width: cw, height: mt.line("lh15"))
             }
-            y = closedTop + CGFloat(m.closed.count) * 52 + LibraryCommon.hair
+            y = closedTop + CGFloat(m.closed.count) * monthH + LibraryCommon.hair
         }
         // 「看这些字 ›」（网页 .sz-all 的 gap s4 只在两项之间，最后一项之后没有）
         if m.go?.kind == "list" {
@@ -1000,6 +1001,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        ShiziElev.apply(view, dark: traitCollection.userInterfaceStyle == .dark)
         let mt = metrics
         let w = view.bounds.width
         let gutter = mt.gutter

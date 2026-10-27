@@ -618,7 +618,7 @@ final class LibraryListScreen: ShiziScreenViewController {
         emptyCell.backgroundColor = color("sheet")
         emptyCell.layer.borderWidth = mt.value("frame-w")
         emptyCell.layer.borderColor = color("frame").cgColor
-        emptyGlyph.image = LibraryGlyph.image(m.emptyGlyph.text, size: cellSide * 0.6, face: 0.8, color: color("under"))
+        emptyGlyph.image = LibraryGlyph.image(m.emptyGlyph.text, size: cellSide * 0.6, face: 1 / 1.1, color: color("under"))
         emptyGlyph.frame = CGRect(x: cellSide * 0.2, y: cellSide * 0.2, width: cellSide * 0.6, height: cellSide * 0.6)
         emptyTitle.frame = CGRect(x: x, y: contentTop + cellSide + mt.space(2) * 2, width: width, height: titleH)
         emptyBody.frame = CGRect(x: x, y: contentTop + cellSide + mt.space(2) * 2 + titleH + mt.space(2), width: width, height: bodyTextH)

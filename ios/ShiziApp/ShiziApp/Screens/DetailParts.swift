@@ -145,6 +145,30 @@ final class DetailRowItem {
         let lhT = mt.line("lh17s")
         let subLabelRef: UILabel? = button != nil ? (button!.valueLabel.isHidden ? nil : button!.valueLabel) : (row.note != nil ? subLabel : nil)
         let titleL = button?.label ?? titleLabel
+        if key == "next", LibraryCommon.isAX {
+            // Use the same line starts measured by WebKit for the date row.
+            let text = LibraryText.joined(row.title.text, row.starts)
+                .components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .joined(separator: "\n") // WebKit discards hanging spaces at a soft wrap; explicit newlines must do the same.
+            NativeType.set(titleLabel, text, font: mt.font(17), color: titleLabel.textColor, line: lhT)
+            // Like Home's mixed dates, keep the system display face for Latin glyphs at AX sizes.
+            // Rebuilding the font descriptor for the CJK cascade otherwise widens digits and spaces.
+            if let value = titleLabel.attributedText {
+                let value = NSMutableAttributedString(attributedString: value)
+                let latin = UIFont.systemFont(ofSize: mt.value("fs17"))
+                let cjk = NativeType.cjkFont(size: mt.value("fs17"), weight: .regular)
+                let track = NativeType.cjkTrack(size: mt.value("fs17"), weight: .regular)
+                var offset = 0
+                for ch in text {
+                    let count = String(ch).utf16.count
+                    let isCJK = ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 })
+                    value.addAttributes([.font: isCJK ? cjk : latin, .kern: isCJK ? track : 0], range: NSRange(location: offset, length: count))
+                    offset += count
+                }
+                titleLabel.attributedText = value
+            }
+        }
         let th = NativeType.height(titleL, width: tw, line: lhT)
         let subLine = mt.line("lh15") // 说明的字号有 13 的（移出自选），行高仍是 lh15（.sz-drow__sub 的行高）
         let sh = subLabelRef.map { NativeType.height($0, width: tw, line: subLine) } ?? 0

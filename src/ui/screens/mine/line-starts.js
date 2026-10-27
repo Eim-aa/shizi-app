@@ -100,6 +100,10 @@ export function mineSubLineBreaker(kind, text) {
   if (!text) return null;
   const w = bodyWidth();
   switch (kind) {
+    case 'detail-next':
+      return textLineStarts(text, { wrapClass: 'sz-drows', tag: 'span', cls: 'sz-drow__title' }, w);
+    case 'library-switch-source':
+      return textLineStarts(text, { wrapClass: 'sz-libsw', cls: 'sz-libsw__source' }, w);
     case 'records-title':
       return textLineStarts(text, { wrapClass: 'sz-rec__head', cls: 'sz-rec__title' }, w);
     case 'records-legend':

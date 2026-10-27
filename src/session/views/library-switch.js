@@ -1,6 +1,7 @@
 // 换库列表的视图模型（B3.4：从 ui/screens/library/switch.js 挪来；无 DOM、无 Preact）。库名 / 说明 / 数量行只给「文案键 + 参数」，网页用 tRef 渲染。
 
-import { ref } from '../../config/copy/index.js';
+import { lineStarts } from '../../core/line-starts.js';
+import { ref, tRef } from '../../config/copy/index.js';
 import { LIBRARIES } from '../../core/cards.js';
 import { flattenRecords } from '../../core/query.js';
 import { isJudged } from '../../core/records.js';
@@ -37,6 +38,7 @@ export function judgedChars(state) {
 export function libraryRows(state, { libraryOf: lib = libraryOf, currentId = currentLibraryId } = {}) {
   const current = currentId(state && state.settings);
   const chars = judgedChars(state);
+  const sourceStarts = lineStarts('library-switch-source', tRef(ref('R-L06.sourceNote')));
   return LIBRARIES.map(def => {
     const keys = (lib(def.id) || { keys: [] }).keys || [];
     const keySet = new Set(keys);
@@ -45,6 +47,7 @@ export function libraryRows(state, { libraryOf: lib = libraryOf, currentId = cur
     const total = keys.length;
     return {
       id: def.id,
+      sourceStarts,
       name: libraryNameRef(def.id),
       desc: libraryDescRef(def.id),
       total,

@@ -72,7 +72,11 @@ final class LibrarySubFlowTests: XCTestCase {
         // R16：弹层开着时下面的页对读屏（无障碍树）藏起来（主控决定），页面上的组名 / 清单要关掉弹层再看
         qa.tap(qa.el("native-library-all-sheet-done"), "close the sheet", verify: false)
         qa.waitProbe("sort applied", timeout: 10) { _ in
-            self.qaFirstGroupName(qa) != groupBefore
+            // R16 keeps the underlying page out of AX until the closing sheet is gone.
+            let name = qa.el("native-library-all-group-name")
+            guard name.exists else { return false }
+            let text = name.label
+            return !text.isEmpty && text != groupBefore
         }
         // 筛选：再开弹层选「待复习」→ 底栏主键变成区清单（页面多一个「看这些字 ›」）
         qa.tap(qa.el("native-library-all-menu-open"), "reopen sort sheet", verify: false)

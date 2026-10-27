@@ -17,9 +17,9 @@ export const KEYS = [
   { key: 'home-start', native: ['id:native-home-start'], web: ['id:home-start'] },
   { key: 'demo-push', native: [], web: ['id:demo-push'] },
   { key: 'write-test-entry', native: [], web: ['id:write-test-entry'] },
-  { key: 'tab-home', native: [], web: ['id:tab-home'] },
-  { key: 'tab-library', native: [], web: ['id:tab-library'] },
-  { key: 'tab-mine', native: [], web: ['id:tab-mine'] },
+  { key: 'tab-home', native: ['id:native-tab-home'], web: ['id:tab-home'] }, // B3.5d：原生 Tab 栏（UITabBarItem；外观差 = TAB-01）
+  { key: 'tab-library', native: ['id:native-tab-library'], web: ['id:tab-library'] }, // B3.5d：原生 Tab 栏（UITabBarItem；外观差 = TAB-01）
+  { key: 'tab-mine', native: ['id:native-tab-mine'], web: ['id:tab-mine'] }, // B3.5d：原生 Tab 栏（UITabBarItem；外观差 = TAB-01）
   { key: 'home-first', native: ['id:native-home-first'], web: ['id:home-first'] },
   { key: 'home-motto', native: ['id:native-home-motto'], web: ['id:home-motto'] },
   { key: 'home-seal', native: ['id:native-home-seal'], web: ['id:home-seal'] },

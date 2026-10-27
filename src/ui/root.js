@@ -209,7 +209,7 @@ injectStyles('root', `
   -webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 .sz-layer{position:absolute;inset:0;overflow:hidden;isolation:isolate;background:${T.paper};display:flex;flex-direction:column}
 .sz-layer[data-native-host]{background:transparent;pointer-events:none}
-.sz-layer[data-native-host] .sz-tabs,.sz-layer[data-native-host]>:not(.sz-layer__screen){pointer-events:auto} /* B3.5a：原生 tab 根页只盖内容区，Tab 栏与盖在根页上的网页弹层（原生根页让开时）仍可点 */
+.sz-layer[data-native-host]>:not(.sz-layer__screen){pointer-events:auto} /* B3.5a：盖在原生根页上的网页弹层（原生根页让开时）仍可点；B3.5d 起 Tab 栏是原生的 */
 .sz-layer--moving{box-shadow:-1px 0 0 ${T.line}}
 .sz-layer--snap{transition:transform ${SNAP_MS}ms ${PUSH_EASING}}
 .sz-layer--under{pointer-events:none}
@@ -250,8 +250,10 @@ const tabScroll = new Map(); // tab 名 → scrollTop
 
 function TabRoot({ entry }) {
   const def = getScreen(entry.n);
-  // B3.5a：tab 根页原生化后（闸见 native-stage.js nativeRootsOn）内容区换成原生宿主，Tab 栏仍是这里的网页 Tabs（B3.5d 换原生 Tab 栏）
-  const Comp = def ? (def.native && nativeScreenShown(entry.n) ? NativeScreenHost : def.component) : null;
+  // B3.5a / B3.5d：tab 根页原生时内容区换成原生宿主，Tab 栏也是原生的（NativeStage 的 UITabBarController，切 tab 仍经 nav.tab 回到这里）——
+  // 网页 Tabs 不画（不出现两条 Tab 栏），内容区铺满整个图层（原生根页让开时宿主层上的截图连同原生 Tab 栏一起铺满）。
+  const nativeRoot = !!(def && def.native && nativeScreenShown(entry.n));
+  const Comp = def ? (nativeRoot ? NativeScreenHost : def.component) : null;
   const items = listTabs().map(t => ({ id: t.name, label: t.label, icon: t.icon, panelId: 'sz-tabpanel' }));
   const panelRef = useRef(null);
   const shownRef = useRef(entry.n);
@@ -274,7 +276,7 @@ function TabRoot({ entry }) {
     <div class="sz-tabroot__panel" role="tabpanel" id="sz-tabpanel" aria-labelledby=${`sz-tab-${entry.n}`} ref=${panelRef} onScroll=${onScroll}>
       ${Comp ? html`<${Comp} key=${entry.n} params=${entry.p} entry=${entry} />` : null}
     </div>
-    <${Tabs} items=${items} selected=${entry.n} onSelect=${name => nav.switchTab(name)} onReselect=${onReselect} />
+    ${nativeRoot ? null : html`<${Tabs} items=${items} selected=${entry.n} onSelect=${name => nav.switchTab(name)} onReselect=${onReselect} />`}
   </div>`;
 }
 

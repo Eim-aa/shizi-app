@@ -128,7 +128,8 @@ final class WebViewController: UIViewController {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
         let webView = ShiziWebView(frame: .zero, configuration: configuration)
-        webView.hiddenFromAccessibility = { [weak self] in self?.stage.hostHasModal ?? false }
+        // B3.5d：原生根页（连同原生 Tab 栏）看得见时，下面的网页（只剩根页宿主）对读屏同样藏起
+        webView.hiddenFromAccessibility = { [weak self] in (self?.stage.hostHasModal ?? false) || (self?.stage.rootShown ?? false) }
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = false

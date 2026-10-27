@@ -1,6 +1,6 @@
 import XCTest
 
-// B3.5b 字库首页流程（B3B4 §5.2 LibraryFlowTests）：原生字库首页（tab 根页，夹具 op nativeRoots 打开；B3.5d 前默认关）。
+// B3.5b 字库首页流程（B3B4 §5.2 LibraryFlowTests）：原生字库首页（tab 根页；B3.5d 起与原生 Tab 栏一起常开）。
 // 探针：stage.root = 原生根页 {screen, hidden, page:{leaveUndo, undoVisible, failed}}；route = 网页栈（仍是真相源）；
 // transitions = 原生转场记录（present:push = 普通推入，D62：从字库进写字页不是纸展开）。
 // 子页（区详情 / 全部 / 换库）还是网页屏（B3.8 原生化）：原生根页先把样子交给宿主层再让开，回来时按原样盖回。

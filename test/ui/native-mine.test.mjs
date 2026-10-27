@@ -23,7 +23,7 @@ import * as mineIndex from '../../src/ui/screens/mine/index.js';
 import { cellLabel, mineSheetModel, monthModel } from '../../src/ui/screens/mine/month.js';
 import { MINE_ROUTES } from '../../src/ui/screens/mine/records.js';
 import { kuan } from '../../src/ui/work-text.js';
-import { nativeRootsOn, nativeRunBelow, nativeScreenOn } from '../../src/ui/native-stage.js';
+import { nativeRunBelow, nativeScreenOn } from '../../src/ui/native-stage.js';
 
 const BUILD = { version: '1.0.0', build: '20261001-000000000000' };
 const TODAY = '2026-10-22';
@@ -241,23 +241,22 @@ test('B3.5c trimSheetCells = what the web mine page shows (last N, first corner 
 
 // ---------------------------------------------------------------- 根页开关与原生栈
 
-test('B3.5c root switch: a tab root screen is native only when the roots flag is on; other native screens do not need it', async () => {
+test('B3.5d: tab roots are native whenever the stage is on and the class exists (no roots flag any more)', async () => {
   await import('../../src/ui/screens/mine/index.js');
   await import('../../src/ui/screens/mine/about.js');
   const win = { __shiziNative: true, __shiziNativeWriteForce: true, __shiziNativeScreens: ['mine', 'about'] };
-  assert.equal(nativeRootsOn(win), false);
-  assert.equal(nativeScreenOn('mine', win), false, 'tab root: blocked until B3.5d');
-  assert.equal(nativeScreenOn('about', win), true, 'a pushed page is not a root');
-  win.__shiziNativeRoots = true;
-  assert.equal(nativeScreenOn('mine', win), true);
+  assert.equal(nativeScreenOn('mine', win), true, 'tab root is native with the native tab bar');
+  assert.equal(nativeScreenOn('about', win), true);
   assert.equal(nativeScreenOn('home', win), false, 'no native class → web');
+  assert.equal(nativeScreenOn('mine', { __shiziNativeScreens: ['mine'] }), false, 'no native stage (hosted web / Chromium) → web');
 });
 
 // （合并说明：原「tab 根页并入原生栈」用例按 B3.5c 自己的根页模型写；主线采用 B3.5a 的根页底座——根页是 NativeStage.rootScreen、不进原生栈——故删去。）
-test('B3.5c Swift side: ShiziScreen_mine exists, is flagged native in the web screen, no Chinese literals, root flag injected by the shell', () => {
+test('B3.5c Swift side: ShiziScreen_mine exists, is flagged native in the web screen, no Chinese literals, no root flag any more (B3.5d)', () => {
   const swift = fs.readFileSync(path.join(ROOT, 'ios/ShiziApp/ShiziApp/Screens/Mine.swift'), 'utf8');
   assert.match(swift, /@objc\(ShiziScreen_mine\)/);
   assert.doesNotMatch(swift.replace(/\/\/.*$/gm, ''), /[一-鿿]/, 'no Chinese literals in native code');
   const stage = fs.readFileSync(path.join(ROOT, 'ios/ShiziApp/ShiziApp/NativeStage.swift'), 'utf8');
-  assert.match(stage, /__shiziNativeRoots/);
+  assert.doesNotMatch(stage.replace(/\/\/.*$/gm, ''), /__shiziNativeRoots|-shizi-native-roots/);
+  assert.match(stage, /UITabBarController/);
 });

@@ -3,7 +3,7 @@
 //   2. library.startToday = 网页字库页的 startToday（首页主按钮在该状态下的同一动作）：整份 store deepEqual、commit 序列相同、路由栈相同；
 //      D07：写失败回 {ok:false, error:{kind}}、store 不动，重试只记一次；
 //   3. 离开撤销条：view.library 带着交过来的那一次机会，library.undoLeave / undoLeaveCancel 与网页同一批函数（stale 时回 stale）；
-//   4. 原生一侧：Screens/Library.swift 的类名与 native:true 对上、原生源码没有汉字字面量、6 个字库夹具改了 native:true 并开了 nativeRoots。
+//   4. 原生一侧：Screens/Library.swift 的类名与 native:true 对上、原生源码没有汉字字面量、6 个字库夹具改了 native:true 并在造完数据后重新挂载根页（B3.5d 起根页常开）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -258,11 +258,12 @@ test('B3.5b fixtures: the six library states are native and open the native root
     assert.equal(fx.native, true, st);
     assert.equal(fx.ready.native, 'id:native-library-screen', st);
     const ops = fx.setup.map(s => s.op);
-    const roots = ops.indexOf('nativeRoots');
-    assert.ok(roots >= 0, `${st}: nativeRoots`);
-    const tab = fx.setup[roots];
-    assert.equal(tab.tab, 'library', `${st}: the native root is the library tab`);
-    assert.ok(roots < ops.lastIndexOf('switchTab') || roots === ops.length - 1, `${st}: nativeRoots after the data is seeded`);
+    // B3.5d：根页常开，夹具只在造完数据后重新挂载根页（switchTab remount，取代 B3.5a 的 nativeRoots 闸 op）
+    const roots = fx.setup.findIndex(s => s.op === 'switchTab' && s.remount === true);
+    assert.ok(roots >= 0, `${st}: remount the root`);
+    assert.equal(fx.setup[roots].tab, 'library', `${st}: the native root is the library tab`);
+    assert.ok(roots > ops.lastIndexOf('seed'), `${st}: remount after the data is seeded`);
+    assert.equal(ops.includes('nativeRoots'), false, `${st}: no root gate op`);
   }
   const fail = JSON.parse(fs.readFileSync(path.join(dir, 'library-today-fail.json'), 'utf8'));
   assert.equal(fail.failNext, 1, 'the write failure is armed for the web and the native alike');
@@ -270,5 +271,5 @@ test('B3.5b fixtures: the six library states are native and open the native root
   const leave = JSON.parse(fs.readFileSync(path.join(dir, 'library-leave-undo.json'), 'utf8'));
   const taps = leave.steps.filter(s => s.tap).map(s => s.tap.native);
   assert.deepEqual(taps, ['native-library-today', 'native-write-skip', 'native-write-back']);
-  assert.ok(fs.existsSync(path.join(dir, '_ops/nativeRoots.js')));
+  assert.equal(fs.existsSync(path.join(dir, '_ops/nativeRoots.js')), false, 'B3.5d: the root gate op is gone');
 });

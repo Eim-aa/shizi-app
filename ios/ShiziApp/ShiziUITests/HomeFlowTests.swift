@@ -1,6 +1,6 @@
 import XCTest
 
-// B3.5a 首页流程（B3B4 §5.2 HomeFlowTests）：原生首页（tab 根页，夹具 op nativeRoots 打开；B3.5d 前默认关）。
+// B3.5a 首页流程（B3B4 §5.2 HomeFlowTests）：原生首页（tab 根页；B3.5d 起与原生 Tab 栏一起常开）。
 // 探针：stage.root = 原生根页 {screen, hidden, page:{view, cta, ctaId, ctaFrame, failed, undoBar, brand, source}}；route = 网页栈（仍是真相源）；
 // transitions = 原生转场记录（present:paper = T-paper 纸展开，dismiss:paper = 纸缩回）。
 @MainActor
@@ -157,11 +157,11 @@ final class HomeFlowTests: XCTestCase {
         XCTAssertTrue(qa.el("native-home-start").exists)
     }
 
-    /// 冷启动恢复到首页（-shizi-native-roots：tab 根页从启动起就是原生）。
+    /// 冷启动恢复到首页（B3.5d：tab 根页从启动起就是原生）。
     func testColdStartRestoresHome() {
         let qa = launchHome("home-progress")
         qa.app.terminate()
-        qa.app.launchArguments = QA.args(seed: nil) + ["-shizi-native-roots"]
+        qa.app.launchArguments = QA.args(seed: nil)
         qa.app.launch()
         qa.waitProbe("relaunch page ready", timeout: 40) { ($0["pageReady"] as? Bool) == true && ($0["hooks"] as? Bool) == true }
         waitHome(qa)

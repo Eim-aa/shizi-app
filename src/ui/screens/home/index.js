@@ -546,7 +546,7 @@ function CapitalHint({ kind }) {
 
 // ---------------------------------------------------------------- 原生首页（B3.5a）
 // 原生首页（ios Screens/Home.swift，ShiziScreen_home）经 App API 的 home.* op 调这里的同一批函数（网页路径 == API 路径）；
-// tab 根页在 B3.5d 与 Tab 栏同开之前只在 window.__shiziNativeRoots（QA / -shizi-native-roots）打开时由原生显示（ui/native-stage.js）。
+// tab 根页在 App 里与原生 Tab 栏一起由原生显示（B3.5d；ui/native-stage.js nativeScreenOn）。
 
 /** 主按钮 / 「今天的字」行：原生量的真实矩形记成写字页 T-paper 的来源（D62），再走与网页同一个动作。 */
 function withNativeSource(source, key, action) {

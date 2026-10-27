@@ -11,48 +11,6 @@
         "mine-choice-fail",
         "mine-choice-appearance"
       ],
-      "type": "missing",
-      "label": "tab-home",
-      "//": "TAB-01：Tab 栏在 B3.5d 之前仍是网页画的（根页下面的网页 Tab 栏透出来，原生页底部那一条透明、触摸穿过去）；B3.5d 把 Tab 栏原生化后 tab-* 由 UITabBarController 提供"
-    },
-    {
-      "state": [
-        "mine-empty",
-        "mine-records",
-        "mine-backup-stale",
-        "mine-full-warn",
-        "mine-choice-sheet",
-        "mine-choice-fail",
-        "mine-choice-appearance"
-      ],
-      "type": "missing",
-      "label": "tab-library",
-      "//": "TAB-01：Tab 栏在 B3.5d 之前仍是网页画的（根页下面的网页 Tab 栏透出来，原生页底部那一条透明、触摸穿过去）；B3.5d 把 Tab 栏原生化后 tab-* 由 UITabBarController 提供"
-    },
-    {
-      "state": [
-        "mine-empty",
-        "mine-records",
-        "mine-backup-stale",
-        "mine-full-warn",
-        "mine-choice-sheet",
-        "mine-choice-fail",
-        "mine-choice-appearance"
-      ],
-      "type": "missing",
-      "label": "tab-mine",
-      "//": "TAB-01：Tab 栏在 B3.5d 之前仍是网页画的（根页下面的网页 Tab 栏透出来，原生页底部那一条透明、触摸穿过去）；B3.5d 把 Tab 栏原生化后 tab-* 由 UITabBarController 提供"
-    },
-    {
-      "state": [
-        "mine-empty",
-        "mine-records",
-        "mine-backup-stale",
-        "mine-full-warn",
-        "mine-choice-sheet",
-        "mine-choice-fail",
-        "mine-choice-appearance"
-      ],
       "label": "mine-sheet-cell",
       "aspects": [
         "font",

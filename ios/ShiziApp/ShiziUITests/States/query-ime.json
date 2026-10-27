@@ -99,7 +99,8 @@
       "op": "seed"
     },
     {
-      "op": "nativeRoots",
+      "op": "switchTab",
+      "remount": true,
       "tab": "library"
     },
     {

@@ -50,7 +50,8 @@
       "n": 2
     },
     {
-      "op": "nativeRoots",
+      "op": "switchTab",
+      "remount": true,
       "tab": "home"
     },
     {

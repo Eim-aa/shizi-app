@@ -24,7 +24,7 @@ final class NativeStageFlowTests: XCTestCase {
         waitStage(qa, ["about"])
     }
 
-    /// 网页「我的」→ 原生关于（T-push，网页不另播）→ 原生隐私（推入，下层是原生关于）→「‹」回关于 → 左缘右滑跟手回「我的」（网页）。
+    /// 「我的」（B3.5d 起原生根页）→ 原生关于（T-push，网页不另播）→ 原生隐私（推入，下层是原生关于）→「‹」回关于 → 左缘右滑跟手回「我的」（网页）。
     func test900_webNativeNativeWebPushAndBack() {
         let qa = QA(seed: "mine-empty")
         openAbout(qa)
@@ -95,6 +95,8 @@ final class NativeStageFlowTests: XCTestCase {
     func test903_tapToFirstFrameP95() {
         let qa = QA(seed: "mine-empty")
         openAbout(qa)
+        // B3.5d：「我的」根页常开原生后，进关于页（起点的准备动作）这一下也记一个样本（从根页第一次推入，冷启动的首个转场）；只量下面 20 次点按
+        let setup = ((qa.probe["stage"] as? [String: Any])?["latency"] as? [NSNumber])?.count ?? 0
         for _ in 0..<20 {
             Thread.sleep(forTimeInterval: 0.5)
             qa.tapNative("native-about-row-privacy")
@@ -102,7 +104,7 @@ final class NativeStageFlowTests: XCTestCase {
             qa.tapNative("native-page-back")
             waitStage(qa, ["about"])
         }
-        let lat = ((qa.probe["stage"] as? [String: Any])?["latency"] as? [NSNumber])?.map(\.doubleValue) ?? []
+        let lat = Array((((qa.probe["stage"] as? [String: Any])?["latency"] as? [NSNumber])?.map(\.doubleValue) ?? []).dropFirst(setup))
         XCTAssertGreaterThanOrEqual(lat.count, 20, "one sample per tap: \(lat)")
         let sorted = lat.sorted()
         let p95 = sorted[min(sorted.count - 1, Int((Double(sorted.count) * 0.95).rounded(.up)) - 1)]

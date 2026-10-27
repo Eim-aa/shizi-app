@@ -106,7 +106,6 @@
   "ready": {
     "web": "screen-mine",
     "native": "id:native-screen-mine",
-    "timeout": 20,
-    "rootsOnly": true
+    "timeout": 20
   }
 }

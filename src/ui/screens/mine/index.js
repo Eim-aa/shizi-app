@@ -174,5 +174,5 @@ function MineScreen() {
   </${TabPage}>`;
 }
 
-// B3.5c：native:true = 原生「我的」（Screens/Mine.swift，ShiziScreen_mine）；tab 根页在 B3.5d 三根页同开之前由「根页开关」挡着（window.__shiziNativeRoots，ui/native-stage.js nativeScreenOn），默认仍是网页。
+// B3.5c：native:true = 原生「我的」（Screens/Mine.swift，ShiziScreen_mine）；tab 根页在 App 里与原生 Tab 栏一起由原生显示（B3.5d；ui/native-stage.js nativeScreenOn）。
 registerScreen(MINE_TAB, MineScreen, { tab: true, order: 2, label: MINE_LABEL, icon: ICON, native: true });

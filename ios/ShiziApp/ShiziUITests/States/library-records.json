@@ -120,7 +120,8 @@
       "tab": "library"
     },
     {
-      "op": "nativeRoots",
+      "op": "switchTab",
+      "remount": true,
       "tab": "library"
     }
   ]

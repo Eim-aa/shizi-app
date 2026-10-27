@@ -46,7 +46,8 @@
       "op": "leaveUndoCleanup"
     },
     {
-      "op": "nativeRoots"
+      "op": "switchTab",
+      "remount": true
     },
     {
       "op": "startNextA"

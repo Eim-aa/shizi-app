@@ -41,18 +41,11 @@ export function hasNativeScreen(name, win = globalWin()) {
 }
 
 /**
- * B3.5a：tab 根页（首页 / 字库 / 我的）原生了也先关着——三个根页与 Tab 栏在 B3.5d 同一波打开（计划 §3.3「Tab 根」），之前只有
- * window.__shiziNativeRoots = true（QA 夹具 op nativeRoots、启动参数 -shizi-native-roots）时才由原生显示。B3.5d 删掉这一闸。
+ * 这一屏此刻由原生显示：开关开着、原生有类（registerScreen 的 native:true 只是「可以原生」，找不到类就照旧是网页）。
+ * tab 根页（首页 / 字库 / 我的）与原生 Tab 栏同开（B3.5d 删掉了 B3.5a 的根页闸 __shiziNativeRoots）。
  */
-export function nativeRootsOn(win = globalWin()) {
-  return !!(win && win.__shiziNativeRoots === true);
-}
-
-/** 这一屏此刻由原生显示：开关开着、原生有类（registerScreen 的 native:true 只是「可以原生」，找不到类就照旧是网页）。 */
 export function nativeScreenOn(name, win = globalWin()) {
-  if (!(nativeStageEnabled(win) && hasNativeScreen(name, win))) return false;
-  const def = getScreen(name);
-  return !(def && def.tab) || nativeRootsOn(win);
+  return nativeStageEnabled(win) && hasNativeScreen(name, win);
 }
 
 setNativeScreenGate(name => nativeScreenOn(name));

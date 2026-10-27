@@ -327,8 +327,8 @@ registerScreen(LIBRARY_TAB, LibraryScreen, { tab: true, order: 1, label: LIBRARY
 // ---------------------------------------------------------------- 原生字库首页（B3.5b）
 //
 // 原生字库首页（ios/ShiziApp/ShiziApp/Screens/Library.swift，ShiziScreen_library）经 App API 的 library.* op 调这里的同一批函数
-// （网页路径 == API 路径，test/ui/native-library.test.mjs）。tab 根页在 B3.5d 与 Tab 栏同开之前只在 window.__shiziNativeRoots
-// （QA 夹具 op nativeRoots / 启动参数 -shizi-native-roots）打开时由原生显示（ui/native-stage.js nativeRootsOn）。
+// （网页路径 == API 路径，test/ui/native-library.test.mjs）。tab 根页在 App 里与原生 Tab 栏一起由原生显示
+// （B3.5d；ui/native-stage.js nativeScreenOn）。
 //
 // 动作登记（会话层不导入 UI，页面文件登记自己的函数；与首页 setHomeActions 同一套做法）：
 //   startToday       今日练习行 = 首页 startToday（resumeOther：先续今天的练习 A 槽，没有就开下一组；不碰自己选的那一组 B）。

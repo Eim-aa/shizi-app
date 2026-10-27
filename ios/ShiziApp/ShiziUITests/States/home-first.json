@@ -11,7 +11,8 @@
   "ax": true,
   "setup": [
     {
-      "op": "nativeRoots"
+      "op": "switchTab",
+      "remount": true
     }
   ],
   "ready": {

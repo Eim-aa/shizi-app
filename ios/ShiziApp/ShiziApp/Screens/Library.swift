@@ -200,6 +200,7 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
     // MARK: 回包
 
     override func render(view raw: Any) throws {
+        if let k = WebInkParams((raw as? [String: Any])?["ink"]) { WebInkParams.current = k }
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m
         guard isViewLoaded else { return }

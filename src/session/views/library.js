@@ -30,7 +30,7 @@ import { overdueDays } from '../../core/fsrs.js';
 import { homeModel } from './home.js';
 import { aStartInfo, planDaily } from '../../core/session-start.js';
 import { selectFirst } from '../../core/sessions.js';
-import { decodeInk, decodeInkRaw } from '../../core/ink-math.js';
+import { decodeInk, decodeInkRaw, inkParams } from '../../core/ink-math.js';
 import { minInkScale } from '../../core/images/layout.js';
 import { currentLibraryId } from '../../data/deck.js';
 import { ref } from '../../config/copy/index.js';
@@ -403,6 +403,7 @@ export function libraryPageView(state, nowMs, { today, deck, getInk = null, poli
     },
     zones: MEMORY_ZONES.map(kind => zoneView(mem.zones[kind], getInk, policy)),
     skipped: zoneView(skipped, getInk, policy),
+    ink: { ...inkParams(policy) }, // Native sample replay must also work before opening the writing page.
     sample: { side: SAMPLE_PT, inkSide: SAMPLE_PT * (1 - 2 * SAMPLE_INK_INSET), inkScale: minInkScale(SAMPLE_PT * (1 - 2 * SAMPLE_INK_INSET)) },
     leaveUndo: ui && ui.leaveUndo ? { ...ui.leaveUndo, text: ref('R-W20.skippedToast', { char: ui.leaveUndo.char }) } : null,
     undo: { undo: ref('R-W20.undo'), failed: ref('R-W16.saveFailed'), cancel: ref('R-W16.cancel'), retry: ref('R-W16.retry') },

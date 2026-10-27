@@ -15,6 +15,7 @@ import { setClockOverride } from '../../src/platform/env.js';
 import { createAppApi } from '../../src/session/api/index.js';
 import { libraryActions } from '../../src/session/api/library.js';
 import * as views from '../../src/session/views/library.js';
+import { inkParams } from '../../src/core/ink-math.js';
 import { renderRefs, t } from '../../src/config/copy/index.js';
 import { deckAdapter } from '../../src/data/deck.js';
 import * as policy from '../../src/config/policy.js';
@@ -125,6 +126,7 @@ test('B3.5b view.library = the web library page model; the rendered words are ex
     const withInk = view.zones.flatMap(z => z.samples).filter(s => s.strokes);
     assert.deepEqual(withInk.map(s => s.char), ['和']);
     assert.equal(withInk[0].strokes.length, 2);
+    assert.deepEqual(view.ink, inkParams(policy), 'cold-launch sample replay carries the complete brush table without opening write');
     assert.ok(withInk[0].strokes.every(s => s.every(p => Array.isArray(p) && p.length >= 3 && p.slice(0, 3).every(Number.isFinite))));
     assert.equal(views.sampleStrokes(rows[0], store.getInk), null);
     assert.equal(views.sampleStrokes(rows[1], store.getInk, { ...policy, features: { ...policy.features, perRecordInk: false } }), null);

@@ -115,6 +115,7 @@
   ],
   "ready": {
     "web": "all-screen",
-    "native": "id:native-library-all-screen"
+    "native": "id:native-library-all-screen",
+    "timeout": 25
   }
 }

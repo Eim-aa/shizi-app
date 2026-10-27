@@ -11,6 +11,7 @@ import UIKit
 @objc(ShiziScreen_library_switch)
 final class LibrarySwitchScreen: ShiziScreenViewController {
     struct Row: Decodable {
+        let sourceStarts: [Int]?
         let id: String
         let name: ShiziCopyRef
         let desc: ShiziCopyRef
@@ -72,6 +73,7 @@ final class LibrarySwitchScreen: ShiziScreenViewController {
         listMarker.accessibilityIdentifier = "native-library-switch-list"
         listMarker.isUserInteractionEnabled = false // 只是取证用的标记框：盖在行上面会吃掉点按
         sourceLabel.accessibilityIdentifier = "native-library-switch-source"
+        sourceLabel.numberOfLines = 0
         content.addSubview(listMarker)
         content.addSubview(sourceLabel)
     }
@@ -105,7 +107,7 @@ final class LibrarySwitchScreen: ShiziScreenViewController {
             rv.button.lineFont = mt.font(15)
             rv.button.setTitleColor(color("ink1"), for: .normal)
         }
-        NativeType.set(sourceLabel, t("R-L06.sourceNote"), font: mt.font(13), color: color("ink3"), line: mt.line("lh13"))
+        NativeType.set(sourceLabel, LibraryText.joined(t("R-L06.sourceNote"), m.first?.sourceStarts), font: mt.font(13), color: color("ink3"), line: mt.line("lh13"))
         kit.styleFail()
         view.setNeedsLayout()
     }

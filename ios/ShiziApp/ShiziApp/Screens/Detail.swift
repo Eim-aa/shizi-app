@@ -33,6 +33,7 @@ struct DetailView: Decodable {
     struct Source: Decodable { let label: ShiziCopyRef; let gloss: String; let from: String }
     struct To: Decodable { let screen: String }
     struct Row: Decodable {
+        let starts: [Int]?
         let key: String; let kind: String?; let state: String?; let title: ShiziCopyRef; let sub: ShiziCopyRef?; let note: ShiziCopyRef?; let to: To?
     }
     let char: String
@@ -938,7 +939,9 @@ final class DetailScreen: ShiziScreenViewController {
                     } else {
                         let lastW = single ? tw : max(1, nat - floor(nat / max(1, cwf)) * cwf)
                         let dx = single ? lx + tw + 6 : (cwf - lastW - 12) / 2 + lastW + 6
-                        dot.frame = CGRect(x: colX + dx, y: oy + cwf + mt.space(2) + textH - lh + (lh - 6) / 2 + 1, width: 6, height: 6)
+                        let f = capLabel.font ?? mt.font(13)
+                        let baseline = (lh - (f.ascender - f.descender)) / 2 + f.ascender
+                        dot.frame = CGRect(x: colX + dx, y: oy + cwf + mt.space(2) + textH - lh + baseline - f.xHeight / 2 - 3, width: 6, height: 6)
                     }
                 }
                 heroBottom = max(heroBottom, oy + cellH)

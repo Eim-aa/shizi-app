@@ -178,6 +178,8 @@ export function recordsView(state, today, { month, day, policy = defaultPolicy, 
     today: row.today,
     label: row.n ? ref('X-MINE.axDayRow', { date: dayTextRef(row.day), n: row.n }) : ref('X-MINE.axDayRowPaper', { date: dayTextRef(row.day) }),
   }));
+  const sheet = monthSheetOf(state, model.month, { policy, hasInk, inkOf });
+  const sheetUnder = !!(sheet && sheet.n > 0 && sheet.under);
   return {
     today,
     month: model.month,
@@ -195,7 +197,7 @@ export function recordsView(state, today, { month, day, policy = defaultPolicy, 
     recordDays: model.recordDays,
     dayList: dayList,
     selected,
-    sheet: monthSheetOf(state, model.month, { policy, hasInk, inkOf }),
+    sheet,
     todayRow: model.todayRow
       ? {
         day: model.todayRow.day,
@@ -213,6 +215,7 @@ export function recordsView(state, today, { month, day, policy = defaultPolicy, 
       dayRows: dayList.map(row => lineStarts('records-axrow', tRef(row.label))),
       paperday: selected ? lineStarts('records-paperday', tRef(selected.paperNote)) : null,
       daylistTitle: selected ? lineStarts('records-daylist-title', tRef(selected.title)) : null,
+      sheetNote: sheetUnder ? lineStarts('records-sheet-note', tRef(ref('X-WORK.monthUnderNote'))) : null,
     },
   };
 }

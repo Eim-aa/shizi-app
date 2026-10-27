@@ -68,6 +68,7 @@ final class RecordsScreen: ShiziScreenViewController {
             let dayRows: [[Int]?]?
             let paperday: [Int]?
             let daylistTitle: [Int]?
+            let sheetNote: [Int]?
         }
         let today: String
         let month: String
@@ -532,7 +533,7 @@ final class RecordsScreen: ShiziScreenViewController {
         // 说明句（整月有衬底字时才有；网页 .sz-rec__sheet 的 gap 12）
         sheetNoteLabel.isHidden = !sheet.under
         if sheet.under {
-            setHei(sheetNoteLabel, t("X-WORK.monthUnderNote"), size: mt.value("fs13"), color: color("ink3"), line: mt.line("lh13"))
+            setHei(sheetNoteLabel, ShiziMineLines.broken(t("X-WORK.monthUnderNote"), m.lines?.sheetNote), size: mt.value("fs13"), color: color("ink3"), line: mt.line("lh13"))
             sheetNoteLabel.accessibilityLabel = t("X-WORK.monthUnderNote")
         }
         sheetOpenButton.isHidden = false
@@ -723,26 +724,35 @@ final class RecordsScreen: ShiziScreenViewController {
             // 行高 = 对齐后两者更靠下的那个的底（L 档存字钮低 4，大字号下更低）
             let openLine = mt.line("lh22")
             let saveLine = mt.line("lh15")
-            let openAscent = (44 - openLine) / 2 + ShiziFlex.text(openFont, line: openLine).ascent
-            let saveAscent = (44 - saveLine) / 2 + ShiziFlex.text(saveFont, line: saveLine).ascent
-            let headRow = ShiziFlex.baselineRow([(box: 44, ascent: openAscent), (box: 44, ascent: saveAscent)])
-            let headH2 = headRow.height
+            // 两个按钮的盒高：网页 .sz-rec__open min-height 44（字大了被行高 lh22 撑高）；
+            // 存字钮 .sz-btn--text 在 AX 档 min-height:max(44px, 1.3em + 12px)（components/ax.js）
+            let openBox = max(44, openLine)
+            let saveBox = axLayout ? max(44, 1.3 * mt.value("fs15") + 12) : 44
+            let openAscent = (openBox - openLine) / 2 + ShiziFlex.text(openFont, line: openLine).ascent
+            let saveAscent = (saveBox - saveLine) / 2 + ShiziFlex.text(saveFont, line: saveLine).ascent
+            let headRow = ShiziFlex.baselineRow([(box: openBox, ascent: openAscent), (box: saveBox, ascent: saveAscent)])
             // 标题按富文本量（字距 0，与网页一致）
             // 量自己存的富文本：按钮在设图标 / 标题色后会按标题属性重建富文本、丢掉 .kern（数字被换成等宽变体，整段宽 2–3pt）
             let openTitle = sheetOpenAttr
             sheetOpenButton.setAttributedTitle(openTitle, for: .normal)
             let titleW = ceil(ShiziMineText.width(openTitle))
             let openW = titleW + 8 + 8
-            sheetOpenButton.frame = CGRect(x: x, y: y + headRow.tops[0], width: openW, height: 44)
-            sheetTitleLabel.frame = CGRect(x: x, y: y + headRow.tops[0], width: openW, height: 44)
             let saveTitle = sheetSaveButton.attributedTitle(for: .normal) ?? NSAttributedString(string: "")
             let saveTextW = ceil(saveTitle.size().width)
             let saveW = saveTextW + 8
-            // 网页 .sz-btn--text 的负外边距（右边 −4）：按钮的右边比版心多出 4pt
-            sheetSaveButton.frame = CGRect(x: x + width - saveW + 4, y: y + headRow.tops[1], width: saveW, height: 44)
+            // 网页 .sz-rec__shead：flex、gap 12；AX 档 flex-wrap:wrap（两个按钮并排放不下就折到第二行；存字钮的负外边距 −4 让它的外宽少 8）
+            let wraps = axLayout && openW + 12 + (saveW - 8) > width
+            let openTop = wraps ? 0 : headRow.tops[0]
+            let saveTop = wraps ? openBox + 12 : headRow.tops[1]
+            let headH2 = wraps ? openBox + 12 + saveBox : headRow.height
+            sheetOpenButton.frame = CGRect(x: x, y: y + openTop, width: openW, height: openBox)
+            sheetTitleLabel.frame = CGRect(x: x, y: y + openTop, width: openW, height: openBox)
+            // 网页 .sz-btn--text 的负外边距（右边 −4）：按钮的右边比版心多出 4pt（折行后在左边：左边 −4）
+            let saveX = wraps ? x - 4 : x + width - saveW + 4
+            sheetSaveButton.frame = CGRect(x: saveX, y: y + saveTop, width: saveW, height: saveBox)
             if let tl = sheetSaveButton.titleLabel {
                 let lh = saveFont.lineHeight
-                tl.frame = CGRect(x: 4, y: (44 - lh) / 2, width: saveTextW, height: lh)
+                tl.frame = CGRect(x: 4, y: (saveBox - lh) / 2, width: saveTextW, height: lh)
                 tl.textAlignment = .left
             }
             y += headH2 + sheetGap

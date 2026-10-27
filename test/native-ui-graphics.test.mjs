@@ -124,6 +124,13 @@ test('ink: small blobs along the edge band (date tags riding on the grid line) a
   assert.equal([...cleanMask(withTag, n)].filter(c => c === '1').length, 25);
 });
 
+test('ink: a neighbour tag glyph clipped at the edge is not ink even when the cell has only a thin stroke', () => {
+  const n = 45;
+  // 细横画（25 点）+ 邻格角标字的上沿（9 点，> 15% 的总墨点）
+  const m = mask(n, set => { for (let k = 10; k < 35; k += 1) set(k, 22); [[5, 41], [6, 41], [7, 41], [4, 42], [8, 42], [4, 43], [8, 43], [5, 44], [7, 44]].forEach(([x, y]) => set(x, y)); });
+  assert.equal([...cleanMask(m, n)].filter(c => c === '1').length, 25);
+});
+
 test('offscreen elements: a section only in the web scroll content is missing on native', () => {
   const web = { elements: [{ kind: 'text', text: '年度报告', frame: f(72, 73, 232, 22) }], offscreen: [{ kind: 'text', text: '同字两次', frame: f(16, 1253, 370, 30) }] };
   const native = { elements: [{ kind: 'text', text: '年度报告', frame: f(72, 73, 232, 22) }], offscreen: [] };

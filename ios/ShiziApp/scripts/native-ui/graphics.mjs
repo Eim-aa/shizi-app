@@ -340,7 +340,9 @@ export function cleanMask(m, n) {
     }
     const band = Math.floor(0.12 * n);
     const edge = y1 <= band || y0 >= n - 1 - band || x1 <= band || x0 >= n - 1 - band;
-    if (edge && comp.length < 0.15 * total) for (const p of comp) out[p] = '0';
+    // 细横画 / 小格的整格墨点很少，15% 不到一个角标字的墨点：再按绝对大小认——靠边、又只有「一个小字角」那么大（≤ 0.4n 点、外框边长 < 0.25n）的块也不是这一格的墨
+    const tagLike = comp.length <= 0.4 * n && x1 - x0 < 0.25 * n && y1 - y0 < 0.25 * n;
+    if (edge && (comp.length < 0.15 * total || tagLike)) for (const p of comp) out[p] = '0';
   }
   return out.join('');
 }

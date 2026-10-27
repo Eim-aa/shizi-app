@@ -15,6 +15,8 @@ if (!el) {
   // B3.9：月字帖 / 年报已是原生页，网页按钮不在了——按夹具写的 scope 直接开原生弹层（与原生页的图片按钮同一个 NativeImagePreviewController，
   // 经网页发起的宿主 ShiziScreen_image_preview 呈现，ready 标记 id:native-image-preview-screen 在宿主上）
   if (a && a.scope) {
+    // 前一步 push 的原生页要先推上来、取完视图（推入转场 + view 回包），否则弹层宿主会先于它盖在根页上
+    await new Promise(r => setTimeout(r, a.wait === undefined ? 2500 : a.wait));
     const { openImage } = await import('/src/ui/images-entry.js');
     openImage(a.scope);
     await new Promise(r => setTimeout(r, 300));

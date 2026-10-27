@@ -165,12 +165,15 @@ async function sampleCells(page, png, regions, scale, opts) {
     const lum = (x, y) => { const X = Math.min(c.width - 1, Math.max(0, Math.round(x * s))), Y = Math.min(c.height - 1, Math.max(0, Math.round(y * s))); const i = (Y * c.width + X) * 4; return 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]; };
     return rs.map(({ f, n, inset }) => {
       const corners = [[0.04, 0.04], [0.96, 0.04], [0.04, 0.96], [0.96, 0.96]].map(([fx, fy]) => lum(f.x + fx * f.w, f.y + fy * f.h)).sort((a, b) => a - b);
-      const bgL = corners[2];
+      const L = new Float32Array(n * n);
+      for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) L[j * n + i] = lum(f.x + inset + (i + 0.5) / n * (f.w - 2 * inset), f.y + inset + (j + 0.5) / n * (f.h - 2 * inset));
+      // 格底：墨格取整格亮度的中位数（墨 < 一半面积；格线 / 邻格角标字落在角上时，四角法会把它当成底：深色下第二亮的角就是亮线，半像素的对位差就让最后一行格的下边线进了角）；图标等占满的框仍用四角法
+      const bgL = o.median ? [...L].sort((a, b) => a - b)[L.length >> 1] : corners[2];
       const d = new Float32Array(n * n);
       let max = 0;
-      for (let j = 0; j < n; j += 1) for (let i = 0; i < n; i += 1) {
-        const dd = Math.abs(bgL - lum(f.x + inset + (i + 0.5) / n * (f.w - 2 * inset), f.y + inset + (j + 0.5) / n * (f.h - 2 * inset)));
-        d[j * n + i] = dd;
+      for (let k = 0; k < L.length; k += 1) {
+        const dd = Math.abs(bgL - L[k]);
+        d[k] = dd;
         if (dd > max) max = dd;
       }
       const cut = Math.max(o.minContrast, max * o.threshold);
@@ -178,7 +181,7 @@ async function sampleCells(page, png, regions, scale, opts) {
       for (let k = 0; k < d.length; k += 1) m += d[k] > cut ? '1' : '0';
       return m;
     });
-  }, { src: dataUrl(png), regions, s: scale, o: { minContrast: opts.minContrast ?? 40, threshold: opts.threshold ?? 0.5 } });
+  }, { src: dataUrl(png), regions, s: scale, o: { minContrast: opts.minContrast ?? 40, threshold: opts.threshold ?? 0.5, median: !!opts.median } });
 }
 
 const escape = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
@@ -265,8 +268,8 @@ for (const name of pairsFound) {
     const coveredCell = (p, r) => covers.some(e => RANK[e.layer] > (RANK[p.n.layer] || 0) && hit(e.frame, r.native));
     const inkPairs = graphics.inkPairs.map(p => ({ p, r: cellRegions(p, G.ink) })).filter(({ p, r }) => !p.w.off && !p.n.off && onScr(r.web) && onScr(r.native) && !coveredCell(p, r));
     if (inkPairs.length) {
-      const wm = await sampleCells(page, webPng, inkPairs.map(({ r }) => ({ f: r.web, n: r.n, inset: r.inset })), (await scaleOf(webPng)) / screen.w, G.ink);
-      const nm = await sampleCells(page, natPng, inkPairs.map(({ r }) => ({ f: r.native, n: r.n, inset: r.inset })), (await scaleOf(natPng)) / screen.w, G.ink);
+      const wm = await sampleCells(page, webPng, inkPairs.map(({ r }) => ({ f: r.web, n: r.n, inset: r.inset })), (await scaleOf(webPng)) / screen.w, { ...G.ink, median: true });
+      const nm = await sampleCells(page, natPng, inkPairs.map(({ r }) => ({ f: r.native, n: r.n, inset: r.inset })), (await scaleOf(natPng)) / screen.w, { ...G.ink, median: true });
       px.cells = [];
       inkPairs.forEach(({ p, r }, i) => {
         const m = inkMetrics(wm[i], nm[i], r.n, Math.min(p.w.w, p.w.h) - 2 * r.inset);

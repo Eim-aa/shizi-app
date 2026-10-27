@@ -108,6 +108,8 @@ export function mineSubLineBreaker(kind, text) {
       return textLineStarts(text, { wrapClass: '', tag: 'button', cls: 'sz-rec__axrow sz-btn' }, w);
     case 'records-paperday':
       return textLineStarts(text, { wrapClass: '', cls: 'sz-rec__paperday' }, w);
+    case 'records-sheet-note':
+      return textLineStarts(text, { wrapClass: 'sz-rec__sheet', cls: 'sz-monthpage__note' }, w);
     case 'records-daylist-title':
       return textLineStarts(text, { wrapClass: 'sz-rec__daylist', tag: 'h3', cls: 'sz-rec__subtitle' }, w);
     case 'month-sub':

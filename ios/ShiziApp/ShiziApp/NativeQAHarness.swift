@@ -147,7 +147,9 @@ extension WebViewController {
             }
             if v.window != nil, visible(v), v.bounds.width > 0.5, v.bounds.height > 0.5 {
                 let f = v.convert(v.bounds, to: window)
-                let onScreen = f.intersects(window.bounds)
+                // 字帖格上的日期角标（骑在格的上边线上）：网页取证的是格按钮本身（屏内 / 屏外按按钮的框），原生按格的框判屏内 / 屏外，两边同口径
+                let rf = (v is UILabel && v.superview is ShiziPaperCell) ? v.superview!.convert(v.superview!.bounds, to: window) : f
+                let onScreen = rf.intersects(window.bounds)
                 var e: [String: Any] = [:]
                 let name = names[ObjectIdentifier(v)]
                 if let b = v as? UIButton {
@@ -181,7 +183,14 @@ extension WebViewController {
                     } else if let tl = b.titleLabel, !(tl.text ?? "").isEmpty {
                         // 字在标题标签里竖向居中（UILabel 的画法；标签比字高时 textRect 给的是贴顶的框）
                         let tr = tl.textRect(forBounds: tl.bounds, limitedToNumberOfLines: tl.numberOfLines)
-                        let ft = tl.convert(CGRect(x: tr.minX, y: (tl.bounds.height - tr.height) / 2, width: tr.width, height: tr.height), to: window)
+                        var th = tr.height
+                        // 钉住行盒的标题（行尾带图标的按钮 ShiziTrailIconButton：富文本里的段落样式给了固定行高）：同上面文字标签的口径——网页文字框是字体内容区（升部 + 降部），不是行盒，中线不变
+                        if b is ShiziTrailIconButton, let a = b.attributedTitle(for: .normal), a.length > 0, let ps = a.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle, ps.minimumLineHeight > 0,
+                           let f = a.attribute(.font, at: 0, effectiveRange: nil) as? UIFont {
+                            let lines = max(1, (tr.height / ps.minimumLineHeight).rounded())
+                            th = (lines - 1) * ps.minimumLineHeight + (f.ascender - f.descender)
+                        }
+                        let ft = tl.convert(CGRect(x: tr.minX, y: (tl.bounds.height - th) / 2, width: tr.width, height: th), to: window)
                         e["textFrame"] = ["x": r(ft.minX), "y": r(ft.minY), "w": r(ft.width), "h": r(ft.height)]
                     }
                 } else if let l = v as? UILabel, let t = l.text, !t.isEmpty {
@@ -266,7 +275,7 @@ extension WebViewController {
                 // 所在的层：弹层 / 确认框 / 撤销条是盖在页面上的浮层（按设计会盖住页面），重叠只在同一层里查
                 let layer = qaLayer(v, names)
                 if !e.isEmpty { e["layer"] = layer }
-                let reach = onScreen ? 1 : qaReach(v, f, in: window)
+                let reach = onScreen ? 1 : qaReach(v, rf, in: window)
                 if !e.isEmpty, reach > 0, !(v.superview is UIButton) {
                     if reach == 2 { e["off"] = true }
                     e["frame"] = ["x": r(f.minX), "y": r(f.minY), "w": r(f.width), "h": r(f.height)]

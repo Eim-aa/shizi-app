@@ -107,6 +107,10 @@ final class RecordsScreen: ShiziScreenViewController {
     private let sheetGap: CGFloat = 12
     private let sheetCols: Int = 5
     private let hairline: CGFloat = 1.0 / 3.0
+    /// 不进取证的发丝线视图按 tag 找（不存成员：成员名会被取证当元素）。
+    private static let axRowHairTag = 9941
+    private static let axListHairTag = 9942
+    private static let todayHairTag = 9943
 
     // 视图（成员名 / accessibilityIdentifier 是 QA 取证的语义键：keys/records.mjs）
     let bodyMarker = UIView()
@@ -118,7 +122,7 @@ final class RecordsScreen: ShiziScreenViewController {
     let legendLabel = UILabel()
     let calendarMarker = UIView()
     let dayListTitle = UILabel()
-    let dayListGrid = UIView()
+    let dayListGrid = ShiziLinesGrid()
     let paperNoteLabel = UILabel()
     let sheetTitleLabel = UILabel()
     let sheetNoteLabel = UILabel()
@@ -304,6 +308,7 @@ final class RecordsScreen: ShiziScreenViewController {
     private func renderCalendar(_ m: View) {
         let mt = metrics
         axListMarker.isHidden = true
+        content.viewWithTag(Self.axListHairTag)?.isHidden = true
         axRowButtons.forEach { $0.removeFromSuperview() }
         axRowButtons = []
         calendarMarker.isHidden = false
@@ -384,6 +389,8 @@ final class RecordsScreen: ShiziScreenViewController {
                 b.dot.isHidden = false
                 b.accessibilityLabel = t("X-MINE.dayRecorded", ["date": dayText(cell.day)])
                 b.accessibilityTraits = selected == cell.day ? [.button, .selected] : .button
+                b.numBg.backgroundColor = color("field")
+                b.numBg.isHidden = selected != cell.day
                 dayKeys[ObjectIdentifier(b)] = cell.day
             }
         }
@@ -422,6 +429,11 @@ final class RecordsScreen: ShiziScreenViewController {
                 b.titleLabel?.numberOfLines = 0
                 b.titleLabel?.textAlignment = .left
                 b.setTitleColor(color("ink1"), for: .normal)
+                // 行下一条发丝线（网页 .sz-rec__axrow 的 border-bottom）：按钮里的子视图不进取证
+                let hair = UIView()
+                hair.tag = Self.axRowHairTag
+                hair.isUserInteractionEnabled = false
+                b.addSubview(hair)
                 content.addSubview(b)
                 axRowButtons.append(b)
             }
@@ -432,8 +444,11 @@ final class RecordsScreen: ShiziScreenViewController {
             let starts: [Int]? = i < rows.count ? rows[i] : nil
             let broken = ShiziMineLines.broken(text, starts)
             let b = axRowButtons[i]
+            b.viewWithTag(Self.axRowHairTag)?.backgroundColor = color("line")
             if let tl = b.titleLabel {
-                NativeType.set(tl, broken, font: NativeType.compose(size: mt.value("fs17"), weight: .regular),
+                // 展开的那一天字重 600（网页 .sz-rec__axrow[aria-pressed=true]）
+                let w: UIFont.Weight = m.selected?.day == row.day ? .semibold : .regular
+                NativeType.set(tl, broken, font: NativeType.compose(size: mt.value("fs17"), weight: w),
                                color: color("ink1"), align: .left, line: mt.line("lh17s"))
                 // 标题挂到按钮上（网页 .sz-rec__axrow 是按钮）：按钮才知道要排它的字
                 b.setAttributedTitle(tl.attributedText, for: .normal)
@@ -524,8 +539,15 @@ final class RecordsScreen: ShiziScreenViewController {
         // 富文本标题（字距 0，与网页同宽）：先设标题色再设富文本——setTitleColor 会按按钮的标题属性重建富文本，
         // 把 .kern 丢掉（网页按原始 advance 排字，重建后数字被换成等宽变体，整段宽 2–3pt）。
         sheetOpenButton.setTitleColor(color("ink2"), for: .normal)
+        // 段落样式（行高 lh22）同 setSong：没有段落样式时宋体数字取等宽变体（「10」宽出 0.1em，XXXL 档整段宽 2.8pt）
+        let openFont = song(mt.value("fs22"), .medium)
+        let openLine = mt.line("lh22")
+        let openPara = NSMutableParagraphStyle()
+        openPara.minimumLineHeight = openLine
+        openPara.maximumLineHeight = openLine
         sheetOpenAttr = NSAttributedString(string: sheet.title.text, attributes: [
-            .font: song(mt.value("fs22"), .medium), .foregroundColor: color("ink2"), .kern: 0
+            .font: openFont, .foregroundColor: color("ink2"), .kern: 0, .paragraphStyle: openPara,
+            .baselineOffset: (openLine - openFont.lineHeight) / 4
         ])
         sheetOpenButton.setAttributedTitle(sheetOpenAttr, for: .normal)
         sheetOpenButton.accessibilityLabel = sheet.title.text
@@ -576,6 +598,7 @@ final class RecordsScreen: ShiziScreenViewController {
         guard let row = m.todayRow else {
             todayMarker.isHidden = true
             todayButton.isHidden = true
+            content.viewWithTag(Self.todayHairTag)?.isHidden = true
             return
         }
         todayMarker.isHidden = false
@@ -743,11 +766,33 @@ final class RecordsScreen: ShiziScreenViewController {
         if model?.todayRow != nil {
             y += mt.groupGap
             let todayTop = y
-            let rowH: CGFloat = 52
+            // 网页 .sz-rec__todaylist：上边 1px 线；行 .sz-rec__today 最低 52（含下边 1px 线）
+            let topLine: UIView
+            if let v = content.viewWithTag(Self.todayHairTag) { topLine = v } else {
+                topLine = UIView()
+                topLine.tag = Self.todayHairTag
+                topLine.isUserInteractionEnabled = false
+                content.addSubview(topLine)
+            }
+            topLine.isHidden = false
+            topLine.backgroundColor = color("line")
+            topLine.frame = CGRect(x: x, y: y, width: width, height: 1)
+            y += 1
+            let textH = mt.line("lh15") + 3 + mt.line("lh15")
+            let rowH: CGFloat = max(52, 8 + textH + 8)
             todayButton.frame = CGRect(x: x, y: y, width: width, height: rowH)
+            let bottom: UIView
+            if let v = todayButton.viewWithTag(Self.todayHairTag) { bottom = v } else {
+                bottom = UIView()
+                bottom.tag = Self.todayHairTag
+                bottom.isUserInteractionEnabled = false
+                todayButton.addSubview(bottom)
+            }
+            bottom.backgroundColor = color("line")
+            bottom.frame = CGRect(x: 0, y: rowH - 1, width: width, height: 1)
             todayTitleLabel.frame = CGRect(x: x, y: y + 8, width: width, height: mt.line("lh15"))
             todayNoteLabel.frame = CGRect(x: x, y: y + 8 + mt.line("lh15") + 3, width: width, height: mt.line("lh15"))
-            todayMarker.frame = CGRect(x: x, y: todayTop, width: width, height: rowH)
+            todayMarker.frame = CGRect(x: x, y: todayTop, width: width, height: rowH + 1)
             y += rowH
         }
         bodyMarker.frame = CGRect(x: x, y: top, width: width, height: y - top)
@@ -792,6 +837,17 @@ final class RecordsScreen: ShiziScreenViewController {
         let rowH: CGFloat = 52
         var cursor = y + hairline
         let start = cursor
+        // 列表上边一条发丝线（网页 .sz-rec__axlist 的 border-top）
+        let top: UIView
+        if let v = content.viewWithTag(Self.axListHairTag) { top = v } else {
+            top = UIView()
+            top.tag = Self.axListHairTag
+            top.isUserInteractionEnabled = false
+            content.addSubview(top)
+        }
+        top.isHidden = false
+        top.backgroundColor = color("line")
+        top.frame = CGRect(x: x, y: y, width: width, height: hairline)
         for (i, row) in m.dayList.enumerated() {
             let b = axRowButtons[i]
             let need = ceil((b.titleLabel?.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height ?? 0))
@@ -799,6 +855,7 @@ final class RecordsScreen: ShiziScreenViewController {
             // 网页 .sz-rec__axrow：上内边距 s3，文字在上（下面留热区）
             b.placedTitleFrame = CGRect(x: 0, y: 12, width: width, height: max(0, need))
             b.frame = CGRect(x: x, y: cursor, width: width, height: h)
+            b.viewWithTag(Self.axRowHairTag)?.frame = CGRect(x: 0, y: h - hairline, width: width, height: hairline)
             b.setNeedsLayout()
             cursor += h
             if let sel = m.selected, sel.day == row.day {
@@ -829,8 +886,12 @@ final class RecordsScreen: ShiziScreenViewController {
             let gridRows = Int(ceil(Double(sel.cells.count) / Double(sheetCols)))
             let gridH = frameW + CGFloat(gridRows) * cellW
             dayListGrid.frame = CGRect(x: x, y: gridTop, width: width, height: gridH)
-            dayListGrid.backgroundColor = color("sheet")
-            dayListGrid.layer.borderWidth = 0
+            dayListGrid.paperColor = color("sheet")
+            dayListGrid.lineColor = color("frame")
+            dayListGrid.lineWidth = frameW
+            dayListGrid.cols = sheetCols
+            dayListGrid.rows = gridRows
+            dayListGrid.cellW = cellW
             for (i, cell) in dayListCells.enumerated() {
                 let col = i % sheetCols
                 let row = i / sheetCols
@@ -849,6 +910,8 @@ final class RecordsScreen: ShiziScreenViewController {
         if circle.superview == nil {
             circle.tag = 9911
             circle.isUserInteractionEnabled = false
+            // 圆底在箭头图标下面：UIButton 的图标视图是按需建的、会插到最底层，按子视图次序排不住
+            circle.layer.zPosition = -1
             b.insertSubview(circle, at: 0)
         }
         circle.frame = CGRect(x: (b.bounds.width - side) / 2, y: (b.bounds.height - side) / 2, width: side, height: side)

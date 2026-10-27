@@ -108,7 +108,9 @@ final class ShiziPointsInkView: UIView {
 
     override func draw(_ rect: CGRect) {
         guard near, !points.isEmpty, bounds.width > 0 else { return }
+        // 网页 cellInkBox：墨在格里左、上各留 pad（两个方向同一个内边）
         let ox = bounds.width * pad
+        let oy = bounds.width * pad
         let inner = bounds.width * (1 - 2 * pad)
         guard inner > 0 else { return }
         let k = Double(inner) / ShiziInkScale.grid
@@ -127,11 +129,11 @@ final class ShiziPointsInkView: UIView {
         var i = 0
         while i + 5 < verts.count {
             let x0 = ox + CGFloat(verts[i]) * k
-            let y0 = CGFloat(verts[i + 1]) * k
+            let y0 = oy + CGFloat(verts[i + 1]) * k
             let x1 = ox + CGFloat(verts[i + 2]) * k
-            let y1 = CGFloat(verts[i + 3]) * k
+            let y1 = oy + CGFloat(verts[i + 3]) * k
             let x2 = ox + CGFloat(verts[i + 4]) * k
-            let y2 = CGFloat(verts[i + 5]) * k
+            let y2 = oy + CGFloat(verts[i + 5]) * k
             path.move(to: CGPoint(x: x0, y: y0))
             path.addLine(to: CGPoint(x: x1, y: y1))
             path.addLine(to: CGPoint(x: x2, y: y2))
@@ -227,7 +229,10 @@ enum ShiziMineLines {
         var out = ""
         var prev = 0
         for s in starts.sorted() where s > prev && s < chars.count {
-            out += String(chars[prev..<s]) + "\n"
+            // 软折行处的行尾空格网页不占行宽（CSS white-space: normal 行尾空白「挂出」），原生插硬换行时也去掉，行宽才与网页同
+            var line = chars[prev..<s]
+            while let last = line.last, last == " " { line = line.dropLast() }
+            out += String(line) + "\n"
             prev = s
         }
         out += String(chars[prev...])
@@ -473,6 +478,8 @@ final class ShiziPaperCell: UIControl {
 final class ShiziDayButton: UIButton {
     /// 墨点（网页 .sz-rec__dot：5 × 5 的圆）。
     let dot = UIView()
+    /// 选中那天日号下的圆底（网页 .sz-rec__day[aria-pressed=true] .sz-rec__num：底色 field）。
+    let numBg = UIView()
     /// 日号所在的 30 × 30 的圆（按钮的坐标；网页 .sz-rec__num）。
     var numBox = CGRect(x: 0, y: 0, width: 30, height: 30)
 
@@ -481,6 +488,11 @@ final class ShiziDayButton: UIButton {
         dot.isUserInteractionEnabled = false
         dot.layer.cornerRadius = 2.5
         insertSubview(dot, at: 0)
+        numBg.isUserInteractionEnabled = false
+        numBg.isHidden = true
+        numBg.layer.cornerRadius = 15
+        numBg.layer.zPosition = -1 // 在日号（标题标签）下面：UIButton 的子视图次序不由我们定
+        insertSubview(numBg, at: 0)
         titleLabel?.textAlignment = .center
     }
 
@@ -493,6 +505,7 @@ final class ShiziDayButton: UIButton {
         // 日号所在的 30 × 30 的圆（网页 .sz-rec__num）：在 50 宽的格里居中
         numBox = CGRect(x: (bounds.width - 30) / 2, y: 0, width: 30, height: 30)
         dot.frame = CGRect(x: (bounds.width - 5) / 2, y: numBox.maxY + 3, width: 5, height: 5)
+        numBg.frame = numBox
         super.layoutSubviews()
     }
 }
@@ -608,6 +621,44 @@ struct ShiziSheetGrid {
             }
         }
         self.cells = out
+    }
+}
+
+/// 练习记录「那天写的字」的格网（网页 .sz-zt--lines）：外框只画上 / 左（frame-w、frame 色），每格画右 / 下（末行补空格到整行，线都画满），笺面 sheet 色。
+/// 格子由页面放进来（cell 的框从 (frameW, frameW) 起、边长 cellW，含它自己的右 / 下线）；这里只画纸与线。
+final class ShiziLinesGrid: UIView {
+    var cols = 5 { didSet { setNeedsDisplay() } }
+    var rows = 0 { didSet { setNeedsDisplay() } }
+    var cellW: CGFloat = 0 { didSet { setNeedsDisplay() } }
+    var lineWidth: CGFloat = 1 { didSet { setNeedsDisplay() } }
+    var lineColor: UIColor = .label { didSet { setNeedsDisplay() } }
+    /// 笺面色（放在 backgroundColor 上：取证按视图底色比网页的 background-color）。
+    var paperColor: UIColor = .clear { didSet { backgroundColor = paperColor } }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isOpaque = false
+        contentMode = .redraw
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func draw(_ rect: CGRect) {
+        guard let ctx = UIGraphicsGetCurrentContext() else { return }
+        guard rows > 0, cols > 0, cellW > 0 else { return }
+        let fw = lineWidth
+        ctx.setFillColor(lineColor.cgColor)
+        // 上 / 左外框
+        ctx.fill(CGRect(x: 0, y: 0, width: bounds.width, height: fw))
+        ctx.fill(CGRect(x: 0, y: 0, width: fw, height: bounds.height))
+        // 每格的右 / 下线
+        for c in 0..<cols {
+            ctx.fill(CGRect(x: fw + CGFloat(c + 1) * cellW - fw, y: 0, width: fw, height: bounds.height))
+        }
+        for r in 0..<rows {
+            ctx.fill(CGRect(x: 0, y: fw + CGFloat(r + 1) * cellW - fw, width: bounds.width, height: fw))
+        }
     }
 }
 

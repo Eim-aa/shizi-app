@@ -17,6 +17,9 @@ export const KEYS = [
   { key: 'annual-first-label', native: ['id:native-annual-first-label'], web: ['id:annual-first-label'] },
   { key: 'annual-first-date', native: ['id:native-annual-first-date'], web: ['id:annual-first-date'] },
   { key: 'annual-month', native: ['id:native-annual-month'], web: ['id:annual-month'] }, // 同一屏里出现多次（行 / 格）：按文档顺序配对
+  { key: 'annual-twice-first', native: ['id:native-annual-twice-first'], web: ['id:annual-twice-first'] },
+  { key: 'annual-twice-last', native: ['id:native-annual-twice-last'], web: ['id:annual-twice-last'] },
+  { key: 'annual-twice-date', native: ['id:native-annual-twice-date'], web: ['id:annual-twice-date'] }, // 两个：按文档顺序配对
   { key: 'annual-save-live', native: ['id:native-annual-save-live'], web: ['id:annual-save-live'] },
   { key: 'annual-save', native: ['id:native-annual-save'], web: ['id:annual-save'] },
   { key: 'annual-prev', native: ['id:native-annual-prev'], web: ['id:annual-prev'] },

@@ -94,6 +94,11 @@ final class AnnualScreen: ShiziScreenViewController {
     private let hairline: CGFloat = 1.0 / 3.0
     private let textBtnPad: CGFloat = 4
 
+    /// 不进取证的装饰视图（格的内框、发丝线）按 tag 找，不存成员（成员名会被取证当元素）。
+    private static let insetFrameTag = 9931
+    private static let twiceHairTag = 9932
+    private static let monthHairTag = 9933
+
     // 视图（成员名 / accessibilityIdentifier 是 QA 取证的语义键：keys/annual.mjs）
     let bodyMarker = UIView()
     let yearLabel = UILabel()
@@ -157,6 +162,37 @@ final class AnnualScreen: ShiziScreenViewController {
         firstCell.addSubview(firstInk)
         firstCell.addSubview(firstGlyph)
         firstCell.addSubview(firstCanvas)
+        // 卷尾「同一个字，两次」（网页 .sz-ann__twice）
+        twiceFirstCell.accessibilityIdentifier = "native-annual-twice-first"
+        twiceLastCell.accessibilityIdentifier = "native-annual-twice-last"
+        twiceFirstDate.accessibilityIdentifier = "native-annual-twice-date"
+        twiceLastDate.accessibilityIdentifier = "native-annual-twice-date"
+        twiceTitle.accessibilityIdentifier = "native-annual-twice-title"
+        for v in [twiceTitle, twiceFirstCell, twiceFirstDate, twiceLastCell, twiceLastDate] as [UIView] { content.addSubview(v) }
+        twiceFirstCell.addSubview(twiceFirstInk)
+        twiceLastCell.addSubview(twiceLastInk)
+        for c in [twiceFirstCell, twiceLastCell] {
+            c.isAccessibilityElement = true
+            c.accessibilityTraits = .image
+        }
+        twiceTitle.accessibilityTraits = .header
+        twiceFirstDate.isAccessibilityElement = true
+        twiceLastDate.isAccessibilityElement = true
+        // 格的内框（网页 box-shadow: inset 0 0 0 frame-w frame）：画在格里一层不进取证的视图上（box-shadow 不是边框，网页取证也不报）
+        for c in [firstCell, twiceFirstCell, twiceLastCell] {
+            let f = UIView()
+            f.tag = Self.insetFrameTag
+            f.isUserInteractionEnabled = false
+            f.isAccessibilityElement = false
+            f.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            c.insertSubview(f, at: 0)
+        }
+        // 卷尾上面的发丝线（网页 .sz-ann__twice 的 border-top）：同上，不进取证
+        let hair = UIView()
+        hair.tag = Self.twiceHairTag
+        hair.isUserInteractionEnabled = false
+        hair.isAccessibilityElement = false
+        content.addSubview(hair)
         content.addSubview(prevButton)
         content.addSubview(nextButton)
         // 页头的「调整图片 ›」在页头里（网页 .sz-page__trail），不在正文里
@@ -255,6 +291,7 @@ final class AnnualScreen: ShiziScreenViewController {
             if let ink = first.ink {
                 firstInk.isHidden = false
                 firstInk.points = ink.points
+                firstInk.pad = 0.12 // 网页 CellCanvas 缺省 INK_PAD
                 firstInk.inkColor = color("hand")
                 firstInk.widthScale = ShiziInkScale.scale(firstSide, 1 - 2 * 0.12)
                 firstGlyph.isHidden = true
@@ -282,6 +319,11 @@ final class AnnualScreen: ShiziScreenViewController {
             monthCells = []
             for _ in m.months {
                 let b = ShiziRowButton(frame: .zero)
+                // 每段上边一条发丝线（网页 .sz-ann__month 的 border-top）：按钮里的子视图不进取证
+                let hair = UIView()
+                hair.tag = Self.monthHairTag
+                hair.isUserInteractionEnabled = false
+                b.addSubview(hair)
                 content.addSubview(b)
                 monthButtons.append(b)
                 let key = ObjectIdentifier(b)
@@ -306,6 +348,7 @@ final class AnnualScreen: ShiziScreenViewController {
             b.titleLabel?.font = NativeType.compose(size: mt.value("fs15"), weight: .regular)
             // 按钮自己的字色（网页 .sz-ann__month：color:inherit = ink1）
             b.setTitleColor(color("ink1"), for: .normal)
+            b.viewWithTag(Self.monthHairTag)?.backgroundColor = color("line")
             // 每一段里的格子
             let cols = axLayout ? 6 : 8
             let cellSide: CGFloat = axLayout ? floor((view.bounds.width - 40) / 6) : min(45, floor((view.bounds.width - 40) / 8))
@@ -353,10 +396,23 @@ final class AnnualScreen: ShiziScreenViewController {
             twiceLastInk.inkColor = color("hand")
             twiceFirstInk.widthScale = ShiziInkScale.scale(twiceSide, 1 - 2 * 0.12)
             twiceLastInk.widthScale = ShiziInkScale.scale(twiceSide, 1 - 2 * 0.12)
+            twiceFirstInk.pad = 0.12
+            twiceLastInk.pad = 0.12
             twiceFirstInk.points = twice.first.ink?.points ?? []
             twiceLastInk.points = twice.last.ink?.points ?? []
-            twiceFirstDate.text = twice.first.date.text
-            twiceLastDate.text = twice.last.date.text
+            twiceFirstCell.accessibilityLabel = twice.first.label.text
+            twiceLastCell.accessibilityLabel = twice.last.label.text
+            setHei(twiceFirstDate, twice.first.date.text, size: mt.value("fs13"), color: color("ink3"), line: mt.line("lh13"))
+            setHei(twiceLastDate, twice.last.date.text, size: mt.value("fs13"), color: color("ink3"), line: mt.line("lh13"))
+            twiceFirstDate.accessibilityLabel = twice.first.date.text
+            twiceLastDate.accessibilityLabel = twice.last.date.text
+        }
+        content.viewWithTag(Self.twiceHairTag)?.isHidden = isEmpty || m.twice == nil
+        content.viewWithTag(Self.twiceHairTag)?.backgroundColor = color("line")
+        for c in [firstCell, twiceFirstCell, twiceLastCell] {
+            guard let f = c.viewWithTag(Self.insetFrameTag) else { continue }
+            f.layer.borderColor = color("frame").cgColor
+            f.layer.borderWidth = mt.value("frame-w")
         }
         // 页头与底栏
         adjustButton.setTitle(m.adjust.text, for: .normal)
@@ -470,7 +526,7 @@ final class AnnualScreen: ShiziScreenViewController {
             firstCell.frame = CGRect(x: bx, y: y + blockH - side, width: side, height: side)
             firstCanvas.frame = firstCell.bounds
             firstInk.frame = firstCell.bounds
-            firstGlyph.frame = firstCell.bounds
+            firstGlyph.frame = firstCell.bounds.insetBy(dx: side * 0.12, dy: side * 0.12) // 衬底字在墨的内框里（网页 cellInkBox，INK_PAD 12%）
             let sideBottom = y + blockH - 4
             firstDate.frame = CGRect(x: sideX, y: sideBottom - dateH, width: sideW, height: dateH)
             firstLabel.frame = CGRect(x: sideX, y: sideBottom - dateH - 4 - labelH, width: sideW, height: labelH)
@@ -499,12 +555,16 @@ final class AnnualScreen: ShiziScreenViewController {
             for (j, cell) in monthCells[i].enumerated() {
                 let col = j % cols
                 let row = j / cols
-                cell.frame = CGRect(x: bx + CGFloat(col) * cellSide, y: gridTop + CGFloat(row) * cellSide, width: cellSide, height: cellSide)
+                // 格子在段按钮里（按钮的坐标：按钮从 (bx, y) 起）
+                cell.frame = CGRect(x: CGFloat(col) * cellSide, y: gridTop - y + CGFloat(row) * cellSide, width: cellSide, height: cellSide)
+                // 墨铺满格（ShiziPointsInkView 自己留 9% 内边）；衬底字画在同一个内框里（网页 paintCellContent：cellInkBox 再 paintOutline）
                 cell.subviews.forEach { $0.frame = cell.bounds }
+                cell.subviews.last?.frame = cell.bounds.insetBy(dx: cellSide * 0.09, dy: cellSide * 0.09)
             }
             let gridH = CGFloat(rows) * cellSide
             let h = hairline + monthPadTop + headHeight + monthHeadGap + gridH + monthGridGap
             b.frame = CGRect(x: bx, y: y, width: bw, height: h)
+            b.viewWithTag(Self.monthHairTag)?.frame = CGRect(x: 0, y: 0, width: bw, height: hairline)
             // 按钮里的两段字：月名在左、字数在右，基线对齐（网页 .sz-ann__mhead：space-between + baseline）
             b.label.frame = CGRect(x: 0, y: hairline + monthPadTop + row.tops[0], width: nameW, height: nameLine)
             // 字数右对齐到版心的右缘（网页 space-between 的右端）：取证按按钮里全部文字的并集，右缘要对齐版心
@@ -514,6 +574,7 @@ final class AnnualScreen: ShiziScreenViewController {
         }
         // 卷尾：同一个字，两次
         if m.twice != nil {
+            content.viewWithTag(Self.twiceHairTag)?.frame = CGRect(x: bx, y: y, width: bw, height: hairline)
             y += hairline + twiceGap
             let titleH = mt.line("lh22")
             twiceTitle.frame = CGRect(x: bx, y: y, width: bw, height: titleH)
@@ -542,6 +603,9 @@ final class AnnualScreen: ShiziScreenViewController {
                 twiceLastInk.frame = twiceLastCell.bounds
                 twiceFirstDate.frame = CGRect(x: bx, y: cellTop + twiceSide + 8, width: twiceSide, height: dateH)
                 twiceLastDate.frame = CGRect(x: bx + twiceSide + 12, y: cellTop + twiceSide + 8, width: twiceSide, height: dateH)
+                // 网页 .sz-ann__twiceitem：justify-items:center（日期在格下居中）
+                twiceFirstDate.textAlignment = .center
+                twiceLastDate.textAlignment = .center
                 y = cellTop + twiceSide + 8 + dateH + 24
             }
         }

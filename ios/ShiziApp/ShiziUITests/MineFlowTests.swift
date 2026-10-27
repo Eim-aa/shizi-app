@@ -164,7 +164,7 @@ final class MineFlowTests: XCTestCase {
         XCTAssertEqual(themeOverride(qa), 2)
     }
 
-    /// 各行进入子页再返回：提醒 / 换库 / 练习记录 / 年报（网页子页，原生栈收起）左缘返回后回到原生「我的」。
+    /// 各行进入子页再返回：提醒 / 换库 / 练习记录 / 年报（都是原生子页，推在「我的」上）左缘返回后回到原生「我的」。
     func testEachRowOpensItsPageAndComesBack() throws {
         let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots"])
         openMine(qa)
@@ -243,17 +243,17 @@ final class MineFlowTests: XCTestCase {
         XCTAssertEqual(Self.stack(qa.probe), ["mine"])
     }
 
-    /// 让给网页再回来：原生「我的」→ 点练习记录行 → 网页练习记录页（B3.9 合并后改用别的网页页）（原生栈收起）→ 左缘返回 → 原生「我的」盖回来；
-    /// 推入原生子页（关于）= 原生栈 [mine, about]，「‹」回到 mine，根页没有「‹」也没有左缘返回。
+    /// 推入原生子页再回来：原生「我的」→ 点练习记录行 → 原生练习记录推在「我的」上（B3.9 起原生；「我的」下面已没有网页子页可让）
+    /// = 原生栈 [mine, records]、根页不让开 → 左缘返回 → [mine]；推入关于 = [mine, about]，「‹」回到 mine，根页没有「‹」也没有左缘返回。
     func testYieldToWebAndBack() throws {
         let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots"])
         openMine(qa)
         XCTAssertFalse(qa.el("native-page-back").isHittable, "a tab root has no back button")
-        // 备份页已原生（B3.10）：让给网页改用「练习记录」（B3.9 合并前仍是网页）
         let records = qa.el("native-mine-sheet-head")
         for _ in 0..<8 where !records.isHittable { scrollDown(qa) }
         qa.tap(records, "row 练习记录")
-        qa.waitProbe("web records page, native root steps aside") { (($0["route"] as? [String: Any])?["top"] as? String) == "records" && Self.stack($0) == [] }
+        qa.waitProbe("native records pushed over native mine") { (($0["route"] as? [String: Any])?["top"] as? String) == "records" && Self.stack($0) == ["mine", "records"] && ($0["navRunning"] as? Int) == 0 }
+        XCTAssertTrue(qa.el("native-records-month").waitForExistence(timeout: 10), "the native records page is on screen")
         Thread.sleep(forTimeInterval: 0.6)
         qa.edgeBack()
         qa.waitProbe("back on native mine") { (($0["route"] as? [String: Any])?["top"] as? String) == "mine" && Self.stack($0) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
@@ -268,14 +268,7 @@ final class MineFlowTests: XCTestCase {
         qa.waitProbe("back to native mine only") { Self.stack($0) == ["mine"] && (($0["route"] as? [String: Any])?["top"] as? String) == "mine" }
     }
 
-    /// 练习记录翻月 / 展开某天
-    func testRecordsMonthAndDay() throws { try QAPending.skip("B3.9", "练习记录翻月 / 展开某天") }
-
-    /// 月字帖
-    func testMonthCopybook() throws { try QAPending.skip("B3.9", "月字帖") }
-
-    /// 年报往年
-    func testAnnualPastYear() throws { try QAPending.skip("B3.9", "年报往年") }
+    // B3.9 的三条骨架（练习记录翻月 / 展开某天、月字帖、年报往年）已填实，在 MineSubFlowTests 里（与图片按钮、返回路径一起）。
 
     /// 提醒开关 / 时间 / 被拒跳设置
     func testRemindSwitchTimeDenied() throws { try QAPending.skip("B3.10", "提醒开关 / 时间 / 被拒跳设置") }

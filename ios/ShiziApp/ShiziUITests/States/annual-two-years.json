@@ -2,7 +2,7 @@
   "state": "annual-two-years",
   "name": "年报 · 两年（流程测试用：切年份）",
   "screen": "annual",
-  "native": false,
+  "native": true,
   "parity": false,
   "template": "page",
   "clock": {

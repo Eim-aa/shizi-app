@@ -31,6 +31,13 @@ export const GRAPHICS_DEFAULTS = {
     scale: 0.12, scaleMin: 4, // 墨外框宽 / 高差 > max(scaleMin pt, 网页外框 × scale)（细横画的外框只有 1–2 格高，只看比例会误报；笔端圆头与网页笔锋的长短差可到 ~4pt）
     minInk: 6, // 两边墨点都少于这么多 → 当作空格
   },
+  // 文字像素色（QA-H3e）：文字框里的主导字色 vs 底色，原生对网页（dump 里的颜色是 titleColor / CSS color，不等于画出来的）
+  glyph: {
+    minDist: 40, // 与底色最大通道差 ≥ 这么多的像素算字
+    minPx: 8, // 字像素少于这么多 → 当作取不到字色
+    color: 64, // 字色（取最远 20% 像素的均值）通道差 > 这么多记差异（抗锯齿 / 字重差不报）
+    contrast: 0.5, // 原生字与底色的最大差 < 网页的这个比例 → 「对比弱」
+  },
 };
 
 const r1 = x => Math.round(x * 10) / 10;
@@ -301,6 +308,122 @@ export function diffGraphics(webDump, nativeDump, tol, els = {}, opts = GRAPHICS
   const diffs = [...crossDiffs, ...diffRules(webDump.rules, nativeDump.rules, tol, { ...els, cells: { web: webDump.cells, native: nativeDump.cells }, decos: { web: webDump.decos, native: nativeDump.decos } }, opts), ...decos, ...cells.diffs];
   // 配上对的图标另在截图上看「画出来没有」（被底色盖住、透明）：compare.mjs 取掩膜，一边有墨一边没有就报
   return { diffs, inkPairs: [...cells.pairs, ...x.pairs], iconPairs: (decos.pairs || []).filter(p => p.w.kind === 'icon') };
+}
+
+/**
+ * 滚动区的公共可见窗（QA-H3e / D75）：两边都有的滚动区（语义键 *-scroll）可见高度不同时（网页 WebKit 表单辅助栏占 68pt、原生弹层贴键盘，原生滚动区更高），
+ * 只在两边都看得见的高度里比线 / 装饰 / 墨格 / 画出来的字色：滚动内容里「越过公共窗下沿」（含骑在下沿上）的东西两边都不比——
+ * 它在较矮的一边被裁掉 / 盖在底栏与键盘下面、在较高的一边看得见，是同一份内容裁在不同高度，不是画法的差异。
+ * 返回 {web, native}：每边 [{x, w, top, feet}]（滚动区的横向范围、公共窗下沿、固定底栏 *-foot / *-bar 的框）；没有成对且不等高的滚动区 → 两边都是空数组。
+ */
+export function scrollWindows(webEls, nativeEls) {
+  const isScroll = e => e.key && /(^|-)scroll$/.test(e.key) && e.frame;
+  const feetOf = els => (els || []).filter(e => e.key && /-(foot|bar)$/.test(e.key) && e.frame).map(e => e.frame);
+  const out = { web: [], native: [] };
+  for (const w of (webEls || []).filter(isScroll)) {
+    const n = (nativeEls || []).find(e => isScroll(e) && e.key === w.key);
+    if (!n || Math.abs(w.frame.h - n.frame.h) <= 1) continue;
+    const H = Math.min(w.frame.h, n.frame.h);
+    out.web.push({ x: w.frame.x, w: w.frame.w, top: w.frame.y + H, feet: feetOf(webEls) });
+    out.native.push({ x: n.frame.x, w: n.frame.w, top: n.frame.y + H, feet: feetOf(nativeEls) });
+  }
+  return out;
+}
+
+const withinX = (z, f) => f.x >= z.x - 1 && f.x + f.w <= z.x + z.w + 1;
+const boxIn = (f, g) => f.x >= g.x - 1 && f.y >= g.y - 1 && f.x + f.w <= g.x + g.w + 1 && f.y + f.h <= g.y + g.h + 1;
+
+/** 图形（线 / 装饰 / 墨格）落在公共窗下沿以下、滚动区横向范围里 → 不比。 */
+export function hiddenGraphic(zones, side, g) {
+  return (zones[side] || []).some(z => withinX(z, g) && g.y + g.h > z.top);
+}
+
+/** 文字（元素 + 文字框）：同上；但整个元素在固定底栏里的（主按钮）不算——底栏盖在滚动内容上面，它自己是真的画面。 */
+export function hiddenText(zones, side, el) {
+  const f = el.textFrame || el.frame;
+  return (zones[side] || []).some(z => withinX(z, f) && f.y + f.h > z.top && !z.feet.some(ft => boxIn(el.frame, ft)));
+}
+
+export function commonScrollWindow(webDump, nativeDump, webEls, nativeEls) {
+  const zones = scrollWindows(webEls, nativeEls);
+  if (!zones.web.length) return { web: webDump, native: nativeDump };
+  // 被裁掉的装饰 / 墨格自己的边线（圆的边、格框）跟着一起不比：线的框落在它们的框里（±1.5）
+  const strip = (dump, side) => {
+    const gone = [...(dump.decos || []), ...(dump.cells || [])].filter(g => hiddenGraphic(zones, side, g));
+    const owned = r => gone.some(g => r.x >= g.x - 1.5 && r.y >= g.y - 1.5 && r.x + r.w <= g.x + g.w + 1.5 && r.y + r.h <= g.y + g.h + 1.5);
+    return { ...dump,
+      decos: (dump.decos || []).filter(d => !hiddenGraphic(zones, side, d)),
+      cells: (dump.cells || []).filter(c => !hiddenGraphic(zones, side, c)),
+      rules: (dump.rules || []).filter(r => !hiddenGraphic(zones, side, r) && !owned(r)) };
+  };
+  return { web: strip(webDump, 'web'), native: strip(nativeDump, 'native'), zones };
+}
+
+/**
+ * 盖在不透明弹层下面的页面图形（QA-H3e）：线 / 装饰 / 墨格差异的图形，所属元素在清单里排在弹层（语义键 *-sheet）之前（清单是树序，后画的在上）、
+ * 图形中心落在弹层框里 → 两边的截图上都被弹层盖住，不是画面差异。只有一边的差异（缺少 / 多出）看那一边；两边都有的两边都得盖住。
+ */
+export function underSheet(d, webEls, nativeEls) {
+  const hid = (g, els) => {
+    const f = g && g.frame;
+    if (!f) return null;
+    const owner = ownerOf(center(f), els);
+    const oi = owner ? els.indexOf(owner) : -1;
+    if (oi < 0) return false;
+    return els.some((e, i) => i > oi && e.key && /-sheet$/.test(e.key) && e.frame && inside(center(f), e.frame));
+  };
+  const a = hid(d.w, webEls), b = hid(d.n, nativeEls);
+  const sides = [a, b].filter(x => x !== null);
+  return sides.length > 0 && sides.every(Boolean);
+}
+
+/**
+ * 文字框里的主导字色（QA-H3e）：data = RGBA 一维数组（getImageData）、w × h。
+ * 底色 = 最常出现的颜色（每通道 16 档量化后取众数那一档的均值）；字 = 与底色最大通道差 ≥ minDist 的像素；
+ * 字色 = 差最大的 20% 字像素的均值（抗锯齿边不拉淡）。返回 {bg:[r,g,b], ink:[r,g,b]|null, n, maxDist}。自包含（compare.mjs 把它整个送进浏览器跑）。
+ */
+export function glyphInk(data, w, h, minDist = 40, minPx = 8) {
+  const bins = new Map();
+  const N = w * h;
+  for (let k = 0; k < N; k += 1) {
+    const i = k * 4, key = (data[i] >> 4) << 8 | (data[i + 1] >> 4) << 4 | (data[i + 2] >> 4);
+    const b = bins.get(key) || { c: 0, r: 0, g: 0, b: 0 };
+    b.c += 1; b.r += data[i]; b.g += data[i + 1]; b.b += data[i + 2];
+    bins.set(key, b);
+  }
+  let top = null;
+  for (const b of bins.values()) if (!top || b.c > top.c) top = b;
+  if (!top) return { bg: [0, 0, 0], ink: null, n: 0, maxDist: 0 };
+  const bg = [top.r / top.c, top.g / top.c, top.b / top.c];
+  const ds = [];
+  let maxDist = 0;
+  for (let k = 0; k < N; k += 1) {
+    const i = k * 4;
+    const d = Math.max(Math.abs(data[i] - bg[0]), Math.abs(data[i + 1] - bg[1]), Math.abs(data[i + 2] - bg[2]));
+    if (d > maxDist) maxDist = d;
+    if (d >= minDist) ds.push([d, data[i], data[i + 1], data[i + 2]]);
+  }
+  const r = x => Math.round(x);
+  if (ds.length < minPx) return { bg: bg.map(r), ink: null, n: ds.length, maxDist: r(maxDist) };
+  ds.sort((a, b) => b[0] - a[0]);
+  const m = Math.max(3, Math.floor(ds.length * 0.2));
+  const sum = [0, 0, 0];
+  for (let k = 0; k < m; k += 1) { sum[0] += ds[k][1]; sum[1] += ds[k][2]; sum[2] += ds[k][3]; }
+  return { bg: bg.map(r), ink: sum.map(v => r(v / m)), n: ds.length, maxDist: r(maxDist) };
+}
+
+/** 一对文字的字色判定（glyphInk 的两个结果，网页 / 原生）：返回差异说明数组（空 = 一致）。 */
+export function judgeGlyph(web, native, opts = GRAPHICS_DEFAULTS.glyph) {
+  if (!web || !native || !web.ink) return []; // 网页取不到字（空框 / 图标）→ 不比
+  const hex = c => `#${c.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+  const lum = c => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
+  if (!native.ink) return [`画出来的字几乎看不见：网页字 ${hex(web.ink)} 在底 ${hex(web.bg)} 上（与底最大差 ${web.maxDist}），原生文字框里找不到字（与底 ${hex(native.bg)} 最大差只有 ${native.maxDist}）`];
+  const out = [];
+  const pw = Math.sign(lum(web.ink) - lum(web.bg)), pn = Math.sign(lum(native.ink) - lum(native.bg));
+  if (pw !== pn) out.push(`画出来的字明暗反了：网页字 ${hex(web.ink)} / 底 ${hex(web.bg)}，原生字 ${hex(native.ink)} / 底 ${hex(native.bg)}`);
+  else if (Math.max(...web.ink.map((v, i) => Math.abs(v - native.ink[i]))) > (opts.color ?? 64)) out.push(`画出来的字色 网页 ${hex(web.ink)}（底 ${hex(web.bg)}）原生 ${hex(native.ink)}（底 ${hex(native.bg)}）`);
+  else if (native.maxDist < (opts.contrast ?? 0.5) * web.maxDist) out.push(`画出来的字对比弱：与底最大差 网页 ${web.maxDist} 原生 ${native.maxDist}`);
+  return out;
 }
 
 /** 采样区：网页格的大小，各自以自己格的中心为中心（格位置差另报，这里只比格里的墨）。 */

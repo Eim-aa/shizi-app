@@ -12,8 +12,8 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { diffState } from './elements.mjs';
-import { GRAPHICS_DEFAULTS, cellRegions, cleanMask, diffGraphics, inkMetrics, judgeInk } from './graphics.mjs';
+import { diffState, normText } from './elements.mjs';
+import { GRAPHICS_DEFAULTS, cellRegions, cleanMask, commonScrollWindow, diffGraphics, glyphInk, hiddenText, inkMetrics, judgeGlyph, judgeInk, scrollWindows, underSheet } from './graphics.mjs';
 import { CHECKS, COVERED_ELSEWHERE } from './parity-checks.mjs';
 import { STATE_NAMES, STATES } from './config.mjs';
 import { loadParity } from './registry.mjs';
@@ -224,7 +224,8 @@ for (const name of pairsFound) {
   const natJson = JSON.parse(readFileSync(natPath, 'utf8'));
   const { diffs, web, native, webAll, nativeAll, pairs } = diffState(webJson, natJson, tol);
   // QA-H2：线、装饰、墨格（参考里没有这些字段时不比——旧参考）
-  const graphics = diffGraphics(webJson, natJson, tol, { web: webAll, native: nativeAll, pairs }, G);
+  const clipped = commonScrollWindow(webJson, natJson, webAll, nativeAll);
+  const graphics = diffGraphics(clipped.web, clipped.native, tol, { web: webAll, native: nativeAll, pairs }, G);
   diffs.push(...graphics.diffs);
   const ignored = config.ignore || [];
   // aspects（B2.7）：只在这一条差异的各方面全在列出的范围内时才不比（例：只差网页按钮元素自身的字号 / 颜色这类量法差，位置等其它方面照比）；state 可为数组
@@ -235,7 +236,8 @@ for (const name of pairsFound) {
     && (!rule.aspects || (d.aspects || [d.type]).every(x => rule.aspects.includes(x)))
     // axis:'y'（B3.6 / D75）：只不比竖向差（位置只差 y、尺寸只差高）；横向位置与宽照比
     && (!rule.axis || (rule.axis === 'y' && d.vertical === true)));
-  const kept = diffs.filter(d => !isIgnored(d));
+  // QA-H3e：盖在不透明弹层下面的页面图形（线 / 装饰 / 墨格）两边都看不见，不比
+  const kept = diffs.filter(d => !isIgnored(d) && !(['rule', 'deco', 'cell'].includes(d.type) && underSheet(d, webAll, nativeAll)));
   const webPng = join(refDir, `${name}.png`);
   const natPng = join(natDir, `${name}.png`);
   const screen = webJson.screen;
@@ -290,6 +292,39 @@ for (const name of pairsFound) {
         const a = ink(wm[i]), b = ink(nm[i]), min = G.ink.minInk ?? 6;
         if ((a >= min) === (b >= min)) return;
         const d = { type: 'deco', aspects: ['deco'], label: p.label, msg: `图标 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h})：截图里${a >= min ? '网页看得见、原生看不见' : '原生看得见、网页看不见'}（墨点 网页 ${a} 原生 ${b}）`, w: { frame: p.w }, n: { frame: p.n } };
+        if (!isIgnored(d)) kept.push(d);
+      });
+    }
+    // QA-H3e：配上对的文字（文字框两边都在屏上）取画出来的字色：dump 里的颜色是 titleColor / CSS color，不等于像素（富文本标题的前景色、被盖住的字都不反映）
+    const winZones = scrollWindows(webAll, nativeAll);
+    const textPairs = (pairs || []).filter(([w, n]) => (w.kind === 'text' || w.kind === 'button') && normText(w.text) && normText(w.text) === normText(n.text)
+      && w.textFrame && n.textFrame && !w.off && !n.off && onScr(w.textFrame) && onScr(n.textFrame) && w.textFrame.w >= 4 && w.textFrame.h >= 4
+      && !coveredCell({ n }, { native: n.textFrame }) && !hiddenText(winZones, 'web', w) && !hiddenText(winZones, 'native', n));
+    if (textPairs.length) {
+      const grab = async (png, frames) => {
+        const s = (await scaleOf(png)) / screen.w;
+        return page.evaluate(async ({ src, frames: fs, s: sc, fn, o }) => {
+          const img = new Image();
+          img.src = src;
+          await img.decode();
+          const c = document.createElement('canvas');
+          c.width = img.width; c.height = img.height;
+          const ctx = c.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(img, 0, 0);
+          const ink = new Function(`return ${fn}`)();
+          return fs.map(f => {
+            const x = Math.max(0, Math.round(f.x * sc)), y = Math.max(0, Math.round(f.y * sc));
+            const w = Math.max(1, Math.min(c.width - x, Math.round(f.w * sc))), h = Math.max(1, Math.min(c.height - y, Math.round(f.h * sc)));
+            return ink(ctx.getImageData(x, y, w, h).data, w, h, o.minDist, o.minPx);
+          });
+        }, { src: dataUrl(png), frames, s, fn: glyphInk.toString(), o: G.glyph || GRAPHICS_DEFAULTS.glyph });
+      };
+      const wi = await grab(webPng, textPairs.map(([w]) => w.textFrame));
+      const ni = await grab(natPng, textPairs.map(([, n]) => n.textFrame));
+      textPairs.forEach(([w, n], i) => {
+        const bad = judgeGlyph(wi[i], ni[i], G.glyph || GRAPHICS_DEFAULTS.glyph);
+        if (!bad.length) return;
+        const d = { type: 'color', aspects: ['color'], label: w.key || normText(w.text), msg: `「${w.text}」${bad.join('；')}`, w, n };
         if (!isIgnored(d)) kept.push(d);
       });
     }

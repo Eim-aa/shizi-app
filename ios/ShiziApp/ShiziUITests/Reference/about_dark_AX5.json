@@ -24,6 +24,51 @@
       "tag" : "button"
     }
   ],
+  "cells" : [
+    {
+      "h" : 64,
+      "kind" : "image",
+      "w" : 64,
+      "x" : 169,
+      "y" : 214
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 16,
+      "kind" : "icon",
+      "w" : 16,
+      "x" : 276.5,
+      "y" : 738.20000000000005
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1027.8
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1106.2
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -245,7 +290,144 @@
       }
     }
   ],
+  "offscreen" : [
+    {
+      "align" : "left",
+      "axLabel" : "开源致谢",
+      "class" : "sz-btn sz-btn--plain sz-about__row",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 78.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 995.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1027.8
+      },
+      "id" : "about-row-credits",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "开源致谢",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 207.09999999999999,
+        "x" : 20,
+        "y" : 1002.3
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "联系我们",
+      "class" : "sz-btn sz-btn--plain sz-about__row",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 78.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1073.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1106.2
+      },
+      "id" : "about-row-letter",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "联系我们",
+      "textFrame" : {
+        "h" : 64,
+        "w" : 207.09999999999999,
+        "x" : 20,
+        "y" : 1080.7
+      }
+    }
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 13.800000000000001,
+      "x" : 277.60000000000002,
+      "y" : 739.29999999999995
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 13.800000000000001,
+      "x" : 277.60000000000002,
+      "y" : 752.10000000000002
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 13.800000000000001,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 277.60000000000002,
+      "y" : 739.29999999999995
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 13.800000000000001,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 290.39999999999998,
+      "y" : 739.29999999999995
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 804
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 995
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1073.3
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1151.7
+    }
+  ],
   "screen" : {
     "contentSize" : "AX5",
     "h" : 874,

@@ -1,4 +1,110 @@
 {
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "重写错字",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "redo-progress",
+      "name" : "第 1 个字，共 3 个",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-prompt",
+      "name" : "题目",
+      "role" : "group",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-prompt-cell",
+      "name" : "要写的字，第 1 个，读 chūn，一声",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-prompt-hint",
+      "live" : "polite",
+      "name" : "",
+      "role" : "",
+      "srOnly" : true,
+      "tag" : "p",
+      "text" : ""
+    },
+    {
+      "id" : "write-compare-mine",
+      "name" : "你写的，2 笔",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-compare-ref",
+      "name" : "标准写法：春，chūn，9 画，2 个部件",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "redo-again",
+      "name" : "再写一次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "redo-next",
+      "name" : "下一个",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 66.5,
+      "kind" : "ink",
+      "w" : 66.5,
+      "x" : 209.30000000000001,
+      "y" : 166.30000000000001
+    },
+    {
+      "h" : 189,
+      "kind" : "ink",
+      "w" : 189,
+      "x" : 106.5,
+      "y" : 266.19999999999999
+    },
+    {
+      "h" : 189,
+      "kind" : "ink",
+      "w" : 189,
+      "x" : 106.5,
+      "y" : 456.19999999999999
+    },
+    {
+      "h" : 64,
+      "kind" : "glyph",
+      "text" : "下",
+      "w" : 51.799999999999997,
+      "x" : 123.40000000000001,
+      "y" : 763.5
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -313,7 +419,108 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 83.200000000000003,
+      "x" : 117.8,
+      "y" : 158
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 83.200000000000003,
+      "x" : 117.8,
+      "y" : 240.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 83.200000000000003,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 117.8,
+      "y" : 158
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 83.200000000000003,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 200,
+      "y" : 158
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 191,
+      "x" : 105.5,
+      "y" : 265.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 191,
+      "x" : 105.5,
+      "y" : 455.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 191,
+      "src" : "border",
+      "w" : 1,
+      "x" : 105.5,
+      "y" : 265.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 191,
+      "src" : "border",
+      "w" : 1,
+      "x" : 295.5,
+      "y" : 265.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 191,
+      "x" : 105.5,
+      "y" : 455.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 191,
+      "x" : 105.5,
+      "y" : 645.20000000000005
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 191,
+      "src" : "border",
+      "w" : 1,
+      "x" : 105.5,
+      "y" : 455.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 191,
+      "src" : "border",
+      "w" : 1,
+      "x" : 295.5,
+      "y" : 455.19999999999999
+    }
+  ],
   "screen" : {
     "contentSize" : "AX5",
     "h" : 874,

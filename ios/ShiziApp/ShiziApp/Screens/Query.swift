@@ -1696,11 +1696,7 @@ final class QueryScreen: ShiziScreenViewController {
     /// The sheet's shadow (the web's --elev-shadow).
     private func applySheetShadow() {
         let dark = traitCollection.userInterfaceStyle == .dark
-        sheet.layer.shadowColor = (dark ? UIColor(red: 1, green: 240 / 255, blue: 220 / 255, alpha: 1)
-                                        : UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 1)).cgColor
-        sheet.layer.shadowOpacity = dark ? 0.06 : 0.10
-        sheet.layer.shadowRadius = dark ? 0 : 15
-        sheet.layer.shadowOffset = CGSize(width: 0, height: dark ? -0.5 : -10)
+        ShiziElev.apply(sheet, dark: dark) // --elev-shadow：模糊影子 + 上沿发丝线（ShiziKit ShiziElev）
     }
 
     // MARK: The buttons' styles (the web's Button.js)
@@ -2332,11 +2328,7 @@ final class S02Screen: ShiziScreenViewController {
 
     private func applyDialogShadow() {
         let dark = traitCollection.userInterfaceStyle == .dark
-        dialog.layer.shadowColor = (dark ? UIColor(red: 1, green: 240 / 255, blue: 220 / 255, alpha: 1)
-                                        : UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 1)).cgColor
-        dialog.layer.shadowOpacity = dark ? 0.06 : 0.10
-        dialog.layer.shadowRadius = dark ? 0 : 15
-        dialog.layer.shadowOffset = CGSize(width: 0, height: dark ? -0.5 : -10)
+        ShiziElev.apply(dialog, dark: dark) // --elev-shadow：模糊影子 + 上沿发丝线（ShiziKit ShiziElev）
     }
 
     @objc private func tapScrim() {

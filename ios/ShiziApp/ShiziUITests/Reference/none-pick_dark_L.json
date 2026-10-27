@@ -24,6 +24,19 @@
       "tag" : "button"
     }
   ],
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -182,7 +195,44 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 72,
+      "x" : 165,
+      "y" : 362
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 72,
+      "x" : 165,
+      "y" : 433
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 72,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 165,
+      "y" : 362
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 72,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 236,
+      "y" : 362
+    }
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

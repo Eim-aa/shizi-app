@@ -59,6 +59,9 @@ final class ShiziRowButton: UIButton {
     let valueLabel = UILabel()
     /// chevron 的尺寸（网页 .sz-chev 8 × 13）。
     var chevronSize = CGSize.zero
+    /// chevron 的框（按钮坐标）；nil = 钉在右缘竖向居中（网页 justify-content:space-between 的行）。
+    /// 网页把 › 跟在值后面（inline-flex，AX 档值折到第二行时 › 紧跟在值的右边）时由页面给出。
+    var chevronFrame: CGRect? { didSet { setNeedsLayout() } }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -74,6 +77,7 @@ final class ShiziRowButton: UIButton {
 
     override func imageRect(forContentRect r: CGRect) -> CGRect {
         guard chevronSize.width > 0 else { return .zero }
+        if let f = chevronFrame { return f }
         return CGRect(x: bounds.maxX - chevronSize.width, y: (bounds.height - chevronSize.height) / 2, width: chevronSize.width, height: chevronSize.height)
     }
 

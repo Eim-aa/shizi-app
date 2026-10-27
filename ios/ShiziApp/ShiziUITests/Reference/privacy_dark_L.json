@@ -12,6 +12,19 @@
       "tag" : "h1"
     }
   ],
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -165,7 +178,13 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

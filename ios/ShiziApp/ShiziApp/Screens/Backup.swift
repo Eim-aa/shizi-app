@@ -374,6 +374,8 @@ final class BackupScreen: ShiziScreenViewController {
     private let noteDot = UIView()
     private let noteText = UILabel()
     private let listView = UIView()
+    /// 列表的发丝线（网页 .sz-bk__list 上边线、.sz-bk__row 下边线、危险行 .sz-bk__row--danger 上边线）：列表顶、恢复行底、清空行顶、清空行底。
+    private let listLines = (0..<4).map { _ in UIView() }
     private let restoreRow = ShiziRowButton(type: .custom)
     private let clearRow = ShiziRowButton(type: .custom)
     private let exportButton = UIButton(type: .custom)
@@ -436,6 +438,7 @@ final class BackupScreen: ShiziScreenViewController {
         noteView.addSubview(noteText)
         listView.addSubview(restoreRow)
         listView.addSubview(clearRow)
+        listLines.forEach { $0.isUserInteractionEnabled = false; listView.addSubview($0) }
         for v in [exportButton, exportFailNote, exportFailCancel, exportFailRetry, undoWrap] as [UIView] { view.addSubview(v) }
         undoWrap.addSubview(undoBar)
         wire(restoreRow) { page in (page as? BackupScreen)?.pickBackup() }
@@ -646,6 +649,13 @@ final class BackupScreen: ShiziScreenViewController {
         restoreRow.isEnabled = true
         restoreRow.isUserInteractionEnabled = true
         listView.frame = CGRect(x: 0, y: listTop, width: width, height: 0.5 + restoreH + mt.groupGap + clearH)
+        // 发丝线（网页 border-box：行的上 / 下边线画在行框以内）
+        let hair = shiziHairline(mt.value("hair"))
+        listLines.forEach { $0.backgroundColor = color("line") }
+        listLines[0].frame = CGRect(x: 0, y: 0, width: width, height: hair)
+        listLines[1].frame = CGRect(x: 0, y: restoreRow.frame.maxY - hair, width: width, height: hair)
+        listLines[2].frame = CGRect(x: 0, y: clearRow.frame.minY, width: width, height: hair)
+        listLines[3].frame = CGRect(x: 0, y: clearRow.frame.maxY - hair, width: width, height: hair)
         y = listView.frame.maxY
         bodyView.frame = CGRect(x: x, y: top, width: width, height: y)
         return top + y

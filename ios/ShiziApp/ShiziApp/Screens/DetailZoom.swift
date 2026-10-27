@@ -177,10 +177,7 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
         view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         view.layer.cornerCurve = .continuous
         let dark = traitCollection.userInterfaceStyle == .dark
-        view.layer.shadowColor = (dark ? UIColor(red: 1, green: 240 / 255, blue: 220 / 255, alpha: 1) : UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 1)).cgColor
-        view.layer.shadowOpacity = dark ? 0.06 : 0.10
-        view.layer.shadowRadius = dark ? 0 : 15
-        view.layer.shadowOffset = CGSize(width: 0, height: dark ? -0.5 : -10)
+        ShiziElev.apply(view, dark: dark) // --elev-shadow：模糊影子 + 上沿发丝线（ShiziKit ShiziElev）
         view.accessibilityViewIsModal = true
         view.accessibilityIdentifier = "native-detail-zoom"
         scroll.alwaysBounceVertical = false

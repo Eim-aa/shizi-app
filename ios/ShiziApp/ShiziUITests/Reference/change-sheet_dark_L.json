@@ -1,4 +1,141 @@
 {
+  "ax" : [
+    {
+      "id" : "write-change-sheet",
+      "name" : "改「永」",
+      "role" : "dialog",
+      "tag" : "div"
+    },
+    {
+      "name" : "改「永」",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "write-change-cancel",
+      "name" : "取消",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-change-mine",
+      "name" : "你写的",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-change-ref",
+      "name" : "标准写法",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-change-note",
+      "live" : "polite",
+      "name" : "",
+      "role" : "",
+      "tag" : "p",
+      "text" : "刚才记为写错，改后不多算一次。"
+    },
+    {
+      "id" : "write-change-detail",
+      "name" : "看这个字 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-change-flip",
+      "name" : "改为写对",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 41.600000000000001,
+      "kind" : "ink",
+      "w" : 41.600000000000001,
+      "x" : 128.19999999999999,
+      "y" : 161.19999999999999
+    },
+    {
+      "h" : 41.600000000000001,
+      "kind" : "ink",
+      "w" : 41.600000000000001,
+      "x" : 232.19999999999999,
+      "y" : 161.19999999999999
+    },
+    {
+      "h" : 360,
+      "kind" : "ink",
+      "w" : 360,
+      "x" : 21,
+      "y" : 225
+    },
+    {
+      "h" : 360,
+      "kind" : "ink",
+      "w" : 360,
+      "x" : 21,
+      "y" : 225
+    },
+    {
+      "h" : 173,
+      "kind" : "ink",
+      "w" : 173,
+      "x" : 21,
+      "y" : 466
+    },
+    {
+      "h" : 173,
+      "kind" : "ink",
+      "w" : 173,
+      "x" : 208,
+      "y" : 466
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 20,
+      "kind" : "icon",
+      "w" : 20,
+      "x" : 20,
+      "y" : 602
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 20,
+      "kind" : "icon",
+      "w" : 20,
+      "x" : 322.30000000000001,
+      "y" : 602
+    },
+    {
+      "color" : "#C2B8A8FF",
+      "h" : 18,
+      "kind" : "icon",
+      "w" : 18,
+      "x" : 77.599999999999994,
+      "y" : 733
+    },
+    {
+      "color" : "#C2B8A8FF",
+      "h" : 18,
+      "kind" : "icon",
+      "w" : 18,
+      "x" : 256.19999999999999,
+      "y" : 733
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -52,7 +189,13 @@
       "kind" : "text",
       "srOnly" : true,
       "tag" : "h1",
-      "text" : "凭记忆写"
+      "text" : "凭记忆写",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 19,
+        "y" : 83.5
+      }
     },
     {
       "align" : "center",
@@ -70,7 +213,13 @@
       "id" : "write-progress",
       "kind" : "text",
       "tag" : "span",
-      "text" : "2 \/ 5"
+      "text" : "2 \/ 5",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 30.699999999999999,
+        "x" : 145.09999999999999,
+        "y" : 74
+      }
     },
     {
       "class" : "sz-write__headact",
@@ -196,7 +345,13 @@
       "kind" : "text",
       "srOnly" : true,
       "tag" : "span",
-      "text" : "义"
+      "text" : "义",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 10.9,
+        "x" : 148,
+        "y" : 158.19999999999999
+      }
     },
     {
       "axLabel" : "要写的字，第 2 个，读 hé，二声",
@@ -226,7 +381,13 @@
       "id" : "write-prompt-py",
       "kind" : "text",
       "tag" : "span",
-      "text" : "hé"
+      "text" : "hé",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 16.899999999999999,
+        "x" : 192.5,
+        "y" : 131
+      }
     },
     {
       "class" : "sz-prompt__cell",
@@ -255,7 +416,13 @@
       "kind" : "text",
       "srOnly" : true,
       "tag" : "span",
-      "text" : "团"
+      "text" : "团",
+      "textFrame" : {
+        "h" : 14,
+        "w" : 10.9,
+        "x" : 252,
+        "y" : 158.19999999999999
+      }
     },
     {
       "axLabel" : "写字格",
@@ -448,7 +615,13 @@
       "id" : "write-line-text",
       "kind" : "text",
       "tag" : "span",
-      "text" : "「永」记为写错"
+      "text" : "「永」记为写错",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 90.299999999999997,
+        "x" : 20,
+        "y" : 645
+      }
     },
     {
       "align" : "left",
@@ -872,7 +1045,164 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 52,
+      "x" : 175,
+      "y" : 156
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 52,
+      "x" : 175,
+      "y" : 207
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 52,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 175,
+      "y" : 156
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 52,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 226,
+      "y" : 156
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 224
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 585
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 362,
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 224
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 362,
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 224
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 360,
+      "src" : "svg",
+      "w" : 0.80000000000000004,
+      "x" : 200.59999999999999,
+      "y" : 225
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 0.80000000000000004,
+      "src" : "svg",
+      "w" : 360,
+      "x" : 21,
+      "y" : 404.60000000000002
+    },
+    {
+      "color" : "#FFF0DC0F",
+      "h" : 0.5,
+      "src" : "shadow",
+      "w" : 402,
+      "x" : 0,
+      "y" : 394.5
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 175,
+      "x" : 20,
+      "y" : 465
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 175,
+      "x" : 20,
+      "y" : 639
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 175,
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 465
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 175,
+      "src" : "border",
+      "w" : 1,
+      "x" : 194,
+      "y" : 465
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 175,
+      "x" : 207,
+      "y" : 465
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 175,
+      "x" : 207,
+      "y" : 639
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 175,
+      "src" : "border",
+      "w" : 1,
+      "x" : 207,
+      "y" : 465
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 175,
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 465
+    }
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

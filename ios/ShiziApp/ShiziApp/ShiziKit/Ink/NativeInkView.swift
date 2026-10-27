@@ -468,6 +468,8 @@ final class NativeInkView: UIView {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        // 重新进窗口（切 tab 再切回、页面让开再回来）：离开窗口时 Metal 图层的画面可能已被丢掉，进来就重画一次（QA-H2：「我的」字帖格回来是空的）
+        if window != nil { needsRender = true }
         if window != nil, link == nil {
             let l = CADisplayLink(target: NativeInkWeakTarget(self), selector: #selector(NativeInkWeakTarget.tick(_:)))
             // ProMotion：请求 120Hz（需要 Info.plist CADisableMinimumFrameDurationOnPhone）

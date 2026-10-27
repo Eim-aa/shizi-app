@@ -333,11 +333,7 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
         panel.layer.cornerRadius = metrics.value("r-box")
         panel.layer.cornerCurve = .continuous
         panel.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        panel.layer.shadowColor = (dark ? UIColor(red: 1, green: 240 / 255, blue: 220 / 255, alpha: 1)
-                                      : UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 1)).cgColor
-        panel.layer.shadowOpacity = dark ? 0.06 : 0.10
-        panel.layer.shadowRadius = dark ? 0 : 15
-        panel.layer.shadowOffset = CGSize(width: 0, height: dark ? -0.5 : -10)
+        ShiziElev.apply(panel, dark: dark) // --elev-shadow：模糊影子 + 上沿发丝线（ShiziKit ShiziElev）
         panel.accessibilityIdentifier = "native-image-sheet"
 
         scroll.alwaysBounceVertical = false
@@ -1095,7 +1091,8 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
             // 网页 .sz-img__board 自身没有底色（canvas 铺满板）；底是图自己的纸色
             b.backgroundColor = .clear
             b.layer.borderWidth = metrics.value("hair")
-            b.layer.borderColor = color("line").cgColor
+            // 板是一张浅色的纸（网页 .sz-img__board.t-light，不随主题）：外缘线取浅色的 line
+            b.layer.borderColor = color("line").resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)).cgColor
             b.accessibilityIdentifier = "native-image-board"
             b.accessibilityLabel = model.title
             boardScroll.addSubview(b)

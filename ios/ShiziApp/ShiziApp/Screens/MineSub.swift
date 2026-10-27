@@ -624,9 +624,19 @@ struct ShiziSheetGrid {
     }
 }
 
+/// 自己在 draw(_:) 里画线的视图：画了哪些线（本视图坐标的矩形 + 颜色）。画法与逐屏取证（QA-H2 rules）用同一份，免得两边各算一遍。
+protocol ShiziDrawnLines: UIView {
+    var drawnLines: [(CGRect, UIColor)] { get }
+}
+
+/// 自己排字的标签（drawText 不按 UILabel 的竖向居中排，例：竖排题记）：字实际占的矩形（本视图坐标）。逐屏取证的文字框用它。
+protocol ShiziDrawnText: UIView {
+    var drawnTextRect: CGRect { get }
+}
+
 /// 练习记录「那天写的字」的格网（网页 .sz-zt--lines）：外框只画上 / 左（frame-w、frame 色），每格画右 / 下（末行补空格到整行，线都画满），笺面 sheet 色。
 /// 格子由页面放进来（cell 的框从 (frameW, frameW) 起、边长 cellW，含它自己的右 / 下线）；这里只画纸与线。
-final class ShiziLinesGrid: UIView {
+final class ShiziLinesGrid: UIView, ShiziDrawnLines {
     var cols = 5 { didSet { setNeedsDisplay() } }
     var rows = 0 { didSet { setNeedsDisplay() } }
     var cellW: CGFloat = 0 { didSet { setNeedsDisplay() } }
@@ -644,27 +654,27 @@ final class ShiziLinesGrid: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    var drawnLines: [(CGRect, UIColor)] {
+        guard rows > 0, cols > 0, cellW > 0 else { return [] }
+        let fw = lineWidth
+        // 上 / 左外框
+        var out = [CGRect(x: 0, y: 0, width: bounds.width, height: fw), CGRect(x: 0, y: 0, width: fw, height: bounds.height)]
+        // 每格的右 / 下线
+        for c in 0..<cols { out.append(CGRect(x: fw + CGFloat(c + 1) * cellW - fw, y: 0, width: fw, height: bounds.height)) }
+        for r in 0..<rows { out.append(CGRect(x: 0, y: fw + CGFloat(r + 1) * cellW - fw, width: bounds.width, height: fw)) }
+        return out.map { ($0, lineColor) }
+    }
+
     override func draw(_ rect: CGRect) {
         guard let ctx = UIGraphicsGetCurrentContext() else { return }
-        guard rows > 0, cols > 0, cellW > 0 else { return }
-        let fw = lineWidth
         ctx.setFillColor(lineColor.cgColor)
-        // 上 / 左外框
-        ctx.fill(CGRect(x: 0, y: 0, width: bounds.width, height: fw))
-        ctx.fill(CGRect(x: 0, y: 0, width: fw, height: bounds.height))
-        // 每格的右 / 下线
-        for c in 0..<cols {
-            ctx.fill(CGRect(x: fw + CGFloat(c + 1) * cellW - fw, y: 0, width: fw, height: bounds.height))
-        }
-        for r in 0..<rows {
-            ctx.fill(CGRect(x: 0, y: fw + CGFloat(r + 1) * cellW - fw, width: bounds.width, height: fw))
-        }
+        for (r, _) in drawnLines { ctx.fill(r) }
     }
 }
 
 /// 字帖的纸：一层框 + 格间线 + 格子 + 落款 + 印（网页 components/work.js MonthPaper）。
 /// 格子由页面持有（这里只排位置），纸与格线由本视图画。
-final class ShiziSheetPaper: UIView {
+final class ShiziSheetPaper: UIView, ShiziDrawnLines {
     /// 落款行（网页 .sz-month__sign）。
     let sign = UIView()
     let kuanLabel = UILabel()
@@ -764,7 +774,6 @@ final class ShiziSheetPaper: UIView {
         let stageTop: CGFloat = 8
         let cell: CGFloat = g.c
         let rows: Int = g.rows
-        let cols: Int = g.cols
         // 笺面（sheet）：满行时是一整块，末行没满时是上面几行 + 末行一段（网页 .sz-month__sheet 两段）
         ctx.setFillColor(sheetColor.cgColor)
         if g.full {
@@ -773,43 +782,62 @@ final class ShiziSheetPaper: UIView {
             if rows > 1 { ctx.fill(CGRect(x: 0, y: stageTop, width: g.W, height: CGFloat(rows - 1) * cell)) }
             ctx.fill(CGRect(x: 0, y: stageTop + CGFloat(rows - 1) * cell, width: g.lastW, height: cell))
         }
-        // 格间线（guide）：竖线在每行内，横线在行之间
-        ctx.saveGState()
-        guideColor.setStroke()
-        ctx.setLineWidth(guideWidth)
+        // 格间线（guide）与外框（frame）：同一份几何（drawnLines），各色一次填满（线宽居中，同描边）
+        let (guides, frames) = lineRects()
+        for (rects, color) in [(guides, guideColor), (frames, frameColor)] {
+            ctx.setFillColor(color.cgColor)
+            for r in rects { ctx.addRect(r) }
+            ctx.fillPath()
+        }
+    }
+
+    var drawnLines: [(CGRect, UIColor)] {
+        let (guides, frames) = lineRects()
+        return guides.map { ($0, guideColor) } + frames.map { ($0, frameColor) }
+    }
+
+    /// 格间线（guide：竖线在每行内，横线在行之间）与外框（frame：满行一个框，末行没满时上面几行一个框 + 末行一个框），线宽居中。
+    private func lineRects() -> (guides: [CGRect], frames: [CGRect]) {
+        let g = grid
+        guard g.n > 0 else { return ([], []) }
+        let stageTop: CGFloat = 8
+        let cell: CGFloat = g.c
+        let rows: Int = g.rows
+        let cols: Int = g.cols
+        var out: [CGRect] = [], frames: [CGRect] = []
+        let gw = guideWidth
         for r in 0..<rows {
             let rn: Int = r < rows - 1 ? cols : (g.full ? cols : Int((g.lastW / cell).rounded()))
             let y: CGFloat = stageTop + CGFloat(r) * cell
-            if rn > 1 {
-                for k in 1..<rn {
-                    let x: CGFloat = CGFloat(k) * cell
-                    ctx.move(to: CGPoint(x: x, y: y))
-                    ctx.addLine(to: CGPoint(x: x, y: y + cell))
-                }
-            }
+            if rn > 1 { for k in 1..<rn { out.append(CGRect(x: CGFloat(k) * cell - gw / 2, y: y, width: gw, height: cell)) } }
         }
         if rows > 1 {
             for r in 1..<rows {
                 let y: CGFloat = stageTop + CGFloat(r) * cell
                 let w: CGFloat = (r == rows - 1 && !g.full) ? g.lastW : g.W
-                ctx.move(to: CGPoint(x: 0, y: y))
-                ctx.addLine(to: CGPoint(x: w, y: y))
+                out.append(CGRect(x: 0, y: y - gw / 2, width: w, height: gw))
             }
         }
-        ctx.strokePath()
-        // 外框（frame）
-        frameColor.setStroke()
-        ctx.setLineWidth(frameWidth)
-        let half: CGFloat = frameWidth / 2
-        if g.full {
-            let box = CGRect(x: half, y: stageTop + half, width: g.W - frameWidth, height: g.H - frameWidth)
-            ctx.stroke(box)
-        } else {
-            let upper = CGRect(x: half, y: stageTop + half, width: g.W - frameWidth, height: (CGFloat(rows - 1) * cell) - frameWidth)
-            ctx.stroke(upper)
-            let lower = CGRect(x: half, y: stageTop + CGFloat(rows - 1) * cell + half, width: g.lastW - frameWidth, height: cell - frameWidth)
-            ctx.stroke(lower)
+        let fw = frameWidth
+        func box(_ b: CGRect) {
+            // 描边框 b（线宽 fw 居中）= 四条边的矩形
+            frames.append(CGRect(x: b.minX - fw / 2, y: b.minY - fw / 2, width: b.width + fw, height: fw))
+            frames.append(CGRect(x: b.minX - fw / 2, y: b.maxY - fw / 2, width: b.width + fw, height: fw))
+            frames.append(CGRect(x: b.minX - fw / 2, y: b.minY - fw / 2, width: fw, height: b.height + fw))
+            frames.append(CGRect(x: b.maxX - fw / 2, y: b.minY - fw / 2, width: fw, height: b.height + fw))
         }
-        ctx.restoreGState()
+        let half: CGFloat = fw / 2
+        if g.full {
+            box(CGRect(x: half, y: stageTop + half, width: g.W - fw, height: g.H - fw))
+        } else {
+            // 末行没满：外框是一条折线（网页 core/images/layout.js outline：M0 0 H W V (rows−1)c H lastW V H H0 Z），
+            // 末行上沿只有 lastW 以右那一段是框，lastW 以左是格间线（不画两个框：那样末行上沿整条都成了框色）
+            let x0 = half, x1 = g.W - half, xl = g.lastW - half
+            let y0 = stageTop + half, ym = stageTop + CGFloat(rows - 1) * cell, yb = stageTop + CGFloat(rows) * cell - half
+            func h(_ a: CGFloat, _ b: CGFloat, _ y: CGFloat) { frames.append(CGRect(x: min(a, b) - fw / 2, y: y - fw / 2, width: abs(b - a) + fw, height: fw)) }
+            func v(_ x: CGFloat, _ a: CGFloat, _ b: CGFloat) { frames.append(CGRect(x: x - fw / 2, y: min(a, b) - fw / 2, width: fw, height: abs(b - a) + fw)) }
+            h(x0, x1, y0); v(x1, y0, ym); h(x1, xl, ym); v(xl, ym, yb); h(xl, x0, yb); v(x0, yb, y0)
+        }
+        return (out, frames)
     }
 }

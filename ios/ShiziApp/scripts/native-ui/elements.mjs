@@ -145,21 +145,27 @@ export function diffPair(w, n, tol) {
   if (w.fontSize && n.fontSize && Math.abs(w.fontSize - n.fontSize) > tol.font) out.push({ type: 'font', label, msg: `字号 网页 ${w.fontSize} 原生 ${n.fontSize}`, w, n });
   if (w.fontWeight !== undefined && n.fontWeight !== undefined && Math.abs(w.fontWeight - n.fontWeight) > tol.weight) out.push({ type: 'font', label, msg: `字重 网页 ${w.fontWeight} 原生 ${n.fontWeight}`, w, n });
   if (w.enabled !== undefined && n.enabled !== undefined && w.enabled !== n.enabled) out.push({ type: 'state', label, msg: `可点 网页 ${w.enabled} 原生 ${n.enabled}`, w, n });
-  if (!!w.hasIcon !== !!n.hasIcon && w.kind === 'button' && n.kind === 'button') out.push({ type: 'icon', label, msg: `图标 网页 ${w.hasIcon ? '有' : '无'} 原生 ${n.hasIcon ? '有' : '无'}`, w, n });
-  if (w.iconFrame && n.iconFrame && (Math.abs(w.iconFrame.w - n.iconFrame.w) > tol.size || Math.abs(w.iconFrame.h - n.iconFrame.h) > tol.size)) out.push({ type: 'icon', label, msg: `图标尺寸 网页 ${w.iconFrame.w}×${w.iconFrame.h} 原生 ${n.iconFrame.w}×${n.iconFrame.h}`, w, n });
+  const off = w.off || n.off; // QA-H2：屏外的元素不比图标（网页滚进来才画的字形轮廓，屏外时按钮里还没有 svg）
+  if (!off && !!w.hasIcon !== !!n.hasIcon && w.kind === 'button' && n.kind === 'button') out.push({ type: 'icon', label, msg: `图标 网页 ${w.hasIcon ? '有' : '无'} 原生 ${n.hasIcon ? '有' : '无'}`, w, n });
+  if (!off && w.iconFrame && n.iconFrame && (Math.abs(w.iconFrame.w - n.iconFrame.w) > tol.size || Math.abs(w.iconFrame.h - n.iconFrame.h) > tol.size)) out.push({ type: 'icon', label, msg: `图标尺寸 网页 ${w.iconFrame.w}×${w.iconFrame.h} 原生 ${n.iconFrame.w}×${n.iconFrame.h}`, w, n });
   return out;
 }
 
 const r1 = x => Math.round(x * 10) / 10;
 
-/** 一个状态的全部差异。 */
+/** 一个状态的全部差异。QA-H2：屏外清单（offscreen：滚动区里滚得到、此刻在屏外）与屏上的一起配对——网页有、原生没有的元素在屏外也算缺少。
+ *  返回的 web / native 只含屏上的（具名检查照旧），webAll / nativeAll 含屏外的（线 / 装饰 / 墨格找所属元素用）。 */
 export function diffState(webDump, nativeDump, tol) {
-  const web = relevant(assignKeys(webDump.elements || [], 'web'));
-  const native = relevant(assignKeys(nativeDump.elements || [], 'native'));
-  const { pairs, onlyWeb, onlyNative } = pairUp(web, native);
+  const withOff = d => [...(d.elements || []), ...(d.offscreen || []).map(e => ({ ...e, off: true }))];
+  const webAll = relevant(assignKeys(withOff(webDump), 'web'));
+  const nativeAll = relevant(assignKeys(withOff(nativeDump), 'native'));
+  const web = webAll.filter(e => !e.off);
+  const native = nativeAll.filter(e => !e.off);
+  const { pairs, onlyWeb, onlyNative } = pairUp(webAll, nativeAll);
   const diffs = [];
   for (const [w, n] of pairs) { const d = diffElement(w, n, tol); if (d) diffs.push(d); }
-  for (const w of onlyWeb) if (w.kind !== 'view' || w.key) diffs.push({ type: 'missing', aspects: ['missing'], label: w.key || normText(w.text) || w.id, msg: `原生缺少：网页有${w.kind === 'button' ? '按钮' : w.kind === 'text' ? '文字' : '元素'}「${w.text || w.axLabel || w.id}」(${w.frame.x}, ${w.frame.y} ${w.frame.w}×${w.frame.h})`, w });
-  for (const n of onlyNative) if (n.kind !== 'view' || n.key) diffs.push({ type: 'extra', aspects: ['extra'], label: n.key || normText(n.text) || n.id || n.prop, msg: `原生多出：${n.kind === 'button' ? '按钮' : n.kind === 'text' ? '文字' : '元素'}「${n.text || n.axLabel || n.id || n.prop}」(${n.frame.x}, ${n.frame.y} ${n.frame.w}×${n.frame.h})`, n });
-  return { pairs, diffs, web, native };
+  const offNote = e => (e.off ? '，在屏外（滚动区里）' : '');
+  for (const w of onlyWeb) if (w.kind !== 'view' || w.key) diffs.push({ type: 'missing', aspects: ['missing'], label: w.key || normText(w.text) || w.id, msg: `原生缺少：网页有${w.kind === 'button' ? '按钮' : w.kind === 'text' ? '文字' : '元素'}「${w.text || w.axLabel || w.id}」(${w.frame.x}, ${w.frame.y} ${w.frame.w}×${w.frame.h})${offNote(w)}`, w });
+  for (const n of onlyNative) if (n.kind !== 'view' || n.key) diffs.push({ type: 'extra', aspects: ['extra'], label: n.key || normText(n.text) || n.id || n.prop, msg: `原生多出：${n.kind === 'button' ? '按钮' : n.kind === 'text' ? '文字' : '元素'}「${n.text || n.axLabel || n.id || n.prop}」(${n.frame.x}, ${n.frame.y} ${n.frame.w}×${n.frame.h})${offNote(n)}`, n });
+  return { pairs, diffs, web, native, webAll, nativeAll };
 }

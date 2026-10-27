@@ -167,6 +167,8 @@ final class RemindScreen: ShiziScreenViewController {
     private let failNote = UILabel()
     private let failCancel = NativeTextButton(type: .custom)
     private let failRetry = UIButton(type: .custom)
+    /// 行的发丝线（网页 .sz-remind__row：border-top / border-bottom 0.5px line，相邻两行之间只一条）：开关行上沿、开关行下沿、时间行下沿。
+    private let rowLines = (0..<3).map { _ in UIView() }
 
     private var model: View?
     /// 网页量出的折行点（App API view.remind 回包里的 lines）：开关行的小字。
@@ -207,6 +209,7 @@ final class RemindScreen: ShiziScreenViewController {
         failView.addSubview(failCancel)
         failView.addSubview(failRetry)
         switchTrack.addSubview(switchKnob)
+        rowLines.forEach { $0.isUserInteractionEnabled = false; bodyView.addSubview($0) }
         wire(switchButton) { page in (page as? RemindScreen)?.toggle() }
         wire(noteButton) { page in (page as? RemindScreen)?.openSystemSettings() }
         wire(failCancel) { page in (page as? RemindScreen)?.clearFail() }
@@ -336,6 +339,11 @@ final class RemindScreen: ShiziScreenViewController {
         let trackW: CGFloat = 44, trackH: CGFloat = 26, knob: CGFloat = 20
         switchTrack.frame = CGRect(x: width - trackW, y: (rowH - trackH) / 2, width: trackW, height: trackH)
         switchKnob.frame = CGRect(x: m.on ? trackW - knob - 3 : 3, y: 3, width: knob, height: knob)
+        // 行的发丝线（网页 border-box：线画在行框以内，上沿一条、下沿一条）
+        let hair = shiziHairline(mt.value("hair"))
+        rowLines.forEach { $0.backgroundColor = color("line") }
+        rowLines[0].frame = CGRect(x: 0, y: y, width: width, height: hair)
+        rowLines[1].frame = CGRect(x: 0, y: y + rowH - hair, width: width, height: hair)
         y += rowH
         // 时间行（开着时多一行）
         if m.on {
@@ -357,8 +365,11 @@ final class RemindScreen: ShiziScreenViewController {
             timeField.layer.cornerCurve = .continuous
             timeField.backgroundColor = color("field")
             timeField.textFont = fieldFont
+            rowLines[2].isHidden = false
+            rowLines[2].frame = CGRect(x: 0, y: y + timeRowH - hair, width: width, height: hair)
             y += timeRowH
         } else {
+            rowLines[2].isHidden = true
             timeRow.isHidden = true
             timeField.isHidden = false
         }

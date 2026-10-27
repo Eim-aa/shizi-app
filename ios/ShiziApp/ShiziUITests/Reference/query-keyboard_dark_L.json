@@ -84,6 +84,593 @@
       "tag" : "button"
     }
   ],
+  "cells" : [
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 255.40000000000001,
+      "y" : 421.19999999999999
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 293.39999999999998,
+      "y" : 421.19999999999999
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 331.39999999999998,
+      "y" : 421.19999999999999
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 255.40000000000001,
+      "y" : 477.19999999999999
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 293.39999999999998,
+      "y" : 477.19999999999999
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 331.39999999999998,
+      "y" : 477.19999999999999
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 255.40000000000001,
+      "y" : 533.20000000000005
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 293.39999999999998,
+      "y" : 533.20000000000005
+    },
+    {
+      "h" : 31,
+      "kind" : "ink",
+      "w" : 31,
+      "x" : 331.39999999999998,
+      "y" : 533.20000000000005
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#C2B8A8FF",
+      "h" : 18,
+      "kind" : "icon",
+      "w" : 18,
+      "x" : 36,
+      "y" : 137
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 209.69999999999999
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 296
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 430.30000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 486.30000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 542.29999999999995
+    },
+    {
+      "color" : "#A0968AFF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 55,
+      "y" : 796.20000000000005
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 189,
+      "y" : 796.20000000000005
+    },
+    {
+      "color" : "#A0968AFF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 323,
+      "y" : 796.20000000000005
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 217.30000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 236.80000000000001
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 285.69999999999999
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 305.19999999999999
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 354
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 373.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 422.30000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 441.80000000000001
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 490.60000000000002
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 510.10000000000002
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 559
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 578.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 627.29999999999995
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 646.79999999999995
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 695.60000000000002
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 715.10000000000002
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 764
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 783.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "w" : 28,
+      "x" : 20,
+      "y" : 832.29999999999995
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 851.79999999999995
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 900.60000000000002
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 920.10000000000002
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 968.89999999999998
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 988.39999999999998
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1037.3
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1056.8
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1105.5999999999999
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1125.0999999999999
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1173.9000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1193.4000000000001
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1242.3
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1261.8
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1310.5999999999999
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1330.0999999999999
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1378.9000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1398.4000000000001
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1447.2
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1466.7
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1515.5999999999999
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1535.0999999999999
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1583.9000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1603.4000000000001
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1662.2
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1669.7
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 28,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1716.5
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1736
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1804.4000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1872.7
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1941
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2009.4000000000001
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2077.6999999999998
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2146
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-tabpage",
@@ -111,7 +698,13 @@
       },
       "kind" : "text",
       "tag" : "h1",
-      "text" : "字库"
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 42,
+        "w" : 56,
+        "x" : 20,
+        "y" : 75
+      }
     },
     {
       "class" : "sz-lib",
@@ -270,7 +863,13 @@
       },
       "kind" : "text",
       "tag" : "span",
-      "text" : "已练汉字"
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 67.400000000000006,
+        "x" : 20,
+        "y" : 371.69999999999999
+      }
     },
     {
       "align" : "left",
@@ -287,7 +886,13 @@
       "id" : "library-written-count",
       "kind" : "text",
       "tag" : "span",
-      "text" : "36"
+      "text" : "36",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 18.399999999999999,
+        "x" : 95.400000000000006,
+        "y" : 372.69999999999999
+      }
     },
     {
       "align" : "center",
@@ -448,7 +1053,13 @@
       "id" : "library-skipped-name",
       "kind" : "text",
       "tag" : "span",
-      "text" : "已跳过"
+      "text" : "已跳过",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 50.600000000000001,
+        "x" : 20,
+        "y" : 620.10000000000002
+      }
     },
     {
       "align" : "left",
@@ -465,7 +1076,13 @@
       "id" : "library-skipped-count",
       "kind" : "text",
       "tag" : "span",
-      "text" : "0"
+      "text" : "0",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 9.1999999999999993,
+        "x" : 78.599999999999994,
+        "y" : 621.10000000000002
+      }
     },
     {
       "align" : "center",
@@ -1128,7 +1745,1297 @@
       }
     }
   ],
+  "offscreen" : [
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 892.60000000000002
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "踊 yǒng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 892.60000000000002
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 900.60000000000002
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "踊 yǒng 踊跃 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 897.60000000000002
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 960.89999999999998
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "恿 yǒng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 960.89999999999998
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 968.89999999999998
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "恿 yǒng 怂恿 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 965.89999999999998
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1029.3
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "蛹 yǒng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1029.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1037.3
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "蛹 yǒng 蚕蛹 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1034.3
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1097.5999999999999
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "甬 yǒng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1097.5999999999999
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1105.5999999999999
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "甬 yǒng 甬道 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1102.5999999999999
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1165.9000000000001
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "俑 yǒng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1165.9000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1173.9000000000001
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "俑 yǒng 兵马俑 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1170.9000000000001
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1234.3
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "臃 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1234.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1242.3
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "臃 yōng 臃肿 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1239.3
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1302.5999999999999
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "邕 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1302.5999999999999
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1310.5999999999999
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "邕 yōng 邕江 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1307.5999999999999
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1370.9000000000001
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "慵 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1370.9000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1378.9000000000001
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "慵 yōng 慵懒 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1375.9000000000001
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1439.2
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "痈 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1439.2
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1447.2
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "痈 yōng 痈疽 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1444.2
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1507.5999999999999
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "饔 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1507.5999999999999
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1515.5999999999999
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "饔 yōng 佐饔得尝 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1512.5999999999999
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1575.9000000000001
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "壅 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1575.9000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1583.9000000000001
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "壅 yōng 壅塞 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1580.9000000000001
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 64.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1644.2
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "镛 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 64,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1644.2
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1662.2
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "镛 yōng 还没写过",
+      "textFrame" : {
+        "h" : 26,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1659.2
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1708.5
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "喁 yóng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1708.5
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1716.5
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "喁 yóng 喁字 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1713.5
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1776.9000000000001
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "墉 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1776.9000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1804.4000000000001
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "墉 yōng 金墉城 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1781.9000000000001
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1845.2
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "鳙 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1845.2
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1872.7
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "鳙 yōng 鳙鱼 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1850.2
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1913.5
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "颙 yóng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1913.5
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1941
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "颙 yóng 颙字 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1918.5
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1981.9000000000001
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "鄘 yōng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1981.9000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 2009.4000000000001
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "鄘 yōng 鄘字 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1986.9000000000001
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2050.1999999999998
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "鲬 yǒng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2050.1999999999998
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 2077.6999999999998
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "鲬 yǒng 鲬字 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 2055.1999999999998
+      }
+    },
+    {
+      "class" : "sz-qrow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2118.5
+      },
+      "id" : "query-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "axLabel" : "埇 yǒng，还没写过",
+      "class" : "sz-btn sz-btn--plain sz-qrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2118.5
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 2146
+      },
+      "id" : "query-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "埇 yǒng 埇字 还没写过",
+      "textFrame" : {
+        "h" : 54,
+        "w" : 343,
+        "x" : 19,
+        "y" : 2123.5
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-query__hint",
+      "color" : "#A0968AFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2202.8000000000002
+      },
+      "id" : "query-hint",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "点一个字，看标准写法、练它或加入自选字。",
+      "textFrame" : {
+        "h" : 17,
+        "w" : 258,
+        "x" : 20,
+        "y" : 2203.8000000000002
+      }
+    }
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 188
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 244
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 270.30000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 334.30000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 408.69999999999999
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 464.69999999999999
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 520.70000000000005
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 576.70000000000005
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 603
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 659
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 402,
+      "x" : 0,
+      "y" : 791
+    },
+    {
+      "color" : "#FFF0DC0F",
+      "h" : 0.5,
+      "src" : "shadow",
+      "w" : 402,
+      "x" : 0,
+      "y" : 56.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 141
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 192
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 52,
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 141
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 52,
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 141
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 209
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 277.30000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 345.69999999999999
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 414
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 482.30000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 550.60000000000002
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 619
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 687.29999999999995
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 755.60000000000002
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 823.89999999999998
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 892.29999999999995
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 960.60000000000002
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1028.9000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1097.3
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1165.5999999999999
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1233.9000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1302.2
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1370.5999999999999
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1438.9000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1507.2
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1575.5999999999999
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1643.9000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1708.2
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1776.5
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1844.9000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1913.2
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1981.5
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2049.9000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2118.1999999999998
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2186.5
+    }
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

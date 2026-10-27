@@ -35,6 +35,19 @@
       "tag" : "button"
     }
   ],
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#26211DFF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -552,7 +565,1488 @@
       }
     }
   ],
+  "offscreen" : [
+    {
+      "align" : "center",
+      "axLabel" : "ts-fsrs 5.2.0，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 876
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 886.5
+      }
+    },
+    {
+      "class" : "sz-about__group",
+      "frame" : {
+        "h" : 1514,
+        "w" : 362,
+        "x" : 20,
+        "y" : 965
+      },
+      "id" : "about-credits-group",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__gtitle",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 965
+      },
+      "kind" : "text",
+      "off" : true,
+      "tag" : "h2",
+      "text" : "字形字源",
+      "textFrame" : {
+        "h" : 34,
+        "w" : 91.799999999999997,
+        "x" : 20,
+        "y" : 962
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1003
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1015
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Hanzi Writer Data 2.0.1",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 200.90000000000001,
+        "x" : 20,
+        "y" : 1017
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1048
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Arphic Public License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 168.59999999999999,
+        "x" : 20,
+        "y" : 1050
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1079
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/chanind\/hanzi-writer-data",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 352,
+        "x" : 20,
+        "y" : 1081
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Hanzi Writer Data 2.0.1，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 1110
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 1120.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1167
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1179
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "AnimCJK",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 82,
+        "x" : 20,
+        "y" : 1181
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1212
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Arphic Public License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 168.59999999999999,
+        "x" : 20,
+        "y" : 1214
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1243
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/parsimonhi\/animCJK",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 309.80000000000001,
+        "x" : 20,
+        "y" : 1245
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "AnimCJK，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 1274
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 1284.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1331
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1343
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Shuowen.org data",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 160,
+        "x" : 20,
+        "y" : 1345
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1376
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 1378
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1407
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/shuowenjiezi\/shuowen",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 323.89999999999998,
+        "x" : 20,
+        "y" : 1409
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Shuowen.org data，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 1438
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 1448.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1495
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1507
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "OpenCC character mappings",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 257.69999999999999,
+        "x" : 20,
+        "y" : 1509
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1540
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 1542
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1571
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/BYVoid\/OpenCC",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 276.80000000000001,
+        "x" : 20,
+        "y" : 1573
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "OpenCC character mappings，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 1602
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 1612.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1659
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1671
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Make Me a Hanzi dictionary metadata",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 332.39999999999998,
+        "x" : 20,
+        "y" : 1673
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1704
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "GNU LGPL 3.0 or later",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 173.09999999999999,
+        "x" : 20,
+        "y" : 1706
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1735
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/skishore\/makemeahanzi",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 336.89999999999998,
+        "x" : 20,
+        "y" : 1737
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Make Me a Hanzi dictionary metadata，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 1766
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 1776.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1823
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1835
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "jieba dictionary",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 134.30000000000001,
+        "x" : 20,
+        "y" : 1837
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1868
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 94.700000000000003,
+        "x" : 20,
+        "y" : 1870
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1899
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/fxsjy\/jieba",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 225.59999999999999,
+        "x" : 20,
+        "y" : 1901
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "jieba dictionary，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 1930
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 1940.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1987
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1999
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "pypinyin 0.55.0",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 135,
+        "x" : 20,
+        "y" : 2001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2032
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 94.700000000000003,
+        "x" : 20,
+        "y" : 2034
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2063
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/mozillazg\/python-pinyin",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 335.60000000000002,
+        "x" : 20,
+        "y" : 2065
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "pypinyin 0.55.0，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 2094
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 2104.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2151
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2163
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "hanziDB",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 73.799999999999997,
+        "x" : 20,
+        "y" : 2165
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2196
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 94.700000000000003,
+        "x" : 20,
+        "y" : 2198
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2227
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/ruddfawcett\/hanziDB.csv",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 344.60000000000002,
+        "x" : 20,
+        "y" : 2229
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "hanziDB，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 2258
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 2268.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2315
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2327
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "wordfreq",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 79.599999999999994,
+        "x" : 20,
+        "y" : 2329
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2360
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 2362
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2391
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/rspeer\/wordfreq",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 273.89999999999998,
+        "x" : 20,
+        "y" : 2393
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "wordfreq，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 2422
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 2432.5
+      }
+    },
+    {
+      "class" : "sz-about__group",
+      "frame" : {
+        "h" : 420,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2511
+      },
+      "id" : "about-credits-group",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "section"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__gtitle",
+      "color" : "#26211DFF",
+      "fontSize" : 22.950001,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2511
+      },
+      "kind" : "text",
+      "off" : true,
+      "tag" : "h2",
+      "text" : "字体",
+      "textFrame" : {
+        "h" : 34,
+        "w" : 45.899999999999999,
+        "x" : 20,
+        "y" : 2508
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2549
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2561
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "LXGW WenKai GB 1.522",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 213.5,
+        "x" : 20,
+        "y" : 2563
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2594
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "SIL Open Font License 1.1",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 200,
+        "x" : 20,
+        "y" : 2596
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2625
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/lxgw\/LxgwWenkaiGB",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 310.30000000000001,
+        "x" : 20,
+        "y" : 2627
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "LXGW WenKai GB 1.522，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 2656
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 2666.5
+      }
+    },
+    {
+      "class" : "sz-about__item",
+      "frame" : {
+        "h" : 218,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2713
+      },
+      "id" : "about-credit",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__iname",
+      "color" : "#26211DFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2725
+      },
+      "id" : "about-credit-name",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "Noto Serif SC 2.003",
+      "textFrame" : {
+        "h" : 25,
+        "w" : 177.19999999999999,
+        "x" : 20,
+        "y" : 2727
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2758
+      },
+      "id" : "about-credit-license",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "SIL Open Font License 1.1",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 200,
+        "x" : 20,
+        "y" : 2760
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-about__meta sz-about__url",
+      "color" : "#564E46FF",
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 81,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2789
+      },
+      "id" : "about-credit-url",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "https:\/\/github.com\/google\/fonts\/tree\/8b0a1d0f5983c89bc2b93f1b5fb55f9e252744b5\/ofl\/notoserifsc",
+      "textFrame" : {
+        "h" : 76,
+        "w" : 359.30000000000001,
+        "x" : 20,
+        "y" : 2791
+      }
+    },
+    {
+      "align" : "center",
+      "axLabel" : "Noto Serif SC 2.003，许可全文",
+      "class" : "sz-btn sz-btn--plain sz-about__toggle",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 17.549999,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 77.599999999999994,
+        "x" : 16,
+        "y" : 2874
+      },
+      "id" : "about-credit-toggle",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 22,
+        "w" : 69.599999999999994,
+        "x" : 20,
+        "y" : 2884.5
+      }
+    }
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 249
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 413
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 577
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 741
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 932
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1002
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1166
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1330
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1494
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1658
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1822
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1986
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2150
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2314
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2478
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2548
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2712
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2930
+    }
+  ],
   "screen" : {
     "contentSize" : "XXXL",
     "h" : 874,

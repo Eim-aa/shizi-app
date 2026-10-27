@@ -1,4 +1,167 @@
 {
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "凭记忆写",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "write-progress",
+      "name" : "第 1 个字，共 5 个",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-end",
+      "name" : "结束这组",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-skip",
+      "name" : "跳过",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-prompt",
+      "name" : "题目",
+      "role" : "group",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-prompt-cell",
+      "name" : "要写的字，第 1 个，读 yǒng，三声",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-prompt-hint",
+      "live" : "polite",
+      "name" : "",
+      "role" : "",
+      "srOnly" : true,
+      "tag" : "p",
+      "text" : ""
+    },
+    {
+      "id" : "write-grid",
+      "name" : "写字格，已写 2 笔",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-undo",
+      "name" : "撤销",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-clear",
+      "name" : "清空",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-sr-status",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "write-hint",
+      "name" : "提示，还有 5 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-show-answer",
+      "name" : "看答案",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-done",
+      "name" : "写好了",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 41.600000000000001,
+      "kind" : "ink",
+      "w" : 41.600000000000001,
+      "x" : 206.19999999999999,
+      "y" : 163.90000000000001
+    },
+    {
+      "h" : 360,
+      "kind" : "ink",
+      "w" : 360,
+      "x" : 21,
+      "y" : 227.69999999999999
+    },
+    {
+      "h" : 360,
+      "kind" : "ink",
+      "w" : 360,
+      "x" : 21,
+      "y" : 227.69999999999999
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#26211DFF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#564E46FF",
+      "h" : 20,
+      "kind" : "icon",
+      "w" : 20,
+      "x" : 20,
+      "y" : 604.70000000000005
+    },
+    {
+      "color" : "#564E46FF",
+      "h" : 20,
+      "kind" : "icon",
+      "w" : 20,
+      "x" : 310.80000000000001,
+      "y" : 604.70000000000005
+    },
+    {
+      "color" : "#564E46FF",
+      "h" : 18,
+      "kind" : "icon",
+      "w" : 18,
+      "x" : 71.900000000000006,
+      "y" : 733
+    },
+    {
+      "color" : "#564E46FF",
+      "h" : 18,
+      "kind" : "icon",
+      "w" : 18,
+      "x" : 247.59999999999999,
+      "y" : 733
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -559,7 +722,92 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 52,
+      "x" : 149,
+      "y" : 158.69999999999999
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 52,
+      "x" : 149,
+      "y" : 209.69999999999999
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 52,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 149,
+      "y" : 158.69999999999999
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 52,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 200,
+      "y" : 158.69999999999999
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 226.69999999999999
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 587.70000000000005
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 362,
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 226.69999999999999
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 362,
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 226.69999999999999
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 360,
+      "src" : "svg",
+      "w" : 0.80000000000000004,
+      "x" : 200.59999999999999,
+      "y" : 227.69999999999999
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 0.80000000000000004,
+      "src" : "svg",
+      "w" : 360,
+      "x" : 21,
+      "y" : 407.30000000000001
+    }
+  ],
   "screen" : {
     "contentSize" : "XXXL",
     "h" : 874,

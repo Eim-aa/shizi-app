@@ -171,8 +171,36 @@ final class AboutScreen: ShiziScreenViewController {
         return lines.enumerated().flatMap { i, line -> [String] in
             probe.attributedText = NSAttributedString(string: line, attributes: [.font: font, .kern: 0])
             let room = i == lines.count - 1 ? width - sealGap - sealSide : width
-            return ShiziParagraph.pretty(line, label: probe, width: room).components(separatedBy: "\n")
+            // 放不下一行：网页（AX 档实测）先在最近的「，」后折（后面一整句放得下一行时），不在一句中间硬折；其余照 pretty（词边界允许单字接单字：「很久 / 没写」）
+            func w(_ s: String) -> CGFloat { ceil((s as NSString).size(withAttributes: [.font: font, .kern: 0]).width) }
+            if w(line) > room, let p = clauseBreak(line, w: w, room: room, whole: width) {
+                return [p.0] + mottoLinesTail(p.1, probe: probe, font: font, width: width, room: room)
+            }
+            return ShiziParagraph.pretty(line, label: probe, width: room, allowSingles: true, shortTail: 3).components(separatedBy: "\n")
         }
+    }
+
+    /// 第一行在「，」之后折：取放得进一行的最靠后的「，」，且后面一整句放得下一行。
+    /// 「，」「、」（用转义写：源码里不放中文字面量）。
+    private static let clauseMarks: Set<Character> = ["\u{FF0C}", "\u{3001}"]
+
+    private func clauseBreak(_ line: String, w: (String) -> CGFloat, room: CGFloat, whole: CGFloat) -> (String, String)? {
+        let c = Array(line)
+        var fit = 0
+        for i in 1...c.count where w(String(c[0..<i])) <= whole { fit = i }
+        guard fit > 0, fit < c.count else { return nil }
+        // 贪心落在句中（第 fit 个字不是「，」）才改
+        guard !Self.clauseMarks.contains(c[fit - 1]) else { return nil }
+        for i in stride(from: fit, to: 0, by: -1) where Self.clauseMarks.contains(c[i - 1]) && i < c.count {
+            let head = String(c[0..<i]), tail = String(c[i...])
+            if w(tail) <= room { return (head, tail) }
+        }
+        return nil
+    }
+
+    private func mottoLinesTail(_ t: String, probe: UILabel, font: UIFont, width: CGFloat, room: CGFloat) -> [String] {
+        probe.attributedText = NSAttributedString(string: t, attributes: [.font: font, .kern: 0])
+        return ShiziParagraph.pretty(t, label: probe, width: room, allowSingles: true, shortTail: 3).components(separatedBy: "\n")
     }
 
     private var displayedMotto: [String] = []
@@ -335,7 +363,13 @@ enum ShiziParagraph {
             l.font = font // NativeType.height 按 label.font 的行高数行
             l.attributedText = NSAttributedString(string: shown, attributes: attrs)
         }
-        let h = NativeType.height(l, width: width, line: line)
+        var h = NativeType.height(l, width: width, line: line)
+        if !NativeType.hasCJK(text), (l.attributedText?.length ?? 0) > 0, let st = l.attributedText?.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle, st.lineSpacing > 0 {
+            // 行距另加在行与行之间：NativeType.height 拿「总高 ÷ 字体行高」数行，三行以上会多数一行；这里按行距离算
+            let pitch = font.lineHeight + st.lineSpacing
+            let raw = l.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height
+            h = max(1, ((raw + st.lineSpacing) / pitch).rounded()) * line
+        }
         l.frame = CGRect(x: x, y: y, width: width, height: h)
         return h
     }
@@ -346,6 +380,28 @@ enum ShiziParagraph {
         func w(_ s: String) -> CGFloat { ceil((s as NSString).size(withAttributes: [.font: font]).width) }
         guard width > 0, w(text) > width, !text.contains("\n") else { return text }
         let c = Array(text)
+        // 带空格的名称 / 许可名（WebKit pretty，实测 AX5「GNU LGPL 3.0 or / later」「Apache / License 2.0」「Arphic Public / License」）：按词贪心折，
+        // 刚好两行时，把上一行最后一个词挪下来能让两行宽差变小就挪（Noto Serif SC / 2.003 → Noto Serif / SC 2.003）；其余照贪心。网址（折行机会只有连字符）走下面两行取齐。
+        if text.contains(" ") {
+            let words = text.components(separatedBy: " ")
+            var lines: [[String]] = [[]]
+            for word in words {
+                let tryLine = (lines[lines.count - 1] + [word]).joined(separator: " ")
+                if lines[lines.count - 1].isEmpty || w(tryLine) <= width { lines[lines.count - 1].append(word) } else { lines.append([word]) }
+            }
+            // 显式换行（TextKit 自己折会把行尾空格算进字宽，比网页宽一个空格）
+            let greedy = lines.map { $0.joined(separator: " ") }.joined(separator: "\n")
+            guard lines.count == 2 else { return greedy }
+            // 两行：把上一行最后一个词挪下来，两行宽差变小才挪（挪一次；再挪只会更偏）
+            var first = lines[0], second = lines[1]
+            func join(_ a: [String]) -> String { a.joined(separator: " ") }
+            if first.count >= 2 {
+                let nf = Array(first.dropLast()), ns = [first.last!] + second
+                guard w(join(ns)) <= width, abs(w(join(nf)) - w(join(ns))) < abs(w(join(first)) - w(join(second))) else { return join(first) + "\n" + join(second) }
+                first = nf; second = ns
+            }
+            return join(first) + "\n" + join(second)
+        }
         var best: (Int, CGFloat)?
         for i in 1..<c.count {
             let ok = c[i - 1] == " " || (c[i - 1] == "-" && i >= 2 && (c[i - 2].isLetter || c[i - 2].isNumber) && (c[i].isLetter || c[i].isNumber))
@@ -355,14 +411,45 @@ enum ShiziParagraph {
             guard wa <= width, wb <= width else { continue }
             if best == nil || abs(wa - wb) < best!.1 { best = (i, abs(wa - wb)) }
         }
-        guard let (i, _) = best else { return text }
+        guard let (i, _) = best else { return anywhereWrap(text, font: font, width: width) }
         return String(c[0..<i]).trimmingCharacters(in: .whitespaces) + "\n" + String(c[i...])
+    }
+
+    /// 网页 overflow-wrap:anywhere：没有折行机会（空格、字母数字间连字符）的长串一行放不下时，每行塞满再折（TextKit 会在「/」后折，多出一行）。
+    /// 按折行机会切段，贪心放；一段自己就放不下一行时按字逐个塞满。
+    static func anywhereWrap(_ text: String, font: UIFont, width: CGFloat) -> String {
+        func w(_ s: String) -> CGFloat { ceil((s as NSString).size(withAttributes: [.font: font]).width) }
+        let c = Array(text)
+        var segs: [String] = []
+        var cur = ""
+        for i in 0..<c.count {
+            cur.append(c[i])
+            let opp = c[i] == " " || (c[i] == "-" && i >= 1 && i + 1 < c.count && (c[i - 1].isLetter || c[i - 1].isNumber) && (c[i + 1].isLetter || c[i + 1].isNumber))
+            if opp { segs.append(cur); cur = "" }
+        }
+        if !cur.isEmpty { segs.append(cur) }
+        var lines: [String] = []
+        var line = ""
+        for seg in segs {
+            if w((line + seg).trimmingCharacters(in: .whitespaces)) <= width { line += seg; continue }
+            if !line.isEmpty { lines.append(line.trimmingCharacters(in: .whitespaces)); line = "" }
+            var rest = Substring(seg)
+            while w(String(rest)) > width {
+                var n = 1
+                while n < rest.count, w(String(rest.prefix(n + 1))) <= width { n += 1 }
+                lines.append(String(rest.prefix(n)))
+                rest = rest.dropFirst(n)
+            }
+            line = String(rest)
+        }
+        if !line.isEmpty { lines.append(line.trimmingCharacters(in: .whitespaces)) }
+        return lines.joined(separator: "\n")
     }
 
     /// WebKit text-wrap:pretty 在这几段上的实测结果（iOS 26，B3.2 逐屏取证）：两行的段落按字贪心折行后末行短于行宽 1/4 时，
     /// 改在**词**边界（中文按词典分词）折行——取能放下的最靠后的词边界、且末行不短于 1/4 行宽。例：XXXL「你写的字、笔迹和对错，只存在 / 这台手机上。」。
     /// 只处理两行的段落（更长的段落这几页没有）；返回要显示的字（可能多一个换行；读屏名用原文）。
-    static func pretty(_ text: String, label l: UILabel, width: CGFloat) -> String {
+    static func pretty(_ text: String, label l: UILabel, width: CGFloat, allowSingles: Bool = false, shortTail: CGFloat = 4) -> String {
         guard width > 0, !text.contains("\n") else { return text }
         let ns = text as NSString
         let attr = l.attributedText ?? NSAttributedString(string: text, attributes: [.font: l.font as Any])
@@ -374,7 +461,7 @@ enum ShiziParagraph {
         for i in 1...ns.length where w(NSRange(location: 0, length: i)) <= width { fit = i }
         guard fit > 0, fit < ns.length else { return text }
         let rest = NSRange(location: fit, length: ns.length - fit)
-        guard w(rest) <= width, w(rest) < width / 4 else { return text }
+        guard w(rest) <= width, w(rest) < width / shortTail else { return text }
         // 词边界
         let tok = CFStringTokenizerCreate(nil, text as CFString, CFRange(location: 0, length: ns.length), kCFStringTokenizerUnitWordBoundary, Locale(identifier: "zh-Hans") as CFLocale)
         var tokens: [NSRange] = []
@@ -386,12 +473,16 @@ enum ShiziParagraph {
         func single(_ r: NSRange) -> Bool { r.length == 1 && NativeType.hasCJK(ns.substring(with: r)) && !NativeType.hasCJKPunctuation(ns.substring(with: r)) }
         var bounds: [Int] = []
         for (i, r) in tokens.enumerated() where i > 0 {
-            if single(tokens[i - 1]), single(r) { continue }
+            if !allowSingles, single(tokens[i - 1]), single(r) { continue }
             bounds.append(r.location)
         }
-        for b in bounds.sorted(by: >) where b > 0 && b <= fit {
+        if allowSingles {
+            // 系统分词没有 ICU 词典（「很久 / 没写」切不出来）：每个字的前面都当作可折处（标点不能行首），再由末行的最小宽挑
+            for i in 1..<max(1, ns.length) where !NativeType.hasCJKPunctuation(ns.substring(with: NSRange(location: i, length: 1))) { bounds.append(i) }
+        }
+        for b in Set(bounds).sorted(by: >) where b > 0 && b <= fit {
             let tail = NSRange(location: b, length: ns.length - b)
-            if w(tail) >= width / 4, w(tail) <= width {
+            if w(tail) >= width / shortTail, w(tail) <= width {
                 return ns.substring(to: b) + "\n" + ns.substring(from: b)
             }
         }

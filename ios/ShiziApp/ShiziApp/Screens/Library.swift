@@ -1,8 +1,8 @@
 import UIKit
 
 // B3.5b 字库 tab 根页（网页 src/ui/screens/library/index.js「字库方向四」，1:1 移植；视图模型 src/session/views/library.js libraryPageView，App API view.library）。
-// 屏名 ⇄ 类：library ⇄ ShiziScreen_library。tab 根页：NativeStage 把它作为 WebViewController 的子控制器插在 WKWebView 上面、只盖到 Tab 栏上沿
-// （Tab 栏仍是网页的，B3.5d 与另两个根页同开时换原生 Tab 栏）；B3.5d 之前只在 -shizi-native-roots / QA 夹具 op nativeRoots 打开时出现。
+// 屏名 ⇄ 类：library ⇄ ShiziScreen_library。tab 根页：NativeStage 把它挂在原生 Tab 栏控制器（B3.5d，UITabBarController）里它那一格下面、
+// 只铺到 Tab 栏上沿。
 //
 // 只读页：不写 store。「今日练习」= op library.startToday（网页字库页同一个动作；D62：从字库进写字页是普通推入 T-push，不是纸展开——不记纸来源）；
 // 搜索框 = 让给网页的查字弹层（原生查字弹层 B3.6 之前：先把本页的样子交给宿主层 stage.cover，再开弹层）；
@@ -455,7 +455,7 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
     private func yieldThen(_ go: @escaping (LibraryScreen) -> Void) {
         guard let engine = stage?.engine else { return }
         var args: [String: Any] = ["entryId": entryId]
-        if let url = WebViewController.snapshotURL(view) { args["url"] = url }
+        if let url = WebViewController.snapshotURL(stage?.coverView(of: self) ?? view) { args["url"] = url } // B3.5d：根页连同原生 Tab 栏
         ShiziProbe.note("library:yield")
         engine.raw("stage.cover", args) { [weak self] _ in
             guard let self else { return }

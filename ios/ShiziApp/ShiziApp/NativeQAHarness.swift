@@ -173,9 +173,17 @@ extension WebViewController {
         var covered = Set(stage.screens.dropLast().map { ObjectIdentifier($0.view) })
         // 根页被盖住（NativeStage.isCovered：呈现链里有不透明的原生子页或写字 / 结果页）同样不取（网页只取顶层图层；B3.8 发现，主控补呈现页一支）；
         // R14 / B3.6：透明的原生弹层屏（查字 / S02）与底部弹层下面的根页看得见，网页参考同样列出它，照取
-        if let root = stage.rootScreen, stage.isCovered(root) { covered.insert(ObjectIdentifier(root.view)) }
+        if let root = stage.rootScreen, stage.isCovered(root) {
+            covered.insert(ObjectIdentifier(root.view))
+            if let t = stage.tabHost { covered.insert(ObjectIdentifier(t)) } // B3.5d：原生 Tab 栏随根页一起被盖住
+        }
         func walk(_ v: UIView) {
             if v is WKWebView || covered.contains(ObjectIdentifier(v)) { return }
+            // B3.5d：系统 Tab 栏按项取（每个 tab 一个按钮：网页 Tabs 的 tab-* 同形状），不往系统私有子视图里走
+            if let bar = v as? UITabBar {
+                if v.window != nil, visible(v) { out.append(contentsOf: qaTabBarElements(bar, in: window)) }
+                return
+            }
             if v.window != nil, visible(v), v.bounds.width > 0.5, v.bounds.height > 0.5 {
                 let f = v.convert(v.bounds, to: window)
                 let onScreen = f.intersects(window.bounds)
@@ -324,6 +332,57 @@ extension WebViewController {
             for s in v.subviews { walk(s) }
         }
         walk(window)
+        return out
+    }
+
+    /// B3.5d：原生 Tab 栏的三项（语义键 native-tab-<屏名> ↔ 网页 tab-<屏名>）。按钮框 = 系统 Tab 栏里带这个 accessibilityIdentifier 的那一格
+    /// （找不到时按栏宽三等分）；字 / 图标框取格里的标签与图标视图；字色 / 图标色按选中态取 Tab 栏的令牌色，字号字重取 ShiziTabController.labelFont。
+    /// 与网页参考的外观差异（iOS 26 浮起玻璃、格宽、字与图标的位置）是具名豁免 TAB-01（parity.config.json），文案与有无照比。
+    func qaTabBarElements(_ bar: UITabBar, in window: UIWindow) -> [[String: Any]] {
+        guard let items = bar.items else { return [] }
+        var out: [[String: Any]] = []
+        func find(_ v: UIView, _ id: String) -> UIView? {
+            if v.accessibilityIdentifier == id { return v }
+            for s in v.subviews { if let hit = find(s, id) { return hit } }
+            return nil
+        }
+        func firstOf<T: UIView>(_ type: T.Type, in v: UIView) -> T? {
+            if let t = v as? T, !v.isHidden, v.alpha > 0.01, v.bounds.width > 0.5 { return t }
+            for s in v.subviews { if let hit = firstOf(type, in: s) { return hit } }
+            return nil
+        }
+        func findLabel(_ v: UIView, _ text: String) -> UILabel? {
+            if let l = v as? UILabel, l.text == text, !l.isHidden, l.alpha > 0.01, l.window != nil { return l }
+            for s in v.subviews { if let hit = findLabel(s, text) { return hit } }
+            return nil
+        }
+        func rect(_ f: CGRect) -> [String: Double] { ["x": r(f.minX), "y": r(f.minY), "w": r(f.width), "h": r(f.height)] }
+        let barFrame = bar.convert(bar.bounds, to: window)
+        for (i, item) in items.enumerated() {
+            let id = item.accessibilityIdentifier ?? "native-tab-\(i)"
+            let selected = bar.selectedItem === item
+            // 系统 Tab 栏里这一格：带 accessibilityIdentifier 的视图；iOS 26 不把它带到格视图上时，按标题找格里的标签、往上取类名带 Button 的那一层
+            var cell = find(bar, id)
+            if cell == nil, let title = item.title, let label = findLabel(bar, title) {
+                var anc: UIView? = label.superview
+                while let a = anc, a !== bar, !String(describing: type(of: a)).contains("Button") { anc = a.superview }
+                cell = (anc === bar || anc == nil) ? label.superview : anc
+            }
+            let w = barFrame.width / CGFloat(items.count)
+            let f = cell.map { $0.convert($0.bounds, to: window) } ?? CGRect(x: barFrame.minX + w * CGFloat(i), y: barFrame.minY, width: w, height: min(barFrame.height, 49))
+            var e: [String: Any] = ["kind": "button", "id": id, "text": item.title ?? "", "enabled": item.isEnabled, "layer": "tabBar", "class": "UITabBarItem",
+                                    "frame": rect(f), "axLabel": item.title ?? "", "selected": selected,
+                                    "color": hex(selected ? bar.tintColor : bar.unselectedItemTintColor, bar),
+                                    "fontSize": ShiziTabController.labelFont.pointSize, "fontWeight": weight(ShiziTabController.labelFont), "hasIcon": item.image != nil]
+            if let cell {
+                // 看得见的部分 = 图标 ∪ 标签（系统格的点按区左右互相搭一点，AX-01 的「不互相压住」比的是看得见的字与图标）
+                var seen = CGRect.null
+                if let l = firstOf(UILabel.self, in: cell) { let lf = l.convert(l.bounds, to: window); e["textFrame"] = rect(lf); seen = seen.union(lf) }
+                if let iv = firstOf(UIImageView.self, in: cell) { let fi = iv.convert(iv.bounds, to: window); e["iconFrame"] = rect(fi); seen = seen.union(fi) }
+                if !seen.isNull { e["visibleFrame"] = rect(seen) }
+            }
+            out.append(e)
+        }
         return out
     }
 
@@ -547,6 +606,7 @@ final class QAProbe {
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
         var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies]
         if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
+        if let tabs = host.stage.tabsProbe { stageOut["tabs"] = tabs } // B3.5d：原生 Tab 栏（看得见、选中的 tab）
         // R14：宿主往上的呈现链（类名，底 → 顶；写字 / 结果 / 原生页 / 弹层都在里面）——测试工具判断「左缘返回有没有发生任何事」用
         var chain: [String] = []
         var cur = host.presentedViewController

@@ -3,7 +3,7 @@
 //   2. 写入 op（home.start / resumeOther / deferSpecial）调的是网页首页同一个函数：同一组输入分别走两条路，整份 store deepEqual、commit 序列相同、路由栈相同；
 //   3. D07：写失败回 {ok:false, error:{kind}}、store 不动，重试只记一次；stale：撤销机会已没有时 home.undoLeave 回 stale；
 //   4. D62：原生主按钮的真实矩形记成写字页 T-paper 的来源，返回时纸缩回原生报的「此刻」矩形；
-//   5. tab 根页的闸：原生有类也要 __shiziNativeRoots 才显示（B3.5d 与 Tab 栏同开）；根页被网页页面 / 弹层盖住时让开。
+//   5. tab 根页：原生有类即显示（B3.5d 与原生 Tab 栏同开，闸已删）；根页被网页页面 / 弹层盖住时让开。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryStorage } from '../store/helpers.mjs';
@@ -178,12 +178,10 @@ test('B3.5a D62: the native CTA rect is the write page T-paper source, the way b
   setNativeLiveSource('home-start', null);
 });
 
-test('B3.5a tab roots stay web until __shiziNativeRoots (B3.5d flips all three with the tab bar); covered by web pages / overlays', () => {
+test('B3.5d tab roots are native with the native tab bar (no roots gate); covered by web pages / overlays', () => {
   const win = { __shiziNative: true, __shiziNativeWriteForce: true, __shiziNativeScreens: ['home', 'about'] };
-  assert.equal(nativeScreenOn('home', win), false, 'root gated');
-  assert.equal(nativeScreenOn('about', win), true, 'pushed pages are not gated');
-  win.__shiziNativeRoots = true;
-  assert.equal(nativeScreenOn('home', win), true);
+  assert.equal(nativeScreenOn('home', win), true, 'root native without any extra flag');
+  assert.equal(nativeScreenOn('about', win), true);
   registerScreen('b35a-web', () => null, {});
   try {
     const rootE = { k: 's', id: 'e1', n: 'home' };

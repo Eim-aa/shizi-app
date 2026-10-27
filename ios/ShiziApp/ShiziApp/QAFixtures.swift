@@ -18,7 +18,7 @@ import WebKit
 //   clock       {"pin": "2026-10-22T09:00:00"}：造数据期间把页面时钟钉在这个时刻（每次读数 +5ms，顺序确定），造完（unpinClock 或 setup 结束）从那一刻起照常流逝；
 //               全 App 的钟随之平移（QAClock，B2.9b）。缺省 = 用真实时间
 //   setup       页面里依次执行的操作：[{op, …}]，op = States/_ops/<op>.js（加新 op 只加文件）；ctx 与 a 见 qaRunJS 前导
-//   ready       等页面出现：{rootsOnly?: true（tab 根页：原生版只在 -shizi-native-roots 时等原生，没开按网页等）, web: <顶层图层里的 data-testid>, webSelector?: <css>, native: "write"|"result"|"redo"|"id:<accessibilityIdentifier>", timeout: 秒}
+//   ready       等页面出现：{web: <顶层图层里的 data-testid>, webSelector?: <css>, native: "write"|"result"|"redo"|"id:<accessibilityIdentifier>", timeout: 秒}
 //   settleBefore 页面出现后先等几毫秒（0.4s 防误点等）
 //   steps       界面上的操作：{tap:{web:<css>, webTestid:<id>, native:<id>, nativeSelector?:<选择器名>}, times, gap?} | {wait:ms} | {ready:{…}}
 //               | {strokes:"redo"} | {js:"<函数体>"}（只网页）| {repeat:n, steps:[…]}
@@ -153,9 +153,7 @@ extension WebViewController {
 
     private func qaWaitReady(_ r: [String: Any], ui: String) async -> String? {
         let timeout = (r["timeout"] as? NSNumber)?.doubleValue ?? 5
-        // rootsOnly（B3.5c）：tab 根页的原生版只在根页开关打开时才有（-shizi-native-roots）；没开时这个状态的起点还是网页根页，按网页等
-        let rootsOn = ProcessInfo.processInfo.arguments.contains("-shizi-native-roots") || ProcessInfo.processInfo.environment["SHIZI_NATIVE_ROOTS"] == "1"
-        if ui == "native", (r["rootsOnly"] as? Bool) != true || rootsOn {
+        if ui == "native" {
             guard let spec = r["native"] as? String else { return nil }
             guard await qaWait(timeout, { self.qaNativeReady(spec) }) else { return "native page did not appear (\(spec)) top=\(stage.topScreen?.screen ?? "nil") presented=\(String(describing: presentedViewController.map { String(describing: type(of: $0)) })) being=\(String(describing: presentedViewController?.isBeingPresented)) running=\(NativeWriteTransitions.running)" }
         } else {

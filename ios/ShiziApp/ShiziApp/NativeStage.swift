@@ -99,9 +99,8 @@ final class NativeStage: NSObject {
     /// 文档开始注入：原生开关、有类的屏名清单（网页 ui/native-stage.js 读）。
     static func userScript() -> String {
         let list = (try? JSONSerialization.data(withJSONObject: ShiziScreenRegistry.screens)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
-        // B3.5a：tab 根页原生到 B3.5d 才与 Tab 栏同开；之前只有 -shizi-native-roots（或 QA 夹具 op nativeRoots）打开（网页 native-stage.js nativeRootsOn）
-        let roots = ProcessInfo.processInfo.arguments.contains("-shizi-native-roots") ? " window.__shiziNativeRoots = true;" : ""
-        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziNativeScreens = \(list);" + roots
+        // B3.5d：tab 根页与原生 Tab 栏同开（B3.5a 的根页闸 -shizi-native-roots / __shiziNativeRoots 已删）
+        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziNativeScreens = \(list);"
     }
 
     // MARK: 页面推来的消息（type 'native'）
@@ -159,6 +158,94 @@ final class NativeStage: NSObject {
         return r
     }
 
+    // MARK: Tab 栏（B3.5d；计划 §3.3 段 1 末、§7 第 3 条、D73 ③）
+    //
+    // 系统 UITabBarController 作段 1 的原生层根：它的视图（包在 ShiziTabHostView 里）插在 WKWebView 正上方，三个 tab 各一个占位控制器
+    // （ShiziTabSlot），此刻的原生根页是选中那一格的子控制器、只铺到 Tab 栏上沿。导航真相仍是网页路由：点别的 tab → nav.tab，网页切 tab 后
+    // 旧根页 close、新根页 open，这里随之换选中格（无动画、无触觉）；再点当前 tab → 根页滚回顶部（N6）。Tab 栏只在根页看得见时出现：
+    // 推入的原生页、写字 / 结果页、弹层都呈现在宿主上面（盖住它）；网页页面 / 网页弹层盖上根页时连同 Tab 栏一起让开（截图连 Tab 栏交给网页）。
+    // 与网页参考（Tabs.js）的外观差异是具名豁免 TAB-01（parity.config.json）。
+
+    /// Tab 栏控制器（第一次打开根页时建；之后一直在，没有根页时藏起）。
+    private(set) var tabs: ShiziTabController?
+    /// 包 Tab 栏控制器视图的宿主视图（让开 / 没有根页时整个藏起；上面有模态层时对读屏藏起）。
+    private(set) var tabHost: ShiziTabHostView?
+
+    private func ensureTabs() -> ShiziTabController {
+        if let t = tabs { return t }
+        let t = ShiziTabController()
+        let hostView = ShiziTabHostView(frame: host.view.bounds)
+        hostView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        hostView.backgroundColor = .clear
+        hostView.hiddenFromAccessibility = { [weak self] in self?.hostHasModal ?? false }
+        host.addChild(t)
+        t.view.frame = hostView.bounds
+        t.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        hostView.addSubview(t.view)
+        host.view.insertSubview(hostView, aboveSubview: host.webView)
+        t.didMove(toParent: host)
+        t.onSelect = { [weak self] name in self?.tabTapped(name) }
+        t.onReselect = { [weak self] _ in self?.scrollRootToTop() }
+        t.onLayout = { [weak self] in self?.layoutRoot() }
+        tabs = t
+        tabHost = hostView
+        return t
+    }
+
+    /// Tab 栏的宿主视图跟根页走：有根页且没让开才看得见。
+    private func syncTabHost() {
+        guard let hostView = tabHost else { return }
+        hostView.isHidden = rootScreen.map { $0.view.isHidden } ?? true
+    }
+
+    /// 点了另一个 tab：交给网页路由（nav.tab）；选中格等新根页 open 时再换（真相在网页）。
+    private func tabTapped(_ name: String) {
+        guard rootScreen != nil, host.presentedViewController == nil else { return }
+        ShiziProbe.note("tab:select \(name)")
+        engine.raw("nav.tab", ["name": name]) { reply in
+            if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: nav.tab \(name) failed \(reply)") }
+        }
+    }
+
+    /// 再点当前 tab：根页滚回顶部（已在顶部什么都不做；减少动态效果时直接到顶，同网页 TabRoot onReselect）。
+    func scrollRootToTop() {
+        guard let r = rootScreen, let sv = Self.mainScroll(of: r) else { return }
+        let top = -sv.adjustedContentInset.top
+        guard sv.contentOffset.y > top + 0.5 else { return }
+        ShiziProbe.note("tab:top \(r.screen)")
+        sv.setContentOffset(CGPoint(x: sv.contentOffset.x, y: top), animated: !(ShiziProbe.forceReduceMotion || UIAccessibility.isReduceMotionEnabled))
+    }
+
+    /// 根页的主滚动区：页面骨架的 scroll（在视图树里时），否则视图树里第一个占了大半高度的竖向滚动区。
+    static func mainScroll(of page: ShiziScreenViewController) -> UIScrollView? {
+        if page.scroll.window != nil, page.scroll.bounds.height > 0 { return page.scroll }
+        var queue: [UIView] = [page.view]
+        while !queue.isEmpty {
+            let v = queue.removeFirst()
+            if let sv = v as? UIScrollView, !(v is UITextView), v !== page.view, sv.bounds.height > page.view.bounds.height * 0.5 { return sv }
+            queue.append(contentsOf: v.subviews)
+        }
+        return nil
+    }
+
+    /// 让给网页时交给宿主层的「样子」：根页连同 Tab 栏（网页那边截图铺满整个 tab 图层，B3.5d 起网页不画自己的 Tab 栏），其余原生页是它自己。
+    func coverView(of page: ShiziScreenViewController) -> UIView {
+        if page === rootScreen, let hostView = tabHost, !hostView.isHidden { return hostView }
+        return page.view
+    }
+
+    /// 原生根页（连同 Tab 栏）此刻看得见（网页内容在它下面，对读屏藏起：WebViewController）。
+    var rootShown: Bool { tabHost.map { !$0.isHidden } ?? false }
+
+    /// 探针：Tab 栏（看得见、选中的 tab、栏的框）。
+    var tabsProbe: [String: Any]? {
+        guard let t = tabs, let hostView = tabHost else { return nil }
+        let f = t.tabBar.convert(t.tabBar.bounds, to: host.view)
+        return ["shown": !hostView.isHidden && hostView.window != nil, "selected": t.selectedScreen ?? "",
+                "frame": [f.minX, f.minY, f.width, f.height], "a11yHidden": hostView.accessibilityElementsHidden,
+                "rootScrollY": rootScreen.flatMap { Self.mainScroll(of: $0) }.map { Double($0.contentOffset.y + $0.adjustedContentInset.top) } ?? 0]
+    }
+
     // MARK: tab 根页（B3.5a）
     //
     // 原生 tab 根页不是呈现出来的覆盖页，而是 WebViewController 的子控制器、视图插在 WKWebView 正上方，只盖到 Tab 栏上沿（Tab 栏仍是网页的，
@@ -170,11 +257,18 @@ final class NativeStage: NSObject {
     /// 页面重载后根页被重新认领过（没有 = 等待时间到了收掉）。
     private var rootClaimed = true
 
-    /// Tab 栏的高（网页 Tabs.js：49 + 下安全区），原生根页只盖到它上沿。
+    /// 原生根页的框（所在 tab 格的坐标）：铺到原生 Tab 栏上沿（B3.5d；栏还没排版时按网页 Tabs.js 的 49 + 下安全区）。
     private var rootFrame: CGRect {
         let b = host.view.bounds
-        let bar = 49 + host.view.safeAreaInsets.bottom
-        return CGRect(x: 0, y: 0, width: b.width, height: max(0, b.height - bar))
+        var barTop = b.height - (49 + host.view.safeAreaInsets.bottom)
+        if let t = tabs, t.tabBar.bounds.height > 0 { barTop = t.tabBar.convert(t.tabBar.bounds, to: t.view).minY }
+        return CGRect(x: 0, y: 0, width: b.width, height: max(0, barTop))
+    }
+
+    /// Tab 栏排版后（转屏、安全区变化）把根页对齐到栏上沿。
+    private func layoutRoot() {
+        guard let r = rootScreen, r.view.frame != rootFrame else { return }
+        r.view.frame = rootFrame
     }
 
     private func openRoot(_ body: [String: Any], done: @escaping () -> Void) {
@@ -195,16 +289,21 @@ final class NativeStage: NSObject {
             return
         }
         removeRoot()
+        // B3.5d：根页挂在 Tab 栏控制器里它那一格下面（选中格跟网页路由走，切换无动画）
+        let t = ensureTabs()
+        let slot = t.select(name)
+        let parent: UIViewController = slot ?? host
         let vc = cls.init(screen: name, entryId: entryId, params: params)
         vc.stage = self
         vc.apply(payload: payload)
-        host.addChild(vc)
+        parent.addChild(vc)
         vc.view.frame = rootFrame
         vc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        host.view.insertSubview(vc.view, aboveSubview: host.webView)
-        vc.didMove(toParent: host)
+        if let slot { slot.view.addSubview(vc.view) } else { host.view.insertSubview(vc.view, aboveSubview: tabHost ?? host.webView) }
+        vc.didMove(toParent: parent)
         rootScreen = vc
         vc.view.isHidden = covered
+        syncTabHost()
         done()
     }
 
@@ -220,12 +319,14 @@ final class NativeStage: NSObject {
         if !hidden {
             r.view.isHidden = false
             r.view.frame = rootFrame
+            syncTabHost()
             done()
             return
         }
         guard !r.view.isHidden else { done(); return }
-        engine.raw("stage.fence", [:]) { [weak r] _ in
+        engine.raw("stage.fence", [:]) { [weak self, weak r] _ in
             r?.view.isHidden = true
+            self?.syncTabHost()
             done()
         }
     }
@@ -248,6 +349,7 @@ final class NativeStage: NSObject {
         r.willMove(toParent: nil)
         r.view.removeFromSuperview()
         r.removeFromParent()
+        syncTabHost()
     }
 
     /// 探针：原生根页（屏名、是否藏着、页面自己的摘要）。
@@ -493,7 +595,7 @@ final class NativeStage: NSObject {
     func yieldToWeb(from page: ShiziScreenViewController, go: @escaping () -> Void) {
         tapAt = nil
         page.transitions.finishNow()
-        let url = WebViewController.snapshotURL(page.view)
+        let url = WebViewController.snapshotURL(coverView(of: page))
         var args: [String: Any] = ["entryId": page.entryId]
         if let url { args["url"] = url }
         ShiziProbe.note("yield:screen")
@@ -514,7 +616,7 @@ final class NativeStage: NSObject {
         guard isTop(page), !page.transitions.isLeaving else { return }
         tapAt = nil
         page.transitions.finishNow()
-        let url = WebViewController.snapshotURL(page.view)
+        let url = WebViewController.snapshotURL(coverView(of: page))
         var coverArgs: [String: Any] = ["entryId": page.entryId]
         if let url { coverArgs["url"] = url }
         ShiziProbe.note("yield:op \(op)")
@@ -1137,5 +1239,178 @@ enum NativeResultCover {
         token += 1
         current?.removeFromSuperview()
         current = nil
+    }
+}
+
+// MARK: - Tab 栏（B3.5d）
+
+/// 原生 Tab 栏的宿主视图（NativeStage.tabHost）：根页让开 / 没有根页时整个藏起；宿主上呈现着任何模态层时对读屏藏起（R16 同一条规则，同 ShiziWebView）。
+final class ShiziTabHostView: UIView {
+    var hiddenFromAccessibility: () -> Bool = { false }
+
+    override var accessibilityElementsHidden: Bool {
+        get { super.accessibilityElementsHidden || hiddenFromAccessibility() }
+        set { super.accessibilityElementsHidden = newValue }
+    }
+}
+
+/// 一个 tab 的占位控制器：此刻的原生根页是它的子控制器（只有选中格里有根页）。
+final class ShiziTabSlot: UIViewController {
+    let screen: String
+
+    init(screen: String) {
+        self.screen = screen
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func loadView() {
+        let v = UIView()
+        v.backgroundColor = .clear
+        view = v
+    }
+}
+
+/// 系统 Tab 栏（D73 ③：UITabBarController，iOS 26 浮起玻璃样式，颜色取令牌）。三个 tab 的顺序、文案、图标同网页 Tabs（registerScreen order、
+/// X-TABS.*、tab-icons.js 线描 / 实心）；标签 11 / 500 固定不随字号放大（D49，AX 档长按出系统大字预览）；选中 ink1、未选 ink3。
+/// 选中格只由 NativeStage 按网页路由设（select）；点按一律不直接切换（shouldSelect 返回 false），交给 onSelect / onReselect。
+final class ShiziTabController: UITabBarController, UITabBarControllerDelegate {
+    /// tab 屏名（顺序 = 网页 registerScreen 的 order）与文案键。
+    static let tabs: [(screen: String, copy: String)] = [("home", "X-TABS.write"), ("library", "X-TABS.library"), ("mine", "X-TABS.mine")]
+
+    var onSelect: ((String) -> Void)?
+    var onReselect: ((String) -> Void)?
+    var onLayout: (() -> Void)?
+
+    var slots: [ShiziTabSlot] { (viewControllers ?? []).compactMap { $0 as? ShiziTabSlot } }
+    var selectedScreen: String? { (selectedViewController as? ShiziTabSlot)?.screen }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        delegate = self
+        // 纸色底（同 WKWebView 的 Paper 颜色集）：根页视图有的透明（我的），截图交给网页时不露黑底
+        view.backgroundColor = UIColor(named: "Paper") ?? ShiziTokens.dynamicColor("paper")
+        definesPresentationContext = false
+        let slots = Self.tabs.map { tab -> ShiziTabSlot in
+            let slot = ShiziTabSlot(screen: tab.screen)
+            let item = UITabBarItem(title: ShiziCopy.t(tab.copy), image: ShiziTabIcon.image(tab.screen, solid: false), selectedImage: ShiziTabIcon.image(tab.screen, solid: true))
+            item.accessibilityIdentifier = "native-tab-\(tab.screen)"
+            slot.tabBarItem = item
+            return slot
+        }
+        setViewControllers(slots, animated: false)
+        applyLook()
+        if #available(iOS 26.0, *) { tabBarMinimizeBehavior = .never }
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        onLayout?()
+    }
+
+    /// 颜色取令牌（随浅 / 深自动切换；「我的 › 外观」强制浅 / 深时跟窗口走）；字 11 / 500 固定。
+    private func applyLook() {
+        let ink1 = ShiziTokens.dynamicColor("ink1") ?? .label
+        let ink3 = ShiziTokens.dynamicColor("ink3") ?? .secondaryLabel
+        let font = Self.labelFont
+        let ap = UITabBarAppearance()
+        ap.configureWithDefaultBackground()
+        for layout in [ap.stackedLayoutAppearance, ap.inlineLayoutAppearance, ap.compactInlineLayoutAppearance] {
+            layout.normal.iconColor = ink3
+            layout.normal.titleTextAttributes = [.foregroundColor: ink3, .font: font]
+            layout.selected.iconColor = ink1
+            layout.selected.titleTextAttributes = [.foregroundColor: ink1, .font: font]
+        }
+        tabBar.standardAppearance = ap
+        tabBar.scrollEdgeAppearance = ap
+        tabBar.tintColor = ink1
+        tabBar.unselectedItemTintColor = ink3
+    }
+
+    /// 标签字（网页 .sz-tabs__tab：11px、500，不读 --k）。
+    static let labelFont = UIFont.systemFont(ofSize: 11, weight: .medium)
+
+    /// 选中 screen 那一格（无动画）；返回那一格（不是 tab 屏 = nil）。
+    @discardableResult
+    func select(_ screen: String) -> ShiziTabSlot? {
+        guard let i = slots.firstIndex(where: { $0.screen == screen }) else { return nil }
+        if selectedIndex != i { UIView.performWithoutAnimation { selectedIndex = i } }
+        return slots[i]
+    }
+
+    func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
+        guard let slot = viewController as? ShiziTabSlot else { return false }
+        if slot === selectedViewController { onReselect?(slot.screen) } else { onSelect?(slot.screen) }
+        return false
+    }
+}
+
+/// Tab 栏图标（网页 components/tab-icons.js 的同一组 24 × 24 路径：未选线描、选中实心；描边 1.5）。模板图，颜色由 Tab 栏的 tint 定。
+enum ShiziTabIcon {
+    static func image(_ screen: String, solid: Bool) -> UIImage? {
+        let r = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))
+        let img = r.image { ctx in
+            let cg = ctx.cgContext
+            UIColor.black.setStroke()
+            UIColor.black.setFill()
+            switch screen {
+            case "home":
+                let p = UIBezierPath()
+                p.move(to: CGPoint(x: 4, y: 10.5)); p.addLine(to: CGPoint(x: 12, y: 4)); p.addLine(to: CGPoint(x: 20, y: 10.5)); p.addLine(to: CGPoint(x: 20, y: 20))
+                p.addLine(to: CGPoint(x: 14.5, y: 20)); p.addLine(to: CGPoint(x: 14.5, y: 14.5)); p.addLine(to: CGPoint(x: 9.5, y: 14.5)); p.addLine(to: CGPoint(x: 9.5, y: 20))
+                p.addLine(to: CGPoint(x: 4, y: 20)); p.close()
+                p.lineWidth = 1.5; p.lineJoinStyle = .round
+                if solid { p.fill() }
+                p.stroke()
+            case "library":
+                let p = UIBezierPath()
+                p.move(to: CGPoint(x: 12, y: 6.5))
+                p.addCurve(to: CGPoint(x: 4, y: 5), controlPoint1: CGPoint(x: 10, y: 5), controlPoint2: CGPoint(x: 7, y: 4.5))
+                p.addLine(to: CGPoint(x: 4, y: 18))
+                p.addCurve(to: CGPoint(x: 12, y: 19.5), controlPoint1: CGPoint(x: 7, y: 17.5), controlPoint2: CGPoint(x: 10, y: 18))
+                p.addCurve(to: CGPoint(x: 20, y: 18), controlPoint1: CGPoint(x: 14, y: 18), controlPoint2: CGPoint(x: 17, y: 17.5))
+                p.addLine(to: CGPoint(x: 20, y: 5))
+                p.addCurve(to: CGPoint(x: 12, y: 6.5), controlPoint1: CGPoint(x: 17, y: 4.5), controlPoint2: CGPoint(x: 14, y: 5))
+                p.close()
+                p.lineWidth = 1.5; p.lineJoinStyle = .round
+                if solid {
+                    p.fill()
+                    p.stroke()
+                    // 实心版书脊是纸色的一道（网页 stroke var(--paper)）：模板图里挖空
+                    let spine = UIBezierPath()
+                    spine.move(to: CGPoint(x: 12, y: 7)); spine.addLine(to: CGPoint(x: 12, y: 19))
+                    spine.lineWidth = 1.5
+                    cg.setBlendMode(.clear)
+                    spine.stroke()
+                    cg.setBlendMode(.normal)
+                } else {
+                    p.stroke()
+                    let spine = UIBezierPath()
+                    spine.move(to: CGPoint(x: 12, y: 6.5)); spine.addLine(to: CGPoint(x: 12, y: 19.5))
+                    spine.lineWidth = 1.5; spine.lineJoinStyle = .round
+                    spine.stroke()
+                }
+            default: // mine
+                let head = UIBezierPath(arcCenter: CGPoint(x: 12, y: 8.5), radius: 3.8, startAngle: 0, endAngle: .pi * 2, clockwise: true)
+                head.lineWidth = 1.5
+                if solid { head.fill() } else { head.stroke() }
+                let body = UIBezierPath()
+                body.move(to: CGPoint(x: 4.5, y: 20))
+                body.addCurve(to: CGPoint(x: 12, y: 14), controlPoint1: CGPoint(x: 5.3, y: 16), controlPoint2: CGPoint(x: 8.3, y: 14))
+                body.addCurve(to: CGPoint(x: 19.5, y: 20), controlPoint1: CGPoint(x: 15.7, y: 14), controlPoint2: CGPoint(x: 18.7, y: 16))
+                body.lineWidth = 1.5
+                if solid {
+                    body.close()
+                    body.lineJoinStyle = .round
+                    body.fill()
+                } else {
+                    body.lineCapStyle = .round
+                }
+                body.stroke()
+            }
+        }
+        return img.withRenderingMode(.alwaysTemplate)
     }
 }

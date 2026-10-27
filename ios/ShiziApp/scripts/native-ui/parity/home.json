@@ -1,21 +1,6 @@
 {
-  "//": "原生首页（B3.5a，tab 根页）的逐项豁免。原生根页只盖 Tab 内容区；Tab 栏到 B3.5d 之前仍是网页 Tabs（不在原生元素清单里），开发入口只在测试宿主。",
+  "//": "原生首页（B3.5a，tab 根页）的逐项豁免。开发入口只在测试宿主。Tab 栏（B3.5d 起原生）的外观差异是全局具名豁免 TAB-01（parity.config.json）。",
   "ignore": [
-    {
-      "label": "tab-home",
-      "aspects": ["missing"],
-      "//": "B3.5a：Tab 栏仍是网页的（同一个 Tabs.js 元素，原生根页不盖它）；B3.5d 换原生 UITabBar 时按 TAB-01 另比"
-    },
-    {
-      "label": "tab-library",
-      "aspects": ["missing"],
-      "//": "同上（网页 Tab 栏）"
-    },
-    {
-      "label": "tab-mine",
-      "aspects": ["missing"],
-      "//": "同上（网页 Tab 栏）"
-    },
     {
       "state": "home-special",
       "sizes": ["AX5"],

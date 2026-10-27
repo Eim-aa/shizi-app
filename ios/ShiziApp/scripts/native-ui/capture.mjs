@@ -45,8 +45,7 @@ async function round(appearance, size, roundStates) {
   rmSync(qa, { recursive: true, force: true });
   mkdirSync(qa, { recursive: true });
   await sleep(600);
-  sim('launch', udid, BUNDLE_ID, '-shizi-test-host', ui === 'native' ? '-shizi-native-write' : '-shizi-native-write-off', ...(ui === 'native' ? ['-shizi-native-roots'] : []), // B3.5c：根页开关（tab 根页的原生版，B3.5d 前默认关；取证时打开）
-   
+  sim('launch', udid, BUNDLE_ID, '-shizi-test-host', ui === 'native' ? '-shizi-native-write' : '-shizi-native-write-off', // B3.5d：tab 根页与原生 Tab 栏随 -shizi-native-write 一起开
     '-shizi-qa', 'parity', '-shizi-qa-ui', ui, '-shizi-qa-states', roundStates.join(','), '-shizi-qa-tag', tag);
   let seen = -1;
   const t0 = Date.now();

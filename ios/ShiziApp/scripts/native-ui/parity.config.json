@@ -8,6 +8,44 @@
     "font": 0.5,
     "weight": 0.1
   },
+  "ignore": [
+    {
+      "waiver": "TAB-01",
+      "label": "tab-home",
+      "aspects": [
+        "position",
+        "size",
+        "color",
+        "font",
+        "icon"
+      ],
+      "//": "TAB-01（D73 ③，计划 §7 第 3 条）：Tab 栏用系统 UITabBarController（iOS 26 浮起的玻璃胶囊：左右各缩进、圆角、选中项有玻璃底、图标与标签在格里的位置由系统排），网页参考是 Tabs.js 的通栏（高 49 + 下安全区、纸色底、顶部发丝线、三等分）。只豁免 Tab 栏三项（tab-home / tab-library / tab-mine）的位置、尺寸、颜色、字号字重与图标框；文案（写字 / 字库 / 我的）、三项有无、可点状态照比。根页内容不豁免（根页只铺到原生 Tab 栏上沿，与网页内容区同高）。负责人统一测试时可改为自画 / 逐 pt 一致（只动 NativeStage.swift ShiziTabController 一处）。"
+    },
+    {
+      "waiver": "TAB-01",
+      "label": "tab-library",
+      "aspects": [
+        "position",
+        "size",
+        "color",
+        "font",
+        "icon"
+      ],
+      "//": "TAB-01（同上）"
+    },
+    {
+      "waiver": "TAB-01",
+      "label": "tab-mine",
+      "aspects": [
+        "position",
+        "size",
+        "color",
+        "font",
+        "icon"
+      ],
+      "//": "TAB-01（同上）"
+    }
+  ],
   "ink": {
     "//": "R11-A（D72 ②）墨迹像素比较：states = 状态 → 墨格的语义键（elements.mjs；网页 / 原生各取自己的框）。同一组注入笔画（NativeQAHarness 两笔）。掩膜：墨格内 N×N（N = 网页墨格边长 pt，1 倍图）、内缩 inset pt 避开格线，与格底亮度差 > max(40, 格内最大差 × threshold) 记为墨。iou = 逐像素交并比下限；iou1 = 容 1 像素（边缘抗锯齿 / 亚像素对位：双方墨点落在对方墨 1 像素内的比例，取小者）下限；thickness = 墨面积比（原生 / 网页，中线相同时 = 平均笔宽比）与 1 的允许偏差（±10%）。 B2.7：结果页取作品第一格（work-cell-0，格内 12% 内边里的墨，网页 paintCellContent 同一线宽倍数），对照弹层取「你写的」小卡。",
     "inset": 2,

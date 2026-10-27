@@ -59,7 +59,8 @@
       "op": "seed"
     },
     {
-      "op": "nativeRoots"
+      "op": "switchTab",
+      "remount": true
     }
   ],
   "ready": {

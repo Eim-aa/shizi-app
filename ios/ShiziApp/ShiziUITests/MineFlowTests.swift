@@ -18,7 +18,7 @@ final class MineFlowTests: XCTestCase {
         return pushed
     }
 
-    /// 「我的」原生（根页开关打开）：探针里原生栈只有 mine。
+    /// 「我的」原生：探针里原生栈只有 mine。
     private func openMine(_ qa: QA) {
         qa.launch()
         qa.waitProbe("native mine") { Self.stack($0) == ["mine"] && ($0["navRunning"] as? Int) == 0 }
@@ -74,7 +74,7 @@ final class MineFlowTests: XCTestCase {
 
     /// 外观三段即时生效（浅 / 深）：点第 3 段（夜间）→ 存下 dark、选中态换过去、原生主题立刻是深色；再点第 2 段（日间）→ 浅。
     func testAppearanceSegmentsApplyAtOnce() throws {
-        let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots"])
+        let qa = QA(seed: "mine-records")
         openMine(qa)
         XCTAssertEqual(themeOverride(qa), 0, "follows the system until a choice is made")
         let seg = options(qa, "native-mine-appearance-option")
@@ -105,10 +105,9 @@ final class MineFlowTests: XCTestCase {
     }
 
     /// 每组字数改了从下一组起生效：点第 1 段（5）→ 存下 5，选中态换过去；失败时行下就地三段式，再试一次成功后收起（D07）。
-    /// 两个入口读同一个设置：重开 App（根页开关关掉，「我的」是网页的）后，首页「开始写字」开成 5 个字的一组，字库「今日练习」续同一组。
-    /// （原生根页是模态盖在网页上的，网页的 Tab 栏在它底下收不到触摸——Tab 栏原生化在 B3.5d，见 D73 ③；根页开关默认关，B3.5c 的出厂状态不受影响。）
+    /// 两个入口读同一个设置：重开 App 后，经原生 Tab 栏（B3.5d）到首页「开始写字」开成 5 个字的一组，字库「今日练习」续同一组。
     func testGroupSizeSyncsHomeAndLibrary() throws {
-        let qa = QA(seed: "mine-records", failNext: 1, extra: ["-shizi-native-roots"])
+        let qa = QA(seed: "mine-records", failNext: 1)
         openMine(qa)
         let seg = options(qa, "native-mine-group-size-option")
         XCTAssertEqual(seg.count, 4)
@@ -120,7 +119,7 @@ final class MineFlowTests: XCTestCase {
         qa.waitProbe("group size 5 saved") { ($0["settings"] as? [String: Any])?["groupSize"] as? Int == 5 }
         XCTAssertFalse(qa.el("native-mine-fail-retry").exists, "the failure block goes away")
         XCTAssertTrue(seg.element(boundBy: 0).isSelected)
-        // 重开（不带根页开关）：原生写的设置留在 store 里，网页的首页 / 字库读同一个值
+        // 重开：原生写的设置留在 store 里，首页 / 字库读同一个值
         qa.relaunchWithoutSeed()
         XCTAssertEqual(settings(qa)["groupSize"] as? Int, 5, "the setting the native page wrote survives a relaunch")
         qa.tap(qa.button("写字"), "home tab") // tab 名的文案是「写字」（copy X-TABS.write），不是架构文档里的旧称
@@ -140,7 +139,7 @@ final class MineFlowTests: XCTestCase {
 
     /// AX5 外观选择弹层：点开底部弹层 → 选「夜间」即写并关，原生窗口外观立刻变深；再点开、用「完成」关掉，设置不变。
     func testAx5AppearanceSheetOpenSelectClose() throws {
-        let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let qa = QA(seed: "mine-records", extra: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         openMine(qa)
         XCTAssertEqual(themeOverride(qa), 0, "follows the system until a choice is made")
         qa.tapNative("native-mine-appearance")
@@ -166,7 +165,7 @@ final class MineFlowTests: XCTestCase {
 
     /// 各行进入子页再返回：提醒 / 换库 / 练习记录 / 年报（网页子页，原生栈收起）左缘返回后回到原生「我的」。
     func testEachRowOpensItsPageAndComesBack() throws {
-        let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots"])
+        let qa = QA(seed: "mine-records")
         openMine(qa)
         let rows: [(String, String)] = [("native-mine-remind", "remind"), ("native-mine-library", "library-switch"),
                                         ("native-mine-sheet-head", "records"), ("native-mine-menu-annual", "annual")]
@@ -187,7 +186,7 @@ final class MineFlowTests: XCTestCase {
 
     /// AX5 改选择弹层：AX 档外观 / 每组字数是「名称 …… 值 ›」，点开底部弹层，选一项即写并关。
     func testAx5ChoiceSheet() throws {
-        let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let qa = QA(seed: "mine-records", extra: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         openMine(qa)
         qa.tapNative("native-mine-group-size")
         XCTAssertTrue(qa.el("native-mine-group-size-sheet").waitForExistence(timeout: 6))
@@ -203,7 +202,7 @@ final class MineFlowTests: XCTestCase {
 
     /// 打开选择弹层不播失败；写失败留在弹层、旧值不变，只在失败时读出三段式说明；重试写同一个目标并关闭。
     func testAx5ChoiceFailureAnnouncesOnlyAfterFailure() throws {
-        let qa = QA(seed: "mine-records", failNext: 1, extra: ["-shizi-native-roots", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let qa = QA(seed: "mine-records", failNext: 1, extra: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         openMine(qa)
         let before = settings(qa)["groupSize"] as? Int
         let failure = "announce:没保存上，刚才的选择没记下。"
@@ -224,7 +223,7 @@ final class MineFlowTests: XCTestCase {
 
     /// Tab 根没有页面返回，但上面的弹层始终可以左缘右滑关闭（N4）；设置没有被改动。
     func testAx5ChoiceSheetEdgeClosesOnlySheet() throws {
-        let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        let qa = QA(seed: "mine-records", extra: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
         openMine(qa)
         let before = settings(qa)["groupSize"] as? Int
         qa.tapNative("native-mine-group-size")
@@ -246,7 +245,7 @@ final class MineFlowTests: XCTestCase {
     /// 让给网页再回来：原生「我的」→ 点练习记录行 → 网页练习记录页（B3.9 合并后改用别的网页页）（原生栈收起）→ 左缘返回 → 原生「我的」盖回来；
     /// 推入原生子页（关于）= 原生栈 [mine, about]，「‹」回到 mine，根页没有「‹」也没有左缘返回。
     func testYieldToWebAndBack() throws {
-        let qa = QA(seed: "mine-records", extra: ["-shizi-native-roots"])
+        let qa = QA(seed: "mine-records")
         openMine(qa)
         XCTAssertFalse(qa.el("native-page-back").isHittable, "a tab root has no back button")
         // 备份页已原生（B3.10）：让给网页改用「练习记录」（B3.9 合并前仍是网页）

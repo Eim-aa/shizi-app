@@ -355,6 +355,7 @@ extension WebViewController {
         while let x = anc {
             if let n = names[ObjectIdentifier(x)], let dot = n.firstIndex(of: "."), ["sheet", "endDialog", "undoBar"].contains(String(n[..<dot])) { return String(n[..<dot]) }
             if names[ObjectIdentifier(x)] == "sheet.view" { return "sheet" }
+            if let vc = x.next as? NativeImagePreviewController, vc.view === x { return "sheet" } // QA-H3c：图片预览弹层也是盖在底页上的一层
             if x is NativeUndoBarView { return "undoBar" }
             if x is NativeEndDialogView { return "endDialog" }
             anc = x.superview
@@ -511,7 +512,9 @@ extension WebViewController {
     /// 不取的视图：原生栈里被盖住的下层页、被盖住的根页（与 Tab 栏）。
     func qaCoveredViews() -> Set<ObjectIdentifier> {
         // B3.2：原生栈里被盖住的下层页不取（网页同样只取顶层图层）
-        var covered = Set(stage.screens.dropLast().map { ObjectIdentifier($0.view) })
+        // QA-H3c：图片预览宿主是透明的一层（弹层从它上面升起，网页参考里底页看得见且照列），它下面的那一页不当作被盖住
+        let screens = stage.screens
+        var covered = Set(screens.indices.dropLast().filter { !(screens[$0 + 1] is ShiziScreen_image_preview) }.map { ObjectIdentifier(screens[$0].view) })
         // 根页被盖住（NativeStage.isCovered：呈现链里有不透明的原生子页或写字 / 结果页）同样不取（网页只取顶层图层；B3.8 发现，主控补呈现页一支）；
         // R14 / B3.6：透明的原生弹层屏（查字 / S02）与底部弹层下面的根页看得见，网页参考同样列出它，照取
         if let root = stage.rootScreen, stage.isCovered(root) {

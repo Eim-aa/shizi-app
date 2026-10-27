@@ -168,6 +168,7 @@ final class BackupConfirmView: UIView {
         let inner = w - 40
         let size = panelSize(width: bounds.width)
         panel.frame = CGRect(x: gutter, y: (bounds.height - size.height) / 2, width: w, height: size.height)
+        ShiziElev.apply(panel, dark: traitCollection.userInterfaceStyle == .dark) // --elev-shadow：影子 + 上沿发丝线（同 ShiziConfirm）
         let titleH = mt.line("lh22")
         titleLabel.frame = CGRect(x: 20, y: 24, width: inner, height: titleH)
         var y = 24 + titleH + 12
@@ -627,28 +628,30 @@ final class BackupScreen: ShiziScreenViewController {
         let titleH = NativeType.height(restoreRow.label, width: rowW, line: mt.line("lh17s"))
         let subH = hasSub ? NativeType.height(restoreRow.valueLabel, width: rowW, line: mt.line("lh15")) : 0
         let restoreBlock = hasSub ? titleH + 3 + subH : titleH
-        let restoreH = max(52, restoreBlock + 24)       // 网页 .sz-bk__row：内边距 12 上下、最小高 52
-        let clearH = max(52, NativeType.height(clearRow.label, width: rowW, line: mt.line("lh17s")) + 24)
-        restoreRow.frame = CGRect(x: 0, y: 0.5, width: width, height: restoreH)
-        clearRow.frame = CGRect(x: 0, y: 0.5 + restoreH + mt.groupGap, width: width, height: clearH)
+        let hairW = shiziHairline(mt.value("hair"))
+        let restoreH = max(52, restoreBlock + 24 + hairW) // 网页 .sz-bk__row（border-box）：内边距 12 上下 + 下边线、最小高 52
+        let clearH = max(52, NativeType.height(clearRow.label, width: rowW, line: mt.line("lh17s")) + 24 + hairW)
+        restoreRow.frame = CGRect(x: 0, y: hairW, width: width, height: restoreH) // 列表上边线占 hair（不是 0.5）
+        restoreRow.chevronFrame = CGRect(x: width - 8, y: (restoreH - hairW - 13) / 2, width: 8, height: 13) // 行框的下边线占 hair：chevron 在内容框里居中
+        clearRow.frame = CGRect(x: 0, y: hairW + restoreH + mt.groupGap, width: width, height: clearH)
         // 行内文字（网页 .sz-bk__rowl：主文字 17 / 22，副文字 15 / 22，间距 3；整块竖向居中）
         if hasSub {
-            let top = (restoreH - restoreBlock) / 2
+            let top = (restoreH - hairW - restoreBlock) / 2
             restoreRow.label.frame = CGRect(x: 0, y: top, width: rowW, height: titleH)
             restoreRow.valueLabel.frame = CGRect(x: 0, y: top + titleH + 3, width: rowW, height: subH)
             restoreRow.valueLabel.isHidden = false
         } else {
-            restoreRow.label.frame = CGRect(x: 0, y: (restoreH - titleH) / 2, width: rowW, height: titleH)
+            restoreRow.label.frame = CGRect(x: 0, y: (restoreH - hairW - titleH) / 2, width: rowW, height: titleH)
             restoreRow.valueLabel.isHidden = true
         }
-        clearRow.label.frame = CGRect(x: 0, y: (clearH - NativeType.height(clearRow.label, width: rowW, line: mt.line("lh17s"))) / 2, width: rowW, height: NativeType.height(clearRow.label, width: rowW, line: mt.line("lh17s")))
+        clearRow.label.frame = CGRect(x: 0, y: (clearH - hairW - NativeType.height(clearRow.label, width: rowW, line: mt.line("lh17s"))) / 2, width: rowW, height: NativeType.height(clearRow.label, width: rowW, line: mt.line("lh17s")))
         // 可点状态（网页：没有记录时导出与清空都禁用）
         let has = m.hasRecords
         clearRow.isEnabled = has
         clearRow.label.textColor = has ? color("ink1") : color("ink4")
         restoreRow.isEnabled = true
         restoreRow.isUserInteractionEnabled = true
-        listView.frame = CGRect(x: 0, y: listTop, width: width, height: 0.5 + restoreH + mt.groupGap + clearH)
+        listView.frame = CGRect(x: 0, y: listTop, width: width, height: hairW + restoreH + mt.groupGap + clearH)
         // 发丝线（网页 border-box：行的上 / 下边线画在行框以内）
         let hair = shiziHairline(mt.value("hair"))
         listLines.forEach { $0.backgroundColor = color("line") }

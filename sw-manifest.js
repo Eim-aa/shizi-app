@@ -1,7 +1,7 @@
 // 由 scripts/build_shell_manifest.mjs 生成，勿手改。sw.js 以 importScripts('./sw-manifest.js') 读取（01 §8.3）。
 // 升级的唯一入口：本文件或 sw.js 的字节变化 → 浏览器装新 worker。build 与 src/build-info.js、index.html meta 同源。
 self.SHIZI_SW_MANIFEST = {
-  build: "20261026-478330b247a9",
+  build: "20261027-c35543f459fc",
   // 核心壳：Cache.addAll 原子预缓存，任何一项失败 = 安装失败
   shell: [
     "core-strokes.js?v=0c49190f86d3",
@@ -57,8 +57,10 @@ self.SHIZI_SW_MANIFEST = {
     "src/core/images/render.js",
     "src/core/images/shi-paths.js",
     "src/core/images/work.js",
+    "src/core/ink-build.js",
     "src/core/ink-math.js",
     "src/core/ink-pick.js",
+    "src/core/line-starts.js",
     "src/core/mix.js",
     "src/core/new-order.js",
     "src/core/query.js",
@@ -135,6 +137,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/session/views/library.js",
     "src/session/views/lines.js",
     "src/session/views/mine-page.js",
+    "src/session/views/mine-sub.js",
     "src/session/views/mine.js",
     "src/session/views/query.js",
     "src/session/views/session.js",
@@ -225,6 +228,7 @@ self.SHIZI_SW_MANIFEST = {
     "src/ui/screens/mine/choice.js",
     "src/ui/screens/mine/group-size.js",
     "src/ui/screens/mine/index.js",
+    "src/ui/screens/mine/line-starts.js",
     "src/ui/screens/mine/month.js",
     "src/ui/screens/mine/native-view.js",
     "src/ui/screens/mine/prefs.js",

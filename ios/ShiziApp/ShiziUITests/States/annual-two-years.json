@@ -1,0 +1,52 @@
+{
+  "state": "annual-two-years",
+  "name": "年报 · 两年（流程测试用：切年份）",
+  "screen": "annual",
+  "native": false,
+  "parity": false,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2025-03-03",
+        "days": 90,
+        "perDay": 1,
+        "chars": "一二三四五六七八九十上下左右前后东西南北春夏秋冬红黄蓝绿白黑",
+        "seed": 3,
+        "wrongEvery": 11
+      }
+    },
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2026-08-03",
+        "days": 20,
+        "perDay": 1,
+        "chars": "永和春日月山水火木金土",
+        "seed": 5,
+        "wrongEvery": 9
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "annual",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "annual-screen",
+    "native": "id:native-annual-body",
+    "timeout": 20
+  }
+}

@@ -7302,8 +7302,10 @@ src/core/images/pick.js
 src/core/images/render.js
 src/core/images/shi-paths.js
 src/core/images/work.js
+src/core/ink-build.js
 src/core/ink-math.js
 src/core/ink-pick.js
+src/core/line-starts.js
 src/core/mix.js
 src/core/new-order.js
 src/core/query.js
@@ -7380,6 +7382,7 @@ src/session/views/library-switch.js
 src/session/views/library.js
 src/session/views/lines.js
 src/session/views/mine-page.js
+src/session/views/mine-sub.js
 src/session/views/mine.js
 src/session/views/query.js
 src/session/views/session.js
@@ -7470,6 +7473,7 @@ src/ui/screens/mine/backup.js
 src/ui/screens/mine/choice.js
 src/ui/screens/mine/group-size.js
 src/ui/screens/mine/index.js
+src/ui/screens/mine/line-starts.js
 src/ui/screens/mine/month.js
 src/ui/screens/mine/native-view.js
 src/ui/screens/mine/prefs.js

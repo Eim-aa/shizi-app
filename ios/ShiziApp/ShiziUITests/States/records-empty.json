@@ -2,14 +2,16 @@
   "state": "records-empty",
   "name": "练习记录 · 这个月没有记录（前后月有）",
   "screen": "records",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"
   },
   "ready": {
-    "web": "records-screen"
+    "web": "records-screen",
+    "native": "id:native-records-body",
+    "timeout": 20
   },
   "setup": [
     {

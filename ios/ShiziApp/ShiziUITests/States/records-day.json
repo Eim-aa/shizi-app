@@ -2,7 +2,7 @@
   "state": "records-day",
   "name": "练习记录 · 展开某天",
   "screen": "records",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -111,6 +111,8 @@
     }
   ],
   "ready": {
-    "web": "records-screen"
+    "web": "records-screen",
+    "native": "id:native-records-body",
+    "timeout": 20
   }
 }

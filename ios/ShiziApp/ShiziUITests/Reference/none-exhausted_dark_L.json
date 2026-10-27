@@ -36,6 +36,19 @@
       "tag" : "button"
     }
   ],
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -266,7 +279,76 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 72,
+      "x" : 165,
+      "y" : 284
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 72,
+      "x" : 165,
+      "y" : 355
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 72,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 165,
+      "y" : 284
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 72,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 236,
+      "y" : 284
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 362,
+      "x" : 20,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 362,
+      "x" : 20,
+      "y" : 839
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 20,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 381,
+      "y" : 786
+    }
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

@@ -18,6 +18,25 @@
       "tag" : "img"
     }
   ],
+  "cells" : [
+    {
+      "h" : 482.69999999999999,
+      "kind" : "image",
+      "w" : 362,
+      "x" : 20,
+      "y" : 122
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
   "elements" : [
     {
       "bg" : "#1B1814FF",
@@ -138,7 +157,13 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

@@ -1,4 +1,215 @@
 {
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "关闭",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "首次练习",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "result-share",
+      "name" : "分享这次的图片",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-title",
+      "name" : "这三个字，很多人提笔就忘。",
+      "role" : "heading",
+      "tag" : "h2"
+    },
+    {
+      "id" : "work",
+      "name" : "这次的字：赢、拾，2 个，10月22日",
+      "role" : "group",
+      "tag" : "section"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "赢，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "拾，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-open",
+      "name" : "尴，写错了",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-change",
+      "name" : "修改 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-add",
+      "name" : "把「尴」放进图里",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "result-again",
+      "name" : "再写一组",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-redo",
+      "name" : "重写错字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-done",
+      "name" : "完成",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 181,
+      "kind" : "ink",
+      "w" : 181,
+      "x" : 20,
+      "y" : 340
+    },
+    {
+      "h" : 181,
+      "kind" : "ink",
+      "w" : 181,
+      "x" : 201,
+      "y" : 340
+    },
+    {
+      "h" : 52,
+      "kind" : "ink",
+      "w" : 52,
+      "x" : 20,
+      "y" : 598
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "图",
+      "w" : 47.899999999999999,
+      "x" : 183.69999999999999,
+      "y" : 740
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "里",
+      "w" : 47.899999999999999,
+      "x" : 231.59999999999999,
+      "y" : 740
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "先",
+      "w" : 47.899999999999999,
+      "x" : 20,
+      "y" : 1742
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "再",
+      "w" : 47.899999999999999,
+      "x" : 20,
+      "y" : 588.5
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "写",
+      "w" : 47.899999999999999,
+      "x" : 67.900000000000006,
+      "y" : 588.5
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "一",
+      "w" : 47.899999999999999,
+      "x" : 115.7,
+      "y" : 588.5
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "组",
+      "w" : 47.899999999999999,
+      "x" : 163.59999999999999,
+      "y" : 588.5
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "重",
+      "w" : 47.899999999999999,
+      "x" : 20,
+      "y" : 664.20000000000005
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#26211DFF",
+      "h" : 20,
+      "kind" : "icon",
+      "w" : 20,
+      "x" : 15.800000000000001,
+      "y" : 74
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 364.30000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 358,
+      "y" : 535
+    },
+    {
+      "color" : "#B03A27FF",
+      "h" : 5,
+      "kind" : "circle",
+      "w" : 5,
+      "x" : 61.200000000000003,
+      "y" : 600.39999999999998
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -463,7 +674,328 @@
       }
     }
   ],
+  "offscreen" : [
+    {
+      "class" : "sz-result__remind",
+      "frame" : {
+        "h" : 600,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1209.9000000000001
+      },
+      "id" : "result-remind-slot",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "div"
+    },
+    {
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.33333299999999999,
+      "class" : "sz-invite sz-invite--in",
+      "frame" : {
+        "h" : 600,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1209.9000000000001
+      },
+      "id" : "result-invite",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "div"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-invite__title",
+      "color" : "#26211DFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 186,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1226.2
+      },
+      "id" : "result-invite-title",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "明天这个时候，给你一个词？",
+      "textFrame" : {
+        "h" : 188,
+        "w" : 258.80000000000001,
+        "x" : 20,
+        "y" : 1225.2
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-invite__body",
+      "color" : "#6E655BFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 208,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1416.2
+      },
+      "id" : "result-invite-body",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "锁屏只显示词语和拼音，如「尬（gān）」，先在心里写一遍。",
+      "textFrame" : {
+        "h" : 209,
+        "w" : 328.60000000000002,
+        "x" : 20,
+        "y" : 1415.2
+      }
+    },
+    {
+      "axLabel" : "空着的字",
+      "border" : "#95826BFF",
+      "borderWidth" : 1,
+      "class" : "sz-blankbox",
+      "frame" : {
+        "h" : 39.600000000000001,
+        "w" : 39.600000000000001,
+        "x" : 280.69999999999999,
+        "y" : 1474.9000000000001
+      },
+      "id" : "result-invite-blank",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "span"
+    },
+    {
+      "class" : "sz-invite__acts",
+      "frame" : {
+        "h" : 171.69999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1638.2
+      },
+      "id" : "result-invite-actions",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "div"
+    },
+    {
+      "align" : "center",
+      "class" : "sz-btn sz-btn--secondary",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0.23000000000000001,
+      "frame" : {
+        "h" : 88,
+        "w" : 235.40000000000001,
+        "x" : 20,
+        "y" : 1638.2
+      },
+      "id" : "result-invite-yes",
+      "kind" : "button",
+      "off" : true,
+      "radius" : 12,
+      "tag" : "button",
+      "text" : "开启提醒",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 191.40000000000001,
+        "x" : 42,
+        "y" : 1652.2
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 75.700000000000003,
+        "w" : 151.59999999999999,
+        "x" : 16,
+        "y" : 1734.2
+      },
+      "id" : "result-invite-no",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "先不用",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 143.59999999999999,
+        "x" : 20,
+        "y" : 1742
+      }
+    }
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 181,
+      "src" : "thin",
+      "w" : 0.80000000000000004,
+      "x" : 200.30000000000001,
+      "y" : 340
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 340
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 520
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 181,
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 340
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 181,
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 340
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 20.699999999999999,
+      "x" : 359.69999999999999,
+      "y" : 536.70000000000005
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 20.699999999999999,
+      "x" : 359.69999999999999,
+      "y" : 556.29999999999995
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 20.699999999999999,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 359.69999999999999,
+      "y" : 536.70000000000005
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 20.699999999999999,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 379.30000000000001,
+      "y" : 536.70000000000005
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1209.9000000000001
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 39.600000000000001,
+      "x" : 280.69999999999999,
+      "y" : 1474.9000000000001
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 39.600000000000001,
+      "x" : 280.69999999999999,
+      "y" : 1513.5
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 39.600000000000001,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 280.69999999999999,
+      "y" : 1474.9000000000001
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 39.600000000000001,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 319.30000000000001,
+      "y" : 1474.9000000000001
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "shadow",
+      "w" : 235.40000000000001,
+      "x" : 20,
+      "y" : 1638.2
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 1,
+      "off" : true,
+      "src" : "shadow",
+      "w" : 235.40000000000001,
+      "x" : 20,
+      "y" : 1725.2
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 88,
+      "off" : true,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 20,
+      "y" : 1638.2
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 88,
+      "off" : true,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 254.40000000000001,
+      "y" : 1638.2
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "src" : "shadow",
+      "w" : 402,
+      "x" : 0,
+      "y" : 568.10000000000002
+    }
+  ],
   "screen" : {
     "contentSize" : "AX5",
     "h" : 874,

@@ -123,10 +123,7 @@ final class NativeEndDialogView: UIView {
         scrim.frame = bounds
         // --elev-shadow：浅色墨 10%（上移 10、模糊 30），深色只有一条极淡的上沿高光
         let dark = traitCollection.userInterfaceStyle == .dark
-        panel.layer.shadowColor = (dark ? UIColor(red: 1, green: 240 / 255, blue: 220 / 255, alpha: 1) : UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 1)).cgColor
-        panel.layer.shadowOpacity = dark ? 0.06 : 0.10
-        panel.layer.shadowRadius = dark ? 0 : 15
-        panel.layer.shadowOffset = CGSize(width: 0, height: dark ? -0.5 : -10)
+        ShiziElev.apply(panel, dark: dark) // --elev-shadow：模糊影子 + 上沿发丝线（ShiziKit ShiziElev）
         let gutter: CGFloat = 20
         let w = bounds.width - 2 * gutter
         let padX: CGFloat = 20

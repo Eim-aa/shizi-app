@@ -36,6 +36,51 @@
       "tag" : "div"
     }
   ],
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#26211DFF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#E4DDD0FF",
+      "h" : 34,
+      "kind" : "circle",
+      "w" : 34,
+      "x" : 303,
+      "y" : 129.5
+    },
+    {
+      "color" : "#564E46FF",
+      "h" : 18,
+      "kind" : "icon",
+      "w" : 18,
+      "x" : 311,
+      "y" : 137.5
+    },
+    {
+      "color" : "#E4DDD0FF",
+      "h" : 34,
+      "kind" : "circle",
+      "w" : 34,
+      "x" : 351,
+      "y" : 129.5
+    },
+    {
+      "color" : "#564E46FF",
+      "h" : 18,
+      "kind" : "icon",
+      "w" : 18,
+      "x" : 359,
+      "y" : 137.5
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -1475,7 +1520,13 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+
+  ],
   "screen" : {
     "contentSize" : "XXXL",
     "h" : 874,

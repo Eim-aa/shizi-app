@@ -1,4 +1,102 @@
 {
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "重写错字",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "redo-progress",
+      "name" : "第 3 个字，共 3 个",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-prompt",
+      "name" : "题目",
+      "role" : "group",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-prompt-cell",
+      "name" : "要写的字，第 2 个，读 guī，一声",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-prompt-hint",
+      "live" : "polite",
+      "name" : "",
+      "role" : "",
+      "srOnly" : true,
+      "tag" : "p",
+      "text" : ""
+    },
+    {
+      "id" : "write-compare-mine",
+      "name" : "你写的，2 笔",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-compare-ref",
+      "name" : "标准写法：龟，guī，7 画，上下结构",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "id" : "redo-again",
+      "name" : "再写一次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "redo-next",
+      "name" : "完成",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 41.600000000000001,
+      "kind" : "ink",
+      "w" : 41.600000000000001,
+      "x" : 154.19999999999999,
+      "y" : 161.19999999999999
+    },
+    {
+      "h" : 231,
+      "kind" : "ink",
+      "w" : 231,
+      "x" : 85.5,
+      "y" : 225
+    },
+    {
+      "h" : 231,
+      "kind" : "ink",
+      "w" : 231,
+      "x" : 85.5,
+      "y" : 457
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -313,7 +411,108 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 52,
+      "x" : 201,
+      "y" : 156
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 52,
+      "x" : 201,
+      "y" : 207
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 52,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 201,
+      "y" : 156
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 52,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 252,
+      "y" : 156
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 233,
+      "x" : 84.5,
+      "y" : 224
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 233,
+      "x" : 84.5,
+      "y" : 456
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 233,
+      "src" : "border",
+      "w" : 1,
+      "x" : 84.5,
+      "y" : 224
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 233,
+      "src" : "border",
+      "w" : 1,
+      "x" : 316.5,
+      "y" : 224
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 233,
+      "x" : 84.5,
+      "y" : 456
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 233,
+      "x" : 84.5,
+      "y" : 688
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 233,
+      "src" : "border",
+      "w" : 1,
+      "x" : 84.5,
+      "y" : 456
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 233,
+      "src" : "border",
+      "w" : 1,
+      "x" : 316.5,
+      "y" : 456
+    }
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

@@ -51,6 +51,385 @@
       "tag" : "button"
     }
   ],
+  "cells" : [
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "全",
+      "w" : 47.899999999999999,
+      "x" : 238.40000000000001,
+      "y" : 61
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "不",
+      "w" : 47.899999999999999,
+      "x" : 286.30000000000001,
+      "y" : 61
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "选",
+      "w" : 47.899999999999999,
+      "x" : 334.10000000000002,
+      "y" : 61
+    },
+    {
+      "h" : 105.59999999999999,
+      "kind" : "ink",
+      "w" : 105.59999999999999,
+      "x" : 59,
+      "y" : 736.20000000000005
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "text" : "地",
+      "w" : 56,
+      "x" : 176.59999999999999,
+      "y" : 496
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "text" : "山",
+      "w" : 57.600000000000001,
+      "x" : 176.59999999999999,
+      "y" : 430
+    },
+    {
+      "h" : 42,
+      "kind" : "ink",
+      "w" : 42,
+      "x" : 262.69999999999999,
+      "y" : 743
+    },
+    {
+      "h" : 105.59999999999999,
+      "kind" : "ink",
+      "off" : true,
+      "w" : 105.59999999999999,
+      "x" : 59,
+      "y" : 1473.2
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "险",
+      "w" : 56,
+      "x" : 176.59999999999999,
+      "y" : 1233
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "风",
+      "w" : 57.600000000000001,
+      "x" : 176.59999999999999,
+      "y" : 1167
+    },
+    {
+      "h" : 42,
+      "kind" : "ink",
+      "off" : true,
+      "w" : 42,
+      "x" : 262.69999999999999,
+      "y" : 1480
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "学",
+      "w" : 56,
+      "x" : 176.59999999999999,
+      "y" : 1904
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "习",
+      "w" : 57.600000000000001,
+      "x" : 176.59999999999999,
+      "y" : 1970
+    },
+    {
+      "h" : 21,
+      "kind" : "ink",
+      "off" : true,
+      "w" : 42,
+      "x" : 262.69999999999999,
+      "y" : 2217
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "字",
+      "w" : 56,
+      "x" : 234.09999999999999,
+      "y" : 2641
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "写",
+      "w" : 57.600000000000001,
+      "x" : 176.59999999999999,
+      "y" : 2641
+    },
+    {
+      "h" : 21,
+      "kind" : "ink",
+      "off" : true,
+      "w" : 42,
+      "x" : 319,
+      "y" : 2830
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "方",
+      "w" : 56,
+      "x" : 234.09999999999999,
+      "y" : 3080
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "地",
+      "w" : 57.600000000000001,
+      "x" : 176.59999999999999,
+      "y" : 3080
+    },
+    {
+      "h" : 21,
+      "kind" : "ink",
+      "off" : true,
+      "w" : 42,
+      "x" : 319,
+      "y" : 3269
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "地",
+      "w" : 56,
+      "x" : 234.09999999999999,
+      "y" : 3519
+    },
+    {
+      "h" : 67,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "土",
+      "w" : 57.600000000000001,
+      "x" : 176.59999999999999,
+      "y" : 3519
+    },
+    {
+      "h" : 21,
+      "kind" : "ink",
+      "off" : true,
+      "w" : 42,
+      "x" : 319,
+      "y" : 3708
+    },
+    {
+      "h" : 64,
+      "kind" : "glyph",
+      "text" : "练",
+      "w" : 51.799999999999997,
+      "x" : 97.5,
+      "y" : 764
+    },
+    {
+      "h" : 64,
+      "kind" : "glyph",
+      "text" : "字",
+      "w" : 51.799999999999997,
+      "x" : 252.80000000000001,
+      "y" : 764
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 80
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 26,
+      "kind" : "circle",
+      "w" : 26,
+      "x" : 20,
+      "y" : 776
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 14,
+      "kind" : "icon",
+      "w" : 14,
+      "x" : 26,
+      "y" : 782
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "w" : 8,
+      "x" : 374,
+      "y" : 782.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 26,
+      "kind" : "circle",
+      "off" : true,
+      "w" : 26,
+      "x" : 20,
+      "y" : 1513
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 14,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 14,
+      "x" : 26,
+      "y" : 1519
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1519.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 26,
+      "kind" : "circle",
+      "off" : true,
+      "w" : 26,
+      "x" : 20,
+      "y" : 2250
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 14,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 14,
+      "x" : 26,
+      "y" : 2256
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2256.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 26,
+      "kind" : "circle",
+      "off" : true,
+      "w" : 26,
+      "x" : 20,
+      "y" : 2838
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 14,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 14,
+      "x" : 26,
+      "y" : 2844
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2844.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 26,
+      "kind" : "circle",
+      "off" : true,
+      "w" : 26,
+      "x" : 20,
+      "y" : 3277
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 14,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 14,
+      "x" : 26,
+      "y" : 3283
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 3283.5
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 26,
+      "kind" : "circle",
+      "off" : true,
+      "w" : 26,
+      "x" : 20,
+      "y" : 3716
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 14,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 14,
+      "x" : 26,
+      "y" : 3722
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 13,
+      "kind" : "icon",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 3722.5
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -349,7 +728,664 @@
       }
     }
   ],
+  "offscreen" : [
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 737,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1158
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「风」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 1504
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 1519
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 736,
+        "w" : 323,
+        "x" : 59,
+        "y" : 1158
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 105.59999999999999,
+        "w" : 105.59999999999999,
+        "x" : 59,
+        "y" : 1473.2
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "风 风险 10月5日写错 · 共 5 次 写错那次",
+      "textFrame" : {
+        "h" : 717,
+        "w" : 304,
+        "x" : 58,
+        "y" : 1167
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 737,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1895
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「习」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 2241
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 2256
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 736,
+        "w" : 323,
+        "x" : 59,
+        "y" : 1895
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 2256.5
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "习 学习 9月26日写错 · 共 3 次 写错那次",
+      "textFrame" : {
+        "h" : 717,
+        "w" : 304,
+        "x" : 58,
+        "y" : 1904
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 439,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2632
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「写」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 2829
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 2844
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 438,
+        "w" : 323,
+        "x" : 59,
+        "y" : 2632
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 2844.5
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "写 写字 最近 8月26日 · 写过 5 次",
+      "textFrame" : {
+        "h" : 419,
+        "w" : 232.09999999999999,
+        "x" : 58,
+        "y" : 2641
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 439,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3071
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「地」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 3268
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 3283
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 438,
+        "w" : 323,
+        "x" : 59,
+        "y" : 3071
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 3283.5
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "地 地方 最近 9月24日 · 写过 5 次",
+      "textFrame" : {
+        "h" : 419,
+        "w" : 232.09999999999999,
+        "x" : 58,
+        "y" : 3080
+      }
+    },
+    {
+      "class" : "sz-lrow",
+      "frame" : {
+        "h" : 439,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3510
+      },
+      "id" : "list-row",
+      "kind" : "view",
+      "off" : true,
+      "tag" : "li"
+    },
+    {
+      "align" : "center",
+      "axLabel" : "取消选择「土」",
+      "class" : "sz-btn sz-btn--plain sz-lrow__sel",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 11,
+        "y" : 3707
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 14,
+        "w" : 14,
+        "x" : 26,
+        "y" : 3722
+      },
+      "id" : "list-row-select",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button"
+    },
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--plain sz-lrow__open",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 438,
+        "w" : 323,
+        "x" : 59,
+        "y" : 3510
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 3722.5
+      },
+      "id" : "list-row-open",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "土 土地 最近 10月12日 · 写过 7 次",
+      "textFrame" : {
+        "h" : 419,
+        "w" : 232.09999999999999,
+        "x" : 58,
+        "y" : 3519
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-list__note",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 116,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3973
+      },
+      "id" : "list-note",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "点圆圈选字，点这一行看记录。",
+      "textFrame" : {
+        "h" : 117,
+        "w" : 335,
+        "x" : 20,
+        "y" : 3972
+      }
+    }
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 420
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1157
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 44,
+      "x" : 261.69999999999999,
+      "y" : 742
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 44,
+      "x" : 261.69999999999999,
+      "y" : 785
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "src" : "border",
+      "w" : 1,
+      "x" : 261.69999999999999,
+      "y" : 742
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "src" : "border",
+      "w" : 1,
+      "x" : 304.69999999999999,
+      "y" : 742
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1894
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 261.69999999999999,
+      "y" : 1479
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 261.69999999999999,
+      "y" : 1522
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 261.69999999999999,
+      "y" : 1479
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 304.69999999999999,
+      "y" : 1479
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2631
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 261.69999999999999,
+      "y" : 2216
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 261.69999999999999,
+      "y" : 2259
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 261.69999999999999,
+      "y" : 2216
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 304.69999999999999,
+      "y" : 2216
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3070
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 318,
+      "y" : 2829
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 318,
+      "y" : 2872
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 318,
+      "y" : 2829
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 361,
+      "y" : 2829
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3509
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 318,
+      "y" : 3268
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 318,
+      "y" : 3311
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 318,
+      "y" : 3268
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 361,
+      "y" : 3268
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3948
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 318,
+      "y" : 3707
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "off" : true,
+      "src" : "border",
+      "w" : 44,
+      "x" : 318,
+      "y" : 3750
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 318,
+      "y" : 3707
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 44,
+      "off" : true,
+      "src" : "border",
+      "w" : 1,
+      "x" : 361,
+      "y" : 3707
+    }
+  ],
   "screen" : {
     "contentSize" : "AX5",
     "h" : 874,

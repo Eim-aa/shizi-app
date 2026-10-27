@@ -1,4 +1,198 @@
 {
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "返回",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "凭记忆写",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "write-progress",
+      "name" : "第 2 个字，共 5 个",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-end",
+      "name" : "结束这组",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-skip",
+      "name" : "跳过",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-prompt",
+      "name" : "题目",
+      "role" : "group",
+      "tag" : "div"
+    },
+    {
+      "id" : "write-prompt-cell",
+      "name" : "要写的字，第 2 个，读 hé，二声",
+      "role" : "img",
+      "tag" : "span"
+    },
+    {
+      "id" : "write-prompt-hint",
+      "live" : "polite",
+      "name" : "",
+      "role" : "",
+      "srOnly" : true,
+      "tag" : "p",
+      "text" : ""
+    },
+    {
+      "id" : "write-grid",
+      "name" : "写字格",
+      "role" : "img",
+      "tag" : "div"
+    },
+    {
+      "disabled" : true,
+      "id" : "write-undo",
+      "name" : "撤销",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "disabled" : true,
+      "id" : "write-clear",
+      "name" : "清空",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-sr-status",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "tag" : "span",
+      "text" : "已跳过「永」"
+    },
+    {
+      "id" : "write-skip-undo-btn",
+      "name" : "撤销",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-hint",
+      "name" : "提示，还有 4 次",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "write-show-answer",
+      "name" : "看答案",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "disabled" : true,
+      "id" : "write-done",
+      "name" : "写好了",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 66.5,
+      "kind" : "ink",
+      "w" : 66.5,
+      "x" : 84.5,
+      "y" : 166.30000000000001
+    },
+    {
+      "h" : 66.5,
+      "kind" : "ink",
+      "w" : 66.5,
+      "x" : 250.90000000000001,
+      "y" : 166.30000000000001
+    },
+    {
+      "h" : 276,
+      "kind" : "ink",
+      "w" : 276,
+      "x" : 63,
+      "y" : 266.19999999999999
+    },
+    {
+      "h" : 276,
+      "kind" : "ink",
+      "w" : 276,
+      "x" : 63,
+      "y" : 266.19999999999999
+    },
+    {
+      "h" : 64,
+      "kind" : "glyph",
+      "text" : "写",
+      "w" : 51.799999999999997,
+      "x" : 123.40000000000001,
+      "y" : 763.5
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 62,
+      "y" : 557.20000000000005
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 266.60000000000002,
+      "y" : 557.20000000000005
+    },
+    {
+      "color" : "#C2B8A8FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 70.799999999999997,
+      "y" : 692.10000000000002
+    },
+    {
+      "color" : "#C2B8A8FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 247,
+      "y" : 692.10000000000002
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -657,7 +851,124 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 83.200000000000003,
+      "x" : 159.40000000000001,
+      "y" : 158
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 83.200000000000003,
+      "x" : 159.40000000000001,
+      "y" : 240.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 83.200000000000003,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 159.40000000000001,
+      "y" : 158
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 83.200000000000003,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 241.59999999999999,
+      "y" : 158
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 278,
+      "x" : 62,
+      "y" : 265.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 278,
+      "x" : 62,
+      "y" : 542.20000000000005
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 278,
+      "src" : "border",
+      "w" : 1,
+      "x" : 62,
+      "y" : 265.19999999999999
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 278,
+      "src" : "border",
+      "w" : 1,
+      "x" : 339,
+      "y" : 265.19999999999999
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 276,
+      "src" : "svg",
+      "w" : 0.59999999999999998,
+      "x" : 200.69999999999999,
+      "y" : 266.19999999999999
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 0.59999999999999998,
+      "src" : "svg",
+      "w" : 276,
+      "x" : 63,
+      "y" : 403.89999999999998
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 491.30000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 654
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 163.69999999999999,
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 491.30000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 163.69999999999999,
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 491.30000000000001
+    }
+  ],
   "screen" : {
     "contentSize" : "AX5",
     "h" : 874,

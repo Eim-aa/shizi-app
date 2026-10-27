@@ -177,3 +177,67 @@ final class NativeSheetAnimator: NSObject, UIViewControllerAnimatedTransitioning
         }
     }
 }
+
+/// 浮起的面（弹层 / 确认框，网页 --elev-shadow）的影子与上沿线，全 App 一处。
+/// 网页：浅色 `0 -0.5px 0 墨 10%, 0 -10px 30px 墨 10%`，深色 `0 -0.5px 0 rgba(255,240,220,.06)`——第一段是一条贴着上沿（顺着圆角）的 0.5pt 发丝线。
+/// 原生：模糊的那段用图层影子（只浅色），发丝线用 ShiziElevEdgeView 画在面的上沿外面（QA-H2 逐屏对比按线比它）。
+enum ShiziElev {
+    static let edgeTag = 0x5E1E
+    static func apply(_ v: UIView, dark: Bool) {
+        v.layer.shadowColor = UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 1).cgColor
+        v.layer.shadowOpacity = dark ? 0 : 0.10
+        v.layer.shadowRadius = 15
+        v.layer.shadowOffset = CGSize(width: 0, height: -10)
+        let edge = (v.viewWithTag(edgeTag) as? ShiziElevEdgeView) ?? {
+            let e = ShiziElevEdgeView()
+            e.tag = edgeTag
+            v.addSubview(e)
+            return e
+        }()
+        edge.color = dark ? UIColor(red: 1, green: 240 / 255, blue: 220 / 255, alpha: 0.06) : UIColor(red: 38 / 255, green: 33 / 255, blue: 29 / 255, alpha: 0.10)
+        edge.radius = v.layer.cornerRadius
+        edge.frame = CGRect(x: 0, y: -edge.hair, width: v.bounds.width, height: edge.radius + edge.hair)
+        edge.autoresizingMask = [.flexibleWidth]
+        edge.setNeedsDisplay()
+    }
+}
+
+/// 面的上沿发丝线：沿上沿与两个上圆角描一条 0.5pt（取整到设备像素）的线，画在面的外面紧贴上沿。
+final class ShiziElevEdgeView: UIView, ShiziDrawnLines {
+    var color: UIColor = .clear
+    var radius: CGFloat = 0
+    let hair: CGFloat = max(1, floor(0.5 * UIScreen.main.scale)) / UIScreen.main.scale
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isOpaque = false
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        contentMode = .redraw
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        setNeedsDisplay()
+    }
+
+    override func draw(_ rect: CGRect) {
+        let r = min(radius, bounds.width / 2)
+        let y = hair / 2
+        let p = UIBezierPath()
+        p.move(to: CGPoint(x: 0, y: y + r))
+        p.addArc(withCenter: CGPoint(x: r, y: y + r), radius: r, startAngle: .pi, endAngle: 1.5 * .pi, clockwise: true)
+        p.addLine(to: CGPoint(x: bounds.width - r, y: y))
+        p.addArc(withCenter: CGPoint(x: bounds.width - r, y: y + r), radius: r, startAngle: 1.5 * .pi, endAngle: 0, clockwise: true)
+        p.lineWidth = hair
+        color.setStroke()
+        p.stroke()
+    }
+
+    /// 取证：上沿那一条（网页 box-shadow 细条同样按整条上沿量）
+    var drawnLines: [(CGRect, UIColor)] { [(CGRect(x: 0, y: 0, width: bounds.width, height: hair), color)] }
+}

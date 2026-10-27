@@ -17,9 +17,11 @@
         "size",
         "color",
         "font",
-        "icon"
+        "icon",
+        "deco",
+        "rule"
       ],
-      "//": "TAB-01（D73 ③，计划 §7 第 3 条）：Tab 栏用系统 UITabBarController（iOS 26 浮起的玻璃胶囊：左右各缩进、圆角、选中项有玻璃底、图标与标签在格里的位置由系统排），网页参考是 Tabs.js 的通栏（高 49 + 下安全区、纸色底、顶部发丝线、三等分）。只豁免 Tab 栏三项（tab-home / tab-library / tab-mine）的位置、尺寸、颜色、字号字重与图标框；文案（写字 / 字库 / 我的）、三项有无、可点状态照比。根页内容不豁免（根页只铺到原生 Tab 栏上沿，与网页内容区同高）。负责人统一测试时可改为自画 / 逐 pt 一致（只动 NativeStage.swift ShiziTabController 一处）。"
+      "//": "TAB-01（D73 ③，计划 §7 第 3 条）：Tab 栏用系统 UITabBarController（iOS 26 浮起的玻璃胶囊：左右各缩进、圆角、选中项有玻璃底、图标与标签在格里的位置由系统排），网页参考是 Tabs.js 的通栏（高 49 + 下安全区、纸色底、顶部发丝线、三等分）。只豁免 Tab 栏三项（tab-home / tab-library / tab-mine）的位置、尺寸、颜色、字号字重与图标框；文案（写字 / 字库 / 我的）、三项有无、可点状态照比。根页内容不豁免（根页只铺到原生 Tab 栏上沿，与网页内容区同高）。负责人统一测试时可改为自画 / 逐 pt 一致（只动 NativeStage.swift ShiziTabController 一处）。 QA-H2：Tab 栏三项里的图标（装饰 deco）与网页 Tabs 通栏顶部的发丝线（线 rule，所属元素按位置落在 tab-* 上）同属这条豁免。"
     },
     {
       "waiver": "TAB-01",
@@ -29,7 +31,9 @@
         "size",
         "color",
         "font",
-        "icon"
+        "icon",
+        "deco",
+        "rule"
       ],
       "//": "TAB-01（同上）"
     },
@@ -41,7 +45,9 @@
         "size",
         "color",
         "font",
-        "icon"
+        "icon",
+        "deco",
+        "rule"
       ],
       "//": "TAB-01（同上）"
     }

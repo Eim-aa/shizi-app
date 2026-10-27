@@ -19,6 +19,12 @@
       "tag" : "button"
     }
   ],
+  "cells" : [
+
+  ],
+  "decos" : [
+
+  ],
   "elements" : [
     {
       "bg" : "#1B1814FF",
@@ -162,7 +168,13 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+
+  ],
   "screen" : {
     "contentSize" : "XXXL",
     "h" : 874,

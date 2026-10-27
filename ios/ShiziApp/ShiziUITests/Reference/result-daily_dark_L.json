@@ -1,4 +1,243 @@
 {
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "关闭",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "这次练习",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "result-share",
+      "name" : "分享这次的图片",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work",
+      "name" : "这次的字：豫、嚷、疆、酱、履，5 个，10月22日",
+      "role" : "group",
+      "tag" : "section"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "豫，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "嚷，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "疆，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "酱，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "履，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-open",
+      "name" : "春，写错了",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-change",
+      "name" : "修改 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-add",
+      "name" : "把「春」放进图里",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-open",
+      "name" : "酝，写错了",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-change",
+      "name" : "修改 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-add",
+      "name" : "把「酝」放进图里",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-open",
+      "name" : "龟，写错了",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-change",
+      "name" : "修改 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-add",
+      "name" : "把「龟」放进图里",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "result-redo",
+      "name" : "重写错字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-again",
+      "name" : "再写一组",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 120,
+      "kind" : "ink",
+      "w" : 120,
+      "x" : 21,
+      "y" : 122
+    },
+    {
+      "h" : 120,
+      "kind" : "ink",
+      "w" : 120,
+      "x" : 141,
+      "y" : 122
+    },
+    {
+      "h" : 120,
+      "kind" : "ink",
+      "w" : 120,
+      "x" : 261,
+      "y" : 122
+    },
+    {
+      "h" : 120,
+      "kind" : "ink",
+      "w" : 120,
+      "x" : 21,
+      "y" : 242
+    },
+    {
+      "h" : 120,
+      "kind" : "ink",
+      "w" : 120,
+      "x" : 141,
+      "y" : 242
+    },
+    {
+      "h" : 36,
+      "kind" : "ink",
+      "w" : 36,
+      "x" : 20,
+      "y" : 432
+    },
+    {
+      "h" : 36,
+      "kind" : "ink",
+      "w" : 36,
+      "x" : 20,
+      "y" : 484
+    },
+    {
+      "h" : 36,
+      "kind" : "ink",
+      "w" : 36,
+      "x" : 20,
+      "y" : 536
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 20,
+      "kind" : "icon",
+      "w" : 20,
+      "x" : 15.800000000000001,
+      "y" : 74
+    },
+    {
+      "color" : "#ECE4D6FF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 364.30000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 275,
+      "y" : 331
+    },
+    {
+      "color" : "#EA6E50FF",
+      "h" : 5,
+      "kind" : "circle",
+      "w" : 5,
+      "x" : 49.100000000000001,
+      "y" : 440.19999999999999
+    },
+    {
+      "color" : "#EA6E50FF",
+      "h" : 5,
+      "kind" : "circle",
+      "w" : 5,
+      "x" : 49.100000000000001,
+      "y" : 492.19999999999999
+    },
+    {
+      "color" : "#EA6E50FF",
+      "h" : 5,
+      "kind" : "circle",
+      "w" : 5,
+      "x" : 49.100000000000001,
+      "y" : 544.20000000000005
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -655,7 +894,148 @@
       }
     }
   ],
+  "offscreen" : [
+
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#40372EFF",
+      "h" : 0.80000000000000004,
+      "src" : "thin",
+      "w" : 120,
+      "x" : 21,
+      "y" : 241.30000000000001
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 120,
+      "src" : "thin",
+      "w" : 0.80000000000000004,
+      "x" : 140.30000000000001,
+      "y" : 122
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 0.80000000000000004,
+      "src" : "thin",
+      "w" : 120,
+      "x" : 141,
+      "y" : 241.30000000000001
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 120,
+      "src" : "thin",
+      "w" : 0.80000000000000004,
+      "x" : 260.30000000000001,
+      "y" : 122
+    },
+    {
+      "color" : "#40372EFF",
+      "h" : 120,
+      "src" : "thin",
+      "w" : 0.80000000000000004,
+      "x" : 140.30000000000001,
+      "y" : 242
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 360,
+      "x" : 21,
+      "y" : 122
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 360,
+      "x" : 21,
+      "y" : 241
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 120,
+      "src" : "border",
+      "w" : 1,
+      "x" : 21,
+      "y" : 122
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 120,
+      "src" : "border",
+      "w" : 1,
+      "x" : 380,
+      "y" : 122
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 240,
+      "x" : 21,
+      "y" : 242
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 240,
+      "x" : 21,
+      "y" : 361
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 120,
+      "src" : "border",
+      "w" : 1,
+      "x" : 21,
+      "y" : 242
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 120,
+      "src" : "border",
+      "w" : 1,
+      "x" : 260,
+      "y" : 242
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 20.699999999999999,
+      "x" : 276.69999999999999,
+      "y" : 332.69999999999999
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 20.699999999999999,
+      "x" : 276.69999999999999,
+      "y" : 352.30000000000001
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 20.699999999999999,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 276.69999999999999,
+      "y" : 332.69999999999999
+    },
+    {
+      "color" : "#F4EAD9FF",
+      "h" : 20.699999999999999,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 296.30000000000001,
+      "y" : 332.69999999999999
+    }
+  ],
   "screen" : {
     "contentSize" : "L",
     "h" : 874,

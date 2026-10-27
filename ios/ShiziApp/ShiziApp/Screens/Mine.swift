@@ -604,7 +604,14 @@ final class MineScreen: ShiziScreenViewController {
                 sheetHead.frame = CGRect(x: x, y: y, width: width, height: headH)
                 sheetHead.label.frame = CGRect(x: 0, y: mt.space(2), width: min(width, ceil(NativeType.width(sheetHead.label))), height: th)
                 sheetHead.valueLabel.frame = CGRect(x: 0, y: mt.space(2) + th + mt.space(3), width: min(width, ceil(NativeType.width(sheetHead.valueLabel))), height: vh)
+                // AX 档标题行折成两行（网页 flex-wrap）：「全部 N 字 ›」整块在第二行，› 跟在字后面（.sz-mine__sall inline-flex，间距 s2、竖向居中）
+                let vf = sheetHead.valueLabel.frame
+                let lineY = mt.space(2) + th + mt.space(3)
+                let midY = vh > 0 ? vf.midY : lineY + lh15 / 2
+                let cx = vh > 0 ? min(width - 8, vf.maxX + mt.space(2)) : 0
+                sheetHead.chevronFrame = CGRect(x: cx, y: midY - 6.5, width: 8, height: 13)
             } else {
+                sheetHead.chevronFrame = nil
                 headH = max(44, lh22)
                 sheetHead.frame = CGRect(x: x, y: y, width: width, height: headH)
                 let vw = sheetHead.valueLabel.isHidden ? 0 : min(width * 0.5, ceil(NativeType.width(sheetHead.valueLabel)))

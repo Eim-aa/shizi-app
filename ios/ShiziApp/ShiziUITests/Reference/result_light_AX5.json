@@ -1,4 +1,250 @@
 {
+  "ax" : [
+    {
+      "id" : "page-back",
+      "name" : "关闭",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "name" : "自己选的",
+      "role" : "heading",
+      "srOnly" : true,
+      "tag" : "h1"
+    },
+    {
+      "id" : "result-share",
+      "name" : "分享这次的图片",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work",
+      "name" : "这次的字：和、日，2 个，10月22日",
+      "role" : "group",
+      "tag" : "section"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "和，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "work-cell",
+      "name" : "日，写对，点两下对照和修改",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-open",
+      "name" : "永，写错了",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-change",
+      "name" : "修改 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-add",
+      "name" : "把「永」放进图里",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-open",
+      "name" : "春，写错了",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-change",
+      "name" : "修改 ›",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-add",
+      "name" : "把「春」放进图里",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-exrow-open",
+      "name" : "月，写错了",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-live",
+      "live" : "polite",
+      "name" : "",
+      "role" : "status",
+      "srOnly" : true,
+      "tag" : "span",
+      "text" : ""
+    },
+    {
+      "id" : "result-redo",
+      "name" : "重写错字",
+      "role" : "button",
+      "tag" : "button"
+    },
+    {
+      "id" : "result-leave",
+      "name" : "回到首页",
+      "role" : "button",
+      "tag" : "button"
+    }
+  ],
+  "cells" : [
+    {
+      "h" : 181,
+      "kind" : "ink",
+      "w" : 181,
+      "x" : 20,
+      "y" : 122
+    },
+    {
+      "h" : 181,
+      "kind" : "ink",
+      "w" : 181,
+      "x" : 201,
+      "y" : 122
+    },
+    {
+      "h" : 52,
+      "kind" : "ink",
+      "w" : 52,
+      "x" : 20,
+      "y" : 380
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "图",
+      "w" : 47.899999999999999,
+      "x" : 183.69999999999999,
+      "y" : 522
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "里",
+      "w" : 47.899999999999999,
+      "x" : 231.59999999999999,
+      "y" : 522
+    },
+    {
+      "h" : 52,
+      "kind" : "ink",
+      "w" : 52,
+      "x" : 20,
+      "y" : 606.89999999999998
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "图",
+      "w" : 47.899999999999999,
+      "x" : 183.69999999999999,
+      "y" : 748.89999999999998
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "里",
+      "w" : 47.899999999999999,
+      "x" : 231.59999999999999,
+      "y" : 748.89999999999998
+    },
+    {
+      "h" : 52,
+      "kind" : "ink",
+      "w" : 52,
+      "x" : 20,
+      "y" : 833.79999999999995
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "图",
+      "w" : 47.899999999999999,
+      "x" : 183.69999999999999,
+      "y" : 975.79999999999995
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "off" : true,
+      "text" : "里",
+      "w" : 47.899999999999999,
+      "x" : 231.59999999999999,
+      "y" : 975.79999999999995
+    },
+    {
+      "h" : 59,
+      "kind" : "glyph",
+      "text" : "重",
+      "w" : 47.899999999999999,
+      "x" : 20,
+      "y" : 664.20000000000005
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#26211DFF",
+      "h" : 20,
+      "kind" : "icon",
+      "w" : 20,
+      "x" : 15.800000000000001,
+      "y" : 74
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 22,
+      "kind" : "icon",
+      "w" : 22,
+      "x" : 364.30000000000001,
+      "y" : 73
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 24,
+      "kind" : "icon",
+      "w" : 24,
+      "x" : 358,
+      "y" : 317
+    },
+    {
+      "color" : "#B03A27FF",
+      "h" : 5,
+      "kind" : "circle",
+      "w" : 5,
+      "x" : 61.200000000000003,
+      "y" : 382.39999999999998
+    },
+    {
+      "color" : "#B03A27FF",
+      "h" : 5,
+      "kind" : "circle",
+      "w" : 5,
+      "x" : 61.200000000000003,
+      "y" : 609.20000000000005
+    },
+    {
+      "color" : "#B03A27FF",
+      "h" : 5,
+      "kind" : "circle",
+      "w" : 5,
+      "x" : 61.200000000000003,
+      "y" : 836.10000000000002
+    }
+  ],
   "elements" : [
     {
       "class" : "sz-page",
@@ -516,7 +762,166 @@
       }
     }
   ],
+  "offscreen" : [
+    {
+      "align" : "left",
+      "class" : "sz-btn sz-btn--text sz-line__change",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 69.200000000000003,
+        "w" : 116.09999999999999,
+        "x" : 84,
+        "y" : 894.79999999999995
+      },
+      "id" : "result-exrow-change",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "修改 ›",
+      "textFrame" : {
+        "h" : 53,
+        "w" : 108.09999999999999,
+        "x" : 88,
+        "y" : 902.29999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "axLabel" : "把「月」放进图里",
+      "class" : "sz-btn sz-btn--text",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 75.700000000000003,
+        "w" : 199.40000000000001,
+        "x" : 84,
+        "y" : 967.89999999999998
+      },
+      "id" : "result-add",
+      "kind" : "button",
+      "off" : true,
+      "tag" : "button",
+      "text" : "放进图里",
+      "textFrame" : {
+        "h" : 59,
+        "w" : 191.40000000000001,
+        "x" : 88,
+        "y" : 975.79999999999995
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "sz-result__preview",
+      "color" : "#564E46FF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 290,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1069.5999999999999
+      },
+      "id" : "result-preview",
+      "kind" : "text",
+      "off" : true,
+      "tag" : "p",
+      "text" : "「永」「春」「月」明天再见，「日」6 天后再见，「和」10 天后再见。",
+      "textFrame" : {
+        "h" : 291,
+        "w" : 335,
+        "x" : 20,
+        "y" : 1068.5999999999999
+      }
+    }
+  ],
   "ok" : true,
+  "rules" : [
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 181,
+      "src" : "thin",
+      "w" : 0.80000000000000004,
+      "x" : 200.30000000000001,
+      "y" : 122
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 122
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 302
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 181,
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 122
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 181,
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 122
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 20.699999999999999,
+      "x" : 359.69999999999999,
+      "y" : 318.69999999999999
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 1,
+      "src" : "shadow",
+      "w" : 20.699999999999999,
+      "x" : 359.69999999999999,
+      "y" : 338.30000000000001
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 20.699999999999999,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 359.69999999999999,
+      "y" : 318.69999999999999
+    },
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 20.699999999999999,
+      "src" : "shadow",
+      "w" : 1,
+      "x" : 379.30000000000001,
+      "y" : 318.69999999999999
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "src" : "shadow",
+      "w" : 402,
+      "x" : 0,
+      "y" : 643.79999999999995
+    }
+  ],
   "screen" : {
     "contentSize" : "AX5",
     "h" : 874,

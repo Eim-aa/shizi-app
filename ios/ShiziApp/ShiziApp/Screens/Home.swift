@@ -14,7 +14,7 @@ import UIKit
 
 /// 竖排一列字（网页 writing-mode: vertical-rl + letter-spacing）：每个字竖向占 字号 × (1 + 字距)，在列宽里居中；句读用竖排位置（右上）。
 /// 比对取证按 UILabel 取文字与框（网页这些 span 只有框），所以是 UILabel 子类：量出来的字框 = 整列的框，不当作被截断的横排单行。
-final class ShiziVerticalLabel: UILabel {
+final class ShiziVerticalLabel: UILabel, ShiziDrawnText {
     var spacing: CGFloat = 0.2
     var glyphFont: UIFont = .systemFont(ofSize: 15)
     var glyphColor: UIColor = .label
@@ -22,6 +22,13 @@ final class ShiziVerticalLabel: UILabel {
     private static let punct: Set<Character> = ["\u{FF0C}", "\u{3002}", "\u{3001}", "\u{FF1B}", "\u{FF1A}", "\u{FF01}", "\u{FF1F}"]
 
     override func textRect(forBounds bounds: CGRect, limitedToNumberOfLines n: Int) -> CGRect { CGRect(origin: .zero, size: bounds.size) }
+
+    /// 字占的那一列（宽 = 1.5 em，同网页竖排的行盒，高 = 字数 × 字号 × (1 + 字距)，横向居中、贴顶）：同网页竖排文字的文字框（Range.getClientRects 的并集）。
+    var drawnTextRect: CGRect {
+        guard let text, !text.isEmpty else { return bounds }
+        let w = glyphFont.pointSize * 1.5 // 网页竖排一列的文字框宽 ≈ 1.5 em（行盒；可宽过标签框，同网页）
+        return CGRect(x: (bounds.width - w) / 2, y: 0, width: w, height: min(bounds.height, Self.height(text, font: glyphFont, spacing: spacing)))
+    }
     override func sizeThatFits(_ size: CGSize) -> CGSize { bounds.size }
 
     /// 一列的高（字数 × 字号 × (1 + 字距)）。

@@ -130,6 +130,8 @@ final class LibraryListScreen: ShiziScreenViewController {
     private let headLabel = UILabel()
     private let topLabel = UILabel()
     private let rowsMarker = UIView()
+    /// 清单顶的分隔线（网页 .sz-list__rows 的 border-top：1px line）。
+    private let rowsTopLine = UIView()
     private let noteLabel = UILabel()
     private let restButton = ShiziLineButton(type: .custom)
     // 空态
@@ -221,6 +223,8 @@ final class LibraryListScreen: ShiziScreenViewController {
         restButton.accessibilityIdentifier = "native-library-list-rest"
         goButton.accessibilityIdentifier = "native-library-list-go"
         for v in [bodyMarker, rowsMarker, emptyMarker, emptyCell, headLabel, topLabel, noteLabel, restButton, emptyTitle, emptyBody] as [UIView] { content.addSubview(v) }
+        rowsTopLine.isUserInteractionEnabled = false
+        content.addSubview(rowsTopLine)
         emptyCell.addSubview(emptyGlyph)
         for v in [hintLabel, goButton] as [UIView] { kit.foot.addSubview(v) }
         wire(restButton) { page in (page as? LibraryListScreen)?.toggleRest() }
@@ -507,6 +511,7 @@ final class LibraryListScreen: ShiziScreenViewController {
         let mt = metrics
         guard let m = model else { return top }
         if m.empty {
+            rowsTopLine.isHidden = true
             return layoutEmpty(m, width: width, x: x, top: top)
         }
         var y = top
@@ -524,6 +529,9 @@ final class LibraryListScreen: ShiziScreenViewController {
         let boxes = shown.map { rowBox($0, width: width) }
         let rowsH = boxes.reduce(0) { $0 + $1.rowHeight } + 1
         rowsMarker.frame = CGRect(x: x, y: rowsTop, width: width, height: rowsH)
+        rowsTopLine.isHidden = false
+        rowsTopLine.backgroundColor = color("line")
+        rowsTopLine.frame = CGRect(x: x, y: rowsTop, width: width, height: 1)
         layoutRows(width: width, x: x, rowsTop: rowsTop + 1, boxes: boxes)
         y = rowsTop + rowsH
         if m.restCount > 0 {

@@ -101,6 +101,8 @@ func detailHair(_ token: CGFloat) -> CGFloat {
 /// 一格带框的方（网页 .sz-compare__card / .sz-dhero__sq：笺底 + 格框，里面放墨 / 衬底字 / 参考字）。
 final class DetailSquare: UIView {
     var glyph: NativeGlyphView?
+    /// 衬底字的框（本视图坐标）；nil = 铺满格框以内。页面按网页给（记录格 44%、头图 76%），布局时不会被重设成整格。
+    var glyphFrame: CGRect? { didSet { setNeedsLayout() } }
     var ink: UIView?
     var inkSide: CGFloat = 0
     var emptyLabel: UILabel?
@@ -116,7 +118,7 @@ final class DetailSquare: UIView {
         super.layoutSubviews()
         let inner = bounds.insetBy(dx: layer.borderWidth, dy: layer.borderWidth)
         ink?.frame = inner
-        glyph?.frame = glyph.map { _ in inner } ?? .zero
+        glyph?.frame = glyph.map { _ in glyphFrame ?? inner } ?? .zero
     }
 }
 
@@ -220,6 +222,8 @@ final class DetailUndoBar: UIView {
 
 @objc(ShiziScreen_detail)
 final class DetailScreen: ShiziScreenViewController {
+    private static let tileDividerTag = 0x71D1
+    private static let tileOutlineTag = 0x71D2
     // 页内临时状态（寿命到离开这一页）
     enum BarState { case on, failed, done }
     private var undoState: (removed: [String: Any], state: BarState)?
@@ -455,9 +459,22 @@ final class DetailScreen: ShiziScreenViewController {
                     let tile = add(UIView())
                     tile.accessibilityIdentifier = "native-detail-word-tile"
                     tile.isUserInteractionEnabled = false
+                    // 相邻两格之间一条格框线（网页 .sz-dcard__tile + .sz-dcard__tile 的 border-left）
+                    if i > 0 {
+                        let d = UIView()
+                        d.tag = Self.tileDividerTag
+                        d.backgroundColor = frame
+                        d.isUserInteractionEnabled = false
+                        tile.addSubview(d)
+                    }
+                    // 要填的那一格：墨一的内框（网页 box-shadow inset，画在左边线以内）
                     if t.blank {
-                        tile.layer.borderWidth = mt.value("target-w")
-                        tile.layer.borderColor = color("ink1").cgColor
+                        let o = UIView()
+                        o.tag = Self.tileOutlineTag
+                        o.isUserInteractionEnabled = false
+                        o.layer.borderWidth = mt.value("target-w")
+                        o.layer.borderColor = color("ink1").cgColor
+                        tile.addSubview(o)
                     }
                     let g = NativeGlyphView()
                     g.char = t.ch
@@ -974,6 +991,9 @@ final class DetailScreen: ShiziScreenViewController {
                 wordMarker.frame = CGRect(x: x, y: iy, width: bw, height: 38)
                 for (i, t) in tileViews.enumerated() {
                     t.frame = CGRect(x: x + 1 + CGFloat(i) * 36, y: iy + 1, width: 36, height: 36)
+                    let lead: CGFloat = i > 0 ? mt.value("frame-w") : 0
+                    t.viewWithTag(Self.tileDividerTag)?.frame = CGRect(x: 0, y: 0, width: lead, height: 36)
+                    t.viewWithTag(Self.tileOutlineTag)?.frame = CGRect(x: lead, y: 0, width: 36 - lead, height: 36)
                     let gside = min(28, t.bounds.width * 0.9)
                     tileGlyphs[i].frame = CGRect(x: (36 - gside) / 2, y: (36 - gside) / 2, width: gside, height: gside)
                 }
@@ -1125,7 +1145,8 @@ final class DetailScreen: ShiziScreenViewController {
         sq.glyph?.frame = sq.bounds.insetBy(dx: 0, dy: 0)
         if let g = sq.glyph {
             let gs = (side - 2) * 0.76
-            g.frame = CGRect(x: (side - gs) / 2, y: (side - gs) / 2, width: gs, height: gs)
+            sq.glyphFrame = CGRect(x: (side - gs) / 2, y: (side - gs) / 2, width: gs, height: gs)
+            g.frame = sq.glyphFrame ?? .zero
             g.padRatio = 0.06
         }
     }
@@ -1150,7 +1171,8 @@ final class DetailScreen: ShiziScreenViewController {
         var srY: CGFloat = 0
         if let g = sq.glyph {
             let gs = cw * 0.44
-            g.frame = CGRect(x: (cw - gs) / 2, y: (cw - gs) / 2, width: gs, height: gs)
+            sq.glyphFrame = CGRect(x: (cw - gs) / 2, y: (cw - gs) / 2, width: gs, height: gs)
+            g.frame = sq.glyphFrame ?? .zero
             g.padRatio = 0.06
             srY = (cw - gs) / 2 - 3.05
             // 按钮的「图标」= 网页里 svg 的框（尺寸 = 衬底字的方框；只量尺寸，位置不比）
@@ -1160,6 +1182,17 @@ final class DetailScreen: ShiziScreenViewController {
         // 说明区：上边线 1、内边距 4、竖向居中；日期与「写对 / 写错」两行
         let metaTop = cw
         let metaH = ch - cw
+        // 上边线（网页 .sz-dcell__meta border-top：frame-w、frame 色），把方格与说明分开
+        let metaLineTag = 0x3E7A
+        let metaLine = b.viewWithTag(metaLineTag) ?? {
+            let l = UIView()
+            l.tag = metaLineTag
+            l.isUserInteractionEnabled = false
+            b.addSubview(l)
+            return l
+        }()
+        metaLine.backgroundColor = color("frame")
+        metaLine.frame = CGRect(x: 0, y: metaTop, width: cw, height: frameW)
         let textH = NativeType.height(b.valueLabel, width: cw - 8, line: mt.line("lh11"))
         b.valueLabel.frame = CGRect(x: 4, y: metaTop + frameW + (metaH - frameW - textH) / 2 + (0), width: cw - 8, height: textH)
         if !b.label.isHidden {

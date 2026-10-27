@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { diffState } from '../ios/ShiziApp/scripts/native-ui/elements.mjs';
-import { cleanMask, crossMatch, diffDecos, diffGraphics, diffRules, inkMetrics, judgeInk, normRules, pairCells } from '../ios/ShiziApp/scripts/native-ui/graphics.mjs';
+import { cleanMask, commonScrollWindow, crossMatch, diffDecos, diffGraphics, diffRules, glyphInk, hiddenText, inkMetrics, judgeGlyph, judgeInk, normRules, pairCells, scrollWindows, underSheet } from '../ios/ShiziApp/scripts/native-ui/graphics.mjs';
 
 const tol = { pos: 3, size: 3, textHeight: 4, color: 8, font: 0.5, weight: 0.1 };
 const f = (x, y, w, h) => ({ x, y, w, h });
@@ -141,4 +141,70 @@ test('offscreen elements: a section only in the web scroll content is missing on
 
 test('old references without the new fields compare as before', () => {
   assert.deepEqual(diffGraphics({ elements: [] }, { elements: [], rules: [{ ...f(0, 0, 100, 1), color: LINE }] }, tol).diffs, []);
+});
+
+// QA-H3e：文字像素色（dump 里的颜色不等于画出来的）
+const paint = (w, h, bg, fg, glyphCols = [[4, 12]]) => {
+  const d = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y += 1) for (let x = 0; x < w; x += 1) {
+    const ink = y > 4 && y < h - 4 && glyphCols.some(([a, b]) => x >= a && x < b);
+    const c = ink ? fg : bg, i = (y * w + x) * 4;
+    d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+  }
+  return d;
+};
+const CREAM = [244, 238, 226], DARK = [27, 24, 20];
+
+test('glyphInk: dominant glyph colour and background inside a text frame', () => {
+  const r = glyphInk(paint(40, 20, CREAM, DARK, [[4, 12], [20, 28]]), 40, 20);
+  assert.deepEqual(r.bg, CREAM);
+  assert.deepEqual(r.ink, DARK);
+  assert.ok(r.n > 8);
+});
+
+test('judgeGlyph: dark text on cream on the web vs light text on the same cream on native is flagged (backup-recent dark AX5)', () => {
+  const web = glyphInk(paint(40, 20, CREAM, DARK), 40, 20);
+  const bad = glyphInk(paint(40, 20, CREAM, [250, 244, 232]), 40, 20); // 浅字落在奶油底上：与底差太小，找不到字
+  assert.equal(bad.ink, null);
+  const d = judgeGlyph(web, bad);
+  assert.equal(d.length, 1);
+  assert.match(d[0], /几乎看不见/);
+});
+
+test('judgeGlyph: same colours pass; flipped polarity and a different ink colour are flagged; web without ink is not compared', () => {
+  const a = glyphInk(paint(40, 20, CREAM, DARK), 40, 20);
+  assert.deepEqual(judgeGlyph(a, glyphInk(paint(40, 20, CREAM, [34, 30, 26]), 40, 20)), []);
+  const flipped = glyphInk(paint(40, 20, DARK, CREAM), 40, 20);
+  assert.match(judgeGlyph(a, flipped)[0], /明暗反了/);
+  const red = glyphInk(paint(40, 20, CREAM, [200, 40, 40]), 40, 20);
+  assert.match(judgeGlyph(a, red)[0], /字色/);
+  assert.deepEqual(judgeGlyph(glyphInk(paint(40, 20, CREAM, CREAM), 40, 20), a), []);
+});
+
+// QA-H3e：滚动区公共可见窗（D75：网页滚动区矮 60pt，内容裁在不同高度）
+test('commonScrollWindow: graphics past the shorter scroll area bottom are not compared on either side; the rest are untouched', () => {
+  const sc = (key, y, h) => ({ key, frame: f(20, y, 362, h) });
+  const rows = (y, h) => ({ key: undefined, frame: f(20, y, 362, h) });
+  const webEls = [sc('query-scroll', 209, 164), rows(209, 342)];
+  const natEls = [sc('query-scroll', 217, 224), rows(217, 342)];
+  const web = { decos: [{ kind: 'icon', x: 374, y: 236.8, w: 8, h: 13 }, { kind: 'icon', x: 374, y: 373.5, w: 8, h: 13 }, { kind: 'icon', x: 374, y: 510, w: 8, h: 13 }, { kind: 'icon', x: 5, y: 600, w: 8, h: 13 }], rules: [], cells: [] };
+  const native = { decos: [{ kind: 'icon', x: 374, y: 244.8, w: 8, h: 13 }, { kind: 'icon', x: 374, y: 381.5, w: 8, h: 13 }, { kind: 'icon', x: 374, y: 449.8, w: 8, h: 13 }, { kind: 'icon', x: 5, y: 600, w: 8, h: 13 }], rules: [], cells: [] };
+  const r = commonScrollWindow(web, native, webEls, natEls);
+  assert.deepEqual(r.web.decos.map(d => d.y), [236.8, 600]);
+  assert.deepEqual(r.native.decos.map(d => d.y), [244.8, 600]);
+  // 滚动区一样高 / 没有成对的滚动区 → 原样
+  const same = commonScrollWindow(web, native, webEls, [sc('query-scroll', 217, 164)]);
+  assert.equal(same.web, web);
+  assert.equal(commonScrollWindow(web, native, webEls, []).native, native);
+});
+
+test('underSheet: a page rule behind the opaque sheet is not a diff; the sheet content and rules below the sheet are', () => {
+  const webEls = [{ key: 'library-zone', frame: f(20, 300, 362, 300) }, { key: 'query-sheet', frame: f(0, 57, 402, 414) }, { key: 'query-scroll', frame: f(20, 209, 362, 164) }];
+  const nativeEls = [{ key: 'library-zone', frame: f(20, 300, 362, 300) }, { key: 'query-sheet', frame: f(0, 65, 402, 474) }];
+  const under = { type: 'rule', w: { frame: f(20, 464, 362, 0.3) }, n: { frame: f(20, 464, 362, 0.3) } };
+  assert.equal(underSheet(under, webEls, nativeEls), true);
+  const own = { type: 'rule', w: { frame: f(20, 250, 362, 0.3) } };
+  assert.equal(underSheet(own, webEls, []), false);
+  const below = { type: 'rule', w: { frame: f(20, 560, 362, 0.3) } };
+  assert.equal(underSheet(below, webEls, []), false);
 });

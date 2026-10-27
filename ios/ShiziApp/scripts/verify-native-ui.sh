@@ -120,8 +120,11 @@ if [ "$do_flows" = 1 ]; then
   log "XCUITest flows (ShiziUITests)"
   xcrun simctl ui "$UDID" appearance light
   xcrun simctl ui "$UDID" content_size large
+  # FLOW_CLASSES=QueryFlowTests,BackupFlowTests：只跑这几个测试类（页面卡的局部门禁）；缺省全跑
+  only=()
+  if [ -n "${FLOW_CLASSES:-}" ]; then IFS=, read -ra cls <<<"$FLOW_CLASSES"; for c in "${cls[@]}"; do only+=("-only-testing:ShiziUITests/$c"); done; fi
   xcodebuild -project "$IOS/ShiziApp.xcodeproj" -scheme ShiziUITests -configuration Debug \
-    -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO \
+    -destination "platform=iOS Simulator,id=$UDID" -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO ${only[@]+"${only[@]}"} \
     -resultBundlePath "$OUT/flows.xcresult" test-without-building >"$OUT/flows.log" 2>&1 || true
   if flows_line="$(node "$TOOLS/flows-summary.mjs" "$OUT/flows.xcresult" "$OUT/flows.md")"; then :; else status=1; fi
   # R13：测试工具的重试（点按没效果 / 合成触摸被取消）收进 flows.md 的「flaky retries」，保持可见；按「Test Case … started」归属到用例

@@ -246,7 +246,9 @@ struct NativeType {
     }
 
     /// 按钮标题的中文字距（cjkTrack）：各状态的标题改成带字距的富文本（字体 = titleLabel.font，颜色 = 该状态的标题色）；不需要时清掉富文本。
-    /// 标题 / 字体 / 颜色变了之后调用。
+    /// 标题 / 字体变了之后调用。富文本不写前景色：UIButton 对没有前景色的富文本按「当前状态的标题色」画，之后再 setTitleColor 也生效
+    /// （QA-H3e：以前把调用当时的标题色写进富文本，先 trackTitle、后 setTitleColor 的按钮——备份页「导出备份」——在会走富文本的字号档
+    /// （AX5 有字距）一直画默认的浅色字，深色下浅字落在奶油按钮上几乎看不见；dump 里的颜色是 titleColor，不反映这件事）。
     static func trackTitle(_ b: UIButton) {
         let states: [UIControl.State] = [.normal, .disabled, .highlighted]
         guard let t = b.title(for: .normal), let f = titleFont(b), hasCJK(t) else {
@@ -262,7 +264,7 @@ struct NativeType {
         p.alignment = b.titleLabel?.textAlignment ?? .center
         p.lineBreakMode = b.titleLabel?.numberOfLines == 1 ? (b.titleLabel?.lineBreakMode ?? .byTruncatingMiddle) : .byWordWrapping
         for st in states {
-            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .foregroundColor: b.titleColor(for: st) ?? b.currentTitleColor, .paragraphStyle: p, .kern: 0])
+            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .paragraphStyle: p, .kern: 0])
             var i = 0
             for ch in t {
                 let n = (String(ch) as NSString).length

@@ -2,7 +2,7 @@
   "state": "month-ax5",
   "name": "月字帖 · AX 档（4 列）",
   "screen": "month",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -184,6 +184,8 @@
     }
   ],
   "ready": {
-    "web": "month-screen"
+    "web": "month-screen",
+    "native": "id:native-month-body",
+    "timeout": 20
   }
 }

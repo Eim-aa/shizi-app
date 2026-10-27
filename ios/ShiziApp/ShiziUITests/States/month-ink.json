@@ -2,7 +2,7 @@
   "state": "month-ink",
   "name": "月字帖 · 留墨完整的一个月",
   "screen": "month",
-  "native": false,
+  "native": true,
   "parity": true,
   "template": "page",
   "clock": {
@@ -180,7 +180,9 @@
     }
   ],
   "ready": {
-    "web": "month-screen"
+    "web": "month-screen",
+    "native": "id:native-month-body",
+    "timeout": 20
   },
   "ax": true
 }

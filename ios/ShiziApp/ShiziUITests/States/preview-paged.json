@@ -39,7 +39,11 @@
     },
     {
       "op": "openImage",
-      "sel": "[data-testid=\"month-adjust\"]"
+      "sel": "[data-testid=\"month-adjust\"]",
+      "scope": {
+        "kind": "month",
+        "month": "2026-08"
+      }
     }
   ],
   "steps": [

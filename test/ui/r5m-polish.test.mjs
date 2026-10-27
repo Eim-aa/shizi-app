@@ -47,5 +47,6 @@ test('P2-22：空状态全 App 一个组件（components/EmptyState.js，规范 
     assert.doesNotMatch(src, /sz-lib__empty|sz-all__empty|sz-list-empty|sz-ann__e(glyph|title|body)|sz-mine__empty|sz-none__|sz-monthpage__blank/, `${f}: no page-local empty-state styles`);
   }
   // 练习记录：没有字的月份不画字帖块（标题已经说了「还没有记录」，不再重复说「没有」）
-  assert.match(code('src/ui/screens/mine/records.js'), /if \(!monthView\.n\) return null;/);
+  // B3.9：字帖块的数据来自会话层视图模型 recordsView 的 sheet 字段（网页与原生同一组模型）。
+  assert.match(code('src/ui/screens/mine/records.js'), /if \(!sheet \|\| !sheet\.n\) return null;/);
 });

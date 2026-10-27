@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs';
 import { colorDelta, contrastRatio, normText } from '../elements.mjs';
 import { STATES } from '../config.mjs';
+import { evalAx01 } from './ax01.mjs';
 
 // 设计令牌（唯一来源）：L4-01 用主按钮实心底 btnBg 与门槛 toastVsPrimary（D71 ③）
 const TOKENS = JSON.parse(readFileSync(new URL('../../../../../docs/design/design-system-v1/tokens.json', import.meta.url), 'utf8'));
@@ -21,36 +22,15 @@ const byText = (list, re) => list.find(e => re.test(normText(e.text)));
 const close = (a, b, tol) => a !== undefined && b !== undefined && Math.abs(a - b) <= tol;
 const fmt = f => (f ? `(${f.x}, ${f.y}) ${f.w}×${f.h}` : '无');
 
-/** AX-01 用：两个框的重叠面积（pt²）。 */
-const overlapArea = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
-
 export const CHECKS = [
   {
     // B2.9b：AX 档不溢出（交互规范 A1「不截断、不省略号」）——原生每个文字 / 按钮：字没被截断（行数够、单行放得下）、没被祖先裁掉（滚动区里滚得到的不算）、
     // 不伸出屏幕左右；同一层里（页面 / 弹层 / 确认框 / 撤销条各算一层，浮层按设计盖在页面上）文字与按钮互不重叠（重叠面积 > 1pt²）。
     id: 'AX-01', status: 'pass', level: '高', title: 'AX 档不溢出：文字完整可见、不截断、不互相压住',
     states: STATES, sizes: ['AX3', 'AX5'],
-    eval({ native }) {
-      const els = native.filter(e => (e.kind === 'text' || e.kind === 'button') && !e.srOnly);
-      const bad = [];
-      for (const e of els) {
-        const name = normText(e.text) || e.id || e.prop || '?';
-        if (e.truncated) bad.push(`「${name}」被截断`);
-        if (e.clipped) bad.push(`「${name}」被裁掉`);
-        if (e.offscreenX) bad.push(`「${name}」伸出屏幕`);
-      }
-      // 只比此刻看得见的部分（visibleFrame：滚动区里滚出可见框的不算重叠；null = 整个在可见框外）
-      const box = e => (e.visibleFrame !== undefined ? e.visibleFrame : (e.kind === 'text' && e.textFrame ? e.textFrame : e.frame));
-      for (let i = 0; i < els.length; i += 1) {
-        for (let j = i + 1; j < els.length; j += 1) {
-          const a = els[i], b = els[j];
-          if ((a.layer || 'page') !== (b.layer || 'page')) continue;
-          if (!box(a) || !box(b)) continue;
-          const area = overlapArea(box(a), box(b));
-          if (area > 1) bad.push(`「${normText(a.text) || a.id || a.prop}」与「${normText(b.text) || b.id || b.prop}」重叠 ${Math.round(area)}pt²`);
-        }
-      }
-      return { pass: !bad.length, detail: bad.slice(0, 6).join('；') || `${els.length} 个元素都完整可见` };
+    eval({ web, native }) {
+      const r = evalAx01(web, native);
+      return { pass: r.pass, detail: r.detail };
     },
   },
   {

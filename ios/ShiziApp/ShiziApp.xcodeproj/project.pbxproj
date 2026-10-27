@@ -29,6 +29,10 @@
 		1A0000000000000000B38C32 /* LibraryAll.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B38C31 /* LibraryAll.swift */; };
 		1A0000000000000000B38C42 /* LibrarySwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B38C41 /* LibrarySwitch.swift */; };
 		1A00000000000000000B3423 /* LibrarySubFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3422 /* LibrarySubFlowTests.swift */; };
+		1A0000000000000000B39A12 /* MineSub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39A11 /* MineSub.swift */; };
+		1A0000000000000000B39B12 /* Month.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39B11 /* Month.swift */; };
+		1A0000000000000000B39C12 /* Annual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39C11 /* Annual.swift */; };
+		1A0000000000000000B39D12 /* Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39D11 /* Records.swift */; };
 		1A0000000000000000B32004 /* ShiziScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32003 /* ShiziScreen.swift */; };
 		1A0000000000000000B32002 /* ShiziEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32001 /* ShiziEngine.swift */; };
 		1A00000000000000000A1112 /* QAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1111 /* QAApp.swift */; };
@@ -88,6 +92,7 @@
 		1A0000000000000000B3101A /* ShiziKitTokens.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31019 /* ShiziKitTokens.json */; };
 		1A0000000000000000B3101C /* NativeWriteMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3101B /* NativeWriteMetrics.swift */; };
 		1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3320 /* HomeFlowTests.swift */; };
+		1A0000000000000000B39E12 /* MineSubFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39E11 /* MineSubFlowTests.swift */; };
 		1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3322 /* LibraryFlowTests.swift */; };
 		1A00000000000000000B3325 /* DetailFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3324 /* DetailFlowTests.swift */; };
 		1A00000000000000000B3327 /* QueryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3326 /* QueryFlowTests.swift */; };
@@ -145,6 +150,10 @@
 		1A0000000000000000B38C21 /* LibraryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryList.swift; sourceTree = "<group>"; };
 		1A0000000000000000B38C31 /* LibraryAll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryAll.swift; sourceTree = "<group>"; };
 		1A0000000000000000B38C41 /* LibrarySwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySwitch.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39A11 /* MineSub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineSub.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39B11 /* Month.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Month.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39C11 /* Annual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annual.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39D11 /* Records.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Records.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32003 /* ShiziScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziScreen.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32001 /* ShiziEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziEngine.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1111 /* QAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAApp.swift; sourceTree = "<group>"; };
@@ -211,6 +220,7 @@
 		1A0000000000000000B31019 /* ShiziKitTokens.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ShiziKitTokens.json; sourceTree = "<group>"; };
 		1A0000000000000000B3101B /* NativeWriteMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteMetrics.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3320 /* HomeFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39E11 /* MineSubFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineSubFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3322 /* LibraryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3422 /* LibrarySubFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySubFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3324 /* DetailFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailFlowTests.swift; sourceTree = "<group>"; };
@@ -371,6 +381,7 @@
 				1A00000000000000000A1117 /* KnownIssueTests.swift */,
 				1A00000000000000000A1130 /* AccessibilityFlowTests.swift */,
 				1A00000000000000000B3320 /* HomeFlowTests.swift */,
+				1A0000000000000000B39E11 /* MineSubFlowTests.swift */,
 				1A00000000000000000B3322 /* LibraryFlowTests.swift */,
 				1A00000000000000000B3422 /* LibrarySubFlowTests.swift */,
 				1A00000000000000000B3324 /* DetailFlowTests.swift */,
@@ -456,6 +467,10 @@
 				1A0000000000000000B38C21 /* LibraryList.swift */,
 				1A0000000000000000B38C31 /* LibraryAll.swift */,
 				1A0000000000000000B38C41 /* LibrarySwitch.swift */,
+				1A0000000000000000B39A11 /* MineSub.swift */,
+				1A0000000000000000B39B11 /* Month.swift */,
+				1A0000000000000000B39C11 /* Annual.swift */,
+				1A0000000000000000B39D11 /* Records.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -653,6 +668,10 @@
 				1A0000000000000000B38C22 /* LibraryList.swift in Sources */,
 				1A0000000000000000B38C32 /* LibraryAll.swift in Sources */,
 				1A0000000000000000B38C42 /* LibrarySwitch.swift in Sources */,
+				1A0000000000000000B39A12 /* MineSub.swift in Sources */,
+				1A0000000000000000B39B12 /* Month.swift in Sources */,
+				1A0000000000000000B39C12 /* Annual.swift in Sources */,
+				1A0000000000000000B39D12 /* Records.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* WebViewController.swift in Sources */,
@@ -721,6 +740,7 @@
 				1A00000000000000000A1118 /* KnownIssueTests.swift in Sources */,
 				1A00000000000000000A1131 /* AccessibilityFlowTests.swift in Sources */,
 				1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */,
+				1A0000000000000000B39E12 /* MineSubFlowTests.swift in Sources */,
 				1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */,
 				1A00000000000000000B3423 /* LibrarySubFlowTests.swift in Sources */,
 				1A00000000000000000B3325 /* DetailFlowTests.swift in Sources */,

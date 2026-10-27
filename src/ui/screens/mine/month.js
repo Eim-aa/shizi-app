@@ -17,22 +17,24 @@ import { Button } from '../../components/Button.js';
 import { EmptyState } from '../../components/EmptyState.js';
 import { LiveRegion } from '../../components/LiveRegion.js';
 import { quickShare, useSaveFlow } from '../../image-quick.js';
-import { MonthPaper, builtInk, useScreenWidth } from '../../components/work.js';
+import { MonthPaper, useScreenWidth } from '../../components/work.js';
 import { injectStyles, T } from '../../components/styles.js';
 import { t, tRef } from '../../../config/copy/index.js';
 import * as defaultPolicy from '../../../config/policy.js';
 import { getStore } from '../../../store/store.js';
 import { localDay, monthOf } from '../../../core/dates.js';
 import { MINE_SHEET_MAX_CHARS } from '../../../core/images/layout.js';
-import { monthCells } from '../../../core/images/pick.js';
 import { now as envNow } from '../../../platform/env.js';
 import { openDetail } from '../detail/index.js';
 import { inkOf, recordHasInk } from '../detail/records.js';
-import { kuan } from '../../work-text.js';
+import { monthView as sessionMonthView } from '../../../session/views/mine-sub.js';
 import { useStoreState } from './records.js';
 import { cellLabelRef, trimSheetCells } from '../../../session/views/mine-page.js'; // B3.5c：格的读屏名与「我的」页字帖的取舍在会话层（网页与 App API 同一个）
+import { registerMineSubLineBreaker } from './line-starts.js';
 
 export const MONTH_SCREEN = 'month';
+// 标签（原生页的标题兜底）：单独取出来，注册行里不写带占位符的 t(...)（B3.2 的屏名 ↔ Swift 类对应扫描按字面量扫）。
+export const MONTH_LABEL = t('X-WORK.monthTitle', { month: '' });
 
 injectStyles('mine-month', `
 .sz-monthpage{display:flex;flex-direction:column;gap:12px}
@@ -60,7 +62,8 @@ function currentStore() {
  * 取到的墨迹在另一天时补一句「9 月 28 日 的笔迹」（N2-07）。
  */
 export function cellLabel(cell) {
-  return tRef(cellLabelRef(cell));
+  if (typeof cell.label === 'string') return cell.label;
+  return tRef(cell.label || cellLabelRef(cell));
 }
 
 /**
@@ -71,30 +74,27 @@ export function cellLabel(cell) {
  * @returns {{month, monthNum:number, cells:Array, n:number, days:number, under:boolean, kuan:string}}
  */
 export function monthModel(state, month, { store = currentStore(), policy = defaultPolicy } = {}) {
-  const r = monthCells(state, month, {
-    inkOf: record => builtInk(inkOf(store, record)),
-    hasInk: record => recordHasInk(store, record),
+  const view = sessionMonthView(state, month, {
     policy,
+    hasInk: record => recordHasInk(store, record),
+    inkOf: record => inkOf(store, record),
   });
-  const cells = r.cells.map((cell, i) => ({
-    key: `${cell.ch}-${i}`,
+  // 网页格的形状不变：record 是记录 id，label 是渲染好的读屏名（会话层给的是引用）。
+  return { ...view, cells: view.cells.map(c => ({ ...c, record: c.recordId, label: tRef(c.label) })) };
+}
+
+/** 模型里的格子 → 月字帖纸（MonthPaper）要的形状（读屏名渲染成句子；record 用 id）。 */
+export function paperCells(model) {
+  return (model && model.cells ? model.cells : []).map(cell => ({
+    key: cell.key,
     ch: cell.ch,
-    ink: cell.ink ? { points: cell.ink } : null,
+    ink: cell.ink,
     mode: cell.mode,
     tag: cell.tag,
-    day: cell.day || '',
-    record: cell.record ? cell.record.id : '',
+    day: cell.day,
+    record: cell.recordId != null ? cell.recordId : cell.record,
     label: cellLabel(cell),
   }));
-  return {
-    month: r.month,
-    monthNum: Number(r.month.slice(5)),
-    cells,
-    n: cells.length,
-    days: r.days,
-    under: cells.some(c => c.mode === 'under'),
-    kuan: cells.length ? kuan({ month: r.month, n: cells.length }) : '',
-  };
 }
 
 /**
@@ -118,7 +118,7 @@ function openChar(cell) {
 export function MonthBody({ model, onOpen = openChar, testid = 'month-paper', cellTestid = 'month-cell', emptyTestid = 'month-empty', kuanTestid = 'month-kuan', sealTestid = 'month-seal', sign = true, cols = 0 }) {
   const sw = useScreenWidth();
   if (!model.n) return EmptyState({ layout: 'inline', body: t('X-MINE.sheetEmpty'), testids: { root: emptyTestid, body: `${emptyTestid}-body` } }); // 全 App 唯一的空状态（S2，审计 P2-22）
-  return html`<${MonthPaper} cells=${model.cells} width=${sw - 40} kuan=${model.kuan} sign=${sign} cols=${cols} onOpen=${onOpen} testid=${testid} cellTestid=${cellTestid}
+  return html`<${MonthPaper} cells=${paperCells(model)} width=${sw - 40} kuan=${model.kuan} sign=${sign} cols=${cols} onOpen=${onOpen} testid=${testid} cellTestid=${cellTestid}
       kuanTestid=${kuanTestid} sealTestid=${sealTestid} label=${t('X-WORK.monthTitle', { month: model.monthNum })} />
     ${model.under ? html`<p class="sz-monthpage__note" data-testid="month-note">${t('X-WORK.monthUnderNote')}</p>` : null}`;
 }
@@ -182,4 +182,8 @@ function MonthScreen({ params }) {
   </${Page}>`;
 }
 
-registerScreen(MONTH_SCREEN, MonthScreen, { label: t('X-WORK.monthTitle', { month: '' }) });
+// 折行点（网页量的）：原生按网页的折行排版（原生排版算法不同，AX 档会折行）。
+registerMineSubLineBreaker();
+
+registerScreen(MONTH_SCREEN, MonthScreen, { label: MONTH_LABEL, native: true });
+

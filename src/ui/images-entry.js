@@ -11,7 +11,8 @@
 //   与结果页格子、单字详情、清单小图同一取法）→ 没有 = 无墨（作品里不收；月字帖 / 年报里画 under 衬底；I03 不借别次）。
 // D42：这次 / 这天 / 这个月按时间段取「某一次」，每字先在该时间段内按偏好顺序找留有墨迹的那一次（core/ink-pick.js），段内一份都没有才算无墨。
 // 所有函数只读 store；唯一的写是分享弹层里「也放进来」（经 result/index.js commitAdded → store.commit，写进本组会话的 added）。
-import { nav, registerScreen } from './router.js';
+import { getRouter, nav, registerScreen } from './router.js';
+import { nativeRunBelow, nativeScreenOn } from './native-stage.js';
 import { getStore } from '../store/store.js';
 import { t, tInk } from '../config/copy/index.js';
 import * as defaultPolicy from '../config/policy.js';
@@ -260,10 +261,23 @@ export function plainScope(scope) {
 }
 
 /** 请原生开图片预览弹层（返回这次打开的 id）。 */
+/**
+ * 弹层宿主下面的原生页（B3.9）：顶层是原生页时（月字帖 / 年报 / 练习记录…），把它与它下面连着的原生页带给 NativeStage——
+ * 原生栈按 run 对齐，带上才不会把下面的原生页当成「别处换了页」收掉；顶层是网页页面时为空（与原来一样）。
+ */
+function nativeRunUnderPreview() {
+  const router = getRouter();
+  const snap = router ? router.getState() : null;
+  const pages = snap ? snap.stack.filter(e => e.k === 's') : [];
+  const top = pages[pages.length - 1];
+  if (!top || pages.length < 2 || !nativeScreenOn(top.n)) return [];
+  return [...nativeRunBelow(snap, top.id), { entryId: top.id, screen: top.n, params: top.p || {} }];
+}
+
 export function openNativePreview(scope) {
   nativeSeq += 1;
   const entryId = `image-preview-${nativeSeq}`;
-  postNative('native', { op: 'open', screen: 'image-preview', entryId, params: { scope: plainScope(scope) }, via: 'quiet' });
+  postNative('native', { op: 'open', screen: 'image-preview', entryId, params: { scope: plainScope(scope) }, via: 'quiet', run: nativeRunUnderPreview() });
   return entryId;
 }
 

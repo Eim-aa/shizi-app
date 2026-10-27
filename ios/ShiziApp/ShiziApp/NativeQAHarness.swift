@@ -275,7 +275,9 @@ extension WebViewController {
                             clip = clip.intersection(sv.convert(CGRect(origin: origin, size: CGSize(width: max(sv.contentSize.width, sv.bounds.width), height: max(sv.contentSize.height + sv.contentInset.top + sv.contentInset.bottom, sv.bounds.height))), to: window))
                             visible = visible.intersection(sv.convert(sv.bounds, to: window))
                         } else if anc.clipsToBounds {
-                            clip = clip.intersection(anc.convert(anc.bounds, to: window))
+                            // B3.5d：滚动区外面的裁切祖先裁的是滚动区的视口，不是内容（滚得到就不算裁掉）——根页挂进 Tab 栏控制器后多了
+                            // 系统的整窗裁切容器，滚到屏幕下面的内容不再按「被裁掉」算
+                            if !scrolls { clip = clip.intersection(anc.convert(anc.bounds, to: window)) }
                             visible = visible.intersection(anc.convert(anc.bounds, to: window))
                         }
                         a = anc.superview

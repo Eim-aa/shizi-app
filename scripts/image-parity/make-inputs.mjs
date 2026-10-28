@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import {paletteFromTokens} from '../../src/core/images/palette.js';
+const palette=paletteFromTokens(JSON.parse(fs.readFileSync('docs/design/design-system-v1/tokens.json','utf8')));
+const ink=[[{x:65,y:85,w:5},{x:140,y:75,w:12},{x:260,y:95,w:3}],[{x:165,y:50,w:4},{x:160,y:170,w:13},{x:145,y:280,w:2}]];
+const cell=(i)=>({ch:['永','一','人','字'][i%4],ink:i%5===3?null:ink,mode:i%5===3?'under':'hand',dot:i%7===2,day:`2026-10-${String(1+Math.floor(i/9)).padStart(2,'0')}`,tag:i%9===0?String(1+Math.floor(i/9)):''});
+const cases=[];
+const add=(kind,args)=>cases.push({id:`${String(cases.length+1).padStart(2,'0')}-${kind}`,kind,palette,args});
+for(const kind of ['work','sheet']) for(const ratio of ['3:4','1:1']) for(const n of [1,3,7,25,80]) add(kind,{cells:Array.from({length:n},(_,i)=>cell(i)),ratio,kuan:'二〇二六年十月　七字',scale:4/3});
+for(const ratio of ['portrait','square']) for(const points of [ink,[[{x:100,y:50,w:15},{x:110,y:280,w:3}]],[[{x:30,y:180,w:4},{x:300,y:185,w:12}]],[[{x:170,y:170,w:12}]]]) add('glyph',{points,ratio,caption:'yǒng · 十月一日',signatureText:'拾字'});
+const base={yearText:'二〇二六',line:'这一年，你写过八十个字。',first:cell(0),firstLabel:'今年第一个字',firstDate:'四月二十六日的笔迹',kuan:'拾字　年报'};
+for(const first of [cell(0),cell(3),{...cell(3),ch:'𠮷'}]) add('annual-cover',{...base,first});
+const tail={title:'同一个字，两次',first:cell(0),last:cell(1),firstDate:'四月二十六日',lastDate:'十月一日',kuan:'二〇二六年十月'};
+for(const last of [cell(1),cell(3),{...cell(3),ch:'𠮷'}]) add('annual-tail',{...tail,last});
+for(const maxExportHeight of [11650,1800,1100]) add('annual-long',{...base,tail,months:[{name:'四月',count:'八十字',cells:Array.from({length:80},(_,i)=>cell(i))},{name:'十月',count:'七字',cells:Array.from({length:7},(_,i)=>cell(i))}],maxExportHeight});
+add('sheet',{cells:Array.from({length:79},(_,i)=>cell(i)),ratio:'3:4',kuan:'二〇二六年十月　七十九字　其二',scale:0.5});
+add('work',{cells:[{...cell(0),ink:[[{x:2,y:3,w:2},{x:343,y:342,w:1}]],dot:true}],ratio:'1:1',kuan:'二〇二六年十月　一字',scale:4/3});
+add('sheet',{cells:Array.from({length:12},(_,i)=>({...cell(i),day:'2026-10-01'})),ratio:'1:1',kuan:'二〇二六年十月　十二字',scale:4/3});
+fs.writeFileSync('scripts/image-parity/inputs.json',JSON.stringify(cases,null,2)+'\n');console.log(cases.length);

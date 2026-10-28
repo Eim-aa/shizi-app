@@ -1,3 +1,8 @@
+import { imagePlan } from '../../../src/core/images/pick.js';
+import { buildWork } from '../../../src/core/images/work.js';
+import * as imageLayout from '../../../src/core/images/layout.js';
+import * as glyphLayout from '../../../src/core/images/glyph-layout.js';
+import { paginate as imagePaginate } from '../../../src/core/images/paginate.js';
 // ShiziCore 差分的 JS 参考引擎（B4.0；计划 §4.3 ④）。op 表与 ios/ShiziCore/Sources/ShiziCore/Engine/CoreEngine.swift 一一对应：
 // 同一组 op 名、同一套参数校验（bad-args）、同一种错误码（JS RangeError → range、TypeError → type）。规则一律直接调 src/ 的无 DOM 集，
 // 这里只有协议与参数适配，不写任何规则。协议全文见 ios/ShiziCore/README.md。
@@ -66,6 +71,15 @@ export function createJsEngine({ fault = null } = {}) {
   const tOf = (a) => (has(a, 't') ? a.t : st.clock);
 
   const OPS = {
+    'images.plan': a => imagePlan(a.state,a.scope,{inkOf:r=>a.ink?.[r.id]??null,policy:{imageMaxChars:a.maxChars??80,monthSheetPick:a.monthPick??'first'}}),
+    'images.work': a => buildWork({items:a.items,records:new Map(a.records.map(r=>[r.id,r])),hasInk:r=>a.inkIds.includes(r.id),added:a.added}),
+    'images.layout': a => (a.sheet ? imageLayout.sheetPageLayout : imageLayout.layout)(int(a,'n',1_000_000),a.ratio ?? '3:4'),
+    'images.sheetGrid': a => imageLayout.sheetGrid(int(a,'n',1_000_000),required(a,'width'),a),
+    'images.glyphLayout': a => glyphLayout.glyphLayout(a.bounds ?? null,a.ratio ?? 'portrait'),
+    'images.inkBounds': a => glyphLayout.inkBounds(a.points ?? []),
+    'images.paginate': a => imagePaginate(a.cells,a.max),
+    'images.withDayTags': a => imageLayout.withDayTags(a.cells),
+    'images.sheetTags': a => imageLayout.sheetTags(a.cells),
     hello: () => ({ protocol: PROTOCOL_VERSION, engine: 'js', ops: Object.keys(OPS).sort() }),
     state: () => null,
     reset: (a) => {

@@ -22,3 +22,6 @@ scripts/sim/out/
 ios/ShiziCore/.build/
 ios/ShiziCore/.swiftpm/
 scripts/core-diff/out/
+
+# Reproducible B4.6 raster diagnostics
+artifacts/image-parity/

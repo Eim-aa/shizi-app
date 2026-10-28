@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createAppApi } from '../../src/session/api/index.js';
 import { imageActions, setImageActions } from '../../src/session/api/image.js';
-import { buildImageJob, jobOf, imageView, imageRender, plainScope } from '../../src/ui/images-entry.js';
+import { buildImageJob, jobOf, imageView, imageRender, imageSpec, plainScope } from '../../src/ui/images-entry.js';
 import { buildAnnualJob } from '../../src/ui/images-annual.js';
 import { noteOf, failText } from '../../src/ui/components/image-preview.js';
 import { EXPORT_SCALE } from '../../src/core/images/layout.js';
@@ -231,4 +231,20 @@ test.after(() => {
   if (globalThis.getComputedStyle) delete globalThis.getComputedStyle;
   console.warn = realWarn;
   void restore;
+});
+
+
+test('B4.6 image.spec provides serializable native inputs without creating a canvas', () => {
+  const { created } = installRecordingCanvas();
+  const { store } = fixture();
+  const ctx = { getStore: () => store };
+  const spec = imageSpec(SCOPE, '1:1', 0, 'export', ctx);
+  assert.equal(spec.ok, true);
+  assert.equal(spec.spec.kind, 'work');
+  assert.equal(spec.spec.args.scale, EXPORT_SCALE);
+  assert.equal(spec.spec.args.ratio, '1:1');
+  assert.ok(spec.spec.args.cells.length > 0);
+  assert.equal(spec.spec.palette.textures.length, 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(spec)), spec);
+  assert.equal(created.length, 0, 'native input construction never rasterizes with canvas');
 });

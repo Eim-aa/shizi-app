@@ -50,7 +50,7 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
     lastDate: annualTailDateText(plan.tail.lastDay),
     kuan: kuan({ month: monthOf(day) }),
   });
-  return {
+  const job = {
     kind: 'annual',
     plan,
     title: t('X-WORK.annualSaveTitle'),
@@ -61,36 +61,36 @@ export function buildAnnualJob({ state = null, store = storeOrNull(), inkOf = nu
     status: () => plan.status,
     pageCount: () => plan.pages.length || 1,
     saveLabel: total => t('X-WORK.annualSaveButton', { n: total }),
-    renderPage: async (i, ratio, { scale } = {}) => {
+    nativeSpec: (i, ratio, { scale } = {}) => {
       const page = plan.pages[i];
-      if (!page) return { status: 'empty', canvas: null };
-      if (page.type === 'cover') return renderAnnualCover({ ...coverArgs(), scale, ...deps, meta: { page: i + 1, pages: plan.pages.length } });
-      if (page.type === 'tail') return renderAnnualTail({ ...tailArgs(), scale, ...deps, meta: { page: i + 1, pages: plan.pages.length } });
-      return renderWorkPage({
-        cells: page.cells, ratio: '3:4', kuan: kuan({ month: page.month, n: page.cells.length, part: page.part, of: page.of }), scale, ...deps,
-        meta: { kind: 'annual-month', month: page.month, page: i + 1, pages: plan.pages.length },
-      });
+      if (!page) return { status: 'empty' };
+      const meta = { page: i + 1, pages: plan.pages.length };
+      if (page.type === 'cover') return { status: 'ready', kind: 'annual-cover', args: { ...coverArgs(), scale, meta } };
+      if (page.type === 'tail') return { status: 'ready', kind: 'annual-tail', args: { ...tailArgs(), scale, meta } };
+      return { status: 'ready', kind: 'work', args: { cells: page.cells, ratio: '3:4', kuan: kuan({ month: page.month, n: page.cells.length, part: page.part, of: page.of }), scale, meta: { kind: 'annual-month', month: page.month, ...meta } } };
+    },
+    renderPage: async (i, ratio, { scale } = {}) => {
+      const spec = job.nativeSpec(i, ratio, { scale });
+      if (spec.status !== 'ready') return { status: spec.status, canvas: null };
+      const render = spec.kind === 'annual-cover' ? renderAnnualCover : spec.kind === 'annual-tail' ? renderAnnualTail : renderWorkPage;
+      return render({ ...spec.args, ...deps });
     },
     fileName: (ratio, i, total) => `shizi-annual-${year}-${String(i + 1).padStart(2, '0')}of${total}.jpg`,
     alt: {
       label: t('X-WORK.annualSaveLong'),
       note: t('X-WORK.annualLongNote'),
+      nativeSpec: () => ({ status: 'ready', kind: 'annual-long', args: {
+        ...coverArgs(), months: plan.months.map(m => ({ name: t('X-WORK.annualMonthName', { month: m.monthNum }), count: t('X-WORK.annualMonthCount', { n: m.cells.length }), cells: m.cells })),
+        tail: plan.tail ? { ...tailArgs() } : null,
+      } }),
       render: async () => {
-        const out = await renderAnnualLong({
-          ...coverArgs(),
-          months: plan.months.map(m => ({
-            name: t('X-WORK.annualMonthName', { month: m.monthNum }),
-            count: t('X-WORK.annualMonthCount', { n: m.cells.length }),
-            cells: m.cells,
-          })),
-          tail: plan.tail ? { ...tailArgs() } : null,
-          ...deps,
-        });
+        const out = await renderAnnualLong({ ...job.alt.nativeSpec().args, ...deps });
         return out.canvases;
       },
       fileName: (i, total) => `shizi-annual-${year}-long${total > 1 ? `-${i + 1}of${total}` : ''}.jpg`,
     },
   };
+  return job;
 }
 
 /** 打开「保存年报」弹层；返回 overlay id。 */

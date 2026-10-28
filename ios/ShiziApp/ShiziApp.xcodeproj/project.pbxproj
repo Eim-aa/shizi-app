@@ -109,6 +109,7 @@
 		1A0000000000000000B37004 /* DetailZoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37003 /* DetailZoom.swift */; };
 		1A0000000000000000B37006 /* DetailPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37005 /* DetailPhoto.swift */; };
 		1A0000000000000000B37008 /* DetailParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37007 /* DetailParts.swift */; };
+        B46000000000000000000001 /* ShiziImageRendering in Frameworks */ = {isa = PBXBuildFile; productRef = B46000000000000000000002; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -245,6 +246,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+                B46000000000000000000001 /* ShiziImageRendering in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,7 +493,8 @@
 			);
 			dependencies = (
 			);
-			name = Shizi;
+			packageProductDependencies = (B46000000000000000000002);
+            name = Shizi;
 			productName = Shizi;
 			productReference = 1A0000000000000000000005 /* Shizi.app */;
 			productType = "com.apple.product-type.application";
@@ -582,7 +585,8 @@
 				"zh-Hans",
 			);
 			mainGroup = 1A0000000000000000000002;
-			productRefGroup = 1A0000000000000000000003 /* Products */;
+			packageReferences = (B46000000000000000000003);
+            productRefGroup = 1A0000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -782,6 +786,13 @@
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
+
+/* Begin XCLocalSwiftPackageReference section */
+        B46000000000000000000003 = {isa = XCLocalSwiftPackageReference; relativePath = ../ShiziCore; };
+/* End XCLocalSwiftPackageReference section */
+/* Begin XCSwiftPackageProductDependency section */
+        B46000000000000000000002 = {isa = XCSwiftPackageProductDependency; productName = ShiziImageRendering; };
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1A00000000000000000000FA /* Debug */ = {

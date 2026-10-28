@@ -202,6 +202,10 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
     private var loadTimer: Timer?
     private var busyTimer: Timer?
     private var saveFlash: Timer?
+    #if DEBUG
+    // Only the saved-state screenshot proxy freezes this transient, matching the web fixture's frozen 1500ms timeout.
+    private var qaHoldSaved = false
+    #endif
     private var token = 0
 
     // 视图
@@ -1314,10 +1318,17 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
                 fail = nil
                 styleAll()
                 saveFlash?.invalidate()
-                saveFlash = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
-                    guard let self else { return }
-                    self.saveState = ""
-                    self.styleAll()
+                #if DEBUG
+                let holdSaved = qaHoldSaved
+                #else
+                let holdSaved = false
+                #endif
+                if !holdSaved {
+                    saveFlash = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
+                        guard let self else { return }
+                        self.saveState = ""
+                        self.styleAll()
+                    }
                 }
             } else {
                 saveState = "failed"
@@ -1386,6 +1397,7 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
         let firstChip = model.chips.first?.recordId ?? ""
         let actions: [(String, () -> Void)] = [
             ("qa-image-save", { [weak self] in self?.onSave() }),
+            ("qa-image-save-held", { [weak self] in self?.qaHoldSaved = true; self?.onSave() }),
             ("qa-image-share", { [weak self] in self?.onShare() }),
             ("qa-image-long", { [weak self] in self?.onSaveLong() }),
             ("qa-image-chip", { [weak self] in self?.onChip(firstChip) }),

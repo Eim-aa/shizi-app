@@ -50,6 +50,8 @@ function act(name, args, ctx) {
 
 export const OPS = Object.freeze({
   'image.view': (args, ctx) => act('view', args, ctx),
+  'image.persist': (args, ctx) => act('persist', args, ctx),
+  'image.spec': (args, ctx) => act('spec', args, ctx),
   'image.render': (args, ctx) => act('render', args, ctx),
   'image.add': (args, ctx) => act('add', args, ctx),
   'image.save': (args, ctx) => act('save', args, ctx),

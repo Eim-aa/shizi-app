@@ -1,3 +1,4 @@
+import ShiziImageRendering
 import QuartzCore
 import UIKit
 import WebKit
@@ -176,9 +177,57 @@ final class WebEngine: ShiziEngine {
         Self.evaluate(webView, function: "shiziNative", op: op, args: args) { body, _ in completion(body) }
     }
 
+    /// B4.6: native raster boundary. `webRenderer: true` explicitly calls the retained canvas fallback.
     @MainActor func raw(_ op: String, _ args: [String: Any]) async -> [String: Any] {
-        await withCheckedContinuation { cont in
-            raw(op, args) { cont.resume(returning: $0) }
+        if (op == "image.render" || op == "image.save"), args["webRenderer"] as? Bool != true,
+           let native = await nativeImage(op, args) { return native }
+        return await webRaw(op, args)
+    }
+
+    @MainActor private func webRaw(_ op: String, _ args: [String: Any]) async -> [String: Any] {
+        await withCheckedContinuation { cont in raw(op, args) { cont.resume(returning: $0) } }
+    }
+
+    private var imageRenderer: ImageRenderer?
+    @MainActor private func nativeImage(_ op: String, _ args: [String: Any]) async -> [String: Any]? {
+        guard let assets = Bundle.main.url(forResource: "Web", withExtension: nil) else { return nil }
+        if imageRenderer == nil { imageRenderer = ImageRenderer(assets: assets) }
+        var request = args
+        if op == "image.save", args["mode"] as? String != "long" { request["mode"] = "export" }
+        let first = await webRaw("image.spec", request)
+        guard first["ok"] as? Bool == true, let spec = first["spec"] as? [String: Any] else { return nil }
+        let status = spec["status"] as? String ?? "ready"
+        if status != "ready", op == "image.save" { return ["ok": false, "error": ["kind": "render"]] }
+        if status != "ready" { return ["ok": true, "image": ["status": status, "dataURL": "", "width": 0, "height": 0, "name": ""]] }
+        do {
+            let data = try imageRenderer!.render(spec)
+            if op == "image.render" {
+                guard let png = data.first, let image = UIImage(data: png) else { return nil }
+                return ["ok": true, "image": ["status": "ready", "dataURL": "data:image/png;base64," + png.base64EncodedString(), "width": Int(image.size.width), "height": Int(image.size.height), "name": first["name"] as? String ?? ""]]
+            }
+            var images: [[String: Any]] = []
+            func append(_ pngs: [Data], _ name: String) {
+                for (i,png) in pngs.enumerated() {
+                    let base = (name as NSString).deletingPathExtension
+                    let stem = pngs.count > 1 ? base + "-\(i+1)of\(pngs.count)" : name
+                    images.append(["dataURL": "data:image/png;base64," + png.base64EncodedString(), "name": WebViewController.fileName(stem, forExtension: "png"), "kind": (args["scope"] as? [String: Any])?["kind"] as? String ?? ""])
+                }
+            }
+            append(data, first["name"] as? String ?? "shizi")
+            if args["mode"] as? String != "long" {
+                let total = first["total"] as? Int ?? 1
+                if total > 1 { for page in 1..<total {
+                    request["page"] = page
+                    let body = await webRaw("image.spec", request)
+                    guard let next = body["spec"] as? [String: Any], body["ok"] as? Bool == true else { return nil }
+                    append(try imageRenderer!.render(next), body["name"] as? String ?? "shizi")
+                } }
+            }
+            guard !images.isEmpty else { return nil }
+            return await webRaw("image.persist", ["images": images])
+        } catch {
+            // Unsupported/corrupt assets use the existing web renderer; JS is retained for rollback.
+            return nil
         }
     }
 

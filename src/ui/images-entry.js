@@ -1,3 +1,4 @@
+import { readLightPalette } from '../core/images/palette.js';
 // 图片入口（阶段 1 P1-E7；交接 §5.3 / §6 / §7；02 M4-5；01 §10；04 R-I01–R-I04、R-P03、R-D04、A05；D31 / D39 / D42 / D46 / D47）。
 // 由 ui/root.js 加载一次：把「做图片」的去处注册给各页（各页没注册时入口不显示）——
 //   结果页右上「分享」           setResultImageAction(fn({slot, sessionId}))              → 这次的图片（作品成员规则，D31）
@@ -152,29 +153,28 @@ export function buildImageJob(scope, { state = null, store = storeOrNull(), inkO
     status: () => planNow().status,
     pageCount: () => (planNow().pages.length || 1),
     splitNote: total => t('X-WORK.splitNote', { n: planNow().n, m: total, max: plan.maxChars }),
-    renderPage: async (i, ratio, { scale } = {}) => {
+    nativeSpec: (i, ratio, { scale } = {}) => {
       const p = planNow();
+      if (p.status !== 'ready') return { status: p.status };
       if (p.kind === 'glyph') {
-        if (p.status !== 'ready') return { status: p.status, canvas: null };
         const cell = p.drawn[0];
-        const out = await renderSingleGlyph({
-          points: cell.points,
-          caption: glyphCaption(cell.record, lookup),
-          signatureText: t('X-IMAGES.brand'),
+        return { status: 'ready', kind: 'glyph', args: {
+          points: cell.points, caption: glyphCaption(cell.record, lookup), signatureText: t('X-IMAGES.brand'),
           ratio: RATIO_OF_LABEL[ratio] || 'portrait',
-          paintStroke: paintBrushStroke,
-          requireFont: requireCanvasFont,
           meta: { kind: 'glyph', members: cell.char, recordIds: cell.record.id, day: cell.record.localDay },
-        });
-        return { status: out.status, canvas: out.canvas };
+        } };
       }
-      if (p.status !== 'ready') return { status: p.status, canvas: null };
       const cells = p.pages[i] || [];
-      const render = p.kind === 'month' ? renderSheetPage : renderWorkPage; // 月字帖：字帖格版式（D57，与「我的」页、月字帖页同一个 sheetGrid）
-      const out = await render({
-        cells, ratio, kuan: kuanFor(p, i, p.pages.length, cells), scale, ...renderDeps(),
+      return { status: cells.length ? 'ready' : 'empty', kind: p.kind === 'month' ? 'sheet' : 'work', args: {
+        cells, ratio, kuan: kuanFor(p, i, p.pages.length, cells), scale,
         meta: { kind: p.kind, key: p.key, plan: p.status, day: p.day || '', month: p.month || '', days: p.days == null ? '' : p.days, page: i + 1, pages: p.pages.length },
-      });
+      } };
+    },
+    renderPage: async (i, ratio, { scale } = {}) => {
+      const spec = job.nativeSpec(i, ratio, { scale });
+      if (spec.status !== 'ready') return { status: spec.status, canvas: null };
+      const render = spec.kind === 'glyph' ? renderSingleGlyph : spec.kind === 'sheet' ? renderSheetPage : renderWorkPage;
+      const out = await render({ ...spec.args, ...renderDeps() });
       return { status: out.status, canvas: out.canvas };
     },
     fileName: (ratio, i, total) => fileName(plan, ratio, i, total),
@@ -425,6 +425,20 @@ export async function imageRender(scope, ratio, page, mode, ctx = null) {
   };
 }
 
+/** B4.6: serializable render input; image.render remains callable as web fallback. */
+export function imageSpec(scope, ratio, page, mode, ctx = null) {
+  const job = jobOf(scope, ctx);
+  const r = ratio || job.initialRatio || '3:4';
+  const total = job.pageCount();
+  const scale = mode === 'export' || mode === 'long' ? EXPORT_SCALE : total <= 3 ? EXPORT_SCALE : PREVIEW_SCALE_MANY;
+  if (mode === 'long') {
+    if (!job.alt?.nativeSpec) return { ok: false, error: { kind: 'unsupported' } };
+    return { ok: true, spec: { ...job.alt.nativeSpec(), palette: readLightPalette() }, name: job.alt.fileName(0, 1), total };
+  }
+  if (!job.nativeSpec) return { ok: false, error: { kind: 'unsupported' } };
+  return { ok: true, spec: { ...job.nativeSpec(page, r, { scale }), palette: readLightPalette() }, name: job.fileName(r, page, total), total };
+}
+
 /** 「也放进来」：网页弹层同一个 toggleChip（commitAdded）。 */
 export function imageAdd(scope, recordId, ctx = null) {
   const job = jobOf(scope, ctx);
@@ -475,6 +489,19 @@ async function saveAll(job, canvases, nameOf, total = 0, ratio = null) {
 /** App API 的动作（会话层不导入 UI：网页图片模块加载时登记**同一个函数对象**）。 */
 setImageActions({
   view: (args, ctx) => ({ ok: true, view: imageView(args && args.scope, args && args.ratio, ctx) }),
+  persist: async args => {
+    for (const image of args.images || []) {
+      let one;
+      try {
+        one = await saveImageFile(withExt(image));
+      } catch {
+        return { ok: false, error: { kind: 'download' } };
+      }
+      if (!one?.ok) return { ok: false, error: { kind: one?.reason || (one?.via === 'native' ? 'denied' : 'download') } };
+    }
+    return { ok: true, via: 'native' };
+  },
+  spec: (args, ctx) => imageSpec(args && args.scope, args && args.ratio, Number((args && args.page) || 0), args && args.mode, ctx),
   render: (args, ctx) => imageRender(args && args.scope, args && args.ratio, Number((args && args.page) || 0), args && args.mode, ctx),
   add: (args, ctx) => imageAdd(args && args.scope, args && args.recordId, ctx),
   save: (args, ctx) => imageSave(args && args.scope, args && args.ratio, args && args.mode, ctx),

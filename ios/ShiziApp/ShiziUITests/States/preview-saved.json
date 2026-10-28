@@ -34,7 +34,7 @@
     {
       "tap": {
         "webTestid": "image-save",
-        "native": "qa-image-save"
+        "native": "qa-image-save-held"
       },
       "times": 1
     },

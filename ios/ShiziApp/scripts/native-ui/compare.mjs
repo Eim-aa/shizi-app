@@ -13,7 +13,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { diffState, normText } from './elements.mjs';
-import { GRAPHICS_DEFAULTS, cellRegions, cleanMask, commonScrollWindow, diffGraphics, glyphInk, hiddenText, inkMetrics, judgeGlyph, judgeInk, scrollWindows, underSheet } from './graphics.mjs';
+import { GRAPHICS_DEFAULTS, cellRegions, cleanMask, commonScrollWindow, diffGraphics, glyphInk, hiddenText, iconVisibilityDiffers, inkMetrics, judgeGlyph, judgeInk, reachesTabBar, scrollWindows, tabBarTop, underSheet } from './graphics.mjs';
 import { CHECKS, COVERED_ELSEWHERE } from './parity-checks.mjs';
 import { STATE_NAMES, STATES } from './config.mjs';
 import { loadParity } from './registry.mjs';
@@ -177,11 +177,12 @@ async function sampleCells(page, png, regions, scale, opts) {
         if (dd > max) max = dd;
       }
       const cut = Math.max(o.minContrast, max * o.threshold);
+      const band = o.band || 0; // QA-H4：缓冲带——'1' 肯定是墨，'b' 略过截止值，'c' 略低于截止值，'0' 肯定不是（graphics.mjs inkMetrics 只拿 '1' 量外框 / 点数）
       let m = '';
-      for (let k = 0; k < d.length; k += 1) m += d[k] > cut ? '1' : '0';
+      for (let k = 0; k < d.length; k += 1) m += d[k] > cut * (1 + band) ? '1' : d[k] > cut ? (band ? 'b' : '1') : d[k] > cut * (1 - band) ? 'c' : '0';
       return m;
     });
-  }, { src: dataUrl(png), regions, s: scale, o: { minContrast: opts.minContrast ?? 40, threshold: opts.threshold ?? 0.5, median: !!opts.median } });
+  }, { src: dataUrl(png), regions, s: scale, o: { minContrast: opts.minContrast ?? 40, threshold: opts.threshold ?? 0.5, median: !!opts.median, band: opts.band || 0 } });
 }
 
 const escape = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
@@ -268,7 +269,9 @@ for (const name of pairsFound) {
     const covers = (natJson.elements || []).filter(e => RANK[e.layer]);
     const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     const coveredCell = (p, r) => covers.some(e => RANK[e.layer] > (RANK[p.n.layer] || 0) && hit(e.frame, r.native));
-    const inkPairs = graphics.inkPairs.map(p => ({ p, r: cellRegions(p, G.ink) })).filter(({ p, r }) => !p.w.off && !p.n.off && onScr(r.web) && onScr(r.native) && !coveredCell(p, r));
+    // QA-H4：伸进系统 Tab 栏范围的格 / 文字不按截图像素比（Tab 栏的图标、标签、玻璃会落进掩膜 / 字色里）
+    const tabTop = [tabBarTop(webAll), tabBarTop(nativeAll)].filter(t => t !== null).reduce((m, t) => (m === null ? t : Math.min(m, t)), null);
+    const inkPairs = graphics.inkPairs.map(p => ({ p, r: cellRegions(p, G.ink) })).filter(({ p, r }) => !p.w.off && !p.n.off && onScr(r.web) && onScr(r.native) && !coveredCell(p, r) && !reachesTabBar(r.web, tabTop) && !reachesTabBar(r.native, tabTop));
     if (inkPairs.length) {
       const wm = await sampleCells(page, webPng, inkPairs.map(({ r }) => ({ f: r.web, n: r.n, inset: r.inset })), (await scaleOf(webPng)) / screen.w, { ...G.ink, median: true });
       const nm = await sampleCells(page, natPng, inkPairs.map(({ r }) => ({ f: r.native, n: r.n, inset: r.inset })), (await scaleOf(natPng)) / screen.w, { ...G.ink, median: true });
@@ -285,12 +288,12 @@ for (const name of pairsFound) {
     const iconPairs = graphics.iconPairs.filter(p => !p.w.off && !p.n.off && onScr(p.w) && onScr(p.n) && !coveredCell({ n: p.n }, { native: p.n }));
     if (iconPairs.length) {
       const reg = f => ({ f, n: Math.max(8, Math.round(Math.max(f.w, f.h))), inset: 0 });
-      const wm = await sampleCells(page, webPng, iconPairs.map(p => reg(p.w)), (await scaleOf(webPng)) / screen.w, { ...G.ink, minContrast: 30, threshold: 0.4 });
-      const nm = await sampleCells(page, natPng, iconPairs.map(p => reg(p.n)), (await scaleOf(natPng)) / screen.w, { ...G.ink, minContrast: 30, threshold: 0.4 });
+      const wm = await sampleCells(page, webPng, iconPairs.map(p => reg(p.w)), (await scaleOf(webPng)) / screen.w, { ...G.ink, band: 0, minContrast: 30, threshold: 0.4 });
+      const nm = await sampleCells(page, natPng, iconPairs.map(p => reg(p.n)), (await scaleOf(natPng)) / screen.w, { ...G.ink, band: 0, minContrast: 30, threshold: 0.4 });
       const ink = m => [...m].filter(c => c === '1').length;
       iconPairs.forEach((p, i) => {
-        const a = ink(wm[i]), b = ink(nm[i]), min = G.ink.minInk ?? 6;
-        if ((a >= min) === (b >= min)) return;
+        const a = ink(wm[i]), b = ink(nm[i]);
+        if (!iconVisibilityDiffers(a, b, G.ink)) return; // QA-H4：滞回——7 对 5 这种卡在阈值上的不算
         const d = { type: 'deco', aspects: ['deco'], label: p.label, msg: `图标 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h})：截图里${a >= min ? '网页看得见、原生看不见' : '原生看得见、网页看不见'}（墨点 网页 ${a} 原生 ${b}）`, w: { frame: p.w }, n: { frame: p.n } };
         if (!isIgnored(d)) kept.push(d);
       });
@@ -299,7 +302,7 @@ for (const name of pairsFound) {
     const winZones = scrollWindows(webAll, nativeAll);
     const textPairs = (pairs || []).filter(([w, n]) => (w.kind === 'text' || w.kind === 'button') && normText(w.text) && normText(w.text) === normText(n.text)
       && w.textFrame && n.textFrame && !w.off && !n.off && onScr(w.textFrame) && onScr(n.textFrame) && w.textFrame.w >= 4 && w.textFrame.h >= 4
-      && !coveredCell({ n }, { native: n.textFrame }) && !hiddenText(winZones, 'web', w) && !hiddenText(winZones, 'native', n));
+      && !coveredCell({ n }, { native: n.textFrame }) && !reachesTabBar(w.textFrame, tabTop) && !reachesTabBar(n.textFrame, tabTop) && !hiddenText(winZones, 'web', w) && !hiddenText(winZones, 'native', n));
     if (textPairs.length) {
       const grab = async (png, frames) => {
         const s = (await scaleOf(png)) / screen.w;
@@ -336,7 +339,7 @@ for (const name of pairsFound) {
         const ds = lone.filter(d => d.lone === side);
         if (!ds.length) continue;
         const png = side === 'web' ? webPng : natPng;
-        const ms = await sampleCells(page, png, ds.map(d => { const f = (side === 'web' ? d.w : d.n).frame; const r = cellRegions({ w: f, n: f }, G.ink); return { f: r.web, n: r.n, inset: r.inset }; }), (await scaleOf(png)) / screen.w, G.ink);
+        const ms = await sampleCells(page, png, ds.map(d => { const f = (side === 'web' ? d.w : d.n).frame; const r = cellRegions({ w: f, n: f }, G.ink); return { f: r.web, n: r.n, inset: r.inset }; }), (await scaleOf(png)) / screen.w, { ...G.ink, band: 0 });
         ds.forEach((d, i) => { masks[kept.indexOf(d)] = ms[i]; });
       }
       for (let i = kept.length - 1; i >= 0; i -= 1) if (masks[i] !== undefined && [...cleanMask(masks[i], Math.round(Math.sqrt(masks[i].length)))].filter(c => c === '1').length < (G.ink.minInk ?? 6)) kept.splice(i, 1);

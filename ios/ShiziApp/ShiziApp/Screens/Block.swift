@@ -333,6 +333,8 @@ final class BlockScreen: ShiziScreenViewController {
         scroll.frame = view.bounds
         content.frame = view.bounds
         if model == nil { fallbackModel() }
+        // 笺面底垫在最底：说明的行标签可能在 viewDidLoad 之前就建好（先于 blockMarker 加进 content），不能被整页底盖住
+        content.sendSubviewToBack(blockMarker)
         let mt = metrics
         let padTop = mt.space(8) + view.safeAreaInsets.top
         let padBottom = mt.space(8) + view.safeAreaInsets.bottom

@@ -16,6 +16,7 @@ import { makeB41Ops } from './js-ops-b41.mjs';
 import { makeB43Ops } from './js-ops-b43.mjs';
 import { makeB42Ops } from './js-ops-b42.mjs';
 import { makeB44Ops } from './js-ops-b44.mjs';
+import { makeB45ViewOps } from './js-ops-b45v.mjs';
 import { parseJson } from './json-parse.mjs';
 
 export const PROTOCOL_VERSION = 1;
@@ -156,6 +157,7 @@ export function createJsEngine({ fault = null } = {}) {
     'dates.monthDayParts': (a) => dates.monthDayParts(required(a, 'day')),
 
     // B4.1：配置 / 题库 / 题记 / 文案 / 落款汉字数字 / 形状表 / 模型往返（js-ops-b41.mjs）
+    ...makeB45ViewOps({ required, clock: () => st.clock }),
     ...makeB41Ops({ required, str, finite, int, badArgs }),
 
     // B4.3：记录 / 查字 / 卡片 / 结构 / 作品成员 / 取墨 / 首练结果页 / 提醒题目 / 墨编解码（js-ops-b43.mjs）

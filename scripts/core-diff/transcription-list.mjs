@@ -20,6 +20,11 @@ const N = '不转';
 
 // 文件 → [归类, 卡, 说明]。说明写给转写的人。
 const FILES = {
+  'test/ui/about.test.mjs': [N, '—', '网页组件 / 资料生成器；纯视图规则见逐条 B4.5b'],
+  'test/ui/prefs.test.mjs': [N, '—', '网页设置组件与平台同步；纯视图规则见逐条 B4.5b'],
+  'test/ui/library-switch.test.mjs': [N, '—', '网页换库动作与组件；纯视图规则见逐条 B4.5b'],
+  'test/ui/work-text.test.mjs': [N, '—', '网页纸面渲染 / 文案门禁；落款引用规则见逐条 B4.5b'],
+  'test/ui/native-block.test.mjs': [D, 'B4.5', 'App API 传输与页面接线；纯阻断判断见逐条 B4.5b'],
   'test/core/after-seen-works.test.mjs': [T, 'B4.3', '作品出口规则（records / work-members / ink-pick）；经图片 / 页面视图的断言按同一规则在测试里装配，视图本身 B4.5 / B4.6 接'],
   'test/core/arphic-compliance.test.mjs': [N, '—', '许可与随包文件门禁，留 node（数据不随 B4 变）'],
   'test/core/backup.test.mjs': [T, 'B4.4', 'BackupTests（20）；双向夹具 BackupRoundTripTests（Fixtures/backup-roundtrip.json）+ scripts/core-diff/backup-roundtrip.mjs'],
@@ -82,6 +87,11 @@ const FILES = {
 
 // 逐条覆盖（文件内个别用例归类不同）：[文件, 名字正则, 归类, 卡, 说明]
 const OVERRIDES = [
+  ['test/ui/about.test.mjs', /^(B7 |C1 \/ P197:|sub-pages:)/, T, 'B4.5b', 'ViewParityTests：模型规则断言（DOM 断言留 node）'],
+  ['test/ui/prefs.test.mjs', /^(settingsView:|time helpers$|commitSettings:|commitSettings on an empty|remind: enabling|RemindBody \(E3\))/, T, 'B4.5b', 'ViewParityTests：视图 / Store 提交规则（平台同步与 DOM 留 node）'],
+  ['test/ui/library-switch.test.mjs', /^(libraryRows:|judgedChars:|real deck:)/, T, 'B4.5b', 'ViewParityTests'],
+  ['test/ui/work-text.test.mjs', /^(落款 text|自选组的落款|分张的落款)/, T, 'B4.5b', 'ViewParityTests：同一引用结构及汉字数量；渲染留 Copy'],
+  ['test/ui/native-block.test.mjs', /^B3.13 blockReasonOf:/, T, 'B4.5b', 'ViewParityTests'],
   ['test/core/compliance-removal.test.mjs', /old records/i, T, 'B4.2', '旧记录里的已移除字走「字不在题库」降级'],
   ['test/core/dates.test.mjs', /isValidDay|localDay|dayStartMs|addDays|monthOf|dayOfYear|period boundaries/, D, 'B4.0', '金标准 dates.json（6 时区）+ 随机差分已覆盖'],
   ['test/core/strokes.test.mjs', /glyph/i, N, '—', '网页画布纯函数（仅网页）'],
@@ -90,7 +100,7 @@ const OVERRIDES = [
 ];
 
 const SCOPE = ['test/core', 'test/store', 'test/session', 'test/platform'].flatMap((d) =>
-  fs.readdirSync(path.join(ROOT, d)).filter((f) => f.endsWith('.test.mjs')).map((f) => `${d}/${f}`)).concat(['test/ui/native-ink.test.mjs', 'test/ui/native-write.test.mjs']).sort();
+  fs.readdirSync(path.join(ROOT, d)).filter((f) => f.endsWith('.test.mjs')).map((f) => `${d}/${f}`)).concat(['test/ui/native-ink.test.mjs', 'test/ui/native-write.test.mjs', 'test/ui/about.test.mjs', 'test/ui/prefs.test.mjs', 'test/ui/library-switch.test.mjs', 'test/ui/work-text.test.mjs', 'test/ui/native-block.test.mjs']).sort();
 
 function collect() {
   const r = spawnSync(process.execPath, ['--test', `--test-reporter=${REPORTER}`, ...SCOPE], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20, env: { ...process.env, TZ: process.env.TZ || 'Asia/Shanghai' } });

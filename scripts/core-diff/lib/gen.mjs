@@ -12,8 +12,9 @@ import cardsDomain from '../domains/cards.mjs';
 import membersDomain from '../domains/members.mjs';
 import inkDomain from '../domains/ink.mjs';
 import storeDomain from '../domains/store.mjs';
+import viewsDomain from '../domains/views.mjs';
 
-export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain, storeDomain];
+export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain, storeDomain, viewsDomain];
 
 /** mulberry32（与 scripts/sim/lib/env.mjs 同一算法）。 */
 export function rng(seed) {
@@ -104,8 +105,8 @@ export function generate(seed, steps, available, only = null) {
   const domains = only ? DOMAINS.filter((d) => only.includes(d.id)) : DOMAINS;
   for (const d of domains) for (const [op, spec] of Object.entries(d.ops)) if (spec.always || available.has(op)) table.push([op, spec]);
   const entries = table.map(([op, spec]) => [[op, spec], spec.weight]);
-  const out = [];
-  for (let i = 0; i < steps; i += 1) {
+  const out = domains.flatMap(d => d.sequence ? d.sequence(g).filter(r => available.has(r.op)) : []).slice(0, steps);
+  for (let i = out.length; i < steps; i += 1) {
     const [op, spec] = g.weighted(entries);
     const req = spec.request ? spec.request(g) : { op, args: spec.args ? spec.args(g) : {} };
     out.push(req);

@@ -275,13 +275,19 @@ final class MineSheetCell: UIButton {
     private var pad: CGFloat = 0.12
     private var hasTag = false
 
-    func configure(cell: MineView.Cell, strokes: [[InkRawPoint]], side: CGFloat, pad: CGFloat, widthScale: Double, look: (hand: SIMD4<Float>?, under: UIColor, ink1: UIColor, ink3: UIColor, paper: UIColor, field: UIColor)) {
+    func configure(cell: MineView.Cell, pad: CGFloat, widthScale: Double, look: (hand: SIMD4<Float>?, under: UIColor, ink1: UIColor, ink3: UIColor, paper: UIColor, field: UIColor)) {
         self.pad = pad
         inkView?.removeFromSuperview()
         inkView = nil
         glyph.removeFromSuperview()
-        let inner = side * (1 - 2 * pad)
-        if cell.mode == "hand", let v = NativeInkPaint.view(strokes: strokes, side: inner, color: look.hand, widthScale: widthScale) {
+        if cell.mode == "hand", let ink = cell.ink {
+            // 直接回放存下的点列（与网页同一份笔宽）；滚入时由只读墨视图补画。
+            let v = ShiziPointsInkView()
+            v.points = ink.points
+            v.widthScale = widthScale
+            if let hand = look.hand {
+                v.inkColor = UIColor(red: CGFloat(hand.x), green: CGFloat(hand.y), blue: CGFloat(hand.z), alpha: CGFloat(hand.w))
+            }
             inkView = v
             addSubview(v)
         } else {

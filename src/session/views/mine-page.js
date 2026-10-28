@@ -12,6 +12,7 @@ import { monthCells } from '../../core/images/pick.js';
 import { INK_PAD, MINE_SHEET_MAX_CHARS, dayTag, inkWidthScale, sheetColumns, sheetGrid, sheetTags } from '../../core/images/layout.js';
 import { sealGlyphPath } from '../../core/images/shi-paths.js';
 import { annualDefaultYear } from './annual.js';
+import { builtInk } from '../../core/ink-build.js';
 import { inkOf, recordHasInk } from './detail.js';
 import { kuanRef } from './kuan.js';
 import { mineModel } from './mine.js';
@@ -135,6 +136,7 @@ export function mineSheetView(state, model, { store = null, policy = defaultPoli
     cells: shown.map((cell, i) => ({
       ch: cell.ch, mode: cell.mode, tag: tags[i], day: cell.day, record: cell.record, label: cell.label,
       x: g.cells[i].x, y: g.cells[i].y,
+      ink: cell.mode === 'hand' && cell.rec ? { points: builtInk(inkOf(store, cell.rec)) || [] } : null,
       strokes: cell.mode === 'hand' && cell.rec && typeof strokesOf === 'function' ? strokesOf(cell.rec) : [],
     })),
   };

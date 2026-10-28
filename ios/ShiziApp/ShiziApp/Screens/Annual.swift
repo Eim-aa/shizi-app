@@ -271,7 +271,7 @@ final class AnnualScreen: ShiziScreenViewController {
             if let g = emptyGlyph.subviews.first as? NativeGlyphView {
                 g.char = m.emptyGlyph.text
                 g.color = color("under")
-                g.padRatio = 0.06
+                g.padRatio = 0
             }
             return
         }
@@ -541,7 +541,8 @@ final class AnnualScreen: ShiziScreenViewController {
             let top0 = y + hairline + monthPadTop
             // 月名与字数（基线对齐的一行）
             let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
-            let nameLine = mt.line("lh22")
+            // WebKit 的 flex 行把小数行盒向上包整（XXXL 的 40.5 → 41），否则每月累计少 1pt。
+            let nameLine = ceil(mt.value("lh22"))
             let countFont = NativeType.compose(size: mt.value("fs13"), weight: .regular)
             let countLine = mt.line("lh13")
             let na = ShiziFlex.text(nameFont, line: nameLine)

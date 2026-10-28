@@ -107,6 +107,7 @@ test('B3.5c view.mine = the same functions the web page renders (overview, sheet
   // 有墨的格带笔画（桥上的紧凑原始点），没墨的格没有
   assert.ok(paper.cells.some(c => c.mode === 'hand' && c.strokes.length > 0));
   assert.ok(paper.cells.filter(c => c.mode === 'under').every(c => c.strokes.length === 0));
+  assert.deepEqual(paper.cells.map(c => c.ink?.points ?? null), shown.model.cells.map(c => c.mode === 'hand' ? c.ink.points : null), '原生直接回放网页的已解码笔迹，保留笔宽而不依赖写字页先打开');
   // 行
   const sv = settingsView(state.settings);
   assert.equal(view.remind.on, false);

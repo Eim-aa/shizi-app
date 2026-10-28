@@ -13,6 +13,7 @@ struct MineView: Decodable {
     struct Empty: Decodable { let title: ShiziCopyRef; let body: ShiziCopyRef }
     struct Seal: Decodable { let size: Double; let below: Bool; let x: Double; let y: Double }
     struct Cell: Decodable {
+        let ink: ShiziInkBox?
         let ch: String; let mode: String; let tag: String; let day: String; let record: String; let label: ShiziCopyRef; let x: Double; let y: Double
     }
     struct Paper: Decodable {
@@ -142,7 +143,6 @@ final class MineScreen: ShiziScreenViewController {
     private var failTarget: (choice: String, value: ChoiceID)?
 
     private var model: MineView?
-    private var strokes: [[[InkRawPoint]]] = []
     private var sealPath: [[Any]] = []
     private var refetched = false
 
@@ -287,7 +287,6 @@ final class MineScreen: ShiziScreenViewController {
         model = m
         let dict = raw as? [String: Any]
         let paper = (dict?["sheet"] as? [String: Any])?["paper"] as? [String: Any]
-        strokes = (paper?["cells"] as? [[String: Any]] ?? []).map { NativeInkWire.rawStrokes($0["strokes"]) }
         sealPath = paper?["sealPath"] as? [[Any]] ?? []
         renderModel(m)
         // 首帧的页宽 / AX 档与真实的不同（视图是页面按它自己的值算的）：带真实值重拉一次
@@ -433,7 +432,7 @@ final class MineScreen: ShiziScreenViewController {
         for (i, c) in p.cells.enumerated() {
             let b = MineSheetCell(type: .custom)
             b.accessibilityIdentifier = "native-mine-sheet-cell"
-            b.configure(cell: c, strokes: i < strokes.count ? strokes[i] : [], side: CGFloat(p.c), pad: CGFloat(p.pad), widthScale: p.widthScale, look: look)
+            b.configure(cell: c, pad: CGFloat(p.pad), widthScale: p.widthScale, look: look)
             b.addAction(UIAction { [weak self] _ in self?.openCell(i) }, for: .touchUpInside)
             stageMarker.addSubview(b)
             cellButtons.append(b)

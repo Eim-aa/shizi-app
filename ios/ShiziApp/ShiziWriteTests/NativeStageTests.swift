@@ -121,9 +121,17 @@ final class NativeStageTests: XCTestCase {
         let v = try await web.stage.engine.view("about", as: AboutScreen.View.self)
         XCTAssertEqual(v.rows.map(\.to), ["about-privacy", "about-credits", "about-letter"])
         // 原生里点按 → nav.push → 宿主挂载回发 open → 原生栈两层
+        // 新状态后 pressGuard（0.4s）内按钮不响应：viewDidAppear 在重载的机器上可能比固定 sleep 晚到，
+        // 被防误点吞掉的按下隔 0.6s 再按一次（防误点本身是产品行为、断言不变）。
         try await Task.sleep(nanoseconds: 500_000_000)
-        about.rowButtons[0].sendActions(for: .touchUpInside)
-        try await waitUntil("native privacy") { self.web.stage.screens.map(\.screen) == ["about", "about-privacy"] && NativeWriteTransitions.running == 0 }
+        var lastTap = Date.distantPast
+        try await waitUntil("native privacy") {
+            if self.web.stage.screens.count < 2, Date().timeIntervalSince(lastTap) > 0.6 {
+                lastTap = Date()
+                about.rowButtons[0].sendActions(for: .touchUpInside)
+            }
+            return self.web.stage.screens.map(\.screen) == ["about", "about-privacy"] && NativeWriteTransitions.running == 0
+        }
         let top = try await routeTop()
         XCTAssertEqual(top, "about-privacy")
         // 返回：原生收起 → nav.back {via:'native'} → 网页出栈

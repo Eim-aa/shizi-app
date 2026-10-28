@@ -136,6 +136,8 @@ export const NATIVE_AX_ROLES = Object.freeze([
   ['exrow', R_PAGE('<div class="sz-exrows"><div class="sz-exrow" data-r5><button class="sz-exrow__open" data-r2><span class="sz-exrow__cell sz-exrow__cell--ax"></span><span class="sz-exrow__t" data-r3>x</span></button><button class="sz-btn sz-btn--text sz-line__change" data-r4>x</button><button class="sz-btn sz-btn--text" data-r>x</button></div></div>')],
   // 改判 / 对照弹层：「取消」（data-r）、「看这个字 ›」（data-r2）、主按钮（data-r3）
   ['change', '<div class="sz-sheet"><div class="sz-change"><button class="sz-btn sz-btn--text sz-change__cancel" data-r>x</button><button class="sz-btn sz-btn--text sz-change__view" data-r2>x</button><button class="sz-btn sz-btn--primary" data-r3>x</button></div></div>'],
+  // 提醒邀请按钮行（首练结果页）：「开启提醒」描边钮（data-r）、「先不用」文字钮（data-r2）
+  ['invite', R_PAGE('<div class="sz-invite"><div class="sz-invite__acts"><button class="sz-btn sz-btn--secondary" data-r>x</button><button class="sz-btn sz-btn--text" data-r2>x</button></div></div>')],
   // 居中确认框（结束这组）：两键（次 data-r、主 data-r2）
   ['confirm', '<div class="sz-confirm"><div class="sz-confirm__actions"><button class="sz-btn sz-btn--secondary" data-r>x</button><button class="sz-btn sz-btn--primary" data-r2>x</button></div></div>'],
   // 跳过撤销条：「撤销」（data-r）、条（data-r2：内边距、行距、列距）

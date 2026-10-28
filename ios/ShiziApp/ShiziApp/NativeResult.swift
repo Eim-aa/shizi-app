@@ -55,6 +55,8 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private let headerLabel = UILabel()
     // 正文
     private let scroll = UIScrollView()
+    /// 内容滚到底栏下面时底栏上沿的发丝线（网页 .sz-page__foot[data-under]，D49）
+    private let footHair = UIView()
     private let titleLabel = UILabel()
     private let subLabel = UILabel()
     private let workView = NativeWorkView()
@@ -192,6 +194,10 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         scroll.contentInsetAdjustmentBehavior = .never
         scroll.delaysContentTouches = false
         view.addSubview(scroll)
+        footHair.backgroundColor = color("line", .separator)
+        footHair.isUserInteractionEnabled = false
+        footHair.isHidden = true
+        view.addSubview(footHair)
         titleLabel.numberOfLines = 0
         titleLabel.accessibilityTraits = [.header]
         titleLabel.accessibilityIdentifier = "native-result-title"
@@ -478,7 +484,18 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         let offset = total < avail ? (avail - total) / 2 : 0
         _ = layoutContent(width: inner, x: gutter, originY: padTop + offset, layout: true)
         scroll.contentSize = CGSize(width: w, height: padTop + max(total, avail) + padBottom)
+        // 网页（WebKit）滚动高不含放不下时的下内边距：padTop + 内容高（含 5vh 尾）；放得下时 = 视口高
+        webScrollHeight = max(scroll.bounds.height, padTop + total)
+        footHair.backgroundColor = color("line", .separator)
+        footHair.frame = CGRect(x: 0, y: footTop - 0.5, width: w, height: 0.5)
+        updateFootHair()
         placeInviteSticky()
+    }
+
+    private var webScrollHeight: CGFloat = 0
+
+    private func updateFootHair() {
+        footHair.isHidden = !(webScrollHeight - scroll.contentOffset.y - scroll.bounds.height > 1)
     }
 
     /// 正文结果区（不含 5vh 尾）的高；layout = true 时同时排好。
@@ -546,7 +563,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         inviteSlot.frame.origin.y = y
     }
 
-    func scrollViewDidScroll(_ scrollView: UIScrollView) { placeInviteSticky() }
+    func scrollViewDidScroll(_ scrollView: UIScrollView) { placeInviteSticky(); updateFootHair() }
 
     // MARK: 显现与落印（D51 ② / D53）
 
@@ -1639,13 +1656,26 @@ final class NativeInviteView: UIView {
         if !yesButton.isHidden {
             if !first { y += 4 + 10 }
             first = false
+            // AX 档（网页 .sz-invite__acts：flex-wrap、gap 8；按钮按字号长高，放不下一行时「先不用」折到下一行）
+            let ty = l.type.type
+            let isAX = l.type.ax
+            let yh = ty.axButtonHeight("invite", title: yesButton.title(for: .normal), font: yesButton.titleLabel?.font, width: W - 44) ?? rowH
+            let nMin: CGFloat = ty.role("invite", "minH", sub: "r2") ?? 44
+            let nh: CGFloat = isAX ? max(44, nMin) : rowH
+            let ywAll = NativeType.width(yesButton.titleLabel ?? UILabel()) + 44
+            let nwAll = NativeType.width(noButton.titleLabel ?? UILabel()) + 8
+            let rowEnd: CGFloat = ywAll + 8 + nwAll - 4
+            let wrap: Bool = isAX && rowEnd > W + 0.5
+            let rowsH: CGFloat = wrap ? yh + 8 + nh : max(yh, nh)
             if apply {
                 let yw = NativeType.width(yesButton.titleLabel ?? UILabel()) + 44
-                yesButton.frame = CGRect(x: 0, y: y, width: yw, height: rowH)
                 let nw = NativeType.width(noButton.titleLabel ?? UILabel()) + 8
-                noButton.frame = CGRect(x: yw + 8 - 4, y: y, width: nw, height: rowH)
+                yesButton.frame = CGRect(x: 0, y: wrap ? y : y + (rowsH - yh) / 2, width: yw, height: yh)
+                let nx: CGFloat = wrap ? -4 : yw + 4
+                let ny: CGFloat = wrap ? y + yh + 8 : y + (rowsH - nh) / 2
+                noButton.frame = CGRect(x: nx, y: ny, width: nw, height: nh)
             }
-            y += rowH
+            y += rowsH
         } else if !failRetry.isHidden {
             if !first { y += 4 + 10 }
             first = false
@@ -1672,8 +1702,44 @@ final class NativeInviteView: UIView {
 
 /// 邀请说明：示例词里被遮住的那一位画成描边小方框（0.9em、格框色 1pt，下沉 0.12em；读屏「空着的字」），不用与「口」难分的 □（N2-13）。
 /// 比对与读屏用的文字不含占位符（text 取不带附件字符的那一串）。
-final class NativeAttachmentLabel: UILabel {
+final class NativeAttachmentLabel: UILabel, ShiziDrawnLines {
     private var plain = ""
+    private var boxColor: UIColor = .clear
+    private var boxSide: CGFloat = 0
+    private var boxDrop: CGFloat = 0
+    private var boxShift: CGFloat = 0
+
+    /// 描边小方框的四条边（取证用：网页是 border 方框，原生画在附件图里，工具看不见）。位置按同宽 TextKit 排版取。
+    var drawnLines: [(CGRect, UIColor)] {
+        guard let at = attributedText, boxSide > 0, bounds.width > 0 else { return [] }
+        let storage = NSTextStorage(attributedString: at)
+        let lm = NSLayoutManager()
+        let tc = NSTextContainer(size: CGSize(width: bounds.width, height: .greatestFiniteMagnitude))
+        tc.lineFragmentPadding = 0
+        lm.addTextContainer(tc)
+        storage.addLayoutManager(lm)
+        lm.ensureLayout(for: tc)
+        let used = lm.usedRect(for: tc)
+        let dy = max(0, (bounds.height - used.height) / 2)
+        var out: [(CGRect, UIColor)] = []
+        at.enumerateAttribute(.attachment, in: NSRange(location: 0, length: at.length)) { v, r, _ in
+            guard v != nil else { return }
+            let g = lm.glyphIndexForCharacter(at: r.location)
+            let frag = lm.lineFragmentRect(forGlyphAt: g, effectiveRange: nil)
+            let loc = lm.location(forGlyphAt: g)
+            let f = (self.font ?? UIFont.systemFont(ofSize: 13)).pointSize
+            let x = frag.minX + loc.x + f * 0.06
+            let fnt = self.font ?? UIFont.systemFont(ofSize: 13)
+            // 钉了行盒（AX 档）：字在行盒里竖向居中，基线 = 行盒顶 + (行盒 − 字高) / 2 + 升部（与 NativeType.set 的居中同口径）；没钉：TextKit 的基线
+            let baseline = self.boxShift != 0 ? frag.minY + (frag.height - (fnt.ascender - fnt.descender)) / 2 + fnt.ascender : frag.minY + loc.y
+            let bottom = baseline + self.boxDrop + dy
+            let top = bottom - self.boxSide
+            let s = self.boxSide
+            out += [(CGRect(x: x, y: top, width: s, height: 1), self.boxColor), (CGRect(x: x, y: bottom - 1, width: s, height: 1), self.boxColor),
+                    (CGRect(x: x, y: top, width: 1, height: s), self.boxColor), (CGRect(x: x + s - 1, y: top, width: 1, height: s), self.boxColor)]
+        }
+        return out
+    }
 
     override var text: String? {
         get { attributedText == nil ? super.text : plain }
@@ -1684,14 +1750,41 @@ final class NativeAttachmentLabel: UILabel {
         let f = NativeType.hasCJKPunctuation((body["pre"] as? String ?? "") + (body["plain"] as? String ?? "")) ? NativeType.cjkFont(size: font.pointSize, weight: .regular) : font
         let p = NSMutableParagraphStyle()
         p.lineSpacing = max(0, line - f.lineHeight)
-        let attrs: [NSAttributedString.Key: Any] = [.font: f, .foregroundColor: color, .paragraphStyle: p]
+        // 网页行高比字体自然行高小（AX 档苹方）：行盒钉成网页行高，字在行盒里竖向居中（同 NativeType.set）
+        boxShift = 0
+        if line > 0, line < f.lineHeight - 0.01 {
+            p.minimumLineHeight = line
+            p.maximumLineHeight = line
+            p.lineSpacing = 0
+            boxShift = (line - f.lineHeight) / 4
+        }
+        // 字距同 NativeType.set：先铺显式 0；含全角标点时拉丁 / 数字按 SF 字宽排，中文字补 trak 差（网页是 SF + 苹方 UI）
+        var attrs: [NSAttributedString.Key: Any] = [.font: f, .foregroundColor: color, .paragraphStyle: p, .kern: 0]
+        if boxShift != 0 { attrs[.baselineOffset] = boxShift }
+        let allText = (body["plain"] as? String) ?? ((body["pre"] as? String ?? "") + ((body["word"] as? [String]) ?? []).joined() + (body["post"] as? String ?? ""))
+        let punct = NativeType.hasCJKPunctuation(allText)
+        let track = NativeType.hasCJK(allText) ? NativeType.cjkTrack(size: font.pointSize, weight: NativeType.weight(of: font)) : 0
+        let sf = UIFont.systemFont(ofSize: font.pointSize, weight: NativeType.weight(of: font))
+        let charAttrs = { (ch: Character) -> [NSAttributedString.Key: Any] in
+            var a = attrs
+            let cjk = ch.unicodeScalars.contains(where: { $0.value >= 0x2E80 })
+            if punct, !cjk {
+                let want = (String(ch) as NSString).size(withAttributes: [.font: sf]).width
+                let have = (String(ch) as NSString).size(withAttributes: [.font: f]).width
+                a[.kern] = want - have
+            } else if cjk, track != 0 {
+                a[.kern] = track
+            }
+            return a
+        }
         let out = NSMutableAttributedString()
+        boxSide = 0
         var spoken = ""
         var unit = 0
         let addText = { (t: String) in
             for ch in t {
                 if breaks.contains(unit) { out.append(NSAttributedString(string: "\n", attributes: attrs)) }
-                out.append(NSAttributedString(string: String(ch), attributes: attrs))
+                out.append(NSAttributedString(string: String(ch), attributes: charAttrs(ch)))
                 unit += 1
             }
         }
@@ -1709,6 +1802,7 @@ final class NativeAttachmentLabel: UILabel {
                     if breaks.contains(unit) { out.append(NSAttributedString(string: "\n", attributes: attrs)) }
                     unit += 1
                     let side = round(f.pointSize * 0.9 * 10) / 10
+                    boxColor = box; boxSide = side; boxDrop = f.pointSize * 0.12
                     let img = UIGraphicsImageRenderer(size: CGSize(width: side + f.pointSize * 0.12, height: side)).image { _ in
                         let r = CGRect(x: f.pointSize * 0.06 + 0.5, y: 0.5, width: side - 1, height: side - 1)
                         box.setStroke()

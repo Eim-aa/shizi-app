@@ -88,6 +88,7 @@ extension WebViewController {
         try? fm.createDirectory(at: outDir, withIntermediateDirectories: true)
         for (i, st) in states.enumerated() {
             let err = await qaPrepare(st, ui: ui)
+            if ui == "native" { await qaSettleNative() } // QA-H4：等推入转场 / 动画落定再取（准备好的信号可能发在转场进行中）
             var dump: [String: Any] = ["state": st, "ui": ui, "tag": tag, "ok": err == nil]
             if let err { dump["error"] = err }
             let win = view.window
@@ -114,6 +115,45 @@ extension WebViewController {
             _ = await qaWait(90) { fm.fileExists(atPath: ack.path) }
         }
         try? "done".write(to: Self.qaDir.appendingPathComponent("done"), atomically: true, encoding: .utf8)
+    }
+
+    /// QA-H4：等原生界面落定再取证——没有进行中的转场（任一视图控制器的 transitionCoordinator / isBeingPresented 等）、
+    /// 没有在跑的有限动画（无限重复的转圈不算），并且相邻两次（80ms）取样里全部图层的呈现位置 / 大小不变。最多等 4 秒。
+    /// 网页一侧不需要（网页参考在浏览器里取，不走原生转场）。
+    func qaSettleNative() async {
+        guard let window = view.window else { return }
+        func busy(_ vc: UIViewController?, _ depth: Int = 0) -> Bool {
+            guard let vc, depth < 12 else { return false }
+            if vc.transitionCoordinator != nil || vc.isBeingPresented || vc.isBeingDismissed || vc.isMovingToParent || vc.isMovingFromParent { return true }
+            return vc.children.contains { busy($0, depth + 1) } || busy(vc.presentedViewController, depth + 1)
+        }
+        func snapshot(_ layer: CALayer, _ sig: inout [Double], _ animating: inout Bool) {
+            if sig.count > 40_000 { return }
+            if let keys = layer.animationKeys() {
+                for k in keys {
+                    if let a = layer.animation(forKey: k), a.repeatCount < 1e6, a.repeatDuration == 0 || a.repeatDuration < 1e6 { animating = true }
+                }
+            }
+            let p = layer.presentation() ?? layer
+            sig.append(contentsOf: [Double(p.position.x), Double(p.position.y), Double(p.bounds.width), Double(p.bounds.height), Double(p.opacity)].map { ($0 * 10).rounded() / 10 })
+            for sub in layer.sublayers ?? [] {
+                if let host = sub.delegate as? UIView, host is WKWebView { continue }
+                snapshot(sub, &sig, &animating)
+            }
+        }
+        var last: [Double] = []
+        var stable = 0
+        let end = Date().addingTimeInterval(4)
+        while Date() < end {
+            var sig: [Double] = []
+            var animating = false
+            snapshot(window.layer, &sig, &animating)
+            let moving = busy(window.rootViewController)
+            if !moving, !animating, sig == last { stable += 1 } else { stable = 0 }
+            last = sig
+            if stable >= 2 { return }
+            try? await Task.sleep(nanoseconds: 80_000_000)
+        }
     }
 
     /// 原生元素清单：窗口里除 WKWebView 之外的全部可见视图（原生写字页、弹层、撤销条、确认框），控件与文字一项一条。
@@ -224,8 +264,16 @@ extension WebViewController {
                 // B2.9b「AX5 不溢出」：字是否被截断（行数不够 / 单行放不下）、是否被祖先裁掉（滚动视图按内容区算：滚得到就不算裁掉）
                 let textView: UILabel? = (v as? UILabel) ?? (v as? UIButton)?.titleLabel
                 if let l = textView, !(l.text ?? "").isEmpty, l.bounds.width > 2 {
+                    // QA-H4：按「字实际怎么画」量。按钮标题的字距（trackTitle 的富文本）在布局时才灌进标题标签，先布局；
+                    // 按钮有富文本标题时直接量富文本（带字距），不依赖标签此刻的 attributedText（取证时刻没铺好会量成不带字距的窄宽，或反过来）
+                    (v as? UIButton)?.layoutIfNeeded()
+                    l.layoutIfNeeded()
                     let need = l.sizeThatFits(CGSize(width: l.bounds.width, height: .greatestFiniteMagnitude))
-                    let natural = l.sizeThatFits(CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude))
+                    var natural = l.sizeThatFits(CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude))
+                    if let b = v as? UIButton, let at = b.attributedTitle(for: .normal) ?? b.currentAttributedTitle, at.length > 0, l.numberOfLines == 1 {
+                        let w = ceil(at.boundingRect(with: CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin], context: nil).width)
+                        natural.width = w
+                    }
                     // 钉住行盒的标签按行数比（字在行盒里的上下偏移会让量出来的高多几 pt，不是截断）
                     let box = ((l.attributedText?.length ?? 0) > 0 ? (l.attributedText?.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)?.minimumLineHeight : nil) ?? 0
                     let per = box > 0 ? box : l.font.lineHeight

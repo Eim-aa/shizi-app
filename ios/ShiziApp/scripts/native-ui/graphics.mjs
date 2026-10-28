@@ -30,6 +30,8 @@ export const GRAPHICS_DEFAULTS = {
     centroid: 0.05, centroidMin: 1.5, // 墨的位置（墨外框中心）差 > max(centroidMin pt, 格边 × centroid)
     scale: 0.12, scaleMin: 4, // 墨外框宽 / 高差 > max(scaleMin pt, 网页外框 × scale)（细横画的外框只有 1–2 格高，只看比例会误报；笔端圆头与网页笔锋的长短差可到 ~4pt）
     minInk: 6, // 两边墨点都少于这么多 → 当作空格
+    band: 0.25, // 墨掩膜的缓冲带（QA-H4）：与格底亮度差在截止值 ±25% 之内的点既不算墨也不算非墨（淡字压在截止值上，两边差几个灰度就翻），只用「肯定是墨」的点量外框 / 位置 / 点数
+    minInkHyst: 2, // 图标「看得见」的有无判定的滞回（QA-H4）：两边墨点数相差 ≤ 2 × 这个数不算有无之差
   },
   // 文字像素色（QA-H3e）：文字框里的主导字色 vs 底色，原生对网页（dump 里的颜色是 titleColor / CSS color，不等于画出来的）
   glyph: {
@@ -45,8 +47,26 @@ const center = f => ({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
 const inside = (p, f, slack = 0) => p.x >= f.x - slack && p.x <= f.x + f.w + slack && p.y >= f.y - slack && p.y <= f.y + f.h + slack;
 const offNote = d => (d.off ? '，在屏外（滚动区里）' : '');
 
-/** 所属元素：包住这个点的最小元素（元素清单 webAll / nativeAll，含屏外），没有 → null。 */
+/** Tab 栏的上沿（QA-H4）：元素清单里语义键 tab-* 的最小顶边（没有 Tab 栏 → null）。diffGraphics 把两边较小的那个写在清单的 tabTop 上，两边按同一条线认。 */
+export function tabBarTop(els) {
+  if (els && typeof els.tabTop === 'number') return els.tabTop;
+  let top = null;
+  for (const e of els || []) if (e.key && /^tab-/.test(e.key) && e.frame && (top === null || e.frame.y < top)) top = e.frame.y;
+  return top;
+}
+
+/**
+ * 所属元素：包住这个点的最小元素（元素清单 webAll / nativeAll，含屏外），没有 → null。
+ * QA-H4：落在系统 Tab 栏的范围里（顶边以下、全宽）的点一律归 Tab 项（横向最近的 tab-*）——Tab 栏的顶线、图标不能算成被它盖住的页面元素
+ * （页面元素的框常常一直铺到屏底），否则 TAB-01 的豁免对不上。
+ */
 export function ownerOf(p, els, slack = 1) {
+  const top = tabBarTop(els);
+  if (top !== null && p.y >= top - 2) {
+    let nearest = null;
+    for (const e of els) if (e.key && /^tab-/.test(e.key) && e.frame && (!nearest || Math.abs(center(e.frame).x - p.x) < Math.abs(center(nearest.frame).x - p.x))) nearest = e;
+    if (nearest) return nearest;
+  }
   let best = null;
   for (const e of els || []) {
     const f = e.frame;
@@ -103,7 +123,9 @@ export function diffRules(webRules, nativeRules, tol, els = {}, opts = GRAPHICS_
   // 格里面的线（田字格的辅助线、墨视图自己画的格线）是格的画面，归墨格比；图标里面的线（印章的内框）是图标的画法，归装饰比；只比格外与格边上的线
   const icons = d => (d || []).filter(x => x.kind === 'icon');
   // 格：边上 2pt 以内的线（格框、inset 内框）照比；图标：边上 1.5pt 以外都算图标里面（印章的 7% 内框）
-  const boxes = [...[...((els.cells || {}).web || []), ...((els.cells || {}).native || [])].map(c => [c, 2]),
+  // QA-H4：格框两边的位置有 ≤ pos 的差时，一个方框的上边线（原生 +2.1）落进另一边格框 2pt 之内的判定之外，下边线又留着，
+  // 配对时上边对上了别的线（年报「同字两次」AX 档报 141pt 竖向差）。格边上的「照比」带放宽 pos：两边格框错开 pos 以内，同一条框线两边的取舍一致。
+  const boxes = [...[...((els.cells || {}).web || []), ...((els.cells || {}).native || [])].map(c => [c, 2 + tol.pos]),
     ...[...icons((els.decos || {}).web), ...icons((els.decos || {}).native)].map(c => [c, 1.5]),
     // 圆的边框不是直线（四条「边」只是框的外切线）：圆框上（含 1pt 外沿）的线归圆比
     ...[...((els.decos || {}).web || []), ...((els.decos || {}).native || [])].filter(c => c.kind === 'circle').map(c => [c, -1])];
@@ -262,6 +284,9 @@ export function crossMatch(webDecos, nativeDecos, webCells, nativeCells, tol) {
  * 墨格配对。返回 {pairs:[{w, n, dx, dy}], diffs}。中心差 ≤ max(pos, 格边 25%) 算同一格（同中心的几层取边长最接近的），边长差 > max(size, 25%) 报「格大小」；
  * 网页格里没有任何原生格（中心）→ 缺少；原生格中心不在任何网页格里 → 多出（同一格原生画成两层：墨视图 + 衬底字视图，不算多出）。
  */
+/** 网页还没画的懒加载 canvas：屏外、框是浏览器默认的 2:1（宽 ≈ 2 × 高）占位——它的高不是真格的高。 */
+export const lazyPlaceholder = c => !!c.off && c.kind === 'ink' && c.h > 4 && Math.abs(c.w - 2 * c.h) <= Math.max(1.5, 0.04 * c.w);
+
 export function pairCells(webCells, nativeCells, tol, els = {}) {
   if (!webCells || !nativeCells) return { pairs: [], diffs: [] };
   const ctx = context(els);
@@ -269,9 +294,12 @@ export function pairCells(webCells, nativeCells, tol, els = {}) {
   const cands = [];
   W.forEach((w, i) => N.forEach((n, j) => {
     const cw = center(w), cn = center(n);
-    const d = Math.hypot(cn.x - cw.x, cn.y - cw.y);
+    // QA-H4：网页远处还没懒画的 canvas 只有浏览器默认的 2:1 占位框（300×150 的比例），高只有真格的一半——按横向中心 + 顶边配，不比大小
+    const ph = lazyPlaceholder(w);
+    const dx = cn.x - cw.x, dy = ph ? n.y - w.y : cn.y - cw.y;
+    const d = Math.hypot(dx, dy);
     const side = Math.min(w.w, w.h);
-    if (d <= Math.max(tol.pos, 0.25 * side)) cands.push({ i, j, d: d + Math.abs(n.w - w.w) + Math.abs(n.h - w.h), dx: cn.x - cw.x, dy: cn.y - cw.y });
+    if (ph ? d <= tol.pos : d <= Math.max(tol.pos, 0.25 * side)) cands.push({ i, j, ph, d: d + (ph ? 0 : Math.abs(n.w - w.w) + Math.abs(n.h - w.h)), dx, dy });
   }));
   cands.sort((p, q) => p.d - q.d);
   const usedW = new Set(), usedN = new Set(), pairs = [], diffs = [];
@@ -280,7 +308,7 @@ export function pairCells(webCells, nativeCells, tol, els = {}) {
     if (usedW.has(c.i) || usedN.has(c.j)) continue;
     usedW.add(c.i); usedN.add(c.j);
     const w = W[c.i], n = N[c.j];
-    const bigger = Math.abs(n.w - w.w) > Math.max(tol.size, 0.25 * w.w) || Math.abs(n.h - w.h) > Math.max(tol.size, 0.25 * w.h);
+    const bigger = !c.ph && (Math.abs(n.w - w.w) > Math.max(tol.size, 0.25 * w.w) || Math.abs(n.h - w.h) > Math.max(tol.size, 0.25 * w.h));
     if (bigger) { diffs.push({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(w), ctx.web)), msg: `格大小 网页${desc(w)} 原生${desc(n)}`, w: { frame: w }, n: { frame: n } }); continue; }
     pairs.push({ w, n, dx: c.dx, dy: c.dy });
     if (Math.abs(c.dx) > tol.pos || Math.abs(c.dy) > tol.pos) diffs.push({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(w), ctx.web)), vertical: Math.abs(c.dx) <= tol.pos, msg: `格位置 网页${desc(w)} 原生${desc(n)}，中心差 (${r1(c.dx)}, ${r1(c.dy)})pt`, w: { frame: w }, n: { frame: n } });
@@ -300,6 +328,12 @@ export function pairCells(webCells, nativeCells, tol, els = {}) {
 
 /** 一个状态的线 / 装饰 / 墨格差异，与要比墨的格对。 */
 export function diffGraphics(webDump, nativeDump, tol, els = {}, opts = GRAPHICS_DEFAULTS) {
+  // QA-H4：两边的 Tab 栏上沿取较小的一个，同一条线以下都算 Tab 栏（原生浮起的玻璃胶囊比网页通栏矮，不统一的话网页那条顶线两边认不到同一个所属）
+  const tabs = [els.web, els.native].map(tabBarTop).filter(t => t !== null);
+  if (tabs.length) {
+    const top = Math.min(...tabs);
+    els = { ...els, web: Object.assign([...(els.web || [])], { tabTop: top }), native: Object.assign([...(els.native || [])], { tabTop: top }) };
+  }
   const x = crossMatch(webDump.decos, nativeDump.decos, webDump.cells, nativeDump.cells, tol);
   const cells = pairCells(x.webCells, x.nativeCells, tol, els);
   const crossDiffs = x.pairs.filter(p => Math.abs(p.dy) > tol.pos).map(p => ({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(p.w), els.web)), vertical: true,
@@ -471,11 +505,27 @@ export function cleanMask(m, n) {
 }
 
 /**
+ * 缓冲带（QA-H4）：compare.mjs sampleCells 给的掩膜字符是 '1' 肯定是墨、'b' 略过截止值（算墨）、'c' 略低于截止值（不算墨）、'0' 肯定不是（旧掩膜只有 '0' / '1'）。
+ * 某个点两边判得不一样，但两边都落在各自截止值的 ±band 缓冲带里（淡字压在截止值上，两边差几个灰度就翻）→ 不是真差异，两边都去掉；
+ * 一边在带里、另一边明显有墨 / 明显没墨的照常算差异。最后 'b' 记墨、'c' 记非墨。
+ */
+export function settleBorderline(a, b) {
+  const border = ch => ch === 'b' || ch === 'c';
+  const A = a.split(''), B = b.split('');
+  for (let k = 0; k < A.length; k += 1) {
+    if (border(A[k]) && border(B[k]) && A[k] !== B[k]) { A[k] = '0'; B[k] = '0'; }
+  }
+  const fin = ch => (ch === 'b' ? '1' : ch === 'c' ? '0' : ch);
+  return [A.map(fin).join(''), B.map(fin).join('')];
+}
+
+/**
  * 两张 N×N 掩膜（'0' / '1' 串）的比较：iou1（容 1 格：双方墨点落在对方墨 1 格内的比例取小者）、墨外框中心差（pt）、墨外框（pt）。
  * cellPt：采样区边长（pt，换算格 → pt）。返回 {web, native, iou1, dx, dy, sw, sh, box}。
  */
 export function inkMetrics(a, b, n, cellPt) {
   if (!a || !b || a.length !== n * n || b.length !== n * n) return null;
+  [a, b] = settleBorderline(a, b);
   a = cleanMask(a, n); b = cleanMask(b, n);
   const at = (m, i, j) => i >= 0 && j >= 0 && i < n && j < n && m.charCodeAt(j * n + i) === 49;
   const near = (m, i, j) => { for (let dj = -1; dj <= 1; dj += 1) for (let di = -1; di <= 1; di += 1) if (at(m, i + di, j + dj)) return true; return false; };
@@ -513,4 +563,21 @@ export function judgeInk(m, cellPt, opts = GRAPHICS_DEFAULTS.ink) {
   const [ww, wh, nw, nh] = m.box || [0, 0, 0, 0];
   if (Math.abs(nw - ww) > Math.max(smin, sc * ww) || Math.abs(nh - wh) > Math.max(smin, sc * wh)) out.push(`墨的外框 网页 ${ww}×${wh} 原生 ${nw}×${nh}pt（容 ±${sc} 且 > ${smin}pt）`);
   return out;
+}
+
+/**
+ * 图标在截图里「看得见」的判定带滞回（QA-H4）：两边的墨点数落在 minInk 两侧但相差很小（7 对 5，抗锯齿的一两个点）不算有无之差；
+ * 一边看得见、另一边看不见，且相差超过 2 × minInkHyst 点才报。
+ */
+export function iconVisibilityDiffers(a, b, opts = GRAPHICS_DEFAULTS.ink) {
+  const min = opts.minInk ?? 6, hyst = opts.minInkHyst ?? 2;
+  return (a >= min) !== (b >= min) && Math.abs(a - b) > 2 * hyst;
+}
+
+/**
+ * 框是否伸进了系统 Tab 栏的范围（QA-H4）：Tab 栏顶边（两边 tab-* 的较小顶边）以下的像素是 Tab 栏（网页通栏 / 原生玻璃胶囊）的，不是页面的——
+ * 跨过 Tab 栏顶边的格 / 文字不按整块比截图像素（Tab 栏的图标、标签、玻璃会落进掩膜 / 字色里）；位置与有无照比。
+ */
+export function reachesTabBar(frame, top) {
+  return top !== null && top !== undefined && !!frame && frame.y + frame.h > top + 0.5;
 }

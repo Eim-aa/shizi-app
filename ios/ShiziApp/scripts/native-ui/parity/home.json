@@ -12,8 +12,8 @@
       "state": "home-special",
       "sizes": ["AX5"],
       "label": "home-brand-shi",
-      "aspects": ["position", "size"],
-      "//": "同上（网页 AX5 特别组来回翻）"
+      "aspects": ["position", "size", "cell"],
+      "//": "同上（网页 AX5 特别组来回翻）。QA-H4：「拾」的墨格（缺少 / 多出 / 位置）是同一个元素的位置 / 尺寸差，同属这条忽略——此前只忽略了元素自身的框，新增的墨格检查没跟上"
     },
     {
       "state": "home-special",

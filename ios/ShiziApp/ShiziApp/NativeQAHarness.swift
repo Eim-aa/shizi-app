@@ -129,10 +129,22 @@ extension WebViewController {
         }
         func snapshot(_ layer: CALayer, _ sig: inout [Double], _ animating: inout Bool) {
             if sig.count > 40_000 { return }
+            // QA-H5：长动画（≥1s，如 Toast / 撤销条的计时线 3–5s 线性收尽）是倒计时的画面，不是转场：既不算「在动」，
+            // 也不进位置签名——否则整整等满 4s，浮条的自动收起 / 撤销机会的到期定时器先于取证触发（浮条消失 / 半透明 / 已还原）。
+            // 短动画（转场、淡入淡出 < 1s）照旧要等。
+            var longRunning = false
             if let keys = layer.animationKeys() {
                 for k in keys {
-                    if let a = layer.animation(forKey: k), a.repeatCount < 1e6, a.repeatDuration == 0 || a.repeatDuration < 1e6 { animating = true }
+                    guard let a = layer.animation(forKey: k), a.repeatCount < 1e6, a.repeatDuration == 0 || a.repeatDuration < 1e6 else { continue }
+                    if a.duration * Double(max(1, a.repeatCount)) >= 1 { longRunning = true } else { animating = true }
                 }
+            }
+            if longRunning {
+                for sub in layer.sublayers ?? [] {
+                    if let host = sub.delegate as? UIView, host is WKWebView { continue }
+                    snapshot(sub, &sig, &animating)
+                }
+                return
             }
             let p = layer.presentation() ?? layer
             sig.append(contentsOf: [Double(p.position.x), Double(p.position.y), Double(p.bounds.width), Double(p.bounds.height), Double(p.opacity)].map { ($0 * 10).rounded() / 10 })

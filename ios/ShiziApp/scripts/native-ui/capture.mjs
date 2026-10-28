@@ -75,6 +75,25 @@ async function round(appearance, size, roundStates) {
   try { sim('terminate', udid, BUNDLE_ID); } catch {}
 }
 
+// QA-SHARD：多台模拟器并行时机器有负载，偶发「原生页没出现」（元素清单 ok: false）：只重取出错的那几屏（最多 RETRIES 次，缺省 2），其余不动；
+// 重试仍出错的照旧写进清单，compare 报「取证出错」。
+const RETRIES = Number(args.retries ?? 2);
+function failedStates(tag, roundStates) {
+  return roundStates.filter(st => {
+    try { const j = JSON.parse(readFileSync(join(out, `${st}_${tag}.json`), 'utf8')); return j.ok === false || !!j.error; } catch { return true; }
+  });
+}
+async function roundWithRetry(appearance, size, roundStates) {
+  const tag = `${appearance}_${size}`;
+  await round(appearance, size, roundStates);
+  let bad = failedStates(tag, roundStates);
+  for (let k = 1; k <= RETRIES && bad.length; k++) {
+    process.stdout.write(`  retry ${k}: ${tag} ${bad.join(',')}\n`);
+    await round(appearance, size, bad);
+    bad = failedStates(tag, roundStates);
+  }
+}
+
 sim('status_bar', udid, 'override', '--time', '9:41', '--dataNetwork', 'wifi', '--wifiMode', 'active', '--wifiBars', '3', '--cellularMode', 'active', '--cellularBars', '4', '--batteryState', 'charged', '--batteryLevel', '100');
 let shots = 0;
 for (const appearance of appearances) {
@@ -82,7 +101,7 @@ for (const appearance of appearances) {
     const roundStates = states.filter(s => sizesOf(fixtureOf[s]).includes(size));
     if (!roundStates.length) continue;
     // 每次启动最多 CHUNK 个状态：App 中途出问题只丢这一小段，重跑也快
-    for (let i = 0; i < roundStates.length; i += CHUNK) await round(appearance, size, roundStates.slice(i, i + CHUNK));
+    for (let i = 0; i < roundStates.length; i += CHUNK) await roundWithRetry(appearance, size, roundStates.slice(i, i + CHUNK));
     shots += roundStates.length;
   }
 }

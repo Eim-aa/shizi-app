@@ -1,13 +1,15 @@
 // QA-H1：把 XCUITest 结果包（xcresult）整理成通过 / 失败清单。
-// usage: node flows-summary.mjs <xcresult> <输出 md>
+// usage: node flows-summary.mjs <xcresult> [<xcresult> …] <输出 md>   （QA-SHARD：多台模拟器各一个结果包，合并成一份清单；末个参数是输出）
 //   结果分四类：通过；预期失败（待修，XCTExpectFailure 里的已知问题，失败说明以「NF-xx / NP-xx 待修」开头）；
 //   意外通过（已知问题包装里没有失败 = 可能已修好，严格模式下 XCTest 报失败「Expected failure … not encountered」）；失败（回归）。
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 
-const [bundle, out] = process.argv.slice(2);
-const json = JSON.parse(execFileSync('xcrun', ['xcresulttool', 'get', 'test-results', 'tests', '--path', bundle], { encoding: 'utf8', maxBuffer: 64 << 20 }));
+const argv = process.argv.slice(2);
+const out = argv.pop();
 const cases = [];
+for (const bundle of argv) {
+const json = JSON.parse(execFileSync('xcrun', ['xcresulttool', 'get', 'test-results', 'tests', '--path', bundle], { encoding: 'utf8', maxBuffer: 64 << 20 }));
 (function walk(n, suite) {
   if (n.nodeType === 'Test Suite') suite = n.name;
   if (n.nodeType === 'Test Case') {
@@ -21,6 +23,8 @@ const cases = [];
   }
   for (const c of n.children || []) walk(c, suite);
 })({ children: json.testNodes });
+}
+if (argv.length > 1) cases.sort((a, b) => (a.suite + a.name).localeCompare(b.suite + b.name));
 
 const count = k => cases.filter(c => c.kind === k).length;
 const LABEL = { pass: '通过', expected: '预期失败（待修）', 'unexpected-pass': '意外通过（已知问题可能已修好）', fail: '**失败**', skipped: '待办（骨架）' };

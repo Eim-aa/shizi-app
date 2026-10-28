@@ -227,7 +227,7 @@ struct NativeType {
         let space = probe.attributedSubstring(from: NSRange(location: 0, length: sp.location + 1)).size().width
             - probe.attributedSubstring(from: NSRange(location: 0, length: sp.location)).size().width
         for st in [UIControl.State.normal, .disabled, .highlighted] {
-            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .foregroundColor: b.titleColor(for: st) ?? b.currentTitleColor, .kern: 0])
+            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .foregroundColor: b.titleColor(for: st) ?? b.titleColor(for: .normal) ?? b.currentTitleColor, titleTint: true, .kern: 0])
             var i = 0
             for ch in t {
                 let n = (String(ch) as NSString).length
@@ -250,6 +250,7 @@ struct NativeType {
     /// （QA-H3e：以前把调用当时的标题色写进富文本，先 trackTitle、后 setTitleColor 的按钮——备份页「导出备份」——在会走富文本的字号档
     /// （AX5 有字距）一直画默认的浅色字，深色下浅字落在奶油按钮上几乎看不见；dump 里的颜色是 titleColor，不反映这件事）。
     static func trackTitle(_ b: UIButton) {
+        _ = installTitleColorSync
         let states: [UIControl.State] = [.normal, .disabled, .highlighted]
         guard let t = b.title(for: .normal), let f = titleFont(b), hasCJK(t) else {
             if b.attributedTitle(for: .normal) != nil { states.forEach { b.setAttributedTitle(nil, for: $0) } }
@@ -264,7 +265,7 @@ struct NativeType {
         p.alignment = b.titleLabel?.textAlignment ?? .center
         p.lineBreakMode = b.titleLabel?.numberOfLines == 1 ? (b.titleLabel?.lineBreakMode ?? .byTruncatingMiddle) : .byWordWrapping
         for st in states {
-            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .paragraphStyle: p, .kern: 0])
+            let out = NSMutableAttributedString(string: t, attributes: [.font: f, .paragraphStyle: p, titleTint: true, .kern: 0])
             var i = 0
             for ch in t {
                 let n = (String(ch) as NSString).length
@@ -273,7 +274,30 @@ struct NativeType {
             }
             b.setAttributedTitle(out, for: st)
         }
+        retintTitles(b)
     }
+
+    /// 标在 trackTitle / linkTitle 写的富文本上，只有带这个标记的才会跟着标题色换色（别处自己配色的富文本不动）。
+    static let titleTint = NSAttributedString.Key("shiziTitleTint")
+
+    /// 各状态的富文本标题把前景色写成该状态的标题色（没单独设的状态跟 .normal）。
+    static func retintTitles(_ b: UIButton) {
+        for st in [UIControl.State.normal, .disabled, .highlighted] {
+            guard let a = b.attributedTitle(for: st), a.length > 0, a.attribute(titleTint, at: 0, effectiveRange: nil) != nil else { continue }
+            let color = b.titleColor(for: st) ?? b.titleColor(for: .normal) ?? .white
+            let out = NSMutableAttributedString(attributedString: a)
+            out.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: out.length))
+            b.setAttributedTitle(out, for: st)
+        }
+    }
+
+    /// UIButton.setTitleColor 之后，已有的富文本标题跟着换色（一次性安装，trackTitle 首次调用时装）。
+    static let installTitleColorSync: Void = {
+        let sel = #selector(UIButton.setTitleColor(_:for:))
+        let swz = #selector(UIButton.shizi_setTitleColor(_:for:))
+        guard let m1 = class_getInstanceMethod(UIButton.self, sel), let m2 = class_getInstanceMethod(UIButton.self, swz) else { return }
+        method_exchangeImplementations(m1, m2)
+    }()
 
     /// 宋（ShiziSerifSC，网页 --song；包里 Web/fonts 的 woff2，CoreText 直接读）。弹层标题这类网页用宋体的地方；读不到时退回系统字体。
     static func song(size: CGFloat, weight: UIFont.Weight) -> UIFont {
@@ -353,5 +377,14 @@ struct NativeTypeScale {
         guard tabular else { return f }
         let d = f.fontDescriptor.addingAttributes([.featureSettings: [[UIFontDescriptor.FeatureKey.type: kNumberSpacingType, UIFontDescriptor.FeatureKey.selector: kMonospacedNumbersSelector]]])
         return UIFont(descriptor: d, size: f.pointSize)
+    }
+}
+
+
+extension UIButton {
+    /// 与 setTitleColor 互换（NativeType.installTitleColorSync）：调用的是原实现，随后让富文本标题的前景色跟上。
+    @objc fileprivate func shizi_setTitleColor(_ color: UIColor?, for state: UIControl.State) {
+        shizi_setTitleColor(color, for: state)
+        if attributedTitle(for: .normal) != nil || attributedTitle(for: .disabled) != nil { NativeType.retintTitles(self) }
     }
 }

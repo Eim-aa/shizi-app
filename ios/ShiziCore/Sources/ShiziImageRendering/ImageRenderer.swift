@@ -188,7 +188,7 @@ public final class ImageRenderer {
         height: size * 0.86))
     ctx.restoreGState()
     let url = Bundle.module.url(
-      forResource: "seal", withExtension: "json", subdirectory: "Resources")!
+      forResource: "seal", withExtension: "json", subdirectory: "Bundled")!
     let data = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as! O
     let t = Self.o(data, "transform")
     let c = Self.o(data, "center")

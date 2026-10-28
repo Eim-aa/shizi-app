@@ -1,5 +1,5 @@
 // B4.1 ShiziCore 配置与数据资源的 node 侧门禁（不需要 Swift）：
-//   1. 生成物（ios/ShiziCore/Sources/ShiziCore/Resources/*.json）与 src/ 同步——改了 policy / motion / char-order / epigraphs / copy / 题库就要重跑 node scripts/build_core_config.mjs；
+//   1. 生成物（ios/ShiziCore/Sources/ShiziCore/Bundled/*.json）与 src/ 同步——改了 policy / motion / char-order / epigraphs / copy / 题库就要重跑 node scripts/build_core_config.mjs；
 //   2. 生成物里没有 JS 专属的东西（函数 / undefined / 非有限数），资源自洽（deck.json = deck-data.js + context-overrides.js；policy-meta 的登记表覆盖全部 policy 导出）；
 //   3. 形状工厂（差分与金标准共用）造出的合法值全过 schema，变异值有相当比例被拒；
 //   （Swift 与 JS 的 op 表同名由 core-diff.test.mjs 核对。）

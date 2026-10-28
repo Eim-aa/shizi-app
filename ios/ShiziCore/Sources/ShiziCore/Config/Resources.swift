@@ -1,14 +1,14 @@
 import Foundation
 
 // 生成的配置与数据资源（scripts/build_core_config.mjs → Resources/*.json）。Swift 源码里没有任何规则数值与汉字字面量：
-// 一律从这里读（计划 B3B4 §4.1；--check 守与 src/ 同步）。资源是 SwiftPM 资源（Bundle.module）。
+// 一律从这里读（计划 B3B4 §4.1；--check 守与 src/ 同步）。资源是 SwiftPM 资源（Bundle.module，目录 Bundled/：iOS 包内不能有名为 Resources 的子目录，否则签名失败）。
 
 public enum CoreResources {
     private static let lock = NSLock()
     private static var cache: [String: JSValue] = [:]
 
     private static func url(_ name: String) throws -> URL {
-        guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Resources") else {
+        guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Bundled") else {
             throw CoreError.badRequest("missing resource " + name)
         }
         return url

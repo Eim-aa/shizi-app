@@ -6,7 +6,7 @@
 //   node scripts/build_core_config.mjs --check   只核对：生成物与 src/ 不同步则列出并退出 1
 //                                                （test/core/core-config.test.mjs 在 verify:unit 里守，pnpm run verify:core-config / verify:core-diff 也跑）
 //
-// 输出目录 ios/ShiziCore/Sources/ShiziCore/Resources/（SwiftPM 资源，Bundle.module 读取）：
+// 输出目录 ios/ShiziCore/Sources/ShiziCore/Bundled/（SwiftPM 资源，Bundle.module 读取）：
 //   policy.json        src/config/policy.js 的全部导出（{导出名: 值}）
 //   policy-meta.json   policy 的 P 编号登记：{registered, covered, exports: {导出名: {p, keys: {键: [P…]}}}}（Swift 版 policy 覆盖检查读它）
 //   motion.json        src/config/motion.js 的全部数据导出（duration / role / moment / easing / bezier / spring / scale / distance / gesture / timing / haptic / cssVars / roleKeys）
@@ -28,7 +28,7 @@ import vm from 'node:vm';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const OUT_DIR = path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Resources');
+export const OUT_DIR = path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled');
 const imp = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
 
 const dataExports = (mod, skip = []) => {

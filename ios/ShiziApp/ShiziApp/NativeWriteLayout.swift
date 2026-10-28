@@ -7,7 +7,7 @@ import UIKit
 //   书写格 g   = clamp(258, min(屏宽 − 40, 400, H − 80 − 16 − 88 − 16), 400)；名义版式里 258 仍放不下 → 取剩下的高度，最小 180（P299）
 //   组顶      = max(12, round((H − 组高) × 0.4)) − 页头多出名义的部分；组高 = P + 16 + g + 88（P = 这张卡量到的题面高）
 //   书写格顶边在同一张卡的所有阶段固定（D53 ②，P257）；判断页上下两格 S = min(屏宽 − 40, ⌊(主区高 − 书写格顶 − 16) ÷ 2⌋)，下限 120。
-// AX 档（B2.9b）：axWrite / judgeAx = layout.js axWriteLayout / judgeAxLayout（按实际量到的主区高排，书写格下限 220，放不下时格子先让步、再缩题面，P299）。
+// AX 档（B2.9b）：axWrite / judgeAx = layout.js axWriteLayout / judgeAxLayout（按实际量到的主区高排，书写格下限 220，放不下时格子先让步到 180、再缩题面到 0.6；仍不 fits 时控制器滚动正文，P299）。
 
 struct NativeWriteLayoutConstants {
     var min: CGFloat = 258

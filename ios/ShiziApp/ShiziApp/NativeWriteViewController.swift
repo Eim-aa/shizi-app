@@ -196,6 +196,41 @@ final class NativeWriteViewController: UIViewController {
     private let failNote = UILabel()
     private let failCancel = UIButton(type: .system)
     private let edgeBack = UIScreenEdgePanGestureRecognizer()
+    private let bodyScroll = NativeWriteScrollView()
+    private let bodyContent = NativeWritePageView()
+    private let overflowHairline = UIView()
+    private var bodyViews: [UIView] {
+        [stepsView, promptView, gridFrame, noInkLabel, hintLayer, traceLayer, ink,
+         refFrame, undoButton, clearButton, noteView]
+    }
+
+    /// Preserve the existing page-coordinate layout inside the scrolling body. Only
+    /// overflow enters this hierarchy; fitting layouts keep their original parents.
+    private func layoutOverflowBody(head: CGFloat, foot: CGFloat, bottom: CGFloat, enabled: Bool) {
+        let overflow = enabled && bottom > foot + 0.5
+        if overflow {
+            if bodyScroll.superview == nil {
+                view.insertSubview(bodyScroll, belowSubview: footView)
+                bodyScroll.addSubview(bodyContent)
+                bodyViews.forEach { bodyContent.addSubview($0) }
+            }
+            bodyScroll.frame = CGRect(x: 0, y: head, width: view.bounds.width, height: max(0, foot - head))
+            bodyContent.frame = CGRect(x: 0, y: -head, width: view.bounds.width, height: bottom)
+            bodyScroll.contentSize = CGSize(width: view.bounds.width, height: bottom - head)
+            if overflowHairline.superview == nil { footView.addSubview(overflowHairline) }
+            overflowHairline.backgroundColor = color("line", .separator)
+            overflowHairline.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: 1 / UIScreen.main.scale)
+            bodyScroll.onLayout = { [weak self] in
+                guard let self else { return }
+                self.overflowHairline.isHidden = self.bodyScroll.contentOffset.y + self.bodyScroll.bounds.height >= self.bodyScroll.contentSize.height - 1
+            }
+        } else if bodyScroll.superview != nil {
+            bodyViews.forEach { view.insertSubview($0, belowSubview: footView) }
+            overflowHairline.removeFromSuperview()
+            bodyScroll.removeFromSuperview()
+            bodyScroll.contentOffset = .zero
+        }
+    }
     private lazy var judgeHaptic = UIImpactFeedbackGenerator(style: .soft)
     private lazy var lightHaptic = UIImpactFeedbackGenerator(style: .light)
     private lazy var selectHaptic = UISelectionFeedbackGenerator()
@@ -317,6 +352,15 @@ final class NativeWriteViewController: UIViewController {
             return
         }
         ink = inkView
+        bodyScroll.ink = inkView
+        bodyScroll.onBegin = { [weak self] in self?.settleAnimations() }
+        bodyContent.ink = inkView
+        bodyContent.approachRoot = view
+        bodyScroll.accessibilityIdentifier = "native-write-scroll"
+        bodyScroll.contentInsetAdjustmentBehavior = .never
+        bodyScroll.delaysContentTouches = false
+        bodyScroll.panGestureRecognizer.maximumNumberOfTouches = 1
+        bodyScroll.panGestureRecognizer.require(toFail: edgeBack)
         (view as? NativeWritePageView)?.ink = inkView
         #if DEBUG
         ink.latency = NativeWriteMetrics.shared.inkLatency
@@ -1064,9 +1108,17 @@ final class NativeWriteViewController: UIViewController {
     /// B2.9b：读屏顺序 = 网页 DOM 顺序（页头：‹、页标题、中间、右槽；正文：步骤点、题面、书写格 / 对照两格、撤销 / 清空、格下说明；撤销条；底栏），
     /// 不按几何位置排（UIKit 默认先读位置靠上的右槽按钮，进度就落到了「跳过」后面）。确认框开着时它是模态，只读框里的。
     private func updateAccessibilityOrder() {
-        var order: [UIView] = [backButton, srTitleLabel, centerLabel, progressLabel, headProgress, endButton, skipButton, stepsView, promptView, noInkLabel]
-        if let ink { order.append(ink) }
-        order += [refFrame, undoButton, clearButton, noteView, srStatusLabel]
+        var order: [UIView] = [backButton, srTitleLabel, centerLabel, progressLabel, headProgress, endButton, skipButton]
+        var body: [UIView] = [stepsView, promptView, noInkLabel]
+        if let ink { body.append(ink) }
+        body += [refFrame, undoButton, clearButton, noteView]
+        if bodyScroll.superview != nil {
+            bodyScroll.accessibilityElements = body.filter { !$0.isHidden }
+            order.append(bodyScroll)
+        } else {
+            order += body
+        }
+        order.append(srStatusLabel)
         if let bar = undoBar { order.append(bar) }
         order += [srAnswerLabel, footView]
         if let d = endDialog { order.append(d) }
@@ -1507,6 +1559,11 @@ final class NativeWriteViewController: UIViewController {
         srStatusLabel.frame = CGRect(x: gutter - 1, y: safe.top + 43, width: 1, height: 1)
         srAnswerLabel.frame = CGRect(x: gutter - 1, y: footTop, width: 1, height: 1)
         srAnswerLabel.isHidden = phase != .trace
+        // Same final fallback as Page.js: header/footer stay fixed, only body
+        // overflow scrolls after fitGridMin/promptFitMin have been exhausted.
+        layoutOverflowBody(head: headBottom, foot: footTopBase,
+                           bottom: max(gridRect.maxY + belowH, noteView.frame.maxY),
+                           enabled: ax && !compare)
         updateAccessibilityOrder()
         startStepPlayIfNeeded()
     }
@@ -2172,7 +2229,15 @@ final class NativeWriteViewController: UIViewController {
 
     private func ghostOf(_ v: UIView, in overlay: UIView) -> UIView? {
         guard !v.isHidden, v.alpha > 0, let s = v.snapshotView(afterScreenUpdates: false) else { return nil }
-        s.frame = v.frame
+        s.frame = v.convert(v.bounds, to: view)
+        if v.isDescendant(of: bodyContent), bodyScroll.superview != nil {
+            let clip = UIView(frame: bodyScroll.frame)
+            clip.clipsToBounds = true
+            s.frame = s.frame.offsetBy(dx: -clip.frame.minX, dy: -clip.frame.minY)
+            clip.addSubview(s)
+            overlay.addSubview(clip)
+            return clip
+        }
         overlay.addSubview(s)
         return s
     }
@@ -2237,12 +2302,7 @@ final class NativeWriteViewController: UIViewController {
         overlay.accessibilityElementsHidden = true
         var textGhosts: [Int: UIView] = [:]
         var shapeGhosts: [UIView] = []
-        func ghost(_ v: UIView) -> UIView? {
-            guard !v.isHidden, v.alpha > 0, let s = v.snapshotView(afterScreenUpdates: false) else { return nil }
-            s.frame = v.frame
-            overlay.addSubview(s)
-            return s
-        }
+        func ghost(_ v: UIView) -> UIView? { ghostOf(v, in: overlay) }
         for v in [gridFrame, refFrame, hintLayer, traceLayer] { if let g = ghost(v) { shapeGhosts.append(g) } }
         if let ink, !strokes.isEmpty, let g = ghost(ink) { shapeGhosts.append(g) }
         for (i, v) in textRegions.enumerated() { textGhosts[i] = ghost(v) }
@@ -2551,7 +2611,7 @@ final class NativeWriteViewController: UIViewController {
     /// 落定前的记录：上格墨的位置、页头计数的位置、本人笔画。没有笔画 / 页面没给时刻（没有 settle 参数）/ 没有书写面 → nil（不做落定动画）。
     private func settlePlan() -> SettlePlan? {
         guard settleSpec != nil, let ink, !strokes.isEmpty, ink.window != nil else { return nil }
-        return SettlePlan(from: ink.frame, to: progressLabel.isHidden ? nil : progressLabel.frame, strokes: strokes)
+        return SettlePlan(from: ink.convert(ink.bounds, to: view), to: progressLabel.isHidden ? nil : progressLabel.frame, strokes: strokes)
     }
 
     private func playSettle(_ plan: SettlePlan) -> Bool {
@@ -2639,6 +2699,7 @@ final class NativeWriteViewController: UIViewController {
 /// 进入时要格就在手指下（hitTest 落到书写面）：判断页等不可写阶段书写面不接触摸、弹层盖住时命中的是弹层，都不开始。
 final class NativeWritePageView: UIView {
     weak var ink: NativeInkView?
+    weak var approachRoot: UIView?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -2661,12 +2722,13 @@ final class NativeWritePageView: UIView {
 
     private func enters(_ pInInk: CGPoint) -> Bool {
         guard let ink else { return false }
-        return hitTest(ink.convert(pInInk, to: self), with: nil) === ink
+        let root = approachRoot ?? self
+        return root.hitTest(ink.convert(pInInk, to: root), with: nil) === ink
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let ink, ink.drawable, !ink.isHidden else { return }
-        let ok = touches.filter { Self.approachStarts(at: $0.location(in: self), hitView: $0.view, root: self, inkFrame: ink.frame) }
+        let ok = touches.filter { Self.approachStarts(at: $0.location(in: self), hitView: $0.view, root: self, inkFrame: ink.convert(ink.bounds, to: self)) }
         if !ok.isEmpty { ink.approachBegan(ok) }
     }
 
@@ -2696,7 +2758,7 @@ extension NativeWriteViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         guard gestureRecognizer === edgeBack, let ink else { return true }
         let p = touch.location(in: view)
-        let ok = Self.edgeBackReceives(touchAt: p, inkFrame: ink.frame, inkDrawable: ink.drawable && !ink.isHidden && ink.window != nil)
+        let ok = Self.edgeBackReceives(touchAt: p, inkFrame: ink.convert(ink.bounds, to: view), inkDrawable: ink.drawable && !ink.isHidden && ink.window != nil)
         #if DEBUG
         if !ok, p.x < 48 { ink.logStroke("edge-back yields to ink") } // 只记系统起手区（40.2pt）以内的
         #endif
@@ -2740,5 +2802,33 @@ extension NativeWriteViewController: NativeInkViewDelegate {
         case .undo: tapUndo()
         case .clear: tapClear()
         }
+    }
+}
+
+/// A touch that begins on the writing surface belongs to ink for its entire
+/// lifetime, including fast vertical strokes and strokes that leave the grid.
+/// The page edge recognizer remains independent and has priority outside ink.
+final class NativeWriteScrollView: UIScrollView {
+    weak var ink: NativeInkView?
+    var onLayout: (() -> Void)?
+    var onBegin: (() -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
+    }
+
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        if gestureRecognizer === panGestureRecognizer {
+            let now = gestureRecognizer.location(in: self)
+            let delta = panGestureRecognizer.translation(in: self)
+            let p = CGPoint(x: now.x - delta.x, y: now.y - delta.y)
+            if p.x < NativeWriteViewController.edgeBackZone { return false }
+            if let ink, ink.drawable, !ink.isHidden,
+               ink.convert(ink.bounds, to: self).contains(p) { return false }
+        }
+        let allowed = super.gestureRecognizerShouldBegin(gestureRecognizer)
+        if allowed, gestureRecognizer === panGestureRecognizer { onBegin?() }
+        return allowed
     }
 }

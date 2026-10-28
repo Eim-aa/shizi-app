@@ -11,6 +11,51 @@ final class WriteFlowTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// SE/AX5: exercise the final fallback with a deliberately oversized existing
+    /// hint. The ordinary SE cards fit after P299; do not force those to scroll.
+    func test200_ax5OverflowScrollKeepsInkAndFooter() {
+        let qa = QA(seed: "write-overflow", extra: [
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"
+        ])
+        qa.launch()
+        let small = qa.app.windows.firstMatch.frame.size == CGSize(width: 375, height: 667)
+        let grid = qa.el("native-write-grid")
+        let before = grid.frame
+        let foot = qa.el("native-write-done").frame
+        if small {
+            XCTAssertTrue(qa.app.scrollViews["native-write-scroll"].exists)
+            XCTAssertGreaterThanOrEqual(before.width, 178) // ink inset inside the 180pt frame
+            let start = qa.app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 60, dy: before.midY))
+            start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -70)))
+            Thread.sleep(forTimeInterval: 0.5)
+            XCTAssertLessThan(grid.frame.minY, before.minY - 10, "outside-grid drag scrolls body")
+            XCTAssertEqual(qa.native["strokes"] as? Int, 0, "scroll does not draw")
+            XCTAssertEqual(qa.el("native-write-done").frame, foot, "footer stays fixed")
+            let shot = XCTAttachment(screenshot: qa.app.screenshot())
+            shot.name = "SE-AX5-scrolled"
+            shot.lifetime = .keepAlways
+            add(shot)
+        }
+        let still = grid.frame
+        qa.stroke(from: CGVector(dx: 0.5, dy: 0.75), to: CGVector(dx: 0.5, dy: 0.2))
+        XCTAssertEqual(qa.native["strokes"] as? Int, 1, "vertical stroke is ink")
+        XCTAssertEqual(grid.frame, still, "grid stays under the finger")
+        XCTAssertTrue(qa.el("native-write-done").isHittable)
+        XCTAssertTrue(qa.el("native-write-hint").isHittable)
+        if small {
+            let shot = XCTAttachment(screenshot: qa.app.screenshot())
+            shot.name = "SE-AX5-ink"
+            shot.lifetime = .keepAlways
+            add(shot)
+        }
+        qa.tapNative("native-write-done")
+        qa.waitProbe("compare") { (($0["native"] as? [String: Any])?["phase"] as? String) == "compare" }
+        qa.tapNative("native-write-back")
+        qa.waitProbe("recall") { (($0["native"] as? [String: Any])?["phase"] as? String) == "recall" }
+        qa.edgeBack()
+        qa.waitNative(false)
+    }
+
     // MARK: §2 回忆阶段
 
     /// §2：页头 ‹ / 进度 / 结束这组 / 跳过；撤销 / 清空；提示 / 看答案；写好了（没写不能点）。落笔、撤销、清空（清空后可撤销一次）。

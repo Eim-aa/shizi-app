@@ -57,6 +57,8 @@
     "session.libSwitch",
     "session.pick",
     "session.wrongList",
+    "stage.enter",
+    "stage.resync",
     "view.about",
     "view.about-credits",
     "view.about-letter",

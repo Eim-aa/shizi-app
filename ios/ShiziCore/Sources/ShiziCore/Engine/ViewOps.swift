@@ -58,6 +58,12 @@ extension CoreEngine {
             let zones = try ViewSupport.memoryZones(state, today: today, dates: e.dates), zone = zones["zones"]![JS.string(a["zone"])]!, latest = LibraryView.latestJudgedByChar(recs.records)
             return ViewSupport.obj([("records", ViewSupport.obj([("records", .array(recs.records)), ("foldedDays", .array(recs.foldedDays.map(JSValue.string)))])), ("latest", .array(latest.entries.map { .array([.string($0.key), $0.value]) })), ("tone", .number(Double(ViewSupport.toneOf(a["day"], today: today, days: a["toneDays"], dates: e.dates)))), ("columns", .number(Double(ViewSupport.wallColumns(large: JS.truthy(a["compact"]), width: a["width"])))), ("custom", .array(ViewSupport.customCharsOf(state["custom"]).map(JSValue.string))), ("first", LibraryView.firstRecordDay(recs.records, foldedDays: recs.foldedDays, dates: e.dates)), ("mini", LibraryView.cardMini(zone["items"]!.arrayValue!)), ("successes", .number(ViewSupport.successesOf(a["entry"]))), ("zone", .string(try ViewSupport.memoryZoneOf(r, a["entry"], today: today, knownDays: JS.number(a["knownDays"]), minSuccesses: JS.number(a["minSuccesses"]), dates: e.dates))), ("samples", .array(LibraryView.zoneSamples(zone))), ("name", LibraryView.libraryNameRef(a["library"] ?? .null)), ("refs", LibraryView.todayRefs(a["plan"] ?? .null)), ("strokes", try LibraryView.sampleStrokes(state, record: r, policy: p, dates: e.dates))])
         },
+        "view.settings.commit": { e, a in try viewSubmit(e, a, kind: "settings") },
+        "view.settings.enabled": { e, a in try viewSubmit(e, a, kind: "enabled") },
+        "view.settings.time": { e, a in try viewSubmit(e, a, kind: "time") },
+        "view.settings.permission": { e, a in try viewSubmit(e, a, kind: "permission") },
+        "view.settings.remindOf": { e, a in try viewSubmit(e, a, kind: "remindOf") },
+        "view.query.add": { e, a in try viewSubmit(e, a, kind: "add") },
         "view.library-list": { e, a in try LibraryListView.listModel(a["state"] ?? .null, a, dates: e.dates) },
         "view.library-list.entries": { e, a in .array(try LibraryListView.listEntries(a["state"] ?? .null, kind: a["kind"], today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
         "view.library-list.helpers": { e, a in
@@ -120,4 +126,29 @@ extension CoreEngine {
             return lines.measureLines(a["spec"] ?? .null)
         },
     ]
+}
+
+extension CoreEngine {
+    // Isolated real Store transaction adapter: seed, optional failure, retry / no-op.
+    // No App API or session-writer wiring is involved.
+    static func viewSubmit(_ e: CoreEngine, _ a: JSObject, kind: String) throws -> JSValue {
+        let now = a["now"]?.numberValue ?? e.clock, disk = MemoryDisk(), storage = StoreStorage(disk.open(), now: { now }), store = Store(storage: storage, now: { now }, dates: e.dates)
+        store.load()
+        if let initial = a["initial"] { let seeded = store.seed(initial); if seeded["ok"] != .bool(true) { throw CoreError.badArgs("invalid initial view store state") } }
+        if a["fail"] == .bool(true) { storage.failNextWrite() }
+        var results: [JSValue] = [], states: [JSValue] = []
+        for _ in 0..<2 {
+            let result: JSValue
+            switch kind {
+            case "settings": result = SettingsView.commitSettings(store, label: a["label"]?.stringValue ?? "settings:test", fields: a["fields"]?.objectValue ?? JSObject())
+            case "enabled": result = SettingsView.commitRemindEnabled(store, on: a["on"], policy: ViewSupport.policy(a["policy"]))
+            case "time": result = try SettingsView.commitRemindTime(store, hour: required(a, "hour"), minute: required(a, "minute"))
+            case "permission": result = SettingsView.applyReminderStatus(store, payload: a["payload"])
+            case "add": result = try QueryView.commitAdd(store, char: required(a, "char"))
+            default: result = SettingsView.remindOf(store)
+            }
+            results.append(result); states.append(.object(store.state))
+        }
+        return ViewSupport.obj([("results", .array(results)), ("states", .array(states)), ("remind", SettingsView.remindOf(store))])
+    }
 }

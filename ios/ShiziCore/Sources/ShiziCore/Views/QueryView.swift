@@ -35,6 +35,11 @@ public enum QueryView {
         else { notes = Query.filterNotes(filtered, view: v.view) }
         return ViewSupport.obj([("filtered", filtered.js), ("view", .string(v.view)), ("cur", .string(v.cur)), ("notes", .array(notes)), ("pinyin", .bool(pinyin != nil)), ("summaries", .array(summaries)), ("summary", v.cur.isEmpty ? .null : summaries.first { $0["char"] == .string(v.cur) } ?? .null), ("multi", .bool(filtered.chars.count > 1)), ("chosen", .array(chosen.map(JSValue.string))), ("bar", a["mode"] == .string("pick") && ["hint", "rows"].contains(v.view) ? Query.pickBar(.number(Double(chosen.count))) : .null)])
     }
+    public static func commitAdd(_ store: Store, char: JSValue) -> JSValue {
+        store.commit("query:add") { draft, ctx in
+            if let next = try Query.withCustomAdded(draft["custom"], char, .number(ctx.now)) { draft["custom"] = next }
+        }
+    }
     public static func cardMetaRef(_ pinyin: JSValue?, _ strokes: JSValue?) -> JSValue {
         guard JS.truthy(pinyin) else { return .null }
         return entry("X-QUERY.cardMeta", ViewSupport.obj([("pinyin", pinyin!), ("n", JS.number(strokes) > 0 ? strokes! : .number(0))]))

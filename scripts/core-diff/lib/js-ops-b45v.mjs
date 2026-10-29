@@ -1,3 +1,6 @@
+import { createStore } from '../../../src/store/store.js';
+import { createStorage } from '../../../src/store/storage.js';
+import { MemoryStorage } from '../../../test/store/helpers.mjs';
 import * as library from '../../../src/session/views/library.js';
 
 import { sheetStrokes } from '../../../src/session/write-api.js';
@@ -29,6 +32,17 @@ import * as policy from '../../../src/config/policy.js';
 export function makeB45ViewOps({ required, clock }) {
   const p = a => ({ ...policy, ...a.policy });
   const at = (a, fn) => { const saved = Date.now; Date.now = () => a.now ?? clock(); try { return fn(); } finally { Date.now = saved; } };
+  const submit = (a,kind) => {
+    const now=()=>a.now??clock(), disk=new MemoryStorage(), storage=createStorage(disk,{now}), store=createStore({storage,now});
+    store.load(); if(a.initial) {const r=store.seed(a.initial); if(!r.ok) throw Error('invalid initial view store state');}
+    if(a.fail) storage.failNextWrite();
+    const results=[],states=[];
+    for(let i=0;i<2;i++) {
+      const result=kind==='settings'?settings.commitSettings(store,a.label??'settings:test',a.fields||{}):kind==='enabled'?settings.commitRemindEnabled(store,a.on,{p:p(a)}):kind==='time'?settings.commitRemindTime(store,a.hour,a.minute):kind==='permission'?settings.applyReminderStatus(store,a.payload):kind==='add'?query.commitAdd(store,a.char):settings.remindOf(store);
+      results.push(result); states.push(JSON.parse(JSON.stringify(store.getState())));
+    }
+    return {results,states,remind:settings.remindOf(store)};
+  };
   const deck = a => {if(a.deck===undefined) return null; if(a.deck==='real') {setDeckSource(deckSources());return deckAdapter;} const d=a.deck; return {newCandidates:()=>d.newCandidates||[],warmupCandidates:d.warmupCandidates?()=>d.warmupCandidates:undefined,practicable:k=>d.practicable?d.practicable.includes(k):k.startsWith('base:'),currentLibraryId:d.currentLibraryId?()=>d.currentLibraryId:undefined};};
   const ink = a => r => a.state?.ink?.[r.localDay.slice(0, 7)]?.[r.id] ?? null;
   const q = a => { setDeckSource(deckSources()); return { ...a, policy: p(a), predicates: query.deckPredicates(a.state?.settings), getInk: ink(a), store: { getInk: ink(a) } }; };
@@ -61,6 +75,12 @@ export function makeB45ViewOps({ required, clock }) {
     'view.library.skipped': a => library.skippedZone(a.state),
     'view.library.plan': a => library.todayPlanModel(a.state,a.now,{deck:deck({...a,deck:a.deck||'real'}),policy:p(a)}),
     'view.library.helpers': a => {const rs=library.recordsOfState(a.state),z=library.memoryZones(a.state,a.today).zones[a.zone];return {records:rs,latest:[...library.latestJudgedByChar(rs.records)],tone:library.toneOf(a.day,a.today,a.toneDays),columns:library.wallColumns(0,a.compact,a.width),custom:library.customCharsOf(a.state.custom),first:library.firstRecordDay(rs.records,rs.foldedDays),mini:library.cardMini(z.items,'x'),successes:library.successesOf(a.entry),zone:library.memoryZoneOf(a.record,a.entry,a.today,a.knownDays,a.minSuccesses),samples:library.zoneSamples(z),name:library.libraryNameRef(a.library),refs:library.todayRefs(a.plan),strokes:library.sampleStrokes(a.record,ink(a),p(a))};},
+    'view.settings.commit': a => submit(a,'settings'),
+    'view.settings.enabled': a => submit(a,'enabled'),
+    'view.settings.time': a => submit(a,'time'),
+    'view.settings.permission': a => submit(a,'permission'),
+    'view.settings.remindOf': a => submit(a,'remindOf'),
+    'view.query.add': a => submit(a,'add'),
     'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
     'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),

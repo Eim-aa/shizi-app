@@ -17,6 +17,8 @@ enum ShiziEngineMode: String {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
         if let i = args.firstIndex(of: "-shizi-engine"), i + 1 < args.count, let mode = ShiziEngineMode(rawValue: args[i + 1]) { return mode }
+        // 宿主进程里跑的单元测试（ShiziWriteTests）没法给 App 传启动参数：环境变量 SHIZI_ENGINE（xcodebuild 用 TEST_RUNNER_SHIZI_ENGINE 传入）
+        if let v = ProcessInfo.processInfo.environment["SHIZI_ENGINE"], let mode = ShiziEngineMode(rawValue: v) { return mode }
         #endif
         return .web
     }()

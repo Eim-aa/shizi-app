@@ -106,3 +106,11 @@ pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子
 `views-basic.json` 保留 640 条；第二套 `views-pages.json` 为 10 个状态 × 52 个新增 op × 2 时区 = 1,040 条。两套均由 golden.mjs 的 `--check` 守同步，ViewParityTests / ViewRuleTests 核对夹具并转写规则断言。提醒提交与 query.add 适配器走真实内存 Store，比较失败 / 重试 / no-op 的每次回包和完整状态。
 
 折行保留 JS 的 provider 注入契约：`breaks` 参数按 kind 提供测量数组，非法返回 / 抛错 / 无 provider 都是 null。实际 DOM / 字体测量属于渲染器边界；不会在 Swift 规则里猜测断行。没有接 App、改变产品规则或运行 iOS 模拟器。
+
+### B4.5a session 进度
+
+`SessionRuntime` 是 Store-backed 的 session/page API 入口，未接 App。缺省数学口径是 `.darwin`（对设备 JSC）；CLI / XCTest 使用 `.v8`（对 Node）。写入复用 Store.commit、现有规则与 B4.5b views。CLI 的 `api.call {op,args}` 与纯 `view.*` 差分 op 分开，避免破坏 B4.5b 协议。
+
+新增 session 随机域、真实异步 JS 回复支持、`session-shapes.mjs`、`session-contract.mjs --check`、`session-resources.mjs --check` 已接 verify:core-diff。72 个契约场景逐步核对回复和全部状态；ms 性能采样字段仅在 JS 写 API 适配器去掉。
+
+**当前不是整卡完成**：默认依赖下的写/结果事务与部分 page API 已验证，完整 result model、邀请 yes/time/权限等待、WriteAPI host 注入、image bookkeeping、全部 B4.5 转写与全族分支覆盖仍未齐。精确函数与边界见 [B4.5a-core-移植状态.md](../../docs/engineering/v10/B4.5a-core-移植状态.md)，不可据此切换引擎或删除 JS。

@@ -456,7 +456,7 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
             self.busy = false
             let ok = (r["ok"] as? Bool) == true
             if ok || ((r["error"] as? [String: Any])?["kind"] as? String) == "stale" {
-                if ok { self.haptic.impactOccurred(intensity: 0.7) }
+                if ok { self.haptic.impact("judge", 0.7) }
                 self.close()
                 return
             }

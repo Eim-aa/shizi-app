@@ -139,6 +139,8 @@ final class QA {
     var kinds: [String: Int] { probe["kinds"] as? [String: Int] ?? [:] }
     var records: Int { probe["records"] as? Int ?? -1 }
     var transitions: [String] { probe["transitions"] as? [String] ?? [] }
+    /// 声音 / 触觉事件记录（探针 feedback：haptic:<judge|seal|light|select>、sound:<文件名>，按发出顺序，最近 200 条）。
+    var feedback: [String] { probe["feedback"] as? [String] ?? [] }
     /// B2.9b：冷启动判定（route-memory lastPlan：{reason, restored}）与页面时钟（ms，QA 钉住时跨重开保持）。
     var coldPlan: [String: Any] { probe["coldPlan"] as? [String: Any] ?? [:] }
     var clockMs: Double { (probe["clock"] as? NSNumber)?.doubleValue ?? 0 }

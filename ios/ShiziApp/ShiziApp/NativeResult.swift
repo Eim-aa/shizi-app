@@ -624,7 +624,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private func sealMoment() {
         guard !Self.revealed.contains(sealKey) else { return }
         Self.revealed.insert(sealKey)
-        sealHaptic.impactOccurred(intensity: 0.8) // F1 seal：.rigid 0.8，与印着纸同一帧（声音由页面放，resultSealed）
+        sealHaptic.impact("seal", 0.8) // F1 seal：.rigid 0.8，与印着纸同一帧（声音由页面放，resultSealed）
         sealedForTesting = true
         bridge.call("resultSealed", ["slot": slot, "sessionId": sessionId]) { _ in }
     }
@@ -766,7 +766,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             guard let self else { return }
             self.busy = false
             if reply.ok {
-                self.lightHaptic.impactOccurred(intensity: 0.5)
+                self.lightHaptic.impact("light", 0.5)
                 self.stopUndo()
                 return
             }
@@ -914,7 +914,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             guard let self else { return }
             self.busy = false
             if reply.ok, let v = reply.body["view"] as? [String: Any] {
-                self.selectionHaptic.selectionChanged()
+                self.selectionHaptic.select()
                 self.apply(view: v)
             }
         }

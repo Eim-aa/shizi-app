@@ -990,6 +990,15 @@ enum QATrace {
     }
 }
 
+/// 声音 / 触觉事件记录（探针 feedback，最近 200 条，按发出顺序；`ShiziProbe.feedback`）。只在 DEBUG 测试宿主。
+enum QAFeedback {
+    private(set) static var events: [String] = []
+    static func note(_ s: String) {
+        events.append(s)
+        if events.count > 200 { events.removeFirst(events.count - 200) }
+    }
+}
+
 /// B2.9b：QA 时钟。注入把页面时钟钉在固定日子时（结果页状态：2026-10-22 09:00，或 -shizi-qa-clock），这个钟就是全 App 唯一的「现在」：
 /// 页面 now()（注入后量出偏移 = 页面 now − 真实时间，存在 UserDefaults）、杀进程重开后的页面（WebViewController 在 documentStart 注入
 /// window.__shiziQAClockOffset，src/platform/env.js 模块求值时读，路由恢复 routeRestore 也用它）与原生（SQLite 时间戳、提醒排期）。
@@ -1106,6 +1115,7 @@ final class QAProbe {
         out["pageReady"] = host.pageReady
         out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events
+        out["feedback"] = QAFeedback.events
         out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）
         out["navRunning"] = NativeWriteTransitions.running
         if let s = seedResult { out["seed"] = s ?? "ok" }

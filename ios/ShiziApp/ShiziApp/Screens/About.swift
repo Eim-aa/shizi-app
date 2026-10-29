@@ -599,6 +599,8 @@ final class AboutCreditsScreen: ShiziScreenViewController {
             for it in items[gi] {
                 guard let item = it.item else { continue }
                 it.name.accessibilityLabel = item.name
+                // 网址行读屏名：项目名 + 链接特性（不读整条 URL，系统审计判「标签不像人话」；无新文案）
+                it.url.accessibilityTraits = [.staticText, .link]
                 it.license.isHidden = item.license.isEmpty
                 it.url.isHidden = item.url.isEmpty
                 it.toggle.setTitle(toggle, for: .normal)
@@ -641,6 +643,7 @@ final class AboutCreditsScreen: ShiziScreenViewController {
                 if !item.url.isEmpty {
                     y += mt.space(1)
                     y += ShiziParagraph.place(it.url, item.url, font: mt.font(13), color: color("ink2"), line: mt.line("lh13"), x: x, y: y, width: width)
+                    it.url.accessibilityLabel = item.name // place 会把标签设成整条网址；读屏名改回项目名（见 restyle）
                 }
                 y += mt.space(1)
                 // 「许可全文」：最小高 44（行高继承正文 lh15，AX 档更高），左右内边距 4，左外边距 −4

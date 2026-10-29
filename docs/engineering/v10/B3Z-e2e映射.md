@@ -115,7 +115,7 @@ B3B4 §5.3 的逐文件落实：`scripts/e2e/` 的 130 个 Playwright spec，每
 | `77-e9c-result` | L | QA-H1 result-* 状态; ResultFlowTests.test811 | 作品格宽表 |
 | `79-e9c-settings-range` | P | LibrarySubFlowTests.testSwitchLibrarySuccessReturnsAtOnce; MineFlowTests.testEachRowOpensItsPageAndComesBack | 练习范围入口 |
 | `80-c1-removed-chars` | R | —（数据；B3 期间照跑；verify:unit 题库校验） |  |
-| `80-s1-sound` | P | — | 判断声 / 落印声轮换无原生自动断言（无探针），见缺口 |
+| `80-s1-sound` | P | WriteFlowTests.test211_judgeSoundsRotateAndTheSealSoundsOnceOnTheResult; WriteFlowTests.test212_traceStrokesAreSilent | B3.Z-f 起有 DEBUG 探针（feedback）。落款 s1 恰好一次、书写 / 判断页 / 描红无声已断言；**判断声 j1 轮换**在原生写字页根本没放（产品缺口 B3Zf-1，用 `QAIssue.expectFail` 标待修，修好转「意外通过」） |
 | `81-h1-dates` | L | QA-H1 home / detail / records 状态（文案严格比） | 日期写法；格式化规则在 ShiziCore Dates |
 | `81-h1-detail` | P | DetailFlowTests（10 + 1 条）; QA-H1 detail-* 状态 + checks/detail.mjs |  |
 | `81-h1-edges` | L | QA-H1 逐屏（页边 20） |  |
@@ -124,19 +124,19 @@ B3B4 §5.3 的逐文件落实：`scripts/e2e/` 的 130 个 Playwright spec，每
 | `81-h1-paper` | L | QA-H1 逐屏; 图片对照 46/46（平涂笺色） |  |
 | `81-h1-text-buttons` | L | QA-H1 逐屏（文字按钮规格） |  |
 | `81-h1-toast` | P | WriteFlowTests.test209 | 本卡补（B3.Z） |
-| `81-r1-reveal` | P | ResultFlowTests.test811; ResultFlowTests.test817 | 作品逐格显现 / 落印的声音与触觉同帧无原生断言，见缺口 |
+| `81-r1-reveal` | P | ResultFlowTests.test811; ResultFlowTests.test817; ResultFlowTests.test822_sealSoundAndHapticOnceAtTheLanding | 声音半：s1 与 seal 触觉同发（序号相邻）一次、判断触觉在先、无 action；重绘不再响（B3.Z-f）。逐格显现的时序本来就在 QA-H1 / 手感里 |
 | `82-x1-write-ax-se` | L | QA-H1 write × AX3/AX5（SE 档）; WriteFlowTests.test200 |  |
 | `83-x1-write-ax-390` | L | QA-H1 write × AX3/AX5 |  |
 | `84-x1-write-ax-430` | L | QA-H1 write × AX3/AX5 |  |
 | `85-x1-transitions` | L | EntryFlowTests.test112; NativeStageFlowTests.test903 | 写字页内阶段淡入过渡是网页最小过渡；原生转场对象 ShiziTransitions 由转场记录探针断言（EntryFlowTests） |
 | `86-x1-tools-paper` | L | QA-H1 write 状态 |  |
-| `87-x1-haptic-once` | P | — | 每字一次触觉无原生断言（无探针），见缺口 |
+| `87-x1-haptic-once` | P | WriteFlowTests.test213_oneJudgeHapticPerCharacter | 每字「写好了」一次 light + 判断恰好一次 judge、最后一字不叠 finish 触觉（B3.Z-f，探针 feedback） |
 | `88-a1-sheet-done` | L | AccessibilityFlowTests.test1002; AccessibilityAuditTests.testPerformAccessibilityAuditPushedPagesAX5 | 所有底部弹层有「完成」，读屏可达 |
 | `89-a1-grid-sr` | L | AccessibilityFlowTests.test1001; AccessibilityFlowTests.test1003 | 书写格读屏名称与播报 |
 | `90-a1-ref-label` | L | AccessibilityFlowTests.test1001; AccessibilityFlowTests.test1002 |  |
 | `91-a1-secondary-ax` | L | QA-H1 mine / month / records × AX3/AX5 |  |
 | `92-a1-small-type-frame` | L | QA-H1 逐屏（xS/S 档在 QA 夹具 sizes） |  |
-| `93-c3r-seal` | P | ResultFlowTests.test811 | 落印声与触觉同帧无原生断言，见缺口 |
+| `93-c3r-seal` | P | ResultFlowTests.test811; ResultFlowTests.test822_sealSoundAndHapticOnceAtTheLanding; ResultFlowTests.test823_coldRestoreDoesNotSealAgain | 落印：s1 与 seal 触觉同发一次；冷启动恢复不重演。「同一帧 ±1 帧」的逐帧对齐探针做不到，归真机 QA（DEVICE_QA §13e / §13m） |
 | `93-k1-grid-square` | L | QA-H1 write checks（书写格方形）; WriteFlowTests.test200 |  |
 | `94-c3r-work-caption` | L | QA-H1 result-* 状态 |  |
 | `94-k1-note-slot` | L | QA-H1 write × AX 档 |  |
@@ -170,12 +170,15 @@ B3B4 §5.3 的逐文件落实：`scripts/e2e/` 的 130 个 Playwright spec，每
 | 首练第 1 字格下的一次性说明：落笔后收起、撤销到 0 笔不再回来 | 76-q2-01-first-tip | `WriteFlowTests.test210_firstPracticeTipGoesAfterTheFirstStrokeAndStaysGone` |
 | 字详情「加入自选」失败的就地三段式与重试 | 33-detail | `DetailFlowTests.testCustomAddFailureThreeStageThenRetry` |
 | 全部字页按月折叠 / 展开 | 35-all | `LibrarySubFlowTests.testAllCharsMonthOpensAndFolds` |
+| 判断声 / 落款声：书写、判断页、描红无声；s1 一次（B3.Z-f，DEBUG 探针 `feedback`） | 80-s1-sound | `WriteFlowTests.test211…` / `test212…` |
+| 每字一次触觉（light + judge） | 87-x1-haptic-once | `WriteFlowTests.test213_oneJudgeHapticPerCharacter` |
+| 落印声 + 触觉一次、判断触觉在先、重绘与冷启动恢复不重演 | 93-c3r-seal、81-r1-reveal（后半） | `ResultFlowTests.test822…` / `test823…` |
 
 ### 4.2 仍无原生自动用例（建议后续卡）
 
 | 行为 | spec | 为什么没补 | 建议 |
 |---|---|---|---|
-| 判断声 j1 轮换、落款盖章声 s1、「落印」声与触觉同一帧、每字只震一次 | 80-s1-sound、87-x1-haptic-once、93-c3r-seal、81-r1-reveal（后半） | 原生声音 / 触觉没有 DEBUG 探针，XCUITest 看不到；补需要在 `NativeWriteViewController` / `NativeResult` 加探针（产品代码，不在本卡范围） | 派一张小卡：给声音与触觉加 DEBUG 探针（`stage.feedbackLog`），补 3 条用例；在那之前归真机 QA（DEVICE_QA §13e、§13m） |
+| 「落印」声与触觉**逐帧同一帧**（±1 帧）、判断声 j1 的真机听感 | 93-c3r-seal（帧对齐部分） | 探针只有事件顺序、没有帧时间；声音 / 触觉本身 B3.Z-f 已补探针与用例（§4.1） | 归真机 QA（DEVICE_QA §13e、§13m） |
 | 跟手返回的速度阈值（甩一下过半即返回、慢拉过半后拉回则取消） | 62-gesture | 合成手势的速度在模拟器上不稳定，容易误报；已有用例只覆盖「拖一半松手取消」（`NativeStageFlowTests.test901`）与「划过去返回」 | 归真机 QA（DEVICE_QA §4）；若要自动化需先有稳定的合成速度手势 |
 
 ### 4.3 纯网页版式门禁（随网页退役）
@@ -193,5 +196,5 @@ W 类 8 个：`50-offline`、`51-fonts`、`54-native-bridge`（引擎模式仍�
 
 ## 6. 无障碍审计（AccessibilityAuditTests）的发现
 
-见 `docs/engineering/v10/B3B4-原生化架构与计划.md` §10.x B3.Z。
+见 `docs/engineering/v10/B3B4-原生化架构与计划.md` §10.x B3.Z；B3.Z-f 已修（致谢网址行有名字）与改按名豁免（查字弹层键盘联想条）见 §10.x B3.Z-f。
 

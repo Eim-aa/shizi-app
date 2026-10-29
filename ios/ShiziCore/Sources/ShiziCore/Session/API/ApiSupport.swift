@@ -17,9 +17,10 @@ public enum PageAPI {
         guard (SessionResources.ui["apiOps"]?.arrayValue ?? []).contains(.string(op)) else {
             return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         }
-        let oldBreaker = ViewLineStarts.provider
+        let oldBreaker = ViewLineStarts.provider, oldMeasurement = ViewMeasurement.provider
+        if let provider = hooks?.measurer { ViewMeasurement.provider = provider }
         if let provider = hooks?.lineBreaker { ViewLineStarts.provider = provider }
-        defer { ViewLineStarts.provider = oldBreaker }
+        defer { ViewLineStarts.provider = oldBreaker; ViewMeasurement.provider = oldMeasurement }
         do {
         if op.hasPrefix("image.") { return try image(op, args, hooks: hooks) }
         if ["view.session-none", "session.pick", "session.libSwitch", "session.wrongList"].contains(op) { return try none(op, args, hooks: hooks) }

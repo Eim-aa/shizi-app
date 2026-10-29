@@ -2,6 +2,9 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.reminderPlatform": { e,a in reminderPlatform(try e.session().store,a) },
+        "session.writeHelper": { _,a in WriteWire.helper(a) },
+        "session.resultPageView": { e,a in try ResultPageView.view(e.session().store,a,now:e.clock,shareAvailable:a["shareAvailable"] == .bool(true)) },
         "session.changeFeed": { e,a in
             let store = try e.session().store!;var messages: [JSValue] = [], replies: [JSValue] = []
             let off = PageAPI.createChangeFeed(store:store) { packet in messages.append(packet);if a["throws"] == .bool(true) { throw CoreError.error("post") } }
@@ -22,6 +25,7 @@ extension CoreEngine {
             hooks.native = a["native"] == .bool(true)
             if a["image"] == .bool(true) { hooks.set("detail.image") { _ in .null } }
             for name in ["s02Body","cardAction"] { if let value = a["layout"] { hooks.queryLayout[name] = { _ in if a["layoutThrows"] == .bool(true) { throw CoreError.error("host-layout") };return value } } }
+            if let value = a["measurer"] { hooks.measurer = { _ in if a["measurerThrows"] == .bool(true) { throw CoreError.error("host-measurer") };return value } }
             if let value = a["breaker"] { hooks.lineBreaker = { _,_ in if a["breakerThrows"] == .bool(true) { throw CoreError.error("host-breaker") };return value } }
             let done = DispatchSemaphore(value:0);var replies: [JSValue] = []
             Task { for request in a["requests"]?.arrayValue ?? [] { replies.append(await PageAPI.callAsync(JS.string(request["op"]),store:store,args:request["args"]?.objectValue ?? JSObject(),hooks:hooks)) };done.signal() };done.wait()

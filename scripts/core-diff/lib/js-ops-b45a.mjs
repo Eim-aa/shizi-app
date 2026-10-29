@@ -8,7 +8,7 @@ import * as strokes from '../../../src/session/ops/strokes.js';
 import * as end from '../../../src/session/ops/end.js';
 import { commitFirstTipSeen } from '../../../src/session/ops/first-tip.js';
 import { createAppApi, createChangeFeed, domainsOf } from '../../../src/session/api/index.js';
-import { sheetStrokes, createWriteSessionApi } from '../../../src/session/write-api.js';
+import { strokesToWire, strokesFromWire, sheetStrokes, createWriteSessionApi } from '../../../src/session/write-api.js';
 import * as result from '../../../src/session/ops/result.js';
 import * as first from '../../../src/session/ops/first-result.js';
 import * as work from '../../../src/session/ops/work.js';
@@ -47,6 +47,27 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.reminderPlatform']=async a=>{
+    setDeckSource(sources ||= deckSources());const s=session();s.notices=[];const messages=[],opens=[],replies=[],syncs=[];let timer;
+    const {createReminder,inviteReminder,inviteChangeTime}=await import('../../../src/platform/reminder.js'),{createBridge}=await import('../../../src/platform/bridge.js'),settings=await import('../../../src/ui/screens/mine/prefs.js');
+    const win={setTimeout:fn=>{timer=fn;return 1;},clearTimeout:()=>{timer=null;},...(a.native?{webkit:{messageHandlers:{shiziNative:{postMessage:msg=>messages.push(msg)}}}}:{})};
+    const bridge=createBridge(win),app=createAppApi({getStore:()=>s.store,now:clock});
+    const c=createReminder({getStore:()=>s.store,bridge,win,now:clock,startPicked:(keys,options)=>{opens.push({keys,options});return {ok:true,opened:'new'};},applyReminderStatus:(store,payload)=>app.call('reminder.status',payload)});
+    bridge.registerNativeHandler('shiziOpenReminderTarget',v=>c.openTarget(v));bridge.registerNativeHandler('shiziReminderStatus',v=>c.receiveStatus(v));settings.setReminderSync(r=>syncs.push(r));
+    try{for(const cmd of a.commands||[])switch(cmd.op){
+      case 'sync':replies.push(c.sync(cmd));break;case 'schedule':c.scheduleSync();break;case 'fire':{const fn=timer;timer=null;fn?.();break;}case 'forget':c.forget();break;case 'query':replies.push(c.queryStatus());break;
+      case 'status':replies.push(c.receiveStatus(cmd.payload));break;case 'target':{const old=console.warn;console.warn=()=>{};try{replies.push(c.openTarget(cmd.value));}finally{console.warn=old;}break;}
+      case 'queueTarget':win.shiziOpenReminderTarget(cmd.value);break;case 'queueStatus':win.shiziReminderStatus(cmd.payload);break;case 'ready':bridge.markReady(s.store);break;
+      case 'invite':replies.push(await inviteReminder(s.store,cmd));break;case 'time':replies.push(await inviteChangeTime(s.store,cmd));break;
+    }return {replies,messages,opens,sent:c.sent(),syncs};}finally{settings.setReminderSync(null);}
+  };
+  out['session.writeHelper']=async a=>{try{session().notices=[];}catch{}if(a.name==='enabled'){const {nativeWriteEnabled}=await import('../../../src/ui/screens/write/native-session.js');return nativeWriteEnabled(a.win);}return {toWire:strokesToWire(a.raw||[]),fromWire:strokesFromWire(a.wire)};};
+  out['session.resultPageView']=async a=>{
+    setDeckSource(sources ||= deckSources());const s=session();s.notices=[];
+    const {resultView}=await import('../../../src/ui/screens/result/native-view.js'),r=await import('../../../src/ui/screens/result/index.js');
+    r.setResultImageAction(a.shareAvailable?()=>{}:null);
+    const saved=Date.now,old=globalThis.performance;Date.now=clock;globalThis.performance={now:clock};try{return resultView(s.store,a);}finally{Date.now=saved;globalThis.performance=old;r.setResultImageAction(null);}
+  };
   out['session.changeFeed']=a=>{
     const s=session();s.notices=[];const messages=[],replies=[];
     const off=createChangeFeed({store:s.store,post:packet=>{messages.push(packet);if(a.throws)throw Error('post');}});
@@ -54,6 +75,7 @@ export function makeB45SessionOps({session,clock}) {
   };
   out['session.environment']=async a=>{
     const ety=await import('../../../src/data/etymology.js'),detail=await import('../../../src/session/api/detail.js'),q=await import('../../../src/session/api/query.js'),lines=await import('../../../src/core/line-starts.js');
+    const {setLineMeasurer}=await import('../../../src/session/views/lines.js');setLineMeasurer(a.measurer===undefined?null:()=>{if(a.measurerThrows)throw Error('host-measurer');return a.measurer;});
     const oldFetch=globalThis.fetch,oldDetail={...detail.detailHooks()},savedNow=Date.now;Date.now=clock;let loads=0;ety.setEtymology(null);
     globalThis.fetch=async()=>{const value=a.loads?.[loads++];if(value==='throw')throw Error('fetch');return {ok:true,json:async()=>value};};
     detail.setDetailHooks({image:a.image?()=>{}:null});
@@ -61,7 +83,7 @@ export function makeB45SessionOps({session,clock}) {
     lines.setLineBreaker(a.breaker===undefined?null:()=>{if(a.breakerThrows)throw Error('host-breaker');return a.breaker;});
     const s=session();s.notices=[];const app=createAppApi({getStore:()=>s.store,now:clock,native:a.native,build:a.build===undefined?undefined:()=>{if(a.buildThrows)throw Error('host-build');return a.build;}}),replies=[];
     try{for(const r of a.requests||[])replies.push(await app.call(r.op,r.args||{}));return {replies,loads};}
-    finally{Date.now=savedNow;ety.setEtymology(null);globalThis.fetch=oldFetch;detail.setDetailHooks(oldDetail);q.setQueryLayout(null);lines.setLineBreaker(null);}
+    finally{Date.now=savedNow;ety.setEtymology(null);globalThis.fetch=oldFetch;detail.setDetailHooks(oldDetail);q.setQueryLayout(null);lines.setLineBreaker(null);setLineMeasurer(null);}
   };
   out['session.queryHost']=async a=>{
     const q=await import('../../../src/session/api/query.js'),oldQ=q.queryActionsRef(),oldS=q.s02ActionsRef(),callbacks=a.callbacks||{},calls=[];

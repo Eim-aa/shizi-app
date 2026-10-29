@@ -16,9 +16,9 @@ public enum WriteAPI {
         let ui = try SessionResources.ui; var out = JSObject([("ok", .bool(true))])
         let keys = (ui["writeKeys"]?.arrayValue ?? []) + (result ? ui["resultKeys"]?.arrayValue ?? [] : [])
         out["copy"] = bundle(keys); out["colors"] = try d?.colors?() ?? .object(JSObject()); out["type"] = try d?.type?() ?? .object(JSObject())
-        if let theme = try d?.theme?(), theme == .string("light") || theme == .string("dark") { out["theme"] = theme }
         for key in ["timing", "motion", "layout", "trace", "skipUndo", "ink"] { out[key] = ui[key] }
         if result { out["layout"] = nil; out["trace"] = nil; out["motion"] = SessionWrites.patch(out["motion"], [("result", ui["resultMotion"]!)]) }
+        if let theme = try d?.theme?(), theme == .string("light") || theme == .string("dark") { out["theme"] = theme }
         return out
     }
     static func bundle(_ keys: [JSValue]) -> JSValue { var o = JSObject(); for k in keys { if let v = try? Copy.t(JS.string(k)) { o[JS.string(k)] = v } }; return .object(o) }

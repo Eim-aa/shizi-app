@@ -18,13 +18,13 @@ try {
   const state=Object.fromEntries(DOMAINS.map(d=>[d,['records','ink'].includes(d)?{}:null])); state.sessions={A:null,B:null,lastEnded:{},[slot]:s};
   await call('store.seed',{state});
   const a={slot,sessionId:s.id};
-  await call('session.resultModel',a);
+  await call('session.resultModel',a);await call('session.resultPageView',{...a,width:402,ax:early});
   await call('session.judge',{slot,cardKey:'base:人',judgment:'wrong',strokes:[[{x:42,y:50,t:0},{x:90,y:130,t:17}]]});
   const skipped=await call('session.skip',{slot,cardKey:'base:口'});
-  await call('session.resultModel',a);
+  await call('session.resultModel',a);await call('session.resultPageView',{...a,width:402,ax:early});
   if(early)await call('session.end',a);
   else await call('session.judge',{slot,cardKey:'base:水',judgment:'correct',strokes:[]});
-  await call('write.result',a);await call('session.resultModel',a);
+  await call('write.result',a);await call('session.resultModel',a);await call('session.resultPageView',{...a,width:402,ax:early});
   for(const name of ['view','seal','leave','redo','detail','share'])for(const reply of [false,true,null])for(const throws of [false,true]) {
    const op=name==='view'?'result':name==='seal'?'resultSealed':'resultExit';
    await call('session.writeHost',{op,args:{...a,to:name,char:'人',width:402},hooks:{[name]:{reply,throws}}});
@@ -34,10 +34,12 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ for(const native of [false,true])await call('session.reminderPlatform',{native,commands:[{op:'sync'},{op:'invite',hour:9,minute:30},{op:'sync'},{op:'sync'},{op:'sync',force:true},{op:'schedule'},{op:'schedule'},{op:'time',hour:21,minute:15},{op:'fire'},{op:'forget'},{op:'sync'},{op:'query'},{op:'queueTarget',value:'base:口'},{op:'queueStatus',payload:{permission:'denied'}},{op:'queueTarget',value:'base:人'},{op:'ready'},{op:'ready'},{op:'target',value:'base:学习'}]});
  for(const throws of [false,true])await call('session.changeFeed',{throws,commands:[{settings:{appearance:'dark'},label:'first'},{settings:{appearance:'dark'},label:'noop'},{settings:{appearance:'light'},label:'fail',fail:true},{settings:{appearance:'light'},label:'retry'},{status:true},{off:true},{settings:{appearance:'auto'},label:'unsubscribed'}]});
  for(const loads of [[[ {char:'人',gloss:'origin',source:'book'}, {char:'人',gloss:'last'}, {char:'口',gloss:'',source:1},null ]],['throw',[{char:'人',gloss:'retry'}]],[null,[]]])for(const image of [false,true])await call('session.environment',{loads,image,requests:[{op:'view.detail',args:{char:'人',etymology:{gloss:'ignored'}}},{op:'view.detail',args:{char:'人'}}]});
  for(const build of [{version:'1.2',build:'20261029-abcd'},{},null,'bad'])for(const native of [false,true])await call('session.environment',{build,native,requests:[{op:'view.about',args:{build:{version:'ignored'}}},{op:'view.about-privacy',args:{native:!native}}]});
  for(const layout of [[],[1,3],[0,1.5,'2'],null,'bad'])for(const layoutThrows of [false,true])await call('session.environment',{layout,layoutThrows,requests:[{op:'view.query',args:{cur:'人',text:'人'}},{op:'view.s02',args:{chars:['人','口']}}]});
+ for(const measurer of [[],[1,3],'bad'])for(const measurerThrows of [false,true])await call('session.environment',{measurer,measurerThrows,requests:[{op:'view.session-none',args:{exhausted:true}},{op:'view.block',args:{kind:'migration',still:true}}]});
  for(const breaker of [[],[1,3],null,'bad'])for(const breakerThrows of [false,true])await call('session.environment',{breaker,breakerThrows,requests:[{op:'view.annual',args:{}},{op:'view.records',args:{}}]});
  for(const async of [false,true])for(const close of [false,true])for(const withClose of [false,true])for(const outcome of ['ok','false','null','throw'])for(const op of ['query.pick','query.detail','s02.decide']){
   const c={async,close,reply:outcome==='false'?{ok:false}:outcome==='null'?null:{ok:true,token:1},throws:outcome==='throw'};
@@ -70,6 +72,7 @@ try {
  await call('session.judge',{slot:'A',cardKey:'base:人',judgment:'correct',strokes:imageInk});
  const imageWrong=await call('session.judge',{slot:'A',cardKey:'base:口',judgment:'wrong',strokes:imageInk});await call('session.end',{slot:'A',sessionId:'s1'});
  await call('session.imageRegistered',{op:'add',args:{scope:{kind:'session',slot:'A',sessionId:'s1'},recordId:imageWrong.record.id}});
+ await call('session.resultPageView',{slot:'A',sessionId:'s1',width:402,shareAvailable:true});
  const palette=Object.fromEntries(['paper','sheet','line','frame','guide','ink1','ink2','ink3','hand','ref','under','zhu','seal','onSeal'].map(k=>[k,'#123456']));palette.textures=[];palette.tiles=[240];
  for(const scope of [{kind:'session',slot:'A',sessionId:'s1'},{kind:'day',day:'2026-10-02'},{kind:'month',month:'2026-10'},{kind:'glyph',char:'人'},{kind:'annual',year:2026}])for(const ratio of ['3:4','1:1']){
   await call('session.imageRegistered',{op:'view',args:{scope,ratio}});
@@ -133,5 +136,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–10, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–11, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

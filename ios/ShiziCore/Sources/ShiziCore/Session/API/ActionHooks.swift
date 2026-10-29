@@ -13,6 +13,7 @@ public final class SessionActionHooks {
     public var build: (() throws -> JSValue)?
     public var native = false
     public var queryLayout: [String: (String) throws -> JSValue] = [:]
+    public var measurer: ((JSValue) throws -> JSValue)?
     public var lineBreaker: ((String, String) throws -> JSValue)?
     public var queryMode = "lookup"
     public var queryClose: (() throws -> Void)?

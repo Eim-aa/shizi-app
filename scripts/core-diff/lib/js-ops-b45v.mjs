@@ -1,3 +1,4 @@
+import * as library from '../../../src/session/views/library.js';
 
 import { sheetStrokes } from '../../../src/session/write-api.js';
 import * as minePage from '../../../src/session/views/mine-page.js';
@@ -54,6 +55,12 @@ export function makeB45ViewOps({ required, clock }) {
     'view.mine-model': a => mine.mineModel(a.state,a.today,{policy:p(a),storagePressure:a.storagePressure}),
     'view.records-model': a => mine.recordsModel(a.state,a.today,{...a,policy:p(a)}),
     'view.mine-model.helpers': a => {const i=mine.recordIndex(a.state),sheet=mine.monthSheet(i,a.month,{policy:p(a)}); return {index:{...i,days:[...i.days]},works:mine.workRecordsOf(i,{added:a.added}),has:mine.hasRecords(i),first:mine.firstRecordMonth(i),weekday:mine.weekdayIndex(a.day),calendar:mine.calendarModel(i,a.month,a.today),days:mine.recordDaysInMonth(i,a.month),sheet,preview:mine.sheetPreview(sheet,{cols:a.cols,rows:a.rows}),items:mine.dayItems(i,a.day),backup:mine.lastBackupDay(a.state.backupMeta),practice:[...mine.practiceDaySet(a.state,i)],streak:mine.streakDays(a.days,a.today),overview:mine.overviewModel(a.state,a.today,i),pressure:mine.storagePressureNear(a.storagePressure),hint:mine.backupHint(a.state,a.today,i,{storagePressure:a.storagePressure}),clamp:mine.clampMonth(a.wantedMonth,i,a.today)};},
+    'view.library': a => library.libraryPageView(a.state,a.now,{...a,deck:deck({...a,deck:a.deck||'real'}),getInk:ink(a),policy:p(a)}),
+    'view.library.model': a => library.libraryHomeModel(a.state,a.today,{...a,policy:p(a)}),
+    'view.library.zones': a => library.memoryZones(a.state,a.today,a),
+    'view.library.skipped': a => library.skippedZone(a.state),
+    'view.library.plan': a => library.todayPlanModel(a.state,a.now,{deck:deck({...a,deck:a.deck||'real'}),policy:p(a)}),
+    'view.library.helpers': a => {const rs=library.recordsOfState(a.state),z=library.memoryZones(a.state,a.today).zones[a.zone];return {records:rs,latest:[...library.latestJudgedByChar(rs.records)],tone:library.toneOf(a.day,a.today,a.toneDays),columns:library.wallColumns(0,a.compact,a.width),custom:library.customCharsOf(a.state.custom),first:library.firstRecordDay(rs.records,rs.foldedDays),mini:library.cardMini(z.items,'x'),successes:library.successesOf(a.entry),zone:library.memoryZoneOf(a.record,a.entry,a.today,a.knownDays,a.minSuccesses),samples:library.zoneSamples(z),name:library.libraryNameRef(a.library),refs:library.todayRefs(a.plan),strokes:library.sampleStrokes(a.record,ink(a),p(a))};},
     'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
     'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),

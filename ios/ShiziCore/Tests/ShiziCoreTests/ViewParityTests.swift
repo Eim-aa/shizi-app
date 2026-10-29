@@ -102,6 +102,19 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(model["empty"], .bool(true)); XCTAssertEqual(model["overview"]?["total"], .number(1))
     }
 
+    // test/ui/library.test.mjs — empty / big number / facts; test/ui/library-zones.test.mjs — exclusive zones, sum = recorded.
+    func testLibraryFactsAndZonePartition() throws {
+        let records = [srec(1,cYong),srec(2,cRen,judgment:"wrong"),srec(3,cKou,kind:"answer-seen"),srec(4,cDa,kind:"skipped")]
+        let state = ViewSupport.obj([("records",ViewSupport.obj([("2026-09",.array(records))]))])
+        let zones = try ViewSupport.memoryZones(state,today:"2026-09-24",dates:dates)
+        XCTAssertEqual(zones["recorded"],.number(3))
+        XCTAssertEqual(["due","shaky","known"].reduce(0.0){$0+JS.number(zones["zones"]?[$1]?["n"])},3)
+        let m = try LibraryView.libraryHomeModel(state,today:"2026-09-24",policy:Config.policy,compact:false,width:.number(402),dates:dates)
+        XCTAssertEqual(m["recorded"],.number(3)); XCTAssertEqual(m["empty"],.bool(false))
+        XCTAssertEqual(ViewSupport.skippedZone(state)["n"],.number(1))
+        XCTAssertEqual(LibraryView.todayRefs(try value(#"{"phase":"fresh","n":0,"review":0,"fresh":0}"#))["sub"],.null)
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

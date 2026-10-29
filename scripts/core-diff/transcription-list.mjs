@@ -20,6 +20,26 @@ const N = '不转';
 
 // 文件 → [归类, 卡, 说明]。说明写给转写的人。
 const FILES = {
+  'test/ui/query.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/annual.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/library-list.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/home.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/h2-home-e.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/library-all.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/detail.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/h1-detail-hero.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/paper-detail.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/mine.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/native-mine-sub.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/native-mine.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/library-zones.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/library.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/native-home.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/native-query.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/native-library-sub.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/native-library.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+  'test/ui/native-detail.test.mjs': [D, 'B4.5b', 'ViewParityTests / ViewRuleTests + views-pages 金标准与 200 seeds 全 op 差分；组件 / 平台动作留 node'],
+
   'test/ui/about.test.mjs': [N, '—', '网页组件 / 资料生成器；纯视图规则见逐条 B4.5b'],
   'test/ui/prefs.test.mjs': [N, '—', '网页设置组件与平台同步；纯视图规则见逐条 B4.5b'],
   'test/ui/library-switch.test.mjs': [N, '—', '网页换库动作与组件；纯视图规则见逐条 B4.5b'],
@@ -87,6 +107,53 @@ const FILES = {
 
 // 逐条覆盖（文件内个别用例归类不同）：[文件, 名字正则, 归类, 卡, 说明]
 const OVERRIDES = [
+  ['test/ui/query.test.mjs', /^sheetModel\ pick:\ typing\ selects\ nothing;\ selection\ filtered\ by\ input\ and\ practicability;\ bar\ label\ by\ count/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/query.test.mjs', /^sheetModel\ lookup:\ no\ selection,\ no\ bar;\ rows\ carry\ summaries\ from\ records\ \/\ custom/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/query.test.mjs', /^sheetModel:\ pinyin\ with\ no\ match\ →\ one\ note;\ digits\ \/\ symbols\ stay「只能输入汉字」;\ Han\ input\ unaffected/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/annual.test.mjs', /^empty:\ no\ records\ \/\ only\ answer\-seen\ or\ skipped\ \/\ only\ last\ year\ \/\ only\ paper\ →\ empty;\ null\ state\ safe/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/annual.test.mjs', /^the\ year\ count:\ distinct\ work\ chars\ this\ year\ \(right\ ones;\ a\ wrong\-only\ char\ does\ not\ count,\ D51\ ⑤\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/annual.test.mjs', /^months:\ one\ section\ per\ month\ that\ has\ chars,\ ascending;\ the\ count\ is\ the\ month\ sheet\ size\ \(chars\ with\ no\ ink\ included\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/annual.test.mjs', /^D66\ ⑪\ a\ single\ year\ of\ records\ has\ no\ previous\ \/\ next\ year\ \(nothing\ to\ switch\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-list.test.mjs', /^R\-E01\ \/\ D23:\ only\ the\ latest\ judged\ record\ decides;\ answer\-seen\ \/\ skipped\ after\ a\ wrong\ keep\ it\ in\ 写错过/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-list.test.mjs', /^B4\ \(G38,\ D36\):\ 写错过\ with\ 8\ rows\ →\ default\ selects\ only\ the\ 5\ most\ recently\ wrong/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-list.test.mjs', /^D66\ ⑬:\ the\ default\ selection\ follows\ 每组字数/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-list.test.mjs', /^rows\ that\ cannot\ be\ practised\ \(custom:\ \/\ not\ in\ deck\)\ show\ but\ are\ not\ selectable\ and\ never\ go\ into\ the\ group/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-list.test.mjs', /^groupFromHereActive:\ an\ unfinished\ B\ whose\ source\ is\ this\ list/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/home.test.mjs', /^records\ dimension:\ first\ \/\ empty\ \/\ record\ \(K06:\ cleared\ →\ empty,\ not\ first\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/home.test.mjs', /^homeViewOf:\ first\ \/\ fresh\ \/\ today\ \/\ progress\ \/\ special\ \/\ back,\ with\ this\ priority\ \(03\ P155\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/home.test.mjs', /^D40\ \(P129\):\ the\ home\ model\ says\ which\ special\ group\ is\ next\ —\ only\ with\ a\ deck,\ no\ unfinished\ group,\ and\ the\ conditions\ met/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/h2-home-e.test.mjs', /^the\ two\ extra\ lines:\ back\ =\ 「你写过的\ N\ 个字都还在。」\ with\ the\ real\ N,\ special\ =\ the\ special\-group\ sentence;\ nothing\ else\ has\ one/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-all.test.mjs', /^counts\ match\ the\ library\ home\ \(recorded,\ custom\ unwritten\);\ D66\ ⑤:\ answer\-seen\ chars\ count,\ skipped\-only\ do\ not/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-all.test.mjs', /^recent\ \(default\):\ hollow\ first,\ months\ new\ →\ old,\ two\ open\ by\ default,\ rest\ closed;\ fold\ overrides;\ cross\-year\ label/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-all.test.mjs', /^filters:\ due\ \/\ shaky\ \/\ known\ \/\ unw\ \/\ custom;\ sort\ collapses;\ 0\-count\ chips\ disabled\ unless\ active;\ practice\ go/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/detail.test.mjs', /^detailModel:\ judged\ records\ only\ \(answer\-seen\ \/\ skipped\ excluded\),\ oldest\ first;\ first\ \/\ latest;\ due\ only\ with\ judged\ \(P12\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/paper-detail.test.mjs', /^P169:\ detailModel——纸上记录计入次数与写错过，但不进笔迹格/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/detail.test.mjs', /^detailModel:\ custom\ \(index\ \/\ entry\),\ wordOff\ \(label\ 释义\ \+\ prompt\ hint,\ no\ swap\),\ photo\ not\ counted\ as\ a\ record\ \(P10b\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^empty:\ no\ judged\ record\ \(answer\-seen\ \/\ skipped\ only\)\ →\ empty;\ overview\ all\ 0;\ no\ sheet/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^weekdayIndex:\ Monday\ first;\ week\ wraps\ across\ months/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^overview\ \(D63\):\ streak\ counts\ back\ from\ today,\ or\ from\ yesterday\ when\ today\ is\ not\ written\ yet;\ legacy\.days\ counted/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^month\ sheet:\ first\-appearance\ order,\ date\ tags\ on\ day\ change,\ P02\ pick\ first\ vs\ last/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^record\ days:\ judged\ \+\ folded\ byDay;\ answer\-seen\ \/\ skipped\ \/\ legacy\.days\ excluded/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^calendar:\ Monday\-first\ blanks,\ 7\-multiple,\ today\ \/\ future\ \/\ has\ flags/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^sheet\ preview:\ ≤\ 3\ rows\ untouched;\ more\ →\ last\ 3\ rows\ of\ the\ 7\-column\ layout,\ first\ cell\ re\-tagged/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^day\ items:\ same\ char\ keeps\ its\ latest\ record,\ ordered\ by\ latest\ \(home\ ink\ row\ rule\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^records\ model:\ clamp\ month,\ prev\ \/\ next\ ends,\ selection\ only\ on\ record\ days\ of\ that\ month,\ today\ row\ only\ this\ month/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^D66\ ⑱\ backup\ hint:\ >=\ 30\ days\ since\ last\ backup\ \(or\ since\ first\ record\ when\ never\ backed\ up\),\ only\ with\ records\ and\ changes/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^D66\ ⑱\ storage\ pressure:\ shown\ only\ when\ readable\ and\ near\ the\ limit;\ wins\ over\ the\ 30\-day\ hint/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library.test.mjs', /^tone\ buckets\ follow\ policy\.inkToneDays\ \(P56\)\ —\ boundaries\ inclusive/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library.test.mjs', /^columns\ \(8,\ Pro\ Max\ 9,\ large\ text\ ≤\ 6,\ every\ cell\ ≥\ 44pt;\ independent\ of\ members\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library.test.mjs', /^helpers:\ customCharsOf\ dedups\ and\ drops\ non\-single\ chars;\ latestJudgedByChar\ uses\ id\ order/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-zones.test.mjs', /^memoryZoneOf\ \(D66\ ⑰\):\ 已熟悉\ also\ needs\ ≥\ 3\ successes\ \(reps\ −\ lapses\)/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-zones.test.mjs', /^skippedZone\ \(D62\):\ skipped\ and\ still\ no\ judged\ record;\ not\ counted\ in\ recorded;\ newest\ skip\ first/, T, 'B4.5b', 'ViewRuleTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/annual.test.mjs', /^empty\ year\ and\ folded\ work\ members\ retain\ their\ year/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-list.test.mjs', /^selection\ normalization,\ word\ parts\ and\ real\ disabled\ zero\ state/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library-all.test.mjs', /^old\ filters\ map\ to\ due;\ search\ mode\ and\ batching/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/detail.test.mjs', /^hero\ uses\ first\ \/\ latest\ screen\ judgments;\ old\ photos\ remain\ read\-only/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/native-mine-sub.test.mjs', /^B3\.9\ the\ sheet\ geometry\ is\ the\ web\ sheetGrid\ rule/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/native-mine.test.mjs', /^small\ sheets\ sign;\ AX\ limits\ columns;\ trim\ re\-tags\ the\ first\ cell/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/mine.test.mjs', /^weekdayIndex:\ Monday\ first;\ week\ wraps\ across\ months/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+  ['test/ui/library.test.mjs', /^empty\ \/\ big\ number\ \/\ facts;\ test\/ui\/library\-zones\.test\.mjs\ —\ exclusive\ zones,\ sum\ =\ recorded/, T, 'B4.5b', 'ViewParityTests：原名 / 原路径见 Swift 注释，转写纯规则断言'],
+
   ['test/ui/about.test.mjs', /^(B7 |C1 \/ P197:|sub-pages:)/, T, 'B4.5b', 'ViewParityTests：模型规则断言（DOM 断言留 node）'],
   ['test/ui/prefs.test.mjs', /^(settingsView:|time helpers$|commitSettings:|commitSettings on an empty|remind: enabling|RemindBody \(E3\))/, T, 'B4.5b', 'ViewParityTests：视图 / Store 提交规则（平台同步与 DOM 留 node）'],
   ['test/ui/library-switch.test.mjs', /^(libraryRows:|judgedChars:|real deck:)/, T, 'B4.5b', 'ViewParityTests'],
@@ -100,7 +167,7 @@ const OVERRIDES = [
 ];
 
 const SCOPE = ['test/core', 'test/store', 'test/session', 'test/platform'].flatMap((d) =>
-  fs.readdirSync(path.join(ROOT, d)).filter((f) => f.endsWith('.test.mjs')).map((f) => `${d}/${f}`)).concat(['test/ui/native-ink.test.mjs', 'test/ui/native-write.test.mjs', 'test/ui/about.test.mjs', 'test/ui/prefs.test.mjs', 'test/ui/library-switch.test.mjs', 'test/ui/work-text.test.mjs', 'test/ui/native-block.test.mjs']).sort();
+  fs.readdirSync(path.join(ROOT, d)).filter((f) => f.endsWith('.test.mjs')).map((f) => `${d}/${f}`)).concat(["test/ui/query.test.mjs", "test/ui/annual.test.mjs", "test/ui/library-list.test.mjs", "test/ui/home.test.mjs", "test/ui/h2-home-e.test.mjs", "test/ui/library-all.test.mjs", "test/ui/detail.test.mjs", "test/ui/h1-detail-hero.test.mjs", "test/ui/paper-detail.test.mjs", "test/ui/mine.test.mjs", "test/ui/native-mine-sub.test.mjs", "test/ui/native-mine.test.mjs", "test/ui/library-zones.test.mjs", "test/ui/library.test.mjs", "test/ui/native-home.test.mjs", "test/ui/native-query.test.mjs", "test/ui/native-library-sub.test.mjs", "test/ui/native-library.test.mjs", "test/ui/native-detail.test.mjs"]).concat(['test/ui/native-ink.test.mjs', 'test/ui/native-write.test.mjs', 'test/ui/about.test.mjs', 'test/ui/prefs.test.mjs', 'test/ui/library-switch.test.mjs', 'test/ui/work-text.test.mjs', 'test/ui/native-block.test.mjs']).sort();
 
 function collect() {
   const r = spawnSync(process.execPath, ['--test', `--test-reporter=${REPORTER}`, ...SCOPE], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 << 20, env: { ...process.env, TZ: process.env.TZ || 'Asia/Shanghai' } });

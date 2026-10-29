@@ -9,11 +9,13 @@ let package = Package(
     products: [
         .library(name: "ShiziCore", targets: ["ShiziCore"]),
         .library(name: "ShiziImageRendering", targets: ["ShiziImageRendering"]),
+        .library(name: "ShiziStrokePack", targets: ["ShiziStrokePack"]),
         .executable(name: "shizi-image-cli", targets: ["shizi-image-cli"]),
         .executable(name: "shizi-core-cli", targets: ["shizi-core-cli"]),
     ],
     targets: [
         .target(name: "ShiziImageRendering", dependencies: ["ShiziCore"], resources: [.copy("Bundled")]),
+        .target(name: "ShiziStrokePack", path: "Sources/ShiziStrokePack"),
         .executableTarget(name: "shizi-image-cli", dependencies: ["ShiziImageRendering"]),
         // 调试构建也开 -O：容量实测类的转写测试（300 个真字 × 多份编码）在 -Onone 下要几分钟，-O 下几秒；断言与 @testable 不受影响。
         .target(name: "ShiziCore", path: "Sources/ShiziCore", resources: [.copy("Bundled"), .copy("Session/SessionBundled")], swiftSettings: [.unsafeFlags(["-O"], .when(configuration: .debug))]),
@@ -24,6 +26,11 @@ let package = Package(
             path: "Tests/ShiziCoreTests",
             resources: [.copy("Fixtures")],
             swiftSettings: [.unsafeFlags(["-O"], .when(configuration: .debug))]
+        ),
+        .testTarget(
+            name: "ShiziStrokePackTests",
+            dependencies: ["ShiziStrokePack"],
+            path: "Tests/ShiziStrokePackTests"
         ),
     ]
 )

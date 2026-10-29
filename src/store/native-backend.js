@@ -67,6 +67,15 @@ export class NativeBackend {
     this._apply(entries);
   }
 
+  /** B4.5c：别的写入者（原生 SwiftEngine）直接改了库之后，按库里现在的全部行重建镜像。失败抛错、镜像不变。 */
+  reloadRows() {
+    const res = this._transport.callSync('load', {});
+    const mem = new Map();
+    for (const [key, raw] of (res && Array.isArray(res.rows) ? res.rows : [])) mem.set(String(key), String(raw));
+    this._mem = mem;
+    this._keys = null;
+  }
+
   /** 往原生库的诊断记一条（store 迁移 ink schema 2 失败时用；只供排查，不等结果、失败不抛）。 */
   diag(entry) {
     try {

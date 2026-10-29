@@ -13,6 +13,8 @@
 //   getStatus()                     store.status（available/blocked/corruptNotice/usage/lastRepair/backend——B1：kind 'native'|'localStorage' 与迁移信息）
 //   failNextWrite(n, {kind:'quota'|'generic'|'security', matchKey?})  接下来 n 次匹配的 setItem 抛错
 //   interruptAfterWrite(k)          第 k 次写后模拟进程中断（之后写全部失败且不回滚；刷新页面后 repair）
+//   getFaults()                     现在挂着的注入 {fail:[{remaining, kind, matchKey}], interruptAfter, halted, overridden}（B4.7 影子比对读；
+//                                   overridden = 夹具脚本把探测 / blocked 换掉了）
 //   setClock(iso|null)              平移应用时钟（platform/env.js now()）
 //   reset()                         清故障、复原时钟、删除全部 shizi.* 键（保留 shizi.nativeSmoke.v1）、重载 store、清写日志
 //   getWriteLog()                   本页面对 localStorage 的每次写：{seq, op, key, bytes, via:'storage'|'direct', ok}
@@ -110,6 +112,9 @@ function installWriteLog(backend, sink, routeSink = []) {
 }
 
 function createTestApi({ storage, getStore }) {
+  // B4.7 影子比对：夹具脚本会把 storage 的探测 / blocked 换成假的（States/_ops/blockMode.js）——getFaults 报出来，影子那组不比
+  const originalProbe = storage ? storage.probe : null;
+  const blockedDesc = storage ? Object.getOwnPropertyDescriptor(storage, 'blocked') : null;
   const log = [];
   const routeLog = [];
   let backend = null;
@@ -144,6 +149,13 @@ function createTestApi({ storage, getStore }) {
     failNextWrite(n = 1, options = {}) {
       storage.failNextWrite(n, options || {});
       return true;
+    },
+    /** 现在挂着的写入注入 {fail:[{remaining, kind, matchKey}], interruptAfter, halted}（B4.7 影子比对读）。 */
+    getFaults() {
+      const f = plain(storage.faults);
+      const d = Object.getOwnPropertyDescriptor(storage, 'blocked');
+      f.overridden = storage.probe !== originalProbe || !!(d && blockedDesc && d.get !== blockedDesc.get);
+      return f;
     },
     interruptAfterWrite(k) {
       storage.interruptAfterWrite(k);

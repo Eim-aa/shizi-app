@@ -60,6 +60,8 @@ export async function sources() {
   const deckMeta = await imp('src/config/deck-meta.js');
   const { CN_NUMERALS } = await imp('src/core/dates.js');
   const { COPY } = await imp('src/config/copy/index.js');
+  const { brandGlyphPath } = await imp('src/session/views/home.js');
+  const { sealGlyphPath } = await imp('src/core/images/shi-paths.js');
   const { FSRS_CONFIG } = await imp('src/core/fsrs.js');
   const verifyCopy = await imp('scripts/verify_copy.mjs');
 
@@ -77,6 +79,8 @@ export async function sources() {
     'deck-meta': dataExports(deckMeta),
     signature: CN_NUMERALS,
     copy: COPY,
+    'view-seal': sealGlyphPath(),
+    'view-brand': brandGlyphPath(),
     'fsrs-config': { ...FSRS_CONFIG },
     'deck-libraries': await deckLibraries(),
   };

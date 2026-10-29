@@ -36,7 +36,7 @@ test('Swift CoreEngine op table = JS reference op table', () => {
   const dir = path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Engine');
   const swiftOps = [];
   for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.swift')).sort()) {
-    swiftOps.push(...[...fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^\s{8}"([a-zA-Z0-9.]+)": \{/gm)].map((m) => m[1]));
+    swiftOps.push(...[...fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^\s{8}"([a-zA-Z0-9.-]+)": \{/gm)].map((m) => m[1]));
   }
   assert.deepEqual(swiftOps.sort(), createJsEngine().ops());
 });

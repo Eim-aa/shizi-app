@@ -105,6 +105,7 @@ public enum WriteAPI {
             if a["to"] == .string("detail") { return SessionWrites.failure("invalid") }
             throw CoreError.error(a["to"] == .string("result") ? "write session api: navigate.toResult not provided" : "write session api: navigate.back not provided")
         case "resultLook": return .object(try look(true))
+        case "result", "resultCell", "resultCorrect", "resultAdd", "resultSealed", "resultUndoSkip", "resultAgain", "resultExit", "resultInvite": return try ResultAPI.call(op, store, a)
         default: return SessionWrites.failure("unknown-op")
         }
     }

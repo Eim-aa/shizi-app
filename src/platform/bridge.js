@@ -130,7 +130,9 @@ export function createBridge(win) {
       const channel = nativeChannel(win);
       if (!channel) return false;
       try {
-        channel.postMessage(Object.assign({}, payload || {}, { type }));
+        // B4.7：iOS DEBUG 影子比对的 op 同步部分里发的消息带上 op 编号（changed / sound 按 op 归属）；平时没有这个全局
+        const shadowOp = win && win.__shiziShadowOp ? { shadowOp: String(win.__shiziShadowOp) } : null;
+        channel.postMessage(Object.assign({}, payload || {}, shadowOp, { type }));
         return true;
       } catch (error) {
         return false;

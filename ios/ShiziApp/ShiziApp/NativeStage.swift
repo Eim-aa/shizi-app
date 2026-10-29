@@ -904,6 +904,9 @@ final class NativeStage: NSObject {
     // MARK: 页面重载
 
     func pageWillReload() {
+        #if DEBUG
+        ShadowEngine.shared?.pageReloaded()
+        #endif
         engine.pageWillReload()
     }
 

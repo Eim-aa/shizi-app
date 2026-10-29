@@ -17,15 +17,15 @@ import WebKit
 // 一条比对规则（不按页面开例外）：
 //   · 回包：两边的值逐路径相等（对象不看键序，数字按 Double 相等，缺省 ≠ null）；
 //   · 后态：每个比对 op 自己写的 store 域键（Schema.specForKey 有 domain 的键）逐键相等（值按 JSON 解析后比）；路由提示等非域键不比；
-//   · changed：store 提交的推送里，Swift change feed 推的序列是页面推的子序列，多出来的条数 = 交给 JS 的调用的提交次数
+//   · changed：页面在比对 op 的同步部分里推的 store 提交推送（带 shadowOp，见 bridge.js）== Swift change feed 推的，按顺序
 //     （界面状态的推送 'ui'——离开撤销条变了——跟着宿主的界面状态走，见 host-unregistered）；
-//   · 声音：组内页面发的 sound 序列 == Swift 发的（判断声 j1 轮换、落款 s1；轮换计数每组开始时对齐到页面放过的判断声总数）。
+//   · 声音：组内 op 发的 sound 序列 == Swift 发的（判断声 j1 轮换、落款 s1；轮换计数对齐到这组第一个声音之前页面放过的判断声总数）。
 // 只忽略这几类有记录的字段（不是规则，是宿主 / 时钟给的值）：
 //   1. 写字会话回包根上的 ms（性能采样，write.*.ms）；
 //   2. remainingMs（离开撤销 / 跳过撤销的剩余时间 = 截止时刻 − 界面单调时钟 performance.now，两边时钟不同）：两边都是数字即可；
 //   3. 排版量测的结果（折行点 / 段落量测 / 查字与 S02 折行 / 结果页 / 我的页 / 备份与提醒页 / 图片预览的折行点：网页 DOM 量、原生按自己的字体量，
 //      见 SwiftEngine.swift NativeLineMeasure）：Swift 一侧给标记 [1, 1]（ShadowMeasure），网页一侧是 null 或整数数组即可；
-//   4. 渲染器给的值——写字页的令牌包 colors / type / theme（网页 CSS 计算值）、图片选字条的缩略图 thumb（网页 canvas 画的位图）、
+//   4. 渲染器给的值——写字页的令牌包 colors / type / theme（网页 CSS 计算值；theme 只认 light / dark，Swift 宿主给页面那次的值）、图片选字条的缩略图 thumb（网页 canvas 画的位图）、
 //      全部字 / 清单的版式量测 metrics（网页 DOM 量）：Swift 一侧给标记 {"$host": 名}，网页一侧不比。
 // 不比、记 skipped（前态从库重读）的情况：
 //   · untagged-writes：组的窗口里有不归属任何调用的域键写入（op 的异步后续、注入脚本、平台回调）——放不进顺序里；
@@ -112,7 +112,9 @@ final class ShadowMeasure: EngineMeasure {
         guard let text = spec["text"]?.stringValue, !text.isEmpty else { return .null }
         return Self.marker
     }
-    func host(_ name: String) -> JSValue { .object(JSObject([("$host", .string(name))])) }
+    /// 写字页的主题（页面 :root color-scheme，网页 CSS 计算值）：只有 light / dark 才进回包，标记会被规则滤掉，所以给页面那次的值（同规则 4：宿主给的值不比）。
+    var webTheme: JSValue?
+    func host(_ name: String) -> JSValue { name == "theme" ? webTheme ?? .null : .object(JSObject([("$host", .string(name))])) }
 }
 
 final class ShadowEngine {
@@ -156,8 +158,9 @@ final class ShadowEngine {
         var calls: [Call] = []
         var changed: [JSValue] = []
         var sounds: [String] = []
-        /// 组开始时页面已经放过的判断声次数（轮换计数的前态）。
+        /// 组开始时页面已经放过的判断声次数（轮换计数的前态）；组里有声音时以第一个声音到达前的计数为准（op 之外的判断声可能晚到）。
         var judgeBase = 0
+        var firstSoundBase: Int?
         init(preSeq: Int) { self.preSeq = preSeq }
     }
 
@@ -232,19 +235,29 @@ final class ShadowEngine {
         worker.async { [weak self] in self?.process(g) }
     }
 
-    /// 页面推来的 changed（store 提交后的推送）：记进当前组。
+    /// 页面推来的 changed：在某个 op 的同步部分里推的（带 shadowOp）记进那个 op 所在的组；op 之外的（注入脚本、异步后续）不算引擎的。
     func webChanged(_ body: [String: Any]) {
-        guard let g = group else { return }
-        g.changed.append(EngineValue.obj([("domains", EngineValue.js(body["domains"])), ("label", EngineValue.js(body["label"]))]))
+        guard let op = body["shadowOp"] as? String, let g = group, g.calls.contains(where: { $0.id == op }) else { return }
+        g.changed.append(EngineValue.obj([("domains", EngineValue.js(body["domains"])), ("label", EngineValue.js(body["label"])), ("op", .string(op))]))
     }
 
     /// 页面放过的判断声总数（含 op 之外的：QA 夹具注入的判断也会响）——轮换计数的真相。
     private var webJudgeSounds = 0
 
-    /// 页面发的声音（判断声 / 落款声）：记进当前组（op 之外的声音不是引擎的）。
-    func webSound(_ kind: String) {
+    /// 页面重载（WebContent 被回收 / 测试重载）：JS 的模块状态从头来——轮换计数归零、界面层登记与落款声记过的 key 都没了。
+    func pageReloaded() {
+        webJudgeSounds = 0
+        hostEpoch += 1
+        worker.async { [weak self] in self?.core.host.resetPageState() }
+    }
+
+    /// 页面发的声音（判断声 / 落款声）：op 同步部分里发的记进那个 op 的组；轮换计数的前态 = 这一组第一个声音之前页面放过的判断声数。
+    func webSound(_ kind: String, op: String?) {
+        if let op, let g = group, g.calls.contains(where: { $0.id == op }) {
+            if g.firstSoundBase == nil { g.firstSoundBase = webJudgeSounds }
+            g.sounds.append(kind)
+        }
         if SwiftEngineCore.judgeFiles.contains(kind) { webJudgeSounds += 1 }
-        group?.sounds.append(kind)
     }
 
     // MARK: 后台：重算与比对
@@ -254,11 +267,12 @@ final class ShadowEngine {
     private var coreSeq = -1
     private let disk = ShadowDisk()
     private lazy var core: SwiftEngineCore = {
-        let c = SwiftEngineCore(backend: disk, clock: { Date().timeIntervalSince1970 * 1000 }, measure: ShadowMeasure())
+        let c = SwiftEngineCore(backend: disk, clock: { Date().timeIntervalSince1970 * 1000 }, measure: shadowMeasure)
         c.onSound = { [weak self] name, _ in if self?.collecting == true { self?.swiftSounds.append(name) } }
         _ = c.changeFeed { [weak self] packet in if self?.collecting == true { self?.swiftChanged.append(packet) } }
         return c
     }()
+    private let shadowMeasure = ShadowMeasure()
     private var collecting = false
     private var swiftChanged: [JSValue] = []
     private var swiftSounds: [String] = []
@@ -317,18 +331,16 @@ final class ShadowEngine {
         var stale = false
         swiftChanged = []
         swiftSounds = []
-        core.judgeCount = g.judgeBase
-        var ok = true, delegatedCommits = 0
+        core.judgeCount = g.firstSoundBase ?? webJudgeSounds
+        var ok = true
+        /// 交给 JS / 不比的调用：它们在页面里推的 changed 不在比的序列里
+        var skippedCalls: [String] = []
         func apply(_ writes: [(String, String?)]) { for (k, v) in writes { if let v { cur[k] = v } else { cur[k] = nil } } }
-        /// 这个调用在页面里提交了几次（写了域键的批数 = changed 条数）。
-        func commits(_ c: Call) -> Int { entries.filter { $0.tag == c.id && $0.writes.contains(where: { Self.isDomainKey($0.0) }) }.count }
         for c in g.calls {
             let own = byTag[c.id] ?? []
             guard c.compared && !c.missing else {
-                if own.contains(where: { Self.isDomainKey($0.0) }) {
-                    stale = true
-                    delegatedCommits += commits(c)
-                }
+                if own.contains(where: { Self.isDomainKey($0.0) }) { stale = true }
+                skippedCalls.append(c.id)
                 apply(own)
                 continue
             }
@@ -342,6 +354,7 @@ final class ShadowEngine {
             armFaults(c.faults)
             core.host.epoch = c.epoch
             core.pinnedWall = c.wall > 0 ? c.wall : nil
+            shadowMeasure.webTheme = EngineValue.js(c.reply)["theme"]
             // 依赖界面层登记的 op（查字弹层的回调、S02 的四个回调）：Swift 一侧的登记早于页面最近一次「Swift 看不见的」脚本 / 深链，就说不清页面登记的是什么——照算不比
             let regKey: String? = c.function != EngineOps.app ? nil
                 : c.op == "s02.decide" ? "s02"
@@ -362,13 +375,13 @@ final class ShadowEngine {
             let swiftOwn = disk.writes
             let before = cur
             apply(own)
-            guard let reply else { stats.skipped += 1; ok = false; stale = true; delegatedCommits += commits(c); continue }
+            guard let reply else { stats.skipped += 1; ok = false; stale = true; skippedCalls.append(c.id); continue }
             // 不比的组照样让 Swift 算一遍：宿主的界面状态（离开撤销、S02 / 查字回调、模式）跟着走
             if skip { ok = false; continue }
             if unknownHost {
                 // 不比：它在页面里的提交按「交给 JS 的」算（changed 子序列规则），Swift 的这一次不算
                 stats.ops -= 1; stats.skipped += 1; stats.skippedBy["host-unregistered", default: 0] += 1; stale = true
-                delegatedCommits += commits(c)
+                skippedCalls.append(c.id)
                 if regKey == "leaveUndo", EngineValue.js(c.reply)["view"]?["leaveUndo"] == .null { core.host.adoptNoLeaveUndo() }
                 let n = swiftChanged.count - changedBefore
                 if n > 0 { swiftChanged.removeLast(n) }
@@ -400,8 +413,10 @@ final class ShadowEngine {
         }
         // changed：Swift 推的序列是页面推的序列的子序列，多出来的正好是交给 JS 的 op 的提交（每次提交一批写入、一条 changed）
         // 只比 store 提交的推送；界面状态的推送（'ui'：离开撤销条变了）随宿主的界面状态（见 host-unregistered），不在这一条里
-        let webStore = g.changed.filter(Self.isStorePacket), swiftStore = swiftChanged.filter(Self.isStorePacket)
-        if let last = compared.last, !Self.isSubsequence(swiftStore, of: webStore) || webStore.count - swiftStore.count != delegatedCommits {
+        let skippedIds = Set(skippedCalls)
+        let webStore = g.changed.filter { Self.isStorePacket($0) && !skippedIds.contains($0["op"]?.stringValue ?? "") }.map(Self.untag)
+        let swiftStore = swiftChanged.filter(Self.isStorePacket)
+        if let last = compared.last, webStore != swiftStore {
             ok = false
             mismatch("changed", last, [Diff(path: "changed", web: JSONWriter.stringify(.array(g.changed)), swift: JSONWriter.stringify(.array(swiftChanged)))])
         }
@@ -415,6 +430,8 @@ final class ShadowEngine {
         coreSeq = ok && !stale ? g.postSeq : -1
         schedulePersist()
     }
+
+    static func untag(_ p: JSValue) -> JSValue { var o = p.objectValue ?? JSObject(); o["op"] = nil; return .object(o) }
 
     static func isStorePacket(_ p: JSValue) -> Bool { (p["domains"]?.arrayValue ?? []).allSatisfy { Schema.domains.contains($0.stringValue ?? "") } }
 

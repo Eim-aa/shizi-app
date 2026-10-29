@@ -261,6 +261,9 @@ final class EngineHost {
     var epoch = 0
     private(set) var registered: [String: Int] = [:]
 
+    /// 影子：页面重载后 JS 的界面层状态从头来（sound.js 的落款 key 集合）。
+    func resetPageState() { sealed.removeAll() }
+
     /// 正在答的结果页 op 的 {slot, sessionId}（SwiftEngineCore.answer 设）。
     var currentResult: JSObject?
     private func leaveResult() {

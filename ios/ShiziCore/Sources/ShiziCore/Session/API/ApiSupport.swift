@@ -14,6 +14,7 @@ public enum PageAPI {
         if op.hasPrefix("remind.") || op.hasPrefix("reminder.") || op == "view.remind" { return try settings(op, store, args) }
         if op.hasPrefix("backup.") || op == "view.backup" { return try backup(op, store, args) }
         if op.hasPrefix("block.") || op == "view.block" { return try block(op, store, args) }
+        if op.hasPrefix("query.") || op == "s02.decide" || op == "view.query" || op == "view.s02" { return try query(op, store, args) }
         return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         } catch let error as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(error.message))]))]) }
         catch { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(String(describing: error)))]))]) }

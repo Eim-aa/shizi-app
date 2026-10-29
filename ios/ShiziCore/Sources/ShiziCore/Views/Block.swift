@@ -23,7 +23,7 @@ public enum BlockView {
             ("still", JS.truthy(a["still"]) ? ViewSupport.ref("X-SYS.blockStill") : .null), ("retry", ViewSupport.ref("R-B09.retry")),
             ("export", JS.truthy(a["canExport"]) ? ViewSupport.ref("R-B02.export") : .null),
             ("exportFail", JS.truthy(a["exportFail"]) ? ViewSupport.obj([("text", ViewSupport.ref("X-BACKUP.exportFailed")), ("cancel", ViewSupport.ref("X-BACKUP.exportStay")), ("retry", ViewSupport.ref("R-B09.retry"))]) : .null),
-            ("lines", ViewSupport.obj([("body", .array(Array(repeating: .null, count: count))), ("migration", .null), ("still", .null)])),
+            ("lines", ViewSupport.obj([("body", .array((body.arrayValue ?? [body]).map { ViewMeasurement.measure($0,variant:"block-line") })), ("migration",kind == .string("migration") ? ViewMeasurement.measure(try? Copy.t("X-SYS.blockMigration"),variant:"block-line") : .null), ("still",JS.truthy(a["still"]) ? ViewMeasurement.measure(try? Copy.t("X-SYS.blockStill"),variant:"block-line") : .null)])),
         ])
     }
     public static func blockBackup(_ state: JSObject, serial: Double = 0, now: Double, dates: Dates) throws -> JSValue {

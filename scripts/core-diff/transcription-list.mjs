@@ -205,6 +205,11 @@ function collect() {
 }
 
 function classify(row) {
+  if(row.file==='test/ui/native-write.test.mjs')return {c:T,card:'B4.5a',note:'SessionTranscriptionTests：55 个原名/路径；session-contract 220 场景 × 1,196 步，完整回复/状态；另 session-completion 强制差分'};
+  if(row.file==='test/ui/native-block.test.mjs'&&!/^B3.13 blockReasonOf:/.test(row.name))return {c:T,card:'B4.5a',note:'SessionPageTranscriptionTests：原名/路径与原断言；App 类名静态检查同原 node 契约，只读源码无需模拟器'};
+  if(['test/ui/detail.test.mjs','test/ui/native-mine.test.mjs'].includes(row.file)&&/^(commitWordOff|commitRemoveCustom|B3\.5c (write ops:|D07:|the web prefs|op table:))/.test(row.name))return {c:T,card:'B4.5a',note:'SessionPageTranscriptionTests：真实 Store 提交/失败/重试/原位撤销'};
+  if(row.file==='test/platform/reminder.test.mjs'&&/^(payload|controller|cold-start deep link|permission report|inviteReminder)/.test(row.name))return {c:T,card:'B4.5a',note:'ReminderControllerTests：payload、去重/force/debounce、冷启动队列、live-store permission、invite/time'};
+
   for (const [file, re, c, card, note] of OVERRIDES) if (file === row.file && re.test(row.name)) return { c, card, note };
   const f = FILES[row.file];
   if (!f) return { c: '未归类', card: '?', note: '新文件：在 transcription-list.mjs FILES 里登记' };

@@ -20,3 +20,12 @@ enum ViewLineStarts {
         guard let r = try? provider(kind, JS.string(rendered)), r.arrayValue != nil else { return .null }; return r
     }
 }
+
+public enum ViewMeasurement {
+    public static var provider: ((JSValue) throws -> JSValue)?
+    static func measure(_ text: JSValue?, variant: String) -> JSValue {
+        guard let provider, let text else { return .null }
+        let spec = JS.obj([("text",text),("variant",.string(variant))])
+        guard let value = try? provider(spec), value.arrayValue != nil else { return .null };return value
+    }
+}

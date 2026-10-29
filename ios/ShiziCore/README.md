@@ -106,3 +106,13 @@ pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子
 `views-basic.json` 保留 640 条；第二套 `views-pages.json` 为 10 个状态 × 52 个新增 op × 2 时区 = 1,040 条。两套均由 golden.mjs 的 `--check` 守同步，ViewParityTests / ViewRuleTests 核对夹具并转写规则断言。提醒提交与 query.add 适配器走真实内存 Store，比较失败 / 重试 / no-op 的每次回包和完整状态。
 
 折行保留 JS 的 provider 注入契约：`breaks` 参数按 kind 提供测量数组，非法返回 / 抛错 / 无 provider 都是 null。实际 DOM / 字体测量属于渲染器边界；不会在 Swift 规则里猜测断行。没有接 App、改变产品规则或运行 iOS 模拟器。
+
+### B4.5a session
+
+`SessionRuntime` 是 Store-backed 的 session/page API 入口，未接 App。缺省数学口径 `.darwin`（设备 JSC），CLI/XCTest 用 `.v8`（Node）。写入复用 Store.commit、已有规则与 B4.5b views；CLI 的 `api.call {op,args}` 与纯 `view.*` 差分 op 分开。
+
+本卡 12/12 行已完成：完整结果模型/页面视图、write/result 宿主注入、邀请权限等待、近期墨迹 cache、提示 helper/provider、真实图片和首页/字库动作、query/S02 异步回调、数据/环境/折行 provider、changed feed 与提醒 controller。宿主通过 `WriteDependencies`、`SessionActionHooks` 注入平台函数；异步操作使用 `SessionRuntime.callAsync`。`PageRegisteredActions.install` 登记真实 S02 结束旧组/开新组回调，导航事件交给宿主（`s02-close` 是关框控制事件）。image.render/save 继续由 B4.6 的 native renderer 提供。
+
+`verify:core-diff` 强制执行 25-family 成功/失败门禁（2,014 次全回复/状态比较），另跑 session 200×300、四时区差分及 store 专项。契约金标准 220 场景/1,196 步，两时区×两后端，保留原名/路径和 --check。write 的非确定性能采样 ms 是唯一去掉的字段。
+
+最终门禁：Swift 640/640；unit 1680 pass / 0 fail / 1 既有 todo；core-diff、copy/data、所有 fixture --check 全过。详细范围、边界、JS 原行为及逐行提交见 [B4.5a-core-移植状态.md](../../docs/engineering/v10/B4.5a-core-移植状态.md)。App 接线与删除 JS 按后续卡的验收执行。

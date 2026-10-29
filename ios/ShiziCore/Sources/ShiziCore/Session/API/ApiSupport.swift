@@ -10,6 +10,7 @@ public enum PageAPI {
         if op.hasPrefix("library.") || op == "view.library" { return try library(op, store, args) }
         if ["view.library-list", "view.library-all", "view.library-switch", "library.list.start", "library.all.start", "library.switch"].contains(op) { return try librarySub(op, store, args) }
         if op.hasPrefix("mine.") || op == "view.mine" { return try mine(op, store, args) }
+        if ["view.records", "view.month", "view.annual"].contains(op) { return try mineSub(op, store, args) }
         return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         } catch let error as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(error.message))]))]) }
         catch { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(String(describing: error)))]))]) }

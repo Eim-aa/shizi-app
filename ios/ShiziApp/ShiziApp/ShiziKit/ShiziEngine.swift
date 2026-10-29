@@ -136,11 +136,44 @@ struct ShiziCopyRef: Decodable, Equatable {
     var lines: [String] { ShiziCopy.lines(copy, vars) }
 }
 
+// MARK: - 舞台引擎（NativeStage 持有的那一个：WebEngine 或 SwiftEngine，B4.5c）
+
+/// NativeStage 与页面用到的引擎接口：ShiziEngine 之外，再加页面推来的 changed / status、页面重载、导航者与回调式 raw。
+/// 选哪一个由 ShiziEngineMode 定（缺省 WebEngine；DEBUG 启动参数 -shizi-engine swift|web|shadow，Release 没有开关）。
+protocol StageEngine: ShiziEngine {
+    var webView: WKWebView? { get set }
+    var navigator: ((String, [String: Any]) -> [String: Any])? { get set }
+    func raw(_ op: String, _ args: [String: Any], completion: @escaping ([String: Any]) -> Void)
+    @discardableResult func observeStatus(_ fn: @escaping (ShiziEngineStatus) -> Void) -> () -> Void
+    func receiveChanged(_ body: [String: Any]) -> ShiziChangeSet?
+    func receiveStatus(_ body: [String: Any])
+    func pageWillReload()
+    func pageDidBecomeReady()
+}
+
+/// 引擎调用的唯一出口（App API shiziNative、写字会话 shiziNativeWrite、导航助手 shiziNativeNav 三个函数都经这里）：
+/// 缺省直接交 WKWebView；swift 模式由 SwiftEngine 先答（它不答的 op 照旧交页面），shadow 模式在这里接上影子比对（只在 DEBUG）。
+enum EngineRoute {
+    /// swift 模式：(function, op, args, completion) → 是否已由 Swift 答复。
+    static var swift: ((String, String, [String: Any], @escaping ([String: Any], Double) -> Void) -> Bool)?
+
+    static func evaluate(_ webView: WKWebView?, function: String, op: String, args: [String: Any], completion: @escaping ([String: Any], Double) -> Void) {
+        if let swift, swift(function, op, args, completion) { return }
+        #if DEBUG
+        if let shadow = ShadowEngine.shared {
+            shadow.evaluate(webView, function: function, op: op, args: args, completion: completion)
+            return
+        }
+        #endif
+        WebEngine.evaluate(webView, function: function, op: op, args: args, completion: completion)
+    }
+}
+
 // MARK: - WebEngine（B3：WKWebView 里的 App API）
 
 /// B2 NativeWriteBridge 的推广：同一条 callAsyncJavaScript 队列（参数按值传，调用按发出顺序执行），函数名可换——
 /// shiziNative（App API）、shiziNativeWrite（写字 / 结果会话，B2 页面）、shiziNativeNav（B2 导航助手）。
-final class WebEngine: ShiziEngine {
+final class WebEngine: StageEngine {
     weak var webView: WKWebView?
     private(set) var status: ShiziEngineStatus = .reloading
     private var subscribers: [UUID: AsyncStream<ShiziChangeSet>.Continuation] = [:]
@@ -182,8 +215,9 @@ final class WebEngine: ShiziEngine {
             DispatchQueue.main.async { completion(navigator(op, args)) }
             return
         }
-        Self.evaluate(webView, function: "shiziNative", op: op, args: args) { body, _ in completion(body) }
+        EngineRoute.evaluate(webView, function: "shiziNative", op: op, args: args) { body, _ in completion(body) }
     }
+
 
     /// B4.6: native raster boundary. `webRenderer: true` explicitly calls the retained canvas fallback.
     @MainActor func raw(_ op: String, _ args: [String: Any]) async -> [String: Any] {

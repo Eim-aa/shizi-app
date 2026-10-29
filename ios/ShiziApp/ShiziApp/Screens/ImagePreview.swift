@@ -1239,7 +1239,7 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
     /// 这里用写字会话的同一个 op「result」重新取一次视图，换到正在呈现这张弹层的结果页上（不改 NativeResult.swift）。
     private func refreshPresentingResult() {
         guard let result = presentingViewController as? NativeResultViewController else { return }
-        guard let webView = (engine as? WebEngine)?.webView else { return }
+        guard let webView = (engine as? StageEngine)?.webView else { return }
         let bridge = NativeWriteBridge(webView: webView)
         let ax = traitCollection.preferredContentSizeCategory.isAccessibilityCategory
         bridge.call("result", ["slot": result.slot, "sessionId": result.sessionId, "width": result.view.bounds.width, "ax": ax]) { reply in

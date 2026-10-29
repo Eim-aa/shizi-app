@@ -73,7 +73,7 @@ enum ShiziScreenRegistry {
 
 final class NativeStage: NSObject {
     unowned let host: WebViewController
-    let engine: WebEngine
+    let engine: StageEngine
     /// 通用原生栈（底 → 顶）= 网页栈顶上连续的原生宿主条目。
     private(set) var screens: [ShiziScreenViewController] = []
     /// 屏操作排队执行（呈现 / 收起要等上一个完成：UIKit 呈现进行中再呈现会被丢掉）。
@@ -86,11 +86,28 @@ final class NativeStage: NSObject {
 
     init(host: WebViewController) {
         self.host = host
-        engine = WebEngine(webView: host.webView)
+        engine = NativeStage.makeEngine(host: host)
         super.init()
         engine.navigator = { [weak self] op, args in self?.handleNavOp(op, args) ?? ["ok": false, "error": ["kind": "unavailable"]] }
         // 进后台：立即存一次栈，刷新离开时刻（冷启动判定的「离开多久」从这一刻算）
         NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+    }
+
+    /// 引擎选择（ShiziEngineMode）：缺省 WebEngine；DEBUG -shizi-engine swift → SwiftEngine，shadow → WebEngine + 后台影子比对。
+    private static func makeEngine(host: WebViewController) -> StageEngine {
+        switch ShiziEngineMode.current {
+        case .web:
+            return WebEngine(webView: host.webView)
+        case .swift:
+            let e = SwiftEngine(webView: host.webView)
+            e.playSound = { [weak host] name, gain in host?.playEngineSound(kind: name, gain: gain) }
+            return e
+        case .shadow:
+            #if DEBUG
+            ShadowEngine.start()
+            #endif
+            return WebEngine(webView: host.webView)
+        }
     }
 
     @objc private func didEnterBackground() {
@@ -129,6 +146,9 @@ final class NativeStage: NSObject {
         case "corrupt":
             enqueue { [weak self] done in self?.setCorruptNotice(body, done: done) ?? done() }
         case "changed":
+            #if DEBUG
+            ShadowEngine.shared?.webChanged(body)
+            #endif
             _ = engine.receiveChanged(body)
         case "status":
             engine.receiveStatus(body)

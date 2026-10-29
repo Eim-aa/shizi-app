@@ -160,6 +160,9 @@ try {
  await call('session.writeHost',{op:'result',args:{}});await call('session.writeHost',{op:'result',args:{},hooks:{view:{reply:{ok:true}}}});await call('session.writeHost',{op:'resultExit',args:{to:'share'},hooks:{share:{reply:true}}});
  await call('session.blockUnavailable',{op:'block.retry',args:{kind:''}});
  await call('session.pageRegistered',{op:'library.switch',args:{}});
+ await call('session.queryHost',{op:'query.pick',mode:'',args:{chars:['人'],from:'card'},callbacks:{practice:{async:true,reply:{ok:true}}}});
+ for(const points of [[],[{x:1,y:2},{}],[{x:1,y:2},{x:3,y:4}]])for(const median of [[],[[0,0]],[[0,0],[10,10]]])await call('session.hintHelper',{name:'meanDistanceToMedian',input:{points,median}});
+ await call('session.hintHelper',{name:'matchHintStroke',input:{remaining:[1],index:0,points:[{x:0,y:0},{}],medians:[[],[[0,0],[10,10]]]}});
  // Full-family acceptance sequences: each failure is a product reply, never a protocol error.
  for(const sound of [false,null,0,'',true]){const r=await call('session.writeHost',{op:'resultSealed',args:{slot:'A',sessionId:'bad',sound},hooks:{seal:{}}});assert.equal(r.calls.length,sound?1:0);}
  const api=(op,args={})=>call('api.call',{op,args});

@@ -103,7 +103,7 @@ export function makeB45SessionOps({session,clock}) {
   out['session.queryHost']=async a=>{
     const q=await import('../../../src/session/api/query.js'),oldQ=q.queryActionsRef(),oldS=q.s02ActionsRef(),callbacks=a.callbacks||{},calls=[];
     function fn(name,context=false){const c=callbacks[name];if(!c)return undefined;const run=(input,ctx)=>{calls.push({name,args:context?(name==='detail'?input:{input,mode:ctx.mode}):input??null});if(c.close){ctx.close();ctx.close();}if(c.throws)throw Error('host-'+name);return c.reply??null;};return c.async?async(...args)=>{await Promise.resolve();return run(...args);}:run;}
-    q.setQueryActions({mode:a.mode||'lookup',onPractice:fn('practice',true),onPick:fn('pick',true),onDetail:fn('detail',true),close:fn('close')});
+    q.setQueryActions({mode:a.mode??'lookup',onPractice:fn('practice',true),onPick:fn('pick',true),onDetail:fn('detail',true),close:fn('close')});
     q.setS02Actions(a.registered||['continue','cancel','close','endStart','started'].some(n=>callbacks[n])?{onContinue:fn('continue'),onCancel:fn('cancel'),close:fn('close'),onEndStart:fn('endStart'),onStarted:fn('started')}:null);
     const s=session();s.notices=[];try{return {reply:await createAppApi({getStore:()=>s.store,now:clock}).call(a.op,a.args||{}),calls};}finally{q.setQueryActions(oldQ);q.setS02Actions(oldS);}
   };

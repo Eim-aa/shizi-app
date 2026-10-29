@@ -125,7 +125,7 @@ extension CoreEngine {
         "session.hintInitial": { _,a in HintViewState.initial(a["key"] ?? .null, stored: a["stored"], written: a["written"]) },
         "session.hintReduce": { _,a in HintViewState.reduce(a["view"] ?? .null, a["action"] ?? .null) },
         "session.hintRemaining": { _,a in JS.obj([("remaining", .array(HintViewState.remaining(a["view"]))), ("visible", .bool(HintViewState.visible(a["view"])))]) },
-        "session.hintMatch": { _,a in HintViewState.match(a) },
+        "session.hintMatch": { _,a in try HintViewState.match(a) },
         "session.hintTimeline": { _,a in HintViewState.timeline(a["count"], motion: a["motion"]) },
     ]
     static let sessionOps: [String: Op] = sessionRawOps.mapValues { fn in

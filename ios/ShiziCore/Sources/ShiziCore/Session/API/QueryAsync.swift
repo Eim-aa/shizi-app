@@ -13,7 +13,7 @@ extension PageAPI {
             let chars = (a["chars"]?.arrayValue ?? []).compactMap(\.stringValue)
             if chars.isEmpty { return SessionWrites.failure("invalid") }
             var closed = false
-            let context = QueryActionContext(mode: chars.count > 1 || a["from"] == .string("bar") ? "pick" : hooks.queryMode) { if !closed { closed = true; try hooks.queryClose?() } }
+            let context = QueryActionContext(mode: chars.count > 1 || a["from"] == .string("bar") ? "pick" : (hooks.queryMode.isEmpty ? "lookup" : hooks.queryMode)) { if !closed { closed = true; try hooks.queryClose?() } }
             let result: JSValue
             if a["from"] == .string("card"), let callback = hooks.queryPracticeAsync {
                 do { result = try await callback(chars[0],context) } catch { return SessionWrites.failure("generic") }

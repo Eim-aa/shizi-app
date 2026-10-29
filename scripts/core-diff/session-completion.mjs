@@ -4,11 +4,30 @@ import assert from 'node:assert/strict';
 import {openEngine} from './lib/engines.mjs';
 import {createSession} from '../../src/core/sessions.js';
 import {DOMAINS} from '../../src/core/schema.js';
-const js=openEngine('js'), sw=openEngine('swift',{swiftPath:process.env.B45_SWIFT_BIN});let checked=0;const invoked=new Set();
+const js=openEngine('js'), sw=openEngine('swift',{swiftPath:process.env.B45_SWIFT_BIN});let checked=0;const invoked=new Set(),branches=new Map(),observedOps=new Set();
+function family(op,args){
+ if(['session.writeHost','session.pageRegistered','session.queryHost','session.imageRegistered','session.apiHost','session.blockUnavailable','api.call'].includes(op))op=(op==='session.writeHost'?'write.':op==='session.imageRegistered'?'image.':'')+args.op;
+ observedOps.add(op);
+ if(op==='session.changeFeed')return 'changed';if(op==='session.environment')return 'providers';if(op==='session.reminderPlatform')return 'platform';
+ if(/(rememberInk|recalledInk|forgetRecentInk|session.sheet)/.test(op))return 'recentInk';
+ if(op==='session.writeHelper')return 'wire';if(/hint/i.test(op))return 'hint';if(/(judge|Judgment)$/.test(op))return 'judge';
+ if(/(correct|Correct)$/.test(op))return 'correction';if(/(answer|Answer|showAnswer)/.test(op))return 'answer';
+ if(/(skip|Skip)$/.test(op))return 'skip';if(/(end|End)$/.test(op))return 'end';if(/resultInvite$/.test(op))return 'invite';
+ if(/(result|Result|firstExtras|daysLaterOf|session.finish|session.leave|session.added|session.sealed)/.test(op))return 'result';
+ if(/^session\.(start|resume|expire|endStartPicked|deferSpecial)$/.test(op))return 'start';
+ if(/^(write\.|session\.(strokes|phase|recover))/.test(op))return 'write';
+ const prefix=op.split('.')[0];return ['home','library','detail','mine','remind','reminder','backup','query','s02','image','block'].includes(prefix)?prefix==='reminder'?'remind':prefix:null;
+}
+function audit(op,args,reply){
+ const f=family(op,args);if(!f)return;const set=branches.get(f)||new Set();branches.set(f,set);
+ const rows=reply?.replies||[reply?.reply??reply];for(const r of rows)set.add(r===false||r===null||r?.ok===false?'failure':'success');
+ if(f==='providers'&&(args.measurerThrows||args.breakerThrows||args.loads?.some(v=>v===null||v==='throw')))set.add('failure');
+ if(f==='changed'&&args.throws)set.add('failure');
+}
 async function call(op,args={}) {
  const line=JSON.stringify({op,args}); const a=JSON.parse(await js.send(line)),b=JSON.parse(await sw.send(line));
  try{assert.deepEqual(b,a);}catch(e){console.error(op,JSON.stringify(args),JSON.stringify(a),JSON.stringify(b));throw e;}
- assert.equal(a.ok,true);for(const c of a.reply?.calls||[])invoked.add(c.name);checked++;return a.reply;
+ assert.equal(a.ok,true);audit(op,args,a.reply);for(const c of a.reply?.calls||[])invoked.add(c.name);checked++;return a.reply;
 }
 const T=1790906400000;
 try {
@@ -135,6 +154,40 @@ try {
   const args={cells,sched:{'base:拾':{due:'2026-10-03'},'base:人':{due:'2026-10-04'}},today:'2026-10-02',variant,work:{cells:inWork?[{char:'拾'}]:[]}};
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
- for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–11, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ // Full-family acceptance sequences: each failure is a product reply, never a protocol error.
+ const api=(op,args={})=>call('api.call',{op,args});
+ await call('store.seed',{state:{sessions:{A:createSession({id:'s1',kind:'daily',queue:['base:人','base:口','base:水'],at:T}),B:null,lastEnded:{}}}});
+ const strokes=[[{x:40,y:40,t:0},{x:90,y:100,t:20}]];
+ await call('write.strokes',{slot:'A',cardKey:'bad',strokes:[]});await call('write.phase',{slot:'A',cardKey:'bad',phase:'compare'});
+ const judged=await call('session.judge',{slot:'A',cardKey:'base:人',strokes,judgment:'correct'});
+ await call('store.fault',{failNextWrite:{n:1,kind:'generic'}});
+ await call('write.correct',{slot:'A',recordId:judged.record.id,to:'wrong'});
+ const corrected=await call('write.correct',{slot:'A',recordId:judged.record.id,to:'wrong'});assert.equal(corrected.ok,true);
+ await call('write.correct',{slot:'A',recordId:'bad'});
+ await call('write.showAnswer',{slot:'A',cardKey:'base:口'});await call('write.answerNext',{slot:'A',cardKey:'bad'});
+ await call('write.skip',{slot:'A',cardKey:'bad'});
+ for(const [op,args]of [['detail.addCustom',{char:'人'}],['detail.wordOff',{char:'人'}],['detail.wordOn',{char:'人'}],['detail.removeCustom',{char:'人'}],['mine.appearance',{value:'dark'}],['mine.groupSize',{value:10}],['remind.enabled',{on:true}],['remind.time',{hour:7,minute:30}]]){
+  await call('store.fault',{failNextWrite:{n:1,kind:'generic'}});const failed=await api(op,args);assert.equal(failed.ok,false,op+' failure');const retry=await api(op,args);assert.equal(retry.ok,true,op+' retry');
+ }
+ await api('query.add',{char:'人'});await api('query.add',{char:''});await api('remind.time',{hour:28,minute:0});await api('mine.groupSize',{value:9});
+ const exported=await api('backup.export');assert.equal(exported.ok,true);
+ await api('backup.restorePreview',{text:exported.text});await api('backup.restore',{text:'bad'});
+ for(const op of ['backup.clear','backup.undoClear','backup.restore','backup.undoRestore','backup.clear','backup.restore','backup.undoRestore']){
+  const r=await api(op,{text:exported.text});assert.equal(r.ok,true,'valid mixed '+op);
+ }
+ await call('store.fault',{failNextWrite:{n:1,kind:'generic'}});assert.equal((await api('backup.restore',{text:exported.text})).ok,false);
+ assert.equal((await api('backup.restore',{text:exported.text})).ok,true);assert.equal((await api('backup.undoRestore')).ok,true);
+ await call('store.seed',{state:{}});await call('store.fault',{failNextWrite:{n:1,kind:'generic'}});
+ assert.equal((await call('session.start',{kind:'first'})).ok,false);assert.equal((await call('session.start',{kind:'first'})).ok,true);
+ for(const op of ['view.block','block.retry','block.exportable','block.export'])await call('session.blockUnavailable',{op});
+ await api('block.export');await api('block.retry',{kind:'blocked'});
+ const hostOps=['home.start','home.resumeOther','home.deferSpecial','home.switchLibrary','home.pick','home.source','home.undoLeave','home.undoLeaveCancel','library.startToday','library.openQuery','library.undoLeave','library.undoLeaveCancel','library.list.start','library.all.start','library.switch','detail.practice','detail.image','session.pick','session.libSwitch','session.wrongList','image.view','image.spec','image.add','image.persist','image.closed','image.render','image.save'];
+ for(const op of hostOps)for(const reply of [{ok:true,opened:'new'},{ok:false,error:{kind:'quota'}}])for(const throws of [false,true]){const r=await call('session.apiHost',{op,args:op.startsWith('detail.')?{char:'人'}:{},reply,throws});assert.equal(r.calls.length,1,`host not invoked ${op}`);}
+ await call('session.writeHelper',{name:'enabled',win:{}});await call('session.writeHelper',{name:'enabled',win:{__shiziNativeWrite:true,__shiziNativeWriteForce:true}});
+ const required=['write','wire','judge','hint','answer','correction','skip','end','result','invite','start','home','library','detail','mine','remind','backup','query','s02','image','block','platform','providers','changed','recentInk'];
+ for(const f of required)for(const branch of ['success','failure'])assert(branches.get(f)?.has(branch),`missing family ${f} ${branch}`);
+ for(const op of hostOps)assert(observedOps.has(op),`missing host callback ${op}`);
+ for(const f of required)console.log(`branch ${f}: ${[...branches.get(f)].sort().join('/')}`);
+ for(const name of ['view','seal','toWrite','again','leave','redo','detail','share','invite','changeTime','colors','type','theme','refLabel','navigate.back','navigate.toResult','navigate.toDetail','navigate.redoBack','pick','practice','continue','cancel','close','endStart','started'])assert(invoked.has(name),`missing callback ${name}`);
+ console.log(`session-completion: rows 1–12, ${checked} exact reply/state comparisons; result model, first-result, ${required.length} forced families, all host hooks, valid backup import/undo + clear/undo`);
 }finally{await js.close();await sw.close();}

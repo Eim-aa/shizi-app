@@ -2,6 +2,8 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.apiHost": { e,a in apiHost(try e.session().store,a) },
+        "session.blockUnavailable": { _,a in PageAPI.withoutStore(JS.string(a["op"]),args:a["args"]?.objectValue ?? JSObject()) },
         "session.reminderPlatform": { e,a in reminderPlatform(try e.session().store,a) },
         "session.writeHelper": { _,a in WriteWire.helper(a) },
         "session.resultPageView": { e,a in try ResultPageView.view(e.session().store,a,now:e.clock,shareAvailable:a["shareAvailable"] == .bool(true)) },

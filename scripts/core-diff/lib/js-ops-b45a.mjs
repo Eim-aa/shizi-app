@@ -47,6 +47,21 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.blockUnavailable']=a=>{const s=session();s.notices=[];return createAppApi({getStore:()=>null,now:clock}).call(a.op,a.args||{});};
+  out['session.apiHost']=async a=>{
+    const home=await import('../../../src/session/api/home.js'),lib=await import('../../../src/session/api/library.js'),sub=await import('../../../src/session/api/library-sub.js'),detail=await import('../../../src/session/api/detail.js'),none=await import('../../../src/session/api/session.js'),image=await import('../../../src/session/api/image.js');
+    const saved=[home.homeActions(),lib.libraryActions(),sub.librarySubActions(),{...detail.detailHooks()},{...none.noneActions()},image.imageActions()],calls=[];
+    const fn=args=>{calls.push(args||{});if(a.throws)throw Error('host-action');return a.reply??null;};
+    const names={'home.start':'start','home.resumeOther':'resumeOther','home.deferSpecial':'deferSpecial','home.switchLibrary':'switchLibrary','home.pick':'pick','home.source':'source','home.undoLeave':'undoLeave','home.undoLeaveCancel':'undoLeaveCancel','library.startToday':'startToday','library.openQuery':'openQuery','library.undoLeave':'undoLeave','library.undoLeaveCancel':'undoLeaveCancel','library.list.start':'startList','library.all.start':'startAll','library.switch':'switch'};
+    if(a.op.startsWith('home.'))home.setHomeActions({[names[a.op]]:fn});
+    else if(a.op.startsWith('library.')){lib.setLibraryActions({[names[a.op]]:fn});sub.setLibrarySubActions({[names[a.op]]:fn});}
+    else if(a.op==='detail.practice')detail.setDetailHooks({practice:(chars,opts)=>fn({chars,...opts})});
+    else if(a.op==='detail.image')detail.setDetailHooks({image:fn});
+    else if(a.op.startsWith('session.'))none.setNoneActions({[a.op.slice(8)]:fn});
+    else if(a.op.startsWith('image.'))image.setImageActions({[a.op.slice(6)]:fn});
+    const s=session();s.notices=[];try{return {reply:await createAppApi({getStore:()=>s.store,now:clock}).call(a.op,a.args||{}),calls};}
+    finally{home.setHomeActions(saved[0]);lib.setLibraryActions(saved[1]);sub.setLibrarySubActions({...Object.fromEntries(['startList','startAll','switch'].map(n=>[n,undefined])),...(saved[2]||{})});detail.setDetailHooks(saved[3]);none.setNoneActions({...{pick:null,libSwitch:null,wrongList:null},...saved[4]});image.setImageActions(saved[5]);}
+  };
   out['session.reminderPlatform']=async a=>{
     setDeckSource(sources ||= deckSources());const s=session();s.notices=[];const messages=[],opens=[],replies=[],syncs=[];let timer;
     const {createReminder,inviteReminder,inviteChangeTime}=await import('../../../src/platform/reminder.js'),{createBridge}=await import('../../../src/platform/bridge.js'),settings=await import('../../../src/ui/screens/mine/prefs.js');

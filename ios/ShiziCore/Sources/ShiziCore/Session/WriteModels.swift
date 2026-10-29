@@ -64,10 +64,13 @@ public enum WriteModels {
         out["firstTip"] = .bool(s["kind"] == .string("first") && s["cursor"] == .number(0) && raw != .string("compare") && answer == nil && state["settings"]?["firstTipSeen"] != .bool(true))
         out["lastLine"] = s["lastLine"] ?? .null; out["line"] = try line(s, state); return .object(out)
     }
-    static func sheet(_ store: Store, _ r: JSValue) throws -> JSValue {
+    static func sheet(_ store: Store, _ r: JSValue, policy: JSValue? = Config.policy) throws -> JSValue {
         if let ink = store.getInk(r) {
             if let raw = InkMath.decodeInkRaw(ink) { return wire(raw) }
             if let decoded = try InkMath.decodeInk(ink) { return wire(decoded) }
-        }; return .array([])
+        }
+        return .array((RecentInk.page.recalledInk(r["id"], policy: policy).arrayValue ?? []).map { stroke in .array((stroke.arrayValue ?? []).map { p in
+            .array([p["x"] ?? .null, p["y"] ?? .null, p["t"] ?? .null] + (p["p"]?.numberValue?.isFinite == true ? [p["p"]!] : []))
+        }) })
     }
 }

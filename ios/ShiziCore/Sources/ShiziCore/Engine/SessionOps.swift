@@ -2,6 +2,10 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.rememberInk": { _,a in RecentInk.page.rememberInk(a["recordId"], a["strokes"]); return .null },
+        "session.recalledInk": { _,a in RecentInk.page.recalledInk(a["recordId"], policy: a["policy"] ?? Config.policy) },
+        "session.forgetRecentInk": { _,_ in .number(Double(RecentInk.page.forgetRecentInk())) },
+        "session.sheet": { e,a in try WriteModels.sheet(e.session().store, a["record"] ?? .null, policy: a["policy"] ?? Config.policy) },
         "session.writeHost": { e,a in try writeHost(e.session().store, a) },
         "session.resultModel": { e,a in try ResultModels.model(a["state"]?.objectValue ?? e.session().store.state, a, dates: e.dates) },
         "session.resultLeave": { _,a in try ResultModels.leaveOf(a["source"]) },

@@ -8,7 +8,7 @@ import * as strokes from '../../../src/session/ops/strokes.js';
 import * as end from '../../../src/session/ops/end.js';
 import { commitFirstTipSeen } from '../../../src/session/ops/first-tip.js';
 import { createAppApi, domainsOf } from '../../../src/session/api/index.js';
-import { createWriteSessionApi } from '../../../src/session/write-api.js';
+import { sheetStrokes, createWriteSessionApi } from '../../../src/session/write-api.js';
 import * as result from '../../../src/session/ops/result.js';
 import * as first from '../../../src/session/ops/first-result.js';
 import * as work from '../../../src/session/ops/work.js';
@@ -47,6 +47,10 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.rememberInk']=a=>{judge.rememberInk(a.recordId,a.strokes);return null;};
+  out['session.recalledInk']=a=>judge.recalledInk(a.recordId,a.policy);
+  out['session.forgetRecentInk']=()=>judge.forgetRecentInk();
+  out['session.sheet']=a=>sheetStrokes(session().store,a.record);
   out['session.resultModel']=a=>result.resultModel(a.state || session().store.getState(),a);
   out['session.resultLeave']=a=>result.leaveOf(a.source);
   out['session.firstExtras']=a=>first.firstExtras(a);
@@ -73,6 +77,6 @@ export function makeB45SessionOps({session,clock}) {
     const saved=Date.now;Date.now=clock;
     try{const {ms,...reply}=await api.call(a.op,a.args||{});return {reply,calls};}finally{Date.now=saved;}
   };
-  for(const name of ['session.resultModel','session.resultLeave','session.firstExtras','session.daysLaterOf']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  for(const name of ['session.rememberInk','session.recalledInk','session.forgetRecentInk','session.sheet','session.resultModel','session.resultLeave','session.firstExtras','session.daysLaterOf']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
   return out;
 }

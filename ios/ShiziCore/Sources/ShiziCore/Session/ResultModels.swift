@@ -37,7 +37,7 @@ public enum ResultModels {
         }
         let work: JSValue = cells.isEmpty ? .null : ImageSelection.buildWork(items: items(s, records: records), records: records, hasInk: hasInk ?? { record in
             let month = String((record["localDay"]?.stringValue ?? "").prefix(7)), id = JS.string(record["inkId"] ?? record["id"])
-            return JS.truthy(state["ink"]?[month]?[id])
+            return JS.truthy(state["ink"]?[month]?[id]) || (RecentInk.page.recalledInk(record["id"], policy: a["policy"] ?? Config.policy).arrayValue ?? []).contains { !($0.arrayValue ?? []).isEmpty }
         }, added: ImageSelection.addedOf(s))
         var sub: [JSValue] = []
         if variant != "first" && early && unwritten > 0 { sub.append(try Copy.t("R-R05.bodyEarly", JSObject([("n", .number(unwritten))]))) }

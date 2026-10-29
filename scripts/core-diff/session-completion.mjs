@@ -34,6 +34,17 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ await call('session.forgetRecentInk');
+ for(let i=0;i<10;i++)await call('session.rememberInk',{recordId:'r'+i,strokes:[[{x:i,y:2,t:0}]]});
+ for(const perRecordInk of [false,true])for(let i=0;i<10;i++)await call('session.recalledInk',{recordId:'r'+i,policy:{features:{perRecordInk}}});
+ await call('session.rememberInk',{recordId:'r2',strokes:[[{x:99,y:2,t:0}]]});
+ await call('session.rememberInk',{recordId:'r10',strokes:[[{x:10,y:2,t:0}]]});
+ for(const recordId of ['r2','r3','r10','bad'])await call('session.recalledInk',{recordId,policy:{features:{perRecordInk:false}}});
+ const cacheSession=createSession({id:'s9',kind:'daily',queue:['base:人'],at:T});cacheSession.cursor=1;cacheSession.items=[{cardKey:'base:人',recordId:'r9',kind:'judged'}];
+ const cacheState={sessions:{A:cacheSession,B:null,lastEnded:{}},records:{'2026-10':[{id:'r9',sessionId:'s9',cardKey:'base:人',char:'人',kind:'judged',judgment:'correct',localDay:'2026-10-02'}]},ink:{}};
+ for(const perRecordInk of [false,true])await call('session.resultModel',{slot:'A',sessionId:'s9',state:cacheState,policy:{features:{perRecordInk}}});
+ await call('session.rememberInk',{recordId:'bad',strokes:[]});await call('session.rememberInk',{recordId:null,strokes:[[{x:1}]]});
+ await call('session.forgetRecentInk');await call('session.forgetRecentInk');
  for(const op of ['open','resultLook','redoOpen'])for(const theme of ['light','dark','auto',null])await call('session.writeHost',{op,args:{slot:'A',chars:['人','口']},hooks:{colors:{reply:{ink:'#123'}},type:{reply:{body:17}},theme:{reply:theme}}});
  for(const reply of [false,null,17,'label'])for(const async of [true,false])for(const throws of [false,true]){
   await call('session.writeHost',{op:'refLabel',args:{char:'人',cardKey:'base:人'},hooks:{refLabel:{reply,throws,async}}});
@@ -52,5 +63,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–3, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–4, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

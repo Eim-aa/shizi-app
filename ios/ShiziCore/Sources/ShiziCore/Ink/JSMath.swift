@@ -10,8 +10,18 @@ import Foundation
 // Math.sqrt 是 IEEE 正确舍入，Swift 的 squareRoot() 相同；Math.log1p 只用于 quantizeDt 的最近档比较（档位是离散的、无近似平局），用 Foundation 的 log1p。
 
 public enum JSMath {
-    /// Math.hypot(a, b)（V8 MathHypot：Kahan 求和）。
+    /// Math.hypot(a, b)：.v8 = V8 MathHypot（Kahan 求和）；.darwin = 设备上的 JavaScriptCore（见 jscHypot）。
     public static func hypot(_ a: Double, _ b: Double) -> Double {
+        if flavor == .darwin { return jscHypot(a, b) }
+        return v8Hypot(a, b)
+    }
+
+    /// JavaScriptCore 的 Math.hypot（B4.7 影子比对抓到；JSCMathTests 拿 macOS 的 JavaScriptCore 逐位核对）。
+    static func jscHypot(_ a: Double, _ b: Double) -> Double {
+        Foundation.hypot(a, b)
+    }
+
+    static func v8Hypot(_ a: Double, _ b: Double) -> Double {
         let abs0 = a.magnitude, abs1 = b.magnitude
         var oneIsNaN = false
         var maxV = 0.0
@@ -55,8 +65,11 @@ public enum JSMath {
         return r == 0 && (x < 0 || x.sign == .minus) ? -0.0 : r
     }
 
-    /// Math.exp(x)（V8 base::ieee754::exp，FreeBSD msun e_exp.c，含 exp(1) = E 的特例）。
-    public static func exp(_ x0: Double) -> Double {
+    /// Math.exp(x)：.v8 = V8 base::ieee754::exp；.darwin = 设备上的 JavaScriptCore（std::exp = Darwin libm）。
+    public static func exp(_ x0: Double) -> Double { flavor == .darwin ? Foundation.exp(x0) : fdlibmExp(x0) }
+
+    /// V8 base::ieee754::exp（FreeBSD msun e_exp.c，含 exp(1) = E 的特例）。
+    static func fdlibmExp(_ x0: Double) -> Double {
         var x = x0
         let one = 1.0
         let huge = 1.0e300

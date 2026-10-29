@@ -102,3 +102,18 @@ extension ViewSupport {
         return obj([("kind", .string("skipped")), ("n", .number(Double(items.count))), ("items", .array(items))])
     }
 }
+
+extension ViewSupport {
+    static func customCharsOf(_ custom: JSValue?) -> [String] {
+        var out = KeySet()
+        for e in custom?["added"]?.arrayValue ?? [] { if let c = e["char"]?.stringValue, c.unicodeScalars.count == 1 { out.insert(c) } }; return out.items
+    }
+    static func wallColumns(large: Bool, width: JSValue?) -> Int {
+        guard let w = width?.numberValue, w.isFinite, w > 0 else { return large ? 6 : 8 }; return max(4, min(large ? 6 : 9, Int(floor((w-40)/44))))
+    }
+    static func toneOf(_ day: JSValue?, today: String, days: JSValue?, dates: Dates) -> Int {
+        guard dates.isValidDay(day ?? .null), dates.isValidDay(.string(today)), let ago = try? dates.diffDays(day!, .string(today)) else { return 3 }
+        let d = (days?.arrayValue?.count ?? 0) >= 3 ? days!.arrayValue! : [7,30,90].map { .number(Double($0)) }
+        for i in 0..<3 where ago <= JS.number(d[i]) { return i }; return 3
+    }
+}

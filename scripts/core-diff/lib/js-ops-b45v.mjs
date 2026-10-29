@@ -1,3 +1,4 @@
+import * as libraryAll from '../../../src/session/views/library-all.js';
 import * as home from '../../../src/session/views/home.js';
 import { deckAdapter } from '../../../src/data/deck.js';
 import { ref } from '../../../src/config/copy/index.js';
@@ -29,6 +30,8 @@ export function makeB45ViewOps({ required, clock }) {
     'view.home.model': a => home.homeModel(a.state,a.now??clock(),{policy:p(a),deck:deck(a)}),
     'view.home.resume': a => home.resumeOf(a.state,a.now??clock(),{policy:p(a)}),
     'view.home.helpers': a => ({records:home.recordsStateOf(a.state,a.today,{policy:p(a)}),last:home.lastJudgedDayOf(Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[])),view:home.homeViewOf(a.model),count:home.libraryCountOf(Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[])),cta:home.homeCtaKey(a.model),note:home.homeNoteOf(a.model),resume:home.resumeKeyOf(a.kind),progress:home.progressText(a.line,ref),text:home.resumeLineText(a.line,ref),aria:home.resumeLineAria(a.line,ref),ctaAria:home.ctaAria(a.model,ref),noChars:home.noCharsLeft(a.state,a.today,deck(a),p(a))}),
+    'view.library-all': a => {setDeckSource(deckSources());return libraryAll.allModel(a.state,{...a,policy:p(a),pyOf:c=>a.pinyin?.[c]??cardForKey('base:'+c)?.py??'',practicable:k=>!a.unpracticable?.includes(k)});},
+    'view.library-all.helpers': a => ({sort:libraryAll.normalizeSort(a.sort),filter:libraryAll.normalizeFilter(a.filter),fold:libraryAll.normalizeFold(a.fold),py:libraryAll.pyKey(a.py),initial:libraryAll.pyInitial(a.py),find:libraryAll.parseFind(a.find),month:libraryAll.monthName(a.month,a.today),where:libraryAll.foundWhere(a.month,a.today),toggle:libraryAll.toggleFold(a.fold,a.month,a.open),take:libraryAll.takeCells(a.groups||[],a.limit)}),
     'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
     'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),

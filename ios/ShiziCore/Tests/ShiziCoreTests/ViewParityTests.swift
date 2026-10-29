@@ -40,6 +40,18 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(HomeView.homeViewOf(try value(#"{"records":"record","resume":"B","capital":null,"gapDays":0}"#)), "progress")
     }
 
+    // test/ui/library-all.test.mjs — old filters map to due; search mode and batching.
+    func testAllFiltersFindAndBatch() throws {
+        XCTAssertEqual(LibraryAllView.normalizeFilter(.string("wrong")), "due")
+        XCTAssertEqual(LibraryAllView.normalizeFilter(.string("forget")), "due")
+        XCTAssertEqual(LibraryAllView.parseFind(.string("a永甲"))["char"], .string("永"))
+        XCTAssertEqual(LibraryAllView.pyInitial(.string("lǜ")), .string("L"))
+        XCTAssertEqual(LibraryAllView.normalizeSort(.string("bad")), "recent")
+        let groups = try value(#"[{"head":true,"cells":[1,2,3]}]"#).arrayValue!
+        XCTAssertEqual(LibraryAllView.takeCells(groups, limit: 1)[0]["partial"], .bool(true))
+        XCTAssertTrue(LibraryAllView.takeCells(groups, limit: 0).isEmpty)
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

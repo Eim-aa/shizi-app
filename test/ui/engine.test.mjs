@@ -129,3 +129,34 @@ test('engine mode only inside the iOS app: app.js keeps mounting the web UI when
   const swift = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/NativeStage.swift', import.meta.url), 'utf8');
   assert.match(swift, /window\.__shiziEngine = true/);
 });
+
+test('engine mode installs the commit feedback exactly once, sound only (native owns the haptics)', async () => {
+  const src = readFileSync(new URL('../../src/ui/engine.js', import.meta.url), 'utf8');
+  assert.equal((src.match(/installCommitFeedback\(/g) || []).length, 1);
+  assert.match(src, /installCommitFeedback\(\(\) => store, \{ haptics: false \}\)/);
+  const { installCommitFeedback, resetCommitFeedback, hapticLog } = await import('../../src/platform/haptics.js');
+  const { soundLog, resetSound } = await import('../../src/platform/sound.js');
+  const { bridge } = await import('../../src/platform/bridge.js');
+  resetCommitFeedback();
+  resetSound();
+  let listener = null;
+  let subscribed = 0;
+  const store = { subscribe(fn) { subscribed += 1; listener = fn; return () => { listener = null; }; } };
+  const sent = [];
+  const orig = bridge.postNative;
+  bridge.postNative = (name, body) => { sent.push([name, body && body.kind]); return true; };
+  try {
+    assert.equal(installCommitFeedback(() => store, { haptics: false }), true);
+    assert.equal(installCommitFeedback(() => store, { haptics: false }), true);
+    assert.equal(subscribed, 1);
+    for (let i = 0; i < 4; i += 1) listener({}, { type: 'commit', label: 'write:judge' });
+    listener({}, { type: 'commit', label: 'write:skip' });
+    assert.deepEqual(sent.filter(m => m[0] === 'haptic'), []);
+    assert.deepEqual(hapticLog(), []);
+    assert.deepEqual(soundLog(), ['j1_page_settle', 'j1_page_settle_b', 'j1_page_settle_c', 'j1_page_settle']);
+  } finally {
+    bridge.postNative = orig;
+    resetCommitFeedback();
+    resetSound();
+  }
+});

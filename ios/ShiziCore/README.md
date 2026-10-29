@@ -107,10 +107,12 @@ pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子
 
 折行保留 JS 的 provider 注入契约：`breaks` 参数按 kind 提供测量数组，非法返回 / 抛错 / 无 provider 都是 null。实际 DOM / 字体测量属于渲染器边界；不会在 Swift 规则里猜测断行。没有接 App、改变产品规则或运行 iOS 模拟器。
 
-### B4.5a session 进度
+### B4.5a session
 
-`SessionRuntime` 是 Store-backed 的 session/page API 入口，未接 App。缺省数学口径是 `.darwin`（对设备 JSC）；CLI / XCTest 使用 `.v8`（对 Node）。写入复用 Store.commit、现有规则与 B4.5b views。CLI 的 `api.call {op,args}` 与纯 `view.*` 差分 op 分开，避免破坏 B4.5b 协议。
+`SessionRuntime` 是 Store-backed 的 session/page API 入口，未接 App。缺省数学口径 `.darwin`（设备 JSC），CLI/XCTest 用 `.v8`（Node）。写入复用 Store.commit、已有规则与 B4.5b views；CLI 的 `api.call {op,args}` 与纯 `view.*` 差分 op 分开。
 
-新增 session 随机域、真实异步 JS 回复支持、`session-shapes.mjs`、`session-contract.mjs --check`、`session-resources.mjs --check` 已接 verify:core-diff。72 个契约场景逐步核对回复和全部状态；ms 性能采样字段仅在 JS 写 API 适配器去掉。
+本卡 12/12 行已完成：完整结果模型/页面视图、write/result 宿主注入、邀请权限等待、近期墨迹 cache、提示 helper/provider、真实图片和首页/字库动作、query/S02 异步回调、数据/环境/折行 provider、changed feed 与提醒 controller。宿主通过 `WriteDependencies`、`SessionActionHooks` 注入平台函数；异步操作使用 `SessionRuntime.callAsync`。`PageRegisteredActions.install` 登记真实 S02 结束旧组/开新组回调，导航事件交给宿主（`s02-close` 是关框控制事件）。image.render/save 继续由 B4.6 的 native renderer 提供。
 
-**当前不是整卡完成**：默认依赖下的写/结果事务与部分 page API 已验证，完整 result model、邀请 yes/time/权限等待、WriteAPI host 注入、image bookkeeping、全部 B4.5 转写与全族分支覆盖仍未齐。精确函数与边界见 [B4.5a-core-移植状态.md](../../docs/engineering/v10/B4.5a-core-移植状态.md)，不可据此切换引擎或删除 JS。
+`verify:core-diff` 强制执行 25-family 成功/失败门禁（2,014 次全回复/状态比较），另跑 session 200×300、四时区差分及 store 专项。契约金标准 220 场景/1,196 步，两时区×两后端，保留原名/路径和 --check。write 的非确定性能采样 ms 是唯一去掉的字段。
+
+最终门禁：Swift 640/640；unit 1680 pass / 0 fail / 1 既有 todo；core-diff、copy/data、所有 fixture --check 全过。详细范围、边界、JS 原行为及逐行提交见 [B4.5a-core-移植状态.md](../../docs/engineering/v10/B4.5a-core-移植状态.md)。App 接线与删除 JS 按后续卡的验收执行。

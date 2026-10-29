@@ -7,6 +7,7 @@ public enum PageAPI {
         do {
         if op.hasPrefix("detail.") || op == "view.detail" || op == "view.detail-photo" { return try detail(op, store, args) }
         if op.hasPrefix("home.") || op == "view.home" { return try home(op, store, args) }
+        if op.hasPrefix("library.") || op == "view.library" { return try library(op, store, args) }
         return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         } catch let error as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(error.message))]))]) }
         catch { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(String(describing: error)))]))]) }

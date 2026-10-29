@@ -1,4 +1,6 @@
 // B4.5b: real view functions, no duplicated product rules.
+import * as libraryList from '../../../src/session/views/library-list.js';
+import { cardForKey } from '../../../src/data/deck.js';
 import * as annual from '../../../src/session/views/annual.js';
 import * as query from '../../../src/session/views/query.js';
 import * as about from '../../../src/session/views/about.js';
@@ -19,6 +21,9 @@ export function makeB45ViewOps({ required, clock }) {
   const ink = a => r => a.state?.ink?.[r.localDay.slice(0, 7)]?.[r.id] ?? null;
   const q = a => { setDeckSource(deckSources()); return { ...a, policy: p(a), predicates: query.deckPredicates(a.state?.settings), getInk: ink(a), store: { getInk: ink(a) } }; };
   return {
+    'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
+    'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
+    'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),
     'view.annual': a => annual.annualModel(a.state,a.today,{year:a.year,policy:p(a)}),
     'view.annual.plan': a => annual.annualPlan(a.state,{today:a.today,year:a.year,policy:p(a),inkOf:r=>query.inkPointsOf({latest:r},ink(a))}),
     'view.annual.years': a => annual.annualYears(a.state),

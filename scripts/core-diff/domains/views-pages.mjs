@@ -15,7 +15,10 @@ export function pageCases(g) {
   const a = {state, mode:g.pick(['lookup','pick']), text, cur:g.pick(['','永','𠀀']), selected:g.pick([[],['永'],['甲','永']])};
   const latest = h.records.find(r => r.kind === 'judged');
   const summary = latest ? {latest, count:2, latestDay:latest.localDay} : null;
+  const list={state,today:h.today,kind:g.pick(['wrong','forget','due','shaky','known','skipped','forgetList','againList']),sel:g.pick([null,[],['永','甲']]),unpracticable:g.chance(.5)?S.keys().slice(0,30):[],policy:{groupSize:g.pick([5,10,20,30])}};
   return [
+    ['view.library-list',list], ['view.library-list.entries',list],
+    ['view.library-list.helpers',{...list,n:g.int(0,3),meta:'a · b · c',day:g.pick([null,h.today,'bad']),word:g.pick(['永远','永','a永b','a']),char:'永',other:g.pick([null,[],['甲','永']]),view:g.pick(['wrongList','dueList','home'])}],
     ...['view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months'].map(op=>[op,annual]),
     ['view.query', a], ['view.query.sheet', a],
     ['view.query.meta',{pinyin:g.pick(['','yǒng']),strokes:g.pick([0,5,-1])}],
@@ -23,4 +26,4 @@ export function pageCases(g) {
     ['view.query.ink',{state,summary}],
   ].map(([op,args])=>({op,args,state:false}));
 }
-export const pageNames = ['view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months','view.query','view.query.sheet','view.query.meta','view.query.stat','view.query.date','view.query.ink'];
+export const pageNames = ['view.library-list','view.library-list.entries','view.library-list.helpers','view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months','view.query','view.query.sheet','view.query.meta','view.query.stat','view.query.date','view.query.ink'];

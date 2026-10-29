@@ -3,6 +3,12 @@ import Foundation
 extension CoreEngine {
     // Pure model results (as with images.*), without the App API transport envelope.
     static let viewOps: [String: Op] = [
+        "view.library-list": { e, a in try LibraryListView.listModel(a["state"] ?? .null, a, dates: e.dates) },
+        "view.library-list.entries": { e, a in .array(try LibraryListView.listEntries(a["state"] ?? .null, kind: a["kind"], today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
+        "view.library-list.helpers": { e, a in
+            let n = JS.number(a["n"]), model = a["model"]
+            return ViewSupport.obj([("kind", .string(LibraryListView.normalizeKind(a["kind"]))), ("zone", .bool(LibraryListView.isZoneKind(a["kind"]))), ("parts", LibraryListView.listRowMetaParts(a["meta"])), ("date", LibraryListView.dateText(a["day"], dates: e.dates)), ("word", LibraryListView.wordParts(a["word"], a["char"])), ("sel", LibraryListView.normalizeSel(a["sel"]).map { .array($0.map(JSValue.string)) } ?? .null), ("same", .bool(LibraryListView.sameSel(a["sel"], a["other"]))), ("toggle", LibraryListView.toggleSel(a["sel"], a["char"] ?? .null)), ("all", .array((model?["rows"]?.arrayValue ?? []).filter { JS.truthy($0["selectable"]) }.map { $0["char"]! })), ("none", .array([])), ("button", LibraryListView.buttonLabel(n)), ("hint", LibraryListView.hintText(n)), ("active", .bool(LibraryListView.groupFromHereActive(a["state"] ?? .null, view: a["view"])) )])
+        },
         "view.annual": { e, a in try AnnualView.annualModel(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
         "view.annual.plan": { e, a in try AnnualView.annualPlan(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
         "view.annual.years": { e, a in .array(AnnualView.annualYears(a["state"] ?? .null, dates: e.dates).map { .number(Double($0)) }) },

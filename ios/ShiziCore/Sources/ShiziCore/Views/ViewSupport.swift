@@ -51,3 +51,54 @@ extension ViewSupport {
         return RecordIndex(judged: judged, folded: folded, days: days, ink: ink, afterSeen: seen, dates: dates)
     }
 }
+
+extension ViewSupport {
+    static func libraryRecords(_ state: JSValue) -> (records: [JSValue], foldedDays: [String]) {
+        var records: [JSValue] = [], days: [String] = []
+        for month in (state["records"]?.objectValue?.keys ?? []).sorted() {
+            let value = state["records"]![month]!
+            records += value.arrayValue ?? value["kept"]?.arrayValue ?? []
+            if value.arrayValue == nil { for (day, cs) in value["byDay"]?.objectValue?.entries ?? [] where !(cs.arrayValue ?? []).isEmpty { days.append(day) } }
+        }
+        return (records, days)
+    }
+    static func successesOf(_ entry: JSValue?) -> Double { max(0, (JS.number(entry?["fsrs"]?["reps"]).isNaN ? 0 : JS.number(entry?["fsrs"]?["reps"])) - (JS.number(entry?["fsrs"]?["lapses"]).isNaN ? 0 : JS.number(entry?["fsrs"]?["lapses"]))) }
+    static func memoryZoneOf(_ record: JSValue, _ entry: JSValue?, today: String, knownDays: Double, minSuccesses: Double, dates: Dates) throws -> String {
+        if record["judgment"] == .string("wrong") || record["kind"] == .string("answer-seen") { return "due" }
+        if let entry, entry["stoppedAt"] == nil, let od = try ScheduleRules(dates: dates).overdueDays(entry, today), od >= 0 { return "due" }
+        let stability = JS.number(entry?["fsrs"]?["stability"])
+        return stability >= knownDays && successesOf(entry) >= minSuccesses ? "known" : "shaky"
+    }
+    static func memoryZones(_ state: JSValue, today: String, knownDays: Double? = nil, minSuccesses: Double? = nil, dates: Dates) throws -> JSValue {
+        let latest = Records.practicedByChar(libraryRecords(state).records)
+        var buckets: [String: [JSValue]] = ["due": [], "shaky": [], "known": []]
+        for (_, r) in latest.entries {
+            let entry = state["sched"]?[JS.string(r["cardKey"])]
+            let kind = try memoryZoneOf(r, entry, today: today, knownDays: knownDays ?? JS.number(Config.policy["knownZone"]?["stabilityDays"]), minSuccesses: minSuccesses ?? JS.number(Config.policy["knownZone"]?["minSuccesses"]), dates: dates)
+            let due = dates.isValidDay(entry?["due"] ?? .null) ? entry!["due"]! : .string("9999-12-31")
+            buckets[kind]!.append(obj([("char", r["char"]!), ("cardKey", r["cardKey"]!), ("record", r), ("dueDay", due), ("rank", .number(r["judgment"] == .string("wrong") ? 0 : r["kind"] == .string("answer-seen") ? 1 : 2))]))
+        }
+        var zones = JSObject()
+        for kind in ["due", "shaky", "known"] {
+            let sorted = buckets[kind]!.sorted { a, b in
+                let ar = JS.number(a["rank"]), br = JS.number(b["rank"])
+                if kind == "due" { if ar != br { return ar < br }; if ar < 2 { return Records.compareRecordIds(b["record"]?["id"], a["record"]?["id"]) < 0 } }
+                let ad = JS.string(a["dueDay"]), bd = JS.string(b["dueDay"])
+                return ad != bd ? ad < bd : Records.compareRecordIds(a["record"]?["id"], b["record"]?["id"]) < 0
+            }
+            let items = sorted.map { r in obj([("char", r["char"]!), ("cardKey", r["cardKey"]!), ("record", r["record"]!), ("tone", .number(kind == "due" ? 3 : kind == "shaky" ? 1 : 0))]) }
+            zones[kind] = obj([("kind", .string(kind)), ("n", .number(Double(items.count))), ("items", .array(items))])
+        }
+        return obj([("recorded", .number(Double(latest.count))), ("zones", .object(zones))])
+    }
+    static func skippedZone(_ state: JSValue) -> JSValue {
+        let records = libraryRecords(state).records, judged = Records.practicedByChar(records)
+        var latest = OMap<JSValue>()
+        for r in records where r["kind"] == .string("skipped") {
+            guard let c = r["char"]?.stringValue, !judged.has(c) else { continue }
+            if latest[c] == nil || Records.compareRecordIds(latest[c]?["id"], r["id"]) < 0 { latest[c] = r }
+        }
+        let items = latest.entries.map(\.value).sorted { Records.compareRecordIds($1["id"], $0["id"]) < 0 }.map { r in obj([("char", r["char"]!), ("cardKey", r["cardKey"]!), ("record", r), ("tone", .number(3))]) }
+        return obj([("kind", .string("skipped")), ("n", .number(Double(items.count))), ("items", .array(items))])
+    }
+}

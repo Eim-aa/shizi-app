@@ -20,6 +20,15 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(model["count"], .number(1)); XCTAssertEqual(model["first"]?["record"], .null)
     }
 
+    // test/ui/library-list.test.mjs — selection normalization, word parts and real disabled zero state.
+    func testListSelectionAndEmpty() throws {
+        XCTAssertEqual(LibraryListView.normalizeKind(.string("againList")), "wrong")
+        XCTAssertTrue(LibraryListView.sameSel(try value(#"["永","甲","永"]"#), try value(#"["甲","永"]"#)))
+        XCTAssertEqual(LibraryListView.wordParts(.string("a永b"), .string("永")), try value(#"{"pre":"a","tg":"永","post":"b","has":true}"#))
+        let m = try LibraryListView.listModel(.null, JSObject([("today", .string("2026-03-01")), ("kind", .string("wrong"))]), dates: dates)
+        XCTAssertEqual(m["empty"], .bool(true)); XCTAssertEqual(m["button"]?["disabled"], .bool(true))
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

@@ -1,4 +1,5 @@
 // B4.5b: real view functions, no duplicated product rules.
+import * as query from '../../../src/session/views/query.js';
 import * as about from '../../../src/session/views/about.js';
 import * as block from '../../../src/session/views/block.js';
 import * as kuan from '../../../src/session/views/kuan.js';
@@ -14,7 +15,15 @@ import * as policy from '../../../src/config/policy.js';
 export function makeB45ViewOps({ required, clock }) {
   const p = a => ({ ...policy, ...a.policy });
   const at = (a, fn) => { const saved = Date.now; Date.now = () => a.now ?? clock(); try { return fn(); } finally { Date.now = saved; } };
+  const ink = a => r => a.state?.ink?.[r.localDay.slice(0, 7)]?.[r.id] ?? null;
+  const q = a => { setDeckSource(deckSources()); return { ...a, policy: p(a), predicates: query.deckPredicates(a.state?.settings), getInk: ink(a), store: { getInk: ink(a) } }; };
   return {
+    'view.query': a => query.querySheetModel(q(a)),
+    'view.query.sheet': a => query.sheetModel(q(a)),
+    'view.query.meta': a => query.cardMetaRef(a.pinyin, a.strokes),
+    'view.query.stat': a => query.cardStatRef(a.summary),
+    'view.query.date': a => query.dateRef(a.day),
+    'view.query.ink': a => query.inkPointsOf(a.summary, ink(a), p(a)),
     'view.about': a => about.aboutModel(a),
     'view.about-privacy': a => about.privacyModel(a),
     'view.about-credits': a => about.creditsModel(a.credits, a.texts),

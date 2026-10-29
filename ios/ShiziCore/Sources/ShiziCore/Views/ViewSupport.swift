@@ -8,6 +8,10 @@ enum ViewSupport {
         if let params { out["params"] = params }
         return .object(out)
     }
+    static func inkParams(_ policy: JSValue) throws -> JSValue {
+        let p = try InkParams(policy: policy.objectValue)
+        return obj(InkParams.tunableKeys.map { ($0, .number(p[$0]!)) } + InkParams.spec.map { ($0.0, .number($0.1)) })
+    }
     static func policy(_ override: JSValue?) -> JSValue {
         var out = Config.policy.objectValue!
         for (k, v) in override?.objectValue?.entries ?? [] { out[k] = v }

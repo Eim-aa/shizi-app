@@ -3,6 +3,12 @@ import Foundation
 extension CoreEngine {
     // Pure model results (as with images.*), without the App API transport envelope.
     static let viewOps: [String: Op] = [
+        "view.query": { e, a in try QueryView.querySheetModel(a, dates: e.dates) },
+        "view.query.sheet": { _, a in QueryView.sheetModel(a) },
+        "view.query.meta": { _, a in QueryView.cardMetaRef(a["pinyin"], a["strokes"]) },
+        "view.query.stat": { _, a in QueryView.cardStatRef(a["summary"]) },
+        "view.query.date": { e, a in try QueryView.dateRef(a["day"], dates: e.dates) },
+        "view.query.ink": { e, a in try QueryView.inkPointsOf(a["summary"], state: a["state"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
         "view.about": { _, a in try AboutView.aboutModel(a) },
         "view.about-privacy": { _, a in AboutView.privacyModel(a["native"]) },
         "view.about-credits": { _, a in AboutView.creditsModel(a["credits"]?.arrayValue ?? Config.credits["CREDITS"]!.arrayValue!, texts: a["texts"] ?? Config.credits["LICENSE_TEXTS"]!) },

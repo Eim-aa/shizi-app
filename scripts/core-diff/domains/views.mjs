@@ -1,5 +1,6 @@
 // View arguments share the existing valid-state generator. Every seed covers every
 // registered view op; the ordinary random table adds mixed protocol sequencing.
+import { pageCases, pageNames } from './views-pages.mjs';
 import { schedShapes } from '../lib/sched-shapes.mjs';
 
 export function viewCases(g) {
@@ -36,9 +37,9 @@ export function viewCases(g) {
     ['view.kuan.year', { year: g.int(0, 9999) }], ['view.kuan.cover', { n }],
     ['view.lines.measure', { spec: { text: g.string(), variant: 'empty-body' }, ...g.pick([{}, { result: [0, 3, 7] }, { result: false }, { throws: true }]) }],
   ];
-  return rows.map(([op, args]) => ({ op, args, state: false }));
+  return rows.map(([op, args]) => ({ op, args, state: false })).concat(pageCases(g));
 }
-const names = [
+const names = [...pageNames,
   'view.about', 'view.about-privacy', 'view.about-credits', 'view.about-letter',
   'view.about.buildDay', 'view.about.stripArrow', 'view.about.versionRefs', 'view.about.rows', 'view.about.creditName', 'view.about.creditFullText', 'view.about.creditGroups',
   'view.settings', 'view.remind', 'view.settings.parseTime', 'view.settings.timeText', 'view.settings.defaultRemindTime',

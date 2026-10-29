@@ -10,6 +10,21 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(try runOpGolden("views-basic"), 640)
     }
 
+    func testViewsPagesGolden() throws {
+        XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
+    }
+
+    // src/session/views/query.js — same core filter and selection rules, copy refs stay keys.
+    func testQuerySheetBranches() throws {
+        let empty = QueryView.sheetModel(try value(#"{"mode":"pick","text":"","selected":[]}"#).objectValue!)
+        XCTAssertEqual(empty["view"], .string("hint"))
+        XCTAssertEqual(empty["bar"]?["disabled"], .bool(true))
+        for (text, expected) in [("永", "card"), ("永甲", "rows"), ("𠀀", "bad")] {
+            let a = JSObject([("mode", .string("lookup")), ("text", .string(text))])
+            XCTAssertEqual(QueryView.sheetModel(a)["view"], .string(expected))
+        }
+    }
+
     // test/ui/prefs.test.mjs
     // settingsView: defaults — P73 library, remind off at policy.remindDefault (P18), auto; no large field (D29)
     func testSettingsViewDefaults() throws {

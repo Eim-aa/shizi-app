@@ -17,9 +17,9 @@ public enum LibraryListView {
     }
     public static func wordParts(_ word: JSValue?, _ char: JSValue?) -> JSValue {
         let w = word?.stringValue ?? "", c = char?.stringValue ?? ""
-        if w.isEmpty || w == c { return V.obj([("pre", .string("")), ("tg", .string("")), ("post", .string("")), ("has", .bool(false))]) }
+        if w.isEmpty || JSX.eq(w, c) { return V.obj([("pre", .string("")), ("tg", .string("")), ("post", .string("")), ("has", .bool(false))]) }
         let cps = w.unicodeScalars.map(String.init)
-        guard let i = cps.firstIndex(of: c) else { return V.obj([("pre", .string(w)), ("tg", .string("")), ("post", .string("")), ("has", .bool(true))]) }
+        guard let i = cps.firstIndex(where: { JSX.eq($0, c) }) else { return V.obj([("pre", .string(w)), ("tg", .string("")), ("post", .string("")), ("has", .bool(true))]) }
         return V.obj([("pre", .string(cps[..<i].joined())), ("tg", .string(c)), ("post", .string(cps[(i+1)...].joined())), ("has", .bool(true))])
     }
     public static func normalizeSel(_ sel: JSValue?) -> [String]? {

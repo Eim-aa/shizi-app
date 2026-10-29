@@ -97,8 +97,12 @@ pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子
 
 规则数据（policy / motion / char-order / epigraphs / credits / 文案 / 题库 / 落款汉字数字）**不手抄进 Swift**：`scripts/build_core_config.mjs` 从 `src/` 导出 JSON 到 `Sources/ShiziCore/Resources/`（SwiftPM 资源，`Bundle.module`），Swift 一侧只读。改了 `src/config/*`、`src/core/dates.js` 的汉字数字表、`deck-data.js`、`data/context-overrides.js` 就要重跑它；漏了 `test/core/core-config.test.mjs`（verify:unit）、`pnpm run verify:core-config`、`verify:core-diff` 都会红。Xcode 工程接入（B4.5）时把它加成构建阶段（`--check` 模式）。
 
-### B4.5b views 基础批（尚未完成整卡）
+### B4.5b views
 
-`Views/` 已加入 about、block、kuan、library-switch、lines、session、settings 的 Swift 规则；`Engine/ViewOps.swift` 的 32 个纯模型 / 辅助 op 对应 `scripts/core-diff/lib/js-ops-b45v.mjs`。提醒提交辅助函数直接复用 Swift `Store`，未接 App。`views` 域每个种子的前 32 步逐个覆盖这些 op，其后随机抽样；`--only views --seeds 200 --steps 32` 可单独核验。`views-basic.json` 是 10 个固定状态 × 32 个 op × 2 个时区（640 条），纳入既有 golden `--check`。
+`Views/` 已覆盖 `src/session/views/*.js` 全部 17 个文件；共享 JSValue / copy 引用构造在 ViewSupport，84 个纯模型 / 辅助 / 提交适配 op 在 ViewOps，JS 镜像调用真实函数。query 文件名为 QueryView.swift，避免与核心 Query.swift 的 SwiftPM 同名编译冲突。记录索引与月份计算在 Mine.swift；记忆分区 / 墙规则在 Library.swift，供其他视图复用。
 
-未完成：annual、detail、home、library、library-all、library-list、mine、mine-page、mine-sub、query（10 文件），相应 op / 夹具 / 转写测试，以及提醒提交辅助函数的 core op 适配。不能把基础批门禁通过解释为 B4.5b 全部视图已等价。
+`views` 域每个种子的前 84 步逐项覆盖全部 op；`node scripts/core-diff/run.mjs --only views --seeds 200 --steps 84` 比较值和 JSON 字节。`view-shapes.mjs` 另对 200 seeds 记录各 op 结果形状并强制检查四库、六首页态、四查字态、清单 / 排序 / 筛选 / 计划 / 缺墨分支；已纳入 verify:core-diff。
+
+`views-basic.json` 保留 640 条；第二套 `views-pages.json` 为 10 个状态 × 52 个新增 op × 2 时区 = 1,040 条。两套均由 golden.mjs 的 `--check` 守同步，ViewParityTests / ViewRuleTests 核对夹具并转写规则断言。提醒提交与 query.add 适配器走真实内存 Store，比较失败 / 重试 / no-op 的每次回包和完整状态。
+
+折行保留 JS 的 provider 注入契约：`breaks` 参数按 kind 提供测量数组，非法返回 / 抛错 / 无 provider 都是 null。实际 DOM / 字体测量属于渲染器边界；不会在 Swift 规则里猜测断行。没有接 App、改变产品规则或运行 iOS 模拟器。

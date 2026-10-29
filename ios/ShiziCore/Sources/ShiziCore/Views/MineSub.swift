@@ -1,7 +1,7 @@
 import Foundation
 
-// src/session/views/mine-sub.js. Browser-measured line starts use the no-provider
-// result (null); the rendering-side measurer remains an explicit boundary.
+// src/session/views/mine-sub.js. Line starts preserve the injected provider
+// contract; actual text measurement belongs to the renderer.
 public enum MineSubView {
     typealias V = ViewSupport
     public static func monthHeadRef(_ n: JSValue) -> JSValue { V.ref("X-MINE.monthHead", V.obj([("month", n)])) }
@@ -37,7 +37,7 @@ public enum MineSubView {
         out["cols"] = .number(Double(ImageLayout.sheetColumns(n)))
         if block { out["folded"] = .bool(V.recordIndex(state, dates: dates).folded[month] != nil); out["title"] = V.ref("R-P02.sheetTitle", V.obj([("month", .number(mn))])) }
         out["seal"] = try CoreResources.load("view-seal")
-        if !block { out["lines"] = V.obj([("sub", .null)]) }; return .object(out)
+        if !block { out["lines"] = V.obj([("sub", ViewLineStarts.starts("month-sub", V.ref("X-MINE.sheetOrder")))]) }; return .object(out)
     }
     public static func monthView(_ state: JSValue, month: String, policy: JSValue, dates: Dates) throws -> JSValue { try displayMonth(state, month: month, policy: policy, block: false, dates: dates) }
     public static func monthSheetOf(_ state: JSValue, month: String, policy: JSValue, dates: Dates) throws -> JSValue { try displayMonth(state, month: month, policy: policy, block: true, dates: dates) }
@@ -69,7 +69,7 @@ public enum MineSubView {
         for k in ["today", "month", "year", "monthNum", "current", "prev", "next"] { out[k] = m[k] }
         out["monthHead"] = monthHeadRef(m["monthNum"]!); out["yearText"] = .string(JS.string(m["year"])); out["title"] = title; out["legend"] = legend; out["weekdays"] = V.ref("X-MINE.weekdays"); out["calendar"] = .array(calendar); out["recordDays"] = m["recordDays"]; out["dayList"] = .array(dayList); out["selected"] = selected; out["sheet"] = sheet
         if let r = m["todayRow"], JS.truthy(r) { out["todayRow"] = V.obj([("day", r["day"]!), ("n", r["n"]!), ("title", V.ref("R-P03.todayChars", V.obj([("date", try dayTextRef(r["day"]!, dates: dates))]))), ("note", V.ref("R-P03.todayImage"))]) } else { out["todayRow"] = .null }
-        out["seal"] = try CoreResources.load("view-seal"); out["lines"] = V.obj([("title", .null), ("legend", .null), ("dayRows", .array(dayList.map { _ in .null })), ("paperday", .null), ("daylistTitle", .null), ("sheetNote", .null)])
+        out["seal"] = try CoreResources.load("view-seal"); out["lines"] = V.obj([("title", ViewLineStarts.starts("records-title", title)), ("legend", ViewLineStarts.starts("records-legend", legend)), ("dayRows", .array(dayList.map { ViewLineStarts.starts("records-axrow", $0["label"]!) })), ("paperday", JS.truthy(selected) ? ViewLineStarts.starts("records-paperday", selected["paperNote"]!) : .null), ("daylistTitle", JS.truthy(selected) ? ViewLineStarts.starts("records-daylist-title", selected["title"]!) : .null), ("sheetNote", JS.number(sheet["n"]) > 0 && JS.truthy(sheet["under"]) ? ViewLineStarts.starts("records-sheet-note", V.ref("X-WORK.monthUnderNote")) : .null)])
         return .object(out)
     }
     public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {
@@ -94,6 +94,6 @@ public enum MineSubView {
         for k in ["today", "year", "years", "prevYear", "nextYear", "empty", "count", "days"] { out[k] = m[k] }
         out["coverYear"] = .string(try KuanView.annualYearText(JS.number(m["year"]))); out["coverLine"] = try KuanView.annualCoverLineRef(JS.number(m["count"])); out["first"] = first; out["months"] = .array(months); out["twice"] = twice
         for (k,key) in [("emptyTitle","R-M06.emptyTitle"),("emptyBody","R-M06.emptyBody"),("emptyGlyph","X-ANNUAL.emptyGlyph"),("adjust","X-WORK.adjustImage"),("adjustAria","X-WORK.adjustAria"),("save","R-M01.saveImage")] { out[k] = V.ref(key) }
-        out["seal"] = try CoreResources.load("view-seal"); out["lines"] = V.obj([("head", .null), ("firstDate", .null)]); return .object(out)
+        out["seal"] = try CoreResources.load("view-seal"); out["lines"] = V.obj([("head", ViewLineStarts.starts("annual-head", out["coverLine"]!)), ("firstDate", JS.truthy(first) ? ViewLineStarts.starts("annual-first-date", first["date"]!) : .null)]); return .object(out)
     }
 }

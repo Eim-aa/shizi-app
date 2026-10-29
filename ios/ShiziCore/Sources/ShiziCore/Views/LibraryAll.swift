@@ -61,7 +61,7 @@ public enum LibraryAllView {
             if ms.count == 1 { whereRef = monthRef(ms.first!, today: today, found: true, dates: dates) }
         } else if !filter.isEmpty {
             if filter == "custom" {
-                groups = [hollowGroup(false), group("custom-done", name: V.ref("X-ALL.groupRecorded"), cells: byNew.filter { custom.contains(JS.string($0["char"])) }.map { ink($0) })]; note = V.ref("R-A02.customNote")
+                groups = [hollowGroup(false), group("custom-done", name: V.ref("X-ALL.groupRecorded"), cells: byNew.filter { KeySet(custom).contains(JS.string($0["char"])) }.map { ink($0) })]; note = V.ref("R-A02.customNote")
             } else {
                 let cells = ["due", "shaky", "known"].contains(filter) ? zones[filter]!["items"]!.arrayValue!.map { ink($0["record"]!) } : hollow.map { hol($0) }
                 groups = [group("f:"+filter, name: .string(""), cells: cells, head: false)]; note = V.ref(["due", "shaky", "known"].contains(filter) ? "X-LIBFOUR.zoneTop."+filter : "R-A02.customUnwrittenNote")
@@ -73,7 +73,7 @@ public enum LibraryAllView {
             }; note = V.ref("X-ALL.ageNote")
         } else if sort == "py" {
             var buckets = OMap<[JSValue]>()
-            let sorted = byNew.sorted { a, b in let ca = JS.string(a["char"]), cb = JS.string(b["char"]), ka = Query.pyKey(.string(py(ca))), kb = Query.pyKey(.string(py(cb))); return ka == kb ? ca < cb : ka < kb }
+            let sorted = byNew.sorted { a, b in let ca = JS.string(a["char"]), cb = JS.string(b["char"]), ka = Query.pyKey(.string(py(ca))), kb = Query.pyKey(.string(py(cb))); return ka == kb ? UTF16Order.less(ca, cb) : ka < kb }
             for r in sorted { let k = pyInitial(.string(py(JS.string(r["char"])))).stringValue ?? "#"; buckets[k] = (buckets[k] ?? []) + [r] }
             var keys = buckets.keys.filter { $0 != "#" }.sorted(); if buckets.has("#") { keys.append("#") }
             groups = [hollowGroup(true)] + keys.map { k in group("p:"+k, name: k == "#" ? V.ref("X-ALL.groupOther") : .string(k), cells: buckets[k]!.map { ink($0, withPy: true) }) }; note = V.ref("R-A01.sortPinyinNote")

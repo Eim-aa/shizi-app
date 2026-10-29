@@ -77,7 +77,7 @@ public enum DetailView {
         }
         var rows: [JSValue] = []
         if JS.truthy(m["list"]) { rows.append(V.obj([("key", .string("list")), ("kind", m["list"]!), ("title", V.ref("X-LIBFOUR.zone.due")), ("sub", V.ref(m["list"] == .string("wrong") ? "R-D01.wrongLine" : "R-D01.forgetLine")), ("to", V.obj([("screen", .string("library-list")), ("params", V.obj([("kind", .string("due"))]))]))])) }
-        if JS.truthy(m["due"]) { rows.append(V.obj([("key", .string("next")), ("title", V.ref("R-D02.nextReview", V.obj([("date", LibraryListView.dateText(m["due"], dates: dates))]))), ("starts", .null)])) }
+        if JS.truthy(m["due"]) { rows.append(V.obj([("key", .string("next")), ("title", V.ref("R-D02.nextReview", V.obj([("date", LibraryListView.dateText(m["due"], dates: dates))]))), ("starts", ViewLineStarts.starts("detail-next", V.ref("R-D02.nextReview", V.obj([("date", LibraryListView.dateText(m["due"], dates: dates))]))))])) }
         if imageAction {
             var r = JSObject([("key", .string("image")), ("state", m["image"]!), ("title", V.ref("R-D04.makeImage"))])
             if m["image"] != .string("ok") { r["note"] = V.ref(m["image"] == .string("noInk") ? Copy.inkKey("R-D04.noInkNote") : "R-D04.noRecordNote") }; rows.append(.object(r))

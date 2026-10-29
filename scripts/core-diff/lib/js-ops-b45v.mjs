@@ -1,3 +1,5 @@
+import { setLineBreaker } from '../../../src/core/line-starts.js';
+
 import { createStore } from '../../../src/store/store.js';
 import { createStorage } from '../../../src/store/storage.js';
 import { MemoryStorage } from '../../../test/store/helpers.mjs';
@@ -32,6 +34,7 @@ import * as policy from '../../../src/config/policy.js';
 export function makeB45ViewOps({ required, clock }) {
   const p = a => ({ ...policy, ...a.policy });
   const at = (a, fn) => { const saved = Date.now; Date.now = () => a.now ?? clock(); try { return fn(); } finally { Date.now = saved; } };
+  const measured = (a,fn) => {setLineBreaker(a.breaks?(kind)=>{if(a.breaks.throws) throw Error('measurement failed');return a.breaks[kind]??null;}:null);try{return fn();}finally{setLineBreaker(null);}};
   const submit = (a,kind) => {
     const now=()=>a.now??clock(), disk=new MemoryStorage(), storage=createStorage(disk,{now}), store=createStore({storage,now});
     store.load(); if(a.initial) {const r=store.seed(a.initial); if(!r.ok) throw Error('invalid initial view store state');}
@@ -53,14 +56,14 @@ export function makeB45ViewOps({ required, clock }) {
     'view.home.helpers': a => ({records:home.recordsStateOf(a.state,a.today,{policy:p(a)}),last:home.lastJudgedDayOf(Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[])),view:home.homeViewOf(a.model),count:home.libraryCountOf(Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[])),cta:home.homeCtaKey(a.model),note:home.homeNoteOf(a.model),resume:home.resumeKeyOf(a.kind),progress:home.progressText(a.line,ref),text:home.resumeLineText(a.line,ref),aria:home.resumeLineAria(a.line,ref),ctaAria:home.ctaAria(a.model,ref),noChars:home.noCharsLeft(a.state,a.today,deck(a),p(a))}),
     'view.library-all': a => {setDeckSource(deckSources());return libraryAll.allModel(a.state,{...a,policy:p(a),pyOf:c=>a.pinyin?.[c]??cardForKey('base:'+c)?.py??'',practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-all.helpers': a => ({sort:libraryAll.normalizeSort(a.sort),filter:libraryAll.normalizeFilter(a.filter),fold:libraryAll.normalizeFold(a.fold),py:libraryAll.pyKey(a.py),initial:libraryAll.pyInitial(a.py),find:libraryAll.parseFind(a.find),month:libraryAll.monthName(a.month,a.today),where:libraryAll.foundWhere(a.month,a.today),toggle:libraryAll.toggleFold(a.fold,a.month,a.open),take:libraryAll.takeCells(a.groups||[],a.limit)}),
-    'view.detail': a => {setDeckSource(deckSources());return detail.detailView({getState:()=>a.state,getInk:ink(a)},a.char,a);},
+    'view.detail': a => {setDeckSource(deckSources());return measured(a,()=>detail.detailView({getState:()=>a.state,getInk:ink(a)},a.char,a));},
     'view.detail.model': a => {setDeckSource(deckSources());return detail.detailModel(a.state,a.char,{...a,policy:p(a),hasInk:r=>detail.recordHasInk({getInk:ink(a)},r)});},
     'view.detail-photo': a => detail.photoView(a.state,a.char),
     'view.detail.helpers': a => {setDeckSource(deckSources());const store={getInk:ink(a)},i=detail.inkOf(store,a.record),m=detail.detailModel(a.state,a.char,{today:a.today,policy:p(a)}); return {base:detail.baseKey(a.char),records:detail.recordsOfChar(a.state,a.char),copy:detail.cellCopy(a.record||{}),list:detail.listOf({records:Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[]),sched:a.state.sched,today:a.today,cardKey:'base:'+a.char}),word:detail.wordView(cardForKey('base:'+a.char)),hero:detail.detailHero(m),ink:i,has:detail.recordHasInk(store,a.record),points:detail.hasInkPoints(i),day:detail.dayRef(a.day),photo:detail.photoOf(a.state,a.char)};},
-    'view.records': a => mineSub.recordsView(a.state,a.today,{...a,policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
-    'view.month': a => mineSub.monthView(a.state,a.month,{policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
-    'view.month.sheet': a => mineSub.monthSheetOf(a.state,a.month,{policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
-    'view.annual-page': a => mineSub.annualView(a.state,a.today,{...a,policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
+    'view.records': a => measured(a,()=>mineSub.recordsView(a.state,a.today,{...a,policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)})),
+    'view.month': a => measured(a,()=>mineSub.monthView(a.state,a.month,{policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)})),
+    'view.month.sheet': a => measured(a,()=>mineSub.monthSheetOf(a.state,a.month,{policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)})),
+    'view.annual-page': a => measured(a,()=>mineSub.annualView(a.state,a.today,{...a,policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)})),
     'view.mine-sub.helpers': a => ({month:mineSub.monthHeadRef(a.n),day:mineSub.dayTextRef(a.day),label:mineSub.cellLabelRef(a.cell),dayLabel:mineSub.dayCellLabelRef(a.cell),geometry:mineSub.sheetGeometry(a.n,a.width)}),
     'view.mine': a => minePage.mineView(a.state,a.today,{...a,policy:p(a),store:{getInk:ink(a)},strokesOf:r=>sheetStrokes({getInk:ink(a)},r)}),
     'view.mine.sheet': a => minePage.mineSheetView(a.state,mine.mineModel(a.state,a.today,{policy:p(a),storagePressure:a.storagePressure}),{...a,policy:p(a),store:{getInk:ink(a)},strokesOf:r=>sheetStrokes({getInk:ink(a)},r)}),
@@ -81,6 +84,7 @@ export function makeB45ViewOps({ required, clock }) {
     'view.settings.permission': a => submit(a,'permission'),
     'view.settings.remindOf': a => submit(a,'remindOf'),
     'view.query.add': a => submit(a,'add'),
+    'view.query.predicates': a => {setDeckSource(deckSources());const p=query.deckPredicates(a.settings), entries=p.pinyinEntries();return {facts:a.chars.map(c=>({char:c,deck:p.inDeck(c),library:p.inLibrary(c),card:p.card(c)})),pinyinCount:entries.length,pinyinHead:entries.slice(0,4)};},
     'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
     'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),

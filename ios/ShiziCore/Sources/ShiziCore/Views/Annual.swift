@@ -36,7 +36,7 @@ public enum AnnualView {
         return years.filter { let s = yearSlice(state, year: $0, dates: dates); return !s.days.isEmpty || !s.chars.isEmpty }.sorted()
     }
     public static func annualDefaultYear(_ state: JSValue, today: String, dates: Dates) -> JSValue {
-        guard let cur = yearOfDay(today, dates: dates) else { return .null }
+        guard let cur = yearOfDay(today, dates: dates) else { return annualYears(state, dates: dates).first.map { .number(Double($0)) } ?? .null }
         let years = annualYears(state, dates: dates)
         return .number(Double(years.isEmpty || years.contains(cur) ? cur : years.filter { $0 <= cur }.last ?? years[0]))
     }
@@ -82,9 +82,10 @@ public enum AnnualView {
         }
     }
     public static func annualModel(_ state: JSValue, today: String, year: JSValue? = nil, policy: JSValue = Config.policy, hasInk: InkPick.HasInk? = nil, dates: Dates) throws -> JSValue {
-        let y = year?.numberValue.flatMap { $0.isFinite && $0.rounded(.towardZero) == $0 ? Int($0) : nil } ?? yearOfDay(today, dates: dates) ?? 0
+        let wanted = year?.numberValue.flatMap { $0.isFinite && $0.rounded(.towardZero) == $0 ? Int($0) : nil } ?? yearOfDay(today, dates: dates)
+        let y = wanted ?? 0
         let years = annualYears(state, dates: dates), at = years.firstIndex(of: y), s = yearSlice(state, year: y, dates: dates), empty = s.days.isEmpty && s.chars.isEmpty
-        return V.obj([("today", .string(today)), ("year", .number(Double(y))), ("years", .array(years.map { .number(Double($0)) })), ("prevYear", at != nil && at! > 0 ? .number(Double(years[at!-1])) : .null), ("nextYear", at != nil && at! < years.count-1 ? .number(Double(years[at!+1])) : .null), ("empty", .bool(empty)), ("count", .number(Double(s.chars.count))), ("chars", .array(s.chars.map(JSValue.string))), ("days", .number(Double(s.days.count))), ("first", empty ? .null : firstOfYear(s, hasInk: hasInk, dates: dates)), ("months", .array(empty ? [] : try yearMonths(state, s, policy: policy, dates: dates))), ("twice", empty ? .null : try twiceOfYear(s, hasInk: hasInk, dates: dates))])
+        return V.obj([("today", .string(today)), ("year", wanted.map { .number(Double($0)) } ?? .null), ("years", .array(years.map { .number(Double($0)) })), ("prevYear", at != nil && at! > 0 ? .number(Double(years[at!-1])) : .null), ("nextYear", at != nil && at! < years.count-1 ? .number(Double(years[at!+1])) : .null), ("empty", .bool(empty)), ("count", .number(Double(s.chars.count))), ("chars", .array(s.chars.map(JSValue.string))), ("days", .number(Double(s.days.count))), ("first", empty ? .null : firstOfYear(s, hasInk: hasInk, dates: dates)), ("months", .array(empty ? [] : try yearMonths(state, s, policy: policy, dates: dates))), ("twice", empty ? .null : try twiceOfYear(s, hasInk: hasInk, dates: dates))])
     }
     public static func annualPlan(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {
         let model = try annualModel(state, today: today, year: year, policy: policy, dates: dates)

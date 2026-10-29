@@ -2,28 +2,44 @@ import Foundation
 
 // src/session/views/query.js; predicates use the already ported real deck.
 public enum QueryView {
+    public struct Predicates {
+        public let inDeck: (String) -> Bool
+        public let inLibrary: (String) -> Bool
+        public let card: (String) -> JSValue?
+        public let pinyinEntries: () -> [JSValue]
+    }
+    public static func deckPredicates(_ settings: JSValue?, lookup: ((String) -> JSValue?)? = nil) -> Predicates {
+        let customLookup = lookup != nil
+        let lookup = lookup ?? DeckCards.shared.cardForKey
+        let lib = Cards.libraryById(JS.string(DeckIndex.shared.currentLibraryId(settings)))
+        return Predicates(inDeck: { lookup("base:"+$0) != nil }, inLibrary: { c in
+            guard let k = lookup("base:"+c), let lib else { return false }; return lib.test(k)
+        }, card: { lookup("base:"+$0) }, pinyinEntries: { customLookup ? pinyinEntriesOf(DeckCards.shared.cards, lookup: lookup) : QueryView.pinyinEntries })
+    }
+    static func pinyinEntriesOf(_ cards: [JSValue], lookup: (String) -> JSValue?) -> [JSValue] {
+        var seen = KeySet(), out: [JSValue] = []
+        for c in cards {
+            guard let ch = c["target"]?.stringValue, !ch.isEmpty, !seen.contains(ch), let card = lookup("base:"+ch) else { continue }
+            seen.insert(ch); let key = Query.pyKey(card["py"])
+            if !key.isEmpty { out.append(ViewSupport.obj([("char", .string(ch)), ("key", .string(key))])) }
+        }; return out
+    }
     static func entry(_ key: String, _ vars: JSValue = .object(JSObject())) -> JSValue {
         ViewSupport.obj([("key", .string(key)), ("vars", vars)])
     }
     static func normalized(_ v: JSValue) -> JSValue { entry(JS.string(v["key"]), v["vars"] ?? .object(JSObject())) }
-    static let pinyinEntries: [JSValue] = {
-        var seen = KeySet()
-        return DeckCards.shared.cards.compactMap { c in
-            guard let ch = c["target"]?.stringValue, !ch.isEmpty, !seen.contains(ch), let card = DeckCards.shared.cardForKey("base:" + ch) else { return nil }
-            seen.insert(ch)
-            let key = Query.pyKey(card["py"])
-            return key.isEmpty ? nil : ViewSupport.obj([("char", .string(ch)), ("key", .string(key))])
-        }
-    }()
+    static let pinyinEntries = pinyinEntriesOf(DeckCards.shared.cards, lookup: DeckCards.shared.cardForKey)
     static func practicable(_ c: String) -> Bool { Query.isPracticable(.string(c), inDeck: { DeckCards.shared.cardForKey("base:" + $0) != nil }) }
-    public static func sheetModel(_ a: JSObject) -> JSValue {
+    public static func sheetModel(_ a: JSObject, predicates: Predicates? = nil) -> JSValue {
+        let pred = predicates ?? deckPredicates(a["state"]?["settings"])
+        func practicable(_ c: String) -> Bool { Query.isPracticable(.string(c), inDeck: pred.inDeck, inLibrary: pred.inLibrary) }
         let state = a["state"], policy = ViewSupport.policy(a["policy"])
         let records = Query.flattenRecords(state?["records"])
         var filtered = Query.filterInput(a["text"], max: policy["queryInputMax"])
         let py = filtered.hanCount == 0 ? Query.parsePinyinInput(a["text"]) : nil
         var pinyin: JSValue? = nil
         if let py {
-            let chars = Query.pinyinMatches(JS.string(py["query"]), pinyinEntries, written: Query.writtenChars(records))
+            let chars = Query.pinyinMatches(JS.string(py["query"]), pred.pinyinEntries(), written: Query.writtenChars(records))
             pinyin = ViewSupport.obj([("raw", py["raw"]!), ("count", .number(Double(chars.count)))])
             filtered = Query.Filtered(chars: chars, removed: 0, duplicates: [], hanCount: 0, overLimit: 0, total: filtered.total)
         }
@@ -63,17 +79,18 @@ public enum QueryView {
         let points = try InkMath.decodeInkRaw(ink) ?? InkMath.decodeInk(ink) ?? []
         return .array(points.map { .array($0.map { .array([.number($0.x), .number($0.y), .number($0.t ?? 0)] + ($0.p.map { [.number($0)] } ?? [])) }) })
     }
-    public static func querySheetModel(_ a: JSObject, dates: Dates) throws -> JSValue {
-        let m = sheetModel(a), mode = a["mode"] ?? .null, view = JS.string(m["view"]), cur = m["cur"]!
+    public static func querySheetModel(_ a: JSObject, predicates: Predicates? = nil, dates: Dates) throws -> JSValue {
+        let pred = predicates ?? deckPredicates(a["state"]?["settings"])
+        let m = sheetModel(a, predicates: pred), mode = a["mode"] ?? .null, view = JS.string(m["view"]), cur = m["cur"]!
         var rows: [JSValue] = [], card: JSValue = .null, bad: JSValue = .null
         if view == "rows" {
             rows = (m["summaries"]?.arrayValue ?? []).map { s in
-                let c = DeckCards.shared.cardForKey("base:" + JS.string(s["char"]))
+                let c = pred.card(JS.string(s["char"]))
                 return ViewSupport.obj([("char", s["char"]!), ("pinyin", c?["py"] ?? .string("")), ("word", c?["word"] ?? .string("")), ("status", normalized(Query.rowStatus(s))), ("selectable", .bool(mode == .string("pick") && JS.truthy(s["practicable"]))), ("selected", .bool(m["chosen"]!.arrayValue!.contains(s["char"]!))), ("practicable", .bool(JS.truthy(s["practicable"]))), ("custom", .bool(JS.truthy(s["custom"]))), ("count", s["count"]!)])
             }
         }
         if ["card", "bad"].contains(view), let s = m["summary"], JS.truthy(s) {
-            let c = DeckCards.shared.cardForKey("base:" + JS.string(cur))
+            let c = pred.card(JS.string(cur))
             var common = JSObject([("char", cur), ("pinyin", c?["py"] ?? .string("")), ("word", c?["word"] ?? .string("")), ("strokes", c?["strokes"] ?? .number(0)), ("custom", .bool(JS.truthy(s["custom"]))), ("count", s["count"]!)])
             if view == "card" {
                 let ink = try inkPointsOf(s, state: a["state"], dates: dates)

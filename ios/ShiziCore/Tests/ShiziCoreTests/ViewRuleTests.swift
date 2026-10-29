@@ -252,4 +252,109 @@ final class ViewRuleTests: XCTestCase {
         XCTAssertEqual(V.skippedZone(state([skipped,srec(2,cYong,kind:"answer-seen")]))["n"],.number(0))
         XCTAssertEqual(V.skippedZone(state([skipped,srec(2,cYong)]))["n"],.number(0))
     }
+    // test/ui/query.test.mjs — deckPredicates: deck membership and current library (settings.library; unknown → default core3500)
+    func testDeckPredicatesInjectedLookup() {
+        let missing = QueryView.deckPredicates(nil, lookup: { _ in nil })
+        XCTAssertFalse(missing.inDeck(cYong)); XCTAssertFalse(missing.inLibrary(cYong)); XCTAssertTrue(missing.pinyinEntries().isEmpty)
+        let real = QueryView.deckPredicates(.object(JSObject([("library", .string("nope"))])))
+        XCTAssertTrue(real.inDeck(cYong)); XCTAssertTrue(real.inLibrary(cYong)); XCTAssertNotNil(real.card(cYong))
+    }
+    // src/core/line-starts.js — no provider, non-array and thrown measurements are null; valid line starts pass through.
+    func testInjectedLineStartsContract() throws {
+        let expected = JSValue.array([.number(0), .number(4)])
+        for (breaks, want) in [(V.obj([("month-sub", expected)]), expected), (V.obj([("month-sub", .bool(false))]), .null), (V.obj([("throws", .bool(true))]), .null)] {
+            let result = try CoreEngine.measuredView(JSObject([("breaks", breaks)])) {
+                try MineSubView.monthView(.null, month: "2026-03", policy: Config.policy, dates: dates)
+            }
+            XCTAssertEqual(result["lines"]?["sub"], want)
+        }
+        XCTAssertNil(ViewLineStarts.provider)
+    }
+
+    func inkState(_ records: [JSValue], ids: [String]) -> JSValue {
+        let ink = InkMath.encodeInkRaw([[InkPoint(x: 10,y: 20,t: 0,p: 0.5),InkPoint(x: 30,y: 40,t: 20,p: 0.7)]])
+        var months=JSObject()
+        for r in records where ids.contains(JS.string(r["id"])) { let m=String(JS.string(r["localDay"]).prefix(7)); var table=months[m]?.objectValue ?? JSObject();table[JS.string(r["id"])]=ink;months[m] = .object(table) }
+        return state(records,extra:[("ink",.object(months))])
+    }
+    // test/ui/annual.test.mjs — D42 first of the year: the ink comes from the earliest of this year's records of that char that still has ink
+    func testAnnualFirstInkStaysInYear() throws {
+        let old=srec(1,cYong,day:"2025-12-31"),a=srec(2,cYong,day:"2026-01-01"),b=srec(3,cYong,day:"2026-02-01")
+        let s=inkState([old,a,b],ids:["r1","r3"]),m=try AnnualView.annualModel(s,today:today,dates:dates)
+        XCTAssertEqual(m["first"]?["record"],b);XCTAssertEqual(m["first"]?["day"],b["localDay"])
+        XCTAssertEqual(try AnnualView.annualModel(inkState([old,a,b],ids:["r1"]),today:today,dates:dates)["first"]?["record"],a)
+    }
+    // test/ui/annual.test.mjs — 卷尾「同一个字，两次」(P161): a char with two inked records this year, the pair furthest apart; ties → written first; none → no tail
+    func testAnnualTwiceLargestGapAndTie() throws {
+        let recs=[srec(1,cYong,day:"2026-01-01"),srec(2,cRen,day:"2026-01-01"),srec(3,cRen,day:"2026-09-01"),srec(4,cYong,day:"2026-09-01")]
+        let s=inkState(recs,ids:recs.map{JS.string($0["id"])}),m=try AnnualView.annualModel(s,today:today,dates:dates)
+        XCTAssertEqual(m["twice"]?["char"],.string(cYong));XCTAssertEqual(m["twice"]?["first"]?["record"],recs[0]);XCTAssertEqual(m["twice"]?["last"]?["record"],recs[3])
+        XCTAssertEqual(try AnnualView.annualPlan(s,today:today,year:nil,policy:Config.policy,dates:dates)["pages"]?.arrayValue?.last?["type"],.string("tail"))
+    }
+    // test/ui/mine.test.mjs — D42 month sheet: ink never borrowed across months; date tag stays the first member day.
+    func testMonthInkSelectionAndStableTag() {
+        let old=srec(1,cYong,day:"2026-08-01"),a=srec(2,cYong,day:"2026-09-01"),b=srec(3,cYong,day:"2026-09-22"),s=inkState([old,a,b],ids:["r1","r3"])
+        let sheet=V.monthSheet(V.recordIndex(s,dates:dates),month:"2026-09",policy:Config.policy)
+        XCTAssertEqual(sheet["cells"]?.arrayValue?.first?["record"],b);XCTAssertEqual(sheet["cells"]?.arrayValue?.first?["day"],a["localDay"])
+        let without=inkState([old,a,b],ids:["r1"]),fallback=V.monthSheet(V.recordIndex(without,dates:dates),month:"2026-09",policy:Config.policy)
+        XCTAssertEqual(fallback["cells"]?.arrayValue?.first?["record"],a)
+    }
+    // test/ui/mine.test.mjs — D42 day items: the char keeps the latest record OF THAT DAY that has ink; none that day keeps the latest
+    func testDayInkSelectionAndFoldedNoRecord() throws {
+        let a=srec(1,cYong,day:today),b=srec(2,cYong,day:today),s=inkState([a,b],ids:["r1"])
+        XCTAssertEqual(V.dayItems(V.recordIndex(s,dates:dates),day:today).first?["record"],a)
+        let fold=try json(#"{"records":{"2026-09":{"folded":true,"kept":[],"chars":["永"],"byDay":{"2026-09-24":["永"]},"work":{"2026-09-24":["永"]},"workJudged":{"2026-09-24":["永"]}}}}"#)
+        XCTAssertEqual(V.dayItems(V.recordIndex(fold,dates:dates),day:today).first?["record"],.null)
+    }
+    // test/ui/home.test.mjs — resume dimension: none / A / B / A+B; B is the primary line, A the other (D05 / S01)
+    // B6 (G45, D36): a current char that has seen its answer is not counted in 「还有 N 个字没写」
+    func testResumePriorityAndSeenPosition() throws {
+        let at=try dates.dayStartMs(.string(today))+12*3600000
+        func session(_ id: String,_ kind: String) throws -> JSValue { try SessionRules.createSession(id:.string(id),kind:.string(kind),source:nil,queue:.array([cYong,cRen,cKou].map{.string("base:"+$0)}),at:.number(at),dates:dates) }
+        var a=try session("s1","daily").objectValue!,b=try session("s2","picked").objectValue!,current=b["current"]!.objectValue!
+        a["items"]=try json(#"[{"kind":"skipped"},{"kind":"judged"},{"kind":"answer-seen"}]"#)
+        b["cursor"] = .number(1);current["answerSeen"] = .bool(true);b["current"] = .object(current)
+        let s=state([],extra:[("sessions",V.obj([("A",.object(a)),("B",.object(b))]))]),m=try HomeView.resumeOf(s,now:at,policy:Config.policy,dates:dates)
+        XCTAssertEqual(m["resume"],.string("A+B"));XCTAssertEqual(m["primary"]?["slot"],.string("B"));XCTAssertEqual(m["primary"]?["remaining"],.number(1));XCTAssertEqual(m["primary"]?["position"],.number(2));XCTAssertEqual(m["other"]?["done"],.number(2));XCTAssertEqual(m["daily"],m["other"])
+    }
+    // test/ui/library-all.test.mjs — pinyin: initial groups (tones stripped, ü → u), each cell labelled with pinyin, no-pinyin chars in 其他
+    func testAllPinyinGroupingAndExactFind() throws {
+        let s=state([srec(1,cYong),srec(2,cRen),srec(3,cKou)]),py=V.obj([(cYong,.string("yǒng")),(cRen,.string("rén")),(cKou,.string(""))])
+        var a=JSObject([("today",.string(today)),("sort",.string("py")),("pinyin",py)])
+        let m=try LibraryAllView.allModel(s,a,dates:dates)
+        XCTAssertEqual(m["groups"]?.arrayValue?.map{$0["key"]!},["p:R","p:Y","p:#"].map(JSValue.string))
+        a["find"] = .string("ren");let found=try LibraryAllView.allModel(s,a,dates:dates)
+        XCTAssertEqual(found["find"]?["chars"],.array([.string(cRen)]));XCTAssertEqual(found["showSort"],.bool(false))
+    }
+    // test/ui/library-list.test.mjs — R-E01 / K16: 快忘了 = latest judged correct and due; mutually exclusive with 写错过; cap from policy
+    func testForgetListCapAndWrongExclusion() throws {
+        let recs=[srec(1,cYong),srec(2,cRen),srec(3,cKou,judgment:"wrong")],sched=V.obj([("base:"+cYong,try json(#"{"due":"2026-09-01","fsrs":{"stability":1}}"#)),("base:"+cRen,try json(#"{"due":"2026-09-02","fsrs":{"stability":1}}"#))])
+        let s=state(recs,extra:[("sched",sched)]),p=V.policy(V.obj([("forgetCap",.number(1))]))
+        let entries=try LibraryListView.listEntries(s,kind:.string("forget"),today:today,policy:p,dates:dates)
+        XCTAssertEqual(entries.count,1);XCTAssertEqual(entries.first?["char"],.string(cYong))
+    }
+    // test/ui/library.test.mjs — wall order: hollow first, then latest judged newest → oldest (by id); wrong = standard glyph kind
+    func testWallOrderAndTruncation() throws {
+        let recs=(1...90).map{srec($0,String(Unicode.Scalar(0x4e00+$0)!),judgment:$0==90 ? "wrong":"correct")},s=state(recs,extra:[("custom",V.obj([("added",.array([V.obj([("char",.string(cYong)),("at",.number(1))])]))]))])
+        let m=try LibraryView.libraryHomeModel(s,today:today,policy:Config.policy,compact:false,width:.number(200),dates:dates),cells=m["wall"]!["cells"]!.arrayValue!
+        XCTAssertEqual(cells.count,32);XCTAssertEqual(cells[0]["kind"],.string("hollow"));XCTAssertEqual(cells[1]["kind"],.string("wrong"));XCTAssertEqual(m["wall"]?["more"],.number(59))
+        XCTAssertEqual(LibraryView.cardMini(recs).arrayValue?.count,5)
+    }
+
+    // ECMAScript edge: compatibility ideographs are distinct code points, even when Swift considers them canonically equal.
+    func testWordPartsPreservesJSCodepointIdentity() {
+        let compat="\u{f900}", canonical="\u{8c48}"
+        let parts=LibraryListView.wordParts(.string(compat),.string(canonical))
+        XCTAssertEqual(parts["has"],.bool(true));XCTAssertEqual(parts["pre"],.string(compat));XCTAssertEqual(parts["tg"],.string(""))
+    }
+    func testAllUsesUTF16SortAndExactCustomMembership() throws {
+        let compat="\u{f900}", canonical="\u{8c48}", astral="\u{20000}"
+        let s=state([srec(1,compat),srec(2,astral)],extra:[("custom",V.obj([("added",.array([V.obj([("char",.string(canonical)),("at",.number(1))])]))]))])
+        let sorted=try LibraryAllView.allModel(s,JSObject([("today",.string(today)),("sort",.string("py")),("pinyin",V.obj([(compat,.string("")),(astral,.string(""))]))]),dates:dates)
+        let other=sorted["groups"]!.arrayValue!.first{$0["key"] == .string("p:#")}!
+        XCTAssertEqual(other["cells"]?.arrayValue?.map{$0["char"]!},[astral,compat].map(JSValue.string))
+        let filtered=try LibraryAllView.allModel(s,JSObject([("today",.string(today)),("filter",.string("custom"))]),dates:dates)
+        XCTAssertFalse(filtered["groups"]!.arrayValue!.contains{$0["key"] == .string("custom-done")})
+    }
+
 }

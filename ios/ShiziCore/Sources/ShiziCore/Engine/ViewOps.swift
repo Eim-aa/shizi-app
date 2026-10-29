@@ -15,7 +15,7 @@ extension CoreEngine {
             var fold = LibraryAllView.normalizeFold(a["fold"]); fold[JS.string(a["month"])] = .bool(!JS.truthy(a["open"]))
             return ViewSupport.obj([("sort", .string(LibraryAllView.normalizeSort(a["sort"]))), ("filter", .string(LibraryAllView.normalizeFilter(a["filter"]))), ("fold", .object(LibraryAllView.normalizeFold(a["fold"]))), ("py", .string(Query.pyKey(a["py"]))), ("initial", LibraryAllView.pyInitial(a["py"])), ("find", LibraryAllView.parseFind(a["find"])), ("month", LibraryAllView.monthRef(JS.string(a["month"]), today: JS.string(a["today"]), found: false, dates: e.dates)), ("where", LibraryAllView.monthRef(JS.string(a["month"]), today: JS.string(a["today"]), found: true, dates: e.dates)), ("toggle", .object(fold)), ("take", .array(LibraryAllView.takeCells(a["groups"]?.arrayValue ?? [], limit: JS.number(a["limit"]))))])
         },
-        "view.detail": { e, a in try DetailView.detailView(a["state"] ?? .null, char: string(a, "char"), today: string(a, "today"), etymology: a["etymology"], imageAction: JS.truthy(a["imageAction"]), dates: e.dates) },
+        "view.detail": { e, a in try measuredView(a) { try DetailView.detailView(a["state"] ?? .null, char: string(a, "char"), today: string(a, "today"), etymology: a["etymology"], imageAction: JS.truthy(a["imageAction"]), dates: e.dates) } },
         "view.detail.model": { e, a in try DetailView.detailModel(a["state"] ?? .null, char: string(a, "char"), today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), hasInk: { DetailView.recordHasInk(a["state"] ?? .null, record: $0, dates: e.dates) }, dates: e.dates) },
         "view.detail-photo": { _, a in try DetailView.photoView(a["state"] ?? .null, char: string(a, "char")) },
         "view.detail.helpers": { e, a in
@@ -24,10 +24,10 @@ extension CoreEngine {
             let ink = try DetailView.inkOf(state, record: r, dates: e.dates)
             return ViewSupport.obj([("base", .string("base:"+char)), ("records", .array(DetailView.recordsOfChar(state, char: char))), ("copy", DetailView.cellCopy(r, dates: e.dates)), ("list", try DetailView.listOf(Query.flattenRecords(state["records"]), sched: state["sched"], today: string(a, "today"), key: "base:"+char, dates: e.dates)), ("word", try DetailView.wordView(DeckCards.shared.cardForKey("base:"+char))), ("hero", DetailView.detailHero(model)), ("ink", ink), ("has", .bool(DetailView.recordHasInk(state, record: r, dates: e.dates))), ("points", .bool(DetailView.hasInkPoints(ink))), ("day", LibraryListView.dateText(a["day"], dates: e.dates)), ("photo", DetailView.photoOf(state, char: char))])
         },
-        "view.records": { e, a in try MineSubView.recordsView(a["state"] ?? .null, today: string(a, "today"), a, dates: e.dates) },
-        "view.month": { e, a in try MineSubView.monthView(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
-        "view.month.sheet": { e, a in try MineSubView.monthSheetOf(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
-        "view.annual-page": { e, a in try MineSubView.annualView(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.records": { e, a in try measuredView(a) { try MineSubView.recordsView(a["state"] ?? .null, today: string(a, "today"), a, dates: e.dates) } },
+        "view.month": { e, a in try measuredView(a) { try MineSubView.monthView(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) } },
+        "view.month.sheet": { e, a in try measuredView(a) { try MineSubView.monthSheetOf(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) } },
+        "view.annual-page": { e, a in try measuredView(a) { try MineSubView.annualView(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) } },
         "view.mine-sub.helpers": { e, a in try ViewSupport.obj([("month", MineSubView.monthHeadRef(a["n"] ?? .number(0))), ("day", MineSubView.dayTextRef(required(a, "day"), dates: e.dates)), ("label", MineSubView.cellLabelRef(required(a, "cell"), dates: e.dates)), ("dayLabel", MineSubView.dayCellLabelRef(required(a, "cell"), dates: e.dates)), ("geometry", MineSubView.sheetGeometry(Int(JS.number(a["n"])), width: JS.number(a["width"])))]) },
         "view.mine": { e, a in try MinePageView.mineView(a["state"] ?? .null, today: string(a, "today"), a, dates: e.dates) },
         "view.mine.sheet": { e, a in
@@ -64,6 +64,10 @@ extension CoreEngine {
         "view.settings.permission": { e, a in try viewSubmit(e, a, kind: "permission") },
         "view.settings.remindOf": { e, a in try viewSubmit(e, a, kind: "remindOf") },
         "view.query.add": { e, a in try viewSubmit(e, a, kind: "add") },
+        "view.query.predicates": { _, a in
+            let p = QueryView.deckPredicates(a["settings"]), chars = (a["chars"]?.arrayValue ?? []).compactMap(\.stringValue), entries = p.pinyinEntries()
+            return ViewSupport.obj([("facts", .array(chars.map { c in ViewSupport.obj([("char", .string(c)), ("deck", .bool(p.inDeck(c))), ("library", .bool(p.inLibrary(c))), ("card", p.card(c) ?? .null)]) })), ("pinyinCount", .number(Double(entries.count))), ("pinyinHead", .array(Array(entries.prefix(4))))])
+        },
         "view.library-list": { e, a in try LibraryListView.listModel(a["state"] ?? .null, a, dates: e.dates) },
         "view.library-list.entries": { e, a in .array(try LibraryListView.listEntries(a["state"] ?? .null, kind: a["kind"], today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
         "view.library-list.helpers": { e, a in
@@ -150,5 +154,18 @@ extension CoreEngine {
             results.append(result); states.append(.object(store.state))
         }
         return ViewSupport.obj([("results", .array(results)), ("states", .array(states)), ("remind", SettingsView.remindOf(store))])
+    }
+}
+
+extension CoreEngine {
+    static func measuredView(_ a: JSObject, _ body: () throws -> JSValue) rethrows -> JSValue {
+        let old = ViewLineStarts.provider
+        if let breaks = a["breaks"] {
+            ViewLineStarts.provider = { kind, _ in
+                if breaks["throws"] == .bool(true) { throw CoreError.error("measurement failed") }
+                return breaks[kind] ?? .null
+            }
+        } else { ViewLineStarts.provider = nil }
+        defer { ViewLineStarts.provider = old }; return try body()
     }
 }

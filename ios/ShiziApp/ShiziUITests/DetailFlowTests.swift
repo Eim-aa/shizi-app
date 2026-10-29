@@ -61,6 +61,20 @@ final class DetailFlowTests: XCTestCase {
         qa.waitProbe("restored") { _ in qa.el("native-detail-remove").exists }
     }
 
+    /// B3.Z（33-detail）：加入自选失败 → 行下就地三段式；「再试一次」写成功后三段式消失、行变「移出自选」。
+    func testCustomAddFailureThreeStageThenRetry() {
+        let qa = QA(seed: "detail-none", failNext: 1)
+        qa.launch()
+        waitStage(qa, ["detail"])
+        Thread.sleep(forTimeInterval: 0.5)
+        qa.tap(qa.el("native-detail-add"), "add (fails)", verify: false) // 失败不改探针，免得「没效果就重点」把第二下点成功
+        XCTAssertTrue(qa.el("native-detail-add-fail-note").waitForExistence(timeout: 6), "failure block shows in place")
+        XCTAssertFalse(qa.el("native-detail-remove").exists, "a failed add changes nothing")
+        qa.tap(qa.el("native-detail-add-fail-retry"), "retry", verify: false)
+        qa.waitProbe("added after retry") { _ in qa.el("native-detail-remove").exists }
+        XCTAssertFalse(qa.el("native-detail-add-fail-note").exists, "the failure block goes away")
+    }
+
     /// 记录格放大改判（再点改回）：头图格 → 放大弹层 → 改为写对 → 弹层关；再开一次是「改为写错」，再点改回。
     func testRecordCellZoomCorrectJudgment() {
         let qa = open("detail-many")

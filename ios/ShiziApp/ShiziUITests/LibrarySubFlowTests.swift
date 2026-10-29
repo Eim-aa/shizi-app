@@ -54,6 +54,23 @@ final class LibrarySubFlowTests: XCTestCase {
     /// 底栏提示现在的字（勾选后会变）。
     private func qaHintLabel(_ qa: QA) -> String { qa.el("native-library-list-hint").label }
 
+    /// B3.Z（35-all）：按月折叠——点折起的月份展开，点展开月份的标题折起。
+    func testAllCharsMonthOpensAndFolds() {
+        let qa = QA(seed: "all-month")
+        qa.launch()
+        waitScreen(qa, "library-all")
+        let closed = qaQuery(qa, "native-library-all-month")
+        XCTAssertTrue(closed.element(boundBy: 0).waitForExistence(timeout: 8), "older months are folded")
+        let n = closed.count
+        let heads = qaQuery(qa, "native-library-all-group-head")
+        let headsBefore = heads.count
+        qa.tap(closed.element(boundBy: 0), "open a folded month", verify: false)
+        qa.waitProbe("a month opened", timeout: 10) { _ in closed.count == n - 1 }
+        XCTAssertEqual(heads.count, headsBefore + 1, "the opened month gets its own group")
+        qa.tap(heads.element(boundBy: heads.count - 1), "fold it again", verify: false)
+        qa.waitProbe("folded again", timeout: 10) { _ in closed.count == n }
+    }
+
     /// 全部字页：排序 / 筛选 / 查找。
     func testAllCharsSortFilterFind() {
         let qa = QA(seed: "all-pinyin")

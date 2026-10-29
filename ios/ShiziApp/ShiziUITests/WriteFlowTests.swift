@@ -255,6 +255,32 @@ final class WriteFlowTests: XCTestCase {
         XCTAssertEqual(qa.session()["strokes"] as? Int, 0, "the edge swipe wrote nothing")
     }
 
+    /// B3.Z（81-h1-toast）：写到一半返回首页不出任何提示条（原「已保存，下次接着写」已去掉，R4-F1 / P262）。
+    func test209_backFromAHalfWrittenCardShowsNoToast() {
+        let qa = QA(seed: "recall-ink")
+        qa.launch()
+        qa.tapNative("native-write-back")
+        qa.waitNative(false)
+        qa.waitRouteTop("home")
+        Thread.sleep(forTimeInterval: 1.5)
+        XCTAssertFalse(qa.el("native-toast").exists, "no toast after leaving a half-written card")
+    }
+
+    /// B3.Z（76-q2-01-first-tip）：首练第 1 字格下的一次性说明：开着时在；落笔后收起，撤销到 0 笔也不再回来。
+    func test210_firstPracticeTipGoesAfterTheFirstStrokeAndStaysGone() {
+        let qa = QA(seed: "first-recall")
+        qa.launch()
+        let note = qa.el("native-write-note")
+        XCTAssertTrue(note.waitForExistence(timeout: 8), "the one-time first-practice tip shows under the grid")
+        XCTAssertFalse(note.label.isEmpty)
+        qa.stroke()
+        qa.waitProbe("stroke written") { (($0["native"] as? [String: Any])?["strokes"] as? Int) == 1 }
+        XCTAssertFalse(qa.el("native-write-note").exists, "the tip folds away once the pen is down")
+        qa.tapNative("native-write-undo")
+        qa.waitProbe("back to 0 strokes") { (($0["native"] as? [String: Any])?["strokes"] as? Int) == 0 }
+        XCTAssertFalse(qa.el("native-write-note").exists, "once gone it does not come back")
+    }
+
     // MARK: §3 提示
 
     /// §3（D64 ①）：每点一次多给一段，可点到整字；整字给完按钮变灰、记看过答案。

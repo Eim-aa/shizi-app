@@ -57,6 +57,14 @@ export function makeB45SessionOps({session,clock}) {
       const arg=name==='view'?params[1]:params[0];
       calls.push({name,args:arg});if(c.throws)throw Error('host-'+name);return c.reply ?? null;
     }]));
+    result.reminder={waitMs:a.waitMs??30};
+    for(const name of ['invite','changeTime'])if(a.hooks?.[name])result.reminder[name]=async(store,args)=>{
+      const c=a.hooks[name];if(c.settings)store.commit('host:reminder',d=>{d.settings=c.settings;});
+      calls.push({name,args});if(c.throws)throw Error('host-'+name);
+      if(c.laterPermission)setTimeout(()=>app.call('reminder.status',{permission:c.laterPermission}),5);
+      return c.reply??null;
+    };
+    const app=createAppApi({getStore:()=>s.store,now:clock});
     const api=createWriteSessionApi({getStore:()=>s.store,result});
     const saved=Date.now;Date.now=clock;
     try{const {ms,...reply}=await api.call(a.op,a.args||{});return {reply,calls};}finally{Date.now=saved;}

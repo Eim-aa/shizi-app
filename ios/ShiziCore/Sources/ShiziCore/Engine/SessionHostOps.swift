@@ -17,7 +17,26 @@ extension CoreEngine {
         if config["redo"] != nil { d.redo = { try invoke("redo", .array($0)) } }
         if config["detail"] != nil { d.detail = { try invoke("detail", .string($0)) } }
         if config["share"] != nil { d.share = { try invoke("share", .object($0)) } }
-        let reply = WriteAPI.call(JS.string(a["op"]), store, a["args"]?.objectValue ?? JSObject(), dependencies: d)
+        func reminder(_ name: String, _ store: Store, _ args: JSObject) async throws -> JSValue {
+            if let settings = config[name]?["settings"] { _ = store.commit("host:reminder") { d,_ in d["settings"] = settings } }
+            let r = try invoke(name, .object(args))
+            if let permission = config[name]?["laterPermission"] {
+                DispatchQueue.global().asyncAfter(deadline: .now() + 0.005) {
+                    _ = PageAPI.call("reminder.status", store: store, args: JSObject([("permission", permission)]))
+                }
+            }
+            return r
+        }
+        if config["invite"] != nil { d.reminderInvite = { try await reminder("invite", $0, $1) } }
+        if config["changeTime"] != nil { d.reminderChangeTime = { try await reminder("changeTime", $0, $1) } }
+        d.reminderWaitMs = a["waitMs"]?.numberValue ?? 30
+        let semaphore = DispatchSemaphore(value: 0)
+        var asyncReply: JSValue = .null
+        if a["op"] == .string("resultInvite") {
+            Task { asyncReply = await WriteAPI.callAsync("resultInvite", store, a["args"]?.objectValue ?? JSObject(), dependencies: d); semaphore.signal() }
+            semaphore.wait()
+        }
+        let reply = a["op"] == .string("resultInvite") ? asyncReply : WriteAPI.call(JS.string(a["op"]), store, a["args"]?.objectValue ?? JSObject(), dependencies: d)
         return JS.obj([("reply", reply), ("calls", .array(calls))])
     }
 }

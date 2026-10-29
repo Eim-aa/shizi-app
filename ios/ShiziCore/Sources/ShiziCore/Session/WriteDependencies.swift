@@ -11,5 +11,8 @@ public final class WriteDependencies {
     public var redo: (([JSValue]) throws -> JSValue)?
     public var detail: ((String) throws -> JSValue)?
     public var share: ((JSObject) throws -> JSValue)?
+    public var reminderInvite: ((Store, JSObject) async throws -> JSValue)?
+    public var reminderChangeTime: ((Store, JSObject) async throws -> JSValue)?
+    public var reminderWaitMs: Double = 120000
     public init() {}
 }

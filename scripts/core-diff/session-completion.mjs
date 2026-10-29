@@ -34,6 +34,12 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ for(const action of ['yes','time'])for(const permission of ['granted','denied','unknown'])for(const outcome of ['ok','failed','throw','null','later']) {
+  await call('store.seed',{state:{settings:{remind:{permission:'unknown'}}}});
+  const name=action==='yes'?'invite':'changeTime';
+  const settings={remind:{permission,hour:7,minute:3,enabled:true}};
+  await call('session.writeHost',{op:'resultInvite',args:{action,hour:'9.8',minute:'4.7',sessionId:'s1'},hooks:{[name]:{settings,reply:outcome==='null'?null:outcome==='failed'?{ok:false,error:{kind:'quota'}}:{ok:true,requested:true},throws:outcome==='throw',...(outcome==='later'&&permission==='unknown'?{laterPermission:'denied'}:{})}},waitMs:20});
+ }
  for(const view of ['wrongList','againList','forgetList','dueList','shakyList','knownList','skippedList','allWritten','mine','library','detail','home','bad'])for(const char of [null,'人','']) await call('session.resultLeave',{source:{view,char}});
  for(const variant of ['first','daily','picked'])for(const inWork of [true,false]){
   const cells=[{char:'拾',cardKey:'base:拾',kind:'judged'},{char:'人',cardKey:'base:人',kind:'judged'},{char:'口',kind:'skipped'}];
@@ -41,5 +47,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: row 1, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–2, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

@@ -38,7 +38,9 @@ extension CoreEngine {
             let store = try e.session().store!, hooks = SessionActionHooks(), pages = PageRegisteredActions(store: store)
             pages.clockNow = { e.clock }; pages.handoffLeaveUndo(a["undo"]); pages.install(on: hooks)
             let reply = PageAPI.call(JS.string(a["op"]), store: store, args: a["args"]?.objectValue ?? JSObject(), hooks: hooks)
-            return JS.obj([("reply", reply), ("undo", pages.leaveUndoView())])
+            var out = JSObject([("reply", reply), ("undo", pages.leaveUndoView())])
+            if let action = a["decide"] { out["decision"] = PageAPI.call("s02.decide",store:store,args:JSObject([("action",action)]),hooks:hooks) }
+            return .object(out)
         },
         "session.imageRegistered": { e,a in
             let store = try e.session().store!, hooks = SessionActionHooks(), image = ImageRegisteredActions(store: store)

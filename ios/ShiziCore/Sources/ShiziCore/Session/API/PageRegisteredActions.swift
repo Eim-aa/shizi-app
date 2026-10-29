@@ -3,6 +3,7 @@ import Foundation
 /// Store part of ui/screens/home, session and library action registrations.
 /// The host owns navigation and paper source geometry; no router is recreated here.
 public final class PageRegisteredActions {
+    private weak var hooks: SessionActionHooks?
     public let store: Store
     public var open: ((String, JSValue) throws -> Void)?
     public var paperSource: ((String, JSObject) throws -> Void)?
@@ -16,6 +17,7 @@ public final class PageRegisteredActions {
         var o = JSObject([("failed", .bool(JS.truthy(u["failed"]))), ("remainingMs", .number(max(0, JSMath.round(JS.number(u["until"])-clockNow()))))]);o["slot"] = u["slot"];o["char"] = u["char"];return .object(o)
     }
     public func install(on hooks: SessionActionHooks) {
+        self.hooks = hooks
         for op in ["home.start","home.resumeOther","home.deferSpecial","home.switchLibrary","home.pick","home.source","home.undoLeave","home.undoLeaveCancel","library.startToday","library.openQuery","library.undoLeave","library.undoLeaveCancel","library.list.start","library.all.start","library.switch"] { hooks.set(op) { [self] in try call(op,$0) } }
         for name in ["home.ui","library.ui"] { hooks.set(name) { [self] _ in JS.obj([("brand", .bool(false)), ("leaveUndo", leaveUndoView())]) } }
     }
@@ -38,6 +40,15 @@ public final class PageRegisteredActions {
         let r: JSValue
         do { r = try ScheduleRules(dates:store.dates).startPicked(store,keys:keys,source:source,deck:.real) } catch { return SessionWrites.failure("invalid") }
         if r["ok"] != .bool(true) { return r }
+        if !JS.truthy(r["started"]), let hooks {
+            let queue = r["queue"]?.arrayValue ?? keys
+            hooks.s02Registered = true
+            hooks.s02Cancel = nil
+            hooks.s02Close = { [self] in try open?("s02-close",.null) }
+            hooks.s02Continue = { [self] in try open?("write",JS.obj([("slot",.string("B"))])) }
+            hooks.s02EndStart = { [self] in try ScheduleRules(dates:store.dates).endOldAndStartPicked(store,keys:queue,source:source,deck:.real) }
+            hooks.s02Started = { [self] _ in try open?("write",JS.obj([("slot",.string("B"))])) }
+        }
         try open?(JS.truthy(r["started"]) ? "write" : "s02", JS.truthy(r["started"]) ? JS.obj([("slot", .string("B"))]) : r["s02"] ?? .null)
         return SessionWrites.patch(r, [("opened", .string(JS.truthy(r["started"]) ? "new" : "s02"))])
     }

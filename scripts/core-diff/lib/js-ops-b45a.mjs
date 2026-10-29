@@ -117,7 +117,17 @@ export function makeB45SessionOps({session,clock}) {
     Object.defineProperties(singleton,Object.getOwnPropertyDescriptors(s.store));
     const {nav}=await import('../../../src/ui/router.js'),oldNav={...nav};for(const key of Object.keys(nav))nav[key]=()=>key==='openOverlay'?'overlay':null;
     const skip=await import('../../../src/ui/screens/write/skip.js'),oldPerformance=globalThis.performance,saved=Date.now;globalThis.performance={now:clock};Date.now=clock;skip.handoffLeaveUndo(a.undo);
-    try{return {reply:await createAppApi({getStore:()=>s.store,now:clock}).call(a.op,a.args||{}),undo:skip.leaveUndoView()};}
+    try{
+      const app=createAppApi({getStore:()=>s.store,now:clock}),reply=await app.call(a.op,a.args||{}),out={reply,undo:skip.leaveUndoView()};
+      if(a.decide){
+        // The native S02 registration is a host hook; no DOM mount is needed to exercise its real Store callback.
+        const q=await import('../../../src/session/api/query.js'),previous=q.s02ActionsRef();
+        const keys=a.args?.keys||[],source={view:a.args?.view};
+        q.setS02Actions({close:()=>{},onContinue:()=>{},onEndStart:()=>start.endOldAndStartPicked(s.store,{keys,source,deck:deckAdapter,now:clock}),onStarted:()=>{}});
+        try{out.decision=await app.call('s02.decide',{action:a.decide});}finally{q.setS02Actions(previous);}
+      }
+      return out;
+    }
     finally{skip.clearLeaveUndo();Date.now=saved;globalThis.performance=oldPerformance;Object.assign(nav,oldNav);home.setHomeActions(previous[0]);lib.setLibraryActions(previous[1]);sub.setLibrarySubActions(previous[2]||{});}
   };
   out['session.imageRegistered']=async a=>{

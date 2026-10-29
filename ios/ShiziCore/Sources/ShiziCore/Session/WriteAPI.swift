@@ -13,7 +13,7 @@ public enum WriteAPI {
         return JS.obj([("ok", .bool(r["ok"] == .bool(true))), ("sessionId", s["id"]!)])
     }
     static func look(_ result: Bool = false) throws -> JSObject {
-        let ui = try CoreResources.load("session-ui"); var out = JSObject([("ok", .bool(true))])
+        let ui = try SessionResources.ui; var out = JSObject([("ok", .bool(true))])
         let keys = (ui["writeKeys"]?.arrayValue ?? []) + (result ? ui["resultKeys"]?.arrayValue ?? [] : [])
         out["copy"] = bundle(keys); out["colors"] = .object(JSObject()); out["type"] = .object(JSObject())
         for key in ["timing", "motion", "layout", "trace", "skipUndo", "ink"] { out[key] = ui[key] }
@@ -82,7 +82,7 @@ public enum WriteAPI {
             let r = SessionResults.correct(store, args, mode: "write"); return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("recordId", a["recordId"] ?? .null), ("judgment", r["record"]?["judgment"] ?? .null), ("snapshot", try snapshot())]) : try flow(r)
         case "hint": return try hint(store, a)
         case "copy":
-            let defaultKeys = try CoreResources.load("session-ui")["writeKeys"]!.arrayValue!
+            let defaultKeys = try SessionResources.ui["writeKeys"]!.arrayValue!
             return JS.obj([("ok", .bool(true)), ("copy", bundle(a["keys"]?.arrayValue ?? defaultKeys))])
         case "refLabel":
             guard let char = a["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }

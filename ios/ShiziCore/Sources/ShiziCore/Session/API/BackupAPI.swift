@@ -20,7 +20,7 @@ extension PageAPI {
         switch op {
         case "view.backup":
             let state = store.state, safety = Backup.safetyOf(state), status = Backup.backupStatus(.object(state), conclusion: safety == nil ? nil : Backup.conclusionOfSafety(safety, state), dates: store.dates)
-            var view = try CoreResources.load("session-ui")["backupTemplate"]!.objectValue!
+            var view = try SessionResources.ui["backupTemplate"]!.objectValue!
             let day = status["date"]?["kind"] == .string("day") ? status["date"]?["day"] ?? .null : .null
             view["lastDate"] = day.isNull ? ViewSupport.ref("R-B02.noBackup") : try dateRef(day, store.dates); view["lastDay"] = day
             view["statusLines"] = .array(try (status["lines"]?.arrayValue ?? []).map { line in
@@ -31,7 +31,7 @@ extension PageAPI {
             })
             view["noteKeys"] = .array((status["lines"]?.arrayValue ?? []).map { $0["key"]! }); view["intro"] = ViewSupport.ref(status["hasRecords"] == .bool(true) ? "X-BACKUP.intro" : "X-BACKUP.introEmpty"); view["hasRecords"] = status["hasRecords"]; view["count"] = status["count"]
             view["clearSheet"] = SessionWrites.patch(view["clearSheet"], [("body", ViewSupport.ref("R-B03.clearBody", JS.obj([("n", status["count"]!)])))])
-            return JS.obj([("ok", .bool(true)), ("view", .object(view)), ("lines", JS.obj([("intro", .null), ("clearBody", .null), ("clearBodyFailed", .null)]))])
+            return JS.obj([("ok", .bool(true)), ("view", .object(view)), ("lines", JS.obj([("intro", SessionTextLines.shared.ref("backup.intro", view["intro"])), ("clearBody", SessionTextLines.shared.ref("backup.confirmBody", view["clearSheet"]?["body"])), ("clearBodyFailed", SessionTextLines.shared.ref("backup.confirmBody", view["clearSheet"]?["failed"]?["body"]))]))])
         case "backup.export":
             let at = store.now(), text = Backup.serializeBackup(.object(try Backup.buildBackupV2(store.state, now: at, serial: store.serial)))
             return JS.obj([("ok", .bool(true)), ("name", .string(try Backup.backupFileName(at, dates: store.dates))), ("text", .string(text)), ("sig", .string(Backup.recordsSignature(store.state["records"]))), ("at", .number(at))])
@@ -42,7 +42,7 @@ extension PageAPI {
                 return op == "backup.picked" ? JS.obj([("ok", .bool(true)), ("note", JS.obj([("kind", report["kind"] ?? .null)]))]) : SessionWrites.failure(JS.string(report["kind"]))
             }
             if op == "backup.restore" { return submit(Backup.restoreFromBackup(store, report, now: store.now())) }
-            var out = JSObject([("ok", .bool(true)), ("preview", try preview(store, report))]); if op == "backup.picked" { out["lines"] = JS.obj([("body", .null)]) }; return .object(out)
+            var out = JSObject([("ok", .bool(true)), ("preview", try preview(store, report))]); if op == "backup.picked" { out["lines"] = JS.obj([("body", SessionTextLines.shared.ref("backup.confirmBody", out["preview"]?["body"]))]) }; return .object(out)
         case "backup.clear": return submit(Backup.clearAllRecords(store, now: store.now()))
         case "backup.undoRestore", "backup.undoClear": return submit(Backup.undoFromSafety(store))
         case "backup.dropSafety": return submit(Backup.dropSafety(store))

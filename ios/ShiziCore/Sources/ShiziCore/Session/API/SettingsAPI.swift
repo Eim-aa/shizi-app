@@ -17,7 +17,9 @@ extension PageAPI {
     }
     static func settings(_ op: String, _ store: Store, _ a: JSObject) throws -> JSValue {
         switch op {
-        case "view.remind": return JS.obj([("ok", .bool(true)), ("view", SettingsView.remindView(store.state["settings"])), ("lines", JS.obj([("sub", .null)]))])
+        case "view.remind":
+            let view = SettingsView.remindView(store.state["settings"]), sub = view["remindPage"]?["sub"]?[JS.truthy(view["denied"]) ? "denied" : "on"]
+            return JS.obj([("ok", .bool(true)), ("view", view), ("lines", JS.obj([("sub", SessionTextLines.shared.ref("remind.sub", sub, extra: JS.obj([("title", try Copy.tRef(view["remindPage"]!["label"]!))])))]))])
         case "remind.enabled": return reply(SettingsView.commitRemindEnabled(store, on: .bool(a["on"] == .bool(true))))
         case "remind.time": return reply(SettingsView.commitRemindTime(store, hour: a["hour"] ?? .number(.nan), minute: a["minute"] ?? .number(.nan)))
         case "reminder.status": return reply(SettingsView.applyReminderStatus(store, payload: .object(a)))

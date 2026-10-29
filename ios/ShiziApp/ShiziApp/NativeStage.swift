@@ -21,26 +21,22 @@ enum ShiziTheme {
     }
 }
 
-// NativeStage：原生层的唯一协调者（B3.2；计划 B3B4-原生化架构与计划.md §3.3 段 1、§3.4；B2.8 的写字 / 结果协调推广而来，B2 记录见 B2-原生写字架构.md §4 / §23）。
+// NativeStage：原生层的唯一协调者（B3.2 建，B3.F 起是导航真相源；计划 B3B4-原生化架构与计划.md §3.3 段 2、§3.4、§10.x B3.F）。
 //
-// 段 1：网页路由仍是真相源。原生页 = 网页栈里的「原生宿主条目」（透明、不画内容），宿主挂载时发来 open、卸载时 close；本对象把
-// 「网页栈顶上连续的原生宿主条目」画成一个原生栈：每张原生页是一个全屏覆盖呈现（.overFullScreen）的视图控制器，叠在 WebViewController 上——
-// **不用导航栈 push**：push 完成后底下的 WKWebView 会被移出窗口，WebKit 把不在窗口里的网页降速（B2.0 实测判断往返 p50 20ms → 50–100ms，B2 §7）。
+// 段 2（B3.F）：页面栈在原生（entries，底 → 顶 [{id, n, p}]；第 0 条是 tab 根）。网页不挂界面、只当引擎（src/ui/engine.js 引擎模式）。
+//   - 窗口：WebViewController 的视图 = WKWebView（全尺寸、不藏，压在最下面，WebKit 不降速）+ 其上的原生根层（ShiziTabController，三格各留着自己的根页）；
+//     推入的页是全局栈，盖在 Tab 栏之上（N6）：每张原生页是一个全屏覆盖呈现（.overFullScreen）的视图控制器，转场按进入方式取 ShiziTransitions
+//     （T-push / T-paper / T-quiet / 减少动态效果淡化；D62 来源矩形、D70、S4 撤销交接、返回种类 page / phase、左缘跟手、防误点都照旧）。
+//     不用 UINavigationController 的 push：push 完成后下层页的视图被移出窗口，T-paper / T-push 的下层视差与左缘跟手画的都是下层页（§10.x B3.F 技术决定 ①）。
+//   - 原生发起的导航（页面点按推入、‹ / 左缘 / Z 形返回、点 tab、页内参数、页面的 nav.* op）：这里直接改栈，再 stage.enter 让引擎记账（来源记账、视图回包），不经网页路由决定去处；
+//   - 「去哪」的规则在 JS 的（首页主按钮、结果页「再写一组」/ 离开、深链、开组失败…）：引擎发 {op:'nav'}，这里照做；
+//   - 宿主消息（open / close / result-open / redo-open …，格式与段 1 宿主组件发的相同）由引擎按栈的变化算好发来，下面两条通道照原来的处理；
+//   - 每次栈变化 route.save；冷启动 pageReady 后 route.plan 无转场重建；提醒深链 deeplink.reminder（WebViewController）；页面重载 stage.resync。
 //
 // 两条通道，同一套转场（ShiziTransitions = NativeWriteTransitions，一个对象、一个 frame(s)，点按与左缘跟手同一条路径）与同一套「样子留在原处」的换页做法：
-//   1. 写字 / 结果 / 重写错字页（B2）：消息 nativeWrite（open / close / result-open / result-close / redo-open / redo-close），行为与 B2.8 一字不差
-//      （D62 的纸展开 / 推入 / 安静淡入、D70、结果页「再写一组」推入、重写错字一段转场、让开与回来、深链 / 跨天 / 阻断 / 整体替换时样子留住再淡出、页面重载认领）。
-//   2. 通用原生屏（B3 页面卡）：消息 native（open / close / changed / status）。屏名 → 类按约定 NSClassFromString("ShiziScreen_<屏名，- 换 _>")，不设登记表；
-//      找不到类 = 该屏还没原生（网页侧根本不会渲染成宿主：启动时把有类的屏名清单注入页面 window.__shiziNativeScreens）。
-//      原生页里发起的导航一律经 App API 的 nav.* op 交给网页路由（入口规则仍是 JS 一份）：
-//        - 推入原生屏：nav.push → 宿主挂载回发 open → 这里播 T-push（下层是上一张原生页，视差画在它上面）；
-//        - 推入网页屏：先把这一页的样子交给宿主层（stage.cover），再 nav.push，网页画好一帧（stage.fence）后原生层整个让开——推入 / 左缘滑回由网页播，
-//          露出的是原生页的样子；回到这一条时宿主等网页转场放完发 open via 'return'，这里不带转场重建原生栈（含下面的原生页），随后网页收掉截图；
-//        - 返回（「‹」/ 左缘右滑跟手 / 两指 Z 形）：这里播完退场（T-push 倒放），收起后 nav.back {via:'native'}，网页出栈但不再播（root.js nativeMoves）。
-//      左缘手势、backGestureEnabled 在原生层可见时由原生页自己决定（WebViewController 的识别器在原生页下面，收不到触摸）。
-//      宿主被别处卸掉（切 tab、深链、阻断、store 整体替换）→ close：样子留在原处、原生页收起，紧接着有新原生页就压在上面，否则等页面画好淡出。
-//      页面重载：原生页留在屏上；宿主按同一串屏名重新认领 = 只换条目 id 与视图；1.5s 没人认领 → 同上收起淡出。
-// 引擎（ShiziEngine / WebEngine）：页面推来的 changed / status 转给它，原生页订阅 changes、按 status 禁用按钮与重拉视图。
+//   1. 写字 / 结果 / 重写错字页（B2）：消息 nativeWrite（open / close / result-open / result-close / redo-open / redo-close），行为与 B2.8 一致。
+//   2. 通用原生屏（B3 页面卡）：消息 native（open / close / changed / status）。屏名 → 类按约定 NSClassFromString("ShiziScreen_<屏名，- 换 _>")，不设登记表。
+// 引擎（ShiziEngine / WebEngine）：页面推来的 changed / status 转给它，原生页订阅 changes、按 status 禁用按钮与重拉视图；页面的 nav.* op 由 WebEngine.navigator 转回这里。
 
 /// 原生 tab 根页给 QA 探针的摘要（B3.5a；NativeStage.rootProbe 带出）。
 protocol ShiziRootProbing: AnyObject {
@@ -92,6 +88,13 @@ final class NativeStage: NSObject {
         self.host = host
         engine = WebEngine(webView: host.webView)
         super.init()
+        engine.navigator = { [weak self] op, args in self?.handleNavOp(op, args) ?? ["ok": false, "error": ["kind": "unavailable"]] }
+        // 进后台：立即存一次栈，刷新离开时刻（冷启动判定的「离开多久」从这一刻算）
+        NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
+    }
+
+    @objc private func didEnterBackground() {
+        saveRoute(flush: true)
     }
 
     // MARK: 开关与注入
@@ -100,7 +103,8 @@ final class NativeStage: NSObject {
     static func userScript() -> String {
         let list = (try? JSONSerialization.data(withJSONObject: ShiziScreenRegistry.screens)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
         // B3.5d：tab 根页与原生 Tab 栏同开（B3.5a 的根页闸 -shizi-native-roots / __shiziNativeRoots 已删）
-        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziNativeScreens = \(list);"
+        // B3.F：__shiziEngine = 引擎模式（src/app.js：建 store、装 API，不挂网页界面；页面栈由这里持有）
+        return "window.__shiziNativeWrite = true; window.__shiziNative = true; window.__shiziEngine = true; window.__shiziNativeScreens = \(list);"
     }
 
     // MARK: 页面推来的消息（type 'native'）
@@ -108,6 +112,10 @@ final class NativeStage: NSObject {
     func handleScreenMessage(_ body: [String: Any]) {
         engine.webView = host.webView
         switch body["op"] as? String ?? "" {
+        case "nav":
+            applyIntent(body) // B3.F：JS 发起的导航（去哪由 JS 规则定）——原生改自己的栈、存栈；宿主消息紧跟着到
+        case "roots-reset":
+            enqueue { [weak self] done in self?.dropHiddenRoots(); done() } // QA：夹具要新挂载的根页（排在前面的切 tab 之后）
         case "open" where (body["root"] as? Bool) == true:
             enqueue { [weak self] done in self?.openRoot(body, done: done) ?? done() }
         case "appearance":
@@ -118,8 +126,6 @@ final class NativeStage: NSObject {
             enqueue { [weak self] done in self?.closeRoot(done: done) ?? done() }
         case "close":
             enqueue { [weak self] done in self?.closeScreen(body, done: done) ?? done() }
-        case "root":
-            enqueue { [weak self] done in self?.coverRoot(body, done: done) ?? done() }
         case "corrupt":
             enqueue { [weak self] done in self?.setCorruptNotice(body, done: done) ?? done() }
         case "changed":
@@ -198,13 +204,11 @@ final class NativeStage: NSObject {
         hostView.isHidden = rootScreen.map { $0.view.isHidden } ?? true
     }
 
-    /// 点了另一个 tab：交给网页路由（nav.tab）；选中格等新根页 open 时再换（真相在网页）。
+    /// 点了另一个 tab（B3.F：原生直接切——栈回到那个 tab 的根，选中格当即换；引擎记账、存栈）。
     private func tabTapped(_ name: String) {
         guard rootScreen != nil, host.presentedViewController == nil else { return }
         ShiziProbe.note("tab:select \(name)")
-        engine.raw("nav.tab", ["name": name]) { reply in
-            if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: nav.tab \(name) failed \(reply)") }
-        }
+        switchTab(name)
     }
 
     /// 再点当前 tab：根页滚回顶部（已在顶部什么都不做；减少动态效果时直接到顶，同网页 TabRoot onReselect）。
@@ -254,8 +258,6 @@ final class NativeStage: NSObject {
 
     /// 原生 tab 根页（没有 = nil）。
     private(set) var rootScreen: ShiziScreenViewController?
-    /// 页面重载后根页被重新认领过（没有 = 等待时间到了收掉）。
-    private var rootClaimed = true
 
     /// 原生根页的框（所在 tab 格的坐标）：铺到原生 Tab 栏上沿（B3.5d；栏还没排版时按网页 Tabs.js 的 49 + 下安全区）。
     private var rootFrame: CGRect {
@@ -271,27 +273,32 @@ final class NativeStage: NSObject {
         r.view.frame = rootFrame
     }
 
+    /// 各 tab 的根页（B3.F：切 tab 不拆——三格各留着自己的根页，回来时页内状态还在；UITabBarController 只显示选中那一格）。
+    private var roots: [String: ShiziScreenViewController] = [:]
+
     private func openRoot(_ body: [String: Any], done: @escaping () -> Void) {
-        guard WebViewController.nativeWriteEnabled, let name = body["screen"] as? String, let entryId = body["entryId"] as? String,
+        guard let name = body["screen"] as? String, let entryId = body["entryId"] as? String,
               let cls = ShiziScreenRegistry.screenClass(name) else { done(); return }
         NativeNavState.shared.heard()
         NativeNavMotion.ensure()
-        rootClaimed = true
         let payload = body["payload"] as? [String: Any] ?? [:]
         let params = body["params"] as? [String: Any] ?? [:]
-        let covered = (body["covered"] as? Bool) == true
-        ShiziProbe.note("root:open \(name) via=\(body["via"] as? String ?? "?") covered=\(covered)")
-        if let r = rootScreen, r.screen == name, r.entryId == entryId || NativeNavState.shared.awaitingReattach {
-            r.entryId = entryId
-            r.update(params: params)
-            r.apply(payload: payload)
-            setRootHidden(covered, done: done)
-            return
-        }
-        removeRoot()
-        // B3.5d：根页挂在 Tab 栏控制器里它那一格下面（选中格跟网页路由走，切换无动画）
+        ShiziProbe.note("root:open \(name) via=\(body["via"] as? String ?? "?")")
         let t = ensureTabs()
         let slot = t.select(name)
+        if let r = roots[name], r.parent != nil {
+            // 这一格的根页还在（切走过又回来）：同一个对象，换条目与视图
+            r.entryId = entryId
+            r.exitHandled = false
+            r.update(params: params)
+            r.apply(payload: payload)
+            r.view.isHidden = false
+            r.view.frame = rootFrame
+            rootScreen = r
+            syncTabHost()
+            done()
+            return
+        }
         let parent: UIViewController = slot ?? host
         let vc = cls.init(screen: name, entryId: entryId, params: params)
         vc.stage = self
@@ -301,50 +308,33 @@ final class NativeStage: NSObject {
         vc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         if let slot { slot.view.addSubview(vc.view) } else { host.view.insertSubview(vc.view, aboveSubview: tabHost ?? host.webView) }
         vc.didMove(toParent: parent)
+        roots[name] = vc
         rootScreen = vc
-        vc.view.isHidden = covered
         syncTabHost()
         done()
     }
 
-    /// 网页页面 / 弹层盖上来（covered）：网页画好一帧后藏起（推入 / 弹层从第一帧起盖在根页的样子上：stage.cover 交过的截图）。
-    private func coverRoot(_ body: [String: Any], done: @escaping () -> Void) {
-        guard let r = rootScreen, (body["entryId"] as? String) == r.entryId else { done(); return }
-        ShiziProbe.note("root:covered \(body["covered"] as? Bool == true)")
-        setRootHidden((body["covered"] as? Bool) == true, done: done)
-    }
-
-    private func setRootHidden(_ hidden: Bool, done: @escaping () -> Void) {
-        guard let r = rootScreen else { done(); return }
-        if !hidden {
-            r.view.isHidden = false
-            r.view.frame = rootFrame
-            syncTabHost()
-            done()
-            return
-        }
-        guard !r.view.isHidden else { done(); return }
-        engine.raw("stage.fence", [:]) { [weak self, weak r] _ in
-            r?.view.isHidden = true
-            self?.syncTabHost()
-            done()
-        }
-    }
-
-    /// 根页的宿主卸掉了（切 tab、阻断页、整体重建）：网页画好下一帧再拿掉（切 tab 无动画，网页那一帧已经是新 tab）。
+    /// 根页的条目离开栈（切 tab）：根页留在它那一格（不拆），新根页 open 时换选中格。
     private func closeRoot(done: @escaping () -> Void) {
-        guard let r = rootScreen else { done(); return }
-        r.exitHandled = true
-        ShiziProbe.note("root:close \(r.screen)")
-        engine.raw("stage.fence", [:]) { [weak self, weak r] _ in
-            if let self, let r, self.rootScreen === r { self.removeRoot() }
-            done()
+        if let r = rootScreen { ShiziProbe.note("root:close \(r.screen)") }
+        done()
+    }
+
+    /// QA（夹具 switchTab remount）：拆掉没选中的格里留着的根页，下次切过去新建（不带上一个状态的页内状态）。
+    private func dropHiddenRoots() {
+        for (name, r) in roots where r !== rootScreen {
+            r.exitHandled = true
+            r.willMove(toParent: nil)
+            r.view.removeFromSuperview()
+            r.removeFromParent()
+            roots[name] = nil
         }
     }
 
     private func removeRoot() {
         guard let r = rootScreen else { return }
         rootScreen = nil
+        roots[r.screen] = nil
         r.exitHandled = true
         r.willMove(toParent: nil)
         r.view.removeFromSuperview()
@@ -443,13 +433,12 @@ final class NativeStage: NSObject {
         let params = body["params"] as? [String: Any] ?? [:]
         let via = body["via"] as? String ?? "push"
         let run = (body["run"] as? [[String: Any]] ?? []) + [["entryId": entryId, "screen": name, "params": params, "payload": payload]]
-        // 1. 对齐：从底往上，条目 id 相同（或页面重载期间屏名相同）的留着
-        let reattaching = NativeNavState.shared.awaitingReattach
+        // 1. 对齐：从底往上，条目 id 相同的留着（B3.F：run 由引擎按原生的栈算）
         var keep = 0
         while keep < screens.count, keep < run.count {
             let want = run[keep]
             let page = screens[keep]
-            guard !page.exitHandled, page.entryId == want["entryId"] as? String || (reattaching && page.screen == want["screen"] as? String) else { break }
+            guard !page.exitHandled, page.entryId == want["entryId"] as? String else { break }
             if let id = want["entryId"] as? String { page.entryId = id }
             keep += 1
         }
@@ -553,84 +542,278 @@ final class NativeStage: NSObject {
         screens.removeAll()
     }
 
-    // MARK: 原生页发起的导航
+    // MARK: 页面栈（B3.F：导航真相在原生；计划 §3.3 段 2）
+    //
+    // entries = 页面栈（底 → 顶，[{id, n, p}]；第 0 条是 tab 根）。每次栈或参数变了调 route.save（引擎写路由提示键，单一写入者），进后台刷新离开时刻。
+    // 两种来源、同一套改栈语义（push / replace / pop / tab / params，引擎镜像 ui/engine.js 同名）：
+    //   - 原生发起（原生页点按推入、‹ / 左缘 / Z 形返回、点 tab、页内参数）：这里先改栈，再 stage.enter 让引擎记账（来源记账、视图回包），
+    //     回包里的宿主消息照原来的通道处理（open / close / result-open …）——去处由原生定，不经网页路由；
+    //   - JS 发起（「去哪」的规则在 JS：首页主按钮、结果页「再写一组」/ 离开、深链、开组失败……）：页面发 {op:'nav'}，这里照做、存栈，宿主消息紧跟着到。
+    // 冷启动：pageReady 后 route.plan（守卫 / 过期 / 深链 / 坏值 / 阻断优先全在 JS planColdStart），按回包无转场重建。
 
-    /// 返回（「‹」/ 两指 Z 形）：播退场（进来时那种转场倒放），收起后 screenDidLeave 发 nav.back。
+    /// 页面栈（底 → 顶）。
+    private(set) var entries: [[String: Any]] = []
+    private var nativeIds = 0
+    /// 冷启动的 route.plan 做完了（之后的 pageReady 是页面重载：stage.resync）。
+    private(set) var planned = false
+    /// route.plan 之后要做的事（提醒深链等栈重建好再派发）。
+    private var afterPlan: [() -> Void] = []
+
+    private func newEntry(_ screen: String, _ params: [String: Any]) -> [String: Any] {
+        nativeIds += 1
+        return ["id": "n\(nativeIds)", "n": screen, "p": params]
+    }
+
+    /// 栈变了：存（引擎写提示键）。flush = 进后台刷新离开时刻（立即）；其余合并到转场之后（写提示键是一次同步落库，不放在点按到转场第一帧的路上）。
+    func saveRoute(flush: Bool = false) {
+        guard planned else { return }
+        saveToken += 1
+        let mine = saveToken
+        let go = { [weak self] in
+            guard let self, flush || mine == self.saveToken else { return }
+            self.engine.raw("route.save", ["stack": self.entries, "flush": flush, "seq": self.jsSeq]) { reply in
+                if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: route.save failed \(reply)") }
+            }
+        }
+        if flush { go() } else { DispatchQueue.main.asyncAfter(deadline: .now() + Self.saveDelay, execute: go) }
+    }
+
+    private var saveToken = 0
+    /// JS 发来的导航意图做到了第几条（存栈时回报：引擎据此不让旧栈盖掉还在路上的意图）。
+    private var jsSeq = 0
+    /// 存栈的合并延迟：进场转场放完之后（取 motion 令牌：推入与纸展开里长的那个，再加一个淡化时长）。
+    static var saveDelay: TimeInterval {
+        let m = NativeNavMotion.current
+        return (max(m?.pushMs ?? 0, m?.paperOpenMs ?? 0) + (m?.phaseMs ?? 0)) / 1000
+    }
+
+    /// 按意图改栈（JS 发来的 nav 与原生自己发起的同一套语义）。返回是否改了。
+    @discardableResult
+    private func mutate(_ kind: String, entry: [String: Any]? = nil, patch: [String: Any]? = nil) -> Bool {
+        switch kind {
+        case "push":
+            guard let entry else { return false }
+            entries.append(entry)
+        case "replace":
+            guard let entry, entries.count >= 2 else { return false }
+            entries[entries.count - 1] = entry
+        case "pop":
+            guard entries.count >= 2 else { return false }
+            entries.removeLast()
+        case "tab":
+            guard let entry else { return false }
+            if entries.count == 1, entries[0]["n"] as? String == entry["n"] as? String { return false }
+            entries = [entry]
+        case "params":
+            guard var top = entries.last else { return false }
+            var p = top["p"] as? [String: Any] ?? [:]
+            for (k, v) in patch ?? [:] { p[k] = v }
+            top["p"] = p
+            entries[entries.count - 1] = top
+        default:
+            return false
+        }
+        return true
+    }
+
+    /// JS 发起的导航（页面消息 {op:'nav', kind, entry?, patch?}）：原生照做、存栈。
+    private func applyIntent(_ body: [String: Any]) {
+        let kind = body["kind"] as? String ?? ""
+        if let seq = (body["seq"] as? NSNumber)?.intValue { jsSeq = max(jsSeq, seq) }
+        ShiziProbe.note("nav:\(kind) \((body["entry"] as? [String: Any])?["n"] as? String ?? "")")
+        if mutate(kind, entry: body["entry"] as? [String: Any], patch: body["patch"] as? [String: Any]) { saveRoute() }
+    }
+
+    /// 原生发起：改栈 → stage.enter（引擎记账）→ 回包里的宿主消息按原来的通道处理 → 存栈。
+    private func enter(_ kind: String, entry: [String: Any]? = nil, patch: [String: Any]? = nil, extra: [String: Any] = [:], then: (() -> Void)? = nil) {
+        guard mutate(kind, entry: entry, patch: patch) else { then?(); return }
+        var args = extra
+        args["kind"] = kind
+        if let entry { args["entry"] = entry }
+        if let patch { args["patch"] = patch }
+        engine.raw("stage.enter", args) { [weak self] reply in
+            guard let self else { return }
+            if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: stage.enter \(kind) failed \(reply)") }
+            self.dispatch(reply["bodies"] as? [[String: Any]] ?? [])
+            self.saveRoute()
+            then?()
+        }
+    }
+
+    /// 宿主消息（引擎按栈的变化算出的 open / close / result-open …）交给原来的处理。
+    private func dispatch(_ bodies: [[String: Any]]) {
+        for b in bodies {
+            guard let body = b["body"] as? [String: Any] else { continue }
+            if b["type"] as? String == "nativeWrite" { handleWriteMessage(body) } else { handleScreenMessage(body) }
+        }
+    }
+
+    /// 页面里的 nav.* op（WebEngine.navigator 转来）：原生直接做。
+    func handleNavOp(_ op: String, _ args: [String: Any]) -> [String: Any] {
+        switch op {
+        case "nav.push":
+            guard let screen = args["screen"] as? String, !screen.isEmpty else { return ["ok": false, "error": ["kind": "invalid"]] }
+            push(screen, params: args["params"] as? [String: Any] ?? [:])
+        case "nav.back":
+            guard let top = topScreen, top !== rootScreen else { return ["ok": false] }
+            back(top)
+        case "nav.tab":
+            guard let name = args["name"] as? String, !name.isEmpty else { return ["ok": false, "error": ["kind": "invalid"]] }
+            switchTab(name)
+        case "nav.setParams":
+            enter("params", patch: args["patch"] as? [String: Any] ?? [:])
+        case "nav.replace":
+            guard let screen = args["screen"] as? String, !screen.isEmpty else { return ["ok": false, "error": ["kind": "invalid"]] }
+            enter("replace", entry: newEntry(screen, args["params"] as? [String: Any] ?? [:]), extra: ["animate": args["animate"] as? Bool ?? false])
+        default:
+            return ["ok": false, "error": ["kind": "unknown-op"]]
+        }
+        return ["ok": true]
+    }
+
+    /// 推入一屏（原生页里点按）：栈上加一条、引擎记账回视图 → 原生屏播 T-push（下层是上一张原生页）。
+    func push(_ screen: String, params: [String: Any] = [:]) {
+        if ShiziTabController.tabs.contains(where: { $0.screen == screen }) { switchTab(screen); return }
+        tapAt = CACurrentMediaTime()
+        enter("push", entry: newEntry(screen, params))
+    }
+
+    /// 切到某个 tab：栈回到那个 tab 的根（上面的页一并收起）。
+    func switchTab(_ name: String) {
+        if entries.count == 1, entries[0]["n"] as? String == name { return }
+        enter("tab", entry: newEntry(name, [:]))
+    }
+
+    /// 推入 screen（原生页里点按；B3.2 起的入口名照旧）。
+    func navigate(from page: ShiziScreenViewController, push screen: String, params: [String: Any] = [:]) {
+        guard isTop(page), !page.transitions.isLeaving else {
+            ShiziProbe.log("navigate \(screen) refused: top=\(topScreen?.screen ?? "-") leaving=\(page.transitions.isLeaving) presented=\(String(describing: host.presentedViewController))")
+            return
+        }
+        push(screen, params: params)
+    }
+
+    /// 段 1 的「让给网页页面」（截图交给宿主层再换页）在段 2 没有了：全部页面都是原生，盖上来的一律是原生页。go 直接做。
+    func yieldToWeb(from page: ShiziScreenViewController, go: @escaping () -> Void) {
+        tapAt = nil
+        go()
+    }
+
+    /// 同上（B3.12 / B3.13 的公开入口）：直接调那个 op（它发的导航由页面以 nav 消息告诉这里）。
+    func yieldToWeb(_ op: String, _ args: [String: Any], from page: ShiziScreenViewController) {
+        guard isTop(page), !page.transitions.isLeaving else { return }
+        tapAt = nil
+        ShiziProbe.note("op \(op)")
+        engine.raw(op, args) { _ in }
+    }
+
+    /// 返回（「‹」/ 两指 Z 形）：播退场（进来时那种转场倒放），收起后 screenDidLeave 出栈。
     func back(_ page: ShiziScreenViewController) {
         guard isTop(page), !page.transitions.isLeaving, page.presentingViewController != nil else { return }
         page.transitions.plan = NativeNavPlan(kind: page.enteredKind)
         page.transitions.leave(page)
     }
 
-    /// 原生页收起了（点按返回或左缘跟手完成）：出栈，网页路由 nav.back（网页不再播，root.js nativeMoves）。
+    /// 原生页收起了（点按返回或左缘跟手完成）：出栈（原生改栈、引擎记账；下面那页若是让开过的结果页 / 写字页，回包里带它的 return）。
     func screenDidLeave(_ page: ShiziScreenViewController) {
         guard let i = screens.firstIndex(where: { $0 === page }) else { return }
         screens.remove(at: i)
         ShiziProbe.note("screen:back \(page.screen)")
-        engine.raw("nav.back", ["via": "native"]) { reply in
-            if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: nav.back failed \(reply)") }
-        }
-    }
-
-    /// 推入 screen（原生页里点按）。目标有原生类 → nav.push，宿主回发 open；目标是网页屏 → 先让开（样子交给宿主层）再 nav.push。
-    func navigate(from page: ShiziScreenViewController, push screen: String, params: [String: Any] = [:]) {
-        guard isTop(page), !page.transitions.isLeaving else {
-            ShiziProbe.log("navigate \(screen) refused: top=\(topScreen?.screen ?? "-") leaving=\(page.transitions.isLeaving) presented=\(String(describing: host.presentedViewController))")
+        guard entries.last?["id"] as? String == page.entryId else {
+            ShiziProbe.log("native stage: back from \(page.screen) not on top of the stack")
             return
         }
-        tapAt = CACurrentMediaTime()
-        let args: [String: Any] = ["screen": screen, "params": params]
-        if ShiziScreenRegistry.screenClass(screen) != nil {
-            engine.raw("nav.push", args) { [weak self] reply in
-                if (reply["ok"] as? Bool) != true { self?.tapAt = nil; ShiziProbe.log("native stage: nav.push \(screen) failed \(reply)") }
-            }
-            return
-        }
-        yieldToWeb(from: page) { [weak self] in
-            self?.engine.raw("nav.push", args) { _ in }
-        }
+        enter("pop", extra: ["cause": "native"])
     }
 
-    /// 让给网页页面：原生页截图交给宿主层（解码好才回包）→ go（网页换页）→ 等页面画完一帧 → 原生栈整个收起（不带转场，不发 nav.back）。
-    func yieldToWeb(from page: ShiziScreenViewController, go: @escaping () -> Void) {
-        tapAt = nil
-        page.transitions.finishNow()
-        let url = WebViewController.snapshotURL(coverView(of: page))
-        var args: [String: Any] = ["entryId": page.entryId]
-        if let url { args["url"] = url }
-        ShiziProbe.note("yield:screen")
-        engine.raw("stage.cover", args) { [weak self] _ in
-            go()
-            self?.engine.raw("stage.fence", [:]) { _ in
-                self?.enqueue { done in
-                    guard let self, !self.screens.isEmpty else { done(); return }
-                    self.release(from: 0, fade: false, then: done)
+    // MARK: 冷启动 / 页面重载
+
+    /// pageReady：第一次 = 冷启动（route.plan，按回包无转场重建）；之后 = 页面重载（stage.resync，原生页留着、引擎镜像对齐）。
+    private func engineReady() {
+        if planned {
+            jsSeq = 0 // 新页面的意图序号从头数
+            engine.raw("stage.resync", ["stack": entries]) { [weak self] reply in
+                guard let self else { return }
+                if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: stage.resync failed \(reply)") }
+                // 重载期间数据变了、上面几页不再成立（组没了等）：引擎按同一张有效性表截短，收起的页随宿主消息走（close → 样子留着淡出）
+                if let stack = reply["stack"] as? [[String: Any]], stack.count < self.entries.count {
+                    ShiziProbe.note("reload:cut \(self.entries.count)→\(stack.count)")
+                    self.entries = stack
+                    self.dispatch(reply["bodies"] as? [[String: Any]] ?? [])
+                    self.saveRoute()
                 }
-            }
-        }
-    }
-
-    /// B3.12 / B3.13：原生页让给网页弹层 / 换页的公开入口（同 yieldToWeb，只是网页那边做的是任意一个 op：
-    /// 查字弹层「自己选字」、清单「看写错过的字」的 nav.replace 等）。原生页让开后，回到这一条时宿主发 open via 'return'，原生页重新盖上。
-    func yieldToWeb(_ op: String, _ args: [String: Any], from page: ShiziScreenViewController) {
-        guard isTop(page), !page.transitions.isLeaving else { return }
-        tapAt = nil
-        page.transitions.finishNow()
-        let url = WebViewController.snapshotURL(coverView(of: page))
-        var coverArgs: [String: Any] = ["entryId": page.entryId]
-        if let url { coverArgs["url"] = url }
-        ShiziProbe.note("yield:op \(op)")
-        engine.raw("stage.cover", coverArgs) { [weak self] _ in
-            guard let self else { return }
-            self.engine.raw(op, args) { _ in
-                self.engine.raw("stage.fence", [:]) { _ in
+                // 阻断页「再试一次」整页重载后不再阻断：重载前的阻断页收起（还阻断时新页面会再发 open，同一条目认领）
+                if (reply["blocked"] as? Bool) != true {
                     self.enqueue { done in
-                        guard !self.screens.isEmpty else { done(); return }
-                        self.release(from: 0, fade: false, then: done)
+                        guard let i = self.screens.firstIndex(where: { $0.screen == "block" }) else { done(); return }
+                        self.release(from: i, fade: true, then: done)
                     }
                 }
             }
+            return
         }
+        let t0 = CACurrentMediaTime()
+        engine.raw("route.plan", ["deepLink": host.pendingReminderCardKey != nil]) { [weak self] reply in
+            guard let self else { return }
+            self.entries = reply["stack"] as? [[String: Any]] ?? []
+            self.planned = true
+            ShiziProbe.note("route:plan \(reply["reason"] as? String ?? "?") restored=\((reply["restored"] as? Bool) == true) depth=\(self.entries.count)")
+            ShiziProbe.log(String(format: "native stage: route.plan %.1f ms", (CACurrentMediaTime() - t0) * 1000))
+            self.dispatch(reply["bodies"] as? [[String: Any]] ?? [])
+            self.saveRoute()
+            let later = self.afterPlan
+            self.afterPlan.removeAll()
+            later.forEach { $0() }
+        }
+    }
+
+    /// 冷启动到首页首帧（ms，从进程创建算；QA 探针 / 日志读，门槛 ≤ 网页版 FCP 160–214ms）。
+    private(set) static var bootFrameMs: Double?
+
+    /// 启动首帧（B3.F 段 2 第 6 条）：引擎就绪前先把首页的静态版（「拾」+ 日期）放进「写字」格——route.plan 回来时同一张根页认领（openRoot 复用），
+    /// 恢复出别的 tab 时它留在自己那一格。主按钮位置不变、就绪前不可点（引擎状态 reloading）。
+    func bootFrame() {
+        guard rootScreen == nil else { return }
+        let t0 = Date().timeIntervalSince1970
+        openRoot(["screen": "home", "entryId": "boot", "params": [String: Any](), "via": "boot", "payload": HomeScreen.bootPayload()]) {}
+        ShiziProbe.log(String(format: "native stage: boot segs launch→bootFrame %.1f, openRoot %.1f", (t0 - (Self.launchedAt ?? t0)) * 1000, (Date().timeIntervalSince1970 - t0) * 1000))
+        let link = CADisplayLink(target: BootFrameProbe.shared, selector: #selector(BootFrameProbe.tick(_:)))
+        BootFrameProbe.shared.link = link
+        link.add(to: .main, forMode: .common)
+    }
+
+    /// 进程创建时刻（Unix 秒；sysctl kinfo_proc）。
+    static func processStart() -> TimeInterval? {
+        var info = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        guard sysctl(&mib, 4, &info, &size, nil, 0) == 0 else { return nil }
+        let t = info.kp_proc.p_un.__p_starttime
+        return TimeInterval(t.tv_sec) + TimeInterval(t.tv_usec) / 1_000_000
+    }
+
+    /// 首页首帧之后要做的事（没有首帧量测时：下一轮主线程）。
+    func afterBootFrame(_ fn: @escaping () -> Void) {
+        if BootFrameProbe.shared.link == nil { DispatchQueue.main.async(execute: fn) } else { BootFrameProbe.shared.after.append(fn) }
+    }
+
+    /// didFinishLaunching 的时刻（AppDelegate 记）。
+    static var launchedAt: TimeInterval?
+    /// didFinishLaunching → 首页首帧（ms；与网页版「网页段 index → FCP」同为进程起来之后 App 自己的那一段）。
+    private(set) static var bootFromLaunchMs: Double?
+
+    fileprivate static func recordBootFrame() {
+        guard bootFrameMs == nil, let start = processStart() else { return }
+        let now = Date().timeIntervalSince1970
+        bootFrameMs = (now - start) * 1000
+        bootFromLaunchMs = launchedAt.map { (now - $0) * 1000 }
+        ShiziProbe.note(String(format: "boot:home %.0f launch:%.0f", bootFrameMs ?? 0, bootFromLaunchMs ?? -1))
+        ShiziProbe.log(String(format: "native stage: cold start → first home frame %.1f ms (didFinishLaunching → frame %.1f ms)", bootFrameMs ?? 0, bootFromLaunchMs ?? -1))
+    }
+
+    /// 栈重建好之后再做（提醒深链：先让冷启动判定看到它，再派发）。
+    func whenPlanned(_ fn: @escaping () -> Void) {
+        if planned { fn() } else { afterPlan.append(fn) }
     }
 
     // MARK: 坏值提示浮条（B3.13；L4 顶部浮条，网页那边只发显示 / 收起）
@@ -681,31 +864,10 @@ final class NativeStage: NSObject {
 
     func pageWillReload() {
         engine.pageWillReload()
-        rootClaimed = rootScreen == nil
-    }
-
-    /// 重载后等待时间到了根页还没被认领（路由没恢复出这个 tab）：收掉。
-    func releaseUnclaimedRoot() {
-        enqueue { [weak self] done in
-            guard let self, !self.rootClaimed else { done(); return }
-            self.rootClaimed = true
-            ShiziProbe.note("reload:root-unclaimed")
-            self.removeRoot()
-            done()
-        }
     }
 
     func pageDidBecomeReady() {
         engine.pageDidBecomeReady()
-    }
-
-    /// 重载后没人认领：通用原生栈整个收起淡出（B2 页面走 stepAsideLeavingCover）。
-    func releaseUnclaimedScreens() {
-        enqueue { [weak self] done in
-            guard let self, !self.screens.isEmpty else { done(); return }
-            ShiziProbe.note("reload:unclaimed")
-            self.release(from: 0, fade: true, then: done)
-        }
     }
 
     #if DEBUG
@@ -1010,33 +1172,17 @@ final class NativeStage: NSObject {
         }
     }
 
-    // MARK: B2.8 页面重载
+    // MARK: 页面重载（B3.F：栈在原生，重载不再「等宿主认领」）
 
-    /// 页面重新加载（WebContent 进程被回收 / 新文档）：原生页先留在屏上（本地笔画在内存里），等页面就绪后看宿主是否认领。
+    /// 页面重新加载（WebContent 进程被回收 / 新文档）：原生页留在屏上（本地笔画在内存里），引擎状态 reloading（按钮暂不可点）。
     func nativePageWillReload() {
         pageWillReload()
-        guard WebViewController.nativeWriteEnabled, host.presentedViewController is NativeTransitionPage else { return }
-        NativeNavState.shared.awaitReattach()
     }
 
-    /// 页面就绪：重载前盖着的原生页，若页面在等待时间内没有再发 open / result-open（路由没有恢复出这一页），样子留着、原生页收起、等页面画好再淡出。
+    /// 页面就绪：冷启动 → route.plan 重建栈；重载 → stage.resync（引擎镜像按原生的栈对齐），原生页按 status 回到 ready 后各自重拉视图。
     func nativePageDidBecomeReady() {
         pageDidBecomeReady()
-        if rootScreen != nil {
-            DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.reattachWait) { [weak self] in self?.releaseUnclaimedRoot() }
-        }
-        guard WebViewController.nativeWriteEnabled, NativeNavState.shared.awaitingReattach else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.reattachWait) { [weak self] in
-            guard let self, NativeNavState.shared.takeUnclaimed(), let page = self.host.presentedViewController as? NativeTransitionPage else { return }
-            if page is ShiziScreenViewController {
-                self.releaseUnclaimedScreens()
-                return
-            }
-            (page as? NativeWriteViewController)?.exitHandled = true
-            (page as? NativeResultViewController)?.exitHandled = true
-            ShiziProbe.note("reload:unclaimed")
-            self.stepAsideLeavingCover(page)
-        }
+        engineReady()
     }
 }
 
@@ -1069,20 +1215,13 @@ extension NativeStage: NativeWriteCoordinating {
         }
     }
 
-    /// R9-B / B2.8：改判弹层「看这个字 ›」（D66 ⑮）：写字条目留在网页栈里，字详情推入在它上面。原生页的样子先以截图交给宿主层（字详情推入 / 左缘滑回时露出的是它），
-    /// 页面推入字详情、画好一帧后原生页直接收起（推入由网页播）；详情返回时宿主等网页转场放完再请原生盖上（open via 'return'，不带转场）。
+    /// R9-B / B2.8：改判弹层「看这个字 ›」（D66 ⑮）：写字条目留在栈里，字详情（原生屏）推入在它上面（B3.F：没有网页层了，不再先截图交给宿主层）。
+    /// 页面换好页后这一页留在下面（字详情盖着它）；详情返回时引擎请原生 open via 'return'，这一页同一个对象认领。
     func nativeWriteOpenDetail(_ vc: NativeWriteViewController, char: String) {
         guard !vc.exitHandled else { return }
         vc.exitHandled = true // 交给页面导航中（失败时放回）
-        let bridge = NativeWriteBridge(webView: host.webView)
-        let slot = vc.slot
         vc.transitions.finishNow()
-        let url = WebViewController.snapshotURL(vc.view)
-        // 截图先交给宿主层并等页面解码好（cover 回包），再请页面推入字详情——推入的第一帧下面就是原生页的样子
-        bridge.callNav("cover", url.map { ["slot": slot, "url": $0] } ?? ["slot": slot]) { [weak self, weak vc] _ in
-            guard let self, let vc else { return }
-            self.openDetailAfterCover(vc, char: char, bridge: bridge)
-        }
+        openDetailAfterCover(vc, char: char, bridge: NativeWriteBridge(webView: host.webView))
     }
 
     private func openDetailAfterCover(_ vc: NativeWriteViewController, char: String, bridge: NativeWriteBridge) {
@@ -1091,7 +1230,6 @@ extension NativeStage: NativeWriteCoordinating {
             guard let self, let vc else { return }
             guard reply.ok else {
                 vc.exitHandled = false
-                bridge.callNav("cover", ["slot": slot]) { _ in }
                 return
             }
             vc.saveMetrics()
@@ -1113,22 +1251,8 @@ extension NativeStage: NativeResultCoordinating {
 // MARK: - WebViewController 一侧（开关、注入、消息入口；B2 的调用点名字照旧）
 
 extension WebViewController {
-    /// 真机试用：带 `-shizi-native-write` 启动一次后记在 UserDefaults，之后从主屏打开也保持开启；
-    /// 带 `-shizi-native-write-off` 启动一次即关闭。B3.1 起 Release 同样有这一套（默认关；TestFlight / App Store 安装带不了启动参数，所以那里一直是网页版），B3.F 去掉。
-    /// B3.2：同一个开关也打开通用原生屏（NativeStage）。
-    static var nativeWriteEnabled: Bool {
-        let p = ProcessInfo.processInfo
-        let key = "shizi.debug.nativeWrite"
-        if p.arguments.contains("-shizi-native-write-off") {
-            UserDefaults.standard.set(false, forKey: key)
-            return false
-        }
-        if p.arguments.contains("-shizi-native-write") || p.environment["SHIZI_NATIVE_WRITE"] == "1" {
-            UserDefaults.standard.set(true, forKey: key)
-            return true
-        }
-        return UserDefaults.standard.bool(forKey: key)
-    }
+    /// 原生页恒开（B3.F：去掉了 B2 起的 -shizi-native-write / -shizi-native-write-off 开关与 UserDefaults 记忆——网页界面在 App 里不再挂载）。
+    static var nativeWriteEnabled: Bool { true }
 
     func installNativeWriteUserScriptIfNeeded(_ controller: WKUserContentController) {
         guard Self.nativeWriteEnabled else { return }
@@ -1412,5 +1536,22 @@ enum ShiziTabIcon {
             }
         }
         return img.withRenderingMode(.alwaysTemplate)
+    }
+}
+
+/// 启动首帧量测：首页静态版放进窗口后的第一次屏幕刷新（CADisplayLink 回调 = 这一帧已提交）。
+final class BootFrameProbe: NSObject {
+    static let shared = BootFrameProbe()
+    var link: CADisplayLink?
+
+    var after: [() -> Void] = []
+
+    @objc func tick(_ l: CADisplayLink) {
+        l.invalidate()
+        link = nil
+        NativeStage.recordBootFrame()
+        let later = after
+        after.removeAll()
+        later.forEach { $0() }
     }
 }

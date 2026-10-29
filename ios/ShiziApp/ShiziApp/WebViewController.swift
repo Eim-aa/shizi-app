@@ -128,8 +128,8 @@ final class WebViewController: UIViewController {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
 
         let webView = ShiziWebView(frame: .zero, configuration: configuration)
-        // B3.5d：原生根页（连同原生 Tab 栏）看得见时，下面的网页（只剩根页宿主）对读屏同样藏起
-        webView.hiddenFromAccessibility = { [weak self] in (self?.stage.hostHasModal ?? false) || (self?.stage.rootShown ?? false) }
+        // B3.F：网页不挂界面（引擎模式），对读屏恒藏起（原生页在它上面）
+        webView.hiddenFromAccessibility = { true }
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = false
@@ -182,15 +182,18 @@ final class WebViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        cleanupTemporaryShareFiles()
-        preloadSounds()
+        loadApp() // 先发出页面加载（WebContent 进程拉起是冷启动里最长的一段，异步）
+        stage.bootFrame() // B3.F：引擎就绪前先画首页静态版（「拾」+ 日期），route.plan 回来时同一张根页认领
+        observeContentSize() // B3.F：读屏状态不再发给页面（只有网页写字页的跳过撤销条读它，引擎模式没有网页界面）；系统字号照发（写字页回包的字阶、折行点在页面里量）
         #if DEBUG
         applySmokeLaunchArguments()
         startNativeInkSpikeIfNeeded()
         #endif
-        observeAccessibilityStatus()
-        observeContentSize()
-        loadApp()
+        // 首帧之后再做的杂事（声音预载、清临时分享文件）：首帧不等它们
+        stage.afterBootFrame { [weak self] in
+            self?.cleanupTemporaryShareFiles()
+            self?.preloadSounds()
+        }
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -301,41 +304,16 @@ final class WebViewController: UIViewController {
         #if DEBUG
         recordSmokeEvent("pageReady", ["href": webView.url?.absoluteString ?? ""])
         #endif
-        dispatchPendingReminderTargetIfReady()
-        sendAccessibilityStatus()
         sendContentSize(currentContentSizeCategory)
-        #if DEBUG
-        runNativeSmokeIfNeeded()
-        runQAHarnessIfNeeded() // QA-H1：状态注入 / 逐屏取证 / 探针（NativeQAHarness.swift，只在启动参数 -shizi-qa* 下）
-        #endif
-        nativePageDidBecomeReady() // B2.8：重载前盖着的原生页，页面没有再认领就收起（NativeStage.swift）
-    }
-
-    // MARK: - 读屏状态（阶段 0 B2 / D36 / P116）
-
-    // 页面据此决定跳过撤销条要不要自动收起：VoiceOver 或切换控制运行时不自动收起（src/platform/accessibility.js）。
-    // pageReady 时发一次当前状态，之后系统状态变化时再发；只传布尔值，没有面向用户的文字。
-    private func observeAccessibilityStatus() {
-        let names: [Notification.Name] = [
-            UIAccessibility.voiceOverStatusDidChangeNotification,
-            UIAccessibility.switchControlStatusDidChangeNotification,
-        ]
-        for name in names {
-            NotificationCenter.default.addObserver(self, selector: #selector(accessibilityStatusDidChange), name: name, object: nil)
+        nativePageDidBecomeReady() // B3.F：冷启动 route.plan 重建栈 / 页面重载 stage.resync（NativeStage.swift）
+        stage.whenPlanned { [weak self] in
+            self?.dispatchPendingReminderTargetIfReady() // 提醒深链：栈重建好之后派发（冷启动判定先看到它：深链优先）
+            #if DEBUG
+            // 冒烟与 QA-H1（状态注入 / 逐屏取证 / 探针，只在启动参数 -shizi-qa* 下）：栈重建好之后再动导航
+            self?.runNativeSmokeIfNeeded()
+            self?.runQAHarnessIfNeeded()
+            #endif
         }
-    }
-
-    @objc private func accessibilityStatusDidChange() {
-        guard pageReady else { return }
-        sendAccessibilityStatus()
-    }
-
-    func sendAccessibilityStatus() {
-        let voiceOver = UIAccessibility.isVoiceOverRunning ? "true" : "false"
-        let switchControl = UIAccessibility.isSwitchControlRunning ? "true" : "false"
-        webView.evaluateJavaScript(
-            "if (typeof shiziAccessibilityStatus === 'function') shiziAccessibilityStatus({voiceOver:\(voiceOver),switchControl:\(switchControl)}); void 0;"
-        )
     }
 
     // MARK: - 系统字号（阶段 1 P1-E6 / D29 / P130）
@@ -444,18 +422,14 @@ final class WebViewController: UIViewController {
         dispatchPendingReminderTargetIfReady()
     }
 
+    /// 提醒深链（B3.F：deeplink.reminder op——与原来 shiziOpenReminderTarget 同一个 JS 处理；去哪 / 要不要先回首页 / 要不要弹 S02 由它发的 nav 定）。
     private func dispatchPendingReminderTargetIfReady() {
-        guard pageReady, !reminderDispatchInFlight, let cardKey = pendingReminderCardKey else { return }
-        guard let literal = Self.jsonLiteral(cardKey) else {
-            pendingReminderCardKey = nil
-            return
-        }
+        guard pageReady, stage.planned, !reminderDispatchInFlight, let cardKey = pendingReminderCardKey else { return }
         reminderDispatchInFlight = true
-        let script = "typeof shiziOpenReminderTarget === 'function' && shiziOpenReminderTarget(\(literal)) === true;"
-        webView.evaluateJavaScript(script) { [weak self] result, error in
+        stage.engine.raw("deeplink.reminder", ["cardKey": cardKey]) { [weak self] reply in
             guard let self else { return }
             self.reminderDispatchInFlight = false
-            let accepted = error == nil && (result as? Bool) == true
+            let accepted = (reply["ok"] as? Bool) == true
             if accepted, self.pendingReminderCardKey == cardKey {
                 self.pendingReminderCardKey = nil
             }
@@ -781,7 +755,7 @@ extension WebViewController: WKNavigationDelegate {
         pageReady = false
         reminderDispatchInFlight = false
         backGestureEnabled = true
-        nativePageWillReload() // B2.8：原生写字页 / 结果页先留在屏上，等页面就绪后看宿主是否认领
+        nativePageWillReload() // 原生页留在屏上（栈在原生），页面就绪后 stage.resync
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {

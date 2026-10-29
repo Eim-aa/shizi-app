@@ -73,6 +73,15 @@ extension WebViewController {
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
+        // B3.F RestoreAndDeepLinkTests：这次启动前把 QA 时钟往后拨 N 分钟（测「离开太久 / 跨 4 点不恢复」）；只拨一次（页面重载不再拨）
+        if let m = Self.argumentValue(after: "-shizi-qa-clock-advance").flatMap(Double.init), !Self.clockAdvanced {
+            Self.clockAdvanced = true
+            QAClock.offsetMs = (QAClock.offsetMs ?? 0) + m * 60_000
+        }
+        // B3.F：这次启动的存储探测失败（测「阻断优先」；src/platform/test-hooks.js 只在测试宿主读）
+        if ProcessInfo.processInfo.arguments.contains("-shizi-qa-storage-unavailable") {
+            controller.addUserScript(WKUserScript(source: "window.__shiziQAStorageUnavailable = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         // B2.9b：QA 注入钉过的时钟跨杀进程重开保持（QAClock；页面 env.js 模块求值时读）
         if let clock = QAClock.script {
             controller.addUserScript(WKUserScript(source: clock, injectionTime: .atDocumentStart, forMainFrameOnly: true))
@@ -88,7 +97,15 @@ extension WebViewController {
             // 与 AppDelegate 点开通知同一入口：页面还没发 pageReady，key 先存着（冷启动）。
             openReminderTarget(cardKey: target)
         }
+        // B3.F：热启动的提醒深链（栈重建好、QA 注入做完之后过几秒，与 AppDelegate 点开通知同一入口）
+        if let target = Self.argumentValue(after: "-shizi-qa-warm-reminder"), !target.isEmpty {
+            stage.whenPlanned { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 6) { self?.openReminderTarget(cardKey: target) }
+            }
+        }
     }
+
+    private static var clockAdvanced = false
 
     // MARK: 事件
 

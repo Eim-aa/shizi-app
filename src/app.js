@@ -38,6 +38,15 @@ function warmFonts() {
 }
 warmFonts();
 
+/** iOS 壳在文档开始注入 __shiziEngine（B3.F）：网页不挂界面、只当引擎。 */
+function engineRequested() {
+  try {
+    return window.__shiziEngine === true;
+  } catch (error) {
+    return false;
+  }
+}
+
 function isDevMode() {
   try {
     return new URLSearchParams(window.location.search).get('dev') === '1';
@@ -67,13 +76,23 @@ async function mountApp() {
   await import('./store/migrate.js').then(m => m.bootMigration()).then(r => (r && r.ok === false ? import('./ui/screens/block/index.js').then(b => b.reportMigrationFailure({ reason: r.error && r.error.kind })) : null)).catch(error => console.warn('[shizi] migration failed:', error)); // M5-4：v1 → v2 迁移（01 §12；失败 → R-B09 迁移变体，M5-6）
   mark('migrate');
   await import('./platform/appearance.js').then(m => m.bootAppearance()).catch(error => console.warn('[shizi] appearance failed:', error)); // M4-3：按 settings 应用 data-theme（挂 UI 前）
-  const { mountRoot } = await import('./ui/root.js');
-  mark('ui-modules');
-  await mountRoot(container);
-  mark('mounted');
-  requestAnimationFrame(() => requestAnimationFrame(() => mark('first-frame')));
+  // B3.F 引擎模式（只在 iOS 壳里：原生注入 __shiziEngine）：建好 store、装 App API，不挂界面（mountRoot 不调用，网页路由与 root.js 不挂）；
+  // 页面栈由原生持有（route.plan / route.save，src/ui/engine.js）。网页版（浏览器 / PWA / e2e）没有注入，照旧挂界面。
+  const engine = engineRequested() ? await import('./ui/engine.js') : null;
+  if (engine && engine.engineModeOn()) {
+    mark('ui-modules');
+    await engine.mountEngine();
+    mark('mounted');
+  } else {
+    const { mountRoot } = await import('./ui/root.js');
+    mark('ui-modules');
+    await mountRoot(container);
+    mark('mounted');
+    requestAnimationFrame(() => requestAnimationFrame(() => mark('first-frame')));
+  }
   await import('./ui/screens/mine/prefs.js').then(m => m.clearLegacyLargeFlag()).catch(error => console.warn('[shizi] legacy large flag failed:', error)); // P1-E6 / D29 / P132 / D58：v1 迁移带来的 large=true 静默去掉，不弹说明
-  await import('./platform/accessibility.js').catch(error => console.warn('[shizi] accessibility status setup failed:', error)); // 阶段 0 B2 / P116：注册读屏状态的桥实现（markReady 之前，pageReady 时原生才发状态）
+  // 阶段 0 B2 / P116：注册读屏状态的桥实现（markReady 之前，pageReady 时原生才发状态）。只有网页写字页的跳过撤销条读它；引擎模式没有网页写字页，原生也不再发（B3.F）
+  if (!engine) await import('./platform/accessibility.js').catch(error => console.warn('[shizi] accessibility status setup failed:', error));
   await import('./platform/reminder.js').then(m => m.startReminder()).catch(error => console.warn('[shizi] reminder setup failed:', error)); // M5-5：注册提醒桥实现 → bridge.markReady(store) 回放积压调用（冷启动深链）→ 提醒同步（01 §8.1）
   await import('./platform/bridge.js').then(async b => { try { b.markReady((await import('./store/store.js')).getStore()); } finally { mark('ready'); b.postNative('pageReady', {}); } }).catch(error => console.warn('[shizi] native pageReady failed:', error)); // M5-3：markReady（幂等，回放积压的原生调用）之后 postMessage pageReady，原生这时才派发提醒深链（01 §2、§8.2）
   await import('./platform/sw.js').then(m => m.startServiceWorker()).catch(error => console.warn('[shizi] service worker setup failed:', error)); // M5-1：BUILD 比对、就绪标记、注册 SW（01 §8.3）

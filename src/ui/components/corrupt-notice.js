@@ -60,16 +60,7 @@ export function CorruptNotice({ getStore }) {
   // 折行点也一起给（网页量：原生按这些位置换行，与网页同一行）。
   useEffect(() => {
     if (!native || !notice) return undefined;
-    const text = t('X-SYS.corruptNotice');
-    const lines = measureLines({
-      text,
-      variant: 'corrupt-text',
-      width: viewportWidth(),
-      parentCls: 'sz-corrupt',
-      siblingCls: 'sz-btn sz-btn--icon',
-      siblingTag: 'button',
-    });
-    postNative('native', { op: 'corrupt', show: true, keys: notice.keys, lines });
+    postNative('native', { op: 'corrupt', show: true, keys: notice.keys, lines: corruptNoticeLines() });
     return () => postNative('native', { op: 'corrupt', show: false });
   }, [native, notice]);
 
@@ -81,4 +72,16 @@ export function CorruptNotice({ getStore }) {
     <${Button} variant="icon" data-testid="corrupt-notice-close" aria-label=${t('X-COMMON.close')}
       onClick=${() => setNotice(null)}>${CLOSE_ICON()}</${Button}>
   </div>`;
+}
+
+/** 坏值提示的折行点（网页量，原生按这些位置换行；B3.F 起引擎模式 engine.js 也用它，根组件不挂）。 */
+export function corruptNoticeLines() {
+  return measureLines({
+    text: t('X-SYS.corruptNotice'),
+    variant: 'corrupt-text',
+    width: viewportWidth(),
+    parentCls: 'sz-corrupt',
+    siblingCls: 'sz-btn sz-btn--icon',
+    siblingTag: 'button',
+  });
 }

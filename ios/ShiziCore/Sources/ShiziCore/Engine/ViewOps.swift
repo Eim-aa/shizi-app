@@ -3,6 +3,14 @@ import Foundation
 extension CoreEngine {
     // Pure model results (as with images.*), without the App API transport envelope.
     static let viewOps: [String: Op] = [
+        "view.annual": { e, a in try AnnualView.annualModel(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.annual.plan": { e, a in try AnnualView.annualPlan(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.annual.years": { e, a in .array(AnnualView.annualYears(a["state"] ?? .null, dates: e.dates).map { .number(Double($0)) }) },
+        "view.annual.defaultYear": { e, a in try AnnualView.annualDefaultYear(a["state"] ?? .null, today: string(a, "today"), dates: e.dates) },
+        "view.annual.slice": { e, a in AnnualView.yearSlice(a["state"] ?? .null, year: Int(JS.number(a["year"])), dates: e.dates).js },
+        "view.annual.first": { e, a in AnnualView.firstOfYear(AnnualView.yearSlice(a["state"] ?? .null, year: Int(JS.number(a["year"])), dates: e.dates), hasInk: nil, dates: e.dates) },
+        "view.annual.twice": { e, a in try AnnualView.twiceOfYear(AnnualView.yearSlice(a["state"] ?? .null, year: Int(JS.number(a["year"])), dates: e.dates), hasInk: nil, dates: e.dates) },
+        "view.annual.months": { e, a in .array(try AnnualView.yearMonths(a["state"] ?? .null, AnnualView.yearSlice(a["state"] ?? .null, year: Int(JS.number(a["year"])), dates: e.dates), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
         "view.query": { e, a in try QueryView.querySheetModel(a, dates: e.dates) },
         "view.query.sheet": { _, a in QueryView.sheetModel(a) },
         "view.query.meta": { _, a in QueryView.cardMetaRef(a["pinyin"], a["strokes"]) },

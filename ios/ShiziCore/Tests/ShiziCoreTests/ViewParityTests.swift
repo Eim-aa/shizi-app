@@ -10,6 +10,16 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(try runOpGolden("views-basic"), 640)
     }
 
+    // test/ui/annual.test.mjs — empty year and folded work members retain their year.
+    func testAnnualEmptyAndFoldedYears() throws {
+        let state = try value(#"{"records":{"2025-02":{"folded":true,"chars":["永"],"kept":[],"byDay":{"2025-02-01":["永"]},"work":{"2025-02-01":["永"]},"workJudged":{"2025-02-01":["永"]}}}}"#)
+        XCTAssertEqual(AnnualView.annualYears(state, dates: dates), [2025])
+        XCTAssertEqual(AnnualView.annualDefaultYear(state, today: "2026-03-01", dates: dates), .number(2025))
+        XCTAssertEqual(try AnnualView.annualModel(state, today: "2026-03-01", dates: dates)["empty"], .bool(true))
+        let model = try AnnualView.annualModel(state, today: "2025-03-01", dates: dates)
+        XCTAssertEqual(model["count"], .number(1)); XCTAssertEqual(model["first"]?["record"], .null)
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

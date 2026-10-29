@@ -1,4 +1,5 @@
 // B4.5b: real view functions, no duplicated product rules.
+import * as annual from '../../../src/session/views/annual.js';
 import * as query from '../../../src/session/views/query.js';
 import * as about from '../../../src/session/views/about.js';
 import * as block from '../../../src/session/views/block.js';
@@ -18,6 +19,14 @@ export function makeB45ViewOps({ required, clock }) {
   const ink = a => r => a.state?.ink?.[r.localDay.slice(0, 7)]?.[r.id] ?? null;
   const q = a => { setDeckSource(deckSources()); return { ...a, policy: p(a), predicates: query.deckPredicates(a.state?.settings), getInk: ink(a), store: { getInk: ink(a) } }; };
   return {
+    'view.annual': a => annual.annualModel(a.state,a.today,{year:a.year,policy:p(a)}),
+    'view.annual.plan': a => annual.annualPlan(a.state,{today:a.today,year:a.year,policy:p(a),inkOf:r=>query.inkPointsOf({latest:r},ink(a))}),
+    'view.annual.years': a => annual.annualYears(a.state),
+    'view.annual.defaultYear': a => annual.annualDefaultYear(a.state,a.today),
+    'view.annual.slice': a => {const s=annual.yearSlice(a.state,a.year); return {...s,firstSeen:[...s.firstSeen]};},
+    'view.annual.first': a => annual.firstOfYear(annual.yearSlice(a.state,a.year)),
+    'view.annual.twice': a => annual.twiceOfYear(annual.yearSlice(a.state,a.year)),
+    'view.annual.months': a => annual.yearMonths(a.state,annual.yearSlice(a.state,a.year),{policy:p(a)}),
     'view.query': a => query.querySheetModel(q(a)),
     'view.query.sheet': a => query.sheetModel(q(a)),
     'view.query.meta': a => query.cardMetaRef(a.pinyin, a.strokes),

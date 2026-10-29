@@ -24,6 +24,8 @@
 #       单独在空闲机器上跑，阈值不放宽。任务少于 N 组时只开用得上的台数。
 #   FLOW_CLASSES=A,B …                                       只跑这几个测试类（与 --shards 可同用）
 #   KEEP_SIM=1 …                                             结束时不删模拟器（调试用）
+#   ENGINE=shadow|swift|web …                                B4.7：App 带 -shizi-engine <值> 启动（取证与流程用例都带）。shadow = 影子比对：
+#       每台模拟器上 App 写的 Documents/shadow/*.json 收进 shadow/，汇总成 shadow.md；**有任何 mismatch 本次判失败**（退出码 1）。
 # 输出：ios/ShiziApp/build/native-ui/<时间>/（summary.md、parity/report.md、parity/side-by-side/*.png、flows.md、flows*.xcresult；分片时每台各有 flows-s<序号>.xcresult / 日志）。
 # 退出码：有回归（流程失败、具名检查回归）为 1；只有「预期失败（待修）」为 0。
 set -uo pipefail
@@ -58,6 +60,9 @@ while [ $# -gt 0 ]; do
   shift
 done
 case "$shards" in ''|*[!0-9]*|0) echo "--shards needs a positive integer" >&2; exit 2 ;; esac
+ENGINE="${ENGINE:-}"
+case "$ENGINE" in ''|web|swift|shadow) ;; *) echo "ENGINE must be web, swift or shadow" >&2; exit 2 ;; esac
+export ENGINE
 
 mkdir -p "$OUT"
 T0=$(date +%s)
@@ -159,9 +164,19 @@ run_flows() {   # run_flows <udid> <类列表（逗号分隔，空 = 全部）> 
   xcrun simctl ui "$u" content_size large
   # FLOW_CLASSES=QueryFlowTests,BackupFlowTests：只跑这几个测试类（页面卡的局部门禁）；缺省全跑
   if [ -n "$classes" ]; then IFS=, read -ra cls <<<"$classes"; for c in "${cls[@]}"; do only+=("-only-testing:ShiziUITests/$c"); done; fi
-  xcodebuild -project "$IOS/ShiziApp.xcodeproj" -scheme ShiziUITests -configuration Debug \
+  TEST_RUNNER_QA_ENGINE="$ENGINE" xcodebuild -project "$IOS/ShiziApp.xcodeproj" -scheme ShiziUITests -configuration Debug \
     -destination "platform=iOS Simulator,id=$u" -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO ${only[@]+"${only[@]}"} \
     -resultBundlePath "$bundle" test-without-building >"$flog" 2>&1 || true
+}
+
+# B4.7：收影子比对的结果（App 写在数据容器 Documents/shadow/<启动>.json）。模拟器要开着（get_app_container 只认启动着的）。
+collect_shadow() {   # collect_shadow <序号，从 0 起>
+  [ "$ENGINE" = shadow ] || return 0
+  local u="${UDIDS[$1]}" c
+  c="$(xcrun simctl get_app_container "$u" com.eimaa.shizi data 2>/dev/null)" || return 0
+  mkdir -p "$OUT/shadow/s$(( $1 + 1 ))"
+  [ -d "$c/Documents/shadow" ] && cp "$c/Documents/shadow/"*.json "$OUT/shadow/s$(( $1 + 1 ))/" 2>/dev/null
+  return 0
 }
 
 # 3+4. 每台模拟器一条流水线：先取证（它那一组状态），再跑流程（它那一组测试类）。结果写 $OUT/shard-<序号>.rc（0 = 成功）
@@ -189,6 +204,7 @@ pipeline() {   # pipeline <序号，从 0 起>
     log "XCUITest flows$s (ShiziUITests)"
     run_flows "$u" "${flow_groups[$i]}" "$OUT/flows$s.xcresult" "$OUT/flows$s.log"
   fi
+  collect_shadow "$i"
   echo "$rc" >"$OUT/shard-$i.rc"
 }
 for ((i = 0; i < nsim; i++)); do
@@ -218,6 +234,14 @@ if [ "$do_flows" = 1 ] && [ -n "$perf_classes" ]; then
   for ((i = 1; i < nsim; i++)); do xcrun simctl shutdown "${UDIDS[$i]}" >/dev/null 2>&1 || true; done
   log "XCUITest flows (timing-sensitive, alone on an idle machine: $perf_classes)"
   run_flows "${UDIDS[0]}" "$perf_classes" "$OUT/flows-perf.xcresult" "$OUT/flows-perf.log"
+  collect_shadow 0
+fi
+
+# 4d. 影子比对汇总（ENGINE=shadow）：有 mismatch → 失败
+shadow_line=""
+if [ "$ENGINE" = shadow ]; then
+  if shadow_line="$(node "$TOOLS/shadow-summary.mjs" "$OUT/shadow" "$OUT/shadow.md")"; then :; else status=1; fi
+  echo "  $shadow_line"
 fi
 
 # 4c. 合并流程结果与日志
@@ -264,6 +288,8 @@ fi
   echo "- 模拟器：iPhone 17 / iOS 26.5（专用、已删除）× $nsim"
   echo "- 逐屏对比：$parity_line"
   echo "- 流程用例：$(echo "$flows_line" | head -1)"
+  [ -n "$shadow_line" ] && echo "- 影子比对（ENGINE=shadow）：$shadow_line（shadow.md）"
+  [ -n "$ENGINE" ] && echo "- 引擎：-shizi-engine $ENGINE"
   echo "- 总耗时：$(elapsed)"
   echo
   echo "详情：parity/report.md（并排图 parity/side-by-side/）、flows.md（结果包 flows*.xcresult）"

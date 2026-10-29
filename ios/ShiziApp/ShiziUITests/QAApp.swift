@@ -59,6 +59,8 @@ final class QA {
         var a = ["-shizi-test-host", "-shizi-qa-probe", native ? "-shizi-native-write" : "-shizi-native-write-off"]
         if let seed { a += ["-shizi-qa-seed", seed] }
         if failNext > 0 { a += ["-shizi-qa-fail-next", String(failNext)] }
+        // B4.7：verify-native-ui.sh ENGINE=shadow|swift → TEST_RUNNER_QA_ENGINE → App 的 -shizi-engine
+        if let engine = ProcessInfo.processInfo.environment["QA_ENGINE"], !engine.isEmpty { a += ["-shizi-engine", engine] }
         return a
     }
 

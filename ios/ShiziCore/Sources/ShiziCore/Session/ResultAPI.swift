@@ -10,7 +10,7 @@ public enum ResultAPI {
     static func call(_ op: String, _ store: Store, _ args: JSObject, dependencies d: WriteDependencies? = nil) throws -> JSValue {
         var a = args; a["slot"] = .string(args["slot"] == .string("B") ? "B" : "A")
         func view() throws -> JSValue {
-            var v = JSObject([("slot", a["slot"]!), ("sessionId", a["sessionId"] ?? .null)])
+            var v = JSObject([("slot", a["slot"]!)]);v["sessionId"] = a["sessionId"]
             v["width"] = a["width"]; v["ax"] = a["ax"] ?? .bool(false)
             if op == "result" { v["undo"] = a["undo"] ?? .null }
             return try d?.resultView?(store, v) ?? ResultModels.baseView(store.state, a)
@@ -52,7 +52,8 @@ public enum ResultAPI {
                 return JS.obj([("ok", .bool(try f(char) != .bool(false)))])
             case .string("share"):
                 guard let f = d?.share else { return SessionWrites.failure("invalid") }
-                return JS.obj([("ok", .bool(try f(JSObject([("slot", a["slot"]!), ("sessionId", a["sessionId"] ?? .null)])) != .bool(false)))])
+                var payload = JSObject([("slot",a["slot"]!)]);payload["sessionId"] = a["sessionId"]
+                return JS.obj([("ok",.bool(try f(payload) != .bool(false)))])
             default: return SessionWrites.failure("invalid")
             }
         case "resultInvite":

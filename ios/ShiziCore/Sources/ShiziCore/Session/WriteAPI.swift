@@ -29,7 +29,7 @@ public enum WriteAPI {
     }
     static func run(_ op: String, _ store: Store, _ a: JSObject, dependencies: WriteDependencies? = nil) throws -> JSValue {
         let slot = JS.string(a["slot"])
-        func snapshot() throws -> JSValue { try WriteModels.snapshot(store.state, slot: slot) }
+        func snapshot() throws -> JSValue { var value = try WriteModels.snapshot(store.state,slot:slot).objectValue!;value["slot"] = a["slot"];return .object(value) }
         func flow(_ r: JSValue) throws -> JSValue { SessionWrites.patch(r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true))]) : plain(r), [("snapshot", try snapshot())]) }
         var args = a
         switch op {

@@ -41,7 +41,8 @@ public enum ResultModels {
         }, added: ImageSelection.addedOf(s))
         var sub: [JSValue] = []
         if variant != "first" && early && unwritten > 0 { sub.append(try Copy.t("R-R05.bodyEarly", JSObject([("n", .number(unwritten))]))) }
-        return JS.obj([("found", .bool(s != nil)), ("where", found.map { .string($0.ended ? "ended" : "slot") } ?? .null), ("session", s ?? .null), ("slot", a["slot"] ?? .null), ("sessionId", a["sessionId"] ?? .null), ("variant", .string(variant)), ("early", .bool(early)), ("header", try Copy.t(variant == "first" ? "X-RESULT.headerFirst" : variant == "picked" ? "R-R05.kicker" : "X-RESULT.headerDaily")), ("title", variant == "first" ? try Copy.t("X-FIRST.title") : .null), ("sub", .array(sub)), ("cells", .array(cells)), ("count", .number(Double(Set(records.filter(Records.isJudged).map { JS.string($0["cardKey"]) }).count))), ("unwritten", .number(unwritten)), ("day", day), ("work", work), ("share", .bool(!(work["cells"]?.arrayValue ?? []).isEmpty)), ("leave", try leaveOf(source)), ("again", .bool(variant != "picked")), ("source", source)])
+        let value = JS.obj([("found", .bool(s != nil)), ("where", found.map { .string($0.ended ? "ended" : "slot") } ?? .null), ("session", s ?? .null), ("slot", a["slot"] ?? .null), ("sessionId", a["sessionId"] ?? .null), ("variant", .string(variant)), ("early", .bool(early)), ("header", try Copy.t(variant == "first" ? "X-RESULT.headerFirst" : variant == "picked" ? "R-R05.kicker" : "X-RESULT.headerDaily")), ("title", variant == "first" ? try Copy.t("X-FIRST.title") : .null), ("sub", .array(sub)), ("cells", .array(cells)), ("count", .number(Double(Set(records.filter(Records.isJudged).map { JS.string($0["cardKey"]) }).count))), ("unwritten", .number(unwritten)), ("day", day), ("work", work), ("share", .bool(!(work["cells"]?.arrayValue ?? []).isEmpty)), ("leave", try leaveOf(source)), ("again", .bool(variant != "picked")), ("source", source)])
+        var out = value.objectValue!;out["slot"] = a["slot"];out["sessionId"] = a["sessionId"];return .object(out)
     }
     public static func firstExtras(_ a: JSObject, dates: Dates) throws -> JSValue {
         let cells = a["cells"]?.arrayValue ?? [], judged = cells.filter { $0["kind"] == .string("judged") }
@@ -61,7 +62,8 @@ public enum ResultModels {
         let s = SessionResults.locate(state, a)?.session
         let variant = s.map { $0["kind"] == .string("picked") ? "picked" : $0["kind"] == .string("first") ? "first" : "daily" } ?? (a["slot"] == .string("B") ? "picked" : "daily")
         let cells = try cells(state, a).map { ViewSupport.ordered($0, "index char recordId kind judgment canChange") }
-        return JS.obj([("found", .bool(s != nil)), ("variant", .string(variant)), ("early", .bool(JS.truthy(s?["endedEarly"]))), ("sessionId", a["sessionId"] ?? .null), ("slot", a["slot"] ?? .null), ("cells", .array(cells))])
+        let value = JS.obj([("found", .bool(s != nil)), ("variant", .string(variant)), ("early", .bool(JS.truthy(s?["endedEarly"]))), ("sessionId", a["sessionId"] ?? .null), ("slot", a["slot"] ?? .null), ("cells", .array(cells))])
+        var out = value.objectValue!;out["sessionId"] = a["sessionId"];return .object(out)
     }
     static func cell(_ state: JSObject, _ a: JSObject) throws -> JSValue {
         let r = JS.truthy(a["recordId"]) ? SessionWrites.find(state, a["recordId"]) : nil, kind = r?["kind"] ?? a["kind"] ?? .null, char = r?["char"] ?? a["char"] ?? .string("")

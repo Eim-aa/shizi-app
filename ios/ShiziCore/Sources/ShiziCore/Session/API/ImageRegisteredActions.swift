@@ -62,12 +62,13 @@ public final class ImageRegisteredActions {
         }
         guard name == "spec" else { return SessionWrites.failure("unavailable") }
         if a["mode"] == .string("long") && !annual { return SessionWrites.failure("unsupported") }
-        let n = JS.numberOr0(a["page"]), i = n.isFinite && n >= 0 && n.rounded(.towardZero) == n && n < Double(pages.count) ? Int(n) : -1
+        let n = JS.number(JS.truthy(a["page"]) ? a["page"]! : .number(0)), i = n.isFinite && n >= 0 && n.rounded(.towardZero) == n && n < Double(pages.count) ? Int(n) : -1
         let scale = a["mode"] == .string("export") || a["mode"] == .string("long") || total <= 3 ? 4.0/3 : 0.4
         var spec = JSObject([("status", .string(status))]), file: String
         if annual {
             let year = JS.string(p["model"]?["year"])
-            file = a["mode"] == .string("long") ? "shizi-annual-\(year)-long.jpg" : "shizi-annual-\(year)-\(String(format: "%02d", Int(n)+1))of\(total).jpg"
+            let pageText = JS.string(.number(n+1)), padded = pageText.utf16.count < 2 ? "0" + pageText : pageText
+            file = a["mode"] == .string("long") ? "shizi-annual-\(year)-long.jpg" : "shizi-annual-\(year)-\(padded)of\(total).jpg"
             var args = JSObject()
             if a["mode"] == .string("long") {
                 args = try annualCover(p)
@@ -83,7 +84,7 @@ public final class ImageRegisteredActions {
                 spec = JSObject([("status", .string("ready")), ("kind", .string(type == "cover" ? "annual-cover" : type == "tail" ? "annual-tail" : "work")), ("args", .object(args))])
             } else { spec = JSObject([("status", .string("empty"))]) }
         } else {
-            let key = JS.string(p["key"]).unicodeScalars.filter { (48...57).contains($0.value) || (65...90).contains($0.value) || (97...122).contains($0.value) || (0x3400...0x9fff).contains($0.value) || $0 == "-" }.map(String.init).joined()
+            let key = (JS.truthy(p["key"]) ? JS.string(p["key"]) : "").unicodeScalars.filter { (48...57).contains($0.value) || (65...90).contains($0.value) || (97...122).contains($0.value) || (0x3400...0x9fff).contains($0.value) || $0 == "-" }.map(String.init).joined()
             file = "shizi-\(kind)-\(key)-\(ratio == .string("1:1") ? "1x1" : "3x4")\(total > 1 ? "-\(JS.string(.number(n+1)))of\(total)" : "").jpg"
             if status == "ready" {
                 if kind == "glyph", let cell = p["drawn"]?.arrayValue?.first, let record = cell["record"] {

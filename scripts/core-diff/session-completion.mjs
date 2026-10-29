@@ -93,6 +93,8 @@ try {
  await call('session.imageRegistered',{op:'add',args:{scope:{kind:'session',slot:'A',sessionId:'s1'},recordId:imageWrong.record.id}});
  await call('session.resultPageView',{slot:'A',sessionId:'s1',width:402,shareAvailable:true});
  const palette=Object.fromEntries(['paper','sheet','line','frame','guide','ink1','ink2','ink3','hand','ref','under','zhu','seal','onSeal'].map(k=>[k,'#123456']));palette.textures=[];palette.tiles=[240];
+ for(const page of ['bad',.5,-1])await call('session.imageRegistered',{op:'spec',args:{scope:{kind:'annual',year:2026},page},palette});
+ await call('session.imageRegistered',{op:'spec',args:{scope:{}},palette});
  for(const scope of [{kind:'session',slot:'A',sessionId:'s1'},{kind:'day',day:'2026-10-02'},{kind:'month',month:'2026-10'},{kind:'glyph',char:'人'},{kind:'annual',year:2026}])for(const ratio of ['3:4','1:1']){
   await call('session.imageRegistered',{op:'view',args:{scope,ratio}});
   for(const mode of ['preview','export','long'])for(const page of [0,1,9])await call('session.imageRegistered',{op:'spec',args:{scope,ratio,mode,page},palette});
@@ -154,6 +156,10 @@ try {
   const args={cells,sched:{'base:拾':{due:'2026-10-03'},'base:人':{due:'2026-10-04'}},today:'2026-10-02',variant,work:{cells:inWork?[{char:'拾'}]:[]}};
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
+ for(const args of [{},{slot:null}])await call('session.writeHost',{op:'open',args});
+ await call('session.writeHost',{op:'result',args:{}});await call('session.writeHost',{op:'result',args:{},hooks:{view:{reply:{ok:true}}}});await call('session.writeHost',{op:'resultExit',args:{to:'share'},hooks:{share:{reply:true}}});
+ await call('session.blockUnavailable',{op:'block.retry',args:{kind:''}});
+ await call('session.pageRegistered',{op:'library.switch',args:{}});
  // Full-family acceptance sequences: each failure is a product reply, never a protocol error.
  for(const sound of [false,null,0,'',true]){const r=await call('session.writeHost',{op:'resultSealed',args:{slot:'A',sessionId:'bad',sound},hooks:{seal:{}}});assert.equal(r.calls.length,sound?1:0);}
  const api=(op,args={})=>call('api.call',{op,args});

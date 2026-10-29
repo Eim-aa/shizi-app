@@ -54,7 +54,7 @@ public final class PageRegisteredActions {
         }
         switch op {
         case "library.switch":
-            return store.commit("library:switch") { d,_ in d["settings"] = SessionWrites.patch(d["settings"],[("library",a["id"] ?? .null)]) }
+            return store.commit("library:switch") { d,_ in var settings = d["settings"]?.objectValue ?? JSObject();settings["library"] = a["id"];d["settings"] = .object(settings) }
         case "library.list.start":return try picked(a["keys"]?.arrayValue ?? [],source:JS.obj([("view",a["view"] ?? .null)]))
         case "library.all.start":
             if a["kind"] == .string("list") {

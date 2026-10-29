@@ -29,6 +29,17 @@ extension CoreEngine {
         "view.month.sheet": { e, a in try MineSubView.monthSheetOf(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
         "view.annual-page": { e, a in try MineSubView.annualView(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
         "view.mine-sub.helpers": { e, a in try ViewSupport.obj([("month", MineSubView.monthHeadRef(a["n"] ?? .number(0))), ("day", MineSubView.dayTextRef(required(a, "day"), dates: e.dates)), ("label", MineSubView.cellLabelRef(required(a, "cell"), dates: e.dates)), ("dayLabel", MineSubView.dayCellLabelRef(required(a, "cell"), dates: e.dates)), ("geometry", MineSubView.sheetGeometry(Int(JS.number(a["n"])), width: JS.number(a["width"])))]) },
+        "view.mine": { e, a in try MinePageView.mineView(a["state"] ?? .null, today: string(a, "today"), a, dates: e.dates) },
+        "view.mine.sheet": { e, a in
+            let state = a["state"] ?? .null, p = ViewSupport.policy(a["policy"])
+            let m = try ViewSupport.mineModel(state, today: string(a, "today"), policy: p, storagePressure: a["storagePressure"], dates: e.dates)
+            return try MinePageView.mineSheetView(state, model: m, policy: p, width: JS.number(a["width"]), ax: JS.number(a["ax"]), dates: e.dates)
+        },
+        "view.mine.cells": { e, a in try MinePageView.monthSheetCells(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.mine.helpers": { e, a in
+            let state = a["state"] ?? .null, p = ViewSupport.policy(a["policy"]), m = try ViewSupport.mineModel(state, today: string(a, "today"), policy: p, storagePressure: a["storagePressure"], dates: e.dates)
+            return ViewSupport.obj([("label", try MinePageView.cellLabelRef(required(a, "cell"), dates: e.dates)), ("trim", MinePageView.trimSheetCells(a["cells"]?.arrayValue ?? [], max: Int(JS.number(a["max"])))), ("rows", MinePageView.mineSheetRows(Int(JS.number(a["n"])), ax: JS.number(a["ax"]))), ("backup", try MinePageView.backupValueRef(m, dates: e.dates)), ("choices", MinePageView.mineChoices(SettingsView.settingsView(state["settings"]), policy: p))])
+        },
         "view.library-list": { e, a in try LibraryListView.listModel(a["state"] ?? .null, a, dates: e.dates) },
         "view.library-list.entries": { e, a in .array(try LibraryListView.listEntries(a["state"] ?? .null, kind: a["kind"], today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
         "view.library-list.helpers": { e, a in

@@ -78,6 +78,19 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(try MineSubView.monthSheetOf(.null, month: "2026-03", policy: Config.policy, dates: dates), .null)
     }
 
+    // test/ui/native-mine.test.mjs — small sheets sign; AX limits columns; trim re-tags the first cell.
+    func testMinePageAXTrimAndBackupValues() throws {
+        XCTAssertEqual(MinePageView.mineSheetRows(80, ax: 5)["cols"], .number(4))
+        XCTAssertEqual(MinePageView.mineSheetRows(80, ax: 0)["max"], .number(16))
+        let cells = try value(#"[{"day":"2026-03-01"},{"day":"2026-03-02"},{"day":"2026-03-02"}]"#).arrayValue!
+        let trimmed = MinePageView.trimSheetCells(cells, max: 2)
+        XCTAssertEqual(trimmed["hidden"], .number(1)); XCTAssertEqual(trimmed["cells"]?.arrayValue?.first?["tag"], .string("2"))
+        XCTAssertEqual(try MinePageView.backupValueRef(try value(#"{"backupHint":{"kind":"pressure"},"lastBackup":null}"#), dates: dates), ViewSupport.ref("X-MINE.backupNearFull"))
+        XCTAssertEqual(try MinePageView.backupValueRef(.null, dates: dates), ViewSupport.ref("R-M03.noBackup"))
+        let choices = MinePageView.mineChoices(SettingsView.settingsView(nil), policy: Config.policy)
+        XCTAssertEqual(choices["appearance"]?["options"]?.arrayValue?.map { $0["id"]! }, ["auto","light","dark"].map(JSValue.string))
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

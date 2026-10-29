@@ -1,3 +1,6 @@
+import { sheetStrokes } from '../../../src/session/write-api.js';
+import * as minePage from '../../../src/session/views/mine-page.js';
+import * as mine from '../../../src/session/views/mine.js';
 import * as mineSub from '../../../src/session/views/mine-sub.js';
 import * as detail from '../../../src/session/views/detail.js';
 import * as libraryAll from '../../../src/session/views/library-all.js';
@@ -43,6 +46,10 @@ export function makeB45ViewOps({ required, clock }) {
     'view.month.sheet': a => mineSub.monthSheetOf(a.state,a.month,{policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
     'view.annual-page': a => mineSub.annualView(a.state,a.today,{...a,policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
     'view.mine-sub.helpers': a => ({month:mineSub.monthHeadRef(a.n),day:mineSub.dayTextRef(a.day),label:mineSub.cellLabelRef(a.cell),dayLabel:mineSub.dayCellLabelRef(a.cell),geometry:mineSub.sheetGeometry(a.n,a.width)}),
+    'view.mine': a => minePage.mineView(a.state,a.today,{...a,policy:p(a),store:{getInk:ink(a)},strokesOf:r=>sheetStrokes({getInk:ink(a)},r)}),
+    'view.mine.sheet': a => minePage.mineSheetView(a.state,mine.mineModel(a.state,a.today,{policy:p(a),storagePressure:a.storagePressure}),{...a,policy:p(a),store:{getInk:ink(a)},strokesOf:r=>sheetStrokes({getInk:ink(a)},r)}),
+    'view.mine.cells': a => minePage.monthSheetCells(a.state,a.month,{policy:p(a),store:{getInk:ink(a)}}),
+    'view.mine.helpers': a => ({label:minePage.cellLabelRef(a.cell),trim:minePage.trimSheetCells(a.cells||[],a.max),rows:minePage.mineSheetRows(a.n,a.ax),backup:minePage.backupValueRef(mine.mineModel(a.state,a.today,{policy:p(a),storagePressure:a.storagePressure})),choices:minePage.mineChoices(settings.settingsView(a.state.settings),p(a))}),
     'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
     'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),

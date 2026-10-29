@@ -26,7 +26,17 @@ export function sessionCases(g, steps=300) {
       out.push({op:'session.answerPhase',args:{...a,phase:'retrace'}},{op:'session.answerNext',args:a});
     }
     out.push({op:'session.judge',args:{slot,cardKey:'base:口',strokes,judgment:'correct'}});
+    out.push({op:'write.correct',args:{slot,recordId:`r${serial}`,to:'wrong'}});
+    out.push({op:'session.judge',args:{slot,cardKey:'base:水',strokes,judgment:'wrong'}});
     out.push({op:'session.end',args:{slot,sessionId:s.id}});
+    out.push({op:'write.result',args:{slot,sessionId:s.id}});
+    out.push({op:'write.resultSealed',args:{slot,sessionId:s.id}},{op:'write.resultSealed',args:{slot,sessionId:s.id}});
+    out.push({op:'write.resultCell',args:{slot,sessionId:s.id,recordId:`r${serial}`}});
+    out.push({op:'write.resultCorrect',args:{slot,sessionId:s.id,recordId:`r${serial}`,to:'correct'}});
+    out.push({op:'write.resultAdd',args:{slot,sessionId:s.id,recordId:`r${serial}`,on:true}});
+    out.push({op:'write.resultUndoSkip',args:{slot,sessionId:s.id,recordId:`r${serial}`}});
+    out.push({op:'write.resultInvite',args:{sessionId:s.id,action:g.pick(['shown','no'])}});
+    out.push({op:'session.leave',args:{slot,sessionId:s.id}});
     out.push({op:'session.judge',args},{op:'session.judge',args:{...args,strokes:[]}});
     out.push({op:'session.firstTip',args:{}},{op:'session.firstTip',args:{}},{op:'session.answerNote',args:{}});
     out.push({op:'clock.advance',args:{ms:g.pick([-86400000,86400000,3600000,-3600000])}});

@@ -20,6 +20,16 @@ extension CoreEngine {
         for name in ["open", "strokes", "phase", "judge", "showAnswer", "answerPhase", "answerNext", "skip", "undoSkip", "end", "firstTip", "correct", "hint", "copy", "refLabel", "resultLook", "redoOpen", "redoNext", "redoExit", "exit"] {
             all["write." + name] = { e,a in WriteAPI.call(name, try e.session().store, a) }
         }
+        for name in ["result", "resultCell", "resultCorrect", "resultAdd", "resultSealed", "resultUndoSkip", "resultAgain", "resultExit", "resultInvite"] {
+            all["write." + name] = { e,a in try ResultAPI.call(name, e.session().store, a) }
+        }
+        all["session.correct"] = { e,a in SessionResults.correct(try e.session().store, a, mode: "write") }
+        all["session.resultCorrect"] = { e,a in SessionResults.correct(try e.session().store, a, mode: "result") }
+        all["session.finish"] = { e,a in SessionResults.finish(try e.session().store, a) }
+        all["session.leave"] = { e,a in SessionResults.leave(try e.session().store, a) }
+        all["session.added"] = { e,a in SessionResults.added(try e.session().store, a) }
+        all["session.sealed"] = { e,a in SessionResults.sealed(try e.session().store, a) }
+        all["session.resultUndoSkip"] = { e,a in SessionResults.undoSkip(try e.session().store, a) }
         all["session.hint"] = { e,a in SessionHints.commitHint(try e.session().store, a, label: a["label"]?.stringValue ?? "hint") }
         all["session.hintStep"] = { e,a in SessionHints.commitStep(try e.session().store, a) }
         return all.mapValues { fn in { e,a in e.storeSession?.notices = []; return try fn(e,a) } }

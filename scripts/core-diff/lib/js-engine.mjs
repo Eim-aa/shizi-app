@@ -167,7 +167,7 @@ export function createJsEngine({ fault = null } = {}) {
     ...makeB42Ops({ required, str, finite, int, badArgs }),
     // B4.4：store / storage / budget / backup / migrate / 原生校验和（js-ops-b44.mjs）
     ...b44.ops,
-    ...makeB45SessionOps({ session: b44.session }),
+    ...makeB45SessionOps({ session: b44.session, clock: () => st.clock }),
   };
 
   const snapshot = () => {
@@ -197,6 +197,9 @@ export function createJsEngine({ fault = null } = {}) {
     if (!has(OPS, req.op)) return fail(out, 'unknown-op', 'unknown op: ' + req.op, withState);
     try {
       const reply = OPS[req.op](args);
+      if (reply && typeof reply.then === 'function') return reply.then(value => {
+        out.ok=true;out.reply=value===undefined?null:value;if(withState)out.state=snapshot();return out;
+      });
       out.ok = true;
       out.reply = reply === undefined ? null : reply;
       if (withState) out.state = snapshot();
@@ -215,7 +218,9 @@ export function createJsEngine({ fault = null } = {}) {
     } catch (error) {
       return JSON.stringify(fail({}, 'bad-json', String(error.message), true));
     }
-    const text = JSON.stringify(handle(req));
+    const result=handle(req);
+    if(result && typeof result.then==='function')return result.then(JSON.stringify);
+    const text = JSON.stringify(result);
     return fault === 'number-format' ? text.replace(/"clock":(-?\d+)([,}])/, '"clock":$1.0$2') : text;
   }
 

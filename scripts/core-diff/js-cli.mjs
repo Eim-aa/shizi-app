@@ -7,7 +7,8 @@ import { createJsEngine } from './lib/js-engine.mjs';
 const argv = process.argv.slice(2);
 const fi = argv.indexOf('--fault');
 const engine = createJsEngine({ fault: fi >= 0 ? argv[fi + 1] : null });
+let pending=Promise.resolve();
 onLines(process.stdin, (line) => {
   if (line === '') return;
-  process.stdout.write(engine.handleLine(line) + '\n');
+  pending=pending.then(async()=>process.stdout.write(await engine.handleLine(line) + '\n'));
 });

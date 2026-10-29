@@ -8,6 +8,7 @@ public enum PageAPI {
             return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         }
         do {
+        if op.hasPrefix("image.") { return try image(op, args, hooks: hooks) }
         if ["view.session-none", "session.pick", "session.libSwitch", "session.wrongList"].contains(op) { return try none(op, args, hooks: hooks) }
         if op == "detail.practice" {
             guard let char = args["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }

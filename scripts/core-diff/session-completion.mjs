@@ -34,6 +34,19 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ await call('store.seed',{state:{sessions:{A:createSession({id:'s1',kind:'daily',queue:['base:人','base:口','base:水'],at:T}),B:null,lastEnded:{}}}});
+ const imageInk=[[{x:42,y:50,t:0},{x:90,y:130,t:17}]];
+ await call('session.judge',{slot:'A',cardKey:'base:人',judgment:'correct',strokes:imageInk});
+ const imageWrong=await call('session.judge',{slot:'A',cardKey:'base:口',judgment:'wrong',strokes:imageInk});await call('session.end',{slot:'A',sessionId:'s1'});
+ await call('session.imageRegistered',{op:'add',args:{scope:{kind:'session',slot:'A',sessionId:'s1'},recordId:imageWrong.record.id}});
+ const palette=Object.fromEntries(['paper','sheet','line','frame','guide','ink1','ink2','ink3','hand','ref','under','zhu','seal','onSeal'].map(k=>[k,'#123456']));palette.textures=[];palette.tiles=[240];
+ for(const scope of [{kind:'session',slot:'A',sessionId:'s1'},{kind:'day',day:'2026-10-02'},{kind:'month',month:'2026-10'},{kind:'glyph',char:'人'},{kind:'annual',year:2026}])for(const ratio of ['3:4','1:1']){
+  await call('session.imageRegistered',{op:'view',args:{scope,ratio}});
+  for(const mode of ['preview','export','long'])for(const page of [0,1,9])await call('session.imageRegistered',{op:'spec',args:{scope,ratio,mode,page},palette});
+  await call('session.imageRegistered',{op:'add',args:{scope,recordId:'bad'}});
+ }
+ for(const save of [false,true])for(const images of [[],[{dataURL:'data:image/png;base64,AA==',name:'test.JPG',kind:'session'}],[{dataURL:'data:image/jpeg;base64,AA==',name:'a.jpg'},{dataURL:'data:image/png;base64,AA==',name:'b.jpeg'}]])await call('session.imageRegistered',{op:'persist',args:{images},save});
+ for(const entryId of [null,'image-preview-1','image-toast-2'])await call('session.imageRegistered',{op:'closed',args:{entryId}});
  for(const table of [null,{}, {'人':[2,2]}, {'人':[4]}, {'人':[1,0,3]}, {'人':['4']}, {'人':'bad'}])for(const totalStrokes of [null,0,4,'4',-1,1.5]){
   const input={char:'人',table,totalStrokes};
   await call('session.hintHelper',{name:'groupsFor',input});await call('session.hintHelper',{name:'hintSourceOfCount',input});
@@ -89,5 +102,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–5, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–6, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

@@ -2,6 +2,16 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.imageRegistered": { e,a in
+            let store = try e.session().store!, hooks = SessionActionHooks(), image = ImageRegisteredActions(store: store)
+            if let palette = a["palette"] { image.palette = { palette } }
+            image.saveFile = { _ in JS.obj([("ok", .bool(a["save"] == .bool(true))), ("via", .string("download"))]) }; image.install(on: hooks)
+            if a["op"] == .string("persist") {
+                let semaphore = DispatchSemaphore(value: 0); var reply: JSValue = .null
+                Task { reply = await PageAPI.callAsync("image.persist", store: store, args: a["args"]?.objectValue ?? JSObject(), hooks: hooks); semaphore.signal() }; semaphore.wait(); return reply
+            }
+            return PageAPI.call("image." + JS.string(a["op"]), store: store, args: a["args"]?.objectValue ?? JSObject(), hooks: hooks)
+        },
         "session.hintHelper": { _,a in try SessionHints.helper(JS.string(a["name"]), a["input"]?.objectValue ?? JSObject()) },
         "session.rememberInk": { _,a in RecentInk.page.rememberInk(a["recordId"], a["strokes"]); return .null },
         "session.recalledInk": { _,a in RecentInk.page.recalledInk(a["recordId"], policy: a["policy"] ?? Config.policy) },

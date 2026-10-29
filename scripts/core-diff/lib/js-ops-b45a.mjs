@@ -16,7 +16,7 @@ import { commitCorrection } from '../../../src/session/ops/line.js';
 import * as hints from '../../../src/session/ops/hint.js';
 import { setDeckSource } from '../../../src/data/deck.js';
 import { deckSources } from '../../build_core_config.mjs';
-let sources;
+let sources, imageModule, registeredImages;
 export function makeB45SessionOps({session,clock}) {
   const table = {
     strokes: strokes.commitStrokes, recover: strokes.commitRecover, phase: judge.commitComparePhase,
@@ -47,6 +47,19 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.imageRegistered']=async a=>{
+    const {setImageActions,imageActions}=await import('../../../src/session/api/image.js');
+    const previous=imageActions();
+    if(!imageModule){imageModule=await import('../../../src/ui/images-entry.js');registeredImages=imageActions();}
+    setImageActions(registeredImages);
+    const {resetPaletteCache,PALETTE_VARS}=await import('../../../src/core/images/palette.js');resetPaletteCache();
+    const oldDoc=globalThis.document,oldStyle=globalThis.getComputedStyle,oldWin=globalThis.window;
+    if(a.palette){globalThis.document={documentElement:{appendChild(){}},createElement:()=>({setAttribute(){},remove(){}})};globalThis.getComputedStyle=()=>({getPropertyValue:css=>{const key=Object.keys(PALETTE_VARS).find(k=>PALETTE_VARS[k]===css);return a.palette[key]||'';}});}
+    globalThis.window=a.save?{URL:{createObjectURL:()=>'',revokeObjectURL(){}},setTimeout:()=>0,document:{body:{appendChild(){}},createElement:()=>({style:{},click(){},remove(){}})}}:null;
+    const s=session();s.notices=[];const saved=Date.now;Date.now=clock;
+    try{return await createAppApi({getStore:()=>s.store,now:clock}).call('image.'+a.op,a.args||{});}
+    finally{Date.now=saved;globalThis.document=oldDoc;globalThis.getComputedStyle=oldStyle;globalThis.window=oldWin;resetPaletteCache();setImageActions(previous);}
+  };
   out['session.hintHelper']=a=>{
     const i=a.input||{},old=globalThis.GROUPS;globalThis.GROUPS=i.table;
     try{switch(a.name){

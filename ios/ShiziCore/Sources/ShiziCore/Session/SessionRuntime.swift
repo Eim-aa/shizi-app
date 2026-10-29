@@ -15,7 +15,7 @@ public final class SessionRuntime {
     }
     public func callAsync(_ op: String, _ args: JSObject = JSObject()) async -> JSValue {
         if op.hasPrefix("write.") { return await WriteAPI.callAsync(String(op.dropFirst(6)), store, args, dependencies: writeDependencies) }
-        return call(op, args)
+        return await PageAPI.callAsync(op, store: store, args: args, hooks: hooks)
     }
     public func call(_ op: String, _ args: JSObject = JSObject()) -> JSValue {
         if op.hasPrefix("write.") { return WriteAPI.call(String(op.dropFirst(6)), store, args, dependencies: writeDependencies) }

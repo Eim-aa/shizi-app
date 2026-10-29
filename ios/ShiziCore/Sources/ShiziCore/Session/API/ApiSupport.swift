@@ -3,6 +3,12 @@ import Foundation
 /// App API transport, separate from pure B4.5b model ops. Host actions are injected;
 /// navigation and native image rendering remain outside ShiziCore.
 public enum PageAPI {
+    public static func callAsync(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) async -> JSValue {
+        guard hooks?.hasAsync(op) == true else { return call(op, store: store, args: args, hooks: hooks) }
+        do { return try await hooks?.invokeAsync(op, args) ?? SessionWrites.failure("unavailable") }
+        catch let e as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(e.message))]))]) }
+        catch { return SessionWrites.failure("exception") }
+    }
     public static func call(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) -> JSValue {
         guard (SessionResources.ui["apiOps"]?.arrayValue ?? []).contains(.string(op)) else {
             return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])

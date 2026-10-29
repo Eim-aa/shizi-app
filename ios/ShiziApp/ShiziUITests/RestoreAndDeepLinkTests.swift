@@ -70,6 +70,28 @@ final class RestoreAndDeepLinkTests: XCTestCase {
         }
     }
 
+    /// D79 ③：存栈的根在字库 → 重开首帧只有纸色（不闪首页），之后恢复到字库；根在首页 → 首帧仍是首页静态版。
+    func testBootFrameFollowsSavedTab() {
+        let qa = start("library-records")
+        qa.waitProbe("library on screen", timeout: 20) { Self.top($0) == "library" }
+        Thread.sleep(forTimeInterval: 1.0)
+        qa.relaunchWithoutSeed()
+        let p = qa.waitProbe("library restored", timeout: 30) { Self.reason($0) == "ok" && Self.top($0) == "library" && (($0["stage"] as? [String: Any])?["root"]) != nil && ($0["navRunning"] as? Int) == 0 }
+        XCTAssertEqual((p["stage"] as? [String: Any])?["bootKind"] as? String, "paper", "restoring into library must not draw the static home first")
+        XCTAssertTrue(qa.transitions.contains { $0.hasPrefix("boot:paper") }, "\(qa.transitions)")
+        XCTAssertFalse(qa.transitions.contains { $0.hasPrefix("root:open home via=boot") }, "\(qa.transitions)")
+        qa.app.terminate()
+
+        let qb = start("result-daily")
+        qb.waitProbe("result on screen", timeout: 20) { Self.top($0) == "result" && Self.onScreen($0, "result") }
+        Thread.sleep(forTimeInterval: 1.0)
+        qb.relaunchWithoutSeed()
+        let q = qb.waitProbe("result restored", timeout: 30) { Self.reason($0) == "ok" && Self.top($0) == "result" && ($0["navRunning"] as? Int) == 0 }
+        XCTAssertEqual((q["stage"] as? [String: Any])?["bootKind"] as? String, "home")
+        XCTAssertTrue(qb.transitions.contains { $0.contains("root:open home via=boot") }, "\(qb.transitions)")
+        qb.app.terminate()
+    }
+
     /// 离开太久（P108 maxAgeMinutes = 360）不恢复，落首页。
     func testStaleNotRestored() {
         let qa = start("about")

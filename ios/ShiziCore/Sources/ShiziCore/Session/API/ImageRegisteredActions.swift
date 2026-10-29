@@ -6,6 +6,8 @@ public final class ImageRegisteredActions {
     public var palette: (() throws -> JSValue)?
     public var saveFile: ((JSValue) async throws -> JSValue)?
     public var post: ((JSValue) throws -> Void)?
+    /// Renderer-drawn chip thumbnail (ui/images-entry.js draws a data URL from the record's ink); absent = "" (no bitmap here).
+    public var thumb: ((JSValue) throws -> JSValue)?
     public init(store: Store) { self.store = store }
     public func install(on hooks: SessionActionHooks) {
         for name in ["view", "spec", "add", "closed"] { hooks.set("image." + name) { [self] in try call(name, $0) } }
@@ -57,8 +59,9 @@ public final class ImageRegisteredActions {
         let emptyNote = try kind == "annual" ? .string("") : text(kind == "glyph" ? "R-D04.noInkNote" : kind == "month" ? "X-IMAGES.emptyMonth" : "R-R07.allMissing")
         let note = try annual ? text("X-WORK.annualSaveNote") : (status == "empty" || status == "noInk") ? emptyNote : total > 1 ? text("X-WORK.splitNote", [("n", p["n"] ?? .null), ("m", .number(Double(total))), ("max", p["maxChars"] ?? .null)]) : .string("")
         if name == "view" {
-            let chips = try (p["work"]?["addable"]?.arrayValue ?? []).map { e in JS.obj([("recordId", e["recordId"] ?? .null), ("ch", e["char"] ?? .null), ("on", .bool(e["state"] == .string("added"))), ("thumb", .string(""))]) }
-            return JS.obj([("ok", .bool(true)), ("view", JS.obj([("kind", .string(kind)), ("title", title), ("ratios", .array((annual ? ["3:4"] : ["3:4", "1:1"]).map(JSValue.string))), ("ratio", ratio), ("initialRatio", .string(initial)), ("pageCount", .number(Double(total))), ("status", .string(status)), ("note", note), ("noteStarts", .null), ("boardNote", status == "ready" ? .string("") : note), ("saveLabel", try annual ? text("X-WORK.annualSaveButton", [("n", .number(Double(total)))]) : total > 1 ? text("X-WORK.saveMany", [("m", .number(Double(total)))]) : text("X-IMAGES.save")), ("shareLabel", try text("R-B10.share")), ("chips", .array(chips)), ("alt", annual ? JS.obj([("label", try text("X-WORK.annualSaveLong")), ("note", try text("X-WORK.annualLongNote"))]) : .null), ("failText", JS.obj([("share", try text("X-SHARE.cardFailed")), ("render", try text("X-IMAGES.renderFailed")), ("denied", try text("R-B10.albumDenied")), ("save", try text("X-IMAGES.saveFailed"))])), ("failStarts", .object(JSObject()))]))])
+            let chips = try (p["work"]?["addable"]?.arrayValue ?? []).map { e in JS.obj([("recordId", e["recordId"] ?? .null), ("ch", e["char"] ?? .null), ("on", .bool(e["state"] == .string("added"))), ("thumb", try thumb?(e) ?? .string(""))]) }
+            let failText = JS.obj([("share", try text("X-SHARE.cardFailed")), ("render", try text("X-IMAGES.renderFailed")), ("denied", try text("R-B10.albumDenied")), ("save", try text("X-IMAGES.saveFailed"))])
+            return JS.obj([("ok", .bool(true)), ("view", JS.obj([("kind", .string(kind)), ("title", title), ("ratios", .array((annual ? ["3:4"] : ["3:4", "1:1"]).map(JSValue.string))), ("ratio", ratio), ("initialRatio", .string(initial)), ("pageCount", .number(Double(total))), ("status", .string(status)), ("note", note), ("noteStarts", ViewLineStarts.starts("image-note", note)), ("boardNote", status == "ready" ? .string("") : note), ("saveLabel", try annual ? text("X-WORK.annualSaveButton", [("n", .number(Double(total)))]) : total > 1 ? text("X-WORK.saveMany", [("m", .number(Double(total)))]) : text("X-IMAGES.save")), ("shareLabel", try text("R-B10.share")), ("chips", .array(chips)), ("alt", annual ? JS.obj([("label", try text("X-WORK.annualSaveLong")), ("note", try text("X-WORK.annualLongNote"))]) : .null), ("failText", failText), ("failStarts", ImageRegisteredActions.failStarts(failText))]))])
         }
         guard name == "spec" else { return SessionWrites.failure("unavailable") }
         if a["mode"] == .string("long") && !annual { return SessionWrites.failure("unsupported") }
@@ -100,6 +103,12 @@ public final class ImageRegisteredActions {
         }
         guard let palette else { throw CoreError.error("PALETTE_UNAVAILABLE") }; spec["palette"] = try palette()
         return JS.obj([("ok", .bool(true)), ("spec", .object(spec)), ("name", .string(file)), ("total", .number(Double(total)))])
+    }
+    /// images-entry.js imageView failStarts: each failure sentence's line starts (renderer measurement), unmeasured ones dropped.
+    static func failStarts(_ texts: JSValue) -> JSValue {
+        var out = JSObject()
+        for (k, v) in texts.objectValue?.entries ?? [] { let starts = ViewLineStarts.starts("image-fail", v); if !starts.isNull { out[k] = starts } }
+        return .object(out)
     }
     public func persist(_ a: JSObject) async -> JSValue {
         for image in a["images"]?.arrayValue ?? [] {

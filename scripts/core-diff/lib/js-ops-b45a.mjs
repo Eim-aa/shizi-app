@@ -7,7 +7,7 @@ import * as skip from '../../../src/session/ops/skip.js';
 import * as strokes from '../../../src/session/ops/strokes.js';
 import * as end from '../../../src/session/ops/end.js';
 import { commitFirstTipSeen } from '../../../src/session/ops/first-tip.js';
-import { createAppApi, domainsOf } from '../../../src/session/api/index.js';
+import { createAppApi, createChangeFeed, domainsOf } from '../../../src/session/api/index.js';
 import { sheetStrokes, createWriteSessionApi } from '../../../src/session/write-api.js';
 import * as result from '../../../src/session/ops/result.js';
 import * as first from '../../../src/session/ops/first-result.js';
@@ -47,6 +47,11 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.changeFeed']=a=>{
+    const s=session();s.notices=[];const messages=[],replies=[];
+    const off=createChangeFeed({store:s.store,post:packet=>{messages.push(packet);if(a.throws)throw Error('post');}});
+    try{for(const c of a.commands||[]){if(c.off){off();continue;}if(c.fail)s.storage.failNextWrite(1);if(c.status){s.store.refreshUsage();continue;}replies.push(s.store.commit(c.label||'feed',d=>{d.settings=c.settings??null;}));}return {messages,replies};}finally{off();}
+  };
   out['session.environment']=async a=>{
     const ety=await import('../../../src/data/etymology.js'),detail=await import('../../../src/session/api/detail.js'),q=await import('../../../src/session/api/query.js'),lines=await import('../../../src/core/line-starts.js');
     const oldFetch=globalThis.fetch,oldDetail={...detail.detailHooks()},savedNow=Date.now;Date.now=clock;let loads=0;ety.setEtymology(null);

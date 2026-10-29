@@ -2,6 +2,18 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.changeFeed": { e,a in
+            let store = try e.session().store!;var messages: [JSValue] = [], replies: [JSValue] = []
+            let off = PageAPI.createChangeFeed(store:store) { packet in messages.append(packet);if a["throws"] == .bool(true) { throw CoreError.error("post") } }
+            defer { off() }
+            for step in a["commands"]?.arrayValue ?? [] {
+                if step["off"] == .bool(true) { off();continue }
+                if step["fail"] == .bool(true) { store.storage.failNextWrite(1) }
+                if step["status"] == .bool(true) { store.refreshUsage();continue }
+                let r = store.commit(step["label"]?.stringValue ?? "feed") { d,_ in d["settings"] = step["settings"] ?? .null };replies.append(r)
+            }
+            return JS.obj([("messages",.array(messages)),("replies",.array(replies))])
+        },
         "session.environment": { e,a in
             let store = try e.session().store!, hooks = SessionActionHooks();var loads = 0
             let provider = EtymologyProvider { loads += 1; let value = a["loads"]?.arrayValue.flatMap { loads <= $0.count ? $0[loads-1] : nil }; if value == .string("throw") { throw CoreError.error("fetch") };return value }

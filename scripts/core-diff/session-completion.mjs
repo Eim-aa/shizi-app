@@ -34,6 +34,7 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ for(const throws of [false,true])await call('session.changeFeed',{throws,commands:[{settings:{appearance:'dark'},label:'first'},{settings:{appearance:'dark'},label:'noop'},{settings:{appearance:'light'},label:'fail',fail:true},{settings:{appearance:'light'},label:'retry'},{status:true},{off:true},{settings:{appearance:'auto'},label:'unsubscribed'}]});
  for(const loads of [[[ {char:'人',gloss:'origin',source:'book'}, {char:'人',gloss:'last'}, {char:'口',gloss:'',source:1},null ]],['throw',[{char:'人',gloss:'retry'}]],[null,[]]])for(const image of [false,true])await call('session.environment',{loads,image,requests:[{op:'view.detail',args:{char:'人',etymology:{gloss:'ignored'}}},{op:'view.detail',args:{char:'人'}}]});
  for(const build of [{version:'1.2',build:'20261029-abcd'},{},null,'bad'])for(const native of [false,true])await call('session.environment',{build,native,requests:[{op:'view.about',args:{build:{version:'ignored'}}},{op:'view.about-privacy',args:{native:!native}}]});
  for(const layout of [[],[1,3],[0,1.5,'2'],null,'bad'])for(const layoutThrows of [false,true])await call('session.environment',{layout,layoutThrows,requests:[{op:'view.query',args:{cur:'人',text:'人'}},{op:'view.s02',args:{chars:['人','口']}}]});
@@ -132,5 +133,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–9, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–10, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

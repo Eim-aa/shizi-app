@@ -5,7 +5,7 @@ public enum SessionHints {
     static func source(_ a: JSObject) -> JSValue {
         let n = JS.number(a["totalStrokes"])
         if n.isFinite && n.rounded(.towardZero) == n && n > 0 {
-            let groups = a["groups"] ?? DeckData.shared.groups[JS.string(a["char"])] ?? .null
+            let groups = a["groups"] ?? .null
             let list = groups.arrayValue ?? [], has = !list.isEmpty && list.allSatisfy { SessionWrites.integer($0) && JS.number($0) >= 1 } && list.reduce(0.0) { $0 + JS.number($1) } == n
             return JS.obj([("status", .string("ready")), ("totalStrokes", .number(n)), ("hasStrokeData", .bool(true)), ("hasGroups", .bool(has))])
         }
@@ -16,7 +16,9 @@ public enum SessionHints {
         return JS.obj([("from", r["from"]!), ("to", r["to"]!)])
     }
     static func merge(_ prev: JSValue?, _ next: JSValue) -> JSValue {
-        JS.obj([("from", range(prev) != nil && JS.number(prev?["to"]) <= JS.number(next["from"]) ? prev!["from"]! : next["from"]!), ("to", next["to"]!)])
+        var out = JSObject()
+        out["from"] = range(prev) != nil && range(next) != nil && JS.number(prev?["to"]) <= JS.number(next["from"]) ? prev?["from"] : next["from"]
+        out["to"] = next["to"]; return .object(out)
     }
     static func button(_ a: JSObject) throws -> JSValue {
         let source = a["source"], status = JS.string(a["status"]), used = a["used"] ?? .number(0), phase = a["phase"] ?? .string("recall")
@@ -37,22 +39,23 @@ public enum SessionHints {
     static func step(_ a: JSObject) throws -> JSValue {
         guard let source = a["source"], source["status"] == .string("ready") else { return .null }
         let used = a["used"] ?? .number(0), written = JS.number(a["written"] ?? .number(0))
-        func at(_ u: Double) throws -> JSValue { try Hints.nextRange(SessionWrites.patch(source, [("used", .number(u))])) }
-        var r = try at(JS.number(used)), skip = 0.0
+        func at(_ u: JSValue) throws -> JSValue { try Hints.nextRange(SessionWrites.patch(source, [("used", u)])) }
+        var r = try at(used), skip = 0.0
         if r.isNull { return .null }
         while JS.number(r["from"]) + JS.number(r["count"]) <= written {
-            let next = try at(JS.number(used) + skip + 1); if next.isNull { break }; r = next; skip += 1
+            let next = try at(jsAdd(jsAdd(used, .number(skip)), .number(1))); if next.isNull { break }; r = next; skip += 1
         }
         let plan = JS.obj([("from", r["from"]!), ("to", .number(JS.number(r["from"]) + JS.number(r["count"]))), ("count", r["count"]!), ("index", r["index"]!), ("skip", .number(skip))])
-        let n = JS.number(used) + 1 + skip
-        return JS.obj([("plan", plan), ("used", .number(n)), ("hintRange", merge(a["range"], plan)), ("whole", .bool(try Hints.allGiven(SessionWrites.patch(source, [("used", .number(n))]))))])
+        let n = jsAdd(jsAdd(used, .number(1)), .number(skip))
+        return JS.obj([("plan", plan), ("used", n), ("hintRange", merge(a["range"], plan)), ("whole", .bool(try Hints.allGiven(SessionWrites.patch(source, [("used", n)]))))])
     }
     public static func commitHint(_ store: Store, _ a: JSObject, label: String = "hint") -> JSValue {
         var applied = false
         let result = store.commit(label) { d,c in
             let slot = JS.string(a["slot"])
             guard let s = SessionWrites.session(d, slot), s["id"] == a["sessionId"], SessionRules.currentCardKey(s) == a["cardKey"], JS.truthy(s["current"]) else { return }
-            var p = JSObject([("hintRange", range(a["hintRange"]) ?? .null)])
+            var hintRange = JSObject(); hintRange["from"] = a["hintRange"]?["from"]; hintRange["to"] = a["hintRange"]?["to"]
+            var p = JSObject([("hintRange", JS.truthy(a["hintRange"]) ? .object(hintRange) : .null)])
             if let n = a["hints"] { p["hints"] = .number(max(JS.numberOr0(s["current"]?["hints"]), JS.number(n))) }
             SessionWrites.set(&d, slot, try SessionRules.withCurrent(s, .object(p), at: .number(c.now))); applied = true
         }

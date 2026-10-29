@@ -3,7 +3,7 @@ import Foundation
 extension CoreEngine {
     static func writeHost(_ store: Store, _ a: JSObject) throws -> JSValue {
         let d = WriteDependencies(), config = a["hooks"]?.objectValue ?? JSObject()
-        var calls: [JSValue] = []
+        var calls: [JSValue] = []; d.groups = a["groups"]
         func invoke(_ name: String, _ arg: JSValue) throws -> JSValue {
             calls.append(JS.obj([("name", .string(name)), ("args", arg)]))
             if config[name]?["throws"] == .bool(true) { throw CoreError.error("host-" + name) }

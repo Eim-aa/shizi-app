@@ -34,6 +34,32 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ for(const table of [null,{}, {'人':[2,2]}, {'人':[4]}, {'人':[1,0,3]}, {'人':['4']}, {'人':'bad'}])for(const totalStrokes of [null,0,4,'4',-1,1.5]){
+  const input={char:'人',table,totalStrokes};
+  await call('session.hintHelper',{name:'groupsFor',input});await call('session.hintHelper',{name:'hintSourceOfCount',input});
+  await call('session.hintHelper',{name:'hasGroupData',input:{groups:table?.人,totalStrokes}});
+  for(const status of ['ready','loading','missing','bad'])await call('session.hintHelper',{name:'hintSourceOf',input:{...input,status,data:{medians:[[],[],[],[]]}}});
+ }
+ for(const total of [1,4,12])for(const hasGroups of [false,true])for(const used of [0,1,4,'1',null,-1])for(const written of [0,3,20]){
+  const source={status:'ready',totalStrokes:total,hasStrokeData:true,hasGroups};
+  for(const name of ['planHint','hintStep'])await call('session.hintHelper',{name,input:{source,used,written,range:{from:0,to:1}}});
+ }
+ for(const phase of ['recall','compare','trace',null])for(const status of ['ready','loading','missing'])for(const answerSeen of [false,true]){
+  const input={phase,status,answerSeen,used:1,source:{status,totalStrokes:4,hasStrokeData:status!=='missing',hasGroups:false}};
+  await call('session.hintHelper',{name:'hintButtonModel',input});await call('session.hintHelper',{name:'hintNoteModel',input});
+ }
+ for(const range of [null,{from:0,to:1},{from:1,to:5},{from:-1,to:1},{from:'0',to:'2'},{}]){
+  await call('session.hintHelper',{name:'hintAnnouncement',input:{range}});
+  await call('session.hintHelper',{name:'strokeRangeText',input:range||{}});
+ }
+ for(const totalStrokes of [null,0,4,'bad'])for(const groups of [null,{'人':[2,2]}]){
+  const state={sessions:{A:createSession({id:'s1',kind:'daily',queue:['base:人'],at:T}),B:null,lastEnded:{}}};await call('store.seed',{state});
+  await call('session.writeHost',{op:'hint',args:{slot:'A',cardKey:'base:人',action:'give',totalStrokes},groups});
+ }
+ const hv={key:'x',used:1,range:{from:0,to:4},absorbed:[],fading:[],show:'in',run:0,restored:false};
+ for(const [name,input] of [['mergeHintRange',{prev:{from:0,to:1},next:{from:1,to:3}}],['hintRemaining',{view:hv}],['hintVisible',{view:hv}],['matchHintStroke',{remaining:[1],index:1}],['initialHintView',{key:'x',stored:{hints:1,hintRange:{from:0,to:4}},written:2}],['reduceHintView',{view:hv,action:{type:'absorb',hint:1,user:1}}],['hintTimeline',{count:3}]])await call('session.hintHelper',{name,input});
+ for(const count of [null,-1,0,1,3,12,'4'])for(const motion of [null,{hintStrokeMs:120,hintStagger:.5}])await call('session.hintHelper',{name:'strokeDrawMs',input:{count,motion}});
+ await call('session.hintHelper',{name:'meanDistanceToMedian',input:{points:[{x:1,y:2}],median:[[0,0],[10,10]]}});
  await call('session.forgetRecentInk');
  for(let i=0;i<10;i++)await call('session.rememberInk',{recordId:'r'+i,strokes:[[{x:i,y:2,t:0}]]});
  for(const perRecordInk of [false,true])for(let i=0;i<10;i++)await call('session.recalledInk',{recordId:'r'+i,policy:{features:{perRecordInk}}});
@@ -54,7 +80,7 @@ try {
   await call('store.seed',{state:{settings:{remind:{permission:'unknown'}}}});
   const name=action==='yes'?'invite':'changeTime';
   const settings={remind:{permission,hour:7,minute:3,enabled:true}};
-  await call('session.writeHost',{op:'resultInvite',args:{action,hour:'9.8',minute:'4.7',sessionId:'s1'},hooks:{[name]:{settings,reply:outcome==='null'?null:outcome==='failed'?{ok:false,error:{kind:'quota'}}:{ok:true,requested:true},throws:outcome==='throw',...(outcome==='later'&&permission==='unknown'?{laterPermission:'denied'}:{})}},waitMs:20});
+  await call('session.writeHost',{op:'resultInvite',args:{action,hour:'9.8',minute:'4.7',sessionId:'s1'},hooks:{[name]:{settings,reply:outcome==='null'?null:outcome==='failed'?{ok:false,error:{kind:'quota'}}:{ok:true,requested:true},throws:outcome==='throw',...(outcome==='later'&&permission==='unknown'&&action==='yes'?{laterPermission:'denied'}:{})}},waitMs:outcome==='later'?1000:0});
  }
  for(const view of ['wrongList','againList','forgetList','dueList','shakyList','knownList','skippedList','allWritten','mine','library','detail','home','bad'])for(const char of [null,'人','']) await call('session.resultLeave',{source:{view,char}});
  for(const variant of ['first','daily','picked'])for(const inWork of [true,false]){
@@ -63,5 +89,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–4, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–5, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

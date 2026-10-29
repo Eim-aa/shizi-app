@@ -2,6 +2,7 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.hintHelper": { _,a in try SessionHints.helper(JS.string(a["name"]), a["input"]?.objectValue ?? JSObject()) },
         "session.rememberInk": { _,a in RecentInk.page.rememberInk(a["recordId"], a["strokes"]); return .null },
         "session.recalledInk": { _,a in RecentInk.page.recalledInk(a["recordId"], policy: a["policy"] ?? Config.policy) },
         "session.forgetRecentInk": { _,_ in .number(Double(RecentInk.page.forgetRecentInk())) },

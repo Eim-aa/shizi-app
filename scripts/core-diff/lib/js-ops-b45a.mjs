@@ -47,6 +47,23 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.hintHelper']=a=>{
+    const i=a.input||{},old=globalThis.GROUPS;globalThis.GROUPS=i.table;
+    try{switch(a.name){
+      case 'groupsFor':return hints.groupsFor(i.char,i.table);
+      case 'hasGroupData':return hints.hasGroupData(i.groups,i.totalStrokes);
+      case 'mergeHintRange':return hints.mergeHintRange(i.prev,i.next);
+      case 'strokeRangeText':return hints.strokeRangeText(i.from,i.to);
+      case 'hintAnnouncement':return hints.hintAnnouncement(i.range);
+      case 'strokeDrawMs':return hints.strokeDrawMs(i.count,i.motion);
+      case 'meanDistanceToMedian':return hints.meanDistanceToMedian(i.points,i.median);
+      case 'hintRemaining':case 'hintVisible':return hints[a.name](i.view);
+      case 'initialHintView':return hints.initialHintView(i.key,i.stored,i.written);
+      case 'reduceHintView':return hints.reduceHintView(i.view,i.action);
+      case 'hintTimeline':return hints.hintTimeline(i.count,i.motion);
+      default:return hints[a.name](i);
+    }}finally{globalThis.GROUPS=old;}
+  };
   out['session.rememberInk']=a=>{judge.rememberInk(a.recordId,a.strokes);return null;};
   out['session.recalledInk']=a=>judge.recalledInk(a.recordId,a.policy);
   out['session.forgetRecentInk']=()=>judge.forgetRecentInk();
@@ -74,9 +91,9 @@ export function makeB45SessionOps({session,clock}) {
     if(a.hooks?.refLabel)deps.refLabel=a.hooks.refLabel.async ? async arg=>result.refLabel(arg) : result.refLabel;
     if(a.navigate)deps.navigate=Object.fromEntries(Object.entries(a.navigate).map(([name,c])=>[name,(...args)=>{calls.push({name:'navigate.'+name,args});if(c.throws)throw Error('host-navigate.'+name);return c.reply??null;}]));
     const api=createWriteSessionApi(deps);
-    const saved=Date.now;Date.now=clock;
-    try{const {ms,...reply}=await api.call(a.op,a.args||{});return {reply,calls};}finally{Date.now=saved;}
+    const saved=Date.now,oldGroups=globalThis.GROUPS;Date.now=clock;globalThis.GROUPS=a.groups;
+    try{const {ms,...reply}=await api.call(a.op,a.args||{});return {reply,calls};}finally{Date.now=saved;globalThis.GROUPS=oldGroups;}
   };
-  for(const name of ['session.rememberInk','session.recalledInk','session.forgetRecentInk','session.sheet','session.resultModel','session.resultLeave','session.firstExtras','session.daysLaterOf']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  for(const name of ['session.hintHelper','session.rememberInk','session.recalledInk','session.forgetRecentInk','session.sheet','session.resultModel','session.resultLeave','session.firstExtras','session.daysLaterOf']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
   return out;
 }

@@ -81,7 +81,7 @@ public enum WriteAPI {
                 return JS.obj([("ok", .bool(true)), ("recordId", a["recordId"]!), ("char", r["char"]!), ("judgment", r["judgment"]!), ("paper", .bool(Records.isPaperRecord(r))), ("strokes", try WriteModels.sheet(store, r))])
             }
             let r = SessionResults.correct(store, args, mode: "write"); return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("recordId", a["recordId"] ?? .null), ("judgment", r["record"]?["judgment"] ?? .null), ("snapshot", try snapshot())]) : try flow(r)
-        case "hint": return try hint(store, a)
+        case "hint": return try hint(store, a, groups: dependencies?.groups)
         case "copy":
             let defaultKeys = try SessionResources.ui["writeKeys"]!.arrayValue!
             return JS.obj([("ok", .bool(true)), ("copy", bundle(a["keys"]?.arrayValue ?? defaultKeys))])
@@ -125,9 +125,9 @@ public enum WriteAPI {
         default: return SessionWrites.failure("unknown-op")
         }
     }
-    static func hint(_ store: Store, _ a: JSObject) throws -> JSValue {
+    static func hint(_ store: Store, _ a: JSObject, groups: JSValue? = nil) throws -> JSValue {
         guard let s = SessionWrites.current(store, a), JS.truthy(s["current"]) else { return SessionWrites.failure("stale") }
-        var args = a; args["char"] = Records.charOfCardKey(a["cardKey"]).map(JSValue.string)
+        var args = a; args["char"] = Records.charOfCardKey(a["cardKey"]).map(JSValue.string); args["groups"] = SessionHints.groupsFor(args["char"], table: groups)
         let source = SessionHints.source(args), stored = SessionWrites.integer(s["current"]?["hints"]) ? JS.number(s["current"]?["hints"]) : 0
         let used = max(stored, SessionWrites.count(a["used"])), seen = JS.truthy(s["current"]?["answerSeen"]), phase = JS.truthy(s["current"]?["phase"]) ? s["current"]!["phase"]! : .string("recall")
         func view(_ u: Double, _ seen: Bool) throws -> JSValue {

@@ -36,6 +36,10 @@ if (!argv.includes('--no-build')) {
 if (!argv.includes('--skip-swift-test')) step('swift test', 'swift', ['test', '--package-path', PKG]);
 step('配置与数据资源同步（build_core_config --check）', process.execPath, ['scripts/build_core_config.mjs', '--check']);
 step('金标准同步', process.execPath, ['scripts/core-golden/golden.mjs', '--check']);
+step('会话资源同步', process.execPath, ['scripts/core-golden/session-resources.mjs', '--check']);
+step('会话契约夹具同步', process.execPath, ['scripts/core-golden/session-contract.mjs', '--check']);
+step('会话分支覆盖', process.execPath, ['scripts/core-diff/session-shapes.mjs']);
+step('会话随机差分（200 × 300）', process.execPath, ['scripts/core-diff/run.mjs', '--only', 'session', '--seeds', '200', '--steps', '300']);
 step('视图分支形状覆盖（200 种子）', process.execPath, ['scripts/core-diff/view-shapes.mjs']);
 step('差分驱动自检', process.execPath, ['scripts/core-diff/run.mjs', '--self-test', '--swift']);
 for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 5000 : 200], ['America/New_York', nightly ? 500 : 50], ['Australia/Lord_Howe', nightly ? 500 : 50], ['America/Santiago', nightly ? 500 : 50]]) {

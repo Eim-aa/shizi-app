@@ -2,6 +2,12 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.pageRegistered": { e,a in
+            let store = try e.session().store!, hooks = SessionActionHooks(), pages = PageRegisteredActions(store: store)
+            pages.clockNow = { e.clock }; pages.handoffLeaveUndo(a["undo"]); pages.install(on: hooks)
+            let reply = PageAPI.call(JS.string(a["op"]), store: store, args: a["args"]?.objectValue ?? JSObject(), hooks: hooks)
+            return JS.obj([("reply", reply), ("undo", pages.leaveUndoView())])
+        },
         "session.imageRegistered": { e,a in
             let store = try e.session().store!, hooks = SessionActionHooks(), image = ImageRegisteredActions(store: store)
             if let palette = a["palette"] { image.palette = { palette } }

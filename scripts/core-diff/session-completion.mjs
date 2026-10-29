@@ -34,6 +34,24 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ for(const id of ['core3500','adv3000','rare','curriculum2500'])for(const kind of ['first','daily','picked'])for(const fault of [false,true]){
+  const slot=kind==='picked'?'B':'A';await call('store.seed',{state:{settings:{library:'core3500'},sessions:{A:null,B:null,lastEnded:{},[slot]:createSession({id:'s1',kind,queue:['base:人','base:口'],at:T})}}});
+  if(fault)await call('store.fault',{failNextWrite:{n:1,kind:'generic'}});
+  const switched=await call('session.pageRegistered',{op:'library.switch',args:{id}});assert.equal(switched.reply.ok,!fault||id==='core3500');
+  for(const op of ['home.start','home.resumeOther','library.startToday','home.deferSpecial'])await call('session.pageRegistered',{op});
+  await call('session.pageRegistered',{op:'library.list.start',args:{keys:['base:人'],view:'dueList'}});
+  for(const listKind of ['wrong','forget','due','shaky','known','skipped'])await call('session.pageRegistered',{op:'library.all.start',args:{kind:'list',listKind}});
+  await call('session.pageRegistered',{op:'library.all.start',args:{keys:[]}});
+ }
+ for(const slot of ['A','B'])for(const op of ['home.undoLeave','library.undoLeave']){
+  await call('store.seed',{state:{sessions:{A:null,B:null,lastEnded:{},[slot]:createSession({id:'s1',kind:slot==='A'?'daily':'picked',queue:['base:人','base:口'],at:T})}}});
+  const skipped=await call('session.skip',{slot,cardKey:'base:人'});
+  const undo={slot,sessionId:'s1',recordId:skipped.record.id,char:'人',strokes:null,until:T+5000};
+  await call('store.fault',{failNextWrite:{n:1,kind:'generic'}});
+  const failed=await call('session.pageRegistered',{op,undo});assert.equal(failed.reply.ok,false);assert.equal(failed.undo.failed,true);
+  const success=await call('session.pageRegistered',{op,undo});assert.equal(success.reply.ok,true);assert.equal(success.undo,null);
+ }
+ for(const op of ['home.undoLeave','library.undoLeave','home.undoLeaveCancel','library.undoLeaveCancel','home.switchLibrary','home.source','home.pick','library.openQuery'])await call('session.pageRegistered',{op});
  await call('store.seed',{state:{sessions:{A:createSession({id:'s1',kind:'daily',queue:['base:人','base:口','base:水'],at:T}),B:null,lastEnded:{}}}});
  const imageInk=[[{x:42,y:50,t:0},{x:90,y:130,t:17}]];
  await call('session.judge',{slot:'A',cardKey:'base:人',judgment:'correct',strokes:imageInk});
@@ -102,5 +120,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–6, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–7, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

@@ -16,7 +16,7 @@ import { commitCorrection } from '../../../src/session/ops/line.js';
 import * as hints from '../../../src/session/ops/hint.js';
 import { setDeckSource } from '../../../src/data/deck.js';
 import { deckSources } from '../../build_core_config.mjs';
-let sources, imageModule, registeredImages;
+let sources, imageModule, registeredImages, pageModules, singleton;
 export function makeB45SessionOps({session,clock}) {
   const table = {
     strokes: strokes.commitStrokes, recover: strokes.commitRecover, phase: judge.commitComparePhase,
@@ -47,6 +47,19 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.pageRegistered']=async a=>{
+    setDeckSource(sources ||= deckSources());const s=session();s.notices=[];
+    const home=await import('../../../src/session/api/home.js'),lib=await import('../../../src/session/api/library.js'),sub=await import('../../../src/session/api/library-sub.js');
+    const previous=[home.homeActions(),lib.libraryActions(),sub.librarySubActions()];
+    if(!pageModules){await import('../../../src/ui/screens/home/index.js');await import('../../../src/ui/screens/library/index.js');pageModules=[home.homeActions(),lib.libraryActions(),sub.librarySubActions()];}
+    home.setHomeActions(pageModules[0]);lib.setLibraryActions(pageModules[1]);sub.setLibrarySubActions(pageModules[2]);
+    const {bootStore}=await import('../../../src/store/store.js');singleton ||= bootStore({backend:{getItem:()=>null,setItem(){},removeItem(){},length:0,key:()=>null}}).store;
+    Object.defineProperties(singleton,Object.getOwnPropertyDescriptors(s.store));
+    const {nav}=await import('../../../src/ui/router.js'),oldNav={...nav};for(const key of Object.keys(nav))nav[key]=()=>key==='openOverlay'?'overlay':null;
+    const skip=await import('../../../src/ui/screens/write/skip.js'),oldPerformance=globalThis.performance,saved=Date.now;globalThis.performance={now:clock};Date.now=clock;skip.handoffLeaveUndo(a.undo);
+    try{return {reply:await createAppApi({getStore:()=>s.store,now:clock}).call(a.op,a.args||{}),undo:skip.leaveUndoView()};}
+    finally{skip.clearLeaveUndo();Date.now=saved;globalThis.performance=oldPerformance;Object.assign(nav,oldNav);home.setHomeActions(previous[0]);lib.setLibraryActions(previous[1]);sub.setLibrarySubActions(previous[2]||{});}
+  };
   out['session.imageRegistered']=async a=>{
     const {setImageActions,imageActions}=await import('../../../src/session/api/image.js');
     const previous=imageActions();

@@ -28,7 +28,7 @@ public enum PageAPI {
         }
         if op.hasPrefix("detail.") || op == "view.detail" || op == "view.detail-photo" { return try detail(op, store, args) }
         if op.hasPrefix("home.") || op == "view.home" { return try home(op, store, args, hooks: hooks) }
-        if op.hasPrefix("library.") || op == "view.library" { return try library(op, store, args) }
+        if op.hasPrefix("library.") || op == "view.library" { return try library(op, store, args, hooks: hooks) }
         if ["view.library-list", "view.library-all", "view.library-switch", "library.list.start", "library.all.start", "library.switch"].contains(op) { return try librarySub(op, store, args) }
         if op.hasPrefix("mine.") || op == "view.mine" { return try mine(op, store, args) }
         if ["view.records", "view.month", "view.annual"].contains(op) { return try mineSub(op, store, args) }

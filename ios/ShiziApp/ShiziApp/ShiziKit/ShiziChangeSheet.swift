@@ -432,7 +432,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
             self.busy = false
             // 网页同样：成功或结果行已不是这条记录（stale）都关弹层
             if reply.ok || reply.errorKind == "stale" {
-                if reply.ok { self.haptic.impactOccurred(intensity: 0.7) } // F1：修改判断成功，commit 之后发
+                if reply.ok { self.haptic.impact("judge", 0.7) } // F1：修改判断成功，commit 之后发
                 self.dismiss(animated: true)
                 self.onApplied(reply.snapshot)
                 return

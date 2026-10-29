@@ -518,4 +518,84 @@ final class WriteFlowTests: XCTestCase {
         XCTAssertEqual(qa.native["phase"] as? String, "compare")
         XCTAssertEqual(qa.native["strokes"] as? Int, 2)
     }
+
+    // MARK: B3.Z-f 声音 / 触觉（探针 feedback；对应 80-s1-sound、87-x1-haptic-once）
+
+    /// 80-s1-sound：判断声 j1 三个变体按序轮换（写错同一族）、书写与判断页无声、最后一字后结果页落款声 s1 恰好一次。
+    func test211_judgeSoundsRotateAndTheSealSoundsOnceOnTheResult() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        let start = qa.feedback.count
+        let j = ["j1_page_settle", "j1_page_settle_b", "j1_page_settle_c"]
+        var expected: [String] = []
+        for i in 0..<5 {
+            qa.waitProbe("recall \(i)") { (($0["native"] as? [String: Any])?["phase"] as? String) == "recall" && ((($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int) == i }
+            Thread.sleep(forTimeInterval: 0.6)
+            let sounds0 = qa.feedback.dropFirst(start).filter { $0.hasPrefix("sound:") }.count
+            qa.stroke()
+            qa.tapNative("native-write-done")
+            qa.waitProbe("compare \(i)") { (($0["native"] as? [String: Any])?["phase"] as? String) == "compare" }
+            Thread.sleep(forTimeInterval: 0.5)
+            XCTAssertEqual(qa.feedback.dropFirst(start).filter { $0.hasPrefix("sound:") }.count, sounds0, "writing and the judge page are silent")
+            expected.append("sound:" + j[i % 3])
+            qa.tapNative(i == 1 ? "native-write-wrong" : "native-write-correct") // 写错与写对同一族声音
+        }
+        qa.waitResult(true)
+        qa.waitProbe("sealed") { (($0["result"] as? [String: Any])?["sealed"] as? Bool) == true }
+        Thread.sleep(forTimeInterval: 0.8)
+        let sounds = Array(qa.feedback.dropFirst(start).filter { $0.hasPrefix("sound:") })
+        XCTAssertEqual(sounds.filter { $0 == "sound:s1_wood_muted" }.count, 1, "the seal s1 sounds exactly once on the result page: \(qa.feedback)")
+        XCTAssertEqual(sounds.last, "sound:s1_wood_muted", "s1 is the last sound: \(qa.feedback)")
+        // B3.Z-f 发现的产品缺口：原生写字页判断后没有放 j1（判断声由网页写字页 / 结果页挂载的 installCommitFeedback 发，原生写字页不挂）。修好后转绿，去掉这层包装。
+        QAIssue.expectFail("B3Zf-1", "原生写字页判断不放 j1 判断声（D50 ⑦）") {
+            XCTAssertEqual(Array(sounds.dropLast()), expected, "5 judgments rotate j1 / _b / _c / j1 / _b: \(qa.feedback)")
+        }
+    }
+
+    /// 80-s1-sound（描红部分）：看答案后的描一遍、再描一遍落笔都没有声音。
+    func test212_traceStrokesAreSilent() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        let start = qa.feedback.count
+        qa.tapNative("native-write-show-answer")
+        qa.waitProbe("trace") { (($0["native"] as? [String: Any])?["phase"] as? String) == "trace" }
+        Thread.sleep(forTimeInterval: 1.8)
+        qa.stroke()
+        qa.tapNative("native-write-trace-done")
+        qa.waitProbe("retrace") { (($0["native"] as? [String: Any])?["phase"] as? String) == "retrace" }
+        qa.stroke()
+        Thread.sleep(forTimeInterval: 0.4)
+        XCTAssertEqual(Array(qa.feedback.dropFirst(start).filter { $0.hasPrefix("sound:") }), [], "trace strokes make no sound: \(qa.feedback)")
+    }
+
+    /// 87-x1-haptic-once：每字「写好了」一次 light，判断恰好一次 judge（进判断页、接着写都不发）；最后一字判断后到结果页之间只有那一次 judge，印的 seal 在其后。
+    func test213_oneJudgeHapticPerCharacter() {
+        let qa = QA(seed: "recall")
+        qa.launch()
+        for i in 0..<5 {
+            qa.waitProbe("recall \(i)") { (($0["native"] as? [String: Any])?["phase"] as? String) == "recall" && ((($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int) == i }
+            Thread.sleep(forTimeInterval: 0.7)
+            let base = qa.feedback.count
+            qa.stroke()
+            qa.tapNative("native-write-done")
+            qa.waitProbe("compare \(i)") { (($0["native"] as? [String: Any])?["phase"] as? String) == "compare" }
+            Thread.sleep(forTimeInterval: 0.7)
+            let hapticsBefore = qa.feedback.dropFirst(base).filter { $0.hasPrefix("haptic:") }
+            XCTAssertEqual(Array(hapticsBefore), ["haptic:light"], "char \(i): 写好了 sends one light, entering the judge page nothing more: \(qa.feedback)")
+            qa.tapNative("native-write-correct")
+            if i < 4 {
+                qa.waitProbe("advanced \(i)") { ((($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int) == i + 1 }
+                Thread.sleep(forTimeInterval: 0.8)
+            } else {
+                qa.waitResult(true)
+                qa.waitProbe("sealed") { (($0["result"] as? [String: Any])?["sealed"] as? Bool) == true }
+                Thread.sleep(forTimeInterval: 0.5)
+            }
+            let since = Array(qa.feedback.dropFirst(base).filter { $0.hasPrefix("haptic:") })
+            XCTAssertEqual(since.filter { $0 == "haptic:judge" }.count, 1, "char \(i): exactly one judge haptic: \(since)")
+            XCTAssertEqual(Array(since.prefix(2)), ["haptic:light", "haptic:judge"], "char \(i): light then the judgement: \(since)")
+            if i < 4 { XCTAssertEqual(since, ["haptic:light", "haptic:judge"], "char \(i): nothing else from the write page: \(since)") }
+            else { XCTAssertEqual(since.filter { $0 == "haptic:light" }.count, 1, "the last character stacks no finish haptic: \(since)") }
+        }
+    }
 }

@@ -891,7 +891,7 @@ final class NativeWriteViewController: UIViewController {
             if (reply.body["whole"] as? Bool) == true { self.answerSeen = true }
             self.applyHintModel(reply.body)
             self.renderHint(fadeIn: true)
-            self.selectHaptic.selectionChanged() // F1 haptic.select：提示显影，与第一帧同帧
+            self.selectHaptic.select() // F1 haptic.select：提示显影，与第一帧同帧
             self.checkHintCleared()
             if let text = reply.body["announce"] as? String, !text.isEmpty { self.say(text) }
         }
@@ -1757,7 +1757,7 @@ final class NativeWriteViewController: UIViewController {
 
     @objc private func tapDone() {
         guard phase == .recall, !answerSeen, !strokes.isEmpty, let key = cardKey else { return }
-        lightHaptic.impactOccurred(intensity: 0.5)
+        lightHaptic.impact("light", 0.5)
         if redo { enterCompare(); return } // 重写错字：本地进对照，不写阶段
         bridge.send("phase", ["slot": slot, "cardKey": key, "phase": "compare", "strokes": NativeInkWire.wire(strokes)])
         enterCompare()
@@ -1874,7 +1874,7 @@ final class NativeWriteViewController: UIViewController {
             guard let self else { return }
             self.skipBusy = false
             if reply.ok {
-                self.lightHaptic.impactOccurred(intensity: 0.5)
+                self.lightHaptic.impact("light", 0.5)
                 let u = reply.body["undo"] as? [String: Any]
                 let info = u.flatMap { b -> (String, String, String)? in
                     guard let sid = b["sessionId"] as? String, let rid = b["recordId"] as? String else { return nil }
@@ -1948,7 +1948,7 @@ final class NativeWriteViewController: UIViewController {
             if reply.ok || reply.errorKind == "stale" {
                 self.endUndo()
                 if reply.ok, let snap = reply.snapshot {
-                    self.lightHaptic.impactOccurred(intensity: 0.5)
+                    self.lightHaptic.impact("light", 0.5)
                     self.advance(to: snap) // 跳过的字回来（提示次数、笔画一并放回）
                 }
                 return
@@ -2031,7 +2031,7 @@ final class NativeWriteViewController: UIViewController {
                 let judged = reply.body["judgedCount"] as? Int ?? 0
                 self.dismissEndDialog()
                 if judged > 0 {
-                    self.lightHaptic.impactOccurred(intensity: 0.5) // F1：结束这组确认、换成结果页
+                    self.lightHaptic.impact("light", 0.5) // F1：结束这组确认、换成结果页
                     self.coordinator?.nativeWriteDidFinish(self, sessionId: sessionId, undo: nil)
                 } else {
                     self.coordinator?.nativeWriteDidRequestBack(self) // 回到来源本身就是反馈，不弹提示（D58 / I3 P0-11）
@@ -2577,13 +2577,13 @@ final class NativeWriteViewController: UIViewController {
             self.failed = false
             let finished = reply.body["finished"] as? [String: Any]
             if let finished, let sid = finished["sessionId"] as? String {
-                self.judgeHaptic.impactOccurred(intensity: 0.7)
+                self.judgeHaptic.impact("judge", 0.7)
                 self.coordinator?.nativeWriteDidFinish(self, sessionId: sid)
                 return
             }
             if advanced, let snap = reply.snapshot, (snap["active"] as? Bool) != true || (snap["done"] as? Bool) == true {
                 // 已提交的是最后一个字：这组已结束，交给结果页
-                self.judgeHaptic.impactOccurred(intensity: 0.7)
+                self.judgeHaptic.impact("judge", 0.7)
                 self.coordinator?.nativeWriteDidFinish(self, sessionId: self.snapshot["sessionId"] as? String ?? "")
                 return
             }
@@ -2593,8 +2593,8 @@ final class NativeWriteViewController: UIViewController {
                 self.ink?.isHidden = plan != nil // 墨在第 0 帧离开纸面：这一层由落定叠层接着画
                 self.advance(to: next)
                 self.ink?.isHidden = false
-                if let plan, !self.playSettle(plan) { self.judgeHaptic.impactOccurred(intensity: 0.7) }
-                if plan == nil { self.judgeHaptic.impactOccurred(intensity: 0.7) }
+                if let plan, !self.playSettle(plan) { self.judgeHaptic.impact("judge", 0.7) }
+                if plan == nil { self.judgeHaptic.impact("judge", 0.7) }
                 self.scheduleAutoStep()
             }
         }
@@ -2618,7 +2618,7 @@ final class NativeWriteViewController: UIViewController {
         guard let spec = settleSpec, let ink else { return false }
         let played = NativeSettle.play(in: view, from: plan.from, to: plan.to, strokes: plan.strokes, params: ink.params, color: ink.inkColor, spec: spec,
                                        reduceMotion: reduceMotion) { [weak self] in
-            self?.judgeHaptic.impactOccurred(intensity: 0.7)
+            self?.judgeHaptic.impact("judge", 0.7)
         }
         if played != nil { settlePlayedForTesting += 1 }
         return played != nil

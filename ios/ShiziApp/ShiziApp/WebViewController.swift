@@ -986,6 +986,7 @@ extension WebViewController {
 
     private func playSound(kind: String, gain: Double) {
         guard let player = soundPlayers[kind] else { return } // 未知名字忽略（旧的 stamp / paper 已不存在）
+        ShiziProbe.feedback("sound:\(kind)")
         player.volume = Float(min(max(gain, 0), 1))
         player.currentTime = 0
         player.play()
@@ -995,6 +996,8 @@ extension WebViewController {
 // MARK: - 触觉反馈：五档（judge / seal / light / select / none，交互与动效规范 F1，D58 ③）；未知值忽略
 extension WebViewController {
     private func playHaptic(kind: String) {
+        // DEBUG 探针：记下发出的档（旧档名并到新档名；未知值不记）
+        ShiziProbe.feedback("haptic:" + (["stamp": "judge", "action": "light", "undo": "light"][kind] ?? kind))
         switch kind {
         case "judge", "stamp": // stamp 是旧档名，过渡一个版本
             judgeHaptic.impactOccurred(intensity: 0.7)

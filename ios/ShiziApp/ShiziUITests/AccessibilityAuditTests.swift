@@ -30,10 +30,9 @@ final class AccessibilityAuditTests: XCTestCase {
         "remind-on", "backup-recent", "query-card", "preview-1x1", "none-pick",
     ]
 
-    /// 审计发现但属产品问题、本卡不修的条目（交给后续卡）：「状态|审计类型|元素名」。见本文件头。
-    ///   · credits：致谢页的网址行读屏名是整条 URL（「标签不像人话」），要换成「项目名 + 网址」之类的名字——后续卡。
-    ///   · query-card（AX5）：查字弹层里有 3 个没名字的元素（Element has no description，无 identifier、无 label；各 134×44、贴屏底排成一行 = 键盘上方的系统联想条 QuickType，多半不是产品元素）——后续卡确认后改为按名豁免。
-    private static let known: Set<String> = ["credits|8|https://github.com/", "query-card|8|"]
+    /// 审计发现但属产品问题、暂不修的条目：「状态|审计类型|元素名」。B3.Z-f 后为空——致谢页网址行已有名字（项目名 + 链接特性）；
+    /// 查字弹层键盘上方 3 个无名元素确认是系统键盘的联想条（QuickType），改为按名豁免（见 audit 里的「豁免 4」），不再登记在这里。
+    private static let known: Set<String> = []
 
     private static let ax5 = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
     private static let tabNames: Set<String> = ["写字", "字库", "我的"]
@@ -61,6 +60,12 @@ final class AccessibilityAuditTests: XCTestCase {
                         if let e = el, e.elementType == .tabBar || (e.elementType == .button && Self.tabNames.contains(label)) { return true }
                         // 豁免 2：网页引擎（WKWebView）里的元素不归原生页管
                         if let e = el, e.identifier.isEmpty, (try? e.snapshot())?.elementType == .webView { return true }
+                        // 豁免 4（键盘）：系统键盘（含联想条 QuickType）里的无名元素——不是产品元素。判据：描述类审计、没名字、没 identifier，
+                        //   且元素框落在键盘框里，或在键盘框正上方那 48pt 的联想条带（QuickType：三格各 1/3 屏宽 × 44pt，贴在键盘上沿）。
+                        if issue.auditType == .sufficientElementDescription, let e = el, label.isEmpty, e.identifier.isEmpty {
+                            let kb = qa.app.keyboards.firstMatch
+                            if kb.exists, kb.frame.insetBy(dx: 0, dy: -48).intersects(e.frame), e.frame.height <= 48 { print("B3Z audit waived (keyboard) \(seed) \(tag) frame=\(e.frame) keyboard=\(kb.frame)"); return true }
+                        }
                         // 豁免 3：只读装饰元素的点击区
                         if issue.auditType == .hitRegion, let e = el, e.elementType != .button { return true }
                         let key = "\(seed)|\(issue.auditType.rawValue)|\(label.prefix(19))"

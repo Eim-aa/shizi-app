@@ -275,4 +275,56 @@ final class ResultFlowTests: XCTestCase {
         qa.waitResult(false)
         qa.waitRouteTop("home")
     }
+
+    // MARK: B3.Z-f 落印声与触觉（探针 feedback；对应 93-c3r-seal、81-r1-reveal 声音半）
+
+    /// 93-c3r-seal / 81-r1：最后一字判断后进结果页——声音顺序 j1 → s1，触觉顺序 light → judge → seal（seal 恰好一次、在判断之后，没有 action）；
+    /// 点开一格再关闭（作品重绘）不再响、不再震。
+    func test822_sealSoundAndHapticOnceAtTheLanding() {
+        let qa = QA(seed: "last-judge")
+        qa.launch()
+        let start = qa.feedback.count
+        qa.tapNative("native-write-correct")
+        qa.waitResult(true)
+        qa.waitProbe("sealed") { (($0["result"] as? [String: Any])?["sealed"] as? Bool) == true }
+        Thread.sleep(forTimeInterval: 0.8)
+        let since = Array(qa.feedback.dropFirst(start))
+        let sounds = since.filter { $0.hasPrefix("sound:") }
+        XCTAssertEqual(sounds.last, "sound:s1_wood_muted", "the seal s1 is the last sound: \(since)")
+        // B3Zf-1（同 WriteFlowTests.test211）：原生写字页判断后没有 j1。修好后转绿，去掉这层包装。
+        QAIssue.expectFail("B3Zf-1", "原生写字页判断不放 j1 判断声（D50 ⑦）") {
+            XCTAssertTrue(sounds.first?.hasPrefix("sound:j1_page_settle") == true && sounds.count == 2, "judge sound j1 then s1: \(since)")
+        }
+        XCTAssertEqual(since.filter { $0 == "sound:s1_wood_muted" }.count, 1, "s1 once: \(since)")
+        XCTAssertEqual(since.filter { $0 == "haptic:seal" }.count, 1, "seal haptic once: \(since)")
+        XCTAssertFalse(since.contains("haptic:action"), "no action haptic: \(since)")
+        let h = since.filter { $0.hasPrefix("haptic:") }
+        XCTAssertEqual(h.first, "haptic:judge", "the judgement's own haptic comes first: \(since)")
+        XCTAssertEqual(h.last, "haptic:seal", "the seal lands after the judgement: \(since)")
+        let sIdx = since.firstIndex(of: "sound:s1_wood_muted"), hIdx = since.firstIndex(of: "haptic:seal")
+        XCTAssertNotNil(sIdx); XCTAssertNotNil(hIdx)
+        if let sIdx, let hIdx { XCTAssertLessThanOrEqual(abs(sIdx - hIdx), 1, "s1 and the seal haptic are sent together: \(since)") }
+        // 作品重绘不再响
+        let after = qa.feedback.count
+        let cell = qa.app.descendants(matching: .any).matching(identifier: "native-result-cell").firstMatch
+        if cell.waitForExistence(timeout: 2) {
+            cell.tap()
+            Thread.sleep(forTimeInterval: 0.8)
+            qa.app.swipeDown()
+            Thread.sleep(forTimeInterval: 0.8)
+        }
+        XCTAssertFalse(qa.feedback.dropFirst(after).contains { $0.hasPrefix("sound:s1") || $0 == "haptic:seal" }, "reopening a cell does not seal again: \(qa.feedback)")
+    }
+
+    /// 93-c3r-seal（冷启动恢复）：杀进程重开结果页——不重演落印：没有 s1、没有 seal 触觉。
+    func test823_coldRestoreDoesNotSealAgain() {
+        let qa = QA(seed: "result")
+        qa.launch()
+        qa.waitResult(true)
+        qa.waitProbe("sealed") { (($0["result"] as? [String: Any])?["sealed"] as? Bool) == true }
+        qa.relaunchWithoutSeed()
+        qa.waitResult(true, timeout: 15)
+        Thread.sleep(forTimeInterval: 1.5)
+        XCTAssertFalse(qa.feedback.contains { $0.hasPrefix("sound:") || $0 == "haptic:seal" }, "restoring a sealed result replays nothing: \(qa.feedback)")
+    }
 }

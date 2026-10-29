@@ -17,6 +17,8 @@ export function pageCases(g) {
   const summary = latest ? {latest, count:2, latestDay:latest.localDay} : null;
   const list={state,today:h.today,kind:g.pick(['wrong','forget','due','shaky','known','skipped','forgetList','againList']),sel:g.pick([null,[],['永','甲']]),unpracticable:g.chance(.5)?S.keys().slice(0,30):[],policy:{groupSize:g.pick([5,10,20,30])}};
   return [
+    ...['view.home','view.home.model','view.home.resume','view.home.helpers'].map(op=>[op,{state,now:new Date(2026,2,g.pick([1,2,15]),4).getTime()+g.pick([-1,0,1,3600000]),today:h.today,...g.pick([{}, {deck:'real'}, {deck:{newCandidates:[],warmupCandidates:[]}}]),ui:{brand:g.chance(.5),leaveUndo:g.chance(.5)?{char:'永',slot:'B'}:null},model:{resume:g.pick(['none','A','B','A+B']),view:g.pick(['first','special','today','back','fresh','progress']),records:g.pick(['first','empty','record']),capital:g.pick([null,'capital1']),gapDays:g.pick([null,0,7,30]),libraryCount:g.int(0,100),primary:{kind:'picked',done:2,total:5}},kind:g.pick(['first','picked','daily']),line:g.pick([null,{kind:'daily',remaining:0,done:2,total:3,position:3},{kind:'first',remaining:3,done:1,total:5}])}]),
+
     ['view.library-list',list], ['view.library-list.entries',list],
     ['view.library-list.helpers',{...list,n:g.int(0,3),meta:'a · b · c',day:g.pick([null,h.today,'bad']),word:g.pick(['永远','永','a永b','a']),char:'永',other:g.pick([null,[],['甲','永']]),view:g.pick(['wrongList','dueList','home'])}],
     ...['view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months'].map(op=>[op,annual]),
@@ -26,4 +28,4 @@ export function pageCases(g) {
     ['view.query.ink',{state,summary}],
   ].map(([op,args])=>({op,args,state:false}));
 }
-export const pageNames = ['view.library-list','view.library-list.entries','view.library-list.helpers','view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months','view.query','view.query.sheet','view.query.meta','view.query.stat','view.query.date','view.query.ink'];
+export const pageNames = ['view.home','view.home.model','view.home.resume','view.home.helpers','view.library-list','view.library-list.entries','view.library-list.helpers','view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months','view.query','view.query.sheet','view.query.meta','view.query.stat','view.query.date','view.query.ink'];

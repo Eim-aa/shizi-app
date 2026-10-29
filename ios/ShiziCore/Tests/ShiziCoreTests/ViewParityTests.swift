@@ -29,6 +29,17 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(m["empty"], .bool(true)); XCTAssertEqual(m["button"]?["disabled"], .bool(true))
     }
 
+    // test/ui/home.test.mjs / test/ui/h2-home-e.test.mjs — first visit and 4am calendar/local day boundary.
+    func testHomeFirstAndFourAM() throws {
+        let t = try dates.dayStartMs(.string("2026-03-02"))
+        let before = try HomeView.homeModel(.null, now: t-1, policy: Config.policy, deck: nil, dates: dates)
+        let after = try HomeView.homeModel(.null, now: t, policy: Config.policy, deck: nil, dates: dates)
+        XCTAssertEqual(before["view"], .string("first")); XCTAssertEqual(after["today"], .string("2026-03-02"))
+        XCTAssertEqual(before["today"], .string("2026-03-01")); XCTAssertEqual(before["dateParts"], after["dateParts"])
+        XCTAssertEqual(HomeView.homeCtaKey(after), "X-HOME.start")
+        XCTAssertEqual(HomeView.homeViewOf(try value(#"{"records":"record","resume":"B","capital":null,"gapDays":0}"#)), "progress")
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

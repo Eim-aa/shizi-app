@@ -1,3 +1,6 @@
+import * as home from '../../../src/session/views/home.js';
+import { deckAdapter } from '../../../src/data/deck.js';
+import { ref } from '../../../src/config/copy/index.js';
 // B4.5b: real view functions, no duplicated product rules.
 import * as libraryList from '../../../src/session/views/library-list.js';
 import { cardForKey } from '../../../src/data/deck.js';
@@ -18,9 +21,14 @@ import * as policy from '../../../src/config/policy.js';
 export function makeB45ViewOps({ required, clock }) {
   const p = a => ({ ...policy, ...a.policy });
   const at = (a, fn) => { const saved = Date.now; Date.now = () => a.now ?? clock(); try { return fn(); } finally { Date.now = saved; } };
+  const deck = a => {if(a.deck===undefined) return null; if(a.deck==='real') {setDeckSource(deckSources());return deckAdapter;} const d=a.deck; return {newCandidates:()=>d.newCandidates||[],warmupCandidates:d.warmupCandidates?()=>d.warmupCandidates:undefined,practicable:k=>d.practicable?d.practicable.includes(k):k.startsWith('base:'),currentLibraryId:d.currentLibraryId?()=>d.currentLibraryId:undefined};};
   const ink = a => r => a.state?.ink?.[r.localDay.slice(0, 7)]?.[r.id] ?? null;
   const q = a => { setDeckSource(deckSources()); return { ...a, policy: p(a), predicates: query.deckPredicates(a.state?.settings), getInk: ink(a), store: { getInk: ink(a) } }; };
   return {
+    'view.home': a => home.homeView(a.state,a.now??clock(),{policy:p(a),deck:deck(a),ui:a.ui}),
+    'view.home.model': a => home.homeModel(a.state,a.now??clock(),{policy:p(a),deck:deck(a)}),
+    'view.home.resume': a => home.resumeOf(a.state,a.now??clock(),{policy:p(a)}),
+    'view.home.helpers': a => ({records:home.recordsStateOf(a.state,a.today,{policy:p(a)}),last:home.lastJudgedDayOf(Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[])),view:home.homeViewOf(a.model),count:home.libraryCountOf(Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[])),cta:home.homeCtaKey(a.model),note:home.homeNoteOf(a.model),resume:home.resumeKeyOf(a.kind),progress:home.progressText(a.line,ref),text:home.resumeLineText(a.line,ref),aria:home.resumeLineAria(a.line,ref),ctaAria:home.ctaAria(a.model,ref),noChars:home.noCharsLeft(a.state,a.today,deck(a),p(a))}),
     'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
     'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),

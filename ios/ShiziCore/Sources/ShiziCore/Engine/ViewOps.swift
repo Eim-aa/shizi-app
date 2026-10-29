@@ -3,6 +3,13 @@ import Foundation
 extension CoreEngine {
     // Pure model results (as with images.*), without the App API transport envelope.
     static let viewOps: [String: Op] = [
+        "view.home": { e, a in try HomeView.homeView(a["state"] ?? .null, now: a["now"]?.numberValue ?? e.clock, policy: ViewSupport.policy(a["policy"]), deck: a["deck"] == nil ? nil : deckOf(a), ui: a["ui"], dates: e.dates) },
+        "view.home.model": { e, a in try HomeView.homeModel(a["state"] ?? .null, now: a["now"]?.numberValue ?? e.clock, policy: ViewSupport.policy(a["policy"]), deck: a["deck"] == nil ? nil : deckOf(a), dates: e.dates) },
+        "view.home.resume": { e, a in try HomeView.resumeOf(a["state"] ?? .null, now: a["now"]?.numberValue ?? e.clock, policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.home.helpers": { e, a in
+            let m = a["model"] ?? .null, l = a["line"]
+            return ViewSupport.obj([("records", .string(HomeView.recordsStateOf(a["state"] ?? .null, today: a["today"]?.stringValue ?? "", policy: ViewSupport.policy(a["policy"])))), ("last", HomeView.lastJudgedDayOf(Query.flattenRecords(a["state"]?["records"]))), ("view", .string(HomeView.homeViewOf(m))), ("count", .number(Double(Records.practicedByChar(Query.flattenRecords(a["state"]?["records"])).count))), ("cta", .string(HomeView.homeCtaKey(m))), ("note", HomeView.homeNoteOf(m)), ("resume", .string(HomeView.resumeKeyOf(a["kind"]))), ("progress", HomeView.progressText(l)), ("text", HomeView.resumeLineText(l)), ("aria", HomeView.resumeLineAria(l)), ("ctaAria", HomeView.ctaAria(m)), ("noChars", .bool(try HomeView.noCharsLeft(a["state"] ?? .null, today: a["today"]?.stringValue ?? "", deck: a["deck"] == nil ? nil : deckOf(a), policy: ViewSupport.policy(a["policy"]), dates: e.dates)))])
+        },
         "view.library-list": { e, a in try LibraryListView.listModel(a["state"] ?? .null, a, dates: e.dates) },
         "view.library-list.entries": { e, a in .array(try LibraryListView.listEntries(a["state"] ?? .null, kind: a["kind"], today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
         "view.library-list.helpers": { e, a in

@@ -10,6 +10,8 @@ public final class SessionActionHooks {
     public var queryPractice: ((String, QueryActionContext) throws -> JSValue)?
     public var queryPick: (([String], QueryActionContext) throws -> JSValue)?
     public var queryDetail: ((String, QueryActionContext) throws -> JSValue)?
+    public var s02Registered = false
+    public var hasS02Actions: Bool { s02Registered || s02Continue != nil || s02Cancel != nil || s02Close != nil || s02EndStart != nil || s02Started != nil }
     public var s02Continue: (() -> Void)?
     public var s02Cancel: (() -> Void)?
     public var s02Close: (() -> Void)?

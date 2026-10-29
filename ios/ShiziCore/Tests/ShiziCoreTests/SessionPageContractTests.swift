@@ -37,6 +37,7 @@ final class SessionPageContractTests: XCTestCase {
     // test/ui/native-query.test.mjs — S02 closes before continuing; failure keeps the decision open.
     func testS02CallbackOrderAndFailure() {
         let core = runtime(); var calls: [String] = []
+        XCTAssertEqual(core.call("s02.decide", JSObject([("action", .string("cancel"))]))["error"]?["kind"], .string("unavailable"))
         core.hooks.s02Close = { calls.append("close") }; core.hooks.s02Continue = { calls.append("continue") }
         XCTAssertEqual(core.call("s02.decide", JSObject([("action", .string("continue"))])), JS.obj([("ok", .bool(true)), ("close", .bool(false))]))
         XCTAssertEqual(calls, ["close", "continue"])

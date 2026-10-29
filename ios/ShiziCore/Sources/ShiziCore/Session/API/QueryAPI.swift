@@ -27,7 +27,7 @@ extension PageAPI {
             if chars.isEmpty { return SessionWrites.failure("invalid") }
             guard let hooks else { return SessionWrites.failure("unavailable") }
             var closed = false
-            let context = QueryActionContext(mode: chars.count > 1 || a["from"] == .string("bar") ? "pick" : hooks.queryMode) { if !closed { closed = true; hooks.queryClose?() } }
+            let context = QueryActionContext(mode: chars.count > 1 || a["from"] == .string("bar") ? "pick" : (hooks.queryMode.isEmpty ? "lookup" : hooks.queryMode)) { if !closed { closed = true; hooks.queryClose?() } }
             let result: JSValue?
             do {
                 if a["from"] == .string("card"), let callback = hooks.queryPractice { result = try callback(chars[0], context) }
@@ -37,7 +37,7 @@ extension PageAPI {
             if result?["ok"] == .bool(false) { return SessionWrites.failure("generic") }
             return JS.obj([("ok", .bool(true)), ("close", .bool(closed && hooks.queryClose == nil))])
         case "s02.decide":
-            guard let hooks else { return SessionWrites.failure("unavailable") }
+            guard let hooks, hooks.hasS02Actions else { return SessionWrites.failure("unavailable") }
             switch a["action"] {
             case .string("continue"):
                 guard let callback = hooks.s02Continue else { return SessionWrites.failure("unavailable") }

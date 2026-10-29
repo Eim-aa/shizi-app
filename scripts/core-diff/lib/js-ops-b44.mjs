@@ -586,5 +586,5 @@ export function makeB44Ops({ required, str, finite, int, badArgs, clock, setCloc
       }
     };
   }
-  return { ops: wrapped, snapshot, reset: () => { S = null; } };
+  return { ops: wrapped, session, snapshot, reset: () => { S = null; } };
 }

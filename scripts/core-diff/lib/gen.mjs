@@ -12,9 +12,10 @@ import cardsDomain from '../domains/cards.mjs';
 import membersDomain from '../domains/members.mjs';
 import inkDomain from '../domains/ink.mjs';
 import storeDomain from '../domains/store.mjs';
+import sessionDomain from '../domains/session.mjs';
 import viewsDomain from '../domains/views.mjs';
 
-export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain, storeDomain, viewsDomain];
+export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain, storeDomain, viewsDomain, sessionDomain];
 
 /** mulberry32（与 scripts/sim/lib/env.mjs 同一算法）。 */
 export function rng(seed) {

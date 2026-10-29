@@ -126,7 +126,7 @@ try {
  }
  const hv={key:'x',used:1,range:{from:0,to:4},absorbed:[],fading:[],show:'in',run:0,restored:false};
  for(const [name,input] of [['mergeHintRange',{prev:{from:0,to:1},next:{from:1,to:3}}],['hintRemaining',{view:hv}],['hintVisible',{view:hv}],['matchHintStroke',{remaining:[1],index:1}],['initialHintView',{key:'x',stored:{hints:1,hintRange:{from:0,to:4}},written:2}],['reduceHintView',{view:hv,action:{type:'absorb',hint:1,user:1}}],['hintTimeline',{count:3}]])await call('session.hintHelper',{name,input});
- for(const count of [null,-1,0,1,3,12,'4'])for(const motion of [null,{hintStrokeMs:120,hintStagger:.5}])await call('session.hintHelper',{name:'strokeDrawMs',input:{count,motion}});
+ for(const count of [null,-1,0,1,3,12,'4','Infinity','-Infinity','NaN'])for(const motion of [null,{hintStrokeMs:120,hintStagger:.5}])await call('session.hintHelper',{name:'strokeDrawMs',input:{count,motion}});
  await call('session.hintHelper',{name:'meanDistanceToMedian',input:{points:[{x:1,y:2}],median:[[0,0],[10,10]]}});
  await call('session.forgetRecentInk');
  for(let i=0;i<10;i++)await call('session.rememberInk',{recordId:'r'+i,strokes:[[{x:i,y:2,t:0}]]});

@@ -42,7 +42,7 @@ extension SessionHints {
         case "mergeHintRange": return merge(a["prev"], a["next"] ?? .null)
         case "strokeRangeText": return try strokeRangeText(a["from"], a["to"])
         case "hintAnnouncement": return try announcement(a["range"])
-        case "strokeDrawMs": return HintViewState.timeline(.number(max(1, HintViewState.number(a["count"]))), motion: a["motion"])["dur"]!
+        case "strokeDrawMs": return .number(HintViewState.strokeDrawMs(a["count"],motion:a["motion"]))
         case "meanDistanceToMedian": return .number(try meanDistanceRaw(a["points"],median:a["median"]))
         case "hintRemaining": return .array(HintViewState.remaining(a["view"]))
         case "hintVisible": return .bool(HintViewState.visible(a["view"]))

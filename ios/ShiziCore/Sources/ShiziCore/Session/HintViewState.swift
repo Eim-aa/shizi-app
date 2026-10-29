@@ -60,10 +60,15 @@ public enum HintViewState {
             if d < distance { distance = d; best = h }
         }; return !best.isNull && distance <= JS.number(a["maxDist"] ?? .number(40)) ? best : .null
     }
+    public static func strokeDrawMs(_ count: JSValue?, motion: JSValue? = nil) -> Double {
+        let n = max(1,number(count)), draw = SessionResources.ui["hintDraw"]!
+        let rawMax = motion?["hintStrokeMs"]?.numberValue
+        let maxMs = rawMax?.isFinite == true ? rawMax! : JS.number(Config.policy["motion"]?["hintStrokeMs"])
+        return JSMath.round(min(max(1100/n,JS.number(draw["minMs"])),maxMs,1200/(0.3+0.7*n)))
+    }
     public static func timeline(_ count: JSValue?, motion: JSValue? = nil) -> JSValue {
-        let draw = SessionResources.ui["hintDraw"]!, m = Config.policy["motion"]
-        let n = max(0, number(count)), used = max(1, n), maxMs = motion?["hintStrokeMs"]?.numberValue ?? m!["hintStrokeMs"]!.numberValue!
-        let dur = JSMath.round(min(max(1100/used, draw["minMs"]!.numberValue!), maxMs, 1200/(0.3+0.7*used)))
+        let m = Config.policy["motion"], n = max(0,number(count))
+        let dur = strokeDrawMs(.number(n == 0 ? 1 : n),motion:motion)
         let stagger = motion?["hintStagger"]?.numberValue ?? m!["hintStagger"]!.numberValue!
         var items: [JSValue] = [], j = 0.0
         while j < n { items.append(JS.obj([("delay", .number(JSMath.round(j*dur*stagger))), ("dur", .number(dur))])); j += 1 }

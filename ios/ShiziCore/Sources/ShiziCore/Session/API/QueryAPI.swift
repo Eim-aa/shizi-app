@@ -2,7 +2,7 @@ import Foundation
 
 // src/session/api/query.js: pure state actions and models. Navigation hooks stay with host.
 extension PageAPI {
-    static func query(_ op: String, _ store: Store, _ a: JSObject) throws -> JSValue {
+    static func query(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         switch op {
         case "query.add":
             guard let char = a["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }
@@ -17,9 +17,38 @@ extension PageAPI {
             for (name,key) in [("body","R-H05.body"),("fail","X-SESSION.s02SaveFailed"),("continue","R-H05.continueOld"),("endStart","R-H05.endOldStartNew"),("cancel","R-H05.cancel"),("failCancel","X-SESSION.s02Cancel"),("retry","X-SESSION.s02Retry")] {
                 view[name] = JS.obj([("key", .string(key)), ("vars", name == "body" ? JS.obj([("chars", .string(quoted))]) : .object(JSObject()))])
             }; return JS.obj([("ok", .bool(true)), ("view", .object(view))])
-        case "query.detail": return (a["char"]?.stringValue ?? "").isEmpty ? SessionWrites.failure("invalid") : SessionWrites.failure("unavailable")
-        case "query.pick": return (a["chars"]?.arrayValue ?? []).contains(where: { $0.stringValue != nil }) ? SessionWrites.failure("unavailable") : SessionWrites.failure("invalid")
-        case "s02.decide": return SessionWrites.failure("unavailable")
+        case "query.detail":
+            guard let char = a["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }
+            guard let callback = hooks?.queryDetail else { return SessionWrites.failure("unavailable") }
+            let r = try? callback(char, QueryActionContext(mode: "lookup", close: {}))
+            return r == nil || r?["ok"] == .bool(false) ? SessionWrites.failure("generic") : JS.obj([("ok", .bool(true))])
+        case "query.pick":
+            let chars = (a["chars"]?.arrayValue ?? []).compactMap(\.stringValue)
+            if chars.isEmpty { return SessionWrites.failure("invalid") }
+            guard let hooks else { return SessionWrites.failure("unavailable") }
+            var closed = false
+            let context = QueryActionContext(mode: chars.count > 1 || a["from"] == .string("bar") ? "pick" : hooks.queryMode) { if !closed { closed = true; hooks.queryClose?() } }
+            let result: JSValue?
+            do {
+                if a["from"] == .string("card"), let callback = hooks.queryPractice { result = try callback(chars[0], context) }
+                else if let callback = hooks.queryPick { result = try callback(chars, context) }
+                else { return SessionWrites.failure("unavailable") }
+            } catch { return SessionWrites.failure("generic") }
+            if result?["ok"] == .bool(false) { return SessionWrites.failure("generic") }
+            return JS.obj([("ok", .bool(true)), ("close", .bool(closed && hooks.queryClose == nil))])
+        case "s02.decide":
+            guard let hooks else { return SessionWrites.failure("unavailable") }
+            switch a["action"] {
+            case .string("continue"):
+                guard let callback = hooks.s02Continue else { return SessionWrites.failure("unavailable") }
+                hooks.s02Close?(); callback(); return JS.obj([("ok", .bool(true)), ("close", .bool(hooks.s02Close == nil))])
+            case .string("cancel"): hooks.s02Cancel?(); return JS.obj([("ok", .bool(true)), ("close", .bool(true))])
+            case .string("endStart"):
+                guard let callback = hooks.s02EndStart else { return SessionWrites.failure("unavailable") }
+                guard let result = try callback(), result["ok"] != .bool(false), JS.truthy(result) else { return SessionWrites.failure("generic") }
+                hooks.s02Close?(); hooks.s02Started?(result); return JS.obj([("ok", .bool(true)), ("close", .bool(hooks.s02Close == nil))])
+            default: return SessionWrites.failure("invalid")
+            }
         default: return SessionWrites.failure("unknown-op")
         }
     }

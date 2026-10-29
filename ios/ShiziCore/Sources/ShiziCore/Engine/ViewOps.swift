@@ -24,6 +24,11 @@ extension CoreEngine {
             let ink = try DetailView.inkOf(state, record: r, dates: e.dates)
             return ViewSupport.obj([("base", .string("base:"+char)), ("records", .array(DetailView.recordsOfChar(state, char: char))), ("copy", DetailView.cellCopy(r, dates: e.dates)), ("list", try DetailView.listOf(Query.flattenRecords(state["records"]), sched: state["sched"], today: string(a, "today"), key: "base:"+char, dates: e.dates)), ("word", try DetailView.wordView(DeckCards.shared.cardForKey("base:"+char))), ("hero", DetailView.detailHero(model)), ("ink", ink), ("has", .bool(DetailView.recordHasInk(state, record: r, dates: e.dates))), ("points", .bool(DetailView.hasInkPoints(ink))), ("day", LibraryListView.dateText(a["day"], dates: e.dates)), ("photo", DetailView.photoOf(state, char: char))])
         },
+        "view.records": { e, a in try MineSubView.recordsView(a["state"] ?? .null, today: string(a, "today"), a, dates: e.dates) },
+        "view.month": { e, a in try MineSubView.monthView(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.month.sheet": { e, a in try MineSubView.monthSheetOf(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.annual-page": { e, a in try MineSubView.annualView(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
+        "view.mine-sub.helpers": { e, a in try ViewSupport.obj([("month", MineSubView.monthHeadRef(a["n"] ?? .number(0))), ("day", MineSubView.dayTextRef(required(a, "day"), dates: e.dates)), ("label", MineSubView.cellLabelRef(required(a, "cell"), dates: e.dates)), ("dayLabel", MineSubView.dayCellLabelRef(required(a, "cell"), dates: e.dates)), ("geometry", MineSubView.sheetGeometry(Int(JS.number(a["n"])), width: JS.number(a["width"])))]) },
         "view.library-list": { e, a in try LibraryListView.listModel(a["state"] ?? .null, a, dates: e.dates) },
         "view.library-list.entries": { e, a in .array(try LibraryListView.listEntries(a["state"] ?? .null, kind: a["kind"], today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
         "view.library-list.helpers": { e, a in

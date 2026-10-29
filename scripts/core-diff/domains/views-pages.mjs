@@ -1,8 +1,12 @@
 import { encodeInkRaw } from '../../../src/core/ink-math.js';
 import { schedShapes } from '../lib/sched-shapes.mjs';
 export function pageCases(g) {
-  const S = schedShapes(g.r), h = S.state({days: g.int(0, 8)});
+  const S = schedShapes(g.r), h = S.state({days: g.pick([0,2,8,30])});
   const state = g.chance(.2) ? {} : h.state;
+  state.settings = {...state.settings, library:g.pick(['core3500','adv3000','rare','curriculum2500'])};
+  for(const r of h.records) if(g.chance(.12)) r.source='paper';
+  if(g.chance(.4)) state.legacy={days:['2025-01-01','2026-03-01','2099-01-01']};
+  if(g.chance(.4)) state.backupMeta={lastExportAt:g.pick([0,1767225600000,1772400000000]),lastExportSig:g.pick([null,'x'])};
   state.ink = {};
   for (const r of h.records) if(g.chance(.5)) {
     const m=r.localDay.slice(0,7);
@@ -21,6 +25,8 @@ export function pageCases(g) {
   const detailArgs={state,char:detailChar,today:h.today,record:h.records.find(r=>r.char===detailChar)||{},day:g.pick([null,h.today,'bad']),imageAction:g.chance(.5),etymology:g.pick([null,{gloss:'x',source:''}]),policy:g.pick([{}, {features:{nextReviewLine:true,perRecordInk:true}}])};
   const list={state,today:h.today,kind:g.pick(['wrong','forget','due','shaky','known','skipped','forgetList','againList']),sel:g.pick([null,[],['永','甲']]),unpracticable:g.chance(.5)?S.keys().slice(0,30):[],policy:{groupSize:g.pick([5,10,20,30])}};
   return [
+    ...['view.records','view.month','view.month.sheet','view.annual-page','view.mine-sub.helpers'].map(op=>[op,{state,today:g.pick([h.today,'2025-02-01','2026-03-02']),month:g.pick(['2025-02',h.today.slice(0,7),'2026-03','2027-01']),day:g.pick(['2025-02-01',h.today,'2026-03-02']),year:g.pick([2025,2026,2027]),n:g.pick([0,1,3,5,9,25,80,120]),width:g.pick([200,320,402,440,900]),cell:{ch:'永',mode:g.pick(['hand','under']),day:g.pick(['','2026-03-02']),record:g.pick([null,{localDay:'2026-03-01'}])},policy:{monthSheetPick:g.pick(['first','last'])}}]),
+
     ...['view.detail','view.detail.model','view.detail-photo','view.detail.helpers'].map(op=>[op,{...detailArgs}]),
 
     ...['view.library-all','view.library-all.helpers'].map(op=>[op,{state,today:h.today,sort:g.pick(['recent','py','age','bad']),filter:g.pick(['','due','shaky','known','unw','custom','wrong','forget']),compact:g.chance(.5),width:g.pick([null,320,375,402,440,900]),find:g.pick(['','永','a','ren','xyz','𠀀','123']),fold:{'2026-03':g.chance(.5),'bad':true,'2026-05':g.chance(.5)},month:g.pick(['2025-03','2026-05']),open:g.chance(.5),py:g.pick(['','yǒng','Lǜ']),groups:[{head:true,cells:[1,2,3]},{head:false,cells:[]},{head:true,cells:[4,5]}],limit:g.pick([0,1,3,9]),pinyin:g.chance(.5)?{'永':''}: {}}]),
@@ -36,4 +42,4 @@ export function pageCases(g) {
     ['view.query.ink',{state,summary}],
   ].map(([op,args])=>({op,args,state:false}));
 }
-export const pageNames = ['view.detail','view.detail.model','view.detail-photo','view.detail.helpers','view.library-all','view.library-all.helpers','view.home','view.home.model','view.home.resume','view.home.helpers','view.library-list','view.library-list.entries','view.library-list.helpers','view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months','view.query','view.query.sheet','view.query.meta','view.query.stat','view.query.date','view.query.ink'];
+export const pageNames = ['view.records','view.month','view.month.sheet','view.annual-page','view.mine-sub.helpers','view.detail','view.detail.model','view.detail-photo','view.detail.helpers','view.library-all','view.library-all.helpers','view.home','view.home.model','view.home.resume','view.home.helpers','view.library-list','view.library-list.entries','view.library-list.helpers','view.annual','view.annual.plan','view.annual.years','view.annual.defaultYear','view.annual.slice','view.annual.first','view.annual.twice','view.annual.months','view.query','view.query.sheet','view.query.meta','view.query.stat','view.query.date','view.query.ink'];

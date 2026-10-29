@@ -66,6 +66,18 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(DetailView.cellCopy(last, dates: dates)["caption"], ViewSupport.ref("X-RESULT.cellWrong"))
     }
 
+    // test/ui/native-mine-sub.test.mjs — B3.9 the sheet geometry is the web sheetGrid rule.
+    func testMineSubGeometryAndLabels() throws {
+        XCTAssertEqual(MineSubView.sheetGeometry(0, width: 402)["cols"], .number(0))
+        let g = MineSubView.sheetGeometry(1, width: 402)
+        XCTAssertEqual(g["c"], .number(110)); XCTAssertEqual(g["cells"]?.arrayValue?.count, 1)
+        let cell = try value(#"{"ch":"永","mode":"hand","day":"2026-03-02","record":{"localDay":"2026-03-01"}}"#)
+        XCTAssertEqual(try MineSubView.cellLabelRef(cell, dates: dates)["copy"], .string("X-WORK.cellInkDay"))
+        let empty = try MineSubView.monthView(.null, month: "2026-03", policy: Config.policy, dates: dates)
+        XCTAssertEqual(empty["n"], .number(0)); XCTAssertEqual(empty["kuan"], .string(""))
+        XCTAssertEqual(try MineSubView.monthSheetOf(.null, month: "2026-03", policy: Config.policy, dates: dates), .null)
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

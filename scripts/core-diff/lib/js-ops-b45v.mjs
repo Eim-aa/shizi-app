@@ -1,3 +1,4 @@
+import * as mineSub from '../../../src/session/views/mine-sub.js';
 import * as detail from '../../../src/session/views/detail.js';
 import * as libraryAll from '../../../src/session/views/library-all.js';
 import * as home from '../../../src/session/views/home.js';
@@ -37,6 +38,11 @@ export function makeB45ViewOps({ required, clock }) {
     'view.detail.model': a => {setDeckSource(deckSources());return detail.detailModel(a.state,a.char,{...a,policy:p(a),hasInk:r=>detail.recordHasInk({getInk:ink(a)},r)});},
     'view.detail-photo': a => detail.photoView(a.state,a.char),
     'view.detail.helpers': a => {setDeckSource(deckSources());const store={getInk:ink(a)},i=detail.inkOf(store,a.record),m=detail.detailModel(a.state,a.char,{today:a.today,policy:p(a)}); return {base:detail.baseKey(a.char),records:detail.recordsOfChar(a.state,a.char),copy:detail.cellCopy(a.record||{}),list:detail.listOf({records:Object.values(a.state.records||{}).flatMap(v=>Array.isArray(v)?v:v.kept||[]),sched:a.state.sched,today:a.today,cardKey:'base:'+a.char}),word:detail.wordView(cardForKey('base:'+a.char)),hero:detail.detailHero(m),ink:i,has:detail.recordHasInk(store,a.record),points:detail.hasInkPoints(i),day:detail.dayRef(a.day),photo:detail.photoOf(a.state,a.char)};},
+    'view.records': a => mineSub.recordsView(a.state,a.today,{...a,policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
+    'view.month': a => mineSub.monthView(a.state,a.month,{policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
+    'view.month.sheet': a => mineSub.monthSheetOf(a.state,a.month,{policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
+    'view.annual-page': a => mineSub.annualView(a.state,a.today,{...a,policy:p(a),inkOf:r=>detail.inkOf({getInk:ink(a)},r)}),
+    'view.mine-sub.helpers': a => ({month:mineSub.monthHeadRef(a.n),day:mineSub.dayTextRef(a.day),label:mineSub.cellLabelRef(a.cell),dayLabel:mineSub.dayCellLabelRef(a.cell),geometry:mineSub.sheetGeometry(a.n,a.width)}),
     'view.library-list': a => {setDeckSource(deckSources()); return libraryList.listModel(a.state,{...a,policy:p(a),cardFor:k=>a.cards?.[k]??cardForKey(k),practicable:k=>!a.unpracticable?.includes(k)});},
     'view.library-list.entries': a => libraryList.listEntries(a.state,{...a,policy:p(a)}),
     'view.library-list.helpers': a => ({kind:libraryList.normalizeKind(a.kind),zone:libraryList.isZoneKind(a.kind),parts:libraryList.listRowMetaParts(a.meta),date:libraryList.dateText(a.day),word:libraryList.wordParts(a.word,a.char),sel:libraryList.normalizeSel(a.sel),same:libraryList.sameSel(a.sel,a.other),toggle:libraryList.toggleSel(a.sel,a.char),all:libraryList.selectAllSel(a.model||{rows:[]}),none:libraryList.selectNoneSel(),button:libraryList.buttonLabel(a.n),hint:libraryList.hintText(a.n),active:libraryList.groupFromHereActive(a.state,a.view)}),

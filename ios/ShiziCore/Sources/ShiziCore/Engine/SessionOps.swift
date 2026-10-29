@@ -2,6 +2,7 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.queryHost": { e,a in queryHost(try e.session().store,a) },
         "session.pageRegistered": { e,a in
             let store = try e.session().store!, hooks = SessionActionHooks(), pages = PageRegisteredActions(store: store)
             pages.clockNow = { e.clock }; pages.handoffLeaveUndo(a["undo"]); pages.install(on: hooks)

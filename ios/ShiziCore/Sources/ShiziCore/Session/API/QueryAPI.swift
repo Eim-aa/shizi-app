@@ -20,20 +20,18 @@ extension PageAPI {
         case "query.detail":
             guard let char = a["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }
             guard let callback = hooks?.queryDetail else { return SessionWrites.failure("unavailable") }
-            let r = try? callback(char, QueryActionContext(mode: "lookup", close: {}))
-            return r == nil || r?["ok"] == .bool(false) ? SessionWrites.failure("generic") : JS.obj([("ok", .bool(true))])
+            let r = try callback(char, QueryActionContext(mode: "lookup", close: {}))
+            return r["ok"] == .bool(false) ? SessionWrites.failure("generic") : JS.obj([("ok", .bool(true))])
         case "query.pick":
             let chars = (a["chars"]?.arrayValue ?? []).compactMap(\.stringValue)
             if chars.isEmpty { return SessionWrites.failure("invalid") }
             guard let hooks else { return SessionWrites.failure("unavailable") }
             var closed = false
-            let context = QueryActionContext(mode: chars.count > 1 || a["from"] == .string("bar") ? "pick" : (hooks.queryMode.isEmpty ? "lookup" : hooks.queryMode)) { if !closed { closed = true; hooks.queryClose?() } }
+            let context = QueryActionContext(mode: chars.count > 1 || a["from"] == .string("bar") ? "pick" : (hooks.queryMode.isEmpty ? "lookup" : hooks.queryMode)) { if !closed { closed = true; try hooks.queryClose?() } }
             let result: JSValue?
-            do {
-                if a["from"] == .string("card"), let callback = hooks.queryPractice { result = try callback(chars[0], context) }
+            if a["from"] == .string("card"), let callback = hooks.queryPractice { result = try callback(chars[0], context) }
                 else if let callback = hooks.queryPick { result = try callback(chars, context) }
                 else { return SessionWrites.failure("unavailable") }
-            } catch { return SessionWrites.failure("generic") }
             if result?["ok"] == .bool(false) { return SessionWrites.failure("generic") }
             return JS.obj([("ok", .bool(true)), ("close", .bool(closed && hooks.queryClose == nil))])
         case "s02.decide":
@@ -41,12 +39,12 @@ extension PageAPI {
             switch a["action"] {
             case .string("continue"):
                 guard let callback = hooks.s02Continue else { return SessionWrites.failure("unavailable") }
-                hooks.s02Close?(); callback(); return JS.obj([("ok", .bool(true)), ("close", .bool(hooks.s02Close == nil))])
-            case .string("cancel"): hooks.s02Cancel?(); return JS.obj([("ok", .bool(true)), ("close", .bool(true))])
+                try hooks.s02Close?(); try callback(); return JS.obj([("ok", .bool(true)), ("close", .bool(hooks.s02Close == nil))])
+            case .string("cancel"): try hooks.s02Cancel?(); return JS.obj([("ok", .bool(true)), ("close", .bool(true))])
             case .string("endStart"):
                 guard let callback = hooks.s02EndStart else { return SessionWrites.failure("unavailable") }
                 guard let result = try callback(), result["ok"] != .bool(false), JS.truthy(result) else { return SessionWrites.failure("generic") }
-                hooks.s02Close?(); hooks.s02Started?(result); return JS.obj([("ok", .bool(true)), ("close", .bool(hooks.s02Close == nil))])
+                try hooks.s02Close?(); try hooks.s02Started?(result); return JS.obj([("ok", .bool(true)), ("close", .bool(hooks.s02Close == nil))])
             default: return SessionWrites.failure("invalid")
             }
         default: return SessionWrites.failure("unknown-op")

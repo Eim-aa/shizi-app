@@ -34,6 +34,14 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ for(const async of [false,true])for(const close of [false,true])for(const withClose of [false,true])for(const outcome of ['ok','false','null','throw'])for(const op of ['query.pick','query.detail','s02.decide']){
+  const c={async,close,reply:outcome==='false'?{ok:false}:outcome==='null'?null:{ok:true,token:1},throws:outcome==='throw'};
+  const callbacks=op==='s02.decide'?{endStart:{...c,close:false},started:{}}:op==='query.detail'?{detail:c}:{pick:c,practice:c};if(withClose)callbacks.close={};
+  await call('session.queryHost',{op,args:op==='s02.decide'?{action:'endStart'}:op==='query.detail'?{char:'人'}:{chars:['人','口'],from:'bar'},callbacks});
+ }
+ for(const async of [true,false])for(const throws of [true,false])await call('session.queryHost',{op:'query.pick',args:{chars:['人'],from:'card'},callbacks:{practice:{async,close:true,reply:{ok:true}},close:{throws}}});
+ for(const op of ['query.pick','query.detail','s02.decide'])await call('session.queryHost',{op,args:op==='s02.decide'?{action:'endStart'}:op==='query.detail'?{char:'人'}:{chars:['人']},callbacks:{}});
+ for(const action of ['continue','cancel','bad'])for(const throws of [true,false])await call('session.queryHost',{op:'s02.decide',args:{action},callbacks:{continue:{throws},cancel:{throws},close:{},started:{}}});
  for(const id of ['core3500','adv3000','rare','curriculum2500'])for(const kind of ['first','daily','picked'])for(const fault of [false,true]){
   const slot=kind==='picked'?'B':'A';await call('store.seed',{state:{settings:{library:'core3500'},sessions:{A:null,B:null,lastEnded:{},[slot]:createSession({id:'s1',kind,queue:['base:人','base:口'],at:T})}}});
   if(fault)await call('store.fault',{failNextWrite:{n:1,kind:'generic'}});
@@ -120,5 +128,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–7, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–8, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

@@ -4,8 +4,11 @@ import Foundation
 /// navigation and native image rendering remain outside ShiziCore.
 public enum PageAPI {
     public static func callAsync(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) async -> JSValue {
-        guard hooks?.hasAsync(op) == true else { return call(op, store: store, args: args, hooks: hooks) }
-        do { return try await hooks?.invokeAsync(op, args) ?? SessionWrites.failure("unavailable") }
+        do {
+            if ["query.pick", "query.detail", "s02.decide"].contains(op) { return try await queryAsync(op, store, args, hooks: hooks) }
+            guard hooks?.hasAsync(op) == true else { return call(op, store: store, args: args, hooks: hooks) }
+            return try await hooks?.invokeAsync(op, args) ?? SessionWrites.failure("unavailable")
+        }
         catch let e as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(e.message))]))]) }
         catch { return SessionWrites.failure("exception") }
     }

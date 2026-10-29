@@ -10,17 +10,21 @@ public final class SessionActionHooks {
     func hasAsync(_ name: String) -> Bool { asyncActions[name] != nil }
     private var actions: [String: Action] = [:]
     public var queryMode = "lookup"
-    public var queryClose: (() -> Void)?
+    public var queryClose: (() throws -> Void)?
     public var queryPractice: ((String, QueryActionContext) throws -> JSValue)?
     public var queryPick: (([String], QueryActionContext) throws -> JSValue)?
     public var queryDetail: ((String, QueryActionContext) throws -> JSValue)?
+    public var queryPracticeAsync: ((String, QueryActionContext) async throws -> JSValue)?
+    public var queryPickAsync: (([String], QueryActionContext) async throws -> JSValue)?
+    public var queryDetailAsync: ((String, QueryActionContext) async throws -> JSValue)?
+    public var s02EndStartAsync: (() async throws -> JSValue?)?
     public var s02Registered = false
-    public var hasS02Actions: Bool { s02Registered || s02Continue != nil || s02Cancel != nil || s02Close != nil || s02EndStart != nil || s02Started != nil }
-    public var s02Continue: (() -> Void)?
-    public var s02Cancel: (() -> Void)?
-    public var s02Close: (() -> Void)?
+    public var hasS02Actions: Bool { s02Registered || s02Continue != nil || s02Cancel != nil || s02Close != nil || s02EndStart != nil || s02EndStartAsync != nil || s02Started != nil }
+    public var s02Continue: (() throws -> Void)?
+    public var s02Cancel: (() throws -> Void)?
+    public var s02Close: (() throws -> Void)?
     public var s02EndStart: (() throws -> JSValue?)?
-    public var s02Started: ((JSValue) -> Void)?
+    public var s02Started: ((JSValue) throws -> Void)?
     public init() {}
     public func set(_ name: String, _ action: Action?) { actions[name] = action }
     public func has(_ name: String) -> Bool { actions[name] != nil }
@@ -37,6 +41,6 @@ extension PageAPI {
 
 public final class QueryActionContext {
     public let mode: String
-    public let close: () -> Void
-    init(mode: String, close: @escaping () -> Void) { self.mode = mode; self.close = close }
+    public let close: () throws -> Void
+    init(mode: String, close: @escaping () throws -> Void) { self.mode = mode; self.close = close }
 }

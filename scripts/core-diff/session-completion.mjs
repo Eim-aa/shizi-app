@@ -34,6 +34,10 @@ try {
   if(early && kind!=='first')await call('session.writeHost',{op:'resultUndoSkip',args:{...a,recordId:skipped.record.id},hooks:{toWrite:{reply:true}}});
   await call('session.writeHost',{op:'resultAgain',args:a,hooks:{again:{reply:true}}});
  }
+ for(const loads of [[[ {char:'人',gloss:'origin',source:'book'}, {char:'人',gloss:'last'}, {char:'口',gloss:'',source:1},null ]],['throw',[{char:'人',gloss:'retry'}]],[null,[]]])for(const image of [false,true])await call('session.environment',{loads,image,requests:[{op:'view.detail',args:{char:'人',etymology:{gloss:'ignored'}}},{op:'view.detail',args:{char:'人'}}]});
+ for(const build of [{version:'1.2',build:'20261029-abcd'},{},null,'bad'])for(const native of [false,true])await call('session.environment',{build,native,requests:[{op:'view.about',args:{build:{version:'ignored'}}},{op:'view.about-privacy',args:{native:!native}}]});
+ for(const layout of [[],[1,3],[0,1.5,'2'],null,'bad'])for(const layoutThrows of [false,true])await call('session.environment',{layout,layoutThrows,requests:[{op:'view.query',args:{cur:'人',text:'人'}},{op:'view.s02',args:{chars:['人','口']}}]});
+ for(const breaker of [[],[1,3],null,'bad'])for(const breakerThrows of [false,true])await call('session.environment',{breaker,breakerThrows,requests:[{op:'view.annual',args:{}},{op:'view.records',args:{}}]});
  for(const async of [false,true])for(const close of [false,true])for(const withClose of [false,true])for(const outcome of ['ok','false','null','throw'])for(const op of ['query.pick','query.detail','s02.decide']){
   const c={async,close,reply:outcome==='false'?{ok:false}:outcome==='null'?null:{ok:true,token:1},throws:outcome==='throw'};
   const callbacks=op==='s02.decide'?{endStart:{...c,close:false},started:{}}:op==='query.detail'?{detail:c}:{pick:c,practice:c};if(withClose)callbacks.close={};
@@ -128,5 +132,5 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  for(const name of ['view','seal','toWrite','again','leave','redo','detail','share'])assert(invoked.has(name),`missing callback ${name}`);
- console.log(`session-completion: rows 1–8, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
+ console.log(`session-completion: rows 1–9, ${checked} exact reply/state comparisons; result model, first-result, all result host hooks success/false/throw`);
 }finally{await js.close();await sw.close();}

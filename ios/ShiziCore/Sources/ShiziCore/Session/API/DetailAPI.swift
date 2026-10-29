@@ -2,7 +2,7 @@ import Foundation
 
 // src/session/api/detail.js and src/session/ops/detail.js.
 extension PageAPI {
-    static func detail(_ op: String, _ store: Store, _ a: JSObject) throws -> JSValue {
+    static func detail(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         let char = a["char"]?.stringValue ?? ""
         if op != "detail.correct" && op != "detail.restoreCustom" && char.isEmpty { return SessionWrites.failure("invalid") }
         let key = "base:" + char
@@ -38,7 +38,7 @@ extension PageAPI {
             return reply(SessionResults.correct(store, args, mode: "detail"), fallback: "failed")
         case "view.detail-photo": return JS.obj([("ok", .bool(true)), ("view", try DetailView.photoView(.object(store.state), char: char))])
         case "view.detail":
-            return JS.obj([("ok", .bool(true)), ("view", try DetailView.detailView(.object(store.state), char: char, today: store.dates.localDay(.number(store.now())), etymology: a["etymology"], imageAction: false, dates: store.dates))])
+            return JS.obj([("ok", .bool(true)), ("view", try DetailView.detailView(.object(store.state), char: char, today: store.dates.localDay(.number(store.now())), etymology: hooks?.charData?.etymologyOf(char), imageAction: hooks?.has("detail.image") == true, dates: store.dates))])
         default: return SessionWrites.failure("unavailable")
         }
     }

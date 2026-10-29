@@ -2,6 +2,10 @@ import Foundation
 
 // src/session/api/query.js: pure state actions and models. Navigation hooks stay with host.
 extension PageAPI {
+    static func queryLines(_ kind: String, _ text: String, _ hooks: SessionActionHooks?) throws -> JSValue? {
+        guard !text.isEmpty, let fn = hooks?.queryLayout[kind] else { return nil }
+        let value = try fn(text);return !(value.arrayValue ?? []).isEmpty ? value : nil
+    }
     static func query(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         switch op {
         case "query.add":
@@ -10,13 +14,22 @@ extension PageAPI {
         case "view.query":
             var args = JSObject([("mode", .string(a["mode"] == .string("pick") ? "pick" : "lookup")), ("text", .string(a["text"]?.stringValue ?? "")), ("cur", .string(a["cur"]?.stringValue ?? "")), ("selected", .array(a["selected"]?.arrayValue ?? [])), ("state", .object(store.state))])
             args["policy"] = Config.policy
-            return JS.obj([("ok", .bool(true)), ("view", try QueryView.querySheetModel(args, dates: store.dates))])
+            var view = try QueryView.querySheetModel(args, dates: store.dates)
+            if let card = view["card"], JS.truthy(card) {
+                var next = card.objectValue ?? JSObject()
+                if let lines = try queryLines("cardAction", Copy.text(JS.truthy(card["custom"]) ? "R-Q05.alreadyAdded" : "R-Q05.btnAdd"), hooks) { next["addLines"] = lines }
+                if let lines = try queryLines("cardAction", Copy.text("R-Q05.viewRecords"), hooks) { next["detailLines"] = lines }
+                view = SessionWrites.patch(view,[("card",.object(next))])
+            }
+            return JS.obj([("ok", .bool(true)), ("view", view)])
         case "view.s02":
             let chars = (a["chars"]?.arrayValue ?? []).filter { $0.stringValue != nil }, quoted = chars.map { "「" + JS.string($0) + "」" }.joined()
             var view = JSObject([("chars", .array(chars))])
             for (name,key) in [("body","R-H05.body"),("fail","X-SESSION.s02SaveFailed"),("continue","R-H05.continueOld"),("endStart","R-H05.endOldStartNew"),("cancel","R-H05.cancel"),("failCancel","X-SESSION.s02Cancel"),("retry","X-SESSION.s02Retry")] {
                 view[name] = JS.obj([("key", .string(key)), ("vars", name == "body" ? JS.obj([("chars", .string(quoted))]) : .object(JSObject()))])
-            }; return JS.obj([("ok", .bool(true)), ("view", .object(view))])
+            }
+            if let lines = try queryLines("s02Body", Copy.text("R-H05.body", JSObject([("chars",.string(quoted))])), hooks) { view["bodyLines"] = lines }
+            return JS.obj([("ok", .bool(true)), ("view", .object(view))])
         case "query.detail":
             guard let char = a["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }
             guard let callback = hooks?.queryDetail else { return SessionWrites.failure("unavailable") }

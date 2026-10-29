@@ -4,6 +4,7 @@ import Foundation
 /// navigation and native image rendering remain outside ShiziCore.
 public enum PageAPI {
     public static func callAsync(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) async -> JSValue {
+        if op == "view.detail", let provider = hooks?.charData, let char = args["char"]?.stringValue, !char.isEmpty { _ = await provider.load() }
         do {
             if ["query.pick", "query.detail", "s02.decide"].contains(op) { return try await queryAsync(op, store, args, hooks: hooks) }
             guard hooks?.hasAsync(op) == true else { return call(op, store: store, args: args, hooks: hooks) }
@@ -16,6 +17,9 @@ public enum PageAPI {
         guard (SessionResources.ui["apiOps"]?.arrayValue ?? []).contains(.string(op)) else {
             return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         }
+        let oldBreaker = ViewLineStarts.provider
+        if let provider = hooks?.lineBreaker { ViewLineStarts.provider = provider }
+        defer { ViewLineStarts.provider = oldBreaker }
         do {
         if op.hasPrefix("image.") { return try image(op, args, hooks: hooks) }
         if ["view.session-none", "session.pick", "session.libSwitch", "session.wrongList"].contains(op) { return try none(op, args, hooks: hooks) }
@@ -35,7 +39,7 @@ public enum PageAPI {
             if op.hasPrefix("detail.") && (args["char"]?.stringValue ?? "").isEmpty { return SessionWrites.failure("invalid") }
             return try action(op, args, hooks: hooks, opened: op.hasPrefix("home.") || op.hasPrefix("library.") && !op.hasPrefix("library.list.") && !op.hasPrefix("library.all.") && op != "library.switch")
         }
-        if op.hasPrefix("detail.") || op == "view.detail" || op == "view.detail-photo" { return try detail(op, store, args) }
+        if op.hasPrefix("detail.") || op == "view.detail" || op == "view.detail-photo" { return try detail(op, store, args, hooks: hooks) }
         if op.hasPrefix("home.") || op == "view.home" { return try home(op, store, args, hooks: hooks) }
         if op.hasPrefix("library.") || op == "view.library" { return try library(op, store, args, hooks: hooks) }
         if ["view.library-list", "view.library-all", "view.library-switch", "library.list.start", "library.all.start", "library.switch"].contains(op) { return try librarySub(op, store, args, hooks: hooks) }
@@ -45,7 +49,7 @@ public enum PageAPI {
         if op.hasPrefix("backup.") || op == "view.backup" { return try backup(op, store, args) }
         if op.hasPrefix("block.") || op == "view.block" { return try block(op, store, args) }
         if op.hasPrefix("query.") || op == "s02.decide" || op == "view.query" || op == "view.s02" { return try query(op, store, args, hooks: hooks) }
-        if op.hasPrefix("view.about") { return try about(op, args) }
+        if op.hasPrefix("view.about") { return try about(op, args, hooks: hooks) }
         return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         } catch let error as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(error.message))]))]) }
         catch { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(String(describing: error)))]))]) }

@@ -9,6 +9,11 @@ public final class SessionActionHooks {
     func invokeAsync(_ name: String, _ args: JSObject) async throws -> JSValue? { try await asyncActions[name]?(args) }
     func hasAsync(_ name: String) -> Bool { asyncActions[name] != nil }
     private var actions: [String: Action] = [:]
+    public var charData: EtymologyProvider?
+    public var build: (() throws -> JSValue)?
+    public var native = false
+    public var queryLayout: [String: (String) throws -> JSValue] = [:]
+    public var lineBreaker: ((String, String) throws -> JSValue)?
     public var queryMode = "lookup"
     public var queryClose: (() throws -> Void)?
     public var queryPractice: ((String, QueryActionContext) throws -> JSValue)?

@@ -2,6 +2,19 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.environment": { e,a in
+            let store = try e.session().store!, hooks = SessionActionHooks();var loads = 0
+            let provider = EtymologyProvider { loads += 1; let value = a["loads"]?.arrayValue.flatMap { loads <= $0.count ? $0[loads-1] : nil }; if value == .string("throw") { throw CoreError.error("fetch") };return value }
+            hooks.charData = provider
+            if let build = a["build"] { hooks.build = { if a["buildThrows"] == .bool(true) { throw CoreError.error("host-build") };return build } }
+            hooks.native = a["native"] == .bool(true)
+            if a["image"] == .bool(true) { hooks.set("detail.image") { _ in .null } }
+            for name in ["s02Body","cardAction"] { if let value = a["layout"] { hooks.queryLayout[name] = { _ in if a["layoutThrows"] == .bool(true) { throw CoreError.error("host-layout") };return value } } }
+            if let value = a["breaker"] { hooks.lineBreaker = { _,_ in if a["breakerThrows"] == .bool(true) { throw CoreError.error("host-breaker") };return value } }
+            let done = DispatchSemaphore(value:0);var replies: [JSValue] = []
+            Task { for request in a["requests"]?.arrayValue ?? [] { replies.append(await PageAPI.callAsync(JS.string(request["op"]),store:store,args:request["args"]?.objectValue ?? JSObject(),hooks:hooks)) };done.signal() };done.wait()
+            return JS.obj([("replies",.array(replies)),("loads",.number(Double(loads)))])
+        },
         "session.queryHost": { e,a in queryHost(try e.session().store,a) },
         "session.pageRegistered": { e,a in
             let store = try e.session().store!, hooks = SessionActionHooks(), pages = PageRegisteredActions(store: store)

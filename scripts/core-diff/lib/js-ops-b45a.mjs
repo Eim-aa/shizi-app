@@ -47,6 +47,17 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.environment']=async a=>{
+    const ety=await import('../../../src/data/etymology.js'),detail=await import('../../../src/session/api/detail.js'),q=await import('../../../src/session/api/query.js'),lines=await import('../../../src/core/line-starts.js');
+    const oldFetch=globalThis.fetch,oldDetail={...detail.detailHooks()},savedNow=Date.now;Date.now=clock;let loads=0;ety.setEtymology(null);
+    globalThis.fetch=async()=>{const value=a.loads?.[loads++];if(value==='throw')throw Error('fetch');return {ok:true,json:async()=>value};};
+    detail.setDetailHooks({image:a.image?()=>{}:null});
+    q.setQueryLayout(a.layout===undefined?null:Object.fromEntries(['s02Body','cardAction'].map(k=>[k,()=>{if(a.layoutThrows)throw Error('host-layout');return a.layout;}])));
+    lines.setLineBreaker(a.breaker===undefined?null:()=>{if(a.breakerThrows)throw Error('host-breaker');return a.breaker;});
+    const s=session();s.notices=[];const app=createAppApi({getStore:()=>s.store,now:clock,native:a.native,build:a.build===undefined?undefined:()=>{if(a.buildThrows)throw Error('host-build');return a.build;}}),replies=[];
+    try{for(const r of a.requests||[])replies.push(await app.call(r.op,r.args||{}));return {replies,loads};}
+    finally{Date.now=savedNow;ety.setEtymology(null);globalThis.fetch=oldFetch;detail.setDetailHooks(oldDetail);q.setQueryLayout(null);lines.setLineBreaker(null);}
+  };
   out['session.queryHost']=async a=>{
     const q=await import('../../../src/session/api/query.js'),oldQ=q.queryActionsRef(),oldS=q.s02ActionsRef(),callbacks=a.callbacks||{},calls=[];
     function fn(name,context=false){const c=callbacks[name];if(!c)return undefined;const run=(input,ctx)=>{calls.push({name,args:context?(name==='detail'?input:{input,mode:ctx.mode}):input??null});if(c.close){ctx.close();ctx.close();}if(c.throws)throw Error('host-'+name);return c.reply??null;};return c.async?async(...args)=>{await Promise.resolve();return run(...args);}:run;}

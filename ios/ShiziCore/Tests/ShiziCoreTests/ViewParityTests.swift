@@ -52,6 +52,20 @@ final class ViewParityTests: XCTestCase {
         XCTAssertTrue(LibraryAllView.takeCells(groups, limit: 0).isEmpty)
     }
 
+    // test/ui/detail.test.mjs — hero uses first / latest screen judgments; old photos remain read-only.
+    func testDetailHeroAndPhoto() throws {
+        let first = srec(1, cYong), last = srec(2, cYong, judgment: "wrong")
+        let one = DetailView.detailHero(ViewSupport.obj([("cells", .array([first]))]))
+        XCTAssertEqual(one["cells"]?.arrayValue?.count, 1)
+        let two = DetailView.detailHero(ViewSupport.obj([("cells", .array([first, last]))]))
+        XCTAssertEqual(two["cells"]?.arrayValue?.count, 2)
+        XCTAssertEqual(DetailView.detailHero(.null)["kind"], .string("ref"))
+        let state = try value(#"{"photos":{"永":{"dataURL":"bad"},"甲":{"dataURL":"data:image/png;base64,AA"}}}"#)
+        XCTAssertEqual(DetailView.photoOf(state, char: cYong), .null)
+        XCTAssertNotEqual(DetailView.photoOf(state, char: "甲"), .null)
+        XCTAssertEqual(DetailView.cellCopy(last, dates: dates)["caption"], ViewSupport.ref("X-RESULT.cellWrong"))
+    }
+
     func testViewsPagesGolden() throws {
         XCTAssertGreaterThan(try runOpGolden("views-pages"), 0)
     }

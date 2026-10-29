@@ -2,6 +2,10 @@ import Foundation
 
 // Shared JS-shaped construction; copy remains a reference, never rendered text.
 enum ViewSupport {
+    static func ordered(_ value: JSValue, _ keys: String) -> JSValue {
+        var out = JSObject()
+        for k in keys.split(separator: " ").map(String.init) { out[k] = value[k] }; return .object(out)
+    }
     static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
     static func ref(_ key: String, _ params: JSValue? = nil) -> JSValue {
         var out = JSObject([("copy", .string(key))])

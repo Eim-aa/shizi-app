@@ -15,6 +15,15 @@ extension CoreEngine {
             var fold = LibraryAllView.normalizeFold(a["fold"]); fold[JS.string(a["month"])] = .bool(!JS.truthy(a["open"]))
             return ViewSupport.obj([("sort", .string(LibraryAllView.normalizeSort(a["sort"]))), ("filter", .string(LibraryAllView.normalizeFilter(a["filter"]))), ("fold", .object(LibraryAllView.normalizeFold(a["fold"]))), ("py", .string(Query.pyKey(a["py"]))), ("initial", LibraryAllView.pyInitial(a["py"])), ("find", LibraryAllView.parseFind(a["find"])), ("month", LibraryAllView.monthRef(JS.string(a["month"]), today: JS.string(a["today"]), found: false, dates: e.dates)), ("where", LibraryAllView.monthRef(JS.string(a["month"]), today: JS.string(a["today"]), found: true, dates: e.dates)), ("toggle", .object(fold)), ("take", .array(LibraryAllView.takeCells(a["groups"]?.arrayValue ?? [], limit: JS.number(a["limit"]))))])
         },
+        "view.detail": { e, a in try DetailView.detailView(a["state"] ?? .null, char: string(a, "char"), today: string(a, "today"), etymology: a["etymology"], imageAction: JS.truthy(a["imageAction"]), dates: e.dates) },
+        "view.detail.model": { e, a in try DetailView.detailModel(a["state"] ?? .null, char: string(a, "char"), today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), hasInk: { DetailView.recordHasInk(a["state"] ?? .null, record: $0, dates: e.dates) }, dates: e.dates) },
+        "view.detail-photo": { _, a in try DetailView.photoView(a["state"] ?? .null, char: string(a, "char")) },
+        "view.detail.helpers": { e, a in
+            let state = a["state"] ?? .null, char = try string(a, "char"), r = a["record"] ?? .null
+            let model = try DetailView.detailModel(state, char: char, today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)
+            let ink = try DetailView.inkOf(state, record: r, dates: e.dates)
+            return ViewSupport.obj([("base", .string("base:"+char)), ("records", .array(DetailView.recordsOfChar(state, char: char))), ("copy", DetailView.cellCopy(r, dates: e.dates)), ("list", try DetailView.listOf(Query.flattenRecords(state["records"]), sched: state["sched"], today: string(a, "today"), key: "base:"+char, dates: e.dates)), ("word", try DetailView.wordView(DeckCards.shared.cardForKey("base:"+char))), ("hero", DetailView.detailHero(model)), ("ink", ink), ("has", .bool(DetailView.recordHasInk(state, record: r, dates: e.dates))), ("points", .bool(DetailView.hasInkPoints(ink))), ("day", LibraryListView.dateText(a["day"], dates: e.dates)), ("photo", DetailView.photoOf(state, char: char))])
+        },
         "view.library-list": { e, a in try LibraryListView.listModel(a["state"] ?? .null, a, dates: e.dates) },
         "view.library-list.entries": { e, a in .array(try LibraryListView.listEntries(a["state"] ?? .null, kind: a["kind"], today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), dates: e.dates)) },
         "view.library-list.helpers": { e, a in

@@ -1,8 +1,7 @@
 import Foundation
 
 extension CoreEngine {
-    static let sessionOps: [String: Op] = {
-        let ops: [String: Op] = [
+    static let sessionRawOps: [String: Op] = [
         "session.strokes": { e,a in SessionWrites.commitStrokes(try e.session().store, a) },
         "session.recover": { e,a in try SessionWrites.commitRecover(e.session().store, a) },
         "session.phase": { e,a in try SessionWrites.commitComparePhase(e.session().store, a) },
@@ -15,23 +14,63 @@ extension CoreEngine {
         "session.end": { e,a in SessionWrites.commitEndGroup(try e.session().store, a) },
         "session.firstTip": { e,_ in SessionWrites.commitFlag(try e.session().store, key: "firstTipSeen", label: "write:first-tip") },
         "session.answerNote": { e,_ in SessionWrites.commitFlag(try e.session().store, key: "answerNoteSeen", label: "write:answer-note") },
-        ]
-        var all = ops
-        for name in ["open", "strokes", "phase", "judge", "showAnswer", "answerPhase", "answerNext", "skip", "undoSkip", "end", "firstTip", "correct", "hint", "copy", "refLabel", "resultLook", "redoOpen", "redoNext", "redoExit", "exit"] {
-            all["write." + name] = { e,a in WriteAPI.call(name, try e.session().store, a) }
-        }
-        for name in ["result", "resultCell", "resultCorrect", "resultAdd", "resultSealed", "resultUndoSkip", "resultAgain", "resultExit", "resultInvite"] {
-            all["write." + name] = { e,a in try ResultAPI.call(name, e.session().store, a) }
-        }
-        all["session.correct"] = { e,a in SessionResults.correct(try e.session().store, a, mode: "write") }
-        all["session.resultCorrect"] = { e,a in SessionResults.correct(try e.session().store, a, mode: "result") }
-        all["session.finish"] = { e,a in SessionResults.finish(try e.session().store, a) }
-        all["session.leave"] = { e,a in SessionResults.leave(try e.session().store, a) }
-        all["session.added"] = { e,a in SessionResults.added(try e.session().store, a) }
-        all["session.sealed"] = { e,a in SessionResults.sealed(try e.session().store, a) }
-        all["session.resultUndoSkip"] = { e,a in SessionResults.undoSkip(try e.session().store, a) }
-        all["session.hint"] = { e,a in SessionHints.commitHint(try e.session().store, a, label: a["label"]?.stringValue ?? "hint") }
-        all["session.hintStep"] = { e,a in SessionHints.commitStep(try e.session().store, a) }
-        return all.mapValues { fn in { e,a in e.storeSession?.notices = []; return try fn(e,a) } }
-    }()
+        "write.open": { e,a in WriteAPI.call("open", try e.session().store, a) },
+        "write.strokes": { e,a in WriteAPI.call("strokes", try e.session().store, a) },
+        "write.phase": { e,a in WriteAPI.call("phase", try e.session().store, a) },
+        "write.judge": { e,a in WriteAPI.call("judge", try e.session().store, a) },
+        "write.showAnswer": { e,a in WriteAPI.call("showAnswer", try e.session().store, a) },
+        "write.answerPhase": { e,a in WriteAPI.call("answerPhase", try e.session().store, a) },
+        "write.answerNext": { e,a in WriteAPI.call("answerNext", try e.session().store, a) },
+        "write.skip": { e,a in WriteAPI.call("skip", try e.session().store, a) },
+        "write.undoSkip": { e,a in WriteAPI.call("undoSkip", try e.session().store, a) },
+        "write.end": { e,a in WriteAPI.call("end", try e.session().store, a) },
+        "write.firstTip": { e,a in WriteAPI.call("firstTip", try e.session().store, a) },
+        "write.correct": { e,a in WriteAPI.call("correct", try e.session().store, a) },
+        "write.hint": { e,a in WriteAPI.call("hint", try e.session().store, a) },
+        "write.copy": { e,a in WriteAPI.call("copy", try e.session().store, a) },
+        "write.refLabel": { e,a in WriteAPI.call("refLabel", try e.session().store, a) },
+        "write.resultLook": { e,a in WriteAPI.call("resultLook", try e.session().store, a) },
+        "write.redoOpen": { e,a in WriteAPI.call("redoOpen", try e.session().store, a) },
+        "write.redoNext": { e,a in WriteAPI.call("redoNext", try e.session().store, a) },
+        "write.redoExit": { e,a in WriteAPI.call("redoExit", try e.session().store, a) },
+        "write.exit": { e,a in WriteAPI.call("exit", try e.session().store, a) },
+        "write.result": { e,a in WriteAPI.call("result", try e.session().store, a) },
+        "write.resultCell": { e,a in WriteAPI.call("resultCell", try e.session().store, a) },
+        "write.resultCorrect": { e,a in WriteAPI.call("resultCorrect", try e.session().store, a) },
+        "write.resultAdd": { e,a in WriteAPI.call("resultAdd", try e.session().store, a) },
+        "write.resultSealed": { e,a in WriteAPI.call("resultSealed", try e.session().store, a) },
+        "write.resultUndoSkip": { e,a in WriteAPI.call("resultUndoSkip", try e.session().store, a) },
+        "write.resultAgain": { e,a in WriteAPI.call("resultAgain", try e.session().store, a) },
+        "write.resultExit": { e,a in WriteAPI.call("resultExit", try e.session().store, a) },
+        "write.resultInvite": { e,a in WriteAPI.call("resultInvite", try e.session().store, a) },
+        "session.start": { e,a in
+            let store = try e.session().store!, rules = ScheduleRules(dates: e.dates)
+            switch a["kind"] {
+            case .string("first"): return try rules.startFirst(store, now: e.clock, source: a["source"])
+            case .string("picked"): return try rules.startPicked(store, keys: a["keys"]?.arrayValue ?? [], source: a["source"], deck: .real)
+            default: return try rules.startDaily(store, now: e.clock, deck: .real, source: a["source"])
+            }
+        },
+        "session.expire": { e,_ in try ScheduleRules(dates: e.dates).expireStale(e.session().store, now: e.clock) },
+        "session.resume": { e,a in try ScheduleRules(dates: e.dates).resumeSlot(e.session().store, slot: string(a,"slot"), now: e.clock) },
+        "session.endStartPicked": { e,a in try ScheduleRules(dates: e.dates).endOldAndStartPicked(e.session().store, keys: a["keys"]?.arrayValue ?? [], source: a["source"], deck: .real) },
+        "session.deferSpecial": { e,_ in try ScheduleRules(dates: e.dates).deferSpecial(e.session().store, now: e.clock) },
+        "session.correct": { e,a in SessionResults.correct(try e.session().store, a, mode: "write") },
+        "session.resultCorrect": { e,a in SessionResults.correct(try e.session().store, a, mode: "result") },
+        "session.finish": { e,a in SessionResults.finish(try e.session().store, a) },
+        "session.leave": { e,a in SessionResults.leave(try e.session().store, a) },
+        "session.added": { e,a in SessionResults.added(try e.session().store, a) },
+        "session.sealed": { e,a in SessionResults.sealed(try e.session().store, a) },
+        "session.resultUndoSkip": { e,a in SessionResults.undoSkip(try e.session().store, a) },
+        "session.hint": { e,a in SessionHints.commitHint(try e.session().store, a, label: a["label"]?.stringValue ?? "hint") },
+        "session.hintStep": { e,a in SessionHints.commitStep(try e.session().store, a) },
+        "session.hintInitial": { _,a in HintViewState.initial(a["key"] ?? .null, stored: a["stored"], written: a["written"]) },
+        "session.hintReduce": { _,a in HintViewState.reduce(a["view"] ?? .null, a["action"] ?? .null) },
+        "session.hintRemaining": { _,a in JS.obj([("remaining", .array(HintViewState.remaining(a["view"]))), ("visible", .bool(HintViewState.visible(a["view"])))]) },
+        "session.hintMatch": { _,a in HintViewState.match(a) },
+        "session.hintTimeline": { _,a in HintViewState.timeline(a["count"], motion: a["motion"]) },
+    ]
+    static let sessionOps: [String: Op] = sessionRawOps.mapValues { fn in
+        { e,a in e.storeSession?.notices = []; return try fn(e,a) }
+    }
 }

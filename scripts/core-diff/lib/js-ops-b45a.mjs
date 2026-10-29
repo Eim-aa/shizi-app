@@ -1,4 +1,6 @@
 // Pure protocol adapters: reference behavior is always the real JS submission function.
+import * as start from '../../../src/core/session-start.js';
+import { deckAdapter } from '../../../src/data/deck.js';
 import * as answer from '../../../src/session/ops/answer.js';
 import * as judge from '../../../src/session/ops/judge.js';
 import * as skip from '../../../src/session/ops/skip.js';
@@ -35,5 +37,14 @@ export function makeB45SessionOps({session,clock}) {
   };
   out['api.call']=a=>{const s=session();s.notices=[];const app=createAppApi({getStore:()=>s.store,now:clock});const saved=Date.now;Date.now=clock;try{return app.call(a.op,a.args);}finally{Date.now=saved;}};
   out['api.domainsOf']=a=>domainsOf(a.info);
+  out['session.hintInitial']=a=>hints.initialHintView(a.key,a.stored,a.written);
+  out['session.hintReduce']=a=>hints.reduceHintView(a.view,a.action);
+  out['session.hintRemaining']=a=>({remaining:hints.hintRemaining(a.view),visible:hints.hintVisible(a.view)});
+  out['session.hintMatch']=a=>hints.matchHintStroke(a);
+  out['session.hintTimeline']=a=>hints.hintTimeline(a.count,a.motion);
+  out['session.start']=a=>{const s=session();s.notices=[];setDeckSource(sources ||= deckSources());const fn=a.kind==='first'?start.startFirst:a.kind==='picked'?start.startPicked:start.startDaily;return fn(s.store,{...a,now:clock,deck:deckAdapter});};
+  for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
+  out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
+  for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
   return out;
 }

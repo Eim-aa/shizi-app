@@ -65,7 +65,11 @@ export function makeB45SessionOps({session,clock}) {
       return c.reply??null;
     };
     const app=createAppApi({getStore:()=>s.store,now:clock});
-    const api=createWriteSessionApi({getStore:()=>s.store,result});
+    const deps={getStore:()=>s.store,result};
+    for(const name of ['colors','type','theme'])if(a.hooks?.[name])deps[name]=()=>{calls.push({name,args:[]});if(a.hooks[name].throws)throw Error('host-'+name);return a.hooks[name].reply??null;};
+    if(a.hooks?.refLabel)deps.refLabel=a.hooks.refLabel.async ? async arg=>result.refLabel(arg) : result.refLabel;
+    if(a.navigate)deps.navigate=Object.fromEntries(Object.entries(a.navigate).map(([name,c])=>[name,(...args)=>{calls.push({name:'navigate.'+name,args});if(c.throws)throw Error('host-navigate.'+name);return c.reply??null;}]));
+    const api=createWriteSessionApi(deps);
     const saved=Date.now;Date.now=clock;
     try{const {ms,...reply}=await api.call(a.op,a.args||{});return {reply,calls};}finally{Date.now=saved;}
   };

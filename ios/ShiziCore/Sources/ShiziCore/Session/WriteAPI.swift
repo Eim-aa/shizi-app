@@ -12,10 +12,11 @@ public enum WriteAPI {
         let r = SessionResults.finish(store, JSObject([("slot", .string(slot)), ("sessionId", s["id"]!)]))
         return JS.obj([("ok", .bool(r["ok"] == .bool(true))), ("sessionId", s["id"]!)])
     }
-    static func look(_ result: Bool = false) throws -> JSObject {
+    static func look(_ result: Bool = false, dependencies d: WriteDependencies? = nil) throws -> JSObject {
         let ui = try SessionResources.ui; var out = JSObject([("ok", .bool(true))])
         let keys = (ui["writeKeys"]?.arrayValue ?? []) + (result ? ui["resultKeys"]?.arrayValue ?? [] : [])
-        out["copy"] = bundle(keys); out["colors"] = .object(JSObject()); out["type"] = .object(JSObject())
+        out["copy"] = bundle(keys); out["colors"] = try d?.colors?() ?? .object(JSObject()); out["type"] = try d?.type?() ?? .object(JSObject())
+        if let theme = try d?.theme?(), theme == .string("light") || theme == .string("dark") { out["theme"] = theme }
         for key in ["timing", "motion", "layout", "trace", "skipUndo", "ink"] { out[key] = ui[key] }
         if result { out["layout"] = nil; out["trace"] = nil; out["motion"] = SessionWrites.patch(out["motion"], [("result", ui["resultMotion"]!)]) }
         return out
@@ -33,7 +34,7 @@ public enum WriteAPI {
         var args = a
         switch op {
         case "open":
-            let r = try SessionWrites.commitRecover(store, a); var out = try look()
+            let r = try SessionWrites.commitRecover(store, a); let out = try look(dependencies: dependencies)
             var ordered = JSObject([("ok", .bool(true)), ("recovered", .bool(r["ok"] == .bool(true) && r["noop"] != .bool(true))), ("snapshot", try snapshot())])
             for (k,v) in out.entries where k != "ok" { ordered[k] = v }; return .object(ordered)
         case "strokes", "phase", "judge", "answerPhase", "answerNext": args["strokes"] = CoreEngine.strokesJS(WriteModels.fromWire(a["strokes"]))
@@ -86,7 +87,8 @@ public enum WriteAPI {
             return JS.obj([("ok", .bool(true)), ("copy", bundle(a["keys"]?.arrayValue ?? defaultKeys))])
         case "refLabel":
             guard let char = a["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }
-            return JS.obj([("ok", .bool(true)), ("label", try Copy.t("R-W09.refCardLabelChar", JSObject([("char", .string(char))])))])
+            let v = try dependencies?.refLabel?(JSObject([("char", .string(char)), ("cardKey", a["cardKey"]?.stringValue.map(JSValue.string) ?? .null)])) ?? Copy.t("R-W09.refCardLabelChar", JSObject([("char", .string(char))]))
+            return JS.obj([("ok", .bool(true)), ("label", .string(JS.truthy(v) ? JS.string(v) : ""))])
         case "redoOpen", "redoNext":
             var seen = Set<String>()
             let list = (a["chars"]?.arrayValue ?? []).compactMap { v -> String? in
@@ -98,13 +100,27 @@ public enum WriteAPI {
             let i = op == "redoOpen" ? 0 : Int(n)+1, queue = list.map { JSValue.string("base:"+$0) }
             let snap = JS.obj([("slot", .string("redo")), ("active", .bool(true)), ("kind", .string("redo")), ("sessionId", .null), ("cursor", .number(Double(i))), ("total", .number(Double(list.count))), ("done", .bool(false)), ("cardKey", queue[i]), ("char", .string(list[i])), ("last", .bool(i == list.count-1)), ("phase", .string("recall")), ("storedPhase", .string("recall")), ("answerPhase", .null), ("canEnd", .bool(false)), ("strokes", .array([])), ("hints", .number(0)), ("hintRange", .null), ("answerSeen", .bool(false)), ("prompt", try WriteModels.prompt(store.state, key: JS.string(queue[i]), queue: queue, revealed: false)), ("firstTip", .bool(false)), ("lastLine", .null), ("line", JS.obj([("state", .string("none"))]))])
             if op == "redoNext" { return JS.obj([("ok", .bool(true)), ("done", .bool(false)), ("snapshot", snap)]) }
-            let appearance = try look(); var out = JSObject([("ok", .bool(true)), ("chars", .array(list.map(JSValue.string))), ("snapshot", snap)])
-            for key in ["copy", "colors", "type", "timing", "motion", "layout", "ink"] { out[key] = appearance[key] }; return .object(out)
-        case "redoExit": return SessionWrites.failure("invalid")
+            let appearance = try look(dependencies: dependencies); var out = JSObject([("ok", .bool(true)), ("chars", .array(list.map(JSValue.string))), ("snapshot", snap)])
+            for key in ["copy", "colors", "type", "timing", "motion", "layout", "ink", "theme"] { out[key] = appearance[key] }; return .object(out)
+        case "redoExit":
+            guard let f = dependencies?.navigate?["redoBack"] else { return SessionWrites.failure("invalid") }
+            _ = try f([]); return JS.obj([("ok", .bool(true))])
         case "exit":
-            if a["to"] == .string("detail") { return SessionWrites.failure("invalid") }
-            throw CoreError.error(a["to"] == .string("result") ? "write session api: navigate.toResult not provided" : "write session api: navigate.back not provided")
-        case "resultLook": return .object(try look(true))
+            if a["to"] == .string("detail") {
+                guard let char = a["char"]?.stringValue, !char.isEmpty, let f = dependencies?.navigate?["toDetail"] else { return SessionWrites.failure("invalid") }
+                return JS.obj([("ok", .bool(try f([a["slot"] ?? .null, .string(char)]) != .bool(false)))])
+            }
+            let name = a["to"] == .string("result") ? "toResult" : "back"
+            guard let f = dependencies?.navigate?[name] else { throw CoreError.error(dependencies?.navigate == nil ? "write session api: navigate.\(name) not provided" : "navigate.\(name) is not a function") }
+            var undo: JSValue = .null
+            if let raw = a["undo"], raw["sessionId"]?.stringValue != nil, raw["recordId"]?.stringValue != nil {
+                let wire = WriteModels.fromWire(raw["strokes"])
+                let n = JS.number(raw["remainingMs"])
+                undo = JS.obj([("sessionId", raw["sessionId"]!), ("recordId", raw["recordId"]!), ("char", raw["char"]?.stringValue.map(JSValue.string) ?? .string("")), ("strokes", wire.isEmpty ? .null : SessionWrites.rows(wire)), ("remainingMs", .number(max(0, n.isNaN ? 0 : n)))])
+            }
+            _ = try f(name == "back" ? [a["slot"] ?? .null, undo] : [a["slot"] ?? .null, a["sessionId"] ?? .null, undo])
+            return JS.obj([("ok", .bool(true))])
+        case "resultLook": return .object(try look(true, dependencies: dependencies))
         case "result", "resultCell", "resultCorrect", "resultAdd", "resultSealed", "resultUndoSkip", "resultAgain", "resultExit", "resultInvite": return try ResultAPI.call(op, store, a, dependencies: dependencies)
         default: return SessionWrites.failure("unknown-op")
         }

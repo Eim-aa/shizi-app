@@ -66,8 +66,15 @@ private final class PermissionSettlement {
 
 extension WriteAPI {
     public static func callAsync(_ op: String, _ store: Store, _ args: JSObject, dependencies: WriteDependencies? = nil) async -> JSValue {
-        guard op == "resultInvite" else { return call(op, store, args, dependencies: dependencies) }
-        do { return try await ResultAPI.inviteAsync(store, args, dependencies: dependencies) }
+        guard op == "resultInvite" || (op == "refLabel" && dependencies?.refLabelAsync != nil) else { return call(op, store, args, dependencies: dependencies) }
+        do {
+            if op == "refLabel", let f = dependencies?.refLabelAsync {
+                guard let char = args["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }
+                let v = try await f(JSObject([("char", .string(char)), ("cardKey", args["cardKey"]?.stringValue.map(JSValue.string) ?? .null)]))
+                return JS.obj([("ok", .bool(true)), ("label", .string(JS.truthy(v) ? JS.string(v) : ""))])
+            }
+            return try await ResultAPI.inviteAsync(store, args, dependencies: dependencies)
+        }
         catch let e as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(e.message))]))]) }
         catch { return SessionWrites.failure("exception") }
     }

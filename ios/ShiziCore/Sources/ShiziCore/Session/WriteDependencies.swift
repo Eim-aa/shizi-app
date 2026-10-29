@@ -14,5 +14,11 @@ public final class WriteDependencies {
     public var reminderInvite: ((Store, JSObject) async throws -> JSValue)?
     public var reminderChangeTime: ((Store, JSObject) async throws -> JSValue)?
     public var reminderWaitMs: Double = 120000
+    public var colors: (() throws -> JSValue)?
+    public var type: (() throws -> JSValue)?
+    public var theme: (() throws -> JSValue)?
+    public var refLabel: ((JSObject) throws -> JSValue)?
+    public var refLabelAsync: ((JSObject) async throws -> JSValue)?
+    public var navigate: [String: ([JSValue]) throws -> JSValue]?
     public init() {}
 }

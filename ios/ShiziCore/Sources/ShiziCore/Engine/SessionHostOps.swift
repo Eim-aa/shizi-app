@@ -17,6 +17,19 @@ extension CoreEngine {
         if config["redo"] != nil { d.redo = { try invoke("redo", .array($0)) } }
         if config["detail"] != nil { d.detail = { try invoke("detail", .string($0)) } }
         if config["share"] != nil { d.share = { try invoke("share", .object($0)) } }
+        if config["colors"] != nil { d.colors = { try invoke("colors", .array([])) } }
+        if config["type"] != nil { d.type = { try invoke("type", .array([])) } }
+        if config["theme"] != nil { d.theme = { try invoke("theme", .array([])) } }
+        if config["refLabel"] != nil { d.refLabel = { try invoke("refLabel", .object($0)) } }
+        if config["refLabel"]?["async"] == .bool(true) { d.refLabelAsync = { await Task.yield(); return try invoke("refLabel", .object($0)) } }
+        if let nav = a["navigate"]?.objectValue {
+            d.navigate = [:]
+            for name in nav.keys { d.navigate?[name] = { args in
+                calls.append(JS.obj([("name", .string("navigate." + name)), ("args", .array(args))]))
+                if nav[name]?["throws"] == .bool(true) { throw CoreError.error("host-navigate." + name) }
+                return nav[name]?["reply"] ?? .null
+            } }
+        }
         func reminder(_ name: String, _ store: Store, _ args: JSObject) async throws -> JSValue {
             if let settings = config[name]?["settings"] { _ = store.commit("host:reminder") { d,_ in d["settings"] = settings } }
             let r = try invoke(name, .object(args))
@@ -32,11 +45,12 @@ extension CoreEngine {
         d.reminderWaitMs = a["waitMs"]?.numberValue ?? 30
         let semaphore = DispatchSemaphore(value: 0)
         var asyncReply: JSValue = .null
-        if a["op"] == .string("resultInvite") {
-            Task { asyncReply = await WriteAPI.callAsync("resultInvite", store, a["args"]?.objectValue ?? JSObject(), dependencies: d); semaphore.signal() }
+        let async = a["op"] == .string("resultInvite") || (a["op"] == .string("refLabel") && d.refLabelAsync != nil)
+        if async {
+            Task { asyncReply = await WriteAPI.callAsync(JS.string(a["op"]), store, a["args"]?.objectValue ?? JSObject(), dependencies: d); semaphore.signal() }
             semaphore.wait()
         }
-        let reply = a["op"] == .string("resultInvite") ? asyncReply : WriteAPI.call(JS.string(a["op"]), store, a["args"]?.objectValue ?? JSObject(), dependencies: d)
+        let reply = async ? asyncReply : WriteAPI.call(JS.string(a["op"]), store, a["args"]?.objectValue ?? JSObject(), dependencies: d)
         return JS.obj([("reply", reply), ("calls", .array(calls))])
     }
 }

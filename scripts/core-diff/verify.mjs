@@ -38,6 +38,7 @@ step('配置与数据资源同步（build_core_config --check）', process.execP
 step('金标准同步', process.execPath, ['scripts/core-golden/golden.mjs', '--check']);
 step('会话资源同步', process.execPath, ['scripts/core-golden/session-resources.mjs', '--check']);
 step('会话契约夹具同步', process.execPath, ['scripts/core-golden/session-contract.mjs', '--check']);
+step('会话补全逐行差分与分支门禁', process.execPath, ['scripts/core-diff/session-completion.mjs']);
 step('会话分支覆盖', process.execPath, ['scripts/core-diff/session-shapes.mjs']);
 step('会话随机差分（200 × 300）', process.execPath, ['scripts/core-diff/run.mjs', '--only', 'session', '--seeds', '200', '--steps', '300']);
 step('视图分支形状覆盖（200 种子）', process.execPath, ['scripts/core-diff/view-shapes.mjs']);

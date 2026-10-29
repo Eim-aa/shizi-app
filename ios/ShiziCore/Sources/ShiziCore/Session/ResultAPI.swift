@@ -7,9 +7,14 @@ public enum ResultAPI {
         guard let next else { return JS.obj([("ok", .bool(true)), ("skipped", .bool(true))]) }
         return store.commit(a["action"] == .string("shown") ? "invite:shown" : "invite:answer") { d,_ in d["settings"] = next }
     }
-    static func call(_ op: String, _ store: Store, _ args: JSObject) throws -> JSValue {
+    static func call(_ op: String, _ store: Store, _ args: JSObject, dependencies d: WriteDependencies? = nil) throws -> JSValue {
         var a = args; a["slot"] = .string(args["slot"] == .string("B") ? "B" : "A")
-        func view() throws -> JSValue { try ResultModels.baseView(store.state, a) }
+        func view() throws -> JSValue {
+            var v = JSObject([("slot", a["slot"]!), ("sessionId", a["sessionId"] ?? .null)])
+            v["width"] = a["width"]; v["ax"] = a["ax"] ?? .bool(false)
+            if op == "result" { v["undo"] = a["undo"] ?? .null }
+            return try d?.resultView?(store, v) ?? ResultModels.baseView(store.state, a)
+        }
         switch op {
         case "result":
             let r = SessionResults.finish(store, a); return JS.obj([("ok", .bool(true)), ("finished", .bool(r["ok"] == .bool(true))), ("view", try view())])
@@ -24,14 +29,32 @@ public enum ResultAPI {
             if a["on"]?.boolValue == nil { a["on"] = nil }; let r = SessionResults.added(store, a)
             return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("view", try view())]) : WriteAPI.plain(r)
         case "resultSealed":
+            if a["sound"] != .bool(false) { try? d?.seal?(JS.string(a["slot"]) + ":" + JS.string(a["sessionId"])) }
             let r = SessionResults.sealed(store, a); return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("already", .bool(JS.truthy(r["already"])))]) : WriteAPI.plain(r)
         case "resultUndoSkip":
-            let r = SessionResults.undoSkip(store, a); return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true))]) : WriteAPI.plain(r)
+            let r = SessionResults.undoSkip(store, a)
+            if r["ok"] == .bool(true) { try d?.toWrite?(JS.string(a["slot"])) }; return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true))]) : WriteAPI.plain(r)
         case "resultAgain":
             let source = SessionResults.locate(store.state, a)?.session["source"] ?? JS.obj([("view", .string("home"))])
             let r = try ScheduleRules(dates: store.dates).startNextA(store, now: store.now(), deck: .real, source: source)
+            if r["ok"] == .bool(true) { try d?.again?(r) }
             return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("started", .bool(JS.truthy(r["started"]))), ("occupied", .bool(JS.truthy(r["occupied"]))), ("empty", .bool(JS.truthy(r["empty"])))]) : WriteAPI.plain(r)
-        case "resultExit": return a["to"] == .string("leave") ? JS.obj([("ok", .bool(true))]) : SessionWrites.failure("invalid")
+        case "resultExit":
+            let m = try ResultModels.model(store.state, a, dates: store.dates)
+            switch a["to"] {
+            case .string("leave"): try d?.leave?(m["leave"]!); return JS.obj([("ok", .bool(true))])
+            case .string("redo"):
+                let wrong = (m["cells"]?.arrayValue ?? []).filter { $0["kind"] == .string("judged") && $0["judgment"] == .string("wrong") }.map { $0["char"] ?? .null }
+                guard !wrong.isEmpty, let f = d?.redo else { return SessionWrites.failure("invalid") }
+                return JS.obj([("ok", .bool(try f(wrong) != .bool(false)))])
+            case .string("detail"):
+                guard let char = a["char"]?.stringValue, !char.isEmpty, let f = d?.detail else { return SessionWrites.failure("invalid") }
+                return JS.obj([("ok", .bool(try f(char) != .bool(false)))])
+            case .string("share"):
+                guard let f = d?.share else { return SessionWrites.failure("invalid") }
+                return JS.obj([("ok", .bool(try f(JSObject([("slot", a["slot"]!), ("sessionId", a["sessionId"] ?? .null)])) != .bool(false)))])
+            default: return SessionWrites.failure("invalid")
+            }
         case "resultInvite":
             if a["action"] == .string("shown") {
                 let r = invite(store, a)

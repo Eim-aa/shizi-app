@@ -5,14 +5,16 @@ import Foundation
 /// while the CLI and golden/differential tests compare with Node (V8).
 public final class SessionRuntime {
     public let store: Store
+    public let writeDependencies: WriteDependencies
     public let hooks: SessionActionHooks
-    public init(store: Store, mathFlavor: JSMath.Flavor = .darwin, hooks: SessionActionHooks = SessionActionHooks()) {
+    public init(store: Store, mathFlavor: JSMath.Flavor = .darwin, hooks: SessionActionHooks = SessionActionHooks(), writeDependencies: WriteDependencies = WriteDependencies()) {
         self.store = store
+        self.writeDependencies = writeDependencies
         self.hooks = hooks
         JSMath.flavor = mathFlavor
     }
     public func call(_ op: String, _ args: JSObject = JSObject()) -> JSValue {
-        if op.hasPrefix("write.") { return WriteAPI.call(String(op.dropFirst(6)), store, args) }
+        if op.hasPrefix("write.") { return WriteAPI.call(String(op.dropFirst(6)), store, args, dependencies: writeDependencies) }
         return PageAPI.call(op, store: store, args: args, hooks: hooks)
     }
 }

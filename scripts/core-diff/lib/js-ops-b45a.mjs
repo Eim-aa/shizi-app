@@ -10,6 +10,7 @@ import { commitFirstTipSeen } from '../../../src/session/ops/first-tip.js';
 import { createAppApi, domainsOf } from '../../../src/session/api/index.js';
 import { createWriteSessionApi } from '../../../src/session/write-api.js';
 import * as result from '../../../src/session/ops/result.js';
+import * as first from '../../../src/session/ops/first-result.js';
 import * as work from '../../../src/session/ops/work.js';
 import { commitCorrection } from '../../../src/session/ops/line.js';
 import * as hints from '../../../src/session/ops/hint.js';
@@ -46,5 +47,20 @@ export function makeB45SessionOps({session,clock}) {
   for(const [name,fn]of Object.entries({expire:start.expireStale,endStartPicked:start.endOldAndStartPicked,deferSpecial:start.deferSpecial}))out['session.'+name]=a=>{const s=session();s.notices=[];return fn(s.store,{...a,now:clock,deck:deckAdapter});};
   out['session.resume']=a=>{const s=session();s.notices=[];return start.resumeSlot(s.store,a.slot,{now:clock});};
   for(const name of ['session.hintInitial','session.hintReduce','session.hintRemaining','session.hintMatch','session.hintTimeline']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
+  out['session.resultModel']=a=>result.resultModel(a.state || session().store.getState(),a);
+  out['session.resultLeave']=a=>result.leaveOf(a.source);
+  out['session.firstExtras']=a=>first.firstExtras(a);
+  out['session.daysLaterOf']=a=>first.daysLaterOf(a);
+  out['session.writeHost']=async a=>{
+    setDeckSource(sources ||= deckSources());const s=session();s.notices=[];const calls=[];
+    const result=Object.fromEntries(Object.entries(a.hooks||{}).map(([name,c])=>[name,(...params)=>{
+      const arg=name==='view'?params[1]:params[0];
+      calls.push({name,args:arg});if(c.throws)throw Error('host-'+name);return c.reply ?? null;
+    }]));
+    const api=createWriteSessionApi({getStore:()=>s.store,result});
+    const saved=Date.now;Date.now=clock;
+    try{const {ms,...reply}=await api.call(a.op,a.args||{});return {reply,calls};}finally{Date.now=saved;}
+  };
+  for(const name of ['session.resultModel','session.resultLeave','session.firstExtras','session.daysLaterOf']){const fn=out[name];out[name]=a=>{try{session().notices=[];}catch{}return fn(a);};}
   return out;
 }

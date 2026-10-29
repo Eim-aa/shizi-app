@@ -21,12 +21,12 @@ public enum WriteAPI {
         return out
     }
     static func bundle(_ keys: [JSValue]) -> JSValue { var o = JSObject(); for k in keys { if let v = try? Copy.t(JS.string(k)) { o[JS.string(k)] = v } }; return .object(o) }
-    public static func call(_ op: String, _ store: Store, _ args: JSObject) -> JSValue {
-        do { return try run(op, store, args) }
+    public static func call(_ op: String, _ store: Store, _ args: JSObject, dependencies: WriteDependencies? = nil) -> JSValue {
+        do { return try run(op, store, args, dependencies: dependencies) }
         catch let error as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(error.message))]))]) }
         catch { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(String(describing: error)))]))]) }
     }
-    static func run(_ op: String, _ store: Store, _ a: JSObject) throws -> JSValue {
+    static func run(_ op: String, _ store: Store, _ a: JSObject, dependencies: WriteDependencies? = nil) throws -> JSValue {
         let slot = JS.string(a["slot"])
         func snapshot() throws -> JSValue { try WriteModels.snapshot(store.state, slot: slot) }
         func flow(_ r: JSValue) throws -> JSValue { SessionWrites.patch(r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true))]) : plain(r), [("snapshot", try snapshot())]) }
@@ -105,7 +105,7 @@ public enum WriteAPI {
             if a["to"] == .string("detail") { return SessionWrites.failure("invalid") }
             throw CoreError.error(a["to"] == .string("result") ? "write session api: navigate.toResult not provided" : "write session api: navigate.back not provided")
         case "resultLook": return .object(try look(true))
-        case "result", "resultCell", "resultCorrect", "resultAdd", "resultSealed", "resultUndoSkip", "resultAgain", "resultExit", "resultInvite": return try ResultAPI.call(op, store, a)
+        case "result", "resultCell", "resultCorrect", "resultAdd", "resultSealed", "resultUndoSkip", "resultAgain", "resultExit", "resultInvite": return try ResultAPI.call(op, store, a, dependencies: dependencies)
         default: return SessionWrites.failure("unknown-op")
         }
     }

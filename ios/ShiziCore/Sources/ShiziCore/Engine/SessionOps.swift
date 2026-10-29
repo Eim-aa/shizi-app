@@ -2,6 +2,11 @@ import Foundation
 
 extension CoreEngine {
     static let sessionRawOps: [String: Op] = [
+        "session.writeHost": { e,a in try writeHost(e.session().store, a) },
+        "session.resultModel": { e,a in try ResultModels.model(a["state"]?.objectValue ?? e.session().store.state, a, dates: e.dates) },
+        "session.resultLeave": { _,a in try ResultModels.leaveOf(a["source"]) },
+        "session.firstExtras": { e,a in try ResultModels.firstExtras(a, dates: e.dates) },
+        "session.daysLaterOf": { e,a in try ResultModels.daysLaterOf(a, dates: e.dates) },
         "session.strokes": { e,a in SessionWrites.commitStrokes(try e.session().store, a) },
         "session.recover": { e,a in try SessionWrites.commitRecover(e.session().store, a) },
         "session.phase": { e,a in try SessionWrites.commitComparePhase(e.session().store, a) },

@@ -17,6 +17,46 @@ public enum ResultModels {
             return JS.obj([("index", .number(Double(i))), ("cardKey", it["cardKey"] ?? .null), ("recordId", record?["id"] ?? it["recordId"] ?? .null), ("char", record?["char"] ?? Records.charOfCardKey(it["cardKey"]).map(JSValue.string) ?? .null), ("kind", kind), ("judgment", judgment), ("caption", try Copy.t(kind == .string("judged") ? (judgment == .string("wrong") ? "X-RESULT.cellWrong" : "X-RESULT.cellCorrect") : kind == .string("answer-seen") ? "R-R02.cellSaw" : "X-RESULT.cellSkipped")), ("canChange", .bool(kind == .string("judged") && record != nil && !JS.truthy(record?["legacy"]) && s != nil && SessionRules.canCorrect(s, record?["id"])))])
         }
     }
+    public static func leaveOf(_ source: JSValue?) throws -> JSValue {
+        let view = source?["view"]?.stringValue ?? "home", char = source?["char"]?.stringValue.map(JSValue.string) ?? .null
+        let keys = ["wrongList":"R-R06.leaveWrong", "againList":"R-R06.leaveWrong", "forgetList":"R-R06.leaveForget", "dueList":"X-LIBFOUR.leave.due", "shakyList":"X-LIBFOUR.leave.shaky", "knownList":"X-LIBFOUR.leave.known", "skippedList":"X-LIBFOUR.leave.skipped", "allWritten":"R-R06.leaveAll", "mine":"R-R06.leaveMine", "library":"R-R06.leaveLibrary", "home":"X-RESULT.leaveHome"]
+        if view == "detail", JS.truthy(char) { return JS.obj([("view", .string(view)), ("char", char), ("label", try Copy.t("R-R06.leaveDetail", JSObject([("char", char)])))]) }
+        if let key = keys[view] { return JS.obj([("view", .string(view == "againList" ? "wrongList" : view)), ("char", char), ("label", try Copy.t(key))]) }
+        return JS.obj([("view", .string("home")), ("char", .null), ("label", try Copy.t("X-RESULT.leaveHome"))])
+    }
+    public static func model(_ state: JSObject, _ a: JSObject, dates: Dates, hasInk: InkPick.HasInk? = nil) throws -> JSValue {
+        let found = SessionResults.locate(state, a), s = found?.session
+        let records = Records.sortById(SessionWrites.allRecords(state).filter { $0["sessionId"] == a["sessionId"] })
+        let cells = try cells(state, a), variant = s.map { $0["kind"] == .string("picked") ? "picked" : $0["kind"] == .string("first") ? "first" : "daily" } ?? (a["slot"] == .string("B") ? "picked" : "daily")
+        let early = JS.truthy(s?["endedEarly"]), unwritten = s.map { max(0, Double($0["queue"]?.arrayValue?.count ?? 0) - JS.number($0["cursor"])) } ?? 0
+        let source = JS.truthy(s?["source"]) ? s!["source"]! : JS.obj([("view", .string("home"))])
+        var day: JSValue = .null
+        if let s {
+            let at = s["endedAt"]?.numberValue.flatMap { $0.isFinite ? $0 : nil } ?? s["updatedAt"]?.numberValue
+            if let at, at.isFinite { day = .string(try dates.localDay(.number(at))) } else { day = JS.truthy(s["startedDay"]) ? s["startedDay"]! : .null }
+        }
+        let work: JSValue = cells.isEmpty ? .null : ImageSelection.buildWork(items: items(s, records: records), records: records, hasInk: hasInk ?? { record in
+            let month = String((record["localDay"]?.stringValue ?? "").prefix(7)), id = JS.string(record["inkId"] ?? record["id"])
+            return JS.truthy(state["ink"]?[month]?[id])
+        }, added: ImageSelection.addedOf(s))
+        var sub: [JSValue] = []
+        if variant != "first" && early && unwritten > 0 { sub.append(try Copy.t("R-R05.bodyEarly", JSObject([("n", .number(unwritten))]))) }
+        return JS.obj([("found", .bool(s != nil)), ("where", found.map { .string($0.ended ? "ended" : "slot") } ?? .null), ("session", s ?? .null), ("slot", a["slot"] ?? .null), ("sessionId", a["sessionId"] ?? .null), ("variant", .string(variant)), ("early", .bool(early)), ("header", try Copy.t(variant == "first" ? "X-RESULT.headerFirst" : variant == "picked" ? "R-R05.kicker" : "X-RESULT.headerDaily")), ("title", variant == "first" ? try Copy.t("X-FIRST.title") : .null), ("sub", .array(sub)), ("cells", .array(cells)), ("count", .number(Double(Set(records.filter(Records.isJudged).map { JS.string($0["cardKey"]) }).count))), ("unwritten", .number(unwritten)), ("day", day), ("work", work), ("share", .bool(!(work["cells"]?.arrayValue ?? []).isEmpty)), ("leave", try leaveOf(source)), ("again", .bool(variant != "picked")), ("source", source)])
+    }
+    public static func firstExtras(_ a: JSObject, dates: Dates) throws -> JSValue {
+        let cells = a["cells"]?.arrayValue ?? [], judged = cells.filter { $0["kind"] == .string("judged") }
+        let later = try FirstResult.daysLaterLine(chars: judged, sched: a["sched"], today: a["today"] ?? .null, dates: dates)
+        let mark = try Copy.t("X-HOME.shiLabel")
+        let inWork = (a["work"]?["cells"]?.arrayValue ?? []).contains { $0["char"] == mark }
+        let inGroup = inWork || cells.contains { $0["char"] == mark }
+        let lead = a["variant"] == .string("first") && inGroup ? try Copy.text(inWork ? "X-FIRST.shiWritten" : "X-FIRST.shiHome") : ""
+        return JS.obj([("preview", .string(lead + later))])
+    }
+    public static func daysLaterOf(_ a: JSObject, dates: Dates) throws -> JSValue {
+        .array(try FirstResult.reviewDays(chars: (a["cells"]?.arrayValue ?? []).filter { $0["kind"] == .string("judged") }, sched: a["sched"], today: a["today"] ?? .null, dates: dates).map { item in
+            SessionWrites.patch(item.js, [("text", .string(try FirstResult.daysLaterText(.number(item.days))))])
+        })
+    }
     static func baseView(_ state: JSObject, _ a: JSObject) throws -> JSValue {
         let s = SessionResults.locate(state, a)?.session
         let variant = s.map { $0["kind"] == .string("picked") ? "picked" : $0["kind"] == .string("first") ? "first" : "daily" } ?? (a["slot"] == .string("B") ? "picked" : "daily")

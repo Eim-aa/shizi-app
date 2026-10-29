@@ -546,10 +546,7 @@ final class WriteFlowTests: XCTestCase {
         let sounds = Array(qa.feedback.dropFirst(start).filter { $0.hasPrefix("sound:") })
         XCTAssertEqual(sounds.filter { $0 == "sound:s1_wood_muted" }.count, 1, "the seal s1 sounds exactly once on the result page: \(qa.feedback)")
         XCTAssertEqual(sounds.last, "sound:s1_wood_muted", "s1 is the last sound: \(qa.feedback)")
-        // B3.Z-f 发现的产品缺口：原生写字页判断后没有放 j1（判断声由网页写字页 / 结果页挂载的 installCommitFeedback 发，原生写字页不挂）。修好后转绿，去掉这层包装。
-        QAIssue.expectFail("B3Zf-1", "原生写字页判断不放 j1 判断声（D50 ⑦）") {
-            XCTAssertEqual(Array(sounds.dropLast()), expected, "5 judgments rotate j1 / _b / _c / j1 / _b: \(qa.feedback)")
-        }
+        XCTAssertEqual(Array(sounds.dropLast()), expected, "5 judgments rotate j1 / _b / _c / j1 / _b: \(qa.feedback)")
     }
 
     /// 80-s1-sound（描红部分）：看答案后的描一遍、再描一遍落笔都没有声音。

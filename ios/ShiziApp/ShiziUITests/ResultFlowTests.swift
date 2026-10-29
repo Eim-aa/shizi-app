@@ -291,10 +291,7 @@ final class ResultFlowTests: XCTestCase {
         let since = Array(qa.feedback.dropFirst(start))
         let sounds = since.filter { $0.hasPrefix("sound:") }
         XCTAssertEqual(sounds.last, "sound:s1_wood_muted", "the seal s1 is the last sound: \(since)")
-        // B3Zf-1（同 WriteFlowTests.test211）：原生写字页判断后没有 j1。修好后转绿，去掉这层包装。
-        QAIssue.expectFail("B3Zf-1", "原生写字页判断不放 j1 判断声（D50 ⑦）") {
-            XCTAssertTrue(sounds.first?.hasPrefix("sound:j1_page_settle") == true && sounds.count == 2, "judge sound j1 then s1: \(since)")
-        }
+        XCTAssertTrue(sounds.first?.hasPrefix("sound:j1_page_settle") == true && sounds.count == 2, "judge sound j1 then s1: \(since)")
         XCTAssertEqual(since.filter { $0 == "sound:s1_wood_muted" }.count, 1, "s1 once: \(since)")
         XCTAssertEqual(since.filter { $0 == "haptic:seal" }.count, 1, "seal haptic once: \(since)")
         XCTAssertFalse(since.contains("haptic:action"), "no action haptic: \(since)")

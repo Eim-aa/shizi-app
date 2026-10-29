@@ -18,6 +18,7 @@
 import { getScreen, setActiveRouter } from './router.js';
 import { forgetTap, noteNativePlan, planPaper, traceNav } from './paper-transition.js';
 import { postNative } from '../platform/bridge.js';
+import { installCommitFeedback } from '../platform/haptics.js';
 import { isNativeShell } from '../platform/env.js';
 import { M } from '../config/motion.js';
 import { getStore } from '../store/store.js';
@@ -532,6 +533,7 @@ export async function mountEngine({ win = globalWin(), defaultTab = 'home' } = {
   if (store && typeof store.subscribe === 'function') {
     watchBlock(store);
     watchCorrupt(store);
+    installCommitFeedback(() => store, { haptics: false }); // 判断声 j1 轮换（触觉原生自己发）；网页界面不挂，只有这里装一次
   }
   engine = router;
   return router;

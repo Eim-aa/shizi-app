@@ -24,6 +24,8 @@
 // 零判断回来源不发——那里已不是写字流程，P1-35）；落印 seal（result/work.js）。
 // 声音（F2，D50 ⑦）：判断类 commit 同时发判断声 j1；落印 s1 由结果页在印着纸那一帧直接调。
 //
+// 引擎模式（iOS 壳，网页界面不挂）：engine.js mountEngine 启动时调 installCommitFeedback(getStore, {haptics:false}) 一次——
+// 声音（j1 轮换）由 JS 决定变体、原生只播（postNative('sound')）；触觉原生页自己发，这里不发，避免双震。
 // 接线：installCommitFeedback(getStore) 在写字页 / 结果页挂载时调用（幂等：同一个 store 只订阅一次）；
 // 订阅 store 的 {type:'commit', label} 通知，按上表发触觉与按键音。
 
@@ -124,7 +126,7 @@ let installed = null; // {store, off}
  * @param {() => object} getStore  返回 store；store 还没建好（抛错）时什么都不做，下次再试
  * @returns {boolean} 现在是否已订阅
  */
-export function installCommitFeedback(getStore) {
+export function installCommitFeedback(getStore, { haptics = true } = {}) {
   let store = null;
   try {
     store = typeof getStore === 'function' ? getStore() : getStore;
@@ -132,10 +134,12 @@ export function installCommitFeedback(getStore) {
     store = null;
   }
   if (!store || typeof store.subscribe !== 'function') return false;
-  if (installed && installed.store === store) return true;
+  if (installed && installed.store === store && installed.haptics === haptics) return true;
   if (installed) installed.off();
-  const off = store.subscribe((state, info) => applyFeedback(info, state));
-  installed = { store, off };
+  // haptics:false（引擎模式）：触觉原生自己发（每个点位一次，B3.Z-f 探针核对），这里只发判断声 j1；轮换规则仍只在 sound.js。
+  const deps = haptics ? {} : { haptic: () => false };
+  const off = store.subscribe((state, info) => applyFeedback(info, state, deps));
+  installed = { store, off, haptics };
   return true;
 }
 

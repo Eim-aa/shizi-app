@@ -31,7 +31,7 @@ final class ViewParityTests: XCTestCase {
 
     // test/ui/home.test.mjs / test/ui/h2-home-e.test.mjs — first visit and 4am calendar/local day boundary.
     func testHomeFirstAndFourAM() throws {
-        let t = try dates.dayStartMs(.string("2026-03-02"))
+        let t = try dates.dayStartMs(.string("2026-03-02")) + 4 * 3600000
         let before = try HomeView.homeModel(.null, now: t-1, policy: Config.policy, deck: nil, dates: dates)
         let after = try HomeView.homeModel(.null, now: t, policy: Config.policy, deck: nil, dates: dates)
         XCTAssertEqual(before["view"], .string("first")); XCTAssertEqual(after["today"], .string("2026-03-02"))
@@ -89,6 +89,17 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(try MinePageView.backupValueRef(.null, dates: dates), ViewSupport.ref("R-M03.noBackup"))
         let choices = MinePageView.mineChoices(SettingsView.settingsView(nil), policy: Config.policy)
         XCTAssertEqual(choices["appearance"]?["options"]?.arrayValue?.map { $0["id"]! }, ["auto","light","dark"].map(JSValue.string))
+    }
+
+    // test/ui/mine.test.mjs — weekdayIndex: Monday first; week wraps across months.
+    // overview (D63): streak counts back from today, or from yesterday when today is not written yet.
+    func testMineDatesAndLegacyOverview() throws {
+        XCTAssertEqual(try ViewSupport.weekdayIndex("2026-09-21", dates: dates), 0)
+        XCTAssertEqual(try ViewSupport.weekdayIndex("2026-09-27", dates: dates), 6)
+        XCTAssertEqual(try ViewSupport.streakDays(KeySet(["2026-09-23","2026-09-22"]), today: "2026-09-24", dates: dates), 2)
+        let state = try value(#"{"legacy":{"days":["2026-09-23","2099-01-01"]}}"#)
+        let model = try ViewSupport.mineModel(state, today: "2026-09-24", policy: Config.policy, storagePressure: nil, dates: dates)
+        XCTAssertEqual(model["empty"], .bool(true)); XCTAssertEqual(model["overview"]?["total"], .number(1))
     }
 
     func testViewsPagesGolden() throws {

@@ -571,6 +571,7 @@ final class NativeStage: NSObject {
         let mine = saveToken
         let go = { [weak self] in
             guard let self, flush || mine == self.saveToken else { return }
+            Self.rememberBootTab(self.entries.first?["n"] as? String) // 与 route.save 同时机（含进后台 flush）
             self.engine.raw("route.save", ["stack": self.entries, "flush": flush, "seq": self.jsSeq]) { reply in
                 if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: route.save failed \(reply)") }
             }
@@ -767,6 +768,16 @@ final class NativeStage: NSObject {
         }
     }
 
+    /// 启动首帧画了什么（"home" 静态首页 / "paper" 只有纸色；探针读）。
+    private(set) var bootKind = "none"
+    private static let bootTabKey = "shizi.native.bootTab"
+    /// 原生侧的启动提示：上次存栈的 tab 根（引擎未就绪时原生问不了 JS；和 homeBoot 缓存同类，只决定首帧画什么）。
+    static func rememberBootTab(_ tab: String?) {
+        guard let tab, UserDefaults.standard.string(forKey: bootTabKey) != tab else { return }
+        UserDefaults.standard.set(tab, forKey: bootTabKey)
+    }
+    static func bootTabHint() -> String? { UserDefaults.standard.string(forKey: bootTabKey) }
+
     /// 冷启动到首页首帧（ms，从进程创建算；QA 探针 / 日志读，门槛 ≤ 网页版 FCP 160–214ms）。
     private(set) static var bootFrameMs: Double?
 
@@ -774,6 +785,16 @@ final class NativeStage: NSObject {
     /// 恢复出别的 tab 时它留在自己那一格。主按钮位置不变、就绪前不可点（引擎状态 reloading）。
     func bootFrame() {
         guard rootScreen == nil else { return }
+        // D79 ③：上次存栈的根在「字库 / 我的」→ 首帧只有纸色（不闪首页）；route.plan 仍是真相，判成首页时到时再出现。
+        if let tab = Self.bootTabHint(), tab != "home" {
+            bootKind = "paper"
+            ShiziProbe.note("boot:paper hint=\(tab)")
+            let link = CADisplayLink(target: BootFrameProbe.shared, selector: #selector(BootFrameProbe.tick(_:)))
+            BootFrameProbe.shared.link = link
+            link.add(to: .main, forMode: .common)
+            return
+        }
+        bootKind = "home"
         let t0 = Date().timeIntervalSince1970
         openRoot(["screen": "home", "entryId": "boot", "params": [String: Any](), "via": "boot", "payload": HomeScreen.bootPayload()]) {}
         ShiziProbe.log(String(format: "native stage: boot segs launch→bootFrame %.1f, openRoot %.1f", (t0 - (Self.launchedAt ?? t0)) * 1000, (Date().timeIntervalSince1970 - t0) * 1000))

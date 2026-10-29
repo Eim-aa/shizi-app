@@ -186,6 +186,8 @@ function createTestApi({ storage, getStore }) {
  */
 export function mountTestHooks({ win = globalThis, storage, getStore }) {
   if (isTestHost(win)) {
+    // B3.F 冷启动「阻断优先」的流程测试（RestoreAndDeepLinkTests）：壳在文档开始注入 __shiziQAStorageUnavailable 时，这一次启动的存储探测失败（只在测试宿主）
+    if (win.__shiziQAStorageUnavailable === true && storage && typeof storage.probe === 'function') storage.probe = () => ({ ok: false, kind: 'security' });
     const api = createTestApi({ storage, getStore });
     win.__shiziTest = api;
     return api;

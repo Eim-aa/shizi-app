@@ -150,6 +150,22 @@ final class NavigationTests: XCTestCase {
         XCTAssertEqual(qa.transitions.filter { $0 == "tab:top mine" }.count, 1, "nothing happens at the top: \(qa.transitions)")
     }
 
+    /// B3.F：切 tab 保留每个 tab 自己的状态——「我的」（AX 大字号可滚）滚下去 → 切到字库 → 切回「我的」：同一张根页、滚动位置还在；
+    /// 切 tab 由原生直接做（nav:tab 不经网页路由，探针记 tab:select），选中格当即换。
+    func testTabSwitchKeepsEachTabState() {
+        let qa = launch("mine-records", "mine", extra: ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"])
+        for _ in 0..<3 { qa.app.swipeUp(velocity: .slow) }
+        let scrolled = qa.waitProbe("mine scrolled down") { ((Self.tabs($0)["rootScrollY"] as? NSNumber)?.doubleValue ?? 0) > 100 }
+        let y = (Self.tabs(scrolled)["rootScrollY"] as? NSNumber)?.doubleValue ?? 0
+        qa.tap(tabButton(qa, "字库"), "tab 字库")
+        waitRoot(qa, "library")
+        qa.tap(tabButton(qa, "我的"), "tab 我的")
+        waitRoot(qa, "mine")
+        let back = (Self.tabs(qa.probe)["rootScrollY"] as? NSNumber)?.doubleValue ?? -1
+        XCTAssertEqual(back, y, accuracy: 1, "the mine root keeps its scroll position across tab switches")
+        XCTAssertEqual(qa.transitions.filter { $0 == "root:open mine via=restore" }.count, 2, "the same root page is shown again (no rebuild): \(qa.transitions)")
+    }
+
     /// Tab 根无左缘返回：根页上左缘右滑，路由与根页都不变。
     func testTabRootHasNoEdgeBack() {
         let qa = launch("library-half", "library")

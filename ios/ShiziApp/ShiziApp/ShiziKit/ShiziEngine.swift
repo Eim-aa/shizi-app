@@ -173,12 +173,21 @@ final class WebEngine: ShiziEngine {
         }
     }
 
+    /// B3.F：导航 op（nav.push / replace / back / tab / setParams）不再进引擎——原生持有页面栈，由导航者（NativeStage）直接做；
+    /// 页面照旧调 engine.raw("nav.*")，一条规则管全部页面（不为单页改调用点）。没有导航者（单元测试里的孤立引擎）时照旧发给页面。
+    var navigator: ((String, [String: Any]) -> [String: Any])?
+
     func raw(_ op: String, _ args: [String: Any], completion: @escaping ([String: Any]) -> Void) {
+        if op.hasPrefix("nav."), let navigator {
+            DispatchQueue.main.async { completion(navigator(op, args)) }
+            return
+        }
         Self.evaluate(webView, function: "shiziNative", op: op, args: args) { body, _ in completion(body) }
     }
 
     /// B4.6: native raster boundary. `webRenderer: true` explicitly calls the retained canvas fallback.
     @MainActor func raw(_ op: String, _ args: [String: Any]) async -> [String: Any] {
+        if op.hasPrefix("nav."), let navigator { return navigator(op, args) }
         if (op == "image.render" || op == "image.save"), args["webRenderer"] as? Bool != true,
            let native = await nativeImage(op, args) { return native }
         return await webRaw(op, args)

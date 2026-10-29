@@ -275,8 +275,8 @@ export function createRouteMemory(deps) {
   const onPageHide = () => write(true);
 
   const memory = {
-    /** router.start 的 coldStart 回调：返回要恢复的栈或 null。 */
-    coldStart() {
+    /** router.start 的 coldStart 回调（B3.F 起也是 route.plan）：返回要恢复的栈或 null。deepLink：原生排着提醒深链。 */
+    coldStart({ deepLink = false } = {}) {
       const s = store();
       const status = s ? s.status : null;
       plan = planColdStart({
@@ -284,7 +284,7 @@ export function createRouteMemory(deps) {
         state: s ? s.getState() : null,
         blockReason: blockReasonOf(status),
         corrupt: !!(status && status.corruptNotice),
-        deepLink: deepLinkQueued(),
+        deepLink: deepLink || deepLinkQueued(), // B3.F：原生持有提醒深链，冷启动判定时由 route.plan 告知
         now: nowFn(),
         policy,
       });

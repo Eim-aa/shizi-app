@@ -26,6 +26,11 @@ if (!udid || !out) {
   console.error('usage: node capture.mjs --udid <udid> --ui native|web --out <dir>');
   process.exit(2);
 }
+// B3.F：App 里不再挂网页界面（引擎模式）——网页参考已在 B3.F 合并前取齐冻结（§5.1 取证截止），App 不能再取网页参考。
+if (ui === 'web') {
+  console.error('capture.mjs: --ui web is retired since B3.F (the app mounts no web UI; references are frozen in ShiziUITests/Reference)');
+  process.exit(2);
+}
 for (const s of states) if (!fixtureOf[s]) { console.error(`unknown state "${s}" (no ShiziUITests/States/${s}.json)`); process.exit(2); }
 mkdirSync(out, { recursive: true });
 

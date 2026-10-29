@@ -64,12 +64,9 @@ test('getAccessibilityStatus returns a copy', () => {
   assert.equal(assistiveTechActive(), false);
 });
 
-test('Swift reports VoiceOver / Switch Control on pageReady and on every system change, booleans only', () => {
-  assert.match(SWIFT, /UIAccessibility\.isVoiceOverRunning/);
-  assert.match(SWIFT, /UIAccessibility\.isSwitchControlRunning/);
-  assert.match(SWIFT, /UIAccessibility\.voiceOverStatusDidChangeNotification/);
-  assert.match(SWIFT, /UIAccessibility\.switchControlStatusDidChangeNotification/);
-  assert.match(SWIFT, /shiziAccessibilityStatus\(\{voiceOver:\\\(/, 'evaluates the global with {voiceOver, switchControl}');
-  const handlePageReady = SWIFT.match(/private func handlePageReady\(\) \{[\s\S]*?\n    \}/)[0];
-  assert.match(handlePageReady, /sendAccessibilityStatus\(\)/, 'status goes out when the page reports ready');
+test('B3.F: Swift no longer reports VoiceOver / Switch Control to the engine (only the web write page read it; the app mounts no web UI)', () => {
+  assert.doesNotMatch(SWIFT, /shiziAccessibilityStatus\(\{/, 'no status evaluation');
+  assert.doesNotMatch(SWIFT, /func sendAccessibilityStatus/);
+  const app = readFileSync(new URL('../../src/app.js', import.meta.url), 'utf8');
+  assert.match(app, /if \(!engine\) await import\('\.\/platform\/accessibility\.js'\)/, 'the web build still installs the status global');
 });

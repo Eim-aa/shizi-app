@@ -379,6 +379,93 @@ export function isNativeHostEntry() {
   return nativeWriteEnabled();
 }
 
+// ---------------------------------------------------------------- 宿主消息（B3.F：宿主组件与引擎模式 engine.js 同一组函数）
+
+function safeWriteApi() {
+  try {
+    return createWriteSessionApi();
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * 写字条目进来（或从字详情回来，returning）时给原生的 open（D62 / B2.8：转场按记账的计划定——首页入口 = 纸展开 home、屏上没有来源元素的入口 = 安静淡入 quiet、
+ * 其他点按入口 = 推入 push；结果页「再写一组」/ 撤销跳过换成写字页 = again；冷启动恢复没有转场 restore；从字详情回来 return）。
+ */
+export function writeOpenBody(entry, snap, { returning = false, api = null } = {}) {
+  const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
+  const a = api || safeWriteApi();
+  if (returning) {
+    const again = a ? a.call('open', { slot }) : { ok: false };
+    return { op: 'open', slot, entryId: entry.id, animate: false, via: 'return', sentAt: Date.now(), payload: again };
+  }
+  const tr = snap ? snap.transition : null;
+  const animate = !!(tr && tr.to && entry && tr.to.id === entry.id && tr.animate && !tr.cold);
+  const plan = entry ? nativePlanOf(entry.id) : null;
+  const replaced = !!(tr && tr.kind === 'replace' && tr.from && tr.from.n === 'result');
+  const via = !animate ? 'restore' : replaced ? 'again' : plan && plan.mode === 'paper' ? 'home' : plan && plan.mode === 'quiet' ? 'quiet' : 'push';
+  const opened = a ? a.call('open', { slot }) : { ok: false };
+  return { op: 'open', slot, entryId: entry ? entry.id : null, animate, via, plan, sentAt: Date.now(), payload: opened };
+}
+
+export function writeCloseBody(entry) {
+  const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
+  return { op: 'close', slot, entryId: entry ? entry.id : null };
+}
+
+/** R9-B：写字条目为字详情让开过、现在回到顶上（取一次即清）。 */
+export function takeWriteAway(entryId) {
+  if (!entryId || awayEntry !== entryId) return false;
+  awayEntry = null;
+  return true;
+}
+
+/** 重写错字条目进来：redo-open（没有能练的字：与网页页面同样退回去，返回 null）。 */
+export function redoOpenBody(entry, snap) {
+  const tr = snap ? snap.transition : null;
+  const animate = !!(tr && tr.to && entry && tr.to.id === entry.id && tr.animate && !tr.cold);
+  const a = safeWriteApi();
+  const opened = a ? a.call('redoOpen', { chars: entry && entry.p && entry.p.chars }) : { ok: false };
+  if (!opened || !opened.ok) {
+    Promise.resolve().then(() => nav.back());
+    return null;
+  }
+  return { op: 'redo-open', entryId: entry ? entry.id : null, animate, via: animate ? 'push' : 'restore', sentAt: Date.now(), payload: opened };
+}
+
+export function redoCloseBody(entry) {
+  return { op: 'redo-close', entryId: entry ? entry.id : null };
+}
+
+/** 结果条目成为顶层（进来 / 让开后回来 returning）：result-open（写字页交接来的跳过撤销在这里取走，随视图交给原生）。 */
+export function resultOpenBody(entry, snap, { returning = false } = {}) {
+  const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
+  const sessionId = entry && entry.p && typeof entry.p.sessionId === 'string' ? entry.p.sessionId : '';
+  const tr = snap ? snap.transition : null;
+  const restore = !returning && !!(tr && (tr.cold || tr.cause === 'restore' || tr.cause === 'start' || !tr.animate) && !(tr.from && tr.from.n === 'write'));
+  const via = returning ? 'return' : restore ? 'restore' : tr && tr.from && tr.from.n === 'write' ? 'write' : 'push';
+  const a = safeWriteApi();
+  const undo = takeSkipUndo(slot, sessionId);
+  const look = a ? a.call('resultLook', {}) : { ok: false };
+  const opened = a ? a.call('result', { slot, sessionId, width: clientWidth(), ax: axNow(), undo }) : { ok: false };
+  return { op: 'result-open', slot, sessionId, entryId: entry.id, animate: !restore, via, sentAt: Date.now(), look, payload: opened };
+}
+
+/** 结果条目离开顶层：away = 还在栈里（让给推入的页）；不在栈里了（离开 / 再写一组 / 撤销跳过）→ 清 lastEnded[slot]（01 §3.3，同网页结果页卸载）。 */
+export function resultCloseBody(entry, { away }) {
+  const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
+  const sessionId = entry && entry.p && typeof entry.p.sessionId === 'string' ? entry.p.sessionId : '';
+  if (!away) {
+    try {
+      commitLeave(getStore(), { slot, sessionId });
+    } catch (error) {
+      // 清不掉不影响（下次开同槽时一并清）
+    }
+  }
+  return { op: 'result-close', slot, sessionId, entryId: entry.id, away: !!away };
+}
+
 /**
  * 写字页在开关打开时渲染的宿主：不画内容；成为顶层时请原生推入写字页（随消息带快照，原生首帧不等桥），卸载时请原生关掉。
  * animate：本条目是刚 push 进来的（有转场）——冷启动恢复 / 刷新时为 false，原生直接盖上、不做推入动画。

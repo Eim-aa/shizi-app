@@ -54,6 +54,12 @@ setNativeScreenGate(name => nativeScreenOn(name));
 
 let api = null;
 let feedOff = null;
+/** B3.F：引擎模式的栈往来实现（ui/engine.js 注入，App API 的 route.* / stage.enter|resync / deeplink.reminder 转给它）。 */
+let engineHooks = null;
+
+export function setEngineHooks(hooks) {
+  engineHooks = hooks && typeof hooks === 'object' ? hooks : null;
+}
 let lastStatus = null;
 
 function statusOf(store) {
@@ -86,6 +92,7 @@ export function installNativeStage(win = globalWin(), deps = {}) {
     nav: deps.nav || nav,
     build: () => aboutBuild(win), // 关于页的版本行（测试宿主可钉住，同网页页面）
     native: isNativeShell(win) || deps.native === true,
+    route: deps.route || engineHooks,
     // 写字会话（write.<op>）：B2 页面的 window.shiziNativeWrite 同一个 API（native-session.js 装）
     write: { call: (op, args) => (typeof win.shiziNativeWrite === 'function' ? win.shiziNativeWrite(op, args) : { ok: false, error: { kind: 'unavailable' } }) },
   });
@@ -233,6 +240,43 @@ function viewPayload(name, params) {
   if (!api) return { ok: false, error: { kind: 'unavailable' } };
   const env = viewEnv();
   return decorateReply(`view.${name}`, api.call(`view.${name}`, { ...env, ...(params || {}) }), env.width);
+}
+
+/** 让开过（stage.cover）的原生屏条目回到顶上：取一次即清（B3.F 引擎模式的宿主消息 engine.js 用）。 */
+export function takeAway(entryId) {
+  if (!entryId || !away.has(entryId)) return false;
+  away.delete(entryId);
+  setCover(entryId, null);
+  return true;
+}
+
+/**
+ * 原生屏条目的 open 消息（与 NativeScreenHost 挂载 / 回来时发的同一个；B3.F 引擎模式由 engine.js 按栈的变化调用）。
+ * 视图回包是 Promise 时返回 Promise（消息等它好了再发）。
+ */
+export function screenOpenMessage(entry, snap, { returning = false } = {}) {
+  const name = entry.n;
+  const id = entry.id;
+  const params = entry.p || {};
+  const under = underOf(snap, id);
+  const root = isRootEntry(snap, id);
+  const base = { op: 'open', screen: name, entryId: id, params, underId: under ? under.id : null, underScreen: under ? under.n : null, sentAt: Date.now(),
+    ...(root ? { root: true, covered: false } : {}) };
+  let msg;
+  if (returning) {
+    msg = { ...base, via: 'return', plan: null, run: root ? [] : nativeRunBelow(snap, id, true) };
+  } else {
+    const tr = snap ? snap.transition : null;
+    const animate = !!(tr && tr.to && tr.to.id === id && tr.animate && !tr.cold);
+    const plan = nativePlanOf(id);
+    const via = !animate ? 'restore' : tr.kind === 'replace' ? 'replace' : plan && plan.mode === 'quiet' ? 'quiet' : 'push';
+    msg = { ...base, via, plan, run: nativeRunBelow(snap, id) };
+  }
+  const payload = viewPayload(name, params);
+  if (payload && typeof payload.then === 'function') {
+    return payload.then(p => ({ ...msg, payload: p }), () => ({ ...msg, payload: { ok: false, error: { kind: 'exception' } } }));
+  }
+  return { ...msg, payload };
 }
 
 /** 发 open（视图回包若是 Promise，等它好了再发）。返回是否发出。 */

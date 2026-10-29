@@ -1094,7 +1094,7 @@ final class QAProbe {
             out["result"] = ["shown": false]
         }
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
-        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies]
+        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies, "bootMs": NativeStage.bootFrameMs ?? -1, "bootFromLaunchMs": NativeStage.bootFromLaunchMs ?? -1, "entries": host.stage.entries.map { $0["n"] as? String ?? "" }]
         if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
         if let tabs = host.stage.tabsProbe { stageOut["tabs"] = tabs } // B3.5d：原生 Tab 栏（看得见、选中的 tab）
         // R14：宿主往上的呈现链（类名，底 → 顶；写字 / 结果 / 原生页 / 弹层都在里面）——测试工具判断「左缘返回有没有发生任何事」用

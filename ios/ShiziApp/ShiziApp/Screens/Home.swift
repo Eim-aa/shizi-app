@@ -1,3 +1,4 @@
+import ShiziCore
 import UIKit
 
 // B3.5a 原生首页（网页 src/ui/screens/home/index.js + copybook.js，1:1 移植；视图模型 src/session/views/home.js homeView，App API view.home / home.*）。
@@ -279,6 +280,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         let dict = raw as? [String: Any]
         shiPath = (dict?["shi"] as? [[Any]]) ?? shiPath
         sealPath = (dict?["seal"] as? [[Any]]) ?? sealPath
+        if dict?["boot"] == nil { Self.rememberBoot(view: m.view, shi: dict?["shi"], seal: dict?["seal"]) }
         let viewChanged = model?.view != m.view
         model = m
         if viewChanged, failedAction != nil, m.view == "first" { failedAction = nil }
@@ -288,6 +290,47 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
     }
 
     private func t(_ r: ShiziCopyRef?) -> String { r?.text ?? "" }
+
+    // MARK: 启动首帧（B3.F；计划 §3.3 段 2 第 6 条）
+    //
+    // 引擎就绪前先画首页的静态部分：「拾」（品牌矢量，上一次视图回包里的那份，存在 UserDefaults）+ 日期时段（真实日历日 + 时段，ShiziCore.Dates 与 JS 同一规则的
+    // Swift 版）。其余（题记、主按钮的字、「今天的字」行）等引擎就绪后 view.home 补上；主按钮位置不变、就绪前不可点（ShiziScreenViewController：引擎不就绪时
+    // 正文不接触摸），不显示等待（F4：< 400ms 不显示）。版式按上一次的首页样式（首次打开 / 日常），从没打开过按首次打开。
+
+    private static let bootKey = "shizi.native.homeBoot"
+
+    private static func rememberBoot(view: String, shi: Any?, seal: Any?) {
+        var d: [String: Any] = ["view": view]
+        if let shi { d["shi"] = shi }
+        if let seal { d["seal"] = seal }
+        let old = UserDefaults.standard.dictionary(forKey: bootKey) ?? [:]
+        if (old["view"] as? String) == view, old["shi"] != nil, d["shi"] == nil || NSDictionary(dictionary: old).isEqual(to: d) { return }
+        UserDefaults.standard.set(d, forKey: bootKey)
+    }
+
+    /// 启动首帧的视图回包（只有静态部分；boot 标记 = 不回写缓存）。
+    static func bootPayload(now: Date = Date()) -> [String: Any] {
+        let cache = UserDefaults.standard.dictionary(forKey: bootKey) ?? [:]
+        let c = Calendar.current.dateComponents([.month, .day, .hour], from: now)
+        let period = (try? Dates.periodOfHour(Double(c.hour ?? 0))) ?? "night"
+        func ref(_ k: String, _ p: [String: Any]? = nil) -> [String: Any] { p.map { ["copy": k, "params": $0] } ?? ["copy": k] }
+        var v: [String: Any] = [
+            "boot": true,
+            "view": cache["view"] as? String ?? "first", "today": "", "period": period,
+            "title": ref("R-H01.title"),
+            "date": ref("R-H02.line", ["date": ref("R-H02.dateFormat", ["month": c.month ?? 1, "day": c.day ?? 1]), "period": ref("R-H02.period.\(period)")]),
+            "shiLabel": ref("X-HOME.shiLabel"),
+            "epigraph": ["index": 0, "lines": [String](), "author": "", "label": ""],
+            "motto": [[String: Any]](),
+            "cta": ["label": ref(""), "aria": ref(""), "action": "start"],
+            "fail": ["text": ref("X-HOME.startFailed"), "cancel": ref("R-H06.cancel"), "retry": ref("R-H06.retry")],
+            "undo": ["undo": ref("R-W20.undo"), "failed": ref("R-W16.saveFailed"), "cancel": ref("R-W16.cancel"), "retry": ref("R-W16.retry")],
+            "brand": false,
+        ]
+        if let shi = cache["shi"] { v["shi"] = shi }
+        if let seal = cache["seal"] { v["seal"] = seal }
+        return ["ok": true, "view": v]
+    }
 
     private var compact: Bool {
         let cats = (ShiziTokens.root["type"] as? [String: Any])?["categories"] as? [String: Any]

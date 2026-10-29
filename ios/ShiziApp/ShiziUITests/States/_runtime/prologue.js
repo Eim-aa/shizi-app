@@ -14,6 +14,8 @@ if (reset) {
   // 上一个状态的 op 留下的全局改动（例：setUsage 换掉的占用估算）在清空前先还原：同一次启动要连跑上百个状态
   for (const fn of (window.__qaCleanups || []).splice(0)) { try { fn(); } catch (e) {} }
   try { nav.switchTab('home'); } catch (e) {}
+  // B3.F：原生切 tab 不拆根页——每个顶层状态从新挂载的字库 / 我的根页开始（与段 1 每次切 tab 重新挂载一致，取证可复现）
+  try { window.webkit.messageHandlers.shiziNative.postMessage({ type: 'native', op: 'roots-reset' }); } catch (e) {}
   await sleep(120);
   T.reset();
   if (clock) T.setClock(clock);

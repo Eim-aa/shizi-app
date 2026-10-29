@@ -67,6 +67,12 @@ export function blockReasonOf(status) {
   return reasonOf(status, migrationFailure);
 }
 
+/** 迁移失败标记变化时通知（B3.F 引擎模式 engine.js 用；根组件用 useBlockReason）。返回退订。 */
+export function onBlockReasonChange(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
 function sameReason(a, b) {
   if (!a || !b) return a === b;
   return a.kind === b.kind && a.detail === b.detail;

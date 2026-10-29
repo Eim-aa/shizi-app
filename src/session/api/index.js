@@ -80,6 +80,7 @@ export function createAppApi(deps = {}) {
     native: deps.native === true,
     now: deps.now || (() => Date.now()),
     write: deps.write || null,
+    route: deps.route || null, // B3.F：route.* / deeplink.reminder / stage.enter|resync 的实现（ui/engine.js 注入；网页版没有）
   };
   return {
     ops: listOps(),

@@ -9,6 +9,8 @@ storage.repair = (...args) => ({ ...orig.apply(storage, args), quarantined: [{ k
   storage.repair = orig;
   const close = document.querySelector('[data-testid="corrupt-notice-close"]'); // 提示是组件自己的状态，点掉它，免得留到后面的状态里
   if (close) close.click();
+  // B3.F 引擎模式没有网页的那一条（engine.js 直接发给原生）：收起原生浮条
+  try { if (!close) window.webkit.messageHandlers.shiziNative.postMessage({ type: 'native', op: 'corrupt', show: false }); } catch (e) {}
 });
 store.reload();
 await ctx.sleep(300);

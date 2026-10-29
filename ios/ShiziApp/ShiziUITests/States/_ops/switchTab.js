@@ -7,8 +7,12 @@ if (!a.remount) {
   try { ctx.nav.switchTab(tab); } catch (e) {}
 } else {
   const other = tab === 'mine' ? 'home' : 'mine';
+  // B3.F：原生切 tab 不拆根页（每格留着自己的根页）——夹具要新挂载的根页：每次切之前请原生拆掉没选中的格里留着的根页
+  const rootsReset = () => { try { window.webkit.messageHandlers.shiziNative.postMessage({ type: 'native', op: 'roots-reset' }); } catch (e) {} };
+  rootsReset();
   try { ctx.nav.switchTab(other); } catch (e) {}
   await ctx.sleep(80);
+  rootsReset();
   try { ctx.nav.switchTab(tab); } catch (e) {}
   await ctx.sleep(80);
   (window.__qaCleanups = window.__qaCleanups || []).push(() => {

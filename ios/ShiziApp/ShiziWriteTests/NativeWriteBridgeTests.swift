@@ -304,13 +304,13 @@ final class NativeWriteBridgeTests: XCTestCase {
         XCTAssertTrue(web.nativeWriteTop === vc, "the route restored the write entry: the same native page stays")
         XCTAssertFalse(QATrace.events.contains("reload:unclaimed"), "\(QATrace.events)")
 
-        // 组没了（数据清空）再重载：页面恢复不出写字条目 → 原生页收起
+        // 组没了（数据清空）再重载：B3.F 起栈在原生，重载后 stage.resync 按同一张有效性表（RESTORE_GUARDS）截短 → 写字条目不成立、原生页收起
         _ = try await js("window.__shiziTest.reset(); return true;")
         web.webView.reload()
         web.nativePageWillReload()
         try await waitUntil("page ready again", timeout: 20) { self.web.pageReady }
         try await waitUntil("unclaimed native page released", timeout: NativeNavState.reattachWait + 5) { self.web.nativeWriteTop == nil }
-        XCTAssertTrue(QATrace.events.contains("reload:unclaimed") || QATrace.events.contains("close"), "\(QATrace.events)")
+        XCTAssertTrue(QATrace.events.contains { $0.hasPrefix("reload:cut") } && QATrace.events.contains("close"), "\(QATrace.events)")
         try await waitUntil("the look faded out", timeout: 5) { NativeResultCover.current == nil }
     }
 }

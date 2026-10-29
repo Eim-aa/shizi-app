@@ -267,6 +267,38 @@
       }
     }
   },
+  "writeOps": [
+    "open",
+    "strokes",
+    "phase",
+    "judge",
+    "exit",
+    "copy",
+    "hint",
+    "correct",
+    "showAnswer",
+    "answerPhase",
+    "answerNext",
+    "skip",
+    "undoSkip",
+    "end",
+    "firstTip",
+    "redoOpen",
+    "redoNext",
+    "redoExit",
+    "refLabel"
+  ],
+  "resultOps": [
+    "result",
+    "resultCell",
+    "resultCorrect",
+    "resultAdd",
+    "resultSealed",
+    "resultUndoSkip",
+    "resultAgain",
+    "resultExit",
+    "resultInvite"
+  ],
   "writeKeys": [
     "R-W01.progress",
     "R-W01.progressLabel",

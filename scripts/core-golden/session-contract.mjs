@@ -73,6 +73,9 @@ const map=[
  [req('refLabel',{char:'永'}),host('refLabel',{char:'永'},{refLabel:{reply:'label',async:true}})],
 ];
 if(map.length!==names.length)throw Error(`transcription plans ${map.length} != source tests ${names.length}`);
+map[15]=[0,1,2,3,4].map(used=>({op:'session.writeHost',args:{op:'hint',args:{slot:'A',cardKey:key,action:'give',totalStrokes:8,used},groups:{'永':[4,4]}}}));
+map[43]=[...completed,{op:'session.resultPageView',args:{slot:'A',sessionId:id,width:402,ax:false}},{op:'session.resultPageView',args:{slot:'A',sessionId:id,width:402,ax:true}}];
+map[38].push({op:'store.seed',args:{state:{sessions:{A:createSession({id,kind:'first',queue:[key,other,'base:春'],at:T}),B:null,lastEnded:{}}}}},req('end',{sessionId:id}));
 map[13]=[...judged,{op:'store.commit',args:{label:'test-interruption',ops:[{op:'set',domain:'sessions',value:{A:createSession({id,kind:'daily',queue:[key,other,'base:春'],at:T}),B:null,lastEnded:{}}}]}},req('open'),req('open')];
 const plans=map.map((plan,i)=>[names[i],plan]);
 const groups=[];

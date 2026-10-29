@@ -56,7 +56,7 @@ try {
  for(const native of [false,true])await call('session.reminderPlatform',{native,commands:[{op:'sync'},{op:'invite',hour:9,minute:30},{op:'sync'},{op:'sync'},{op:'sync',force:true},{op:'schedule'},{op:'schedule'},{op:'time',hour:21,minute:15},{op:'fire'},{op:'forget'},{op:'sync'},{op:'query'},{op:'queueTarget',value:'base:口'},{op:'queueStatus',payload:{permission:'denied'}},{op:'queueTarget',value:'base:人'},{op:'ready'},{op:'ready'},{op:'target',value:'base:学习'}]});
  for(const throws of [false,true])await call('session.changeFeed',{throws,commands:[{settings:{appearance:'dark'},label:'first'},{settings:{appearance:'dark'},label:'noop'},{settings:{appearance:'light'},label:'fail',fail:true},{settings:{appearance:'light'},label:'retry'},{status:true},{off:true},{settings:{appearance:'auto'},label:'unsubscribed'}]});
  for(const loads of [[[ {char:'人',gloss:'origin',source:'book'}, {char:'人',gloss:'last'}, {char:'口',gloss:'',source:1},null ]],['throw',[{char:'人',gloss:'retry'}]],[null,[]]])for(const image of [false,true])await call('session.environment',{loads,image,requests:[{op:'view.detail',args:{char:'人',etymology:{gloss:'ignored'}}},{op:'view.detail',args:{char:'人'}}]});
- for(const build of [{version:'1.2',build:'20261029-abcd'},{},null,'bad'])for(const native of [false,true])await call('session.environment',{build,native,requests:[{op:'view.about',args:{build:{version:'ignored'}}},{op:'view.about-privacy',args:{native:!native}}]});
+ for(const build of [{version:'1.2',build:'20261029-abcd'},{},null,'bad'])for(const native of [false,true])await call('session.environment',{build,native,requests:[{op:'view.about',args:{build:{version:'ignored'}}},{op:'view.about-privacy',args:{native:!native}},{op:'view.mine',args:{build:{version:'ignored'}}}]});
  for(const layout of [[],[1,3],[0,1.5,'2'],null,'bad'])for(const layoutThrows of [false,true])await call('session.environment',{layout,layoutThrows,requests:[{op:'view.query',args:{cur:'人',text:'人'}},{op:'view.s02',args:{chars:['人','口']}}]});
  for(const measurer of [[],[1,3],'bad'])for(const measurerThrows of [false,true])await call('session.environment',{measurer,measurerThrows,requests:[{op:'view.session-none',args:{exhausted:true}},{op:'view.block',args:{kind:'migration',still:true}}]});
  for(const breaker of [[],[1,3],null,'bad'])for(const breakerThrows of [false,true])await call('session.environment',{breaker,breakerThrows,requests:[{op:'view.annual',args:{}},{op:'view.records',args:{}}]});
@@ -155,6 +155,7 @@ try {
   await call('session.firstExtras',args);await call('session.daysLaterOf',args);
  }
  // Full-family acceptance sequences: each failure is a product reply, never a protocol error.
+ for(const sound of [false,null,0,'',true]){const r=await call('session.writeHost',{op:'resultSealed',args:{slot:'A',sessionId:'bad',sound},hooks:{seal:{}}});assert.equal(r.calls.length,sound?1:0);}
  const api=(op,args={})=>call('api.call',{op,args});
  await call('store.seed',{state:{sessions:{A:createSession({id:'s1',kind:'daily',queue:['base:人','base:口','base:水'],at:T}),B:null,lastEnded:{}}}});
  const strokes=[[{x:40,y:40,t:0},{x:90,y:100,t:20}]];

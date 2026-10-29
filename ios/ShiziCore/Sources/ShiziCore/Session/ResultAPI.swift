@@ -29,7 +29,7 @@ public enum ResultAPI {
             if a["on"]?.boolValue == nil { a["on"] = nil }; let r = SessionResults.added(store, a)
             return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("view", try view())]) : WriteAPI.plain(r)
         case "resultSealed":
-            if a["sound"] != .bool(false) { try? d?.seal?(JS.string(a["slot"]) + ":" + JS.string(a["sessionId"])) }
+            if JS.truthy(a["sound"] ?? .bool(true)) { try? d?.seal?(JS.string(a["slot"]) + ":" + JS.string(a["sessionId"])) }
             let r = SessionResults.sealed(store, a); return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("already", .bool(JS.truthy(r["already"])))]) : WriteAPI.plain(r)
         case "resultUndoSkip":
             let r = SessionResults.undoSkip(store, a)

@@ -18,7 +18,11 @@ final class SessionTranscriptionTests: XCTestCase {
         }
     }
     // test/ui/native-write.test.mjs — ops: the named set; unknown op is rejected without throwing
-    func testNativeWrite01() throws { try run("ops: the named set; unknown op is rejected without throwing") }
+    func testNativeWrite01() throws {
+        let names = ["open","strokes","phase","judge","exit","copy","hint","correct","showAnswer","answerPhase","answerNext","skip","undoSkip","end","firstTip","redoOpen","redoNext","redoExit","refLabel"]
+        XCTAssertEqual(SessionResources.ui["writeOps"],.array(names.map(JSValue.string)))
+        for name in names { XCTAssertNotNil(CoreEngine.ops["write."+name]) }
+        try run("ops: the named set; unknown op is rejected without throwing") }
     // test/ui/native-write.test.mjs — switch: off unless the iOS shell injected __shiziNativeWrite
     func testNativeWrite02() throws { try run("switch: off unless the iOS shell injected __shiziNativeWrite") }
     // test/ui/native-write.test.mjs — wire format: strokes round-trip, pressure kept only when present, junk points dropped

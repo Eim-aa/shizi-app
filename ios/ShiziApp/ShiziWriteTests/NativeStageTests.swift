@@ -161,11 +161,10 @@ final class NativeStageTests: XCTestCase {
 
     /// 缺省（swift）模式走一遍：冷启动 → 首页开组写一组（全部跳过）→ 结果页 → 离开回首页 → 字库 → 我的 → 提醒深链开组；
     /// 全程交给 WKWebView 的调用为 0（WebCalls：引擎调用与 QA 镜像都算上；QA 镜像在这一段关掉，只有测试准备时用页面清库）。
-    /// 例外只有首次启动的迁移：迁移没做完的那次启动整个用 WebEngine（EngineMode.swift），这里跳过并说明。
+    /// 新装由原生直接记迁移 done（B4.9b），所以不需要预先启动一次。
     func testB49a_defaultModeMakesNoWebEngineCalls() async throws {
-        guard let swift = web.stage.engine as? SwiftEngine else {
-            throw XCTSkip("this launch runs WebEngine: unfinished first-launch migration (EngineMode.swift); launch the app once before the test run")
-        }
+        // B4.9b：新装也直接是 Swift 引擎（LegacyStorage.swift），不再跳过；落到 WebEngine 就是失败。
+        let swift = try XCTUnwrap(web.stage.engine as? SwiftEngine, "default mode must start on SwiftEngine on a fresh install")
         _ = try await js("return window.__shiziTest.reset();") // 测试准备（QA 设施）：清库
         try await waitUntil("swift store reset") { swift.core.store.state["sessions"]?["A"] == nil || swift.core.store.state["sessions"]?["A"] == .null }
         SwiftEngine.qaMirror = false

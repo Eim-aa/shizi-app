@@ -141,6 +141,15 @@ final class NativeStoreBridge {
         return queue.sync { perform(op: op, body: body) }
     }
 
+    /// B4.9b：选引擎前（主线程）调一次，规则见 LegacyStorage.swift。返回迁移是否已是 done。
+    func settleMigrationForLaunch() -> Bool {
+        queue.sync {
+            guard let store = try? openStore() else { return false }
+            let library = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first
+            return store.settleMigrationForLaunch { library.map { LegacyStorageProbe.probe(libraryURL: $0) } ?? .unsure }
+        }
+    }
+
     #if DEBUG
     /// B4.7 影子：全库与日志序号（在队列上一起取，前后一致）。
     func shadowSnapshot() -> (rows: [String: String], seq: Int) {

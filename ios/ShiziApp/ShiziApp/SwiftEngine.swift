@@ -540,7 +540,7 @@ final class NativeLineMeasure: EngineMeasure {
             utf16 = r.location + r.length
         }
         while index < chars.count { pieces.append((index..<index + 1, false)); index += 1 }
-        let opening: Set<Character> = ["「", "『", "（", "《", "〈", "【", "〔", "“", "‘", "(", "[", "{"]
+        let opening: Set<Character> = ["\u{300C}", "\u{300E}", "\u{FF08}", "\u{300A}", "\u{3008}", "\u{3010}", "\u{3014}", "\u{201C}", "\u{2018}", "(", "[", "{"] // 「『（《〈【〔“‘
         var units: [Range<Int>] = []
         var pendingOpen: Int?
         var lastIsWord = false

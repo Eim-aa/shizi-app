@@ -145,6 +145,10 @@ final class NativeStage: NSObject {
             enqueue { [weak self] done in self?.closeScreen(body, done: done) ?? done() }
         case "corrupt":
             enqueue { [weak self] done in self?.setCorruptNotice(body, done: done) ?? done() }
+        case "qa-faults":
+            #if DEBUG
+            (engine as? SwiftEngine)?.faultsArmed = true // B4.8：测试钩子挂了写入注入（SwiftEngine 在下一次写之前取走）
+            #endif
         case "changed":
             #if DEBUG
             ShadowEngine.shared?.webChanged(body)

@@ -1,13 +1,15 @@
 import Foundation
 
-// B4.5c / B4.7：选哪一个引擎（计划 B3B4-原生化架构与计划.md §4.3 ⑥、§6.2 B4.5 / B4.7）。
+// B4.5c / B4.7 / B4.8：选哪一个引擎（计划 B3B4-原生化架构与计划.md §4.3 ⑥、§4.4、§4.5、§6.2）。
 //
-//   web     缺省：WebEngine（WKWebView 里的 JS）是写入者，页面的 op 全由它答。
-//   swift   SwiftEngine（ShiziCore 的 SessionRuntime，同一个 SQLite 库）答它移植了的 op；导航 / 宿主状态类 op 仍交 JS（清单见 SwiftEngine.swift EngineOps）。
-//   shadow  WebEngine 照旧是写入者、照旧答页面；每个 op 同时在后台用同一前态的内存副本让 SwiftEngine 再算一遍，回包与后态逐值比对（ShadowEngine.swift）。
+//   swift   缺省（B4.8 起）：SwiftEngine（ShiziCore 的 SessionRuntime，同一个 SQLite 库）答它移植了的 op；
+//           导航 / 宿主状态类 op 仍交 JS（清单见 SwiftEngineCore.swift EngineOps；WKWebView 仍在后台跑）。
+//   web     回退：WebEngine（WKWebView 里的 JS）是写入者，页面的 op 全由它答。Release 里代码还在、没有入口（§4.5 第 1 条，留一版回退）。
+//   shadow  WebEngine 写、答；每个 op 同时在后台让 SwiftEngine 用同一前态的内存副本再算一遍并逐值比对（ShadowEngine.swift，只在 DEBUG）。
 //
-// 只有 DEBUG 包认启动参数 `-shizi-engine swift|web|shadow`（UserDefaults 参数域，与其它 -shizi-* 一样）；Release 恒为 web，
-// 选择与影子代码不编进去（verify-archive 核对可执行文件里没有 -shizi-engine）。
+// 只有 DEBUG 包认启动参数 `-shizi-engine swift|web|shadow`（或环境变量 SHIZI_ENGINE，宿主进程里的单元测试用）。
+// 首次启动保护（§4.4）：库里的 localStorage → SQLite 迁移还没做完（store_meta 'migration' 不是 done：新装、旧版升级的第一次启动、
+// 迁移失败回退到 localStorage）时，这一次启动用 WebEngine——迁移只有 JS 一份（native-boot.js）；做完之后下一次启动再切到 SwiftEngine。
 enum ShiziEngineMode: String {
     case web
     case swift
@@ -16,10 +18,21 @@ enum ShiziEngineMode: String {
     static let current: ShiziEngineMode = {
         #if DEBUG
         let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "-shizi-engine"), i + 1 < args.count, let mode = ShiziEngineMode(rawValue: args[i + 1]) { return mode }
-        // 宿主进程里跑的单元测试（ShiziWriteTests）没法给 App 传启动参数：环境变量 SHIZI_ENGINE（xcodebuild 用 TEST_RUNNER_SHIZI_ENGINE 传入）
-        if let v = ProcessInfo.processInfo.environment["SHIZI_ENGINE"], let mode = ShiziEngineMode(rawValue: v) { return mode }
+        if let i = args.firstIndex(of: "-shizi-engine"), i + 1 < args.count, let mode = ShiziEngineMode(rawValue: args[i + 1]) { return guarded(mode) }
+        if let v = ProcessInfo.processInfo.environment["SHIZI_ENGINE"], let mode = ShiziEngineMode(rawValue: v) { return guarded(mode) }
         #endif
-        return .web
+        return guarded(.swift)
     }()
+
+    /// 迁移没做完（或读不出库）→ 这一次用 web。
+    private static func guarded(_ mode: ShiziEngineMode) -> ShiziEngineMode {
+        guard mode == .swift else { return mode }
+        return migrationDone ? .swift : .web
+    }
+
+    /// 这次启动时库里的迁移标记是否已是 done（同 native-boot.js 判断用的同一个 ping 回包）。
+    static var migrationDone: Bool {
+        let reply = NativeStoreBridge.shared.callSync("ping", [:])
+        return (reply["migration"] as? [String: Any])?["state"] as? String == "done"
+    }
 }

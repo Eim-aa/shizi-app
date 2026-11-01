@@ -82,6 +82,8 @@ enum EngineOps {
         "library.startToday", "library.openQuery", "library.undoLeave", "library.undoLeaveCancel", "library.list.start", "library.all.start", "library.switch",
         "detail.practice", "detail.image", "session.pick", "session.libSwitch", "session.wrongList",
         "query.pick", "query.detail", "s02.decide", "image.view", "image.add", "image.closed",
+        // 阻断页：存储可不可用 / 有没有阻断由页面的 store 报（引擎状态通道），阻断页的 op 跟它同一个来源
+        "block.retry", "block.export", "block.exportable",
         // 存相册的平台握手（JS saveImageFile → savePracticeCard → shiziCardSaved）还在页面桥上；记账规则 Swift 有（影子里比）
         "image.persist",
     ]

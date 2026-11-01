@@ -26,6 +26,12 @@ final class SwiftEngine: StageEngine {
     private var commits = 0
     /// 判断声的播放（WebViewController 的同一组预载 CAF）。
     var playSound: ((String, Double) -> Void)?
+    #if DEBUG
+    /// 测试钩子在页面里挂了写入注入（failNextWrite / interruptAfterWrite，D07 三段式的测试）：下一次 Swift 要写的 op 之前取走挂到 Swift 的 storage。
+    var faultsArmed = false
+    /// 只读的 op（不取走注入，留给后面真正写的那一次）。
+    static let readOnly: Set<String> = ["write.copy", "write.refLabel", "image.spec", "reminder.plan", "backup.export", "backup.undoState", "backup.restorePreview"]
+    #endif
 
     init(webView: WKWebView?) {
         web = WebEngine(webView: webView)
@@ -80,6 +86,13 @@ final class SwiftEngine: StageEngine {
                 return
             }
             let before = commits
+            #if DEBUG
+            let name = EngineOps.runtimeOp(function: function, op: op)
+            if faultsArmed, !name.hasPrefix("view."), !Self.readOnly.contains(name) {
+                faultsArmed = false
+                await takeFaults()
+            }
+            #endif
             let reply = await core.answer(function: function, op: op, args: EngineValue.object(args))
             var body = EngineValue.dict(reply)
             let wall = (CACurrentMediaTime() - t0) * 1000
@@ -89,6 +102,20 @@ final class SwiftEngine: StageEngine {
         }
         return true
     }
+
+    #if DEBUG
+    @MainActor private func takeFaults() async {
+        let f: JSValue = await withCheckedContinuation { cont in
+            WebEngine.evaluate(web.webView, function: "__shiziTestTakeFaults", op: "", args: [:]) { body, _ in cont.resume(returning: EngineValue.js(body)) }
+        }
+        let storage = core.store.storage
+        storage.clearFaults()
+        for rule in f["fail"]?.arrayValue ?? [] {
+            storage.failNextWrite(rule["remaining"]?.numberValue ?? 0, kind: rule["kind"]?.stringValue ?? "generic", matchKey: rule["matchKey"]?.stringValue)
+        }
+        if let k = f["interruptAfter"]?.numberValue { storage.interruptAfterWrite(k) }
+    }
+    #endif
 
     /// Swift 写了库：页面的 JS 镜像重读（排在调用队列里）。
     private func syncPage() {

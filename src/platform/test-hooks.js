@@ -13,6 +13,7 @@
 //   getStatus()                     store.status（available/blocked/corruptNotice/usage/lastRepair/backend——B1：kind 'native'|'localStorage' 与迁移信息）
 //   failNextWrite(n, {kind:'quota'|'generic'|'security', matchKey?})  接下来 n 次匹配的 setItem 抛错
 //   interruptAfterWrite(k)          第 k 次写后模拟进程中断（之后写全部失败且不回滚；刷新页面后 repair）
+//   takeFaults()                    取走并清空挂着的注入（B4.8：原生 SwiftEngine 是写入者时，原生在下一次写之前取走，挂到 Swift 一侧）
 //   getFaults()                     现在挂着的注入 {fail:[{remaining, kind, matchKey}], interruptAfter, halted, overridden}（B4.7 影子比对读；
 //                                   overridden = 夹具脚本把探测 / blocked 换掉了）
 //   setClock(iso|null)              平移应用时钟（platform/env.js now()）
@@ -111,6 +112,16 @@ function installWriteLog(backend, sink, routeSink = []) {
   Object.defineProperty(proto, PATCHED, { value: { sinks }, configurable: true });
 }
 
+/** B4.8：写入注入挂上了——告诉原生（SwiftEngine 是写入者时它在下一次写之前取走，见 takeFaults）。网页版没有原生通道，什么都不发。 */
+function armedForNative(win = globalThis) {
+  try {
+    const ch = win && win.webkit && win.webkit.messageHandlers && win.webkit.messageHandlers.shiziNative;
+    if (ch) ch.postMessage({ type: 'native', op: 'qa-faults' });
+  } catch (error) {
+    // 测试设施，发不出去不影响
+  }
+}
+
 function createTestApi({ storage, getStore }) {
   // B4.7 影子比对：夹具脚本会把 storage 的探测 / blocked 换成假的（States/_ops/blockMode.js）——getFaults 报出来，影子那组不比
   const originalProbe = storage ? storage.probe : null;
@@ -148,6 +159,7 @@ function createTestApi({ storage, getStore }) {
     },
     failNextWrite(n = 1, options = {}) {
       storage.failNextWrite(n, options || {});
+      armedForNative();
       return true;
     },
     /** 现在挂着的写入注入 {fail:[{remaining, kind, matchKey}], interruptAfter, halted}（B4.7 影子比对读）。 */
@@ -159,7 +171,14 @@ function createTestApi({ storage, getStore }) {
     },
     interruptAfterWrite(k) {
       storage.interruptAfterWrite(k);
+      armedForNative();
       return true;
+    },
+    /** B4.8：iOS 壳里写入者是原生 SwiftEngine 时，原生在下一次要写的 op 之前取走挂着的写入注入（取走即清空，同一个注入只生效一次）。 */
+    takeFaults() {
+      const f = plain(storage.faults);
+      storage.clearFaults();
+      return f;
     },
     setClock(iso) {
       const t = setClockOverride(iso === undefined ? null : iso);
@@ -202,6 +221,7 @@ export function mountTestHooks({ win = globalThis, storage, getStore }) {
     if (win.__shiziQAStorageUnavailable === true && storage && typeof storage.probe === 'function') storage.probe = () => ({ ok: false, kind: 'security' });
     const api = createTestApi({ storage, getStore });
     win.__shiziTest = api;
+    win.__shiziTestTakeFaults = () => api.takeFaults(); // B4.8：原生按函数名调（WebEngine.evaluate）
     return api;
   }
   return null;

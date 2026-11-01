@@ -462,6 +462,21 @@ function watchCorrupt(store) {
 
 let engine = null;
 
+/** 重读原生库（镜像后端换成库里现在的全部行）并重新 load store（通知 type 'load'）。只在 iOS 壳的原生后端上有效。 */
+export function syncFromNative() {
+  let store = null;
+  try { store = getStore(); } catch (error) { return { ok: false, error: { kind: 'unavailable' } }; }
+  const backend = store && store.storage ? store.storage.backend : null;
+  if (!backend || typeof backend.reloadRows !== 'function') return { ok: false, error: { kind: 'unavailable' } };
+  try {
+    backend.reloadRows();
+  } catch (error) {
+    return { ok: false, error: { kind: 'transport', reason: String(error && error.message || error) } };
+  }
+  store.reload();
+  return { ok: true };
+}
+
 /** 引擎的导航镜像（QA / 测试读；没在引擎模式时 null）。 */
 export function getEngine() {
   return engine;
@@ -535,6 +550,9 @@ export async function mountEngine({ win = globalWin(), defaultTab = 'home' } = {
     watchCorrupt(store);
     installCommitFeedback(() => store, { haptics: false }); // 判断声 j1 轮换（触觉原生自己发）；网页界面不挂，只有这里装一次
   }
+  // B4.5c：原生 SwiftEngine（DEBUG -shizi-engine swift）直接写同一个 SQLite 库后调它：镜像重读原生库、store 重新 load，
+  // 之后交给本引擎的 op（导航、宿主消息）读到的是 Swift 刚写下的状态。缺省（WebEngine 是写入者）从不调用。不改任何规则。
+  if (win) win.shiziEngineSync = () => syncFromNative();
   engine = router;
   return router;
 }

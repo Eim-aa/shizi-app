@@ -12,6 +12,9 @@ public final class SessionActionHooks {
     public var charData: EtymologyProvider?
     public var build: (() throws -> JSValue)?
     public var native = false
+    /// createAppApi 的 ctx.now（session/api/index.js：宿主注入，缺省 Date.now）——字详情的「今天」与阻断页导出备份的时刻用它，
+    /// 不是 store 的时钟（env.now，带测试宿主钉住的偏移）。JS 原样：App 里没注入，就是墙上时钟。nil = store.now()（命令行 / 差分与 JS 镜像同一个钟）。
+    public var now: (() -> Double)?
     public var queryLayout: [String: (String) throws -> JSValue] = [:]
     public var measurer: ((JSValue) throws -> JSValue)?
     public var lineBreaker: ((String, String) throws -> JSValue)?

@@ -157,6 +157,8 @@ export function createXhrTransport({ win = globalThis, base = NATIVE_STORE_BASE 
         xhr = new win.XMLHttpRequest();
         xhr.open('POST', url(op), false);
         xhr.setRequestHeader('Content-Type', 'application/json');
+        // B4.7：iOS DEBUG 影子比对在一个 op 的同步部分里设 __shiziShadowOp，这期间的写入带上它（原生日志按 op 归属写入）；平时没有这个全局
+        if (win.__shiziShadowOp) xhr.setRequestHeader('X-Shizi-Op', String(win.__shiziShadowOp));
         xhr.send(JSON.stringify(payload));
       } catch (error) {
         throw new NativeStoreError('E_TRANSPORT', `${op}: ${error && error.name ? error.name : 'send failed'}`, { op });

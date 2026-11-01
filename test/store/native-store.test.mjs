@@ -436,3 +436,21 @@ test('an old backup file (made by the localStorage version) restores into the na
   assert.deepEqual(plain(dst.store.getState().ink), state.ink);
   assert.deepEqual(plain(dst.store.getState().sched), state.sched);
 });
+
+// B4.5c：原生 SwiftEngine（DEBUG -shizi-engine swift）与页面写同一个库——另一个写入者写完，页面镜像 reloadRows + store.reload 后读到它写的。
+test('NativeBackend.reloadRows：另一个写入者写库之后，镜像与 store 重读到库里现在的内容', () => {
+  const db = new FakeNativeDb();
+  const a = nativeEnv(db);
+  assert.equal(a.store.seed(baselineState()).ok, true);
+  // 另一个写入者（同一个库、自己的镜像）提交一次判断
+  const b = nativeEnv(db);
+  assert.equal(b.store.commit('judge', judgeMutation('大')).ok, true);
+  assert.notDeepEqual(plain(a.store.getState().records), plain(b.store.getState().records));
+  a.storage.backend.reloadRows();
+  a.store.reload();
+  assert.deepEqual(plain(a.store.getState()), plain(b.store.getState()));
+  // 之后 a 自己的提交基于重读后的状态（不会把 b 写的覆盖掉）
+  assert.equal(a.store.commit('judge', judgeMutation('小')).ok, true);
+  const c = nativeEnv(db);
+  assert.deepEqual(plain(c.store.getState()), plain(a.store.getState()));
+});

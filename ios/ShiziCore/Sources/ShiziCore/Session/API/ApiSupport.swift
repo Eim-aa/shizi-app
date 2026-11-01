@@ -32,7 +32,7 @@ public enum PageAPI {
         if op == "detail.image" {
             guard let char = args["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }
             guard hooks?.has(op) == true else { return SessionWrites.failure("unavailable") }
-            let model = try DetailView.detailModel(.object(store.state), char: char, today: store.dates.localDay(.number(store.now())), policy: Config.policy, hasInk: { DetailView.recordHasInk(.object(store.state), record: $0, dates: store.dates) }, dates: store.dates)
+            let model = try DetailView.detailModel(.object(store.state), char: char, today: store.dates.localDay(.number(hooks?.now?() ?? store.now())), policy: Config.policy, hasInk: { DetailView.recordHasInk(.object(store.state), record: $0, dates: store.dates) }, dates: store.dates)
             _ = try hooks?.invoke(op, JSObject([("char", .string(char)), ("cardKey", model["cardKey"] ?? .null), ("record", model["imageRecord"] ?? model["latest"] ?? .null)]))
             return JS.obj([("ok", .bool(true))])
         }
@@ -48,7 +48,7 @@ public enum PageAPI {
         if ["view.records", "view.month", "view.annual"].contains(op) { return try mineSub(op, store, args) }
         if op.hasPrefix("remind.") || op.hasPrefix("reminder.") || op == "view.remind" { return try settings(op, store, args) }
         if op.hasPrefix("backup.") || op == "view.backup" { return try backup(op, store, args) }
-        if op.hasPrefix("block.") || op == "view.block" { return try block(op, store, args) }
+        if op.hasPrefix("block.") || op == "view.block" { return try block(op, store, args, hooks: hooks) }
         if op.hasPrefix("query.") || op == "s02.decide" || op == "view.query" || op == "view.s02" { return try query(op, store, args, hooks: hooks) }
         if op.hasPrefix("view.about") { return try about(op, args, hooks: hooks) }
         return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])

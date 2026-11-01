@@ -110,6 +110,12 @@
 		1A0000000000000000B37006 /* DetailPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37005 /* DetailPhoto.swift */; };
 		1A0000000000000000B37008 /* DetailParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37007 /* DetailParts.swift */; };
         B46000000000000000000001 /* ShiziImageRendering in Frameworks */ = {isa = PBXBuildFile; productRef = B46000000000000000000002; };
+		B45C00000000000000000011 /* EngineMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000010 /* EngineMode.swift */; };
+		B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000012 /* SwiftEngineCore.swift */; };
+		B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000014 /* SwiftEngineRuntime.swift */; };
+		B45C00000000000000000017 /* SwiftEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000016 /* SwiftEngine.swift */; };
+		B45C00000000000000000019 /* ShadowEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000018 /* ShadowEngine.swift */; };
+        B45C0000000000000000000A /* ShiziCore in Frameworks */ = {isa = PBXBuildFile; productRef = B45C0000000000000000000B; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -239,6 +245,11 @@
 		1A0000000000000000B37003 /* DetailZoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailZoom.swift; sourceTree = "<group>"; };
 		1A0000000000000000B37005 /* DetailPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPhoto.swift; sourceTree = "<group>"; };
 		1A0000000000000000B37007 /* DetailParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailParts.swift; sourceTree = "<group>"; };
+		B45C00000000000000000010 /* EngineMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineMode.swift; sourceTree = "<group>"; };
+		B45C00000000000000000012 /* SwiftEngineCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineCore.swift; sourceTree = "<group>"; };
+		B45C00000000000000000014 /* SwiftEngineRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineRuntime.swift; sourceTree = "<group>"; };
+		B45C00000000000000000016 /* SwiftEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngine.swift; sourceTree = "<group>"; };
+		B45C00000000000000000018 /* ShadowEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -247,6 +258,7 @@
 			buildActionMask = 2147483647;
 			files = (
                 B46000000000000000000001 /* ShiziImageRendering in Frameworks */,
+                B45C0000000000000000000A /* ShiziCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -344,6 +356,11 @@
 				1A000000000000000000B2A2 /* NativeWriteLayout.swift */,
 				1A00000000000000000000D6 /* NativeInkSpike.swift */,
 				1A00000000000000000000E0 /* NativeStore.swift */,
+				B45C00000000000000000010 /* EngineMode.swift */,
+				B45C00000000000000000012 /* SwiftEngineCore.swift */,
+				B45C00000000000000000014 /* SwiftEngineRuntime.swift */,
+				B45C00000000000000000016 /* SwiftEngine.swift */,
+				B45C00000000000000000018 /* ShadowEngine.swift */,
 				1A00000000000000000000E2 /* NativeStoreBridge.swift */,
 				1A00000000000000000A1101 /* NativeQAHarness.swift */,
 				1A00000000000000000B3301 /* QAFixtures.swift */,
@@ -493,7 +510,7 @@
 			);
 			dependencies = (
 			);
-			packageProductDependencies = (B46000000000000000000002);
+			packageProductDependencies = (B46000000000000000000002, B45C0000000000000000000B);
             name = Shizi;
 			productName = Shizi;
 			productReference = 1A0000000000000000000005 /* Shizi.app */;
@@ -698,6 +715,11 @@
 				1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */,
 				1A00000000000000000000D7 /* NativeInkSpike.swift in Sources */,
 				1A00000000000000000000E1 /* NativeStore.swift in Sources */,
+				B45C00000000000000000011 /* EngineMode.swift in Sources */,
+				B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */,
+				B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */,
+				B45C00000000000000000017 /* SwiftEngine.swift in Sources */,
+				B45C00000000000000000019 /* ShadowEngine.swift in Sources */,
 				1A00000000000000000000E3 /* NativeStoreBridge.swift in Sources */,
 				1A00000000000000000A1102 /* NativeQAHarness.swift in Sources */,
 				1A0000000000000000B31002 /* NativeType.swift in Sources */,
@@ -792,6 +814,7 @@
 /* End XCLocalSwiftPackageReference section */
 /* Begin XCSwiftPackageProductDependency section */
         B46000000000000000000002 = {isa = XCSwiftPackageProductDependency; productName = ShiziImageRendering; };
+        B45C0000000000000000000B = {isa = XCSwiftPackageProductDependency; package = B46000000000000000000003; productName = ShiziCore; };
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */

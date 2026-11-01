@@ -57,7 +57,7 @@ final class NativeWriteBridge {
     #endif
 
     private func callNow(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
-        WebEngine.evaluate(webView, function: "shiziNativeWrite", op: op, args: args) { body, wall in
+        EngineRoute.evaluate(webView, function: "shiziNativeWrite", op: op, args: args) { body, wall in
             let reply = NativeWriteReply(ok: (body["ok"] as? Bool) == true, body: body, wallMs: wall)
             #if DEBUG
             NativeWriteMetrics.shared.bridge(op: op, reply: reply)
@@ -76,7 +76,7 @@ final class NativeWriteBridge {
     }
 
     private func callNavNow(_ op: String, _ args: [String: Any], completion: @escaping (NativeWriteReply) -> Void) {
-        WebEngine.evaluate(webView, function: "shiziNativeNav", op: op, args: args) { body, wall in
+        EngineRoute.evaluate(webView, function: "shiziNativeNav", op: op, args: args) { body, wall in
             completion(NativeWriteReply(ok: (body["ok"] as? Bool) == true, body: body, wallMs: wall))
         }
     }

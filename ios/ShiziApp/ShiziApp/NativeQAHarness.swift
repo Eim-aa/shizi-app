@@ -65,7 +65,7 @@ extension WebViewController {
         QAClock.offsetMs = abs(off) >= 1000 ? off : nil
     }
     func qaJS(_ body: String) async -> Any? {
-        try? await webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page)
+        await ShadowEngine.foreign { try? await webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page) }
     }
 
     func qaWait(_ seconds: Double, _ cond: @escaping () async -> Bool) async -> Bool {
@@ -1103,7 +1103,7 @@ final class QAProbe {
             out["result"] = ["shown": false]
         }
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
-        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies, "bootMs": NativeStage.bootFrameMs ?? -1, "bootFromLaunchMs": NativeStage.bootFromLaunchMs ?? -1, "bootKind": host.stage.bootKind, "entries": host.stage.entries.map { $0["n"] as? String ?? "" }]
+        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "engineMode": ShiziEngineMode.current.rawValue, "latency": NativeStage.latencies, "bootMs": NativeStage.bootFrameMs ?? -1, "bootFromLaunchMs": NativeStage.bootFromLaunchMs ?? -1, "bootKind": host.stage.bootKind, "entries": host.stage.entries.map { $0["n"] as? String ?? "" }]
         if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
         if let tabs = host.stage.tabsProbe { stageOut["tabs"] = tabs } // B3.5d：原生 Tab 栏（看得见、选中的 tab）
         // R14：宿主往上的呈现链（类名，底 → 顶；写字 / 结果 / 原生页 / 弹层都在里面）——测试工具判断「左缘返回有没有发生任何事」用
@@ -1112,6 +1112,7 @@ final class QAProbe {
         while let c = cur { chain.append(String(describing: type(of: c))); cur = c.presentedViewController }
         stageOut["presented"] = chain
         out["stage"] = stageOut
+        if let shadow = ShadowEngine.shared { out["shadow"] = shadow.probe } // B4.7：影子比对 {ops, mismatches, first, …}
         out["pageReady"] = host.pageReady
         out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events

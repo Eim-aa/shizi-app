@@ -704,6 +704,10 @@ export function createStorage(backend = null, { now = () => Date.now() } = {}) {
       const count = Math.floor(Number(k) || 0);
       interruptAfter = count > 0 ? count : null;
     },
+    /** 现在挂着的注入（只读副本；B4.7 影子比对把同一组注入挂到 Swift 一侧再重算）。 */
+    get faults() {
+      return { fail: failQueue.map(f => ({ remaining: f.remaining, kind: f.kind, matchKey: f.matchKey })), interruptAfter, halted };
+    },
     /** 清除全部注入与中断状态（不清阻断）。 */
     clearFaults() {
       failQueue = [];

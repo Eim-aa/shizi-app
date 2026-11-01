@@ -24,7 +24,7 @@
 | `Sources/shizi-core-cli/` | 协议的命令行外壳（macOS），供 node 差分与调度模拟器用 |
 | `Tests/ShiziCoreTests/` | 金标准（`Fixtures/*.json`，node 生成）+ 协议测试 |
 
-**本包没有链进 App 的 Xcode 工程**（避免与并行卡冲突 `project.pbxproj`）；App 接入（`SwiftEngine: ShiziEngine`）在 B4.5。
+**App 接入（B4.5c）**：App target 链 `ShiziCore` 与 `ShiziImageRendering` 两个产品；`SwiftEngine: ShiziEngine`（`ios/ShiziApp/ShiziApp/SwiftEngine*.swift`）把 `SessionRuntime` 挂到 B3 的引擎协议上，宿主函数（导航、平台、排版量测）在 App 的 `EngineHost`。缺省仍是 WebEngine；DEBUG `-shizi-engine swift|shadow` 见计划 §10.x B4.5c+B4.7。
 
 ## JSON 行协议（版本 1）
 
@@ -116,3 +116,7 @@ pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子
 `verify:core-diff` 强制执行 25-family 成功/失败门禁（2,014 次全回复/状态比较），另跑 session 200×300、四时区差分及 store 专项。契约金标准 220 场景/1,196 步，两时区×两后端，保留原名/路径和 --check。write 的非确定性能采样 ms 是唯一去掉的字段。
 
 最终门禁：Swift 640/640；unit 1680 pass / 0 fail / 1 既有 todo；core-diff、copy/data、所有 fixture --check 全过。详细范围、边界、JS 原行为及逐行提交见 [B4.5a-core-移植状态.md](../../docs/engineering/v10/B4.5a-core-移植状态.md)。App 接线与删除 JS 按后续卡的验收执行。
+
+### B4.5c / B4.7 宿主注入口
+
+App 的影子比对（WebEngine ⇄ SwiftEngine，同一前态逐值比）抓到几处 Swift 把「JS 由界面层注入的值」写死了，已改成走宿主注入、没注入保持原值（命令行 / 差分不变；`EngineInjectionTests`）：结果页 `lines`、图片预览 `noteStarts` / `failStarts` / 选字条 `thumb`（`ImageRegisteredActions.thumb`）、换库页 `sourceStarts`、`SessionRuntime` 的 `write.*` 路径也装宿主量测；`SessionActionHooks.now` = createAppApi 的 `ctx.now`（字详情的「今天」、阻断页导出备份的时刻——JS 原样：App 里是墙上时钟，不带测试宿主钉住的偏移）。

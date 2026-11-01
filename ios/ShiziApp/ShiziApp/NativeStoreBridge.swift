@@ -69,6 +69,11 @@ final class NativeStoreBridge {
         let op = String((request.url?.path ?? "").dropFirst(Self.pathPrefix.count))
         let body = Self.body(of: request)
         let started = CFAbsoluteTimeGetCurrent()
+        #if DEBUG
+        let tag = ShadowJournal.shared == nil ? nil : request.value(forHTTPHeaderField: "X-Shizi-Op") // B4.7 影子：这次写入属于哪个 op（只有影子包装里才有）
+        #else
+        let tag: String? = nil
+        #endif
         queue.async { [weak self] in
             guard let self else { return }
             if op == "load", let data = self.preloaded {
@@ -76,7 +81,7 @@ final class NativeStoreBridge {
                 DispatchQueue.main.async { self.reply(task, data: data) }
                 return
             }
-            let response = self.perform(op: op, body: body, started: started)
+            let response = self.perform(op: op, body: body, started: started, tag: tag)
             DispatchQueue.main.async { self.reply(task, response) }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.timeout(for: op)) { [weak self] in
@@ -130,6 +135,22 @@ final class NativeStoreBridge {
         return data
     }
 
+    /// B4.5c：原生 SwiftEngine（swift 模式）经同一条连接、同一个串行队列读写，op 与载荷同页面的请求（load / apply / diag）。只在主线程调。
+    func callSync(_ op: String, _ payload: [String: Any]) -> [String: Any] {
+        let body = try? JSONSerialization.data(withJSONObject: payload)
+        return queue.sync { perform(op: op, body: body) }
+    }
+
+    #if DEBUG
+    /// B4.7 影子：全库与日志序号（在队列上一起取，前后一致）。
+    func shadowSnapshot() -> (rows: [String: String], seq: Int) {
+        queue.sync {
+            let rows = (try? openStore().loadAll()) ?? []
+            return (Dictionary(rows, uniquingKeysWith: { $1 }), ShadowJournal.shared?.current ?? 0)
+        }
+    }
+    #endif
+
     // MARK: - 执行（queue 上）
 
     private func openStore() throws -> NativeStore {
@@ -173,7 +194,7 @@ final class NativeStoreBridge {
         }
     }
 
-    func perform(op: String, body: Data?, started: CFAbsoluteTime = CFAbsoluteTimeGetCurrent()) -> [String: Any] {
+    func perform(op: String, body: Data?, started: CFAbsoluteTime = CFAbsoluteTimeGetCurrent(), tag: String? = nil) -> [String: Any] {
         do {
             let payload: [String: Any]
             if let body, !body.isEmpty {
@@ -197,7 +218,11 @@ final class NativeStoreBridge {
                 out["migration"] = try store.migration()?.dictionary ?? NSNull()
                 out["rows"] = rows.map { [$0.0, $0.1] }
             case "apply":
-                out["written"] = try store.apply(try Self.ops(payload["ops"]))
+                let ops = try Self.ops(payload["ops"])
+                out["written"] = try store.apply(ops)
+                #if DEBUG
+                ShadowJournal.shared?.record(ops.map { ($0.key, $0.value) }, tag: tag)
+                #endif
             case "import":
                 guard let count = payload["count"] as? Int, let digest = payload["digest"] as? String else {
                     throw NativeStoreError("E_BAD_REQUEST", "import needs count and digest")

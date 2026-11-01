@@ -38,7 +38,7 @@ extension PageAPI {
             return reply(SessionResults.correct(store, args, mode: "detail"), fallback: "failed")
         case "view.detail-photo": return JS.obj([("ok", .bool(true)), ("view", try DetailView.photoView(.object(store.state), char: char))])
         case "view.detail":
-            return JS.obj([("ok", .bool(true)), ("view", try DetailView.detailView(.object(store.state), char: char, today: store.dates.localDay(.number(store.now())), etymology: hooks?.charData?.etymologyOf(char), imageAction: hooks?.has("detail.image") == true, dates: store.dates))])
+            return JS.obj([("ok", .bool(true)), ("view", try DetailView.detailView(.object(store.state), char: char, today: store.dates.localDay(.number(hooks?.now?() ?? store.now())), etymology: hooks?.charData?.etymologyOf(char), imageAction: hooks?.has("detail.image") == true, dates: store.dates))])
         default: return SessionWrites.failure("unavailable")
         }
     }

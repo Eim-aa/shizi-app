@@ -107,8 +107,11 @@ extension WebViewController {
         if !hasBase || !setup.isEmpty {
             do {
                 let pin = (fx.dict("clock")?["pin"] as? String) ?? ""
-                let v = try await webView.callAsyncJavaScript(Self.qaRunJS(),
-                    arguments: ["setup": setup, "pin": pin, "chars": Self.qaChars, "clock": Self.qaClock, "reset": !hasBase], in: nil, contentWorld: .page)
+                let v: Any? = try await ShadowEngine.foreign { () async -> Result<Any?, Error> in
+                    do { return .success(try await webView.callAsyncJavaScript(Self.qaRunJS(),
+                        arguments: ["setup": setup, "pin": pin, "chars": Self.qaChars, "clock": Self.qaClock, "reset": !hasBase], in: nil, contentWorld: .page)) }
+                    catch { return .failure(error) }
+                }.get()
                 if let d = v as? [String: Any], (d["ok"] as? Bool) != true { return "prepare: \(d["error"] ?? "?")" }
             } catch {
                 return "prepare js: \(error)"
@@ -264,7 +267,7 @@ extension WebViewController {
             return
         }
         let lines = Self.qaRedoLines.map { $0.map { [$0.0, $0.1] } }
-        _ = try? await webView.callAsyncJavaScript(Self.qaWebStrokesJS, arguments: ["lines": lines], in: nil, contentWorld: .page)
+        _ = await ShadowEngine.foreign { try? await webView.callAsyncJavaScript(Self.qaWebStrokesJS, arguments: ["lines": lines], in: nil, contentWorld: .page) }
     }
 
     static var qaWebStrokesJS: String { QAFixture.runtimeFile("strokes") }

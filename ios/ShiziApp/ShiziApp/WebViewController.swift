@@ -546,6 +546,9 @@ final class WebViewController: UIViewController {
     }
 
     func notifyBackupExported() {
+        #if DEBUG
+        ShadowEngine.foreign()
+        #endif
         webView.evaluateJavaScript("if (typeof markBackupExported === 'function') markBackupExported(); void 0;")
     }
 
@@ -675,6 +678,9 @@ final class WebViewController: UIViewController {
             return
         }
         let script = "typeof shiziBackupPicked === 'function' && shiziBackupPicked(\(literal)) === true;"
+        #if DEBUG
+        ShadowEngine.foreign()
+        #endif
         webView.evaluateJavaScript(script) { [weak self] result, error in
             let accepted = error == nil && (result as? Bool) == true
             if !accepted {
@@ -794,6 +800,9 @@ extension WebViewController: WKScriptMessageHandler {
             return
         }
 
+        #if DEBUG
+        soundShadowOp = type == "sound" ? body["shadowOp"] as? String : nil // B4.7：影子按 op 归属声音
+        #endif
         switch type {
         case "pageReady":
             handlePageReady()
@@ -984,7 +993,22 @@ extension WebViewController {
         }
     }
 
+    /// B4.5c：SwiftEngine（swift 模式）的判断声——同一组预载 CAF、同一个探针记录。
+    func playEngineSound(kind: String, gain: Double) { playSound(kind: kind, gain: gain) }
+    #if DEBUG
+    private static var shadowOpKey = 0
+    /// 正在处理的 sound 消息带的影子 op（只在 DEBUG）。
+    var soundShadowOp: String? {
+        get { objc_getAssociatedObject(self, &Self.shadowOpKey) as? String }
+        set { objc_setAssociatedObject(self, &Self.shadowOpKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+    #endif
+
     private func playSound(kind: String, gain: Double) {
+        #if DEBUG
+        ShadowEngine.shared?.webSound(kind, op: soundShadowOp) // B4.7：影子模式里页面发的声音（swift 模式没有影子）
+        soundShadowOp = nil
+        #endif
         guard let player = soundPlayers[kind] else { return } // 未知名字忽略（旧的 stamp / paper 已不存在）
         ShiziProbe.feedback("sound:\(kind)")
         player.volume = Float(min(max(gain, 0), 1))
@@ -1175,6 +1199,9 @@ extension WebViewController {
     }
 
     private func dispatchReminderStatus(_ status: String) {
+        #if DEBUG
+        ShadowEngine.foreign()
+        #endif
         webView.evaluateJavaScript("if (typeof shiziReminderStatus === 'function') shiziReminderStatus({permission:'\(status)'}); void 0;")
     }
 }

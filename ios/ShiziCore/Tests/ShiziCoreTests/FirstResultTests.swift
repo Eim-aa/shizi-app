@@ -41,7 +41,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try tier(30), "later")
     }
 
-    // test/core/first-result.test.mjs: reviewDays: per-char days until the real FSRS due day (same source as the preview sentence); already due counts as 1; no schedule -> not listed
+    // test/core/first-result.test.mjs: reviewDays: per-char days until the real FSRS due day (same source as the preview sentence); already due counts as 1; no schedule → not listed
     func testReviewDaysPerCharDaysUntilTheRealFSRSDueDayAlreadyDueCountsAs1NoScheduleNotListed() throws {
         let out = try FirstResult.reviewDays(chars: [item(gan), item(yingC), item(shi), item(tiao), item(gan)],
                                              sched: obj43([("base:" + gan, sched(day(8))), ("base:" + yingC, sched(day(1))), ("base:" + shi, sched(day(-2)))]),
@@ -67,7 +67,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try Copy.text("X-FIRST.daysLater", JSObject([("n", n43(12))])), "12 \u{5929}\u{540E}\u{518D}\u{89C1}")
     }
 
-    // test/core/first-result.test.mjs: reviewPreview + previewText: tiers merge by due (near -> far); the design-sheet sentences
+    // test/core/first-result.test.mjs: reviewPreview + previewText: tiers merge by due (near → far); the design-sheet sentences
     func testReviewPreviewPreviewTextTiersMergeByDueNearToFarTheDesignSheetSentences() throws {
         func sc(_ a: Int, _ b: Int, _ c: Int) -> [(String, JSValue)] { [("base:" + gan, sched(day(a))), ("base:" + yingC, sched(day(b))), ("base:" + shi, sched(day(c)))] }
         let three = [item(gan), item(yingC), item(shi)]
@@ -89,7 +89,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try FirstResult.previewText(one), "\u{300C}\u{8D62}\u{300D}\u{660E}\u{5929}\u{518D}\u{6765}\u{3002}")
     }
 
-    // test/core/first-result.test.mjs: daysLaterLine (E9c, D48): the result-page 复现句 — chars with the same days merge (near -> far), all same days -> one bare clause, unscheduled chars are left out
+    // test/core/first-result.test.mjs: daysLaterLine (E9c, D48): the result-page 复现句 — chars with the same days merge (near → far), all same days → one bare clause, unscheduled chars are left out
     func testDaysLaterLineE9cD48TheResultPageSentenceCharsWithTheSameDaysMergeNearToFarAllSameDaysOneBareClauseUnscheduledCharsAreLeftOut() throws {
         let chars = [item(gan), item(yingC), item(shi)]
         func sc(_ a: Int, _ b: Int, _ c: Int) -> [(String, JSValue)] { [("base:" + gan, sched(day(a))), ("base:" + yingC, sched(day(b))), ("base:" + shi, sched(day(c)))] }
@@ -105,7 +105,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try line([item(gan)], [("base:" + gan, sched(day(3), [("stoppedAt", n43(5))]))]), "", "stopped cards never come back")
     }
 
-    // test/core/first-result.test.mjs: reviewPreview: chars without a schedule (skipped / answer-seen, D18) are left out; none at all -> no sentence
+    // test/core/first-result.test.mjs: reviewPreview: chars without a schedule (skipped / answer-seen, D18) are left out; none at all → no sentence
     func testReviewPreviewCharsWithoutAScheduleAreLeftOutNoneAtAllNoSentence() throws {
         let p = try preview([item(gan), item(yingC), item(shi)], [("base:" + shi, sched(day(3)))])
         XCTAssertEqual(p.js["groups"], J("[{\"tier\":\"soon\",\"chars\":[\"\(shi)\"]}]"))
@@ -119,7 +119,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(dup.js["groups"], J("[{\"tier\":\"tomorrow\",\"chars\":[\"\(gan)\"]}]"))
     }
 
-    // test/core/first-result.test.mjs: inviteTime: now floored to the half hour; outside 7:00–22:00 -> 20:30 (evening title)
+    // test/core/first-result.test.mjs: inviteTime: now floored to the half hour; outside 7:00–22:00 → 20:30 (evening title)
     func testInviteTimeNowFlooredToTheHalfHourOutside7To22Gives2030() throws {
         func t(_ h: Int, _ m: Int) -> JSValue { FirstResult.inviteTime(at43("2026-09-24", h, m), dates: shanghai43) }
         func want(_ h: Int, _ m: Int, _ e: Bool) -> JSValue { J("{\"hour\":\(h),\"minute\":\(m),\"evening\":\(e)}") }

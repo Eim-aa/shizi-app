@@ -166,7 +166,7 @@ final class QueryTests: XCTestCase {
 
     // ---------------------------------------------------------------- 视图与 pick 底栏（R-Q06）
 
-    // test/core/query.test.mjs: queryView: hint -> rows -> card / bad; a single char opens its card; cur must still be in the input
+    // test/core/query.test.mjs: queryView: hint → rows → card / bad; a single char opens its card; cur must still be in the input
     func testQueryViewHintRowsCardBadASingleCharOpensItsCardCurMustStillBeInTheInput() {
         let practicable: (String) -> Bool = { $0 != self.ju }
         func v(_ chars: [String], _ cur: String = "") -> [String] { let r = Query.queryView(chars: chars, cur: cur, practicable: practicable); return [r.view, r.cur] }
@@ -186,7 +186,7 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(Query.selectedChars([yong43], [yong43]), [yong43])
     }
 
-    // test/core/query.test.mjs: pickBar: 0 ->「先选字」disabled; 1 ->「练这个字」; N ->「练这 N 个字」
+    // test/core/query.test.mjs: pickBar: 0 →「先选字」disabled; 1 →「练这个字」; N →「练这 N 个字」
     func testPickBar0First1ThisChar() throws {
         XCTAssertSameJSON(Query.pickBar(n43(0)), J("{\"key\":\"R-Q06.btnNone\",\"disabled\":true}"))
         XCTAssertSameJSON(Query.pickBar(n43(1)), J("{\"key\":\"R-Q05.btnPractice\",\"disabled\":false}"))

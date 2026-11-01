@@ -149,7 +149,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(g.first?.record["id"], s43("r1"), "the glyph image uses the latest screen record, not the later paper one")
     }
 
-    // test/core/paper-works.test.mjs: pick: session work — the paper char is not in the work, shows as a paper row with no 「放进去」; all on paper -> the no-ink variant
+    // test/core/paper-works.test.mjs: pick: session work — the paper char is not in the work, shows as a paper row with no 「放进去」; all on paper → the no-ink variant
     func testPickSessionWorkThePaperCharIsNotInTheWorkShowsAsAPaperRowWithNoPutItInAllOnPaperTheNoInkVariant() {
         let rs = [rec43(1, "\u{7586}", "judged", "correct", "2026-10-05", sessionId: "s9"), paper43(rec43(2, "\u{9171}", "judged", "wrong", "2026-10-05", sessionId: "s9")),
                   paper43(rec43(3, "\u{75D2}", "judged", "correct", "2026-10-05", sessionId: "s9"))]

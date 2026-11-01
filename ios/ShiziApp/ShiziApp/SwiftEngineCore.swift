@@ -387,6 +387,23 @@ final class EngineHost {
         }
     }
 
+    #if DEBUG
+    /// B4.9c：QA 夹具的界面入口（States/_ops/openS02.js、openQuery.js 在 swift 模式经页面消息 qa-ui 请到这里）——与原生按钮同一个入口：
+    /// startPicked（B 组没写完 → S02，登记 S02 的回调）、openQuery（登记查字回调 + 推入查字屏，带弹层的初始输入 / 组字态 / 预选字）。
+    func qaUI(_ action: String, _ a: JSValue) {
+        switch action {
+        case "startPicked":
+            _ = try? startPicked(a["keys"]?.arrayValue ?? [.string("\u{706B}")], source: a["source"] ?? .null)
+        case "openQuery":
+            let mode = a["mode"]?.stringValue ?? "lookup"
+            openQuery(mode: mode)
+            try? navigator?.host.openQuery(mode: mode, text: a["text"] ?? .string(""), selected: a["selected"] ?? .array([]), composing: a["composing"] ?? .bool(false))
+        default:
+            ShiziProbe.log("qa-ui: unknown action \(action)")
+        }
+    }
+    #endif
+
     /// ui/screens/session/index.js startPicked：开 B 组（写字页）或弹 S02（登记 S02 的四个回调）。
     func startPicked(_ keys: [JSValue], source: JSValue) throws -> JSValue {
         let rules = ScheduleRules(dates: store.dates)

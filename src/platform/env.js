@@ -83,6 +83,11 @@ export function now() {
   return Date.now() + clockOffsetMs;
 }
 
+/** B4.9c：此刻的时钟偏移（ms，相对 Date.now；测试钩子告诉原生用，不读时钟）。 */
+export function clockOverrideMs() {
+  return clockOffsetMs;
+}
+
 /**
  * 把「现在」平移到 iso 所指时刻（之后照常流逝）；传 null 复原。
  * 只应由 platform/test-hooks.js 调用。返回生效后的 now()。

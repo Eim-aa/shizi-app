@@ -7,6 +7,9 @@ if (!bridge) return { ok: false, error: { kind: 'no-bridge' } };
 const orig = bridge.postNative;
 const success = !!(a && a.success);
 const reply = !(a && a.reply === false);
+// B4.9c：swift 模式里存相册由 Swift 直接调原生（不经页面的 postNative）——同一个桩也挂到原生（WebViewController.qaSaveStub），清理时摘掉
+const toNative = (body) => { try { window.webkit.messageHandlers.shiziNative.postMessage({ type: 'native', op: 'qa-save-stub', ...body }); } catch (e) {} };
+toNative({ success, reply });
 window.__qaPosted = window.__qaPosted || [];
 bridge.postNative = (type, payload) => {
   if (type === 'savePracticeCard') {
@@ -16,4 +19,4 @@ bridge.postNative = (type, payload) => {
   }
   return orig(type, payload);
 };
-(window.__qaCleanups = window.__qaCleanups || []).push(() => { bridge.postNative = orig; });
+(window.__qaCleanups = window.__qaCleanups || []).push(() => { bridge.postNative = orig; toNative({ off: true }); });

@@ -78,6 +78,9 @@ final class SwiftNavigator {
             self?.onStack?()
         }
         router.deliver = { [weak self] bodies in self?.deliver(bodies) }
+        #if DEBUG
+        router.trace = { SwiftNavigator.noteTrace($0) }
+        #endif
         // 原生发起的导航：订阅者（提示键写入是一次同步落库）推迟到转场之后（engine.js NATIVE_EMIT_DELAY_MS = 推入 + 一个淡化）
         router.deferNativeEmit = { fn in
             let m = NativeNavMotion.current
@@ -89,6 +92,15 @@ final class SwiftNavigator {
     }
 
     var router: EngineRouter { host.router }
+
+    #if DEBUG
+    /// B4.9c：转场记录（engine.js account 的 traceNav 同一处、同一格式，最近 12 条）。swift 模式里导航不经页面，QA 探针的 webNav 读这里。
+    private(set) static var traceLog: [String] = []
+    static func noteTrace(_ s: String) {
+        traceLog.append(s)
+        if traceLog.count > 12 { traceLog.removeFirst(traceLog.count - 12) }
+    }
+    #endif
 
     /// 视图请求的环境（native-stage.js viewEnv：页面宽与大字号档）。
     static func viewEnv() -> JSObject {

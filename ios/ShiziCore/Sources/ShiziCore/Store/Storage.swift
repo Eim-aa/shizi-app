@@ -8,7 +8,13 @@ public final class StoreStorage {
     public let backend: KVBackend
     let now: () -> Double
     private(set) var halted = false
-    public private(set) var blocked: (reason: String, keys: [String], moved: [String])?
+    private var blockedState: (reason: String, keys: [String], moved: [String])?
+    /// 写失败且回滚也失败 / 写后读回不确定（之后的写一律拒绝，内部按 blockedState）。store 读这个：有替身时报替身（JS 夹具换的也只是 storage.blocked 这个读口）。
+    public var blocked: (reason: String, keys: [String], moved: [String])? { blockedOverride ?? blockedState }
+    /// 测试替身（B4.9c）：JS 夹具把 storage.probe / storage.blocked 换成假的（ShiziUITests States/_ops/blockMode.js、test-hooks overrideStorage），
+    /// Swift 是写入者时同一件事落在这里——探测按替身答、blocked 按替身报；nil = 真的。
+    public var probeOverride: (ok: Bool, kind: String?)?
+    public var blockedOverride: (reason: String, keys: [String], moved: [String])?
     private var failQueue: [(remaining: Int, kind: String, matchKey: String?)] = []
     private var interruptAfter: Int?
     public private(set) var lastRepair: JSObject?
@@ -67,8 +73,8 @@ public final class StoreStorage {
     // MARK: 原语
 
     private func noteUncertain(_ error: StoreJSError, _ keys: [String]) {
-        if !error.uncertain || blocked != nil { return }
-        blocked = ("uncertain", keys, [])
+        if !error.uncertain || blockedState != nil { return }
+        blockedState = ("uncertain", keys, [])
     }
 
     private func matches(_ matchKey: String?, _ key: String) -> Bool {
@@ -216,7 +222,7 @@ public final class StoreStorage {
         } catch {
             if StoreStorage.isInterrupted(error) { throw error }
         }
-        blocked = ("rollback-failed", failed, moved)
+        blockedState = ("rollback-failed", failed, moved)
         return (false, failed)
     }
 
@@ -274,7 +280,7 @@ public final class StoreStorage {
         for (key, raw) in todo {
             if !rawEq(try rawGet(key), raw) {
                 let error = StoreJSError.write("verify", "mirror mismatch at " + key, key: key, phase: "verify")
-                if blocked == nil { blocked = ("uncertain", keys, []) }
+                if blockedState == nil { blockedState = ("uncertain", keys, []) }
                 throw StoreJSError.blocking(error.message, keys: keys, cause: error, reason: "uncertain")
             }
         }
@@ -285,7 +291,7 @@ public final class StoreStorage {
     @discardableResult
     public func writeAll(_ entries: [(String, String?)], label: String = "write") throws -> [String] {
         if halted { throw StoreJSError.write("interrupted", "storage halted by interruptAfterWrite", phase: "halted") }
-        if let b = blocked { throw StoreJSError.blocking("storage is blocked (" + b.reason + ")", keys: b.keys, reason: b.reason) }
+        if let b = blockedState { throw StoreJSError.blocking("storage is blocked (" + b.reason + ")", keys: b.keys, reason: b.reason) }
         let sorted = try normalizeEntries(entries)
         var prev = JSObject()
         var todo: [(String, String?)] = []
@@ -358,7 +364,7 @@ public final class StoreStorage {
     @discardableResult
     public func writeOne(_ key: String, _ raw: String?, label: String = "write-one") throws -> [String] {
         if halted { throw StoreJSError.write("interrupted", "storage halted by interruptAfterWrite", phase: "halted") }
-        if let b = blocked { throw StoreJSError.blocking("storage is blocked (" + b.reason + ")", keys: b.keys, reason: b.reason) }
+        if let b = blockedState { throw StoreJSError.blocking("storage is blocked (" + b.reason + ")", keys: b.keys, reason: b.reason) }
         let (k, value) = try normalizeEntries([(key, raw)])[0]
         let before: String?
         do { before = try rawGet(k) } catch { throw StoreStorage.toWriteError(error, k, "read-prev") }
@@ -393,7 +399,7 @@ public final class StoreStorage {
     public func writeRoute(_ raw: String?) -> JSValue {
         func fail(_ k: String) -> JSValue { .object(JSObject([("ok", .bool(false)), ("kind", .string(k))])) }
         if halted { return fail("interrupted") }
-        if blocked != nil { return fail("blocked") }
+        if blockedState != nil { return fail("blocked") }
         let key = Schema.keyNamed("route")!
         do {
             if rawEq(try rawGet(key), raw) { return .object(JSObject([("ok", .bool(true)), ("written", .bool(false))])) }
@@ -465,6 +471,7 @@ public final class StoreStorage {
 
     /// 读写可用性探测：{ok:true} | {ok:false, kind}。
     public func probe() -> (ok: Bool, kind: String?) {
+        if let o = probeOverride { return o }
         let key = Schema.keyNamed("probe")!
         do {
             let token = JSNumber.toString(now())

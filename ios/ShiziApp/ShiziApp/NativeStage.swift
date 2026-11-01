@@ -151,6 +151,23 @@ final class NativeStage: NSObject {
             #if DEBUG
             (engine as? SwiftEngine)?.faultsArmed = true // B4.8：测试钩子挂了写入注入（SwiftEngine 在下一次写之前取走）
             #endif
+        case "qa-save-stub":
+            #if DEBUG
+            WebViewController.qaSaveStub = (body["off"] as? Bool) == true ? nil : ((body["success"] as? Bool) == true, (body["reply"] as? Bool) != false) // B4.9c：存相册桩（stubSave.js）
+            #endif
+        case "qa-ui":
+            #if DEBUG
+            (engine as? SwiftEngine)?.core.host.qaUI(body["action"] as? String ?? "", EngineValue.js(body["args"])) // B4.9c：夹具的界面入口交 Swift
+            #endif
+        case "qa-clock":
+            #if DEBUG
+            // B4.9c：页面的应用时钟平移 / 造数据钉住（test-hooks setClock / reset、夹具 prologue）——Swift 的钟（QAClock）同一个偏移
+            if WebViewController.nativeTestHostEnabled, let v = (body["offsetMs"] as? NSNumber)?.doubleValue { QAClock.offsetMs = abs(v) >= 1000 ? v : nil }
+            #endif
+        case "qa-storage":
+            #if DEBUG
+            (engine as? SwiftEngine)?.qaOverrideStorage(body) // B4.9c：测试钩子换了存储探测 / blocked 的替身（SwiftEngine 挂到 Swift 的存储上再重读）
+            #endif
         case "changed":
             #if DEBUG
             ShadowEngine.shared?.webChanged(body)
@@ -690,7 +707,7 @@ final class NativeStage: NSObject {
     /// QA / 测试宿主的页面镜像里另认页面发起的导航与它的宿主消息（测试脚本经页面路由开页）。
     func acceptsPageMessage(_ type: String, _ op: String) -> Bool {
         guard engine is SwiftEngine else { return true }
-        if type == "native", ["changed", "qa-faults", "roots-reset"].contains(op) { return true }
+        if type == "native", ["changed", "qa-faults", "qa-storage", "qa-save-stub", "qa-ui", "qa-clock", "roots-reset"].contains(op) { return true }
         #if DEBUG
         if SwiftEngine.qaMirror {
             if type == "nativeWrite" { return true }

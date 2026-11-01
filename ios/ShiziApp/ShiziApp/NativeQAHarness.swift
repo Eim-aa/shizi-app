@@ -1116,6 +1116,12 @@ final class QAProbe {
         out["pageReady"] = host.pageReady
         out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events
+        // B4.9c：swift 模式里导航由 SwiftNavigator 记账（同 engine.js account 的 traceNav），页面只做镜像——转场记录 = 页面自己的（测试脚本经页面路由开页时）+ Swift 的
+        // 冷启动判定同理：swift 模式里 route.plan 由 Swift 的 RouteMemory 判（页面的 route-memory 没判过，lastPlan 是 null）
+        if let swift = host.stage.engine as? SwiftEngine {
+            out["webNav"] = (out["webNav"] as? [String] ?? []) + SwiftNavigator.traceLog
+            out["coldPlan"] = EngineValue.any(swift.nav.host.memory.lastPlan)
+        }
         out["feedback"] = QAFeedback.events
         out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）
         out["navRunning"] = NativeWriteTransitions.running

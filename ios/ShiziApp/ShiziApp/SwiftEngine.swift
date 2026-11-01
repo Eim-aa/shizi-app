@@ -60,6 +60,12 @@ final class SwiftEngine: StageEngine {
         core = SwiftEngineCore(backend: backend, clock: SwiftEngine.clock, measure: NativeLineMeasure())
         nav = SwiftNavigator(core: core)
         reminder = ReminderController(store: core.store)
+        #if DEBUG
+        // -shizi-qa-storage-unavailable（测试宿主）：这次启动存储探测失败——页面那边 test-hooks 换 storage.probe，写入者 Swift 这边同一个替身
+        if WebViewController.nativeTestHostEnabled, ProcessInfo.processInfo.arguments.contains("-shizi-qa-storage-unavailable") {
+            core.store.storage.probeOverride = (false, "security")
+        }
+        #endif
         core.load()
         _ = core.store.subscribe { [weak self] _, info in
             if info["type"] == .string("commit") || info["type"] == .string("recover") || info["replace"] == .bool(true) { self?.commits += 1 }
@@ -201,6 +207,17 @@ final class SwiftEngine: StageEngine {
             storage.failNextWrite(rule["remaining"]?.numberValue ?? 0, kind: rule["kind"]?.stringValue ?? "generic", matchKey: rule["matchKey"]?.stringValue)
         }
         if let k = f["interruptAfter"]?.numberValue { storage.interruptAfterWrite(k) }
+    }
+    #endif
+
+    #if DEBUG
+    /// B4.9c：存储替身（test-hooks overrideStorage / 夹具 blockMode）——Swift 是写入者，替身挂到 Swift 的存储上再重读，阻断页由 checkBlock 发。
+    /// body：{probe: {ok:false, kind} | null, blocked: {reason, keys} | null}（null = 还原）。
+    func qaOverrideStorage(_ body: [String: Any]) {
+        let storage = core.store.storage
+        storage.probeOverride = (body["probe"] as? [String: Any]).map { (false, ($0["kind"] as? String) ?? "unknown") }
+        storage.blockedOverride = (body["blocked"] as? [String: Any]).map { (($0["reason"] as? String) ?? "rollback-failed", ($0["keys"] as? [String]) ?? [], []) }
+        reloadFromLibrary()
     }
     #endif
 

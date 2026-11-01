@@ -183,7 +183,7 @@ final class NativeWriteBridgeTests: XCTestCase {
     func testR12_leavingRewritesStrokesThatDidNotSaveAtPenUp() async throws {
         let vc = try await startGroup()
         let ink = try XCTUnwrap(vc.inkViewForTesting)
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         ink.acceptFrom = 0
         liftedStroke(ink)
         XCTAssertEqual(vc.strokes.count, 1)
@@ -201,7 +201,7 @@ final class NativeWriteBridgeTests: XCTestCase {
         XCTAssertTrue(entered.ok)
         let initial = try await state()
         let before = records(initial).count
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         let failed = await call("judge", ["slot": "A", "cardKey": key, "judgment": "correct", "strokes": [Self.stroke]])
         XCTAssertFalse(failed.ok, "D07: injected write failure is reported")
         let mid = try await state()

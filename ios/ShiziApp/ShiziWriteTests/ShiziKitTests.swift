@@ -5,7 +5,8 @@ import XCTest
 
 // B3.1 ShiziKit：构建期生成的令牌 / 文案 / 动效（ShiziKitTokens.json、ShiziKitCopy.json）与页面此刻现算的回包逐项相同。
 // 页面是真的（App 作测试宿主、WKWebView 里的 tokens.css / policy / motion.js / copy）：每个系统字号档位（xS … AX5）× 浅 / 深都让页面算一遍
-// open / resultLook 回包，再与 ShiziLook.resolve 换上的生成值比（字阶是 WebKit 量出来的 1/64 截断值，生成器照同一规则取）。
+// 写字页令牌包（native-session.js typeBundle / colorBundle / themeOf——原来 open 回包里的同一组函数；B4.9a 起 open 由 Swift 答，这里直接问页面），
+// 再与 ShiziLook.resolve 换上的生成值比（字阶是 WebKit 量出来的 1/64 截断值，生成器照同一规则取）。
 // 生成物与来源（tokens.css / policy / motion.js / copy）不同步由 node 侧 test/ios-shizikit.test.mjs 守；这里守「生成规则 = 页面算法」。
 
 @MainActor
@@ -52,12 +53,15 @@ final class ShiziKitTests: XCTestCase {
         (.accessibilityExtraExtraExtraLarge, "AX5"),
     ]
 
-    /// 页面在某个字号档位下算出来的字阶（open 回包 type 的数值键）。
+    /// 页面的写字页令牌包（native-session.js 的同名函数：WebKit 按 tokens.css 现算）。
+    private func pageBundle(_ fn: String) async throws -> Any? {
+        try await js("const m = await import('/src/ui/screens/write/native-session.js'); return m.\(fn)();")
+    }
+
+    /// 页面在某个字号档位下算出来的字阶（typeBundle 的数值键 = 原来 open 回包 type 的数值键）。
     private func pageType(_ name: String) async throws -> [String: Double] {
         _ = try await js("window.shiziContentSize({category:'\(name)', scale:1}); return true;")
-        let r = await call("open", ["slot": "A"])
-        XCTAssertTrue(r.ok, "open \(name)")
-        let type = r.body["type"] as? [String: Any] ?? [:]
+        let type = try await pageBundle("typeBundle") as? [String: Any] ?? [:]
         return type.compactMapValues { ($0 as? NSNumber)?.doubleValue }.filter { $0.key != "ax" }
     }
 
@@ -78,14 +82,15 @@ final class ShiziKitTests: XCTestCase {
     func testColorsAndThemeMatchThePage() async throws {
         for theme in [ShiziTokens.Theme.light, .dark] {
             _ = try await js("document.documentElement.setAttribute('data-theme', '\(theme.rawValue)'); return true;")
-            let r = await call("open", ["slot": "A"])
-            XCTAssertEqual(r.body["theme"] as? String, theme.rawValue)
-            let colors = try XCTUnwrap(r.body["colors"] as? [String: String])
+            let pageTheme = try await pageBundle("themeOf") as? String
+            XCTAssertEqual(pageTheme, theme.rawValue)
+            let colorsRaw = try await pageBundle("colorBundle")
+            let colors = try XCTUnwrap(colorsRaw as? [String: String])
             XCTAssertGreaterThanOrEqual(colors.count, 20)
             let gen = ShiziTokens.colorStrings(theme)
             for (k, v) in colors { XCTAssertEqual(gen[k], v, "\(theme.rawValue) \(k)") }
             // 生成值换上去以后颜色来自生成表、主题按回包
-            let look = ShiziLook.resolve(r.body, page: .write)
+            let look = ShiziLook.resolve(["colors": colors, "theme": pageTheme ?? ""], page: .write)
             XCTAssertEqual(look["colors"] as? [String: String], gen)
         }
     }

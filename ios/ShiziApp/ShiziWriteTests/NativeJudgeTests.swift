@@ -214,7 +214,7 @@ final class NativeJudgeTests: XCTestCase {
         let key = try XCTUnwrap(vc.cardKey)
         try enterCompare(vc)
         try await waitForKeys(vc)
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         vc.perform(Selector(("tapWrong")))
         try await waitUntil("failed") { vc.failShownForTesting }
         XCTAssertEqual(vc.settlePlayedForTesting, 0, "失败不落定、不发触觉（F1）")
@@ -233,7 +233,7 @@ final class NativeJudgeTests: XCTestCase {
         try enterCompare(vc)
         try await waitForKeys(vc)
         let before = try await recs().count
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         vc.perform(Selector(("tapWrong")))
         try await waitUntil("failed") { vc.failShownForTesting }
         // 说明 → 先不保存（求助行）→ 再试一次（主按钮，满宽）；两键收起
@@ -258,7 +258,7 @@ final class NativeJudgeTests: XCTestCase {
         XCTAssertFalse(vc.failShownForTesting)
         XCTAssertFalse(keys.wrong.isHidden)
         // 再失败再重试 → 成功只记一次
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         try await waitForKeys(vc)
         vc.perform(Selector(("tapCorrect")))
         try await waitUntil("failed again") { vc.failShownForTesting }
@@ -366,7 +366,7 @@ final class NativeJudgeTests: XCTestCase {
         XCTAssertEqual(sheet.model.strokes.count, 1)
         XCTAssertEqual(sheet.model.strokes.first?.count, Self.stroke.count)
         // 失败：就地换三段式，记录与 FSRS 不变
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         sheet.apply()
         try await waitUntil("sheet failed") { sheet.failedForTesting }
         let failedCopy = await copyOf(["R-W10.changeFailed"])

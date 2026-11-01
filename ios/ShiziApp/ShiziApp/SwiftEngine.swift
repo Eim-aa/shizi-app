@@ -212,12 +212,22 @@ final class SwiftEngine: StageEngine {
 
     #if DEBUG
     /// B4.9c：存储替身（test-hooks overrideStorage / 夹具 blockMode）——Swift 是写入者，替身挂到 Swift 的存储上再重读，阻断页由 checkBlock 发。
-    /// body：{probe: {ok:false, kind} | null, blocked: {reason, keys} | null}（null = 还原）。
+    /// body：{probe: {ok:false, kind} | null, blocked: {reason, keys} | null, quarantined: [键] | null}（null = 还原）。
     func qaOverrideStorage(_ body: [String: Any]) {
         let storage = core.store.storage
         storage.probeOverride = (body["probe"] as? [String: Any]).map { (false, ($0["kind"] as? String) ?? "unknown") }
         storage.blockedOverride = (body["blocked"] as? [String: Any]).map { (($0["reason"] as? String) ?? "rollback-failed", ($0["keys"] as? [String]) ?? [], []) }
+        storage.quarantinedOverride = body["quarantined"] as? [String]
         reloadFromLibrary()
+    }
+
+    /// B4.9c：夹具的界面入口（页面消息 qa-ui）。corruptHide = 收起坏值浮条（夹具清理：engine.js 那条收起在 swift 模式里不认）；其余交 EngineHost.qaUI。
+    func qaUI(_ action: String, _ args: JSValue) {
+        if action == "corruptHide" {
+            nav.post(JSObject([("op", .string("corrupt")), ("show", .bool(false))]))
+            return
+        }
+        core.host.qaUI(action, args)
     }
     #endif
 

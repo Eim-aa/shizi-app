@@ -15,6 +15,8 @@ public final class StoreStorage {
     /// Swift 是写入者时同一件事落在这里——探测按替身答、blocked 按替身报；nil = 真的。
     public var probeOverride: (ok: Bool, kind: String?)?
     public var blockedOverride: (reason: String, keys: [String], moved: [String])?
+    /// repair 报告里的 quarantined 换成这几个键（JS 夹具 corruptNotice 换 storage.repair 的同一件事：坏值提示）。
+    public var quarantinedOverride: [String]?
     private var failQueue: [(remaining: Int, kind: String, matchKey: String?)] = []
     private var interruptAfter: Int?
     public private(set) var lastRepair: JSObject?
@@ -463,6 +465,7 @@ public final class StoreStorage {
             }
             if try quarantine(key, raw) { quarantined.append(qEntry(key, reason)) } else { quarantineFailed.append(qEntry(key, reason)) }
         }
+        if let keys = quarantinedOverride { quarantined = keys.map { .object(JSObject([("key", .string($0))])) } }
         let report = JSObject([("txn", .string(txnState)), ("quarantined", .array(quarantined)), ("quarantineFailed", .array(quarantineFailed)),
                                ("unknown", .array(unknown)), ("dropped", .array(dropped)), ("blocked", .bool(blockedFlag))])
         lastRepair = report

@@ -157,7 +157,7 @@ final class NativeStage: NSObject {
             #endif
         case "qa-ui":
             #if DEBUG
-            (engine as? SwiftEngine)?.core.host.qaUI(body["action"] as? String ?? "", EngineValue.js(body["args"])) // B4.9c：夹具的界面入口交 Swift
+            (engine as? SwiftEngine)?.qaUI(body["action"] as? String ?? "", EngineValue.js(body["args"])) // B4.9c：夹具的界面入口交 Swift
             #endif
         case "qa-clock":
             #if DEBUG

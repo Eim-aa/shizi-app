@@ -212,6 +212,34 @@ export function axRoleBundle(win = globalWin()) {
 }
 
 /**
+ * 写字页的导航（缺省注入网页路由）：createWriteSessionApi 的 navigate。B4.9a：单独导出给 core-diff 当参考（ShiziCore NavHost 的 writeBack / writeToResult /
+ * writeToDetail / redoBack 逐条对照），规则一行不变。
+ */
+export const WRITE_NAVIGATE = Object.freeze({
+  // 跳过的 5 秒撤销条还在时离开：剩余的撤销机会交给来源页 / 结果页（S4；网页写字页 leave / 写完最后一字同一组函数）
+  back: (slot, undo) => {
+    handoffLeaveUndo(undo ? { ...undo, slot, until: clockNow() + undo.remainingMs } : null);
+    nav.back({ cause: 'native' });
+  },
+  toResult: (slot, sessionId, undo) => {
+    handoffSkipUndo(undo ? { ...undo, slot, until: clockNow() + undo.remainingMs } : null);
+    openResult(slot, sessionId);
+  },
+  // R9-B：改判弹层「看这个字 ›」（D66 ⑮）——写字条目留在栈里，字详情推入在它上面（网页 ViewCharLink 同一个 openCharDetail）；
+  // 详情返回、写字条目重新成为顶层时，宿主再请原生盖上（NativeWriteHost 的路由订阅）。
+  toDetail: (slot, char) => {
+    const router = getRouter();
+    const top = router ? router.getState().top : null;
+    awayEntry = top && top.n === 'write' ? top.id : null;
+    const ok = openCharDetail(char);
+    if (!ok) awayEntry = null;
+    return ok;
+  },
+  // B2.9a：原生重写错字页离开（‹ / 左缘右滑 / 最后一个字「完成」）——网页 RedoScreen 同为一次 nav.back，回到结果页（结果宿主再请原生淡入）
+  redoBack: () => nav.back({ cause: 'native' }),
+});
+
+/**
  * 写字会话 API（页面侧）：src/session/write-api.js 的同一个实现，缺省注入网页路由（nav.back / openResult）与令牌颜色。
  * deps 可注入（node:test 用假 store / 假导航）。
  * @param {{getStore?: () => object, navigate?: {back: Function, toResult: Function}, colors?: () => object}} deps
@@ -220,29 +248,7 @@ export function axRoleBundle(win = globalWin()) {
 export function createWriteSessionApi(deps = {}) {
   return createSessionApi({
     ...deps,
-    navigate: deps.navigate || {
-      // 跳过的 5 秒撤销条还在时离开：剩余的撤销机会交给来源页 / 结果页（S4；网页写字页 leave / 写完最后一字同一组函数）
-      back: (slot, undo) => {
-        handoffLeaveUndo(undo ? { ...undo, slot, until: clockNow() + undo.remainingMs } : null);
-        nav.back({ cause: 'native' });
-      },
-      toResult: (slot, sessionId, undo) => {
-        handoffSkipUndo(undo ? { ...undo, slot, until: clockNow() + undo.remainingMs } : null);
-        openResult(slot, sessionId);
-      },
-      // R9-B：改判弹层「看这个字 ›」（D66 ⑮）——写字条目留在栈里，字详情推入在它上面（网页 ViewCharLink 同一个 openCharDetail）；
-      // 详情返回、写字条目重新成为顶层时，宿主再请原生盖上（NativeWriteHost 的路由订阅）。
-      toDetail: (slot, char) => {
-        const router = getRouter();
-        const top = router ? router.getState().top : null;
-        awayEntry = top && top.n === 'write' ? top.id : null;
-        const ok = openCharDetail(char);
-        if (!ok) awayEntry = null;
-        return ok;
-      },
-      // B2.9a：原生重写错字页离开（‹ / 左缘右滑 / 最后一个字「完成」）——网页 RedoScreen 同为一次 nav.back，回到结果页（结果宿主再请原生淡入）
-      redoBack: () => nav.back({ cause: 'native' }),
-    },
+    navigate: deps.navigate || WRITE_NAVIGATE,
     colors: deps.colors || (() => colorBundle()),
     type: deps.type || (() => typeBundle()),
     theme: deps.theme || (() => themeOf()),
@@ -263,7 +269,7 @@ export function createWriteSessionApi(deps = {}) {
  *   toWrite = 撤销跳过成功后就地换回写字页；redo / detail = 推入重写错字 / 字详情（结果条目留在栈里，返回时宿主再请原生盖上）；
  *   share = 右上「分享」（网页这次的图片，B3 再换原生）；reminder = platform/reminder.js；seal = 盖章声 s1（同组只响一次）。
  */
-const RESULT_DEPS = Object.freeze({
+export const RESULT_DEPS = Object.freeze({
   view: (store, args) => resultView(store, args),
   leave: leave => leaveTo(leave),
   again: r => {
@@ -393,25 +399,30 @@ function safeWriteApi() {
  * 写字条目进来（或从字详情回来，returning）时给原生的 open（D62 / B2.8：转场按记账的计划定——首页入口 = 纸展开 home、屏上没有来源元素的入口 = 安静淡入 quiet、
  * 其他点按入口 = 推入 push；结果页「再写一组」/ 撤销跳过换成写字页 = again；冷启动恢复没有转场 restore；从字详情回来 return）。
  */
-export function writeOpenBody(entry, snap, { returning = false, api = null } = {}) {
+export function writeOpenBody(entry, snap, { returning = false, api = null, now = Date.now, plan: planOf = nativePlanOf } = {}) {
   const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
   const a = api || safeWriteApi();
   if (returning) {
     const again = a ? a.call('open', { slot }) : { ok: false };
-    return { op: 'open', slot, entryId: entry.id, animate: false, via: 'return', sentAt: Date.now(), payload: again };
+    return { op: 'open', slot, entryId: entry.id, animate: false, via: 'return', sentAt: now(), payload: again };
   }
   const tr = snap ? snap.transition : null;
   const animate = !!(tr && tr.to && entry && tr.to.id === entry.id && tr.animate && !tr.cold);
-  const plan = entry ? nativePlanOf(entry.id) : null;
+  const plan = entry ? planOf(entry.id) : null;
   const replaced = !!(tr && tr.kind === 'replace' && tr.from && tr.from.n === 'result');
   const via = !animate ? 'restore' : replaced ? 'again' : plan && plan.mode === 'paper' ? 'home' : plan && plan.mode === 'quiet' ? 'quiet' : 'push';
   const opened = a ? a.call('open', { slot }) : { ok: false };
-  return { op: 'open', slot, entryId: entry ? entry.id : null, animate, via, plan, sentAt: Date.now(), payload: opened };
+  return { op: 'open', slot, entryId: entry ? entry.id : null, animate, via, plan, sentAt: now(), payload: opened };
 }
 
 export function writeCloseBody(entry) {
   const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
   return { op: 'close', slot, entryId: entry ? entry.id : null };
+}
+
+/** core-diff：每个场景从干净的宿主状态开始（为字详情让开的写字条目）。 */
+export function resetNativeHostState() {
+  awayEntry = null;
 }
 
 /** R9-B：写字条目为字详情让开过、现在回到顶上（取一次即清）。 */
@@ -422,16 +433,16 @@ export function takeWriteAway(entryId) {
 }
 
 /** 重写错字条目进来：redo-open（没有能练的字：与网页页面同样退回去，返回 null）。 */
-export function redoOpenBody(entry, snap) {
+export function redoOpenBody(entry, snap, { api = null, now = Date.now, back = () => nav.back() } = {}) {
   const tr = snap ? snap.transition : null;
   const animate = !!(tr && tr.to && entry && tr.to.id === entry.id && tr.animate && !tr.cold);
-  const a = safeWriteApi();
+  const a = api || safeWriteApi();
   const opened = a ? a.call('redoOpen', { chars: entry && entry.p && entry.p.chars }) : { ok: false };
   if (!opened || !opened.ok) {
-    Promise.resolve().then(() => nav.back());
+    Promise.resolve().then(back);
     return null;
   }
-  return { op: 'redo-open', entryId: entry ? entry.id : null, animate, via: animate ? 'push' : 'restore', sentAt: Date.now(), payload: opened };
+  return { op: 'redo-open', entryId: entry ? entry.id : null, animate, via: animate ? 'push' : 'restore', sentAt: now(), payload: opened };
 }
 
 export function redoCloseBody(entry) {
@@ -439,26 +450,30 @@ export function redoCloseBody(entry) {
 }
 
 /** 结果条目成为顶层（进来 / 让开后回来 returning）：result-open（写字页交接来的跳过撤销在这里取走，随视图交给原生）。 */
-export function resultOpenBody(entry, snap, { returning = false } = {}) {
+export function resultOpenBody(entry, snap, { returning = false, api = null, now = Date.now, undo: undoOf = takeSkipUndo, width = clientWidth, ax = axNow } = {}) {
   const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
   const sessionId = entry && entry.p && typeof entry.p.sessionId === 'string' ? entry.p.sessionId : '';
   const tr = snap ? snap.transition : null;
   const restore = !returning && !!(tr && (tr.cold || tr.cause === 'restore' || tr.cause === 'start' || !tr.animate) && !(tr.from && tr.from.n === 'write'));
   const via = returning ? 'return' : restore ? 'restore' : tr && tr.from && tr.from.n === 'write' ? 'write' : 'push';
-  const a = safeWriteApi();
-  const undo = takeSkipUndo(slot, sessionId);
+  const a = api || safeWriteApi();
+  const undo = undoOf(slot, sessionId);
   const look = a ? a.call('resultLook', {}) : { ok: false };
-  const opened = a ? a.call('result', { slot, sessionId, width: clientWidth(), ax: axNow(), undo }) : { ok: false };
-  return { op: 'result-open', slot, sessionId, entryId: entry.id, animate: !restore, via, sentAt: Date.now(), look, payload: opened };
+  const opened = a ? a.call('result', { slot, sessionId, width: width(), ax: ax(), undo }) : { ok: false };
+  return { op: 'result-open', slot, sessionId, entryId: entry.id, animate: !restore, via, sentAt: now(), look, payload: opened };
 }
 
 /** 结果条目离开顶层：away = 还在栈里（让给推入的页）；不在栈里了（离开 / 再写一组 / 撤销跳过）→ 清 lastEnded[slot]（01 §3.3，同网页结果页卸载）。 */
-export function resultCloseBody(entry, { away }) {
+function leaveResultEntry(slot, sessionId) {
+  commitLeave(getStore(), { slot, sessionId });
+}
+
+export function resultCloseBody(entry, { away, leave = leaveResultEntry }) {
   const slot = entry && entry.p && entry.p.slot === 'B' ? 'B' : 'A';
   const sessionId = entry && entry.p && typeof entry.p.sessionId === 'string' ? entry.p.sessionId : '';
   if (!away) {
     try {
-      commitLeave(getStore(), { slot, sessionId });
+      leave(slot, sessionId);
     } catch (error) {
       // 清不掉不影响（下次开同槽时一并清）
     }

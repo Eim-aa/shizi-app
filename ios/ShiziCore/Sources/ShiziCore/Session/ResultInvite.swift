@@ -8,7 +8,7 @@ extension ResultAPI {
         return JS.obj([("text", try Copy.t("X-INVITE.accepted", JSObject([("time", .string(FirstResult.inviteTimeText(hour, minute)))]))), ("hour", hour), ("minute", minute)])
     }
     static func permissionOf(_ store: Store) -> String { store.state["settings"]?["remind"]?["permission"]?.stringValue ?? "unknown" }
-    static func settledPermission(_ store: Store, requested: Bool, waitMs: Double) async -> String {
+    nonisolated(nonsending) static func settledPermission(_ store: Store, requested: Bool, waitMs: Double) async -> String {
         let now = permissionOf(store)
         if !requested || now != "unknown" { return now }
         return await withCheckedContinuation { continuation in
@@ -22,7 +22,7 @@ extension ResultAPI {
             DispatchQueue.global().asyncAfter(deadline: .now() + max(0, waitMs.isFinite ? waitMs : 0) / 1000, execute: timer)
         }
     }
-    static func inviteAsync(_ store: Store, _ a: JSObject, dependencies d: WriteDependencies?) async throws -> JSValue {
+    nonisolated(nonsending) static func inviteAsync(_ store: Store, _ a: JSObject, dependencies d: WriteDependencies?) async throws -> JSValue {
         let action = JS.string(a["action"])
         if action == "shown" || action == "no" { return try call("resultInvite", store, a, dependencies: d) }
         if action == "time" {
@@ -65,7 +65,7 @@ private final class PermissionSettlement {
 }
 
 extension WriteAPI {
-    public static func callAsync(_ op: String, _ store: Store, _ args: JSObject, dependencies: WriteDependencies? = nil) async -> JSValue {
+    nonisolated(nonsending) public static func callAsync(_ op: String, _ store: Store, _ args: JSObject, dependencies: WriteDependencies? = nil) async -> JSValue {
         guard op == "resultInvite" || (op == "refLabel" && dependencies?.refLabelAsync != nil) else { return call(op, store, args, dependencies: dependencies) }
         do {
             if op == "refLabel", let f = dependencies?.refLabelAsync {

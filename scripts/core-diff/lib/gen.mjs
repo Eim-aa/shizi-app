@@ -14,8 +14,9 @@ import inkDomain from '../domains/ink.mjs';
 import storeDomain from '../domains/store.mjs';
 import sessionDomain from '../domains/session.mjs';
 import viewsDomain from '../domains/views.mjs';
+import navDomain from '../domains/nav.mjs';
 
-export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain, storeDomain, viewsDomain, sessionDomain];
+export const DOMAINS = [protocolDomain, datesDomain, configDomain, schemaDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, schedDomain, storeDomain, viewsDomain, sessionDomain, navDomain];
 
 /** mulberry32（与 scripts/sim/lib/env.mjs 同一算法）。 */
 export function rng(seed) {

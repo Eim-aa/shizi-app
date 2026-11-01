@@ -1,7 +1,7 @@
 import Foundation
 
 extension PageAPI {
-    static func queryAsync(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks?) async throws -> JSValue {
+    nonisolated(nonsending) static func queryAsync(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks?) async throws -> JSValue {
         guard let hooks else { return try query(op, store, a) }
         if op == "query.detail", let callback = hooks.queryDetailAsync {
             guard let char = a["char"]?.stringValue, !char.isEmpty else { return SessionWrites.failure("invalid") }

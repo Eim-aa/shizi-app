@@ -97,11 +97,11 @@ enum EngineOps {
         return !jsOnlyApp.contains(op)
     }
 
-    /// swift 模式里由 Swift 直接答的（其余交页面）。
+    /// swift 模式里由 Swift 直接答的：B4.9a 起 Swift 实现了的全部 op（导航宿主与界面状态也在 Swift：EngineHost + SwiftNavigator）；
+    /// 栈往来（jsOnlyApp 里的 route.* / stage.* / deeplink.reminder 与 shiziNativeNav）由 SwiftNavigator 先答，不到这里；
+    /// 只剩显式 webRenderer（或原生渲染失败）的 image.render / save 交页面（B4.6 的回退）。hostApp / hostWrite 只给影子模式划范围。
     static func swiftAnswers(function: String, op: String) -> Bool {
-        guard swiftImplements(function: function, op: op) else { return false }
-        if function == write { return !hostWrite.contains(op) }
-        return !hostApp.contains(op)
+        swiftImplements(function: function, op: op)
     }
 
     /// SessionRuntime 的 op 名（写字会话前缀 write.）。
@@ -136,6 +136,11 @@ final class EngineHost {
     /// 影子：页面上的离开撤销条说不清时（见 ShadowEngine host-unregistered），按页面回包看到的「没有」对齐（不推 changed）。
     func adoptNoLeaveUndo() { pages.clearLeaveUndo(); registered["leaveUndo"] = epoch }
 
+    /// B4.9a：缺省模式的导航者（「去哪」的规则真正改栈、发宿主消息）；影子模式没有（导航只记进 navigations）。
+    weak var navigator: SwiftNavigator?
+    /// 离开撤销条的「撤销」正在开写字页（skip.js undoLeave 用 nav.push，不是 openWrite）。
+    private var undoing = false
+
     /// 存相册的平台结果（影子：页面那次实际拿到的结果；swift 模式里 image.persist 走 WebViewController 的同一个保存）。
     var platformSave: ((JSValue) -> JSValue)?
 
@@ -164,13 +169,45 @@ final class EngineHost {
         pages.open = { [unowned self] kind, params in
             nav("open:" + kind, params)
             if kind == "query" { openQuery(mode: params["mode"]?.stringValue ?? "lookup") }
+            guard let n = navigator else { return }
+            switch kind {
+            case "write":
+                if undoing { try n.push("write", .object(JSObject([("slot", params["slot"] ?? .null)]))) } // undoLeave(slot => nav.push('write', {slot}))
+                else {
+                    if params["s02"] == .string("continue") { n.markOverlayTap() } // S02「继续写那组」：弹层里的点按（s02.js overlayTapped）
+                    try n.openWrite(params["slot"]?.stringValue ?? "A")
+                }
+            case "session-none": try n.openNone(params["exhausted"])
+            case "s02": try n.openS02(params)
+            case "s02-close": n.closeTop("s02"); n.markOverlayTap()
+            case "library-switch": try n.openLibrarySwitch()
+            case "query": try n.openQuery(params["mode"]?.stringValue ?? "lookup")
+            default: break
+            }
         }
-        pages.paperSource = { [unowned self] kind, a in nav("paper:" + kind, .object(a)) }
+        // 原生入口此刻的位置与字（home/index.js setHomeActions source → setNativeLiveSource）
+        pages.paperSource = { [unowned self] kind, a in
+            nav("paper:" + kind, .object(a))
+            guard kind == "source", let n = navigator else { return }
+            let key = a["key"]?.stringValue ?? ""
+            let rect = a["rect"] ?? .null
+            let live: JSValue? = rect.isNull || rect == .bool(false) ? nil : .object(JSObject([("rect", rect), ("label", a["label"] ?? .null)]))
+            n.setLive(["other-line", "home-capital-defer"].contains(key) ? key : "home-start", live)
+        }
         pages.install(on: hooks)
+        // 首页主按钮 / 「接着写」/「这次先写平常的字」、字库「今日练习」：原生量的被点元素记成写字页的来源（D62；home/index.js withNativeSource、library/index.js startToday）
+        for (op, key) in [("home.start", "home-start"), ("home.resumeOther", "other-line"), ("home.deferSpecial", "home-capital-defer"), ("library.startToday", "library-today")] {
+            hooks.set(op) { [unowned self] a in
+                navigator?.markSource(a["source"], key: key)
+                return try pages.call(op, a)
+            }
+        }
         // 离开撤销条的「撤销」/「先不保存」：skip.js undoLeave（有机会时结束或标失败，各推一次）/ clearLeaveUndo（总推一次）
         for op in ["home.undoLeave", "library.undoLeave"] {
             hooks.set(op) { [unowned self] a in
                 let had = pages.leaveUndo != nil
+                undoing = true
+                defer { undoing = false }
                 let r = try pages.call(op, a)
                 if had { registered["leaveUndo"] = epoch; emitLeaveUndo() }
                 return r
@@ -188,20 +225,29 @@ final class EngineHost {
         for op in ["session.pick", "session.libSwitch", "session.wrongList"] {
             hooks.set(op) { [unowned self] _ in
                 nav(op)
-                if op == "session.pick" { openQuery(mode: "pick") }
+                if op == "session.pick" { openQuery(mode: "pick"); try navigator?.openQuery("pick") } // home/index.js setNoneActions pick → openPick
+                if op == "session.libSwitch" { try navigator?.openLibrarySwitch() } // library/switch.js setNoneActions libSwitch
+                if op == "session.wrongList" { try navigator?.replace("library-list", .object(JSObject([("kind", .string("due"))]))) } // library/list.js wrongList
                 return .null
             }
         }
         // 字详情：练这个字（startPicked）、做成图片（打开预览）
         hooks.set("detail.practice") { [unowned self] a in try startPicked(a["chars"]?.arrayValue ?? [], source: a["source"] ?? .null) }
-        hooks.set("detail.image") { [unowned self] a in nav("detail.image", .object(a)); return .null }
+        hooks.set("detail.image") { [unowned self] a in
+            nav("detail.image", .object(a))
+            navigator?.openImagePreview(JSObject([("kind", .string("glyph")), ("char", a["char"] ?? .null)])) // images-entry.js openGlyphImage
+            return .null
+        }
         // 图片：palette = tokens 的浅色一套（core/images/palette.js：导出图恒为浅纸，无纹理）；存相册是平台，影子里不真存
         images.palette = { Self.palette }
         images.saveFile = { [unowned self] file in
             nav("image.save", file["name"] ?? .null)
             return platformSave?(file) ?? EngineValue.obj([("ok", .bool(true)), ("via", .string("native"))])
         }
-        images.post = { [unowned self] msg in nav("image.post", msg) }
+        images.post = { [unowned self] msg in
+            nav("image.post", msg)
+            if let n = navigator, let o = msg.objectValue { n.post(o) } // closeNativePreview：收掉这条原生屏（网页栈里没有这一层）
+        }
         images.thumb = { [unowned self] _ in measure.host("thumb") } // 选字条的缩略图是渲染器画的位图（images-entry.js）
         images.install(on: hooks)
         // 环境
@@ -224,7 +270,8 @@ final class EngineHost {
         deps.type = { [unowned self] in measure.host("type") }
         deps.theme = { [unowned self] in measure.host("theme") }
         deps.refLabel = { a in Self.refLabel(char: a["char"]?.stringValue ?? "", cardKey: a["cardKey"]?.stringValue) }
-        deps.resultView = { store, a in try ResultPageView.view(store, a, now: store.now(), shareAvailable: true) }
+        // now = 界面单调时钟（跳过撤销的 until 用它；result/native-view.js resultView 的 clockNow）
+        deps.resultView = { [unowned self] store, a in try ResultPageView.view(store, a, now: clockNow(), shareAvailable: true) }
         deps.navigate = [
             // 跳过的撤销条还在时离开：剩余的撤销机会交给来源页（S4，write/skip.js handoffLeaveUndo）
             "back": { [unowned self] args in
@@ -235,11 +282,20 @@ final class EngineHost {
                     handoffLeaveUndo(.object(u))
                 } else { handoffLeaveUndo(nil) }
                 nav("write.back", slot)
+                navigator?.writeBack()
                 return .null
             },
-            "toResult": { [unowned self] args in nav("write.toResult", .array(args)); return .null },
-            "toDetail": { [unowned self] args in nav("write.toDetail", .array(args)); return .bool(true) },
-            "redoBack": { [unowned self] _ in nav("write.redoBack"); return .null },
+            "toResult": { [unowned self] args in
+                nav("write.toResult", .array(args))
+                try navigator?.writeToResult(args.first ?? .null, args.count > 1 ? args[1] : .null, args.count > 2 ? args[2] : nil)
+                return .null
+            },
+            "toDetail": { [unowned self] args in
+                nav("write.toDetail", .array(args))
+                if let n = navigator { return .bool(try n.writeToDetail(args.count > 1 ? args[1] : nil)) }
+                return .bool(true)
+            },
+            "redoBack": { [unowned self] _ in nav("write.redoBack"); navigator?.redoBack(); return .null },
         ]
         // 落款声 s1（sound.js keySound('seal', {key})：同一个 key 只响一次）
         deps.seal = { [unowned self] key in
@@ -251,12 +307,36 @@ final class EngineHost {
         }
         // 结果条目被移出页面栈（离开 / 再写一组 / 撤销跳过换回写字页）→ 清 lastEnded[slot]（01 §3.3；JS 由引擎路由的宿主消息
         // native-session.js resultCloseBody 在同一次导航里同步提交 result:leave）
-        deps.toWrite = { [unowned self] slot in nav("result.toWrite", .string(slot)); leaveResult() }
-        deps.again = { [unowned self] r in nav("result.again", r); leaveResult() }
-        deps.leave = { [unowned self] l in nav("result.leave", l); leaveResult() }
-        deps.redo = { [unowned self] chars in nav("result.redo", .array(chars)); return .bool(!chars.isEmpty) }
-        deps.detail = { [unowned self] char in nav("result.detail", .string(char)); return .bool(true) }
-        deps.share = { [unowned self] a in nav("result.share", .object(a)); return .bool(true) }
+        // 真导航（缺省模式）：结果条目离栈时的 commitLeave 由宿主消息 resultCloseBody 做（HostBodies），这里不再替它清
+        deps.toWrite = { [unowned self] slot in
+            nav("result.toWrite", .string(slot))
+            if let n = navigator { try n.resultToWrite(.string(slot)) } else { leaveResult() }
+        }
+        deps.again = { [unowned self] r in
+            nav("result.again", r)
+            if let n = navigator { try n.resultAgain(r) } else { leaveResult() }
+        }
+        deps.leave = { [unowned self] l in
+            nav("result.leave", l)
+            if let n = navigator { try n.leaveTo(l) } else { leaveResult() }
+        }
+        deps.redo = { [unowned self] chars in
+            nav("result.redo", .array(chars))
+            if let n = navigator { return .bool(try n.resultRedo(chars)) }
+            return .bool(!chars.isEmpty)
+        }
+        deps.detail = { [unowned self] char in
+            nav("result.detail", .string(char))
+            if let n = navigator { return .bool(try n.openCharDetail(char)) }
+            return .bool(true)
+        }
+        deps.share = { [unowned self] a in
+            nav("result.share", .object(a))
+            var scope = JSObject([("kind", .string("session"))])
+            scope["slot"] = a["slot"]; scope["sessionId"] = a["sessionId"]
+            navigator?.openImagePreview(scope) // images-entry.js openSessionImage
+            return .bool(true)
+        }
     }
 
     /// 宿主登记（查字 / S02 回调）是在哪个时刻登记的（影子：登记之后页面里又跑过 Swift 看不见的脚本 / 只交 JS 的 op，就说不清页面现在登记的是什么）。
@@ -282,10 +362,12 @@ final class EngineHost {
     private func openQuery(mode: String) {
         registered["query"] = epoch
         hooks.queryMode = mode
-        hooks.queryClose = { [unowned self] in nav("query.close") }
+        // 先关弹层（查字屏出栈）再开写字页；出栈作废了记下的点按，关完再记一次（components/query/index.js close）
+        hooks.queryClose = { [unowned self] in nav("query.close"); navigator?.closeTop("query"); navigator?.markOverlayTap() }
         let home = EngineValue.obj([("view", .string("home"))]), library = EngineValue.obj([("view", .string("library"))])
         if mode == "pick" {
             hooks.queryPick = { [unowned self] chars, ctx in
+                navigator?.markOverlayTap() // overlayTapped(onPick)
                 let keys = chars.map { JSValue.string($0) }
                 if !ScheduleRules.s02Data(.object(store.state)).isNull { try ctx.close(); return try startPicked(keys, source: home) }
                 let r: JSValue
@@ -293,15 +375,15 @@ final class EngineHost {
                 catch { return EngineValue.obj([("ok", .bool(false)), ("error", EngineValue.obj([("kind", .string("invalid")), ("reason", .string(String(describing: error)))]))]) }
                 if r["ok"] != .bool(true) { return r }
                 try ctx.close()
-                if r["started"] == .bool(true) { nav("open:write", .string("B")); return EngineValue.obj([("ok", .bool(true)), ("opened", .string("new"))]) }
+                if r["started"] == .bool(true) { nav("open:write", .string("B")); try navigator?.openWrite("B"); return EngineValue.obj([("ok", .bool(true)), ("opened", .string("new"))]) }
                 return try startPicked(keys, source: home)
             }
             hooks.queryPractice = nil
             hooks.queryDetail = nil
         } else {
             hooks.queryPick = nil
-            hooks.queryPractice = { [unowned self] char, _ in try startPicked([.string(char)], source: library) }
-            hooks.queryDetail = { [unowned self] char, _ in nav("query.detail", .string(char)); return .null }
+            hooks.queryPractice = { [unowned self] char, _ in navigator?.markOverlayTap(); return try startPicked([.string(char)], source: library) }
+            hooks.queryDetail = { [unowned self] char, _ in nav("query.detail", .string(char)); try navigator?.openCharDetail(char); return .null }
         }
     }
 
@@ -316,17 +398,23 @@ final class EngineHost {
         if r["ok"] != .bool(true) { return r }
         if r["started"] == .bool(true) {
             nav("open:write", .string("B"))
+            try navigator?.openWrite("B")
             return Self.patch(r, [("opened", .string("new"))])
         }
         let queue = r["queue"]?.arrayValue ?? keys
         registered["s02"] = epoch
         hooks.s02Registered = true
         hooks.s02Cancel = nil
-        hooks.s02Close = { [unowned self] in nav("s02.close") }
-        hooks.s02Continue = { [unowned self] in nav("open:write", .string("B")) }
-        hooks.s02EndStart = { [unowned self] in try ScheduleRules(dates: store.dates).endOldAndStartPicked(store, keys: queue, source: src, deck: .real) }
-        hooks.s02Started = { [unowned self] _ in nav("open:write", .string("B")) }
+        // session/s02.js openS02 的原生分支：关框（出栈）再记一次弹层点按；两个开写字页的键记成弹层里的入口（D62 普通推入）
+        hooks.s02Close = { [unowned self] in nav("s02.close"); navigator?.closeTop("s02"); navigator?.markOverlayTap() }
+        hooks.s02Continue = { [unowned self] in nav("open:write", .string("B")); navigator?.markOverlayTap(); try navigator?.openWrite("B") }
+        hooks.s02EndStart = { [unowned self] in
+            navigator?.markOverlayTap()
+            return try ScheduleRules(dates: store.dates).endOldAndStartPicked(store, keys: queue, source: src, deck: .real)
+        }
+        hooks.s02Started = { [unowned self] _ in nav("open:write", .string("B")); try navigator?.openWrite("B") }
         nav("open:s02", r["s02"] ?? .null)
+        try navigator?.openS02(r["s02"])
         return Self.patch(r, [("opened", .string("s02"))])
     }
 

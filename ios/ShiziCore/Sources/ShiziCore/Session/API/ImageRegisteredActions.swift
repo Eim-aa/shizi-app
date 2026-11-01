@@ -13,6 +13,8 @@ public final class ImageRegisteredActions {
         for name in ["view", "spec", "add", "closed"] { hooks.set("image." + name) { [self] in try call(name, $0) } }
         hooks.setAsync("image.persist") { [self] in await persist($0) }
     }
+    /// 选字条小图要的墨点（images-entry.js job.chips 的 ink.points：与作品同一份回放点）；没有墨 → null。
+    public func inkPoints(_ record: JSValue) -> JSValue { ((try? ink(record)) ?? nil) ?? .null }
     func ink(_ record: JSValue) throws -> JSValue? {
         guard let raw = store.getInk(record), let decoded = try InkMath.decodeInk(raw), !decoded.isEmpty else { return nil }
         return CoreEngine.strokesJS(InkMath.resampleForReplay(decoded))

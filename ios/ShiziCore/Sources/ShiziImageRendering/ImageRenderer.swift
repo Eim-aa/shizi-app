@@ -358,6 +358,30 @@ public final class ImageRenderer {
       }
     ]
   }
+  /// 「也放进来」选字条的小图（ui/images-entry.js chipThumb：size pt 的方格、dpr 2、透明底；paintCellContent 的墨那一支，
+  /// 线宽倍数 inkWidthScale(size / unit)，unit = 1；画笔是 brush.js 不带细节的同一画法 = 这里的 hand）。没有墨 → nil（JS 回 ''）。
+  public func chipThumb(points: [[[String: Any]]], hand: String, size: Double = 32, scale: Double = 2) throws -> Data? {
+    guard points.contains(where: { !$0.isEmpty }) else { return nil }
+    let px = Int(size * scale)
+    guard let cs = CGColorSpace(name: CGColorSpace.sRGB),
+      let ctx = CGContext(data: nil, width: px, height: px, bitsPerComponent: 8, bytesPerRow: px * 4, space: cs,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    else { throw Failure.bitmap }
+    ctx.translateBy(x: 0, y: Double(px))
+    ctx.scaleBy(x: scale, y: -scale)
+    let pad = 0.12, inner = size * (1 - 2 * pad)
+    ctx.translateBy(x: size * pad, y: size * pad)
+    ctx.scaleBy(x: inner / 345, y: inner / 345)
+    ctx.setFillColor(try color(hand))
+    self.hand(ctx, points, widthScale: ImageLayout.inkWidthScale(size / 1))
+    guard let image = ctx.makeImage() else { throw Failure.bitmap }
+    let data = NSMutableData()
+    guard let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else { throw Failure.bitmap }
+    CGImageDestinationAddImage(dest, image, nil)
+    guard CGImageDestinationFinalize(dest) else { throw Failure.bitmap }
+    return data as Data
+  }
+
   func bitmap(_ w: Double, _ h: Double, _ scale: Double, _ pal: O, draw: (CGContext) throws -> Void)
     throws -> Data
   {

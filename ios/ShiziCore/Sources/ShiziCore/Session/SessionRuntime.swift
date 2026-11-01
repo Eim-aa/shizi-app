@@ -13,7 +13,7 @@ public final class SessionRuntime {
         self.hooks = hooks
         JSMath.flavor = mathFlavor
     }
-    public func callAsync(_ op: String, _ args: JSObject = JSObject()) async -> JSValue {
+    nonisolated(nonsending) public func callAsync(_ op: String, _ args: JSObject = JSObject()) async -> JSValue {
         if op.hasPrefix("write.") {
             let restore = installMeasurement(); defer { restore() }
             return await WriteAPI.callAsync(String(op.dropFirst(6)), store, args, dependencies: writeDependencies)

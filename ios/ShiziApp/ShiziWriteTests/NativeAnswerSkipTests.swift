@@ -137,7 +137,7 @@ final class NativeAnswerSkipTests: XCTestCase {
         let vc = try await startGroup()
         let key = try XCTUnwrap(vc.cardKey)
         let before = records(try await state()).count
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         tap(vc, "tapShowAnswer")
         try await waitUntil("failure shown") { vc.flowFail != nil }
         XCTAssertEqual(vc.flowFail, .showAnswer)
@@ -153,7 +153,7 @@ final class NativeAnswerSkipTests: XCTestCase {
         XCTAssertEqual(records(st).filter { ($0["cardKey"] as? String) == key && ($0["kind"] as? String) == "answer-seen" }.count, 1, "recorded once")
         // 凭记忆写没保存上：留在描一遍，笔迹还在；「先不保存」回到平常
         try write(vc)
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         tap(vc, "tapPrimary")
         try await waitUntil("failure on phase change") { vc.flowFail != nil }
         XCTAssertEqual(vc.phase, .trace)
@@ -204,7 +204,7 @@ final class NativeAnswerSkipTests: XCTestCase {
     func testFailedSkipStaysAndRetryRecordsOnce() async throws {
         let vc = try await startGroup()
         let key = try XCTUnwrap(vc.cardKey)
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         tap(vc, "tapSkip")
         try await waitUntil("failure shown") { vc.flowFail == .skip }
         XCTAssertEqual(vc.cardKey, key, "not advanced")
@@ -295,7 +295,7 @@ final class NativeAnswerSkipTests: XCTestCase {
         tap(vc, "tapEnd")
         try await waitUntil("dialog") { vc.endDialogForTesting != nil }
         let d = try XCTUnwrap(vc.endDialogForTesting)
-        _ = try await js("return window.__shiziTest.failNextWrite(1, {kind:'generic'});")
+        try await web.qaFailNextWrite()
         d.tapLeftForTesting()
         try await waitUntil("failed state") { d.isFailed }
         let kept = try await state()

@@ -353,7 +353,6 @@ final class ShadowEngine {
             core.pinnedNow = c.t > 0 ? c.t : nil
             armFaults(c.faults)
             core.host.epoch = c.epoch
-            core.pinnedWall = c.wall > 0 ? c.wall : nil
             shadowMeasure.webTheme = EngineValue.js(c.reply)["theme"]
             // 依赖界面层登记的 op（查字弹层的回调、S02 的四个回调）：Swift 一侧的登记早于页面最近一次「Swift 看不见的」脚本 / 深链，就说不清页面登记的是什么——照算不比
             let regKey: String? = c.function != EngineOps.app ? nil

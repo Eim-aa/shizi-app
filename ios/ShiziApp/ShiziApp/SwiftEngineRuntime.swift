@@ -48,8 +48,6 @@ final class SwiftEngineCore {
     let host: EngineHost
     /// 这一次 op 的「现在」（影子模式 = WebEngine 那次 op 在 JS 里取到的 now）；nil = 时钟。
     var pinnedNow: Double?
-    /// 这一次 op 的墙上时钟（createAppApi ctx.now：影子 = 页面那次的 Date.now）；nil = 墙上时钟。
-    var pinnedWall: Double?
     /// 声音（判断声 j1 三变体轮换：haptics.js COMMIT_FEEDBACK 的声音一列 + sound.js keySound；落款声 s1 见 EngineHost.deps.seal）。
     var onSound: ((String, Double) -> Void)? { get { host.onSound } set { host.onSound = newValue } }
     /// 判断声已经放过几次（sound.js keySound 的轮换计数；影子每组开始时对齐到页面的计数）。
@@ -62,8 +60,7 @@ final class SwiftEngineCore {
         host = EngineHost(store: store, measure: measure)
         runtime = SessionRuntime(store: store, mathFlavor: .darwin, hooks: host.hooks, writeDependencies: host.deps)
         box.pinned = { [unowned self] in pinnedNow }
-        // createAppApi 的 ctx.now：App 里 native-stage.js 没注入，就是 Date.now（不带 QA 钉住的偏移）
-        host.hooks.now = { [unowned self] in pinnedWall ?? Date().timeIntervalSince1970 * 1000 }
+        // createAppApi 的 ctx.now：D80 ② 起是 App 时钟（native-stage.js 注入 env.now）= store 的「现在」——hooks.now 不注入（缺省 store.now()）
         _ = store.subscribe { [weak self] _, info in self?.feedback(info) }
     }
 
@@ -72,8 +69,8 @@ final class SwiftEngineCore {
     /// 启动 / 重读：探测 → repair → 读全部键（store.load）。
     @discardableResult func load() -> JSObject { store.load() }
 
-    /// 一个 op（App API 或写字会话）。异步宿主（字源、查字 / S02 回调、存图）走 callAsync。
-    func answer(function: String, op: String, args: JSObject) async -> JSValue {
+    /// 一个 op（App API 或写字会话）。异步宿主（字源、查字 / S02 回调、存图）走 callAsync。B4.9a：在调用方的执行者上跑（swift 模式 = 主线程：store、导航宿主、UIKit 同一条线程；影子 = 它的后台）。
+    nonisolated(nonsending) func answer(function: String, op: String, args: JSObject) async -> JSValue {
         host.currentResult = function == EngineOps.write && op.hasPrefix("result") ? JSObject([("slot", args["slot"] ?? .null), ("sessionId", args["sessionId"] ?? .null)]) : nil
         let reply = await runtime.callAsync(EngineOps.runtimeOp(function: function, op: op), args)
         return function == EngineOps.app && op == "view.mine" ? decorateMine(reply, width: args["width"]?.numberValue) : reply

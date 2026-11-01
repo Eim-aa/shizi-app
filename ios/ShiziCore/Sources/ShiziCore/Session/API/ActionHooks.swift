@@ -6,7 +6,7 @@ public final class SessionActionHooks {
     public typealias Action = (JSObject) throws -> JSValue
     private var asyncActions: [String: (JSObject) async throws -> JSValue] = [:]
     public func setAsync(_ name: String, _ action: ((JSObject) async throws -> JSValue)?) { asyncActions[name] = action }
-    func invokeAsync(_ name: String, _ args: JSObject) async throws -> JSValue? { try await asyncActions[name]?(args) }
+    nonisolated(nonsending) func invokeAsync(_ name: String, _ args: JSObject) async throws -> JSValue? { try await asyncActions[name]?(args) }
     func hasAsync(_ name: String) -> Bool { asyncActions[name] != nil }
     private var actions: [String: Action] = [:]
     public var charData: EtymologyProvider?

@@ -191,6 +191,7 @@ export function resetPaperSources() {
   pending = null;
   sources.clear();
   nativeLive.clear();
+  nativePlans.clear(); // B4.9a：core-diff 每个场景从干净的计划表开始
 }
 
 export function hasPaperSource(entryId) {

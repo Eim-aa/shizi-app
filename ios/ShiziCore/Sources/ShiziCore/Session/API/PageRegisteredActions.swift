@@ -45,9 +45,10 @@ public final class PageRegisteredActions {
             hooks.s02Registered = true
             hooks.s02Cancel = nil
             hooks.s02Close = { [self] in try open?("s02-close",.null) }
-            hooks.s02Continue = { [self] in try open?("write",JS.obj([("slot",.string("B"))])) }
+            // s02：开写字页的是确认框上的哪个键（宿主按它记来源：继续 = 弹层里的点按，见 session/s02.js overlayTapped）
+            hooks.s02Continue = { [self] in try open?("write",JS.obj([("slot",.string("B")),("s02",.string("continue"))])) }
             hooks.s02EndStart = { [self] in try ScheduleRules(dates:store.dates).endOldAndStartPicked(store,keys:queue,source:source,deck:.real) }
-            hooks.s02Started = { [self] _ in try open?("write",JS.obj([("slot",.string("B"))])) }
+            hooks.s02Started = { [self] _ in try open?("write",JS.obj([("slot",.string("B")),("s02",.string("started"))])) }
         }
         try open?(JS.truthy(r["started"]) ? "write" : "s02", JS.truthy(r["started"]) ? JS.obj([("slot", .string("B"))]) : r["s02"] ?? .null)
         return SessionWrites.patch(r, [("opened", .string(JS.truthy(r["started"]) ? "new" : "s02"))])

@@ -18,6 +18,7 @@ import { makeB42Ops } from './js-ops-b42.mjs';
 import { makeB44Ops } from './js-ops-b44.mjs';
 import { makeB45SessionOps } from './js-ops-b45a.mjs';
 import { makeB45ViewOps } from './js-ops-b45v.mjs';
+import { makeB49Ops } from './js-ops-b49.mjs';
 import { parseJson } from './json-parse.mjs';
 
 export const PROTOCOL_VERSION = 1;
@@ -168,6 +169,7 @@ export function createJsEngine({ fault = null } = {}) {
     // B4.4：store / storage / budget / backup / migrate / 原生校验和（js-ops-b44.mjs）
     ...b44.ops,
     ...makeB45SessionOps({ session: b44.session, clock: () => st.clock }),
+    ...makeB49Ops({ clock: () => st.clock }),
   };
 
   const snapshot = () => {

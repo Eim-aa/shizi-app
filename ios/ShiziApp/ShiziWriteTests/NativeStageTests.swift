@@ -156,4 +156,75 @@ final class NativeStageTests: XCTestCase {
         XCTAssertTrue(set?.domains.contains("settings") == true, "settings commit → changed {domains:[settings]}")
         XCTAssertEqual(web.stage.engine.status, .ready)
     }
+
+    // MARK: B4.9a 缺省模式不再调 WKWebView
+
+    /// 缺省（swift）模式走一遍：冷启动 → 首页开组写一组（全部跳过）→ 结果页 → 离开回首页 → 字库 → 我的 → 提醒深链开组；
+    /// 全程交给 WKWebView 的调用为 0（WebCalls：引擎调用与 QA 镜像都算上；QA 镜像在这一段关掉，只有测试准备时用页面清库）。
+    /// 例外只有首次启动的迁移：迁移没做完的那次启动整个用 WebEngine（EngineMode.swift），这里跳过并说明。
+    func testB49a_defaultModeMakesNoWebEngineCalls() async throws {
+        guard let swift = web.stage.engine as? SwiftEngine else {
+            throw XCTSkip("this launch runs WebEngine: unfinished first-launch migration (EngineMode.swift); launch the app once before the test run")
+        }
+        _ = try await js("return window.__shiziTest.reset();") // 测试准备（QA 设施）：清库
+        try await waitUntil("swift store reset") { swift.core.store.state["sessions"]?["A"] == nil || swift.core.store.state["sessions"]?["A"] == .null }
+        SwiftEngine.qaMirror = false
+        defer { SwiftEngine.qaMirror = true }
+        try await Task.sleep(nanoseconds: 300_000_000) // 准备时排着的 QA 调用落定
+        WebCalls.reset()
+        let names = { self.web.stage.entries.map { $0["n"] as? String ?? "" } }
+        // 1. 冷启动判定（route.plan → 无转场重建）
+        var planned = false
+        web.stage.replanForTesting { planned = true }
+        try await waitUntil("planned") { planned }
+        web.stage.switchTab("home")
+        try await waitUntil("home root") { names() == ["home"] }
+        // 2. 首页主按钮开组 → 原生写字页
+        let start = await web.stage.engine.raw("home.start", [:])
+        XCTAssertEqual(start["ok"] as? Bool, true, "\(start)")
+        try await waitUntil("native write page") { self.web.nativeWriteTop != nil && self.web.presentedViewController?.isBeingPresented == false }
+        XCTAssertEqual(names(), ["home", "write"])
+        // 3. 全部跳过 → 写字页换成结果页
+        let vc = try XCTUnwrap(web.nativeWriteTop)
+        var n = 0
+        while web.nativeWriteTop != nil, n < 40 {
+            n += 1
+            let key = vc.cardKey
+            vc.perform(Selector(("tapSkip")))
+            try await waitUntil("next or result") { self.web.nativeWriteTop == nil || vc.cardKey != key }
+        }
+        try await waitUntil("native result page") { names() == ["home", "result"] && self.web.nativeResultTop != nil }
+        // 4. 结果页离开 → 回首页（leaveTo：来源是 tab 根且就在下面 → nav.back）
+        let rv = try XCTUnwrap(web.nativeResultTop)
+        var left: Bool?
+        NativeWriteBridge(webView: web.webView).call("resultExit", ["slot": rv.slot, "sessionId": rv.sessionId, "to": "leave"]) { left = $0.ok }
+        try await waitUntil("left") { left != nil }
+        XCTAssertEqual(left, true)
+        try await waitUntil("back home") { names() == ["home"] && self.web.nativeResultTop == nil }
+        // 5. 字库、我的
+        web.stage.switchTab("library")
+        try await waitUntil("library") { names() == ["library"] }
+        web.stage.switchTab("mine")
+        try await waitUntil("mine") { names() == ["mine"] }
+        // 6. 提醒深链：开「这次选的字」（B）
+        web.openReminderTarget(cardKey: "base:永")
+        try await waitUntil("reminder target opened") { ["write", "s02"].contains(names().last ?? "") }
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertEqual(WebCalls.engine, 0, "calls that still reached the WKWebView: \(WebCalls.byOp)")
+        XCTAssertEqual(WebCalls.qa, 0)
+        // 收尾：回到「我的」根（下一条用例的 setUp 再由页面清）
+        if let top = web.nativeWriteTop { top.exitHandled = true; top.dismiss(animated: false) }
+        web.stage.switchTab("mine")
+    }
+}
+
+extension WebViewController {
+    /// 下一次写入失败（D07 三段式的测试）：Swift 引擎（缺省）按发出顺序挂在之后的第一个写 op 上；WebEngine 交页面的测试钩子（页面调用队列先进先出）。
+    @MainActor func qaFailNextWrite() async throws {
+        if let swift = stage.engine as? SwiftEngine {
+            swift.qaFailNextWrite()
+            return
+        }
+        _ = try await webView.callAsyncJavaScript("return window.__shiziTest.failNextWrite(1, {kind:'generic'});", arguments: [:], in: nil, contentWorld: .page)
+    }
 }

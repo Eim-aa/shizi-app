@@ -31,10 +31,11 @@ import backupRoundTripDomain from './domains/backup-roundtrip.mjs';
 import nativeRowsDomain from './domains/native-rows.mjs';
 import viewsPagesDomain from './domains/views-pages.mjs';
 import viewsBasicDomain from './domains/views-basic.mjs';
+import navDomain from './domains/nav.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const FIXTURE_DIR = path.join(ROOT, 'ios/ShiziCore/Tests/ShiziCoreTests/Fixtures');
-export const DOMAINS = [datesDomain, numberFormatDomain, schemaDomain, signatureDomain, copyDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, contractDomain, fsrsDomain, scheduleDomain, mixSimDomain, backupRoundTripDomain, nativeRowsDomain, viewsBasicDomain, viewsPagesDomain];
+export const DOMAINS = [datesDomain, numberFormatDomain, schemaDomain, signatureDomain, copyDomain, recordsDomain, queryDomain, cardsDomain, membersDomain, inkDomain, contractDomain, fsrsDomain, scheduleDomain, mixSimDomain, backupRoundTripDomain, nativeRowsDomain, viewsBasicDomain, viewsPagesDomain, navDomain];
 
 export function withTZ(tz, fn) {
   const prev = process.env.TZ;

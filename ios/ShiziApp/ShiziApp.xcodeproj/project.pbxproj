@@ -113,6 +113,7 @@
 		B45C00000000000000000011 /* EngineMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000010 /* EngineMode.swift */; };
 		B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000012 /* SwiftEngineCore.swift */; };
 		B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000014 /* SwiftEngineRuntime.swift */; };
+		B49A00000000000000000002 /* SwiftNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49A00000000000000000001 /* SwiftNav.swift */; };
 		B45C00000000000000000017 /* SwiftEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000016 /* SwiftEngine.swift */; };
 		B45C00000000000000000019 /* ShadowEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000018 /* ShadowEngine.swift */; };
         B45C0000000000000000000A /* ShiziCore in Frameworks */ = {isa = PBXBuildFile; productRef = B45C0000000000000000000B; };
@@ -248,6 +249,7 @@
 		B45C00000000000000000010 /* EngineMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineMode.swift; sourceTree = "<group>"; };
 		B45C00000000000000000012 /* SwiftEngineCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineCore.swift; sourceTree = "<group>"; };
 		B45C00000000000000000014 /* SwiftEngineRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineRuntime.swift; sourceTree = "<group>"; };
+		B49A00000000000000000001 /* SwiftNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftNav.swift; sourceTree = "<group>"; };
 		B45C00000000000000000016 /* SwiftEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngine.swift; sourceTree = "<group>"; };
 		B45C00000000000000000018 /* ShadowEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -359,6 +361,7 @@
 				B45C00000000000000000010 /* EngineMode.swift */,
 				B45C00000000000000000012 /* SwiftEngineCore.swift */,
 				B45C00000000000000000014 /* SwiftEngineRuntime.swift */,
+				B49A00000000000000000001 /* SwiftNav.swift */,
 				B45C00000000000000000016 /* SwiftEngine.swift */,
 				B45C00000000000000000018 /* ShadowEngine.swift */,
 				1A00000000000000000000E2 /* NativeStoreBridge.swift */,
@@ -718,6 +721,7 @@
 				B45C00000000000000000011 /* EngineMode.swift in Sources */,
 				B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */,
 				B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */,
+				B49A00000000000000000002 /* SwiftNav.swift in Sources */,
 				B45C00000000000000000017 /* SwiftEngine.swift in Sources */,
 				B45C00000000000000000019 /* ShadowEngine.swift in Sources */,
 				1A00000000000000000000E3 /* NativeStoreBridge.swift in Sources */,

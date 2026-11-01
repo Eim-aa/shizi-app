@@ -157,8 +157,8 @@ enum EngineRoute {
     /// swift 模式：(function, op, args, completion) → 是否已由 Swift 答复。
     static var swift: ((String, String, [String: Any], @escaping ([String: Any], Double) -> Void) -> Bool)?
 
-    static func evaluate(_ webView: WKWebView?, function: String, op: String, args: [String: Any], completion: @escaping ([String: Any], Double) -> Void) {
-        if let swift, swift(function, op, args, completion) { return }
+    static func evaluate(_ webView: WKWebView?, function: String, op: String, args: [String: Any], allowSwift: Bool = true, completion: @escaping ([String: Any], Double) -> Void) {
+        if allowSwift, let swift, swift(function, op, args, completion) { return }
         #if DEBUG
         if let shadow = ShadowEngine.shared {
             shadow.evaluate(webView, function: function, op: op, args: args, completion: completion)
@@ -188,6 +188,7 @@ final class WebEngine: StageEngine {
     /// 页面里的一个全局函数（window.<fn>(op, args)）。webView 不在 / JS 抛错 / 回包不是对象 → {ok:false, error:{kind:'transport'}}。
     static func evaluate(_ webView: WKWebView?, function: String, op: String, args: [String: Any], completion: @escaping ([String: Any], Double) -> Void) {
         let t0 = CACurrentMediaTime()
+        WebCalls.note(function: function, op: op) // B4.9a：缺省（swift）模式应为 0（QA 探针 stage.webCalls）
         guard let webView else {
             completion(["ok": false, "error": ["kind": "transport"]], 0)
             return
@@ -215,8 +216,11 @@ final class WebEngine: StageEngine {
             DispatchQueue.main.async { completion(navigator(op, args)) }
             return
         }
-        EngineRoute.evaluate(webView, function: "shiziNative", op: op, args: args) { body, _ in completion(body) }
+        EngineRoute.evaluate(webView, function: "shiziNative", op: op, args: args, allowSwift: swiftOwned) { body, _ in completion(body) }
     }
+
+    /// B4.9a：这是 SwiftEngine 里面的那个 WebEngine（它的 raw 由 Swift 先答）；单独建的 WebEngine（测试 / 回退）照旧交页面。
+    var swiftOwned = false
 
 
     /// B4.6: native raster boundary. `webRenderer: true` explicitly calls the retained canvas fallback.

@@ -33,6 +33,8 @@ function step(name, cmd, args, { env = {}, warnOnly = false } = {}) {
 if (!argv.includes('--no-build')) {
   if (!step('swift build -c release', 'swift', ['build', '-c', 'release', '--package-path', PKG])) finish();
 }
+// G2：先生成笔顺 pack，StrokePackTests 才真比 7,218 个文件（否则跳过）
+step('笔顺 pack 生成（build/strokes.pack）', process.execPath, ['scripts/stroke-pack/build.mjs']);
 if (!argv.includes('--skip-swift-test')) step('swift test', 'swift', ['test', '--package-path', PKG]);
 step('配置与数据资源同步（build_core_config --check）', process.execPath, ['scripts/build_core_config.mjs', '--check']);
 step('金标准同步', process.execPath, ['scripts/core-golden/golden.mjs', '--check']);
@@ -54,6 +56,7 @@ step(`调度模拟器 js ↔ swift（20 个场景${nightly ? '' : '，每个压�
   'scripts/sim/schedule-sim.mjs', '--engine', 'both', '--swift-store', 'core', ...(nightly ? [] : ['--days', '30']), '--out', path.join(ROOT, 'scripts/sim/out/both'),
 ]);
 step('转写清单同步', process.execPath, ['scripts/core-diff/transcription-list.mjs', '--check'], { warnOnly: true });
+step('转写核对（每条「转写」都有 XCTest）', process.execPath, ['scripts/core-diff/transcription-audit.mjs']);
 finish();
 
 function finish() {

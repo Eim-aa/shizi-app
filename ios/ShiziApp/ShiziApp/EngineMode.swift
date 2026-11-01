@@ -8,8 +8,9 @@ import Foundation
 //   shadow  WebEngine 写、答；每个 op 同时在后台让 SwiftEngine 用同一前态的内存副本再算一遍并逐值比对（ShadowEngine.swift，只在 DEBUG）。
 //
 // 只有 DEBUG 包认启动参数 `-shizi-engine swift|web|shadow`（或环境变量 SHIZI_ENGINE，宿主进程里的单元测试用）。
-// 首次启动保护（§4.4）：库里的 localStorage → SQLite 迁移还没做完（store_meta 'migration' 不是 done：新装、旧版升级的第一次启动、
-// 迁移失败回退到 localStorage）时，这一次启动用 WebEngine——迁移只有 JS 一份（native-boot.js）；做完之后下一次启动再切到 SwiftEngine。
+// 首次启动保护（§4.4）：库里的 localStorage → SQLite 迁移还没做完（store_meta 'migration' 不是 done：旧版升级的第一次启动、
+// 迁移失败回退到 localStorage、旧数据判不准）时，这一次启动用 WebEngine——迁移只有 JS 一份（native-boot.js）；做完之后下一次启动再切到 SwiftEngine。
+// 新装（B4.9b）：确定没有旧数据 → 选引擎前原生直接把迁移记成 done，第一次启动就是 SwiftEngine（LegacyStorage.swift）。
 enum ShiziEngineMode: String {
     case web
     case swift
@@ -30,9 +31,8 @@ enum ShiziEngineMode: String {
         return migrationDone ? .swift : .web
     }
 
-    /// 这次启动时库里的迁移标记是否已是 done（同 native-boot.js 判断用的同一个 ping 回包）。
+    /// 这次启动时迁移是否已是 done；新装（没有旧数据可迁）在这里由原生直接记成 done（B4.9b，LegacyStorage.swift）。
     static var migrationDone: Bool {
-        let reply = NativeStoreBridge.shared.callSync("ping", [:])
-        return (reply["migration"] as? [String: Any])?["state"] as? String == "done"
+        NativeStoreBridge.shared.settleMigrationForLaunch()
     }
 }

@@ -301,4 +301,116 @@ final class NativeStoreTests: XCTestCase {
         for i in 0..<30 { try store.appendDiag(["i": i]) }
         XCTAssertEqual(try store.diagEntries().count, NativeStore.diagLimit)
     }
+
+    // MARK: B4.9b 新装的迁移标记（LegacyStorage.swift）
+
+    /// 在 lib/WebKit/… 下造一个 WKWebView 风格的 localstorage.sqlite3，里面放给定的键。
+    @discardableResult
+    private func makeLocalStorage(_ lib: URL, keys: [String], layout: String = "com.eimaa.shizi/WebsiteData/Default/h/h/LocalStorage") throws -> URL {
+        let folder = lib.appendingPathComponent("WebKit/" + layout, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appendingPathComponent("localstorage.sqlite3")
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(file.path, &db), SQLITE_OK)
+        defer { sqlite3_close(db) }
+        XCTAssertEqual(sqlite3_exec(db, "CREATE TABLE ItemTable (key TEXT UNIQUE ON CONFLICT REPLACE, value BLOB NOT NULL ON CONFLICT FAIL)", nil, nil, nil), SQLITE_OK)
+        for k in keys { XCTAssertEqual(sqlite3_exec(db, "INSERT INTO ItemTable VALUES ('\(k)', X'7B7D')", nil, nil, nil), SQLITE_OK) }
+        return file
+    }
+
+    private func lib(_ name: String) throws -> URL {
+        let l = dir.appendingPathComponent(name, isDirectory: true)
+        try FileManager.default.createDirectory(at: l, withIntermediateDirectories: true)
+        return l
+    }
+
+    /// 新装：库里没标记没行、WebKit 目录不存在 → 原生记 done；字段与 JS 迁空 localStorage 的走法（import 0 行 → commitMigration）一致。
+    func testFreshInstallIsMarkedDoneNatively() throws {
+        let store = try makeStore()
+        XCTAssertTrue(store.settleMigrationForLaunch { LegacyStorageProbe.probe(libraryURL: try! self.lib("fresh")) })
+        let m = try XCTUnwrap(store.migration())
+        XCTAssertEqual(m.state, "done")
+        XCTAssertEqual(m.count, 0)
+        XCTAssertEqual(m.digest, "0:0:811c9dc5")
+        XCTAssertEqual(m.source, "localStorage")
+        XCTAssertNotNil(m.doneAt)
+        // 与 JS 的走法（同样的 op 序列）结果逐字段相同（除时间）
+        let js = try makeStore("js.sqlite")
+        _ = try js.importRows([], count: 0, digest: NativeStore.digest([]).digest, source: "localStorage")
+        let jm = try js.commitMigration(count: 0, digest: NativeStore.digest([]).digest)
+        XCTAssertEqual([m.state, m.digest, m.source, "\(m.count)"], [jm.state, jm.digest, jm.source, "\(jm.count)"])
+        XCTAssertEqual(Set(m.dictionary.keys), Set(jm.dictionary.keys))
+        // 再来一次：已 done，幂等
+        XCTAssertTrue(store.settleMigrationForLaunch { .present })
+    }
+
+    /// 旧版升级：旧 localStorage 里有 shizi.* 键 → 不动库，仍 false（交 WebEngine 去迁）。
+    func testLegacyPresentStaysOnWebEngine() throws {
+        let store = try makeStore()
+        let l = try lib("legacy")
+        try makeLocalStorage(l, keys: ["shizi.v2.meta", "other"])
+        XCTAssertEqual(LegacyStorageProbe.probe(libraryURL: l), .present)
+        XCTAssertFalse(store.settleMigrationForLaunch { LegacyStorageProbe.probe(libraryURL: l) })
+        XCTAssertNil(try store.migration(), "没有写任何标记")
+        // 旧布局（WebsiteData/LocalStorage/<origin>.localstorage）同样认
+        let l2 = try lib("legacy2")
+        let folder = l2.appendingPathComponent("WebKit/WebsiteData/LocalStorage", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: try makeLocalStorage(l, keys: [], layout: "tmp/LocalStorage").deletingLastPathComponent().appendingPathComponent("localstorage.sqlite3"), to: folder.appendingPathComponent("shizi-resource_app_0.localstorage"))
+        XCTAssertEqual(LegacyStorageProbe.probe(libraryURL: l2), .none, "空的旧布局文件：没有 shizi 键")
+        // WKWebView 建过库但里面没有 shizi.* 键 → 没有
+        let l3 = try lib("empty-ls")
+        try makeLocalStorage(l3, keys: ["unrelated"])
+        XCTAssertEqual(LegacyStorageProbe.probe(libraryURL: l3), .none)
+    }
+
+    /// 已 done：什么也不做；done 之外的状态（imported）、库里已有行但没标记 → false。
+    func testAlreadyDoneAndHalfDoneStates() throws {
+        let done = try makeStore("done.sqlite")
+        _ = try done.importRows([], count: 0, digest: NativeStore.digest([]).digest, source: "localStorage")
+        _ = try done.commitMigration(count: 0, digest: NativeStore.digest([]).digest)
+        let before = try XCTUnwrap(done.migration())
+        XCTAssertTrue(done.settleMigrationForLaunch { XCTFail("done 不该再判旧数据"); return .none })
+        XCTAssertEqual(try done.migration(), before)
+
+        let imported = try makeStore("imported.sqlite")
+        _ = try imported.importRows([], count: 0, digest: NativeStore.digest([]).digest, source: "localStorage")
+        XCTAssertFalse(imported.settleMigrationForLaunch { .none })
+        XCTAssertEqual(try imported.migration()?.state, "imported")
+
+        let rows = try makeStore("rows.sqlite")
+        try rows.apply([op("shizi.v2.records.2026-09", "[1]")])
+        XCTAssertFalse(rows.settleMigrationForLaunch { .none }, "有行没标记：不碰")
+        XCTAssertNil(try rows.migration())
+        XCTAssertEqual(try rows.digestOfRows().count, 1)
+    }
+
+    /// 读不出：库打不开 → 桥层返回 false（这里测 NativeStore 层：未打开抛错被吞成 false）；旧 localStorage 库读不出 / 形状没见过 → unsure → false。
+    func testUnreadableStoresAreTreatedAsPresent() throws {
+        let closed = NativeStore(fileURL: dir.appendingPathComponent("never-opened.sqlite"))
+        XCTAssertFalse(closed.settleMigrationForLaunch { .none })
+
+        let store = try makeStore()
+        let l = try lib("garbage")
+        let file = try makeLocalStorage(l, keys: [])
+        try Data("not a sqlite file at all, padded to look like one........".utf8).write(to: file)
+        XCTAssertEqual(LegacyStorageProbe.probe(libraryURL: l), .unsure)
+        XCTAssertFalse(store.settleMigrationForLaunch { LegacyStorageProbe.probe(libraryURL: l) })
+        XCTAssertNil(try store.migration())
+
+        let l2 = try lib("odd-shape")
+        let folder = l2.appendingPathComponent("WebKit/x/LocalStorage", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data("?".utf8).write(to: folder.appendingPathComponent("mystery.bin"))
+        XCTAssertEqual(LegacyStorageProbe.probe(libraryURL: l2), .unsure)
+
+        // 没有 ItemTable 的 sqlite 文件 → unsure
+        let l3 = try lib("no-table")
+        let f3 = try makeLocalStorage(l3, keys: [])
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(f3.path, &db), SQLITE_OK)
+        sqlite3_exec(db, "DROP TABLE ItemTable", nil, nil, nil)
+        sqlite3_close(db)
+        XCTAssertEqual(LegacyStorageProbe.probe(libraryURL: l3), .unsure)
+    }
 }

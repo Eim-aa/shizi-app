@@ -38,6 +38,8 @@ public final class EngineRouter {
     public var post: (JSObject) -> Void = { _ in }
     /// 宿主消息交给原生（按序）。
     public var deliver: ([HostBody]) -> Void = { _ in }
+    /// 转场记录（engine.js account 的 traceNav：'push:native' / 'pop:native' / 'replace:native'——这一下交给原生画）。只给 QA 探针读（webNav，B4.9c）。
+    public var trace: (String) -> Void = { _ in }
     /// 原生发起的导航：订阅者（路由提示写入是一次同步落库）推迟到转场之后（engine.js NATIVE_EMIT_DELAY_MS）；nil = 立即。
     public var deferNativeEmit: ((@escaping () -> Void) -> Void)?
 
@@ -126,6 +128,7 @@ public final class EngineRouter {
         let underId = under?["id"]?.stringValue
         let plan = paper.planPaper(t, underId: underId, nativeTap: kind == "replace")
         if kind != "pop" { paper.noteNativePlan(JS.string(t["to"]?["id"]), plan) }
+        if JS.truthy(t["animate"]) || kind == "pop" { trace("\(kind):native") }
     }
 
     /// 改栈。intent: {kind:'push', entry} {kind:'replace', entry, animate} {kind:'pop', cause} {kind:'tab', entry} {kind:'params', patch}

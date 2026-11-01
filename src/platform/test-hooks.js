@@ -13,10 +13,13 @@
 //   getStatus()                     store.status（available/blocked/corruptNotice/usage/lastRepair/backend——B1：kind 'native'|'localStorage' 与迁移信息）
 //   failNextWrite(n, {kind:'quota'|'generic'|'security', matchKey?})  接下来 n 次匹配的 setItem 抛错
 //   interruptAfterWrite(k)          第 k 次写后模拟进程中断（之后写全部失败且不回滚；刷新页面后 repair）
+//   overrideStorage({probe, blocked, quarantined}) 把存储探测 / blocked / 启动修复隔离的键换成替身（probe: {ok:false, kind} | null；blocked: {reason, keys} | null；
+//                                   quarantined: [键] | null = repair 报告里隔离了这些键（坏值提示）；null = 还原），
+//                                   随后 store.reload()；iOS 壳里同时告诉原生（B4.9c：SwiftEngine 是写入者时替身落在 Swift 的存储上，阻断页由它发）
 //   takeFaults()                    取走并清空挂着的注入（B4.8：原生 SwiftEngine 是写入者时，原生在下一次写之前取走，挂到 Swift 一侧）
 //   getFaults()                     现在挂着的注入 {fail:[{remaining, kind, matchKey}], interruptAfter, halted, overridden}（B4.7 影子比对读；
 //                                   overridden = 夹具脚本把探测 / blocked 换掉了）
-//   setClock(iso|null)              平移应用时钟（platform/env.js now()）
+//   setClock(iso|null)              平移应用时钟（platform/env.js now()）；iOS 壳里同时告诉原生（B4.9c：qa-clock，SwiftEngine 的钟跟着平移）
 //   reset()                         清故障、复原时钟、删除全部 shizi.* 键（保留 shizi.nativeSmoke.v1）、重载 store、清写日志
 //   getWriteLog()                   本页面对 localStorage 的每次写：{seq, op, key, bytes, via:'storage'|'direct', ok}
 //                                   via==='direct' 即绕过 storage.js 的写入（验收断言应为空）。
@@ -25,7 +28,7 @@
 //   getRouteWriteLog()              shizi.v2.route 的写入（同上格式）。
 //   getRoutePlan()                  本次启动的冷启动判定 {reason, restored}（ui/route-memory.js；不是冷启动时 reason 照样给出）
 
-import { isTestHost, now, setClockOverride } from './env.js';
+import { clockOverrideMs, isTestHost, now, setClockOverride } from './env.js';
 import { isDriverActive } from '../store/storage.js';
 import { KEYS, NATIVE_SMOKE_KEY } from '../core/schema.js';
 
@@ -122,9 +125,30 @@ function armedForNative(win = globalThis) {
   }
 }
 
+/** B4.9c：应用时钟平移了——告诉原生（SwiftEngine 是写入者，它的钟 = QAClock 偏移；不读时钟，只报偏移）。网页版什么都不发。 */
+function clockForNative(offsetMs, win = globalThis) {
+  try {
+    const ch = win && win.webkit && win.webkit.messageHandlers && win.webkit.messageHandlers.shiziNative;
+    if (ch) ch.postMessage({ type: 'native', op: 'qa-clock', offsetMs });
+  } catch (error) {
+    // 测试设施，发不出去不影响
+  }
+}
+
+/** B4.9c：存储替身换了——告诉原生（SwiftEngine 把同样的替身挂到 Swift 的存储上再重读）。网页版没有原生通道，什么都不发。 */
+function storageOverriddenForNative(probe, blocked, quarantined, win = globalThis) {
+  try {
+    const ch = win && win.webkit && win.webkit.messageHandlers && win.webkit.messageHandlers.shiziNative;
+    if (ch) ch.postMessage({ type: 'native', op: 'qa-storage', probe: probe || null, blocked: blocked || null, quarantined: quarantined || null });
+  } catch (error) {
+    // 测试设施，发不出去不影响
+  }
+}
+
 function createTestApi({ storage, getStore }) {
   // B4.7 影子比对：夹具脚本会把 storage 的探测 / blocked 换成假的（States/_ops/blockMode.js）——getFaults 报出来，影子那组不比
   const originalProbe = storage ? storage.probe : null;
+  const originalRepair = storage ? storage.repair : null;
   const blockedDesc = storage ? Object.getOwnPropertyDescriptor(storage, 'blocked') : null;
   const log = [];
   const routeLog = [];
@@ -169,6 +193,20 @@ function createTestApi({ storage, getStore }) {
       f.overridden = storage.probe !== originalProbe || !!(d && blockedDesc && d.get !== blockedDesc.get);
       return f;
     },
+    overrideStorage({ probe = null, blocked = null, quarantined = null } = {}) {
+      if (probe) storage.probe = () => ({ ok: false, kind: probe.kind || 'unknown' });
+      else if (originalProbe) storage.probe = originalProbe;
+      if (Array.isArray(quarantined)) storage.repair = (...args) => ({ ...originalRepair.apply(storage, args), quarantined: quarantined.map(key => ({ key })) });
+      else if (originalRepair) storage.repair = originalRepair;
+      if (blocked) {
+        const value = { reason: blocked.reason || 'rollback-failed', keys: Array.isArray(blocked.keys) ? blocked.keys.slice() : [] };
+        Object.defineProperty(storage, 'blocked', { configurable: true, get: () => value });
+      } else if (blockedDesc) {
+        Object.defineProperty(storage, 'blocked', blockedDesc);
+      }
+      storageOverriddenForNative(probe, blocked, Array.isArray(quarantined) ? quarantined.slice() : null);
+      return plain(store().reload());
+    },
     interruptAfterWrite(k) {
       storage.interruptAfterWrite(k);
       armedForNative();
@@ -182,6 +220,7 @@ function createTestApi({ storage, getStore }) {
     },
     setClock(iso) {
       const t = setClockOverride(iso === undefined ? null : iso);
+      clockForNative(clockOverrideMs());
       return new Date(t).toISOString();
     },
     now() {
@@ -190,6 +229,7 @@ function createTestApi({ storage, getStore }) {
     reset() {
       storage.clearFaults();
       setClockOverride(null);
+      clockForNative(0);
       const keys = storage.listKeys('shizi.').filter(key => key !== NATIVE_SMOKE_KEY);
       storage.removeKeys(keys);
       const report = store().reload();

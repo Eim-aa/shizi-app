@@ -18,6 +18,7 @@
 //   STATES             逗号分隔，write / trace / retrace / self / judge / detail / redo / result（缺省全部；retrace / self 是格下 R-W07.selfNote 的两种阶段，r7-W3；redo = 重写错字页、result = 首练结果页的提醒邀请在首屏内，D66）
 //   OUT_DIR            截图与每次结果 JSON 的目录（缺省 ios/ShiziApp/build/webkit-ax/out）
 //   RESULT_TIMEOUT     每个状态等结果的秒数（缺省 60）
+//   ENGINE             App 的 -shizi-engine（缺省 web；B4.9c）
 
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -33,6 +34,10 @@ const APP = join(DD, 'Build/Products/Debug-iphonesimulator/Shizi.app');
 const BID = 'com.eimaa.shizi';
 const PROBE = join(ROOT, 'scripts/webkit-ax-probe.js');
 const TIMEOUT = Number(process.env.RESULT_TIMEOUT || 60);
+// B4.9c：探针量的是 WKWebView 里网页写字页的版式（WebEngine 那条路）——显式带 -shizi-engine（缺省 web）。**已知失效**：2026-11-01 实测
+// 缺省 swift 与 web 都卡在「app boot」（探针等网页根节点 .sz-app，B3.F 起引擎模式不挂网页界面，早于本卡）；原生写字页的 AX 版式由
+// verify-native-ui.sh 的逐屏对比（AX3 / AX5）与流程用例覆盖。待 B4.9 随网页退役。
+const ENGINE = process.env.ENGINE || 'web';
 
 const DEFAULT_DEVICES = 'iPhone17=F1193537-1696-4C87-8094-E6F24E4F220D,SE3=66BBBA9C-B7FB-4DA0-9D1C-08B729304053,ProMax=2247F84A-D0D1-4056-A79A-88B772B35DE3';
 const DEVICES = (process.env.DEVICES || DEFAULT_DEVICES).split(',').map(s => s.split('=')).map(([name, udid]) => ({ name, udid }));
@@ -77,7 +82,7 @@ async function runState(dev, size, state, container) {
   rmSync(resultFile, { force: true });
   quiet(() => simctl('terminate', dev.udid, BID));
   await sleep(600);
-  simctl('launch', dev.udid, BID, '-shizi-smoke', '-shizi-smoke-stage', 'probe', '-shizi-probe-arg', state);
+  simctl('launch', dev.udid, BID, '-shizi-engine', ENGINE, '-shizi-smoke', '-shizi-smoke-stage', 'probe', '-shizi-probe-arg', state);
   const end = Date.now() + TIMEOUT * 1000;
   while (Date.now() < end && !(existsSync(resultFile) && readFileSync(resultFile, 'utf8').length)) await sleep(500);
   const tag = `${dev.name}-${size}-${state}`;

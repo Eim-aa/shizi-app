@@ -245,4 +245,24 @@ final class StorageTests: XCTestCase {
         XCTAssertNil(backend.rawGet(SK("txn")))
         throwsWrite({ try storage.writeOne(SK("txn"), "{}") }) { $0.name == "TypeError" }
     }
+
+    // B4.9c：测试替身（JS 夹具把 storage.probe / storage.blocked 换成假的同一件事）——探测按替身答；blocked 只改 store 读到的（JS 换的也只是这个读口），
+    // 写入照常；摘掉替身后重读回到真的
+    func testProbeAndBlockedOverridesActLikeTheJSStandIns() throws {
+        for B in TestBackend.allCases {
+            let env = seeded(B)
+            env.storage.probeOverride = (false, "security")
+            env.store.load()
+            XCTAssertFalse(env.store.available, B.name)
+            env.storage.probeOverride = nil
+            env.storage.blockedOverride = ("rollback-failed", [], [])
+            env.store.load()
+            XCTAssertTrue(env.store.available, B.name)
+            XCTAssertEqual(env.store.blocked?["reason"], .string("rollback-failed"), B.name)
+            XCTAssertNoThrow(try env.storage.writeOne(SK("settings"), #"{"appearance":"dark"}"#), B.name)
+            env.storage.blockedOverride = nil
+            env.store.load()
+            XCTAssertNil(env.store.blocked, B.name)
+        }
+    }
 }

@@ -151,6 +151,17 @@ final class NativeStage: NSObject {
             #if DEBUG
             (engine as? SwiftEngine)?.faultsArmed = true // B4.8：测试钩子挂了写入注入（SwiftEngine 在下一次写之前取走）
             #endif
+        #if DEBUG
+        // B4.9c：QA 设施（只在 DEBUG；swift 模式里夹具 / 测试钩子对 Swift 写入者的同一件事）
+        case "qa-save-stub": // 存相册桩（stubSave.js / stubNative.js）
+            WebViewController.qaSaveStub = (body["off"] as? Bool) == true ? nil : ((body["success"] as? Bool) == true, (body["reply"] as? Bool) != false)
+        case "qa-ui": // 夹具的界面入口交 Swift
+            (engine as? SwiftEngine)?.qaUI(body["action"] as? String ?? "", EngineValue.js(body["args"]))
+        case "qa-clock": // 页面的应用时钟平移 / 造数据钉住（test-hooks setClock / reset、夹具 prologue）——Swift 的钟（QAClock）同一个偏移
+            if WebViewController.nativeTestHostEnabled, let v = (body["offsetMs"] as? NSNumber)?.doubleValue { QAClock.offsetMs = abs(v) >= 1000 ? v : nil }
+        case "qa-storage": // 测试钩子换了存储探测 / blocked / 隔离键的替身（SwiftEngine 挂到 Swift 的存储上再重读）
+            (engine as? SwiftEngine)?.qaOverrideStorage(body)
+        #endif
         case "changed":
             #if DEBUG
             ShadowEngine.shared?.webChanged(body)
@@ -166,6 +177,11 @@ final class NativeStage: NSObject {
     private func enqueue(_ op: @escaping (@escaping () -> Void) -> Void) {
         queue.append(op)
         pump()
+    }
+
+    /// B4.9c：排在已经排着的开 / 关屏之后做（SwiftNavigator 的 fence）。
+    func afterQueued(_ fn: @escaping () -> Void) {
+        enqueue { done in fn(); done() }
     }
 
     private func pump() {
@@ -687,6 +703,7 @@ final class NativeStage: NSObject {
         guard engine is SwiftEngine else { return true }
         if type == "native", ["changed", "qa-faults", "roots-reset"].contains(op) { return true }
         #if DEBUG
+        if type == "native", ["qa-storage", "qa-save-stub", "qa-ui", "qa-clock"].contains(op) { return true } // B4.9c
         if SwiftEngine.qaMirror {
             if type == "nativeWrite" { return true }
             if type == "native", ["nav", "open", "close", "root"].contains(op) { return true }

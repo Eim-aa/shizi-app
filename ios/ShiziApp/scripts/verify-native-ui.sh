@@ -151,6 +151,19 @@ if ! xcodebuild -project "$IOS/ShiziApp.xcodeproj" -scheme ShiziUITests -configu
   exit 1
 fi
 APP="$DD/Build/Products/Debug-iphonesimulator/Shizi.app"
+# B4.9c：共用的 DerivedData 增量构建可能漏掉 ShiziCore 新加的资源目录（SessionBundled 缺 → SwiftEngine 读资源即崩，流程全挂）。
+# 缺就删掉构建产物与中间文件（留下 SourcePackages / ModuleCache）重建一次；仍缺 = 失败。
+if ! "$IOS/scripts/verify-core-bundles.sh" "$APP" >>"$OUT/build.log" 2>&1; then
+  log "ShiziCore resource bundle incomplete in DerivedData; rebuilding $DD/Build once"
+  rm -rf "$DD/Build"
+  if ! xcodebuild -project "$IOS/ShiziApp.xcodeproj" -scheme ShiziUITests -configuration Debug \
+      -destination "platform=iOS Simulator,id=${UDIDS[0]}" -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO build-for-testing >>"$OUT/build.log" 2>&1 \
+      || ! "$IOS/scripts/verify-core-bundles.sh" "$APP" >>"$OUT/build.log" 2>&1; then
+    tail -5 "$OUT/build.log"
+    echo "BUILD FAILED or ShiziCore resources still missing (see $OUT/build.log)" >&2
+    exit 1
+  fi
+fi
 for u in "${UDIDS[@]}"; do xcrun simctl install "$u" "$APP"; done
 
 status=0

@@ -65,6 +65,9 @@ if (pin) {
   const FIX = new Date(pin).getTime();
   Date.now = () => FIX + (pinK += 5);
   pinned = true;
+  // B4.9c：写入者是 SwiftEngine 时它的钟（QAClock）在造数据期间也钉在这一刻（不读页面时钟，不动 pinK）——否则 Swift 在造数据途中写下的时刻
+  // （路由提示的离开时刻、跨天作废的判断）是真实时间，杀进程重开时判成「离开太久」
+  try { window.webkit.messageHandlers.shiziNative.postMessage({ type: 'native', op: 'qa-clock', offsetMs: FIX - realNow() }); } catch (e) {}
 }
 // R16：把钉住的时钟拨到第 tick 次读数（op 的 tick 参数，judge 用）。读时钟的次数在 op 之间会被页面渲染（网页 Preact）与原生根页的
 // 视图请求（原生取证）插进来，次数随界面实现与时序变；op 自己的同步段里没有让出、次数确定。所以写判断记录（FSRS fuzz 种子含复习时刻）

@@ -114,12 +114,15 @@ enum ShiziLook {
         let theme = ShiziTokens.Theme.of(payload["theme"])
         out["copy"] = ShiziCopy.strings
         out["colors"] = ShiziTokens.colorStrings(theme)
-        let pageType = payload["type"] as? [String: Any] ?? [:]
-        if let lengths = ShiziTokens.lengths(UIApplication.shared.preferredContentSizeCategory) {
-            // 每次会话才有的：AX 档位与逐元素量值（页面按网页 CSS 量，B2.9b）
+        let category = UIApplication.shared.preferredContentSizeCategory
+        if let lengths = ShiziTokens.lengths(category) {
+            // AX 档位与逐元素版式：原生常量（D81 ①，NativeAXLayout）；回包里页面给的 ax / roles 不再采用
             var type: [String: Any] = lengths.filter { $0.value > 0 }.mapValues { NSNumber(value: Double($0)) }
-            if let ax = pageType["ax"] { type["ax"] = ax }
-            if let roles = pageType["roles"] { type["roles"] = roles }
+            let level = NativeAXLayout.level(category)
+            if level > 0 {
+                type["ax"] = NSNumber(value: level)
+                type["roles"] = NativeAXLayout.roles(level)
+            }
             out["type"] = type
         }
         out["motion"] = ShiziTokens.pageMotion(page)

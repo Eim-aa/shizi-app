@@ -78,6 +78,9 @@ final class SwiftNavigator {
             self?.onStack?()
         }
         router.deliver = { [weak self] bodies in self?.deliver(bodies) }
+        #if DEBUG
+        router.trace = { SwiftNavigator.noteTrace($0) }
+        #endif
         // 原生发起的导航：订阅者（提示键写入是一次同步落库）推迟到转场之后（engine.js NATIVE_EMIT_DELAY_MS = 推入 + 一个淡化）
         router.deferNativeEmit = { fn in
             let m = NativeNavMotion.current
@@ -90,17 +93,22 @@ final class SwiftNavigator {
 
     var router: EngineRouter { host.router }
 
+    #if DEBUG
+    /// B4.9c：转场记录（engine.js account 的 traceNav 同一处、同一格式，最近 12 条）。swift 模式里导航不经页面，QA 探针的 webNav 读这里。
+    private(set) static var traceLog: [String] = []
+    static func noteTrace(_ s: String) {
+        traceLog.append(s)
+        if traceLog.count > 12 { traceLog.removeFirst(traceLog.count - 12) }
+    }
+    #endif
+
     /// 视图请求的环境（native-stage.js viewEnv：页面宽与大字号档）。
     static func viewEnv() -> JSObject {
         JSObject([("width", .number(Double(UIScreen.main.bounds.width))), ("ax", .number(Double(axLevel())))])
     }
 
     /// 大字号档（text-size.js axLevelOf：AX1…AX5 → 1…5，其余 0）。
-    static func axLevel() -> Int {
-        let name = WebViewController.contentSizeName(UIApplication.shared.preferredContentSizeCategory)
-        guard name.hasPrefix("AX"), let n = Int(name.dropFirst(2)) else { return 0 }
-        return n
-    }
+    static func axLevel() -> Int { NativeAXLayout.level() }
 
     // MARK: 宿主消息
 
@@ -115,6 +123,14 @@ final class SwiftNavigator {
             let out = await self.resolve(bodies, reqs)
             self.stage?.dispatch(out)
         }
+    }
+
+    /// 帧同步（fence）：网页版 = 「等页面把刚换好的页画完一帧」；swift 模式里换页的是原生——等已经发出的宿主消息求完值、交给 NativeStage，
+    /// 且 NativeStage 排着的开 / 关屏都做完（B4.9c：原来立即回，写字页「看这个字 ›」让开时字详情还没盖上，写字页被收起，返回时不是同一页）。
+    @MainActor private func fence() async {
+        await chain?.value
+        guard let stage else { return }
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in stage.afterQueued { c.resume() } }
     }
 
     /// 原生发起的导航 / 冷启动 / 重载对齐：回包里带求好值的宿主消息（排在已经发出的那些后面）。
@@ -194,7 +210,8 @@ final class SwiftNavigator {
         if function == EngineOps.nav {
             switch op {
             case "back": return host.backPlan()
-            case "cover", "fence": return reply([("ok", .bool(true))]) // 网页宿主层的截图 / 帧同步：没有网页界面，原生页自己画
+            case "cover": return reply([("ok", .bool(true))]) // 网页宿主层的截图：没有网页界面，原生页自己画
+            case "fence": await fence(); return reply([("ok", .bool(true))])
             default: return reply([("ok", .bool(false)), ("error", reply([("kind", .string("invalid"))]))])
             }
         }
@@ -238,7 +255,7 @@ final class SwiftNavigator {
             host.memory.yieldToDeepLink { open(key) }
             return reply([("ok", .bool(true))])
         case "stage.cover": return host.cover(entryId: args["entryId"], url: args["url"])
-        case "stage.fence": return reply([("ok", .bool(true))])
+        case "stage.fence": await fence(); return reply([("ok", .bool(true))])
         case "stage.under": return host.under(nativeOn: { ShiziScreenRegistry.screenClass($0) != nil })
         default: return nil
         }

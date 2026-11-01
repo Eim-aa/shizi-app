@@ -82,6 +82,10 @@ extension WebViewController {
         if ProcessInfo.processInfo.arguments.contains("-shizi-qa-storage-unavailable") {
             controller.addUserScript(WKUserScript(source: "window.__shiziQAStorageUnavailable = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
+        // B4.9c：写入者是 SwiftEngine（缺省）——夹具里的界面入口 op（openS02 / openQuery）改请 Swift 走同一个入口（页面消息 qa-ui），不在页面里开
+        if ShiziEngineMode.current == .swift {
+            controller.addUserScript(WKUserScript(source: "window.__shiziQASwiftWriter = true;", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         // B2.9b：QA 注入钉过的时钟跨杀进程重开保持（QAClock；页面 env.js 模块求值时读）
         if let clock = QAClock.script {
             controller.addUserScript(WKUserScript(source: clock, injectionTime: .atDocumentStart, forMainFrameOnly: true))

@@ -336,7 +336,6 @@ final class WebViewController: UIViewController {
         refreshUserScripts(category: category)
         guard pageReady else { return }
         sendContentSize(category)
-        if stage.engine is SwiftEngine { AXRoles.shared.refresh(webView: webView) } // B4.9a：进了没量过的 AX 档，量一次存下
     }
 
     /// 此刻的系统字号档位。视图还没进窗口时（冷启动 loadView / viewDidLoad、进程回收后的重载）traitCollection 不可靠，改读 UIApplication
@@ -949,6 +948,12 @@ extension WebViewController {
         saveCard(dataURL: dataURL) { [weak self] success in self?.sendPracticeCardSaveResult(success) }
     }
 
+    #if DEBUG
+    /// B4.9c：存相册的 QA 桩（States/_ops/stubSave.js 经页面消息 qa-save-stub 挂上 / 摘掉）：reply = 立刻回 success；false = 一直等着（保存中）。
+    static var qaSaveStub: (success: Bool, reply: Bool)?
+    static var qaSaveCalls = 0
+    #endif
+
     /// 存相册（页面的 savePracticeCard 与 B4.9a 起 Swift 的 image.persist 同一条路）：完成（主线程）回成功与否；timeout 秒内没结果算失败（image-preview.js NATIVE_SAVE_TIMEOUT_MS）。
     func saveCard(dataURL: String, timeout: TimeInterval? = nil, completion: @escaping (Bool) -> Void) {
         var done = false
@@ -960,6 +965,14 @@ extension WebViewController {
             }
         }
         if let timeout { DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { finish(false) } }
+        #if DEBUG
+        // B4.9c：QA 桩（夹具 stubSave）——取证 / 流程测试不能弹相册权限框；swift 模式里存相册不经页面，桩落在这里（网页那份桩只拦页面的 postNative）
+        if let stub = Self.qaSaveStub {
+            Self.qaSaveCalls += 1
+            if stub.reply { finish(stub.success) }
+            return
+        }
+        #endif
         guard let card = Self.imageData(fromDataURL: dataURL), UIImage(data: card.data) != nil else {
             finish(false)
             return

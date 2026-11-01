@@ -60,6 +60,12 @@ final class SwiftEngine: StageEngine {
         core = SwiftEngineCore(backend: backend, clock: SwiftEngine.clock, measure: NativeLineMeasure())
         nav = SwiftNavigator(core: core)
         reminder = ReminderController(store: core.store)
+        #if DEBUG
+        // -shizi-qa-storage-unavailable（测试宿主）：这次启动存储探测失败——页面那边 test-hooks 换 storage.probe，写入者 Swift 这边同一个替身
+        if WebViewController.nativeTestHostEnabled, ProcessInfo.processInfo.arguments.contains("-shizi-qa-storage-unavailable") {
+            core.store.storage.probeOverride = (false, "security")
+        }
+        #endif
         core.load()
         _ = core.store.subscribe { [weak self] _, info in
             if info["type"] == .string("commit") || info["type"] == .string("recover") || info["replace"] == .bool(true) { self?.commits += 1 }
@@ -138,7 +144,6 @@ final class SwiftEngine: StageEngine {
     /// 页面重载（WebContent 被回收）不影响 Swift 引擎：原生页照常可点。
     func pageWillReload() {}
     func pageDidBecomeReady() {
-        AXRoles.shared.refresh(webView: web.webView)
         guard !started else { return }
         started = true
         checkBlock()
@@ -202,6 +207,27 @@ final class SwiftEngine: StageEngine {
             storage.failNextWrite(rule["remaining"]?.numberValue ?? 0, kind: rule["kind"]?.stringValue ?? "generic", matchKey: rule["matchKey"]?.stringValue)
         }
         if let k = f["interruptAfter"]?.numberValue { storage.interruptAfterWrite(k) }
+    }
+    #endif
+
+    #if DEBUG
+    /// B4.9c：存储替身（test-hooks overrideStorage / 夹具 blockMode）——Swift 是写入者，替身挂到 Swift 的存储上再重读，阻断页由 checkBlock 发。
+    /// body：{probe: {ok:false, kind} | null, blocked: {reason, keys} | null, quarantined: [键] | null}（null = 还原）。
+    func qaOverrideStorage(_ body: [String: Any]) {
+        let storage = core.store.storage
+        storage.probeOverride = (body["probe"] as? [String: Any]).map { (false, ($0["kind"] as? String) ?? "unknown") }
+        storage.blockedOverride = (body["blocked"] as? [String: Any]).map { (($0["reason"] as? String) ?? "rollback-failed", ($0["keys"] as? [String]) ?? [], []) }
+        storage.quarantinedOverride = body["quarantined"] as? [String]
+        reloadFromLibrary()
+    }
+
+    /// B4.9c：夹具的界面入口（页面消息 qa-ui）。corruptHide = 收起坏值浮条（夹具清理：engine.js 那条收起在 swift 模式里不认）；其余交 EngineHost.qaUI。
+    func qaUI(_ action: String, _ args: JSValue) {
+        if action == "corruptHide" {
+            nav.post(JSObject([("op", .string("corrupt")), ("show", .bool(false))]))
+            return
+        }
+        core.host.qaUI(action, args)
     }
     #endif
 
@@ -437,38 +463,6 @@ enum WebCalls {
     static var probe: [String: Any] { ["engine": engine, "qa": qa, "byOp": byOp] }
 }
 
-/// AX 档的逐元素量值（native-session.js axRoleBundle：网页 CSS 在 AX1–AX5 的计算结果，写字页 / 结果页的 AX 版式照它排）。
-/// 原生没有这份 CSS：页面就绪时按此刻的档位与屏宽量一次存下（UserDefaults，按档位 | 屏宽 | 构建号），之后写字页 / 结果页的回包都取存下的——
-/// 只在 AX 档、且这台机器这一构建第一次进这一档时有一次页面调用（WebCalls 记 look.axRoles）。不在 AX 档时不量（回 {ax:0, roles:{}}，与页面同）。
-final class AXRoles {
-    static let shared = AXRoles()
-    private let store = UserDefaults.standard
-    private static let prefix = "shizi.native.axRoles."
-
-    private func key(_ level: Int) -> String {
-        "\(Self.prefix)\(level)|\(Int(UIScreen.main.bounds.width))|\(EngineHost.bundledBuild["build"]?.stringValue ?? "")"
-    }
-
-    func roles(level: Int) -> JSValue {
-        guard let text = store.string(forKey: key(level)), let v = try? JSONParser.parse(text) else { return .object(JSObject()) }
-        return v
-    }
-
-    /// 页面就绪 / 字号档变了：这一档还没存过就量一次。
-    func refresh(webView: WKWebView?) {
-        let level = SwiftNavigator.axLevel()
-        guard level > 0, store.string(forKey: key(level)) == nil, let webView else { return }
-        let k = key(level)
-        WebCalls.note(function: "look", op: "axRoles")
-        webView.callAsyncJavaScript(
-            "const m = await import('/src/ui/screens/write/native-session.js'); const b = m.axRoleBundle(); return b && b.level === level ? JSON.stringify(b.roles) : null;",
-            arguments: ["level": level], in: nil, in: .page
-        ) { [weak self] result in
-            if case .success(let v) = result, let s = v as? String { self?.store.set(s, forKey: k) }
-        }
-    }
-}
-
 // MARK: - 原生量测（swift 模式）：页面自己的字体与版心宽，按 ShiziPageText 的均衡折行（网页 text-wrap: pretty / balance 的同一口径）
 
 /// 与网页 DOM 量的差别（影子模式只比形状，见 ShadowEngine）：字体是原生页实际用的苹方 / 宋体（网页同名字体的 woff2 与系统苹方在个别字宽上不同）；
@@ -476,13 +470,16 @@ final class AXRoles {
 final class NativeLineMeasure: EngineMeasure {
     private enum Face { case hei(Int), heiMedium(Int), song(Int) }
 
-    /// kind / variant → 页面用的字（Records / Annual / Month / DetailParts / LibrarySwitch / SessionNone / Block / CorruptNotice / Query）。
+    /// kind / variant → 页面用的字（Records / Annual / Month / DetailParts / LibrarySwitch / SessionNone / Block / CorruptNotice / Query /
+    /// B4.9c 补：图片预览说明句与失败句、备份页、提醒页、结果页页头与预告——网页在这些段落上量 DOM，swift 模式原来回 null，原生只好按自己的贪心折行）。
     private static let faces: [String: Face] = [
-        "records-title": .song(22), "records-daylist-title": .song(22), "empty-title": .song(22),
+        "records-title": .song(22), "records-daylist-title": .song(22), "empty-title": .song(22), "result-title": .song(22),
         "records-legend": .hei(15), "records-axrow": .hei(15), "annual-first-date": .hei(15), "detail-next": .hei(15),
-        "empty-body": .hei(15), "block-line": .hei(15), "s02-body": .hei(15), "card-action": .hei(15),
-        "records-paperday": .hei(13), "records-sheet-note": .hei(13), "month-sub": .hei(13), "library-switch-source": .hei(13), "corrupt-text": .hei(13),
-        "annual-head": .hei(17),
+        "empty-body": .hei(15), "block-line": .hei(15), "s02-body": .hei(15),
+        "corrupt-text": .hei(15), "image-note": .hei(15), "image-fail": .hei(15), "backup.intro": .hei(15), "backup.confirmBody": .hei(15), "result-preview": .hei(15),
+        "records-paperday": .hei(13), "records-sheet-note": .hei(13), "month-sub": .hei(13), "library-switch-source": .hei(13),
+        "remind.sub": .hei(13), "result-sub": .hei(13),
+        "annual-head": .hei(17), "card-action": .heiMedium(17),
     ]
 
     func lineStarts(_ kind: String, _ text: String) -> JSValue {
@@ -490,9 +487,14 @@ final class NativeLineMeasure: EngineMeasure {
         let mt = ShiziMetrics()
         let body = UIScreen.main.bounds.width - 2 * mt.gutter
         let width: CGFloat
+        // 版心以外的宽（JS 参考：components/query/layout.js、ui/screens/mine/backup.js · remind.js 量 DOM 时的容器，B4.9c 逐个对过）
         switch kind {
         case "annual-head": width = body + 8
         case "annual-first-date": width = body + 8 - 132 - 20
+        case "s02-body", "backup.confirmBody": width = body - 40 // 确认框：左右页边 + 内边距 20 × 2（.sz-confirm__body）
+        case "corrupt-text": width = body - 76 // 坏值浮条：边框 1 × 2、内边距 16 + 6、字与关闭键间距 8、关闭键 44（.sz-corrupt__text fs15）
+        case "remind.sub": width = body - 56 // 提醒行：右侧开关 44 + 间距 12（.sz-remind__sub）
+        case "card-action": width = (body - 12) / 2 - 16 // 字卡两键格 1fr 1fr、gap 12，键的左右内边距 8（.sz-qcard__two .sz-btn--secondary）
         default: width = body
         }
         guard width > 0 else { return .null }
@@ -503,7 +505,8 @@ final class NativeLineMeasure: EngineMeasure {
         case .song(let n): a = ShiziPageText.song(text, size: mt.value("fs\(n)"), weight: .medium, color: .label)
         }
         let chars = Array(text)
-        let lines = ShiziPageText.wrappedLines(a, chars, width: width)
+        // 按钮文字只在词与词之间折（components/Words.js segmentWords + 正常折行）；其余是 text-wrap: pretty 的段落
+        let lines = kind == "card-action" ? Self.wordLines(a, chars, width: width) : ShiziPageText.wrappedLines(a, chars, width: width)
         // 每一行从第几个字开始（JS Array.from 的码点计；第一行不在数组里）
         var starts: [JSValue] = []
         var scalar = 0, index = 0
@@ -512,6 +515,74 @@ final class NativeLineMeasure: EngineMeasure {
             if r.lowerBound > 0 { starts.append(.number(Double(scalar))) }
         }
         return .array(starts)
+    }
+
+    /// components/Words.js segmentWords：按词切（系统分词，zh），开括号类并进后一个词、其余标点并进前一个词，空白单独一块（是断点）；
+    /// 然后按块贪心排进宽 w（white-space: normal，块内不断）。返回每行的字下标区间。
+    static func wordLines(_ a: NSAttributedString, _ chars: [Character], width w: CGFloat) -> [Range<Int>] {
+        let text = String(chars)
+        var pieces: [(range: Range<Int>, word: Bool)] = []
+        var index = 0
+        let tokenizer = CFStringTokenizerCreate(nil, text as CFString, CFRange(location: 0, length: (text as NSString).length), kCFStringTokenizerUnitWordBoundary, Locale(identifier: "zh") as CFLocale)
+        var utf16 = 0
+        while true {
+            let t = CFStringTokenizerAdvanceToNextToken(tokenizer)
+            if t.isEmpty { break }
+            let r = CFStringTokenizerGetCurrentTokenRange(tokenizer)
+            let sub = (text as NSString).substring(with: NSRange(location: r.location, length: r.length))
+            if r.location > utf16 { // 分词器跳过的（空白 / 标点）
+                let gap = (text as NSString).substring(with: NSRange(location: utf16, length: r.location - utf16))
+                for ch in gap { pieces.append((index..<index + 1, false)); _ = ch; index += 1 }
+            }
+            let n = sub.count
+            pieces.append((index..<index + n, sub.rangeOfCharacter(from: .alphanumerics) != nil || NativeType.hasCJK(sub)))
+            index += n
+            utf16 = r.location + r.length
+        }
+        while index < chars.count { pieces.append((index..<index + 1, false)); index += 1 }
+        let opening: Set<Character> = ["\u{300C}", "\u{300E}", "\u{FF08}", "\u{300A}", "\u{3008}", "\u{3010}", "\u{3014}", "\u{201C}", "\u{2018}", "(", "[", "{"] // 「『（《〈【〔“‘
+        var units: [Range<Int>] = []
+        var pendingOpen: Int?
+        var lastIsWord = false
+        for p in pieces {
+            let s = String(chars[p.range])
+            if s.allSatisfy(\.isWhitespace) {
+                if let o = pendingOpen { units.append(o..<p.range.lowerBound); pendingOpen = nil }
+                units.append(p.range)
+                lastIsWord = false
+            } else if p.word {
+                units.append((pendingOpen ?? p.range.lowerBound)..<p.range.upperBound)
+                pendingOpen = nil
+                lastIsWord = true
+            } else if s.allSatisfy({ opening.contains($0) }) {
+                if pendingOpen == nil { pendingOpen = p.range.lowerBound }
+            } else if lastIsWord, let last = units.last {
+                units[units.count - 1] = last.lowerBound..<p.range.upperBound
+            } else {
+                units.append((pendingOpen ?? p.range.lowerBound)..<p.range.upperBound)
+                pendingOpen = nil
+                lastIsWord = true
+            }
+        }
+        if let o = pendingOpen { units.append(o..<chars.count) }
+        func widthOf(_ r: Range<Int>) -> CGFloat {
+            let ns = NSRange(location: String(chars[0..<r.lowerBound]).utf16.count, length: String(chars[r]).utf16.count)
+            return a.attributedSubstring(from: ns).size().width
+        }
+        var lines: [Range<Int>] = []
+        var start = 0, used: CGFloat = 0
+        for u in units {
+            let uw = widthOf(u)
+            let blank = String(chars[u]).allSatisfy(\.isWhitespace)
+            if used > 0, !blank, used + uw > w + 0.5 {
+                lines.append(start..<u.lowerBound)
+                start = u.lowerBound
+                used = 0
+            }
+            used += uw
+        }
+        if start < chars.count { lines.append(start..<chars.count) }
+        return lines
     }
 
     func measure(_ spec: JSValue) -> JSValue {
@@ -538,10 +609,9 @@ final class NativeLineMeasure: EngineMeasure {
         return .string(style == .dark ? "dark" : "light")
     }
 
-    /// native-session.js typeBundle 里页面才有的那一半：px 值由 ShiziLook 按系统字号档生成；这里给 AX 档位与逐元素量值。
+    /// native-session.js typeBundle 里页面才有的那一半：px 值由 ShiziLook 按系统字号档生成；AX 档位照给，逐元素版式是原生常量
+    /// （D81 ①：ShiziLook 按 NativeAXLayout 填，不再向页面量网页 CSS），这里给空。
     static func type() -> JSValue {
-        let level = SwiftNavigator.axLevel()
-        guard level > 0 else { return .object(JSObject([("ax", .number(0)), ("roles", .object(JSObject()))])) }
-        return .object(JSObject([("ax", .number(Double(level))), ("roles", AXRoles.shared.roles(level: level))]))
+        .object(JSObject([("ax", .number(Double(SwiftNavigator.axLevel()))), ("roles", .object(JSObject()))]))
     }
 }

@@ -36,6 +36,16 @@ const G = { ...GRAPHICS_DEFAULTS, ...(config.graphics || {}), ink: { ...GRAPHICS
 /** 逐项豁免（parity.config.json waive：编号 → 理由）：照跑照记，失败不算回归。 */
 const waived = Object.fromEntries(Object.entries(config.waive || {}).filter(([k]) => !k.startsWith('//')));
 const statusOf = c => (waived[c.id] ? 'waived' : c.status);
+// B4.9c「原生为准」（D80 ① / D81 ①）：native-truth.json 按 状态 × 外观 × 字号 登记哪些屏的哪几方面以原生为参考来源——
+// 这些屏上落在登记方面里的差异，与登记时记下的原生基线（accepted：当时的差异原文，含原生的数值）逐条相同就不算差异；
+// 原生一变（数值不同 / 新出现）照报，并注明「原生为准：与登记的原生基线不同」。--record-native-truth 按规则重记基线。
+const NATIVE_TRUTH_PATH = join(here, 'native-truth.json');
+const nativeTruth = existsSync(NATIVE_TRUTH_PATH) ? JSON.parse(readFileSync(NATIVE_TRUTH_PATH, 'utf8')) : { rules: [], accepted: {} };
+const recordTruth = 'record-native-truth' in args;
+const truthRuleOf = (state, appearance, size) => (nativeTruth.rules || []).find(r => r.state === state
+  && (!r.appearances || r.appearances.includes(appearance)) && (!r.sizes || r.sizes.includes(size)));
+const truthRecorded = {};
+let truthAccepted = 0;
 if (!refDir || !natDir || !outDir) {
   console.error('usage: node compare.mjs --ref <dir> --native <dir> --out <dir>');
   process.exit(2);
@@ -294,7 +304,7 @@ for (const name of pairsFound) {
       iconPairs.forEach((p, i) => {
         const a = ink(wm[i]), b = ink(nm[i]);
         if (!iconVisibilityDiffers(a, b, G.ink)) return; // QA-H4：滞回——7 对 5 这种卡在阈值上的不算
-        const d = { type: 'deco', aspects: ['deco'], label: p.label, msg: `图标 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h})：截图里${a >= min ? '网页看得见、原生看不见' : '原生看得见、网页看不见'}（墨点 网页 ${a} 原生 ${b}）`, w: { frame: p.w }, n: { frame: p.n } };
+        const d = { type: 'deco', aspects: ['deco'], label: p.label, msg: `图标 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h})：截图里${a >= (G.ink.minInk ?? 6) ? '网页看得见、原生看不见' : '原生看得见、网页看不见'}（墨点 网页 ${a} 原生 ${b}）`, w: { frame: p.w }, n: { frame: p.n } };
         if (!isIgnored(d)) kept.push(d);
       });
     }
@@ -358,9 +368,26 @@ for (const name of pairsFound) {
     try { r = c.eval({ state, tag: `${appearance}_${size}`, appearance, size, web, native, px, screen, tolerance: tol, ink: INK }); } catch (error) { r = { pass: false, detail: `检查出错：${error.message}` }; }
     checks.push({ id: c.id, status: statusOf(c), pass: !!r.pass, detail: r.detail });
   }
+  const truth = truthRuleOf(state, appearance, size);
+  if (truth) {
+    const inScope = d => (d.aspects || [d.type]).every(x => truth.aspects.includes(x));
+    if (recordTruth) truthRecorded[name] = kept.filter(inScope).map(d => d.msg);
+    const accepted = new Set((recordTruth ? truthRecorded[name] : (nativeTruth.accepted || {})[name]) || []);
+    for (let i = kept.length - 1; i >= 0; i -= 1) {
+      if (!inScope(kept[i])) continue;
+      if (accepted.has(kept[i].msg)) { kept.splice(i, 1); truthAccepted += 1; } else kept[i].msg += `（原生为准 ${truth.decision}：与登记的原生基线不同）`;
+    }
+  }
   results.push({ name, state, appearance, size, ok: webJson.ok && natJson.ok, errors: [webJson.error, natJson.error].filter(Boolean), diffs: kept.map(d => ({ type: d.type, aspects: d.aspects, label: d.label, msg: d.msg })), checks, px });
 }
 await browser.close();
+if (recordTruth) {
+  // 只改 accepted（规则不动）；--states 时只更新比过的屏
+  const accepted = { ...(onlyStates ? nativeTruth.accepted || {} : {}), ...truthRecorded };
+  const sorted = Object.fromEntries(Object.keys(accepted).sort().map(k => [k, accepted[k]]));
+  writeFileSync(NATIVE_TRUTH_PATH, `${JSON.stringify({ ...nativeTruth, accepted: sorted }, null, 2)}\n`);
+  console.error(`native-truth: recorded ${Object.values(truthRecorded).flat().length} accepted diff(s) on ${Object.keys(truthRecorded).length} screen(s)`);
+}
 
 // 汇总
 const byType = {};
@@ -382,6 +409,7 @@ md.push('# 原生 vs 网页 逐屏对比报告（QA-H1）', '');
 md.push(`- 对比 ${results.length} 屏（状态 × 外观 × 字号），差异 **${total}** 条（一个元素各方面合一条；原生缺少 / 多出各一条）；容差：位置 ±${tol.pos}pt、尺寸 ±${tol.size}pt、颜色通道 ±${tol.color}、字号 ±${tol.font}pt、字重 ±${tol.weight}`);
 md.push(`- 按类别（一条可含多类）：${Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${TYPE[k] || k} ${v}`).join('、') || '无'}`);
 md.push(`- 只有网页参考、还没有原生页的状态（夹具 native 不是 true，不对比）：${referenceOnly.size} 个`);
+md.push(`- 原生为准（native-truth.json，D80 ① / D81 ①）：${(nativeTruth.rules || []).length} 条规则，${truthAccepted} 条差异与登记的原生基线相同、不计`);
 md.push(`- 具名检查（AI 报告 NP-*）：预期失败（待修）${expectedFail.length} 条、意外通过 ${unexpectedPass.length} 条、回归 ${regressions.length} 条、豁免 ${waivedRuns.length} 条`);
 const errs = results.filter(r => r.error || (r.errors && r.errors.length) || r.ok === false);
 if (errs.length) md.push(`- 取证出错 ${errs.length} 屏：${errs.map(r => `${r.name}（${r.error || r.errors.join('；')}）`).join('，')}`);

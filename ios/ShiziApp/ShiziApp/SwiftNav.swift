@@ -305,6 +305,16 @@ final class SwiftNavigator {
         post(msg)
     }
 
+    /// 原生分享 / 外链失败的提示条（share-failed.js postNativeToast：按 kind 取 X-SHARE 文案，未知 kind 用通用句）。
+    private var toastSeq = 0
+    func postShareFailed(kind: String) {
+        let keys = ["backup": "X-SHARE.backupFailed", "card": "X-SHARE.cardFailed", "link": "X-SHARE.linkFailed"]
+        let text = (try? Copy.text(keys[kind] ?? "X-SHARE.failed")) ?? ""
+        toastSeq += 1
+        post(JSObject([("op", .string("open")), ("screen", .string("image-toast")), ("entryId", .string("image-toast-\(toastSeq)")),
+                       ("params", .object(JSObject([("text", .string(text)), ("kind", .string("failure"))]))), ("via", .string("quiet"))]))
+    }
+
     /// 宿主自己发的原生屏消息（图片预览的开 / 收、阻断页、坏值提示）：排在已经发出的宿主消息后面。
     func post(_ msg: JSObject) {
         deliverRaw([["type": "native", "body": EngineValue.any(.object(msg))]])

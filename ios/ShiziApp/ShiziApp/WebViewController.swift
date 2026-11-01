@@ -561,6 +561,8 @@ final class WebViewController: UIViewController {
             #if DEBUG
             self?.recordSmokeEvent("shareFailed", ["kind": kind, "reason": reason])
             #endif
+            // B4.9a：缺省 swift 模式里提示条由 Swift 发（share-failed.js：引擎模式没有就地三段式的订阅者 → 一条失败提示条）
+            if let swift = self?.stage.engine as? SwiftEngine { swift.nav.postShareFailed(kind: kind); return }
             self?.webView.evaluateJavaScript(
                 "if (typeof window.shiziShareFailed === 'function') window.shiziShareFailed({kind:'\(kind)',reason:'\(reason)'}); void 0;"
             )

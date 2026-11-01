@@ -19,7 +19,7 @@ import { exitMs } from './components/exit.js';
 import { nativePlanOf, whenNavIdle } from './paper-transition.js';
 import { M } from '../config/motion.js';
 import { postNative } from '../platform/bridge.js';
-import { isNativeShell } from '../platform/env.js';
+import { isNativeShell, now as envNow } from '../platform/env.js';
 import { aboutBuild } from './screens/mine/about.js';
 import { getStore } from '../store/store.js';
 import { createAppApi, createChangeFeed } from '../session/api/index.js';
@@ -92,6 +92,9 @@ export function installNativeStage(win = globalWin(), deps = {}) {
     nav: deps.nav || nav,
     build: () => aboutBuild(win), // 关于页的版本行（测试宿主可钉住，同网页页面）
     native: isNativeShell(win) || deps.native === true,
+    // D80 ②：ctx.now 用 App 时钟（env.now：测试宿主钉住的时钟也管得到；正式版就是 Date.now），与 store 的「现在」同一个——
+    // 字详情的「今天」、阻断页导出备份的日期不再随墙上时钟漂（ShiziCore 同改：SessionActionHooks.now 不注入 = store.now()）
+    now: deps.now || envNow,
     route: deps.route || engineHooks,
     // 写字会话（write.<op>）：B2 页面的 window.shiziNativeWrite 同一个 API（native-session.js 装）
     write: { call: (op, args) => (typeof win.shiziNativeWrite === 'function' ? win.shiziNativeWrite(op, args) : { ok: false, error: { kind: 'unavailable' } }) },

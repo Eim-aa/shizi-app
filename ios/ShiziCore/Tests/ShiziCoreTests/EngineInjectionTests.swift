@@ -44,4 +44,17 @@ final class EngineInjectionTests: XCTestCase {
         XCTAssertEqual(view?["failStarts"]?.objectValue?.keys.sorted(), ["denied", "render", "save", "share"])
         if view?["note"]?.stringValue?.isEmpty == false { XCTAssertEqual(view?["noteStarts"], .array([.number(1)])) }
     }
+
+    /// D80 ②（B4.9a）：App 里不再注入 ctx.now（缺省 = store.now()，App 时钟）——阻断页导出备份的日期跟 store 的「现在」走，
+    /// 测试宿主钉住的时钟管得到；注入时仍用注入的（命令行 / 差分与 JS 镜像同一个钟）。
+    func testContextClockDefaultsToTheStoreClock() throws {
+        let core = runtime()
+        XCTAssertNil(core.hooks.now)
+        let day = try core.store.dates.localDay(.number(now)).replacingOccurrences(of: "-", with: "")
+        let name = core.call("block.export", JSObject())["name"]?.stringValue ?? ""
+        XCTAssertTrue(name.replacingOccurrences(of: "-", with: "").contains(day), name)
+        core.hooks.now = { 1893456000000 } // 2030-01-01
+        let pinned = core.call("block.export", JSObject())["name"]?.stringValue ?? ""
+        XCTAssertTrue(pinned.contains("2030"), pinned)
+    }
 }

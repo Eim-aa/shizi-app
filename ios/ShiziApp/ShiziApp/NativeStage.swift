@@ -168,6 +168,11 @@ final class NativeStage: NSObject {
         pump()
     }
 
+    /// B4.9c：排在已经排着的开 / 关屏之后做（SwiftNavigator 的 fence）。
+    func afterQueued(_ fn: @escaping () -> Void) {
+        enqueue { done in fn(); done() }
+    }
+
     private func pump() {
         guard !busy, !queue.isEmpty else { return }
         busy = true

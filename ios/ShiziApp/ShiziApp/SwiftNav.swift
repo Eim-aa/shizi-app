@@ -113,6 +113,14 @@ final class SwiftNavigator {
         }
     }
 
+    /// 帧同步（fence）：网页版 = 「等页面把刚换好的页画完一帧」；swift 模式里换页的是原生——等已经发出的宿主消息求完值、交给 NativeStage，
+    /// 且 NativeStage 排着的开 / 关屏都做完（B4.9c：原来立即回，写字页「看这个字 ›」让开时字详情还没盖上，写字页被收起，返回时不是同一页）。
+    @MainActor private func fence() async {
+        await chain?.value
+        guard let stage else { return }
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in stage.afterQueued { c.resume() } }
+    }
+
     /// 原生发起的导航 / 冷启动 / 重载对齐：回包里带求好值的宿主消息（排在已经发出的那些后面）。
     @MainActor private func resolved(_ bodies: [HostBody]) async -> [[String: Any]] {
         let reqs = io.drain()
@@ -190,7 +198,8 @@ final class SwiftNavigator {
         if function == EngineOps.nav {
             switch op {
             case "back": return host.backPlan()
-            case "cover", "fence": return reply([("ok", .bool(true))]) // 网页宿主层的截图 / 帧同步：没有网页界面，原生页自己画
+            case "cover": return reply([("ok", .bool(true))]) // 网页宿主层的截图：没有网页界面，原生页自己画
+            case "fence": await fence(); return reply([("ok", .bool(true))])
             default: return reply([("ok", .bool(false)), ("error", reply([("kind", .string("invalid"))]))])
             }
         }
@@ -234,7 +243,7 @@ final class SwiftNavigator {
             host.memory.yieldToDeepLink { open(key) }
             return reply([("ok", .bool(true))])
         case "stage.cover": return host.cover(entryId: args["entryId"], url: args["url"])
-        case "stage.fence": return reply([("ok", .bool(true))])
+        case "stage.fence": await fence(); return reply([("ok", .bool(true))])
         case "stage.under": return host.under(nativeOn: { ShiziScreenRegistry.screenClass($0) != nil })
         default: return nil
         }

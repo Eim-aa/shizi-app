@@ -191,16 +191,16 @@ const COVER_STYLE = 'position:absolute;inset:0;width:100%;height:100%;display:bl
  * 这一条下面连续的原生宿主条目（底 → 顶，不含自己）：{entryId, screen, params, payload?}。NativeStage 按它对齐原生栈；
  * withViews：从网页页面回来时下面的原生页已一起让开，带上各自的视图回包，原生不带转场重建。
  */
-export function nativeRunBelow(snap, entryId, withViews = false, win = globalWin()) {
+export function nativeRunBelow(snap, entryId, withViews = false, win = globalWin(), { view = viewPayload, nativeOn = name => nativeScreenOn(name, win) } = {}) {
   const pages = snap ? snap.stack.filter(e => e.k === 's') : [];
   const i = pages.findIndex(e => e.id === entryId);
   const out = [];
   for (let j = i - 1; j >= 1; j -= 1) {
     const e = pages[j];
-    if (!nativeScreenOn(e.n, win)) break;
+    if (!nativeOn(e.n)) break;
     const item = { entryId: e.id, screen: e.n, params: e.p || {} };
     if (withViews) {
-      const p = viewPayload(e.n, e.p);
+      const p = view(e.n, e.p);
       if (!(p && typeof p.then === 'function')) item.payload = p; // 异步视图（将来的页面）不随消息带：原生跳过重建，盖在现有的上面
     }
     out.unshift(item);
@@ -254,25 +254,26 @@ export function takeAway(entryId) {
  * 原生屏条目的 open 消息（与 NativeScreenHost 挂载 / 回来时发的同一个；B3.F 引擎模式由 engine.js 按栈的变化调用）。
  * 视图回包是 Promise 时返回 Promise（消息等它好了再发）。
  */
-export function screenOpenMessage(entry, snap, { returning = false } = {}) {
+export function screenOpenMessage(entry, snap, { returning = false, view = viewPayload, now = Date.now, nativeOn = undefined, plan: planOf = nativePlanOf } = {}) {
   const name = entry.n;
   const id = entry.id;
   const params = entry.p || {};
   const under = underOf(snap, id);
   const root = isRootEntry(snap, id);
-  const base = { op: 'open', screen: name, entryId: id, params, underId: under ? under.id : null, underScreen: under ? under.n : null, sentAt: Date.now(),
+  const base = { op: 'open', screen: name, entryId: id, params, underId: under ? under.id : null, underScreen: under ? under.n : null, sentAt: now(),
     ...(root ? { root: true, covered: false } : {}) };
+  const io = nativeOn ? { view, nativeOn } : { view };
   let msg;
   if (returning) {
-    msg = { ...base, via: 'return', plan: null, run: root ? [] : nativeRunBelow(snap, id, true) };
+    msg = { ...base, via: 'return', plan: null, run: root ? [] : nativeRunBelow(snap, id, true, globalWin(), io) };
   } else {
     const tr = snap ? snap.transition : null;
     const animate = !!(tr && tr.to && tr.to.id === id && tr.animate && !tr.cold);
-    const plan = nativePlanOf(id);
+    const plan = planOf(id);
     const via = !animate ? 'restore' : tr.kind === 'replace' ? 'replace' : plan && plan.mode === 'quiet' ? 'quiet' : 'push';
-    msg = { ...base, via, plan, run: nativeRunBelow(snap, id) };
+    msg = { ...base, via, plan, run: nativeRunBelow(snap, id, false, globalWin(), io) };
   }
-  const payload = viewPayload(name, params);
+  const payload = view(name, params);
   if (payload && typeof payload.then === 'function') {
     return payload.then(p => ({ ...msg, payload: p }), () => ({ ...msg, payload: { ok: false, error: { kind: 'exception' } } }));
   }

@@ -307,15 +307,32 @@ export function createEngineRouter({ post = () => {}, hosts = () => [], defaultT
 // ---------------------------------------------------------------- 宿主消息
 
 /** 宿主种类：写字 / 重写错字 / 结果页走 B2 通道（nativeWrite），其余原生屏走通用通道（native）；网页独有的屏（开发用演示页）没有宿主。 */
-export function hostKind(name) {
+export function hostKind(name, nativeOn = nativeScreenOn) {
   if (name === 'write') return 'write';
   if (name === 'redo') return 'redo';
   if (name === 'result') return 'result';
-  return nativeScreenOn(name) ? 'screen' : null;
+  return nativeOn(name) ? 'screen' : null;
 }
 
 /** 结果条目让开（被推入的页盖住）过：再回到顶上时请原生 via 'return' 盖上（原 NativeResultHost 的 awayResult）。 */
 const resultAway = new Set();
+
+/**
+ * B4.9a：hostBodies 的可注入面（缺省 = App 里的真东西；core-diff 用桩，scripts/core-diff/lib/js-ops-b49.mjs 与 ShiziCore Navigation/HostBodies.swift 逐条对照）。
+ * io = {api, view, now, nativeOn, undo, leave, width, ax, back, plan, takeAway, takeWriteAway, resultAway}，缺的项取缺省；规则一行不变。
+ */
+function hostIo(io) {
+  const o = io || {};
+  const opts = {};
+  for (const k of ['api', 'view', 'now', 'nativeOn', 'undo', 'leave', 'width', 'ax', 'back', 'plan']) if (o[k]) opts[k] = o[k];
+  return {
+    opts,
+    kind: name => hostKind(name, o.nativeOn || nativeScreenOn),
+    takeAway: o.takeAway || takeAway,
+    takeWriteAway: o.takeWriteAway || takeWriteAway,
+    resultAway: o.resultAway || resultAway,
+  };
+}
 
 /**
  * 新旧两个栈 → 给原生的宿主消息（原来宿主组件挂载 / 卸载 / 被盖住 / 回到顶上时发的同一批消息，顺序同 Preact 一次提交：先卸后挂）：
@@ -324,7 +341,9 @@ const resultAway = new Set();
  *   3. 新进来的条目（从下往上）：open / result-open / redo-open（tab 根带 root:true）；
  *   4. 回到顶上的条目：让开过的（结果页 / 写字页 / stage.cover 过的通用屏）请原生 via 'return' 盖上。
  */
-export function hostBodies(prev, next, tr) {
+export function hostBodies(prev, next, tr, io = null) {
+  const h = hostIo(io);
+  const { opts, kind: hostKind, takeAway, takeWriteAway, resultAway } = h;
   const out = [];
   const before = prev && prev.stack ? prev.stack : [];
   const after = next && next.stack ? next.stack : [];
@@ -339,7 +358,7 @@ export function hostBodies(prev, next, tr) {
     takeAway(e.id);
     if (kind === 'write') out.push({ type: 'nativeWrite', body: writeCloseBody(e) });
     else if (kind === 'redo') out.push({ type: 'nativeWrite', body: redoCloseBody(e) });
-    else if (kind === 'result') out.push({ type: 'nativeWrite', body: resultCloseBody(e, { away: false }) });
+    else if (kind === 'result') out.push({ type: 'nativeWrite', body: resultCloseBody(e, { away: false, ...opts }) });
     else if (kind === 'screen') out.push({ type: 'native', body: { op: 'close', screen: e.n, entryId: e.id } });
   }
   // 2. 原来的顶层被盖住
@@ -347,31 +366,31 @@ export function hostBodies(prev, next, tr) {
   const newTop = topOf(after);
   if (oldTop && newTop && oldTop.id !== newTop.id && nextIds.has(oldTop.id) && hostKind(oldTop.n) === 'result') {
     resultAway.add(oldTop.id);
-    out.push({ type: 'nativeWrite', body: resultCloseBody(oldTop, { away: true }) });
+    out.push({ type: 'nativeWrite', body: resultCloseBody(oldTop, { away: true, ...opts }) });
   }
   // 3. 新进来的
   for (const e of after) {
     if (prevIds.has(e.id)) continue;
     const kind = hostKind(e.n);
-    if (kind === 'write') out.push({ type: 'nativeWrite', body: writeOpenBody(e, next) });
+    if (kind === 'write') out.push({ type: 'nativeWrite', body: writeOpenBody(e, next, opts) });
     else if (kind === 'redo') {
-      const body = redoOpenBody(e, next);
+      const body = redoOpenBody(e, next, opts);
       if (body) out.push({ type: 'nativeWrite', body });
     } else if (kind === 'result') {
-      if (newTop && newTop.id === e.id) out.push({ type: 'nativeWrite', body: resultOpenBody(e, next, { returning: false }) });
+      if (newTop && newTop.id === e.id) out.push({ type: 'nativeWrite', body: resultOpenBody(e, next, { ...opts, returning: false }) });
       else resultAway.add(e.id); // 冷启动恢复出的、上面还压着页的结果条目：回到顶上时再请原生
-    } else if (kind === 'screen') out.push({ type: 'native', body: screenOpenMessage(e, next) });
+    } else if (kind === 'screen') out.push({ type: 'native', body: screenOpenMessage(e, next, opts) });
   }
   // 4. 回到顶上的
   if (newTop && prevIds.has(newTop.id) && (!oldTop || oldTop.id !== newTop.id)) {
     const kind = hostKind(newTop.n);
     if (kind === 'result' && resultAway.has(newTop.id)) {
       resultAway.delete(newTop.id);
-      out.push({ type: 'nativeWrite', body: resultOpenBody(newTop, next, { returning: true }) });
+      out.push({ type: 'nativeWrite', body: resultOpenBody(newTop, next, { ...opts, returning: true }) });
     } else if (kind === 'write' && takeWriteAway(newTop.id)) {
-      out.push({ type: 'nativeWrite', body: writeOpenBody(newTop, next, { returning: true }) });
+      out.push({ type: 'nativeWrite', body: writeOpenBody(newTop, next, { ...opts, returning: true }) });
     } else if (kind === 'screen' && takeAway(newTop.id)) {
-      out.push({ type: 'native', body: screenOpenMessage(newTop, next, { returning: true }) });
+      out.push({ type: 'native', body: screenOpenMessage(newTop, next, { ...opts, returning: true }) });
     }
   }
   return out;
@@ -403,9 +422,9 @@ async function resolved(bodies) {
 }
 
 /** 栈里从底往上第一页不合格（RESTORE_GUARDS）之前的那一段。 */
-function validPrefix(stack, store) {
+export function validPrefix(stack, store, now = envNow()) {
   const state = store && typeof store.getState === 'function' ? store.getState() : null;
-  const ctx = { state, now: envNow(), policy: defaultPolicy, lookup: cardForKey };
+  const ctx = { state, now, policy: defaultPolicy, lookup: cardForKey };
   const out = [];
   for (const e of stack) {
     const guard = Object.prototype.hasOwnProperty.call(RESTORE_GUARDS, e.n) ? RESTORE_GUARDS[e.n] : null;

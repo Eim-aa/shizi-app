@@ -470,13 +470,16 @@ enum WebCalls {
 final class NativeLineMeasure: EngineMeasure {
     private enum Face { case hei(Int), heiMedium(Int), song(Int) }
 
-    /// kind / variant → 页面用的字（Records / Annual / Month / DetailParts / LibrarySwitch / SessionNone / Block / CorruptNotice / Query）。
+    /// kind / variant → 页面用的字（Records / Annual / Month / DetailParts / LibrarySwitch / SessionNone / Block / CorruptNotice / Query /
+    /// B4.9c 补：图片预览说明句与失败句、备份页、提醒页、结果页页头与预告——网页在这些段落上量 DOM，swift 模式原来回 null，原生只好按自己的贪心折行）。
     private static let faces: [String: Face] = [
-        "records-title": .song(22), "records-daylist-title": .song(22), "empty-title": .song(22),
+        "records-title": .song(22), "records-daylist-title": .song(22), "empty-title": .song(22), "result-title": .song(22),
         "records-legend": .hei(15), "records-axrow": .hei(15), "annual-first-date": .hei(15), "detail-next": .hei(15),
-        "empty-body": .hei(15), "block-line": .hei(15), "s02-body": .hei(15), "card-action": .hei(15),
-        "records-paperday": .hei(13), "records-sheet-note": .hei(13), "month-sub": .hei(13), "library-switch-source": .hei(13), "corrupt-text": .hei(13),
-        "annual-head": .hei(17),
+        "empty-body": .hei(15), "block-line": .hei(15), "s02-body": .hei(15),
+        "corrupt-text": .hei(15), "image-note": .hei(15), "image-fail": .hei(15), "backup.intro": .hei(15), "backup.confirmBody": .hei(15), "result-preview": .hei(15),
+        "records-paperday": .hei(13), "records-sheet-note": .hei(13), "month-sub": .hei(13), "library-switch-source": .hei(13),
+        "remind.sub": .hei(13), "result-sub": .hei(13),
+        "annual-head": .hei(17), "card-action": .heiMedium(17),
     ]
 
     func lineStarts(_ kind: String, _ text: String) -> JSValue {
@@ -484,9 +487,14 @@ final class NativeLineMeasure: EngineMeasure {
         let mt = ShiziMetrics()
         let body = UIScreen.main.bounds.width - 2 * mt.gutter
         let width: CGFloat
+        // 版心以外的宽（JS 参考：components/query/layout.js、ui/screens/mine/backup.js · remind.js 量 DOM 时的容器，B4.9c 逐个对过）
         switch kind {
         case "annual-head": width = body + 8
         case "annual-first-date": width = body + 8 - 132 - 20
+        case "s02-body", "backup.confirmBody": width = body - 40 // 确认框：左右页边 + 内边距 20 × 2（.sz-confirm__body）
+        case "corrupt-text": width = body - 76 // 坏值浮条：边框 1 × 2、内边距 16 + 6、字与关闭键间距 8、关闭键 44（.sz-corrupt__text fs15）
+        case "remind.sub": width = body - 56 // 提醒行：右侧开关 44 + 间距 12（.sz-remind__sub）
+        case "card-action": width = (body - 12) / 2 - 16 // 字卡两键格 1fr 1fr、gap 12，键的左右内边距 8（.sz-qcard__two .sz-btn--secondary）
         default: width = body
         }
         guard width > 0 else { return .null }
@@ -497,7 +505,8 @@ final class NativeLineMeasure: EngineMeasure {
         case .song(let n): a = ShiziPageText.song(text, size: mt.value("fs\(n)"), weight: .medium, color: .label)
         }
         let chars = Array(text)
-        let lines = ShiziPageText.wrappedLines(a, chars, width: width)
+        // 按钮文字只在词与词之间折（components/Words.js segmentWords + 正常折行）；其余是 text-wrap: pretty 的段落
+        let lines = kind == "card-action" ? Self.wordLines(a, chars, width: width) : ShiziPageText.wrappedLines(a, chars, width: width)
         // 每一行从第几个字开始（JS Array.from 的码点计；第一行不在数组里）
         var starts: [JSValue] = []
         var scalar = 0, index = 0
@@ -506,6 +515,74 @@ final class NativeLineMeasure: EngineMeasure {
             if r.lowerBound > 0 { starts.append(.number(Double(scalar))) }
         }
         return .array(starts)
+    }
+
+    /// components/Words.js segmentWords：按词切（系统分词，zh），开括号类并进后一个词、其余标点并进前一个词，空白单独一块（是断点）；
+    /// 然后按块贪心排进宽 w（white-space: normal，块内不断）。返回每行的字下标区间。
+    static func wordLines(_ a: NSAttributedString, _ chars: [Character], width w: CGFloat) -> [Range<Int>] {
+        let text = String(chars)
+        var pieces: [(range: Range<Int>, word: Bool)] = []
+        var index = 0
+        let tokenizer = CFStringTokenizerCreate(nil, text as CFString, CFRange(location: 0, length: (text as NSString).length), kCFStringTokenizerUnitWordBoundary, Locale(identifier: "zh") as CFLocale)
+        var utf16 = 0
+        while true {
+            let t = CFStringTokenizerAdvanceToNextToken(tokenizer)
+            if t.isEmpty { break }
+            let r = CFStringTokenizerGetCurrentTokenRange(tokenizer)
+            let sub = (text as NSString).substring(with: NSRange(location: r.location, length: r.length))
+            if r.location > utf16 { // 分词器跳过的（空白 / 标点）
+                let gap = (text as NSString).substring(with: NSRange(location: utf16, length: r.location - utf16))
+                for ch in gap { pieces.append((index..<index + 1, false)); _ = ch; index += 1 }
+            }
+            let n = sub.count
+            pieces.append((index..<index + n, sub.rangeOfCharacter(from: .alphanumerics) != nil || NativeType.hasCJK(sub)))
+            index += n
+            utf16 = r.location + r.length
+        }
+        while index < chars.count { pieces.append((index..<index + 1, false)); index += 1 }
+        let opening: Set<Character> = ["「", "『", "（", "《", "〈", "【", "〔", "“", "‘", "(", "[", "{"]
+        var units: [Range<Int>] = []
+        var pendingOpen: Int?
+        var lastIsWord = false
+        for p in pieces {
+            let s = String(chars[p.range])
+            if s.allSatisfy(\.isWhitespace) {
+                if let o = pendingOpen { units.append(o..<p.range.lowerBound); pendingOpen = nil }
+                units.append(p.range)
+                lastIsWord = false
+            } else if p.word {
+                units.append((pendingOpen ?? p.range.lowerBound)..<p.range.upperBound)
+                pendingOpen = nil
+                lastIsWord = true
+            } else if s.allSatisfy({ opening.contains($0) }) {
+                if pendingOpen == nil { pendingOpen = p.range.lowerBound }
+            } else if lastIsWord, let last = units.last {
+                units[units.count - 1] = last.lowerBound..<p.range.upperBound
+            } else {
+                units.append((pendingOpen ?? p.range.lowerBound)..<p.range.upperBound)
+                pendingOpen = nil
+                lastIsWord = true
+            }
+        }
+        if let o = pendingOpen { units.append(o..<chars.count) }
+        func widthOf(_ r: Range<Int>) -> CGFloat {
+            let ns = NSRange(location: String(chars[0..<r.lowerBound]).utf16.count, length: String(chars[r]).utf16.count)
+            return a.attributedSubstring(from: ns).size().width
+        }
+        var lines: [Range<Int>] = []
+        var start = 0, used: CGFloat = 0
+        for u in units {
+            let uw = widthOf(u)
+            let blank = String(chars[u]).allSatisfy(\.isWhitespace)
+            if used > 0, !blank, used + uw > w + 0.5 {
+                lines.append(start..<u.lowerBound)
+                start = u.lowerBound
+                used = 0
+            }
+            used += uw
+        }
+        if start < chars.count { lines.append(start..<chars.count) }
+        return lines
     }
 
     func measure(_ spec: JSValue) -> JSValue {

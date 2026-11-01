@@ -49,9 +49,12 @@ public final class EngineRouter {
 
     // MARK: 条目
 
+    /// 新条目 id 的前缀（JS 同为 "e"；App 用别的前缀，QA 镜像里与页面路由开的条目不撞号）。
+    public var idPrefix = "e"
+
     public func nextId() -> String {
         idCounter += 1
-        return "e" + JSNumber.toString(idCounter)
+        return idPrefix + JSNumber.toString(idCounter)
     }
 
     private func bump(_ entries: [JSObject]) {
@@ -63,7 +66,7 @@ public final class EngineRouter {
         }
     }
 
-    static func plainParams(_ p: JSValue?) -> JSObject { p?.objectValue ?? JSObject() }
+    public static func plainParams(_ p: JSValue?) -> JSObject { p?.objectValue ?? JSObject() }
 
     /// entriesOf：[{id?, n, p}] → 镜像条目；第一条必须是 tab 根、其余是已登记的子页；不合格（一条都没有）返回 nil。
     func entriesOf(_ list: JSValue?) -> [JSObject]? {
@@ -179,7 +182,7 @@ public final class EngineRouter {
     }
 
     /// JS 发起（Swift 里「去哪」的规则）：本地记上，告诉原生去哪，宿主消息紧跟着交出去。
-    @discardableResult func request(_ intent: JSObject) -> Bool {
+    @discardableResult public func request(_ intent: JSObject) -> Bool {
         guard let bodies = apply(intent, origin: "js") else { return false }
         jsSeq += 1
         let kind = intent["kind"]?.stringValue ?? ""
@@ -195,7 +198,7 @@ public final class EngineRouter {
 
     // MARK: 接口（与网页路由同名）
 
-    static func plain(_ e: JSObject) -> JSValue { .object(JSObject([("id", e["id"] ?? .null), ("n", e["n"] ?? .null), ("p", e["p"] ?? .null)])) }
+    public static func plain(_ e: JSObject) -> JSValue { .object(JSObject([("id", e["id"] ?? .null), ("n", e["n"] ?? .null), ("p", e["p"] ?? .null)])) }
 
     /// 冷启动（route.plan）/ 页面重载后对齐（stage.resync）。
     public func start(_ list: JSValue?, cold: Bool = false, silent: Bool = false) -> (stack: [JSValue], bodies: [HostBody]) {

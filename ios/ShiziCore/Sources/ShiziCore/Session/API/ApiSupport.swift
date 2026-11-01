@@ -3,7 +3,7 @@ import Foundation
 /// App API transport, separate from pure B4.5b model ops. Host actions are injected;
 /// navigation and native image rendering remain outside ShiziCore.
 public enum PageAPI {
-    public static func callAsync(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) async -> JSValue {
+    nonisolated(nonsending) public static func callAsync(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) async -> JSValue {
         if op == "view.detail", let provider = hooks?.charData, let char = args["char"]?.stringValue, !char.isEmpty { _ = await provider.load() }
         do {
             if ["query.pick", "query.detail", "s02.decide"].contains(op) { return try await queryAsync(op, store, args, hooks: hooks) }

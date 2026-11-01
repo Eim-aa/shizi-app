@@ -336,6 +336,7 @@ final class WebViewController: UIViewController {
         refreshUserScripts(category: category)
         guard pageReady else { return }
         sendContentSize(category)
+        if stage.engine is SwiftEngine { AXRoles.shared.refresh(webView: webView) } // B4.9a：进了没量过的 AX 档，量一次存下
     }
 
     /// 此刻的系统字号档位。视图还没进窗口时（冷启动 loadView / viewDidLoad、进程回收后的重载）traitCollection 不可靠，改读 UIApplication
@@ -839,11 +840,12 @@ extension WebViewController: WKScriptMessageHandler {
         case "soundscape":
             // P07：练字背景音已删；旧页面若还发这条消息，原生什么都不做。
             break
-        case "syncReminder":
+        // B4.9a：缺省 swift 模式里提醒由 Swift 的 ReminderController 同步、要权限、查权限（SwiftEngine.installPlatform），页面那份不认
+        case "syncReminder" where !(stage.engine is SwiftEngine):
             syncReminder(body: body)
-        case "requestReminderPermission":
+        case "requestReminderPermission" where !(stage.engine is SwiftEngine):
             requestReminderPermission()
-        case "queryReminderStatus":
+        case "queryReminderStatus" where !(stage.engine is SwiftEngine):
             sendReminderStatus()
         case "openAppSettings":
             openAppSettings()
@@ -942,14 +944,28 @@ extension WebViewController {
     }
 
     private func savePracticeCard(dataURL: String) {
+        saveCard(dataURL: dataURL) { [weak self] success in self?.sendPracticeCardSaveResult(success) }
+    }
+
+    /// 存相册（页面的 savePracticeCard 与 B4.9a 起 Swift 的 image.persist 同一条路）：完成（主线程）回成功与否；timeout 秒内没结果算失败（image-preview.js NATIVE_SAVE_TIMEOUT_MS）。
+    func saveCard(dataURL: String, timeout: TimeInterval? = nil, completion: @escaping (Bool) -> Void) {
+        var done = false
+        let finish: (Bool) -> Void = { ok in
+            DispatchQueue.main.async {
+                guard !done else { return }
+                done = true
+                completion(ok)
+            }
+        }
+        if let timeout { DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { finish(false) } }
         guard let card = Self.imageData(fromDataURL: dataURL), UIImage(data: card.data) != nil else {
-            sendPracticeCardSaveResult(false)
+            finish(false)
             return
         }
 
-        PHPhotoLibrary.requestAuthorization(for: .addOnly) { [weak self] status in
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else {
-                self?.sendPracticeCardSaveResult(false)
+                finish(false)
                 return
             }
             PHPhotoLibrary.shared().performChanges({
@@ -957,7 +973,7 @@ extension WebViewController {
                 let request = PHAssetCreationRequest.forAsset()
                 request.addResource(with: .photo, data: card.data, options: nil)
             }) { success, _ in
-                self?.sendPracticeCardSaveResult(success)
+                finish(success)
             }
         }
     }
@@ -1098,7 +1114,7 @@ extension WebViewController {
     static let reminderIdentifierPrefix = "shizi.reminder."
     private static let reminderWindowDays = 7
 
-    private func syncReminder(body: [String: Any]) {
+    func syncReminder(body: [String: Any]) {
         let request = ReminderRequest(body: body)
         #if DEBUG
         smokeRecordReminderSync(request)
@@ -1168,7 +1184,7 @@ extension WebViewController {
         }
     }
 
-    private func requestReminderPermission() {
+    func requestReminderPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, _ in
             DispatchQueue.main.async {
                 self?.dispatchReminderStatus(granted ? "granted" : "denied")
@@ -1176,7 +1192,7 @@ extension WebViewController {
         }
     }
 
-    private func sendReminderStatus() {
+    func sendReminderStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
             let status = Self.permissionName(settings.authorizationStatus)
             DispatchQueue.main.async {
@@ -1199,6 +1215,7 @@ extension WebViewController {
     }
 
     private func dispatchReminderStatus(_ status: String) {
+        if let swift = stage.engine as? SwiftEngine { swift.receiveReminderStatus(status); return } // B4.9a：交 Swift 的 store
         #if DEBUG
         ShadowEngine.foreign()
         #endif

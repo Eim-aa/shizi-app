@@ -66,10 +66,10 @@ public final class RouteMemory {
     }
 
     /// 进后台（visibilitychange hidden）：之后再来的深链是热启动；刷新离开时刻。
-    public func hidden() {
-        guard attached else { return }
+    @discardableResult public func hidden() -> JSValue? {
+        guard attached else { return nil }
         touched = true
-        write(force: true)
+        return write(force: true)
     }
 
     /// 立即写一次（刷新离开时刻）。
@@ -237,6 +237,19 @@ public final class NavHost {
     }
 
     public func openLibrarySwitch() throws { try router.push("library-switch", .object(JSObject())) }
+
+    /// stage.enter 的意图（engine.js enter：entry 的 id / n 转成字串，p 只收普通对象）。
+    public static func enterIntent(_ a: JSValue) -> JSObject {
+        var intent = JSObject()
+        intent["kind"] = a["kind"] ?? .null
+        if let c = a["cause"] { intent["cause"] = c }
+        if let x = a["animate"] { intent["animate"] = x }
+        if let p = a["patch"] { intent["patch"] = p }
+        if let e = a["entry"], JS.truthy(e) {
+            intent["entry"] = .object(JSObject([("k", .string("s")), ("id", .string(JS.string(e["id"]))), ("n", .string(JS.string(e["n"]))), ("p", .object(EngineRouter.plainParams(e["p"])))]))
+        }
+        return intent
+    }
 
     /// stage.under：顶层下面一页 {entryId, screen, native}。
     public func under(nativeOn: (String) -> Bool) -> JSValue {

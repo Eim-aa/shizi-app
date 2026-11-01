@@ -119,26 +119,13 @@ extension CoreEngine {
         return .array(out)
     }
 
-    /// stage.enter 的意图（engine.js enter：entry 的 id / n 转成字串，p 只收普通对象）。
-    static func navEnterIntent(_ a: JSValue) -> JSObject {
-        var intent = JSObject()
-        intent["kind"] = a["kind"] ?? .null
-        if let c = a["cause"] { intent["cause"] = c }
-        if let x = a["animate"] { intent["animate"] = x }
-        if let p = a["patch"] { intent["patch"] = p }
-        if let e = a["entry"], JS.truthy(e) {
-            intent["entry"] = .object(JSObject([("k", .string("s")), ("id", .string(JS.string(e["id"]))), ("n", .string(JS.string(e["n"]))), ("p", .object(EngineRouter.plainParams(e["p"])))]))
-        }
-        return intent
-    }
-
     static func navStep(_ step: JSValue, host: NavHost) throws -> JSValue {
         let router = host.router
         let args = step["args"]?.arrayValue ?? []
         func arg(_ i: Int) -> JSValue? { i < args.count ? args[i] : nil }
         switch step["do"]?.stringValue ?? "" {
         case "start": return JS.obj([("stack", .array(router.start(step["stack"], cold: JS.truthy(step["cold"]), silent: JS.truthy(step["silent"])).stack))])
-        case "enter": return JS.obj([("ok", .bool(router.apply(navEnterIntent(step), origin: "native") != nil))])
+        case "enter": return JS.obj([("ok", .bool(router.apply(NavHost.enterIntent(step), origin: "native") != nil))])
         case "push": try router.push(JS.string(step["name"]), step["params"] ?? .null); return .null
         case "replace": try router.replace(JS.string(step["name"]), step["params"] ?? .null, animate: JS.truthy(step["animate"])); return .null
         case "back": return .bool(router.back(cause: JS.truthy(step["cause"]) ? JS.string(step["cause"]) : "ui"))

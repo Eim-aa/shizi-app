@@ -89,6 +89,7 @@ final class NativeStage: NSObject {
         engine = NativeStage.makeEngine(host: host)
         super.init()
         engine.navigator = { [weak self] op, args in self?.handleNavOp(op, args) ?? ["ok": false, "error": ["kind": "unavailable"]] }
+        (engine as? SwiftEngine)?.attach(stage: self) // B4.9a：Swift 的导航者 / 阻断页 / 坏值提示 / 外观交到这里
         // 进后台：立即存一次栈，刷新离开时刻（冷启动判定的「离开多久」从这一刻算）
         NotificationCenter.default.addObserver(self, selector: #selector(didEnterBackground), name: UIApplication.didEnterBackgroundNotification, object: nil)
     }
@@ -131,6 +132,7 @@ final class NativeStage: NSObject {
         switch body["op"] as? String ?? "" {
         case "nav":
             applyIntent(body) // B3.F：JS 发起的导航（去哪由 JS 规则定）——原生改自己的栈、存栈；宿主消息紧跟着到
+            (engine as? SwiftEngine)?.adoptPageNav(entries, seq: jsSeq) // B4.9a QA 镜像：页面路由开的页，Swift 的镜像立刻对齐
         case "roots-reset":
             enqueue { [weak self] done in self?.dropHiddenRoots(); done() } // QA：夹具要新挂载的根页（排在前面的切 tab 之后）
         case "open" where (body["root"] as? Bool) == true:
@@ -606,6 +608,8 @@ final class NativeStage: NSObject {
     private var saveToken = 0
     /// JS 发来的导航意图做到了第几条（存栈时回报：引擎据此不让旧栈盖掉还在路上的意图）。
     private var jsSeq = 0
+    /// 页面路由发来的导航意图做到了第几条（QA 镜像对齐页面镜像时带上）。
+    var pageSeq: Int { jsSeq }
     /// 存栈的合并延迟：进场转场放完之后（取 motion 令牌：推入与纸展开里长的那个，再加一个淡化时长）。
     static var saveDelay: TimeInterval {
         let m = NativeNavMotion.current
@@ -641,6 +645,9 @@ final class NativeStage: NSObject {
         return true
     }
 
+    /// B4.9a：引擎（缺省 = Swift 的 SwiftNavigator）里「去哪」的规则发起的导航（与原来页面发的 {op:'nav'} 同一条消息）。
+    func engineNav(_ wire: [String: Any]) { applyIntent(wire) }
+
     /// JS 发起的导航（页面消息 {op:'nav', kind, entry?, patch?}）：原生照做、存栈。
     private func applyIntent(_ body: [String: Any]) {
         let kind = body["kind"] as? String ?? ""
@@ -666,12 +673,40 @@ final class NativeStage: NSObject {
     }
 
     /// 宿主消息（引擎按栈的变化算出的 open / close / result-open …）交给原来的处理。
-    private func dispatch(_ bodies: [[String: Any]]) {
+    func dispatch(_ bodies: [[String: Any]]) {
         for b in bodies {
             guard let body = b["body"] as? [String: Any] else { continue }
             if b["type"] as? String == "nativeWrite" { handleWriteMessage(body) } else { handleScreenMessage(body) }
         }
     }
+
+    /// B4.9a：页面发来的消息认不认。WebEngine（回退 / 迁移没做完的那次启动）全认；缺省 swift 模式里导航、宿主消息、引擎状态、阻断页、坏值提示、
+    /// 外观都由 Swift 发，页面那份不认，只认 changed（测试 / QA 往页面里造数据后 Swift 重读库）与 QA 设施；
+    /// QA / 测试宿主的页面镜像里另认页面发起的导航与它的宿主消息（测试脚本经页面路由开页）。
+    func acceptsPageMessage(_ type: String, _ op: String) -> Bool {
+        guard engine is SwiftEngine else { return true }
+        if type == "native", ["changed", "qa-faults", "roots-reset"].contains(op) { return true }
+        #if DEBUG
+        if SwiftEngine.qaMirror {
+            if type == "nativeWrite" { return true }
+            if type == "native", ["nav", "open", "close", "root"].contains(op) { return true }
+        }
+        #endif
+        return false
+    }
+
+    #if DEBUG
+    /// 测试：再走一遍冷启动判定（route.plan → 无转场重建栈），不重启进程。
+    func replanForTesting(deepLink: Bool = false, done: @escaping () -> Void) {
+        engine.raw("route.plan", ["deepLink": deepLink]) { [weak self] reply in
+            guard let self else { return }
+            self.entries = reply["stack"] as? [[String: Any]] ?? []
+            self.dispatch(reply["bodies"] as? [[String: Any]] ?? [])
+            self.saveRoute()
+            done()
+        }
+    }
+    #endif
 
     /// 页面里的 nav.* op（WebEngine.navigator 转来）：原生直接做。
     func handleNavOp(_ op: String, _ args: [String: Any]) -> [String: Any] {
@@ -756,7 +791,7 @@ final class NativeStage: NSObject {
     /// pageReady：第一次 = 冷启动（route.plan，按回包无转场重建）；之后 = 页面重载（stage.resync，原生页留着、引擎镜像对齐）。
     private func engineReady() {
         if planned {
-            jsSeq = 0 // 新页面的意图序号从头数
+            if !(engine is SwiftEngine) { jsSeq = 0 } // 新页面的意图序号从头数（Swift 引擎的序号不随页面重载重来）
             engine.raw("stage.resync", ["stack": entries]) { [weak self] reply in
                 guard let self else { return }
                 if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: stage.resync failed \(reply)") }
@@ -1313,9 +1348,13 @@ extension WebViewController {
     /// B2.7：原生结果页（与写字页同一种覆盖呈现）。
     var nativeResultTop: NativeResultViewController? { stage.nativeResultTop }
 
-    func handleNativeWriteMessage(_ body: [String: Any]) { stage.handleWriteMessage(body) }
+    func handleNativeWriteMessage(_ body: [String: Any]) {
+        guard stage.acceptsPageMessage("nativeWrite", body["op"] as? String ?? "") else { return }
+        stage.handleWriteMessage(body)
+    }
     func handleNativeScreenMessage(_ body: [String: Any]) {
         guard Self.nativeWriteEnabled || body["op"] as? String == "appearance" else { return }
+        guard stage.acceptsPageMessage("native", body["op"] as? String ?? "") else { return }
         stage.handleScreenMessage(body)
     }
 

@@ -69,8 +69,8 @@ final class SwiftEngineCore {
     /// 启动 / 重读：探测 → repair → 读全部键（store.load）。
     @discardableResult func load() -> JSObject { store.load() }
 
-    /// 一个 op（App API 或写字会话）。异步宿主（字源、查字 / S02 回调、存图）走 callAsync。
-    func answer(function: String, op: String, args: JSObject) async -> JSValue {
+    /// 一个 op（App API 或写字会话）。异步宿主（字源、查字 / S02 回调、存图）走 callAsync。B4.9a：在调用方的执行者上跑（swift 模式 = 主线程：store、导航宿主、UIKit 同一条线程；影子 = 它的后台）。
+    nonisolated(nonsending) func answer(function: String, op: String, args: JSObject) async -> JSValue {
         host.currentResult = function == EngineOps.write && op.hasPrefix("result") ? JSObject([("slot", args["slot"] ?? .null), ("sessionId", args["sessionId"] ?? .null)]) : nil
         let reply = await runtime.callAsync(EngineOps.runtimeOp(function: function, op: op), args)
         return function == EngineOps.app && op == "view.mine" ? decorateMine(reply, width: args["width"]?.numberValue) : reply

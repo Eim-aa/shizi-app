@@ -5,6 +5,7 @@
 //   3. 配置 / 数据资源与 src/ 同步（scripts/build_core_config.mjs --check）、金标准夹具与 JS 代码同步（scripts/core-golden/golden.mjs --check）
 //   4. 差分驱动自检（JS ↔ JS、埋错必抓 + 缩小、协议语料 JS ↔ Swift）
 //   5. 随机差分 JS ↔ Swift：Asia/Shanghai 200 种子 × 300 步；America/New_York、Australia/Lord_Howe、America/Santiago 各 50 × 300
+//   5c. B4.9a：nav 域单独加量（Shanghai 200 × 100、New_York / Lord_Howe 各 50 × 100；--nightly 2000 / 300）
 //   5b. B4.4：store 域单独加量（store / storage / budget / backup / migrate，含写失败 / 撞配额 / 中断注入）：Shanghai 200 × 300、New_York 50 × 300；
 //       备份双向往返实跑（scripts/core-diff/backup-roundtrip.mjs：Swift 导出 → JS 恢复、JS 导出 → Swift 恢复，两种后端）
 //   6. 调度模拟器 JS ↔ Swift（B4.2，schedule-sim --engine both；B4.4 起 --swift-store core：Swift 一侧开组等提交在 ShiziCore 的真 Store 上跑）：
@@ -50,6 +51,11 @@ for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 5000 : 200], ['America/Ne
 }
 for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 2000 : 200], ['America/New_York', nightly ? 300 : 50]]) {
   step(`随机差分 store 域 js ↔ swift（${tz}）`, process.execPath, ['scripts/core-diff/run.mjs', '--a', 'js', '--b', 'swift', '--only', 'store', '--seeds', String(seeds), '--steps', '300', '--tz', tz]);
+}
+// B4.9a：导航域单独加量（缺省随机差分的序列被会话域的固定序列占满，导航 op 只在 --only nav 时出）：冷启动判定 / RESTORE_GUARDS / 提示键、
+// 导航镜像 + 宿主消息 + 来源记账 + 「去哪」规则的整串场景（nav.scenario）
+for (const [tz, seeds] of [['Asia/Shanghai', nightly ? 2000 : 200], ['America/New_York', nightly ? 300 : 50], ['Australia/Lord_Howe', nightly ? 300 : 50]]) {
+  step(`随机差分 nav 域 js ↔ swift（${tz}）`, process.execPath, ['scripts/core-diff/run.mjs', '--a', 'js', '--b', 'swift', '--only', 'nav', '--seeds', String(seeds), '--steps', '100', '--tz', tz]);
 }
 step('备份双向往返（Swift → JS、JS → Swift）', process.execPath, ['scripts/core-diff/backup-roundtrip.mjs', '--seeds', nightly ? '400' : '60']);
 step(`调度模拟器 js ↔ swift（20 个场景${nightly ? '' : '，每个压到 30 天'}）`, process.execPath, [

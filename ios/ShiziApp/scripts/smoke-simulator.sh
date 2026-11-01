@@ -7,6 +7,10 @@
 #   3. deeplink  （先结束进程 = 冷启动）-shizi-smoke -shizi-smoke-stage deeplink -shizi-reminder-target base:春
 #                                                             pageReady 后派发、页面返回 true 才清 key、以 B 组打开这个字
 # 另外核对 WKWebView 的 LocalStorage 数据库在进程重启后仍有 shizi.nativeSmoke.v1。
+# 引擎（B4.9c）：冒烟脚本经页面测试钩子与网页界面（.sz-app / data-testid）驱动，量的是 WKWebView 页面这条路（WebEngine 是写入者），
+# 所以显式带 -shizi-engine web（ENGINE 可改）。**已知失效**：2026-11-01 实测 web 与 swift 两种引擎下 main 阶段都卡在「app boot」——
+# 它等网页根节点 .sz-app，而 B3.F 起 App 是引擎模式、不挂网页界面（与 B4.9b 的缺省引擎无关，早于本卡）。缺省 swift 模式由 XCUITest 流程
+# （verify-native-ui.sh ENGINE=swift）与 ShiziWriteTests（含零 WKWebView 调用检查）覆盖；这条冒烟待 B4.9 随网页退役或改写成原生冒烟。
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -21,6 +25,8 @@ DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-${OUT_DIR}/DerivedData}"
 RESULT_TIMEOUT="${RESULT_TIMEOUT:-120}"
 REMINDER_TARGET="${REMINDER_TARGET:-base:春}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
+ENGINE="${ENGINE:-web}"
+case "$ENGINE" in web|swift|shadow) ;; *) echo "ENGINE must be web, swift or shadow" >&2; exit 64 ;; esac
 
 case "$RESULT_TIMEOUT" in
   ''|*[!0-9]*)
@@ -72,7 +78,7 @@ run_stage() {
   rm -f "$NATIVE_SMOKE_JSON" "$result"
   xcrun simctl terminate "$DEVICE" "$APP_ID" >/dev/null 2>&1 || true
   echo "== Smoke stage: ${stage} =="
-  xcrun simctl launch "$DEVICE" "$APP_ID" -shizi-smoke -shizi-smoke-stage "$stage" "$@" >/dev/null
+  xcrun simctl launch "$DEVICE" "$APP_ID" -shizi-engine "$ENGINE" -shizi-smoke -shizi-smoke-stage "$stage" "$@" >/dev/null
   attempt=0
   while [ "$attempt" -lt "$RESULT_TIMEOUT" ]; do
     attempt=$((attempt + 1))

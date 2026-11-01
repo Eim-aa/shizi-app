@@ -336,7 +336,6 @@ final class WebViewController: UIViewController {
         refreshUserScripts(category: category)
         guard pageReady else { return }
         sendContentSize(category)
-        if stage.engine is SwiftEngine { AXRoles.shared.refresh(webView: webView) } // B4.9a：进了没量过的 AX 档，量一次存下
     }
 
     /// 此刻的系统字号档位。视图还没进窗口时（冷启动 loadView / viewDidLoad、进程回收后的重载）traitCollection 不可靠，改读 UIApplication

@@ -96,11 +96,7 @@ final class SwiftNavigator {
     }
 
     /// 大字号档（text-size.js axLevelOf：AX1…AX5 → 1…5，其余 0）。
-    static func axLevel() -> Int {
-        let name = WebViewController.contentSizeName(UIApplication.shared.preferredContentSizeCategory)
-        guard name.hasPrefix("AX"), let n = Int(name.dropFirst(2)) else { return 0 }
-        return n
-    }
+    static func axLevel() -> Int { NativeAXLayout.level() }
 
     // MARK: 宿主消息
 

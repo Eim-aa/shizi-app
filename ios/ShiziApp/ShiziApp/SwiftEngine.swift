@@ -138,7 +138,6 @@ final class SwiftEngine: StageEngine {
     /// 页面重载（WebContent 被回收）不影响 Swift 引擎：原生页照常可点。
     func pageWillReload() {}
     func pageDidBecomeReady() {
-        AXRoles.shared.refresh(webView: web.webView)
         guard !started else { return }
         started = true
         checkBlock()
@@ -437,38 +436,6 @@ enum WebCalls {
     static var probe: [String: Any] { ["engine": engine, "qa": qa, "byOp": byOp] }
 }
 
-/// AX 档的逐元素量值（native-session.js axRoleBundle：网页 CSS 在 AX1–AX5 的计算结果，写字页 / 结果页的 AX 版式照它排）。
-/// 原生没有这份 CSS：页面就绪时按此刻的档位与屏宽量一次存下（UserDefaults，按档位 | 屏宽 | 构建号），之后写字页 / 结果页的回包都取存下的——
-/// 只在 AX 档、且这台机器这一构建第一次进这一档时有一次页面调用（WebCalls 记 look.axRoles）。不在 AX 档时不量（回 {ax:0, roles:{}}，与页面同）。
-final class AXRoles {
-    static let shared = AXRoles()
-    private let store = UserDefaults.standard
-    private static let prefix = "shizi.native.axRoles."
-
-    private func key(_ level: Int) -> String {
-        "\(Self.prefix)\(level)|\(Int(UIScreen.main.bounds.width))|\(EngineHost.bundledBuild["build"]?.stringValue ?? "")"
-    }
-
-    func roles(level: Int) -> JSValue {
-        guard let text = store.string(forKey: key(level)), let v = try? JSONParser.parse(text) else { return .object(JSObject()) }
-        return v
-    }
-
-    /// 页面就绪 / 字号档变了：这一档还没存过就量一次。
-    func refresh(webView: WKWebView?) {
-        let level = SwiftNavigator.axLevel()
-        guard level > 0, store.string(forKey: key(level)) == nil, let webView else { return }
-        let k = key(level)
-        WebCalls.note(function: "look", op: "axRoles")
-        webView.callAsyncJavaScript(
-            "const m = await import('/src/ui/screens/write/native-session.js'); const b = m.axRoleBundle(); return b && b.level === level ? JSON.stringify(b.roles) : null;",
-            arguments: ["level": level], in: nil, in: .page
-        ) { [weak self] result in
-            if case .success(let v) = result, let s = v as? String { self?.store.set(s, forKey: k) }
-        }
-    }
-}
-
 // MARK: - 原生量测（swift 模式）：页面自己的字体与版心宽，按 ShiziPageText 的均衡折行（网页 text-wrap: pretty / balance 的同一口径）
 
 /// 与网页 DOM 量的差别（影子模式只比形状，见 ShadowEngine）：字体是原生页实际用的苹方 / 宋体（网页同名字体的 woff2 与系统苹方在个别字宽上不同）；
@@ -538,10 +505,9 @@ final class NativeLineMeasure: EngineMeasure {
         return .string(style == .dark ? "dark" : "light")
     }
 
-    /// native-session.js typeBundle 里页面才有的那一半：px 值由 ShiziLook 按系统字号档生成；这里给 AX 档位与逐元素量值。
+    /// native-session.js typeBundle 里页面才有的那一半：px 值由 ShiziLook 按系统字号档生成；AX 档位照给，逐元素版式是原生常量
+    /// （D81 ①：ShiziLook 按 NativeAXLayout 填，不再向页面量网页 CSS），这里给空。
     static func type() -> JSValue {
-        let level = SwiftNavigator.axLevel()
-        guard level > 0 else { return .object(JSObject([("ax", .number(0)), ("roles", .object(JSObject()))])) }
-        return .object(JSObject([("ax", .number(Double(level))), ("roles", AXRoles.shared.roles(level: level))]))
+        .object(JSObject([("ax", .number(Double(SwiftNavigator.axLevel()))), ("roles", .object(JSObject()))]))
     }
 }

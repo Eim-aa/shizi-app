@@ -388,3 +388,127 @@ extension UIButton {
         if attributedTitle(for: .normal) != nil || attributedTitle(for: .disabled) != nil { NativeType.retintTitles(self) }
     }
 }
+
+// MARK: AX 档版式常量（D81 ①，B4.9c）
+
+/// 写字页 / 判断页 / 结果页 / 弹层在辅助功能大字号 AX1–AX5 下的逐元素版式常量（pt）：角色 → fs / lh / minH / padTop / gap / colGap / marginLeft，
+/// 附属元素在 r2…r5 下（角色与附属元素的含义见 native-session.js NATIVE_AX_ROLES 的注释）。
+/// **原生为准**（D81 ①，同 D80 ①）：B4.9a 以前这些值在运行时向页面量网页 CSS（axRoleBundle）；B4.9c 起是原生自己的常量，不再借页面量，
+/// 以后改 AX 版式改这里（AX 档参考图随之按原生重拍）。初值 = 2026-11-01 网页 CSS 的计算结果（与屏宽无关：375 / 402 / 440 三档相同），
+/// 只留原生读的键（w / h / cols / weight / marginTop / marginBottom 原生不用，去掉）。
+enum NativeAXLayout {
+    /// 系统字号 → AX 档位（AX1…AX5 → 1…5，其余 0；text-size.js axLevelOf 同一口径）。
+    static func level(_ category: UIContentSizeCategory = UIApplication.shared.preferredContentSizeCategory) -> Int {
+        switch category {
+        case .accessibilityMedium: return 1
+        case .accessibilityLarge: return 2
+        case .accessibilityExtraLarge: return 3
+        case .accessibilityExtraExtraLarge: return 4
+        case .accessibilityExtraExtraExtraLarge: return 5
+        default: return 0
+        }
+    }
+
+    /// 这一档的逐元素常量（NativeType 的 roles）；不是 AX 档 → 空。
+    static func roles(_ level: Int) -> [String: [String: Any]] { table[String(level)] ?? [:] }
+
+    private static let table: [String: [String: [String: Any]]] = {
+        guard let d = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: [String: [String: Any]]] else { return [:] }
+        return d
+    }()
+
+    private static let json = """
+    {
+    "1": {
+      "headAct": {"fs":17,"lh":24,"minH":44,"padTop":0,"marginLeft":-4},
+      "progress": {"fs":17,"lh":24,"padTop":0,"marginLeft":0},
+      "title": {"fs":17,"lh":24,"padTop":0,"marginLeft":8},
+      "tool": {"fs":17,"lh":24,"minH":44,"padTop":0,"marginLeft":-4,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0}},
+      "note": {"fs":17,"lh":24,"minH":56,"padTop":8,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":25,"lh":30,"minH":104,"padTop":0,"marginLeft":0}},
+      "noteTight": {"fs":17,"lh":24,"minH":48,"padTop":0,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":25,"lh":30,"minH":104,"padTop":0,"marginLeft":0}},
+      "help": {"fs":17,"lh":24,"minH":44,"padTop":0,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":25,"lh":30,"padTop":0,"gap":20,"colGap":20,"marginLeft":0},"r4":{"fs":25,"lh":30,"minH":56,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":28,"lh":34,"minH":56.4,"padTop":6,"marginLeft":0}},
+      "helpTight": {"fs":17,"lh":24,"minH":48,"padTop":0,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":25,"lh":30,"padTop":0,"gap":6,"colGap":6,"marginLeft":0},"r4":{"fs":25,"lh":30,"minH":48,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":34,"lh":40,"minH":52,"padTop":0,"marginLeft":0}},
+      "judge": {"fs":28,"lh":34,"minH":64.4,"padTop":0,"marginLeft":0,"r2":{"fs":25,"lh":30,"padTop":0,"gap":12,"colGap":12,"marginLeft":0}},
+      "prompt": {"fs":25,"lh":30,"padTop":34,"marginLeft":0,"r2":{"fs":25,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":22,"lh":30,"minH":0,"padTop":0,"marginLeft":0},"r5":{"fs":17,"lh":24,"padTop":0,"marginLeft":0}},
+      "resultFoot": {"fs":25,"lh":30,"minH":44.5,"padTop":0,"marginLeft":-4,"r2":{"fs":25,"lh":30,"padTop":0,"gap":0,"colGap":20,"marginLeft":0},"r3":{"fs":28,"lh":34,"minH":60,"padTop":6,"marginLeft":0},"r4":{"fs":25,"lh":30,"padTop":12,"gap":12,"colGap":12,"marginLeft":0}},
+      "exrow": {"fs":25,"lh":30,"minH":44.5,"padTop":0,"marginLeft":64,"r2":{"fs":25,"lh":30,"minH":52,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r3":{"fs":28,"lh":34,"padTop":0,"marginLeft":0},"r4":{"fs":23,"lh":30,"minH":44,"padTop":0,"gap":4,"colGap":4,"marginLeft":64},"r5":{"fs":25,"lh":30,"minH":52,"padTop":6,"gap":4,"colGap":4,"marginLeft":0}},
+      "change": {"fs":25,"lh":30,"minH":44.5,"padTop":0,"marginLeft":-4,"r2":{"fs":25,"lh":30,"minH":44.5,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4},"r3":{"fs":28,"lh":34,"minH":60,"padTop":6,"marginLeft":0}},
+      "invite": {"fs":25,"lh":30,"minH":60,"padTop":6,"marginLeft":0,"r2":{"fs":25,"lh":30,"minH":44.5,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4}},
+      "confirm": {"fs":28,"lh":34,"minH":60,"padTop":6,"marginLeft":0,"r2":{"fs":28,"lh":34,"minH":60,"padTop":6,"marginLeft":0}},
+      "undoBar": {"fs":25,"lh":30,"minH":44.5,"padTop":0,"marginLeft":0,"r2":{"fs":25,"lh":30,"minH":48,"padTop":8,"gap":12,"colGap":12,"marginLeft":0}}
+    },
+    "2": {
+      "headAct": {"fs":17,"lh":24,"minH":44,"padTop":0,"marginLeft":-4},
+      "progress": {"fs":17,"lh":24,"padTop":0,"marginLeft":0},
+      "title": {"fs":17,"lh":24,"padTop":0,"marginLeft":8},
+      "tool": {"fs":17,"lh":24,"minH":44,"padTop":0,"marginLeft":-4,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0}},
+      "note": {"fs":17,"lh":24,"minH":56,"padTop":8,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":30,"lh":36,"minH":104,"padTop":0,"marginLeft":0}},
+      "noteTight": {"fs":17,"lh":24,"minH":48,"padTop":0,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":30,"lh":36,"minH":104,"padTop":0,"marginLeft":0}},
+      "help": {"fs":17,"lh":24,"minH":44,"padTop":0,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":30,"lh":36,"padTop":0,"gap":20,"colGap":20,"marginLeft":0},"r4":{"fs":30,"lh":36,"minH":56,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":33,"lh":38,"minH":62.9,"padTop":6,"marginLeft":0}},
+      "helpTight": {"fs":17,"lh":24,"minH":48,"padTop":0,"marginLeft":0,"r2":{"fs":17,"lh":24,"padTop":0,"marginLeft":0},"r3":{"fs":30,"lh":36,"padTop":0,"gap":6,"colGap":6,"marginLeft":0},"r4":{"fs":30,"lh":36,"minH":48,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":34,"lh":40,"minH":52,"padTop":0,"marginLeft":0}},
+      "judge": {"fs":33,"lh":38,"minH":70.9,"padTop":0,"marginLeft":0,"r2":{"fs":30,"lh":36,"padTop":0,"gap":12,"colGap":12,"marginLeft":0}},
+      "prompt": {"fs":30,"lh":36,"padTop":34,"marginLeft":0,"r2":{"fs":30,"lh":36,"padTop":0,"marginLeft":0},"r3":{"fs":22,"lh":30,"minH":0,"padTop":0,"marginLeft":0},"r5":{"fs":17,"lh":24,"padTop":0,"marginLeft":0}},
+      "resultFoot": {"fs":30,"lh":36,"minH":51,"padTop":0,"marginLeft":-4,"r2":{"fs":30,"lh":36,"padTop":0,"gap":0,"colGap":20,"marginLeft":0},"r3":{"fs":33,"lh":38,"minH":64,"padTop":6,"marginLeft":0},"r4":{"fs":30,"lh":36,"padTop":12,"gap":12,"colGap":12,"marginLeft":0}},
+      "exrow": {"fs":30,"lh":36,"minH":51,"padTop":0,"marginLeft":64,"r2":{"fs":30,"lh":36,"minH":52,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r3":{"fs":33,"lh":38,"padTop":0,"marginLeft":0},"r4":{"fs":27,"lh":36,"minH":47.1,"padTop":0,"gap":4,"colGap":4,"marginLeft":64},"r5":{"fs":30,"lh":36,"minH":52,"padTop":6,"gap":4,"colGap":4,"marginLeft":0}},
+      "change": {"fs":30,"lh":36,"minH":51,"padTop":0,"marginLeft":-4,"r2":{"fs":30,"lh":36,"minH":51,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4},"r3":{"fs":33,"lh":38,"minH":64,"padTop":6,"marginLeft":0}},
+      "invite": {"fs":30,"lh":36,"minH":64,"padTop":6,"marginLeft":0,"r2":{"fs":30,"lh":36,"minH":51,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4}},
+      "confirm": {"fs":33,"lh":38,"minH":64,"padTop":6,"marginLeft":0,"r2":{"fs":33,"lh":38,"minH":64,"padTop":6,"marginLeft":0}},
+      "undoBar": {"fs":30,"lh":36,"minH":51,"padTop":0,"marginLeft":0,"r2":{"fs":30,"lh":36,"minH":48,"padTop":8,"gap":12,"colGap":12,"marginLeft":0}}
+    },
+    "3": {
+      "headAct": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":-4},
+      "progress": {"fs":22,"lh":30,"padTop":0,"marginLeft":0},
+      "title": {"fs":22,"lh":30,"padTop":0,"marginLeft":8},
+      "tool": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":-4,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0}},
+      "note": {"fs":22,"lh":30,"minH":68,"padTop":8,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":36,"lh":42,"minH":116,"padTop":0,"marginLeft":0}},
+      "noteTight": {"fs":22,"lh":30,"minH":60,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":36,"lh":42,"minH":116,"padTop":0,"marginLeft":0}},
+      "help": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":36,"lh":42,"padTop":0,"gap":20,"colGap":20,"marginLeft":0},"r4":{"fs":36,"lh":42,"minH":56,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":40,"lh":48,"minH":72,"padTop":6,"marginLeft":0}},
+      "helpTight": {"fs":22,"lh":30,"minH":48,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":36,"lh":42,"padTop":0,"gap":6,"colGap":6,"marginLeft":0},"r4":{"fs":36,"lh":42,"minH":48,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":34,"lh":40,"minH":52,"padTop":0,"marginLeft":0}},
+      "judge": {"fs":40,"lh":48,"minH":80,"padTop":0,"marginLeft":0,"r2":{"fs":36,"lh":42,"padTop":0,"gap":12,"colGap":12,"marginLeft":0}},
+      "prompt": {"fs":36,"lh":42,"padTop":40,"marginLeft":0,"r2":{"fs":36,"lh":42,"padTop":0,"marginLeft":0},"r3":{"fs":28,"lh":36,"minH":0,"padTop":0,"marginLeft":0},"r5":{"fs":22,"lh":30,"padTop":0,"marginLeft":0}},
+      "resultFoot": {"fs":36,"lh":42,"minH":58.8,"padTop":0,"marginLeft":-4,"r2":{"fs":36,"lh":42,"padTop":0,"gap":0,"colGap":20,"marginLeft":0},"r3":{"fs":40,"lh":48,"minH":74,"padTop":6,"marginLeft":0},"r4":{"fs":36,"lh":42,"padTop":12,"gap":12,"colGap":12,"marginLeft":0}},
+      "exrow": {"fs":36,"lh":42,"minH":58.8,"padTop":0,"marginLeft":64,"r2":{"fs":36,"lh":42,"minH":52,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r3":{"fs":40,"lh":48,"padTop":0,"marginLeft":0},"r4":{"fs":33,"lh":42,"minH":54.9,"padTop":0,"gap":4,"colGap":4,"marginLeft":64},"r5":{"fs":36,"lh":42,"minH":52,"padTop":6,"gap":4,"colGap":4,"marginLeft":0}},
+      "change": {"fs":36,"lh":42,"minH":58.8,"padTop":0,"marginLeft":-4,"r2":{"fs":36,"lh":42,"minH":58.8,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4},"r3":{"fs":40,"lh":48,"minH":74,"padTop":6,"marginLeft":0}},
+      "invite": {"fs":36,"lh":42,"minH":74,"padTop":6,"marginLeft":0,"r2":{"fs":36,"lh":42,"minH":58.8,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4}},
+      "confirm": {"fs":40,"lh":48,"minH":74,"padTop":6,"marginLeft":0,"r2":{"fs":40,"lh":48,"minH":74,"padTop":6,"marginLeft":0}},
+      "undoBar": {"fs":36,"lh":42,"minH":58.8,"padTop":0,"marginLeft":0,"r2":{"fs":36,"lh":42,"minH":48,"padTop":8,"gap":12,"colGap":12,"marginLeft":0}}
+    },
+    "4": {
+      "headAct": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":-4},
+      "progress": {"fs":22,"lh":30,"padTop":0,"marginLeft":0},
+      "title": {"fs":22,"lh":30,"padTop":0,"marginLeft":8},
+      "tool": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":-4,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0}},
+      "note": {"fs":22,"lh":30,"minH":68,"padTop":8,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":42,"lh":50,"minH":116,"padTop":0,"marginLeft":0}},
+      "noteTight": {"fs":22,"lh":30,"minH":60,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":42,"lh":50,"minH":116,"padTop":0,"marginLeft":0}},
+      "help": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":42,"lh":50,"padTop":0,"gap":20,"colGap":20,"marginLeft":0},"r4":{"fs":42,"lh":50,"minH":56,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":47,"lh":56,"minH":81.1,"padTop":6,"marginLeft":0}},
+      "helpTight": {"fs":22,"lh":30,"minH":48,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":42,"lh":50,"padTop":0,"gap":6,"colGap":6,"marginLeft":0},"r4":{"fs":42,"lh":50,"minH":48,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":34,"lh":40,"minH":52,"padTop":0,"marginLeft":0}},
+      "judge": {"fs":47,"lh":56,"minH":89.1,"padTop":0,"marginLeft":0,"r2":{"fs":42,"lh":50,"padTop":0,"gap":12,"colGap":12,"marginLeft":0}},
+      "prompt": {"fs":42,"lh":50,"padTop":40,"marginLeft":0,"r2":{"fs":42,"lh":50,"padTop":0,"marginLeft":0},"r3":{"fs":28,"lh":36,"minH":0,"padTop":0,"marginLeft":0},"r5":{"fs":22,"lh":30,"padTop":0,"marginLeft":0}},
+      "resultFoot": {"fs":42,"lh":50,"minH":66.6,"padTop":0,"marginLeft":-4,"r2":{"fs":42,"lh":50,"padTop":0,"gap":0,"colGap":20,"marginLeft":0},"r3":{"fs":47,"lh":56,"minH":82,"padTop":6,"marginLeft":0},"r4":{"fs":42,"lh":50,"padTop":12,"gap":12,"colGap":12,"marginLeft":0}},
+      "exrow": {"fs":42,"lh":50,"minH":66.6,"padTop":0,"marginLeft":64,"r2":{"fs":42,"lh":50,"minH":52,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r3":{"fs":47,"lh":56,"padTop":0,"marginLeft":0},"r4":{"fs":38,"lh":50,"minH":61.4,"padTop":0,"gap":4,"colGap":4,"marginLeft":64},"r5":{"fs":42,"lh":50,"minH":52,"padTop":6,"gap":4,"colGap":4,"marginLeft":0}},
+      "change": {"fs":42,"lh":50,"minH":66.6,"padTop":0,"marginLeft":-4,"r2":{"fs":42,"lh":50,"minH":66.6,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4},"r3":{"fs":47,"lh":56,"minH":82,"padTop":6,"marginLeft":0}},
+      "invite": {"fs":42,"lh":50,"minH":82,"padTop":6,"marginLeft":0,"r2":{"fs":42,"lh":50,"minH":66.6,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4}},
+      "confirm": {"fs":47,"lh":56,"minH":82,"padTop":6,"marginLeft":0,"r2":{"fs":47,"lh":56,"minH":82,"padTop":6,"marginLeft":0}},
+      "undoBar": {"fs":42,"lh":50,"minH":66.6,"padTop":0,"marginLeft":0,"r2":{"fs":42,"lh":50,"minH":48,"padTop":8,"gap":12,"colGap":12,"marginLeft":0}}
+    },
+    "5": {
+      "headAct": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":-4},
+      "progress": {"fs":22,"lh":30,"padTop":0,"marginLeft":0},
+      "title": {"fs":22,"lh":30,"padTop":0,"marginLeft":8},
+      "tool": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":-4,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0}},
+      "note": {"fs":22,"lh":30,"minH":68,"padTop":8,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":49,"lh":58,"minH":116,"padTop":0,"marginLeft":0}},
+      "noteTight": {"fs":22,"lh":30,"minH":60,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":49,"lh":58,"minH":116,"padTop":0,"marginLeft":0}},
+      "help": {"fs":22,"lh":30,"minH":44,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":49,"lh":58,"padTop":0,"gap":20,"colGap":20,"marginLeft":0},"r4":{"fs":49,"lh":58,"minH":56,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":53,"lh":62,"minH":88.9,"padTop":6,"marginLeft":0}},
+      "helpTight": {"fs":22,"lh":30,"minH":48,"padTop":0,"marginLeft":0,"r2":{"fs":22,"lh":30,"padTop":0,"marginLeft":0},"r3":{"fs":49,"lh":58,"padTop":0,"gap":6,"colGap":6,"marginLeft":0},"r4":{"fs":49,"lh":58,"minH":48,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r5":{"fs":34,"lh":40,"minH":52,"padTop":0,"marginLeft":0}},
+      "judge": {"fs":53,"lh":62,"minH":96.9,"padTop":0,"marginLeft":0,"r2":{"fs":49,"lh":58,"padTop":0,"gap":12,"colGap":12,"marginLeft":0}},
+      "prompt": {"fs":49,"lh":58,"padTop":40,"marginLeft":0,"r2":{"fs":49,"lh":58,"padTop":0,"marginLeft":0},"r3":{"fs":28,"lh":36,"minH":0,"padTop":0,"marginLeft":0},"r5":{"fs":22,"lh":30,"padTop":0,"marginLeft":0}},
+      "resultFoot": {"fs":49,"lh":58,"minH":75.7,"padTop":0,"marginLeft":-4,"r2":{"fs":49,"lh":58,"padTop":0,"gap":0,"colGap":20,"marginLeft":0},"r3":{"fs":53,"lh":62,"minH":88,"padTop":6,"marginLeft":0},"r4":{"fs":49,"lh":58,"padTop":12,"gap":12,"colGap":12,"marginLeft":0}},
+      "exrow": {"fs":49,"lh":58,"minH":75.7,"padTop":0,"marginLeft":64,"r2":{"fs":49,"lh":58,"minH":52,"padTop":0,"gap":12,"colGap":12,"marginLeft":0},"r3":{"fs":53,"lh":62,"padTop":0,"marginLeft":0},"r4":{"fs":44,"lh":58,"minH":69.2,"padTop":0,"gap":4,"colGap":4,"marginLeft":64},"r5":{"fs":49,"lh":58,"minH":52,"padTop":6,"gap":4,"colGap":4,"marginLeft":0}},
+      "change": {"fs":49,"lh":58,"minH":75.7,"padTop":0,"marginLeft":-4,"r2":{"fs":49,"lh":58,"minH":75.7,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4},"r3":{"fs":53,"lh":62,"minH":88,"padTop":6,"marginLeft":0}},
+      "invite": {"fs":49,"lh":58,"minH":88,"padTop":6,"marginLeft":0,"r2":{"fs":49,"lh":58,"minH":75.7,"padTop":0,"gap":6,"colGap":6,"marginLeft":-4}},
+      "confirm": {"fs":53,"lh":62,"minH":88,"padTop":6,"marginLeft":0,"r2":{"fs":53,"lh":62,"minH":88,"padTop":6,"marginLeft":0}},
+      "undoBar": {"fs":49,"lh":58,"minH":75.7,"padTop":0,"marginLeft":0,"r2":{"fs":49,"lh":58,"minH":48,"padTop":8,"gap":12,"colGap":12,"marginLeft":0}}
+    }
+    }
+    """
+}

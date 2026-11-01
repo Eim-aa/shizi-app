@@ -120,4 +120,22 @@ final class ShiziKitTests: XCTestCase {
         XCTAssertFalse(filled.contains("{n}"))
         XCTAssertEqual(ShiziCopy.t("no.such.key"), "")
     }
+
+    /// D81 ①（B4.9c）：AX 档的逐元素版式是原生常量——五档都有全部角色，档位口径同 text-size.js axLevelOf；
+    /// 回包里页面给的 ax / roles 不采用（ShiziLook 只按系统字号档填）。
+    func testAXLayoutIsNativeConstants() {
+        let names: Set<String> = ["headAct", "progress", "title", "tool", "note", "noteTight", "help", "helpTight", "judge", "prompt",
+                                  "resultFoot", "exrow", "change", "invite", "confirm", "undoBar"]
+        for level in 1...5 { XCTAssertEqual(Set(NativeAXLayout.roles(level).keys), names, "AX\(level)") }
+        XCTAssertTrue(NativeAXLayout.roles(0).isEmpty)
+        XCTAssertEqual(NativeAXLayout.level(.accessibilityMedium), 1)
+        XCTAssertEqual(NativeAXLayout.level(.accessibilityExtraExtraExtraLarge), 5)
+        XCTAssertEqual(NativeAXLayout.level(.extraExtraExtraLarge), 0)
+        XCTAssertEqual((NativeAXLayout.roles(5)["help"]?["r5"] as? [String: Any])?["minH"] as? Double, 88.9)
+        let fake: [String: Any] = ["type": ["ax": 3, "roles": ["help": ["minH": 999]]]]
+        let type = ShiziLook.resolve(fake, page: .write)["type"] as? [String: Any] ?? [:]
+        let level = NativeAXLayout.level()
+        XCTAssertEqual((type["ax"] as? NSNumber)?.intValue ?? 0, level, "ax comes from the system text size, not the payload")
+        if level == 0 { XCTAssertNil(type["roles"]) }
+    }
 }

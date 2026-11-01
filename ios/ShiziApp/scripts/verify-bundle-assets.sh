@@ -53,6 +53,7 @@ if [ "$MISSING_COUNT" != 0 ]; then
   echo "${MISSING_COUNT} shell-manifest file(s) missing from bundle" >&2
   exit 65
 fi
+"${SCRIPT_DIR}/verify-core-bundles.sh" "$APP" >/dev/null || exit 65 # B4.9c：ShiziCore 资源包齐全
 test -f "${APP}/PrivacyInfo.xcprivacy" || { echo "Missing PrivacyInfo.xcprivacy" >&2; exit 65; }
 plutil -lint "${APP}/PrivacyInfo.xcprivacy" >/dev/null
 

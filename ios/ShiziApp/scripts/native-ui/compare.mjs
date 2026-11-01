@@ -294,7 +294,7 @@ for (const name of pairsFound) {
       iconPairs.forEach((p, i) => {
         const a = ink(wm[i]), b = ink(nm[i]);
         if (!iconVisibilityDiffers(a, b, G.ink)) return; // QA-H4：滞回——7 对 5 这种卡在阈值上的不算
-        const d = { type: 'deco', aspects: ['deco'], label: p.label, msg: `图标 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h})：截图里${a >= min ? '网页看得见、原生看不见' : '原生看得见、网页看不见'}（墨点 网页 ${a} 原生 ${b}）`, w: { frame: p.w }, n: { frame: p.n } };
+        const d = { type: 'deco', aspects: ['deco'], label: p.label, msg: `图标 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h})：截图里${a >= (G.ink.minInk ?? 6) ? '网页看得见、原生看不见' : '原生看得见、网页看不见'}（墨点 网页 ${a} 原生 ${b}）`, w: { frame: p.w }, n: { frame: p.n } };
         if (!isIgnored(d)) kept.push(d);
       });
     }

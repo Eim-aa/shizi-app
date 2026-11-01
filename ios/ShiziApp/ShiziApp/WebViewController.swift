@@ -800,6 +800,9 @@ extension WebViewController: WKScriptMessageHandler {
             return
         }
 
+        #if DEBUG
+        soundShadowOp = type == "sound" ? body["shadowOp"] as? String : nil // B4.7：影子按 op 归属声音
+        #endif
         switch type {
         case "pageReady":
             handlePageReady()
@@ -832,7 +835,7 @@ extension WebViewController: WKScriptMessageHandler {
         case "haptic":
             playHaptic(kind: body["kind"] as? String ?? "")
         case "sound":
-            playSound(kind: body["kind"] as? String ?? "", gain: body["gain"] as? Double ?? 1, shadowOp: body["shadowOp"] as? String)
+            playSound(kind: body["kind"] as? String ?? "", gain: body["gain"] as? Double ?? 1)
         case "soundscape":
             // P07：练字背景音已删；旧页面若还发这条消息，原生什么都不做。
             break
@@ -992,10 +995,19 @@ extension WebViewController {
 
     /// B4.5c：SwiftEngine（swift 模式）的判断声——同一组预载 CAF、同一个探针记录。
     func playEngineSound(kind: String, gain: Double) { playSound(kind: kind, gain: gain) }
+    #if DEBUG
+    private static var shadowOpKey = 0
+    /// 正在处理的 sound 消息带的影子 op（只在 DEBUG）。
+    var soundShadowOp: String? {
+        get { objc_getAssociatedObject(self, &Self.shadowOpKey) as? String }
+        set { objc_setAssociatedObject(self, &Self.shadowOpKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+    #endif
 
-    private func playSound(kind: String, gain: Double, shadowOp: String? = nil) {
+    private func playSound(kind: String, gain: Double) {
         #if DEBUG
-        ShadowEngine.shared?.webSound(kind, op: shadowOp) // B4.7：影子模式里页面发的声音（swift 模式没有影子）
+        ShadowEngine.shared?.webSound(kind, op: soundShadowOp) // B4.7：影子模式里页面发的声音（swift 模式没有影子）
+        soundShadowOp = nil
         #endif
         guard let player = soundPlayers[kind] else { return } // 未知名字忽略（旧的 stamp / paper 已不存在）
         ShiziProbe.feedback("sound:\(kind)")

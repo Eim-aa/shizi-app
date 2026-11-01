@@ -12,7 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 function parseArgs(argv) {
-  const o = { input: null, selfTest: false, seeds: 50, steps: 200, seedStart: 1, tz: null, now: null, swiftBin: null, keep: false, replay: true };
+  const o = { input: null, selfTest: false, seeds: null, steps: null, seedStart: 1, tz: null, now: null, swiftBin: null, keep: false, replay: true };
   for (let i = 0; i < argv.length; i += 1) {
     const k = argv[i];
     if (k === '--self-test') o.selfTest = true;
@@ -83,7 +83,7 @@ async function selfTest() {
     }
     for (const [label, file] of [['备份 JSON', backup], ['SQLite 库', sqlite]]) {
       out(`\n== 自测：${label} ==`);
-      const r = await dualRead(file, { seeds: args.seeds === 50 ? 6 : args.seeds, steps: args.steps === 200 ? 100 : args.steps, seedStart: args.seedStart, swiftBin: args.swiftBin, now: args.now, keep: args.keep, replay: args.replay, log: out });
+      const r = await dualRead(file, { seeds: args.seeds ?? 6, steps: args.steps ?? 100, seedStart: args.seedStart, swiftBin: args.swiftBin, now: args.now, keep: args.keep, replay: args.replay, log: out });
       if (!r.ok) bad += 1;
       else if (r.counts['records条数'] + r.counts['折叠月保留条数'] !== fx.expect.records) {
         bad += 1;
@@ -104,7 +104,7 @@ async function main() {
     return 2;
   }
   try {
-    const r = await dualRead(args.input, { seeds: args.seeds, steps: args.steps, seedStart: args.seedStart, swiftBin: args.swiftBin, now: args.now, keep: args.keep, replay: args.replay, log: out });
+    const r = await dualRead(args.input, { seeds: args.seeds ?? 50, steps: args.steps ?? 200, seedStart: args.seedStart, swiftBin: args.swiftBin, now: args.now, keep: args.keep, replay: args.replay, log: out });
     if (r.stage === 'env') return 2;
     return r.ok ? 0 : 1;
   } catch (e) {

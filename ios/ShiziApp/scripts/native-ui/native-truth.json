@@ -1,0 +1,142 @@
+{
+  "//": "B4.9c「原生为准」登记（compare.mjs 读）。rules：按 状态 × 外观 × 字号 登记哪些方面以原生为参考来源（decision = 负责人决定编号；缺 appearances = 浅深都算）；accepted：登记时的原生基线（这些屏上当时落在登记方面里的差异原文，含原生数值），由 compare.mjs --record-native-truth 生成，不手改。原生变了照报。detail-wrong_light_XXXL（既知）不在这里。",
+  "rules": [
+    {
+      "decision": "D80-①",
+      "state": "backup-restore-confirm",
+      "sizes": [
+        "L"
+      ],
+      "aspects": [
+        "size",
+        "position"
+      ],
+      "what": "备份替换确认框正文的折行（网页 text-wrap: pretty 偏在逗号处断，原生按各行余量最小）"
+    },
+    {
+      "decision": "D80-①",
+      "state": "block-blocked",
+      "sizes": [
+        "AX3"
+      ],
+      "aspects": [
+        "size",
+        "position"
+      ],
+      "what": "阻断页「解决前暂不能写字，免得白写。」的折行"
+    },
+    {
+      "decision": "D80-①",
+      "state": "corrupt-notice",
+      "sizes": [
+        "XXXL"
+      ],
+      "aspects": [
+        "size",
+        "position",
+        "rule"
+      ],
+      "what": "坏值浮条正文的折行（行数不同，浮条高度与边框线跟着变）"
+    },
+    {
+      "decision": "D80-①",
+      "state": "preview-add",
+      "sizes": [
+        "L"
+      ],
+      "aspects": [
+        "size",
+        "position"
+      ],
+      "what": "结果页预告句（图片预览弹层下面）的折行"
+    },
+    {
+      "decision": "D80-①",
+      "state": "preview-fail",
+      "sizes": [
+        "XXXL"
+      ],
+      "aspects": [
+        "size",
+        "position"
+      ],
+      "what": "图片预览保存失败说明句的折行"
+    },
+    {
+      "decision": "D80-①",
+      "state": "preview-paged",
+      "sizes": [
+        "XXXL"
+      ],
+      "aspects": [
+        "size",
+        "position"
+      ],
+      "what": "图片预览分页说明句的折行"
+    },
+    {
+      "decision": "D80-①",
+      "state": "query-card",
+      "sizes": [
+        "AX5"
+      ],
+      "aspects": [
+        "size",
+        "position"
+      ],
+      "what": "字卡次要键「加入自选」按词折行的断点"
+    }
+  ],
+  "accepted": {
+    "backup-restore-confirm_dark_L": [
+      "文字尺寸 网页 238.5×41 原生 179×40，差 (-59.5, -1)pt"
+    ],
+    "backup-restore-confirm_light_L": [
+      "文字尺寸 网页 238.5×41 原生 179×40，差 (-59.5, -1)pt"
+    ],
+    "block-blocked_dark_AX3": [
+      "文字尺寸 网页 317.7×86 原生 247.3×85，差 (-70.4, -1)pt"
+    ],
+    "block-blocked_light_AX3": [
+      "文字尺寸 网页 317.7×86 原生 247.3×85，差 (-70.4, -1)pt"
+    ],
+    "corrupt-notice_dark_XXXL": [
+      "尺寸 网页 362×198 原生 362×169，差 (0, -29)pt",
+      "文字位置 网页 (37, 85) 原生 (37, 85.3)，差 (0, -14.6)pt（竖向按中线）；文字尺寸 网页 240.6×170 原生 281×140.3，差 (40.4, -29.7)pt",
+      "线位置 网页横线 (20, 267.5) 长 362 宽 1 #38322BFF 原生竖向差 -29pt",
+      "原生缺少线：网页竖线 (20.5, 70) 长 198 宽 1 #38322BFF（没对上的长度 26）",
+      "原生缺少线：网页竖线 (381.5, 70) 长 198 宽 1 #38322BFF（没对上的长度 26）"
+    ],
+    "corrupt-notice_light_XXXL": [
+      "尺寸 网页 362×198 原生 362×169，差 (0, -29)pt",
+      "文字位置 网页 (37, 85) 原生 (37, 85.3)，差 (0, -14.6)pt（竖向按中线）；文字尺寸 网页 240.6×170 原生 281×140.3，差 (40.4, -29.7)pt",
+      "线位置 网页横线 (20, 267.5) 长 362 宽 1 #DDD5C7FF 原生竖向差 -29pt",
+      "原生缺少线：网页竖线 (20.5, 70) 长 198 宽 1 #DDD5C7FF（没对上的长度 26）",
+      "原生缺少线：网页竖线 (381.5, 70) 长 198 宽 1 #DDD5C7FF（没对上的长度 26）"
+    ],
+    "preview-add_dark_L": [
+      "文字尺寸 网页 281.2×41 原生 253.3×40，差 (-27.9, -1)pt"
+    ],
+    "preview-add_light_L": [
+      "文字尺寸 网页 281.2×41 原生 253.3×40，差 (-27.9, -1)pt"
+    ],
+    "preview-fail_dark_XXXL": [
+      "文字尺寸 网页 280.7×54 原生 200.7×53.3，差 (-80, -0.7)pt"
+    ],
+    "preview-fail_light_XXXL": [
+      "文字尺寸 网页 280.7×54 原生 200.7×53.3，差 (-80, -0.7)pt"
+    ],
+    "preview-paged_dark_XXXL": [
+      "文字尺寸 网页 291.3×54 原生 191.3×53.3，差 (-100, -0.7)pt"
+    ],
+    "preview-paged_light_XXXL": [
+      "文字尺寸 网页 291.3×54 原生 191.3×53.3，差 (-100, -0.7)pt"
+    ],
+    "query-card_dark_AX5": [
+      "文字位置 网页 (29.9, 681) 原生 (55.7, 680.8)，差 (25.8, 0.1)pt（竖向按中线）；文字尺寸 网页 155.3×126 原生 103.7×126.7，差 (-51.6, 0.7)pt"
+    ],
+    "query-card_light_AX5": [
+      "文字位置 网页 (29.9, 681) 原生 (55.7, 680.8)，差 (25.8, 0.1)pt（竖向按中线）；文字尺寸 网页 155.3×126 原生 103.7×126.7，差 (-51.6, 0.7)pt"
+    ]
+  }
+}

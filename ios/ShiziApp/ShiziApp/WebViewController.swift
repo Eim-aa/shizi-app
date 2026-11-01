@@ -556,12 +556,12 @@ final class WebViewController: UIViewController {
     /// P96（M6-6 过渡）：原生分享 / 打开外链失败时交给页面 shiziShareFailed({kind, reason})，由页面轻提示
     /// （文案在 Web 侧 X-SHARE，Swift 不含面向用户的文字）。kind: backup / card / link；
     /// reason: write / payload / activity / refused / open（只作诊断，页面按 kind 取文案）。用户取消不算失败。
+    /// B4.9a：缺省 swift 模式里提示条由 Swift 发（share-failed.js：引擎模式没有就地三段式的订阅者 → 一条失败提示条）。
     func notifyShareFailed(kind: String, reason: String) {
         DispatchQueue.main.async { [weak self] in
             #if DEBUG
             self?.recordSmokeEvent("shareFailed", ["kind": kind, "reason": reason])
             #endif
-            // B4.9a：缺省 swift 模式里提示条由 Swift 发（share-failed.js：引擎模式没有就地三段式的订阅者 → 一条失败提示条）
             if let swift = self?.stage.engine as? SwiftEngine { swift.nav.postShareFailed(kind: kind); return }
             self?.webView.evaluateJavaScript(
                 "if (typeof window.shiziShareFailed === 'function') window.shiziShareFailed({kind:'\(kind)',reason:'\(reason)'}); void 0;"

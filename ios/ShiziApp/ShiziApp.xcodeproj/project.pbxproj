@@ -105,6 +105,7 @@
 		B49900000000000000000002 /* QAOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000001 /* QAOps.swift */; };
 		B49900000000000000000004 /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000003 /* SoundPlayer.swift */; };
 		B49900000000000000000006 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000005 /* Sounds */; };
+		B4990000000000000000000A /* Branding in Resources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000009 /* Branding */; };
 		1A0000000000000000B37002 /* Detail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37001 /* Detail.swift */; };
 		1A0000000000000000B37004 /* DetailZoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37003 /* DetailZoom.swift */; };
 		1A0000000000000000B37006 /* DetailPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37005 /* DetailPhoto.swift */; };
@@ -240,6 +241,7 @@
 		B49900000000000000000001 /* QAOps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAOps.swift; sourceTree = "<group>"; };
 		B49900000000000000000003 /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
 		B49900000000000000000005 /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sounds; sourceTree = "<group>"; };
+		B49900000000000000000009 /* Branding */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Branding; sourceTree = "<group>"; };
 		1A0000000000000000B37001 /* Detail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detail.swift; sourceTree = "<group>"; };
 		1A0000000000000000B37003 /* DetailZoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailZoom.swift; sourceTree = "<group>"; };
 		1A0000000000000000B37005 /* DetailPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPhoto.swift; sourceTree = "<group>"; };
@@ -364,6 +366,7 @@
 				1A0000000000000000000028 /* Info.plist */,
 				1A000000000000000000002A /* PrivacyInfo.xcprivacy */,
 				B49900000000000000000005 /* Sounds */,
+				B49900000000000000000009 /* Branding */,
 				1A00000000000000000000C0 /* InfoPlist.strings */,
 			);
 			path = ShiziApp;
@@ -620,6 +623,7 @@
 				1A0000000000000000000027 /* Assets.xcassets in Resources */,
 				1A000000000000000000002B /* PrivacyInfo.xcprivacy in Resources */,
 				B49900000000000000000006 /* Sounds in Resources */,
+				B4990000000000000000000A /* Branding in Resources */,
 				1A00000000000000000000C2 /* InfoPlist.strings in Resources */,
 				1A0000000000000000B31018 /* ShiziKitCopy.json in Resources */,
 				1A0000000000000000B3101A /* ShiziKitTokens.json in Resources */,

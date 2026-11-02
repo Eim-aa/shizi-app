@@ -49,7 +49,8 @@ final class AboutScreen: ShiziScreenViewController {
         logoView.accessibilityIdentifier = "native-about-logo"
         logoView.isAccessibilityElement = false
         logoView.clipsToBounds = true
-        if let url = Bundle.main.url(forResource: "Web", withExtension: nil)?.appendingPathComponent("icon-512.png") { logoView.image = UIImage(contentsOfFile: url.path) }
+        // 标志 = App 图标的 512 版（App 的原生资源 Branding/，scripts/generate_app_icons.js 与网页的 icon-512.png 同时生成）
+        if let url = Bundle.main.url(forResource: "Branding", withExtension: nil)?.appendingPathComponent("icon-512.png") { logoView.image = UIImage(contentsOfFile: url.path) }
         nameLabel.accessibilityIdentifier = "native-about-name"
         buildButton.accessibilityIdentifier = "native-about-build"
         buildFullLabel.accessibilityIdentifier = "native-about-build-full"

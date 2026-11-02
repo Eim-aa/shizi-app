@@ -40,6 +40,7 @@ done
 for sound in j1_page_settle j1_page_settle_b j1_page_settle_c s1_wood_muted; do
   test -s "${APP}/Sounds/${sound}.caf" || { echo "Missing Sounds/${sound}.caf" >&2; exit 65; }
 done
+test -s "${APP}/Branding/icon-512.png" || { echo "Missing Branding/icon-512.png (about-page logo)" >&2; exit 65; }
 # 可执行文件不链接 WebKit（§6.2 B4.9 行）
 EXE="${APP}/$(plutil -extract CFBundleExecutable raw -o - "${APP}/Info.plist")"
 if otool -L "$EXE" | grep -qi webkit; then

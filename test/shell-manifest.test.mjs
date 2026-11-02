@@ -37,6 +37,7 @@ test('B4.9: the iOS bundle manifest lists only what native code reads (data / fo
   assert.equal(app.length, [...shell].filter(rel => APP_BUNDLE_ROOTS.some(root => rel.startsWith(root))).length, 'every shell file under the roots is in the bundle');
   for (const rel of ['fonts/ShiziKai-Regular.woff2', 'fonts/ShiziSerifSC-Medium.woff2', 'fonts/ShiziSerifSC-Regular.woff2', 'data/etymology.json']) assert.ok(app.includes(rel), rel);
   assert.ok(app.filter(rel => /^data\/.+\.json$/.test(rel)).length >= 7218, 'all stroke JSON in the bundle');
+  assert.ok(readFileSync(join(ROOT, 'ios/ShiziApp/ShiziApp/Branding/icon-512.png')).equals(readFileSync(join(ROOT, 'icon-512.png'))), 'about-page logo (native resource) = icon-512.png');
   assert.ok(!app.some(rel => /^(src|vendor)\//.test(rel) || /\.(js|html|webmanifest)$/.test(rel) && !rel.startsWith('data/')), 'no JS / web shell in the bundle');
 });
 

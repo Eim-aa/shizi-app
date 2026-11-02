@@ -9,8 +9,9 @@
 //   index.html                  只改三处：meta[name=shizi-asset-build] 的 content = BUILD；
 //                               <script defer src="…?v=…"> 的 ?v= = 该文件内容 SHA-256 前 12 位（deck / 语境覆盖 / core-strokes）；
 //                               紧跟 app.js 入口的 <link rel="modulepreload"> 块 = 首屏模块图（Q3，见 bootModules）。
-//   scripts/shell-manifest.txt  随包/离线壳的全部文件，逐行一个相对仓库根的路径，按 UTF-8 字节序排序。
-//                               data/ 下 7000+ 个笔顺 JSON 也逐个列出（iOS `rsync --files-from=` 与 verify-bundle-assets.sh 用）。
+//   scripts/shell-manifest.txt  网页离线壳（PWA / GitHub Pages，冻结在仓库里，D59 ④ 未定）的全部文件，逐行一个相对仓库根的路径，按 UTF-8 字节序排序。
+//   scripts/app-bundle-manifest.txt  B4.9：iOS 包里 Web/ 的文件（APP_BUNDLE_ROOTS：原生仍在读的 data/ 笔顺与字源、fonts/、licenses/；
+//                               不再有 src/、vendor/、壳文件与 PWA 图标）。iOS `rsync --files-from=` 与 verify-bundle-assets.sh 用。
 //   src/build-info.js           export const BUILD = '<yyyymmdd>-<壳内容指纹 12 hex>'；export const VERSION = '<营销版本号>'
 //                               （关于页「版本 1.0（20261001）」；读 ios 工程的 MARKETING_VERSION，读不到用 package.json version，B7）。
 //   sw-manifest.js              self.SHIZI_SW_MANIFEST = {build, shell, bestEffort, coreStrokes}，sw.js importScripts 它：
@@ -35,6 +36,7 @@ import { lex } from './verify_api_floor.mjs';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const MANIFEST_PATH = 'scripts/shell-manifest.txt';
+export const APP_MANIFEST_PATH = 'scripts/app-bundle-manifest.txt';
 export const BUILD_INFO_PATH = 'src/build-info.js';
 export const SW_MANIFEST_PATH = 'sw-manifest.js';
 export const CORE_STROKES_PATH = 'core-strokes.js';
@@ -57,6 +59,15 @@ export const SHELL_ROOTS = [
   'licenses/',
 ];
 const ROOT_FILE_PATTERNS = [/^icon-[^/]+\.png$/];
+
+// B4.9：iOS 包里 Web/ 只留原生仍在读的（笔顺 / 字源 data/、字体 fonts/）与许可文本（§4.5 第 3 条）。JS / WKWebView 已从 App 里删除；
+// 网页壳（上面的 SHELL_ROOTS）冻结在仓库里，不进包。
+export const APP_BUNDLE_ROOTS = ['data/', 'fonts/', 'licenses/'];
+
+/** 壳清单里属于 iOS 包的文件（APP_BUNDLE_ROOTS 下的）。 */
+export function appBundleFiles(files) {
+  return files.filter(rel => APP_BUNDLE_ROOTS.some(root => rel.startsWith(root)));
+}
 
 // 不参与 BUILD 指纹的清单文件：build-info.js 与 sw-manifest.js 自身内嵌 BUILD（避免自指）。
 export const EXCLUDE_FROM_HASH = new Set([BUILD_INFO_PATH, SW_MANIFEST_PATH]);
@@ -425,6 +436,7 @@ export function plan(root = ROOT, now = new Date()) {
       { rel: CORE_STROKES_PATH, text: coreText },
       { rel: INDEX_PATH, text: patchIndexBuild(htmlWithV, build) },
       { rel: MANIFEST_PATH, text: manifestText(files) },
+      { rel: APP_MANIFEST_PATH, text: manifestText(appBundleFiles(files)) },
       { rel: BUILD_INFO_PATH, text: buildInfoText(day, fingerprint, readVersion(root)) },
       { rel: SW_MANIFEST_PATH, text: swManifestText({ build, shell, bestEffort, coreStrokes: coreList }) },
     ],

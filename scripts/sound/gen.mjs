@@ -5,8 +5,9 @@
 //
 // 用法：
 //   node scripts/sound/gen.mjs                    写 assets/sound/：4 个 WAV（网页 / PWA 用，44.1kHz 16bit mono）
-//                                                 + 4 个 CAF（iOS 包用，LEI16，无编码补零；macOS 上有 afconvert 时生成）
-//   node scripts/sound/gen.mjs --out <dir>        写到别处（测试用：与入库文件比对）
+//                                                 + 4 个 CAF（iOS 包用，LEI16，无编码补零）写 ios/ShiziApp/ShiziApp/Sounds/
+//                                                 （B4.9：App 的原生资源，SoundPlayer 读包里的 Sounds/）
+//   node scripts/sound/gen.mjs --out <dir>        WAV 与 CAF 都写到别处（测试用：与入库文件比对）
 //   node scripts/sound/gen.mjs --candidates <dir> 另把全部候选（含未入选的 j2–j5 / s2–s4 / 笔触 b1 b2 / 现状对照）与 meta.json 写到该目录
 //
 // 时间约定与设计「时刻编排」一致：t=0 是触发动作的 touch-up 那一帧。
@@ -22,8 +23,10 @@ const SR = 44100;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const argOf = name => { const i = process.argv.indexOf(name); return i >= 0 ? process.argv[i + 1] : null; };
 const OUT = path.resolve(argOf('--out') || path.join(ROOT, 'assets', 'sound'));
+const CAF_OUT = argOf('--out') ? OUT : path.join(ROOT, 'ios', 'ShiziApp', 'ShiziApp', 'Sounds');
 const CAND = argOf('--candidates') ? path.resolve(argOf('--candidates')) : null;
 fs.mkdirSync(OUT, { recursive: true });
+fs.mkdirSync(CAF_OUT, { recursive: true });
 if (CAND) fs.mkdirSync(path.join(CAND, 'wav'), { recursive: true });
 
 // ───────────────────────── DSP 基础 ─────────────────────────
@@ -421,7 +424,7 @@ for (const l of LEGACY) {
 }
 
 // ───────────────────────── 写文件 ─────────────────────────
-// 入选的两个（判断 3 个轮换变体 + 盖章 1 个）：WAV（网页）+ CAF（iOS 包）写进 OUT；候选全集只在 --candidates 时写。
+// 入选的两个（判断 3 个轮换变体 + 盖章 1 个）：WAV（网页）写进 OUT、CAF（iOS 包）写进 CAF_OUT；候选全集只在 --candidates 时写。
 const RECOMMENDED = { judge: 'j1_page_settle', seal: 's1_wood_muted' };
 const selected = [];
 for (const id of Object.values(RECOMMENDED)) for (const f of meta.find(x => x.id === id).files) selected.push(path.basename(f, '.wav'));
@@ -429,7 +432,7 @@ const written = [];
 for (const name of selected) {
   const pcm = encodePcm(rendered.get(name));
   fs.writeFileSync(path.join(OUT, `${name}.wav`), wavBytes(pcm));
-  fs.writeFileSync(path.join(OUT, `${name}.caf`), cafBytes(pcm));
+  fs.writeFileSync(path.join(CAF_OUT, `${name}.caf`), cafBytes(pcm));
   written.push(`${name}.wav`, `${name}.caf`);
 }
 if (CAND) {

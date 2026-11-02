@@ -24,21 +24,34 @@ case "$INPUT" in
 esac
 
 WEB="${APP}/Web"
-MANIFEST="${REPO_ROOT}/scripts/shell-manifest.txt"
+# B4.9：包里 Web/ 只剩原生仍在读的 data/、fonts/ 与 licenses/（scripts/app-bundle-manifest.txt）；JS / 网页壳 / WebKit 都不在 App 里。
+MANIFEST="${REPO_ROOT}/scripts/app-bundle-manifest.txt"
 EXPECTED_COUNT="$(find "${REPO_ROOT}/data" -name '*.json' | wc -l | tr -d ' ')"
 
 test -d "$APP" || { echo "App bundle not found: $APP" >&2; exit 66; }
 test -f "$MANIFEST" || { echo "Missing ${MANIFEST}; run: pnpm run build:manifest" >&2; exit 65; }
-test -f "${WEB}/index.html" || { echo "Missing Web/index.html" >&2; exit 65; }
-test -f "${WEB}/deck-data.js" || { echo "Missing Web/deck-data.js" >&2; exit 65; }
-test -f "${WEB}/core-strokes.js" || { echo "Missing Web/core-strokes.js" >&2; exit 65; }
-test -f "${WEB}/vendor/hanzi-writer.min.js" || { echo "Missing Web/vendor/hanzi-writer.min.js" >&2; exit 65; }
-test -f "${WEB}/vendor/fsrs6.min.js" || { echo "Missing Web/vendor/fsrs6.min.js" >&2; exit 65; }
-test -f "${WEB}/src/app.js" || { echo "Missing Web/src/app.js" >&2; exit 65; }
-test -f "${WEB}/manifest.webmanifest" || { echo "Missing Web/manifest.webmanifest" >&2; exit 65; }
 test -d "${WEB}/data" || { echo "Missing Web/data" >&2; exit 65; }
+test -d "${WEB}/fonts" || { echo "Missing Web/fonts" >&2; exit 65; }
+test -s "${WEB}/build-info.json" || { echo "Missing Web/build-info.json" >&2; exit 65; }
+for gone in src vendor assets index.html deck-data.js core-strokes.js sw.js sw-manifest.js manifest.webmanifest icon-180.png icon-192.png icon-512.png icon-512-maskable.png; do
+  test ! -e "${WEB}/${gone}" || { echo "Web/${gone} must not be in the app bundle (B4.9: no JS / web shell)" >&2; exit 65; }
+done
+# 声音（S1 / D50 ⑦）：原生资源 Sounds/*.caf（SoundPlayer 读）
+for sound in j1_page_settle j1_page_settle_b j1_page_settle_c s1_wood_muted; do
+  test -s "${APP}/Sounds/${sound}.caf" || { echo "Missing Sounds/${sound}.caf" >&2; exit 65; }
+done
+# 可执行文件不链接 WebKit（§6.2 B4.9 行）
+EXE="${APP}/$(plutil -extract CFBundleExecutable raw -o - "${APP}/Info.plist")"
+if otool -L "$EXE" | grep -qi webkit; then
+  echo "Executable links WebKit (B4.9: no WKWebView in the app)" >&2
+  exit 65
+fi
+if LC_ALL=C grep -aFq -e "WKWebView" "$EXE"; then
+  echo "Executable references WKWebView (B4.9)" >&2
+  exit 65
+fi
 
-# 壳清单逐行核对：清单里的每个文件都必须在包内。
+# 清单逐行核对：清单里的每个文件都必须在包内。
 MANIFEST_COUNT=0
 MISSING_COUNT=0
 while IFS= read -r rel || [ -n "$rel" ]; do
@@ -46,11 +59,11 @@ while IFS= read -r rel || [ -n "$rel" ]; do
   MANIFEST_COUNT=$((MANIFEST_COUNT + 1))
   if [ ! -f "${WEB}/${rel}" ]; then
     MISSING_COUNT=$((MISSING_COUNT + 1))
-    [ "$MISSING_COUNT" -le 20 ] && echo "Missing Web/${rel} (listed in shell-manifest.txt)" >&2
+    [ "$MISSING_COUNT" -le 20 ] && echo "Missing Web/${rel} (listed in app-bundle-manifest.txt)" >&2
   fi
 done < "$MANIFEST"
 if [ "$MISSING_COUNT" != 0 ]; then
-  echo "${MISSING_COUNT} shell-manifest file(s) missing from bundle" >&2
+  echo "${MISSING_COUNT} app-bundle-manifest file(s) missing from bundle" >&2
   exit 65
 fi
 "${SCRIPT_DIR}/verify-core-bundles.sh" "$APP" >/dev/null || exit 65 # B4.9c：ShiziCore 资源包齐全
@@ -87,4 +100,4 @@ if [ "$ACTUAL_COUNT" != "$EXPECTED_COUNT" ]; then
 fi
 
 echo "OK: ${APP}"
-echo "Web assets present; shell-manifest files = ${MANIFEST_COUNT}; data JSON count = ${ACTUAL_COUNT}"
+echo "Web assets present; app-bundle-manifest files = ${MANIFEST_COUNT}; data JSON count = ${ACTUAL_COUNT}"

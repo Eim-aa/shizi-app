@@ -14,6 +14,7 @@ import * as sound from '../../src/platform/sound.js';
 import { applyFeedback, COMMIT_FEEDBACK } from '../../src/platform/haptics.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const CAF_DIR = 'ios/ShiziApp/ShiziApp/Sounds'; // B4.9：CAF 是 App 的原生资源（SoundPlayer 读包里的 Sounds/）
 const JUDGE = ['j1_page_settle', 'j1_page_settle_b', 'j1_page_settle_c'];
 const SEAL = 's1_wood_muted';
 
@@ -135,7 +136,7 @@ function readWav(file) {
 test('素材：每个声音有 WAV（网页）与 CAF（iOS 包，LEI16 无编码补零），两者采样逐字节一致；起音从第 0 个采样起', () => {
   for (const name of [...JUDGE, SEAL]) {
     const wav = readWav(join(ROOT, 'assets/sound', `${name}.wav`));
-    const caf = readFileSync(join(ROOT, 'assets/sound', `${name}.caf`));
+    const caf = readFileSync(join(ROOT, CAF_DIR, `${name}.caf`));
     assert.equal(caf.toString('latin1', 0, 4), 'caff');
     assert.equal(caf.toString('latin1', 8, 12), 'desc');
     assert.equal(caf.readDoubleBE(20), 44100);
@@ -151,10 +152,10 @@ test('素材：每个声音有 WAV（网页）与 CAF（iOS 包，LEI16 无编�
   assert.equal(sound.soundUrl(JUDGE[1]).endsWith('assets/sound/j1_page_settle_b.wav'), true);
 });
 
-test('素材只有入选的 4 个（8 个文件）+ README；没有未选候选、没有 m4a', () => {
+test('素材只有入选的 4 个（WAV 4 个 + README；CAF 4 个在 iOS 包的原生资源 Sounds/，B4.9）；没有未选候选、没有 m4a', () => {
   const files = readdirSync(join(ROOT, 'assets/sound')).sort();
-  const expect = [...JUDGE, SEAL].flatMap(n => [`${n}.caf`, `${n}.wav`]).concat('README.md').sort();
-  assert.deepEqual(files, expect);
+  assert.deepEqual(files, [...JUDGE, SEAL].map(n => `${n}.wav`).concat('README.md').sort());
+  assert.deepEqual(readdirSync(join(ROOT, CAF_DIR)).sort(), [...JUDGE, SEAL].map(n => `${n}.caf`).sort());
 });
 
 test('scripts/sound/gen.mjs 可复跑：重新生成的 WAV / CAF 与入库文件逐字节相同；程序合成、无采样无下载', () => {
@@ -162,9 +163,10 @@ test('scripts/sound/gen.mjs 可复跑：重新生成的 WAV / CAF 与入库文�
   try {
     execFileSync(process.execPath, [join(ROOT, 'scripts/sound/gen.mjs'), '--out', dir], { stdio: 'pipe' });
     const regenerated = readdirSync(dir).sort();
-    assert.deepEqual(regenerated, readdirSync(join(ROOT, 'assets/sound')).filter(f => !f.endsWith('.md')).sort());
+    const committed = f => join(ROOT, f.endsWith('.caf') ? CAF_DIR : 'assets/sound', f);
+    assert.deepEqual(regenerated, [...readdirSync(join(ROOT, 'assets/sound')).filter(f => !f.endsWith('.md')), ...readdirSync(join(ROOT, CAF_DIR))].sort());
     for (const f of regenerated) {
-      assert.ok(readFileSync(join(dir, f)).equals(readFileSync(join(ROOT, 'assets/sound', f))), `${f} reproducible`);
+      assert.ok(readFileSync(join(dir, f)).equals(readFileSync(committed(f))), `${f} reproducible`);
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -175,11 +177,11 @@ test('scripts/sound/gen.mjs 可复跑：重新生成的 WAV / CAF 与入库文�
   assert.match(readFileSync(join(ROOT, 'assets/sound/README.md'), 'utf8'), /无需署名/);
 });
 
-test('壳清单与 SW 预缓存：WAV 进壳清单与 SW 尽力批次；CAF 进壳清单（iOS rsync）但不进 SW', () => {
+test('壳清单与 SW 预缓存：WAV 进网页壳清单与 SW 尽力批次；CAF 不在网页壳里（B4.9：iOS 包的原生资源 Sounds/）', () => {
   const lines = readFileSync(join(ROOT, 'scripts/shell-manifest.txt'), 'utf8').split('\n').filter(Boolean);
   for (const n of [...JUDGE, SEAL]) {
     assert.ok(lines.includes(`assets/sound/${n}.wav`), `${n}.wav in shell manifest`);
-    assert.ok(lines.includes(`assets/sound/${n}.caf`), `${n}.caf in shell manifest`);
+    assert.ok(!lines.includes(`assets/sound/${n}.caf`), `${n}.caf not in the web shell`);
   }
   const { bestEffort, shell } = swLists(lines, () => 'x');
   for (const n of [...JUDGE, SEAL]) {

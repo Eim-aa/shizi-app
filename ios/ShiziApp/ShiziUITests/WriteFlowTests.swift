@@ -440,7 +440,7 @@ final class WriteFlowTests: XCTestCase {
         qa.waitProbe("skip undo handed to the result page (S4)") { (($0["result"] as? [String: Any])?["undoBar"] as? Bool) == true } // B2.7：原生结果页的撤销条
         qa.tapUndoBar()
         qa.waitNative(true)
-        qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 4 }
+        qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 5 } // D83：前面有一次重考
         XCTAssertEqual(qa.kinds["skipped"] ?? 0, 0)
     }
 

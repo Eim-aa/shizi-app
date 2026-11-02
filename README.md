@@ -2,7 +2,7 @@
 
 > 接手请先读[团队接手说明](docs/handoff/README.md)（产品依据、决定表、设计交付）。第十稿的工程规划、待产品决定与各里程碑验收记录在 [`docs/engineering/v10/`](docs/engineering/v10/00-README.md)。
 
-这是一个本地运行、可安装到手机主屏幕的汉字书写恢复工具：帮已经学过汉字的人，在想写时轻松开始，安静地回忆几个字，想停就停。默认练习为主，自己选字为补充；用户对照后自己判断，不做书法评分，不加每日任务压力。同一套静态文件既是 PWA，也由 `ios/ShiziApp/` 的 WKWebView 壳打包成 iOS App。
+这是一个本地运行、可安装到手机主屏幕的汉字书写恢复工具：帮已经学过汉字的人，在想写时轻松开始，安静地回忆几个字，想停就停。默认练习为主，自己选字为补充；用户对照后自己判断，不做书法评分，不加每日任务压力。网页版（PWA，`src/` 等静态文件）冻结在仓库里作参考实现；iOS App（`ios/ShiziApp/`）B4.9 起是纯原生（UIKit + Swift 包 `ios/ShiziCore`，App 里没有 JS / WKWebView）。
 
 当前代码是**第十稿重建**（`v10/integration` 分支；ADR [0002](docs/adr/0002-v10-rebuild-es-modules.md)）：原生 ES 模块、无打包器、Preact + htm，数据模型 v2。界面按第十稿交接版实现，三个 tab「习字 / 字库 / 我的」：
 
@@ -36,7 +36,7 @@ sw.js / sw-manifest.js  Service Worker（缓存 shizi-v14-<BUILD>）与其清单
 manifest.webmanifest、icon-*.png、assets/   PWA 清单、图标、图形资源
 scripts/                生成器、门禁、e2e（scripts/e2e/）、字体工具（scripts/fonts/）、fixtures；scripts/legacy/ 为旧版门禁，不再运行
 test/                   node:test 单测（core / store / platform / ui）
-ios/ShiziApp/           iOS WKWebView 壳工程与脚本
+ios/ShiziApp/           iOS 原生 App 工程与脚本（ios/ShiziCore：Swift 规则与数据包）
 generated/、sources/、audit/   题库生成结果、原始字表与词典、笔顺补充数据的审计证据
 docs/                   handoff/（接手）、product/、design/v10/（设计交付快照）、engineering/v10/（工程规划与验收）、adr/
 ```
@@ -47,7 +47,7 @@ docs/                   handoff/（接手）、product/、design/v10/（设计�
 
 | 生成物 | 生成器 | 何时重跑 |
 |---|---|---|
-| `scripts/shell-manifest.txt`、`sw-manifest.js`、`src/build-info.js`、`index.html` 的 BUILD meta 与 `?v=`、`core-strokes.js` 的首练内嵌笔顺 | `pnpm run build:manifest`（`scripts/build_shell_manifest.mjs`，`--check` 只核对） | **新增、删除或修改任何壳文件后**（`src/`、`vendor/`、`fonts/`、`data/` 等）。否则 iOS 不进包、SW 预缓存过期，`verify:unit` 会报清单过期 |
+| `scripts/shell-manifest.txt`（网页壳）、`scripts/app-bundle-manifest.txt`（iOS 包的 `Web/`：data / fonts / licenses）、`sw-manifest.js`、`src/build-info.js`、`index.html` 的 BUILD meta 与 `?v=`、`core-strokes.js` 的首练内嵌笔顺 | `pnpm run build:manifest`（`scripts/build_shell_manifest.mjs`，`--check` 只核对） | **新增、删除或修改任何壳文件后**（`src/`、`vendor/`、`fonts/`、`data/` 等）。否则 iOS 不进包、SW 预缓存过期，`verify:unit` 会报清单过期 |
 | `deck-data.js`、`core-strokes.js`（字表）、`src/config/deck-meta.js`、`generated/*.json` | `python3 scripts/build_8105_chars.py`（末尾会链式调用壳清单生成器） | 题库或字表变化 |
 | `src/config/credits.js`（关于页「开源资料 · 致谢」） | `pnpm run build:credits`（读 `THIRD_PARTY_NOTICES.md` 与许可全文） | 改了 NOTICES 或许可文件 |
 | `vendor/preact*.module.js`、`vendor/htm.module.js` | `node scripts/vendor_preact.mjs`（`--check` 不联网核 SHA-256） | 升级 Preact / htm |
@@ -74,7 +74,7 @@ pnpm exec playwright install chromium
 | `pnpm run verify:copy` | 文案门禁：`src/config/copy/` 与 `copy-source.json` 逐字一致、硬编码中文扫描、P 编号覆盖等（`--scope=all\|M<n>\|R-H,R-W\|screen:home`） |
 | `pnpm run verify:web` | e2e（`scripts/e2e/run.mjs`）+ `verify:pwa`（`scripts/verify_pwa_upgrade.js`：真实 v10 / v13 两代回放升级到 v14、BUILD A→B、503 回落；需要能取到两个旧提交，取不到即失败） |
 
-另有 `pnpm run verify:native-smoke -- <json> <stage>`：复核 iOS 原生冒烟 JSON（见 `ios/ShiziApp/README.md`）。
+iOS 的模拟器检查：`pnpm run verify:native-ui`（XCUITest 流程 + 逐屏对比，见 `ios/ShiziApp/README.md`）。B4.9 起网页冒烟 `verify:native-smoke` 与 `verify:webkit-ax` 随 WKWebView 退役。
 
 ### e2e 运行器
 
@@ -106,12 +106,11 @@ pnpm start            # python3 -m http.server 8000 --bind 127.0.0.1
 
 ## iOS App
 
-工程在 `ios/ShiziApp/ShiziApp.xcodeproj`（scheme `Shizi` / `Shizi Dev`，iOS 15.0 起，iPhone-only）。Xcode 的「Sync Web Assets」阶段按 `scripts/shell-manifest.txt` 用 `rsync --files-from=` 把 Web 文件逐个同步进 App 包的 `Web/`，所以**改了壳文件先跑 `pnpm run build:manifest`**。
+工程在 `ios/ShiziApp/ShiziApp.xcodeproj`（scheme `Shizi` / `Shizi Dev`，iOS 15.0 起，iPhone-only）。Xcode 的「Sync Web Assets」阶段按 `scripts/app-bundle-manifest.txt` 用 `rsync --files-from=` 把原生仍在读的 `data/`、`fonts/`、`licenses/` 同步进 App 包的 `Web/`（不含 JS 与网页壳），所以**改了这些文件先跑 `pnpm run build:manifest`**。
 
 | 脚本（`ios/ShiziApp/scripts/`） | 用途 |
 |---|---|
 | `verify-local.sh` | plist / 工程 / 模拟器 Debug 构建 / 无签名 Release archive / 包内资源；`RUN_SMOKE=1` 追加 Simulator 冒烟 |
-| `smoke-simulator.sh` / `smoke-device.sh` | DEBUG 原生冒烟三阶段（main / relaunch / deeplink），结果由 `validate-native-smoke.py` 核对 |
 | `signing-preflight.sh`、`run-device.sh` | 真机签名预检、安装启动 |
 | `verify-bundle-assets.sh`、`verify-archive.sh` | 按清单核对 App 包 / archive 资源；Release 不含冒烟替身 |
 | `archive-testflight.sh` | TestFlight archive / 导出 / 上传 |

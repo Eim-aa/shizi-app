@@ -206,10 +206,11 @@ public enum TodayPlan {
 
     /// 撤销跳过：从今天的进度里拿掉；撤销的是今天的练习那一组时，「完成」也收回。
     public static func unnote(_ d: inout JSObject, session s: JSValue, key: String, day: String) {
+        guard isPlan(s) else { return } // 只有今天的练习里的跳过记进了进度（自选的跳过不算）
         var t = today(.object(d), day: day)
-        guard t.handled.contains(key) || (isPlan(s) && t.done) else { return }
+        guard t.handled.contains(key) || t.done else { return }
         t.handled.removeAll { $0 == key }
-        if isPlan(s) { t.done = false }
+        t.done = false
         setToday(&d, t)
     }
 
@@ -275,6 +276,17 @@ public enum TodayPlan {
 
     // MARK: 读（首页 / 开组）
 
+    /// 这一组里还没写第一次的字（按队列顺序，不重复）。
+    static func pendingFirsts(_ s: JSValue) -> [String] {
+        var seen = Set<String>(), out: [String] = []
+        for k in SessionRules.remainingKeys(s) {
+            guard let key = k.stringValue, !seen.contains(key), attempts(s, k) == 0 else { continue }
+            seen.insert(key)
+            out.append(key)
+        }
+        return out
+    }
+
     /// 今天的练习还要排的字（不写入）：这一份定下之前按每组字数算、减去今天已经写过的；定下之后按这一份剩下的。
     public static func remainingQueue(_ state: JSValue, day: String, rules: ScheduleRules, deck: ScheduleDeck, policy: JSValue = Config.policy) throws -> [String] {
         let t = today(state, day: day)
@@ -300,6 +312,8 @@ public enum TodayPlan {
         let n = t.handled.count
         if t.done { return Progress(n: n, total: max(n, t.target ?? n), done: true, active: false) }
         if let target = t.target { return Progress(n: n, total: max(n, target), done: !active && n > 0 && n >= target, active: active) }
+        // 正在写的今天的练习还没定份数（旧数据 / 夹具造的组）：按这一组还没写第一次的字算
+        if active, let a = activeSession(state, "A") { return Progress(n: n, total: n + pendingFirsts(a).count, done: false, active: true) }
         guard let deck else { return Progress(n: n, total: n, done: false, active: active) }
         let rest = try remainingQueue(state, day: day, rules: rules, deck: deck, policy: policy)
         // 今天这一份没有可排的字（例如「只复习」档今天没有到期字）：今天的练习就是 0 个字，算完成（之后「再来一组」）

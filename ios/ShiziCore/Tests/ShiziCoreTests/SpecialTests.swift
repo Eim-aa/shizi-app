@@ -95,7 +95,8 @@ final class SpecialTests: XCTestCase {
         XCTAssertEqual(r.queue, K("\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}"), "the capital-numeral set is never cut to 3")
     }
 
-    // test/core/special.test.mjs: special group: only when p < 1.5; a heavy backlog postpones it（D83 起 p 按「一天一组」折算）
+    // test/core/special.test.mjs: special group: only when p < 1.5; a heavy backlog postpones it
+    // （D83 起 p 按「一天一组」折算：到期数 / 每组字数）
     func testSpecialGroupOnlyWhenPLessThan1Point5AHeavyBacklogPostponesIt() throws {
         let records = try history(10)
         // D83：积压天数按「一天一组」折算 p = 到期数 / 每组字数（5 字一组）：8 个 → 1.6：不触发；7 个 → 1.4：触发

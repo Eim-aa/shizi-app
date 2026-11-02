@@ -41,8 +41,6 @@ func runOpGolden(_ name: String, file: StaticString = #filePath, line: UInt = #l
         let engine = CoreEngine(timeZone: tz)
         for c in group["cases"]?.arrayValue ?? [] {
             if let op = c["op"]?.stringValue, d83RetiredGoldenOps.contains(op) { continue }
-            // D83：会话 item 多了 retry 一种（形状表的报错句列出可选值，与 JS 的不同）
-            if JSONWriter.stringify(c["reply"] ?? .null).contains("judged|answer-seen|skipped") { continue }
             let req = JSValue.object(JSObject([("op", c["op"]!), ("args", c["args"]!), ("state", .bool(false))]))
             let res = engine.handle(req)
             let label = tzName + " " + JSONWriter.stringify(req)

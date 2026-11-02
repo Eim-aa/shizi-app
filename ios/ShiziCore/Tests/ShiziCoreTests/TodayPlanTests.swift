@@ -226,6 +226,24 @@ final class TodayPlanTests: XCTestCase {
         XCTAssertTrue(h.today.done)
     }
 
+    func testUndoingTheLastSkipTakesTheDoneBack() throws {
+        let h = PlanHarness.make(settings: [("groupSize", .number(5))])
+        try h.finishFirst()
+        h.nextDay(5)
+        try h.startA()
+        for _ in 0..<4 { h.judge("correct") }
+        let r = h.skip()
+        XCTAssertTrue(h.today.done, "跳过也算处理完：完成")
+        let undo = try XCTUnwrap(r["undo"]?.objectValue)
+        let back = SessionResults.undoSkip(h.store, JSObject([("slot", .string("A")), ("sessionId", undo["sessionId"]!), ("recordId", undo["recordId"]!)]))
+        XCTAssertEqual(back["ok"], .bool(true), str(back))
+        XCTAssertFalse(h.today.done, "撤销跳过：今天的练习又没写完")
+        XCTAssertEqual(h.today.handled.count, 4)
+        XCTAssertNotNil(h.current())
+        h.judge("correct")
+        XCTAssertTrue(h.today.done)
+    }
+
     // MARK: 四、终点：今天完成了 / 再来一组
 
     func testDoneShowsTodayCompleteAndAnotherGroupIsExtraWithTheSameSizeAllNewWhenNothingIsDue() throws {

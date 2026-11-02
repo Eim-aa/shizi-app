@@ -148,12 +148,10 @@ final class TodayPlanSimulationTests: XCTestCase {
                 let repsBefore = JS.numberOr0(before?["fsrs"]?["reps"]), repsAfter = JS.numberOr0(after["fsrs"]?["reps"])
                 XCTAssertLessThanOrEqual(repsAfter - repsBefore, 1, "\(label) \(day): \(key) one FSRS step a day")
                 if outcome == "wrong" {
-                    // 第一次错 / 看答案 = Again：新字明天再来；复习字记一次遗忘（间隔由 FSRS 算，设置不变）
-                    XCTAssertGreaterThanOrEqual(try shanghai.diffDays(.string(tomorrow), after["due"] ?? .null), 0, "\(label) \(day): \(key) not before tomorrow")
+                    // 第一次错 / 看答案 = 明天再来（新字、复习字都是）；复习字照记一次 Again（遗忘数 +1）
+                    XCTAssertEqual(after["due"], .string(tomorrow), "\(label) \(day): \(key) first attempt wrong → due day + 1")
                     if repsBefore > 0 {
                         XCTAssertEqual(JS.numberOr0(after["fsrs"]?["lapses"]), JS.numberOr0(before?["fsrs"]?["lapses"]) + 1, "\(label) \(day): \(key) first attempt wrong → Again")
-                    } else {
-                        XCTAssertEqual(after["due"], .string(tomorrow), "\(label) \(day): \(key) new char wrong → tomorrow")
                     }
                 }
                 if outcome == "correct" { XCTAssertNotEqual(after["due"], .string(day), "\(label) \(day): \(key) first attempt correct → later") }

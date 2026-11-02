@@ -109,7 +109,7 @@ export const D83_RETIRED_OPS = new Set([
   'mix.pressureOf', 'mix.newTargetOf', 'mix.planGroup', 'mix.dueReviewsDoneOn', 'mix.newUserCapOf',
   'sessions.wrongReserveOf', 'groupSize.dailyReviewCapOf', 'spread.returnSpreadPlan', 'spread.returnSpreadPerDay',
   'sessions.selectDaily', 'start.planDaily', 'start.startDaily', 'start.startNextA', 'start.expireStale',
-  'fsrs.replay', 'fsrs.applyAnswerSeen', 'fsrs.applyJudgment',
+  'fsrs.replay', 'fsrs.applyAnswerSeen', 'fsrs.applyJudgment', 'fsrs.reviewCard',
   'view.home', 'view.home.model', 'view.home.helpers', 'view.mine', 'view.mine.helpers', 'view.library', 'view.library.plan',
 ]);
 

@@ -23,7 +23,7 @@ let d83RetiredGoldenOps: Set<String> = [
     // 选字与开组（今天的练习一天一份、再来一组、到期字按回忆概率排、自加的字优先）
     "sessions.selectDaily", "start.planDaily", "start.startDaily", "start.startNextA", "start.expireStale",
     // FSRS：复习日期只看当天第一次；新字第一次就看答案记 Again
-    "fsrs.replay", "fsrs.applyAnswerSeen", "fsrs.applyJudgment",
+    "fsrs.replay", "fsrs.applyAnswerSeen", "fsrs.applyJudgment", "fsrs.reviewCard", // 写错 = 明天再来（到期日夹到第二天）
     // 首页（今天的进度 / 今天完成了 / 再来一组）、「我的」（新字比例档位）、字库「今日练习」
     "view.home", "view.home.model", "view.home.helpers", "view.mine", "view.mine.helpers", "view.library", "view.library.plan",
 ]

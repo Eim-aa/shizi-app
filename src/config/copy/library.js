@@ -125,7 +125,7 @@ export default Object.freeze({
   'X-LIBFOUR.todayHalfValue': '还剩 {n} 个',
   'X-LIBFOUR.todayHalfSub': '接着写',
   'X-LIBFOUR.todayDoneValue': '写完了',
-  'X-LIBFOUR.todayDoneSub': '想多写，再写一组',
+  'X-LIBFOUR.todayDoneSub': '想多写，再来一组', // D83：与 X-RESULT.again「再来一组」同一说法
   'X-LIBFOUR.writtenHeading': '已练汉字',
   'X-LIBFOUR.writtenAll': '全部 ›',
   'X-LIBFOUR.writtenAllAria': '全部已练汉字',

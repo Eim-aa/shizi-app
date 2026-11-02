@@ -420,6 +420,8 @@ final class FSRSTests: XCTestCase {
         let two = try rules.applyJudgment(entry, rec(3, jing, "judged", "correct", day, at: at(day, 20), hints: 2)).entry
         let wrong = try rules.applyJudgment(entry, rec(3, jing, "judged", "wrong", day, at: at(day, 20))).entry
         XCTAssertTrue(diffDays(day, due(one)) > 30, "1 hint -> Hard: \(diffDays(day, due(one)))")
-        XCTAssertEqual(two["due"], wrong["due"], "2 hints -> Again = wrong")
+        XCTAssertEqual(two["fsrs"], wrong["fsrs"], "2 hints -> Again = wrong (same FSRS step)")
+        // D83 ③：写错 = 明天再来（到期日夹到第二天）；2 次提示写对按提示降级，日期照 FSRS
+        XCTAssertEqual(wrong["due"], .string(addDays(day, 1)))
     }
 }

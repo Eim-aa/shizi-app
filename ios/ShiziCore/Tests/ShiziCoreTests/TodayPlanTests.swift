@@ -200,6 +200,40 @@ final class TodayPlanTests: XCTestCase {
         XCTAssertEqual(h.sched(key)?["due"], entry?["due"])
     }
 
+    /// 规则文档三：写错 / 看了答案 → 明天再来。复习字照记 Again（稳定度、难度、遗忘数照 FSRS），到期日夹到第二天、不错开。
+    func testAWrongOrSeenReviewCharComesBackTomorrow() throws {
+        let day = "2026-10-02", tomorrow = "2026-10-03"
+        let key = "base:\u{51FD}"
+        // 一个成熟的复习字：间隔几个月
+        var entry = try realEntry(key, judgedOn: "2026-05-01", due: day)
+        for d in ["2026-05-05", "2026-05-20", "2026-07-01"] {
+            let p = d.split(separator: "-").map { Int($0)! }
+            let r = JS.obj([("id", .string("r1")), ("cardKey", .string(key)), ("sessionId", .string("s1")), ("kind", .string("judged")), ("judgment", .string("correct")),
+                            ("at", .number(JSDate.makeLocal(p[0], p[1] - 1, p[2], hours: 12, shanghaiTZ)!)), ("localDay", .string(d)),
+                            ("help", JS.obj([("hints", .number(0)), ("answerSeen", .bool(false)), ("traced", .bool(false))]))])
+            entry = try rules.applyJudgment(entry, r).entry
+        }
+        entry = JS.with(entry, [("due", .string(day))])
+        let at = JSDate.makeLocal(2026, 9, 2, hours: 20, shanghaiTZ)!
+        func rec(_ kind: String, _ judgment: String?) -> JSValue {
+            var o = JSObject([("id", .string("r9")), ("cardKey", .string(key)), ("sessionId", .string("s2")), ("kind", .string(kind)), ("at", .number(at)), ("localDay", .string(day)),
+                              ("help", JS.obj([("hints", .number(0)), ("answerSeen", .bool(kind == "answer-seen")), ("traced", .bool(false))]))])
+            if let j = judgment { o["judgment"] = .string(j) }
+            return .object(o)
+        }
+        let wrong = try rules.applyJudgment(entry, rec("judged", "wrong")).entry
+        XCTAssertEqual(wrong["due"], .string(tomorrow), "写错：明天再来")
+        XCTAssertEqual(JS.numberOr0(wrong["fsrs"]?["lapses"]), JS.numberOr0(entry["fsrs"]?["lapses"]) + 1, "照记一次 Again")
+        let seen = try XCTUnwrap(rules.applyAnswerSeen(entry, rec("answer-seen", nil)).entry)
+        XCTAssertEqual(seen["due"], .string(tomorrow), "看了答案：明天再来")
+        XCTAssertEqual(seen["fsrs"], wrong["fsrs"], "与写错同一步 FSRS")
+        let ok = try rules.applyJudgment(entry, rec("judged", "correct")).entry
+        XCTAssertGreaterThan(try shanghai.diffDays(.string(day), ok["due"]!), 7, "写对照 FSRS 拉长")
+        // 改判重放同一规则
+        let (_, before) = try rules.applyJudgment(entry, rec("judged", "wrong"))
+        XCTAssertEqual(try rules.replay(before, [rec("judged", "wrong")])?["due"], .string(tomorrow))
+    }
+
     func testSkipsAreNotRetriedNewCharsComeBackIn7DaysReviewsTomorrow() throws {
         let h = PlanHarness.make(settings: [("groupSize", .number(5))])
         try h.finishFirst()

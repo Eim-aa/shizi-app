@@ -218,7 +218,8 @@ extension ScheduleRules {
         let today = try localDayOf(at)
         let tomorrow = try dates.addDays(today, 1)
         let fsrsDay = try localDayOf(try toMs(card["due"]))
-        let due = JSMath.lessThan(tomorrow, fsrsDay) ? fsrsDay : tomorrow
+        // D83 ③：写错 / 看了答案（judgment wrong）= 明天再来——FSRS 照记 Again（稳定度、难度照算），到期日夹到第二天（不错开）
+        let due = JS.isString(review["judgment"], "wrong") ? tomorrow : (JSMath.lessThan(tomorrow, fsrsDay) ? fsrsDay : tomorrow)
         return ReviewResult(card: card, due: due, rating: rating, clockBackMs: clockBackMs != 0 ? clockBackMs : nil)
     }
 
@@ -375,7 +376,8 @@ extension ScheduleRules {
                 if due == nil {
                     let fsrsDay = try localDayOf(try toMs(c["due"]), policy: policy)
                     let next = try dates.addDays(record["localDay"] ?? .null, 1)
-                    due = JSMath.lessThan(next, fsrsDay) ? fsrsDay : next
+                    // D83 ③：当天看过答案（记过 Again）= 明天再来；当天已评过级的照那次的结果
+                    due = JS.truthy(seenAgainDay) && JS.strictEquals(seenAgainDay, record["localDay"]) ? next : (JSMath.lessThan(next, fsrsDay) ? fsrsDay : next)
                 }
                 continue
             }

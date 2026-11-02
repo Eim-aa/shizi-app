@@ -8,7 +8,7 @@ import XCTest
 final class ScheduleGoldenTests: XCTestCase {
     func testFSRSGolden() throws {
         let n = try runOpGolden("fsrs")
-        XCTAssertGreaterThan(n, 5000)
+        XCTAssertGreaterThan(n, 1500) // D83：reviewCard / applyJudgment / replay / applyAnswerSeen 退役（写错 = 明天再来、只看当天第一次）
     }
 
     func testScheduleGolden() throws {

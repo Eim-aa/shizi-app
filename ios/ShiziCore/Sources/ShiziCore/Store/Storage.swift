@@ -11,12 +11,13 @@ public final class StoreStorage {
     private var blockedState: (reason: String, keys: [String], moved: [String])?
     /// 写失败且回滚也失败 / 写后读回不确定（之后的写一律拒绝，内部按 blockedState）。store 读这个：有替身时报替身（JS 夹具换的也只是 storage.blocked 这个读口）。
     public var blocked: (reason: String, keys: [String], moved: [String])? { blockedOverride ?? blockedState }
-    /// 测试替身（B4.9c）：JS 夹具把 storage.probe / storage.blocked 换成假的（ShiziUITests States/_ops/blockMode.js、test-hooks overrideStorage），
-    /// Swift 是写入者时同一件事落在这里——探测按替身答、blocked 按替身报；nil = 真的。
+    /// 测试替身（B4.9c；B4.9 起由 App 的 QA 夹具 op blockMode / corruptNotice / setUsage 挂，QAOps.swift）：探测按替身答、blocked 按替身报；nil = 真的。
     public var probeOverride: (ok: Bool, kind: String?)?
     public var blockedOverride: (reason: String, keys: [String], moved: [String])?
     /// repair 报告里的 quarantined 换成这几个键（JS 夹具 corruptNotice 换 storage.repair 的同一件事：坏值提示）。
     public var quarantinedOverride: [String]?
+    /// 占用估算换成这个值（JS 夹具 setUsage 换 storage.estimateUsage 的同一件事：真的写到 80% 要几十 MB）；nil = 真的。
+    public var usageOverride: JSObject?
     private var failQueue: [(remaining: Int, kind: String, matchKey: String?)] = []
     private var interruptAfter: Int?
     public private(set) var lastRepair: JSObject?
@@ -517,7 +518,8 @@ public final class StoreStorage {
 
     /// 占用估算（同源全部键）。
     public func estimateUsage(_ budgets: Budgets) throws -> JSObject {
-        Budget.estimateUsage(try readAll("").compactMap { k, v in v.map { (k, $0) } }, budgets)
+        if let usageOverride { return usageOverride }
+        return Budget.estimateUsage(try readAll("").compactMap { k, v in v.map { (k, $0) } }, budgets)
     }
 
     // MARK: 故障注入（测试 / 差分）
@@ -538,6 +540,13 @@ public final class StoreStorage {
         failQueue = []
         interruptAfter = nil
         halted = false
+    }
+
+    /// B4.9：阻断页「再试一次」的重新启动（JS 参考是整页 location.reload()，新页面的 storage 从头来）：阻断状态与故障清空，之后 store.load 重新探测、修复、读库。
+    /// 测试替身（probeOverride / blockedOverride / quarantinedOverride）不动——它们代表「这台机器的存储就是这样」，重启也一样。
+    public func resetForRelaunch() {
+        clearFaults()
+        blockedState = nil
     }
 }
 

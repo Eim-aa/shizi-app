@@ -17,6 +17,8 @@
       "op": "judge",
       "judgments": [
         "wrong",
+        "correct",
+        "correct",
         "correct"
       ],
       "n": 4

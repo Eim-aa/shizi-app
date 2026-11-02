@@ -218,7 +218,10 @@ public enum SessionRules {
 
     public static func s02Prompt(_ sessions: JSValue) -> JSValue {
         guard let b = sessions["B"], JS.truthy(b), !isComplete(b) else { return .null }
-        let unwritten = remainingKeys(b)
+        // D83：上一组还没写的字 = 还没写过第一次的字（待重考的不算；只剩重考时列出它们，不重复）
+        let firsts = TodayPlan.pendingFirsts(b).map { JSValue.string($0) }
+        var seen = Set<String>()
+        let unwritten = firsts.isEmpty ? remainingKeys(b).filter { seen.insert(JS.string($0)).inserted } : firsts
         var o = JSObject()
         if let id = b["id"] { o["sessionId"] = id }
         o["unwrittenKeys"] = .array(unwritten)

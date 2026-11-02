@@ -70,7 +70,7 @@ public enum WriteAPI {
             let strokes = WriteModels.fromWire(a["strokes"]); args["strokes"] = strokes.isEmpty ? .null : SessionWrites.rows(strokes)
             return try flow(SessionWrites.commitUndoSkip(store, args))
         case "end":
-            if a["action"] == .string("counts") { let s = SessionWrites.session(store.state, slot); return JS.obj([("ok", .bool(true)), ("n", .number(SessionRules.remainingCount(s))), ("m", .number(Double(s == nil ? 0 : SessionWrites.judgedCount(store.state, s?["id"])))), ("canEnd", .bool(SessionWrites.canEnd(s)))]) }
+            if a["action"] == .string("counts") { let s = SessionWrites.session(store.state, slot); return JS.obj([("ok", .bool(true)), ("n", .number(s.map { Double(TodayPlan.pendingFirsts($0).count) } ?? 0)), ("m", .number(Double(s == nil ? 0 : SessionWrites.judgedCount(store.state, s?["id"])))), ("canEnd", .bool(SessionWrites.canEnd(s)))]) }
             let r = SessionWrites.commitEndGroup(store, a); return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true)), ("judgedCount", r["judgedCount"]!), ("sessionId", a["sessionId"] ?? .null), ("snapshot", try snapshot())]) : try flow(r)
         case "firstTip":
             let r = SessionWrites.commitFlag(store, key: "firstTipSeen", label: "write:first-tip"); return r["ok"] == .bool(true) ? JS.obj([("ok", .bool(true))]) : plain(r)

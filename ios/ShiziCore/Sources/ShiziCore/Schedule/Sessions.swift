@@ -325,13 +325,6 @@ public enum SessionRules {
         (policy["firstQueue"]?.arrayValue ?? []).map { "base:" + JS.string($0) }
     }
 
-    /// 每组保底带几个「最近一次练习日写错、今天到期」的字（D65 #1，P315）。
-    public static func wrongReserveOf(_ size: Double, policy: JSValue = Config.policy) -> Double {
-        let cfg = policy["wrongFirst"]
-        if !JS.truthy(cfg) || cfg?["enabled"] == .bool(false) { return 0 }
-        let share = JS.numberOr0(cfg?["reserveShare"])
-        return jsMax(0, jsMin(size, (size * share).rounded(.up)))
-    }
 }
 
 private extension JSValue {
@@ -352,29 +345,29 @@ extension ScheduleRules {
         return SchedRecords.skippedCardKeysOn(records, today, from: try dates.addDays(today, -(days - 1)))
     }
 
-    /// selectDaily 的结果（键序与 JS 返回对象一致）。
+    /// selectDaily 的结果（调度规则 v2，D83）。
     public struct DailyPlan {
         public var queue: [String]
         public var dueKeys: [String]
-        public var earlyKeys: [String]
         public var newKeys: [String]
         public var warmKeys: [String]
         public var customKeys: [String]
-        public var reviewBudgetLeft: Double
+        /// 可排的到期字数（已排除今天写过 / 看过答案 / 跳过的）。
         public var backlog: Double
-        public var pressure: Double
         public var groupSize: JSValue?
-        public var newTarget: Double
+        public var tier: String
+        /// 档位算出的新字份额（让位 / 补位之前）。
+        public var newShare: Double
         public var special: (kind: String, keys: [String])?
 
         public var js: JSValue {
             func arr(_ a: [String]) -> JSValue { .array(a.map { .string($0) }) }
-            var o = JSObject([("dueKeys", arr(dueKeys)), ("earlyKeys", arr(earlyKeys)), ("newKeys", arr(newKeys)), ("warmKeys", arr(warmKeys)),
-                              ("customKeys", arr(customKeys)), ("reviewBudgetLeft", .number(reviewBudgetLeft)), ("backlog", .number(backlog)),
-                              ("pressure", .number(pressure))])
+            var o = JSObject([("dueKeys", arr(dueKeys)), ("newKeys", arr(newKeys)), ("warmKeys", arr(warmKeys)), ("customKeys", arr(customKeys)),
+                              ("backlog", .number(backlog))])
             if let g = groupSize { o["groupSize"] = g }
+            o["tier"] = .string(tier)
             o["queue"] = arr(queue)
-            o["newTarget"] = .number(newTarget)
+            o["newShare"] = .number(newShare)
             o["special"] = special.map { JS.obj([("kind", .string($0.kind)), ("keys", arr($0.keys))]) } ?? .null
             return .object(o)
         }
@@ -382,137 +375,113 @@ extension ScheduleRules {
 
     public static func defaultPracticable(_ key: String) -> Bool { key.utf8.starts(with: "base:".utf8) }
 
-    /// 今天的练习选字（§5，D41 规则 D；D40 特别组；D65 / D66）。
+    /// 到期字的先后（D83）：上次写错（或看了答案）的排最前，其余按 FSRS 回忆概率从低到高；同概率逾期久的先、再按键。
+    func dueOrder(_ schedObj: JSObject?, keys: [String], records: [JSValue], today: String) throws -> [String] {
+        var lastAttempt = KeyMap<JSValue>()
+        for r in SchedRecords.sortById(records.filter { SchedRecords.isJudged($0) || JS.isString($0["kind"], "answer-seen") }) { lastAttempt[JS.string(r["cardKey"])] = r }
+        let at = JSValue.number(try dates.dayStartMs(.string(today)))
+        struct Item { var key: String; var wrong: Bool; var r: Double; var od: Double }
+        var items: [Item] = []
+        for key in keys {
+            let entry = schedObj?[key]
+            let last = lastAttempt[key]
+            let wrong = last.map { JS.isString($0["kind"], "answer-seen") || JS.isString($0["judgment"], "wrong") } ?? false
+            let r = (try? retrievability(entry, now: at)) ?? nil
+            items.append(Item(key: key, wrong: wrong, r: r.map { $0.isFinite ? $0 : 0 } ?? 0, od: (try overdueDays(entry, today)) ?? 0))
+        }
+        return items.jsSorted { a, b in
+            if a.wrong != b.wrong { return a.wrong ? -1 : 1 }
+            if a.r != b.r { return a.r < b.r ? -1 : 1 }
+            if a.od != b.od { return a.od > b.od ? -1 : 1 }
+            return Double(JSMath.compare(a.key, b.key))
+        }.map { $0.key }
+    }
+
+    /// 今天的练习选字（调度规则 v2，D83；docs/product/调度规则v2-一天的练习.md 一 / 二）。
+    /// cap：这一份最多还排几个（今天已经写过的从每组字数里扣掉）；handled：今天已经算进进度的字（不再排）；extra：再来一组。
     public func selectDaily(sched: JSValue? = nil, records: [JSValue] = [], today: String, newCandidates: [String] = [], warmupCandidates: [String] = [],
                             custom: JSValue? = nil, practicable: (String) -> Bool = ScheduleRules.defaultPracticable, policy: JSValue = Config.policy,
-                            isWarm: (String) -> Bool = NewOrder.isWarmupKey, capitalDeferredDay: JSValue? = nil, groupSize: JSValue? = nil) throws -> DailyPlan {
-        let mix = policy["groupMix"]
+                            isWarm: (String) -> Bool = NewOrder.isWarmupKey, capitalDeferredDay: JSValue? = nil, groupSize: JSValue? = nil,
+                            tier: String? = nil, cap: Int? = nil, handled: [String] = [], extra: Bool = false) throws -> DailyPlan {
         var excluded = SchedRecords.judgedCardKeysOn(records, today)
-        if JS.isString(policy["answerSeenScope"], "today") {
-            for k in SchedRecords.answerSeenCardKeysOn(records, today) { excluded.insert(k) }
-        } else if !JS.isString(policy["answerSeenScope"], "none") {
-            throw CoreError.range("unsupported policy.answerSeenScope: " + JS.string(policy["answerSeenScope"]))
-        }
-        if JS.isString(policy["skipScope"], "today") {
-            for k in SchedRecords.skippedCardKeysOn(records, today) { excluded.insert(k) }
-        } else if !JS.isString(policy["skipScope"], "session") {
-            throw CoreError.range("unsupported policy.skipScope: " + JS.string(policy["skipScope"]))
-        }
+        for k in SchedRecords.answerSeenCardKeysOn(records, today) { excluded.insert(k) }
+        for k in SchedRecords.skippedCardKeysOn(records, today) { excluded.insert(k) }
+        for k in handled { excluded.insert(k) }
         let deferredNew = try skipDeferredNewKeys(records, today, policy: policy)
-        let cid = policy["customIntoDaily"]
-        guard case .string(let customInto)? = cid, ["none", "after-due", "first"].contains(where: { jsEq($0, customInto) }) else {
-            throw CoreError.range("unsupported policy.customIntoDaily: " + JS.string(cid))
-        }
-        if policy["dailyCapCountsPicked"] != .bool(true) {
-            throw CoreError.range("unsupported policy.dailyCapCountsPicked: " + JS.string(policy["dailyCapCountsPicked"]))
-        }
         let schedObj = (sched.flatMap { JS.truthy($0) ? $0 : nil })?.objectValue
         func inSched(_ key: String) -> Bool { JS.truthy(schedObj?[key]) }
-        // 自选未写的字
-        var customUnwritten: [String] = []
-        let added = JS.truthy(custom) ? custom?["added"] : nil
-        for row in (JS.truthy(added) ? added?.arrayValue ?? [] : []) {
-            let key = "base:" + JS.string(row["char"])
-            if !practicable(key) { continue }
-            if inSched(key) { continue }
-            if !customUnwritten.contains(where: { jsEq($0, key) }) { customUnwritten.append(key) }
-        }
-        let customSet = KeySet(customUnwritten)
-
-        let stats = try practiceStats(records, today, policy: policy, isWarm: isWarm)
-        let lastJudged = SchedRecords.latestJudgedByCardSorted(records)
-        struct DueItem { var key: String; var od: Double; var stability: Double; var tier: Double }
-        var due: [DueItem] = []
-        var early: [(key: String, dueDay: JSValue?, stability: Double)] = []
-        let wrongFirst = policy["wrongFirst"]
+        let tierId = tier ?? TodayPlan.tierOf(nil, policy: policy)
+        // 到期字
+        var dueKeys0: [String] = []
         for (key, entry) in schedObj?.entries ?? [] {
             if excluded.contains(key) || !practicable(key) { continue }
             if !JS.truthy(entry) || entry["stoppedAt"] != nil { continue }
-            guard let od = try overdueDays(entry, today) else { continue }
-            let stability = JS.truthy(entry["fsrs"]) ? JS.numberOr0(entry["fsrs"]?["stability"]) : 0
-            if od >= 0 {
-                let last = lastJudged[key]
-                let wrong = last != nil && JS.isString(last?["judgment"], "wrong")
-                let tier: Double = wrong && JS.truthy(wrongFirst) && wrongFirst?["enabled"] != .bool(false)
-                    ? (stats.lastDay != nil && JS.strictEquals(last?["localDay"], .string(stats.lastDay!)) ? 0 : 1) : 2
-                due.append(DueItem(key: key, od: od, stability: stability, tier: tier))
-            } else if !isWarm(key) {
-                early.append((key, entry["due"], stability))
-            }
+            guard let od = try overdueDays(entry, today), od >= 0 else { continue }
+            dueKeys0.append(key)
         }
-        let byKey: (String, String) -> Double = { a, b in Double(JSMath.compare(a, b)) }
-        due = due.jsSorted { a, b in
-            let t = a.tier - b.tier
-            if t != 0 && !t.isNaN { return t }
-            let o = b.od - a.od
-            if o != 0 && !o.isNaN { return o }
-            let s = a.stability - b.stability
-            if s != 0 && !s.isNaN { return s }
-            return byKey(a.key, b.key)
-        }
-        early = early.jsSorted { a, b in
-            let c: Double = JS.less(a.dueDay, b.dueDay) ? -1 : JS.less(b.dueDay, a.dueDay) ? 1 : 0
-            if c != 0 { return c }
-            let s = a.stability - b.stability
-            if s != 0 && !s.isNaN { return s }
-            return byKey(a.key, b.key)
-        }
+        let due = try dueOrder(schedObj, keys: dueKeys0, records: records, today: today)
         let full = GroupSize.valid(groupSize, policy: policy)
-        let fullN = JS.number(full)
-        let reviewBudgetLeft = jsMax(0, GroupSize.dailyReviewCapOf(groupSize, policy: policy) - dueReviewsDoneOn(records, today, sched: sched, policy: policy))
-
-        let ret = mix?["returnGroupSize"]
-        let size = stats.firstBack && JS.isInteger(ret) && JS.number(ret) > 0 ? jsMin(fullN, Mix.scaledCount(JS.number(ret), fullN, mix: mix)) : fullN
+        let size = Int(JS.number(full))
         let backlog = Double(due.count)
-        let pressure = Mix.pressureOf(backlog, stats.groupsPerDay, mix: mix, size: fullN)
+        let ratio = TodayPlan.ratio(tierId, policy: policy)
+        let share = Double(TodayPlan.newShare(size: size, ratio: ratio))
+        let stats = try practiceStats(records, today, policy: policy, isWarm: isWarm)
 
-        if let special = Special.capitalSpecial(records: records, groupsTotal: stats.groupsTotal, pressure: pressure, practicable: practicable, excluded: excluded,
-                                                policy: policy, today: .string(today), deferredDay: capitalDeferredDay) {
-            return DailyPlan(queue: Mix.jsSlice(special.keys, 0, jsMax(fullN, Double(special.keys.count))), dueKeys: [], earlyKeys: [], newKeys: [], warmKeys: [], customKeys: [], reviewBudgetLeft: reviewBudgetLeft,
-                             backlog: backlog, pressure: pressure, groupSize: full, newTarget: 0, special: special)
+        // 大写数字特别组（D40）：积压按「一天一组」折算成天数
+        if let special = Special.capitalSpecial(records: records, groupsTotal: stats.groupsTotal, pressure: backlog / Double(max(1, size)), practicable: practicable,
+                                                excluded: excluded, policy: policy, today: .string(today), deferredDay: capitalDeferredDay) {
+            let keys = cap.map { Array(special.keys.prefix(max(0, $0))) } ?? special.keys
+            return DailyPlan(queue: keys, dueKeys: [], newKeys: [], warmKeys: [], customKeys: [], backlog: backlog, groupSize: full, tier: tierId, newShare: share, special: special)
         }
 
-        let customPick = jsEq(customInto, "none") ? [] : customUnwritten.filter { !excluded.contains($0) }
-        let dueSet = KeySet(due.map { $0.key })
-        var taken = dueSet
+        // 新字：自己加的字优先，再按字库顺序（佰仟在两组特别组之后排最前）
+        var customPick: [String] = []
+        for row in (custom.flatMap { JS.truthy($0) ? $0["added"]?.arrayValue : nil } ?? []) {
+            let key = "base:" + JS.string(row["char"])
+            if !practicable(key) || inSched(key) || excluded.contains(key) || deferredNew.contains(key) { continue }
+            if !customPick.contains(where: { jsEq($0, key) }) { customPick.append(key) }
+        }
+        var taken = KeySet(due)
         var pool: [String] = []
         for key in customPick + Special.capitalAfterKeysFor(records, policy: policy) + newCandidates {
-            if taken.contains(key) || excluded.contains(key) || deferredNew.contains(key) || !practicable(key) { continue }
-            if inSched(key) { continue }
-            if customSet.contains(key) && !customPick.contains(where: { jsEq($0, key) }) { continue }
+            if taken.contains(key) || excluded.contains(key) || deferredNew.contains(key) || !practicable(key) || inSched(key) { continue }
             pool.append(key)
             taken.insert(key)
         }
+        let poolSet = KeySet(pool)
         var warmNext: String? = nil
         for key in warmupCandidates {
-            if dueSet.contains(key) || excluded.contains(key) || deferredNew.contains(key) || !practicable(key) || inSched(key) { continue }
+            if KeySet(due).contains(key) || excluded.contains(key) || deferredNew.contains(key) || !practicable(key) || inSched(key) { continue }
             warmNext = key
             break
         }
-        let exhausted = pool.isEmpty && (warmNext == nil || warmNext!.isEmpty)
-        let earlyPool: [String] = exhausted && mix?["earlyFillWhenExhausted"] == .bool(false) ? []
-            : (!due.isEmpty || !pool.isEmpty || (warmNext.map { !$0.isEmpty } ?? false)) ? early.map { $0.key } : []
-        let warmOk = try Mix.warmupAllowed(stats, warm: policy["warmup"])
-        let poolSet = KeySet(pool)
-        let plan = Mix.planGroup(
-            size: size, budget: reviewBudgetLeft, due: due.map { $0.key }, early: earlyPool, isWarm: isWarm, warmNext: warmNext, warmOk: warmOk,
-            state: MixState(backlog: backlog, groupsPerDay: stats.groupsPerDay, newAccuracy: stats.newAccuracy, lastHadNew: .bool(stats.lastHadNew), firstBack: .bool(stats.firstBack)),
-            mix: mix, newAvailable: Double(pool.count) + (warmNext != nil && !warmNext!.isEmpty && !poolSet.contains(warmNext!) ? 1 : 0),
-            reserve: jsMin(SessionRules.wrongReserveOf(size, policy: policy), Double(due.filter { $0.tier == 0 }.count)),
-            pressureSize: fullN, newCap: Mix.newUserCapOf(stats, ramp: policy["newUserRamp"], size: fullN, mix: mix))
-        let ordinaryNew = Mix.jsSlice(pool.filter { plan.warmNew == nil || !jsEq($0, plan.warmNew!) }, 0, plan.newSlots - (plan.warmNew != nil ? 1 : 0))
-        var queue = Mix.arrangeGroup(warmNew: plan.warmNew, revKeys: plan.revKeys, earlyKeys: plan.earlyKeys, newKeys: ordinaryNew, isWarm: isWarm)
-        let pickSet = KeySet(customPick)
-        let customKeys = queue.filter { pickSet.contains($0) }
-        if jsEq(customInto, "first") {
-            let ck = KeySet(customKeys)
-            queue = customKeys + queue.filter { !ck.contains($0) }
+        let poolCount = pool.count + (warmNext.map { poolSet.contains($0) ? 0 : 1 } ?? 0)
+
+        // 再来一组（allNewWhenNothingDue）：没有到期字时全是新字，「只复习」档也一样（规则文档四）
+        let allNewWhenNothingDue = extra && due.isEmpty
+        var mix = allNewWhenNothingDue ? TodayPlan.Mix(rev: 0, new: min(size, poolCount)) : TodayPlan.compose(size: size, due: due.count, pool: poolCount, ratio: ratio, policy: policy)
+        if let cap { mix = TodayPlan.shrink(mix, to: cap) }
+        // 复习字：按先后取；热身字的复习一组至多 1 个（P126）
+        var revKeys: [String] = []
+        var warmRev = 0
+        for key in due {
+            if revKeys.count >= mix.rev { break }
+            if isWarm(key) {
+                if warmRev >= 1 { continue }
+                warmRev += 1
+            }
+            revKeys.append(key)
         }
-        let revSet = KeySet(plan.revKeys), earlySet = KeySet(plan.earlyKeys)
+        let newN = ratio.num == 0 && !allNewWhenNothingDue ? 0 : min(poolCount, mix.total - revKeys.count) // 只复习档不补新字
+        var warmNew: String? = nil
+        if newN >= 2 && warmRev == 0, let w = warmNext, !w.isEmpty, try Mix.warmupAllowed(stats, warm: policy["warmup"]) { warmNew = w }
+        let ordinary = pool.filter { warmNew == nil || !jsEq($0, warmNew!) }
+        let ordinaryNew = Array(ordinary.prefix(max(0, min(ordinary.count, newN - (warmNew != nil ? 1 : 0)))))
+        let queue = Mix.arrangeGroup(warmNew: warmNew, revKeys: revKeys, earlyKeys: [], newKeys: ordinaryNew, isWarm: isWarm)
+        let pickSet = KeySet(customPick), revSet = KeySet(revKeys)
         return DailyPlan(
-            queue: queue, dueKeys: queue.filter { revSet.contains($0) }, earlyKeys: queue.filter { earlySet.contains($0) },
-            newKeys: (plan.warmNew.map { [$0] } ?? []) + ordinaryNew, warmKeys: plan.warmNew.map { [$0] } ?? [], customKeys: customKeys,
-            reviewBudgetLeft: reviewBudgetLeft, backlog: backlog, pressure: pressure, groupSize: full, newTarget: plan.newTarget, special: nil)
+            queue: queue, dueKeys: queue.filter { revSet.contains($0) }, newKeys: (warmNew.map { [$0] } ?? []) + ordinaryNew, warmKeys: warmNew.map { [$0] } ?? [],
+            customKeys: queue.filter { pickSet.contains($0) }, backlog: backlog, groupSize: full, tier: tierId, newShare: share, special: nil)
     }
 
     /// 下一次日常组是不是大写数字特别组（首页提示用，不选字）。
@@ -530,12 +499,11 @@ extension ScheduleRules {
             if excluded.contains(key) || !practicable(key) || !JS.truthy(entry) || entry["stoppedAt"] != nil { continue }
             if let od = try overdueDays(entry, today), od >= 0 { backlog += 1 }
         }
-        let pressure = Mix.pressureOf(backlog, stats.groupsPerDay, mix: policy["groupMix"], size: JS.number(GroupSize.valid(groupSize, policy: policy)))
-        return Special.capitalSpecial(records: records, groupsTotal: stats.groupsTotal, pressure: pressure, practicable: practicable, excluded: excluded,
+        let size = max(1, JS.number(GroupSize.valid(groupSize, policy: policy)))
+        return Special.capitalSpecial(records: records, groupsTotal: stats.groupsTotal, pressure: backlog / size, practicable: practicable, excluded: excluded,
                                       policy: policy, today: .string(today), deferredDay: capitalDeferredDay)
     }
 }
-
 extension SchedRecords {
     /// cardKey → 最近一次判断记录（按 id 序；sortById 后逐个覆盖，sessions.js latestJudgmentByKey）。
     static func latestJudgedByCardSorted(_ records: [JSValue]) -> KeyMap<JSValue> {

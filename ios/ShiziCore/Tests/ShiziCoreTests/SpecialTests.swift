@@ -95,17 +95,17 @@ final class SpecialTests: XCTestCase {
         XCTAssertEqual(r.queue, K("\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}"), "the capital-numeral set is never cut to 3")
     }
 
-    // test/core/special.test.mjs: special group: only when p < 1.5; a heavy backlog postpones it
+    // test/core/special.test.mjs: special group: only when p < 1.5; a heavy backlog postpones it（D83 起 p 按「一天一组」折算）
     func testSpecialGroupOnlyWhenPLessThan1Point5AHeavyBacklogPostponesIt() throws {
         let records = try history(10)
-        // 6 个到期字 → p = 6 / 4 = 1.5：不触发；5 个 → 1.25：触发
-        let dueChars = K("\u{5B50}\u{4E11}\u{5BC5}\u{536F}\u{8FB0}\u{5DF3}")
+        // D83：积压天数按「一天一组」折算 p = 到期数 / 每组字数（5 字一组）：8 个 → 1.6：不触发；7 个 → 1.4：触发
+        let dueChars = K("\u{5B50}\u{4E11}\u{5BC5}\u{536F}\u{8FB0}\u{5DF3}\u{5348}\u{672A}")
         let due = try addDays(TODAY, -2)
         func table(_ keys: [String]) -> JSValue { JS.obj(keys.map { ($0, sched(due)) }) }
-        XCTAssertNil(try runSp(records, sched: table(dueChars)).special, "p = 1.5 \u{2192} not yet")
-        let five = Array(dueChars.dropLast()) // delete schedTable['base:巳']
-        XCTAssertEqual(try runSp(records, sched: table(five)).special?.kind, "capital1", "p = 1.25 \u{2192} now")
-        XCTAssertEqual(try rules.specialPlan(sched: table(five), records: records, today: TODAY)?.kind, "capital1")
+        XCTAssertNil(try runSp(records, sched: table(dueChars)).special, "p = 1.6 \u{2192} not yet")
+        let seven = Array(dueChars.dropLast())
+        XCTAssertEqual(try runSp(records, sched: table(seven)).special?.kind, "capital1", "p = 1.4 \u{2192} now")
+        XCTAssertEqual(try rules.specialPlan(sched: table(seven), records: records, today: TODAY, groupSize: .number(5))?.kind, "capital1")
     }
 
     // test/core/special.test.mjs: special group: group 2 (陆柒捌玖拾) follows once group 1 has appeared; both appear once only; 拾 does not count as a marker

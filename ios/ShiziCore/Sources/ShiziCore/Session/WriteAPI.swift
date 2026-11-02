@@ -64,7 +64,7 @@ public enum WriteAPI {
         case "skip":
             args["hints"] = .number(SessionWrites.count(a["hints"])); let r = SessionWrites.commitSkip(store, args)
             if r["ok"] != .bool(true) { return try flow(r) }; let f = finish(store, slot: slot), rcd = r["record"]
-            let undo = rcd.map { JS.obj([("sessionId", $0["sessionId"]!), ("recordId", $0["id"]!), ("char", $0["char"]!), ("ms", Config.policy["skipUndo"]!["ms"]!)]) } ?? .null
+            let undo = rcd.flatMap { $0.isNull ? nil : $0 }.map { JS.obj([("sessionId", $0["sessionId"]!), ("recordId", $0["id"]!), ("char", $0["char"]!), ("ms", Config.policy["skipUndo"]!["ms"]!)]) } ?? .null
             return JS.obj([("ok", .bool(true)), ("finished", f), ("snapshot", try snapshot()), ("undo", undo)])
         case "undoSkip":
             let strokes = WriteModels.fromWire(a["strokes"]); args["strokes"] = strokes.isEmpty ? .null : SessionWrites.rows(strokes)

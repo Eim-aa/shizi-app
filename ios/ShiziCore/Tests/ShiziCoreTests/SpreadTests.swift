@@ -44,33 +44,4 @@ final class SpreadTests: XCTestCase {
         XCTAssertEqual(try rules.spreadDue(sched, today: TODAY, perDay: 10).moved, 0, "few enough \u{2192} nothing moves")
     }
 
-    // test/core/spread.test.mjs: returnSpreadPlan (policy.returnSpread P323): ≥ 30 days away, not written today, not done for this absence; perDay = round(group size × 0.5)
-    func testReturnSpreadPlanPolicyReturnSpreadP323Min30DaysAwayNotWrittenTodayNotDoneForThisAbsencePerDayRoundGroupSizeTimes05() throws {
-        XCTAssertEqual(Config.policy["returnSpread"], J(#"{"afterDays":30,"perDayShare":0.5}"#))
-        XCTAssertEqual(ScheduleRules.returnSpreadPerDay(nil), 10, "default 20-char group \u{2192} 10 a day")
-        XCTAssertEqual(ScheduleRules.returnSpreadPerDay(J(#"{"groupSize":5}"#)), 3)
-        var schedObj = JSObject()
-        for i in 0..<25 { schedObj["base:" + String(Unicode.Scalar(0x4e00 + i)!)] = e("2026-07-15") }
-        let sched = JSValue.object(schedObj)
-        let records = JS.obj([("2026-07", .array([rec(1, "\u{4E00}", "correct", "2026-07-10")]))])
-        func state(records r: JSValue = records, sched s: JSValue = sched, settings: JSValue = .null) -> JSValue {
-            JS.obj([("records", r), ("sched", s), ("settings", settings)])
-        }
-        func plan(_ st: JSValue, _ today: String = TODAY, policy: JSValue = Config.policy) throws -> ScheduleRules.SpreadPlan? {
-            try rules.returnSpreadPlan(st, .string(today), policy: policy)
-        }
-        let p = try XCTUnwrap(try plan(state()))
-        XCTAssertEqual(p.lastDay, "2026-07-10")
-        XCTAssertEqual(p.gapDays, 76)
-        XCTAssertEqual(p.perDay, 10)
-        XCTAssertEqual(p.moved, 25)
-        XCTAssertNil(try plan(state(settings: J(#"{"returnSpreadFor":"2026-07-10"}"#))), "already done for this absence")
-        XCTAssertNotNil(try plan(state(settings: J(#"{"returnSpreadFor":"2026-05-01"}"#))), "an earlier absence does not count")
-        XCTAssertNil(try plan(state(), "2026-08-08"), "29 days \u{2192} no")
-        XCTAssertNotNil(try plan(state(), "2026-08-09"), "30 days \u{2192} yes")
-        let withToday = JS.with(records, [("2026-09", .array([rec(2, "\u{4E8C}", "wrong", TODAY)]))])
-        XCTAssertNil(try plan(state(records: withToday)), "written today")
-        XCTAssertNil(try plan(state(records: .object(JSObject()))), "never practiced")
-        XCTAssertNil(try plan(state(), policy: JS.with(Config.policy, [("returnSpread", .null)])), "switched off")
-    }
 }

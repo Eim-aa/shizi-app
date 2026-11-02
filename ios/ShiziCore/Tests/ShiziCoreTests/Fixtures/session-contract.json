@@ -8153,7 +8153,7 @@
                 "X-RESULT.done": "完成",
                 "X-COMMON.close": "关闭",
                 "X-WORK.shareAria": "分享这次的图片",
-                "X-RESULT.again": "再写一组",
+                "X-RESULT.again": "再来一组",
                 "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
                 "X-RESULT.againCancel": "先不保存",
                 "X-RESULT.againRetry": "再试一次",
@@ -38910,7 +38910,7 @@
               "X-RESULT.done": "完成",
               "X-COMMON.close": "关闭",
               "X-WORK.shareAria": "分享这次的图片",
-              "X-RESULT.again": "再写一组",
+              "X-RESULT.again": "再来一组",
               "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
               "X-RESULT.againCancel": "先不保存",
               "X-RESULT.againRetry": "再试一次",
@@ -50010,9 +50010,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -50038,29 +50036,25 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "warmKeys": [
                       "base:春"
                     ],
                     "customKeys": [],
-                    "reviewBudgetLeft": 120,
+                    "reviewBudgetLeft": 90,
                     "backlog": 0,
                     "pressure": 0,
-                    "groupSize": 20,
+                    "groupSize": 15,
                     "queue": [
                       "base:春",
                       "base:豫",
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
-                    "newTarget": 8,
+                    "newTarget": 6,
                     "special": null,
                     "libraryId": "core3500",
                     "libraryExhausted": false
@@ -50078,7 +50072,7 @@
                 "shizi.v2.ink.2026-10.r2": "{\"v\":3,\"c\":345,\"s\":[\"K57VUC9e1oIwntagNZ7WIk9e1dW03xWYtx8VcMsfMLQ=\"]}",
                 "shizi.v2.records.2026-10": "[{\"id\":\"r2\",\"cardKey\":\"base:永\",\"char\":\"永\",\"sessionId\":\"s1\",\"kind\":\"judged\",\"at\":1792544400000,\"localDay\":\"2026-10-21\",\"help\":{\"hints\":0,\"answerSeen\":false,\"traced\":false},\"judgment\":\"wrong\"}]",
                 "shizi.v2.sched": "{\"base:永\":{\"fsrs\":{\"due\":\"2026-10-22T01:00:00.000Z\",\"stability\":0.212,\"difficulty\":6.4133,\"elapsed_days\":0,\"scheduled_days\":1,\"learning_steps\":0,\"reps\":1,\"lapses\":0,\"state\":2,\"last_review\":\"2026-10-21T01:00:00.000Z\"},\"due\":\"2026-10-22\",\"lastJudgedAt\":1792544400000}}",
-                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\",\"base:酱\",\"base:龟\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-21\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
+                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-21\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
               },
               "state": {
                 "meta": null,
@@ -50150,9 +50144,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -50182,14 +50174,14 @@
                 "blocked": null,
                 "corruptNotice": null,
                 "usage": {
-                  "total": 2008,
+                  "total": 1972,
                   "byBucket": {
                     "ink": 182,
                     "records": 430,
                     "sched": 560,
-                    "sessions": 836
+                    "sessions": 800
                   },
-                  "ratio": 0.00038299560546875,
+                  "ratio": 0.000376129150390625,
                   "level": "ok"
                 },
                 "lastRepair": {
@@ -63783,7 +63775,7 @@
                 "X-RESULT.done": "完成",
                 "X-COMMON.close": "关闭",
                 "X-WORK.shareAria": "分享这次的图片",
-                "X-RESULT.again": "再写一组",
+                "X-RESULT.again": "再来一组",
                 "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
                 "X-RESULT.againCancel": "先不保存",
                 "X-RESULT.againRetry": "再试一次",
@@ -94757,7 +94749,7 @@
               "X-RESULT.done": "完成",
               "X-COMMON.close": "关闭",
               "X-WORK.shareAria": "分享这次的图片",
-              "X-RESULT.again": "再写一组",
+              "X-RESULT.again": "再来一组",
               "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
               "X-RESULT.againCancel": "先不保存",
               "X-RESULT.againRetry": "再试一次",
@@ -105850,9 +105842,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -105878,29 +105868,25 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "warmKeys": [
                       "base:春"
                     ],
                     "customKeys": [],
-                    "reviewBudgetLeft": 120,
+                    "reviewBudgetLeft": 90,
                     "backlog": 0,
                     "pressure": 0,
-                    "groupSize": 20,
+                    "groupSize": 15,
                     "queue": [
                       "base:春",
                       "base:豫",
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
-                    "newTarget": 8,
+                    "newTarget": 6,
                     "special": null,
                     "libraryId": "core3500",
                     "libraryExhausted": false
@@ -105918,7 +105904,7 @@
                 "shizi.v2.ink.2026-10.r2": "{\"v\":4,\"c\":345,\"r\":[\"A7AJyBoAmBEUPJgRFDw=\"],\"g\":[0]}",
                 "shizi.v2.records.2026-10": "[{\"id\":\"r2\",\"cardKey\":\"base:永\",\"char\":\"永\",\"sessionId\":\"s1\",\"kind\":\"judged\",\"at\":1792544400000,\"localDay\":\"2026-10-21\",\"help\":{\"hints\":0,\"answerSeen\":false,\"traced\":false},\"judgment\":\"wrong\"}]",
                 "shizi.v2.sched": "{\"base:永\":{\"fsrs\":{\"due\":\"2026-10-22T01:00:00.000Z\",\"stability\":0.212,\"difficulty\":6.4133,\"elapsed_days\":0,\"scheduled_days\":1,\"learning_steps\":0,\"reps\":1,\"lapses\":0,\"state\":2,\"last_review\":\"2026-10-21T01:00:00.000Z\"},\"due\":\"2026-10-22\",\"lastJudgedAt\":1792544400000}}",
-                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\",\"base:酱\",\"base:龟\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-21\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
+                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-21\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
               },
               "state": {
                 "meta": null,
@@ -105993,9 +105979,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -106025,14 +106009,14 @@
                 "blocked": null,
                 "corruptNotice": null,
                 "usage": {
-                  "total": 1976,
+                  "total": 1940,
                   "byBucket": {
                     "ink": 150,
                     "records": 430,
                     "sched": 560,
-                    "sessions": 836
+                    "sessions": 800
                   },
-                  "ratio": 0.00037689208984375,
+                  "ratio": 0.000370025634765625,
                   "level": "ok"
                 },
                 "lastRepair": {
@@ -119590,7 +119574,7 @@
                 "X-RESULT.done": "完成",
                 "X-COMMON.close": "关闭",
                 "X-WORK.shareAria": "分享这次的图片",
-                "X-RESULT.again": "再写一组",
+                "X-RESULT.again": "再来一组",
                 "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
                 "X-RESULT.againCancel": "先不保存",
                 "X-RESULT.againRetry": "再试一次",
@@ -150347,7 +150331,7 @@
               "X-RESULT.done": "完成",
               "X-COMMON.close": "关闭",
               "X-WORK.shareAria": "分享这次的图片",
-              "X-RESULT.again": "再写一组",
+              "X-RESULT.again": "再来一组",
               "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
               "X-RESULT.againCancel": "先不保存",
               "X-RESULT.againRetry": "再试一次",
@@ -161447,9 +161431,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -161475,29 +161457,25 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "warmKeys": [
                       "base:春"
                     ],
                     "customKeys": [],
-                    "reviewBudgetLeft": 120,
+                    "reviewBudgetLeft": 90,
                     "backlog": 0,
                     "pressure": 0,
-                    "groupSize": 20,
+                    "groupSize": 15,
                     "queue": [
                       "base:春",
                       "base:豫",
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
-                    "newTarget": 8,
+                    "newTarget": 6,
                     "special": null,
                     "libraryId": "core3500",
                     "libraryExhausted": false
@@ -161515,7 +161493,7 @@
                 "shizi.v2.ink.2026-10.r2": "{\"v\":3,\"c\":345,\"s\":[\"K57VUC9e1oIwntagNZ7WIk9e1dW03xWYtx8VcMsfMLQ=\"]}",
                 "shizi.v2.records.2026-10": "[{\"id\":\"r2\",\"cardKey\":\"base:永\",\"char\":\"永\",\"sessionId\":\"s1\",\"kind\":\"judged\",\"at\":1792544400000,\"localDay\":\"2026-10-20\",\"help\":{\"hints\":0,\"answerSeen\":false,\"traced\":false},\"judgment\":\"wrong\"}]",
                 "shizi.v2.sched": "{\"base:永\":{\"fsrs\":{\"due\":\"2026-10-22T01:00:00.000Z\",\"stability\":0.212,\"difficulty\":6.4133,\"elapsed_days\":0,\"scheduled_days\":1,\"learning_steps\":0,\"reps\":1,\"lapses\":0,\"state\":2,\"last_review\":\"2026-10-21T01:00:00.000Z\"},\"due\":\"2026-10-21\",\"lastJudgedAt\":1792544400000}}",
-                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\",\"base:酱\",\"base:龟\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-20\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
+                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-20\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
               },
               "state": {
                 "meta": null,
@@ -161587,9 +161565,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -161619,14 +161595,14 @@
                 "blocked": null,
                 "corruptNotice": null,
                 "usage": {
-                  "total": 2008,
+                  "total": 1972,
                   "byBucket": {
                     "ink": 182,
                     "records": 430,
                     "sched": 560,
-                    "sessions": 836
+                    "sessions": 800
                   },
-                  "ratio": 0.00038299560546875,
+                  "ratio": 0.000376129150390625,
                   "level": "ok"
                 },
                 "lastRepair": {
@@ -175220,7 +175196,7 @@
                 "X-RESULT.done": "完成",
                 "X-COMMON.close": "关闭",
                 "X-WORK.shareAria": "分享这次的图片",
-                "X-RESULT.again": "再写一组",
+                "X-RESULT.again": "再来一组",
                 "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
                 "X-RESULT.againCancel": "先不保存",
                 "X-RESULT.againRetry": "再试一次",
@@ -206194,7 +206170,7 @@
               "X-RESULT.done": "完成",
               "X-COMMON.close": "关闭",
               "X-WORK.shareAria": "分享这次的图片",
-              "X-RESULT.again": "再写一组",
+              "X-RESULT.again": "再来一组",
               "X-RESULT.againFailed": "没保存上，刚才的选择没记下。",
               "X-RESULT.againCancel": "先不保存",
               "X-RESULT.againRetry": "再试一次",
@@ -217287,9 +217263,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -217315,29 +217289,25 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "warmKeys": [
                       "base:春"
                     ],
                     "customKeys": [],
-                    "reviewBudgetLeft": 120,
+                    "reviewBudgetLeft": 90,
                     "backlog": 0,
                     "pressure": 0,
-                    "groupSize": 20,
+                    "groupSize": 15,
                     "queue": [
                       "base:春",
                       "base:豫",
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
-                    "newTarget": 8,
+                    "newTarget": 6,
                     "special": null,
                     "libraryId": "core3500",
                     "libraryExhausted": false
@@ -217355,7 +217325,7 @@
                 "shizi.v2.ink.2026-10.r2": "{\"v\":4,\"c\":345,\"r\":[\"A7AJyBoAmBEUPJgRFDw=\"],\"g\":[0]}",
                 "shizi.v2.records.2026-10": "[{\"id\":\"r2\",\"cardKey\":\"base:永\",\"char\":\"永\",\"sessionId\":\"s1\",\"kind\":\"judged\",\"at\":1792544400000,\"localDay\":\"2026-10-20\",\"help\":{\"hints\":0,\"answerSeen\":false,\"traced\":false},\"judgment\":\"wrong\"}]",
                 "shizi.v2.sched": "{\"base:永\":{\"fsrs\":{\"due\":\"2026-10-22T01:00:00.000Z\",\"stability\":0.212,\"difficulty\":6.4133,\"elapsed_days\":0,\"scheduled_days\":1,\"learning_steps\":0,\"reps\":1,\"lapses\":0,\"state\":2,\"last_review\":\"2026-10-21T01:00:00.000Z\"},\"due\":\"2026-10-21\",\"lastJudgedAt\":1792544400000}}",
-                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\",\"base:酱\",\"base:龟\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-20\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
+                "shizi.v2.sessions": "{\"A\":{\"id\":\"s3\",\"slot\":\"A\",\"kind\":\"daily\",\"source\":{\"view\":\"home\"},\"queue\":[\"base:春\",\"base:豫\",\"base:嚷\",\"base:酝\",\"base:尴\",\"base:疆\"],\"cursor\":0,\"items\":[],\"current\":{\"phase\":\"recall\",\"strokes\":[],\"hints\":0,\"answerSeen\":false,\"hintRange\":null,\"referenceReady\":false},\"lastLine\":null,\"startedAt\":1792544400000,\"startedDay\":\"2026-10-20\",\"updatedAt\":1792544400000},\"B\":null,\"lastEnded\":{}}"
               },
               "state": {
                 "meta": null,
@@ -217430,9 +217400,7 @@
                       "base:嚷",
                       "base:酝",
                       "base:尴",
-                      "base:疆",
-                      "base:酱",
-                      "base:龟"
+                      "base:疆"
                     ],
                     "cursor": 0,
                     "items": [],
@@ -217462,14 +217430,14 @@
                 "blocked": null,
                 "corruptNotice": null,
                 "usage": {
-                  "total": 1976,
+                  "total": 1940,
                   "byBucket": {
                     "ink": 150,
                     "records": 430,
                     "sched": 560,
-                    "sessions": 836
+                    "sessions": 800
                   },
-                  "ratio": 0.00037689208984375,
+                  "ratio": 0.000370025634765625,
                   "level": "ok"
                 },
                 "lastRepair": {

@@ -57,6 +57,6 @@ final class FirstPracticeTests: XCTestCase {
         XCTAssertEqual(try Copy.text("R-H04.resumeFirst", JSObject([("n", .number(1)), ("total", .number(3))])), "\u{9996}\u{6B21}\u{7EC3}\u{4E60} \u{B7} 1 / 3")
         XCTAssertEqual(try Copy.text("R-H04.resumeFirstAria", JSObject([("n", .number(1)), ("total", .number(3))])), "\u{63A5}\u{7740}\u{5199}\u{9996}\u{6B21}\u{7EC3}\u{4E60}\u{FF0C}\u{5DF2}\u{5199} 1 \u{4E2A}\u{FF0C}\u{5171} 3 \u{4E2A}")
         XCTAssertEqual(try Copy.text("R-H03.firstVisit"), "\u{5148}\u{5199}\u{4E09}\u{4E2A}\u{5927}\u{5BB6}\u{5E38}\u{5FD8}\u{7684}\u{5B57}\u{3002}", "P1-E5: the line under \u{5F00}\u{59CB}\u{5199}\u{5B57} (stage-1 design \u{A7}\u{4E00})")
-        XCTAssertEqual(Config.policyNumber("groupSize"), 20) // D65 #2：每组字数缺省 20（首练仍是 3）
+        XCTAssertEqual(Config.policyNumber("groupSize"), 15) // D83：每组字数缺省 15（首练仍是 3）
     }
 }

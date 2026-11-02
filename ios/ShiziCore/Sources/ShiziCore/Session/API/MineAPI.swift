@@ -3,11 +3,12 @@ import Foundation
 // src/session/api/mine.js, session/prefs-ops.js.
 extension PageAPI {
     static func mine(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
-        if op == "mine.appearance" || op == "mine.groupSize" {
+        if op == "mine.appearance" || op == "mine.groupSize" || op == "mine.mixTier" {
             let value = a["value"] ?? .null
-            let valid = op == "mine.appearance" ? ["auto", "light", "dark"].contains(JS.string(value)) && value.stringValue != nil : GroupSize.isOption(value)
+            let valid = op == "mine.appearance" ? ["auto", "light", "dark"].contains(JS.string(value)) && value.stringValue != nil : op == "mine.mixTier" ? TodayPlan.isTier(value) : GroupSize.isOption(value)
             if !valid { return SessionWrites.failure("invalid") }
-            let r = SettingsView.commitSettings(store, label: op == "mine.appearance" ? "settings:appearance" : "settings:group-size", fields: JSObject([(op == "mine.appearance" ? "appearance" : "groupSize", value)]))
+            let (label, field) = op == "mine.appearance" ? ("settings:appearance", "appearance") : op == "mine.mixTier" ? ("settings:mix-tier", "mixTier") : ("settings:group-size", "groupSize")
+            let r = SettingsView.commitSettings(store, label: label, fields: JSObject([(field, value)]))
             return reply(r, skipped: true)
         }
         let width = a["width"]?.numberValue.flatMap { $0.isFinite && $0 > 0 ? $0 : nil } ?? 402

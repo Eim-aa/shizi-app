@@ -43,12 +43,16 @@ public enum MinePageView {
         if let hint = model["backupHint"], JS.truthy(hint) { return hint["kind"] == .string("pressure") ? V.ref("X-MINE.backupNearFull") : V.ref("X-MINE.backupStale", V.obj([("n", hint["days"]!)])) }
         return JS.truthy(model["lastBackup"]) ? V.ref("R-M03.lastBackup", V.obj([("date", try MineSubView.dayTextRef(model["lastBackup"]!, dates: dates))])) : V.ref("R-M03.noBackup")
     }
-    public static func mineChoices(_ view: JSValue, policy: JSValue) -> JSValue {
+    public static func mineChoices(_ view: JSValue, policy: JSValue, settings: JSValue? = nil) -> JSValue {
         let ap = view["appearance"] ?? .null, size = view["groupSize"] ?? .null
         func sizeRef(_ n: JSValue) -> JSValue { V.ref("X-SETTINGS.groupSizeValue", V.obj([("n", n)])) }
         let appearance = V.obj([("title", V.ref("R-S03.appearance")), ("value", ap), ("valueText", V.ref("R-S03.appearance."+JS.string(ap))), ("options", .array(["auto","light","dark"].map { id in V.obj([("id", .string(id)), ("label", V.ref("R-S03.appearance."+id)), ("aria", .null), ("sheetLabel", V.ref("R-S03.appearance."+id))]) }))])
         let group = V.obj([("title", V.ref("X-SETTINGS.groupSize")), ("value", size), ("valueText", sizeRef(size)), ("options", .array((policy["groupSizeOptions"]?.arrayValue ?? []).map { n in V.obj([("id", n), ("label", .string(JS.string(n))), ("aria", sizeRef(n)), ("sheetLabel", sizeRef(n))]) }))])
-        return V.obj([("appearance", appearance), ("groupSize", group)])
+        // D83：新字比例档位（行右值 + 选择弹层；四个档位放不进行内分段）
+        let tier = JSValue.string(TodayPlan.tierOf(settings, policy: policy))
+        func tierRef(_ id: JSValue) -> JSValue { V.ref("X-SETTINGS.mixTier." + JS.string(id)) }
+        let mix = V.obj([("title", V.ref("X-SETTINGS.mixTier")), ("value", tier), ("valueText", tierRef(tier)), ("options", .array(TodayPlan.tierIds(policy: policy).map { id in V.obj([("id", .string(id)), ("label", tierRef(.string(id))), ("aria", .null), ("sheetLabel", tierRef(.string(id)))]) }))])
+        return V.obj([("appearance", appearance), ("groupSize", group), ("mixTier", mix)])
     }
     public static func mineView(_ state: JSValue, today: String, _ a: JSObject, dates: Dates) throws -> JSValue {
         let policy = V.policy(a["policy"]), m = try V.mineModel(state, today: today, policy: policy, hasInk: { DetailView.recordHasInk(state, record: $0, dates: dates) }, storagePressure: a["storagePressure"], dates: dates), view = SettingsView.settingsView(state["settings"]), year = AnnualView.annualDefaultYear(state, today: today, dates: dates)
@@ -59,7 +63,7 @@ public enum MinePageView {
         out["emptyBlock"] = JS.truthy(m["empty"]) ? V.obj([("title", V.ref("R-M04.emptyTitle")), ("body", V.ref("R-M04.emptyBody"))]) : .null
         out["sheet"] = JS.truthy(m["empty"]) ? .null : try mineSheetView(state, model: m, policy: policy, width: a["width"]?.numberValue ?? 402, ax: a["ax"]?.numberValue ?? 0, dates: dates)
         out["remind"] = V.obj([("label", V.ref("R-M03.remind")), ("on", view["on"]!), ("time", JS.truthy(view["on"]) ? .string(SettingsView.timeText(view["remind"]?["hour"], view["remind"]?["minute"])) : .null), ("off", V.ref("R-M03.remindOff")), ("to", .string("remind"))])
-        out["library"] = V.obj([("label", V.ref("R-S01.library")), ("value", view["libraryName"]!), ("id", view["library"]!), ("to", .string("library-switch"))]); out["appearanceOn"] = view["appearanceSwitch"]; out["choices"] = mineChoices(view, policy: policy)
+        out["library"] = V.obj([("label", V.ref("R-S01.library")), ("value", view["libraryName"]!), ("id", view["library"]!), ("to", .string("library-switch"))]); out["appearanceOn"] = view["appearanceSwitch"]; out["choices"] = mineChoices(view, policy: policy, settings: state["settings"])
         out["choiceFail"] = V.obj([("note", V.ref("X-SETTINGS.saveFailed")), ("cancel", V.ref("X-SETTINGS.cancel")), ("retry", V.ref("X-SETTINGS.retry"))]); out["done"] = V.ref("X-COMMON.done")
         out["backup"] = V.obj([("label", V.ref("R-M03.backup")), ("value", try backupValueRef(m, dates: dates)), ("last", JS.truthy(m["lastBackup"]) ? m["lastBackup"]! : .string("")), ("hint", m["backupHint"]?["kind"] ?? .string("")), ("to", .string("backup"))])
         out["annual"] = V.obj([("label", V.ref("X-MINE.annual")), ("year", .string(JS.string(year))), ("to", .string("annual")), ("params", year == m["year"] ? V.obj([]) : V.obj([("year", year)]))])

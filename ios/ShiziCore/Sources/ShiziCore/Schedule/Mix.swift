@@ -1,7 +1,7 @@
 import Foundation
 
-// src/core/mix.js 的 1:1 移植（B4.2）：每组复习与新字的配比（规则 D「保底一新 + 积压阀」，D41 / D28 / D40 / D65 #2 / D66 ⑫；
-// policy.groupMix P125、policy.warmup P126）。全部输入从 records / sched 推出；数值一律读传入的 policy（缺省 = 生成的 policy.json）。
+// 练习状态与组内顺序（B4.2 移植自 src/core/mix.js）。D83（调度规则 v2）起配比改由 TodayPlan.compose 按档位比例算，
+// 规则 D 的「积压阀 / 新字目标 / 新用户封顶 / 每日复习上限」已删除；这里只留热身字门控（P126）、练习状态与 arrangeGroup（交错、热身字在组首、末位不是新字）。
 
 public struct PracticeStats: Equatable {
     public var groupsTotal: Double
@@ -20,38 +20,6 @@ public struct PracticeStats: Equatable {
             ("groupsTotal", .number(groupsTotal)), ("groupsPerDay", .number(groupsPerDay)), ("newAccuracy", .number(newAccuracy)),
             ("allAccuracy", .number(allAccuracy)), ("lastHadNew", .bool(lastHadNew)), ("firstBack", .bool(firstBack)), ("dayIndex", .number(dayIndex)),
             ("hadToday", .bool(hadToday)), ("lastDay", lastDay.map { .string($0) } ?? .null), ("firstDay", firstDay.map { .string($0) } ?? .null),
-        ])
-    }
-}
-
-/// newTargetOf / planGroup 的 state。
-public struct MixState {
-    public var backlog: Double
-    public var groupsPerDay: Double
-    public var newAccuracy: Double
-    public var lastHadNew: JSValue?
-    public var firstBack: JSValue?
-    public init(backlog: Double, groupsPerDay: Double, newAccuracy: Double, lastHadNew: JSValue?, firstBack: JSValue? = nil) {
-        self.backlog = backlog
-        self.groupsPerDay = groupsPerDay
-        self.newAccuracy = newAccuracy
-        self.lastHadNew = lastHadNew
-        self.firstBack = firstBack
-    }
-}
-
-public struct GroupPlan: Equatable {
-    public var newTarget: Double
-    public var revKeys: [String]
-    public var earlyKeys: [String]
-    public var newSlots: Double
-    public var warmNew: String?
-    public var warmRev: Int
-
-    public var js: JSValue {
-        JS.obj([
-            ("newTarget", .number(newTarget)), ("revKeys", .array(revKeys.map { .string($0) })), ("earlyKeys", .array(earlyKeys.map { .string($0) })),
-            ("newSlots", .number(newSlots)), ("warmNew", warmNew.map { .string($0) } ?? .null), ("warmRev", .number(Double(warmRev))),
         ])
     }
 }
@@ -80,73 +48,10 @@ public enum Mix {
         return jsMax(1, JSMath.round((n * size) / base))
     }
 
-    /// 积压天数 p。
-    public static func pressureOf(_ backlog: Double, _ groupsPerDay: Double, mix: JSValue?, size: Double? = nil) -> Double {
-        let s = size ?? baseOf(mix)
-        let perGroup = (JS.number(mix?["reviewsPerGroupForPressure"]) * s) / baseOf(mix)
-        return backlog / jsMax(1, perGroup * jsMax(1, groupsPerDay))
-    }
-
-    /// 这一组的新字数目标。
-    public static func newTargetOf(_ state: MixState, mix: JSValue?, size: Double? = nil) -> Double {
-        let s = size ?? baseOf(mix)
-        let p = pressureOf(state.backlog, state.groupsPerDay, mix: mix, size: s)
-        let one = scaledCount(1, s, mix: mix)
-        let p2 = JSValue.number(p)
-        let release = mix?["valveReleaseDays"]
-        if release == nil || release == .null {
-            if JS.lessOrEqual(mix?["valveDays"], p2) { return JS.truthy(state.lastHadNew) ? 0 : one }
-        } else {
-            let closed = JS.lessOrEqual(mix?["valveDays"], p2) || (JS.lessOrEqual(release, p2) && state.lastHadNew == .bool(false))
-            if closed { return JS.truthy(state.firstBack) ? one : 0 }
-        }
-        if JS.lessOrEqual(mix?["twoNewBelowDays"], p2) { return one }
-        if JS.less(p2, mix?["threeNewBelowDays"]) && JS.lessOrEqual(mix?["threeNewMinAccuracy"], .number(state.newAccuracy)) {
-            return scaledCount(JS.number(mix?["newMax"]), s, mix: mix)
-        }
-        return scaledCount(2, s, mix: mix)
-    }
-
-    /// 新用户前几天的新字上限（D66 ⑫，P325）。
-    public static func newUserCapOf(_ stats: PracticeStats?, ramp: JSValue?, size: Double, mix: JSValue?) -> Double {
-        guard let r = ramp, JS.truthy(r), JS.isInteger(r["days"]), JS.number(r["days"]) > 0, JS.isInteger(r["newMax"]) else { return .infinity }
-        guard let st = stats, !(st.dayIndex > JS.number(r["days"])) else { return .infinity }
-        return scaledCount(JS.number(r["newMax"]), size, mix: mix)
-    }
-
     /// 热身字门控（P126）。
     public static func warmupAllowed(_ stats: PracticeStats, warm: JSValue?) throws -> Bool {
         guard JS.isString(warm?["mode"], "gated") else { throw CoreError.range("unsupported policy.warmup.mode: " + JS.string(warm?["mode"])) }
         return JS.lessOrEqual(.number(stats.dayIndex), warm?["firstDays"]) || JS.less(.number(stats.allAccuracy), warm?["accuracyBelow"])
-    }
-
-    /// 一组怎么配（不排序、不写入）。
-    public static func planGroup(size: Double, budget: Double, due: [String], early: [String], isWarm: (String) -> Bool, warmNext: String?, warmOk: Bool,
-                                 state: MixState, mix: JSValue?, newAvailable: Double = .infinity, reserve: Double = 0, pressureSize: Double? = nil,
-                                 newCap: Double = .infinity) -> GroupPlan {
-        let ps = pressureSize ?? size
-        let newTarget = jsMin(jsMin(size, newCap), newTargetOf(state, mix: mix, size: ps))
-        let revSlots = jsMax(jsMin(size - newTarget, budget), jsMin(size, jsMax(0, reserve)))
-        var revKeys: [String] = []
-        var warmRev = 0
-        for key in due {
-            if Double(revKeys.count) >= revSlots { break }
-            if isWarm(key) {
-                if warmRev >= 1 { continue }
-                warmRev += 1
-            }
-            revKeys.append(key)
-        }
-        let rev = Double(revKeys.count)
-        var newSlots = jsMin(jsMin(jsMin(scaledCount(JS.number(mix?["newMax"]), ps, mix: mix), size - rev), newAvailable), newCap)
-        var earlyKeys: [String] = []
-        if JS.truthy(mix?["earlyReviewFill"]) && rev + newSlots < size {
-            earlyKeys = jsSlice(early, 0, size - rev - newSlots)
-        }
-        newSlots = jsMin(jsMin(size - rev - Double(earlyKeys.count), newAvailable), newCap)
-        var warmNew: String? = nil
-        if newSlots >= 2 && warmRev == 0 && warmOk, let w = warmNext, !w.isEmpty { warmNew = w }
-        return GroupPlan(newTarget: newTarget, revKeys: revKeys, earlyKeys: earlyKeys, newSlots: newSlots, warmNew: warmNew, warmRev: warmRev)
     }
 
     /// Array.prototype.slice(start, end)（end 可为小数 / 负数 / NaN）。
@@ -250,34 +155,5 @@ extension ScheduleRules {
             lastHadNew: lastHadNew, firstBack: firstBack,
             dayIndex: firstDay == nil ? 1 : try dates.diffDays(.string(firstDay!), .string(today)) + 1,
             hadToday: hadToday, lastDay: lastDay, firstDay: firstDay)
-    }
-
-    /// 今天已做的「到期复习」数（提前复习不计入；P125 earlyCountsTowardCap=false）。
-    public func dueReviewsDoneOn(_ records: [JSValue], _ today: String, sched: JSValue?, policy: JSValue = Config.policy) -> Double {
-        let all = SchedRecords.reviewsDoneOn(records, today)
-        if policy["groupMix"]?["earlyCountsTowardCap"] != .bool(false) || all == 0 { return Double(all) }
-        var byCard = KeyMap<[JSValue]>()
-        for r in records {
-            if !SchedRecords.isJudged(r) && !(JS.truthy(r) && JS.isString(r["kind"], "answer-seen")) { continue }
-            let k = JS.string(r["cardKey"])
-            var list = byCard[k] ?? []
-            list.append(r)
-            byCard[k] = list
-        }
-        var early = 0
-        for (cardKey, list0) in byCard.entries {
-            let list = list0.filter { SchedRecords.isJudged($0) }
-            if !list.contains(where: { JS.isString($0["localDay"], today) }) || !list.contains(where: { JS.less($0["localDay"], .string(today)) }) { continue }
-            guard let entry = JS.truthy(sched) ? sched?[cardKey] : nil, JS.truthy(entry) else { continue }
-            do {
-                let sorted = SchedRecords.sortById(list0)
-                guard let full = try replay(nil, sorted, policy: policy), JS.strictEquals(full["due"], entry["due"]) else { continue }
-                let before = try replay(nil, sorted.filter { JS.less($0["localDay"], .string(today)) }, policy: policy)
-                if let b = before, JS.less(.string(today), b["due"]) { early += 1 }
-            } catch {
-                // 保守地不扣
-            }
-        }
-        return Double(Swift.max(0, all - early))
     }
 }

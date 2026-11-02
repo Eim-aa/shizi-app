@@ -4,7 +4,7 @@ import Foundation
 public enum ResultModels {
     static func items(_ s: JSValue?, records: [JSValue]) -> [JSValue] {
         guard let s else { return records.map { JS.obj([("cardKey", $0["cardKey"]!), ("recordId", $0["id"]!), ("kind", $0["kind"]!)]) } }
-        var items = s["items"]?.arrayValue ?? []
+        var items = (s["items"]?.arrayValue ?? []).filter { !TodayPlan.isRetryItem($0) } // D83 重考不进格子 / 作品
         if s["current"]?["answerSeen"] == .bool(true), let key = SessionRules.currentCardKey(s), !items.contains(where: { $0["cardKey"] == key }), let r = records.last(where: { $0["kind"] == .string("answer-seen") && $0["cardKey"] == key && $0["sessionId"] == s["id"] }) {
             items.append(JS.obj([("cardKey", key), ("recordId", r["id"]!), ("kind", .string("answer-seen"))]))
         }; return items
@@ -28,7 +28,9 @@ public enum ResultModels {
         let found = SessionResults.locate(state, a), s = found?.session
         let records = Records.sortById(SessionWrites.allRecords(state).filter { $0["sessionId"] == a["sessionId"] })
         let cells = try cells(state, a), variant = s.map { $0["kind"] == .string("picked") ? "picked" : $0["kind"] == .string("first") ? "first" : "daily" } ?? (a["slot"] == .string("B") ? "picked" : "daily")
-        let early = JS.truthy(s?["endedEarly"]), unwritten = s.map { max(0, Double($0["queue"]?.arrayValue?.count ?? 0) - JS.number($0["cursor"])) } ?? 0
+        let early = JS.truthy(s?["endedEarly"])
+        // 还没写的字（D83：只算还没写过第一次的字，待重考的不算）
+        let unwritten = s.map { s in Double(Set(SessionRules.remainingKeys(s).compactMap { k in TodayPlan.attempts(s, k) == 0 ? k.stringValue : nil }).count) } ?? 0
         let source = JS.truthy(s?["source"]) ? s!["source"]! : JS.obj([("view", .string("home"))])
         var day: JSValue = .null
         if let s {
@@ -41,12 +43,20 @@ public enum ResultModels {
         }, added: ImageSelection.addedOf(s))
         var sub: [JSValue] = []
         if variant != "first" && early && unwritten > 0 { sub.append(try Copy.t("R-R05.bodyEarly", JSObject([("n", .number(unwritten))]))) }
-        let value = JS.obj([("found", .bool(s != nil)), ("where", found.map { .string($0.ended ? "ended" : "slot") } ?? .null), ("session", s ?? .null), ("slot", a["slot"] ?? .null), ("sessionId", a["sessionId"] ?? .null), ("variant", .string(variant)), ("early", .bool(early)), ("header", try Copy.t(variant == "first" ? "X-RESULT.headerFirst" : variant == "picked" ? "R-R05.kicker" : "X-RESULT.headerDaily")), ("title", variant == "first" ? try Copy.t("X-FIRST.title") : .null), ("sub", .array(sub)), ("cells", .array(cells)), ("count", .number(Double(Set(records.filter(Records.isJudged).map { JS.string($0["cardKey"]) }).count))), ("unwritten", .number(unwritten)), ("day", day), ("work", work), ("share", .bool(!(work["cells"]?.arrayValue ?? []).isEmpty)), ("leave", try leaveOf(source)), ("again", .bool(variant != "picked")), ("source", source)])
+        // D83 完成画面：写对 / 重考过关 / 明天再来 / 新学；今天的练习那一组写完时标题「今天完成了」
+        let complete = s.map { SessionRules.isComplete($0) && !early } ?? false
+        if variant != "first", complete, let s {
+            let sum = TodayPlan.summary(s, records: SessionWrites.allRecords(state))
+            sub.append(try Copy.t("X-TODAY.summary", JSObject([("correct", .number(Double(sum.correct))), ("passed", .number(Double(sum.passed))), ("again", .number(Double(sum.again))), ("fresh", .number(Double(sum.fresh)))])))
+        }
+        let doneTitle: JSValue = variant == "daily" && complete && TodayPlan.isPlan(s) ? try Copy.t("X-TODAY.doneTitle") : .null
+        let value = JS.obj([("found", .bool(s != nil)), ("where", found.map { .string($0.ended ? "ended" : "slot") } ?? .null), ("session", s ?? .null), ("slot", a["slot"] ?? .null), ("sessionId", a["sessionId"] ?? .null), ("variant", .string(variant)), ("early", .bool(early)), ("header", try Copy.t(variant == "first" ? "X-RESULT.headerFirst" : variant == "picked" ? "R-R05.kicker" : "X-RESULT.headerDaily")), ("title", variant == "first" ? try Copy.t("X-FIRST.title") : doneTitle), ("sub", .array(sub)), ("cells", .array(cells)), ("count", .number(Double(Set(records.filter(Records.isJudged).map { JS.string($0["cardKey"]) }).count))), ("unwritten", .number(unwritten)), ("day", day), ("work", work), ("share", .bool(!(work["cells"]?.arrayValue ?? []).isEmpty)), ("leave", try leaveOf(source)), ("again", .bool(variant != "picked")), ("source", source)])
         var out = value.objectValue!;out["slot"] = a["slot"];out["sessionId"] = a["sessionId"];return .object(out)
     }
     public static func firstExtras(_ a: JSObject, dates: Dates) throws -> JSValue {
         let cells = a["cells"]?.arrayValue ?? [], judged = cells.filter { $0["kind"] == .string("judged") }
-        let later = try FirstResult.daysLaterLine(chars: judged, sched: a["sched"], today: a["today"] ?? .null, dates: dates)
+        // D83 ⑦：不显示「N 天后再见」（features.nextReviewLine 关）
+        let later = JS.truthy(Config.policy["features"]?["nextReviewLine"]) ? try FirstResult.daysLaterLine(chars: judged, sched: a["sched"], today: a["today"] ?? .null, dates: dates) : ""
         let mark = try Copy.t("X-HOME.shiLabel")
         let inWork = (a["work"]?["cells"]?.arrayValue ?? []).contains { $0["char"] == mark }
         let inGroup = inWork || cells.contains { $0["char"] == mark }

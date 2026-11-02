@@ -2,9 +2,8 @@ import Foundation
 import XCTest
 @testable import ShiziCore
 
-// test/core/mix.test.mjs 的逐条转写（24 条）：每组复习与新字的配比（阶段 1 P1-E4：D41 规则 D、D28 热身字门控）。
-// 前 3 条在 JS 里对照 docs/engineering/v10/phase1/tools/simulate-mix.mjs（研究用参考实现，只有 JS）；Swift 对照它导出的夹具 mix-sim.json
-// （scripts/core-golden/domains/mix-sim.mjs：同一个网格 + 同一批 3000 个随机状态 + 参考实现的输出）。
+// test/core/mix.test.mjs 的转写（S2 / D83 起只留仍然成立的 8 条：热身字门控、练习状态、组内顺序）。规则 D 的配比、积压阀、
+// 每日复习上限、新用户封顶与 simulate-mix 对照随调度规则 v2 退役（D82：JS 不再是参考）；v2 的配比测试见 TodayPlanTests。
 // 辅助函数都放在类里（避免与别的测试文件的同名全局函数冲突）。
 
 final class MixTests: XCTestCase {
@@ -123,8 +122,6 @@ final class MixTests: XCTestCase {
         try selectDaily(sched: w.sched, records: w.records, newCandidates: w.candidates, policy: policy ?? NO_CAPITAL)
     }
 
-    func counts(_ r: ScheduleRules.DailyPlan) -> [Int] { [Int(r.newTarget), r.dueKeys.count, r.newKeys.count, r.earlyKeys.count] }
-
     func stats(_ records: [JSValue]) throws -> PracticeStats {
         try rules.practiceStats(records, TODAY, policy: policy, isWarm: { NewOrder.isWarmupKey($0) })
     }
@@ -132,317 +129,6 @@ final class MixTests: XCTestCase {
     func statsOf(dayIndex: Double, allAccuracy: Double = 1) -> PracticeStats {
         PracticeStats(groupsTotal: 0, groupsPerDay: 1, newAccuracy: 0.5, allAccuracy: allAccuracy, lastHadNew: true, firstBack: false,
                       dayIndex: dayIndex, hadToday: false, lastDay: nil, firstDay: nil)
-    }
-
-    func targetOf(_ backlog: Double, _ lastHadNew: Bool, size: Double? = nil) -> Double {
-        Mix.newTargetOf(MixState(backlog: backlog, groupsPerDay: 1, newAccuracy: 1, lastHadNew: .bool(lastHadNew)), mix: mix, size: size)
-    }
-
-    // MARK: 与 simulate-mix.mjs 对照
-
-    // test/core/mix.test.mjs: mix vs simulate-mix: the sim and the app use the same warm-up list, group size and cap
-    func testMixVsSimulateMixTheSimAndTheAppUseTheSameWarmUpListGroupSizeAndCap() throws {
-        let meta = try XCTUnwrap(try loadFixture("mix-sim")["cases"]?.arrayValue?.first)
-        XCTAssertEqual(meta["kind"], .string("meta"))
-        XCTAssertEqual(meta["tableWarmupOrder"], Config.charOrderData["warmup"])
-        // typeof sim.planGroup / sim.RULES.D.newTarget === 'function'（参考实现只有 JS：夹具生成时已核对）
-        XCTAssertEqual(meta["simPlanGroupIsFunction"], .bool(true))
-        XCTAssertEqual(meta["simRuleDNewTargetIsFunction"], .bool(true))
-    }
-
-    // test/core/mix.test.mjs: mix vs simulate-mix: newTarget of rule D agrees on a grid across every threshold (0.5 / 1.5 / 4, accuracy 0.6, lastHadNew)
-    func testMixVsSimulateMixNewTargetOfRuleDAgreesOnAGridAcrossEveryThreshold() throws {
-        var n = 0
-        for c in try XCTUnwrap(try loadFixture("mix-sim")["cases"]?.arrayValue) where c["kind"] == .string("grid") {
-            let backlog = try XCTUnwrap(c["backlog"]?.numberValue), g = try XCTUnwrap(c["G"]?.numberValue), acc = try XCTUnwrap(c["newAcc"]?.numberValue)
-            let last = try XCTUnwrap(c["lastHadNew"]?.boolValue)
-            let a = try XCTUnwrap(c["expected"]?.numberValue)
-            let b = Mix.newTargetOf(MixState(backlog: backlog, groupsPerDay: g, newAccuracy: acc, lastHadNew: .bool(last)), mix: mixD41)
-            XCTAssertEqual(b, a, "backlog \(backlog) G \(g) acc \(acc) lastHadNew \(last)")
-            n += 1
-        }
-        XCTAssertEqual(n, 14 * 6 * 6 * 2)
-    }
-
-    // test/core/mix.test.mjs: mix vs simulate-mix: planGroup (3000 random states) gives the same new / review / early counts and the same characters
-    func testMixVsSimulateMixPlanGroup3000RandomStatesGivesTheSameCountsAndTheSameCharacters() throws {
-        let size = 5.0 // 参考实现按 5 字一组
-        var withWarmNew = 0, withEarly = 0, allReview = 0, threeNew = 0, shortGroups = 0, trials = 0
-        for c in try XCTUnwrap(try loadFixture("mix-sim")["cases"]?.arrayValue) where c["kind"] == .string("plan") {
-            trials += 1
-            let state = try XCTUnwrap(c["state"])
-            let dueKeys = scalars(JS.string(c["due"])), earlyKeys = scalars(JS.string(c["early"]))
-            let budget = try XCTUnwrap(c["budget"]?.numberValue)
-            let warmPeek = c["warmPeek"]?.stringValue
-            let ex = try XCTUnwrap(c["expected"])
-            let warmOk = try Mix.warmupAllowed(statsOf(dayIndex: JS.number(state["day"]), allAccuracy: JS.number(state["allAcc"])), warm: policy["warmup"])
-            let b = Mix.planGroup(size: size, budget: budget, due: dueKeys, early: earlyKeys, isWarm: { NewOrder.isWarmupChar($0) }, warmNext: warmPeek, warmOk: warmOk,
-                                  state: MixState(backlog: JS.number(state["backlog"]), groupsPerDay: JS.number(state["groupsPerDayEma"]), newAccuracy: JS.number(state["newAcc"]),
-                                                  lastHadNew: state["lastHadNew"]),
-                                  mix: mixD41)
-            let ctx = "trial \(c["trial"] ?? .null) state \(state) budget \(budget) nDue \(dueKeys.count) early \(earlyKeys.count) warmPeek \(warmPeek ?? "null")"
-            XCTAssertEqual(b.newTarget, JS.number(ex["newTarget"]), "newTarget " + ctx)
-            XCTAssertEqual(b.revKeys, scalars(JS.string(ex["revKeys"])), "revKeys " + ctx)
-            XCTAssertEqual(b.earlyKeys, scalars(JS.string(ex["earlyKeys"])), "earlyKeys " + ctx)
-            XCTAssertEqual(b.newSlots, JS.number(ex["newSlots"]), "newSlots " + ctx)
-            XCTAssertEqual(b.warmNew, ex["warmNew"]?.stringValue, "warmNew " + ctx)
-            XCTAssertEqual(Double(b.warmRev), JS.number(ex["warmRev"]), "warmRev " + ctx)
-            XCTAssertEqual(Double(b.revKeys.count + b.earlyKeys.count) + b.newSlots, size, "group is full when new chars are unlimited")
-            if b.warmNew != nil { withWarmNew += 1 }
-            if !b.earlyKeys.isEmpty { withEarly += 1 }
-            if b.newSlots - (b.warmNew != nil ? 1 : 0) == 0 && Double(b.revKeys.count + b.earlyKeys.count) == size { allReview += 1 }
-            if b.newSlots == 3 { threeNew += 1 }
-            if Double(b.revKeys.count) < Swift.min(size - b.newTarget, budget) { shortGroups += 1 }
-        }
-        XCTAssertEqual(trials, 3000)
-        // 抽样确实覆盖了各个分支（不是空转）
-        XCTAssertTrue(withWarmNew > 100 && withEarly > 100 && allReview >= 3 && threeNew > 100 && shortGroups > 100,
-                      "\(withWarmNew) \(withEarly) \(allReview) \(threeNew) \(shortGroups)")
-    }
-
-    // MARK: 规则 D 各分支（经 selectDaily 的真实输入）
-
-    // test/core/mix.test.mjs: rule D: p < 0.5 and recent new-char accuracy ≥ 0.6 → up to 3 new (reviews capped at 2); accuracy < 0.6 → only 2 new (reviews capped at 3)
-    func testRuleDPBelow05AndRecentNewCharAccuracyAtLeast06UpTo3New() throws {
-        // 每天 4 组（G = 4）、7 个到期：p = 7 / 16 = 0.4375
-        let high = try run(scenario(due: 7, G: 4, accuracy: "high"))
-        XCTAssertTrue(high.pressure < 0.5 && high.pressure > 0.4, String(high.pressure))
-        XCTAssertEqual(counts(high), [3, 2, 3, 0], "newTarget 3 -> 2 reviews + 3 new")
-        let low = try run(scenario(due: 7, G: 4, accuracy: "low"))
-        XCTAssertEqual(counts(low), [2, 3, 2, 0], "accuracy < 0.6 -> newTarget 2 -> 3 reviews + 2 new")
-        // 一个新字历史都没有：先验 0.5 < 0.6 → 也是 2 新档（不会因为「没数据」就给第 3 个新字）
-        let none = try stats([])
-        XCTAssertEqual(none.newAccuracy, 0.5)
-        XCTAssertEqual(Mix.newTargetOf(MixState(backlog: 7, groupsPerDay: 4, newAccuracy: none.newAccuracy, lastHadNew: .bool(true)), mix: mix), 2)
-    }
-
-    // test/core/mix.test.mjs: rule D: 0.5 ≤ p < 1.5 → 2 new; 1.5 ≤ p < 4 → 1 new
-    func testRuleD05ToPBelow15Gives2NewAnd15ToPBelow4Gives1New() throws {
-        // G = 1 → p = due / 4
-        XCTAssertEqual(counts(try run(scenario(due: 4))), [2, 3, 2, 0], "p 1.0")
-        XCTAssertEqual(counts(try run(scenario(due: 5))), [2, 3, 2, 0], "p 1.25")
-        XCTAssertEqual(counts(try run(scenario(due: 6))), [1, 4, 1, 0], "p 1.5 -> 1 new tier")
-        XCTAssertEqual(counts(try run(scenario(due: 15))), [1, 4, 1, 0], "p 3.75")
-    }
-
-    // test/core/mix.test.mjs: valve (p ≥ 4, D65 #2): new chars drop to 0 whether or not the last group had new chars; the D41 alternating valve stays available for comparison
-    func testValvePAtLeast4NewCharsDropTo0WhetherOrNotTheLastGroupHadNewChars() throws {
-        let full = try run(scenario(due: 16, lastHadNew: true))
-        XCTAssertEqual(full.pressure, 4)
-        XCTAssertEqual(counts(full), [0, 5, 0, 0], "a whole group of reviews")
-        XCTAssertEqual(counts(try run(scenario(due: 16, lastHadNew: false))), [0, 5, 0, 0], "still closed")
-        XCTAssertEqual(counts(try run(scenario(due: 40, lastHadNew: false))), [0, 5, 0, 0])
-        // D41 旧阀：上一组全复习 → 1 新
-        XCTAssertEqual(Mix.newTargetOf(MixState(backlog: 16, groupsPerDay: 1, newAccuracy: 1, lastHadNew: .bool(false)), mix: mixD41), 1)
-        XCTAssertEqual(Mix.newTargetOf(MixState(backlog: 16, groupsPerDay: 1, newAccuracy: 1, lastHadNew: .bool(true)), mix: mixD41), 0)
-    }
-
-    // test/core/mix.test.mjs: valve hysteresis (D65 #2): once closed it stays closed until p < valveReleaseDays (2), then the usual tiers come back
-    func testValveHysteresisOnceClosedItStaysClosedUntilPBelowValveReleaseDays() throws {
-        XCTAssertEqual(mix?["valveReleaseDays"], .number(2))
-        // 5 字一组：每组按 4 个复习折算；p = 积压 / 4
-        XCTAssertEqual(targetOf(12, false, size: 5), 0, "p 3 and the valve is closed -> stays closed")
-        XCTAssertEqual(targetOf(8, false, size: 5), 0, "p 2 -> still closed")
-        XCTAssertEqual(targetOf(7, false, size: 5), 1, "p 1.75 < 2 -> open again (1.5 <= p -> 1 new)")
-        XCTAssertEqual(targetOf(12, true, size: 5), 1, "p 3 while open -> the usual 1 new")
-        XCTAssertEqual(targetOf(4, false, size: 5), 2, "p 1 -> 2 new")
-        // 20 字一组：同样的天数门槛，按字数是 4 倍（16 个复习 / 组）
-        XCTAssertEqual(targetOf(64, true, size: 20), 0, "p 4 at 20 per group = 64 due")
-        XCTAssertEqual(targetOf(63, true, size: 20), 4, "p < 4 -> 1 share = 4 new")
-        XCTAssertEqual(targetOf(32, false, size: 20), 0, "closed, p 2")
-        XCTAssertEqual(targetOf(31, false, size: 20), 4)
-        XCTAssertEqual(targetOf(0, true, size: 20), 12, "p 0 -> 3 shares = 12 new")
-        XCTAssertEqual(targetOf(10, true, size: 20), 8, "p 0.625 -> 2 shares = 8 new")
-        // 离开很久回来的第一组：阀关着也给 1 份
-        XCTAssertEqual(Mix.newTargetOf(MixState(backlog: 40, groupsPerDay: 1, newAccuracy: 1, lastHadNew: .bool(false), firstBack: .bool(true)), mix: mix, size: 5), 1)
-    }
-
-    // test/core/mix.test.mjs: D41 alternating valve (valveReleaseDays null) never makes two full-review groups in a row: a 30-due backlog alternates until it shrinks
-    func testD41AlternatingValveNeverMakesTwoFullReviewGroupsInARow() throws {
-        let w = scenario(due: 30, lastHadNew: true)
-        var records = w.records
-        var sch = try XCTUnwrap(w.sched.objectValue)
-        var newsPerGroup: [Int] = []
-        var serial = 20000
-        for g in 0..<8 {
-            let r = try selectDaily(sched: .object(sch), records: records, newCandidates: w.candidates, policy: JS.with(NO_CAPITAL, [("groupMix", mixD41)]))
-            XCTAssertFalse(r.queue.isEmpty)
-            newsPerGroup.append(r.newKeys.count)
-            // 写完这一组：新 session，今天判断；复习字推到下个月，新字进调度（id 递增 → 它就是「最近一组」）
-            for key in r.queue {
-                records.append(rec(serial, strip(key), "judged", "correct", TODAY, sessionId: "s-today-\(g)")); serial += 1
-                sch[key] = sched(addDays(TODAY, 30))
-            }
-        }
-        for i in 1..<newsPerGroup.count {
-            XCTAssertTrue(newsPerGroup[i] > 0 || newsPerGroup[i - 1] > 0, "groups \(i - 1) and \(i) are both all-review: \(newsPerGroup)")
-        }
-        XCTAssertEqual(newsPerGroup[0], 0, "p 7.5 and the last group had new chars -> all review")
-        XCTAssertTrue(newsPerGroup[1] >= 1, "then at least one new char: \(newsPerGroup)")
-        XCTAssertTrue(newsPerGroup.contains(0), "the valve did close at least once: \(newsPerGroup)")
-    }
-
-    // test/core/mix.test.mjs: rule D: coming back after ≥ 7 days the first group still has 1 new char even though the last group had new chars
-    func testRuleDComingBackAfter7DaysTheFirstGroupStillHas1NewChar() throws {
-        let stayed = try run(scenario(due: 16, lastHadNew: true))
-        XCTAssertEqual(counts(stayed), [0, 5, 0, 0], "practiced yesterday -> valve closes new chars")
-        let away = scenario(due: 16, lastHadNew: true, away: true)
-        let st = try stats(away.records)
-        XCTAssertTrue(st.firstBack)
-        XCTAssertEqual(st.lastDay, addDays(TODAY, -10))
-        // Q2-15（D48 ⑧，P184）：离开 ≥ 7 天回来的第一组缩短为 3 字——配比规则不变（仍 1 新字），只是组小了：1 新 + 2 复习。
-        let backGroup = try run(away)
-        XCTAssertEqual(counts(backGroup), [1, 2, 1, 0], "away 10 days -> 1 new as usual, in a group of 3")
-        XCTAssertEqual(backGroup.queue.count, 3, "the first group back is 3 chars (D48 ⑧)")
-        // 回来的第二组（今天已经有判断）不再享受「照常 1 新」
-        let secondRecords = away.records + [rec(9500, chars(1, 460)[0], "judged", "correct", TODAY, sessionId: "s-back-1")]
-        XCTAssertFalse(try stats(secondRecords).firstBack)
-        // 6 天不算离开
-        let sixDays = scenario(due: 16, lastHadNew: true)
-        let shifted = shiftBack(sixDays.records)
-        XCTAssertFalse(try stats(shifted).firstBack, "6 days away is not \"away\"")
-    }
-
-    /// 非今天的记录整体往前挪 5 天（最近一次练习 6 天前）。
-    func shiftBack(_ records: [JSValue]) -> [JSValue] {
-        records.map { r in
-            JS.isString(r["localDay"], TODAY) ? r
-                : JS.with(r, [("localDay", .string(addDays(JS.string(r["localDay"]), -5))), ("at", .number(JS.number(r["at"]) - 5 * 86400000))])
-        }
-    }
-
-    // test/core/mix.test.mjs: D48 ⑧ (P184): the first group after ≥ 7 days away is 3 chars; the next group the same day, 6 days away and the special group are not shortened
-    func testD48P184TheFirstGroupAfter7DaysAwayIs3CharsTheNextGroupTheSameDayIsNotShortened() throws {
-        XCTAssertEqual(mix?["returnGroupSize"], .number(3))
-        let away = scenario(due: 16, lastHadNew: true, away: true)
-        XCTAssertEqual(try run(away).queue.count, 3, "away 10 days -> 3 chars")
-        // 「第一组」= 今天还没有判断：写完一个字（今天已有判断）之后，下一组回到 5 字
-        var second = away
-        second.records.append(rec(9500, chars(1, 460)[0], "judged", "correct", TODAY, sessionId: "s-back-1"))
-        XCTAssertEqual(try run(second).queue.count, 5, "a judgment today -> the next group is a full group of 5")
-        // 正好 6 天不算离开
-        var sixDays = scenario(due: 16, lastHadNew: true)
-        sixDays.records = shiftBack(sixDays.records)
-        XCTAssertEqual(try run(sixDays).queue.count, 5, "6 days away is not \"away\"")
-        // 没有那么多字可出时按实际数量（不为凑 3 个而硬补）
-        let few = try run(Scenario(sched: .object(JSObject()), records: away.records.filter { JS.string($0["localDay"]) <= addDays(TODAY, -9) }, candidates: K("\u{9171}")))
-        XCTAssertTrue(few.queue.count <= 3, "never more than 3 on the first group back")
-    }
-
-    // test/core/mix.test.mjs: new chars: at most 3 while the due + early pool can fill the group; the 4th / 5th new only appear when nothing else can fill
-    func testNewCharsAtMost3WhileTheDueAndEarlyPoolCanFillTheGroup() throws {
-        // 2 个到期（p = 0.5，2 新档）→ 2 复习 + 3 新（新字最多 3）= 满 5，没有提前复习
-        XCTAssertEqual(counts(try run(scenario(due: 2, early: 6))), [2, 2, 3, 0])
-        // 1 个到期、新字最多 3 → 4 个，差 1：用最快到期的字提前复习补位，而不是第 4 个新字
-        let r2 = try run(scenario(due: 1, early: 6))
-        XCTAssertEqual(counts(r2), [3, 1, 3, 1])
-        XCTAssertEqual(r2.earlyKeys, K(chars(1, 600)), "the soonest-due char")
-        // 没有到期、提前复习候选 6 个：3 新 + 2 提前复习
-        XCTAssertEqual(Array(counts(try run(scenario(due: 0, early: 6))).dropFirst()), [0, 3, 2])
-        // 什么都补不上（没有到期、没有可提前复习的字，例如首练后的第一组）：才补到 5 个新字——新用户前 3 天除外（D66 ⑫：至多 2 份，组可以不满）
-        let firstDay = Scenario(sched: .object(JSObject()), records: [rec(1, chars(1, 0)[0], "judged", "correct", TODAY, sessionId: "s1")], candidates: K(chars(30, 800)))
-        let empty = try run(firstDay, policy: JS.with(NO_CAPITAL, [("newUserRamp", .null)]))
-        XCTAssertEqual(empty.newKeys.count, 5)
-        XCTAssertEqual(try run(firstDay).newKeys.count, 2, "D66 ⑫: day 1–3 of a new user -> at most 2 new per 5-char group")
-        // 提前复习候选不够（只有 1 个）：补满靠新字
-        let short = try run(scenario(due: 0, early: 1))
-        XCTAssertEqual(Array(counts(short).dropFirst()), [0, 4, 1])
-        // 新字也不够：组就短一点，不凑数
-        let tiny = try run(scenario(due: 0, early: 1, newCands: K(chars(1, 900))))
-        XCTAssertEqual(tiny.queue.count, 2)
-    }
-
-    // test/core/mix.test.mjs: library exhausted: no early reviews to fill a group (D66 ⑩) — nothing due → empty queue; some due → just those
-    func testLibraryExhaustedNoEarlyReviewsToFillAGroup() throws {
-        var only = JSObject()
-        only["base:\u{4EA6}"] = sched(addDays(TODAY, 3))
-        only["base:\u{9C9C}"] = sched(addDays(TODAY, 5))
-        let none = try selectDaily(sched: .object(only), records: [], newCandidates: [], policy: NO_CAPITAL)
-        XCTAssertEqual(none.queue, [])
-        // 有一个到期字：D66 ⑩ 起不再用提前复习凑满——有多少到期出多少（修前：到期字 + 提前复习补位 = 3 个）
-        let withDue = merged(.object(only), JSObject([("base:\u{989D}", sched(addDays(TODAY, -1)))]))
-        let oneDue = try selectDaily(sched: withDue, records: [], newCandidates: [], policy: NO_CAPITAL)
-        XCTAssertEqual(oneDue.dueKeys, ["base:\u{989D}"])
-        XCTAssertEqual(oneDue.queue, ["base:\u{989D}"], "only the due char (policy.groupMix.earlyFillWhenExhausted = false, P324)")
-        XCTAssertEqual(mix?["earlyFillWhenExhausted"], .bool(false))
-        let old = try selectDaily(sched: withDue, records: [], newCandidates: [],
-                                  policy: JS.with(NO_CAPITAL, [("groupMix", JS.with(mix, [("earlyFillWhenExhausted", .bool(true))]))]))
-        XCTAssertEqual(old.queue.count, 3, "the old rule (for comparison): the due char plus the two early fillers")
-        // 还有新字可出时照常用提前复习补位
-        let withNew = try selectDaily(sched: .object(only), records: [], newCandidates: K("\u{9171}"), policy: NO_CAPITAL)
-        XCTAssertEqual(withNew.queue.count, 3)
-        XCTAssertEqual(withNew.earlyKeys.count, 2)
-    }
-
-    // test/core/mix.test.mjs: early reviews: soonest due first then least stable; not warm-up chars; not chars written today; stopped cards are skipped
-    func testEarlyReviewsSoonestDueFirstThenLeastStableNotWarmUpCharsNotCharsWrittenTodayStoppedCardsAreSkipped() throws {
-        let far = chars(8, 600)
-        var extra = JSObject()
-        extra["base:" + far[0]] = sched(addDays(TODAY, 5), 9)
-        extra["base:" + far[1]] = sched(addDays(TODAY, 2), 9)
-        extra["base:" + far[2]] = sched(addDays(TODAY, 2), 4) // 同日到期，稳定度低 → 排在 far[1] 前
-        extra["base:" + far[3]] = JS.with(sched(addDays(TODAY, 1), 1), [("stoppedAt", .number(1))])
-        extra["base:\u{6625}"] = sched(addDays(TODAY, 1), 1) // 热身字：不提前复习
-        extra["base:" + far[4]] = sched(addDays(TODAY, 1), 1) // 今天写过
-        let w = scenario(due: 0)
-        let r = try run(Scenario(sched: merged(w.sched, extra), records: w.records + [rec(9600, far[4], "judged", "correct", TODAY, sessionId: "s5")], candidates: K("\u{4EA6}")))
-        XCTAssertEqual(r.earlyKeys, K([far[2], far[1], far[0]]))
-        XCTAssertFalse(r.earlyKeys.contains("base:\u{6625}"))
-        XCTAssertEqual(r.queue.count, 4, "3 early + 1 new")
-    }
-
-    // MARK: 每日复习上限：提前复习不计入
-
-    // test/core/mix.test.mjs: dailyReviewCap: an early review done today is not counted, an on-time one is (P125 earlyCountsTowardCap=false)
-    func testDailyReviewCapAnEarlyReviewDoneTodayIsNotCountedAnOnTimeOneIs() throws {
-        let day0 = "2026-09-01"
-        // 亦：第一次写（Easy，约 8 天后到期）；今天（第 3 天）提前复习
-        let r1 = rec(1, "\u{4EA6}", "judged", "correct", day0, at: at(day0, 20), sessionId: "s1")
-        let e1 = try rules.applyJudgment(nil, r1).entry
-        let earlyDay = addDays(day0, 3)
-        XCTAssertTrue(JS.less(.string(earlyDay), e1["due"]), str(e1["due"] ?? .null))
-        let r2 = rec(2, "\u{4EA6}", "judged", "correct", earlyDay, at: at(earlyDay, 20), sessionId: "s2")
-        let e2 = try rules.applyJudgment(e1, r2).entry
-        func schedOf(_ e: JSValue) -> JSValue { JS.obj([("base:\u{4EA6}", e)]) }
-        XCTAssertEqual(rules.dueReviewsDoneOn([r1, r2], earlyDay, sched: schedOf(e2), policy: policy), 0, "early review: not counted")
-        // 同一个字，到期当天才写：计入
-        let due1 = JS.string(e1["due"])
-        let r3 = rec(3, "\u{4EA6}", "judged", "correct", due1, at: at(due1, 20), sessionId: "s3")
-        let e3 = try rules.applyJudgment(e1, r3).entry
-        XCTAssertEqual(rules.dueReviewsDoneOn([r1, r3], due1, sched: schedOf(e3), policy: policy), 1, "on-time review: counted")
-        // 重放对不上现在的调度（例如旧数据迁移来的 sched）→ 保守地计入
-        XCTAssertEqual(rules.dueReviewsDoneOn([r1, r2], earlyDay, sched: schedOf(JS.with(e2, [("due", .string("2030-01-01"))])), policy: policy), 1)
-        // 新字今天第一次写不是复习
-        XCTAssertEqual(rules.dueReviewsDoneOn([r1], day0, sched: schedOf(e1), policy: policy), 0)
-        // earlyCountsTowardCap=true 时按原口径
-        let strict = JS.with(policy, [("groupMix", JS.with(mix, [("earlyCountsTowardCap", .bool(true))]))])
-        XCTAssertEqual(rules.dueReviewsDoneOn([r1, r2], earlyDay, sched: schedOf(e2), policy: strict), 1)
-    }
-
-    // test/core/mix.test.mjs: dailyReviewCap through selectDaily: 30 early reviews written today leave the whole budget for due chars
-    func testDailyReviewCapThroughSelectDaily30EarlyReviewsWrittenTodayLeaveTheWholeBudgetForDueChars() throws {
-        let day0 = addDays(TODAY, -3)
-        var records: [JSValue] = []
-        var schedTable = JSObject()
-        var serial = 1
-        for c in chars(30, 1000) {
-            let first = rec(serial, c, "judged", "correct", day0, at: at(day0, 20), sessionId: "s1"); serial += 1
-            let entry = try rules.applyJudgment(nil, first).entry
-            let again = rec(serial, c, "judged", "correct", TODAY, at: at(TODAY, 8), sessionId: "s2"); serial += 1
-            records.append(first)
-            records.append(again)
-            schedTable["base:" + c] = try rules.applyJudgment(entry, again).entry
-        }
-        // 另有 8 个到期字
-        for c in chars(8, 1100) {
-            records.append(rec(serial, c, "judged", "correct", day0, at: at(day0, 20), sessionId: "s1")); serial += 1
-            schedTable["base:" + c] = sched(addDays(TODAY, -1))
-        }
-        let r = try selectDaily(sched: .object(schedTable), records: records, newCandidates: K("\u{4EA6}"))
-        XCTAssertEqual(r.reviewBudgetLeft, 30, "all 30 of today's reviews were early -> cap untouched")
-        let counted = try selectDaily(sched: .object(schedTable), records: records, newCandidates: K("\u{4EA6}"),
-                                      policy: JS.with(policy, [("groupMix", JS.with(mix, [("earlyCountsTowardCap", .bool(true))]))]))
-        XCTAssertEqual(counted.reviewBudgetLeft, 0, "with the switch on they would exhaust the cap")
     }
 
     // MARK: 热身字门控
@@ -605,9 +291,8 @@ final class MixTests: XCTestCase {
         // 全新字：没有复习可换，保持原序；单个字
         XCTAssertEqual(Mix.arrangeGroup(warmNew: "W", revKeys: [], earlyKeys: [], newKeys: ["n1", "n2"], isWarm: isW), ["W", "n1", "n2"])
         XCTAssertEqual(Mix.arrangeGroup(warmNew: nil, revKeys: ["r1"], earlyKeys: [], newKeys: [], isWarm: isW), ["r1"])
-        // 通过 selectDaily：3 新 + 2 复习，末位是复习字
+        // 通过 selectDaily：末位是复习字
         let r = try run(scenario(due: 7, G: 4, accuracy: "high"))
-        XCTAssertEqual(r.newKeys.count, 3)
         XCTAssertTrue(r.dueKeys.contains(r.queue[r.queue.count - 1]), "the group ends on a review char")
     }
 
@@ -619,26 +304,7 @@ final class MixTests: XCTestCase {
         XCTAssertEqual(r.queue.count, 5)
         XCTAssertTrue(r.dueKeys.contains("base:\u{4EA6}"))
         XCTAssertNil(r.special)
-        XCTAssertEqual(policy["groupSize"], .number(20), "D65 #2: the default per-group size is 20 (callers pass the user's choice)")
+        XCTAssertEqual(policy["groupSize"], .number(15), "D83: the default per-group size is 15 (callers pass the user's choice)")
     }
 
-    // test/core/mix.test.mjs: D66 ⑫ (policy.newUserRamp P325): days 1–3 after the first practice → at most 2 parts of new chars per group (20-char group: 8), no filling with new chars; day 4 back to normal
-    func testD66NewUserRampDays1To3AfterTheFirstPracticeAtMost2PartsOfNewCharsPerGroup() throws {
-        XCTAssertEqual(policy["newUserRamp"], J(#"{"days":3,"newMax":2}"#))
-        let cands = K(chars(40, 800))
-        func daily(_ firstDayOffset: Int) throws -> ScheduleRules.DailyPlan {
-            let first = [rec(1, chars(1, 0)[0], "judged", "correct", addDays(TODAY, firstDayOffset), sessionId: "s1")]
-            return try selectDaily(sched: .object(JSObject()), records: first, newCandidates: cands, policy: NO_CAPITAL, groupSize: .number(20))
-        }
-        let day2 = try daily(-1) // 首练是昨天：今天第 2 天
-        XCTAssertEqual(day2.newKeys.count, 8, "day 2: 8 new (was 20 — nothing else to fill)")
-        XCTAssertEqual(day2.queue.count, 8, "the group is not padded with more new chars")
-        let day3 = try daily(-2)
-        XCTAssertEqual(day3.newKeys.count, 8, "day 3 still capped")
-        let day4 = try daily(-3)
-        XCTAssertEqual(day4.newKeys.count, 20, "day 4: the usual rule (fills with new chars when nothing else can)")
-        XCTAssertEqual(Mix.newUserCapOf(statsOf(dayIndex: 3), ramp: policy["newUserRamp"], size: 30, mix: mix), 12)
-        XCTAssertEqual(Mix.newUserCapOf(statsOf(dayIndex: 4), ramp: policy["newUserRamp"], size: 30, mix: mix), .infinity)
-        XCTAssertEqual(Mix.newUserCapOf(statsOf(dayIndex: 1), ramp: .null, size: 20, mix: mix), .infinity)
-    }
 }

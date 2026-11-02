@@ -312,7 +312,7 @@ final class SessionRulesTests: XCTestCase {
         let s = try makeSession("s1", "first", q, at: at(TODAY))
         XCTAssertEqual(try Copy.text("R-W01.progress", JSObject([("n", N((s["cursor"]?.numberValue ?? 0) + 1)), ("total", N(Double(s["queue"]?.arrayValue?.count ?? 0)))])), "1 / 3")
         XCTAssertEqual(try Copy.text("R-H03.firstVisit"), "\u{5148}\u{5199}\u{4E09}\u{4E2A}\u{5927}\u{5BB6}\u{5E38}\u{5FD8}\u{7684}\u{5B57}\u{3002}", "P1-E5: the line under \u{5F00}\u{59CB}\u{5199}\u{5B57} (stage-1 design \u{A7}\u{4E00})")
-        XCTAssertEqual(Config.policyNumber("groupSize"), 20, "D38 \u{53EA}\u{5F71}\u{54CD}\u{9996}\u{7EC3}\u{FF1B}\u{65E5}\u{5E38}\u{7EC4}\u{7F3A}\u{7701} 20\u{FF08}D65 #2\u{FF09}")
+        XCTAssertEqual(Config.policyNumber("groupSize"), 15, "D38: first practice only; ordinary groups default to 15 (D83)")
     }
 
     // test/core/sessions.test.mjs: sessions: next A group is first until any judged record exists (P46)
@@ -333,52 +333,6 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(plan.queue, K("\u{4EA6}\u{6162}\u{989D}\u{9C9C}\u{5883}"))
     }
 
-    // test/core/sessions.test.mjs: daily: a char skipped today stays out today; a skipped new char is deferred skipNewDeferDays days, then returns to its place (D65 #5)
-    func testDailyACharSkippedTodayStaysOutTodayASkippedNewCharIsDeferredSkipNewDeferDaysDaysThenReturnsToItsPlaceD65N5() throws {
-        let records = [rec(1, "\u{4EA6}", "skipped", nil, TODAY, sessionId: "s1")]
-        XCTAssertEqual(try selectDaily(sched: .object(JSObject()), records: records, newCandidates: K("\u{4EA6}\u{6162}")).queue, K("\u{6162}"))
-        XCTAssertEqual(Config.policyNumber("skipNewDeferDays"), 7)
-        XCTAssertEqual(try selectDaily(sched: .object(JSObject()), records: records, today: try addDays(TODAY, 6), newCandidates: K("\u{4EA6}\u{6162}")).queue, K("\u{6162}"), "day 7 after the skip: still deferred")
-        XCTAssertEqual(try selectDaily(sched: .object(JSObject()), records: records, today: try addDays(TODAY, 7), newCandidates: K("\u{4EA6}\u{6162}")).queue, K("\u{4EA6}\u{6162}"), "then back at its usual place")
-        // 跳过一个到期字：当天不出，明天照常（调度项不变，不推迟）
-        let s = table([("base:\u{9759}", sched("2026-09-20"))])
-        let skippedDue = [rec(2, "\u{9759}", "skipped", nil, TODAY)]
-        XCTAssertFalse(try selectDaily(sched: s, records: skippedDue, newCandidates: []).queue.contains("base:\u{9759}"))
-        XCTAssertTrue(try selectDaily(sched: s, records: skippedDue, today: try addDays(TODAY, 1), newCandidates: []).queue.contains("base:\u{9759}"))
-        // 旧口径仍可注入
-        XCTAssertEqual(try selectDaily(sched: .object(JSObject()), records: records, newCandidates: K("\u{4EA6}\u{6162}"),
-                                       policy: policyWith([("skipScope", S("session")), ("skipNewDeferDays", N(0))])).queue, K("\u{4EA6}\u{6162}"))
-        assertThrowsRange(try selectDaily(sched: .object(JSObject()), records: records, newCandidates: K("\u{4EA6}\u{6162}"), policy: JS.with(Config.policy, [("skipScope", S("week"))])), "skipScope")
-    }
-
-    // test/core/sessions.test.mjs: daily: answer-seen today follows policy.answerSeenScope (P36)
-    func testDailyAnswerSeenTodayFollowsPolicyAnswerSeenScopeP36() throws {
-        let records = [rec(1, "\u{4EA6}", "answer-seen", nil, TODAY)]
-        func run(today: String = TODAY, policy: JSValue = NO_RAMP) throws -> [String] {
-            try selectDaily(sched: .object(JSObject()), records: records, today: today, newCandidates: K("\u{4EA6}\u{6162}"), policy: policy).queue
-        }
-        XCTAssertEqual(try run(), K("\u{6162}"), "default 'today' (D65 #5): not again today")
-        XCTAssertEqual(try run(today: try addDays(TODAY, 1)), K("\u{4EA6}\u{6162}"), "answer-seen new char: back tomorrow at its place")
-        XCTAssertEqual(try run(policy: policyWith([("answerSeenScope", S("none"))])), K("\u{4EA6}\u{6162}"))
-        assertThrowsRange(try run(policy: JS.with(Config.policy, [("answerSeenScope", S("week"))])), "answerSeenScope")
-    }
-
-    // test/core/sessions.test.mjs: daily: custom chars not yet written stay out of daily (P33 customIntoDaily=none)
-    func testDailyCustomCharsNotYetWrittenStayOutOfDailyP33CustomIntoDailyNone() throws {
-        let custom = J(#"{"added":[{"char":"\u9c9c","at":1},{"char":"\u99a8","at":2}]}"#)
-        let s = table([("base:\u{9759}", sched("2026-09-20"))])
-        func run(_ policy: JSValue = NO_RAMP) throws -> ScheduleRules.DailyPlan {
-            try selectDaily(sched: s, records: [], newCandidates: K("\u{9C9C}\u{4EA6}\u{99A8}\u{6162}\u{989D}\u{5883}"), custom: custom, policy: policy)
-        }
-        let res = try run()
-        XCTAssertEqual(res.queue, K("\u{9759}\u{4EA6}\u{6162}\u{989D}\u{5883}"))
-        XCTAssertEqual(res.customKeys, [])
-        let after = try run(policyWith([("customIntoDaily", S("after-due")), ("newUserRamp", .null)]))
-        XCTAssertEqual(after.queue, K("\u{9759}\u{9C9C}\u{99A8}\u{4EA6}\u{6162}"))
-        let first = try run(policyWith([("customIntoDaily", S("first")), ("newUserRamp", .null)]))
-        XCTAssertEqual(first.queue, K("\u{9C9C}\u{99A8}\u{9759}\u{4EA6}\u{6162}"))
-    }
-
     // test/core/sessions.test.mjs: daily: due chars are taken most overdue first then least stable; new chars in candidate order, interleaved (D41)
     func testDailyDueCharsAreTakenMostOverdueFirstThenLeastStableNewCharsInCandidateOrderInterleavedD41() throws {
         let s = table([
@@ -392,59 +346,6 @@ final class SessionRulesTests: XCTestCase {
         // D41：3 个到期 → p = 0.75 → 2 新，复、新交错（复 新 复 新 复），已写过的额不算新字
         XCTAssertEqual(res.queue, K("\u{4EA6}\u{9C9C}\u{6162}\u{5883}\u{9759}"), "new chars in candidate order; seen chars are not new")
         XCTAssertEqual(res.newKeys, K("\u{9C9C}\u{5883}"))
-    }
-
-    // test/core/sessions.test.mjs: daily: at most dailyReviewCap (30) due reviews per day, counted as they are done
-    func testDailyAtMostDailyReviewCap30DueReviewsPerDayCountedAsTheyAreDone() throws {
-        var entries: [(String, JSValue)] = []
-        var records: [JSValue] = []
-        var serial = 1
-        // 28 个复习字今天已经写过（以前有记录）
-        for i in 0..<28 {
-            let ch = String(UnicodeScalar(0x4e00 + i)!)
-            records.append(rec(serial, ch, "judged", "correct", "2026-09-01")); serial += 1
-            records.append(rec(serial, ch, "judged", "correct", TODAY)); serial += 1
-            entries.append(("base:" + ch, sched("2026-10-10")))
-        }
-        for i in 0..<10 { entries.append(("base:" + String(UnicodeScalar(0x5000 + i)!), sched("2026-09-20"))) }
-        let s = table(entries)
-        let res = try selectDaily(sched: s, records: records, newCandidates: K("\u{9C9C}\u{5883}\u{989D}\u{6162}"))
-        XCTAssertEqual(res.reviewBudgetLeft, 2)
-        XCTAssertEqual(res.dueKeys.count, 2)
-        XCTAssertEqual(res.newKeys, K("\u{9C9C}\u{5883}\u{989D}"))
-        let none = try selectDaily(sched: s, records: records, newCandidates: [], policy: JS.with(Config.policy, [("dailyReviewCap", N(28))]))
-        XCTAssertEqual(none.queue, [])
-    }
-
-    // test/core/sessions.test.mjs: daily: wrong-first (D65 #1) — last practice day's wrong chars lead the due list, then older wrong ones, then plain due; reserve survives an exhausted review budget
-    func testDailyWrongFirstD65N1LastPracticeDaysWrongCharsLeadTheDueListThenOlderWrongOnesThenPlainDueReserveSurvivesAnExhaustedReviewBudget() throws {
-        let Y = try addDays(TODAY, -1)
-        let s = table([
-            ("base:\u{7532}", sched(try addDays(TODAY, -9), 2)), // 逾期 9 天，普通
-            ("base:\u{4E59}", sched(try addDays(TODAY, -5), 2)), // 逾期 5 天，最近一次是写错（很久以前）
-            ("base:\u{4E19}", sched(TODAY, 0.2)), // 昨天写错、今天到期
-            ("base:\u{4E01}", sched(TODAY, 0.2)), // 昨天写错、今天到期
-        ])
-        let records = [
-            rec(1, "\u{7532}", "judged", "correct", "2026-09-01"),
-            rec(2, "\u{4E59}", "judged", "wrong", "2026-09-10"),
-            rec(3, "\u{4E19}", "judged", "wrong", Y),
-            rec(4, "\u{4E01}", "judged", "wrong", Y),
-        ]
-        // 积压 4、p = 1 → 2 新 + 3 复习：被挤掉的是逾期最久、但不是写错的甲
-        let res = try selectDaily(sched: s, records: records, newCandidates: K("\u{9C9C}\u{5883}"))
-        XCTAssertEqual(res.dueKeys.sorted(), K("\u{4E19}\u{4E01}\u{4E59}").sorted())
-        let order = res.queue.filter { res.dueKeys.contains($0) }
-        XCTAssertEqual(Array(order.prefix(2)).sorted(), K("\u{4E19}\u{4E01}").sorted(), "yesterday's wrong chars first")
-        XCTAssertEqual(order[2], "base:\u{4E59}", "then older wrong")
-        // 今天的复习预算已用完：保底的「昨天写错」仍进组（5 字一组保底 1 个）
-        let capped = try selectDaily(sched: s, records: records, newCandidates: K("\u{9C9C}\u{5883}"), policy: JS.with(Config.policy, [("dailyReviewCap", N(0))]))
-        XCTAssertEqual(capped.dueKeys.count, 1)
-        XCTAssertTrue(K("\u{4E19}\u{4E01}").contains(capped.dueKeys[0]))
-        // 关掉：回到只按逾期天数排
-        let off = try selectDaily(sched: s, records: records, newCandidates: [],
-                                  policy: policyWith([("wrongFirst", JS.obj([("enabled", .bool(false)), ("reserveShare", N(0.2))]))]))
-        XCTAssertEqual(off.queue.filter { off.dueKeys.contains($0) }.first, "base:\u{7532}")
     }
 
     // test/core/sessions.test.mjs: daily: group size comes from policy (P03) and stopped cards are skipped

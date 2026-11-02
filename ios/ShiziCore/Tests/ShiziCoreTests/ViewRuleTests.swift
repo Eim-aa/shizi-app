@@ -128,13 +128,13 @@ final class ViewRuleTests: XCTestCase {
             let s = settings == nil ? state(records) : state(records, extra: [("settings", settings!)])
             return try LibraryListView.listModel(s, JSObject([("kind", .string("wrong")), ("today", .string(today))]), dates: dates)
         }
-        XCTAssertEqual(try pick(nil)["selectedCount"], .number(20), "never chosen → group size 20 → 20")
-        XCTAssertEqual(try pick(.object(JSObject()))["head"], V.ref("X-LIST.firstHead", V.obj([("n", .number(20))])))
+        XCTAssertEqual(try pick(nil)["selectedCount"], .number(15), "never chosen → group size 15 → 15 (D83)")
+        XCTAssertEqual(try pick(.object(JSObject()))["head"], V.ref("X-LIST.firstHead", V.obj([("n", .number(15))])))
         for (size, want) in [(10, 10), (30, 30), (5, 5)] {
             XCTAssertEqual(try pick(V.obj([("groupSize", .number(Double(size)))]))["selectedCount"], .number(Double(want)))
         }
         XCTAssertEqual(GroupSize.listDefaultSelectOf(V.obj([("groupSize", .number(30))])), 30)
-        XCTAssertEqual(GroupSize.listDefaultSelectOf(nil), 20)
+        XCTAssertEqual(GroupSize.listDefaultSelectOf(nil), 15)
     }
     // test/ui/library-list.test.mjs — rows that cannot be practised (custom: / not in deck) show but are not selectable and never go into the group
     func testListUnavailableRows() throws {
@@ -156,9 +156,10 @@ final class ViewRuleTests: XCTestCase {
         XCTAssertEqual(try home(cleared)["view"],.string("fresh"))
     }
     // test/ui/home.test.mjs — homeViewOf: first / fresh / today / progress / special / back, with this priority (03 P155)
+    // （D83：today = 今天的练习写完了；back = 离开一周且今天还没写）
     func testHomeSixStatesPriority() throws {
-        for (r,res,c,g,want) in [("first","none",false,0,"first"),("empty","none",false,0,"fresh"),("record","none",false,0,"today"),("first","B",true,10,"progress"),("record","none",true,0,"special"),("empty","none",false,7,"back")] {
-            let m=V.obj([("records",.string(r)),("resume",.string(res)),("capital",c ? .string("capital1") : .null),("gapDays",.number(Double(g)))])
+        for (r,res,c,g,done,want) in [("first","none",false,0,false,"first"),("empty","none",false,0,false,"fresh"),("record","none",false,0,true,"today"),("record","none",false,0,false,"fresh"),("first","B",true,10,false,"progress"),("record","none",true,0,true,"special"),("empty","none",false,7,false,"back")] {
+            let m=V.obj([("records",.string(r)),("resume",.string(res)),("capital",c ? .string("capital1") : .null),("gapDays",.number(Double(g))),("plan",V.obj([("n",.number(done ? 15 : 0)),("total",.number(15)),("done",.bool(done))]))])
             XCTAssertEqual(HomeView.homeViewOf(m),want)
         }
     }

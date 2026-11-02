@@ -417,7 +417,7 @@ final class MigrateTests: XCTestCase {
         let k24 = "base:" + String(Unicode.Scalar(0x4e00 + 24)!)
         XCTAssertEqual(setting(out[k24]!, "due", .null), setting(sched[k24]!, "due", .null), "only due changes")
         XCTAssertEqual(try Migrate.spreadLegacyDue(.object(JSObject([("base:\u{7532}", e("2026-09-01"))])), today: "2026-10-01", perDay: 10, dates: shanghai).moved, 0)
-        XCTAssertEqual(Migrate.spreadPerDayOf(), 10, "round(groupSize 20 × 0.5)")
+        XCTAssertEqual(Migrate.spreadPerDayOf(), 8, "round(groupSize 15 × 0.5)（D83 缺省 15）")
     }
 
     // test/store/migrate.test.mjs: convertV1: an old user with 60 overdue chars gets them spread over the next days (≤ 10 a day), records and cards unchanged (D65 #2)
@@ -446,7 +446,7 @@ final class MigrateTests: XCTestCase {
         var byDay: [String: Int] = [:]
         for d in dues { byDay[d, default: 0] += 1 }
         XCTAssertTrue(byDay.values.allSatisfy { $0 <= 10 })
-        XCTAssertEqual(dues.filter { !UTF16Order.less(today, $0) }.count, 10, "only 10 left due on the migration day")
+        XCTAssertEqual(dues.filter { !UTF16Order.less(today, $0) }.count, 8, "only 8 left due on the migration day (round(15 × 0.5))")
         XCTAssertEqual(r.report["sched"]!["spread"], .number(60))
         let noSpread = try convert(values, policy: policyWith(migration: [("spreadDuePerDayShare", .number(0))]))
         XCTAssertEqual(noSpread.state["sched"]!.objectValue!.entries.filter { !UTF16Order.less(today, $0.value["due"]!.stringValue!) }.count, 60)

@@ -65,6 +65,11 @@ export default Object.freeze({
   'X-HOME.capitalBody': '今天写两组大写数字，借条、红包上用得着。',
   'X-HOME.capitalDefer': '写平常字',
   'X-HOME.backNote': '你写过的 {n} 个字都还在。',
+  // X-TODAY（D83 调度规则 v2「一天的练习」，P327）：首页今天的进度 / 完成态、结果页完成画面的标题与汇总句
+  'X-TODAY.progress': '今天的练习 {n} / {total}',
+  'X-TODAY.done': '今天完成了 ✓',
+  'X-TODAY.doneTitle': '今天完成了',
+  'X-TODAY.summary': '写对 {correct}、重考过关 {passed}、明天再来 {again}、新学 {fresh} 个字',
   // X-SESSION（M2-2 会话开始：S02 保存失败三段式、「现在没有要写的字」页主按钮；04 R-H05 / R-H11 没给这些槽，P55 待文案）
   'X-SESSION.s02SaveFailed': '没保存上，刚才的选择没记下。',
   'X-SESSION.s02Retry': '再试一次',

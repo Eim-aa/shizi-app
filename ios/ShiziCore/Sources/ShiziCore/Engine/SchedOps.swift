@@ -291,54 +291,10 @@ extension CoreEngine {
         "mix.scaledCount": { _, a in
             .number(Mix.scaledCount(try finite(try required(a, "n"), "n"), try finite(try required(a, "size"), "size"), mix: try policyOf(a)["groupMix"]))
         },
-        "mix.pressureOf": { _, a in
-            let backlog = try finite(try required(a, "backlog"), "backlog")
-            let gpd = try finite(try required(a, "groupsPerDay"), "groupsPerDay")
-            let p = try policyOf(a)
-            let size = try a["size"].map { try finite($0, "size") }
-            return .number(Mix.pressureOf(backlog, gpd, mix: p["groupMix"], size: size))
-        },
-        "mix.newTargetOf": { _, a in
-            let s = try objArg(a, "state")
-            let p = try policyOf(a)
-            let size = try a["size"].map { try finite($0, "size") }
-            let st = MixState(backlog: JS.number(s["backlog"]), groupsPerDay: JS.number(s["groupsPerDay"]), newAccuracy: JS.number(s["newAccuracy"]),
-                              lastHadNew: s["lastHadNew"], firstBack: s["firstBack"])
-            return .number(Mix.newTargetOf(st, mix: p["groupMix"], size: size))
-        },
-        "mix.planGroup": { _, a in
-            let size = try finite(try required(a, "size"), "size")
-            let budget = try finite(try required(a, "budget"), "budget")
-            let due = try strArr(a, "due")
-            let early = try strArr(a, "early")
-            var warmNext: String? = nil
-            if let w = a["warmNext"], !w.isNull { warmNext = try string(a, "warmNext") }
-            let warmOk = try optBool(a, "warmOk") == true
-            let s = try objArg(a, "state")
-            let p = try policyOf(a)
-            func num(_ k: String) throws -> Double? { try a[k].map { try finite($0, k) } }
-            let st = MixState(backlog: JS.number(s["backlog"]), groupsPerDay: JS.number(s["groupsPerDay"]), newAccuracy: JS.number(s["newAccuracy"]),
-                              lastHadNew: s["lastHadNew"], firstBack: s["firstBack"])
-            return Mix.planGroup(size: size, budget: budget, due: due, early: early, isWarm: NewOrder.isWarmupKey, warmNext: warmNext, warmOk: warmOk, state: st,
-                                 mix: p["groupMix"], newAvailable: try num("newAvailable") ?? .infinity, reserve: try num("reserve") ?? 0,
-                                 pressureSize: try num("pressureSize"), newCap: try num("newCap") ?? .infinity).js
-        },
         "mix.arrangeGroup": { _, a in
             var warmNew: String? = nil
             if let w = a["warmNew"], !w.isNull { warmNew = try string(a, "warmNew") }
             return strs(Mix.arrangeGroup(warmNew: warmNew, revKeys: try strArr(a, "revKeys"), earlyKeys: try strArr(a, "earlyKeys"), newKeys: try strArr(a, "newKeys"), isWarm: NewOrder.isWarmupKey))
-        },
-        "mix.dueReviewsDoneOn": { e, a in
-            let records = try arrOfObj(a, "records")
-            let today = try string(a, "today")
-            return .number(e.rules.dueReviewsDoneOn(records, today, sched: try schedArg(a, "sched"), policy: try policyOf(a)))
-        },
-        "mix.newUserCapOf": { e, a in
-            let p = try policyOf(a)
-            let stats = try e.rules.practiceStats(try arrOfObj(a, "records"), try string(a, "today"), policy: p, isWarm: NewOrder.isWarmupKey)
-            let size = try finite(try required(a, "size"), "size")
-            let cap = Mix.newUserCapOf(stats, ramp: p["newUserRamp"], size: size, mix: p["groupMix"])
-            return cap == .infinity ? .null : .number(cap) // JSON.stringify(Infinity) = null
         },
         "mix.warmupAllowed": { e, a in
             let p = try policyOf(a)
@@ -397,7 +353,6 @@ extension CoreEngine {
             return .string(SessionRules.nextAKind(records, policy: try policyOf(a), everPracticed: try optBool(a, "everPracticed") == true))
         },
         "sessions.selectFirst": { _, a in strs(SessionRules.selectFirst(policy: try policyOf(a))) },
-        "sessions.wrongReserveOf": { _, a in .number(SessionRules.wrongReserveOf(try finite(try required(a, "size"), "size"), policy: try policyOf(a))) },
         "sessions.skipDeferredNewKeys": { e, a in
             let records = try arrOfObj(a, "records")
             let today = try string(a, "today")
@@ -413,7 +368,8 @@ extension CoreEngine {
             let p = try policyOf(a)
             let prac = try practicableOf(a) ?? ScheduleRules.defaultPracticable
             return try e.rules.selectDaily(sched: sched, records: records, today: today, newCandidates: nc, warmupCandidates: wc, custom: custom, practicable: prac,
-                                           policy: p, capitalDeferredDay: a["capitalDeferredDay"] ?? .null, groupSize: a["groupSize"] ?? .null).js
+                                           policy: p, capitalDeferredDay: a["capitalDeferredDay"] ?? .null, groupSize: a["groupSize"] ?? .null,
+                                           tier: a["tier"]?.stringValue, cap: a["cap"]?.numberValue.map { Int($0) }, handled: try optStrArr(a, "handled") ?? []).js
         },
         "sessions.specialPlan": { e, a in
             let sched = try schedArg(a, "sched")
@@ -447,7 +403,6 @@ extension CoreEngine {
         "special.isDeferred": { _, a in .bool(Special.isDeferred(a["deferredDay"], a["today"])) },
         "groupSize.of": { _, a in orNull(GroupSize.of(a["settings"], policy: try policyOf(a))) },
         "groupSize.valid": { _, a in orNull(GroupSize.valid(a["value"], policy: try policyOf(a))) },
-        "groupSize.dailyReviewCapOf": { _, a in .number(GroupSize.dailyReviewCapOf(a["size"], policy: try policyOf(a))) },
         "groupSize.listDefaultSelectOf": { _, a in numOrString(GroupSize.listDefaultSelectOf(a["settings"], policy: try policyOf(a))) },
 
         // ---- spread ----
@@ -457,13 +412,6 @@ extension CoreEngine {
             let perDay = try finite(try required(a, "perDay"), "perDay")
             let r = try e.rules.spreadDue(sched, today: today, perDay: perDay)
             return obj([("sched", .object(r.sched)), ("moved", .number(Double(r.moved)))])
-        },
-        "spread.returnSpreadPerDay": { _, a in .number(ScheduleRules.returnSpreadPerDay(a["settings"], policy: try policyOf(a))) },
-        "spread.returnSpreadPlan": { e, a in
-            let state = try objArg(a, "state")
-            let today = try required(a, "today")
-            guard let p = try e.rules.returnSpreadPlan(state, today, policy: try policyOf(a)) else { return .null }
-            return obj([("sched", .object(p.sched)), ("moved", .number(Double(p.moved))), ("lastDay", .string(p.lastDay)), ("perDay", .number(p.perDay)), ("gapDays", .number(p.gapDays))])
         },
 
         // ---- hints ----

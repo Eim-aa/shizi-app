@@ -13,8 +13,10 @@ public enum PageAPI {
         catch let e as CoreError { return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("exception")), ("reason", .string(e.message))]))]) }
         catch { return SessionWrites.failure("exception") }
     }
+    /// 只有原生有的 op（D82 起规则不必与网页一致；session-ui.json 的 apiOps 由网页的 api 生成，不含它们）。
+    public static let nativeOnlyOps: Set<String> = ["mine.mixTier"]
     public static func call(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) -> JSValue {
-        guard (SessionResources.ui["apiOps"]?.arrayValue ?? []).contains(.string(op)) else {
+        guard (SessionResources.ui["apiOps"]?.arrayValue ?? []).contains(.string(op)) || nativeOnlyOps.contains(op) else {
             return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
         }
         let oldBreaker = ViewLineStarts.provider, oldMeasurement = ViewMeasurement.provider

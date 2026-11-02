@@ -58,8 +58,7 @@ final class AccessibilityAuditTests: XCTestCase {
                         let label = el?.label ?? ""
                         // 豁免 1：系统 Tab 栏（TAB-01 / D77）
                         if let e = el, e.elementType == .tabBar || (e.elementType == .button && Self.tabNames.contains(label)) { return true }
-                        // 豁免 2：网页引擎（WKWebView）里的元素不归原生页管
-                        if let e = el, e.identifier.isEmpty, (try? e.snapshot())?.elementType == .webView { return true }
+                        // （豁免 2「网页引擎 WKWebView 里的元素」随 B4.9 删除：App 里没有网页了）
                         // 豁免 4（键盘）：系统键盘（含联想条 QuickType）里的无名元素——不是产品元素。判据：描述类审计、没名字、没 identifier，
                         //   且元素框落在键盘框里，或在键盘框正上方那 48pt 的联想条带（QuickType：三格各 1/3 屏宽 × 44pt，贴在键盘上沿）。
                         if issue.auditType == .sufficientElementDescription, let e = el, label.isEmpty, e.identifier.isEmpty {

@@ -261,8 +261,8 @@ final class BlockScreen: ShiziScreenViewController {
         engine.raw("block.retry", ["kind": kind]) { [weak self] reply in
             guard let self else { return }
             if (reply["reload"] as? Bool) == true {
-                // 阻断 / 迁移：整页重新启动（网页 location.reload()；原生重载网页）
-                self.stage?.host.webView.reload()
+                // 阻断 / 迁移：引擎重新启动（JS 参考 location.reload()：存储从头探测、修复、读库；还阻断就留在阻断页，不阻断了阻断页收起）
+                self.stage?.engine.relaunch()
                 return
             }
             if (reply["still"] as? Bool) == true {

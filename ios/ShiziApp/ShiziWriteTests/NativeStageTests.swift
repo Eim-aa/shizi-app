@@ -1,34 +1,29 @@
+import MachO
+import ShiziCore
 import UIKit
-import WebKit
 import XCTest
 @testable import Shizi
 
 // B3.2 NativeStage / ShiziEngine / 通用原生屏（scheme ShiziWriteTests：App 作测试宿主，SHIZI_NATIVE_WRITE=1、SHIZI_TEST_HOST=1）。
-// 纯逻辑：屏名 ⇄ 类约定、文案引用与 Codable 回包、许可全文的折行、引擎状态与 changed 订阅；
-// 宿主：真 App 里网页路由推入「关于」→ 宿主发 open → NativeStage 盖上原生页（视图回包首帧就在）→ App API 经 WebEngine 调用 → 原生返回 → 网页出栈。
+// 纯逻辑：屏名 ⇄ 类约定、文案引用与 Codable 回包、许可全文的折行；
+// 宿主：真 App 里引擎推入「关于」→ 宿主消息 open → NativeStage 盖上原生页（视图回包首帧就在）→ App API 经 SwiftEngine 调用 → 原生返回 → 出栈。
 
 @MainActor
 final class NativeStageTests: XCTestCase {
-    private var web: WebViewController!
+    private var host: TestHost!
+    private var root: RootViewController { host.root }
 
     override func setUp() async throws {
         try await super.setUp()
-        let root = UIApplication.shared.delegate?.window??.rootViewController
-        web = try XCTUnwrap(root as? WebViewController, "root is the web shell")
-        try await waitUntil("page ready") { self.web.pageReady }
-        try await waitUntil("app api") { (try? await self.js("return typeof window.shiziNative === 'function' && !!window.__shiziTest;")) as? Bool == true }
-        if let top = web.nativeWriteTop {
+        host = try TestHost()
+        try await waitUntil("engine ready") { self.host.ready }
+        if let top = root.nativeWriteTop {
             top.exitHandled = true
             top.dismiss(animated: false)
         }
-        await web.stage.resetScreensForTesting()
-        _ = try await js("(await import('/src/ui/router.js')).nav.switchTab('mine'); return true;")
-        try await waitUntil("no native page") { self.web.presentedViewController == nil && self.web.stage.screens.isEmpty }
-    }
-
-    @discardableResult
-    private func js(_ body: String) async throws -> Any? {
-        try await web.webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page)
+        await root.stage.resetScreensForTesting()
+        host.switchTab("mine")
+        try await waitUntil("no native page") { self.root.presentedViewController == nil && self.root.stage.screens.isEmpty }
     }
 
     private func waitUntil(_ what: String, timeout: TimeInterval = 15, _ cond: @escaping () async -> Bool) async throws {
@@ -41,24 +36,20 @@ final class NativeStageTests: XCTestCase {
         throw CancellationError()
     }
 
-    private func routeTop() async throws -> String? {
-        try await js("return (await import('/src/ui/router.js')).getRouter().getState().top.n;") as? String
-    }
+    private func routeTop() async throws -> String? { host.top }
 
     // MARK: 纯逻辑
 
     func testB32_screenNamesFindClassesByConvention() {
         XCTAssertTrue(ShiziScreenRegistry.screenClass("about") == AboutScreen.self)
         XCTAssertTrue(ShiziScreenRegistry.screenClass("about-privacy") == AboutPrivacyScreen.self)
-        XCTAssertNil(ShiziScreenRegistry.screenClass("_demo/sub"), "not native → no class → the web keeps the page") // B3.9：练习记录也原生了，换成只有网页的开发演示屏
+        XCTAssertNil(ShiziScreenRegistry.screenClass("_demo/sub"), "not native → no class") // 只有网页参考的开发演示屏
         XCTAssertTrue(ShiziScreenRegistry.screenClass("records") == RecordsScreen.self)
         XCTAssertEqual(ShiziScreenRegistry.className("about-credits"), "ShiziScreen_about_credits")
-        // 页面卡陆续加类（B3.5a 起 home …）：清单含关于四页、有序，注入的就是这份清单
+        // 页面卡陆续加类（B3.5a 起 home …）：清单含关于四页、有序
         let screens = ShiziScreenRegistry.screens
         XCTAssertTrue(Set(["about", "about-credits", "about-letter", "about-privacy"]).isSubset(of: Set(screens)), "\(screens)")
         XCTAssertEqual(screens, screens.sorted())
-        let json = String(data: try! JSONSerialization.data(withJSONObject: screens), encoding: .utf8)! // swiftlint:disable:this force_try
-        XCTAssertTrue(NativeStage.userScript().contains("window.__shiziNativeScreens = \(json)"))
     }
 
     func testB32_copyRefsAndCodableReplies() throws {
@@ -87,38 +78,27 @@ final class NativeStageTests: XCTestCase {
         XCTAssertEqual(ShiziMonoWrap.wrap("one\n\ntwo", perLine: 10), "one\n\ntwo")
     }
 
-    func testB32_engineStatusAndChanges() async throws {
-        let e = WebEngine(webView: nil)
-        XCTAssertEqual(e.status, .reloading)
-        var seen: [ShiziEngineStatus] = []
-        e.observeStatus { seen.append($0) }
-        e.pageDidBecomeReady()
-        e.receiveStatus(["status": "blocked", "reason": "unavailable"])
-        e.pageDidBecomeReady() // 页面推过 blocked：就绪不改成 ready
-        e.receiveStatus(["status": "ready"])
-        XCTAssertEqual(seen, [.ready, .blocked("unavailable"), .ready])
-        let stream = e.changes
-        let got = Task { () -> ShiziChangeSet? in for await s in stream { return s }; return nil }
-        try await Task.sleep(nanoseconds: 50_000_000)
-        XCTAssertNil(e.receiveChanged(["domains": []]), "no dirty domain → no push")
-        _ = e.receiveChanged(["domains": ["records", "settings"], "label": "judge"])
-        let set = await got.value
-        XCTAssertEqual(set, ShiziChangeSet(domains: ["records", "settings"], label: "judge"))
-        XCTAssertTrue(set?.touches(["settings"]) == true)
-        let reply = await e.raw("view.about", [:])
-        XCTAssertEqual((reply["error"] as? [String: Any])?["kind"] as? String, "transport", "no web view → transport failure, not a crash")
+    /// B4.9：引擎是 SwiftEngine，冷启动判定之后 ready；没有引擎的通道回 unavailable（不崩）。
+    func testB49_engineIsSwiftAndReady() async throws {
+        XCTAssertEqual(root.stage.engine.status, .ready)
+        let saved = EngineRoute.swift
+        EngineRoute.swift = nil
+        defer { EngineRoute.swift = saved }
+        var body: [String: Any] = [:]
+        EngineRoute.evaluate(function: EngineOps.app, op: "view.about", args: [:]) { b, _ in body = b }
+        XCTAssertEqual((body["error"] as? [String: Any])?["kind"] as? String, "unavailable")
     }
 
     // MARK: 宿主
 
-    func testB32_aboutHostOpensTheNativePageAndBackPopsTheWebEntry() async throws {
-        _ = try await js("(await import('/src/ui/router.js')).nav.push('about'); return true;")
-        try await waitUntil("native about") { self.web.stage.topScreen is AboutScreen && NativeWriteTransitions.running == 0 }
-        let about = try XCTUnwrap(web.stage.topScreen as? AboutScreen)
+    func testB32_aboutHostOpensTheNativePageAndBackPopsTheEntry() async throws {
+        host.push("about")
+        try await waitUntil("native about") { self.root.stage.topScreen is AboutScreen && NativeWriteTransitions.running == 0 }
+        let about = try XCTUnwrap(root.stage.topScreen as? AboutScreen)
         XCTAssertNotNil(about.lastView, "the view came with the open message (first frame does not wait for the bridge)")
         XCTAssertEqual(about.rowButtons.count, 3)
-        // App API 经 WebEngine（同一个视图 op）
-        let v = try await web.stage.engine.view("about", as: AboutScreen.View.self)
+        // App API 经 SwiftEngine（同一个视图 op）
+        let v = try await root.stage.engine.view("about", as: AboutScreen.View.self)
         XCTAssertEqual(v.rows.map(\.to), ["about-privacy", "about-credits", "about-letter"])
         // 原生里点按 → nav.push → 宿主挂载回发 open → 原生栈两层
         // 新状态后 pressGuard（0.4s）内按钮不响应：viewDidAppear 在重载的机器上可能比固定 sleep 晚到，
@@ -126,104 +106,90 @@ final class NativeStageTests: XCTestCase {
         try await Task.sleep(nanoseconds: 500_000_000)
         var lastTap = Date.distantPast
         try await waitUntil("native privacy") {
-            if self.web.stage.screens.count < 2, Date().timeIntervalSince(lastTap) > 0.6 {
+            if self.root.stage.screens.count < 2, Date().timeIntervalSince(lastTap) > 0.6 {
                 lastTap = Date()
                 about.rowButtons[0].sendActions(for: .touchUpInside)
             }
-            return self.web.stage.screens.map(\.screen) == ["about", "about-privacy"] && NativeWriteTransitions.running == 0
+            return self.root.stage.screens.map(\.screen) == ["about", "about-privacy"] && NativeWriteTransitions.running == 0
         }
         let top = try await routeTop()
         XCTAssertEqual(top, "about-privacy")
-        // 返回：原生收起 → nav.back {via:'native'} → 网页出栈
-        web.stage.topScreen?.requestBack()
-        try await waitUntil("back to about") { self.web.stage.screens.map(\.screen) == ["about"] }
-        try await waitUntil("web popped") { (try? await self.routeTop()) == "about" }
-        // 宿主被别处卸掉（切 tab）：原生页收起、不发 nav.back（网页栈只因切 tab 改变）
-        _ = try await js("(await import('/src/ui/router.js')).nav.switchTab('home'); return true;")
-        try await waitUntil("released") { self.web.stage.screens.isEmpty && self.web.presentedViewController == nil }
-        let tab = try await js("return (await import('/src/ui/router.js')).getRouter().getState().tab;") as? String
-        XCTAssertEqual(tab, "home")
+        // 返回：原生收起 → 出栈
+        root.stage.topScreen?.requestBack()
+        try await waitUntil("back to about") { self.root.stage.screens.map(\.screen) == ["about"] }
+        try await waitUntil("popped") { (try? await self.routeTop()) == "about" }
+        // 宿主被别处卸掉（切 tab）：原生页收起、不发 nav.back（栈只因切 tab 改变）
+        host.switchTab("home")
+        try await waitUntil("released") { self.root.stage.screens.isEmpty && self.root.presentedViewController == nil }
+        XCTAssertEqual(host.tab, "home")
     }
 
     func testB32_changedPushReachesTheEngineAfterACommit() async throws {
-        let stream = web.stage.engine.changes
+        let stream = root.stage.engine.changes
         let got = Task { () -> ShiziChangeSet? in for await s in stream { if s.domains.contains("settings") { return s } }; return nil }
         try await Task.sleep(nanoseconds: 100_000_000)
-        _ = try await js("const { getStore } = await import('/src/store/store.js'); const p = await import('/src/ui/screens/mine/prefs.js'); return p.commitAppearance(getStore(), 'auto').ok;")
+        let r = await root.stage.engine.raw("mine.appearance", ["value": "auto"])
+        XCTAssertEqual(r["ok"] as? Bool, true, "\(r)")
         let timeout = Task { try await Task.sleep(nanoseconds: 5_000_000_000); got.cancel() }
         let set = await got.value
         timeout.cancel()
         XCTAssertTrue(set?.domains.contains("settings") == true, "settings commit → changed {domains:[settings]}")
-        XCTAssertEqual(web.stage.engine.status, .ready)
+        XCTAssertEqual(root.stage.engine.status, .ready)
     }
 
-    // MARK: B4.9a 缺省模式不再调 WKWebView
+    // MARK: B4.9 App 里没有 WebKit
 
-    /// 缺省（swift）模式走一遍：冷启动 → 首页开组写一组（全部跳过）→ 结果页 → 离开回首页 → 字库 → 我的 → 提醒深链开组；
-    /// 全程交给 WKWebView 的调用为 0（WebCalls：引擎调用与 QA 镜像都算上；QA 镜像在这一段关掉，只有测试准备时用页面清库）。
-    /// 新装由原生直接记迁移 done（B4.9b），所以不需要预先启动一次。
-    func testB49a_defaultModeMakesNoWebEngineCalls() async throws {
-        // B4.9b：新装也直接是 Swift 引擎（LegacyStorage.swift），不再跳过；落到 WebEngine 就是失败。
-        let swift = try XCTUnwrap(web.stage.engine as? SwiftEngine, "default mode must start on SwiftEngine on a fresh install")
-        _ = try await js("return window.__shiziTest.reset();") // 测试准备（QA 设施）：清库
-        try await waitUntil("swift store reset") { swift.core.store.state["sessions"]?["A"] == nil || swift.core.store.state["sessions"]?["A"] == .null }
-        SwiftEngine.qaMirror = false
-        defer { SwiftEngine.qaMirror = true }
-        try await Task.sleep(nanoseconds: 300_000_000) // 准备时排着的 QA 调用落定
-        WebCalls.reset()
-        let names = { self.web.stage.entries.map { $0["n"] as? String ?? "" } }
+    /// B4.9（取代 B4.9a 的零调用检查）：进程里没有载入 WebKit、包里没有网页壳；同一条路线（冷启动 → 首页开组写一组（全部跳过）→ 结果页 → 离开回首页 →
+    /// 字库 → 我的 → 提醒深链开组）照样走通。可执行文件不链接 WebKit 另由 verify-bundle-assets.sh（otool -L）核对。
+    func testB49_noWebKitAndTheMainJourneyStillWorks() async throws {
+        var images: [String] = []
+        for i in 0..<_dyld_image_count() { if let n = _dyld_get_image_name(i) { images.append(String(cString: n)) } }
+        XCTAssertFalse(images.contains { $0.hasSuffix("/WebKit.framework/WebKit") }, "WebKit is not loaded into the app")
+        XCTAssertNil(Bundle.main.url(forResource: "Web/src", withExtension: nil), "no JS in the bundle")
+        XCTAssertNil(Bundle.main.url(forResource: "Web/index", withExtension: "html"), "no web shell in the bundle")
+        XCTAssertNotNil(SoundPlayer.directory, "sounds are a native resource")
+        host.reset()
+        let names = { self.root.stage.entries.map { $0["n"] as? String ?? "" } }
         // 1. 冷启动判定（route.plan → 无转场重建）
         var planned = false
-        web.stage.replanForTesting { planned = true }
+        root.stage.replanForTesting { planned = true }
         try await waitUntil("planned") { planned }
-        web.stage.switchTab("home")
+        root.stage.switchTab("home")
         try await waitUntil("home root") { names() == ["home"] }
         // 2. 首页主按钮开组 → 原生写字页
-        let start = await web.stage.engine.raw("home.start", [:])
+        let start = await root.stage.engine.raw("home.start", [:])
         XCTAssertEqual(start["ok"] as? Bool, true, "\(start)")
-        try await waitUntil("native write page") { self.web.nativeWriteTop != nil && self.web.presentedViewController?.isBeingPresented == false }
+        try await waitUntil("native write page") { self.root.nativeWriteTop != nil && self.root.presentedViewController?.isBeingPresented == false }
         XCTAssertEqual(names(), ["home", "write"])
         // 3. 全部跳过 → 写字页换成结果页
-        let vc = try XCTUnwrap(web.nativeWriteTop)
+        let vc = try XCTUnwrap(root.nativeWriteTop)
         var n = 0
-        while web.nativeWriteTop != nil, n < 40 {
+        while root.nativeWriteTop != nil, n < 40 {
             n += 1
             let key = vc.cardKey
             vc.perform(Selector(("tapSkip")))
-            try await waitUntil("next or result") { self.web.nativeWriteTop == nil || vc.cardKey != key }
+            try await waitUntil("next or result") { self.root.nativeWriteTop == nil || vc.cardKey != key }
         }
-        try await waitUntil("native result page") { names() == ["home", "result"] && self.web.nativeResultTop != nil }
+        try await waitUntil("native result page") { names() == ["home", "result"] && self.root.nativeResultTop != nil }
         // 4. 结果页离开 → 回首页（leaveTo：来源是 tab 根且就在下面 → nav.back）
-        let rv = try XCTUnwrap(web.nativeResultTop)
+        let rv = try XCTUnwrap(root.nativeResultTop)
         var left: Bool?
-        NativeWriteBridge(webView: web.webView).call("resultExit", ["slot": rv.slot, "sessionId": rv.sessionId, "to": "leave"]) { left = $0.ok }
+        WriteSessionChannel().call("resultExit", ["slot": rv.slot, "sessionId": rv.sessionId, "to": "leave"]) { left = $0.ok }
         try await waitUntil("left") { left != nil }
         XCTAssertEqual(left, true)
-        try await waitUntil("back home") { names() == ["home"] && self.web.nativeResultTop == nil }
+        try await waitUntil("back home") { names() == ["home"] && self.root.nativeResultTop == nil }
         // 5. 字库、我的
-        web.stage.switchTab("library")
+        root.stage.switchTab("library")
         try await waitUntil("library") { names() == ["library"] }
-        web.stage.switchTab("mine")
+        root.stage.switchTab("mine")
         try await waitUntil("mine") { names() == ["mine"] }
         // 6. 提醒深链：开「这次选的字」（B）
-        web.openReminderTarget(cardKey: "base:永")
+        root.openReminderTarget(cardKey: "base:永")
         try await waitUntil("reminder target opened") { ["write", "s02"].contains(names().last ?? "") }
         try await Task.sleep(nanoseconds: 500_000_000)
-        XCTAssertEqual(WebCalls.engine, 0, "calls that still reached the WKWebView: \(WebCalls.byOp)")
-        XCTAssertEqual(WebCalls.qa, 0)
-        // 收尾：回到「我的」根（下一条用例的 setUp 再由页面清）
-        if let top = web.nativeWriteTop { top.exitHandled = true; top.dismiss(animated: false) }
-        web.stage.switchTab("mine")
+        // 收尾：回到「我的」根
+        if let top = root.nativeWriteTop { top.exitHandled = true; top.dismiss(animated: false) }
+        root.stage.switchTab("mine")
     }
 }
 
-extension WebViewController {
-    /// 下一次写入失败（D07 三段式的测试）：Swift 引擎（缺省）按发出顺序挂在之后的第一个写 op 上；WebEngine 交页面的测试钩子（页面调用队列先进先出）。
-    @MainActor func qaFailNextWrite() async throws {
-        if let swift = stage.engine as? SwiftEngine {
-            swift.qaFailNextWrite()
-            return
-        }
-        _ = try await webView.callAsyncJavaScript("return window.__shiziTest.failNextWrite(1, {kind:'generic'});", arguments: [:], in: nil, contentWorld: .page)
-    }
-}

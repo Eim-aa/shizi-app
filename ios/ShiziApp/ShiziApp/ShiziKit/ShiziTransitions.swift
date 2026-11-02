@@ -147,7 +147,7 @@ final class NativeWriteTransitions: NSObject, UIViewControllerTransitioningDeleg
 
     /// 这一页怎么进来、回去怎么走（页面给的；返回前再问一次）。
     var plan = NativeNavPlan(kind: .push)
-    /// 下层：WebViewController 的根视图（推入视差、纸展开时 tab 内容区淡出、安静淡入时下层淡出都画在它上面）。
+    /// 下层：RootViewController 的根视图（推入视差、纸展开时 tab 内容区淡出、安静淡入时下层淡出都画在它上面）。
     weak var host: UIView?
     /// 下层若是一张刚换走的原生页的样子（再写一组：结果页的截图；重写错字：结果页本身），视差画在它上面。
     weak var under: UIView?

@@ -1,23 +1,30 @@
 #if DEBUG
+import ShiziCore
 import UIKit
-import WebKit
 
-// QA-H1：原生界面自动化测试框架的 App 内一半（只在 DEBUG 编译；Release 不含，verify-archive.sh / verify_assets 断言）。
+// QA-H1：原生界面自动化测试框架的 App 内一半（只在 DEBUG 编译；Release 不含，verify-archive.sh 断言）。
 //
 // 三种用法，全部由启动参数打开（默认什么都不做）：
-//   1. 状态注入（-shizi-qa-seed <状态>）：页面就绪后清空数据，把 App 带到指定状态（夹具 ShiziUITests/States/<状态>.json，见 QAFixtures.swift）。
-//      XCUITest（ShiziUITests）用它一键起步；同一套状态网页版（-shizi-native-write-off）与原生版（-shizi-native-write）都能到。
-//   2. 逐屏取证（-shizi-qa parity -shizi-qa-ui native|web -shizi-qa-states a,b,… -shizi-qa-tag <外观_字号>）：
-//      逐个状态注入 → 等动画落定 → 把元素清单（位置尺寸 / 文案 / 颜色 / 字号 / 可点）写到 Documents/qa/<ui>/<状态>_<tag>.json →
+//   1. 状态注入（-shizi-qa-seed <状态>）：冷启动判定之后清空数据，把 App 带到指定状态（夹具 ShiziUITests/States/<状态>.json，见 QAFixtures.swift / QAOps.swift）。
+//      XCUITest（ShiziUITests）用它一键起步。
+//   2. 逐屏取证（-shizi-qa parity -shizi-qa-states a,b,… -shizi-qa-tag <外观_字号>）：
+//      逐个状态注入 → 等动画落定 → 把元素清单（位置尺寸 / 文案 / 颜色 / 字号 / 可点）写到 Documents/qa/native/<状态>_<tag>.json →
 //      写 Documents/qa/ready 通知宿主脚本截图 → 等宿主写回 Documents/qa/ack-<序号> 再做下一个（截图由宿主 simctl 截，含真实合成结果）。
-//      原生取 UIKit 视图树 + 无障碍属性（accessibilityIdentifier / Label / Frame）；网页取 DOM（getBoundingClientRect / 文本 / computed color）。
+//      取 UIKit 视图树 + 无障碍属性（accessibilityIdentifier / Label / Frame）；网页参考图冻结在仓库里（ShiziUITests/Reference/）。
 //   3. 探针（-shizi-qa-probe）：一个 1pt 的透明窗口，读屏元素 id「qa-probe」的 value 是 store 摘要 JSON（路由、会话、记录条数、
 //      已练字数、原生写字页的阶段与字），每 0.3 秒刷新；XCUITest 经无障碍树读它断言「数据真的写进去了」。
-// 状态注入走的是正式代码：会话由 core/session-start.startPicked 开、推进与阶段由写字会话 API（与原生页同一批提交函数）提交，
-// 打开写字页走 session/index.js openWrite（网页路由 → 原生宿主），点按走原生页自己的按钮动作 / 网页按钮 click。
+// 状态注入走的是正式代码：造数据用 ShiziCore 里与真人判断同一批函数，导航走 SwiftNavigator，点按走原生页自己的按钮动作。
+// B4.9：App 里没有网页了——测试钩子（原来页面里的 __shiziTest）、夹具 op、探针摘要都在 Swift。
 
-extension WebViewController {
+extension RootViewController {
     // MARK: 启动参数
+
+    /// 测试宿主（-shizi-test-host / SHIZI_TEST_HOST，XCTest 驱动；-shizi-dev / SHIZI_DEV 开发）：QA 时钟、测试用屏、QA 桩只在这时生效。
+    static var nativeTestHostEnabled: Bool {
+        let process = ProcessInfo.processInfo
+        return process.arguments.contains("-shizi-test-host") || process.environment["SHIZI_TEST_HOST"] == "1"
+            || process.arguments.contains("-shizi-dev") || process.environment["SHIZI_DEV"] == "1"
+    }
 
     static func qaArg(_ flag: String) -> String? {
         let a = ProcessInfo.processInfo.arguments
@@ -41,31 +48,40 @@ extension WebViewController {
     /// 写字页上没有随时间变的内容，对比不受影响。传 -shizi-qa-clock <ISO> 可另行固定。
     static var qaClock: String { qaArg("-shizi-qa-clock") ?? "" }
 
-    // MARK: 入口（handlePageReady 调用）
+    // MARK: 启动参数里的平台动作（viewDidLoad 调，冷启动判定之前）
+
+    func applyQALaunchArguments() {
+        guard Self.nativeTestHostEnabled else { return }
+        // B3.F RestoreAndDeepLinkTests：这次启动前把 QA 时钟往后拨 N 分钟（测「离开太久 / 跨 4 点不恢复」）
+        if let m = Self.qaArg("-shizi-qa-clock-advance").flatMap(Double.init) {
+            QAClock.offsetMs = (QAClock.offsetMs ?? 0) + m * 60_000
+        }
+        // 冷启动的提醒深链（与 AppDelegate 点开通知同一入口：栈还没重建，key 先存着）
+        if let target = Self.qaArg("-shizi-reminder-target"), !target.isEmpty { openReminderTarget(cardKey: target) }
+        // B3.F：热启动的提醒深链（栈重建好、QA 注入做完之后过几秒）
+        if let target = Self.qaArg("-shizi-qa-warm-reminder"), !target.isEmpty {
+            stage.whenPlanned { [weak self] in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 6) { self?.openReminderTarget(cardKey: target) }
+            }
+        }
+    }
+
+    // MARK: 入口（冷启动判定之后调用）
 
     func runQAHarnessIfNeeded() {
         guard Self.qaEnabled else { return }
         if Self.qaProbeEnabled { QAProbe.shared.install(on: self) }
-        // 只在本次启动的第一次 pageReady 注入（页面重载 / 冷启动恢复不再注入，否则「杀进程重开恢复」测不到）
+        // 只在本次启动注入一次（冷启动恢复的测试杀进程重开时不带 -shizi-qa-seed）
         guard !QARun.started else { return }
         QARun.started = true
         Task { @MainActor in
             if Self.qaMode == "parity" {
                 await self.qaRunParity()
             } else if let st = Self.qaSeed {
-                let r = await self.qaPrepare(st, ui: NativeWriteDetect.enabled ? "native" : "web")
+                let r = await self.qaPrepare(st)
                 QAProbe.shared.seedResult = r
             }
         }
-    }
-
-    /// B2.9b：注入后页面时钟的偏移存下来（QAClock），之后的冷启动、原生时间戳都用它；没钉时钟（偏移 < 1s）则清掉。
-    func qaRememberClock() async {
-        let off = (await qaJS("return window.__shiziTest ? window.__shiziTest.now() - Date.now() : 0;") as? NSNumber)?.doubleValue ?? 0
-        QAClock.offsetMs = abs(off) >= 1000 ? off : nil
-    }
-    func qaJS(_ body: String) async -> Any? {
-        await ShadowEngine.foreign { try? await webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page) }
     }
 
     func qaWait(_ seconds: Double, _ cond: @escaping () async -> Bool) async -> Bool {
@@ -80,15 +96,15 @@ extension WebViewController {
     // MARK: 逐屏取证
 
     private func qaRunParity() async {
-        let ui = Self.qaArg("-shizi-qa-ui") ?? (NativeWriteDetect.enabled ? "native" : "web")
+        let ui = "native" // B4.9：App 里没有网页；网页参考图冻结在仓库里（ShiziUITests/Reference/）
         let tag = Self.qaArg("-shizi-qa-tag") ?? "light_L"
-        let states = Self.qaArg("-shizi-qa-states")?.split(separator: ",").map(String.init) ?? QAFixture.parityNames(native: ui == "native")
+        let states = Self.qaArg("-shizi-qa-states")?.split(separator: ",").map(String.init) ?? QAFixture.parityNames()
         let fm = FileManager.default
         let outDir = Self.qaDir.appendingPathComponent(ui, isDirectory: true)
         try? fm.createDirectory(at: outDir, withIntermediateDirectories: true)
         for (i, st) in states.enumerated() {
-            let err = await qaPrepare(st, ui: ui)
-            if ui == "native" { await qaSettleNative() } // QA-H4：等推入转场 / 动画落定再取（准备好的信号可能发在转场进行中）
+            let err = await qaPrepare(st)
+            await qaSettleNative() // QA-H4：等推入转场 / 动画落定再取（准备好的信号可能发在转场进行中）
             var dump: [String: Any] = ["state": st, "ui": ui, "tag": tag, "ok": err == nil]
             if let err { dump["error"] = err }
             let win = view.window
@@ -96,17 +112,11 @@ extension WebViewController {
                               "safeTop": win?.safeAreaInsets.top ?? 0, "safeBottom": win?.safeAreaInsets.bottom ?? 0,
                               "style": traitCollection.userInterfaceStyle == .dark ? "dark" : "light",
                               "contentSize": Self.contentSizeName(currentContentSizeCategory)]
-            if ui == "native" {
-                let (elements, offscreen) = qaNativeDump()
-                dump["elements"] = elements
-                // QA-H2：滚动区里屏外的元素、线 / 装饰 / 墨格（旧字段不变）
-                dump["offscreen"] = offscreen
-                for (k, v) in qaNativeGraphics() { dump[k] = v }
-            } else {
-                dump["elements"] = (await qaJS(Self.qaWebDumpJS)) ?? []
-                if let x = await qaJS(Self.qaWebExtrasJS) as? [String: Any] { for (k, v) in x { dump[k] = v } } // QA-H2
-                dump["ax"] = (await qaJS(Self.qaWebAxJS)) ?? [] // B3.3：读屏名称表（aria-label / role / aria-live），原生页之后逐项比 label
-            }
+            let (elements, offscreen) = qaNativeDump()
+            dump["elements"] = elements
+            // QA-H2：滚动区里屏外的元素、线 / 装饰 / 墨格（旧字段不变）
+            dump["offscreen"] = offscreen
+            for (k, v) in qaNativeGraphics() { dump[k] = v }
             let file = outDir.appendingPathComponent("\(st)_\(tag).json")
             if let data = try? JSONSerialization.data(withJSONObject: dump, options: [.prettyPrinted, .sortedKeys]) { try? data.write(to: file) }
             // 通知宿主截图，等回执
@@ -119,7 +129,7 @@ extension WebViewController {
 
     /// QA-H4：等原生界面落定再取证——没有进行中的转场（任一视图控制器的 transitionCoordinator / isBeingPresented 等）、
     /// 没有在跑的有限动画（无限重复的转圈不算），并且相邻两次（80ms）取样里全部图层的呈现位置 / 大小不变。最多等 4 秒。
-    /// 网页一侧不需要（网页参考在浏览器里取，不走原生转场）。
+
     func qaSettleNative() async {
         guard let window = view.window else { return }
         func busy(_ vc: UIViewController?, _ depth: Int = 0) -> Bool {
@@ -141,7 +151,6 @@ extension WebViewController {
             }
             if longRunning {
                 for sub in layer.sublayers ?? [] {
-                    if let host = sub.delegate as? UIView, host is WKWebView { continue }
                     snapshot(sub, &sig, &animating)
                 }
                 return
@@ -149,7 +158,6 @@ extension WebViewController {
             let p = layer.presentation() ?? layer
             sig.append(contentsOf: [Double(p.position.x), Double(p.position.y), Double(p.bounds.width), Double(p.bounds.height), Double(p.opacity)].map { ($0 * 10).rounded() / 10 })
             for sub in layer.sublayers ?? [] {
-                if let host = sub.delegate as? UIView, host is WKWebView { continue }
                 snapshot(sub, &sig, &animating)
             }
         }
@@ -168,7 +176,7 @@ extension WebViewController {
         }
     }
 
-    /// 原生元素清单：窗口里除 WKWebView 之外的全部可见视图（原生写字页、弹层、撤销条、确认框），控件与文字一项一条。
+    /// 原生元素清单：窗口里的全部可见视图（原生写字页、弹层、撤销条、确认框），控件与文字一项一条。
     /// 每条带：属性名（Mirror 取原生页上的成员名，作稳定的语义键）、accessibilityIdentifier / Label / Frame、
     /// 窗口坐标 frame（pt）、文字、文字色 / 底色 / 边框色（按当前外观解析成 #RRGGBBAA）、字号与字重、是否可点。
     func qaNativeElements() -> [[String: Any]] { qaNativeDump().0 }
@@ -191,7 +199,7 @@ extension WebViewController {
         }
         let covered = qaCoveredViews()
         func walk(_ v: UIView) {
-            if v is WKWebView || covered.contains(ObjectIdentifier(v)) { return }
+            if covered.contains(ObjectIdentifier(v)) { return }
             // B3.5d：系统 Tab 栏按项取（每个 tab 一个按钮：网页 Tabs 的 tab-* 同形状），不往系统私有子视图里走
             if let bar = v as? UITabBar {
                 if v.window != nil, visible(v) { out.append(contentsOf: qaTabBarElements(bar, in: window)) }
@@ -424,7 +432,7 @@ extension WebViewController {
     }
 
     /// QA-H2：原生一边的线（rules）、装饰（decos）、墨格（cells），窗口坐标 pt，与网页 qaWebExtrasJS 同一口径；屏外但滚得到的标 off。
-    /// 走全部可见视图（含按钮里面的子视图；不进 WKWebView、系统 Tab 栏、被盖住的页、系统控件的内部）与它们自己的子图层：
+    /// 走全部可见视图（含按钮里面的子视图；不进系统 Tab 栏、被盖住的页、系统控件的内部）与它们自己的子图层：
     ///   rules：图层边框（四条边）、≤ 2pt 的有底色视图 / 图层、CAShapeLayer 描边里的横 / 竖直线段（路径外框 > 40pt 的）、
     ///          draw(_:) 自己画线的视图声明的线（ShiziDrawnLines）。颜色乘上透明度链。
     ///   decos：≤ 40pt 的图片（按 contentMode 算画出来的框；按钮图标同样）与 ≤ 40pt 的 CAShapeLayer；≤ 48pt 的圆（圆角 ≥ 短边一半、有底色或边框）。
@@ -519,7 +527,7 @@ extension WebViewController {
             for sub in l.sublayers ?? [] where !(sub.delegate is UIView) { layerGraphics(sub, v, k * CGFloat(sub.opacity)) }
         }
         func walk(_ v: UIView) {
-            if v is WKWebView || v is UITabBar || covered.contains(ObjectIdentifier(v)) { return }
+            if v is UITabBar || covered.contains(ObjectIdentifier(v)) { return }
             guard v.window != nil || v is UIWindow, let k = alphaChain(v), k > 0.02 else { return }
             let cls = String(describing: type(of: v))
             let f = v.convert(v.bounds, to: window)
@@ -674,310 +682,6 @@ extension WebViewController {
         func h(_ x: CGFloat) -> String { String(format: "%02X", Int((min(max(x, 0), 1) * 255).rounded())) }
         return "#" + h(rr) + h(gg) + h(bb) + h(aa)
     }
-
-    // MARK: 页面脚本
-
-    /// 网页元素清单：顶层图层与其上的弹层 / 确认框 / 撤销条里可见的控件与文字（与原生清单同一形状）。
-    /// QA-H2：清单本身（elements）不变；qaWebExtrasJS 用同一份收集函数另取滚动区里屏外的元素（offscreen）与线 / 装饰 / 墨格。
-    static let qaWebDumpJS = qaWebCoreJS + "\nreturn collect(false).out;"
-
-    static let qaWebCoreJS = #"""
-    const app = document.querySelector('.sz-app');
-    const top = document.querySelector('.sz-layer[data-top="true"]');
-    const roots = [top, ...document.querySelectorAll('.sz-sheet, .sz-confirm, .sz-undobar, .sz-toast, .sz-corrupt, [role="dialog"], [role="alertdialog"]')].filter(Boolean);
-    const uniq = new Set();
-    const W = window.innerWidth, H = window.innerHeight;
-    const hex = (c) => {
-      const m = /rgba?\(([^)]+)\)/.exec(c || '');
-      if (!m) return '';
-      const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
-      const a = p.length > 3 ? p[3] : 1;
-      const h = (x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0').toUpperCase();
-      return '#' + h(p[0]) + h(p[1]) + h(p[2]) + h(a * 255);
-    };
-    const visible = (el) => {
-      let op = 1;
-      for (let e = el; e && e.nodeType === 1; e = e.parentElement) {
-        const cs = getComputedStyle(e);
-        if (cs.display === 'none' || cs.visibility === 'hidden') return false;
-        op *= Number(cs.opacity);
-        if (e.getAttribute('aria-hidden') === 'true' && e.classList.contains('sz-layer__screen') && e.closest('.sz-layer') !== top) return false;
-      }
-      return op > 0.02;
-    };
-    const ownText = (el) => [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').replace(/\s+/g, ' ').trim();
-    const fullText = (el) => (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
-    const weight = (w) => ({ 100: -0.8, 200: -0.6, 300: -0.4, 400: 0, 500: 0.23, 600: 0.3, 700: 0.4, 800: 0.56, 900: 0.62 })[Number(w)] ?? 0;
-    // QA-H2：屏外的东西是否滚得到——1 = 在屏上；2 = 在屏外、但在第一个能滚的祖先（overflow auto / scroll 且内容比框大、框在屏上）里，途中没有被不滚的裁切祖先裁掉；0 = 看不到
-    const onScreenRect = (q) => !(q.right < 0 || q.bottom < 0 || q.left > W || q.top > H);
-    const reach = (el, q) => {
-      if (onScreenRect(q)) return 1;
-      for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
-        const cs = getComputedStyle(a);
-        const ar = a.getBoundingClientRect();
-        const sx = /(auto|scroll)/.test(cs.overflowX) && a.scrollWidth > a.clientWidth + 1;
-        const sy = /(auto|scroll)/.test(cs.overflowY) && a.scrollHeight > a.clientHeight + 1;
-        if (sx || sy) return onScreenRect(ar) ? 2 : 0;
-        if (/(hidden|clip)/.test(cs.overflowX + ' ' + cs.overflowY) && (q.right < ar.left || q.left > ar.right || q.bottom < ar.top || q.top > ar.bottom)) return 0;
-      }
-      return 0;
-    };
-    const collect = (includeOff) => {
-    const out = [], off = [];
-    for (const root of roots) {
-      for (const el of [root, ...root.querySelectorAll('*')]) {
-        if (uniq.has(el)) continue;
-        if (el.closest('button') && el.tagName !== 'BUTTON') continue;
-        const tid = el.dataset ? el.dataset.testid : undefined;
-        const isBtn = el.tagName === 'BUTTON';
-        const txt = isBtn ? fullText(el) : ownText(el);
-        const isCanvas = el.tagName === 'CANVAS' || el.tagName === 'svg';
-        if (!isBtn && !tid && !txt) continue;
-        if (isCanvas && !tid) continue;
-        const rc = el.getBoundingClientRect();
-        if (rc.width < 0.5 || rc.height < 0.5) continue;
-        let dest = out;
-        if (rc.right < 0 || rc.bottom < 0 || rc.left > W || rc.top > H) { if (!includeOff || reach(el, rc) !== 2) continue; dest = off; }
-        if (!visible(el)) continue;
-        uniq.add(el);
-        const cs = getComputedStyle(el);
-        const e = { kind: isBtn ? 'button' : (txt ? 'text' : 'view'), frame: { x: Math.round(rc.left * 10) / 10, y: Math.round(rc.top * 10) / 10, w: Math.round(rc.width * 10) / 10, h: Math.round(rc.height * 10) / 10 }, tag: el.tagName.toLowerCase(), class: el.getAttribute('class') || '' };
-        if (tid) e.id = tid;
-        if (txt) e.text = txt;
-        const aria = el.getAttribute('aria-label');
-        if (aria) e.axLabel = aria;
-        if (txt || isBtn) { e.color = hex(cs.color); e.fontSize = parseFloat(cs.fontSize); e.fontWeight = weight(cs.fontWeight); e.align = cs.textAlign === 'center' ? 'center' : (cs.textAlign === 'right' || cs.textAlign === 'end' ? 'right' : 'left'); }
-        if (txt) {
-          // 文字实际占的矩形（所有文字节点的并集）
-          const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-          let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity;
-          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-            if (!n.textContent.trim()) continue;
-            // 只跳过元素自己里面的读屏隐藏装饰；整个图层被 aria-hidden（弹层下面的页，R16）不算——否则弹层下的标题没有 textFrame，对比退回到盒子（含内边距）
-            const hid = n.parentElement && n.parentElement.closest('[aria-hidden="true"]');
-            if (hid && hid !== el && el.contains(hid) && !isBtn) continue;
-            const range = document.createRange(); range.selectNodeContents(n);
-            for (const q of range.getClientRects()) { if (q.width < 0.1) continue; l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom); }
-          }
-          if (r > l) e.textFrame = { x: Math.round(l * 10) / 10, y: Math.round(t * 10) / 10, w: Math.round((r - l) * 10) / 10, h: Math.round((b - t) * 10) / 10 };
-        }
-        if (rc.width <= 2 && rc.height <= 2) e.srOnly = true;
-        const icon = isBtn ? el.querySelector('svg') : null;
-        if (icon) { const q = icon.getBoundingClientRect(); e.iconFrame = { x: Math.round(q.left * 10) / 10, y: Math.round(q.top * 10) / 10, w: Math.round(q.width * 10) / 10, h: Math.round(q.height * 10) / 10 }; }
-        if (isBtn) e.enabled = !el.disabled && el.getAttribute('aria-disabled') !== 'true';
-        const bg = hex(cs.backgroundColor);
-        if (bg && !bg.endsWith('00')) e.bg = bg;
-        const bw = parseFloat(cs.borderTopWidth);
-        if (bw > 0 && cs.borderTopStyle !== 'none') { e.border = hex(cs.borderTopColor); e.borderWidth = bw; }
-        const rad = parseFloat(cs.borderTopLeftRadius);
-        if (rad > 0) e.radius = rad;
-        if (isBtn && el.querySelector('svg')) e.hasIcon = true;
-        if (dest === off) e.off = true;
-        dest.push(e);
-      }
-    }
-    return { out, off };
-    };
-    """#
-
-    /// QA-H2：网页一边的屏外元素（offscreen：滚动区里滚得到的）、线（rules）、装饰（decos）、墨格（cells），窗口坐标 pt；屏外的标 off。
-    ///   rules：每条看得见的边框边（≥ 0.25px、不透明）、0 模糊的 box-shadow 细条（inset 框 / 偏移线，≤ 4pt）、≤ 2pt 高 / 宽的有底色元素、
-    ///          大于 40pt 的 svg 里的横 / 竖直线段（path / line / rect / polyline 的描边）。颜色乘上祖先透明度。
-    ///   decos：≤ 40pt 的 svg / img（图标、chevron、箭头）；≤ 48pt 的圆（圆角 ≥ 短边一半、有底色 / 边框 / inset 阴影；选中日圆底、圆按钮底）。
-    ///   cells：canvas（墨格：笔迹 / 衬底字）与单个汉字、字号 ≥ 24 的文字（字形格，框 = 文字框）。
-    static let qaWebExtrasJS = qaWebCoreJS + #"""
-
-    const R1 = (x) => Math.round(x * 10) / 10;
-    const fr = (l, t, w, h) => ({ x: R1(l), y: R1(t), w: R1(w), h: R1(h) });
-    const opa = (el) => { let op = 1; for (let e = el; e && e.nodeType === 1; e = e.parentElement) op *= Number(getComputedStyle(e).opacity); return op; };
-    const rgbaOf = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return null; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
-    const hexK = (c, k) => { const p = rgbaOf(c); if (!p) return ''; return hex(`rgba(${p[0]}, ${p[1]}, ${p[2]}, ${p[3] * k})`); };
-    const alphaOf = (c) => { const p = rgbaOf(c); return p ? p[3] : 0; };
-    const rules = [], decos = [], cells = [];
-    const place = (el, q, item, list) => {
-      const r = reach(el, { left: q.x, top: q.y, right: q.x + q.w, bottom: q.y + q.h });
-      if (!r) return;
-      if (r === 2) item.off = true;
-      list.push(item);
-    };
-    const addRule = (el, x, y, w, h, color, src) => {
-      if (!(Math.max(w, h) >= 3) || Math.min(w, h) > 4 || Math.min(w, h) < 0.25 || !color || color.endsWith('00')) return;
-      place(el, { x, y, w, h }, { ...fr(x, y, w, h), color, src }, rules);
-    };
-    const shadows = (v) => {
-      if (!v || v === 'none') return [];
-      const parts = []; let depth = 0, cur = '';
-      for (const ch of v) { if (ch === '(') depth++; if (ch === ')') depth--; if (ch === ',' && !depth) { parts.push(cur); cur = ''; } else cur += ch; }
-      parts.push(cur);
-      return parts.map(p => { const color = (/rgba?\([^)]*\)/.exec(p) || [''])[0]; const nums = p.replace(color, '').match(/-?[\d.]+px|(?:^|\s)0(?=\s|$)/g) || []; return { color, inset: /\binset\b/.test(p), n: nums.map(parseFloat) }; });
-    };
-    const segsOfPath = (d) => {
-      const tok = (d || '').match(/[MmLlHhVvCcSsQqTtAaZz]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g) || [];
-      const out = []; let i = 0, cmd = 'M', x = 0, y = 0, sx = 0, sy = 0, guard = 0;
-      const isCmd = () => /[A-Za-z]/.test(tok[i]);
-      const num = () => parseFloat(tok[i++]);
-      while (i < tok.length && guard++ < 10000) {
-        if (isCmd()) cmd = tok[i++];
-        const rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase();
-        if (C === 'Z') { out.push([x, y, sx, sy]); x = sx; y = sy; cmd = rel ? 'l' : 'L'; continue; }
-        if (i >= tok.length || isCmd()) continue;
-        if (C === 'M') { const nx = num(), ny = num(); x = rel ? x + nx : nx; y = rel ? y + ny : ny; sx = x; sy = y; cmd = rel ? 'l' : 'L'; }
-        else if (C === 'L') { const nx = num(), ny = num(); const tx = rel ? x + nx : nx, ty = rel ? y + ny : ny; out.push([x, y, tx, ty]); x = tx; y = ty; }
-        else if (C === 'H') { const nx = num(); const tx = rel ? x + nx : nx; out.push([x, y, tx, y]); x = tx; }
-        else if (C === 'V') { const ny = num(); const ty = rel ? y + ny : ny; out.push([x, y, x, ty]); y = ty; }
-        else { const n = { C: 6, S: 4, Q: 4, T: 2, A: 7 }[C] || 2; const v = []; for (let k = 0; k < n; k++) v.push(num()); x = rel ? x + v[n - 2] : v[n - 2]; y = rel ? y + v[n - 1] : v[n - 1]; }
-      }
-      return out;
-    };
-    const svgSegs = (g) => {
-      const t = g.tagName.toLowerCase();
-      const n = (a) => (g[a] && g[a].baseVal ? g[a].baseVal.value : 0);
-      if (t === 'path') return segsOfPath(g.getAttribute('d'));
-      if (t === 'line') return [[n('x1'), n('y1'), n('x2'), n('y2')]];
-      if (t === 'rect') { const x = n('x'), y = n('y'), w = n('width'), h = n('height'); return [[x, y, x + w, y], [x + w, y, x + w, y + h], [x + w, y + h, x, y + h], [x, y + h, x, y]]; }
-      if (t === 'polyline' || t === 'polygon') { const p = [...(g.points || [])].map(q => [q.x, q.y]); const s = []; for (let k = 1; k < p.length; k++) s.push([...p[k - 1], ...p[k]]); if (t === 'polygon' && p.length > 2) s.push([...p[p.length - 1], ...p[0]]); return s; }
-      return [];
-    };
-    const CJK1 = /^[㐀-鿿豈-﫿]$/;
-    // 装饰性的伪元素（::before / ::after 有底色 / 边框 / inset 阴影：写错前面的朱点、格里的辅助线）没有自己的框：插一个同样式的临时 span 量出框、马上拿掉
-    // （同一段同步脚本里插、量、删，中间不渲染；截图在这之后）。量的时候用一条临时样式把真的伪元素藏起，免得两个并排挤开位置。
-    const probeStyle = document.createElement('style');
-    probeStyle.textContent = '[data-qa-pseudo="before"]::before,[data-qa-pseudo="after"]::after{display:none !important}';
-    document.head.appendChild(probeStyle);
-    const PSEUDO_PROPS = ['display', 'position', 'left', 'right', 'top', 'bottom', 'width', 'height', 'minWidth', 'minHeight', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft',
-      'flex', 'flexShrink', 'alignSelf', 'verticalAlign', 'boxSizing', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth', 'borderTopStyle', 'borderRightStyle',
-      'borderBottomStyle', 'borderLeftStyle', 'transform', 'inset'];
-    const pseudoBoxes = (el) => {
-      const out = [];
-      for (const which of ['::before', '::after']) {
-        const ps = getComputedStyle(el, which);
-        if (!ps || ps.content === 'none' || ps.content === 'normal' || ps.display === 'none') continue;
-        const deco = alphaOf(ps.backgroundColor) > 0.02 || ['Top', 'Right', 'Bottom', 'Left'].some(sd => parseFloat(ps[`border${sd}Width`]) > 0 && !/none|hidden/.test(ps[`border${sd}Style`]) && alphaOf(ps[`border${sd}Color`]) > 0.02)
-          || shadows(ps.boxShadow).some(sh => alphaOf(sh.color) > 0.02 && !(sh.n[2] > 0));
-        if (!deco || /^["'].+["']$/.test(ps.content)) continue; // 有字的伪元素（›、角标）不量
-        // 跟在字前 / 后的伪元素（不脱离文档流，例：「写错」前的朱点）：按字的框推出位置（字的左缘 − 间距 − 外边距 − 宽，竖向对字居中）；
-        // 插临时 span 量这一类会被 flex / 行内排版挤开，量不准
-        if (!/absolute|fixed/.test(ps.position)) {
-          const texts = [...el.childNodes].filter(n => n.nodeType === 3 && n.textContent.trim());
-          const tn = which === '::before' ? texts[0] : texts[texts.length - 1];
-          const w = parseFloat(ps.width), h = parseFloat(ps.height);
-          if (tn && w > 0 && h > 0) {
-            const range = document.createRange(); range.selectNodeContents(tn);
-            const rs = [...range.getClientRects()].filter(r => r.width > 0);
-            const t = which === '::before' ? rs[0] : rs[rs.length - 1];
-            if (t) {
-              const ecs = getComputedStyle(el);
-              const gap = /flex|grid/.test(ecs.display) ? (parseFloat(ecs.columnGap) || 0) : 0;
-              const left = which === '::before' ? t.left - gap - (parseFloat(ps.marginRight) || 0) - w : t.right + gap + (parseFloat(ps.marginLeft) || 0);
-              const top = t.top + (t.height - h) / 2;
-              out.push({ q: { left, top, width: w, height: h, right: left + w, bottom: top + h }, cs: ps });
-              continue;
-            }
-          }
-        }
-        const probe = document.createElement('span');
-        for (const k of PSEUDO_PROPS) { try { probe.style[k] = ps[k]; } catch (e) {} }
-        el.setAttribute('data-qa-pseudo', which.slice(2));
-        if (which === '::before') el.insertBefore(probe, el.firstChild); else el.appendChild(probe);
-        const q = probe.getBoundingClientRect();
-        probe.remove();
-        el.removeAttribute('data-qa-pseudo');
-        if (q.width > 0 || q.height > 0) out.push({ q, cs: ps });
-      }
-      return out;
-    };
-    // 一个框（元素或伪元素）的线与圆：边框边、0 模糊 box-shadow 细条（inset 框 / 偏移线，外圈同理）、细的有底色框（分隔条）、≤ 48pt 的圆（选中日圆底、圆按钮底）
-    const boxShapes = (el, rc, cs, k) => {
-      const L = rc.left, T = rc.top, Wd = rc.width, Ht = rc.height;
-      for (const [side, f] of [['Top', (b) => [L, T, Wd, b]], ['Bottom', (b) => [L, T + Ht - b, Wd, b]], ['Left', (b) => [L, T, b, Ht]], ['Right', (b) => [L + Wd - b, T, b, Ht]]]) {
-        const bw = parseFloat(cs[`border${side}Width`]);
-        if (!(bw >= 0.25) || /none|hidden/.test(cs[`border${side}Style`])) continue;
-        addRule(el, ...f(bw), hexK(cs[`border${side}Color`], k), 'border');
-      }
-      for (const sh of shadows(cs.boxShadow)) {
-        const [ox = 0, oy = 0, blur = 0, spread = 0] = sh.n;
-        if (blur > 0 || !sh.color || alphaOf(sh.color) <= 0.02) continue;
-        const c = hexK(sh.color, k);
-        if (sh.inset) {
-          const hl = L + ox + spread, ht = T + oy + spread, hr = L + Wd + ox - spread, hb = T + Ht + oy - spread;
-          if (ht > T) addRule(el, L, T, Wd, Math.min(Ht, ht - T), c, 'shadow');
-          if (hb < T + Ht) addRule(el, L, Math.max(T, hb), Wd, T + Ht - Math.max(T, hb), c, 'shadow');
-          if (hl > L) addRule(el, L, T, Math.min(Wd, hl - L), Ht, c, 'shadow');
-          if (hr < L + Wd) addRule(el, Math.max(L, hr), T, L + Wd - Math.max(L, hr), Ht, c, 'shadow');
-        } else {
-          const sl = L + ox - spread, st = T + oy - spread, sr = L + Wd + ox + spread, sb = T + Ht + oy + spread;
-          if (st < T) addRule(el, L, st, Wd, T - st, c, 'shadow');
-          if (sb > T + Ht) addRule(el, L, T + Ht, Wd, sb - T - Ht, c, 'shadow');
-          if (sl < L) addRule(el, sl, T, L - sl, Ht, c, 'shadow');
-          if (sr > L + Wd) addRule(el, L + Wd, T, sr - L - Wd, Ht, c, 'shadow');
-        }
-      }
-      const bg = cs.backgroundColor;
-      if (alphaOf(bg) > 0.02 && ((Ht <= 2 && Wd > 4) || (Wd <= 2 && Ht > 4))) addRule(el, L, T, Wd, Ht, hexK(bg, k), 'thin');
-      if (Wd >= 4 && Ht >= 4 && Wd <= 48 && Ht <= 48 && Math.abs(Wd - Ht) <= 2) {
-        const rr = cs.borderTopLeftRadius;
-        const rad = /%$/.test(rr) ? parseFloat(rr) / 100 * Math.min(Wd, Ht) : parseFloat(rr);
-        const bwc = parseFloat(cs.borderTopWidth) > 0 && !/none|hidden/.test(cs.borderTopStyle) && alphaOf(cs.borderTopColor) > 0.02;
-        const ring = shadows(cs.boxShadow).find(sh => sh.inset && alphaOf(sh.color) > 0.02);
-        if (rad >= Math.min(Wd, Ht) / 2 - 0.5 && (alphaOf(bg) > 0.02 || bwc || ring)) place(el, fr(L, T, Wd, Ht), { kind: 'circle', ...fr(L, T, Wd, Ht), color: alphaOf(bg) > 0.02 ? hexK(bg, k) : (bwc ? hexK(cs.borderTopColor, k) : hexK(ring.color, k)) }, decos);
-      }
-    };
-    const seen = new Set();
-    for (const root of roots) {
-      for (const el of [root, ...root.querySelectorAll('*')]) {
-        if (seen.has(el)) continue;
-        seen.add(el);
-        const tag = el.tagName.toLowerCase();
-        if (tag !== 'svg' && el.closest('svg')) continue;
-        const rc = el.getBoundingClientRect();
-        if (rc.width < 0.25 && rc.height < 0.25) continue;
-        if (!visible(el)) continue;
-        const cs = getComputedStyle(el);
-        const k = opa(el);
-        const L = rc.left, T = rc.top, Wd = rc.width, Ht = rc.height;
-        boxShapes(el, rc, cs, k);
-        for (const pb of pseudoBoxes(el)) boxShapes(el, pb.q, pb.cs, k);
-        if (tag === 'svg' || tag === 'img') {
-          if (Math.max(Wd, Ht) <= 40 && Math.min(Wd, Ht) >= 2) { place(el, fr(L, T, Wd, Ht), { kind: 'icon', ...fr(L, T, Wd, Ht), color: hexK(cs.color, k) }, decos); continue; }
-          if (tag === 'img') { if (Wd >= 8 && Ht >= 8) place(el, fr(L, T, Wd, Ht), { kind: 'image', ...fr(L, T, Wd, Ht) }, cells); continue; }
-          if (tag === 'svg') {
-            // 大 svg：只有横 / 竖直线段的是线条图（格线、外框）→ 线；有曲线 / 斜线的是图画（笔迹、字形轮廓）→ 墨格
-            const found = [];
-            let drawing = false;
-            for (const g of el.querySelectorAll('path, line, rect, polyline, polygon, circle, ellipse')) {
-              const gt = g.tagName.toLowerCase();
-              if (gt === 'circle' || gt === 'ellipse' || (gt === 'path' && /[CcSsQqTtAa]/.test(g.getAttribute('d') || ''))) { drawing = true; break; }
-              if (!visible(g)) continue;
-              const m = g.getScreenCTM && g.getScreenCTM();
-              if (!m) continue;
-              const gs = getComputedStyle(g);
-              const stroked = gs.stroke && /rgb/.test(gs.stroke);
-              const sw = stroked ? parseFloat(gs.strokeWidth) * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) : 0;
-              const c = stroked ? hexK(gs.stroke, opa(g) * Number(gs.strokeOpacity || 1)) : '';
-              for (const [x1, y1, x2, y2] of svgSegs(g)) {
-                const X1 = m.a * x1 + m.c * y1 + m.e, Y1 = m.b * x1 + m.d * y1 + m.f, X2 = m.a * x2 + m.c * y2 + m.e, Y2 = m.b * x2 + m.d * y2 + m.f;
-                if (Math.abs(Y1 - Y2) < 0.05 && Math.abs(X1 - X2) >= 2) { if (sw > 0) found.push([g, Math.min(X1, X2), Y1 - sw / 2, Math.abs(X2 - X1), sw, c]); }
-                else if (Math.abs(X1 - X2) < 0.05 && Math.abs(Y1 - Y2) >= 2) { if (sw > 0) found.push([g, X1 - sw / 2, Math.min(Y1, Y2), sw, Math.abs(Y2 - Y1), c]); }
-                else if (Math.hypot(X2 - X1, Y2 - Y1) >= 1) drawing = true;
-              }
-              if (drawing) break;
-            }
-            if (drawing) place(el, fr(L, T, Wd, Ht), { kind: 'ink', ...fr(L, T, Wd, Ht) }, cells);
-            else for (const [g, x, y, w, h, c] of found) addRule(g, x, y, w, h, c, 'svg');
-          }
-        }
-        // 墨格
-        if (tag === 'canvas' && Wd >= 8 && Ht >= 8) place(el, fr(L, T, Wd, Ht), { kind: 'ink', ...fr(L, T, Wd, Ht) }, cells);
-        const own = ownText(el);
-        if (own && CJK1.test(own) && parseFloat(cs.fontSize) >= 24) {
-          const range = document.createRange();
-          for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) { range.selectNodeContents(n); const q = range.getBoundingClientRect(); if (q.width > 0) place(el, fr(q.left, q.top, q.width, q.height), { kind: 'glyph', ...fr(q.left, q.top, q.width, q.height), text: own }, cells); break; }
-        }
-      }
-    }
-    probeStyle.remove();
-    return { offscreen: collect(true).off, rules, decos, cells };
-    """#
 }
 
 /// 原生写字页转场记录（QA-H1：探针带出最近 24 条，XCUITest 核对 D62 转场类型，NF-01；B2.8：present:/dismiss:<paper|push|quiet|phase|fade|none>、
@@ -999,38 +703,73 @@ enum QAFeedback {
     }
 }
 
-/// B2.9b：QA 时钟。注入把页面时钟钉在固定日子时（结果页状态：2026-10-22 09:00，或 -shizi-qa-clock），这个钟就是全 App 唯一的「现在」：
-/// 页面 now()（注入后量出偏移 = 页面 now − 真实时间，存在 UserDefaults）、杀进程重开后的页面（WebViewController 在 documentStart 注入
-/// window.__shiziQAClockOffset，src/platform/env.js 模块求值时读，路由恢复 routeRestore 也用它）与原生（SQLite 时间戳、提醒排期）。
-/// 不钉时钟的注入清掉偏移（之后用真实时间）。只在 DEBUG 测试宿主。
+/// B2.9b：QA 时钟（只在 DEBUG 测试宿主）。两个读数：
+///   nowMs  应用时钟（store / 导航的「现在」，JS 参考里页面的 env.now）：夹具 clock.pin 期间从固定时刻起每次读数 +5ms（顺序确定，FSRS 的 fuzz 种子含复习时刻，
+///          「N 天后再见」要可复现）；其余时候 = 墙上时钟 + 偏移。
+///   wallMs 墙上时钟 + 偏移（原生库的行时间戳、提醒排期）：钉住期间也不跳（与 JS 参考里原生侧的 QAClock 同一口径）。
+/// 偏移存在 UserDefaults：杀进程重开后也是同一个「现在」（冷启动恢复按「离开多久」判断）。不钉时钟的注入清掉偏移（之后用真实时间）。
 enum QAClock {
     static let key = "shizi.qa.clockOffsetMs"
 
     static var offsetMs: Double? {
-        get { WebViewController.nativeTestHostEnabled ? UserDefaults.standard.object(forKey: key) as? Double : nil }
+        get { RootViewController.nativeTestHostEnabled ? UserDefaults.standard.object(forKey: key) as? Double : nil }
         set {
             if let v = newValue { UserDefaults.standard.set(v, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
         }
     }
 
-    static func nowMs() -> Double { Date().timeIntervalSince1970 * 1000 + (offsetMs ?? 0) }
-    static func date() -> Date { Date(timeIntervalSince1970: nowMs() / 1000) }
+    /// 钉住的起点与读数（prologue.js 的 Date.now = FIX + (pinK += 5)）。
+    private static var pinned: (base: Double, k: Double)?
 
-    /// documentStart 注入的脚本（没有偏移 → nil）。
-    static var script: String? {
-        guard let v = offsetMs else { return nil }
-        return "window.__shiziQAClockOffset = \(String(format: "%.0f", v));"
+    private static func realMs() -> Double { Date().timeIntervalSince1970 * 1000 }
+
+    static func nowMs() -> Double {
+        if var p = pinned {
+            p.k += 5
+            pinned = p
+            return p.base + p.k
+        }
+        return wallMs()
+    }
+
+    static func wallMs() -> Double { realMs() + (offsetMs ?? 0) }
+    /// 探针读的「现在」：钉住期间不消耗读数。
+    static func nowWithoutTick() -> Double { pinned.map { $0.base + $0.k } ?? wallMs() }
+    static func date() -> Date { Date(timeIntervalSince1970: wallMs() / 1000) }
+
+    /// 造数据期间钉住（墙上时钟的偏移同时对到这一刻）。
+    static func pin(at fix: Double) {
+        pinned = (fix, 0)
+        offsetMs = fix - realMs()
+    }
+
+    /// R16：把读数拨到第 tick 次（judge 的 tick）。
+    static func repin(_ tick: Double) {
+        if var p = pinned { p.k = tick * 5; pinned = p }
+    }
+
+    /// 放开：从此刻（再读一次）起照常流逝，全 App 的钟随之平移（setClock）。没钉住时什么都不做。
+    static func unpin() {
+        guard pinned != nil else { return }
+        let at = nowMs()
+        pinned = nil
+        setClock(at)
+    }
+
+    /// 顶层夹具清空时：直接放开，不平移（之后 reset / setClock 决定偏移）。
+    static func unpinWithoutShift() { pinned = nil }
+
+    /// 应用时钟平移到 at（test-hooks setClock）；nil = 复原（偏移 < 1s 视为没平移）。
+    static func setClock(_ at: Double?) {
+        guard let at else { offsetMs = nil; return }
+        let off = at - realMs()
+        offsetMs = abs(off) >= 1000 ? off : nil
     }
 }
 
 /// 本次启动是否已经注入过（只在第一次 pageReady 注入）。
 enum QARun {
     static var started = false
-}
-
-/// 原生写字页开关（与 NativeWriteCoordinator 同一个判定，这里只读）。
-enum NativeWriteDetect {
-    static var enabled: Bool { WebViewController.nativeWriteEnabled }
 }
 
 /// 探针：读屏元素「qa-probe」的 value = store 摘要 JSON（XCUITest 断言数据用）。
@@ -1040,10 +779,10 @@ final class QAProbe {
     private var window: UIWindow?
     private let label = UILabel()
     private var timer: Timer?
-    private weak var host: WebViewController?
+    private weak var host: RootViewController?
     var seedResult: String??
 
-    func install(on host: WebViewController) {
+    func install(on host: RootViewController) {
         self.host = host
         guard window == nil else { return }
         let w = UIWindow(frame: CGRect(x: 0, y: 0, width: 2, height: 2))
@@ -1075,10 +814,7 @@ final class QAProbe {
         guard !busy, let host else { return }
         busy = true
         defer { busy = false }
-        var out: [String: Any] = [:]
-        if let v = try? await host.webView.callAsyncJavaScript(Self.summaryJS, arguments: [:], in: nil, contentWorld: .page), let d = v as? [String: Any] {
-            out = d
-        }
+        var out = Self.summary(host.stage.engine)
         if let vc = host.nativeWriteTop {
             let phase: String
             switch vc.phase {
@@ -1103,7 +839,7 @@ final class QAProbe {
             out["result"] = ["shown": false]
         }
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
-        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "engineMode": ShiziEngineMode.current.rawValue, "latency": NativeStage.latencies, "bootMs": NativeStage.bootFrameMs ?? -1, "bootFromLaunchMs": NativeStage.bootFromLaunchMs ?? -1, "bootKind": host.stage.bootKind, "entries": host.stage.entries.map { $0["n"] as? String ?? "" }]
+        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies, "bootMs": NativeStage.bootFrameMs ?? -1, "bootFromLaunchMs": NativeStage.bootFromLaunchMs ?? -1, "bootKind": host.stage.bootKind, "entries": host.stage.entries.map { $0["n"] as? String ?? "" }]
         if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
         if let tabs = host.stage.tabsProbe { stageOut["tabs"] = tabs } // B3.5d：原生 Tab 栏（看得见、选中的 tab）
         // R14：宿主往上的呈现链（类名，底 → 顶；写字 / 结果 / 原生页 / 弹层都在里面）——测试工具判断「左缘返回有没有发生任何事」用
@@ -1112,16 +848,12 @@ final class QAProbe {
         while let c = cur { chain.append(String(describing: type(of: c))); cur = c.presentedViewController }
         stageOut["presented"] = chain
         out["stage"] = stageOut
-        if let shadow = ShadowEngine.shared { out["shadow"] = shadow.probe } // B4.7：影子比对 {ops, mismatches, first, …}
-        out["pageReady"] = host.pageReady
+        out["pageReady"] = host.stage.planned // B4.9：没有网页了，「就绪」= 冷启动判定做完（测试按它等）
         out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events
-        // B4.9c：swift 模式里导航由 SwiftNavigator 记账（同 engine.js account 的 traceNav），页面只做镜像——转场记录 = 页面自己的（测试脚本经页面路由开页时）+ Swift 的
-        // 冷启动判定同理：swift 模式里 route.plan 由 Swift 的 RouteMemory 判（页面的 route-memory 没判过，lastPlan 是 null）
-        if let swift = host.stage.engine as? SwiftEngine {
-            out["webNav"] = (out["webNav"] as? [String] ?? []) + SwiftNavigator.traceLog
-            out["coldPlan"] = EngineValue.any(swift.nav.host.memory.lastPlan)
-        }
+        // 导航由 SwiftNavigator 记账（同 engine.js account 的 traceNav，字段名沿用 webNav）；冷启动判定 = Swift 的 RouteMemory
+        out["webNav"] = SwiftNavigator.traceLog
+        out["coldPlan"] = EngineValue.any(host.stage.engine.nav.host.memory.lastPlan)
         out["feedback"] = QAFeedback.events
         out["a11y"] = NativeA11y.events // B2.9b：读屏通知队列（screen:/layout:/announce:）
         out["navRunning"] = NativeWriteTransitions.running
@@ -1131,35 +863,62 @@ final class QAProbe {
         }
     }
 
-    static let summaryJS = #"""
-    const T = window.__shiziTest;
-    if (!T) return { hooks: false };
-    const st = T.getState();
-    const recs = Object.values(st.records || {}).flat();
-    const kinds = {};
-    for (const r of recs) kinds[r.kind] = (kinds[r.kind] || 0) + 1;
-    const judged = recs.filter(r => r.kind === 'judged');
-    const sess = {};
-    for (const slot of ['A', 'B']) {
-      const s = st.sessions && st.sessions[slot];
-      sess[slot] = s ? { kind: s.kind, cursor: s.cursor, total: s.queue.length, ended: !!s.endedAt, items: s.items.length, phase: s.current ? s.current.phase : null, strokes: s.current ? s.current.strokes.length : 0, hints: s.current ? s.current.hints || 0 : 0, lastLine: s.lastLine ? s.lastLine.kind : null } : null;
+    /// store 摘要（原来是页面里的 summaryJS，B4.9 起读 Swift 的 store 与导航）：记录条数与种类、判断写对 / 写错数、设置、已练字数、
+    /// 看答案留墨数、调度表条数、两个槽的会话、路由（栈顶 / 深度 / tab）、应用时钟。
+    static func summary(_ engine: SwiftEngine) -> [String: Any] {
+        let store = engine.core.store
+        let st = store.state
+        let recs = Query.flattenRecords(st["records"])
+        var kinds: [String: Int] = [:]
+        for r in recs { kinds[QAJS.string(r["kind"]), default: 0] += 1 }
+        let judged = recs.filter { $0["kind"] == .string("judged") }
+        func plain(_ v: JSValue?) -> Any { v.map { EngineValue.any($0) } ?? NSNull() }
+        var sessions: [String: Any] = [:]
+        for slot in ["A", "B"] {
+            guard let s = st["sessions"]?[slot], !s.isNull else { sessions[slot] = NSNull(); continue }
+            var o: [String: Any] = [:]
+            o["kind"] = plain(s["kind"])
+            o["cursor"] = plain(s["cursor"])
+            o["total"] = s["queue"]?.arrayValue?.count ?? 0
+            o["ended"] = QAJS.truthy(s["endedAt"])
+            o["items"] = s["items"]?.arrayValue?.count ?? 0
+            let cur: JSValue? = (s["current"]?.isNull ?? true) ? nil : s["current"]
+            o["phase"] = cur == nil ? NSNull() : plain(cur?["phase"])
+            o["strokes"] = cur?["strokes"]?.arrayValue?.count ?? 0
+            o["hints"] = cur?["hints"]?.numberValue ?? 0
+            let line: JSValue? = (s["lastLine"]?.isNull ?? true) ? nil : s["lastLine"]
+            o["lastLine"] = line == nil ? NSNull() : plain(line?["kind"])
+            sessions[slot] = o
+        }
+        let settings = st["settings"]
+        let stack = engine.nav.router.stack
+        let top = stack.last
+        var route: [String: Any] = [:]
+        route["top"] = top?["n"]?.stringValue ?? NSNull()
+        route["depth"] = max(0, stack.count - 1)
+        route["tab"] = stack.first?["n"]?.stringValue ?? NSNull()
+        route["overlay"] = top.map { $0["k"] != .string("s") } ?? false
+        var set: [String: Any] = [:]
+        set["appearance"] = settings?["appearance"]?.stringValue ?? "auto"
+        let group: JSValue? = (settings?["groupSize"]?.isNull ?? true) ? nil : settings?["groupSize"]
+        set["groupSize"] = group == nil ? NSNull() : plain(group)
+        var out: [String: Any] = [:]
+        out["coldPlan"] = NSNull()
+        out["clock"] = QAClock.nowWithoutTick()
+        out["hooks"] = true
+        out["records"] = recs.count
+        out["kinds"] = kinds
+        out["judgedWrong"] = judged.filter { $0["judgment"] == .string("wrong") }.count
+        out["judgedCorrect"] = judged.filter { $0["judgment"] == .string("correct") }.count
+        out["settings"] = set
+        out["chars"] = Set(recs.map { QAJS.string($0["char"]) }).count
+        out["answerSeenInk"] = recs.filter { $0["kind"] == .string("answer-seen") && store.getInk($0) != nil }.count
+        out["sched"] = st["sched"]?.objectValue?.count ?? 0
+        out["sessions"] = sessions
+        out["route"] = route
+        out["topScreen"] = top?["n"]?.stringValue ?? NSNull()
+        out["navAnim"] = "idle"
+        return out
     }
-    const chars = new Set(recs.map(r => r.char));
-    const seenInk = recs.filter(r => r.kind === 'answer-seen' && T.getInk(r)).length;
-    const app = document.querySelector('.sz-app');
-    let route = null;
-    try { const { getRouter } = await import('/src/ui/router.js'); const r = getRouter().getState(); route = { top: r.top ? r.top.n : null, depth: r.depth, tab: r.tab, overlay: !!r.topIsOverlay }; } catch (e) {}
-    let webNav = [];
-    try { const { navTrace } = await import('/src/ui/paper-transition.js'); webNav = [...navTrace]; } catch (e) {}
-    // B2.9b：冷启动判定（route-memory lastPlan：ok / stale / invalid:<页> …）与页面此刻的时钟（QA 钉住时跨重开保持）
-    let coldPlan = null;
-    try { const { getRouteMemory } = await import('/src/ui/route-memory.js'); const m = getRouteMemory(); coldPlan = m ? m.lastPlan() : null; } catch (e) {}
-    return {
-      coldPlan, clock: T.now(),
-      hooks: true, records: recs.length, kinds, judgedWrong: judged.filter(r => r.judgment === 'wrong').length, judgedCorrect: judged.filter(r => r.judgment === 'correct').length,
-      settings: { appearance: (st.settings || {}).appearance || 'auto', groupSize: (st.settings || {}).groupSize || null }, // B3.5c：我的页设置行的流程测试读
-      chars: chars.size, answerSeenInk: seenInk, sched: Object.keys(st.sched || {}).length, sessions: sess, route, topScreen: app ? app.dataset.topScreen : null, navAnim: app ? app.dataset.navAnim : null, webNav,
-    };
-    """#
 }
 #endif

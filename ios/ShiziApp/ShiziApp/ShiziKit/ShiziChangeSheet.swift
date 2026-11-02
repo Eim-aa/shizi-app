@@ -66,7 +66,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
 
     let model: Model
     private let slot: String
-    private let bridge: NativeWriteBridge
+    private let bridge: WriteSessionChannel
     private let style: NativeJudgeStyle
     private let onApplied: ([String: Any]?) -> Void
     /// 「看这个字 ›」：弹层已关，写字页接着去字详情。
@@ -98,7 +98,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
     private var type: NativeType { style.type }
 
-    init(slot: String, model: Model, bridge: NativeWriteBridge, style: NativeJudgeStyle, onApplied: @escaping ([String: Any]?) -> Void) {
+    init(slot: String, model: Model, bridge: WriteSessionChannel, style: NativeJudgeStyle, onApplied: @escaping ([String: Any]?) -> Void) {
         self.slot = slot
         self.model = model
         self.bridge = bridge

@@ -11,6 +11,7 @@
 		1A0000000000000000B35C02 /* Mine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35C01 /* Mine.swift */; };
 		1A0000000000000000B32024 /* NativeStageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32023 /* NativeStageFlowTests.swift */; };
 		1A0000000000000000B32022 /* NativeStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32021 /* NativeStageTests.swift */; };
+		B49900000000000000000008 /* AppHostSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000007 /* AppHostSupport.swift */; };
 		1A0000000000000000B32012 /* About.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32011 /* About.swift */; };
 		1A0000000000000000B31312 /* Remind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31311 /* Remind.swift */; };
 		1A0000000000000000B31112 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31111 /* Backup.swift */; };
@@ -57,25 +58,21 @@
 		1A000000000000000000B2A3 /* NativeWriteLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A2 /* NativeWriteLayout.swift */; };
 		1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A0 /* NativeInkWire.swift */; };
 		1A0000000000000000000021 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000020 /* AppDelegate.swift */; };
-		1A0000000000000000000023 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000022 /* WebViewController.swift */; };
-		1A0000000000000000000025 /* LocalWebSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000024 /* LocalWebSchemeHandler.swift */; };
-		1A00000000000000000000B1 /* NativeSmoke.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B0 /* NativeSmoke.swift */; };
+		1A0000000000000000000023 /* RootViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000022 /* RootViewController.swift */; };
 		1A00000000000000000000D1 /* InkModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D0 /* InkModel.swift */; };
 		1A00000000000000000000D3 /* InkModelCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D2 /* InkModelCheck.swift */; };
 		1A00000000000000000000D5 /* NativeInkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D4 /* NativeInkView.swift */; };
-		1A00000000000000000000D7 /* NativeInkSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D6 /* NativeInkSpike.swift */; };
 		1A00000000000000000000E1 /* NativeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E0 /* NativeStore.swift */; };
-		1A00000000000000000000E3 /* NativeStoreBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E2 /* NativeStoreBridge.swift */; };
+		1A00000000000000000000E3 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E2 /* AppDatabase.swift */; };
 		1A00000000000000000000F1 /* NativeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E0 /* NativeStore.swift */; };
 		1A00000000000000000000F3 /* NativeStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000F2 /* NativeStoreTests.swift */; };
 		1A0000000000000000000027 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000026 /* Assets.xcassets */; };
 		1A000000000000000000002B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000002A /* PrivacyInfo.xcprivacy */; };
 		1A00000000000000000000C2 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000C0 /* InfoPlist.strings */; };
 		1A0000000000000000000B21 /* NativeGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B20 /* NativeGlyph.swift */; };
-		1A0000000000000000000B23 /* NativeWriteBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B22 /* NativeWriteBridge.swift */; };
+		1A0000000000000000000B23 /* WriteSessionChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B22 /* WriteSessionChannel.swift */; };
 		1A0000000000000000000B25 /* NativeWriteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B24 /* NativeWriteViewController.swift */; };
 		1A0000000000000000000B27 /* NativeStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B26 /* NativeStage.swift */; };
-		1A0000000000000000000C02 /* NativeWriteBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000C01 /* NativeWriteBridgeTests.swift */; };
 		1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000C21 /* InkSurfaceTests.swift */; };
 		1A0000000000000000B31002 /* NativeType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31001 /* NativeType.swift */; };
 		1A0000000000000000B31004 /* ShiziA11y.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31003 /* ShiziA11y.swift */; };
@@ -105,19 +102,18 @@
 		1A00000000000000000B3333 /* BlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3332 /* BlockTests.swift */; };
 		1A00000000000000000B3335 /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3334 /* AccessibilityAuditTests.swift */; };
 		1A00000000000000000B3302 /* QAFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3301 /* QAFixtures.swift */; };
+		B49900000000000000000002 /* QAOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000001 /* QAOps.swift */; };
+		B49900000000000000000004 /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000003 /* SoundPlayer.swift */; };
+		B49900000000000000000006 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000005 /* Sounds */; };
 		1A0000000000000000B37002 /* Detail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37001 /* Detail.swift */; };
 		1A0000000000000000B37004 /* DetailZoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37003 /* DetailZoom.swift */; };
 		1A0000000000000000B37006 /* DetailPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37005 /* DetailPhoto.swift */; };
 		1A0000000000000000B37008 /* DetailParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37007 /* DetailParts.swift */; };
         B46000000000000000000001 /* ShiziImageRendering in Frameworks */ = {isa = PBXBuildFile; productRef = B46000000000000000000002; };
-		B45C00000000000000000011 /* EngineMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000010 /* EngineMode.swift */; };
 		B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000012 /* SwiftEngineCore.swift */; };
 		B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000014 /* SwiftEngineRuntime.swift */; };
-		B49B00000000000000000002 /* LegacyStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49B00000000000000000001 /* LegacyStorage.swift */; };
-		B49B00000000000000000003 /* LegacyStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49B00000000000000000001 /* LegacyStorage.swift */; };
 		B49A00000000000000000002 /* SwiftNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49A00000000000000000001 /* SwiftNav.swift */; };
 		B45C00000000000000000017 /* SwiftEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000016 /* SwiftEngine.swift */; };
-		B45C00000000000000000019 /* ShadowEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000018 /* ShadowEngine.swift */; };
         B45C0000000000000000000A /* ShiziCore in Frameworks */ = {isa = PBXBuildFile; productRef = B45C0000000000000000000B; };
 /* End PBXBuildFile section */
 
@@ -143,6 +139,7 @@
 		1A0000000000000000B35C01 /* Mine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mine.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32023 /* NativeStageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageFlowTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32021 /* NativeStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageTests.swift; sourceTree = "<group>"; };
+		B49900000000000000000007 /* AppHostSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHostSupport.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32011 /* About.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = About.swift; sourceTree = "<group>"; };
 		1A0000000000000000B31311 /* Remind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Remind.swift; sourceTree = "<group>"; };
 		1A0000000000000000B31111 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
@@ -190,15 +187,12 @@
 		1A000000000000000000B2A0 /* NativeInkWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkWire.swift; sourceTree = "<group>"; };
 		1A0000000000000000000005 /* Shizi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shizi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000020 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		1A0000000000000000000022 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
-		1A0000000000000000000024 /* LocalWebSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalWebSchemeHandler.swift; sourceTree = "<group>"; };
-		1A00000000000000000000B0 /* NativeSmoke.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSmoke.swift; sourceTree = "<group>"; };
+		1A0000000000000000000022 /* RootViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootViewController.swift; sourceTree = "<group>"; };
 		1A00000000000000000000D0 /* InkModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkModel.swift; sourceTree = "<group>"; };
 		1A00000000000000000000D2 /* InkModelCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkModelCheck.swift; sourceTree = "<group>"; };
 		1A00000000000000000000D4 /* NativeInkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkView.swift; sourceTree = "<group>"; };
-		1A00000000000000000000D6 /* NativeInkSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkSpike.swift; sourceTree = "<group>"; };
 		1A00000000000000000000E0 /* NativeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStore.swift; sourceTree = "<group>"; };
-		1A00000000000000000000E2 /* NativeStoreBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStoreBridge.swift; sourceTree = "<group>"; };
+		1A00000000000000000000E2 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
 		1A00000000000000000000F2 /* NativeStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStoreTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000000F4 /* ShiziStoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShiziStoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000026 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -209,10 +203,9 @@
 		1A000000000000000000002D /* Signing.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig.example; sourceTree = "<group>"; };
 		1A00000000000000000000C1 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		1A0000000000000000000B20 /* NativeGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeGlyph.swift; sourceTree = "<group>"; };
-		1A0000000000000000000B22 /* NativeWriteBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteBridge.swift; sourceTree = "<group>"; };
+		1A0000000000000000000B22 /* WriteSessionChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteSessionChannel.swift; sourceTree = "<group>"; };
 		1A0000000000000000000B24 /* NativeWriteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteViewController.swift; sourceTree = "<group>"; };
 		1A0000000000000000000B26 /* NativeStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStage.swift; sourceTree = "<group>"; };
-		1A0000000000000000000C01 /* NativeWriteBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteBridgeTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000000C21 /* InkSurfaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkSurfaceTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000000C03 /* ShiziWriteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShiziWriteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000B31001 /* NativeType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeType.swift; sourceTree = "<group>"; };
@@ -244,17 +237,17 @@
 		1A00000000000000000B3332 /* BlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3334 /* AccessibilityAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3301 /* QAFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAFixtures.swift; sourceTree = "<group>"; };
+		B49900000000000000000001 /* QAOps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAOps.swift; sourceTree = "<group>"; };
+		B49900000000000000000003 /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
+		B49900000000000000000005 /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sounds; sourceTree = "<group>"; };
 		1A0000000000000000B37001 /* Detail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detail.swift; sourceTree = "<group>"; };
 		1A0000000000000000B37003 /* DetailZoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailZoom.swift; sourceTree = "<group>"; };
 		1A0000000000000000B37005 /* DetailPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPhoto.swift; sourceTree = "<group>"; };
 		1A0000000000000000B37007 /* DetailParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailParts.swift; sourceTree = "<group>"; };
-		B45C00000000000000000010 /* EngineMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineMode.swift; sourceTree = "<group>"; };
 		B45C00000000000000000012 /* SwiftEngineCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineCore.swift; sourceTree = "<group>"; };
 		B45C00000000000000000014 /* SwiftEngineRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineRuntime.swift; sourceTree = "<group>"; };
-		B49B00000000000000000001 /* LegacyStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyStorage.swift; sourceTree = "<group>"; };
 		B49A00000000000000000001 /* SwiftNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftNav.swift; sourceTree = "<group>"; };
 		B45C00000000000000000016 /* SwiftEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngine.swift; sourceTree = "<group>"; };
-		B45C00000000000000000018 /* ShadowEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -303,7 +296,7 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000B32021 /* NativeStageTests.swift */,
-				1A0000000000000000000C01 /* NativeWriteBridgeTests.swift */,
+				B49900000000000000000007 /* AppHostSupport.swift */,
 				1A0000000000000000000C21 /* InkSurfaceTests.swift */,
 				1A000000000000000000B2A6 /* NativeHintTests.swift */,
 				1A00000000000000000B11A3 /* WebInkTests.swift */,
@@ -345,12 +338,10 @@
 				1A0000000000000000B32010 /* Screens */,
 				1A0000000000000000B3101D /* ShiziKit */,
 				1A0000000000000000000020 /* AppDelegate.swift */,
-				1A0000000000000000000022 /* WebViewController.swift */,
-				1A0000000000000000000024 /* LocalWebSchemeHandler.swift */,
-				1A00000000000000000000B0 /* NativeSmoke.swift */,
+				1A0000000000000000000022 /* RootViewController.swift */,
 				1A00000000000000000000D2 /* InkModelCheck.swift */,
 				1A0000000000000000000B20 /* NativeGlyph.swift */,
-				1A0000000000000000000B22 /* NativeWriteBridge.swift */,
+				1A0000000000000000000B22 /* WriteSessionChannel.swift */,
 				1A0000000000000000B3101B /* NativeWriteMetrics.swift */,
 				1A0000000000000000000B24 /* NativeWriteViewController.swift */,
 				1A0000000000000000000B26 /* NativeStage.swift */,
@@ -359,21 +350,20 @@
 				1A0000000000000000B24601 /* NativeTrace.swift */,
 				1A0000000000000000B27001 /* NativeResult.swift */,
 				1A000000000000000000B2A2 /* NativeWriteLayout.swift */,
-				1A00000000000000000000D6 /* NativeInkSpike.swift */,
 				1A00000000000000000000E0 /* NativeStore.swift */,
-				B45C00000000000000000010 /* EngineMode.swift */,
 				B45C00000000000000000012 /* SwiftEngineCore.swift */,
 				B45C00000000000000000014 /* SwiftEngineRuntime.swift */,
 				B49A00000000000000000001 /* SwiftNav.swift */,
-				B49B00000000000000000001 /* LegacyStorage.swift */,
 				B45C00000000000000000016 /* SwiftEngine.swift */,
-				B45C00000000000000000018 /* ShadowEngine.swift */,
-				1A00000000000000000000E2 /* NativeStoreBridge.swift */,
+				1A00000000000000000000E2 /* AppDatabase.swift */,
 				1A00000000000000000A1101 /* NativeQAHarness.swift */,
 				1A00000000000000000B3301 /* QAFixtures.swift */,
+				B49900000000000000000001 /* QAOps.swift */,
+				B49900000000000000000003 /* SoundPlayer.swift */,
 				1A0000000000000000000026 /* Assets.xcassets */,
 				1A0000000000000000000028 /* Info.plist */,
 				1A000000000000000000002A /* PrivacyInfo.xcprivacy */,
+				B49900000000000000000005 /* Sounds */,
 				1A00000000000000000000C0 /* InfoPlist.strings */,
 			);
 			path = ShiziApp;
@@ -629,6 +619,7 @@
 			files = (
 				1A0000000000000000000027 /* Assets.xcassets in Resources */,
 				1A000000000000000000002B /* PrivacyInfo.xcprivacy in Resources */,
+				B49900000000000000000006 /* Sounds in Resources */,
 				1A00000000000000000000C2 /* InfoPlist.strings in Resources */,
 				1A0000000000000000B31018 /* ShiziKitCopy.json in Resources */,
 				1A0000000000000000B3101A /* ShiziKitTokens.json in Resources */,
@@ -665,7 +656,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A00000000000000000000F1 /* NativeStore.swift in Sources */,
-				B49B00000000000000000003 /* LegacyStorage.swift in Sources */,
 				1A00000000000000000000F3 /* NativeStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -703,14 +693,12 @@
 				1A0000000000000000B39D12 /* Records.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
-				1A0000000000000000000023 /* WebViewController.swift in Sources */,
-				1A0000000000000000000025 /* LocalWebSchemeHandler.swift in Sources */,
-				1A00000000000000000000B1 /* NativeSmoke.swift in Sources */,
+				1A0000000000000000000023 /* RootViewController.swift in Sources */,
 				1A00000000000000000000D1 /* InkModel.swift in Sources */,
 				1A00000000000000000000D3 /* InkModelCheck.swift in Sources */,
 				1A00000000000000000000D5 /* NativeInkView.swift in Sources */,
 				1A0000000000000000000B21 /* NativeGlyph.swift in Sources */,
-				1A0000000000000000000B23 /* NativeWriteBridge.swift in Sources */,
+				1A0000000000000000000B23 /* WriteSessionChannel.swift in Sources */,
 				1A0000000000000000000B25 /* NativeWriteViewController.swift in Sources */,
 				1A0000000000000000000B27 /* NativeStage.swift in Sources */,
 				1A000000000000000000B2A5 /* NativeHint.swift in Sources */,
@@ -721,16 +709,12 @@
 				1A0000000000000000B27002 /* NativeResult.swift in Sources */,
 				1A000000000000000000B2A3 /* NativeWriteLayout.swift in Sources */,
 				1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */,
-				1A00000000000000000000D7 /* NativeInkSpike.swift in Sources */,
 				1A00000000000000000000E1 /* NativeStore.swift in Sources */,
-				B45C00000000000000000011 /* EngineMode.swift in Sources */,
-				B49B00000000000000000002 /* LegacyStorage.swift in Sources */,
 				B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */,
 				B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */,
 				B49A00000000000000000002 /* SwiftNav.swift in Sources */,
 				B45C00000000000000000017 /* SwiftEngine.swift in Sources */,
-				B45C00000000000000000019 /* ShadowEngine.swift in Sources */,
-				1A00000000000000000000E3 /* NativeStoreBridge.swift in Sources */,
+				1A00000000000000000000E3 /* AppDatabase.swift in Sources */,
 				1A00000000000000000A1102 /* NativeQAHarness.swift in Sources */,
 				1A0000000000000000B31002 /* NativeType.swift in Sources */,
 				1A0000000000000000B31004 /* ShiziA11y.swift in Sources */,
@@ -745,6 +729,8 @@
 				1A0000000000000000B31016 /* ShiziUndoBar.swift in Sources */,
 				1A0000000000000000B3101C /* NativeWriteMetrics.swift in Sources */,
 				1A00000000000000000B3302 /* QAFixtures.swift in Sources */,
+				B49900000000000000000002 /* QAOps.swift in Sources */,
+				B49900000000000000000004 /* SoundPlayer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -752,8 +738,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1A0000000000000000000C02 /* NativeWriteBridgeTests.swift in Sources */,
 				1A0000000000000000B32022 /* NativeStageTests.swift in Sources */,
+				B49900000000000000000008 /* AppHostSupport.swift in Sources */,
 				1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */,
 				1A000000000000000000B2A7 /* NativeHintTests.swift in Sources */,
 				1A00000000000000000B11A4 /* WebInkTests.swift in Sources */,

@@ -1917,9 +1917,7 @@ final class QueryScreen: ShiziScreenViewController {
             self.overlay.releaseLayer { [weak self] in
                 guard let self else { return }
                 self.view.layoutIfNeeded()
-                var args: [String: Any] = ["entryId": self.entryId]
-                if let url = WebViewController.snapshotURL(self.view) { args["url"] = url }
-                engine.raw("stage.cover", args) { _ in go() }
+                engine.raw("stage.cover", NativeStage.coverArgs(entryId: self.entryId)) { _ in go() }
             }
         }
     }

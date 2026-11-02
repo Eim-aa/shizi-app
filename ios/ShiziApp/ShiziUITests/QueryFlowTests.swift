@@ -104,13 +104,13 @@ final class QueryFlowTests: XCTestCase {
         for id in ["native-library-title", "native-library-all-open", "native-library-query-open", "native-library-range"] {
             XCTAssertFalse(qa.el(id).exists, "\(id) under the sheet is out of the accessibility tree")
         }
-        XCTAssertFalse(qa.app.webViews.firstMatch.exists, "the web content under the sheet is out of the accessibility tree")
+        XCTAssertFalse(qa.app.webViews.firstMatch.exists, "B4.9: no web content in the app at all")
         XCTAssertFalse(qa.app.tabBars.buttons["字库"].exists, "B3.5d: the native tab bar under the sheet is out of the accessibility tree")
         qa.tap(qa.el("native-query-done"), "done")
         waitSheetGone(qa)
         XCTAssertTrue(qa.el("native-library-all-open").waitForExistence(timeout: 8 * QALoad.scale), "the root is back in the accessibility tree once the sheet is gone")
         XCTAssertTrue(qa.app.tabBars.buttons["字库"].waitForExistence(timeout: 4), "B3.5d: the native tab bar is back too")
-        XCTAssertFalse(qa.app.webViews.firstMatch.exists, "B3.5d: the web under the native root (only the root host) stays hidden from VoiceOver")
+        XCTAssertFalse(qa.app.webViews.firstMatch.exists, "B4.9: no web content in the app at all")
     }
 
     /// 键盘抬起时四个出口（完成 / 遮罩 / 下滑 / 左缘）都能关掉弹层。

@@ -66,7 +66,7 @@ final class SwiftNavigator {
         self.core = core
         var testHost = false
         #if DEBUG
-        testHost = WebViewController.nativeTestHostEnabled
+        testHost = RootViewController.nativeTestHostEnabled
         #endif
         host = NavHost(screens: .app(testHost: testHost), now: SwiftEngine.clock, clockNow: { CACurrentMediaTime() * 1000 })
         io = AppHostIO(nav: self)

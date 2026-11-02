@@ -50,8 +50,8 @@ enum ShiziTokens {
 
     // MARK: 字阶
 
-    /// 系统字号档位名（xS … XXXL、AX1 … AX5；与页面 text-size.js 同名，WebViewController.contentSizeName）。
-    static func categoryName(_ category: UIContentSizeCategory) -> String { WebViewController.contentSizeName(category) }
+    /// 系统字号档位名（xS … XXXL、AX1 … AX5；与 JS 参考 text-size.js 同名，RootViewController.contentSizeName）。
+    static func categoryName(_ category: UIContentSizeCategory) -> String { RootViewController.contentSizeName(category) }
 
     /// 该档位的长度令牌（pt：fs13 / lh13 … / btn-h / r-box / gutter …）= 页面 --名 在该档位的计算值（WebKit 1/64 截断）。表里没有的档位 → nil。
     static func lengths(_ category: UIContentSizeCategory) -> [String: CGFloat]? {

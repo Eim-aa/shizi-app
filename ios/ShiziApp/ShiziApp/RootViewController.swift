@@ -1,25 +1,18 @@
-import AVFoundation
 import Photos
 import UIKit
-import UniformTypeIdentifiers
 import UserNotifications
-import WebKit
 
-// 拾字 iOS 壳：单个 WKWebView 加载随包的 Web 资源（shizi-resource://app/…）。
-// 原生是无状态执行器（01-架构设计 §8.1 / §8.2）：
-//   JS→iOS  window.webkit.messageHandlers.shiziNative.postMessage({type, …})：
-//           pageReady、haptic、sound、shareBackup、pickBackup、sharePracticeCard、savePracticeCard、syncReminder、
-//           requestReminderPermission、openAppSettings、queryReminderStatus、backGestureEnabled；soundscape 是 no-op（P07）。
-//   iOS→JS  bridge.js 在模块顶层同步定义的全局：shiziOpenReminderTarget、shiziBackupPicked、shiziBackupRejected、
-//           markBackupExported、shiziCardSaved、shiziReminderStatus、shiziShareFailed（P96 过渡，M6-6）、
-//           shiziAccessibilityStatus（P116：读屏 / 切换控制状态，pageReady 与状态变化时）、
-//           shiziContentSize（P130 / D29：系统字号档位与正文倍率，pageReady 与系统字号变化时；P1-E6b：文档开始时另有
-//           WKUserScript 注入 window.__shiziInitialContentSize，冷启动首帧即目标字号）；
-//           事件 shizi-native-back / shizi-native-back-progress / shizi-native-escape（读屏两指 Z 形，A2-05 / R5-I2：等于点左上，有弹层先关弹层）。
-// 面向用户的文字一律在 Web 侧（src/config/copy/）：原生不弹 alert、不 reload（导入桥只交付文本或拒绝原因）。
+// 拾字的窗口根（B4.9：原来的 WKWebView 宿主 WebViewController 换成纯原生）。
+// 它只持有原生层的协调者 NativeStage（tab 根页、推入的原生页、写字 / 结果页、引擎 SwiftEngine），再管几件平台的事：
+//   · 冷启动：首帧画首页静态版（stage.bootFrame），随即做冷启动判定（stage.start → route.plan；不再等网页 pageReady）；
+//   · 提醒深链：点通知 → openReminderTarget → 栈重建好之后 deeplink.reminder（SwiftNavigator 答）；
+//   · 存相册（图片预览「保存」：SwiftEngine 的 image.persist → saveCard）；
+//   · 系统通知（SwiftEngine 的 ReminderController 要同步 / 要权限 / 查权限）；
+//   · 声音预载（SoundPlayer，首帧之后）。
+// 面向用户的文字都在 ShiziCore 的文案表（原生不弹 alert）。
 
-/// 左缘返回的阈值与起手区（R4-G1 / P270 / P272）。提交条件必须与 src/ui/router.js 的 BACK_COMMIT_RATIO / BACK_COMMIT_VELOCITY /
-/// BACK_RETURN_VELOCITY 一致（改一处必须改另一处，test/ios-back-gesture.test.mjs 核对）。
+/// 左缘返回的阈值（R4-G1 / P270 / P272）：原生写字 / 结果页 / 通用原生页的跟手返回共用（与 JS 参考 src/ui/router.js 的 BACK_COMMIT_RATIO /
+/// BACK_COMMIT_VELOCITY / BACK_RETURN_VELOCITY 一致，test/ios-back-gesture.test.mjs 核对）。
 enum BackGestureThreshold {
     /// 位移过三分之一个宽（D36 时为 0.5）。
     static let commitRatio: CGFloat = 1.0 / 3.0
@@ -37,70 +30,14 @@ enum BackGestureThreshold {
     }
 }
 
-private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
-    weak var delegate: WKScriptMessageHandler?
-
-    init(delegate: WKScriptMessageHandler) {
-        self.delegate = delegate
-    }
-
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        delegate?.userContentController(userContentController, didReceive: message)
-    }
-}
-
-final class WebViewController: UIViewController {
-    private static let temporarySharePrefix = "shizi-share-"
-    /// 备份导入的原生预检上限（01 §8.1；与 src/core/backup.js BACKUP_MAX_BYTES 相同）。
-    static let backupMaxBytes = 64 * 1024 * 1024
-
-    private let schemeHandler: LocalWebSchemeHandler
-    var webView: WKWebView!
+final class RootViewController: UIViewController {
     /// B3.2：原生层的协调者（写字 / 结果页 + 通用原生屏 + 引擎；NativeStage.swift）。
     lazy var stage = NativeStage(host: self)
-    // 用户脚本（文档开始时注入的系统字号；DEBUG 冒烟标记）挂在这个控制器上；每次加载前重建（见「系统字号」一节）。
-    private var scriptController: WKUserContentController!
-    /// 左缘返回（01 §7 / P272）：系统边缘识别器（屏幕左缘，与系统导航返回同一判定）。
-    var practiceBackGesture: UIScreenEdgePanGestureRecognizer!
-    /// 左缘返回的补充识别器：按下点在页边 20pt 内、向右为主才开始（系统边缘区判不到的起手，例如起手稍偏右）；要求 practiceBackGesture 先失败。
-    var marginBackGesture: UIPanGestureRecognizer!
-    /// 「页边起手」识别器收下的那根手指按下时的 x（pt）。平移识别器的 translation 从越过起步距离（约 10pt）才开始算，不能用「当前点 − 位移」反推起手点。
-    private var marginTouchStartX: CGFloat?
-    // 01 §7：页面通过 postMessage({type:'backGestureEnabled', value}) 告知能否开始边缘返回
-    // （tab 根页、阻断页为 false；有子页或顶层是弹层为 true——R5-I2 / D58 ① 起写字页每个阶段含判断阶段都是 true）。每次新文档提交时复位为 true，由新页面重新告知。
-    // 读屏两指 Z 形（accessibilityPerformEscape）用同一个值判断能不能返回。
-    var backGestureEnabled = true
     private var reminderSyncGeneration = 0
-    // 01 §8.2：pageReady 由页面在 bridge.markReady 之后 postMessage 触发（不是 didFinish）；新文档提交时复位。
-    private(set) var pageReady = false
     private(set) var pendingReminderCardKey: String?
     private var reminderDispatchInFlight = false
-    #if DEBUG
-    /// 冒烟专用：下一次 pickBackup 不弹系统选择器，改用这里指定的测试文件（NativeSmoke.swift）。
-    var smokeNextPick: String?
-    /// 冒烟专用：原生侧事件（导出、选文件、提醒同步、深链派发、边缘返回），同步给页面的 window.__shiziSmokeEvents。
-    var smokeEvents: [[String: Any]] = []
-    /// 原生书写面 spike（P1-S2，NativeInkSpike.swift）：启动参数 -shizi-native-ink 时才创建，默认 nil。
-    var nativeInkSpike: NativeInkSpike?
-    #endif
-    /// 触觉五档（交互与动效规范 F1，D58 ③；tokens.json haptic，参数由 test/ios-haptic.test.mjs 逐值核对）。
-    /// 判断落定 / 修改判断：soft 0.7（阶段 2 真机再调，令牌一处改）。
-    private lazy var judgeHaptic = UIImpactFeedbackGenerator(style: .soft)
-    /// 「写好了」、看答案显影、结束这组确认：light 0.5。
-    private lazy var lightHaptic = UIImpactFeedbackGenerator(style: .light)
-    /// 推进与切换：下一个、跳过、撤销跳过、进入描一遍、自己写、提示显影。
-    private lazy var selectionHaptic = UISelectionFeedbackGenerator()
-    /// 结果页落印（D53 / I3-04）：rigid 0.8，全 App 只此一处；页面在印着纸的那一帧发 kind "seal"。
-    private lazy var sealHaptic = UIImpactFeedbackGenerator(style: .rigid)
-    /// 判断声三个变体与落款声（assets/sound/*.caf，S1 / D50 ⑦）：文件名 → 预载好的播放器；`preloadSounds()` 在 viewDidLoad 填满。
-    private var soundPlayers: [String: AVAudioPlayer] = [:]
 
     init() {
-        guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else {
-            fatalError("Missing bundled Web assets. Build the app through Xcode so the sync-web-assets phase runs.")
-        }
-
-        self.schemeHandler = LocalWebSchemeHandler(rootDirectory: webRoot)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -109,236 +46,44 @@ final class WebViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    deinit {
-        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "shiziNative")
-    }
-
     override func loadView() {
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
-        configuration.allowsInlineMediaPlayback = true
-        configuration.setURLSchemeHandler(schemeHandler, forURLScheme: ShiziWebResource.scheme)
-
-        let userContentController = WKUserContentController()
-        userContentController.add(WeakScriptMessageHandler(delegate: self), name: "shiziNative")
-        installUserScripts(on: userContentController)
-        scriptController = userContentController
-        configuration.userContentController = userContentController
-
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-
-        let webView = ShiziWebView(frame: .zero, configuration: configuration)
-        // B3.F：网页不挂界面（引擎模式），对读屏恒藏起（原生页在它上面）
-        webView.hiddenFromAccessibility = { true }
-        webView.navigationDelegate = self
-        webView.uiDelegate = self
-        webView.allowsBackForwardNavigationGestures = false
-        webView.isOpaque = false
-        // 纸色取 Assets 的 Paper 颜色集（浅 #F4F0E7 / 深 #221E1A，由 scripts/generate-paper-colorset.mjs 从 tokens.css 的 --p 生成），
-        // 与启动屏 UILaunchScreen.UIColorName 同源，冷启动到页面首帧没有底色跳变（A7 / G19）。
-        let paper = UIColor(named: "Paper") ?? .systemBackground
-        webView.backgroundColor = paper
-        webView.scrollView.backgroundColor = paper
-        // 整页不可拖动（交互与动效规范 N7，R6-J1）：根文档那一层 scrollView 不滚、不回弹、不横移；能拖的只有页面里的内容滚动容器
-        // （它们是 WebKit 另建的子 scrollView，不受这里影响，竖向回弹照常）。键盘弹起时也不让 WebKit 把整页顶上去（弹层自己按 visualViewport 避让）。
-        webView.scrollView.isScrollEnabled = false
-        webView.scrollView.bounces = false
-        webView.scrollView.alwaysBounceVertical = false
-        webView.scrollView.alwaysBounceHorizontal = false
-        webView.scrollView.showsHorizontalScrollIndicator = false
-        webView.scrollView.showsVerticalScrollIndicator = false
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
-        // 页面不能被双指缩放（缩放后界面没有恢复入口，Q2-14，复测 simC D11）。这只管页面的捏合缩放；系统「辅助功能 › 缩放」是系统层的屏幕放大镜、
-        // 「更大字体」走 shiziContentSize，都不受影响。
-        webView.scrollView.minimumZoomScale = 1
-        webView.scrollView.maximumZoomScale = 1
-        webView.scrollView.pinchGestureRecognizer?.isEnabled = false
-
-        // P272：WKWebView 放进一个容器视图，左缘识别器挂在容器上——挂在 WKWebView 上会被 WebKit 的 deferring 手势排到页面触摸处理之后
-        // （页面 touchstart 往返慢或 preventDefault 时起步晚或不起步）。触摸照常落到 WKWebView（容器是它的父视图，识别器照样收到这些触摸）。
+        // 纸色取 Assets 的 Paper 颜色集（浅 #F4F0E7 / 深 #221E1A，scripts/generate-paper-colorset.mjs 从 tokens.css 的 --p 生成），
+        // 与启动屏 UILaunchScreen.UIColorName 同源，冷启动到首帧没有底色跳变（A7 / G19）。
         let container = UIView(frame: .zero)
-        container.backgroundColor = paper
-        webView.frame = container.bounds
-        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        container.addSubview(webView)
-
-        let practiceBackGesture = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
-        practiceBackGesture.edges = .left
-        practiceBackGesture.maximumNumberOfTouches = 1
-        practiceBackGesture.delegate = self
-        container.addGestureRecognizer(practiceBackGesture)
-
-        let marginBackGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePracticeBackGesture(_:)))
-        marginBackGesture.maximumNumberOfTouches = 1
-        marginBackGesture.delegate = self
-        marginBackGesture.require(toFail: practiceBackGesture)
-        container.addGestureRecognizer(marginBackGesture)
-
-        self.webView = webView
-        self.practiceBackGesture = practiceBackGesture
-        self.marginBackGesture = marginBackGesture
+        container.backgroundColor = UIColor(named: "Paper") ?? .systemBackground
         view = container
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadApp() // 先发出页面加载（WebContent 进程拉起是冷启动里最长的一段，异步）
-        stage.bootFrame() // B3.F：引擎就绪前先画首页静态版（「拾」+ 日期），route.plan 回来时同一张根页认领
-        observeContentSize() // B3.F：读屏状态不再发给页面（只有网页写字页的跳过撤销条读它，引擎模式没有网页界面）；系统字号照发（写字页回包的字阶、折行点在页面里量）
+        stage.bootFrame() // B3.F：先画首页静态版（「拾」+ 日期），route.plan 回来时同一张根页认领
         #if DEBUG
-        applySmokeLaunchArguments()
-        startNativeInkSpikeIfNeeded()
+        applyQALaunchArguments() // 测试宿主的启动参数（QA 时钟往后拨、冷 / 热启动的提醒深链），冷启动判定之前
         #endif
-        // 首帧之后再做的杂事（声音预载、清临时分享文件）：首帧不等它们
-        stage.afterBootFrame { [weak self] in
-            self?.cleanupTemporaryShareFiles()
-            self?.preloadSounds()
-        }
+        // B4.9：引擎就在进程里，不再等网页就绪——下一轮主线程做冷启动判定（首帧先上屏）
+        DispatchQueue.main.async { [weak self] in self?.startEngine() }
+        // 首帧之后再做的杂事（声音预载）：首帧不等它们
+        stage.afterBootFrame { SoundPlayer.shared.preload() }
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
         .default
     }
 
-    // MARK: - 左缘返回（01 §7：Swift 是手势唯一所有者；R4-G1 / P272）
-
-    /// 两个左缘识别器共用：每个阶段把位移与速度交给页面（页面按进度跟手，ended 时自己按同一阈值完成或回弹）。
-    @objc private func handlePracticeBackGesture(_ gesture: UIPanGestureRecognizer) {
-        let phase: String
-        switch gesture.state {
-        case .began: phase = "began"
-        case .changed: phase = "changed"
-        case .ended: phase = "ended"
-        case .cancelled, .failed: phase = "cancelled"
-        default: return
-        }
-        let distance = max(0, gesture.translation(in: view).x)
-        let velocity = gesture.velocity(in: view).x
-        dispatchBackGesture(phase: phase, distance: distance, velocity: velocity)
-    }
-
-    /// 「页边起手」识别器：按下点（shouldReceive 时记下）是否在页边起手区内。
-    func backGestureStartsInMargin() -> Bool {
-        guard let x = marginTouchStartX else { return false }
-        return x <= BackGestureThreshold.marginWidth
-    }
-
-    /// 每个阶段派发 shizi-native-back-progress {phase, translationX, progress, velocityX}；
-    /// ended 且满足 `velocity > 500 || (distance > 1/3 宽 && velocity > -200)`（P103 / P270，BackGestureThreshold，与 src/ui/router.js
-    /// backGestureCommits 一致）时再派发 shizi-native-back。返回是否派发了 shizi-native-back。
-    /// began 时页面（ink-canvas.js）丢弃正在写的一笔；识别器开始后 UIKit 也会取消 WKWebView 里的这次触摸（pointercancel）。
-    @discardableResult
-    func dispatchBackGesture(phase: String, distance: CGFloat, velocity: CGFloat) -> Bool {
-        let width = max(view.bounds.width, 1)
-        let progress = min(1, distance / width)
-        let detail = String(
-            format: "{phase:'%@',translationX:%.2f,progress:%.4f,velocityX:%.2f}",
-            phase, Double(distance), Double(progress), Double(velocity)
-        )
-        #if DEBUG
-        if phase != "changed" {
-            NSLog("[shizi] native back gesture %@ %@", phase, detail)
-        }
-        #endif
-        var script = "window.dispatchEvent(new CustomEvent('shizi-native-back-progress',{detail:\(detail)}));"
-        let fired = phase == "ended" && BackGestureThreshold.commits(distance: distance, velocity: velocity, width: width)
-        if fired {
-            script += " window.dispatchEvent(new CustomEvent('shizi-native-back',{detail:\(detail)}));"
-        }
-        webView.evaluateJavaScript(script + " void 0;")
-        return fired
-    }
-
-    // MARK: - 读屏退出手势（A2-05）
-
-    /// VoiceOver 两指 Z 形 = 点左上（R5-I2，交互规范 N3 读屏，审计 P0-16）：有弹层先关最上层弹层，没有弹层就执行顶层页面左上元素的动作
-    /// （与左缘右滑同一个函数，页面 root.js 处理 shizi-native-escape）。能不能做与左缘返回同一个门控 backGestureEnabled
-    /// （有子页或有弹层为 true；tab 根、阻断页为 false）：不能时返回 false，系统给出「不能退出」的反馈，不再假装处理了。
-    override func accessibilityPerformEscape() -> Bool {
-        guard backGestureEnabled else { return false }
-        dispatchAccessibilityEscape()
-        return true
-    }
-
-    func dispatchAccessibilityEscape() {
-        webView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('shizi-native-escape')); void 0;")
-    }
-
-    // MARK: - 加载与就绪
-
-    private func loadApp() {
-        pageReady = false
-        reminderDispatchInFlight = false
-        backGestureEnabled = true
-        // 首次加载、WebContent 进程被回收后的重载、阻断页「再试一次」都经这里：脚本按此刻的系统字号重建，不会重放旧档位。
-        refreshUserScripts()
-        // B1：趁 WebContent 进程拉起，先在数据层队列上开库、读好全部数据（页面启动时的 load 直接取用；01 §4.1）。
-        NativeStoreBridge.shared.prewarm()
-        var components = URLComponents()
-        components.scheme = ShiziWebResource.scheme
-        components.host = ShiziWebResource.host
-        components.path = "/index.html"
-
-        var query: [URLQueryItem] = []
-        if Self.devModeEnabled {
-            query.append(URLQueryItem(name: "dev", value: "1"))
-        }
-        #if DEBUG
-        // 01 §11：-shizi-smoke / -shizi-dev 下追加 test=1，配合 documentStart 注入的 __shiziNativeDev 挂测试钩子（Release 不编译）。
-        if Self.nativeTestHostEnabled {
-            query.append(URLQueryItem(name: "test", value: "1"))
-        }
-        #endif
-        components.queryItems = query.isEmpty ? nil : query
-
-        guard let url = components.url else {
-            assertionFailure("Unable to build local app URL")
-            return
-        }
-
-        webView.load(URLRequest(url: url))
-    }
-
-    private func handlePageReady() {
-        pageReady = true
-        #if DEBUG
-        recordSmokeEvent("pageReady", ["href": webView.url?.absoluteString ?? ""])
-        #endif
-        sendContentSize(currentContentSizeCategory)
-        nativePageDidBecomeReady() // B3.F：冷启动 route.plan 重建栈 / 页面重载 stage.resync（NativeStage.swift）
+    /// 冷启动判定（route.plan：守卫 / 过期 / 深链 / 坏值 / 阻断优先）→ 无转场重建栈；之后派发提醒深链、QA 设施。
+    private func startEngine() {
+        stage.start()
         stage.whenPlanned { [weak self] in
             self?.dispatchPendingReminderTargetIfReady() // 提醒深链：栈重建好之后派发（冷启动判定先看到它：深链优先）
             #if DEBUG
-            // 冒烟与 QA-H1（状态注入 / 逐屏取证 / 探针，只在启动参数 -shizi-qa* 下）：栈重建好之后再动导航
-            self?.runNativeSmokeIfNeeded()
-            self?.runQAHarnessIfNeeded()
+            self?.runQAHarnessIfNeeded() // QA-H1（状态注入 / 逐屏取证 / 探针，只在启动参数 -shizi-qa* 下）：栈重建好之后再动导航
             #endif
         }
     }
 
-    // MARK: - 系统字号（阶段 1 P1-E6 / D29 / P130）
+    // MARK: - 系统字号
 
-    // 页面字号跟随系统 Dynamic Type（含控制中心「单个 App 文字大小」，它改的也是本 App 的 preferredContentSizeCategory）：
-    // pageReady 时发一次当前档位，系统字号变化时再发；页面（src/platform/text-size.js）按 policy.contentSizeScale 换成 --k。
-    // 不会双重放大：WKWebView 只对 CSS 里写了 `font: -apple-system-body` 这类系统文字样式的元素按 Dynamic Type 缩放，
-    // 页面字号一律是 px × --k（test/platform/text-size.test.mjs 扫源码保证不出现 -apple-system-<样式>）；pageZoom 保持 1、
-    // 也不改 WKPreferences.minimumFontSize，所以放大只经这一条桥。
-    private func observeContentSize() {
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(contentSizeDidChange(_:)), name: UIContentSizeCategory.didChangeNotification, object: nil
-        )
-    }
-
-    @objc private func contentSizeDidChange(_ notification: Notification) {
-        // 通知到达时 traitCollection 可能还没更新，优先用通知里的新值。
-        let category = (notification.userInfo?[UIContentSizeCategory.newValueUserInfoKey] as? UIContentSizeCategory) ?? currentContentSizeCategory
-        // 页面还没就绪（正在加载 / 重载）时也要更新注入脚本：这次加载的文档开始脚本已按旧档位跑过的话，pageReady 会再发一次当前档位。
-        refreshUserScripts(category: category)
-        guard pageReady else { return }
-        sendContentSize(category)
-    }
-
-    /// 此刻的系统字号档位。视图还没进窗口时（冷启动 loadView / viewDidLoad、进程回收后的重载）traitCollection 不可靠，改读 UIApplication
+    /// 此刻的系统字号档位。视图还没进窗口时（冷启动 loadView / viewDidLoad）traitCollection 不可靠，改读 UIApplication
     /// （它也反映控制中心「单个 App 文字大小」）。
     var currentContentSizeCategory: UIContentSizeCategory {
         let category = isViewLoaded && view.window != nil
@@ -347,33 +92,7 @@ final class WebViewController: UIViewController {
         return category == .unspecified ? .large : category
     }
 
-    /// 文档开始时注入的脚本：只写一个 window 变量（载荷与 shiziContentSize 同形），页面 src/platform/text-size.js 在模块求值时读到就立即写 <html>。
-    /// 档位 → --k 的换算只在页面的 policy 里（原生不抄表）；脚本不碰 DOM，所以也不涉及页面 CSP 的 style-src。
-    static func initialContentSizeScript(_ category: UIContentSizeCategory) -> String? {
-        guard let literal = jsonLiteral(contentSizeName(category)) else { return nil }
-        let scale = String(format: "%.4f", contentSizeScale(category))
-        return "window.__shiziInitialContentSize = {category:\(literal),scale:\(scale)};"
-    }
-
-    /// 重建全部用户脚本（WKUserContentController 不能单独删一条）：先清空，再装 DEBUG 冒烟标记与当前字号。
-    private func installUserScripts(on controller: WKUserContentController, category: UIContentSizeCategory? = nil) {
-        controller.removeAllUserScripts()
-        #if DEBUG
-        installNativeDevUserScriptIfNeeded(controller)
-        installNativeInkUserScriptIfNeeded(controller)
-        #endif
-        installNativeWriteUserScriptIfNeeded(controller) // B3.1：原生写字流程进 Release，开关（默认关）到 B3.F 为止
-        if let source = Self.initialContentSizeScript(category ?? currentContentSizeCategory) {
-            controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-        }
-    }
-
-    private func refreshUserScripts(category: UIContentSizeCategory? = nil) {
-        guard let controller = scriptController else { return }
-        installUserScripts(on: controller, category: category)
-    }
-
-    /// 档位 → 页面认的短名（与 src/platform/text-size.js CONTENT_SIZE_CATEGORIES 一致）；未知档位（将来 iOS 新增）原样传 rawValue。
+    /// 档位 → 短名（与 JS 参考 src/platform/text-size.js CONTENT_SIZE_CATEGORIES 一致）；未知档位（将来 iOS 新增）原样给 rawValue。
     static func contentSizeName(_ category: UIContentSizeCategory) -> String {
         switch category {
         case .extraSmall: return "xS"
@@ -393,28 +112,7 @@ final class WebViewController: UIViewController {
         }
     }
 
-    /// 该档位下 iOS 正文字号与默认 17pt 之比（连续值；页面只在表里没有该档位时用它）。
-    static func contentSizeScale(_ category: UIContentSizeCategory) -> Double {
-        let traits = UITraitCollection(preferredContentSizeCategory: category == .unspecified ? .large : category)
-        let body = UIFont.preferredFont(forTextStyle: .body, compatibleWith: traits).pointSize
-        return Double(body / 17)
-    }
-
-    func sendContentSize(_ category: UIContentSizeCategory) {
-        let name = Self.contentSizeName(category)
-        guard let literal = Self.jsonLiteral(name) else { return }
-        let scale = String(format: "%.4f", Self.contentSizeScale(category))
-        webView.evaluateJavaScript(
-            "if (typeof shiziContentSize === 'function') shiziContentSize({category:\(literal),scale:\(scale)}); void 0;"
-        )
-    }
-
-    private static var devModeEnabled: Bool {
-        let process = ProcessInfo.processInfo
-        return process.arguments.contains("-shizi-dev") || process.environment["SHIZI_DEV"] == "1"
-    }
-
-    // MARK: - 提醒深链（01 §8.2：只在 evaluate 返回 true 后清 key；WebContent 进程终止时保留 key）
+    // MARK: - 提醒深链（只在 deeplink.reminder 答 ok 后清 key）
 
     func openReminderTarget(cardKey: String) {
         guard !cardKey.isEmpty else { return }
@@ -422,9 +120,9 @@ final class WebViewController: UIViewController {
         dispatchPendingReminderTargetIfReady()
     }
 
-    /// 提醒深链（B3.F：deeplink.reminder op——与原来 shiziOpenReminderTarget 同一个 JS 处理；去哪 / 要不要先回首页 / 要不要弹 S02 由它发的 nav 定）。
+    /// 提醒深链（deeplink.reminder op——SwiftNavigator 答；去哪 / 要不要先回首页 / 要不要弹 S02 由它定）。冷启动判定之前到的先存着。
     private func dispatchPendingReminderTargetIfReady() {
-        guard pageReady, stage.planned, !reminderDispatchInFlight, let cardKey = pendingReminderCardKey else { return }
+        guard stage.planned, !reminderDispatchInFlight, let cardKey = pendingReminderCardKey else { return }
         reminderDispatchInFlight = true
         stage.engine.raw("deeplink.reminder", ["cardKey": cardKey]) { [weak self] reply in
             guard let self else { return }
@@ -433,300 +131,11 @@ final class WebViewController: UIViewController {
             if accepted, self.pendingReminderCardKey == cardKey {
                 self.pendingReminderCardKey = nil
             }
-            #if DEBUG
-            self.recordSmokeEvent("reminderDispatch", [
-                "cardKey": cardKey,
-                "accepted": accepted,
-                "cleared": self.pendingReminderCardKey == nil,
-            ])
-            #endif
-            // 没被接收：key 留着，下一次 pageReady 再派发。派发期间又来了新 key：立刻再派发一次。
+            // 派发期间又来了新 key：立刻再派发一次。
             if accepted, self.pendingReminderCardKey != nil {
                 self.dispatchPendingReminderTargetIfReady()
             }
         }
-    }
-
-    static func jsonLiteral(_ value: Any) -> String? {
-        guard
-            let data = try? JSONSerialization.data(withJSONObject: [value], options: [.fragmentsAllowed]),
-            let array = String(data: data, encoding: .utf8),
-            array.hasPrefix("["), array.hasSuffix("]")
-        else {
-            return nil
-        }
-        return String(array.dropFirst().dropLast())
-    }
-
-    // MARK: - 分享与备份
-
-    private func cleanupTemporaryShareFiles() {
-        let manager = FileManager.default
-        guard let files = try? manager.contentsOfDirectory(at: manager.temporaryDirectory, includingPropertiesForKeys: nil) else {
-            return
-        }
-        files.filter { $0.lastPathComponent.hasPrefix(Self.temporarySharePrefix) }.forEach { try? manager.removeItem(at: $0) }
-    }
-
-    /// 分享 / 导出用的临时文件。每次放在各自独立的临时目录（shizi-share-<UUID>/）里，文件名就是页面给的名字
-    /// （如「拾字备份-2026-10-04.json」）：用户在分享面板、存到「文件」时看到的是可认的名字，不带 UUID（Q2-7，复测 simA）。
-    /// 目录名带 shizi-share- 前缀，启动时 cleanupTemporaryShareFiles 一并清掉没删干净的。
-    func temporaryShareURL(filename: String) -> URL {
-        let manager = FileManager.default
-        let directory = manager.temporaryDirectory
-            .appendingPathComponent("\(Self.temporarySharePrefix)\(UUID().uuidString)", isDirectory: true)
-        try? manager.createDirectory(at: directory, withIntermediateDirectories: true)
-        return Self.uniqueShareURL(in: directory, name: filename)
-    }
-
-    /// 文件名里的 / : \ 换成 -；空名字退回 shizi。
-    static func safeShareName(_ filename: String) -> String {
-        let name = filename
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return name.isEmpty ? "shizi" : name
-    }
-
-    /// directory 里 name 的落点；同名已存在时在扩展名前加序号（「拾字备份-2026-10-04 2.json」）。
-    static func uniqueShareURL(in directory: URL, name: String, manager: FileManager = .default) -> URL {
-        let safe = safeShareName(name)
-        let first = directory.appendingPathComponent(safe)
-        guard manager.fileExists(atPath: first.path) else { return first }
-        let stem = (safe as NSString).deletingPathExtension
-        let ext = (safe as NSString).pathExtension
-        var n = 2
-        while true {
-            let candidate = ext.isEmpty ? "\(stem) \(n)" : "\(stem) \(n).\(ext)"
-            let url = directory.appendingPathComponent(candidate)
-            if !manager.fileExists(atPath: url.path) { return url }
-            n += 1
-        }
-    }
-
-    /// 删掉临时分享文件；它所在的独立目录（shizi-share- 前缀）一并删掉。
-    func removeTemporaryShareFile(_ url: URL) {
-        let manager = FileManager.default
-        try? manager.removeItem(at: url)
-        let parent = url.deletingLastPathComponent()
-        if parent.lastPathComponent.hasPrefix(Self.temporarySharePrefix) {
-            try? manager.removeItem(at: parent)
-        }
-    }
-
-    private func shareBackup(filename: String, payload: String) {
-        #if DEBUG
-        if smokeInterceptShareBackup(filename: filename, payload: payload) { return }
-        #endif
-        guard presentedViewController == nil else { return }
-        let fileURL = temporaryShareURL(filename: filename)
-
-        do {
-            try Data(payload.utf8).write(to: fileURL, options: .atomic)
-        } catch {
-            // 不弹原生提示（文案在 Web 侧）：页面收不到 markBackupExported，就不会记成已导出，可以再点一次；
-            // P96：告诉页面分享没打开，由页面轻提示。
-            logNative("shareBackup could not write temporary file: \(error.localizedDescription)")
-            notifyShareFailed(kind: "backup", reason: "write")
-            return
-        }
-
-        let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-        activity.completionWithItemsHandler = { [weak self] _, completed, _, activityError in
-            defer { self?.removeTemporaryShareFile(fileURL) }
-            if activityError != nil {
-                self?.notifyShareFailed(kind: "backup", reason: "activity")
-                return
-            }
-            guard completed else { return } // 用户取消：不记导出、不提示
-            self?.notifyBackupExported()
-        }
-        presentCentered(activity)
-    }
-
-    func notifyBackupExported() {
-        #if DEBUG
-        ShadowEngine.foreign()
-        #endif
-        webView.evaluateJavaScript("if (typeof markBackupExported === 'function') markBackupExported(); void 0;")
-    }
-
-    /// P96（M6-6 过渡）：原生分享 / 打开外链失败时交给页面 shiziShareFailed({kind, reason})，由页面轻提示
-    /// （文案在 Web 侧 X-SHARE，Swift 不含面向用户的文字）。kind: backup / card / link；
-    /// reason: write / payload / activity / refused / open（只作诊断，页面按 kind 取文案）。用户取消不算失败。
-    /// B4.9a：缺省 swift 模式里提示条由 Swift 发（share-failed.js：引擎模式没有就地三段式的订阅者 → 一条失败提示条）。
-    func notifyShareFailed(kind: String, reason: String) {
-        DispatchQueue.main.async { [weak self] in
-            #if DEBUG
-            self?.recordSmokeEvent("shareFailed", ["kind": kind, "reason": reason])
-            #endif
-            if let swift = self?.stage.engine as? SwiftEngine { swift.nav.postShareFailed(kind: kind); return }
-            self?.webView.evaluateJavaScript(
-                "if (typeof window.shiziShareFailed === 'function') window.shiziShareFailed({kind:'\(kind)',reason:'\(reason)'}); void 0;"
-            )
-        }
-    }
-
-    private func sharePracticeCard(filename: String, dataURL: String) {
-        guard presentedViewController == nil else { return }
-        guard let image = Self.imageData(fromDataURL: dataURL) else {
-            logNative("sharePracticeCard rejected a payload that is not a JPEG / PNG data URL")
-            notifyShareFailed(kind: "card", reason: "payload")
-            return
-        }
-        let data = image.data
-
-        let safeStem = filename
-            .replacingOccurrences(of: "/", with: "-")
-            .replacingOccurrences(of: ":", with: "-")
-            .replacingOccurrences(of: "\\", with: "-")
-        let safeName = Self.fileName(safeStem, forExtension: image.fileExtension)
-        let fileURL = temporaryShareURL(filename: safeName)
-        do {
-            try data.write(to: fileURL, options: .atomic)
-        } catch {
-            logNative("sharePracticeCard could not write temporary file: \(error.localizedDescription)")
-            notifyShareFailed(kind: "card", reason: "write")
-            return
-        }
-
-        let activity = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-        activity.completionWithItemsHandler = { [weak self] _, _, _, activityError in
-            self?.removeTemporaryShareFile(fileURL)
-            if activityError != nil {
-                self?.notifyShareFailed(kind: "card", reason: "activity")
-            }
-        }
-        presentCentered(activity)
-    }
-
-    private func presentCentered(_ controller: UIViewController) {
-        if let popover = controller.popoverPresentationController {
-            popover.sourceView = view
-            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
-            popover.permittedArrowDirections = []
-        }
-        present(controller, animated: true)
-    }
-
-    private func presentBackupPicker() {
-        #if DEBUG
-        if smokeInterceptPickBackup() { return }
-        #endif
-        guard presentedViewController == nil else { return }
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.json], asCopy: true)
-        picker.delegate = self
-        picker.allowsMultipleSelection = false
-        present(picker, animated: true)
-    }
-
-    enum BackupRejection: String, Error {
-        case tooLarge
-        case invalid
-        case cancelled
-    }
-
-    /// 01 §8.1：原生只做 64MB 上限（B1 前为 10MB）与 JSON 外壳预检（app=="shizi"、data 是非空对象、键全部 `shizi.` 前缀；v1/v2 都放行），
-    /// 通过则把文件文本交给 shiziBackupPicked(text)，否则 shiziBackupRejected({reason})；校验、页内确认、保护副本、替换、
-    /// 撤销全部在 JS。原生不 reload、不弹 alert。
-    func importBackup(from url: URL) {
-        let hasSecurityScope = url.startAccessingSecurityScopedResource()
-        let path = url.standardizedFileURL.path
-        let shouldRemoveCopy = path.hasPrefix(FileManager.default.temporaryDirectory.standardizedFileURL.path + "/") || path.contains("/Documents/Inbox/")
-        defer {
-            if hasSecurityScope {
-                url.stopAccessingSecurityScopedResource()
-            }
-            if shouldRemoveCopy {
-                removeTemporaryShareFile(url)
-            }
-        }
-
-        switch Self.precheckBackupFile(at: url) {
-        case .success(let text):
-            deliverBackupText(text)
-        case .failure(let rejection):
-            deliverBackupRejection(rejection)
-        }
-    }
-
-    static func precheckBackupFile(at url: URL) -> Result<String, BackupRejection> {
-        if let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size > backupMaxBytes {
-            return .failure(.tooLarge)
-        }
-        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else {
-            return .failure(.invalid)
-        }
-        guard data.count <= backupMaxBytes else {
-            return .failure(.tooLarge)
-        }
-        guard
-            let text = String(data: data, encoding: .utf8),
-            let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-            object["app"] as? String == "shizi",
-            let backupData = object["data"] as? [String: Any],
-            !backupData.isEmpty,
-            backupData.keys.allSatisfy({ $0.hasPrefix("shizi.") })
-        else {
-            return .failure(.invalid)
-        }
-        return .success(text)
-    }
-
-    private func deliverBackupText(_ text: String) {
-        guard let literal = Self.jsonLiteral(text) else {
-            deliverBackupRejection(.invalid)
-            return
-        }
-        let script = "typeof shiziBackupPicked === 'function' && shiziBackupPicked(\(literal)) === true;"
-        #if DEBUG
-        ShadowEngine.foreign()
-        #endif
-        webView.evaluateJavaScript(script) { [weak self] result, error in
-            let accepted = error == nil && (result as? Bool) == true
-            if !accepted {
-                self?.logNative("shiziBackupPicked was not accepted by the page")
-            }
-            #if DEBUG
-            self?.recordSmokeEvent("backupDelivered", ["accepted": accepted, "bytes": text.utf8.count])
-            #endif
-        }
-    }
-
-    func deliverBackupRejection(_ rejection: BackupRejection) {
-        #if DEBUG
-        recordSmokeEvent("backupRejected", ["reason": rejection.rawValue])
-        #endif
-        webView.evaluateJavaScript(
-            "if (typeof shiziBackupRejected === 'function') shiziBackupRejected({reason:'\(rejection.rawValue)'}); void 0;"
-        )
-    }
-
-    private func openExternally(_ url: URL) {
-        guard let scheme = url.scheme?.lowercased(), ["http", "https", "mailto"].contains(scheme) else {
-            logNative("refused to open external URL with scheme \(url.scheme ?? "nil")")
-            notifyShareFailed(kind: "link", reason: "refused")
-            return
-        }
-        UIApplication.shared.open(url, options: [:]) { [weak self] opened in
-            if !opened {
-                self?.logNative("system could not open \(scheme) link")
-                self?.notifyShareFailed(kind: "link", reason: "open")
-            }
-        }
-    }
-
-    /// 01 §8.1 openAppSettings：提醒被拒时跳到本 App 的系统设置页（P86）。
-    private func openAppSettings() {
-        #if DEBUG
-        if Self.nativeSmokeEnabled {
-            recordSmokeEvent("openAppSettings", [:])
-            return
-        }
-        #endif
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url, options: [:], completionHandler: nil)
     }
 
     func logNative(_ message: String) {
@@ -736,183 +145,9 @@ final class WebViewController: UIViewController {
     }
 }
 
-extension WebViewController: WKNavigationDelegate {
-    func webView(
-        _ webView: WKWebView,
-        decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-    ) {
-        guard let url = navigationAction.request.url else {
-            decisionHandler(.allow)
-            return
-        }
-
-        if url.scheme == ShiziWebResource.scheme, url.host == ShiziWebResource.host {
-            decisionHandler(.allow)
-            return
-        }
-
-        if navigationAction.targetFrame?.isMainFrame != false {
-            openExternally(url)
-        }
-        decisionHandler(.cancel)
-    }
-
-    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        // 新文档（首次加载、页面自己 reload、阻断页「再试一次」整页重载）：等新页面重新 postMessage pageReady。
-        pageReady = false
-        reminderDispatchInFlight = false
-        backGestureEnabled = true
-        nativePageWillReload() // 原生页留在屏上（栈在原生），页面就绪后 stage.resync
-    }
-
-    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        // 提醒深链的 key 保留，重载后页面发 pageReady 时再派发（01 §8.2）。
-        pageReady = false
-        nativePageWillReload()
-        loadApp()
-    }
-}
-
-extension WebViewController: WKUIDelegate {
-    // v10 页面不用 window.alert / confirm / prompt（确认框都在页内，文案在 src/config/copy/）：
-    // 不实现这三个面板，WebKit 按默认处理（alert 直接返回、confirm 返回 false、prompt 返回 null），原生不再带面向用户的文案。
-
-    func webView(
-        _ webView: WKWebView,
-        createWebViewWith configuration: WKWebViewConfiguration,
-        for navigationAction: WKNavigationAction,
-        windowFeatures: WKWindowFeatures
-    ) -> WKWebView? {
-        if navigationAction.targetFrame == nil {
-            webView.load(navigationAction.request)
-        }
-        return nil
-    }
-}
-
-extension WebViewController: WKScriptMessageHandler {
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard
-            message.name == "shiziNative",
-            message.frameInfo.isMainFrame,
-            let body = message.body as? [String: Any],
-            let type = body["type"] as? String
-        else {
-            return
-        }
-
-        #if DEBUG
-        soundShadowOp = type == "sound" ? body["shadowOp"] as? String : nil // B4.7：影子按 op 归属声音
-        #endif
-        switch type {
-        case "pageReady":
-            handlePageReady()
-        case "shareBackup":
-            let name = body["name"] as? String ?? "shizi-backup.json"
-            let payload = body["payload"] as? String ?? "{}"
-            shareBackup(filename: name, payload: payload)
-        case "sharePracticeCard":
-            let name = body["name"] as? String ?? "shizi-card.jpg"
-            let dataURL = body["dataURL"] as? String ?? ""
-            sharePracticeCard(filename: name, dataURL: dataURL)
-        case "savePracticeCard":
-            let dataURL = body["dataURL"] as? String ?? ""
-            savePracticeCard(dataURL: dataURL)
-        case "pickBackup":
-            presentBackupPicker()
-        #if DEBUG
-        case "nativeSmokeResult":
-            let payload = body["payload"] as? String ?? #"{"error":"Missing native smoke payload"}"#
-            writeNativeSmokeResult(payload)
-        case "nativeSmokeControl":
-            handleNativeSmokeControl(body)
-        case "nativeInk":
-            handleNativeInkMessage(body)
-        #endif
-        case "nativeWrite":
-            handleNativeWriteMessage(body) // B3.1：Release 组件（开关关着时直接忽略；B3.2 起由 NativeStage 接，NativeStage.swift）
-        case "native":
-            handleNativeScreenMessage(body) // B3.2：通用原生屏（open / close）与引擎推送（changed / status）
-        case "haptic":
-            playHaptic(kind: body["kind"] as? String ?? "")
-        case "sound":
-            playSound(kind: body["kind"] as? String ?? "", gain: body["gain"] as? Double ?? 1)
-        case "soundscape":
-            // P07：练字背景音已删；旧页面若还发这条消息，原生什么都不做。
-            break
-        // B4.9a：缺省 swift 模式里提醒由 Swift 的 ReminderController 同步、要权限、查权限（SwiftEngine.installPlatform），页面那份不认
-        case "syncReminder" where !(stage.engine is SwiftEngine):
-            syncReminder(body: body)
-        case "requestReminderPermission" where !(stage.engine is SwiftEngine):
-            requestReminderPermission()
-        case "queryReminderStatus" where !(stage.engine is SwiftEngine):
-            sendReminderStatus()
-        case "openAppSettings":
-            openAppSettings()
-        case "backGestureEnabled":
-            backGestureEnabled = (body["value"] as? Bool) ?? true
-            #if DEBUG
-            NSLog("[shizi] backGestureEnabled=%@", backGestureEnabled ? "true" : "false")
-            #endif
-        default:
-            break
-        }
-    }
-}
-
-extension WebViewController: UIGestureRecognizerDelegate {
-    private func isBackGesture(_ g: UIGestureRecognizer) -> Bool {
-        g === practiceBackGesture || g === marginBackGesture
-    }
-
-    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        guard isBackGesture(gestureRecognizer) else { return true }
-        #if DEBUG
-        if !backGestureEnabled {
-            NSLog("[shizi] native back gesture refused: backGestureEnabled=false")
-        }
-        #endif
-        guard backGestureEnabled else { return false }
-        if gestureRecognizer === marginBackGesture, let pan = gestureRecognizer as? UIPanGestureRecognizer {
-            // 页边起手、向右才开始：与系统边缘识别器同样容许斜着起手（水平分量 > 竖直分量的一半，约 63° 以内，模拟器实测系统边缘识别器接受这种起手）；
-            // 竖直分量超过水平分量两倍的拖动（滚动）与向左拖动立即失败，交给页面。
-            let v = pan.velocity(in: view)
-            let ok = backGestureStartsInMargin() && v.x > 0 && v.x > abs(v.y) * BackGestureThreshold.marginSlope
-            #if DEBUG
-            NSLog("[shizi] margin back gesture shouldBegin=%@ start=%.1f v=(%.0f,%.0f)", ok ? "true" : "false",
-                  Double(marginTouchStartX ?? -1), Double(v.x), Double(v.y))
-            #endif
-            return ok
-        }
-        return true
-    }
-
-    /// 「页边起手」识别器只收起手区里按下的触摸：书写格（在 20pt 页边之内）、列表、按钮上的触摸它根本不跟踪。
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        guard gestureRecognizer === marginBackGesture else { return true }
-        let x = touch.location(in: view).x
-        let receive = backGestureEnabled && x <= BackGestureThreshold.marginWidth
-        marginTouchStartX = receive ? x : nil
-        return receive
-    }
-
-    /// P272：WKWebView 里滚动容器（WKChildScrollView / 主滚动视图）的平移识别器要等左缘识别器先失败——
-    /// 边缘起手时不被下半屏的滚动列表先抢走（旧问题「下半屏不行」的原生侧成因）；不在边缘起手时两个左缘识别器立即失败，滚动不受影响。
-    func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
-    ) -> Bool {
-        guard isBackGesture(gestureRecognizer), otherGestureRecognizer is UIPanGestureRecognizer, !isBackGesture(otherGestureRecognizer),
-              let other = otherGestureRecognizer.view as? UIScrollView, let webView
-        else { return false }
-        return other.isDescendant(of: webView)
-    }
-}
-
-// MARK: - 图片存相册：成功与否回 shiziCardSaved({success})，提示文案在 Web 侧（R-B10）
-extension WebViewController {
-    /// 页面发来的导出图：JPEG（交接 §6.5，quality 0.92）或 PNG（旧页面）。只认 `data:image/jpeg|png;base64,` 且文件头与声明一致、≤ 12MB。
+// MARK: - 图片存相册（图片预览「保存」：SwiftEngine 的 image.persist；成功与否回给引擎，提示文案在文案表 R-B10）
+extension RootViewController {
+    /// 导出图：JPEG（交接 §6.5，quality 0.92）或 PNG。只认 `data:image/jpeg|png;base64,` 且文件头与声明一致、≤ 12MB。
     struct CardImage {
         let data: Data
         let fileExtension: String
@@ -934,7 +169,7 @@ extension WebViewController {
         return CardImage(data: data, fileExtension: kind.ext)
     }
 
-    /// 文件名的扩展名跟着实际格式走：去掉页面给的 .jpg / .jpeg / .png 再补上真实扩展名。
+    /// 文件名的扩展名跟着实际格式走：去掉给的 .jpg / .jpeg / .png 再补上真实扩展名。
     static func fileName(_ stem: String, forExtension ext: String) -> String {
         var base = stem
         for suffix in [".jpeg", ".jpg", ".png"] where base.lowercased().hasSuffix(suffix) {
@@ -944,17 +179,13 @@ extension WebViewController {
         return "\(base.isEmpty ? "shizi-card" : base).\(ext)"
     }
 
-    private func savePracticeCard(dataURL: String) {
-        saveCard(dataURL: dataURL) { [weak self] success in self?.sendPracticeCardSaveResult(success) }
-    }
-
     #if DEBUG
-    /// B4.9c：存相册的 QA 桩（States/_ops/stubSave.js 经页面消息 qa-save-stub 挂上 / 摘掉）：reply = 立刻回 success；false = 一直等着（保存中）。
+    /// B4.9c：存相册的 QA 桩（夹具 op stubSave / stubNative，QAOps.swift）：reply = 立刻回 success；false = 一直等着（保存中）。
     static var qaSaveStub: (success: Bool, reply: Bool)?
     static var qaSaveCalls = 0
     #endif
 
-    /// 存相册（页面的 savePracticeCard 与 B4.9a 起 Swift 的 image.persist 同一条路）：完成（主线程）回成功与否；timeout 秒内没结果算失败（image-preview.js NATIVE_SAVE_TIMEOUT_MS）。
+    /// 存相册：完成（主线程）回成功与否；timeout 秒内没结果算失败（image-preview.js NATIVE_SAVE_TIMEOUT_MS）。
     func saveCard(dataURL: String, timeout: TimeInterval? = nil, completion: @escaping (Bool) -> Void) {
         var done = false
         let finish: (Bool) -> Void = { ok in
@@ -966,7 +197,7 @@ extension WebViewController {
         }
         if let timeout { DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { finish(false) } }
         #if DEBUG
-        // B4.9c：QA 桩（夹具 stubSave）——取证 / 流程测试不能弹相册权限框；swift 模式里存相册不经页面，桩落在这里（网页那份桩只拦页面的 postNative）
+        // 取证 / 流程测试不能弹相册权限框
         if let stub = Self.qaSaveStub {
             Self.qaSaveCalls += 1
             if stub.reply { finish(stub.success) }
@@ -992,89 +223,10 @@ extension WebViewController {
             }
         }
     }
-
-    private func sendPracticeCardSaveResult(_ success: Bool) {
-        DispatchQueue.main.async { [weak self] in
-            #if DEBUG
-            self?.recordSmokeEvent("cardSaved", ["success": success])
-            #endif
-            self?.webView.evaluateJavaScript(
-                "if (typeof window.shiziCardSaved === 'function') window.shiziCardSaved({success:\(success ? "true" : "false")}); void 0;"
-            )
-        }
-    }
 }
 
-// MARK: - 声音：判断「收进」的纸页落定（三个变体，页面轮换）与落款的木印盖章（S1，D50 ⑦）
-// 素材是打进包里的 CAF（线性 PCM 16bit，无编码、无 priming 补零，起音从第 0 个采样开始；assets/sound/，scripts/sound/gen.mjs 程序合成）。
-// AVAudioSession 用 .ambient + .mixWithOthers：遵守静音键（静音时完全无声），与后台音乐混音——不打断、不压低（不用 duckOthers）。
-// 书写与描红没有声音；页面决定播哪个文件（kind = 文件名，不含扩展名）与增益 gain。
-extension WebViewController {
-    private static let soundNames = ["j1_page_settle", "j1_page_settle_b", "j1_page_settle_c", "s1_wood_muted"]
-
-    private func preloadSounds() {
-        guard let webRoot = Bundle.main.url(forResource: "Web", withExtension: nil) else { return }
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
-        let directory = webRoot.appendingPathComponent("assets/sound", isDirectory: true)
-        for name in Self.soundNames {
-            let url = directory.appendingPathComponent("\(name).caf")
-            guard let player = try? AVAudioPlayer(contentsOf: url) else { continue }
-            player.prepareToPlay()
-            soundPlayers[name] = player
-        }
-    }
-
-    /// B4.5c：SwiftEngine（swift 模式）的判断声——同一组预载 CAF、同一个探针记录。
-    func playEngineSound(kind: String, gain: Double) { playSound(kind: kind, gain: gain) }
-    #if DEBUG
-    private static var shadowOpKey = 0
-    /// 正在处理的 sound 消息带的影子 op（只在 DEBUG）。
-    var soundShadowOp: String? {
-        get { objc_getAssociatedObject(self, &Self.shadowOpKey) as? String }
-        set { objc_setAssociatedObject(self, &Self.shadowOpKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-    #endif
-
-    private func playSound(kind: String, gain: Double) {
-        #if DEBUG
-        ShadowEngine.shared?.webSound(kind, op: soundShadowOp) // B4.7：影子模式里页面发的声音（swift 模式没有影子）
-        soundShadowOp = nil
-        #endif
-        guard let player = soundPlayers[kind] else { return } // 未知名字忽略（旧的 stamp / paper 已不存在）
-        ShiziProbe.feedback("sound:\(kind)")
-        player.volume = Float(min(max(gain, 0), 1))
-        player.currentTime = 0
-        player.play()
-    }
-}
-
-// MARK: - 触觉反馈：五档（judge / seal / light / select / none，交互与动效规范 F1，D58 ③）；未知值忽略
-extension WebViewController {
-    private func playHaptic(kind: String) {
-        // DEBUG 探针：记下发出的档（旧档名并到新档名；未知值不记）
-        ShiziProbe.feedback("haptic:" + (["stamp": "judge", "action": "light", "undo": "light"][kind] ?? kind))
-        switch kind {
-        case "judge", "stamp": // stamp 是旧档名，过渡一个版本
-            judgeHaptic.impactOccurred(intensity: 0.7)
-            judgeHaptic.prepare()
-            sealHaptic.prepare() // 判断之后很快就是落印：提前唤醒 Taptic，落印那一下不延迟
-        case "seal":
-            sealHaptic.impactOccurred(intensity: 0.8)
-            sealHaptic.prepare()
-        case "light", "action", "undo": // action / undo 是旧档名，过渡一个版本
-            lightHaptic.impactOccurred(intensity: 0.5)
-            lightHaptic.prepare()
-        case "select":
-            selectionHaptic.selectionChanged()
-            selectionHaptic.prepare()
-        default:
-            break
-        }
-    }
-}
-
-// MARK: - 练习提醒：native 是无状态执行器，开关/时间/已练状态/题目全部由 web 侧下发
-extension WebViewController {
+// MARK: - 练习提醒（系统通知）：开关 / 时间 / 已练状态 / 题目由 SwiftEngine 的 ReminderController 算好下发，这里只排期、要权限、查权限
+extension RootViewController {
     struct ReminderQuestion {
         let day: String
         let title: String
@@ -1131,9 +283,6 @@ extension WebViewController {
 
     func syncReminder(body: [String: Any]) {
         let request = ReminderRequest(body: body)
-        #if DEBUG
-        smokeRecordReminderSync(request)
-        #endif
         // 世代号防并发交错：快速开关时旧一轮的 remove/schedule 全部作废，只让最新一轮落地
         reminderSyncGeneration += 1
         let generation = reminderSyncGeneration
@@ -1147,10 +296,10 @@ extension WebViewController {
                 center.getNotificationSettings { settings in
                     DispatchQueue.main.async {
                         guard generation == self.reminderSyncGeneration else { return }
-                        // web 侧的 permission 可能来自换机恢复的备份，调度前以本机授权状态为准
+                        // 库里的 permission 可能来自换机恢复的备份，调度前以本机授权状态为准
                         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
                         #if DEBUG
-                        let now = WebViewController.nativeTestHostEnabled ? QAClock.date() : Date() // B2.9b：QA 时钟
+                        let now = RootViewController.nativeTestHostEnabled ? QAClock.date() : Date() // B2.9b：QA 时钟
                         #else
                         let now = Date()
                         #endif
@@ -1161,7 +310,7 @@ extension WebViewController {
         }
     }
 
-    /// 从今天起最多排 7 道题；今天已练或时刻已过则跳过今天；没有题目的日期不发送。纯函数（冒烟也用它核对下发内容）。
+    /// 从今天起最多排 7 道题；今天已练或时刻已过则跳过今天；没有题目的日期不发送。纯函数。
     static func reminderPlan(_ request: ReminderRequest, now: Date, calendar: Calendar = .current) -> [ReminderSlot] {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -1202,7 +351,7 @@ extension WebViewController {
     func requestReminderPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, _ in
             DispatchQueue.main.async {
-                self?.dispatchReminderStatus(granted ? "granted" : "denied")
+                self?.stage.engine.receiveReminderStatus(granted ? "granted" : "denied")
             }
         }
     }
@@ -1211,7 +360,7 @@ extension WebViewController {
         UNUserNotificationCenter.current().getNotificationSettings { [weak self] settings in
             let status = Self.permissionName(settings.authorizationStatus)
             DispatchQueue.main.async {
-                self?.dispatchReminderStatus(status)
+                self?.stage.engine.receiveReminderStatus(status)
             }
         }
     }
@@ -1227,38 +376,5 @@ extension WebViewController {
         @unknown default:
             return "unknown"
         }
-    }
-
-    private func dispatchReminderStatus(_ status: String) {
-        if let swift = stage.engine as? SwiftEngine { swift.receiveReminderStatus(status); return } // B4.9a：交 Swift 的 store
-        #if DEBUG
-        ShadowEngine.foreign()
-        #endif
-        webView.evaluateJavaScript("if (typeof shiziReminderStatus === 'function') shiziReminderStatus({permission:'\(status)'}); void 0;")
-    }
-}
-
-extension WebViewController: UIDocumentPickerDelegate {
-    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let url = urls.first else {
-            deliverBackupRejection(.cancelled)
-            return
-        }
-        importBackup(from: url)
-    }
-
-    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-        deliverBackupRejection(.cancelled)
-    }
-}
-
-/// R16：宿主上呈现着任何模态层（原生页、查字 / S02 弹层屏、选择弹层、底部弹层、写字 / 结果页）时，网页内容（Tab 栏等）对读屏藏起来——
-/// `.overFullScreen` / `.custom` 呈现时下层视图留在窗口里，系统不替它藏（与 ShiziScreenView 同一条规则，按此刻的呈现链动态取）。
-final class ShiziWebView: WKWebView {
-    var hiddenFromAccessibility: () -> Bool = { false }
-
-    override var accessibilityElementsHidden: Bool {
-        get { super.accessibilityElementsHidden || hiddenFromAccessibility() }
-        set { super.accessibilityElementsHidden = newValue }
     }
 }

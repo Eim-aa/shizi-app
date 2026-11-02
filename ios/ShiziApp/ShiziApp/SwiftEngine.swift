@@ -2,21 +2,17 @@ import ShiziCore
 import ShiziImageRendering
 import QuartzCore
 import UIKit
-import WebKit
 
-// B4.5c / B4.8 / B4.9a：SwiftEngine（缺省；计划 B3B4-原生化架构与计划.md §3.4、§4.2、§10.x B4.9a）。
+// SwiftEngine（B4.5c 建，B4.8 设为缺省，B4.9 起是唯一的引擎；计划 B3B4-原生化架构与计划.md §3.4、§4.2、§10.x B4.9）。
 //
-// 与 WebEngine 同一个协议（ShiziEngine / StageEngine），页面一行不改。Store 接 App 的同一个 SQLite 库（同一条连接，同表同键同值形状，不迁移）。
-// B4.9a 起缺省模式里没有 op 交给 WKWebView：
-//   · 页面 API / 写字会话的全部 op 由 Swift 答（EngineOps.swiftAnswers；只剩显式 webRenderer 或原生渲染失败的 image.render / save 交页面，B4.6 的回退）；
+// 原生页只认 ShiziEngine 协议（ShiziKit/ShiziEngine.swift）；Store 接 App 的 SQLite 库（AppDatabase，一条连接）。全部 op 在这里答：
 //   · 栈往来（route.* / stage.* / deeplink.reminder / shiziNativeNav）由 SwiftNavigator 答（ShiziCore Navigation/，JS 参考 src/ui/engine.js）；
-//   · 原来由页面订阅 store 做的事——引擎状态、阻断页、坏值提示、窗口外观、提醒同步——由这里订阅 Swift 的 store 做；
-//   · 声音：判断声 j1 轮换、落印 s1 都由 Swift 的提交发（一件事一个责任方）；触觉由原生页自己发。
-// WKWebView 仍在（B4.9 才删）：页面照常载入，冷启动仍等它的 pageReady 再做 route.plan（时序不变）。迁移没做完时这一次启动整个用 WebEngine（EngineMode.swift）。
-// 缺省模式里页面发来的引擎类消息只认 changed（测试 / QA 往页面里造数据后 Swift 重读库，见 NativeStage.acceptsPageMessage）；
-// QA / 测试宿主另有「镜像」：Swift 写了库 → 页面重读，Swift 存栈 → 页面的导航镜像对齐，测试脚本还能经页面读写（WebCalls 记作 qa，不算引擎调用）。
-final class SwiftEngine: StageEngine {
-    private let web: WebEngine
+//   · 画图 image.render / image.save 由原生渲染器答（ShiziImageRendering，B4.6）；
+//   · 其余页面 API / 写字会话由 SessionRuntime 答。
+// 订阅 Swift 的 store 做的事：引擎状态、阻断页、坏值提示、窗口外观、提醒同步 / 要权限 / 查权限、首练邀请、存相册、选字条小图、分享失败提示条。
+// 声音：判断声 j1 轮换、落印 s1 由 Swift 的提交发（一件事一个责任方，SoundPlayer 播）；触觉由原生页自己发。
+// B4.9：WKWebView 与 JS 已从 App 删除——没有 WebEngine 回退、没有 -shizi-engine 开关、没有影子比对、没有 localStorage 迁移保护（D81 ②）。
+final class SwiftEngine: ShiziEngine {
     let core: SwiftEngineCore
     let nav: SwiftNavigator
     let reminder: ReminderController
@@ -26,56 +22,45 @@ final class SwiftEngine: StageEngine {
     private var statusObservers: [UUID: (ShiziEngineStatus) -> Void] = [:]
     private var feedOff: (() -> Void)?
     private var reloading = false
-    /// 发出去还没收到回声的 shiziEngineSync 次数（QA 镜像；回声 = 全部域、label 为空的 changed）。
-    private var pendingSyncs = 0
-    private var commits = 0
     /// 发出的 op 序号（route 是同步进来的：发出顺序）。
     private var issued = 0
-    /// 冷启动的 route.plan 答过了（之前引擎状态 reloading：启动首帧的主按钮就绪前不可点，与原来等页面一致）。
+    /// 冷启动的 route.plan 答过了（之前引擎状态 reloading：启动首帧的主按钮就绪前不可点）。
     private(set) var planned = false
     private var lastStatus: ShiziEngineStatus = .reloading
-    /// 判断声 / 落印声的播放（WebViewController 的同一组预载 CAF）。
-    var playSound: ((String, Double) -> Void)?
+    /// B3.F：导航 op（nav.push / replace / back / tab / setParams）不进引擎——原生持有页面栈，由导航者（NativeStage）直接做。
+    var navigator: ((String, [String: Any]) -> [String: Any])?
     #if DEBUG
-    /// 测试钩子在页面里挂了写入注入（failNextWrite / interruptAfterWrite，D07 三段式的测试）：下一次 Swift 要写的 op 之前取走挂到 Swift 的 storage。
-    var faultsArmed = false
-    /// 测试直接挂到 Swift 的写入注入（qaFailNextWrite）：只给挂上之后才发出的 op——之前已经发出、还没轮到的那一个不算
-    /// （WebEngine 时页面调用队列先进先出，就是这个顺序；页面消息 qa-faults 到得晚，排不出这个顺序）。
+    /// 测试直接挂到 Swift 的写入注入（qaFailNextWrite）：只给挂上之后才发出的 op——之前已经发出、还没轮到的那一个不算。
     private var pendingFaults: (count: Double, kind: String, after: Int)?
 
-    /// ShiziWriteTests：下一次写入失败（D07），按发出顺序挂在之后的第一个写 op 上。
+    /// ShiziWriteTests / QA 夹具（failNext）：下一次写入失败（D07），按发出顺序挂在之后的第一个写 op 上。
     func qaFailNextWrite(_ count: Double = 1, kind: String = "generic") {
         pendingFaults = (count, kind, issued)
     }
     /// 只读的 op（不取走注入，留给后面真正写的那一次）。
     static let readOnly: Set<String> = ["write.copy", "write.refLabel", "image.spec", "reminder.plan", "backup.export", "backup.undoState", "backup.restorePreview"]
-    /// QA / 测试宿主的页面镜像（见文件头）。零调用检查（ShiziWriteTests testB49a）关掉它。
-    static var qaMirror: Bool = WebViewController.nativeTestHostEnabled || WebViewController.qaEnabled
+    /// QA：迁移失败的阻断页（夹具 blockMode migration；D81 ② 起正式包没有迁移路径，这一种阻断页只能由夹具造出来）。
+    var qaMigrationFailure: JSValue?
+    /// QA：系统通知权限的回包钉成这个值（夹具 systemPermission，R16）。
+    var qaPermission: String?
     #endif
 
-    init(webView: WKWebView?) {
-        web = WebEngine(webView: webView)
-        web.swiftOwned = true
-        backend = ReloadableBackend(transport: BridgeTransport())
+    init() {
+        backend = ReloadableBackend(transport: DatabaseTransport())
         core = SwiftEngineCore(backend: backend, clock: SwiftEngine.clock, measure: NativeLineMeasure())
         nav = SwiftNavigator(core: core)
         reminder = ReminderController(store: core.store)
         #if DEBUG
-        // -shizi-qa-storage-unavailable（测试宿主）：这次启动存储探测失败——页面那边 test-hooks 换 storage.probe，写入者 Swift 这边同一个替身
-        if WebViewController.nativeTestHostEnabled, ProcessInfo.processInfo.arguments.contains("-shizi-qa-storage-unavailable") {
+        // -shizi-qa-storage-unavailable（测试宿主）：这次启动存储探测失败（冷启动「阻断优先」的流程测试）
+        if RootViewController.nativeTestHostEnabled, ProcessInfo.processInfo.arguments.contains("-shizi-qa-storage-unavailable") {
             core.store.storage.probeOverride = (false, "security")
         }
         #endif
         core.load()
-        _ = core.store.subscribe { [weak self] _, info in
-            if info["type"] == .string("commit") || info["type"] == .string("recover") || info["replace"] == .bool(true) { self?.commits += 1 }
-            self?.storeChanged(info)
-        }
+        _ = core.store.subscribe { [weak self] _, info in self?.storeChanged(info) }
         feedOff = core.changeFeed { [weak self] packet in self?.emit(packet) }
-        core.onSound = { [weak self] name, gain in self?.playSound?(name, gain) }
+        core.onSound = { name, gain in SoundPlayer.shared.play(kind: name, gain: gain) }
         core.host.navigator = nav
-        nav.onCommit = { [weak self] in self?.syncPage() }
-        nav.onStack = { [weak self] in self?.mirrorStack() }
         nav.openReminder = { [weak self] key in _ = self?.reminder.openTarget(.string(key)) }
         installPlatform()
         EngineRoute.swift = { [weak self] function, op, args, completion in self?.route(function, op, args, completion) ?? false }
@@ -92,28 +77,45 @@ final class SwiftEngine: StageEngine {
         #endif
     }
 
-    /// NativeStage 建好之后接上导航者的去处。阻断页 / 坏值提示 / 外观的第一次核对在页面第一次就绪时（engine.js mountEngine 的同一时刻：
-    /// 在冷启动 route.plan 之前）。
+    /// NativeStage 建好之后接上导航者的去处。
     func attach(stage: NativeStage) {
         self.stage = stage
         nav.stage = stage
     }
 
-    /// 页面第一次就绪过（之后 store 的变化才发阻断页 / 坏值提示 / 外观）。
+    /// 启动核对过一次（之后 store 的变化才发阻断页 / 坏值提示 / 外观）。
     private var started = false
 
-    /// QA 镜像：页面路由发起的导航（测试脚本）原生照做之后，Swift 的镜像立刻对齐（不等存栈）。
-    func adoptPageNav(_ entries: [[String: Any]], seq: Int) {
-        nav.router.adopt(EngineValue.js(entries)) // 原生刚照做了页面发来的那一条：以原生的栈为准（页面的意图序号与 Swift 的不是一个数）
+    /// 冷启动判定之前（engine.js mountEngine 的同一时刻）：阻断页 / 坏值提示 / 外观第一次核对。
+    func start() {
+        guard !started else { return }
+        started = true
+        checkBlock()
+        checkCorrupt()
+        applyAppearance()
     }
 
-    // MARK: 转给 WebEngine 的部分（只剩 WKWebView 引用、nav.* 的导航者与回退画图）
+    /// 阻断页「再试一次」的重新启动（JS 参考整页 location.reload()）：存储从头探测、修复、读库；还阻断就留在阻断页，不阻断了阻断页收起（checkBlock）。
+    func relaunch() {
+        core.store.storage.resetForRelaunch()
+        reloadFromLibrary()
+        announceAllDomains() // 新页面的 store 从头读：原生页按全部域重拉
+    }
 
-    var webView: WKWebView? { get { web.webView } set { web.webView = newValue } }
-    var navigator: ((String, [String: Any]) -> [String: Any])? { get { web.navigator } set { web.navigator = newValue } }
+    // MARK: 调用（App API：原生页的 raw / call）
 
-    func raw(_ op: String, _ args: [String: Any], completion: @escaping ([String: Any]) -> Void) { web.raw(op, args, completion: completion) }
-    @MainActor func raw(_ op: String, _ args: [String: Any]) async -> [String: Any] { await web.raw(op, args) }
+    func raw(_ op: String, _ args: [String: Any], completion: @escaping ([String: Any]) -> Void) {
+        if op.hasPrefix("nav."), let navigator {
+            DispatchQueue.main.async { completion(navigator(op, args)) }
+            return
+        }
+        _ = route(EngineOps.app, op, args) { body, _ in completion(body) }
+    }
+
+    @MainActor func raw(_ op: String, _ args: [String: Any]) async -> [String: Any] {
+        await withCheckedContinuation { cont in raw(op, args) { cont.resume(returning: $0) } }
+    }
+
     @MainActor func call<A: Encodable, R: Decodable>(_ op: String, _ args: A, as type: R.Type) async throws -> R {
         try ShiziDecode.reply(await raw(op, ShiziDecode.args(args)), as: R.self)
     }
@@ -122,8 +124,16 @@ final class SwiftEngine: StageEngine {
 
     var status: ShiziEngineStatus {
         guard planned else { return .reloading }
-        let reason = BlockView.blockReasonOf(.object(core.store.status))
+        let reason = blockReason()
         return reason.isNull ? .ready : .blocked(reason["kind"]?.stringValue ?? "blocked")
+    }
+
+    private func blockReason() -> JSValue {
+        #if DEBUG
+        return BlockView.blockReasonOf(.object(core.store.status), migration: qaMigrationFailure)
+        #else
+        return BlockView.blockReasonOf(.object(core.store.status))
+        #endif
     }
 
     @discardableResult func observeStatus(_ fn: @escaping (ShiziEngineStatus) -> Void) -> () -> Void {
@@ -139,26 +149,16 @@ final class SwiftEngine: StageEngine {
         for fn in statusObservers.values { fn(s) }
     }
 
-    /// 页面推来的 status：缺省模式里引擎状态只看 Swift 的 store。
-    func receiveStatus(_ body: [String: Any]) {}
-    /// 页面重载（WebContent 被回收）不影响 Swift 引擎：原生页照常可点。
-    func pageWillReload() {}
-    func pageDidBecomeReady() {
-        guard !started else { return }
-        started = true
-        checkBlock()
-        checkCorrupt()
-        applyAppearance()
-    }
-
     // MARK: 答
 
-    /// EngineRoute 的 swift 出口：栈往来 op 由导航者答；其余 Swift 实现了的 op 在主线程答（写字会话回包照旧带 ms）；只剩回退的画图交页面。
+    /// EngineRoute 的出口：栈往来 op 由导航者答；画图由原生渲染器答；其余在主线程由 SessionRuntime 答（写字会话回包照旧带 ms）。
     /// 都排进同一条主线程任务队列（按发出顺序）。
     private func route(_ function: String, _ op: String, _ args: [String: Any], _ completion: @escaping ([String: Any], Double) -> Void) -> Bool {
         let t0 = CACurrentMediaTime()
         issued += 1
+        #if DEBUG
         let seq = issued
+        #endif
         Task { @MainActor [weak self] in
             guard let self else { return }
             let jargs = EngineValue.object(args)
@@ -167,61 +167,90 @@ final class SwiftEngine: StageEngine {
                 completion(EngineValue.dict(reply), (CACurrentMediaTime() - t0) * 1000)
                 return
             }
-            guard EngineOps.swiftAnswers(function: function, op: op) else {
-                WebEngine.evaluate(web.webView, function: function, op: op, args: args, completion: completion)
+            if function == EngineOps.app, EngineOps.imageOps.contains(op) {
+                completion(await nativeImage(op, args), (CACurrentMediaTime() - t0) * 1000)
                 return
             }
-            let before = commits
             #if DEBUG
             let name = EngineOps.runtimeOp(function: function, op: op)
-            let writes = !name.hasPrefix("view.") && !Self.readOnly.contains(name)
-            if writes, let f = pendingFaults, seq > f.after {
+            if !name.hasPrefix("view."), !Self.readOnly.contains(name), let f = pendingFaults, seq > f.after {
                 pendingFaults = nil
                 core.store.storage.clearFaults()
                 core.store.storage.failNextWrite(f.count, kind: f.kind, matchKey: nil)
-            } else if faultsArmed, writes {
-                faultsArmed = false
-                await takeFaults()
             }
             #endif
             let reply = await core.answer(function: function, op: op, args: jargs)
             var body = EngineValue.dict(reply)
             let wall = (CACurrentMediaTime() - t0) * 1000
             if function == EngineOps.write { body["ms"] = wall }
-            if commits != before { syncPage() }
             completion(body, wall)
         }
         return true
     }
 
-    #if DEBUG
-    @MainActor private func takeFaults() async {
-        let f: JSValue = await withCheckedContinuation { cont in
-            WebCalls.qa {
-                WebEngine.evaluate(web.webView, function: "__shiziTestTakeFaults", op: "", args: [:]) { body, _ in cont.resume(returning: EngineValue.js(body)) }
+    // MARK: 画图（B4.6：原生渲染器；规格 image.spec 与存相册 image.persist 的记账由 SessionRuntime 答）
+
+    private var imageRenderer: ImageRenderer?
+
+    @MainActor private func nativeImage(_ op: String, _ args: [String: Any]) async -> [String: Any] {
+        let failed: [String: Any] = ["ok": false, "error": ["kind": "render"]]
+        guard let assets = EngineHost.webRoot else { return failed }
+        if imageRenderer == nil { imageRenderer = ImageRenderer(assets: assets) }
+        func spec(_ request: [String: Any]) async -> [String: Any] {
+            EngineValue.dict(await core.answer(function: EngineOps.app, op: "image.spec", args: EngineValue.object(request)))
+        }
+        var request = args
+        if op == "image.save", args["mode"] as? String != "long" { request["mode"] = "export" }
+        let first = await spec(request)
+        guard first["ok"] as? Bool == true, let s = first["spec"] as? [String: Any] else { return failed }
+        let status = s["status"] as? String ?? "ready"
+        if status != "ready", op == "image.save" { return failed }
+        if status != "ready" { return ["ok": true, "image": ["status": status, "dataURL": "", "width": 0, "height": 0, "name": ""]] }
+        do {
+            let data = try imageRenderer!.render(s)
+            if op == "image.render" {
+                guard let png = data.first, let image = UIImage(data: png) else { return failed }
+                return ["ok": true, "image": ["status": "ready", "dataURL": "data:image/png;base64," + png.base64EncodedString(), "width": Int(image.size.width), "height": Int(image.size.height), "name": first["name"] as? String ?? ""]]
             }
+            var images: [[String: Any]] = []
+            func append(_ pngs: [Data], _ name: String) {
+                for (i, png) in pngs.enumerated() {
+                    let base = (name as NSString).deletingPathExtension
+                    let stem = pngs.count > 1 ? base + "-\(i + 1)of\(pngs.count)" : name
+                    images.append(["dataURL": "data:image/png;base64," + png.base64EncodedString(), "name": RootViewController.fileName(stem, forExtension: "png"), "kind": (args["scope"] as? [String: Any])?["kind"] as? String ?? ""])
+                }
+            }
+            append(data, first["name"] as? String ?? "shizi")
+            if args["mode"] as? String != "long" {
+                let total = first["total"] as? Int ?? 1
+                if total > 1 { for page in 1..<total {
+                    request["page"] = page
+                    let body = await spec(request)
+                    guard let next = body["spec"] as? [String: Any], body["ok"] as? Bool == true else { return failed }
+                    append(try imageRenderer!.render(next), body["name"] as? String ?? "shizi")
+                } }
+            }
+            guard !images.isEmpty else { return failed }
+            return EngineValue.dict(await core.answer(function: EngineOps.app, op: "image.persist", args: EngineValue.object(["images": images])))
+        } catch {
+            ShiziProbe.log("native image render failed: \(error)")
+            return failed
         }
-        let storage = core.store.storage
-        storage.clearFaults()
-        for rule in f["fail"]?.arrayValue ?? [] {
-            storage.failNextWrite(rule["remaining"]?.numberValue ?? 0, kind: rule["kind"]?.stringValue ?? "generic", matchKey: rule["matchKey"]?.stringValue)
-        }
-        if let k = f["interruptAfter"]?.numberValue { storage.interruptAfterWrite(k) }
     }
-    #endif
+
+    // MARK: QA 设施（只在 DEBUG；QAOps.swift 的夹具 op 调）
 
     #if DEBUG
-    /// B4.9c：存储替身（test-hooks overrideStorage / 夹具 blockMode）——Swift 是写入者，替身挂到 Swift 的存储上再重读，阻断页由 checkBlock 发。
-    /// body：{probe: {ok:false, kind} | null, blocked: {reason, keys} | null, quarantined: [键] | null}（null = 还原）。
-    func qaOverrideStorage(_ body: [String: Any]) {
+    /// 存储替身（夹具 blockMode / corruptNotice）：替身挂到 Swift 的存储上再重读，阻断页由 checkBlock 发、坏值浮条由 checkCorrupt 发。
+    func qaOverrideStorage(probe: String?, blocked: String?, quarantined: [String]?) {
         let storage = core.store.storage
-        storage.probeOverride = (body["probe"] as? [String: Any]).map { (false, ($0["kind"] as? String) ?? "unknown") }
-        storage.blockedOverride = (body["blocked"] as? [String: Any]).map { (($0["reason"] as? String) ?? "rollback-failed", ($0["keys"] as? [String]) ?? [], []) }
-        storage.quarantinedOverride = body["quarantined"] as? [String]
+        storage.probeOverride = probe.map { (false, $0) }
+        storage.blockedOverride = blocked.map { ($0, [], []) }
+        storage.quarantinedOverride = quarantined
         reloadFromLibrary()
     }
 
-    /// B4.9c：夹具的界面入口（页面消息 qa-ui）。corruptHide = 收起坏值浮条（夹具清理：engine.js 那条收起在 swift 模式里不认）；其余交 EngineHost.qaUI。
+    /// 夹具的界面入口：corruptHide = 收起坏值浮条（夹具清理）；其余交 EngineHost.qaUI（与原生按钮同一个入口）。
     func qaUI(_ action: String, _ args: JSValue) {
         if action == "corruptHide" {
             nav.post(JSObject([("op", .string("corrupt")), ("show", .bool(false))]))
@@ -229,28 +258,31 @@ final class SwiftEngine: StageEngine {
         }
         core.host.qaUI(action, args)
     }
-    #endif
 
-    /// Swift 写了库：QA 镜像里页面的 JS 镜像重读（排在调用队列里）；缺省模式什么都不做（页面不再答任何 op）。
-    private func syncPage() {
-        #if DEBUG
-        guard Self.qaMirror else { return }
-        pendingSyncs += 1
-        WebCalls.qa {
-            WebEngine.evaluate(web.webView, function: "shiziEngineSync", op: "", args: [:]) { [weak self] body, _ in
-                if body["ok"] as? Bool != true { self?.pendingSyncs = max(0, (self?.pendingSyncs ?? 1) - 1) }
-            }
-        }
-        #endif
+    /// 测试钩子 reset 的 Swift 版（test-hooks.js reset）：清写入注入、删全部 shizi.* 键、重读库（时钟由 QAClock 另管）。
+    func qaReset() {
+        let storage = core.store.storage
+        storage.clearFaults()
+        pendingFaults = nil
+        if let keys = try? storage.listKeys("shizi.") { _ = try? storage.removeKeys(keys) }
+        reloadFromLibrary()
+        announceAllDomains() // test-hooks reset → store.reload：订阅者收到全部域
     }
 
-    /// QA 镜像：Swift 的栈一变就让页面的导航镜像对齐（测试脚本读页面路由的栈顶）。
-    private func mirrorStack() {
-        #if DEBUG
-        guard Self.qaMirror, let stage else { return }
-        let args: [String: Any] = ["stack": nav.router.stack.map { EngineValue.any(EngineRouter.plain($0)) }, "seq": stage.pageSeq]
-        WebCalls.qa { WebEngine.evaluate(web.webView, function: EngineOps.app, op: "route.save", args: args) { _, _ in } }
-        #endif
+    /// 迁移失败的阻断页（夹具 blockMode migration）：nil = 还原。
+    func qaSetMigrationFailure(_ reason: String?) {
+        qaMigrationFailure = reason.map { .object(JSObject([("reason", .string($0))])) }
+        publishStatus()
+        checkBlock()
+    }
+    #endif
+
+    /// 重读库（重新启动 / QA 清空数据）：store.load 时不推 changed（之后页面按 status / 下一次提交重拉）。
+    private func reloadFromLibrary() {
+        reloading = true
+        backend.reload()
+        core.load()
+        reloading = false
     }
 
     // MARK: 订阅
@@ -271,31 +303,13 @@ final class SwiftEngine: StageEngine {
         for c in subscribers.values { c.yield(set) }
     }
 
-    /// 页面推来的 changed（测试 / QA 往页面里造数据）：QA 镜像同步引起的回声丢掉；页面自己的提交 → Swift 重读库再转给页面；
-    /// 离开撤销条的 ui 推送由 Swift 的宿主推（EngineHost），页面的不认。
-    func receiveChanged(_ body: [String: Any]) -> ShiziChangeSet? {
-        let domains = (body["domains"] as? [String]) ?? []
-        guard !domains.isEmpty else { return nil }
-        let label = body["label"] as? String
-        if pendingSyncs > 0, label == nil, Set(domains) == Set(Schema.domains) {
-            pendingSyncs -= 1
-            return nil
-        }
-        if label == "leave-undo" { return nil }
-        if domains.contains(where: { Schema.domains.contains($0) }) { reloadFromLibrary() }
-        let set = ShiziChangeSet(domains: domains, label: label)
+    /// 重读库之后（重新启动 / QA 清空）：原生页按全部域重拉（JS 参考：store.reload 后订阅者收到全部域）。
+    private func announceAllDomains() {
+        let set = ShiziChangeSet(domains: Schema.domains, label: nil)
         for c in subscribers.values { c.yield(set) }
-        return set
     }
 
-    private func reloadFromLibrary() {
-        reloading = true
-        backend.reload()
-        core.load()
-        reloading = false
-    }
-
-    // MARK: 原来由页面订阅 store 做的事（engine.js watchBlock / watchCorrupt、native-stage.js postStatus、appearance.js、reminder.js）
+    // MARK: 订阅 store 做的事（engine.js watchBlock / watchCorrupt、native-stage.js postStatus、appearance.js、reminder.js）
 
     private func storeChanged(_ info: JSObject) {
         let type = info["type"]?.stringValue ?? ""
@@ -312,7 +326,7 @@ final class SwiftEngine: StageEngine {
     private var blockId: String?
     private func checkBlock() {
         guard started, stage != nil else { return }
-        let reason = BlockView.blockReasonOf(.object(core.store.status))
+        let reason = blockReason()
         let kind = reason["kind"]?.stringValue
         let canExport = kind == "blocked" && core.store.available && BlockView.hasJudged(.object(core.store.state))
         let key = kind.map { "\($0)|\(canExport)" }
@@ -382,7 +396,7 @@ final class SwiftEngine: StageEngine {
                 ReminderInviteHost.changeTime(store, hour: a["hour"] ?? .null, minute: a["minute"] ?? .null, sync: { remind in _ = self?.reminder.sync(remind: remind, force: true) })
             }
         }
-        // 存相册（image-preview.js saveImageFile 的原生分支：savePracticeCard → 成功与否；等 120s，与页面同）
+        // 存相册（image-preview.js saveImageFile 的原生分支：savePracticeCard → 成功与否；等 120s）
         core.host.images.saveFile = { [weak self] file in
             await withCheckedContinuation { cont in
                 DispatchQueue.main.async {
@@ -410,7 +424,7 @@ final class SwiftEngine: StageEngine {
         return "data:image/png;base64," + png.base64EncodedString()
     }
 
-    /// prefs.js requestReminderPermission：已授权不再要；否则向原生要（回 true = 真的发出了请求）。
+    /// prefs.js requestReminderPermission：已授权不再要；否则向系统要（回 true = 真的发出了请求）。
     private func requestPermission(_ remind: JSValue) -> Bool {
         if remind["permission"] == .string("granted") { return false }
         guard let host = stage?.host else { return false }
@@ -418,9 +432,13 @@ final class SwiftEngine: StageEngine {
         return true
     }
 
-    /// 原生查到的通知权限（原来交页面 shiziReminderStatus）。
+    /// 系统查到 / 要到的通知权限（JS 参考 shiziReminderStatus → applyReminderStatus）。
     func receiveReminderStatus(_ permission: String) {
-        _ = reminder.receiveStatus(.object(JSObject([("permission", .string(permission))])))
+        var value = permission
+        #if DEBUG
+        if let p = qaPermission { value = p } // 夹具 systemPermission：回包里的 permission 钉成夹具写的值，其余照常
+        #endif
+        _ = reminder.receiveStatus(.object(JSObject([("permission", .string(value))])))
     }
 
     /// 冷启动的栈重建好了：提醒开着就查权限并同步一次（reminder.js startReminder）。
@@ -438,34 +456,9 @@ final class SwiftEngine: StageEngine {
     }
 }
 
-/// 还交给 WKWebView 的调用计数（B4.9a：缺省模式应为 0；DEBUG 的 QA 探针 stage.webCalls 读）。
-/// engine = 页面答的调用（op / 回退画图 / AX 量值）；qa = 测试设施（QA 镜像、写入注入），不算引擎调用。
-enum WebCalls {
-    private(set) static var engine = 0
-    private(set) static var qa = 0
-    private(set) static var byOp: [String: Int] = [:]
-    private static var qaDepth = 0
+// MARK: - 原生量测：页面自己的字体与版心宽，按 ShiziPageText 的均衡折行（网页 text-wrap: pretty / balance 的同一口径）
 
-    static func qa(_ fn: () -> Void) {
-        qaDepth += 1
-        defer { qaDepth -= 1 }
-        fn()
-    }
-
-    static func note(function: String, op: String) {
-        if qaDepth > 0 { qa += 1; return }
-        engine += 1
-        byOp["\(function).\(op)", default: 0] += 1
-    }
-
-    static func reset() { engine = 0; qa = 0; byOp = [:] }
-
-    static var probe: [String: Any] { ["engine": engine, "qa": qa, "byOp": byOp] }
-}
-
-// MARK: - 原生量测（swift 模式）：页面自己的字体与版心宽，按 ShiziPageText 的均衡折行（网页 text-wrap: pretty / balance 的同一口径）
-
-/// 与网页 DOM 量的差别（影子模式只比形状，见 ShadowEngine）：字体是原生页实际用的苹方 / 宋体（网页同名字体的 woff2 与系统苹方在个别字宽上不同）；
+/// 与网页 DOM 量（JS 参考）的差别：字体是原生页实际用的苹方 / 宋体（网页同名字体的 woff2 与系统苹方在个别字宽上不同）；
 /// 宽按原生页的版心（屏宽 − 2 × 页边），不含网页 fit-content / max-width 的细节；AX 档的折行因此可能与网页不同——原生页按自己的排法本来就该如此。
 final class NativeLineMeasure: EngineMeasure {
     private enum Face { case hei(Int), heiMedium(Int), song(Int) }

@@ -1,43 +1,29 @@
 import UIKit
-import WebKit
 import XCTest
 @testable import Shizi
 
 // B2.4 / B2.6 原生写字页的真 store 路径（scheme ShiziWriteTests：App 作测试宿主，环境 SHIZI_NATIVE_WRITE=1、SHIZI_TEST_HOST=1）：
-// 首页开组 → 原生写字页盖上 → 走原生页面自己的按钮路径（看答案 / 凭记忆写 / 下一个 / 跳过 / 撤销 / 结束这组），用页面的公开测试钩子 __shiziTest 读回 store。
-// 网页路径 == API 路径由 test/ui/native-write.test.mjs 证明（同一批提交函数）；这里证明桥、原生页面、真 store 与 SQLite 这一整条通，并核对失败三段式（D07）。
+// 首页开组 → 原生写字页盖上 → 走原生页面自己的按钮路径（看答案 / 凭记忆写 / 下一个 / 跳过 / 撤销 / 结束这组），读回 Swift 的 store（TestHost）。
+// 这里证明原生页面、写字会话 API（SwiftEngine）、真 store 与 SQLite 这一整条通，并核对失败三段式（D07）。
 
 @MainActor
 final class NativeAnswerSkipTests: XCTestCase {
-    private var web: WebViewController!
-    private var bridge: NativeWriteBridge!
+    private var host: TestHost!
+    private var root: RootViewController { host.root }
+    private var bridge: WriteSessionChannel!
 
     override func setUp() async throws {
         try await super.setUp()
-        let root = UIApplication.shared.delegate?.window??.rootViewController
-        web = try XCTUnwrap(root as? WebViewController, "root is the web shell")
-        try await waitUntil("page ready") { self.web.pageReady }
-        try await waitUntil("test hooks") { (try? await self.js("return !!window.__shiziTest && typeof window.shiziNativeWrite === 'function';")) as? Bool == true }
-        if let top = web.nativeWriteTop {
-            top.exitHandled = true
-            top.dismiss(animated: false)
-        }
-        _ = try await js("(await import('/src/ui/router.js')).nav.switchTab('home'); return window.__shiziTest.reset();")
-        try await waitUntil("no native page") { self.web.nativeWriteTop == nil }
-        bridge = NativeWriteBridge(webView: web.webView)
+        host = try TestHost()
+        try await waitUntil("engine ready") { self.host.ready }
+        host.reset()
+        try await waitUntil("no native page") { self.root.nativeWriteTop == nil }
+        bridge = WriteSessionChannel()
     }
 
     // MARK: 工具
 
-    @discardableResult
-    private func js(_ body: String) async throws -> Any? {
-        try await web.webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page)
-    }
-
-    private func state() async throws -> [String: Any] {
-        let value = try await js("return window.__shiziTest.getState();")
-        return try XCTUnwrap(value as? [String: Any])
-    }
+    private func state() async throws -> [String: Any] { host.state() }
 
     private func waitUntil(_ what: String, timeout: TimeInterval = 15, _ cond: @escaping () async -> Bool) async throws {
         let end = Date().addingTimeInterval(timeout)
@@ -50,16 +36,16 @@ final class NativeAnswerSkipTests: XCTestCase {
     }
 
     private func startGroup() async throws -> NativeWriteViewController {
-        _ = try await js("const m = await import('/src/ui/screens/session/index.js'); return m.startA({}).ok;")
-        try await waitUntil("native write page") { self.web.nativeWriteTop != nil && self.web.presentedViewController?.isBeingPresented == false }
-        return try XCTUnwrap(web.nativeWriteTop)
+        _ = await host.startA()
+        try await waitUntil("native write page") { self.root.nativeWriteTop != nil && self.root.presentedViewController?.isBeingPresented == false }
+        return try XCTUnwrap(root.nativeWriteTop)
     }
 
     /// 这次选的字（B 槽，picked）：能「结束这组」（首次练习与今天的练习不同，D66 ⑥：first 不放）。
     private func startPickedGroup() async throws -> NativeWriteViewController {
-        _ = try await js("const m = await import('/src/ui/screens/session/index.js'); return m.startPicked(['永','和','春','日','月','山','水','火']).ok;")
-        try await waitUntil("native write page (B)") { self.web.nativeWriteTop?.slot == "B" && self.web.presentedViewController?.isBeingPresented == false }
-        return try XCTUnwrap(web.nativeWriteTop)
+        host.startPicked(["永", "和", "春", "日", "月", "山", "水", "火"])
+        try await waitUntil("native write page (B)") { self.root.nativeWriteTop?.slot == "B" && self.root.presentedViewController?.isBeingPresented == false }
+        return try XCTUnwrap(root.nativeWriteTop)
     }
 
     private func sessionB(_ st: [String: Any]) -> [String: Any]? {
@@ -120,13 +106,13 @@ final class NativeAnswerSkipTests: XCTestCase {
         try write(vc)
         // 下一个：推进到下一字，不进判断
         tap(vc, "tapPrimary")
-        try await waitUntil("next card") { vc.cardKey != key || self.web.nativeWriteTop == nil }
+        try await waitUntil("next card") { vc.cardKey != key || self.root.nativeWriteTop == nil }
         XCTAssertEqual(vc.phase, .recall)
         st = try await state()
         let recs = records(st).filter { ($0["cardKey"] as? String) == key }
         XCTAssertEqual(recs.filter { ($0["kind"] as? String) == "judged" }.count, 0, "no judgment for a seen answer")
         let seenId = try XCTUnwrap(seen.first?["id"] as? String)
-        let hasInk = try await js("const st = window.__shiziTest.getState(); const r = Object.values(st.records).flat().find(x => x.id === \(Self.literal(seenId))); return !!window.__shiziTest.getInk(r);") as? Bool
+        let hasInk = host.hasInk(recordId: seenId)
         XCTAssertEqual(hasInk, false, "D70 ②（R9-C）：凭记忆写的笔迹不存，看过答案记录没有墨迹")
         XCTAssertEqual(sessionA(st)?["cursor"] as? Int, 1)
         let line = vc.snapshot["line"] as? [String: Any]
@@ -137,7 +123,7 @@ final class NativeAnswerSkipTests: XCTestCase {
         let vc = try await startGroup()
         let key = try XCTUnwrap(vc.cardKey)
         let before = records(try await state()).count
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         tap(vc, "tapShowAnswer")
         try await waitUntil("failure shown") { vc.flowFail != nil }
         XCTAssertEqual(vc.flowFail, .showAnswer)
@@ -153,7 +139,7 @@ final class NativeAnswerSkipTests: XCTestCase {
         XCTAssertEqual(records(st).filter { ($0["cardKey"] as? String) == key && ($0["kind"] as? String) == "answer-seen" }.count, 1, "recorded once")
         // 凭记忆写没保存上：留在描一遍，笔迹还在；「先不保存」回到平常
         try write(vc)
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         tap(vc, "tapPrimary")
         try await waitUntil("failure on phase change") { vc.flowFail != nil }
         XCTAssertEqual(vc.phase, .trace)
@@ -204,7 +190,7 @@ final class NativeAnswerSkipTests: XCTestCase {
     func testFailedSkipStaysAndRetryRecordsOnce() async throws {
         let vc = try await startGroup()
         let key = try XCTUnwrap(vc.cardKey)
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         tap(vc, "tapSkip")
         try await waitUntil("failure shown") { vc.flowFail == .skip }
         XCTAssertEqual(vc.cardKey, key, "not advanced")
@@ -219,17 +205,17 @@ final class NativeAnswerSkipTests: XCTestCase {
     func testSkippingTheLastCharHandsTheUndoChanceToTheWebResultPage() async throws {
         let vc = try await startGroup()
         var guardCount = 0
-        while web.nativeWriteTop != nil, guardCount < 40 {
+        while root.nativeWriteTop != nil, guardCount < 40 {
             guardCount += 1
             let key = vc.cardKey
             tap(vc, "tapSkip")
-            try await waitUntil("next or result") { self.web.nativeWriteTop == nil || vc.cardKey != key }
+            try await waitUntil("next or result") { self.root.nativeWriteTop == nil || vc.cardKey != key }
         }
         try await waitUntil("result page") {
-            (try? await self.js("return (await import('/src/ui/router.js')).getRouter().getState().top.n;")) as? String == "result"
+            self.host.top == "result"
         }
         // B2.7：结果页是原生的，撤销机会交给原生结果页的撤销条（S4）
-        try await waitUntil("undo bar on the native result page") { self.web.nativeResultTop?.undoBarForTesting != nil }
+        try await waitUntil("undo bar on the native result page") { self.root.nativeResultTop?.undoBarForTesting != nil }
     }
 
     // MARK: 结束这组（B2.6）
@@ -268,23 +254,23 @@ final class NativeAnswerSkipTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(vc.endDialogForTesting).bodyForTesting.contains("1"), "m = 1 judged")
         try XCTUnwrap(vc.endDialogForTesting).tapLeftForTesting() // 结束这组
         try await waitUntil("result page") {
-            (try? await self.js("return (await import('/src/ui/router.js')).getRouter().getState().top.n;")) as? String == "result"
+            self.host.top == "result"
         }
         var st = try await state()
         XCTAssertNil(sessionB(st))
         XCTAssertEqual(((st["sessions"] as? [String: Any])?["lastEnded"] as? [String: Any])?["B"] != nil, true)
-        try await waitUntil("native page gone") { self.web.nativeWriteTop == nil }
+        try await waitUntil("native page gone") { self.root.nativeWriteTop == nil }
         // 零判断：直接结束 → 回来源（首页），没有结果页
-        _ = try await js("(await import('/src/ui/router.js')).nav.switchTab('home'); return window.__shiziTest.reset();")
+        host.reset()
         vc = try await startPickedGroup()
         tap(vc, "tapEnd")
         try await waitUntil("dialog") { vc.endDialogForTesting != nil }
         try XCTUnwrap(vc.endDialogForTesting).tapLeftForTesting()
-        try await waitUntil("native page gone") { self.web.nativeWriteTop == nil }
+        try await waitUntil("native page gone") { self.root.nativeWriteTop == nil }
         try await waitUntil("source page") {
-            (try? await self.js("return (await import('/src/ui/router.js')).getRouter().getState().top.n;")) as? String != "write"
+            self.host.top != "write"
         }
-        let top = try await js("return (await import('/src/ui/router.js')).getRouter().getState().top.n;") as? String
+        let top = host.top
         XCTAssertNotEqual(top, "result", "none judged: back to where you came from, no result page")
         st = try await state()
         XCTAssertNil(sessionB(st))
@@ -295,13 +281,13 @@ final class NativeAnswerSkipTests: XCTestCase {
         tap(vc, "tapEnd")
         try await waitUntil("dialog") { vc.endDialogForTesting != nil }
         let d = try XCTUnwrap(vc.endDialogForTesting)
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         d.tapLeftForTesting()
         try await waitUntil("failed state") { d.isFailed }
         let kept = try await state()
         XCTAssertNotNil(sessionB(kept), "D07: the group is not ended")
         d.tapRightForTesting() // 再试一次
-        try await waitUntil("native page gone") { self.web.nativeWriteTop == nil }
+        try await waitUntil("native page gone") { self.root.nativeWriteTop == nil }
         let ended = try await state()
         XCTAssertNil(sessionB(ended))
     }

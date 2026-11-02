@@ -31,7 +31,7 @@ protocol NativeResultCoordinating: AnyObject {
 final class NativeResultViewController: UIViewController, UIGestureRecognizerDelegate, UIScrollViewDelegate {
     let slot: String
     let sessionId: String
-    private let bridge: NativeWriteBridge
+    private let bridge: WriteSessionChannel
     weak var coordinator: NativeResultCoordinating?
     let transitions = NativeWriteTransitions()
     /// 已交给页面导航（离开 / 让开）：之后的 viewDidDisappear 不再发 leave。
@@ -99,7 +99,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
     private var ts: NativeTypeScale { NativeTypeScale(type: textType, ax: traitCollection.preferredContentSizeCategory.isAccessibilityCategory) }
 
-    init(slot: String, sessionId: String, look: [String: Any], view model: [String: Any], bridge: NativeWriteBridge) {
+    init(slot: String, sessionId: String, look: [String: Any], view model: [String: Any], bridge: WriteSessionChannel) {
         self.slot = slot
         self.sessionId = sessionId
         self.bridge = bridge

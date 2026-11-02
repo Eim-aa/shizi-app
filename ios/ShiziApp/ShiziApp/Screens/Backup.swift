@@ -787,39 +787,31 @@ final class BackupScreen: ShiziScreenViewController {
         }
     }
 
-    /// QA 取证用的「用户选中的文件」：网页侧的夹具变量 window.__qaBackupPick（{text} = 这个内容的文件；{bytes} = 这么大字节的文件）。
-    /// 写成临时文件后走**与系统选择器同一条预检**（WebViewController.precheckBackupFile）。
-    /// 只有带 -shizi-qa 启动参数的 QA 运行走这条路；正式包走 UIDocumentPickerViewController。
-    /// QA 运行（逐屏取证 / 流程测试）：判定跟宿主的 QA 开关一致（NativeQAHarness 的 qaEnabled：探针 / 夹具 / -shizi-qa 都算）。
+    /// QA 取证用的「用户选中的文件」：夹具 op stashBackupPick / stashBadBackup / stashTooLargeBackup 放进 QABackupPick.current
+    /// （{text} = 这个内容的文件；{bytes} = 这么大字节的文件）。写成临时文件后走**与系统选择器同一条预检**（BackupFile.precheck）。
+    /// 只有 QA 运行（逐屏取证 / 流程测试：NativeQAHarness 的 qaEnabled——探针 / 夹具 / -shizi-qa 都算）走这条路；正式包走 UIDocumentPickerViewController。
     #if DEBUG
-    private static var qaFileMode: Bool { WebViewController.qaEnabled }
+    private static var qaFileMode: Bool { RootViewController.qaEnabled }
 
     private func qaPickFile(_ done: @escaping (URL?) -> Void) {
-        guard let webView = stage?.host.webView else { done(nil); return }
-        Task { @MainActor in
-            let js = "return (window.__qaBackupPick && typeof window.__qaBackupPick === 'object') ? {text: typeof window.__qaBackupPick.text === 'string' ? window.__qaBackupPick.text : null, bytes: typeof window.__qaBackupPick.bytes === 'number' ? window.__qaBackupPick.bytes : 0} : null;"
-            do {
-                let value = try await webView.callAsyncJavaScript(js, arguments: [:], in: nil, contentWorld: .page)
-                guard let d = value as? [String: Any] else { done(nil); return }
-                let bytes = (d["bytes"] as? NSNumber)?.intValue ?? 0
-                let text = d["text"] as? String
-                let url = FileManager.default.temporaryDirectory.appendingPathComponent("shizi-qa-pick-\(UUID().uuidString).json")
-                if bytes > 0 {
-                    // 太大：造一个这么大的文件（稀疏文件，不占内存），预检按真实文件大小判
-                    FileManager.default.createFile(atPath: url.path, contents: nil)
-                    let handle = try FileHandle(forWritingTo: url)
-                    try handle.truncate(atOffset: UInt64(bytes))
-                    try handle.close()
-                } else if let text {
-                    try text.write(to: url, atomically: true, encoding: .utf8)
-                } else {
-                    done(nil) // 没选文件 = 用户取消
-                    return
-                }
-                done(url)
-            } catch {
+        guard let pick = QABackupPick.current else { done(nil); return } // 没选文件 = 用户取消
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("shizi-qa-pick-\(UUID().uuidString).json")
+        do {
+            if pick.bytes > 0 {
+                // 太大：造一个这么大的文件（稀疏文件，不占内存），预检按真实文件大小判
+                FileManager.default.createFile(atPath: url.path, contents: nil)
+                let handle = try FileHandle(forWritingTo: url)
+                try handle.truncate(atOffset: UInt64(pick.bytes))
+                try handle.close()
+            } else if let text = pick.text {
+                try text.write(to: url, atomically: true, encoding: .utf8)
+            } else {
                 done(nil)
+                return
             }
+            done(url)
+        } catch {
+            done(nil)
         }
     }
     #else
@@ -827,9 +819,9 @@ final class BackupScreen: ShiziScreenViewController {
     private func qaPickFile(_ done: @escaping (URL?) -> Void) { done(nil) }
     #endif
 
-    /// 原生预检（复用 WebViewController 的正式预检：64MB 上限 + 拾字外壳）→ 通过了交给会话层，拒收了显示说明框。
+    /// 原生预检（BackupFile.precheck：64MB 上限 + 拾字外壳）→ 通过了交给会话层，拒收了显示说明框。
     private func precheckAndPick(_ url: URL) {
-        switch WebViewController.precheckBackupFile(at: url) {
+        switch BackupFile.precheck(at: url) {
         case .success(let text):
             picked(text)
         case .failure(let rejection):
@@ -1013,3 +1005,48 @@ extension BackupScreen: UIDocumentPickerDelegate {
         // 用户自己取消：什么都不显示（网页 receiveRejected 的 cancelled 分支）
     }
 }
+
+// MARK: - 备份文件的原生预检（01 §8.1；B4.9 从 WebViewController 搬来）
+
+/// 原生只做 64MB 上限（B1 前为 10MB）与 JSON 外壳预检（app=="shizi"、data 是非空对象、键全部 `shizi.` 前缀；v1/v2 都放行），
+/// 通过则把文件文本交给会话层（backup.picked：校验、页内确认、保护副本、替换、撤销），否则备份页显示说明框。
+enum BackupFile {
+    /// 与 JS 参考 src/core/backup.js BACKUP_MAX_BYTES 相同。
+    static let maxBytes = 64 * 1024 * 1024
+
+    enum Rejection: String, Error {
+        case tooLarge
+        case invalid
+        case cancelled
+    }
+
+    static func precheck(at url: URL) -> Result<String, Rejection> {
+        if let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize, size > maxBytes {
+            return .failure(.tooLarge)
+        }
+        guard let data = try? Data(contentsOf: url, options: .mappedIfSafe) else {
+            return .failure(.invalid)
+        }
+        guard data.count <= maxBytes else {
+            return .failure(.tooLarge)
+        }
+        guard
+            let text = String(data: data, encoding: .utf8),
+            let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+            object["app"] as? String == "shizi",
+            let backupData = object["data"] as? [String: Any],
+            !backupData.isEmpty,
+            backupData.keys.allSatisfy({ $0.hasPrefix("shizi.") })
+        else {
+            return .failure(.invalid)
+        }
+        return .success(text)
+    }
+}
+
+#if DEBUG
+/// QA 的「用户选中的文件」（夹具 op stashBackupPick / stashBadBackup / stashTooLargeBackup 写，备份页的 QA 选文件读；下一个顶层夹具清空）。
+enum QABackupPick {
+    static var current: (text: String?, bytes: Int)?
+}
+#endif

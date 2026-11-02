@@ -1,5 +1,4 @@
 import UIKit
-import WebKit
 
 // 原生写字页（B2.0 纵切 → B2.2 回忆阶段完整版 + 提示；docs/engineering/v10/B2-原生写字架构.md §6、§11；确认单 2、3）。
 // B3.1 起是 Release 组件（与 ShiziKit 一起进包）；只在开关 -shizi-native-write 打开时出现（默认关，B3.F 翻转导航真相源时去掉开关）。
@@ -64,7 +63,7 @@ final class NativeWriteViewController: UIViewController {
     let redo: Bool
     private var redoChars: [String] = []
     private var redoBusy = false
-    private let bridge: NativeWriteBridge
+    private let bridge: WriteSessionChannel
     weak var coordinator: NativeWriteCoordinating?
     let transitions = NativeWriteTransitions()
 
@@ -256,7 +255,7 @@ final class NativeWriteViewController: UIViewController {
     private var axTight = false
     private var axTightKey = ""
 
-    init(slot: String, payload raw: [String: Any], bridge: NativeWriteBridge, redo: Bool = false) {
+    init(slot: String, payload raw: [String: Any], bridge: WriteSessionChannel, redo: Bool = false) {
         // B3.1：颜色 / 字阶 / 文案 / 动效取 ShiziKit 生成值，回包只给快照、主题、AX 量值与 policy 参数（ShiziLook）
         let payload = ShiziLook.resolve(raw, page: .write)
         self.slot = slot

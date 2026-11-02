@@ -1,6 +1,7 @@
 # 拾字 iOS App 封装
 
-这个目录是 iOS 外壳：不重写业务逻辑，用原生 `WKWebView` 把仓库根目录的同一套 Web/PWA 静态文件（第十稿 ES 模块版）完整跑进 App。原生侧只负责加载、手势门控、系统面板（分享 / Files / 相册 / 设置）、本地通知、触觉与按键音，界面文案全部在 Web 侧。
+这个目录是拾字的原生 iOS App（B4.9 起 App 里没有 JS / WKWebView）：界面是 UIKit（`ShiziApp/`、组件库 `ShiziApp/ShiziKit/`），规则与数据在 Swift 包 `ios/ShiziCore`（排课、记录、备份、视图模型、导航规则；JS 版 `src/` 冻结在仓库里作参考实现），数据存在 App 自己的 SQLite 库。文案、令牌、动效仍以仓库的 `src/config/copy`、tokens、policy 为来源，构建期生成进 ShiziKit / ShiziCore 的资源。
+架构与历史见 `docs/engineering/v10/B3B4-原生化架构与计划.md`（§10.x B4.9 是删 JS 的记录）。
 
 ## 工程入口
 
@@ -9,15 +10,13 @@
 - 普通用户 scheme：`Shizi`
 - 开发调试 scheme：`Shizi Dev`
 
-`Shizi` 加载普通用户版（不带 `?dev=1` / `?test=1`）。`Shizi Dev` 通过启动参数 `-shizi-dev`（或环境变量 `SHIZI_DEV=1`）加载 `index.html?dev=1&test=1`，打开色板 / 指针统计调试页（只在 Debug 编译）。
+`Shizi Dev` 带启动参数 `-shizi-dev`（或环境变量 `SHIZI_DEV=1`）：打开 DEBUG 测试宿主的设施（QA 时钟、测试用屏），Release 不编译。
 
 ## 资源打包方式
 
-资源清单**由仓库的 `scripts/shell-manifest.txt` 驱动**，不在本文或脚本里手列。每次 Xcode Build 的「Sync Web Assets」阶段运行 `scripts/sync-web-assets.sh`，用 `rsync -a --files-from=scripts/shell-manifest.txt` 把清单里的文件逐个复制进 App 包的 `Web/`，并断言几项关键文件存在（`index.html`、`deck-data.js`、`core-strokes.js`、`vendor/hanzi-writer.min.js`、`vendor/fsrs6.min.js`、`src/app.js`、`manifest.webmanifest`、`data/`）。
+App 包里的 `Web/` 只放原生仍在读的资源：`data/`（笔顺 / 字源 JSON，原生直读 `Web/data/<字>.json`）、`fonts/`（`NativeType` / `ShiziScreen` / 图片渲染器读 `Web/fonts/*.woff2`）与 `licenses/`，外加关于页的版本行 `Web/build-info.json`。清单是 `scripts/app-bundle-manifest.txt`（`pnpm run build:manifest` 按 `scripts/build_shell_manifest.mjs` 的 `APP_BUNDLE_ROOTS` 生成），Xcode 的「Sync Web Assets」阶段（`scripts/sync-web-assets.sh`）用 `rsync --files-from=` 逐个复制，并断言网页壳（`src/`、`vendor/`、`index.html`、`sw.js` …）**不**在包里。改了 `data/` / `fonts/` / `licenses/` 先重新生成清单（`pnpm run verify:unit` 会报过期）。
 
-清单由 `pnpm run build:manifest`（`scripts/build_shell_manifest.mjs`）生成，覆盖 `index.html`、`src/`、`vendor/`、`fonts/`、`licenses/`、`assets/`、`data/` 全部笔顺 JSON、题库与图标等。**新增、删除或修改任何 Web 文件后先在仓库根目录重新生成清单**，否则新文件不会进包（`pnpm run verify:unit` 会报清单过期；`verify-bundle-assets.sh` 逐行核对包内文件与清单一致）。缺清单时同步脚本直接失败并提示命令。
-
-App 内部用 `shizi-resource://app/index.html` 加载页面，ES 模块、字体（`font/woff2`）与 `data/*.json` 都经同一个本地 scheme 按正确 MIME 返回，CSP 与 Web 版同为只允许 `'self'`。因此真机离线时也能加载首页、题库、调度器、字体和笔顺。PWA 的 service worker 在原生 App 里不是依赖项；离线能力来自 App bundle。
+声音（判断声 j1 三变体与落款声 s1，CAF）是 App 的原生资源 `ShiziApp/Sounds/`（包里 `Sounds/`，`SoundPlayer.swift` 播放；`scripts/sound/gen.mjs` 生成，网页用同样采样的 WAV 在 `assets/sound/`）。题库、规则表、文案表在 ShiziCore 的资源包里（`verify-core-bundles.sh` 核对每个 `.copy` 目录真的进了包）。
 
 ## 本地构建校验
 
@@ -27,7 +26,7 @@ App 内部用 `shizi-resource://app/index.html` 加载页面，ES 模块、字�
 ios/ShiziApp/scripts/verify-local.sh
 ```
 
-它会检查 plist、shell 脚本、Xcode 工程、模拟器 Debug 构建、iPhoneOS Release 无签名 archive、archive 元数据、bundle 资源完整性和 iPhone-only 设置。
+它会检查 plist、shell 脚本、Xcode 工程、模拟器 Debug 构建、iPhoneOS Release 无签名 archive、archive 元数据、bundle 资源完整性（含「可执行文件不链接 WebKit」、包里没有网页壳）和 iPhone-only 设置。
 
 也可以手动分步运行：
 
@@ -38,19 +37,19 @@ xcodebuild -project ios/ShiziApp/ShiziApp.xcodeproj -scheme Shizi -configuration
 ios/ShiziApp/scripts/verify-archive.sh work/Shizi.xcarchive
 ```
 
-数据层单测（XCTest，只测 `NativeStore.swift`：表结构、事务原子性、校验与读回、迁移标记、与 JS 同口径的校验和向量）：
+数据层单测（XCTest，只测 `NativeStore.swift`：表结构、事务原子性、校验与读回、与 JS 同口径的校验和向量）：
 
 ```bash
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziStoreTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
 ```
 
-原生写字页（B2.0 纵切；B3.1 起与共用组件库 `ShiziApp/ShiziKit/` 一起进 Release，开关仍是启动参数 `-shizi-native-write` / `SHIZI_NATIVE_WRITE=1`、默认关，到 B3.F 为止；颜色 / 字阶 / 文案 / 动效取构建期生成的 `ShiziKit/Generated/*.json`，改了 tokens / copy / motion 要跑 `node scripts/build_shizikit.mjs`；架构见 `docs/engineering/v10/B2-原生写字架构.md`、`B3B4-原生化架构与计划.md` §3.2 / §10）的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入），以及原生书写面（B2.1 起 Release 组件）的 `InkSurfaceTests`（笔锋模型金标准、点处理与几何、Pencil / 手掌 / 换字持住）：
+原生写字页与引擎的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入；颜色 / 字阶 / 文案 / 动效取构建期生成的 `ShiziKit/Generated/*.json`，改了 tokens / copy / motion 要跑 `node scripts/build_shizikit.mjs`），以及原生书写面的 `InkSurfaceTests`（笔锋模型金标准、点处理与几何、Pencil / 手掌 / 换字持住）：
 
 ```bash
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziWriteTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
 ```
 
-会清空该模拟器上 App 的数据（`__shiziTest.reset`），请用自己的模拟器。
+会清空该模拟器上 App 的数据（`TestHost.reset` = `SwiftEngine.qaReset`），请用自己的模拟器。
 
 `CODE_SIGNING_ALLOWED=NO` 只用于本地无证书编译校验。真机运行和 TestFlight 必须使用 Apple Developer Team 正常签名。
 
@@ -62,43 +61,23 @@ ios/ShiziApp/scripts/verify-bundle-assets.sh /path/to/Shizi.xcarchive
 ios/ShiziApp/scripts/verify-archive.sh /path/to/Shizi.xcarchive
 ```
 
-如果已经有一个 iPhone Simulator 处于 Booted 状态，可以跑 smoke test：
-
-```bash
-ios/ShiziApp/scripts/smoke-simulator.sh
-```
-
-它会构建 Debug 模拟器包、检查 bundle 资源、**卸载后全新安装**（预先授权「添加照片」），然后分三次启动跑 DEBUG 原生冒烟（02 M5-3；脚本在 `ShiziApp/NativeSmoke.swift`，只在 Debug 编译）。冒烟时 Swift 给 URL 追加 `?test=1`、在 documentStart 注入 `window.__shiziNativeDev = true`，页面挂上公开测试钩子 `window.__shiziTest`；页面每次 postMessage `pageReady` 后原生注入冒烟脚本，结果写到 App 的 `Documents/shizi-native-smoke.json`，由 `validate-native-smoke.py <json> <stage>` 按阶段核对：
-
-- `main`：ES 模块在 `shizi-resource://` 下加载、经典脚本全局（SEED/GROUPS/语境覆盖/600 核心笔顺）、`fetch` 笔顺 JSON、ShiziKai 字体、BUILD 就绪标记；`localStorage` 可写；合成 PointerEvent 写一字 → 写好了 → 写对了（judged 记录）；写下一字一笔后整页刷新，写字页同一阶段、笔画恢复；边缘返回在写字页被原生门控拒绝、在子页派发 `shizi-native-back` 返回一层；备份导出（原生 `shareBackup` 替身写文件并回 `markBackupExported`，文件不含 `shizi.nativeSmoke.v1`）；再写一字判断后从导出的文件恢复（原生预检 → `shiziBackupPicked` → 页内确认 → 替换 → 撤销，全程不 reload）；非备份文件、不是拾字的 JSON、超过 10 MB、取消选择分别显示 R-B06 文案；`syncReminder` 下发内容经 Swift 同一个排期函数核对；`openAppSettings`；图片存相册（`savePracticeCard` → `shiziCardSaved`）；所有写入经 storage.js。
-- `relaunch`：结束进程后再启动，冒烟键、两条记录、会话与上次备份时间都在；脚本另外直接读 WKWebView 的 LocalStorage 数据库核对。
-- `deeplink`：结束进程后带 `-shizi-reminder-target base:春` 冷启动（等同点开提醒通知）：原生等页面 `pageReady` 才派发，`shiziOpenReminderTarget` 返回 true 才清 key，页面以「这次选的字」开这个字。
-
-系统面板（分享、文件选择、系统设置）在冒烟里由 Debug 替身代替，其余走正式代码路径；真实面板与真机手感见 `DEVICE_QA.md`。Release 产物里没有这些替身：`verify-archive.sh` 检查可执行文件不含 `__shiziNativeDev` / `nativeSmokeResult` 等标记。
-
-`-shizi-dev` 打开的是色板 / 指针统计页（`?dev=1&test=1`），它不发 `pageReady`，不跑冒烟；冒烟脚本里旧的 `DEV_MODE=1` / `RUN_DEV_SMOKE=1` 已停用（`run-device.sh` 仍可用 `DEV_MODE=1` 以 `-shizi-dev` 启动调试页）。
-
-或者把 smoke 串进本地校验：
-
-```bash
-RUN_SMOKE=1 ios/ShiziApp/scripts/verify-local.sh
-```
+模拟器上的端到端检查是下一节的 `verify-native-ui.sh`（XCUITest 流程 + 逐屏对比）。B4.9 前的网页冒烟（`smoke-simulator.sh` / `smoke-device.sh` / `validate-native-smoke.py` / `NativeSmoke.swift`）随 WKWebView 退役（B3.F 起已失效）。
 
 ## 原生写字页界面检查（QA-H1：一条命令）
 
 ```bash
 pnpm run verify:native-ui            # = ios/ShiziApp/scripts/verify-native-ui.sh，全部（逐屏对比 + 流程用例）
 ios/ShiziApp/scripts/verify-native-ui.sh --parity-only | --flows-only | --states recall,judge
-ios/ShiziApp/scripts/verify-native-ui.sh --update-reference   # 网页页面或固定条件改了之后，重新生成参考图（全部状态）
-ios/ShiziApp/scripts/verify-native-ui.sh --reference-only --states home-fresh,library-empty   # 新增 / 改了夹具后只取这几个状态的网页参考（不跑原生对比和流程）
-node ios/ShiziApp/scripts/native-ui/fixture-dev.mjs library-records --out /tmp/x.png         # 写夹具时：不开模拟器，在 Chromium 里把夹具跑出来看（截图 + 页面文字 + testid）
+node ios/ShiziApp/scripts/native-ui/fixture-dev.mjs library-records --out /tmp/x.png         # 网页参考的开发工具（冻结的网页版在 Chromium 里跑夹具）
 ```
 
 脚本自建专用模拟器（iPhone 17 / iOS 26.5，名「QA-H1 <时间>」），结束时删除，不碰别的模拟器；输出在 `ios/ShiziApp/build/native-ui/<时间>/`（不进仓库）：`summary.md`（通过 / 失败清单与总耗时）、`parity/report.md` 与 `parity/side-by-side/*.png`（左网页、右原生，差异编号框）、`flows.md` 与 `flows.xcresult`。有回归退出码 1；已知问题（预期失败 · 待修）不算。
 
-**状态 = 夹具文件**（B3.3 起数据驱动）：一个状态一个文件 `ShiziUITests/States/<状态>.json`——路由 / 造数据 / 钉时钟 / 点按序列 / 写失败注入都在里面，网页参考、原生取证、XCUITest（`-shizi-qa-seed <状态>`）读同一份；**加一个状态只加文件，不改任何共享枚举 / switch / 脚本**。字段说明在 `ShiziApp/QAFixtures.swift` 文件头：`state`、`name`、`screen`（屏名，覆盖门禁按它归类）、`overlay` / `floater`（弹层 / 浮条名）、`native`（原生页已实现才为 true，逐屏对比只比 true 的；其余是 reference-only）、`parity`（false = 只作流程起点）、`ax`（另取 AX3 / AX5）或 `sizes`（直接指定字号档，例：只在 AX 档出现的弹层）、`order`（取证顺序）、`template`（`_templates/<名>.json` 的默认值）、`base`（先整条跑另一个夹具，再接着往下）、`clock.pin`（造数据期间钉住页面时钟）、`setup`（页面里依次执行的操作）、`ready` / `settleBefore` / `steps` / `settle`（等页面、点按、落定）。`setup` 里的 op 是 `States/_ops/<op>.js`（加新 op 也只加文件；`seedRecords` 是夹具生成器：种子化、时间戳写死、经 `judgeInDraft` 与真人判断同一个函数，所以任何一天跑出同一份数据）。`_runtime/` 是前导 / 收尾，App（`callAsyncJavaScript`）与开发工具（Chromium）共用同一份。夹具在 Debug 构建时由 `sync-web-assets.sh` 拷进 App 包的 `QAStates/`（Release 不含）。
+网页参考图（`ShiziUITests/Reference/`）在 B3.F 合并前取齐冻结；B4.9 起 App 里没有网页，`--update-reference` / `--reference-only` 退役。
 
-**状态注入**（`ShiziApp/NativeQAHarness.swift` + `QAFixtures.swift`，只在 DEBUG；`verify_assets` / `verify-archive.sh` 断言 Release 不含）：启动参数 `-shizi-test-host -shizi-native-write -shizi-qa-seed <状态>` 把 App 一键带到指定状态（`-shizi-native-write-off` = 同一状态的网页版）。数据固定：「这次选的字」5 字（永 和 春 日 月）；B2 的 28 个状态（`first-recall`、`recall`…`redo-last`、`result*`、`home` / `home-used` / `home-mid`）与 B3.3 加的网页参考状态（首页 / 字库 / 我的 / 全部字 / 区详情 / 换库 / 字详情 / 旧记录 / 练习记录 / 月字帖 / 年报 / 提醒 / 备份 / 关于 / 没字页 / 阻断页 / 查字 / S02 / 图片预览 / 浮条等，约 100 个，按页清单见 `B3B4-原生化架构与计划.md` §1 与 §10.6）都在 `States/`。造数据时把页面时钟钉在固定时刻（落款与「N 天后再见」可复现：FSRS 的 fuzz 种子含复习时刻，钉住的时钟每次读数 +5ms、顺序确定，**所以造数据时多一次 / 少一次读时钟都会让天数变**——op 的同步 / 异步写法、`openApi` 的位置、`startPicked` 之后让出一次事件循环，都是为了与 B2 原来的注入逐位一致，改 op 要先用 `fixture-dev.mjs --pre recall` 对一遍 `result-*` 状态的「N 天后再见」）；B2.9b 起这个钟是全 App 唯一的钟（`QAClock`：注入后量出偏移存下，之后每次启动在 documentStart 注入 `window.__shiziQAClockOffset`，页面 `platform/env.js` 与路由恢复、原生 SQLite 时间戳、提醒排期都用它，杀进程重开照旧；不钉时钟的注入清掉它），所以冷启动恢复与真实日期无关。另有 `-shizi-qa-fail-next <n>`（接下来 n 次写入失败，测三段式；夹具里的 `failNext` 同义）、`-shizi-qa-probe`（探针：读屏元素 `qa-probe` 的 value 是 store 摘要 JSON，XCUITest 用它断言记录 / 会话 / 路由 / 原生页阶段 / 原生转场）。注入走正式代码：会话由 `core/session-start` 开，推进与阶段经写字会话 API 提交，点按走原生页按钮自己的动作。
+**状态 = 夹具文件**（B3.3 起数据驱动）：一个状态一个文件 `ShiziUITests/States/<状态>.json`——路由 / 造数据 / 钉时钟 / 点按序列 / 写失败注入都在里面，原生取证、XCUITest（`-shizi-qa-seed <状态>`）与冻结的网页参考读同一份；**加一个状态只加文件，不改任何共享枚举 / switch / 脚本**。字段说明在 `ShiziApp/QAFixtures.swift` 文件头：`state`、`name`、`screen`（屏名，覆盖门禁按它归类）、`overlay` / `floater`（弹层 / 浮条名）、`native`（原生页已实现才为 true，逐屏对比只比 true 的；其余是 reference-only）、`parity`（false = 只作流程起点）、`ax`（另取 AX3 / AX5）或 `sizes`（直接指定字号档，例：只在 AX 档出现的弹层）、`order`（取证顺序）、`template`（`_templates/<名>.json` 的默认值）、`base`（先整条跑另一个夹具，再接着往下）、`clock.pin`（造数据期间钉住页面时钟）、`setup`（页面里依次执行的操作）、`ready` / `settleBefore` / `steps` / `settle`（等页面、点按、落定）。`setup` 里的 op 由 Swift 执行（B4.9：`ShiziApp/QAOps.swift`，与原来的 `States/_ops/<op>.js` 同名同参——每个 op 调 ShiziCore 里与 JS 同名的那一个函数；`seedRecords` 是夹具生成器：种子化、时间戳写死、经 `SessionWrites.judgeInDraft` 与真人判断同一个函数，所以任何一天跑出同一份数据）。`_ops/*.js` 与 `_runtime/` 只留给网页参考的开发工具（Chromium）。夹具 JSON 在 Debug 构建时由 `sync-web-assets.sh` 拷进 App 包的 `QAStates/`（Release 不含）。
+
+**状态注入**（`ShiziApp/NativeQAHarness.swift` + `QAFixtures.swift`，只在 DEBUG；`verify_assets` / `verify-archive.sh` 断言 Release 不含）：启动参数 `-shizi-test-host -shizi-qa-seed <状态>` 把 App 一键带到指定状态。数据固定：「这次选的字」5 字（永 和 春 日 月）；B2 的 28 个状态（`first-recall`、`recall`…`redo-last`、`result*`、`home` / `home-used` / `home-mid`）与 B3.3 加的网页参考状态（首页 / 字库 / 我的 / 全部字 / 区详情 / 换库 / 字详情 / 旧记录 / 练习记录 / 月字帖 / 年报 / 提醒 / 备份 / 关于 / 没字页 / 阻断页 / 查字 / S02 / 图片预览 / 浮条等，约 100 个，按页清单见 `B3B4-原生化架构与计划.md` §1 与 §10.6）都在 `States/`。造数据时把应用时钟钉在固定时刻（落款与「N 天后再见」可复现：FSRS 的 fuzz 种子含复习时刻，钉住的时钟每次读数 +5ms、顺序确定，**所以造数据时多一次 / 少一次读时钟都会让天数变**；judge 的 `tick` 把读数拨到固定值）；这个钟是全 App 唯一的钟（`QAClock`：放开时量出偏移存下，store / 导航 / 原生 SQLite 时间戳 / 提醒排期都用它，杀进程重开照旧；不钉时钟的注入清掉它），所以冷启动恢复与真实日期无关。另有 `-shizi-qa-fail-next <n>`（接下来 n 次写入失败，测三段式；夹具里的 `failNext` 同义）、`-shizi-qa-probe`（探针：读屏元素 `qa-probe` 的 value 是 store 摘要 JSON，XCUITest 用它断言记录 / 会话 / 路由 / 原生页阶段 / 原生转场）。注入走正式代码：会话由 ShiziCore `ScheduleRules.startPicked / startNextA` 开，推进与阶段经写字会话 API（SessionRuntime `write.*`）提交，导航走 SwiftNavigator，点按走原生页按钮自己的动作。
 
 **逐屏对比**（`scripts/native-ui/`）：参考图 = 同一台模拟器上网页版写字页（`ShiziUITests/Reference/<状态>_<外观>_<字号>.png` 与 `.json`，1 倍点尺寸），覆盖上面各状态 × 浅 / 深 × L / XXXL，另有大字号的主要状态（夹具 `ax: true`：B2 的 16 个写字 / 结果 / 重写错字状态，B3.3 起各页主要状态）× 浅 / 深 × AX3 / AX5（B2.9b）。**只有 `native: true` 的状态才逐屏对比**（B2 的 25 个）；B3.3 取的网页参考在原生页做出来之前是 reference-only，页面卡原生化合并时把自己页的夹具改成 `native: true`，并填 `keys/<屏>.mjs` 的 native 一栏。参考图的 JSON 里还有 `ax`（读屏名称表：aria-label / role / aria-live，B3B4 §5.4，原生页逐项比 `accessibilityLabel`）。AX 档原生的逐元素字号 / 行高 / 最小高取页面量到的值（`native-session.js` `NATIVE_AX_ROLES`：按网页的类名挂看不见的探针，读 :root[data-ax] 规则算出的值，原生不抄取值表）；具名检查 **AX-01**（只在 AX3 / AX5 跑）：原生每个文字 / 按钮不被截断、不被祖先裁掉（滚动区里滚得到的不算）、不伸出屏幕，同一层（页面 / 弹层 / 确认框 / 撤销条）里互不重叠。对比以「元素清单 + 位置尺寸 + 文案 + 颜色」为主：原生取 UIKit 视图树 + 无障碍属性（identifier / label / frame，成员名作语义键），网页取 DOM（getBoundingClientRect / 文字矩形 / computed color）；语义键配对（`keys/<屏>.mjs`，`elements.mjs` 按目录合并；B3.3 从网页参考为每个屏 / 弹层生成了一份，native 一栏待页面卡填），其余按文字配对；文字比左缘与竖向中线；全局容差在 `parity.config.json`（位置 ±1pt、尺寸 ±1pt、文字高 ±4pt、颜色通道 ±8、字号 ±0.5pt、字重 ±0.1）；书写格的框按元素比；格里的墨另按像素比（R11-A，D72 ②：`parity.config.json` `ink`——recall-ink / judge / last-judge / change-sheet 的墨格里，同一组注入笔画的墨区 IoU ≥ 0.8、容 1 像素 ≥ 0.97、墨面积比（= 平均笔宽比）±10%，NP-07 / NP-22）。截图另取少量像素给具名检查（格底色、辅助线、题面空格、横画粗、遮罩）。具名检查 = AI 一致性报告 NP-* 逐条（`checks/<屏>.mjs`，`parity-checks.mjs` 按目录合并，`status: 'expected-fail'` 待修，修好后报「意外通过」再改成 `'pass'`）；逐项豁免 / 忽略 / 墨格语义键写在 `parity/<屏>.json`（`waive`：编号 → 理由，照跑照记实测值、不算回归；`ignore`：不比的差异；`ink.states`：状态 → 墨格语义键；现 `parity/write.json` 是 B2 的，无 waive 条目——NP-07 墨粗的豁免已随 D72 ② 取消）。**覆盖门禁**（`test/native-ui-coverage.test.mjs`，`pnpm run verify:unit` 里跑）：每个已注册的屏、弹层、浮条至少有一个带网页参考图的夹具，或在 `scripts/native-ui/coverage.json` 的 `notApplicable` 里写明理由；每个参考状态的 PNG + JSON 都在册。
 
@@ -140,16 +119,6 @@ ios/ShiziApp/scripts/run-device.sh
 
 不想用 xcconfig 时，也可以继续用环境变量传 `DEVELOPMENT_TEAM` 和 `BUNDLE_ID`。调试开发入口时加 `DEV_MODE=1`，脚本会用 `-shizi-dev` 启动参数打开等价 `?dev=1` 的版本。
 
-签名和设备预检通过后，可以在真机上自动跑与 Simulator 相同的 native smoke：
-
-```bash
-SIGNING_XCCONFIG=ios/ShiziApp/Config/Signing.local.xcconfig \
-DEVICE_ID='你的 iPhone 名称或 UUID' \
-ios/ShiziApp/scripts/smoke-device.sh
-```
-
-脚本会构建、安装，按 `main` / `relaunch` / `deeplink` 三个阶段启动 App，从真机 app data container 拉回 smoke JSON 并用同一个 `validate-native-smoke.py` 核对（真机上相册权限由系统弹窗决定，拒绝时允许图片保存走失败分支）。真机书写手感、旋转、Files/iCloud 选择器和飞行模式仍需按 `DEVICE_QA.md` 人工检查。
-
 真机人工检查按 `ios/ShiziApp/DEVICE_QA.md`（第十稿 M7 版：书写与 Pencil、边缘返回与跟手、查字框键盘、字体、切后台与进程被杀、迁移、PWA 升级、通知 / 分享 / 相册、VoiceOver、iOS 15.x 低端机）。TestFlight 前复制一份，填上设备型号、iOS 版本、App 版本、被测 SHA 和结果。
 
 ## 开发工具入口
@@ -173,21 +142,6 @@ xcrun simctl launch booted com.eimaa.shizi -shizi-dev
 ```
 
 也可以在 Xcode 的 scheme arguments 里加入 `-shizi-dev`，或设置环境变量 `SHIZI_DEV=1`。
-
-## Safari Web Inspector
-
-真机调试 WKWebView：
-
-1. iPhone 设置里打开 Safari 的 Web Inspector。
-2. 用数据线连接 Mac，并在 Xcode 里运行 App。
-3. Mac Safari 打开 Develop 菜单，选择对应 iPhone 或 Simulator，再选择 `Shizi` 页面。
-
-可在 Inspector 里检查：
-
-- `localStorage` 的 `shizi.v2.*` 键是否持续存在（升级用户在回退窗口内还会有旧 `shizi.*.v1` 键）。
-- `shizi-resource://app/data/...json` 是否正常返回 JSON，`fonts/*.woff2` 是否为 `font/woff2`。
-- Console 是否有模块加载、CSP 或 `HanziWriter` 错误。
-- 普通 scheme 下 `window.__shiziTest` 为 `undefined`（测试钩子只在 Debug 冒烟 / `Shizi Dev` 下挂载）。
 
 ## TestFlight
 
@@ -249,18 +203,18 @@ ios/ShiziApp/scripts/archive-testflight.sh
 
 ## 练习提醒
 
-「我的 → 设置 → 练习提醒」开启本地通知（默认关，只在 iOS 壳内真正发通知）。原生是无状态执行器：页面经 `shiziNative` 桥下发 `syncReminder {enabled, hour, minute, practicedToday, questions[]}`，原生每次先清掉自己排的通知，再按页面给的题目排接下来 7 天（今天已练或已过点跳过今天；没有题目的日子不发），排之前以本机实际授权为准。题目由页面算：每天取到那天已到期、有语境词的字，写错过优先、其次到期最久；标题「{词语}（{拼音}）」里目标字遮成 □（03 P48 / P99）。点开通知时 `AppDelegate` 把 `targetCardKey` 交给 `shiziOpenReminderTarget`：页面未就绪先排队，返回 true 后原生才清 key；页面以「这次选的字」开这个字（03 P47）。授权结果经 `shiziReminderStatus` 回调，「去手机设置 ›」用 `openAppSettings`。
+「我的 → 设置 → 练习提醒」开启本地通知（默认关）。`RootViewController` 是无状态执行器：SwiftEngine 的 `ReminderController` 下发 `syncReminder {enabled, hour, minute, practicedToday, questions[]}`，原生每次先清掉自己排的通知，再按页面给的题目排接下来 7 天（今天已练或已过点跳过今天；没有题目的日子不发），排之前以本机实际授权为准。题目由 ShiziCore 算：每天取到那天已到期、有语境词的字，写错过优先、其次到期最久；标题「{词语}（{拼音}）」里目标字遮成 □（03 P48 / P99）。点开通知时 `AppDelegate` 把 `targetCardKey` 交给 `RootViewController.openReminderTarget`：冷启动判定之前先存着，`deeplink.reminder`（SwiftNavigator）答 ok 后才清 key，以「这次选的字」开这个字（03 P47）。授权结果交回 SwiftEngine（`receiveReminderStatus`）。
 
-## 触觉与按键音
+## 触觉与声音
 
-触觉经 `haptic {kind}` 消息：判断落定 / 修改判断为 stamp，提示与进「描一遍」为 select，看答案、进结果页、结束这组为 action，撤销跳过为 undo（03 P97，沿旧版点位）。按键音（设置里「按键音」，默认开）只有两处：判断落定（短促闷响）和「描一遍」落笔（纸声），经 `sound {kind}` 由 `AVAudioPlayer` 播放运行时合成的短 PCM，`AVAudioSession` 为 `.ambient` + `.mixWithOthers`，遵守静音键。练字背景音已删除（P07），`soundscape` 消息是 no-op。
+触觉由原生页自己发（交互与动效规范 F1，D58 ③：判断 soft 0.7、落印 rigid 0.8、light 0.5、select）。声音只有两种：判断声 j1 三个变体轮换（SwiftEngine 在判断类提交时发）与落款声 s1（结果页落印，同一组只响一次），`SoundPlayer` 播 `Sounds/*.caf`，`AVAudioSession` 为 `.ambient` + `.mixWithOthers`，遵守静音键。
 
 ## 数据保留说明
 
-**B1 起数据存在 App 自己的 SQLite 库** `Library/Application Support/ShiziStore/shizi.sqlite`（WAL、synchronous=FULL、文件保护「首次解锁后」、随 iCloud / 电脑备份；表结构与耐久性见 `docs/engineering/v10/01-架构设计.md` §4.1）。页面经同源端点 `/__native/store/v1/<op>`（`NativeStoreBridge.swift`）读写，键名与值同下文的 `shizi.v2.*`；第一次启动新版本时把 `localStorage` 里的全部 `shizi.*` 键一次性迁进去并逐项核对（§12.1），迁移没完成之前仍用 localStorage，旧 localStorage 数据保留一个版本周期不删。以下是迁移前（以及网页 / PWA）的存法：App 使用 `WKWebsiteDataStore.default()`，Web 侧数据全部在 `localStorage` 的 `shizi.v2.*` 键（数据模型 v2：记录按月分键、调度、设置、自选字、旧照片、备份元信息等；键表见 `docs/engineering/v10/01-架构设计.md` §3.6），所有写入经 `src/store/storage.js` 的事务。旧版（v1）用户首次打开新版时自动迁移一次；迁移后立即删除旧会话与旧安全副本大键，其余 v1 键保留到回退窗口结束（30 天或用户完成一次 v2 导出，先到者，03 P53）。
+**B1 起数据存在 App 自己的 SQLite 库** `Library/Application Support/ShiziStore/shizi.sqlite`（WAL、synchronous=FULL、文件保护「首次解锁后」、随 iCloud / 电脑备份；表结构与耐久性见 `docs/engineering/v10/01-架构设计.md` §4.1）。SwiftEngine 的 Store 经 `AppDatabase.swift`（一条连接、一个串行队列）读写，键名与值同下文的 `shizi.v2.*`。B4.9（D81 ②）起不再有 localStorage → SQLite 的迁移路径：新装、升级都直接开这个库（没迁过的旧设备不再支持）。以下是网页 / PWA（冻结在仓库里）的存法：App 使用 `WKWebsiteDataStore.default()`，Web 侧数据全部在 `localStorage` 的 `shizi.v2.*` 键（数据模型 v2：记录按月分键、调度、设置、自选字、旧照片、备份元信息等；键表见 `docs/engineering/v10/01-架构设计.md` §3.6），所有写入经 `src/store/storage.js` 的事务。旧版（v1）用户首次打开新版时自动迁移一次；迁移后立即删除旧会话与旧安全副本大键，其余 v1 键保留到回退窗口结束（30 天或用户完成一次 v2 导出，先到者，03 P53）。
 
-「我的 → 备份与恢复」导出调用原生分享面板（分享完成才更新上次备份时间，取消不提示），备份文件为 `{app:'shizi', version:2, …}`；「用备份替换」调用原生 Files 选择器，原生预检后经 `shiziBackupPicked` 交给页面确认，非备份文件、超过 64 MB（B1 前 10 MB）、取消选择经 `shiziBackupRejected` 显示页内 R-B06 文案；替换与清空前写设备内保护副本，离开备份页前可撤销，全程不 reload。旧版 v1 备份文件可以直接导入。练习图片经 `sharePracticeCard` / `savePracticeCard` 调起分享面板或存相册（`NSPhotoLibraryAddUsageDescription`）；分享或保存失败经 `shiziShareFailed` 由页面轻提示。浏览器 / PWA 保留 Web Share、下载和 file input 降级。拍字 / OCR 与相机已删除（不再有 `NSCameraUsageDescription`），旧照片只读查看并随备份。
+「我的 → 备份与恢复」导出调用原生分享面板（分享完成才更新上次备份时间，取消不提示），备份文件为 `{app:'shizi', version:2, …}`；「用备份替换」调用原生 Files 选择器，原生预检（`BackupFile.precheck`）后交给会话层确认，非备份文件、超过 64 MB（B1 前 10 MB）显示 R-B06 说明框，取消选择什么都不显示；替换与清空前写设备内保护副本，离开备份页前可撤销，全程不 reload。旧版 v1 备份文件可以直接导入。练习图片由原生图片预览调起分享面板或存相册（`NSPhotoLibraryAddUsageDescription`）；失败时原生轻提示（X-SHARE 文案）。浏览器 / PWA 保留 Web Share、下载和 file input 降级。拍字 / OCR 与相机已删除（不再有 `NSCameraUsageDescription`），旧照片只读查看并随备份。
 
-正常 App 更新会保留数据；卸载 App、抹掉设备数据会删除本地记录（迁移前清理 WebKit 网站数据也会）。换机前请在「我的 → 备份与恢复」导出备份。
+正常 App 更新会保留数据；卸载 App、抹掉设备数据会删除本地记录。换机前请在「我的 → 备份与恢复」导出备份。
 
 工程内包含 `PrivacyInfo.xcprivacy`，当前声明不追踪用户、不收集隐私数据、不使用需要声明的 required reason API；`ITSAppUsesNonExemptEncryption=false` 表示 App 没有使用非豁免加密。若后续加入埋点、账号、推送、第三方 SDK 或自研加密，需要同步更新这些声明和 App Store Connect 的 App Privacy/出口合规信息。

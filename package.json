@@ -22,8 +22,6 @@
     "verify:tokens": "node scripts/verify_tokens.mjs && node scripts/build_shizikit.mjs --check",
     "verify:pwa": "node scripts/verify_pwa_upgrade.js",
     "verify:web": "node scripts/e2e/run.mjs && node scripts/verify_pwa_upgrade.js",
-    "verify:native-smoke": "python3 ios/ShiziApp/scripts/validate-native-smoke.py",
-    "verify:webkit-ax": "node scripts/verify-webkit-ax.mjs",
     "verify:native-ui": "bash ios/ShiziApp/scripts/verify-native-ui.sh",
     "verify:core-diff": "node scripts/core-diff/verify.mjs",
     "test": "pnpm run verify:data && pnpm run verify:unit && pnpm run verify:copy && pnpm run verify:tokens && pnpm run verify:web"

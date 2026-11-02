@@ -700,13 +700,10 @@ final class DetailScreen: ShiziScreenViewController {
         guard !busy, let engine = stage?.engine else { return }
         busy = true
         let entry = entryId
-        // 写字页要盖上来：先把这一页的样子留在宿主层（回来时宿主等网页空闲请原生盖回，open via 'return'）
-        let url = WebViewController.snapshotURL(view)
+        // 写字页要盖上来：先记下这一页被盖住（回来时引擎请原生盖回，open via 'return'）
         let char = self.char
         Task { @MainActor [weak self] in
-            var args: [String: Any] = ["entryId": entry]
-            if let url { args["url"] = url }
-            _ = await engine.raw("stage.cover", args)
+            _ = await engine.raw("stage.cover", NativeStage.coverArgs(entryId: entry))
             let r = await engine.raw("detail.practice", ["char": char])
             guard let self else { return }
             self.busy = false

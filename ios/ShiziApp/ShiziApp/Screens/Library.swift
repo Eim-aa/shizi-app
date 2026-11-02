@@ -455,8 +455,7 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
     /// 要盖上网页页面 / 弹层的动作：截图先交给宿主层（stage.cover，解码好才回包），再做。
     private func yieldThen(_ go: @escaping (LibraryScreen) -> Void) {
         guard let engine = stage?.engine else { return }
-        var args: [String: Any] = ["entryId": entryId]
-        if let url = WebViewController.snapshotURL(stage?.coverView(of: self) ?? view) { args["url"] = url } // B3.5d：根页连同原生 Tab 栏
+        let args = NativeStage.coverArgs(entryId: entryId)
         ShiziProbe.note("library:yield")
         engine.raw("stage.cover", args) { [weak self] _ in
             guard let self else { return }

@@ -235,8 +235,12 @@ public final class DeckCards {
         index = map
     }
 
+    /// 测试替身（src/data/deck.js setCardResolver 的同一件事：QA 夹具 writeOverflowPrompt 把某张卡换掉）：回 nil 的键照常查题库。
+    public static var resolverOverride: ((String) -> JSValue?)?
+
     /// cardKey → 卡片（base:<字> 查题库；其余 nil）。
     public func cardForKey(_ key: String) -> JSValue? {
+        if let o = Self.resolverOverride, let card = o(key) { return card }
         guard key.utf8.starts(with: "base:".utf8) else { return nil }
         return index[key]
     }

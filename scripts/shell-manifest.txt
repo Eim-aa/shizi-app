@@ -5,13 +5,9 @@ assets/branding/app-icon-source-small.svg
 assets/branding/app-icon-source.svg
 assets/branding/app-icon-tinted.svg
 assets/sound/README.md
-assets/sound/j1_page_settle.caf
 assets/sound/j1_page_settle.wav
-assets/sound/j1_page_settle_b.caf
 assets/sound/j1_page_settle_b.wav
-assets/sound/j1_page_settle_c.caf
 assets/sound/j1_page_settle_c.wav
-assets/sound/s1_wood_muted.caf
 assets/sound/s1_wood_muted.wav
 core-strokes.js
 data/LICENSE.md

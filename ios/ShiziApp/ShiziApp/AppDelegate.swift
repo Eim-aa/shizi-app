@@ -13,7 +13,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         UNUserNotificationCenter.current().delegate = self
         let window = UIWindow(frame: UIScreen.main.bounds)
         ShiziTheme.boot(window: window)
-        window.rootViewController = WebViewController()
+        window.rootViewController = RootViewController()
         window.makeKeyAndVisible()
         self.window = window
         return true
@@ -39,7 +39,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         guard
             let targetCardKey = response.notification.request.content.userInfo["targetCardKey"] as? String,
             !targetCardKey.isEmpty,
-            let controller = window?.rootViewController as? WebViewController
+            let controller = window?.rootViewController as? RootViewController
         else {
             return
         }

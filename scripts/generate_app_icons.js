@@ -25,6 +25,8 @@ async function main() {
   // file -> { source, size }
   const outputs = new Map([180, 192, 512].map(size => [path.join(ROOT, `icon-${size}.png`), { source: pick(size), size }]));
   outputs.set(path.join(ROOT, "icon-512-maskable.png"), { source: "maskable", size: 512 });
+  // B4.9：关于页的标志（原来读包里 Web/icon-512.png；网页壳不再进包）——App 的原生资源 Branding/，与 icon-512.png 同一张
+  outputs.set(path.join(ROOT, "ios/ShiziApp/ShiziApp/Branding/icon-512.png"), { source: pick(512), size: 512 });
   const catalog = JSON.parse(fs.readFileSync(path.join(CATALOG, "Contents.json"), "utf8"));
   for (const entry of catalog.images) {
     if (!entry.filename) continue;

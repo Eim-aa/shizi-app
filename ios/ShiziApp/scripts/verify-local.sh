@@ -42,7 +42,7 @@ for script in "${SCRIPT_DIR}"/*.sh; do
   sh -n "$script"
 done
 PYTHONPYCACHEPREFIX="${IOS_ROOT}/build/verify/pycache" \
-  python3 -m py_compile "${SCRIPT_DIR}/validate-native-smoke.py" "${REPO_ROOT}/scripts/verify_library_governance.py"
+  python3 -m py_compile "${REPO_ROOT}/scripts/verify_library_governance.py"
 python3 "${REPO_ROOT}/scripts/verify_library_governance.py"
 run_logged "Verify 440 vector-data approvals" "${LOG_DIR}/verify-vector-data-440.log" \
   node "${REPO_ROOT}/scripts/verify_vector_data_440.js"
@@ -91,14 +91,9 @@ run_logged "Archive Release iPhoneOS without signing" "${LOG_DIR}/archive-releas
 
 "${SCRIPT_DIR}/verify-archive.sh" "$ARCHIVE_PATH"
 
-if [ "${RUN_SMOKE:-0}" = "1" ]; then
-  echo "== Run simulator smoke test =="
-  OUT_DIR="${IOS_ROOT}/build/verify/smoke" DERIVED_DATA_PATH="$DERIVED_DATA_PATH" SKIP_BUILD=1 "${SCRIPT_DIR}/smoke-simulator.sh"
-fi
-
-if [ "${RUN_DEV_SMOKE:-0}" = "1" ]; then
-  # M5-3：-shizi-dev 打开的是色板页，不发 pageReady、不跑冒烟；dev 冒烟已并入 RUN_SMOKE 的三个阶段。
-  echo "RUN_DEV_SMOKE is no longer supported; use RUN_SMOKE=1" >&2
+if [ "${RUN_SMOKE:-0}" = "1" ] || [ "${RUN_DEV_SMOKE:-0}" = "1" ]; then
+  # B4.9：网页冒烟（smoke-simulator.sh / NativeSmoke.swift）随 WKWebView 退役；模拟器上的检查是 verify-native-ui.sh（XCUITest 流程 + 逐屏对比）。
+  echo "RUN_SMOKE is retired (B4.9); run ios/ShiziApp/scripts/verify-native-ui.sh instead" >&2
   exit 64
 fi
 

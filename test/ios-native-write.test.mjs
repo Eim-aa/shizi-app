@@ -4,7 +4,7 @@
 // 3. B3.1 起写字 / 判断 / 结果 / 重写错字页与 ShiziKit 是 Release 组件（不包 #if DEBUG；开关 -shizi-native-write 默认关、到 B3.F 为止），
 //    纵切量测 NativeWriteMetrics 仍整文件只在 DEBUG（verify-archive 另查标记）；
 // 4. B2.1 书写面转正：NativeInkView / InkModel 是 Release 组件（不包 #if DEBUG），spike 叠层 NativeInkSpike 与金标准自检 InkModelCheck 仍整体只在 DEBUG，
-//    书写面里的量测钩子（NativeInkLatency 等）只在 #if DEBUG 块里。
+//    书写面里的量测钩子（NativeInkLatency 等）只在 #if DEBUG 块里。B4.9：spike 叠层 NativeInkSpike 随 WKWebView 删除（它是网页上的叠层）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,7 +15,7 @@ import { NATIVE_RESULT_COPY_KEYS } from '../src/session/result-api.js';
 import { COPY } from '../src/config/copy/index.js';
 
 const DIR = path.join(ROOT, 'ios/ShiziApp/ShiziApp');
-const FILES = ['NativeWriteViewController.swift', 'NativeStage.swift', 'NativeWriteBridge.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift', 'NativeTrace.swift',
+const FILES = ['NativeWriteViewController.swift', 'NativeStage.swift', 'WriteSessionChannel.swift', 'RootViewController.swift', 'SoundPlayer.swift', 'NativeGlyph.swift', 'NativeWriteLayout.swift', 'NativeHint.swift', 'NativeJudge.swift', 'NativeTrace.swift',
   'NativeResult.swift', // B2.7 原生结果页
   // B3.1 ShiziKit：从上面这些文件里提出来的共用组件（原 NativeSkipEnd.swift → ShiziUndoBar / ShiziConfirm；NativeJudge 的字阶 / 弹层 / 按钮；转场对象）
   'ShiziKit/NativeType.swift', 'ShiziKit/ShiziA11y.swift', 'ShiziKit/ShiziButtons.swift', 'ShiziKit/ShiziChangeSheet.swift', 'ShiziKit/ShiziConfirm.swift', 'ShiziKit/ShiziOverlay.swift',
@@ -87,10 +87,11 @@ test('native ink surface: Release component since B2.1; spike overlay, golden se
     const src = fs.readFileSync(path.join(DIR, f), 'utf8').trim();
     assert.ok(!src.startsWith('#if DEBUG'), `${f} is compiled into Release`);
   }
-  for (const f of ['NativeInkSpike.swift', 'InkModelCheck.swift']) {
+  for (const f of ['InkModelCheck.swift', 'NativeQAHarness.swift', 'QAFixtures.swift', 'QAOps.swift']) {
     const src = fs.readFileSync(path.join(DIR, f), 'utf8').trim();
     assert.ok(src.startsWith('#if DEBUG') && src.endsWith('#endif'), `${f} stays DEBUG-only`);
   }
+  assert.ok(!fs.existsSync(path.join(DIR, 'NativeInkSpike.swift')), 'B4.9: the web-overlay spike is gone');
   // 书写面里 DEBUG 专用的东西（T1 量测、spike 落定原型的钩子、淡出）只出现在 #if DEBUG 块里
   const lines = fs.readFileSync(path.join(DIR, 'ShiziKit/Ink/NativeInkView.swift'), 'utf8').split('\n');
   const stack = [];
@@ -108,14 +109,12 @@ test('native ink surface: Release component since B2.1; spike overlay, golden se
   assert.match(fs.readFileSync(path.join(ROOT, 'ios/ShiziApp/scripts/verify-archive.sh'), 'utf8'), /ShiziNativeInkView/);
 });
 
-test('B2.2: the native write page does not depend on the DEBUG spike (wire / colour tools are the Release NativeInkWire)', () => {
-  for (const f of FILES) {
+test('B2.2 / B4.9: no native source references the deleted spike, the web view or the JS bridges', () => {
+  const all = fs.readdirSync(DIR, { recursive: true }).filter(f => f.endsWith('.swift'));
+  for (const f of all) {
     const src = code(fs.readFileSync(path.join(DIR, f), 'utf8'));
-    assert.ok(!/NativeInkSpike/.test(src), `${f} references the spike`);
+    assert.ok(!/NativeInkSpike|WKWebView|import WebKit|evaluateJavaScript|callAsyncJavaScript|WebViewController|NativeStoreBridge|NativeWriteBridge|LocalWebSchemeHandler|ShadowEngine|ShiziEngineMode/.test(src), `${f} still references the web layer`);
   }
-  const spike = fs.readFileSync(path.join(DIR, 'NativeInkSpike.swift'), 'utf8');
-  assert.match(spike, /NativeInkWire\.parseColor/);
-  assert.match(spike, /NativeInkWire\.rawStrokes/);
 });
 
 test('B2.5: the judge page times come from the page (motion.settle / easeOut), not from the Swift source', () => {

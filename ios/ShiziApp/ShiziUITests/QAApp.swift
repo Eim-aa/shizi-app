@@ -2,10 +2,10 @@ import XCTest
 
 // QA-H1：原生写字页流程测试（XCUITest，真实触摸）的公用工具。
 //
-// 启动：App 带 -shizi-test-host（页面测试钩子）+ -shizi-native-write（原生写字页开关）+ -shizi-qa-seed <状态>（NativeQAHarness 注入：
-// 清空数据、开「这次选的字」5 字组并带到指定阶段）+ -shizi-qa-probe（探针）。
+// 启动：App 带 -shizi-test-host（测试宿主：QA 时钟、QA 桩）+ -shizi-qa-seed <状态>（NativeQAHarness 注入：
+// 清空数据、按夹具造数据并带到指定页面，QAOps.swift）+ -shizi-qa-probe（探针）。
 // 断言：
-//   · 原生页面元素经 accessibilityIdentifier（native-write-*）找；网页页面（首页 / 字库 / 结果页…）经无障碍名称（文案）找；
+//   · 原生页面元素经 accessibilityIdentifier（native-*）找，或经无障碍名称（文案）找；
 //   · 数据经探针：读屏元素「qa-probe」的 value 是 store 摘要 JSON（记录条数与种类、判断写对 / 写错数、会话 cursor / 阶段 / 笔数、
 //     路由顶层、原生页阶段与字、最近的原生转场），见 NativeQAHarness.swift QAProbe。
 // 已知问题（两份 AI 测试报告 NP-* / NF-*）在 KnownIssueTests 里，用 XCTExpectFailure 标「预期失败 · 待修」，修好后会显示「意外通过」。
@@ -56,11 +56,10 @@ final class QA {
     }
 
     static func args(seed: String?, native: Bool = true, failNext: Int = 0) -> [String] {
-        var a = ["-shizi-test-host", "-shizi-qa-probe", native ? "-shizi-native-write" : "-shizi-native-write-off"]
+        // native：B3.F 起原生页恒开、B4.9 起 App 里没有网页，参数留着不改调用点（不再有意义）
+        var a = ["-shizi-test-host", "-shizi-qa-probe"]
         if let seed { a += ["-shizi-qa-seed", seed] }
         if failNext > 0 { a += ["-shizi-qa-fail-next", String(failNext)] }
-        // B4.7：verify-native-ui.sh ENGINE=shadow|swift → TEST_RUNNER_QA_ENGINE → App 的 -shizi-engine
-        if let engine = ProcessInfo.processInfo.environment["QA_ENGINE"], !engine.isEmpty { a += ["-shizi-engine", engine] }
         return a
     }
 

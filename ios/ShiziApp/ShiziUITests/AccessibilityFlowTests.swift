@@ -123,8 +123,6 @@ final class AccessibilityFlowTests: XCTestCase {
                     print("B29b audit \(seed) (记录): \(issue.compactDescription) \(issue.element?.label.prefix(30) ?? "")")
                     return true
                 }
-                // 网页（WKWebView，在原生页下面、被盖住）里的元素不归原生页管
-                if let e = issue.element, e.identifier.isEmpty, (try? e.snapshot())?.elementType == .webView { return true }
                 // 只读的装饰元素（描一遍 / 凭记忆写的两个步骤点：高 5pt，网页同）不是可点的控件，点击区不适用
                 if issue.auditType == .hitRegion, let e = issue.element, e.elementType != .button { return true }
                 print("B29b audit \(seed): \(issue.auditType) \(issue.compactDescription) \(issue.element?.debugDescription.prefix(160) ?? "")")

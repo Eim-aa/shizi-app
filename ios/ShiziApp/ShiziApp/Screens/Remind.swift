@@ -501,7 +501,7 @@ final class RemindScreen: ShiziScreenViewController {
     /// QA 运行（逐屏取证 / 流程测试）：见 requestPermission 的说明。
     /// QA 运行（逐屏取证 / 流程测试）：判定跟宿主的 QA 开关一致（NativeQAHarness 的 qaEnabled：探针 / 夹具 / -shizi-qa 都算）。
     #if DEBUG
-    private static var qaMode: Bool { WebViewController.qaEnabled }
+    private static var qaMode: Bool { RootViewController.qaEnabled }
     #else
     private static let qaMode = false
     #endif

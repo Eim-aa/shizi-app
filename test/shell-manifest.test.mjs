@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { ROOT, MANIFEST_PATH, BUILD_INFO_PATH, plan, parseBuild, buildInfoText, readVersion } from '../scripts/build_shell_manifest.mjs';
+import { ROOT, MANIFEST_PATH, APP_MANIFEST_PATH, APP_BUNDLE_ROOTS, BUILD_INFO_PATH, plan, parseBuild, buildInfoText, readVersion } from '../scripts/build_shell_manifest.mjs';
 
 test('shell manifest and build-info are up to date', () => {
   for (const { rel, text } of plan().outputs) {
@@ -24,6 +24,21 @@ test('every manifest line exists and required shell files are listed', () => {
     assert.ok(lines.includes(rel), `manifest must list ${rel}`);
   }
   assert.ok(lines.filter(rel => /^data\/.+\.json$/.test(rel)).length >= 7218, 'all stroke JSON listed');
+});
+
+test('B4.9: the iOS bundle manifest lists only what native code reads (data / fonts / licenses) — no JS, no web shell', () => {
+  const app = readFileSync(join(ROOT, APP_MANIFEST_PATH), 'utf8').split('\n').filter(Boolean);
+  const shell = new Set(readFileSync(join(ROOT, MANIFEST_PATH), 'utf8').split('\n').filter(Boolean));
+  assert.deepEqual(APP_BUNDLE_ROOTS, ['data/', 'fonts/', 'licenses/']);
+  for (const rel of app) {
+    assert.ok(APP_BUNDLE_ROOTS.some(root => rel.startsWith(root)), `not an app-bundle root: ${rel}`);
+    assert.ok(shell.has(rel), `app-bundle file is a shell file: ${rel}`);
+  }
+  assert.equal(app.length, [...shell].filter(rel => APP_BUNDLE_ROOTS.some(root => rel.startsWith(root))).length, 'every shell file under the roots is in the bundle');
+  for (const rel of ['fonts/ShiziKai-Regular.woff2', 'fonts/ShiziSerifSC-Medium.woff2', 'fonts/ShiziSerifSC-Regular.woff2', 'data/etymology.json']) assert.ok(app.includes(rel), rel);
+  assert.ok(app.filter(rel => /^data\/.+\.json$/.test(rel)).length >= 7218, 'all stroke JSON in the bundle');
+  assert.ok(readFileSync(join(ROOT, 'ios/ShiziApp/ShiziApp/Branding/icon-512.png')).equals(readFileSync(join(ROOT, 'icon-512.png'))), 'about-page logo (native resource) = icon-512.png');
+  assert.ok(!app.some(rel => /^(src|vendor)\//.test(rel) || /\.(js|html|webmanifest)$/.test(rel) && !rel.startsWith('data/')), 'no JS / web shell in the bundle');
 });
 
 test('BUILD has the <yyyymmdd>-<12 hex> shape', async () => {

@@ -122,14 +122,6 @@ test('App API route ops go to the injected engine hooks; without them they are u
   assert.equal(bare.call('route.plan', {}).error.kind, 'unavailable');
 });
 
-test('engine mode only inside the iOS app: app.js keeps mounting the web UI when __shiziEngine is not injected', () => {
-  const app = readFileSync(new URL('../../src/app.js', import.meta.url), 'utf8');
-  assert.match(app, /engineRequested\(\) \? await import\('\.\/ui\/engine\.js'\)/);
-  assert.match(app, /await mountRoot\(container\)/);
-  const swift = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/NativeStage.swift', import.meta.url), 'utf8');
-  assert.match(swift, /window\.__shiziEngine = true/);
-});
-
 test('engine mode installs the commit feedback exactly once, sound only (native owns the haptics)', async () => {
   const src = readFileSync(new URL('../../src/ui/engine.js', import.meta.url), 'utf8');
   assert.equal((src.match(/installCommitFeedback\(/g) || []).length, 1);

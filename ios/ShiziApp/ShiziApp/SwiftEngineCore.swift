@@ -3,12 +3,10 @@ import UIKit
 
 // B4.5c：SwiftEngine 的核心（计划 B3B4-原生化架构与计划.md §4.2「SwiftEngine: ShiziEngine 把 ShiziCore 的 op 表挂到 B3 的同一个协议上」）。
 //
-// 一份代码两种用法：
-//   · swift 模式（SwiftEngine.swift）：Store 接 App 的同一个 SQLite 库（NativeStoreBridge 的同一条连接，同表同键同值形状，不迁移），在主线程答页面；
-//   · shadow 模式（ShadowEngine.swift，只在 DEBUG）：Store 接内存里的库副本（每个 op 的前态 = WebEngine 那次 op 的前态），在后台线程重算后比对。
-// 哪些 op 由 Swift 答、哪些交 JS，只有 EngineOps 一张表；宿主函数（导航、平台、排版量测）在 EngineHost 里，两种模式同一份。
+// Store 接 App 的 SQLite 库（AppDatabase 的同一条连接），在主线程答原生页。B4.9 起 App 里没有 JS：全部 op 由这里答（SwiftEngine.swift 的 route：
+// 栈往来由 SwiftNavigator 答、画图由原生渲染器答、其余交 SessionRuntime）；宿主函数（导航、平台、排版量测）在 EngineHost 里。
 
-// MARK: - 值：WebKit 边界的 [String: Any] ⇄ ShiziCore 的 JSValue
+// MARK: - 值：原生页的 [String: Any] ⇄ ShiziCore 的 JSValue
 
 enum EngineValue {
     static func js(_ any: Any?) -> JSValue {
@@ -54,55 +52,16 @@ enum EngineValue {
     static func failure(_ kind: String) -> JSValue { obj([("ok", .bool(false)), ("error", obj([("kind", .string(kind))]))]) }
 }
 
-// MARK: - op 表：谁来答
+// MARK: - op 表
 
-/// 引擎边界上的三个 JS 函数与每个 op 的去处（一张表，swift 与 shadow 两种模式共用）。
+/// 引擎边界上的三个通道名（沿用 B2 / B3 的函数名：App API、写字会话、导航助手）与 SessionRuntime 的 op 名。
 enum EngineOps {
     static let app = "shiziNative"
     static let write = "shiziNativeWrite"
     static let nav = "shiziNativeNav"
 
-    /// 只有 JS 有的 op（Swift 不答，影子不比；swift 模式照旧交页面）：
-    ///   · shiziNativeNav 全部：B2.8 导航助手（back / cover / fence），只管网页界面层，不写 store；
-    ///   · route.save / route.plan / deeplink.reminder / stage.enter / stage.resync：B3.F 的栈记账与冷启动判定（守卫、过期、深链、坏值、阻断优先、
-    ///     宿主消息 hostBodies）在 JS 的 ui/engine.js、route-memory.js——是界面层规则，B4.8 / B4.9 原生化前交 JS；
-    ///   · stage.cover / stage.fence / stage.under：网页界面层的截图与帧同步；
-    ///   · nav.*：B3.F 起在原生侧由 NativeStage 直接做（WebEngine.navigator），根本不到引擎；
-    ///   · image.render / image.save：画图是 B4.6 的原生渲染器（WebEngine.nativeImage），只在显式 webRenderer 时才到 JS；
-    ///     它们用的 image.spec / image.persist 记账由 Swift 答。
-    static let jsOnlyApp: Set<String> = ["route.save", "route.plan", "deeplink.reminder", "stage.enter", "stage.resync", "stage.cover", "stage.fence", "stage.under",
-                                         "image.render", "image.save"]
-
-    /// Swift 已移植了规则、但 op 的另一半是 JS 界面层的导航或界面状态（开组后推入写字页、S02、离开撤销条、查字弹层模式、结果页跳转、提醒权限往返）：
-    /// 影子模式里 Swift 用同一组宿主函数（导航只记下、界面状态照 JS 维护）算回包与后态并比对；swift 模式里这些 op 仍交 JS 做，
-    /// 做完 Swift 重读库（SwiftEngine.reloadAfterPage）——B4.8 把导航宿主原生化后从这张表里拿掉。
-    static let hostApp: Set<String> = [
-        "view.home", "view.library", "view.query", "view.s02", "view.session-none",
-        "home.start", "home.resumeOther", "home.deferSpecial", "home.switchLibrary", "home.pick", "home.source", "home.undoLeave", "home.undoLeaveCancel",
-        "library.startToday", "library.openQuery", "library.undoLeave", "library.undoLeaveCancel", "library.list.start", "library.all.start", "library.switch",
-        "detail.practice", "detail.image", "session.pick", "session.libSwitch", "session.wrongList",
-        "query.pick", "query.detail", "s02.decide", "image.view", "image.add", "image.closed",
-        // 阻断页：存储可不可用 / 有没有阻断由页面的 store 报（引擎状态通道），阻断页的 op 跟它同一个来源
-        "block.retry", "block.export", "block.exportable",
-        // 存相册的平台握手（JS saveImageFile → savePracticeCard → shiziCardSaved）还在页面桥上；记账规则 Swift 有（影子里比）
-        "image.persist",
-    ]
-    static let hostWrite: Set<String> = ["exit", "redoExit", "resultExit", "resultAgain", "resultUndoSkip", "resultCell", "resultSealed", "resultInvite", "open", "redoOpen", "resultLook"]
-
-    /// 这个调用有没有 Swift 的实现（影子比对的范围 = 这些）。
-    static func swiftImplements(function: String, op: String) -> Bool {
-        if function == write { return true }
-        if function != app { return false }
-        if op.hasPrefix("nav.") { return false }
-        return !jsOnlyApp.contains(op)
-    }
-
-    /// swift 模式里由 Swift 直接答的：B4.9a 起 Swift 实现了的全部 op（导航宿主与界面状态也在 Swift：EngineHost + SwiftNavigator）；
-    /// 栈往来（jsOnlyApp 里的 route.* / stage.* / deeplink.reminder 与 shiziNativeNav）由 SwiftNavigator 先答，不到这里；
-    /// 只剩显式 webRenderer（或原生渲染失败）的 image.render / save 交页面（B4.6 的回退）。hostApp / hostWrite 只给影子模式划范围。
-    static func swiftAnswers(function: String, op: String) -> Bool {
-        swiftImplements(function: function, op: op)
-    }
+    /// 画图（B4.6 原生渲染器，SwiftEngine.nativeImage）：它用的 image.spec / image.persist 记账由 SessionRuntime 答。
+    static let imageOps: Set<String> = ["image.render", "image.save"]
 
     /// SessionRuntime 的 op 名（写字会话前缀 write.）。
     static func runtimeOp(function: String, op: String) -> String { function == write ? "write." + op : op }
@@ -110,8 +69,8 @@ enum EngineOps {
 
 // MARK: - 宿主（导航、平台、量测、界面状态）
 
-/// JS 一侧这些由界面层注入（ui/screens/*、ui/images-entry.js、ui/screens/write/native-session.js、ui/native-stage.js）；
-/// 这里是同一组函数的原生版。导航只记进 navigations（swift 模式里会导航的 op 本来就交 JS，见 EngineOps.hostApp）。
+/// JS 参考实现里这些由界面层注入（ui/screens/*、ui/images-entry.js、ui/screens/write/native-session.js、ui/native-stage.js）；
+/// 这里是同一组函数的原生版。导航交 SwiftNavigator 真改栈，同时记进 navigations（诊断）。
 final class EngineHost {
     let store: Store
     let hooks = SessionActionHooks()
@@ -120,7 +79,7 @@ final class EngineHost {
     let images: ImageRegisteredActions
     /// 宿主导航的记录（op 名 + 参数），只供诊断。
     private(set) var navigations: [String] = []
-    /// 量测：swift 模式原生量（NativeLineMeasure）；影子模式给标记（比对规则见 ShadowEngine.Compare）。
+    /// 量测：原生量（NativeLineMeasure）。
     let measure: EngineMeasure
     /// 不是 store 提交的 changed（界面状态）：离开撤销条变了（write/skip.js emitLeaveUndo）→ 首页、字库两个订阅者各推一次
     /// {domains:['ui'], label:'leave-undo'}（ui/screens/home/index.js、library/index.js 的 onLeaveUndo），原生首页 / 字库重拉视图。
@@ -133,16 +92,12 @@ final class EngineHost {
         registered["leaveUndo"] = epoch
         emitLeaveUndo()
     }
-    /// 影子：页面上的离开撤销条说不清时（见 ShadowEngine host-unregistered），按页面回包看到的「没有」对齐（不推 changed）。
-    func adoptNoLeaveUndo() { pages.clearLeaveUndo(); registered["leaveUndo"] = epoch }
 
-    /// B4.9a：缺省模式的导航者（「去哪」的规则真正改栈、发宿主消息）；影子模式没有（导航只记进 navigations）。
+    /// B4.9a：导航者（「去哪」的规则真正改栈、发宿主消息）。
     weak var navigator: SwiftNavigator?
     /// 离开撤销条的「撤销」正在开写字页（skip.js undoLeave 用 nav.push，不是 openWrite）。
     private var undoing = false
 
-    /// 存相册的平台结果（影子：页面那次实际拿到的结果；swift 模式里 image.persist 走 WebViewController 的同一个保存）。
-    var platformSave: ((JSValue) -> JSValue)?
 
     /// 声音事件（文件名、增益）：判断声 j1 轮换（SwiftEngineCore）与落款声 s1。
     var onSound: ((String, Double) -> Void)?
@@ -232,17 +187,20 @@ final class EngineHost {
             }
         }
         // 字详情：练这个字（startPicked）、做成图片（打开预览）
+        // 系统大字号（全部字墙最多 6 列：网页 useWallLayout 的 compact）——引擎替原生页算视图时（推入 / 冷启动恢复的首帧）页面没传 large，按此刻的系统字号答。
+        // B4.9 前这一屏经页面推入时由网页量（QA 镜像），删 JS 才露出首帧墙按 8 列排、重拉后才变 6 列。
+        hooks.set("measure.large") { _ in .bool(LibraryCommon.isLargeText()) }
         hooks.set("detail.practice") { [unowned self] a in try startPicked(a["chars"]?.arrayValue ?? [], source: a["source"] ?? .null) }
         hooks.set("detail.image") { [unowned self] a in
             nav("detail.image", .object(a))
             navigator?.openImagePreview(JSObject([("kind", .string("glyph")), ("char", a["char"] ?? .null)])) // images-entry.js openGlyphImage
             return .null
         }
-        // 图片：palette = tokens 的浅色一套（core/images/palette.js：导出图恒为浅纸，无纹理）；存相册是平台，影子里不真存
+        // 图片：palette = tokens 的浅色一套（core/images/palette.js：导出图恒为浅纸，无纹理）；存相册是平台（SwiftEngine 接上 RootViewController.saveCard）
         images.palette = { Self.palette }
         images.saveFile = { [unowned self] file in
             nav("image.save", file["name"] ?? .null)
-            return platformSave?(file) ?? EngineValue.obj([("ok", .bool(true)), ("via", .string("native"))])
+            return EngineValue.obj([("ok", .bool(true)), ("via", .string("native"))])
         }
         images.post = { [unowned self] msg in
             nav("image.post", msg)
@@ -339,12 +297,10 @@ final class EngineHost {
         }
     }
 
-    /// 宿主登记（查字 / S02 回调）是在哪个时刻登记的（影子：登记之后页面里又跑过 Swift 看不见的脚本 / 只交 JS 的 op，就说不清页面现在登记的是什么）。
+    /// 宿主登记（查字 / S02 回调）是在哪个时刻登记的（诊断）。
     var epoch = 0
     private(set) var registered: [String: Int] = [:]
 
-    /// 影子：页面重载后 JS 的界面层状态从头来（sound.js 的落款 key 集合）。
-    func resetPageState() { sealed.removeAll() }
 
     /// 正在答的结果页 op 的 {slot, sessionId}（SwiftEngineCore.answer 设）。
     var currentResult: JSObject?
@@ -388,7 +344,7 @@ final class EngineHost {
     }
 
     #if DEBUG
-    /// B4.9c：QA 夹具的界面入口（States/_ops/openS02.js、openQuery.js 在 swift 模式经页面消息 qa-ui 请到这里）——与原生按钮同一个入口：
+    /// B4.9c：QA 夹具的界面入口（op openS02 / openQuery，QAOps.swift）——与原生按钮同一个入口：
     /// startPicked（B 组没写完 → S02，登记 S02 的回调）、openQuery（登记查字回调 + 推入查字屏，带弹层的初始输入 / 组字态 / 预选字）。
     func qaUI(_ action: String, _ a: JSValue) {
         switch action {
@@ -441,27 +397,24 @@ final class EngineHost {
         return .object(o)
     }
 
-    // MARK: 静态资源（包里 Web/ 的同一批文件：JS 读的就是它们）
+    // MARK: 静态资源（包里 Web/：笔顺 / 字源 data/、字体 fonts/、版本行 build-info.json；sync-web-assets.sh 放进包）
 
     static let webRoot: URL? = Bundle.main.url(forResource: "Web", withExtension: nil)
 
-    /// 关于页的版本行（ui/screens/mine/about.js aboutBuild：src/build-info.js 的 VERSION / BUILD；QA 里钉住，同 NativeSmoke 注入的 __shiziQABuild）。
+    /// 关于页的版本行（ui/screens/mine/about.js aboutBuild：src/build-info.js 的 VERSION / BUILD，构建时写成 Web/build-info.json；QA 里钉住）。
     static var build: JSValue {
         #if DEBUG
-        if WebViewController.qaEnabled { return EngineValue.obj([("version", .string("1.0.0")), ("build", .string("20261001-000000000000"))]) }
+        if RootViewController.qaEnabled { return EngineValue.obj([("version", .string("1.0.0")), ("build", .string("20261001-000000000000"))]) }
         #endif
         return bundledBuild
     }
 
     static let bundledBuild: JSValue = {
         var version = "", build = ""
-        if let url = webRoot?.appendingPathComponent("src/build-info.js"), let text = try? String(contentsOf: url, encoding: .utf8) {
-            func constant(_ name: String) -> String {
-                guard let r = text.range(of: "export const \(name) = '") else { return "" }
-                let rest = text[r.upperBound...]
-                return String(rest.prefix { $0 != "'" })
-            }
-            version = constant("VERSION"); build = constant("BUILD")
+        if let url = webRoot?.appendingPathComponent("build-info.json"), let data = try? Data(contentsOf: url),
+           let info = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+            version = info["version"] as? String ?? ""
+            build = info["build"] as? String ?? ""
         }
         return EngineValue.obj([("version", .string(version)), ("build", .string(build))])
     }()

@@ -2,7 +2,7 @@
 import QuartzCore
 import UIKit
 
-// B3.1：原生写字页的纵切量测（只在 DEBUG：Release 不含 shizi-native-write-metrics.json，verify-archive.sh 断言）。原在 NativeWriteBridge.swift。
+// B3.1：原生写字页的纵切量测（只在 DEBUG：Release 不含 shizi-native-write-metrics.json，verify-archive.sh 断言）。原在 WriteSessionChannel.swift。
 
 /// 纵切量测：页面打开、每个桥操作的往返、落笔到上屏（取自 NativeInkView.latency）。写 Documents/shizi-native-write-metrics.json。
 final class NativeWriteMetrics {

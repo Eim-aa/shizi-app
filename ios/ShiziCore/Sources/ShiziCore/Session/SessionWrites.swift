@@ -104,34 +104,53 @@ public enum SessionWrites {
             set(&d, JS.string(a["slot"]), try SessionRules.advance(s, cardKey: a["cardKey"], recordId: seen(d, s, a["cardKey"])?["id"], kind: .string("answer-seen"), fsrsBefore: nil, at: .number(c.now)))
         }
     }
+    /// src/session/ops/judge.js judgeInDraft：判断的草稿变换（记录 + 墨迹 + D27 回收 + FSRS + 会话推进）。commitJudgment 在 store.commit 里调；
+    /// App 的 QA 夹具造数据（seedRecords）在自己的草稿上调，时刻 / 记录号由调用方给（夹具里写死，任何一天跑出同一份数据）。
+    /// a：slot、cardKey、judgment、hints?、policy?、perRecordInk?；strokes：本人原始笔画。返回 (记录, 是否沿用已有的判断)。
+    public static func judgeInDraft(_ d: inout JSObject, _ a: JSObject, strokes: [[InkPoint]], at: Double, nextId: () throws -> String,
+                                    inkFormat: String, dates: Dates) throws -> (record: JSValue, reused: Bool) {
+        guard Records.judgments.contains(JS.string(a["judgment"])) else { throw CoreError.range("judge: judgment must be correct or wrong") }
+        guard strokes.contains(where: { !$0.isEmpty }) else { throw CoreError.range("judge: no strokes of the learner") }
+        let slot = JS.string(a["slot"]), key = a["cardKey"] ?? .null, k = JS.string(key)
+        guard let s = session(d, slot), SessionRules.currentCardKey(s) == key else { throw CoreError.error("judge: not the current card") }
+        if let r = allRecords(d).last(where: { Records.isJudged($0) && $0["sessionId"] == s["id"] && $0["cardKey"] == key }) {
+            set(&d, slot, try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: nil, at: .number(at)))
+            return (r, true)
+        }
+        let policy = ViewSupport.policy(a["policy"])
+        let r = try Records.makeRecord(JSObject([("id", .string(try nextId())), ("cardKey", key), ("sessionId", s["id"]!), ("kind", .string("judged")), ("judgment", a["judgment"]!), ("at", .number(at)), ("help", JS.obj([("hints", .number(min(Schema.hintsShapeMax, max(0, hints(s, a["hints"]).rounded(.towardZero))))), ("answerSeen", .bool(false)), ("traced", .bool(false))]))]), dates: dates)
+        try append(&d, r)
+        if a["perRecordInk"]?.boolValue ?? (policy["features"]?["perRecordInk"] == .bool(true)) { _ = try Store.setInk(&d, r, InkMath.encodeStoredInk(strokes, policy: policy.objectValue, format: inkFormat), timeZone: dates.timeZone) }
+        _ = Budget.pruneInkOfCards(&d, [k], dates: dates)
+        let next = try ScheduleRules(dates: dates).applyJudgment(d["sched"]?[k], r, policy: policy, records: allRecords(d))
+        d["sched"] = patch(d["sched"], [(k, next.entry)])
+        set(&d, slot, try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: next.fsrsBefore, at: .number(at)))
+        return (r, false)
+    }
     public static func commitJudgment(_ store: Store, _ a: JSObject) -> JSValue {
         let strokes = raw(a); if !strokes.contains(where: { !$0.isEmpty }) { return failure("empty-strokes") }
-        guard let s = current(store, a) else { return failure("stale") }
+        guard current(store, a) != nil else { return failure("stale") }
         var record: JSValue?, reused = false
         let result = store.commit("write:judge") { d,c in
-            guard Records.judgments.contains(JS.string(a["judgment"])) else { throw CoreError.range("judge: judgment must be correct or wrong") }
-            let key = a["cardKey"]!, k = JS.string(key)
-            if let r = allRecords(d).last(where: { Records.isJudged($0) && $0["sessionId"] == s["id"] && $0["cardKey"] == key }) {
-                record = r; reused = true; set(&d, JS.string(a["slot"]), try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: nil, at: .number(c.now))); return
-            }
-            let policy = ViewSupport.policy(a["policy"])
-            let r = try Records.makeRecord(JSObject([("id", .string(try c.nextId("r"))), ("cardKey", key), ("sessionId", s["id"]!), ("kind", .string("judged")), ("judgment", a["judgment"]!), ("at", .number(c.now)), ("help", JS.obj([("hints", .number(min(Schema.hintsShapeMax, max(0, hints(s, a["hints"]).rounded(.towardZero))))), ("answerSeen", .bool(false)), ("traced", .bool(false))]))]), dates: store.dates)
-            record = r; try append(&d, r)
-            if a["perRecordInk"]?.boolValue ?? (policy["features"]?["perRecordInk"] == .bool(true)) { _ = try Store.setInk(&d, r, InkMath.encodeStoredInk(strokes, policy: policy.objectValue, format: c.inkFormat), timeZone: store.dates.timeZone) }
-            _ = Budget.pruneInkOfCards(&d, [k], dates: store.dates)
-            let next = try ScheduleRules(dates: store.dates).applyJudgment(d["sched"]?[k], r, policy: policy, records: allRecords(d))
-            d["sched"] = patch(d["sched"], [(k, next.entry)])
-            set(&d, JS.string(a["slot"]), try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: next.fsrsBefore, at: .number(c.now)))
+            let out = try judgeInDraft(&d, a, strokes: strokes, at: c.now, nextId: { try c.nextId("r") }, inkFormat: c.inkFormat, dates: store.dates)
+            record = out.record; reused = out.reused
         }
         return result["ok"] == .bool(true) && record != nil ? patch(result, [("record", record!), ("reused", .bool(reused))]) : result
     }
+    /// src/session/ops/skip.js skipInDraft：跳过的草稿变换（一条 skipped 记录 + 会话推进）。a：slot、cardKey、hints?、policy?。
+    public static func skipInDraft(_ d: inout JSObject, _ a: JSObject, at: Double, nextId: () throws -> String, dates: Dates) throws -> JSValue {
+        let policy = ViewSupport.policy(a["policy"]), scope = JS.string(policy["skipScope"])
+        guard ["session", "today"].contains(scope) else { throw CoreError.range("unsupported policy.skipScope: " + scope) }
+        let slot = JS.string(a["slot"])
+        guard let s = session(d, slot), SessionRules.currentCardKey(s) == a["cardKey"] else { throw CoreError.error("skip: not the current card") }
+        let r = try Records.makeRecord(JSObject([("id", .string(try nextId())), ("cardKey", a["cardKey"]!), ("sessionId", s["id"]!), ("kind", .string("skipped")), ("at", .number(at)), ("help", JS.obj([("hints", .number(min(Schema.hintsShapeMax, max(0, hints(s, .number(JS.numberOr0(a["hints"]).rounded(.towardZero))))))), ("answerSeen", .bool(false)), ("traced", .bool(false))]))]), dates: dates)
+        try append(&d, r); set(&d, slot, try SessionRules.advance(s, cardKey: a["cardKey"], recordId: r["id"], kind: .string("skipped"), fsrsBefore: nil, at: .number(at)))
+        return r
+    }
     public static func commitSkip(_ store: Store, _ a: JSObject) -> JSValue {
-        guard let s = current(store, a) else { return failure("stale") }; var record: JSValue?
+        guard current(store, a) != nil else { return failure("stale") }; var record: JSValue?
         let result = store.commit("write:skip") { d,c in
-            let policy = ViewSupport.policy(a["policy"]), scope = JS.string(policy["skipScope"])
-            guard ["session", "today"].contains(scope) else { throw CoreError.range("unsupported policy.skipScope: " + scope) }
-            let r = try Records.makeRecord(JSObject([("id", .string(try c.nextId("r"))), ("cardKey", a["cardKey"]!), ("sessionId", s["id"]!), ("kind", .string("skipped")), ("at", .number(c.now)), ("help", JS.obj([("hints", .number(min(Schema.hintsShapeMax, max(0, hints(s, .number(JS.numberOr0(a["hints"]).rounded(.towardZero))))))), ("answerSeen", .bool(false)), ("traced", .bool(false))]))]), dates: store.dates)
-            record = r; try append(&d, r); set(&d, JS.string(a["slot"]), try SessionRules.advance(s, cardKey: a["cardKey"], recordId: r["id"], kind: .string("skipped"), fsrsBefore: nil, at: .number(c.now)))
+            record = try skipInDraft(&d, a, at: c.now, nextId: { try c.nextId("r") }, dates: store.dates)
         }
         return result["ok"] == .bool(true) && record != nil ? patch(result, [("record", record!)]) : result
     }

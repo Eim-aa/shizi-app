@@ -1,5 +1,5 @@
 // 审查整改 P0-C / A7（G19）：iOS 启动底色。Assets 里的 Paper 颜色集与 src/config/tokens.css 的 --paper（浅 / 深；P1-E1a 前叫 --p）同源；
-// UILaunchScreen.UIColorName = Paper；WebViewController 用 UIColor(named: "Paper")，不再写死 RGB。
+// UILaunchScreen.UIColorName = Paper；RootViewController（B4.9 前是 WebViewController）用 UIColor(named: "Paper")，不再写死 RGB。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -31,12 +31,12 @@ test('A7: Paper colorset equals the --paper token (light #F4EFE6 / dark #1B1814;
   assert.deepEqual(dark.color.components, { alpha: '1.000', red: '0x1B', green: '0x18', blue: '0x14' });
 });
 
-test('A7: launch screen uses the Paper colour; the web view background reads the same colour set', () => {
+test('A7: launch screen uses the Paper colour; the native root background reads the same colour set', () => {
   const xml = read('ShiziApp/Info.plist');
   const launch = plistDict(xml, 'UILaunchScreen');
   assert.match(launch, /<key>UIColorName<\/key>\s*<string>Paper<\/string>/, 'UILaunchScreen.UIColorName = Paper');
-  const swift = read('ShiziApp/WebViewController.swift');
-  assert.match(swift, /UIColor\(named: "Paper"\)/, 'WebViewController uses UIColor(named: "Paper")');
+  const swift = read('ShiziApp/RootViewController.swift');
+  assert.match(swift, /UIColor\(named: "Paper"\)/, 'RootViewController uses UIColor(named: "Paper")');
   assert.ok(!/UIColor\(red: 0\.(937|106)/.test(swift), 'no hard-coded paper RGB left (#EFE7D3 / #1B1813)');
   assert.match(read('scripts/verify-local.sh'), /generate-paper-colorset\.mjs" --check/, 'verify-local.sh checks the colorset against tokens.css');
 });

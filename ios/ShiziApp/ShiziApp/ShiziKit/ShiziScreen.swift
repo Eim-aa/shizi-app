@@ -410,7 +410,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { false }
 
     func gestureRecognizer(_ g: UIGestureRecognizer, shouldBeRequiredToFailBy other: UIGestureRecognizer) -> Bool {
-        // 左缘起手优先于正文的竖向滚动（同 WebViewController P272）
+        // 左缘起手优先于正文的竖向滚动（P272）
         g === edgeBack && other.view === scroll
     }
 }

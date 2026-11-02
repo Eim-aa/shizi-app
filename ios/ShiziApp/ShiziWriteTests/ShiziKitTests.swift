@@ -1,36 +1,22 @@
 import UIKit
-import WebKit
 import XCTest
 @testable import Shizi
 
-// B3.1 ShiziKit：构建期生成的令牌 / 文案 / 动效（ShiziKitTokens.json、ShiziKitCopy.json）与页面此刻现算的回包逐项相同。
-// 页面是真的（App 作测试宿主、WKWebView 里的 tokens.css / policy / motion.js / copy）：每个系统字号档位（xS … AX5）× 浅 / 深都让页面算一遍
-// 写字页令牌包（native-session.js typeBundle / colorBundle / themeOf——原来 open 回包里的同一组函数；B4.9a 起 open 由 Swift 答，这里直接问页面），
-// 再与 ShiziLook.resolve 换上的生成值比（字阶是 WebKit 量出来的 1/64 截断值，生成器照同一规则取）。
-// 生成物与来源（tokens.css / policy / motion.js / copy）不同步由 node 侧 test/ios-shizikit.test.mjs 守；这里守「生成规则 = 页面算法」。
+// B3.1 ShiziKit：构建期生成的令牌 / 文案 / 动效（ShiziKitTokens.json、ShiziKitCopy.json）。
+// 生成物与来源（tokens.css / policy / motion.js / copy）不同步由 node 侧 test/ios-shizikit.test.mjs 守。
+// B4.9：App 里没有网页了——原来「生成规则 = WebKit 现算的页面令牌包」的两条（字阶 × 12 档、颜色 × 浅深）随 WKWebView 退役；
+// 这里守生成表本身齐全、ShiziLook 用生成值，以及写字页 / 结果页回包（SwiftEngine）与生成值一致。
 
 @MainActor
 final class ShiziKitTests: XCTestCase {
-    private var web: WebViewController!
-    private var bridge: NativeWriteBridge!
+    private var host: TestHost!
+    private var bridge: WriteSessionChannel!
 
     override func setUp() async throws {
         try await super.setUp()
-        let root = UIApplication.shared.delegate?.window??.rootViewController
-        web = try XCTUnwrap(root as? WebViewController, "root is the web shell")
-        try await waitUntil("page ready") { self.web.pageReady }
-        try await waitUntil("session api") { (try? await self.js("return typeof window.shiziNativeWrite === 'function';")) as? Bool == true }
-        bridge = NativeWriteBridge(webView: web.webView)
-    }
-
-    override func tearDown() async throws {
-        _ = try? await js("document.documentElement.removeAttribute('data-theme'); window.shiziContentSize({category:'L', scale:1}); return true;")
-        try await super.tearDown()
-    }
-
-    @discardableResult
-    private func js(_ body: String) async throws -> Any? {
-        try await web.webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page)
+        host = try TestHost()
+        try await waitUntil("engine ready") { self.host.ready }
+        bridge = WriteSessionChannel()
     }
 
     private func call(_ op: String, _ args: [String: Any]) async -> NativeWriteReply {
@@ -53,44 +39,21 @@ final class ShiziKitTests: XCTestCase {
         (.accessibilityExtraExtraExtraLarge, "AX5"),
     ]
 
-    /// 页面的写字页令牌包（native-session.js 的同名函数：WebKit 按 tokens.css 现算）。
-    private func pageBundle(_ fn: String) async throws -> Any? {
-        try await js("const m = await import('/src/ui/screens/write/native-session.js'); return m.\(fn)();")
-    }
-
-    /// 页面在某个字号档位下算出来的字阶（typeBundle 的数值键 = 原来 open 回包 type 的数值键）。
-    private func pageType(_ name: String) async throws -> [String: Double] {
-        _ = try await js("window.shiziContentSize({category:'\(name)', scale:1}); return true;")
-        let type = try await pageBundle("typeBundle") as? [String: Any] ?? [:]
-        return type.compactMapValues { ($0 as? NSNumber)?.doubleValue }.filter { $0.key != "ax" }
-    }
-
-    /// 字阶：12 个档位，页面 typeBundle 的每个键 = 生成表同档位的值（含 XXXL 等非整数档的 1/64 截断）。
-    func testTypeScaleMatchesThePageAtEveryContentSize() async throws {
+    /// 字阶：12 个档位的名字（同 text-size.js）与生成表的一行（至少 12 个字阶键）。
+    func testTypeScaleHasAGeneratedRowForEveryContentSize() throws {
         for (category, name) in Self.categories {
             XCTAssertEqual(ShiziTokens.categoryName(category), name)
-            let page = try await pageType(name)
-            XCTAssertGreaterThanOrEqual(page.count, 12, "\(name): page type bundle")
             let gen = try XCTUnwrap(ShiziTokens.lengths(category), "\(name): generated row")
-            for (k, v) in page {
-                XCTAssertEqual(Double(gen[k] ?? -1), v, accuracy: 1e-9, "\(name) \(k)")
-            }
+            XCTAssertGreaterThanOrEqual(gen.count, 12, "\(name): generated row")
         }
     }
 
-    /// 颜色：浅 / 深两套，页面令牌的计算值（原文）= 生成值；回包 theme 跟着页面主题走。
-    func testColorsAndThemeMatchThePage() async throws {
+    /// 颜色：浅 / 深两套生成表齐全；ShiziLook 换上的颜色来自生成表、主题按回包。
+    func testColorsComeFromTheGeneratedTables() {
         for theme in [ShiziTokens.Theme.light, .dark] {
-            _ = try await js("document.documentElement.setAttribute('data-theme', '\(theme.rawValue)'); return true;")
-            let pageTheme = try await pageBundle("themeOf") as? String
-            XCTAssertEqual(pageTheme, theme.rawValue)
-            let colorsRaw = try await pageBundle("colorBundle")
-            let colors = try XCTUnwrap(colorsRaw as? [String: String])
-            XCTAssertGreaterThanOrEqual(colors.count, 20)
             let gen = ShiziTokens.colorStrings(theme)
-            for (k, v) in colors { XCTAssertEqual(gen[k], v, "\(theme.rawValue) \(k)") }
-            // 生成值换上去以后颜色来自生成表、主题按回包
-            let look = ShiziLook.resolve(["colors": colors, "theme": pageTheme ?? ""], page: .write)
+            XCTAssertGreaterThanOrEqual(gen.count, 20, theme.rawValue)
+            let look = ShiziLook.resolve(["colors": [String: String](), "theme": theme.rawValue], page: .write)
             XCTAssertEqual(look["colors"] as? [String: String], gen)
         }
     }

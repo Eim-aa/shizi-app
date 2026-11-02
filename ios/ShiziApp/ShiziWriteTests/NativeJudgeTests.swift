@@ -1,5 +1,4 @@
 import UIKit
-import WebKit
 import XCTest
 @testable import Shizi
 
@@ -9,35 +8,22 @@ import XCTest
 
 @MainActor
 final class NativeJudgeTests: XCTestCase {
-    private var web: WebViewController!
-    private var bridge: NativeWriteBridge!
+    private var host: TestHost!
+    private var root: RootViewController { host.root }
+    private var bridge: WriteSessionChannel!
 
     override func setUp() async throws {
         try await super.setUp()
-        let root = UIApplication.shared.delegate?.window??.rootViewController
-        web = try XCTUnwrap(root as? WebViewController, "root is the web shell")
-        try await waitUntil("page ready") { self.web.pageReady }
-        try await waitUntil("test hooks") { (try? await self.js("return !!window.__shiziTest && typeof window.shiziNativeWrite === 'function';")) as? Bool == true }
-        if let top = web.nativeWriteTop {
-            top.exitHandled = true
-            top.dismiss(animated: false)
-        }
-        _ = try await js("(await import('/src/ui/router.js')).nav.switchTab('home'); return window.__shiziTest.reset();")
-        try await waitUntil("no native page") { self.web.nativeWriteTop == nil }
-        bridge = NativeWriteBridge(webView: web.webView)
+        host = try TestHost()
+        try await waitUntil("engine ready") { self.host.ready }
+        host.reset()
+        try await waitUntil("no native page") { self.root.nativeWriteTop == nil }
+        bridge = WriteSessionChannel()
     }
 
     // MARK: 工具
 
-    @discardableResult
-    private func js(_ body: String) async throws -> Any? {
-        try await web.webView.callAsyncJavaScript(body, arguments: [:], in: nil, contentWorld: .page)
-    }
-
-    private func state() async throws -> [String: Any] {
-        let value = try await js("return window.__shiziTest.getState();")
-        return try XCTUnwrap(value as? [String: Any])
-    }
+    private func state() async throws -> [String: Any] { host.state() }
 
     private func recs() async throws -> [[String: Any]] { records(try await state()) }
 
@@ -56,9 +42,9 @@ final class NativeJudgeTests: XCTestCase {
     }
 
     private func startGroup() async throws -> NativeWriteViewController {
-        _ = try await js("const m = await import('/src/ui/screens/session/index.js'); return m.startA({}).ok;")
-        try await waitUntil("native write page") { self.web.nativeWriteTop != nil && self.web.presentedViewController?.isBeingPresented == false }
-        return try XCTUnwrap(web.nativeWriteTop)
+        _ = await host.startA()
+        try await waitUntil("native write page") { self.root.nativeWriteTop != nil && self.root.presentedViewController?.isBeingPresented == false }
+        return try XCTUnwrap(root.nativeWriteTop)
     }
 
     private static let stroke: [InkRawPoint] = (0..<10).map { i in InkRawPoint(x: 60 + Double(i) * 22, y: 170 + Double(i % 2), t: 1_000 + Double(i) * 16) }
@@ -107,18 +93,18 @@ final class NativeJudgeTests: XCTestCase {
         XCTAssertTrue(vc.accessibilityPerformEscape())
         try await waitUntil("recall again") { vc.phase == .recall && !vc.reversingForTesting }
         XCTAssertTrue(NativeA11y.events.last?.hasPrefix("screen:") == true)
-        XCTAssertNotNil(web.nativeWriteTop, "还在写字页")
+        XCTAssertNotNil(root.nativeWriteTop, "还在写字页")
         // 确认框开着：Z 形 = 接着写（关框，不离开）
         if !vc.endButtonHiddenForTesting {
             vc.perform(Selector(("tapEnd")))
             try await waitUntil("end dialog") { vc.endDialogForTesting != nil }
             XCTAssertTrue(vc.accessibilityPerformEscape())
             try await waitUntil("end dialog closed") { vc.endDialogForTesting == nil }
-            XCTAssertNotNil(web.nativeWriteTop, "关框后还在写字页")
+            XCTAssertNotNil(root.nativeWriteTop, "关框后还在写字页")
         }
         // 回忆阶段：Z 形 = 离开（与「‹」同一个动作）
         XCTAssertTrue(vc.accessibilityPerformEscape())
-        try await waitUntil("left the write page") { self.web.nativeWriteTop == nil }
+        try await waitUntil("left the write page") { self.root.nativeWriteTop == nil }
     }
 
     // MARK: 判断页完整版
@@ -214,7 +200,7 @@ final class NativeJudgeTests: XCTestCase {
         let key = try XCTUnwrap(vc.cardKey)
         try enterCompare(vc)
         try await waitForKeys(vc)
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         vc.perform(Selector(("tapWrong")))
         try await waitUntil("failed") { vc.failShownForTesting }
         XCTAssertEqual(vc.settlePlayedForTesting, 0, "失败不落定、不发触觉（F1）")
@@ -233,7 +219,7 @@ final class NativeJudgeTests: XCTestCase {
         try enterCompare(vc)
         try await waitForKeys(vc)
         let before = try await recs().count
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         vc.perform(Selector(("tapWrong")))
         try await waitUntil("failed") { vc.failShownForTesting }
         // 说明 → 先不保存（求助行）→ 再试一次（主按钮，满宽）；两键收起
@@ -258,7 +244,7 @@ final class NativeJudgeTests: XCTestCase {
         XCTAssertFalse(vc.failShownForTesting)
         XCTAssertFalse(keys.wrong.isHidden)
         // 再失败再重试 → 成功只记一次
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         try await waitForKeys(vc)
         vc.perform(Selector(("tapCorrect")))
         try await waitUntil("failed again") { vc.failShownForTesting }
@@ -366,7 +352,7 @@ final class NativeJudgeTests: XCTestCase {
         XCTAssertEqual(sheet.model.strokes.count, 1)
         XCTAssertEqual(sheet.model.strokes.first?.count, Self.stroke.count)
         // 失败：就地换三段式，记录与 FSRS 不变
-        try await web.qaFailNextWrite()
+        root.qaFailNextWrite()
         sheet.apply()
         try await waitUntil("sheet failed") { sheet.failedForTesting }
         let failedCopy = await copyOf(["R-W10.changeFailed"])

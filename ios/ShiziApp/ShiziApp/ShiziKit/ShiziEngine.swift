@@ -1,13 +1,10 @@
-import ShiziImageRendering
-import QuartzCore
 import UIKit
-import WebKit
 
 // ShiziKit（B3.2；计划 B3B4-原生化架构与计划.md §3.4）：原生页面与规则 / 数据之间唯一的边界。
 //
-// 原生页面不持有业务状态，只认这里的协议：每个 op 的回包都有 Codable 类型（AboutView …），B3 的实现 WebEngine 经 callAsyncJavaScript 调页面里的
-// App API（window.shiziNative，src/session/api/index.js），B4 换成 Swift 写的 SwiftEngine 实现同一组 op——页面一行不改。
-// 订阅：changes（store 每次成功提交后一个 ShiziChangeSet，带脏域）；status：ready / blocked(原因) / reloading（WebContent 重启、页面重载）。
+// 原生页面不持有业务状态，只认这里的协议：每个 op 的回包都有 Codable 类型（AboutView …）。实现是 SwiftEngine（ShiziCore 的 SessionRuntime；
+// B3 的 WebEngine 与 WKWebView 已在 B4.9 删除），op 名与回包形状沿用 JS 参考实现（src/session/api/index.js）。
+// 订阅：changes（store 每次成功提交后一个 ShiziChangeSet，带脏域）；status：ready / blocked(原因) / reloading（冷启动判定之前）。
 
 /// 引擎状态（§3.4「引擎不可用」）：reloading 时原生页留在屏上、按钮暂不可点；重新 ready 后各页重拉视图。
 enum ShiziEngineStatus: Equatable {
@@ -29,7 +26,7 @@ struct ShiziChangeSet: Equatable {
 enum ShiziEngineError: Error, Equatable {
     /// 回包 {ok:false, error:{kind}}（D07：原生就地三段式）。
     case failed(String)
-    /// 桥没通（WebView 不在 / JS 抛错 / 回包不是对象）。
+    /// 通道没通（引擎不在 / 回包不是对象）。
     case transport(String)
     /// 回包形状与 Codable 类型对不上。
     case decode(String)
@@ -49,7 +46,7 @@ protocol ShiziEngine: AnyObject {
     var changes: AsyncStream<ShiziChangeSet> { get }
     /// 调一个 op，回包解成 R（{ok:false} → .failed(kind)）。
     @MainActor func call<A: Encodable, R: Decodable>(_ op: String, _ args: A, as: R.Type) async throws -> R
-    /// 不解码的调用（导航这类只看 ok 的 op；B2 页面的字典回包）。主线程上发（WKWebView 只能在主线程调）。
+    /// 不解码的调用（导航这类只看 ok 的 op；B2 页面的字典回包）。主线程上发。
     @MainActor func raw(_ op: String, _ args: [String: Any]) async -> [String: Any]
 }
 
@@ -87,7 +84,7 @@ enum ShiziDecode {
         }
     }
 
-    /// Encodable 参数 → 页面能收的字典（callAsyncJavaScript 按值传）。
+    /// Encodable 参数 → 引擎收的字典。
     static func args<A: Encodable>(_ a: A) -> [String: Any] {
         guard let data = try? JSONEncoder().encode(a), let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [:] }
         return obj
@@ -136,200 +133,17 @@ struct ShiziCopyRef: Decodable, Equatable {
     var lines: [String] { ShiziCopy.lines(copy, vars) }
 }
 
-// MARK: - 舞台引擎（NativeStage 持有的那一个：WebEngine 或 SwiftEngine，B4.5c）
+// MARK: - 引擎通道
 
-/// NativeStage 与页面用到的引擎接口：ShiziEngine 之外，再加页面推来的 changed / status、页面重载、导航者与回调式 raw。
-/// 选哪一个由 ShiziEngineMode 定（缺省 WebEngine；DEBUG 启动参数 -shizi-engine swift|web|shadow，Release 没有开关）。
-protocol StageEngine: ShiziEngine {
-    var webView: WKWebView? { get set }
-    var navigator: ((String, [String: Any]) -> [String: Any])? { get set }
-    func raw(_ op: String, _ args: [String: Any], completion: @escaping ([String: Any]) -> Void)
-    @discardableResult func observeStatus(_ fn: @escaping (ShiziEngineStatus) -> Void) -> () -> Void
-    func receiveChanged(_ body: [String: Any]) -> ShiziChangeSet?
-    func receiveStatus(_ body: [String: Any])
-    func pageWillReload()
-    func pageDidBecomeReady()
-}
-
-/// 引擎调用的唯一出口（App API shiziNative、写字会话 shiziNativeWrite、导航助手 shiziNativeNav 三个函数都经这里）：
-/// 缺省直接交 WKWebView；swift 模式由 SwiftEngine 先答（它不答的 op 照旧交页面），shadow 模式在这里接上影子比对（只在 DEBUG）。
+/// 引擎调用的唯一出口（App API shiziNative、写字会话 shiziNativeWrite、导航助手 shiziNativeNav 三个通道都经这里）：SwiftEngine 装上的答复者。
+/// 没有引擎（还没建好 / 单元测试里的孤立页面）→ {ok:false, error:{kind:'unavailable'}}。
 enum EngineRoute {
-    /// swift 模式：(function, op, args, completion) → 是否已由 Swift 答复。
+    /// (function, op, args, completion) → 是否已答复。
     static var swift: ((String, String, [String: Any], @escaping ([String: Any], Double) -> Void) -> Bool)?
 
-    static func evaluate(_ webView: WKWebView?, function: String, op: String, args: [String: Any], allowSwift: Bool = true, completion: @escaping ([String: Any], Double) -> Void) {
-        if allowSwift, let swift, swift(function, op, args, completion) { return }
-        #if DEBUG
-        if let shadow = ShadowEngine.shared {
-            shadow.evaluate(webView, function: function, op: op, args: args, completion: completion)
-            return
-        }
-        #endif
-        WebEngine.evaluate(webView, function: function, op: op, args: args, completion: completion)
-    }
-}
-
-// MARK: - WebEngine（B3：WKWebView 里的 App API）
-
-/// B2 NativeWriteBridge 的推广：同一条 callAsyncJavaScript 队列（参数按值传，调用按发出顺序执行），函数名可换——
-/// shiziNative（App API）、shiziNativeWrite（写字 / 结果会话，B2 页面）、shiziNativeNav（B2 导航助手）。
-final class WebEngine: StageEngine {
-    weak var webView: WKWebView?
-    private(set) var status: ShiziEngineStatus = .reloading
-    private var subscribers: [UUID: AsyncStream<ShiziChangeSet>.Continuation] = [:]
-    private var statusObservers: [UUID: (ShiziEngineStatus) -> Void] = [:]
-
-    init(webView: WKWebView?) {
-        self.webView = webView
-    }
-
-    // MARK: 调用
-
-    /// 页面里的一个全局函数（window.<fn>(op, args)）。webView 不在 / JS 抛错 / 回包不是对象 → {ok:false, error:{kind:'transport'}}。
-    static func evaluate(_ webView: WKWebView?, function: String, op: String, args: [String: Any], completion: @escaping ([String: Any], Double) -> Void) {
-        let t0 = CACurrentMediaTime()
-        WebCalls.note(function: function, op: op) // B4.9a：缺省（swift）模式应为 0（QA 探针 stage.webCalls）
-        guard let webView else {
-            completion(["ok": false, "error": ["kind": "transport"]], 0)
-            return
-        }
-        webView.callAsyncJavaScript(
-            "if (typeof window.\(function) !== 'function') return {ok:false, error:{kind:'unavailable'}}; return await window.\(function)(op, args);",
-            arguments: ["op": op, "args": args],
-            in: nil,
-            in: .page
-        ) { result in
-            let wall = (CACurrentMediaTime() - t0) * 1000
-            var body: [String: Any] = ["ok": false, "error": ["kind": "transport"]]
-            if case .success(let value) = result, let dict = value as? [String: Any] { body = dict }
-            if case .failure(let error) = result { body = ["ok": false, "error": ["kind": "transport", "reason": error.localizedDescription]] }
-            completion(body, wall)
-        }
-    }
-
-    /// B3.F：导航 op（nav.push / replace / back / tab / setParams）不再进引擎——原生持有页面栈，由导航者（NativeStage）直接做；
-    /// 页面照旧调 engine.raw("nav.*")，一条规则管全部页面（不为单页改调用点）。没有导航者（单元测试里的孤立引擎）时照旧发给页面。
-    var navigator: ((String, [String: Any]) -> [String: Any])?
-
-    func raw(_ op: String, _ args: [String: Any], completion: @escaping ([String: Any]) -> Void) {
-        if op.hasPrefix("nav."), let navigator {
-            DispatchQueue.main.async { completion(navigator(op, args)) }
-            return
-        }
-        EngineRoute.evaluate(webView, function: "shiziNative", op: op, args: args, allowSwift: swiftOwned) { body, _ in completion(body) }
-    }
-
-    /// B4.9a：这是 SwiftEngine 里面的那个 WebEngine（它的 raw 由 Swift 先答）；单独建的 WebEngine（测试 / 回退）照旧交页面。
-    var swiftOwned = false
-
-
-    /// B4.6: native raster boundary. `webRenderer: true` explicitly calls the retained canvas fallback.
-    @MainActor func raw(_ op: String, _ args: [String: Any]) async -> [String: Any] {
-        if op.hasPrefix("nav."), let navigator { return navigator(op, args) }
-        if (op == "image.render" || op == "image.save"), args["webRenderer"] as? Bool != true,
-           let native = await nativeImage(op, args) { return native }
-        return await webRaw(op, args)
-    }
-
-    @MainActor private func webRaw(_ op: String, _ args: [String: Any]) async -> [String: Any] {
-        await withCheckedContinuation { cont in raw(op, args) { cont.resume(returning: $0) } }
-    }
-
-    private var imageRenderer: ImageRenderer?
-    @MainActor private func nativeImage(_ op: String, _ args: [String: Any]) async -> [String: Any]? {
-        guard let assets = Bundle.main.url(forResource: "Web", withExtension: nil) else { return nil }
-        if imageRenderer == nil { imageRenderer = ImageRenderer(assets: assets) }
-        var request = args
-        if op == "image.save", args["mode"] as? String != "long" { request["mode"] = "export" }
-        let first = await webRaw("image.spec", request)
-        guard first["ok"] as? Bool == true, let spec = first["spec"] as? [String: Any] else { return nil }
-        let status = spec["status"] as? String ?? "ready"
-        if status != "ready", op == "image.save" { return ["ok": false, "error": ["kind": "render"]] }
-        if status != "ready" { return ["ok": true, "image": ["status": status, "dataURL": "", "width": 0, "height": 0, "name": ""]] }
-        do {
-            let data = try imageRenderer!.render(spec)
-            if op == "image.render" {
-                guard let png = data.first, let image = UIImage(data: png) else { return nil }
-                return ["ok": true, "image": ["status": "ready", "dataURL": "data:image/png;base64," + png.base64EncodedString(), "width": Int(image.size.width), "height": Int(image.size.height), "name": first["name"] as? String ?? ""]]
-            }
-            var images: [[String: Any]] = []
-            func append(_ pngs: [Data], _ name: String) {
-                for (i,png) in pngs.enumerated() {
-                    let base = (name as NSString).deletingPathExtension
-                    let stem = pngs.count > 1 ? base + "-\(i+1)of\(pngs.count)" : name
-                    images.append(["dataURL": "data:image/png;base64," + png.base64EncodedString(), "name": WebViewController.fileName(stem, forExtension: "png"), "kind": (args["scope"] as? [String: Any])?["kind"] as? String ?? ""])
-                }
-            }
-            append(data, first["name"] as? String ?? "shizi")
-            if args["mode"] as? String != "long" {
-                let total = first["total"] as? Int ?? 1
-                if total > 1 { for page in 1..<total {
-                    request["page"] = page
-                    let body = await webRaw("image.spec", request)
-                    guard let next = body["spec"] as? [String: Any], body["ok"] as? Bool == true else { return nil }
-                    append(try imageRenderer!.render(next), body["name"] as? String ?? "shizi")
-                } }
-            }
-            guard !images.isEmpty else { return nil }
-            return await webRaw("image.persist", ["images": images])
-        } catch {
-            // Unsupported/corrupt assets use the existing web renderer; JS is retained for rollback.
-            return nil
-        }
-    }
-
-    @MainActor func call<A: Encodable, R: Decodable>(_ op: String, _ args: A, as type: R.Type) async throws -> R {
-        let body = await raw(op, ShiziDecode.args(args))
-        return try ShiziDecode.reply(body, as: R.self)
-    }
-
-    // MARK: 订阅
-
-    var changes: AsyncStream<ShiziChangeSet> {
-        AsyncStream { cont in
-            let id = UUID()
-            subscribers[id] = cont
-            cont.onTermination = { [weak self] _ in
-                DispatchQueue.main.async { self?.subscribers[id] = nil }
-            }
-        }
-    }
-
-    /// 状态变化回调（同步，主线程；页面据此禁用 / 恢复按钮）。返回取消函数。
-    @discardableResult
-    func observeStatus(_ fn: @escaping (ShiziEngineStatus) -> Void) -> () -> Void {
-        let id = UUID()
-        statusObservers[id] = fn
-        return { [weak self] in self?.statusObservers[id] = nil }
-    }
-
-    // MARK: 页面推来的（NativeStage 转进来）
-
-    /// {op:'changed', domains, label}。
-    func receiveChanged(_ body: [String: Any]) -> ShiziChangeSet? {
-        let domains = (body["domains"] as? [String]) ?? []
-        guard !domains.isEmpty else { return nil }
-        let set = ShiziChangeSet(domains: domains, label: body["label"] as? String)
-        for c in subscribers.values { c.yield(set) }
-        return set
-    }
-
-    /// {op:'status', status:'ready'|'blocked', reason}。
-    func receiveStatus(_ body: [String: Any]) {
-        if body["status"] as? String == "blocked" { set(.blocked(body["reason"] as? String ?? "blocked")) } else { set(.ready) }
-    }
-
-    func pageWillReload() { set(.reloading) }
-
-    /// 页面就绪（pageReady）：还在 reloading（页面没推过状态）就算 ready；页面推过 blocked 的保持 blocked。
-    func pageDidBecomeReady() {
-        if status == .reloading { set(.ready) }
-    }
-
-    private func set(_ s: ShiziEngineStatus) {
-        guard s != status else { return }
-        status = s
-        for fn in statusObservers.values { fn(s) }
+    static func evaluate(function: String, op: String, args: [String: Any], completion: @escaping ([String: Any], Double) -> Void) {
+        if let swift, swift(function, op, args, completion) { return }
+        completion(["ok": false, "error": ["kind": "unavailable"]], 0)
     }
 }
 

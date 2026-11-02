@@ -888,6 +888,12 @@ final class QAProbe {
             o["hints"] = cur?["hints"]?.numberValue ?? 0
             let line: JSValue? = (s["lastLine"]?.isNull ?? true) ? nil : s["lastLine"]
             o["lastLine"] = line == nil ? NSNull() : plain(line?["kind"])
+            // D83：当前字是第几次考（1 = 第一次）、这一组的重考 item 数、是不是「再来一组」
+            let key = SessionRules.currentCardKey(s) ?? .null
+            o["attempt"] = key.isNull ? 0 : TodayPlan.attempts(s, key) + 1
+            o["retries"] = (s["items"]?.arrayValue ?? []).filter { TodayPlan.isRetryItem($0) }.count
+            o["queue"] = (s["queue"]?.arrayValue ?? []).map { QAJS.string($0) }
+            o["extra"] = s["extra"] == .bool(true)
             sessions[slot] = o
         }
         let settings = st["settings"]
@@ -902,6 +908,7 @@ final class QAProbe {
         set["appearance"] = settings?["appearance"]?.stringValue ?? "auto"
         let group: JSValue? = (settings?["groupSize"]?.isNull ?? true) ? nil : settings?["groupSize"]
         set["groupSize"] = group == nil ? NSNull() : plain(group)
+        set["mixTier"] = settings?["mixTier"]?.stringValue ?? NSNull()
         var out: [String: Any] = [:]
         out["coldPlan"] = NSNull()
         out["clock"] = QAClock.nowWithoutTick()
@@ -915,6 +922,11 @@ final class QAProbe {
         out["answerSeenInk"] = recs.filter { $0["kind"] == .string("answer-seen") && store.getInk($0) != nil }.count
         out["sched"] = st["sched"]?.objectValue?.count ?? 0
         out["sessions"] = sessions
+        // D83 今天的账：进度（每个字的第一次）/ 这一份几个字 / 是否完成
+        if let today = try? store.dates.localDay(.number(QAClock.nowWithoutTick())) {
+            let t = TodayPlan.today(.object(st), day: today)
+            out["today"] = ["n": t.handled.count, "target": t.target.map { $0 as Any } ?? NSNull(), "done": t.done] as [String: Any]
+        }
         out["route"] = route
         out["topScreen"] = top?["n"]?.stringValue ?? NSNull()
         out["navAnim"] = "idle"

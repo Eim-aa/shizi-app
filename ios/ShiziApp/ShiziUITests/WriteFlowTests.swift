@@ -324,7 +324,7 @@ final class WriteFlowTests: XCTestCase {
         qa.tapNative("native-write-next")
         qa.waitProbe("next card") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 1 }
         XCTAssertEqual(qa.kinds["judged"] ?? 0, 0, "看答案 does not judge")
-        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 5 个")
+        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 6 个", "D83: seeing the answer = wrong → the char comes back 3 later")
     }
 
     /// §4：描一遍阶段杀进程重开，恢复到描一遍（AI 流程报告已验证路径 5）。
@@ -368,7 +368,7 @@ final class WriteFlowTests: XCTestCase {
         qa.waitProbe("advanced") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 1 }
         XCTAssertEqual(qa.probe["judgedWrong"] as? Int, 1)
         XCTAssertEqual(qa.probe["sched"] as? Int, 1)
-        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 5 个")
+        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 6 个", "D83: a wrong char comes back 3 later (queue + 1)")
         XCTAssertTrue(qa.el("native-write-line").label.contains("记为写错"), "line: \(qa.el("native-write-line").label)")
         XCTAssertTrue(qa.el("native-write-line-change").exists, "修改 › shown")
         XCTAssertEqual(qa.native["phase"] as? String, "recall")

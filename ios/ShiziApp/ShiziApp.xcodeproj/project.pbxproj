@@ -89,6 +89,7 @@
 		1A0000000000000000B3101A /* ShiziKitTokens.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31019 /* ShiziKitTokens.json */; };
 		1A0000000000000000B3101C /* NativeWriteMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3101B /* NativeWriteMetrics.swift */; };
 		1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3320 /* HomeFlowTests.swift */; };
+		1A0000000000000000052D02 /* TodayPlanFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000052D01 /* TodayPlanFlowTests.swift */; };
 		1A0000000000000000B39E12 /* MineSubFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39E11 /* MineSubFlowTests.swift */; };
 		1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3322 /* LibraryFlowTests.swift */; };
 		1A00000000000000000B3325 /* DetailFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3324 /* DetailFlowTests.swift */; };
@@ -224,6 +225,7 @@
 		1A0000000000000000B31019 /* ShiziKitTokens.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ShiziKitTokens.json; sourceTree = "<group>"; };
 		1A0000000000000000B3101B /* NativeWriteMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteMetrics.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3320 /* HomeFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000052D01 /* TodayPlanFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayPlanFlowTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B39E11 /* MineSubFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineSubFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3322 /* LibraryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryFlowTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000B3422 /* LibrarySubFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySubFlowTests.swift; sourceTree = "<group>"; };
@@ -400,6 +402,7 @@
 				1A00000000000000000A1117 /* KnownIssueTests.swift */,
 				1A00000000000000000A1130 /* AccessibilityFlowTests.swift */,
 				1A00000000000000000B3320 /* HomeFlowTests.swift */,
+				1A0000000000000000052D01 /* TodayPlanFlowTests.swift */,
 				1A0000000000000000B39E11 /* MineSubFlowTests.swift */,
 				1A00000000000000000B3322 /* LibraryFlowTests.swift */,
 				1A00000000000000000B3422 /* LibrarySubFlowTests.swift */,
@@ -766,6 +769,7 @@
 				1A00000000000000000A1118 /* KnownIssueTests.swift in Sources */,
 				1A00000000000000000A1131 /* AccessibilityFlowTests.swift in Sources */,
 				1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */,
+				1A0000000000000000052D02 /* TodayPlanFlowTests.swift in Sources */,
 				1A0000000000000000B39E12 /* MineSubFlowTests.swift in Sources */,
 				1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */,
 				1A00000000000000000B3423 /* LibrarySubFlowTests.swift in Sources */,

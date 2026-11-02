@@ -447,10 +447,11 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
             c.isHidden = first || ax
             l.isHidden = first || !ax
         }
-        // 离开一周 / 特别组那天的一句
+        // 离开一周 / 特别组那天的一句 / 今天的进度（D83）
         if let note = m.note, !first {
             noteLabel.isHidden = false
-            noteLabel.accessibilityIdentifier = note.kind == "capital" ? "native-home-capital-body" : "native-home-back-note"
+            // capital / back / today（今天的练习 n / N）/ done（今天完成了，D83）
+            noteLabel.accessibilityIdentifier = ["capital": "native-home-capital-body", "today": "native-home-today", "done": "native-home-done"][note.kind] ?? "native-home-back-note"
             setMixed(noteLabel, t(note.text), size: mt.value("fs13"), color: color("ink3"), align: .center, line: mt.line("lh13"))
         } else {
             noteLabel.isHidden = true

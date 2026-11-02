@@ -29,7 +29,8 @@ struct MineView: Decodable {
     struct Library: Decodable { let label: ShiziCopyRef; let value: ShiziCopyRef; let to: String }
     struct Option: Decodable { let id: ChoiceID; let label: OptionLabel?; let aria: ShiziCopyRef?; let sheetLabel: ShiziCopyRef }
     struct Choice: Decodable { let title: ShiziCopyRef; let value: ChoiceID; let valueText: ShiziCopyRef; let options: [Option] }
-    struct Choices: Decodable { let appearance: Choice; let groupSize: Choice }
+    /// mixTier：D83 新字比例档位（行右值 + 选择弹层，四个档位放不进行内分段）
+    struct Choices: Decodable { let appearance: Choice; let groupSize: Choice; let mixTier: Choice? }
     struct Fail: Decodable { let note: ShiziCopyRef; let cancel: ShiziCopyRef; let retry: ShiziCopyRef }
     struct Backup: Decodable { let label: ShiziCopyRef; let value: ShiziCopyRef; let to: String }
     struct Annual: Decodable { let label: ShiziCopyRef; let year: String; let to: String }
@@ -133,6 +134,7 @@ final class MineScreen: ShiziScreenViewController {
     private let libraryRow = ShiziRowButton(type: .custom)
     private let appearanceRow = MineChoiceRow()
     private let groupRow = MineChoiceRow()
+    private let tierRow = ShiziRowButton(type: .custom)
     private let backupRow = ShiziRowButton(type: .custom)
     private let annualRow = ShiziRowButton(type: .custom)
     private let aboutRow = ShiziRowButton(type: .custom)
@@ -177,7 +179,7 @@ final class MineScreen: ShiziScreenViewController {
         paperMarker.isAccessibilityElement = false
         paperMarker.accessibilityContainerType = .semanticGroup
         for v in [homeMarker, overviewMarker, emptyMarker, sheetMarker] { content.addSubview(v) }
-        for v in [heading, sheetHead, paperMarker, noteLabel, sheetEmptyLabel, emptyTitle, emptyBody, remindRow, libraryRow, appearanceRow, groupRow, backupRow, annualRow, aboutRow, versionLabel, failWrap] as [UIView] {
+        for v in [heading, sheetHead, paperMarker, noteLabel, sheetEmptyLabel, emptyTitle, emptyBody, remindRow, libraryRow, appearanceRow, groupRow, tierRow, backupRow, annualRow, aboutRow, versionLabel, failWrap] as [UIView] {
             content.addSubview(v)
         }
         for i in 0..<2 {
@@ -208,6 +210,7 @@ final class MineScreen: ShiziScreenViewController {
         sheetHead.accessibilityIdentifier = "native-mine-sheet-head"
         remindRow.accessibilityIdentifier = "native-mine-remind"
         libraryRow.accessibilityIdentifier = "native-mine-library"
+        tierRow.accessibilityIdentifier = "native-mine-mix-tier"
         backupRow.accessibilityIdentifier = "native-mine-menu-backup"
         annualRow.accessibilityIdentifier = "native-mine-menu-annual"
         aboutRow.accessibilityIdentifier = "native-mine-menu-about"
@@ -222,6 +225,7 @@ final class MineScreen: ShiziScreenViewController {
         wire(sheetHead) { page in (page as? MineScreen)?.goRecords() }
         wire(remindRow) { page in if let s = page as? MineScreen { s.push(s.remindTo) } }
         wire(libraryRow) { page in if let s = page as? MineScreen { s.push(s.libraryTo) } }
+        wire(tierRow) { page in (page as? MineScreen)?.openSheet("mixTier") }
         wire(backupRow) { page in if let s = page as? MineScreen { s.push(s.backupTo) } }
         wire(annualRow) { page in (page as? MineScreen)?.goAnnual() }
         wire(aboutRow) { page in if let s = page as? MineScreen { s.push(s.aboutTo) } }
@@ -404,7 +408,9 @@ final class MineScreen: ShiziScreenViewController {
         appearanceRow.isHidden = !m.appearanceOn
         appearanceRow.update(choice: m.choices.appearance, ax: axOn, numeric: false, metrics: mt, color: color)
         groupRow.update(choice: m.choices.groupSize, ax: axOn, numeric: true, metrics: mt, color: color)
-        while rowLines.count < 5 { let l = UIView(); content.addSubview(l); rowLines.append(l) }
+        tierRow.isHidden = m.choices.mixTier == nil
+        if let t = m.choices.mixTier { styleRow(tierRow, label: t.title.text, value: t.valueText.text, axOn: axOn) }
+        while rowLines.count < 6 { let l = UIView(); content.addSubview(l); rowLines.append(l) }
         while blockLines.count < 2 { let l = UIView(); content.addSubview(l); blockLines.append(l) }
         for l in rowLines + blockLines { l.backgroundColor = color("line") }
         NativeType.set(versionLabel, m.version.text, font: mt.font(13), color: color("ink3"), align: .center, line: mt.line("lh13"))
@@ -684,7 +690,7 @@ final class MineScreen: ShiziScreenViewController {
             y += hr
             var li = firstLine
             for r in rows {
-                if let b = r as? ShiziRowButton {
+                if let b = r as? ShiziRowButton, !b.isHidden {
                     let h = rowHeight(b, width: width, y: y, x: x)
                     rowLines[li].frame = CGRect(x: x, y: y + h - hr, width: width, height: hr)
                     li += 1
@@ -704,8 +710,8 @@ final class MineScreen: ShiziScreenViewController {
             }
         }
         failWrap.isHidden = failTarget == nil || axOn
-        block([remindRow, libraryRow, appearanceRow, groupRow], line: blockLines[0], firstLine: 0)
-        block([backupRow, annualRow, aboutRow], line: blockLines[1], firstLine: 2)
+        block([remindRow, libraryRow, appearanceRow, groupRow, tierRow], line: blockLines[0], firstLine: 0)
+        block([backupRow, annualRow, aboutRow], line: blockLines[1], firstLine: tierRow.isHidden ? 2 : 3)
         // 页底版本行（.sz-mine__ver：上外边距 26，13 / lh13 墨三居中）
         y += blockGap
         let vh = NativeType.height(versionLabel, width: width, line: mt.line("lh13"))
@@ -721,7 +727,7 @@ final class MineScreen: ShiziScreenViewController {
 
     private func commitCall(_ which: String, _ value: ChoiceID, done: @escaping (Bool) -> Void) {
         guard let engine = stage?.engine else { done(false); return }
-        let op = which == "appearance" ? "mine.appearance" : "mine.groupSize"
+        let op = which == "appearance" ? "mine.appearance" : which == "mixTier" ? "mine.mixTier" : "mine.groupSize"
         Task { @MainActor [weak self] in
             let reply = await engine.raw(op, ["value": value.json])
             let ok = (reply["ok"] as? Bool) == true
@@ -739,7 +745,7 @@ final class MineScreen: ShiziScreenViewController {
 
     private func choose(_ which: String, _ value: ChoiceID) {
         guard let m = model else { return }
-        let cur = which == "appearance" ? m.choices.appearance.value : m.choices.groupSize.value
+        let cur = which == "appearance" ? m.choices.appearance.value : which == "mixTier" ? (m.choices.mixTier?.value ?? m.choices.groupSize.value) : m.choices.groupSize.value
         if value == cur { return }
         commitCall(which, value) { [weak self] ok in
             guard let self else { return }
@@ -760,11 +766,11 @@ final class MineScreen: ShiziScreenViewController {
         if let t = failTarget { choose(t.choice, t.value) }
     }
 
-    private func openSheet(_ which: String) {
+    fileprivate func openSheet(_ which: String) {
         guard let m = model, presentedViewController == nil else { return }
-        let choice = which == "appearance" ? m.choices.appearance : m.choices.groupSize
+        guard let choice = which == "appearance" ? m.choices.appearance : which == "mixTier" ? m.choices.mixTier : m.choices.groupSize else { return }
         let vc = MineChoiceSheetViewController(config: .init(
-            rowId: which == "appearance" ? "mine-appearance" : "mine-group-size", choice: choice, fail: m.choiceFail, done: m.done, metrics: metrics, failBreaks: m.lines?.failNote,
+            rowId: which == "appearance" ? "mine-appearance" : which == "mixTier" ? "mine-mix-tier" : "mine-group-size", choice: choice, fail: m.choiceFail, done: m.done, metrics: metrics, failBreaks: m.lines?.failNote,
             commit: { [weak self] id, done in self?.commitCall(which, id, done: done) ?? done(false) }))
         present(vc, animated: true)
     }

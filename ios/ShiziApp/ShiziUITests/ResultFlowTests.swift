@@ -55,7 +55,7 @@ final class ResultFlowTests: XCTestCase {
         let qa = QA(seed: "result-daily")
         qa.launch()
         qa.waitResult(true)
-        XCTAssertEqual(qa.el("native-result-primary").label, "再写一组")
+        XCTAssertEqual(qa.el("native-result-primary").label, "再来一组") // D83
         qa.tapNative("native-result-primary")
         qa.waitNative(true)
         XCTAssertFalse(qa.resultShown)

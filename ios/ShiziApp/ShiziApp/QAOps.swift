@@ -81,6 +81,7 @@ final class QAFixtureRunner {
             case "startNextA": return startNextA()
             case "openWrite": try engine.nav.openWrite(a["slot"]?.stringValue ?? "B")
             case "judge": return judge(a)
+            case "today": return try today(a)
             case "call": return call(a)
             case "mark": try mark(a)
             case "unpinClock": QAClock.unpin()
@@ -350,22 +351,47 @@ final class QAFixtureRunner {
         } catch { return "startNextA \(error)" }
     }
 
-    /// judge.js：经写字会话 API 连判几个字。a: {slot, judgments:[…循环取], n:数字|'all', strokes:'one'|'two', tick:数字}
+    /// judge.js：经写字会话 API 连判几个字。a: {slot, judgments:[…循环取], n:数字|'all', strokes:'one'|'two', tick:数字, retry:'correct'|'wrong'}
+    /// D83（S2）：n 数的是「第一次」——judgments 只给每个字的第一次；中途轮到的重考按 retry（缺省 correct）判；
+    /// 判完 n 个第一次之后，紧接着的重考也判完（这样「写完一组」的夹具在有写错时照样写完）；'all' = 写到这一组结束。
     private func judge(_ a: JSObject) -> String? {
         if let tick = a["tick"]?.numberValue { QAClock.repin(tick) }
         let slot = a["slot"]?.stringValue ?? "B"
         let strokes = Self.strokeSet(a["strokes"]?.stringValue ?? "two")
         let js = a["judgments"]?.arrayValue ?? [.string("correct")]
-        let n: Int
-        if a["n"] == .string("all") { n = Int(snapshot(slot)["total"]?.numberValue ?? 0) } else { n = a["n"]?.numberValue.map { Int($0) } ?? js.count }
-        for i in 0..<n {
-            let k = snapshot(slot)["cardKey"] ?? .null
+        let all = a["n"] == .string("all")
+        let n = all ? Int.max : a["n"]?.numberValue.map { Int($0) } ?? js.count
+        let retryJudgment = a["retry"] ?? .string("correct")
+        var firsts = 0
+        for _ in 0..<500 {
+            guard let session = store.state["sessions"]?[slot], QAJS.truthy(session), let k = SessionRules.currentCardKey(session), QAJS.truthy(k) else { break }
+            let retry = TodayPlan.attempts(session, k) > 0
+            if !retry && firsts >= n { break }
             let p = write("phase", JSObject([("slot", .string(slot)), ("cardKey", k), ("phase", .string("compare")), ("strokes", strokes)]))
             if slot == "B", p["ok"] != .bool(true) { return "phase \(JSONWriter.stringify(p["error"] ?? .null))" }
-            let r = write("judge", JSObject([("slot", .string(slot)), ("cardKey", k), ("judgment", js[i % js.count]), ("strokes", strokes), ("hints", .number(0))]))
+            let judgment = retry ? retryJudgment : js[firsts % js.count]
+            let r = write("judge", JSObject([("slot", .string(slot)), ("cardKey", k), ("judgment", judgment), ("strokes", strokes), ("hints", .number(0))]))
             if r["ok"] != .bool(true) { return "judge \(JSONWriter.stringify(r["error"] ?? .null))" }
+            if !retry { firsts += 1 }
         }
         return nil
+    }
+
+    /// today（D83）：今天的账（sessions.today）。a: {done?, target?}；进度 = 今天有判断 / 看答案 / 跳过记录的字（造数据之后、seed 之前或之后都可以）。
+    private func today(_ a: JSObject) throws -> String? {
+        let day = try store.dates.localDay(.number(store.now()))
+        var d = draft ?? store.state
+        let records = Query.flattenRecords(d["records"]).filter { $0["localDay"] == .string(day) }
+        var keys: [String] = []
+        for r in Records.sortById(records) { if let k = r["cardKey"]?.stringValue, !keys.contains(k) { keys.append(k) } }
+        var t = TodayPlan.Today(day: day, handled: keys, target: a["target"]?.numberValue.map { Int($0) } ?? (QAJS.truthy(a["done"]) ? keys.count : nil), done: QAJS.truthy(a["done"]))
+        if t.target == nil && t.done { t.target = keys.count }
+        var sessions = d["sessions"]?.objectValue ?? JSObject([("A", .null), ("B", .null), ("lastEnded", .object(JSObject()))])
+        sessions["today"] = t.js
+        d["sessions"] = .object(sessions)
+        if draft != nil { draft = d; return nil }
+        let r = store.seed(.object(d))
+        return r["ok"] == .bool(true) ? nil : "today \(JSONWriter.stringify(r))"
     }
 
     /// call.js：调一次写字会话 API（当前字）。a: {slot, name, args:{…}}；args.strokes 可写 'one' | 'two' | 数组。结果记在 vars.last。

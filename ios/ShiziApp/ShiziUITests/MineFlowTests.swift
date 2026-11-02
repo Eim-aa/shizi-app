@@ -110,7 +110,7 @@ final class MineFlowTests: XCTestCase {
         let qa = QA(seed: "mine-records", failNext: 1)
         openMine(qa)
         let seg = options(qa, "native-mine-group-size-option")
-        XCTAssertEqual(seg.count, 4)
+        XCTAssertEqual(seg.count, 5) // D83：5 / 10 / 15 / 20 / 30
         qa.tap(seg.element(boundBy: 0), "group size › 5 (fails)")
         XCTAssertTrue(qa.el("native-mine-fail-retry").waitForExistence(timeout: 6), "three-part failure in place")
         XCTAssertNotEqual(settings(qa)["groupSize"] as? Int, 5, "a failed write leaves the setting alone")
@@ -191,7 +191,7 @@ final class MineFlowTests: XCTestCase {
         qa.tapNative("native-mine-group-size")
         XCTAssertTrue(qa.el("native-mine-group-size-sheet").waitForExistence(timeout: 6))
         let opts = options(qa, "native-mine-group-size-sheet-option")
-        XCTAssertEqual(opts.count, 4)
+        XCTAssertEqual(opts.count, 5) // D83：加 15
         Thread.sleep(forTimeInterval: 0.5)
         qa.tap(opts.element(boundBy: 1), "sheet › 10")
         qa.waitProbe("group size 10 saved") { ($0["settings"] as? [String: Any])?["groupSize"] as? Int == 10 }

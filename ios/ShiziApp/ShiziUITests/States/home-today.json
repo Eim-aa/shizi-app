@@ -1,6 +1,6 @@
 {
   "state": "home-today",
-  "name": "首页 · 今天写完（再写一组）",
+  "name": "首页 · 今天完成了（再来一组；D83）",
   "screen": "home",
   "native": true,
   "parity": true,
@@ -34,6 +34,10 @@
           "judgment": "correct"
         }
       ]
+    },
+    {
+      "op": "today",
+      "done": true
     },
     {
       "op": "seed"

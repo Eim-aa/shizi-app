@@ -102,12 +102,12 @@ test('N3-3 页内回退：跟手画面带 kind=phase；完成即执行左上动�
   assert.equal(p.views.at(-1).phase, 'commit', '出页仍停在松手处等返回转场接手');
 });
 
-test('P0-16：Swift 的两指 Z 形只在页面能返回 / 有弹层时（与左缘门控同一个值）派发并返回 true', () => {
-  const swift = read('ios/ShiziApp/ShiziApp/WebViewController.swift');
-  const m = /override func accessibilityPerformEscape\(\) -> Bool \{([\s\S]*?)\n    \}/.exec(swift);
-  assert.ok(m);
-  assert.match(m[1], /guard backGestureEnabled else \{ return false \}/);
-  assert.match(m[1], /dispatchAccessibilityEscape\(\)/);
+test('P0-16：两指 Z 形 = 点左上；tab 根页回 false（没有返回）（B4.9：由各原生页自己接，窗口根不再转给网页）', () => {
+  for (const f of ['ShiziKit/ShiziScreen.swift', 'NativeWriteViewController.swift', 'NativeResult.swift']) {
+    assert.match(read(`ios/ShiziApp/ShiziApp/${f}`), /override func accessibilityPerformEscape\(\) -> Bool \{/, f);
+  }
+  assert.match(read('ios/ShiziApp/ShiziApp/Screens/Home.swift'), /override func accessibilityPerformEscape\(\) -> Bool \{ false \}/);
+  assert.doesNotMatch(read('ios/ShiziApp/ShiziApp/RootViewController.swift'), /accessibilityPerformEscape|shizi-native-escape/);
   const root = read('src/ui/root.js');
   assert.match(root, /const escapeBack = /, 'root.js：Esc 与 shizi-native-escape 共用一个「点左上」函数');
 });

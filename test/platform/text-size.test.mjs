@@ -14,7 +14,7 @@ import {
 } from '../../src/platform/text-size.js';
 import * as policy from '../../src/config/policy.js';
 
-const SWIFT = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/WebViewController.swift', import.meta.url), 'utf8');
+const SWIFT = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/RootViewController.swift', import.meta.url), 'utf8');
 
 class FakeRoot {
   constructor() {
@@ -131,12 +131,9 @@ test('receiveContentSize: keeps the current size, notifies on change only, retur
   resetTextSize();
 });
 
-test('Swift reads preferredContentSizeCategory and sends shiziContentSize on pageReady and on every system change', () => {
+test('B4.9: Swift names the system text sizes like text-size.js (native pages read traitCollection; no page to send shiziContentSize to)', () => {
   assert.match(SWIFT, /preferredContentSizeCategory/);
-  assert.match(SWIFT, /UIContentSizeCategory\.didChangeNotification/);
-  assert.match(SWIFT, /shiziContentSize\(\{category:/, 'evaluates the global with {category, scale}');
-  const handlePageReady = SWIFT.match(/private func handlePageReady\(\) \{[\s\S]*?\n    \}/)[0];
-  assert.match(handlePageReady, /sendContentSize\(/, 'size goes out when the page reports ready');
+  assert.doesNotMatch(SWIFT, /shiziContentSize\(\{category:/, 'no page to evaluate the global in');
   for (const [name, swift] of [['xS', 'extraSmall'], ['L', 'large'], ['XXXL', 'extraExtraExtraLarge'], ['AX1', 'accessibilityMedium'],
     ['AX5', 'accessibilityExtraExtraExtraLarge']]) {
     assert.match(SWIFT, new RegExp(`case \\.${swift}: return "${name}"`), `${swift} → ${name}`);
@@ -156,7 +153,6 @@ test('no double scaling: page CSS never uses the -apple-system-* text styles tha
 // ---------------------------------------------------------------- P1-E6b：冷启动注入（WKUserScript atDocumentStart）
 
 const APP_JS = readFileSync(new URL('../../src/app.js', import.meta.url), 'utf8');
-const NATIVE_SMOKE = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/NativeSmoke.swift', import.meta.url), 'utf8');
 
 test('injected size: readInjectedContentSize accepts only an object on window; none (web / PWA) → null and nothing is applied', () => {
   assert.equal(readInjectedContentSize({}), null, 'web: no injected variable');
@@ -243,18 +239,3 @@ test('app.js imports text-size.js statically at the top (module evaluation happe
   assert.ok(!/await import\('\.\/platform\/text-size\.js'\)/.test(APP_JS), 'no later dynamic import of the same module');
 });
 
-test('Swift injects the current size with WKUserScript at document start, and rebuilds the script before every load / reload', () => {
-  assert.match(SWIFT, /__shiziInitialContentSize\s*=\s*\{category:/, 'script sets window.__shiziInitialContentSize = {category, scale}');
-  assert.match(SWIFT, /WKUserScript\([\s\S]*?injectionTime: \.atDocumentStart,\s*forMainFrameOnly: true/, 'main frame, document start');
-  const loadApp = SWIFT.match(/private func loadApp\(\) \{[\s\S]*?\n    \}/)[0];
-  assert.match(loadApp, /refreshUserScripts\(/, 'loadApp (first load, process-terminated reload, retry) rebuilds the scripts with the current size');
-  const loadView = SWIFT.match(/override func loadView\(\) \{[\s\S]*?\n    \}/)[0];
-  assert.match(loadView, /installUserScripts\(/, 'installed when the WKWebView is created');
-  assert.match(SWIFT, /removeAllUserScripts\(\)/, 'old scripts removed (a stale size would be re-injected otherwise)');
-  const didChange = SWIFT.match(/@objc private func contentSizeDidChange[\s\S]*?\n    \}/)[0];
-  assert.ok(didChange.indexOf('refreshUserScripts(') >= 0 && didChange.indexOf('refreshUserScripts(') < didChange.indexOf('guard pageReady'),
-    'a system size change updates the injected script even while the page is not ready, then still goes through the bridge when ready');
-  assert.match(didChange, /sendContentSize\(/);
-  assert.match(NATIVE_SMOKE, /installNativeDevUserScriptIfNeeded/, 'the DEBUG dev script is still installed (re-added with the rebuild)');
-  assert.match(SWIFT, /UIApplication\.shared\.preferredContentSizeCategory/, 'before the view is in a window the category is read from the application');
-});

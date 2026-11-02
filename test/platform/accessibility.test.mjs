@@ -10,7 +10,7 @@ import {
   assistiveTechActive, getAccessibilityStatus, onAccessibilityStatus, receiveAccessibilityStatus, resetAccessibilityStatus,
 } from '../../src/platform/accessibility.js';
 
-const SWIFT = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/WebViewController.swift', import.meta.url), 'utf8');
+const SWIFT = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/RootViewController.swift', import.meta.url), 'utf8');
 
 test('shiziAccessibilityStatus is a native global: defined at bridge creation, queued before ready (last one wins), replayed after', () => {
   assert.ok(NATIVE_GLOBALS.includes('shiziAccessibilityStatus'));

@@ -50,9 +50,8 @@ async function round(appearance, size, roundStates) {
   rmSync(qa, { recursive: true, force: true });
   mkdirSync(qa, { recursive: true });
   await sleep(600);
-  sim('launch', udid, BUNDLE_ID, '-shizi-test-host', ui === 'native' ? '-shizi-native-write' : '-shizi-native-write-off', // B3.5d：tab 根页与原生 Tab 栏随 -shizi-native-write 一起开
-    '-shizi-qa', 'parity', '-shizi-qa-ui', ui, '-shizi-qa-states', roundStates.join(','), '-shizi-qa-tag', tag,
-    ...(process.env.ENGINE ? ['-shizi-engine', process.env.ENGINE] : [])); // B4.7：ENGINE=shadow|swift（verify-native-ui.sh 传入）
+  sim('launch', udid, BUNDLE_ID, '-shizi-test-host', // B4.9：App 里只有原生页与 SwiftEngine（-shizi-native-write / -shizi-engine 已删）
+    '-shizi-qa', 'parity', '-shizi-qa-states', roundStates.join(','), '-shizi-qa-tag', tag);
   let seen = -1;
   const t0 = Date.now();
   while (!existsSync(join(qa, 'done'))) {

@@ -221,35 +221,26 @@ function cspDirectives(policy) {
   }));
 }
 
-// ---- iOS：自定义 scheme 的 CSP / nosniff 与原生桥约束 ------------------------
+// ---- iOS：App 里没有网页层（B4.9）与原生源码约束 ------------------------------
+// B4.9 之前这里核对自定义 scheme（LocalWebSchemeHandler）的 CSP / nosniff、WKWebView 原生桥的主框架 / 外链 / 子框架约束——它们随 WKWebView 一起删了；
+// 现在反过来断言：App 源码不再有 WebKit、页面桥与自定义 scheme，包里 Web/ 的清单只剩原生在读的 data / fonts / licenses（scripts/app-bundle-manifest.txt）。
 const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
 {
-  const scheme = read(swiftDir, 'LocalWebSchemeHandler.swift');
-  const webView = read(swiftDir, 'WebViewController.swift');
-  check('iOS custom scheme emits CSP and nosniff headers',
-    scheme.includes('"Content-Security-Policy"') && scheme.includes('"X-Content-Type-Options": "nosniff"'));
-  const iosPolicy = scheme.match(/"Content-Security-Policy":\s*"([^"]+)"/)?.[1] || '';
-  const iosCsp = cspDirectives(iosPolicy);
-  check("iOS CSP default-src 'self' and frame-src 'none'",
-    iosCsp['default-src']?.[0] === "'self'" && iosCsp['frame-src']?.[0] === "'none'", iosPolicy);
-  // M5-3 起硬检查：原生头与 Web 壳同为 script-src 'self'，且两处 CSP 逐字相同（01 §8.2「CSP 两处同步」）。
-  check("iOS scheme CSP script-src is exactly 'self'",
-    JSON.stringify(iosCsp['script-src']) === JSON.stringify(["'self'"]), iosCsp['script-src']);
-  const webPolicy = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)?.[1] || '';
-  check('iOS scheme CSP is identical to the index.html CSP meta', iosPolicy === webPolicy, { ios: iosPolicy, web: webPolicy });
-  check('native bridge, local origin, external schemes and subframe navigation are constrained',
-    webView.includes('message.frameInfo.isMainFrame') && webView.includes('["http", "https", "mailto"].contains(scheme)')
-    && webView.includes('url.host == ShiziWebResource.host')
-    && !/targetFrame\?\.isMainFrame != false[\s\S]{0,180}else\s*\{\s*decisionHandler\(\.allow\)/.test(webView));
-  check('bridge handler is cycle-free and removed on teardown',
-    webView.includes('WeakScriptMessageHandler(delegate: self)') && webView.includes('removeScriptMessageHandler(forName: "shiziNative")'));
+  const webLayer = /import WebKit|WKWebView|WKUserScript|WKScriptMessage|evaluateJavaScript|callAsyncJavaScript|LocalWebSchemeHandler|shizi-resource:/;
+  const webFiles = listFiles(swiftDir, f => f.endsWith('.swift'))
+    .filter(file => webLayer.test(readFileSync(file, 'utf8').split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')))
+    .map(file => relative(ROOT, file));
+  check('iOS app sources have no WebKit / page bridge / custom scheme (B4.9)', webFiles.length === 0, webFiles);
+  const appManifest = existsSync(rel('scripts', 'app-bundle-manifest.txt')) ? read('scripts', 'app-bundle-manifest.txt').split('\n').filter(Boolean) : [];
+  check('iOS bundle manifest lists only data / fonts / licenses (no JS, no web shell)', appManifest.length > 7000
+    && appManifest.every(f => /^(data|fonts|licenses)\//.test(f)), appManifest.filter(f => !/^(data|fonts|licenses)\//.test(f)).slice(0, 5));
   // M5-3：冒烟与测试宿主注入（__shiziNativeDev、?test=1、nativeSmoke*）只在 #if DEBUG 里（Release 不编译；产物另由 verify-archive.sh 查）。
   // P1-S2：原生书写面 spike 叠层（__shiziNativeInk、-shizi-native-ink、NativeInkSpike）、金标准自检 InkModelCheck、T1 量测 NativeInkLatency 同样只在 DEBUG。
   //   B2.1 起书写面本身（NativeInkView / InkModel）转正为 Release 组件，不在此列（verify-archive.sh 反过来断言 Release 含它）。
   // B2.0：原生写字页最小纵切只在 DEBUG；B3.1 起写字 / 判断 / 结果 / 重写错字页与 ShiziKit 转正进 Release（开关 -shizi-native-write 默认关、到 B3.F），
   //   只剩纵切量测（NativeWriteMetrics、shizi-native-write-metrics.json）只在 DEBUG。
   // QA-H1：界面测试的状态注入 / 取证 / 探针 / 时钟（-shizi-qa*、NativeQAHarness、QAProbe、QATrace、QAClock）只在 DEBUG（原生页面经 ShiziProbe 留钩子）。
-  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|InkModelCheck|NativeInkLatency|shizi-native-write-metrics|NativeWriteMetrics|shizi-qa|NativeQA|QAProbe|QATrace|QAClock|qa-probe/;
+  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|InkModelCheck|NativeInkLatency|shizi-native-write-metrics|NativeWriteMetrics|shizi-qa|NativeQA|QAProbe|QATrace|QAClock|QAFixture|QAOps|qa-probe/;
   const leaks = [];
   for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
     const stack = [];
@@ -263,7 +254,7 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
   }
   check('native smoke / test-host injection is compiled only under #if DEBUG', leaks.length === 0, leaks);
 
-  // Swift 源码不得含面向用户的中文 alert 文案（文案应由 Web 侧 copy/ 经桥传入）。M5-3 起硬检查。
+  // Swift 源码不得含面向用户的中文 alert 文案（文案在 src/config/copy，构建期生成 ShiziKitCopy.json / ShiziCore 文案表）。M5-3 起硬检查。
   const cjk = /[㐀-鿿豈-﫿]/;
   const alertLines = [];
   for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {

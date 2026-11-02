@@ -104,12 +104,11 @@ fi
 echo "Launching ${APP_ID}"
 LAUNCH_ARGS=()
 if [ "${DEV_MODE:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-dev); fi
-if [ "${SMOKE_MODE:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-smoke); fi
-# P1-S2 原生书写面 spike（只在 Debug 构建有效）：NATIVE_INK=1 打开原生书写层；NATIVE_INK_PRESET=A|B|C 选笔模型参数组（T2）；
-# INK_SELFCHECK=1 启动时跑笔锋模型金标准自检。步骤见 DEVICE_QA.md §13f。
-if [ "${NATIVE_INK:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-native-ink); fi
-if [ -n "${NATIVE_INK_PRESET:-}" ]; then LAUNCH_ARGS+=(-shizi-native-ink-preset "${NATIVE_INK_PRESET}"); fi
-if [ "${INK_SELFCHECK:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-ink-selfcheck); fi
+# B4.9：SMOKE_MODE（网页冒烟）与 NATIVE_INK / INK_SELFCHECK（网页上的原生书写层 spike）随 WKWebView 退役。
+if [ "${SMOKE_MODE:-0}" = "1" ] || [ -n "${NATIVE_INK_PRESET:-}" ] || [ "${INK_SELFCHECK:-0}" = "1" ]; then
+  echo "SMOKE_MODE / NATIVE_INK_PRESET / INK_SELFCHECK are retired (B4.9)" >&2
+  exit 64
+fi
 xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID" ${LAUNCH_ARGS[@]+"${LAUNCH_ARGS[@]}"}
 
 echo "Done. Continue manual iPhone handwriting and keyboard/safe-area checks on the device."

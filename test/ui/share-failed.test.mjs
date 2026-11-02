@@ -10,7 +10,7 @@ import {
 import { hideToast } from '../../src/ui/components/Toast.js';
 import { t, COPY } from '../../src/config/copy/index.js';
 
-const SWIFT = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/WebViewController.swift', import.meta.url), 'utf8');
+const SWIFT = readFileSync(new URL('../../ios/ShiziApp/ShiziApp/SwiftNav.swift', import.meta.url), 'utf8');
 
 test('shiziShareFailed is a native global: defined at bridge creation, queued before ready, replayed after', () => {
   assert.ok(NATIVE_GLOBALS.includes('shiziShareFailed'));
@@ -53,16 +53,11 @@ test('receiveShareFailed notifies listeners with the kind and returns true (back
   assert.deepEqual(seen, [['card', 'activity'], ['', null]], 'unsubscribed listener no longer called');
 });
 
-test('Swift calls window.shiziShareFailed only with known kinds, on failure paths, without user-facing text', () => {
-  const calls = [...SWIFT.matchAll(/notifyShareFailed\(kind: "([a-z]+)", reason: "([a-z]+)"\)/g)].map(m => [m[1], m[2]]);
-  assert.deepEqual(calls, [
-    ['backup', 'write'], ['backup', 'activity'], ['card', 'payload'], ['card', 'write'], ['card', 'activity'],
-    ['link', 'refused'], ['link', 'open'],
-  ]);
-  for (const [kind] of calls) assert.ok(Object.prototype.hasOwnProperty.call(SHARE_FAILED_KEYS, kind), kind);
-  assert.match(SWIFT, /window\.shiziShareFailed\(\{kind:'\\\(kind\)',reason:'\\\(reason\)'\}\)/, 'evaluates the global with {kind, reason}');
-  // 用户取消不回调：备份分享的 completion 先看 activityError，未完成（取消）直接返回、不提示
-  assert.match(SWIFT, /if activityError != nil \{\s*self\?\.notifyShareFailed\(kind: "backup", reason: "activity"\)\s*return\s*\}\s*guard completed else \{ return \}/);
-  const fn = SWIFT.slice(SWIFT.indexOf('func notifyShareFailed'), SWIFT.indexOf('private func sharePracticeCard'));
-  assert.ok(fn.length > 0 && !/[㐀-鿿]/.test(fn.replace(/\/\/\/[^\n]*/g, '')), 'no CJK text outside doc comments');
+test('B4.9: the native failure toast picks the same X-SHARE sentence by kind (unknown kind → generic), no user-facing text in Swift', () => {
+  const fn = SWIFT.slice(SWIFT.indexOf('func postShareFailed'), SWIFT.indexOf('/// 宿主自己发的原生屏消息'));
+  assert.ok(fn.length > 0, 'postShareFailed');
+  const keys = Object.fromEntries([...fn.matchAll(/"([a-z]+)": "(X-SHARE\.[A-Za-z]+)"/g)].map(m => [m[1], m[2]]));
+  assert.deepEqual(keys, SHARE_FAILED_KEYS, 'same kind → key table as share-failed.js');
+  assert.match(fn, /\?\? "X-SHARE\.failed"/, 'unknown kind → generic sentence');
+  assert.ok(!/[\u3400-\u9fff]/.test(fn.replace(/\/\/\/[^\n]*/g, '')), 'no CJK text outside doc comments');
 });

@@ -52,7 +52,7 @@ test('F1: the commit → haptic table is exactly the spec (judge / light / selec
 });
 
 test('gesture: Swift BackGestureThreshold equals tokens.json gesture value by value', () => {
-  const swift = read('ios/ShiziApp/ShiziApp/WebViewController.swift');
+  const swift = read('ios/ShiziApp/ShiziApp/RootViewController.swift');
   const body = /enum BackGestureThreshold \{([\s\S]*?)\n\}/.exec(swift)[1];
   const num = name => Number(new RegExp(`static let ${name}: CGFloat = ([-\\d. /]+)\\n`).exec(body)[1].split('/').map(Number).reduce((a, b) => a / b));
   assert.ok(Math.abs(num('commitRatio') - tokens.gesture.commitRatio) < 5e-4);

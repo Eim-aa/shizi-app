@@ -45,7 +45,7 @@ jobs:
           # node --check every scripts/**/*.{js,mjs,cjs} except scripts/legacy/.
           find scripts -path scripts/legacy -prune -o -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0 \
             | sort -z | xargs -0 -n1 node --check
-          python3 -m py_compile scripts/*.py ios/ShiziApp/scripts/validate-native-smoke.py
+          python3 -m py_compile scripts/*.py
           for script in ios/ShiziApp/scripts/*.sh; do bash -n "$script"; done
           git diff --check
       - name: API floor (iOS >= 15 WKWebView)

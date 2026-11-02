@@ -14,8 +14,8 @@ test('policy D41: groupMix (P125) matches the recommendation in 复习新字配�
   );
   assert.ok(Object.isFrozen(policy.groupMix));
   assert.equal(policy.groupMix.baseSize, 5, 'the counts are written for groups of 5 and scaled by size / 5 (D65 #2)');
-  assert.equal(policy.groupSize, 20, 'D65 #2: default per-group size 20');
-  assert.deepEqual([...policy.groupSizeOptions], [5, 10, 20, 30]);
+  assert.equal(policy.groupSize, 15, 'D83: default per-group size 15');
+  assert.deepEqual([...policy.groupSizeOptions], [5, 10, 15, 20, 30]);
   assert.equal(policy.dailyReviewCap, 30, 'P03 stays as a safety net');
 });
 

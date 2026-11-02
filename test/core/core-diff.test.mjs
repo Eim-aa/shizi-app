@@ -38,5 +38,8 @@ test('Swift CoreEngine op table = JS reference op table', () => {
   for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.swift')).sort()) {
     swiftOps.push(...[...fs.readFileSync(path.join(dir, f), 'utf8').matchAll(/^\s{8}"([a-zA-Z0-9.-]+)": \{/gm)].map((m) => m[1]));
   }
-  assert.deepEqual(swiftOps.sort(), createJsEngine().ops());
+  // S2（D83）：旧调度规则的 op 在 Swift 里删除（D82：JS 不再是这些规则的参考），JS 参考里还在
+  const retired = new Set(['groupSize.dailyReviewCapOf', 'mix.dueReviewsDoneOn', 'mix.newTargetOf', 'mix.newUserCapOf', 'mix.planGroup', 'mix.pressureOf',
+    'sessions.wrongReserveOf', 'spread.returnSpreadPerDay', 'spread.returnSpreadPlan']);
+  assert.deepEqual(swiftOps.sort(), createJsEngine().ops().filter((op) => !retired.has(op)));
 });

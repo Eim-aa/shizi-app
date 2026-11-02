@@ -49,5 +49,5 @@ test('the first group is 3 characters and only the first practice: progress read
   assert.equal(t('R-H04.resumeFirst', { n: 1, total: 3 }), '首次练习 · 1 / 3');
   assert.equal(t('R-H04.resumeFirstAria', { n: 1, total: 3 }), '接着写首次练习，已写 1 个，共 3 个');
   assert.equal(t('R-H03.firstVisit'), '先写三个大家常忘的字。', 'P1-E5: the line under 开始写字 (stage-1 design §一)');
-  assert.equal(policy.groupSize, 20); // D65 #2：每组字数缺省 20（首练仍是 3）
+  assert.equal(policy.groupSize, 15); // D83：每组字数缺省 15（首练仍是 3）
 });

@@ -52,7 +52,7 @@ test('the home model carries no copybook, no recent row, no progress cells, no h
 
 test('six states: the main button word (homeCtaKey)', () => {
   const words = Object.fromEntries(Object.entries(STATES).map(([name, make]) => [name, t(homeCtaKey(make()))]));
-  assert.deepEqual(words, { first: '开始写字', fresh: '开始写字', progress: '继续写字', today: '再写一组', back: '开始写字', special: '开始写字' });
+  assert.deepEqual(words, { first: '开始写字', fresh: '开始写字', progress: '继续写字', today: '再来一组', back: '开始写字', special: '开始写字' });
 });
 
 test('D66 ⑩: practice range finished and nothing to write → the main button is 换练习范围 (straight to the library switch page)', () => {

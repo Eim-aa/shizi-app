@@ -16,10 +16,11 @@ const sched = (due, stability = 5) => ({ fsrs: { stability }, due, lastJudgedAt:
 const mix = policy.groupMix;
 
 test('groupSizeOf: 5 / 10 / 20 / 30 kept, anything else (missing, old users, junk) → 20', () => {
-  for (const n of [5, 10, 20, 30]) assert.equal(groupSizeOf({ groupSize: n }), n);
-  for (const s of [null, undefined, {}, { groupSize: 7 }, { groupSize: '20' }, { groupSize: 0 }]) assert.equal(groupSizeOf(s), 20);
+  // （D83：缺省 15、选项加 15）
+  for (const n of [5, 10, 15, 20, 30]) assert.equal(groupSizeOf({ groupSize: n }), n);
+  for (const s of [null, undefined, {}, { groupSize: 7 }, { groupSize: '20' }, { groupSize: 0 }]) assert.equal(groupSizeOf(s), 15);
   assert.equal(isGroupSizeOption(10), true);
-  assert.equal(isGroupSizeOption(15), false);
+  assert.equal(isGroupSizeOption(25), false);
   assert.equal(validGroupSize(null), policy.groupSize);
 });
 
@@ -53,9 +54,9 @@ test('selectDaily at 20: a fresh user gets a full group; the review/new mix is t
 });
 
 test('settings.groupSize: schema accepts the four options only; it rides along in backups', () => {
-  for (const n of [5, 10, 20, 30]) assert.equal(validateValue(KEYS.settings, { groupSize: n }), null);
+  for (const n of [5, 10, 15, 20, 30]) assert.equal(validateValue(KEYS.settings, { groupSize: n }), null); // （D83：缺省 15、选项加 15）
   for (const bad of [7, '20', null]) assert.notEqual(validateValue(KEYS.settings, { groupSize: bad }), null, String(bad));
-  assert.deepEqual([...policy.groupSizeOptions], [5, 10, 20, 30], 'schema list and policy list agree');
+  assert.deepEqual([...policy.groupSizeOptions], [5, 10, 15, 20, 30], 'schema list and policy list agree');
   const file = buildBackupV2({ settings: { groupSize: 10, library: 'core3500' } }, { now: Date.parse('2026-09-24T12:00:00Z') });
   const parsed = parseBackupV2(JSON.parse(JSON.stringify(file)));
   assert.equal(parsed.ok, true, JSON.stringify(parsed));

@@ -29,13 +29,13 @@ test('spreadDue: overdue first, then lower stability; at most perDay a day inclu
 
 test('returnSpreadPlan (policy.returnSpread P323): ≥ 30 days away, not written today, not done for this absence; perDay = round(group size × 0.5)', () => {
   assert.deepEqual({ ...policy.returnSpread }, { afterDays: 30, perDayShare: 0.5 });
-  assert.equal(returnSpreadPerDay(null), 10, 'default 20-char group → 10 a day');
+  assert.equal(returnSpreadPerDay(null), 8, 'default 15-char group → 8 a day (D83)');
   assert.equal(returnSpreadPerDay({ groupSize: 5 }), 3);
   const sched = Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`base:${String.fromCodePoint(0x4e00 + i)}`, e('2026-07-15')]));
   const records = { '2026-07': [rec(1, '一', 'judged', 'correct', '2026-07-10')] };
   const state = { records, sched, settings: null };
   const plan = returnSpreadPlan(state, TODAY);
-  assert.deepEqual([plan.lastDay, plan.gapDays, plan.perDay, plan.moved], ['2026-07-10', 76, 10, 25]);
+  assert.deepEqual([plan.lastDay, plan.gapDays, plan.perDay, plan.moved], ['2026-07-10', 76, 8, 25]);
   assert.equal(returnSpreadPlan({ ...state, settings: { returnSpreadFor: '2026-07-10' } }, TODAY), null, 'already done for this absence');
   assert.ok(returnSpreadPlan({ ...state, settings: { returnSpreadFor: '2026-05-01' } }, TODAY), 'an earlier absence does not count');
   assert.equal(returnSpreadPlan(state, '2026-08-08'), null, '29 days → no');

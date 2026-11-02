@@ -107,7 +107,8 @@ test('detailModel: judged records only (answer-seen / skipped excluded), oldest 
     rec('永', 'wrong', '2026-09-21'),
   ];
   const state = stateWith(rs, { sched: { 'base:静': { fsrs: {}, due: '2026-10-09', lastJudgedAt: 1 } } });
-  const m = detailModel(state, '静', { today: TODAY, lookup });
+  // D83 ⑦ 起缺省不显示「下次复习」（features.nextReviewLine 关）：这里打开开关测原来的规则
+  const m = detailModel(state, '静', { today: TODAY, lookup, policy: { ...policy, features: { ...policy.features, nextReviewLine: true } } });
   assert.deepEqual(m.judged.map(r => r.id), ['r1', 'r3', 'r5']);
   assert.equal(m.count, 3);
   assert.equal(m.first.id, 'r1');

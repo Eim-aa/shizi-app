@@ -228,13 +228,13 @@ test('D66 ⑬: the default selection follows 每组字数 (policy.listDefaultSel
   const chars = Array.from({ length: 34 }, (_, i) => String.fromCodePoint(0x4e00 + 0x100 + i));
   const records = chars.map((c, i) => rec(i + 1, c, 'judged', 'wrong', `2026-09-${String(1 + (i % 28)).padStart(2, '0')}`));
   const pick = settings => listModel(stateOf(records, {}, undefined, settings), { kind: 'wrong', today: TODAY, cardFor: manyCardFor, practicable: manyPracticable });
-  assert.equal(pick(null).selectedCount, 20, 'never chosen → group size 20 → 20');
-  assert.equal(pick({}).head, '先练这 20 个');
+  assert.equal(pick(null).selectedCount, 15, 'never chosen → group size 15 → 15 (D83)');
+  assert.equal(pick({}).head, '先练这 15 个');
   assert.equal(pick({ groupSize: 10 }).selectedCount, 10);
   assert.equal(pick({ groupSize: 30 }).selectedCount, 30);
   assert.equal(pick({ groupSize: 5 }).selectedCount, 5);
   assert.equal(listDefaultSelectOf({ groupSize: 30 }), 30);
-  assert.equal(listDefaultSelectOf(null), 20);
+  assert.equal(listDefaultSelectOf(null), 15); // D83
 });
 
 test('B4: 快忘了 default = the 5 longest overdue (list order); rows that cannot be practised do not take a slot', () => {

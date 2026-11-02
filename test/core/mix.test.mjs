@@ -534,7 +534,7 @@ test('selectDaily keeps working with the legacy call shape (no warm-up list, no 
   assert.equal(r.queue.length, 5);
   assert.ok(r.dueKeys.includes('base:亦'));
   assert.equal(r.special, null);
-  assert.equal((await policyWith({})).groupSize, 20, 'D65 #2: the default per-group size is 20 (callers pass the user\'s choice)');
+  assert.equal((await policyWith({})).groupSize, 15, 'D83: the default per-group size is 15 (callers pass the user\'s choice)');
 });
 
 test('D66 ⑫ (policy.newUserRamp P325): days 1–3 after the first practice → at most 2 parts of new chars per group (20-char group: 8), no filling with new chars; day 4 back to normal', () => {

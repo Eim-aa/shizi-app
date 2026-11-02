@@ -152,13 +152,13 @@ test('commitSettings: one commit writes only settings; keeps other fields; failu
 
 test('每组字数（D65 ②）：settingsView 缺省 20；commitGroupSize 经 store.commit 只改 settings.groupSize；不认识的值拒绝；下一组按新值、开着的组不变', () => {
   const { store } = freshStore();
-  assert.equal(settingsView(null).groupSize, 20);
-  assert.equal(settingsView({ groupSize: 7 }).groupSize, 20);
+  assert.equal(settingsView(null).groupSize, 15); // D83 缺省 15
+  assert.equal(settingsView({ groupSize: 7 }).groupSize, 15);
   assert.equal(commitGroupSize(store, 10).ok, true);
   assert.deepEqual(store.getState().settings, { groupSize: 10 });
   assert.equal(settingsView(store.getState().settings).groupSize, 10);
   assert.equal(commitGroupSize(store, 10).skipped, true, 'same value → no write');
-  assert.throws(() => commitGroupSize(store, 15), RangeError);
+  assert.throws(() => commitGroupSize(store, 25), RangeError); // D83：15 成了可选值
   assert.throws(() => commitGroupSize(store, '20'), RangeError);
   assert.equal(LABELS.groupSize, 'settings:group-size');
   // 开组：字库里取字的假题库（够 40 个新字）

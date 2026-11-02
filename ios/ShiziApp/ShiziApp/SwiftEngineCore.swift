@@ -187,6 +187,9 @@ final class EngineHost {
             }
         }
         // 字详情：练这个字（startPicked）、做成图片（打开预览）
+        // 系统大字号（全部字墙最多 6 列：网页 useWallLayout 的 compact）——引擎替原生页算视图时（推入 / 冷启动恢复的首帧）页面没传 large，按此刻的系统字号答。
+        // B4.9 前这一屏经页面推入时由网页量（QA 镜像），删 JS 才露出首帧墙按 8 列排、重拉后才变 6 列。
+        hooks.set("measure.large") { _ in .bool(LibraryCommon.isLargeText()) }
         hooks.set("detail.practice") { [unowned self] a in try startPicked(a["chars"]?.arrayValue ?? [], source: a["source"] ?? .null) }
         hooks.set("detail.image") { [unowned self] a in
             nav("detail.image", .object(a))

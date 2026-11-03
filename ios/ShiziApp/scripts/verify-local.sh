@@ -53,9 +53,7 @@ run_logged "Verify static assets" "${LOG_DIR}/verify-assets.log" \
   node "${REPO_ROOT}/scripts/verify_assets.mjs"
 run_logged "Verify service worker unit" "${LOG_DIR}/verify-sw-unit.log" \
   node "${REPO_ROOT}/scripts/verify_sw_unit.mjs"
-# M5-1: v10 / v13 replayed to the v14 worker, BUILD A→B, 503 fallback (same gate as verify:web / CI).
-run_logged "Verify PWA upgrade" "${LOG_DIR}/verify-pwa-upgrade.log" \
-  node "${REPO_ROOT}/scripts/verify_pwa_upgrade.js"
+# D84（卡 B）：网页 PWA 升级门禁（scripts/verify_pwa_upgrade.js）不再跑——网页版已决定删除，语境覆盖移出 data/ 后网页壳不再完整。
 
 if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$REPO_ROOT" diff --check

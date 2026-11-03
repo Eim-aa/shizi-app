@@ -39,7 +39,8 @@ plutil -lint \
 # A7：Paper 颜色集必须与 src/config/tokens.css 的 --p 一致（启动屏 / WebView 底色同源）
 node "${SCRIPT_DIR}/generate-paper-colorset.mjs" --check
 for script in "${SCRIPT_DIR}"/*.sh; do
-  sh -n "$script"
+  # 按 shebang 选解释器检查语法（#!/bin/bash 的脚本可用进程替换等 bash 写法）
+  if head -1 "$script" | grep -q bash; then bash -n "$script"; else sh -n "$script"; fi
 done
 PYTHONPYCACHEPREFIX="${IOS_ROOT}/build/verify/pycache" \
   python3 -m py_compile "${REPO_ROOT}/scripts/verify_library_governance.py"

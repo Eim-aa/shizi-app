@@ -42,8 +42,6 @@ extension RootViewController {
         return docs.appendingPathComponent("qa", isDirectory: true)
     }
 
-    /// 固定数据：这次选的字（B 槽，「跳过」「结束这组」都在），5 个字。
-    static let qaChars = ["\u{6C38}", "\u{548C}", "\u{6625}", "\u{65E5}", "\u{6708}"] // 永 和 春 日 月
     /// 时钟不固定（用真实时间）：冷启动恢复按「离开多久」判断，固定时钟会让重开时现场显得「很久以前」而不恢复；
     /// 写字页上没有随时间变的内容，对比不受影响。传 -shizi-qa-clock <ISO> 可另行固定。
     static var qaClock: String { qaArg("-shizi-qa-clock") ?? "" }
@@ -179,9 +177,7 @@ extension RootViewController {
     /// 原生元素清单：窗口里的全部可见视图（原生写字页、弹层、撤销条、确认框），控件与文字一项一条。
     /// 每条带：属性名（Mirror 取原生页上的成员名，作稳定的语义键）、accessibilityIdentifier / Label / Frame、
     /// 窗口坐标 frame（pt）、文字、文字色 / 底色 / 边框色（按当前外观解析成 #RRGGBBAA）、字号与字重、是否可点。
-    func qaNativeElements() -> [[String: Any]] { qaNativeDump().0 }
-
-    /// 元素清单 + QA-H2 屏外一份（滚动区里滚得到、此刻在屏外的元素，同一形状、带 off: true）。
+    /// 返回元素清单 + QA-H2 屏外一份（滚动区里滚得到、此刻在屏外的元素，同一形状、带 off: true）。
     func qaNativeDump() -> ([[String: Any]], [[String: Any]]) {
         guard let window = view.window else { return ([], []) }
         let names = qaNames()

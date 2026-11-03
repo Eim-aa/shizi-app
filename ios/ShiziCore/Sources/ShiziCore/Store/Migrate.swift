@@ -22,7 +22,6 @@ public enum Migrate {
 
     static func nameOfKey(_ key: String) -> String? { v1Keys.first { UTF16Order.eq($0.key, key) }?.name }
 
-    static let fsrsRawRetentionDays = 120.0
     static let wildPhotoMax = 30
     static let wildPhotoBudget = 420.0 * 1024
     static let wildPhotoMaxBytes = 64.0 * 1024

@@ -507,11 +507,3 @@ extension ScheduleRules {
                                       policy: policy, today: .string(today), deferredDay: capitalDeferredDay)
     }
 }
-extension SchedRecords {
-    /// cardKey → 最近一次判断记录（按 id 序；sortById 后逐个覆盖，sessions.js latestJudgmentByKey）。
-    static func latestJudgedByCardSorted(_ records: [JSValue]) -> KeyMap<JSValue> {
-        var out = KeyMap<JSValue>()
-        for r in sortById(records.filter { isJudged($0) }) { out[JS.string(r["cardKey"])] = r }
-        return out
-    }
-}

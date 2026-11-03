@@ -402,7 +402,6 @@ final class NativeInkView: UIView {
     #if DEBUG
     /// T1 测量（DEBUG）：触点 → 帧预计上屏 / 真正上屏。
     var latency = NativeInkLatency()
-    private var fade: (start: CFTimeInterval, ms: Double, from: Float)?
     /// 每一笔的结局（DEBUG，R10-A：笔画「写完消失」排查）：began / ended / held / cancel:<原因> / refused:<原因>，最近 64 条。
     /// 探针（QAProbe native.inkLog）与控制台（[shizi] ink …）都看得到。
     private(set) var strokeLog: [String] = []
@@ -895,8 +894,6 @@ final class NativeInkView: UIView {
     var isWriting: Bool { current != nil }
     /// 有持住的笔（正在写或已抬笔，等门限）。
     var hasHeldInput: Bool { held || !heldDone.isEmpty }
-    /// 正在写的这一笔的原始点（测试与诊断用）。
-    var strokeInProgress: [InkRawPoint] { raw }
 
     /// 门限到了：持住的笔补开始（正在写的接着实时画；已抬笔的整笔交出）。每帧调用；测试可直接调。
     func releaseHeldIfDue(_ now: CFTimeInterval) {
@@ -952,7 +949,6 @@ final class NativeInkView: UIView {
     fileprivate func tick(_ link: CADisplayLink) {
         #if DEBUG
         latency.tick(duration: link.targetTimestamp - link.timestamp)
-        stepFade(link.targetTimestamp)
         #endif
         releaseHeldIfDue(CACurrentMediaTime())
         if isHidden { return }
@@ -1017,35 +1013,6 @@ final class NativeInkView: UIView {
     }
 
     func requestRender() { needsRender = true }
-
-    #if DEBUG
-    // MARK: spike 叠层的卸载淡出（DEBUG：网页阶段交叉淡化 150ms 时网页快照里没有墨，由原生层同步淡出）
-
-    func fadeOutAndHide(ms: Double) {
-        isUserInteractionEnabled = false
-        fade = (0, ms, inkOpacity)
-        needsRender = true
-    }
-
-    func cancelFade() {
-        guard let f = fade else { return }
-        fade = nil
-        inkOpacity = f.from
-        isUserInteractionEnabled = drawable
-    }
-
-    fileprivate func stepFade(_ target: CFTimeInterval) {
-        guard var f = fade else { return }
-        if f.start == 0 { f.start = target; fade = f }
-        let u = min(1, (target - f.start) * 1000 / max(1, f.ms))
-        inkOpacity = f.from * Float(1 - u)
-        if u >= 1 {
-            fade = nil
-            isHidden = true
-            inkOpacity = f.from
-        }
-    }
-    #endif
 }
 
 extension NativeInkView: UIPencilInteractionDelegate {
@@ -1075,7 +1042,6 @@ final class NativeInkLatency {
     struct Sample {
         var touch: CFTimeInterval // UITouch.timestamp（s，与 CACurrentMediaTime 同一时基）
         var delivered: CFTimeInterval // 主线程拿到这个事件的时刻
-        var predictedUsed: Bool = false
         var frame: Int = -1
     }
 
@@ -1153,15 +1119,6 @@ final class NativeInkLatency {
             "samples": samples.count,
             "frames": frames.count,
         ]
-    }
-
-    /// 原始记录（最多最近 3000 个样本）：[touch, delivered, frameCallback, frameTarget, framePresented]（s，CACurrentMediaTime 时基）。
-    var rawRecords: [[Double]] {
-        samples.suffix(3000).compactMap { smp in
-            guard smp.frame >= 0 else { return nil }
-            let f = frames[smp.frame]
-            return [smp.touch, smp.delivered, f.callback, f.target, f.presented]
-        }
     }
 }
 #endif

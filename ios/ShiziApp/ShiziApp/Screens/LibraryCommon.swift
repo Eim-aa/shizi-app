@@ -500,32 +500,6 @@ enum LibraryText {
         nowrapSegments(segments, separator: separator, font: font, width: width).count
     }
 
-    /// 网页 .sz-lrow__meta 的排法：每段是 inline-block（max-width:100%）——段本身在栏宽内折行，段与段之间一个空格，放不下就整段换行。
-    static func inlineBlockLines(_ parts: [String], separator: String, font: UIFont, width: CGFloat, line: CGFloat) -> Int {
-        guard !parts.isEmpty, width > 0 else { return 0 }
-        var total = 0
-        var cur = 0
-        var x: CGFloat = 0
-        for (i, part) in parts.enumerated() {
-            let maxContent = LibraryCommon.textWidth(part, font)
-            let partW = min(maxContent, width)
-            let partLines = partW < maxContent ? lines(part, font: font, width: partW, line: line) : 1
-            if i > 0 {
-                let sepW = LibraryCommon.textWidth(separator, font)
-                if x + sepW + partW > width {
-                    total += cur
-                    cur = 0
-                    x = 0
-                } else {
-                    x += sepW
-                }
-            }
-            x += partW
-            cur = max(cur, partLines)
-        }
-        return total + cur
-    }
-
     // MARK: WebKit 口径的折行（UAX #14）
 
     /// 不能出现在行首的字（网页 line-break 默认：行首不许是收尾标点）。

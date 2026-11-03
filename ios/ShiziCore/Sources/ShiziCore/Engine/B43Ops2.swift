@@ -55,8 +55,6 @@ extension CoreEngine {
 
     static func memberJS(_ m: [WorkMembers.Member]) -> JSValue { .array(m.map { $0.js }) }
 
-    static func dayArg(_ a: JSObject, _ k: String) throws -> JSValue { try required(a, k) }
-
     static let memberOps: [String: Op] = [
         "structure.validGroups": { _, a in .bool(Structure.validGroups(a["groups"], try int(a, "total", 1_000_000_000))) },
         "structure.inferStructure": { _, a in optStr(Structure.inferStructure(a["groups"], a["medians"])) },

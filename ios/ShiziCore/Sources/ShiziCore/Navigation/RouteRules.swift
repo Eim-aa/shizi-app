@@ -101,9 +101,6 @@ public enum RouteRules {
         return JS.truthy(v)
     }
 
-    /// RESTORE_GUARDS 的屏名。
-    public static let guardNames = ["write", "result", "detail", "detail-photo", "session-none", "redo"]
-
     /// 逐页有效性（RESTORE_GUARDS[name](p, ctx)；guard 抛错算不合格）。nil = 这一页没有 guard（恒可恢复）。
     public static func restoreGuard(_ name: String, _ p: JSValue?, state: JSValue?, now: Double, policy: JSValue = Config.policy, dates: Dates,
                                     lookup: (String) -> JSValue? = { DeckCards.shared.cardForKey($0) }) -> Bool? {

@@ -13,8 +13,6 @@ public enum Schema {
     public static let recordsPrefix = "shizi.v2.records."
     public static let inkPrefix = "shizi.v2.ink."
     public static let corruptPrefix = "shizi.corrupt."
-    public static let nativeSmokeKey = "shizi.nativeSmoke.v1"
-    public static let nativeStoreMarkerKey = "shizi.nativeStore.v1"
 
     /// KEYS（键名 → 键），声明顺序同 JS。
     public static let keys: [(name: String, key: String)] = [

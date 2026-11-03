@@ -20,7 +20,6 @@ public enum Field<T> {
     case value(T)
 
     public var value: T? { if case .value(let v) = self { return v }; return nil }
-    public var isAbsent: Bool { if case .absent = self { return true }; return false }
 }
 extension Field: Equatable where T: Equatable {}
 

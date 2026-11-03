@@ -313,18 +313,6 @@ final class BackupScreen: ShiziScreenViewController {
             let ok: ShiziCopyRef
             let failed: Failed
         }
-        struct RestoreConfirm: Decodable {
-            let replaceTitle: ShiziCopyRef
-            let restoreTitle: ShiziCopyRef
-            let replaceBody: ShiziCopyRef
-            let restoreBody: ShiziCopyRef
-            let cancel: ShiziCopyRef
-            let replaceOk: ShiziCopyRef
-            let restoreOk: ShiziCopyRef
-            let lossRange: ShiziCopyRef
-            let lossDay: ShiziCopyRef
-            let exportFirst: ShiziCopyRef
-        }
         let title: ShiziCopyRef
         let lastLabel: ShiziCopyRef
         let lastDate: ShiziCopyRef
@@ -341,7 +329,6 @@ final class BackupScreen: ShiziScreenViewController {
         let noteBox: NoteBoxes
         let exportFail: ExportFail
         let clearSheet: ClearSheet
-        let restoreConfirm: RestoreConfirm
     }
 
     /// 替换 / 恢复确认框的模型（App API backup.picked 的 preview）。

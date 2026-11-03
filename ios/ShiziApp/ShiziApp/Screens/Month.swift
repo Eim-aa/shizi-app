@@ -40,8 +40,6 @@ final class MonthScreen: ShiziScreenViewController {
     // 网页 .sz-monthpage 里的定值
     private let headGap: CGFloat = 2
     private let pageGap: CGFloat = 12
-    private let signGap: CGFloat = 10
-    private let signHeight: CGFloat = 20
     private let sealSide: CGFloat = 24
     private let textBtnPad: CGFloat = 4
 

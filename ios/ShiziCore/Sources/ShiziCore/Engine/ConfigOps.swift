@@ -5,11 +5,6 @@ import Foundation
 func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
 
 extension CoreEngine {
-    static func objectArg(_ a: JSObject, _ k: String) throws -> JSObject {
-        guard let o = try required(a, k).objectValue else { throw CoreError.badArgs(k + " must be an object") }
-        return o
-    }
-
     /// 可缺省的 vars（对象）。
     static func optionalVars(_ a: JSObject) throws -> JSObject? {
         guard let v = a["vars"] else { return nil }

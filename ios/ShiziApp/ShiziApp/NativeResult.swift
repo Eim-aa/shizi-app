@@ -942,12 +942,6 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             transitions.drag(g, page: self)
         }
     }
-
-    // MARK: 测试
-
-    func tapCellForTesting(_ i: Int) { workView.tapForTesting(i) }
-    func tapRowChangeForTesting(_ i: Int) { if i < rowViews.count { openRow(rows[i]) } }
-    func skipRevealForTesting() { skipReveal() }
 }
 
 // MARK: - 作品（WorkPaper / PlainRow 的原生版）
@@ -1148,8 +1142,6 @@ final class NativeWorkView: UIView {
             v.transform = .identity
         }
     }
-
-    func tapForTesting(_ i: Int) { if i < cellButtons.count { cellButtons[i].sendActions(for: .touchUpInside) } }
 }
 
 /// 作品里的一格（按钮：点开对照弹层）：本人墨（画墨接口）或衬底参考字、写错放进来的朱点、格内底边小注；格间 0.75 guide 线画在右 / 下边（末列 / 末行不画）。

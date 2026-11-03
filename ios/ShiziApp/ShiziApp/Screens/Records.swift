@@ -96,7 +96,6 @@ final class RecordsScreen: ShiziScreenViewController {
     private let arrowBgSide: CGFloat = 34
     private let arrowIconSide: CGFloat = 18
     private let numSide: CGFloat = 30
-    private let dotSide: CGFloat = 5
     private let dayMinHeight: CGFloat = 44
     private let weekdayHeight: CGFloat = 26
     private let calPadTop: CGFloat = 8

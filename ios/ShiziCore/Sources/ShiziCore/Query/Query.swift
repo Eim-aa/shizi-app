@@ -13,8 +13,6 @@ public enum Query {
 
     // ---- 汉字与拼音 ----
 
-    public static func isHanScalar(_ u: Unicode.Scalar) -> Bool { UnicodeScripts.isHan(u) }
-
     public static func containsHan(_ s: String) -> Bool { s.unicodeScalars.contains(where: UnicodeScripts.isHan) }
 
     /// 汉字判定：恰好一个码点且是 Han。

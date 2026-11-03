@@ -228,8 +228,6 @@ public final class EngineRouter {
         return true
     }
 
-    public var canGoBack: Bool { stack.count > 1 }
-
     public func push(_ name: String, _ params: JSValue = .object(JSObject())) throws {
         guard let tab = screens.tab(name) else { throw NavError("router.push: unknown screen \"\(name)\"") }
         if tab { try switchTab(name); return }

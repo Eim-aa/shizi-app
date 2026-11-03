@@ -15,12 +15,9 @@ final class MixTests: XCTestCase {
     let policy = Config.policy
 
     var mix: JSValue? { policy["groupMix"] }
-    /// 与参考实现（D41 规则 D）对照时用旧阀（valveReleaseDays null）；D65 的回滞阀另有用例。
-    var mixD41: JSValue { JS.with(policy["groupMix"], [("valveReleaseDays", .null)]) }
     /// 这些场景历史很长（累计组数 ≥ 10）：关掉 D40 特别组（另有 special.test.mjs），只看日常配比。
     var NO_CAPITAL: JSValue { JS.with(policy, [("capitalNumerals", JS.with(policy["capitalNumerals"], [("enabled", .bool(false))]))]) }
 
-    func isWarmChar(_ c: String) -> Bool { NewOrder.isWarmupChar(c) }
     func isWarmKey(_ k: String) -> Bool { NewOrder.isWarmupKey(k) }
 
     func at(_ day: String, _ hour: Int = 12, _ minute: Int = 0) -> Double {

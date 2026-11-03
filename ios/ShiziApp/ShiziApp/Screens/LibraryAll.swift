@@ -465,8 +465,6 @@ final class LibraryAllScreen: ShiziScreenViewController {
         closedMarker.isHidden = m.closed.isEmpty
     }
 
-    private func mt_font15() -> UIFont { metrics.font(15) }
-
     // MARK: 动作
     @objc private func findChanged() {
         markStateChange()

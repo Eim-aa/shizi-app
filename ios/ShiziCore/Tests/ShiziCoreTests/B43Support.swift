@@ -17,7 +17,6 @@ let zhong43 = "\u{4E2D}" // 中
 let ying43 = "\u{8D62}" // 赢
 let zhi43 = "\u{7EB8}" // 纸
 let ren243 = "\u{4EBA}" // 人
-let kou243 = "\u{53E3}" // 口
 let jingYi43 = jing43 + yi43 // 静亦
 
 let shanghai43 = Dates(timeZone: sixTimeZone)

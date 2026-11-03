@@ -581,8 +581,6 @@ final class NativeWriteViewController: UIViewController {
     }
 
     var inkViewForTesting: NativeInkView? { ink }
-    var hintLayerForTesting: NativeHintLayerView { hintLayer }
-    var hintButtonKindForTesting: String? { hintButton["kind"] as? String }
     var lineShownForTesting: Bool { !lineLabel.isHidden }
 
     func saveMetrics() {

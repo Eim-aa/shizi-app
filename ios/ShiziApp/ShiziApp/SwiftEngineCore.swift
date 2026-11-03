@@ -309,9 +309,6 @@ final class EngineHost {
         _ = SessionResults.leave(store, r)
     }
 
-    /// 最近的宿主导航（诊断）。
-    var recentNavigations: String { navigations.suffix(4).joined(separator: " ; ") }
-
     /// 查字弹层打开时登记的回调（components/query/index.js openQuery）：
     ///   pick（首页「自己选字」、没字可写页，home/index.js openPick）→ onPick = pickAndStart（旧 B 没写完：先关弹层、弹 S02；否则开组，成功才关弹层、开写字页）；
     ///   lookup（字库「查字」，library/query-entry.js）→ onPractice = 开 B 组（来源 library，弹层不关）、onDetail = 推字详情；没有 onPick。

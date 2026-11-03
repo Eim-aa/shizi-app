@@ -24,11 +24,6 @@ public enum CoreResources {
         cache[name] = value
         return value
     }
-
-    /// 资源原文（核对用）。
-    public static func rawText(_ name: String) throws -> String {
-        String(decoding: try Data(contentsOf: try url(name)), as: UTF8.self)
-    }
 }
 
 /// 生成的配置（只读）。读不到资源是打包错误，直接停（与读 Info.plist 同级）。

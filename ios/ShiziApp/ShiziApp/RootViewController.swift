@@ -20,10 +20,6 @@ enum BackGestureThreshold {
     static let commitVelocity: CGFloat = 500
     /// pt/s：位移过阈值后若向左回拉快过这个速度，视为取消。
     static let returnVelocity: CGFloat = -200
-    /// 「页边起手」识别器的起手区宽（pt）= 页面左右页边 --gutter；书写格在它之内，格内书写不受影响。
-    static let marginWidth: CGFloat = 20
-    /// 「页边起手」识别器开始时速度的水平分量至少是竖直分量的这么多倍（0.5 ≈ 与水平夹角 63° 以内）。
-    static let marginSlope: CGFloat = 0.5
 
     static func commits(distance: CGFloat, velocity: CGFloat, width: CGFloat) -> Bool {
         velocity > commitVelocity || (distance > width * commitRatio && velocity > returnVelocity)
@@ -136,12 +132,6 @@ final class RootViewController: UIViewController {
                 self.dispatchPendingReminderTargetIfReady()
             }
         }
-    }
-
-    func logNative(_ message: String) {
-        #if DEBUG
-        NSLog("[shizi] %@", message)
-        #endif
     }
 }
 

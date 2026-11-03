@@ -369,8 +369,6 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     var noteTextForTesting: String? { noteLabel.text }
     var flipTitleForTesting: String? { flipButton.title(for: .normal) }
     var hasInkForTesting: Bool { inkView != nil }
-    var emptyTextForTesting: String? { mineEmpty.isHidden ? nil : mineEmpty.text }
-    var detailTitleForTesting: String? { detailButton.isHidden ? nil : detailButton.title(for: .normal) }
 
     // MARK: 下滑关闭
 

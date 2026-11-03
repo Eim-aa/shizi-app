@@ -223,15 +223,6 @@ final class NativeStage: NSObject {
         return nil
     }
 
-    /// 让给网页时交给宿主层的「样子」：根页连同 Tab 栏（网页那边截图铺满整个 tab 图层，B3.5d 起网页不画自己的 Tab 栏），其余原生页是它自己。
-    func coverView(of page: ShiziScreenViewController) -> UIView {
-        if page === rootScreen, let hostView = tabHost, !hostView.isHidden { return hostView }
-        return page.view
-    }
-
-    /// 原生根页（连同 Tab 栏）此刻看得见（网页内容在它下面，对读屏藏起：RootViewController）。
-    var rootShown: Bool { tabHost.map { !$0.isHidden } ?? false }
-
     /// 探针：Tab 栏（看得见、选中的 tab、栏的框）。
     var tabsProbe: [String: Any]? {
         guard let t = tabs, let hostView = tabHost else { return nil }
@@ -319,17 +310,6 @@ final class NativeStage: NSObject {
             r.removeFromParent()
             roots[name] = nil
         }
-    }
-
-    private func removeRoot() {
-        guard let r = rootScreen else { return }
-        rootScreen = nil
-        roots[r.screen] = nil
-        r.exitHandled = true
-        r.willMove(toParent: nil)
-        r.view.removeFromSuperview()
-        r.removeFromParent()
-        syncTabHost()
     }
 
     /// 探针：原生根页（屏名、是否藏着、页面自己的摘要）。

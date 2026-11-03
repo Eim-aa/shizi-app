@@ -647,19 +647,6 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
     /// 文字在宽 w 内的行数 × 行高（NativeType.height）。
     private func textHeight(_ l: UILabel, width: CGFloat, line: CGFloat) -> CGFloat { NativeType.height(l, width: width, line: line) }
 
-    /// 各行的宽（TextKit 在宽 w 里折行）。
-    private func lineWidths(_ a: NSAttributedString, width w: CGFloat) -> [CGFloat] {
-        let storage = NSTextStorage(attributedString: a)
-        let lm = NSLayoutManager()
-        let tc = NSTextContainer(size: CGSize(width: w, height: .greatestFiniteMagnitude))
-        tc.lineFragmentPadding = 0
-        lm.addTextContainer(tc)
-        storage.addLayoutManager(lm)
-        var out: [CGFloat] = []
-        lm.enumerateLineFragments(forGlyphRange: lm.glyphRange(for: tc)) { _, used, _, _, _ in out.append(used.width) }
-        return out
-    }
-
     private static let noBreakBefore: Set<Character> = ["\u{FF0C}", "\u{3002}", "\u{3001}", "\u{FF01}", "\u{FF1F}", "\u{FF1B}", "\u{FF1A}", "\u{300D}", "\u{300F}", "\u{FF09}", " "]
     private static let noBreakAfter: Set<Character> = ["\u{300C}", "\u{300E}", "\u{FF08}"]
 

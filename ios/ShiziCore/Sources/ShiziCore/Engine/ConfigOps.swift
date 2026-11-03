@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.1 的 op（配置 / 题库 / 题记 / 文案 / 落款汉字数字）。参考实现在 scripts/core-diff/lib/js-ops-b41.mjs（同名、同参数校验、同错误码）。
+// B4.1 的 op（配置 / 题库 / 题记 / 文案 / 落款汉字数字）。JS 参考实现（同名、同参数校验、同错误码）已随 D84 退役。
 
 func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
 

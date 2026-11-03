@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.1 的 op（形状表校验 / 键工具 / 模型往返）。参考实现在 scripts/core-diff/lib/js-ops-b41.mjs。
+// B4.1 的 op（形状表校验 / 键工具 / 模型往返）。JS 参考实现已随 D84 退役。
 
 extension CoreEngine {
     static func optionalString(_ a: JSObject, _ k: String) throws -> String? {

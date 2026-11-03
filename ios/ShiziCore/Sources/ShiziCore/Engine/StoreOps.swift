@@ -1,7 +1,6 @@
 import Foundation
 
-// B4.4 的 op（store / storage / budget / backup / migrate / 原生校验和）。参考实现在 scripts/core-diff/lib/js-ops-b44.mjs
-// （同名、同参数校验、同错误码；约定见那边文件头：store 会话、数据描述的 mutate 与磁盘注入规则、存储层抛错的回包）。
+// B4.4 的 op（store / storage / budget / backup / migrate / 原生校验和）。JS 参考实现（同名、同参数校验、同错误码；store 会话、数据描述的 mutate 与磁盘注入规则、存储层抛错的回包）已随 D84 退役。
 
 /// 引擎里的 store 会话：一块「磁盘」（MemoryDisk | FakeNativeDisk）+ storage + store。
 final class StoreSession {

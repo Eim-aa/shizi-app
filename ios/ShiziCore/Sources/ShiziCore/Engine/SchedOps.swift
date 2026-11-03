@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.2 的 op（FSRS 与出题调度）。参考实现在 scripts/core-diff/lib/js-ops-b42.mjs（同名、同参数校验、同错误码；约定见那边文件头）。
+// B4.2 的 op（FSRS 与出题调度）。JS 参考实现（同名、同参数校验、同错误码）已随 D84 退役。
 
 extension CoreEngine {
     var rules: ScheduleRules { ScheduleRules(dates: dates) }

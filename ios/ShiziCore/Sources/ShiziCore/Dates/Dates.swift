@@ -2,7 +2,7 @@ import Foundation
 
 // src/core/dates.js 的 1:1 移植（B4.0 示例域：日期 4 点分界；B4.1 接着补落款汉字数字 cnDigits / cnNumber / cnCount 等）。
 // 逐函数对照，连 JS 的边角行为一起照搬（无效时间 → "NaN-NaN-NaN"、两位年怪癖、addMonths 负下标的「0-10」月份……）：
-// 金标准 scripts/core-golden/domains/dates.mjs → Tests/ShiziCoreTests/Fixtures/dates.json；随机差分 scripts/core-diff。
+// 金标准 Tests/ShiziCoreTests/Fixtures/dates.json（冻结；D84 起 JS 参考实现与差分工具已退役）。
 // 时区显式传入（JS 用进程时区；App 里传 TimeZone.current）。
 
 public enum CoreError: Error, Equatable {

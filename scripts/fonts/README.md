@@ -19,8 +19,8 @@
 
 `build_corpus.mjs` 按 `FACE_SOURCES` 收集（NFC，去空白与控制字符）：
 
-- **ShiziKai 400**：`src/config/copy/` 全部值、题记、四库名、题面固定字串、题库卡片 word / py / hint / promptHint、字源 gloss / source。
-- **ShiziSerifSC 400 / 500**：`src/config/copy/` 全部值、题记、四库名、题库拼音 py。
+- **ShiziKai 400**：ShiziKitCopy.json / Bundled/copy.json 全部值、题记、四库名、题面固定字串、题库卡片 word / py / hint / promptHint、字源 gloss / source。
+- **ShiziSerifSC 400 / 500**：ShiziKitCopy.json / Bundled/copy.json 全部值、题记、四库名、题库拼音 py。
 
 `test/core/font-loader.test.mjs` 读 `fonts/coverage-manifest.json` 按同一张表逐项断言缺字为 0，并跑 `build_corpus.mjs --check`。文案或题库新增了字形外的字符时这两处会红：按下面步骤重建。
 
@@ -35,8 +35,8 @@ python3.12 -m venv /tmp/shizi-fonts-venv
 node scripts/fonts/build_corpus.mjs                      # 更新 corpus/*.txt
 /tmp/shizi-fonts-venv/bin/python scripts/fonts/scripts/reproduce.py \
   --corpus v10 --install --output /tmp/shizi-fonts-build  # 下载并核验上游（约 50MB），构建，装进 fonts/
-pnpm run build:manifest                                  # 字体字节变了，壳指纹随之变
-pnpm run verify:unit && node scripts/e2e/run.mjs 51-fonts
+pnpm run build:manifest                                  # 字体字节变了，App 包清单随之变
+pnpm run verify:unit && bash ios/ShiziApp/scripts/verify-local.sh
 ```
 
 - `--source-cache <目录>`：用已下载的上游（目录下按锁文件的 `path` 摆放，如上一次输出目录）离线重建，仍逐个核 SHA。

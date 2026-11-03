@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.3 的 op（续）：卡片 / 题库访问、结构、作品成员与取墨、首练结果页、提醒题目、墨编解码、V8 数学函数。参考实现见 scripts/core-diff/lib/js-ops-b43.mjs。
+// B4.3 的 op（续）：卡片 / 题库访问、结构、作品成员与取墨、首练结果页、提醒题目、墨编解码、V8 数学函数。JS 参考实现已随 D84 退役。
 
 extension CoreEngine {
     // MARK: cards / deck

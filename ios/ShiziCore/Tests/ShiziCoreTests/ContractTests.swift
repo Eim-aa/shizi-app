@@ -3,7 +3,7 @@ import XCTest
 @testable import ShiziCore
 
 // test/core/contract.test.mjs 的转写（4 个用例，用例名保留原名）。
-// 契约测试：core 产出的记录 / 调度项 / 会话必须通过 store 形状表。JS 的 core 是参考实现：夹具 contract.json（node scripts/core-golden/domains/contract.mjs）
+// 契约测试：core 产出的记录 / 调度项 / 会话必须通过 store 形状表。JS 的 core 是参考实现：夹具 contract.json（冻结；生成脚本已删）
 // 由真实的 makeRecord / correctRecord / applyJudgment / replay / sessions.*（整个生命周期每一步）造出，Swift 这边对每一条跑 Schema 校验并走模型往返逐字节不变。
 // （B4.2 的 Swift 版 fsrs / sessions 产出的值由它们自己的测试与随机差分过同一张形状表。）
 

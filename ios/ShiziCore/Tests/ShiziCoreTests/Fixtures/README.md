@@ -2,7 +2,7 @@
 
 这个目录里的 JSON 是 ShiziCore 的**冻结回归夹具**（D84，2026-11-03）。
 
-- 它们原本由 `scripts/core-golden/golden.mjs` 用 JS 参考引擎生成，在 Swift 与 JS 逐字节对照时是「金标准」。网页版和仓库里的 JS 已随 D84 退役，**JS 对照工具（`scripts/core-diff/` 等）已删，夹具不再重生成**（`scripts/core-golden/` 里的生成脚本暂留到清扫卡 D 一并删除，已无法运行，不要再用）。要找回对照工具看 Git 历史（D84 清扫前的提交）。
+- 它们原本由 `scripts/core-golden/golden.mjs` 用 JS 参考引擎生成，在 Swift 与 JS 逐字节对照时是「金标准」。网页版和仓库里的 JS 已随 D84 退役，**JS 对照工具（`scripts/core-diff/` 等）已删，夹具不再重生成**（`scripts/core-golden/` 里的生成脚本已在 D84 清扫卡 D 删除）。要找回对照工具看 Git 历史（D84 清扫前的提交）。
 - 以后它们只做一件事：钉住 ShiziCore **现在的行为**，让回归测试（`GoldenTests`、`ScheduleGoldenTests`、`ContractTests`、`SessionContractTests`、`ViewParityTests`、`ImageParityTests`、`BackupRoundTripTests` 等）在行为意外改变时报错。
 - 规则**有意改了**（产品决定改规则，如 D83 调度规则 v2）：直接改夹具 JSON 里受影响的条目，或把受影响的 op 加进测试里的退役跳过表，**并在提交说明里写清是哪条决定**。不要想着重新生成整份。
 - 现有的退役跳过表保留，不要删：

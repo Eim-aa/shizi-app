@@ -1,5 +1,5 @@
 {
-  "//": "B3.3 覆盖门禁（test/native-ui-coverage.test.mjs）：B3B4 §1 的每个已注册屏、弹层、浮条，至少有一个带网页参考图的状态夹具（夹具的 screen / overlay / floater 字段指向它），或在 notApplicable 里写明不适用的理由。新注册一屏 / 新弹层时，测试先红，逼着在这里登记（有夹具就写进 screens / overlays，没有就写 notApplicable + 理由）。",
+  "//": "B3.3 覆盖门禁（test/native-ui-coverage.test.mjs）：B3B4 §1 的每个已注册屏（Swift 的 @objc(ShiziScreen_…) 与写字三页）、弹层、浮条，至少有一个带原生基线的状态夹具（夹具的 screen / overlay / floater 字段指向它），或在 notApplicable 里写明不适用的理由。新注册一屏 / 新弹层时，测试先红，逼着在这里登记（有夹具就写进 screens / overlays，没有就写 notApplicable + 理由）。",
   "screens": [
     "home", "library", "mine",
     "library-all", "library-list", "library-switch",

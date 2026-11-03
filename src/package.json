@@ -1,4 +1,0 @@
-{
-  "//": "让 node:test 把本目录 .js 当 ES 模块解析（浏览器按 type=module 加载，不读此文件；不进壳清单）。",
-  "type": "module"
-}

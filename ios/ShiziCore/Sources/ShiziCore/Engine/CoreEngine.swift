@@ -1,7 +1,7 @@
 import Foundation
 
 // ShiziCore 的 op 表与 JSON 行协议（B4.0；计划 §4.2 / §4.3 ④；协议全文见 ios/ShiziCore/README.md）。
-// 参考实现是 scripts/core-diff/lib/js-engine.mjs（同一张 op 表、同一套参数校验、同一种错误码），两边逐字段 / 逐字节差分。
+// 当年的 JS 参考引擎（同一张 op 表、同一套参数校验、同一种错误码）与逐字段差分已随 D84 退役。
 //   请求：{"id"?: any, "op": string, "args"?: object, "state"?: false}
 //   回包：{"id"?: any, "ok": true, "reply": any, "state": {...}} | {"id"?: any, "ok": false, "error": {"code", "message"}, "state": {...}}
 // 状态快照 = 引擎全部可观察状态（B4.0 只有 clock 与通用 kv；B4.4 起换成 store 的各域）。op 先校验后改状态：失败的 op 不改状态。

@@ -2,7 +2,7 @@
 
 拾字的规则与数据层的 Swift 版（原生化第④步，B4）。只依赖 Foundation。计划与验收见 [B3B4-原生化架构与计划.md](../../docs/engineering/v10/B3B4-原生化架构与计划.md) §4、§6.2。
 
-**参考实现是 JS**（`src/` 的无 DOM 集）。Swift 版每一个可观察行为都要与 JS 逐字段相等，连 JS 的边角行为一起照搬（两位年怪癖、无效时间得 `"NaN-NaN-NaN"` 等）；发现不同时以 JS 为准，除非产品决定改规则（那就两边一起改，差分会拦住只改一边）。
+**D84（2026-11-03）起 Swift 是唯一实现**：网页版和仓库里的 JS 引擎已删除。ShiziCore 当年是 JS（`src/` 的无 DOM 集）的逐字段移植，连 JS 的边角行为一起照搬（两位年怪癖、无效时间得 `"NaN-NaN-NaN"` 等）——这些行为现在由 `Tests/ShiziCoreTests/` 的转写用例和冻结夹具钉住；下文提到的 `src/...js`、`scripts/core-diff`、`golden.mjs` 都是移植时的历史说明（要找回看版本历史，D84 清扫前的提交）。产品决定改规则时，直接改 Swift、测试与夹具里受影响的条目，并在提交说明里写清是哪条决定。
 
 ## 结构
 
@@ -82,7 +82,7 @@ B4 期间 ShiziCore 对 JS 参考引擎做过四层等价性核对（金标准�
 
 ### 与 V8 逐位对齐的数学函数（B4.3）
 
-墨宽（`decodeInk` v4 → `buildStroke`）对 `Math.exp` / `Math.hypot` 的每一位都敏感，落盘与差分都按字节比，所以 `JSMath` 复刻 V8 的实现而不用 libm：`Math.hypot` = 先按最大值缩放再 Kahan 求和（`builtins/math.tq`）；`Math.exp` = fdlibm（`base/ieee754.cc`，含 exp(1) = E 的特例）。**arm64 的 clang 会把 C++ 里的 `a*b+c` 合成 fma，所以参考值依赖平台**：这里的 `exp` 在会被合成的位置用 `addingProduct`，与 arm64 Mac 上的 Node 逐位一致（`scripts/core-diff` 的 `jsmath.exp` 随机差分是证据）；x86-64 的 Node 没有这个合成，金标准要在 arm64 上生成与核对（CI 同 dev 机）。
+墨宽（`decodeInk` v4 → `buildStroke`）对 `Math.exp` / `Math.hypot` 的每一位都敏感，落盘与差分都按字节比，所以 `JSMath` 复刻 V8 的实现而不用 libm：`Math.hypot` = 先按最大值缩放再 Kahan 求和（`builtins/math.tq`）；`Math.exp` = fdlibm（`base/ieee754.cc`，含 exp(1) = E 的特例）。**arm64 的 clang 会把 C++ 里的 `a*b+c` 合成 fma，所以参考值依赖平台**：这里的 `exp` 在会被合成的位置用 `addingProduct`，与 arm64 Mac 上的 Node 逐位一致（当年 `scripts/core-diff` 的 `jsmath.exp` 随机差分是证据）；x86-64 的 Node 没有这个合成，金标准要在 arm64 上生成与核对（CI 同 dev 机）。
 
 ### 加一个域
 
@@ -97,9 +97,9 @@ B4 期间 ShiziCore 对 JS 参考引擎做过四层等价性核对（金标准�
 
 `Views/` 已覆盖 `src/session/views/*.js` 全部 17 个文件；共享 JSValue / copy 引用构造在 ViewSupport，84 个纯模型 / 辅助 / 提交适配 op 在 ViewOps，JS 镜像调用真实函数。query 文件名为 QueryView.swift，避免与核心 Query.swift 的 SwiftPM 同名编译冲突。记录索引与月份计算在 Mine.swift；记忆分区 / 墙规则在 Library.swift，供其他视图复用。
 
-`views` 域每个种子的前 84 步逐项覆盖全部 op；`node scripts/core-diff/run.mjs --only views --seeds 200 --steps 84` 比较值和 JSON 字节。`view-shapes.mjs` 另对 200 seeds 记录各 op 结果形状并强制检查四库、六首页态、四查字态、清单 / 排序 / 筛选 / 计划 / 缺墨分支；已纳入 verify:core-diff。
+当年 `views` 域每个种子的前 84 步逐项覆盖全部 op，`core-diff` 比较值和 JSON 字节（D84 起该差分已退役，下面的夹具与 ViewParityTests / ViewRuleTests 是现存的回归）。
 
-`views-basic.json` 保留 640 条；第二套 `views-pages.json` 为 10 个状态 × 52 个新增 op × 2 时区 = 1,040 条。两套均由 golden.mjs 的 `--check` 守同步，ViewParityTests / ViewRuleTests 核对夹具并转写规则断言。提醒提交与 query.add 适配器走真实内存 Store，比较失败 / 重试 / no-op 的每次回包和完整状态。
+`views-basic.json` 保留 640 条；第二套 `views-pages.json` 为 10 个状态 × 52 个新增 op × 2 时区 = 1,040 条。两套夹具已冻结（不再重生成），ViewParityTests / ViewRuleTests 核对夹具并转写规则断言。提醒提交与 query.add 适配器走真实内存 Store，比较失败 / 重试 / no-op 的每次回包和完整状态。
 
 折行保留 JS 的 provider 注入契约：`breaks` 参数按 kind 提供测量数组，非法返回 / 抛错 / 无 provider 都是 null。实际 DOM / 字体测量属于渲染器边界；不会在 Swift 规则里猜测断行。没有接 App、改变产品规则或运行 iOS 模拟器。
 
@@ -109,9 +109,9 @@ B4 期间 ShiziCore 对 JS 参考引擎做过四层等价性核对（金标准�
 
 本卡 12/12 行已完成：完整结果模型/页面视图、write/result 宿主注入、邀请权限等待、近期墨迹 cache、提示 helper/provider、真实图片和首页/字库动作、query/S02 异步回调、数据/环境/折行 provider、changed feed 与提醒 controller。宿主通过 `WriteDependencies`、`SessionActionHooks` 注入平台函数；异步操作使用 `SessionRuntime.callAsync`。`PageRegisteredActions.install` 登记真实 S02 结束旧组/开新组回调，导航事件交给宿主（`s02-close` 是关框控制事件）。image.render/save 继续由 B4.6 的 native renderer 提供。
 
-`verify:core-diff` 强制执行 25-family 成功/失败门禁（2,014 次全回复/状态比较），另跑 session 200×300、四时区差分及 store 专项。契约金标准 220 场景/1,196 步，两时区×两后端，保留原名/路径和 --check。write 的非确定性能采样 ms 是唯一去掉的字段。
+当年 `verify:core-diff` 强制执行 25-family 成功/失败门禁（2,014 次全回复/状态比较），另跑 session 200×300、四时区差分及 store 专项（D84 起退役）。契约金标准 220 场景/1,196 步，两时区×两后端，夹具冻结。write 的非确定性能采样 ms 是唯一去掉的字段。
 
-最终门禁：Swift 640/640；unit 1680 pass / 0 fail / 1 既有 todo；core-diff、copy/data、所有 fixture --check 全过。详细范围、边界、JS 原行为及逐行提交见 [B4.5a-core-移植状态.md](../../docs/engineering/v10/B4.5a-core-移植状态.md)。App 接线与删除 JS 按后续卡的验收执行。
+B4.5a 当时的最终门禁：Swift 640/640；unit 1680 pass / 0 fail / 1 既有 todo；core-diff、copy/data、所有 fixture --check 全过（历史记录）。详细范围、边界、JS 原行为及逐行提交见 [B4.5a-core-移植状态.md](../../docs/engineering/v10/B4.5a-core-移植状态.md)。App 接线与删除 JS 按后续卡的验收执行。
 
 ### B4.5c / B4.7 宿主注入口
 

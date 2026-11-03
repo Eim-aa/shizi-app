@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.9a：导航层的纯规则（src/ui/route-memory.js 的纯函数部分 + src/ui/engine.js validPrefix；JS 是参考实现，core-diff 域 nav 逐条核对）。
+// B4.9a：导航层的纯规则（src/ui/route-memory.js 的纯函数部分 + src/ui/engine.js validPrefix；当年 JS 是参考实现并逐条核对过，D84 起 JS 已退役）。
 //   routeStackOf / encodeRoute / parseRoute / routeFresh / RESTORE_GUARDS / planColdStart / validPrefix
 // 屏名表（getScreen 的 tab 与否）见 NavScreens。
 

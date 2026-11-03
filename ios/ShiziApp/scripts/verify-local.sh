@@ -51,9 +51,7 @@ run_logged "Verify content corpus" "${LOG_DIR}/verify-content-corpus.log" \
   node "${REPO_ROOT}/scripts/verify_content_corpus.cjs"
 run_logged "Verify static assets" "${LOG_DIR}/verify-assets.log" \
   node "${REPO_ROOT}/scripts/verify_assets.mjs"
-run_logged "Verify service worker unit" "${LOG_DIR}/verify-sw-unit.log" \
-  node "${REPO_ROOT}/scripts/verify_sw_unit.mjs"
-# D84（卡 B）：网页 PWA 升级门禁（scripts/verify_pwa_upgrade.js）不再跑——网页版已决定删除，语境覆盖移出 data/ 后网页壳不再完整。
+# D84：网页版（service worker / PWA 升级门禁）已删除，这里不再有对应步骤。
 
 if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$REPO_ROOT" diff --check

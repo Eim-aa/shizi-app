@@ -16,7 +16,7 @@
 
 App 包里的 `Web/` 只放原生仍在读的资源：`data/`（笔顺 / 字源 JSON，原生直读 `Web/data/<字>.json`）、`fonts/`（`NativeType` / `ShiziScreen` / 图片渲染器读 `Web/fonts/*.woff2`）与 `licenses/`，外加关于页的版本行 `Web/build-info.json`。清单是 `scripts/app-bundle-manifest.txt`（`pnpm run build:manifest` 按 `scripts/build_shell_manifest.mjs` 的 `APP_BUNDLE_ROOTS` 生成），Xcode 的「Sync Web Assets」阶段（`scripts/sync-web-assets.sh`）用 `rsync --files-from=` 逐个复制，并断言网页壳（`src/`、`vendor/`、`index.html`、`sw.js` …）**不**在包里。改了 `data/` / `fonts/` / `licenses/` 先重新生成清单（`pnpm run verify:unit` 会报过期）。
 
-声音（判断声 j1 三变体与落款声 s1，CAF）是 App 的原生资源 `ShiziApp/Sounds/`（包里 `Sounds/`，`SoundPlayer.swift` 播放；`scripts/sound/gen.mjs` 生成，网页用同样采样的 WAV 在 `assets/sound/`）。题库、规则表、文案表在 ShiziCore 的资源包里（`verify-core-bundles.sh` 核对每个 `.copy` 目录真的进了包）。
+声音（判断声 j1 三变体与落款声 s1，CAF）是 App 的原生资源 `ShiziApp/Sounds/`（包里 `Sounds/`，`SoundPlayer.swift` 播放；`scripts/sound/gen.mjs` 生成（源 WAV 在 `assets/sound/`））。题库、规则表、文案表在 ShiziCore 的资源包里（`verify-core-bundles.sh` 核对每个 `.copy` 目录真的进了包）。
 
 ## 本地构建校验
 
@@ -125,7 +125,7 @@ ios/ShiziApp/scripts/run-device.sh
 
 不想用 xcconfig 时，也可以继续用环境变量传 `DEVELOPMENT_TEAM` 和 `BUNDLE_ID`。调试开发入口时加 `DEV_MODE=1`，脚本会用 `-shizi-dev` 启动参数打开等价 `?dev=1` 的版本。
 
-真机人工检查按 `ios/ShiziApp/DEVICE_QA.md`（第十稿 M7 版：书写与 Pencil、边缘返回与跟手、查字框键盘、字体、切后台与进程被杀、迁移、PWA 升级、通知 / 分享 / 相册、VoiceOver、iOS 15.x 低端机）。TestFlight 前复制一份，填上设备型号、iOS 版本、App 版本、被测 SHA 和结果。
+真机人工检查按 `ios/ShiziApp/DEVICE_QA.md`（第十稿 M7 版：书写与 Pencil、边缘返回与跟手、查字框键盘、字体、切后台与进程被杀、迁移、通知 / 分享 / 相册、VoiceOver、iOS 15.x 低端机）。TestFlight 前复制一份，填上设备型号、iOS 版本、App 版本、被测 SHA 和结果。
 
 ## 开发工具入口
 

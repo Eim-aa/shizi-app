@@ -3,7 +3,7 @@ import XCTest
 @testable import ShiziCore
 
 // B4.9a 金标准：导航层（ShiziCore Navigation/）↔ JS 参考（route-memory.js / engine.js / paper-transition.js / native-session.js 的导航那一半）。
-// 夹具由 node scripts/core-golden/golden.mjs --only nav 生成：冷启动判定、RESTORE_GUARDS、重载截短、提示键编解码，
+// 夹具当年由 JS 参考实现生成（D84 起冻结，生成脚本已删）：冷启动判定、RESTORE_GUARDS、重载截短、提示键编解码，
 // 以及导航镜像 + 宿主消息 + 来源记账 + 「去哪」规则的整串场景（三个时区）。
 
 final class GoldenNavTests: XCTestCase {

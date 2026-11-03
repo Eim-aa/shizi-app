@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { ROOT } from './helpers.mjs';
+import { ROOT, NEEDS_SWIFT } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { loadCorpus, blocklistWords, blockedWordHits } = require(path.join(ROOT, 'scripts/content-corpus.cjs'));
@@ -24,7 +24,7 @@ test('the blocklist holds every named sensitive word, grouped by category, witho
   for (const cat of ['name', 'political', 'sexual', 'stigma', 'compliance']) assert.ok(blocklist.categories[cat]?.words.length > 0, cat);
 });
 
-test('no prompt in the shipped corpus shows a blocked word (word, hint or gloss)', async () => {
+test('no prompt in the shipped corpus shows a blocked word (word, hint or gloss)', NEEDS_SWIFT, async () => {
   const { cards } = await loadCorpus(ROOT);
   assert.deepEqual(blockedWordHits(cards, WORDS), []);
   const by = new Map(cards.map(c => [c.target, c]));
@@ -34,7 +34,7 @@ test('no prompt in the shipped corpus shows a blocked word (word, hint or gloss)
   assert.ok(!/卖淫|生殖/.test(by.get('妓').visibleHint + by.get('茎').visibleHint));
 });
 
-test('a regenerated deck that brings a blocked word back is caught (word, promptHint and gloss)', async () => {
+test('a regenerated deck that brings a blocked word back is caught (word, promptHint and gloss)', NEEDS_SWIFT, async () => {
   const { cards } = await loadCorpus(ROOT, { sourcePatches: { 梅: { ans: '梅毒', ci: 0 } }, overrides: {} });
   assert.ok(blockedWordHits(cards, WORDS).some(h => h.target === '梅' && h.word === '梅毒'));
   const fake = [

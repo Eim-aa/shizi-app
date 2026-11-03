@@ -17,6 +17,7 @@ concurrency:
 #   unit-copy  — verify:unit (node:test) + verify:copy + verify:tokens
 # verify:governance 与 verify:content 要用 `swift build` 出的 shizi-core-cli（cards-dump）展开题库，ubuntu 上没有 Swift，
 # 且决定不加 macOS runner：这两项只在本机跑（pnpm run verify:data / bash ios/ShiziApp/scripts/verify-local.sh）。
+# verify:unit 里同样要展开题库的用例（content-blocklist、font-loader 覆盖）在非 macOS 上自动跳过（test/core/helpers.mjs NEEDS_SWIFT）。
 
 jobs:
   data:

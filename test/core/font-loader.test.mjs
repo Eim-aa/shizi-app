@@ -11,12 +11,13 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FACE_SOURCES, appTexts, codepointsOf, parseUnicodes } from '../../scripts/fonts/build_corpus.mjs';
+import { NEEDS_SWIFT } from './helpers.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const read = rel => readFileSync(join(ROOT, rel), 'utf8');
 const sha = buf => createHash('sha256').update(buf).digest('hex');
 const manifest = JSON.parse(read('fonts/coverage-manifest.json'));
-const texts = await appTexts();
+const texts = NEEDS_SWIFT.skip ? {} : await appTexts();
 
 /** 三个随包 face（文件名 = fonts/ 下的 WOFF2；App 的 NativeType 按 PostScript 名注册同一批文件）。 */
 const FACES = Object.freeze({
@@ -80,7 +81,7 @@ test('coverage manifest: three faces, sorted unique codepoints, file names serve
 
 for (const [face, sources] of Object.entries(FACE_SOURCES)) {
   for (const source of sources) {
-    test(`coverage ${face} ⊇ ${source}: 0 missing glyphs`, () => {
+    test(`coverage ${face} ⊇ ${source}: 0 missing glyphs`, NEEDS_SWIFT, () => {
       const text = texts[source];
       assert.ok(codepointsOf(text).size > 0, `${source} is not empty`);
       const missing = missingGlyphs(face, text);
@@ -89,7 +90,7 @@ for (const [face, sources] of Object.entries(FACE_SOURCES)) {
   }
 }
 
-test('DoD scope: every character of the copy and deck word/py is in all three faces or in ShiziKai as specified', () => {
+test('DoD scope: every character of the copy and deck word/py is in all three faces or in ShiziKai as specified', NEEDS_SWIFT, () => {
   const copyKai = missingGlyphs('ShiziKai:400', texts.copy);
   // 宋体要覆盖的文案不含只用黑体显示的键（build_corpus.mjs HEI_ONLY_COPY，P1-E5）
   const copySerif = missingGlyphs('ShiziSerifSC:400', texts.copySerif);
@@ -100,7 +101,7 @@ test('DoD scope: every character of the copy and deck word/py is in all three fa
   assert.ok(codepointsOf(texts.copy).size > 300, 'copy text actually loaded');
 });
 
-test('manifest "missing" lists only source-absent combining marks that no app text needs', () => {
+test('manifest "missing" lists only source-absent combining marks that no app text needs', NEEDS_SWIFT, () => {
   const needed = new Set([...codepointsOf(Object.values(texts).join('\n'))]);
   for (const [key, entry] of Object.entries(manifest)) {
     for (const m of entry.missing) {
@@ -112,7 +113,7 @@ test('manifest "missing" lists only source-absent combining marks that no app te
 
 // ---------------------------------------------------------------- 语料、报告、许可
 
-test('font corpus is current (scripts/fonts/build_corpus.mjs --check) and contains the frozen #180 F8 corpus', () => {
+test('font corpus is current (scripts/fonts/build_corpus.mjs --check) and contains the frozen #180 F8 corpus', NEEDS_SWIFT, () => {
   execFileSync(process.execPath, [join(ROOT, 'scripts/fonts/build_corpus.mjs'), '--check'], { stdio: 'pipe' });
   for (const name of ['kai', 'serif']) {
     const f8 = parseUnicodes(read(`scripts/fonts/corpus/f8/${name}-unicodes.txt`));

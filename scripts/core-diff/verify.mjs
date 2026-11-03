@@ -2,7 +2,7 @@
 // pnpm run verify:core-diff（B4.0）：ShiziCore 等价性门禁一条命令跑完。
 //   1. swift build -c release（shizi-core-cli）
 //   2. swift test（ShiziCoreTests：金标准 + 协议）
-//   3. 配置 / 数据资源与 src/ 同步（scripts/build_core_config.mjs --check）、金标准夹具与 JS 代码同步（scripts/core-golden/golden.mjs --check）
+//   3. 金标准夹具与 JS 代码同步（D84：配置 / 数据资源与会话资源是手改真相源，不再核对与 src/ 同步）（scripts/core-golden/golden.mjs --check）
 //   4. 差分驱动自检（JS ↔ JS、埋错必抓 + 缩小、协议语料 JS ↔ Swift）
 //   5. 随机差分 JS ↔ Swift：Asia/Shanghai 200 种子 × 300 步；America/New_York、Australia/Lord_Howe、America/Santiago 各 50 × 300
 //   5c. B4.9a：nav 域单独加量（Shanghai 200 × 100、New_York / Lord_Howe 各 50 × 100；--nightly 2000 / 300）
@@ -47,9 +47,7 @@ if (!argv.includes('--no-build')) {
 // G2：先生成笔顺 pack，StrokePackTests 才真比 7,218 个文件（否则跳过）
 step('笔顺 pack 生成（build/strokes.pack）', process.execPath, ['scripts/stroke-pack/build.mjs']);
 if (!argv.includes('--skip-swift-test')) step('swift test', 'swift', ['test', '--package-path', PKG]);
-step('配置与数据资源同步（build_core_config --check）', process.execPath, ['scripts/build_core_config.mjs', '--check']);
 step('金标准同步', process.execPath, ['scripts/core-golden/golden.mjs', '--check']);
-step('会话资源同步', process.execPath, ['scripts/core-golden/session-resources.mjs', '--check']);
 step('会话契约夹具同步', process.execPath, ['scripts/core-golden/session-contract.mjs', '--check']);
 step('会话分支覆盖', process.execPath, ['scripts/core-diff/session-shapes.mjs']);
 step('视图分支形状覆盖（200 种子）', process.execPath, ['scripts/core-diff/view-shapes.mjs']);

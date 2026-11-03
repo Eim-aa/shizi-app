@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.3 的两份生成数据（scripts/build_core_config.mjs → card-rules.json / unicode-scripts.json）：
+// B4.3 的两份生成数据（Bundled/card-rules.json / unicode-scripts.json，D84 起手改）：
 // 卡片规则（题面字串、四库规则表、buildCards 缺省值）与 JS 正则 \p{Script=…} 的码点区间。Swift 源码里没有汉字字面量，一律读这里。
 
 public enum CardRules {

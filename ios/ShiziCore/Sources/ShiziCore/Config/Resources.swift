@@ -1,6 +1,6 @@
 import Foundation
 
-// 生成的配置与数据资源（scripts/build_core_config.mjs → Resources/*.json）。Swift 源码里没有任何规则数值与汉字字面量：
+// 生成的配置与数据资源（Bundled/*.json，D84 起是手改的唯一真相源）。Swift 源码里没有任何规则数值与汉字字面量：
 // 一律从这里读（计划 B3B4 §4.1；--check 守与 src/ 同步）。资源是 SwiftPM 资源（Bundle.module，目录 Bundled/：iOS 包内不能有名为 Resources 的子目录，否则签名失败）。
 
 public enum CoreResources {

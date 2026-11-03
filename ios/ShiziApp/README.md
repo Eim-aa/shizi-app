@@ -43,7 +43,7 @@ ios/ShiziApp/scripts/verify-archive.sh work/Shizi.xcarchive
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziStoreTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO
 ```
 
-原生写字页与引擎的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入；颜色 / 字阶 / 文案 / 动效取构建期生成的 `ShiziKit/Generated/*.json`，改了 tokens / copy / motion 要跑 `node scripts/build_shizikit.mjs`），以及原生书写面的 `InkSurfaceTests`（笔锋模型金标准、点处理与几何、Pencil / 手掌 / 换字持住）：
+原生写字页与引擎的宿主测试（App 作测试宿主：真 store、原生 SQLite、写字会话 API、D07 失败注入；颜色 / 字阶 / 文案 / 动效取手改的 `ShiziKit/Generated/*.json`（D84：唯一真相源，见该目录 README，没有生成器）），以及原生书写面的 `InkSurfaceTests`（笔锋模型金标准、点处理与几何、Pencil / 手掌 / 换字持住）：
 
 ```bash
 xcodebuild test -project ios/ShiziApp/ShiziApp.xcodeproj -scheme ShiziWriteTests -destination 'platform=iOS Simulator,id=<udid>' CODE_SIGNING_ALLOWED=NO

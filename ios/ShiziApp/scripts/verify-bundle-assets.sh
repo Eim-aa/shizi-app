@@ -84,7 +84,7 @@ if plutil -extract CFBundleLocalizations.1 raw -o - "${APP}/Info.plist" >/dev/nu
   exit 65
 fi
 
-# A7（G19）启动底色：UILaunchScreen.UIColorName = Paper，且 Paper 颜色集已编进 Assets.car，并与 tokens.css 的 --p 同源。
+# A7（G19）启动底色：UILaunchScreen.UIColorName = Paper，且 Paper 颜色集已编进 Assets.car，并与 ShiziKitTokens.json 的 paper 同源。
 test "$(plutil -extract UILaunchScreen.UIColorName raw -o - "${APP}/Info.plist")" = "Paper" \
   || { echo "Info.plist UILaunchScreen.UIColorName is not Paper" >&2; exit 65; }
 test -f "${APP}/Assets.car" || { echo "Missing Assets.car" >&2; exit 65; }

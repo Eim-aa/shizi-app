@@ -1,4 +1,4 @@
-// 审查整改 P0-C / A7（G19）：iOS 启动底色。Assets 里的 Paper 颜色集与 src/config/tokens.css 的 --paper（浅 / 深；P1-E1a 前叫 --p）同源；
+// 审查整改 P0-C / A7（G19）：iOS 启动底色。Assets 里的 Paper 颜色集与 ShiziKitTokens.json 的 colors.*.paper（浅 / 深）同源（D84：该 JSON 是手改的真相源）；
 // UILaunchScreen.UIColorName = Paper；RootViewController（B4.9 前是 WebViewController）用 UIColor(named: "Paper")，不再写死 RGB。
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,11 +19,11 @@ function plistDict(xml, name) {
 }
 
 test('A7: Paper colorset equals the --paper token (light #F4EFE6 / dark #1B1814; P1-E1a, design system v1)', () => {
-  const tokens = readFileSync(join(ROOT, 'src/config/tokens.css'), 'utf8');
+  const tokens = JSON.parse(readFileSync(join(IOS, 'ShiziApp/ShiziKit/Generated/ShiziKitTokens.json'), 'utf8'));
   const paper = paperFromTokens(tokens);
-  assert.deepEqual(paper, { light: '#F4EFE6', dark: '#1B1814' }, 'tokens.css --paper');
+  assert.deepEqual(paper, { light: '#F4EFE6', dark: '#1B1814' }, 'ShiziKitTokens.json paper');
   const file = JSON.parse(read('ShiziApp/Assets.xcassets/Paper.colorset/Contents.json'));
-  assert.deepEqual(file, colorsetContents(paper), 'Paper.colorset/Contents.json is exactly what the generator emits from tokens.css');
+  assert.deepEqual(file, colorsetContents(paper), 'Paper.colorset/Contents.json is exactly what the generator emits from ShiziKitTokens.json');
   const [light, dark] = file.colors;
   assert.equal(light.appearances, undefined);
   assert.deepEqual(light.color.components, { alpha: '1.000', red: '0xF4', green: '0xEF', blue: '0xE6' });
@@ -38,7 +38,7 @@ test('A7: launch screen uses the Paper colour; the native root background reads 
   const swift = read('ShiziApp/RootViewController.swift');
   assert.match(swift, /UIColor\(named: "Paper"\)/, 'RootViewController uses UIColor(named: "Paper")');
   assert.ok(!/UIColor\(red: 0\.(937|106)/.test(swift), 'no hard-coded paper RGB left (#EFE7D3 / #1B1813)');
-  assert.match(read('scripts/verify-local.sh'), /generate-paper-colorset\.mjs" --check/, 'verify-local.sh checks the colorset against tokens.css');
+  assert.match(read('scripts/verify-local.sh'), /generate-paper-colorset\.mjs" --check/, 'verify-local.sh checks the colorset against ShiziKitTokens.json');
 });
 
 test('A7: verify-bundle-assets.sh checks the launch colour and the colorset in the built app', () => {

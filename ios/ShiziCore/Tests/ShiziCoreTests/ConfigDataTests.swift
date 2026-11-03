@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import ShiziCore
 
-// 生成资源（Resources/*.json）的读取与类型化访问。资源与 src/ 的同步由 node scripts/build_core_config.mjs --check 守，
+// 生成资源（Resources/*.json）的读取与类型化访问。D84：资源是手改的唯一真相源（Bundled/README.md），原先生成器保证的结构由本文件的类型表与 policy 覆盖测试守，
 // 两个引擎对同一资源的一致由差分域 config（config.get / deck.*）守；这里只验 Swift 侧读得出、取得到。
 
 final class ConfigDataTests: XCTestCase {
@@ -17,6 +17,141 @@ final class ConfigDataTests: XCTestCase {
             }
         }
         XCTAssertNil(Config.named("nope"))
+    }
+
+    // D84：policy.json 成了手改的唯一真相源，原来 build_core_config 从 policy.js 导出时顺带保证的「键齐全、类型对」改由这里守。
+    // 下表是 policy.json 的全部顶层导出与类型（当前学习规则是初版，见 D82，调整规则时同步改本表）；
+    // 之后是 App / 引擎用 Config.policyNumber / policyString / policyBool 按路径直接读的嵌套键。
+    private static let policyTopLevelKinds: [String: String] = [
+        "afterClearRestartFirst": "bool",
+        "afterSeenInkKeepDays": "number",
+        "answerSeenRating": "string",
+        "answerSeenScope": "string",
+        "assumedQuotaBytes": "number",
+        "axShortPrimaryFrom": "number",
+        "backGesture": "string",
+        "brushDetail": "bool",
+        "capitalNumerals": "object",
+        "compactMaxHeight": "number",
+        "compactTextScale": "number",
+        "contentSizeScale": "object",
+        "customIntoDaily": "string",
+        "dailyCapCountsPicked": "bool",
+        "dailyExpiry": "string",
+        "dailyPlan": "object",
+        "dailyReviewCap": "number",
+        "dayStartHour": "number",
+        "defaultLibrary": "string",
+        "devToolsParam": "string",
+        "epigraphRotation": "string",
+        "features": "object",
+        "firstQueue": "array",
+        "firstTip": "object",
+        "forgetCap": "number",
+        "forgetRule": "string",
+        "groupMix": "object",
+        "groupSize": "number",
+        "groupSizeOptions": "array",
+        "hintUseGroups": "bool",
+        "imageMaxChars": "number",
+        "imageMissingInk": "string",
+        "ink": "object",
+        "inkBudgetByGroupSize": "object",
+        "inkBudgetBytes": "number",
+        "inkFormat": "string",
+        "inkMaxPointsPerStroke": "number",
+        "inkMaxStrokes": "number",
+        "inkStoreTolerance": "object",
+        "inkToneDays": "array",
+        "keySoundEvents": "array",
+        "knownZone": "object",
+        "legacyPhotoCountsAsRecord": "bool",
+        "listDefaultSelect": "number",
+        "mainButtonLine": "object",
+        "migration": "object",
+        "monthSheetPick": "string",
+        "motion": "object",
+        "nativeStorage": "object",
+        "newUserRamp": "object",
+        "paperTransition": "object",
+        "pinyinSource": "string",
+        "queryCardInk": "string",
+        "queryInputMax": "null",
+        "queryModes": "array",
+        "ratingFirstCorrect": "string",
+        "ratingWithHint": "object",
+        "recordsBudgetBytes": "number",
+        "recordsFoldAfterDays": "number",
+        "remindDefault": "string",
+        "remindMode": "string",
+        "reminderBlank": "string",
+        "reminderOpens": "string",
+        "reminderPick": "string",
+        "reminderWord": "string",
+        "replaceConfirmShowsLostRange": "bool",
+        "returnSpread": "object",
+        "routeRestore": "object",
+        "s02EndOld": "string",
+        "sessionExpiry": "object",
+        "skipNewDeferDays": "number",
+        "skipScope": "string",
+        "skipUndo": "object",
+        "soundGainDb": "object",
+        "storageWarnRatio": "number",
+        "strokeSaveFailure": "string",
+        "traceHook": "object",
+        "undoAfterReload": "string",
+        "undoSnapshot": "string",
+        "wallMoreScope": "string",
+        "warmup": "object",
+        "writeGrid": "object",
+        "wrongFirst": "object",
+    ]
+    private static let policyDirectPathKinds: [String: String] = [
+        "nativeStorage.inkFormat": "string",
+        "nativeStorage.totalTargetBytes": "number",
+        "nativeStorage.recordsBudgetBytes": "number",
+        "nativeStorage.quotaBytes": "number",
+        "nativeStorage.inkBudgetBytes": "number",
+        "features.perRecordInk": "bool",
+    ]
+
+    private func kind(_ v: JSValue?) -> String {
+        switch v {
+        case .object?: return "object"
+        case .array?: return "array"
+        case .string?: return "string"
+        case .number?: return "number"
+        case .bool?: return "bool"
+        case .null?: return "null"
+        default: return "missing"
+        }
+    }
+
+    func testPolicyEveryTopLevelKeyExistsWithItsType() {
+        let policy = Config.policy.objectValue ?? JSObject()
+        XCTAssertEqual(Set(policy.keys), Set(Self.policyTopLevelKinds.keys), "policy.json keys = the pinned table (add / remove a key: edit this table too)")
+        for (key, expected) in Self.policyTopLevelKinds {
+            XCTAssertEqual(kind(policy[key]), expected, "policy.\(key)")
+        }
+    }
+
+    func testPolicyEveryDirectlyReadPathExistsWithItsType() {
+        for (path, expected) in Self.policyDirectPathKinds {
+            XCTAssertEqual(kind(Config.policyValue(path)), expected, "policy.\(path)")
+        }
+        // 取值器与类型一致
+        XCTAssertNotNil(Config.policyNumber("nativeStorage.quotaBytes"))
+        XCTAssertNotNil(Config.policyString("nativeStorage.inkFormat"))
+        XCTAssertNotNil(Config.policyBool("features.perRecordInk"))
+    }
+
+    func testPolicyMetaCoversExactlyThePolicyExports() {
+        let exports = PolicyCoverage.pMap.keys.sorted()
+        XCTAssertEqual(exports, (Config.policy.objectValue?.keys ?? []).sorted(), "policy-meta.json registers every policy export, and nothing else")
+        for e in PolicyCoverage.pMap.entries {
+            XCTAssertFalse((e.value["p"]?.arrayValue ?? []).isEmpty, "policy.\(e.key) carries a P number")
+        }
     }
 
     func testMotionTokens() {

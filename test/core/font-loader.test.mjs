@@ -1,38 +1,49 @@
-// M5-2 字体接入（决定-D13；01-架构设计 §8.4；03 P22）：
-//   fonts/ 运行包（三份 WOFF2 + fonts.css swap + coverage-manifest）、子集覆盖（第十稿文案全文 / 题记 / 四库名 / 题库 word·py·提示 / 字源，
-//   缺字为 0，读 coverage-manifest）、语料与构建报告和随包字体一致、许可随包；src/data/font-loader.js 精确字重、降级、canvas 注入口。
+// 随包字体门禁（M5-2 字体接入，决定-D13；01-架构设计 §8.4；03 P22；D84 改读原生资源）：
+//   fonts/ 运行包（三份 WOFF2 + fonts.css + coverage-manifest，都进 App 包）、子集覆盖（文案 copy.json / ShiziKitCopy.json、
+//   题记、四库名、题库 word·py·提示（ShiziCore 展开）、字源，缺字为 0，读 coverage-manifest）、语料与构建报告和随包字体一致、许可随包。
+//   这是「文案 / 题库新增汉字不在随包字体里」的唯一门禁（Swift 一侧没有等价检查）。
+//   D84 删了网页字体加载器 src/data/font-loader.js 的精确字重 / 降级 / canvas 注入测试与 index.html / tokens.css 的网页断言。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { ROOT } from './helpers.mjs';
-import {
-  FACES, FontError, MANIFEST_URL, checkFont, faceKey, firstFamily, inspectText, loadCoverageManifest,
-  requireCanvasFont, requireFont, resetFontLoader, validManifest,
-} from '../../src/data/font-loader.js';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { FACE_SOURCES, appTexts, codepointsOf, parseUnicodes } from '../../scripts/fonts/build_corpus.mjs';
-import { FONTS, renderSingleGlyph } from '../../src/core/images/render.js';
-import { paletteFromTokens } from '../../src/core/images/palette.js';
 
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const read = rel => readFileSync(join(ROOT, rel), 'utf8');
 const sha = buf => createHash('sha256').update(buf).digest('hex');
 const manifest = JSON.parse(read('fonts/coverage-manifest.json'));
 const texts = await appTexts();
-const lightPalette = paletteFromTokens(JSON.parse(read('docs/design/design-system-v1/tokens.json'))); // P1-E7：render.js 的色值读浅色令牌，node 下由调用方给
+
+/** 三个随包 face（文件名 = fonts/ 下的 WOFF2；App 的 NativeType 按 PostScript 名注册同一批文件）。 */
+const FACES = Object.freeze({
+  'ShiziKai:400': Object.freeze({ key: 'ShiziKai:400', family: 'ShiziKai', weight: 400, file: 'ShiziKai-Regular.woff2' }),
+  'ShiziSerifSC:400': Object.freeze({ key: 'ShiziSerifSC:400', family: 'ShiziSerifSC', weight: 400, file: 'ShiziSerifSC-Regular.woff2' }),
+  'ShiziSerifSC:500': Object.freeze({ key: 'ShiziSerifSC:500', family: 'ShiziSerifSC', weight: 500, file: 'ShiziSerifSC-Medium.woff2' }),
+});
+
+/** 文本（NFC）里不在 face 覆盖表中的字（换行 / 制表除外）。 */
+function missingGlyphs(face, raw) {
+  const supported = new Set(manifest[face].codepoints);
+  const chars = Array.from(String(raw ?? '').normalize('NFC'));
+  return [...new Set(chars.filter(c => !/[\n\r\t]/u.test(c) && !supported.has(c.codePointAt(0))))]
+    .map(char => ({ char, codepoint: `U+${char.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')}` }));
+}
 
 // ---------------------------------------------------------------- 运行包
 
-test('fonts/ ships exactly the web runtime payload (3 WOFF2 + fonts.css + coverage manifest), no TTF / scripts / reports', () => {
+test('fonts/ ships exactly the runtime payload (3 WOFF2 + fonts.css + coverage manifest), all in the app bundle manifest', () => {
   const names = readdirSync(join(ROOT, 'fonts')).filter(n => !n.startsWith('.')).sort();
   assert.deepEqual(names, ['ShiziKai-Regular.woff2', 'ShiziSerifSC-Medium.woff2', 'ShiziSerifSC-Regular.woff2', 'coverage-manifest.json', 'fonts.css']);
   for (const face of Object.values(FACES)) {
     const buf = readFileSync(join(ROOT, 'fonts', face.file));
     assert.equal(buf.subarray(0, 4).toString('latin1'), 'wOF2', `${face.file} is WOFF2`);
   }
-  const shell = read('scripts/shell-manifest.txt').split('\n');
-  for (const n of names) assert.ok(shell.includes(`fonts/${n}`), `fonts/${n} is in the shell manifest (run pnpm run build:manifest)`);
+  const bundle = read('scripts/app-bundle-manifest.txt').split('\n');
+  for (const n of names) assert.ok(bundle.includes(`fonts/${n}`), `fonts/${n} is in the app bundle manifest (run pnpm run build:manifest)`);
 });
 
 test('fonts.css: one @font-face per exact face, font-display: swap, url next to the css', () => {
@@ -50,39 +61,21 @@ test('fonts.css: one @font-face per exact face, font-display: swap, url next to 
   for (const f of parsed) {
     assert.equal(f.display, 'swap', `${f.family} ${f.weight} font-display swap (01 §8.4)`);
     assert.equal(f.style, 'normal');
-    assert.equal(FACES[`${f.family}:${f.weight}`].file, f.url, 'file name matches font-loader FACES');
+    assert.equal(FACES[`${f.family}:${f.weight}`].file, f.url, 'file name matches FACES');
   }
   assert.doesNotMatch(css, /font-weight:\s*\d+\s+\d+/, 'no weight ranges: exact static faces only');
-});
-
-test('index.html links fonts/fonts.css after base.css and before any script', () => {
-  const html = read('index.html');
-  const base = html.indexOf('<link rel="stylesheet" href="src/config/base.css">');
-  const fonts = html.indexOf('<link rel="stylesheet" href="fonts/fonts.css">');
-  assert.ok(base > 0 && fonts > base, 'fonts.css after base.css');
-  assert.ok(fonts < html.indexOf('<script'), 'before scripts');
-  assert.equal(html.split('fonts/fonts.css').length, 2, 'linked once');
-});
-
-test('tokens.css font stacks (P1-E1a: --kai / --song / --hei, moved from base.css) lead with the shipped families; --hei stays system', () => {
-  const css = read('src/config/tokens.css');
-  assert.match(css, /--kai:\s*"ShiziKai",/);
-  assert.match(css, /--song:\s*"ShiziSerifSC",/);
-  assert.doesNotMatch(/--hei:[^;]*;/.exec(css)[0], /Shizi/);
-  assert.equal(firstFamily(FONTS.kai), 'ShiziKai', 'canvas kai stack (core/images/render.js) leads with ShiziKai');
 });
 
 // ---------------------------------------------------------------- 覆盖（缺字为 0）
 
 test('coverage manifest: three faces, sorted unique codepoints, file names served from fonts/', () => {
-  assert.ok(validManifest(manifest));
   assert.deepEqual(Object.keys(manifest).sort(), Object.keys(FACES).sort());
   for (const [key, entry] of Object.entries(manifest)) {
     assert.equal(entry.file, FACES[key].file);
     const cps = entry.codepoints;
+    assert.ok(Array.isArray(cps) && cps.every(Number.isInteger), `${key} codepoints are integers`);
     assert.ok(cps.every((cp, i) => i === 0 || cp > cps[i - 1]), `${key} codepoints sorted and unique`);
   }
-  assert.equal(MANIFEST_URL, 'fonts/coverage-manifest.json');
 });
 
 for (const [face, sources] of Object.entries(FACE_SOURCES)) {
@@ -90,20 +83,21 @@ for (const [face, sources] of Object.entries(FACE_SOURCES)) {
     test(`coverage ${face} ⊇ ${source}: 0 missing glyphs`, () => {
       const text = texts[source];
       assert.ok(codepointsOf(text).size > 0, `${source} is not empty`);
-      const { missing } = inspectText(manifest, face, text);
+      const missing = missingGlyphs(face, text);
       assert.deepEqual(missing, [], `${face} lacks ${missing.map(m => `${m.char}(${m.codepoint})`).join(' ')} — run node scripts/fonts/build_corpus.mjs and rebuild (scripts/fonts/README.md)`);
     });
   }
 }
 
-test('DoD scope: every character of src/config/copy/ and deck word/py is in all three faces or in ShiziKai as specified', () => {
-  const copyKai = inspectText(manifest, 'ShiziKai:400', texts.copy).missing;
+test('DoD scope: every character of the copy and deck word/py is in all three faces or in ShiziKai as specified', () => {
+  const copyKai = missingGlyphs('ShiziKai:400', texts.copy);
   // 宋体要覆盖的文案不含只用黑体显示的键（build_corpus.mjs HEI_ONLY_COPY，P1-E5）
-  const copySerif = inspectText(manifest, 'ShiziSerifSC:400', texts.copySerif).missing;
-  const copySerifM = inspectText(manifest, 'ShiziSerifSC:500', texts.copySerif).missing;
-  const deckKai = inspectText(manifest, 'ShiziKai:400', texts.deckWords + texts.deckPinyin).missing;
+  const copySerif = missingGlyphs('ShiziSerifSC:400', texts.copySerif);
+  const copySerifM = missingGlyphs('ShiziSerifSC:500', texts.copySerif);
+  const deckKai = missingGlyphs('ShiziKai:400', texts.deckWords + texts.deckPinyin);
   assert.deepEqual([copyKai.length, copySerif.length, copySerifM.length, deckKai.length], [0, 0, 0, 0]);
   assert.ok(codepointsOf(texts.deckWords).size > 3000, 'deck text actually loaded');
+  assert.ok(codepointsOf(texts.copy).size > 300, 'copy text actually loaded');
 });
 
 test('manifest "missing" lists only source-absent combining marks that no app text needs', () => {
@@ -162,11 +156,11 @@ test('build scripts are the #180 originals; upstream licenses shipped unmodified
   }
 });
 
-test('THIRD_PARTY_NOTICES + credits list both fonts with OFL texts and the renaming notice', async () => {
+test('THIRD_PARTY_NOTICES + credits (ShiziCore Bundled/credits.json) list both fonts with OFL texts and the renaming notice', () => {
   const notices = read('THIRD_PARTY_NOTICES.md');
   assert.match(notices, /^## LXGW WenKai GB 1\.522 \(renamed ShiziKai\)$/m);
   assert.match(notices, /^## Noto Serif SC 2\.003 \(renamed ShiziSerifSC\)$/m);
-  const { CREDITS, LICENSE_TEXTS } = await import('../../src/config/credits.js');
+  const { CREDITS, LICENSE_TEXTS } = JSON.parse(read('ios/ShiziCore/Sources/ShiziCore/Bundled/credits.json'));
   const fonts = CREDITS.filter(c => c.kind === 'font');
   assert.deepEqual(fonts.map(c => c.name), ['LXGW WenKai GB', 'Noto Serif SC']);
   for (const c of fonts) {
@@ -174,126 +168,4 @@ test('THIRD_PARTY_NOTICES + credits list both fonts with OFL texts and the renam
     assert.ok(c.licenseFiles.includes('licenses/Shizi-fonts-COPYRIGHT-NOTICES.md'));
     for (const f of c.licenseFiles) assert.ok(LICENSE_TEXTS[f], `${f} text embedded`);
   }
-});
-
-// ---------------------------------------------------------------- font-loader
-
-function fakeFonts({ loaded = null, reject = null } = {}) {
-  const calls = [];
-  return {
-    calls,
-    ready: Promise.resolve(),
-    load(font, text) {
-      calls.push([font, text]);
-      if (reject) return Promise.reject(reject);
-      const m = /^(\d+) 32px "([^"]+)"$/.exec(font);
-      const face = loaded ? loaded(m[2], Number(m[1])) : { family: m[2], weight: m[1], style: 'normal', status: 'loaded' };
-      return Promise.resolve(face ? [face] : []);
-    },
-    check: () => true,
-  };
-}
-
-test('faceKey: key / object / CSS stack forms; non-Shizi and undeclared weights → null', () => {
-  assert.equal(faceKey('ShiziSerifSC:500'), 'ShiziSerifSC:500');
-  assert.equal(faceKey({ family: 'ShiziSerifSC', weight: 400 }), 'ShiziSerifSC:400');
-  assert.equal(faceKey('"ShiziKai","LXGW WenKai GB","Kaiti SC",serif'), 'ShiziKai:400');
-  assert.equal(faceKey("'ShiziSerifSC', serif", 500), 'ShiziSerifSC:500');
-  assert.equal(faceKey(FONTS.label), null, 'system sans stack');
-  assert.equal(faceKey('ShiziKai:500'), null, 'no ShiziKai 500');
-  assert.equal(faceKey('ShiziSerifSC:700'), null);
-});
-
-test('requireFont: exact weight loaded → resolves with NFC text; checks coverage before loading', async () => {
-  const fonts = fakeFonts();
-  const r = await requireFont('ShiziSerifSC:500', '拾字', { fonts, manifest });
-  assert.deepEqual(r, { face: 'ShiziSerifSC:500', family: 'ShiziSerifSC', weight: 500, text: '拾字', normalized: false, degraded: false });
-  assert.deepEqual(fonts.calls, [['500 32px "ShiziSerifSC"', '拾字']]);
-  const nfc = await requireFont('ShiziKai:400', 'à', { fonts: fakeFonts(), manifest });
-  assert.equal(nfc.text, 'à');
-  assert.equal(nfc.normalized, true);
-});
-
-test('requireFont: a 400 fallback hit for a 500 request is rejected (no implicit fallback)', async () => {
-  const fonts = fakeFonts({ loaded: family => ({ family: `"${family}"`, weight: '400', style: 'normal', status: 'loaded' }) });
-  await assert.rejects(() => requireFont('ShiziSerifSC:500', '拾', { fonts, manifest }), e => e instanceof FontError && e.code === 'FONT_UNAVAILABLE');
-  await assert.rejects(() => requireFont('ShiziKai:400', '拾', { fonts: fakeFonts({ loaded: () => null }), manifest }), /FONT_UNAVAILABLE/);
-  await assert.rejects(() => requireFont('ShiziKai:400', '拾', { fonts: fakeFonts({ loaded: f => ({ family: f, weight: 'normal', style: 'normal', status: 'error' }) }), manifest }), /FONT_UNAVAILABLE/);
-});
-
-test('requireFont: missing glyph / unreviewed combining mark reject before any load; load failure → FONT_LOAD_FAILED', async () => {
-  const fonts = fakeFonts();
-  await assert.rejects(() => requireFont('ShiziSerifSC:400', '𠮷', { fonts, manifest }), e => e.code === 'FONT_MISSING_GLYPHS' && e.missing[0].codepoint === 'U+20BB7');
-  await assert.rejects(() => requireFont('ShiziKai:400', 'ê̌', { fonts, manifest }), e => e.code === 'FONT_COMBINING_UNREVIEWED');
-  assert.equal(fonts.calls.length, 0);
-  await assert.rejects(() => requireFont('ShiziKai:400', '字', { fonts: fakeFonts({ reject: new Error('net') }), manifest }), e => e.code === 'FONT_LOAD_FAILED');
-  await assert.rejects(() => requireFont('Helvetica', '字', { fonts, manifest }), e => e.code === 'FONT_UNKNOWN_FACE');
-});
-
-test('requireFont: manifest unavailable → degraded to document.fonts.load only (still exact-weight checked)', async () => {
-  resetFontLoader();
-  const fonts = fakeFonts();
-  let fetched = 0;
-  const failing = async () => { fetched += 1; return { ok: false, status: 404 }; };
-  const r = await requireFont('ShiziKai:400', '𠮷', { fonts, fetch: failing });
-  assert.equal(r.degraded, true, 'coverage check skipped');
-  assert.equal(fetched, 1);
-  assert.equal(fonts.calls.length, 1);
-  assert.equal(await loadCoverageManifest({ fetch: async () => { throw new Error('offline'); } }), null);
-  assert.equal(await loadCoverageManifest({ fetch: async () => ({ ok: true, json: async () => ({ bogus: 1 }) }) }), null, 'bad shape → null');
-  const ok = await loadCoverageManifest({ fetch: async url => ({ ok: url === MANIFEST_URL, json: async () => manifest }) });
-  assert.equal(ok, manifest);
-});
-
-test('checkFont asks document.fonts.check with the exact weight', () => {
-  const seen = [];
-  const fonts = { check: f => { seen.push(f); return true; } };
-  assert.equal(checkFont('ShiziSerifSC:500', { fonts }), true);
-  assert.equal(checkFont('Arial', { fonts }), false);
-  assert.deepEqual(seen, ['500 16px "ShiziSerifSC"']);
-});
-
-test('requireCanvasFont: system stacks pass without loading; Shizi failures warn and resolve (fallback drawing)', async () => {
-  const fonts = fakeFonts();
-  assert.deepEqual(await requireCanvasFont(FONTS.label, '拾字', { fonts, manifest }), { ok: true, skipped: true });
-  assert.equal(fonts.calls.length, 0);
-  const ok = await requireCanvasFont(FONTS.kai, '字', { fonts, manifest });
-  assert.equal(ok.ok, true);
-  assert.equal(ok.face, 'ShiziKai:400');
-  const warn = console.warn;
-  const warned = [];
-  console.warn = (...a) => warned.push(a);
-  try {
-    const bad = await requireCanvasFont(FONTS.kai, '字', { fonts: fakeFonts({ reject: new Error('offline') }), manifest });
-    assert.equal(bad.ok, false);
-    assert.equal(bad.error.code, 'FONT_LOAD_FAILED');
-  } finally {
-    console.warn = warn;
-  }
-  assert.equal(warned.length, 1);
-});
-
-test('core/images/render.js awaits the injected requireFont before creating the canvas (the seal 「拾」 is a Path2D drawing: no font to wait for, R2-S2)', async () => {
-  const order = [];
-  const fonts = fakeFonts();
-  const fakeCanvas = (width, height) => {
-    order.push('canvas');
-    const ctx = new Proxy({ font: '' }, {
-      get: (t, p) => (p in t ? t[p] : p === 'measureText' ? s => ({ width: [...s].length * 26 }) : () => {}),
-      set: (t, p, v) => { t[p] = v; return true; },
-    });
-    return { width, height, dataset: {}, getContext: () => ctx };
-  };
-  const points = [[{ x: 100, y: 100, w: 12 }, { x: 240, y: 240, w: 12 }]];
-  const out = await renderSingleGlyph({
-    points, caption: 'yǒng · 9月22日', signatureText: '拾字', canvasFactory: fakeCanvas, palette: lightPalette,
-    requireFont: async (stack, text) => {
-      const r = await requireCanvasFont(stack, text, { fonts, manifest });
-      order.push(r.skipped ? 'skip' : `load:${r.face}`);
-      return r;
-    },
-  });
-  assert.equal(out.status, 'ready');
-  assert.deepEqual(order, ['skip', 'canvas']);
-  assert.deepEqual(fonts.calls, [], 'no font is loaded for the seal');
 });

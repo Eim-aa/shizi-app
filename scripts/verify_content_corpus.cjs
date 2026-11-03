@@ -1,8 +1,8 @@
-// Exercise the app's pure card expansion (src/core/cards.js) without loading UI or storage.
+// Exercise the app's native card expansion (ShiziCore Cards via shizi-core-cli cards-dump) over Bundled/deck.json.
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const path = require('node:path');
-const {loadCorpus, reviewedOverrides, protectedCardData, sha256, identity, issues, blocklistWords, blockedWordHits} = require('./content-corpus.cjs');
+const {loadCorpus, readDeck, readContextOverrides, legacyDeckDataText, reviewedOverrides, protectedCardData, sha256, identity, issues,
+  blocklistWords, blockedWordHits} = require('./content-corpus.cjs');
 
 const root = path.resolve(__dirname, '..');
 const approval = require('./fixtures/content-quality-approved.json');
@@ -13,8 +13,14 @@ async function main() {
 const current = await loadCorpus(root);
 const byKey = new Map(current.cards.map(card => [card.cardKey, card]));
 
-assert.equal(sha256(fs.readFileSync(path.join(root, 'deck-data.js'), 'utf8')), baseline.deckSha256,
+const deck = readDeck(root);
+// deckSha256 pins the generated seed/groups (as the text of the retired deck-data.js; content-corpus.cjs legacyDeckDataText).
+assert.equal(sha256(legacyDeckDataText(deck)), baseline.deckSha256,
   'Generated corpus changed; review its current governance baseline separately');
+// deck.json's overrides are a verbatim copy of the hand-edited scripts/content/context-overrides.json (build_8105_chars.py).
+assert.deepEqual(deck.overrides, readContextOverrides(root),
+  'deck.json overrides differ from scripts/content/context-overrides.json; rerun python3 scripts/build_8105_chars.py');
+assert.equal(JSON.stringify(deck.overrides), JSON.stringify(readContextOverrides(root)), 'deck.json overrides key order drifted');
 assert.equal(current.cards.length, baseline.cardCount);
 assert.equal(byKey.size, current.cards.length);
 // D50 ①（C1）：来源授权有问题而移除的 76 个字不得回到题库（回执见 audit/compliance-2026-10/）。

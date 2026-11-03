@@ -1,6 +1,6 @@
 // B4.1 ShiziCore 配置与数据资源的 node 侧门禁（不需要 Swift）：
 //   1. 生成物（ios/ShiziCore/Sources/ShiziCore/Bundled/*.json）与 src/ 同步——改了 policy / motion / char-order / epigraphs / copy / 题库就要重跑 node scripts/build_core_config.mjs；
-//   2. 生成物里没有 JS 专属的东西（函数 / undefined / 非有限数），资源自洽（deck.json = deck-data.js + context-overrides.js；policy-meta 的登记表覆盖全部 policy 导出）；
+//   2. 生成物里没有 JS 专属的东西（函数 / undefined / 非有限数），资源自洽（deck.json 的 overrides = scripts/content/context-overrides.json；policy-meta 的登记表覆盖全部 policy 导出）；
 //   3. 形状工厂（差分与金标准共用）造出的合法值全过 schema，变异值有相当比例被拒；
 //   （Swift 与 JS 的 op 表同名由 core-diff.test.mjs 核对。）
 import test from 'node:test';
@@ -42,14 +42,12 @@ test('core-config: policy-meta registers a P number for every policy export and 
   assert.deepEqual(meta.registered.filter((p) => !meta.covered.includes(p)), []);
 });
 
-test('core-config: deck.json = deck-data.js SEED / GROUPS + context-overrides.js', () => {
+test('core-config: deck.json overrides = scripts/content/context-overrides.json; seed and groups cover the same characters (D84)', () => {
   const deck = deckSources();
-  const file = JSON.parse(fs.readFileSync(path.join(OUT_DIR, 'deck.json'), 'utf8'));
-  assert.equal(file.seed.length, deck.seed.length);
-  assert.deepEqual(file.seed, JSON.parse(JSON.stringify(deck.seed)));
-  assert.deepEqual(file.overrides, JSON.parse(JSON.stringify(deck.overrides)));
-  assert.deepEqual(file.groups, JSON.parse(JSON.stringify(deck.groups)));
-  assert.ok(file.seed.length > 7000 && Object.keys(file.overrides).length > 800);
+  const overrides = JSON.parse(fs.readFileSync(path.join(OUT_DIR, '../../../../../scripts/content/context-overrides.json'), 'utf8'));
+  assert.equal(JSON.stringify(deck.overrides), JSON.stringify(overrides), 'rerun python3 scripts/build_8105_chars.py');
+  assert.deepEqual(deck.seed.map((r) => r.target), Object.keys(deck.groups));
+  assert.ok(deck.seed.length > 7000 && Object.keys(deck.overrides).length > 800);
 });
 
 test('core-config: shape factories produce valid values; mutations are mostly rejected', () => {

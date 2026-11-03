@@ -36,8 +36,3 @@ Taiwan MOE stroke-order site, STKaiti outlines) were removed on 2026-10-04
   any later version — `licenses/LGPL-3.0.txt`, which incorporates
   `licenses/GPL-3.0.txt`. This file is itself the preferred form for
   modifying these records.
-
-## Context-word overrides: `data/context-overrides.js`
-
-Project-authored content (reviewed context words, readings and hints); covered
-by the root `LICENSE`.

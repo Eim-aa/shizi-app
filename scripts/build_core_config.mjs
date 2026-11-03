@@ -18,7 +18,7 @@
 //   copy.json          src/config/copy 合并后的 COPY（键 → 字串 | 字串数组）
 //   card-rules.json    卡片规则数据（B4.3）：{promptCopy: 题面字串（PROMPT_COPY）, libraries: 四库规则表（LIBRARY_RULES）, defaults: buildCards 缺省值（CARD_DEFAULTS）}
 //   unicode-scripts.json  JS 正则 \p{Script=Han} / \p{Script=Latin} 的码点区间 {han: [[lo, hi]…], latin: […]}（node 的 Unicode 版本；Swift 标准库没有 Script 属性）
-//   deck.json          题库：{seed: SEED, overrides: CONTEXT_OVERRIDES, groups: GROUPS}（deck-data.js + data/context-overrides.js）
+//   deck.json          题库：{seed, overrides, groups}（D84：由 scripts/build_8105_chars.py 写，本脚本只读，见 deckSources()）
 //
 // 生成物提交进仓库（和 deck-data.js / char-order.js 一样）；Xcode 工程接入（B4.5）时在构建阶段跑本脚本，`--check` 守不同步。
 // 差分的 JS 参考引擎（scripts/core-diff/lib/js-ops-b41.mjs 的 config.get / deck.*）读同一个 sources() / deckSources()，所以 Swift 读到的 JSON 与 JS 直接 import 的值逐字段对得上。
@@ -106,17 +106,17 @@ async function deckLibraries() {
   }
 }
 
-/** 题库原始数据 {seed, overrides, groups}（deck-data.js 与 data/context-overrides.js 在 vm 里求值）。 */
+/**
+ * 题库原始数据 {seed, overrides, groups}。D84 起 deck.json 本身是题库的真相源：由 scripts/build_8105_chars.py 写
+ * （seed / groups 来自字表管线，overrides 原样取自 scripts/content/context-overrides.json），本脚本只读它。
+ */
 export function deckSources() {
-  const deck = vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'deck-data.js'), 'utf8') + '\n;({ seed: SEED, groups: GROUPS })');
-  const overrides = vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'data/context-overrides.js'), 'utf8') + '\n;CONTEXT_OVERRIDES');
-  return { seed: deck.seed, overrides, groups: deck.groups };
+  return JSON.parse(deckText());
 }
 
+// deck.json 原样列进生成物，让 --check 的「多余文件」检查认得它（内容不由本脚本决定）。
 function deckText() {
-  const { seed, overrides, groups } = deckSources();
-  // 一行一张卡，便于审阅 diff；其余各占一行。
-  return '{"seed":[\n' + seed.map((r) => JSON.stringify(r)).join(',\n') + '\n],\n"overrides":' + JSON.stringify(overrides) + ',\n"groups":' + JSON.stringify(groups) + '}\n';
+  return fs.readFileSync(path.join(OUT_DIR, 'deck.json'), 'utf8');
 }
 
 /** 正则断言为真的码点区间（闭区间）。 */

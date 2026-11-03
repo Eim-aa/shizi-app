@@ -99,7 +99,22 @@ export function makeCtx(r) {
  * @param {string[]|null} only  只用这些域（B4.4：store 域单独加量跑；缺省全部）
  * @returns {Array<object>}  请求对象（{ __raw } 表示原样发送的坏行）
  */
-export function generate(seed, steps, available, only = null) {
+/**
+ * S2（调度规则 v2，D83）：规则改了、不再与 JS 对照的 op（D82：JS 不再是参考；由 Swift 自己的测试守——
+ * ios/ShiziCore/Tests/ShiziCoreTests/TodayPlanTests.swift、TodayPlanSimulationTests.swift）。随机差分不再生成它们；
+ * sched / session 两个域整域退役（verify.mjs 的随机差分只跑其余的域），这里管其余域里个别受影响的 op。
+ * 与 Swift 金标准的跳过表（GoldenTests.swift d83RetiredGoldenOps）同一份。
+ */
+export const D83_RETIRED_OPS = new Set([
+  'mix.pressureOf', 'mix.newTargetOf', 'mix.planGroup', 'mix.dueReviewsDoneOn', 'mix.newUserCapOf',
+  'sessions.wrongReserveOf', 'groupSize.dailyReviewCapOf', 'spread.returnSpreadPlan', 'spread.returnSpreadPerDay',
+  'sessions.selectDaily', 'start.planDaily', 'start.startDaily', 'start.startNextA', 'start.expireStale',
+  'fsrs.replay', 'fsrs.applyAnswerSeen', 'fsrs.applyJudgment', 'fsrs.reviewCard',
+  'view.home', 'view.home.model', 'view.home.helpers', 'view.mine', 'view.mine.helpers', 'view.library', 'view.library.plan',
+]);
+
+export function generate(seed, steps, available0, only = null) {
+  const available = new Set([...available0].filter((op) => !D83_RETIRED_OPS.has(op)));
   const g = makeCtx(rng(seed));
   g.available = available;
   for (const d of DOMAINS) if (d.prepare) d.prepare(g);

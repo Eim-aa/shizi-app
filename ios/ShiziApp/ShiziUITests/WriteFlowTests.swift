@@ -324,7 +324,7 @@ final class WriteFlowTests: XCTestCase {
         qa.tapNative("native-write-next")
         qa.waitProbe("next card") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 1 }
         XCTAssertEqual(qa.kinds["judged"] ?? 0, 0, "看答案 does not judge")
-        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 5 个")
+        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 6 个", "D83: seeing the answer = wrong → the char comes back 3 later")
     }
 
     /// §4：描一遍阶段杀进程重开，恢复到描一遍（AI 流程报告已验证路径 5）。
@@ -368,7 +368,7 @@ final class WriteFlowTests: XCTestCase {
         qa.waitProbe("advanced") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 1 }
         XCTAssertEqual(qa.probe["judgedWrong"] as? Int, 1)
         XCTAssertEqual(qa.probe["sched"] as? Int, 1)
-        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 5 个")
+        XCTAssertEqual(qa.el("native-write-progress").label, "第 2 个字，共 6 个", "D83: a wrong char comes back 3 later (queue + 1)")
         XCTAssertTrue(qa.el("native-write-line").label.contains("记为写错"), "line: \(qa.el("native-write-line").label)")
         XCTAssertTrue(qa.el("native-write-line-change").exists, "修改 › shown")
         XCTAssertEqual(qa.native["phase"] as? String, "recall")
@@ -434,13 +434,13 @@ final class WriteFlowTests: XCTestCase {
     func test602_skipTheLastCharGoesToResultWithUndo() {
         let qa = QA(seed: "last")
         qa.launch()
-        XCTAssertEqual(qa.el("native-write-progress").label, "第 5 个字，共 5 个")
+        XCTAssertEqual(qa.el("native-write-progress").label, "第 6 个字，共 6 个") // D83：第 1 个字写错，隔 3 个字重考过了
         qa.tapNative("native-write-skip")
         // 撤销窗口只有 5 秒：直接等撤销条（原生结果页上），路由与写字页的断言放到撤销之后
         qa.waitProbe("skip undo handed to the result page (S4)") { (($0["result"] as? [String: Any])?["undoBar"] as? Bool) == true } // B2.7：原生结果页的撤销条
         qa.tapUndoBar()
         qa.waitNative(true)
-        qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 4 }
+        qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 5 } // D83：前面有一次重考
         XCTAssertEqual(qa.kinds["skipped"] ?? 0, 0)
     }
 
@@ -528,7 +528,7 @@ final class WriteFlowTests: XCTestCase {
         let start = qa.feedback.count
         let j = ["j1_page_settle", "j1_page_settle_b", "j1_page_settle_c"]
         var expected: [String] = []
-        for i in 0..<5 {
+        for i in 0..<6 { // D83：第 2 个字写错，组末重考一次（共 6 次判断）
             qa.waitProbe("recall \(i)") { (($0["native"] as? [String: Any])?["phase"] as? String) == "recall" && ((($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int) == i }
             Thread.sleep(forTimeInterval: 0.6)
             let sounds0 = qa.feedback.dropFirst(start).filter { $0.hasPrefix("sound:") }.count
@@ -546,7 +546,7 @@ final class WriteFlowTests: XCTestCase {
         let sounds = Array(qa.feedback.dropFirst(start).filter { $0.hasPrefix("sound:") })
         XCTAssertEqual(sounds.filter { $0 == "sound:s1_wood_muted" }.count, 1, "the seal s1 sounds exactly once on the result page: \(qa.feedback)")
         XCTAssertEqual(sounds.last, "sound:s1_wood_muted", "s1 is the last sound: \(qa.feedback)")
-        XCTAssertEqual(Array(sounds.dropLast()), expected, "5 judgments rotate j1 / _b / _c / j1 / _b: \(qa.feedback)")
+        XCTAssertEqual(Array(sounds.dropLast()), expected, "6 judgments rotate j1 / _b / _c / j1 / _b / _c: \(qa.feedback)")
     }
 
     /// 80-s1-sound（描红部分）：看答案后的描一遍、再描一遍落笔都没有声音。

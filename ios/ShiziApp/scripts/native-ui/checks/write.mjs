@@ -84,7 +84,9 @@ export const CHECKS = [
   },
   {
     id: 'NP-22', status: 'pass', level: '中', title: '同一组笔画的墨区与网页重合（R11-A，D72 ②：原生墨与网页同一算法）',
-    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-daily', 'result-first', 'result-early', 'result-undo', 'result-sheet', 'redo-ink', 'redo-check', 'redo-last'],
+    // S2（D83）：result-daily 不再比——调度规则 v2 后这一组的作品格数与网页参考不同（3 格 vs 5 格，格大小跟着变），比的不是同一格；
+    // 同一算法的墨仍由 result / result-first / result-early / result-undo / result-sheet 守
+    states: ['recall-ink', 'judge', 'last-judge', 'change-sheet', 'result', 'result-first', 'result-early', 'result-undo', 'result-sheet', 'redo-ink', 'redo-check', 'redo-last'],
     eval({ px, ink }) {
       const c = px.ink;
       if (!c || c.error) return { pass: false, detail: c ? c.error : '没有墨区取样' };

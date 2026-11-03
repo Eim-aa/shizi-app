@@ -1,7 +1,7 @@
 import Foundation
 
-// src/core/session-start.js（开组的 store.commit 包装：首练 / 今天的练习 / 自选 / S02 / 跨天过期 / 特别组顺延）与
-// src/core/spread.js（离开 ≥ 30 天回来时摊开到期字，D66 ⑨）的 1:1 移植（B4.2）。
+// src/core/session-start.js（开组的 store.commit 包装：首练 / 今天的练习 / 自选 / S02 / 跨天过期 / 特别组顺延）的移植（B4.2）。
+// D83（调度规则 v2）起：今天的练习一天一份（TodayPlan），写完以后再开的是「再来一组」（extra）；离开很久回来的摊开（D66 ⑨）删除。
 //
 // store 是协议 ScheduleStore（state + commit(label, mutate)）：commit 语义照 src/store/store.js——草稿 = 当前状态的浅拷贝，
 // mutate 抛错 → {ok:false, error:{kind:'mutator', label, reason}}，成功才发布；ctx.nextId('r'|'s') 分配共用序号。
@@ -174,7 +174,7 @@ public final class DeckIndex {
     }
 }
 
-// MARK: - spread.js
+// MARK: - spread.js（D83 起只给 v1 迁移的摊开用，Migrate.spreadLegacyDue）
 
 extension ScheduleRules {
     /// 把 due ≤ today 的调度项摊到 today 起的之后几天（只往后挪）。
@@ -210,59 +210,6 @@ extension ScheduleRules {
         }
         return (out, moved)
     }
-
-    /// 离开回来时每天至多摊几个：round(每组字数 × perDayShare)，至少 1；没配 → 0。
-    public static func returnSpreadPerDay(_ settings: JSValue?, policy: JSValue = Config.policy) -> Double {
-        let cfg = JS.truthy(policy) ? policy["returnSpread"] : nil
-        let share = JS.truthy(cfg) ? JS.number(cfg?["perDayShare"]) : 0
-        if !(share > 0) { return 0 }
-        return jsMax(1, JSMath.round(JS.number(GroupSize.of(settings, policy: policy)) * share))
-    }
-
-    public struct SpreadPlan {
-        public var sched: JSObject
-        public var moved: Int
-        public var lastDay: String
-        public var perDay: Double
-        public var gapDays: Double
-    }
-
-    /// 离开 ≥ afterDays 天回来的那一刻要不要摊（D66 ⑨）；nil = 不摊。
-    public func returnSpreadPlan(_ state: JSValue?, _ today: JSValue?, policy: JSValue = Config.policy) throws -> SpreadPlan? {
-        let cfg = JS.truthy(policy) ? policy["returnSpread"] : nil
-        guard JS.truthy(cfg), JS.isInteger(cfg?["afterDays"]), JS.number(cfg?["afterDays"]) > 0, let t = today, dates.isValidDay(t), case .string(let todayS) = t else { return nil }
-        var lastDay: String? = nil
-        let months = (state.flatMap { JS.truthy($0) ? $0["records"] : nil }).flatMap { JS.truthy($0) ? $0 : nil }?.objectValue ?? JSObject()
-        for (_, value) in months.entries {
-            let list: [JSValue] = value.arrayValue ?? (JS.truthy(value) ? value["kept"]?.arrayValue ?? [] : [])
-            for r in list {
-                if !SchedRecords.isJudged(r) || !dates.isValidDay(r["localDay"] ?? .null) { continue }
-                let d = JS.string(r["localDay"])
-                if jsEq(d, todayS) { return nil }
-                if JSMath.lessThan(d, todayS) && (lastDay == nil || JSMath.lessThan(lastDay!, d)) { lastDay = d }
-            }
-        }
-        guard let ld = lastDay else { return nil }
-        let gapDays = try dates.diffDays(.string(ld), t)
-        if JS.less(.number(gapDays), cfg?["afterDays"]) { return nil }
-        let settings = state?["settings"]
-        if JS.truthy(settings), JS.isString(settings?["returnSpreadFor"], ld) { return nil }
-        let perDay = ScheduleRules.returnSpreadPerDay(settings, policy: policy)
-        if perDay == 0 || perDay.isNaN { return nil }
-        let schedV = state?["sched"].flatMap { JS.truthy($0) ? $0 : nil } ?? .object(JSObject())
-        let (s, moved) = try spreadDue(schedV, today: todayS, perDay: perDay)
-        return SpreadPlan(sched: s, moved: moved, lastDay: ld, perDay: perDay, gapDays: gapDays)
-    }
-
-    /// 草稿里执行回来时的摊开：改 draft.sched、记 settings.returnSpreadFor。
-    public func applyReturnSpreadInDraft(_ draft: inout JSObject, _ today: JSValue?, policy: JSValue = Config.policy) throws -> JSValue {
-        guard let plan = try returnSpreadPlan(.object(draft), today, policy: policy) else { return .null }
-        if plan.moved != 0 { draft["sched"] = .object(plan.sched) }
-        var settings = JS.truthy(draft["settings"]) ? JS.spread(draft["settings"]) : JSObject()
-        settings["returnSpreadFor"] = .string(plan.lastDay)
-        draft["settings"] = .object(settings)
-        return JS.obj([("moved", .number(Double(plan.moved))), ("lastDay", .string(plan.lastDay)), ("perDay", .number(plan.perDay)), ("gapDays", .number(plan.gapDays))])
-    }
 }
 
 // MARK: - session-start.js
@@ -270,7 +217,7 @@ extension ScheduleRules {
 extension ScheduleRules {
     public static let labels = (
         expire: "session:expire", startFirst: "session:start-first", startDaily: "session:start-daily", startPicked: "session:start-picked",
-        endAndStartPicked: "session:end-and-start-picked", deferSpecial: "session:defer-special", returnSpread: "session:return-spread"
+        endAndStartPicked: "session:end-and-start-picked", deferSpecial: "session:defer-special"
     )
 
     /// store 状态 → 全部记录（月份键排序后平铺；折叠月取 kept）。
@@ -316,8 +263,8 @@ extension ScheduleRules {
         return .string(d)
     }
 
-    /// 今天的练习会选出哪些字（不写入）：selectDaily 的结果 + libraryId + libraryExhausted。
-    public func planDaily(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy) throws -> JSValue {
+    /// 今天的练习会选出哪些字（不写入）：selectDaily 的结果 + libraryId + libraryExhausted。cap / handled 见 selectDaily。
+    public func planDaily(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy, cap: Int? = nil, handled: [String] = [], extra: Bool = false) throws -> JSValue {
         let settings = state.flatMap { JS.truthy($0) ? $0["settings"] : nil }
         let settingsLib: JSValue? = { if case .string(let s)? = settings?["library"], JS.truthy(settings) { return .string(s) }; return nil }()
         let libraryId: JSValue
@@ -332,12 +279,12 @@ extension ScheduleRules {
         }
         let newCandidates = deck.newCandidates(libraryId)
         let warmupCandidates = deck.warmupCandidates?(libraryId) ?? []
-        let spread = try returnSpreadPlan(state, .string(today), policy: policy)
-        let sched: JSValue = spread.map { .object($0.sched) } ?? (state?["sched"].flatMap { JS.truthy($0) ? $0 : nil } ?? .object(JSObject()))
+        let sched: JSValue = state?["sched"].flatMap { JS.truthy($0) ? $0 : nil } ?? .object(JSObject())
         let custom = state?["custom"].flatMap { JS.truthy($0) ? $0 : nil }
         let plan = try selectDaily(sched: sched, records: ScheduleRules.recordsOf(state), today: today, newCandidates: newCandidates,
                                    warmupCandidates: warmupCandidates, custom: custom ?? .null, practicable: deck.practicable, policy: policy,
-                                   capitalDeferredDay: ScheduleRules.capitalDeferredDayOf(state), groupSize: GroupSize.of(settings, policy: policy))
+                                   capitalDeferredDay: ScheduleRules.capitalDeferredDayOf(state), groupSize: GroupSize.of(settings, policy: policy),
+                                   tier: TodayPlan.tierOf(settings, policy: policy), cap: cap, handled: handled, extra: extra)
         let schedObj = sched.objectValue
         let exhausted = !newCandidates.contains { deck.practicable($0) && !JS.truthy(schedObj?[$0]) }
         guard case .object(var o) = plan.js else { return plan.js }
@@ -365,7 +312,9 @@ extension ScheduleRules {
     static func setSessions(_ draft: inout JSObject, _ sessions: JSValue) {
         func orNull(_ v: JSValue?) -> JSValue { v.flatMap { JS.truthy($0) ? $0 : nil } ?? .null }
         let le = JS.truthy(sessions["lastEnded"]) ? JS.spread(sessions["lastEnded"]) : JSObject()
-        draft["sessions"] = JS.obj([("A", orNull(sessions["A"])), ("B", orNull(sessions["B"])), ("lastEnded", .object(le))])
+        var next = JSObject([("A", orNull(sessions["A"])), ("B", orNull(sessions["B"])), ("lastEnded", .object(le))])
+        if let t = sessions["today"] ?? draft["sessions"]?["today"], JS.truthy(t) { next["today"] = t } // D83 今天的账跟着 sessions 走
+        draft["sessions"] = .object(next)
     }
 
     func expireInDraft(_ draft: inout JSObject, _ today: String, policy: JSValue) throws -> [JSValue] {
@@ -397,20 +346,16 @@ extension ScheduleRules {
 
     static func failed(_ r: JSValue) -> Bool { r["ok"] != .bool(true) }
 
-    /// 跨天过期；离开 ≥ 30 天回来的那一刻同一次提交里摊开到期字。
+    /// 跨天过期（没写完的今天的练习直接换掉，D83）。
     public func expireStale(_ store: ScheduleStore, now: Double, policy: JSValue = Config.policy) throws -> JSValue {
         let today = try dates.localDay(.number(now))
         let state = JSValue.object(store.state)
         let exp = try SessionRules.expireDaily(ScheduleRules.sessionsOf(state), .string(today), policy: policy)
-        let spreadDue = try returnSpreadPlan(state, .string(today), policy: policy) != nil
-        if exp.expiredAll.isEmpty && !spreadDue { return JS.obj([("ok", .bool(true)), ("expired", .array([])), ("spread", .null)]) }
-        var spread: JSValue = .null
-        let label = spreadDue && exp.expiredAll.isEmpty ? ScheduleRules.labels.returnSpread : ScheduleRules.labels.expire
-        let result = store.commit(label) { draft, _ in
+        if exp.expiredAll.isEmpty { return JS.obj([("ok", .bool(true)), ("expired", .array([])), ("spread", .null)]) }
+        let result = store.commit(ScheduleRules.labels.expire) { draft, _ in
             _ = try self.expireInDraft(&draft, today, policy: policy)
-            spread = try self.applyReturnSpreadInDraft(&draft, .string(today), policy: policy)
         }
-        return ScheduleRules.failed(result) ? result : JS.obj([("ok", .bool(true)), ("expired", .array(exp.expiredAll)), ("spread", spread)])
+        return ScheduleRules.failed(result) ? result : JS.obj([("ok", .bool(true)), ("expired", .array(exp.expiredAll)), ("spread", .null)])
     }
 
     /// 不写入的续写判断。
@@ -440,10 +385,19 @@ extension ScheduleRules {
         }
         var queue: [String]
         var plan: JSValue = .null
+        var extra = false
         if kind == "first" {
             queue = SessionRules.selectFirst(policy: policy)
         } else {
-            plan = try planDaily(state, today: today, deck: deck!, policy: policy)
+            // 今天的练习写完了 → 再来一组（同样的字数与比例，额外的，不改变「今天完成了」）；否则排今天这一份剩下的
+            extra = try TodayPlan.isDone(state, day: today, rules: self, deck: deck, policy: policy)
+            if extra {
+                plan = try planDaily(state, today: today, deck: deck!, policy: policy, extra: true)
+            } else {
+                let t = TodayPlan.today(state, day: today)
+                let size = Int(JS.number(GroupSize.of(state["settings"], policy: policy)))
+                plan = try planDaily(state, today: today, deck: deck!, policy: policy, cap: max(0, (t.target ?? size) - t.handled.count), handled: t.handled)
+            }
             queue = (plan["queue"]?.arrayValue ?? []).map { JS.string($0) }
         }
         if queue.isEmpty {
@@ -456,15 +410,21 @@ extension ScheduleRules {
         let result = store.commit(kind == "first" ? ScheduleRules.labels.startFirst : ScheduleRules.labels.startDaily) { draft, ctx in
             let day = try self.dates.localDay(.number(ctx.now))
             _ = try self.expireInDraft(&draft, day, policy: policy)
-            if kind != "first" { _ = try self.applyReturnSpreadInDraft(&draft, .string(day), policy: policy) }
             try ScheduleRules.endCompleteInDraft(&draft, "A", at: ctx.now)
-            let session = try SessionRules.createSession(id: .string(try ctx.nextId("s")), kind: .string(kind), source: source.flatMap { JS.truthy($0) ? $0 : nil } ?? JS.obj([("view", .string("home"))]),
-                                                     queue: .array(queue.map { .string($0) }), at: .number(ctx.now), dates: self.dates)
+            var session = try SessionRules.createSession(id: .string(try ctx.nextId("s")), kind: .string(kind), source: source.flatMap { JS.truthy($0) ? $0 : nil } ?? JS.obj([("view", .string("home"))]),
+                                                         queue: .array(queue.map { .string($0) }), at: .number(ctx.now), dates: self.dates)
+            if extra { session = JS.with(session, [("extra", .bool(true))]) }
             ScheduleRules.setSessions(&draft, try SessionRules.startInSlot(ScheduleRules.sessionsOf(.object(draft)), session))
+            if !extra {
+                // 这一份几个字：第一次开始时定下（今天已经写过的 + 这一组），当天不再变
+                var t = TodayPlan.today(.object(draft), day: day)
+                if t.target == nil { t.target = t.handled.count + Set(queue).count }
+                TodayPlan.setToday(&draft, t)
+            }
             created = session
         }
         if ScheduleRules.failed(result) { return result }
-        return JS.obj([("ok", .bool(true)), ("started", .bool(true)), ("kind", .string(kind)), ("session", created), ("plan", plan)])
+        return JS.obj([("ok", .bool(true)), ("started", .bool(true)), ("kind", .string(kind)), ("extra", .bool(extra)), ("session", created), ("plan", plan)])
     }
 
     /// 开第一次练习（固定 policy.firstQueue，P09）。

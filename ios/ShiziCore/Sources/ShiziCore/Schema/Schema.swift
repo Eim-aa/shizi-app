@@ -404,7 +404,8 @@ public enum Schema {
         ("writeMode", V.oneOf(["screen", "paper"])),
         ("paperSuggested", V.bool), ("answerNoteSeen", V.bool), ("shiHandoffDone", V.bool), ("firstTipSeen", V.bool),
         ("large", V.bool), ("appearance", V.oneOf(["auto", "light", "dark"])),
-        ("groupSize", V.oneOf([5, 10, 20, 30].map { JSValue.number(Double($0)) })),
+        ("groupSize", V.oneOf([5, 10, 15, 20, 30].map { JSValue.number(Double($0)) })),
+        ("mixTier", V.oneOf(["more", "balanced", "review", "only"])), // D83 新字比例档位（P327）
     ])
 
     static let conclusionFields = Fields([("kind", V.oneOf(["restore", "clear"])), ("date", V.strOrNull), ("count", V.int)])
@@ -419,7 +420,7 @@ public enum Schema {
 
     static let phases = ["recall", "compare", "answer", "trace", "retrace"]
     static let sessionKinds = ["first", "daily", "picked"]
-    static let itemKinds = ["judged", "answer-seen", "skipped"]
+    static let itemKinds = ["judged", "answer-seen", "skipped", "retry"] // retry：D83 当天重考（不写记录）
 
     static let currentFields = Fields([
         ("phase", V.oneOf(phases)),
@@ -436,6 +437,7 @@ public enum Schema {
 
     static let itemFields = Fields([
         ("cardKey", V.cardKey), ("recordId", V.recordId), ("kind", V.oneOf(itemKinds)),
+        ("outcome", V.oneOf(["correct", "wrong", "skipped"])), ("attempt", V.int),
         ("fsrsBefore", { x, p in
             switch x {
             case .object, .array: return nil
@@ -454,7 +456,11 @@ public enum Schema {
         ("lastLine", { x, p in x.isNull ? nil : checkFields(x, p, lastLineFields, ["recordId", "kind"]) }),
         ("startedAt", V.num), ("startedDay", V.day), ("updatedAt", V.num), ("endedAt", V.num), ("endedEarly", V.bool),
         ("added", V.arrayOf(V.recordId)), ("sealedAt", V.num),
+        ("extra", V.bool), // D83「再来一组」：今天的练习写完之后的额外组
     ])
+
+    /// D83 今天的账（sessions.today）：day、进度（每个字的第一次）、这一份几个字、是否已完成。
+    static let todayFields = Fields([("day", V.day), ("handled", V.arrayOf(V.cardKey)), ("target", V.int), ("done", V.bool)])
 
     public static func validateSession(_ session: JSValue, path: String = "session", slot: String? = nil) -> String? {
         if let err = checkFields(session, path, sessionFields, ["id", "slot", "kind", "source", "queue", "cursor", "items", "startedAt", "startedDay", "updatedAt"]) { return err }
@@ -476,6 +482,7 @@ public enum Schema {
         let fields = Fields([
             ("A", sessionOrNull("A")), ("B", sessionOrNull("B")),
             ("lastEnded", { x, p in checkFields(x, p, Fields([("A", sessionOrNull("A")), ("B", sessionOrNull("B"))]), []) }),
+            ("today", { x, p in checkFields(x, p, todayFields, ["day", "handled", "done"]) }),
         ])
         return checkFields(value, path, fields, ["A", "B", "lastEnded"])
     }

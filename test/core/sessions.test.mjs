@@ -260,7 +260,7 @@ test('sessions: first practice is the fixed 3 chars 尴 赢 拾 (D38 / P09; was 
   const s = createSession({ id: 's1', kind: 'first', queue: q, at: at(TODAY) });
   assert.equal(t('R-W01.progress', { n: s.cursor + 1, total: s.queue.length }), '1 / 3');
   assert.equal(t('R-H03.firstVisit'), '先写三个大家常忘的字。', 'P1-E5: the line under 开始写字 (stage-1 design §一)');
-  assert.equal(policy.groupSize, 20, 'D38 只影响首练；日常组缺省 20（D65 #2）');
+  assert.equal(policy.groupSize, 15, 'D38 只影响首练；日常组缺省 15（D83）');
 });
 
 test('sessions: next A group is first until any judged record exists (P46)', async () => {

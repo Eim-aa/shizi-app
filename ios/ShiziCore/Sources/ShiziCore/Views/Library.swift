@@ -28,10 +28,14 @@ public enum LibraryView {
     public static func cardMini(_ items: [JSValue]) -> JSValue { .array(items.prefix(5).map { V.obj([("char", $0["char"]!), ("kind", .string("sample")), ("tone", .number(0)), ("record", .null)]) }) }
     public static func zoneSamples(_ zone: JSValue) -> [JSValue] { (zone["items"]?.arrayValue ?? []).prefix(3).map { V.obj([("char", $0["char"]!), ("kind", .string("ink")), ("tone", $0["tone"]!), ("record", $0["record"]!)]) } }
     public static func todayPlanModel(_ state: JSValue, now: Double, deck: ScheduleDeck, policy: JSValue, dates: Dates) throws -> JSValue {
+        // D83：与首页同一份「今天的练习」——写到一半 = 还剩几个（只算第一次）；写完了 = 今天完成；还没开始 = 今天这一份剩下的字
         let home = try HomeView.homeModel(state, now: now, policy: policy, deck: deck, dates: dates)
-        if let daily = home["daily"], JS.truthy(daily) { return V.obj([("phase", .string("half")), ("n", daily["remaining"]!), ("review", .number(0)), ("fresh", .number(0)), ("remaining", daily["remaining"]!)]) }
-        if home["records"] == .string("record") { return V.obj([("phase", .string("done")), ("n", .number(0)), ("review", .number(0)), ("fresh", .number(0)), ("remaining", .null)]) }
-        let queue = ScheduleRules.aStartInfo(state, policy: policy).kind == "first" ? SessionRules.selectFirst(policy: policy) : try ScheduleRules(dates: dates).planDaily(state, today: JS.string(home["today"]), deck: deck, policy: policy)["queue"]!.arrayValue!.map { JS.string($0) }
+        if let daily = home["daily"], JS.truthy(daily) {
+            let left = JSValue.number(max(0, JS.number(daily["total"]) - JS.number(daily["done"])))
+            return V.obj([("phase", .string("half")), ("n", left), ("review", .number(0)), ("fresh", .number(0)), ("remaining", left)])
+        }
+        if home["plan"]?["done"] == .bool(true) { return V.obj([("phase", .string("done")), ("n", .number(0)), ("review", .number(0)), ("fresh", .number(0)), ("remaining", .null)]) }
+        let queue = ScheduleRules.aStartInfo(state, policy: policy).kind == "first" ? SessionRules.selectFirst(policy: policy) : try TodayPlan.remainingQueue(state, day: JS.string(home["today"]), rules: ScheduleRules(dates: dates), deck: deck, policy: policy)
         let review = queue.filter { JS.truthy(state["sched"]?[$0]) }.count
         return V.obj([("phase", .string("fresh")), ("n", .number(Double(queue.count))), ("review", .number(Double(review))), ("fresh", .number(Double(queue.count-review))), ("remaining", .null)])
     }

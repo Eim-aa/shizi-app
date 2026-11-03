@@ -45,6 +45,14 @@ public enum SessionWrites {
     static func raw(_ a: JSObject) -> [[InkPoint]] { (a["strokes"]?.arrayValue ?? []).map { ($0.arrayValue ?? []).compactMap(InkPoint.init(js:)) } }
     static func rows(_ strokes: [[InkPoint]]) -> JSValue { .array(InkMath.encodeRawStrokes(strokes).map { .array($0.map(JSValue.number)) }) }
     static func inkKey(_ key: String, _ phase: JSValue?) -> String { phase == .string("trace") || phase == .string("retrace") ? key + "|" + JS.string(phase) : key }
+    /// D83：当前字在这一组里是不是重考（已经考过）。
+    static func isRetry(_ s: JSValue, _ key: JSValue?) -> Bool { TodayPlan.attempts(s, key) > 0 }
+    /// D83：第一次处理一个字之后记今天的进度并对账（今天的练习写完 / 自选让今天的练习少排）。
+    static func noteAndSettle(_ d: inout JSObject, _ s: JSValue, key: JSValue?, kind: String, at: Double, dates: Dates, policy: JSValue) throws {
+        let day = try dates.localDay(.number(at))
+        TodayPlan.note(&d, session: s, key: JS.string(key), kind: kind, day: day)
+        try TodayPlan.settle(&d, day: day, rules: ScheduleRules(dates: dates), policy: policy)
+    }
 
     public static func commitStrokes(_ store: Store, _ a: JSObject) -> JSValue {
         guard let s = current(store, a) else { return failure("stale") }
@@ -76,7 +84,9 @@ public enum SessionWrites {
         guard let s = current(store, a) else { return failure("stale") }
         return store.commit("write:answer-seen") { d,c in
             let stay = JS.truthy(a["stay"]), key = a["cardKey"]!, n = hints(s, integer(a["hints"]) ? a["hints"] : .number(0))
-            if let r = seen(d, s, key) {
+            if isRetry(s, key) {
+                // D83 重考时看答案：照常可以看，不写记录、不动复习日期
+            } else if let r = seen(d, s, key) {
                 if !stay && !JS.truthy(r["help"]?["traced"]) { try replace(&d, patch(r, [("help", patch(r["help"], [("traced", .bool(true))]))])) }
             } else {
                 let r = try Records.makeRecord(JSObject([("id", .string(try c.nextId("r"))), ("cardKey", key), ("sessionId", s["id"]!), ("kind", .string("answer-seen")), ("at", .number(c.now)), ("help", JS.obj([("hints", .number(n)), ("answerSeen", .bool(true)), ("traced", .bool(!stay))]))]), dates: store.dates)
@@ -100,8 +110,17 @@ public enum SessionWrites {
     }
     public static func commitAnswerNext(_ store: Store, _ a: JSObject) -> JSValue {
         guard let s = current(store, a) else { return failure("stale") }
+        let policy = ViewSupport.policy(a["policy"])
         return store.commit("write:answer-next") { d,c in
-            set(&d, JS.string(a["slot"]), try SessionRules.advance(s, cardKey: a["cardKey"], recordId: seen(d, s, a["cardKey"])?["id"], kind: .string("answer-seen"), fsrsBefore: nil, at: .number(c.now)))
+            let slot = JS.string(a["slot"]), key = a["cardKey"] ?? .null
+            if isRetry(s, key) { // D83 重考时看了答案 = 这次没过
+                set(&d, slot, try TodayPlan.retryAdvance(s, key: key, outcome: "wrong", at: .number(c.now), policy: policy))
+                try TodayPlan.settle(&d, day: try store.dates.localDay(.number(c.now)), rules: ScheduleRules(dates: store.dates), policy: policy)
+                return
+            }
+            let next = try SessionRules.advance(s, cardKey: key, recordId: seen(d, s, key)?["id"], kind: .string("answer-seen"), fsrsBefore: nil, at: .number(c.now))
+            set(&d, slot, TodayPlan.afterFirstWrong(next, key: key, policy: policy)) // D83 看了答案 = 写错：隔 3 个字重考
+            try noteAndSettle(&d, s, key: key, kind: "answer-seen", at: c.now, dates: store.dates, policy: policy)
         }
     }
     /// src/session/ops/judge.js judgeInDraft：判断的草稿变换（记录 + 墨迹 + D27 回收 + FSRS + 会话推进）。commitJudgment 在 store.commit 里调；
@@ -113,18 +132,26 @@ public enum SessionWrites {
         guard strokes.contains(where: { !$0.isEmpty }) else { throw CoreError.range("judge: no strokes of the learner") }
         let slot = JS.string(a["slot"]), key = a["cardKey"] ?? .null, k = JS.string(key)
         guard let s = session(d, slot), SessionRules.currentCardKey(s) == key else { throw CoreError.error("judge: not the current card") }
+        let policy = ViewSupport.policy(a["policy"])
+        if isRetry(s, key) {
+            // D83 重考：不写记录、不动复习日期；错了且没到 3 次就再隔 3 个字
+            set(&d, slot, try TodayPlan.retryAdvance(s, key: key, outcome: JS.string(a["judgment"]), at: .number(at), policy: policy))
+            try TodayPlan.settle(&d, day: try dates.localDay(.number(at)), rules: ScheduleRules(dates: dates), policy: policy)
+            return (.null, false)
+        }
         if let r = allRecords(d).last(where: { Records.isJudged($0) && $0["sessionId"] == s["id"] && $0["cardKey"] == key }) {
             set(&d, slot, try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: nil, at: .number(at)))
             return (r, true)
         }
-        let policy = ViewSupport.policy(a["policy"])
         let r = try Records.makeRecord(JSObject([("id", .string(try nextId())), ("cardKey", key), ("sessionId", s["id"]!), ("kind", .string("judged")), ("judgment", a["judgment"]!), ("at", .number(at)), ("help", JS.obj([("hints", .number(min(Schema.hintsShapeMax, max(0, hints(s, a["hints"]).rounded(.towardZero))))), ("answerSeen", .bool(false)), ("traced", .bool(false))]))]), dates: dates)
         try append(&d, r)
         if a["perRecordInk"]?.boolValue ?? (policy["features"]?["perRecordInk"] == .bool(true)) { _ = try Store.setInk(&d, r, InkMath.encodeStoredInk(strokes, policy: policy.objectValue, format: inkFormat), timeZone: dates.timeZone) }
         _ = Budget.pruneInkOfCards(&d, [k], dates: dates)
         let next = try ScheduleRules(dates: dates).applyJudgment(d["sched"]?[k], r, policy: policy, records: allRecords(d))
         d["sched"] = patch(d["sched"], [(k, next.entry)])
-        set(&d, slot, try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: next.fsrsBefore, at: .number(at)))
+        let advanced = try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: next.fsrsBefore, at: .number(at))
+        set(&d, slot, JS.isString(a["judgment"], "wrong") ? TodayPlan.afterFirstWrong(advanced, key: key, policy: policy) : advanced)
+        try noteAndSettle(&d, s, key: key, kind: "judged", at: at, dates: dates, policy: policy)
         return (r, false)
     }
     public static func commitJudgment(_ store: Store, _ a: JSObject) -> JSValue {
@@ -143,8 +170,15 @@ public enum SessionWrites {
         guard ["session", "today"].contains(scope) else { throw CoreError.range("unsupported policy.skipScope: " + scope) }
         let slot = JS.string(a["slot"])
         guard let s = session(d, slot), SessionRules.currentCardKey(s) == a["cardKey"] else { throw CoreError.error("skip: not the current card") }
+        if isRetry(s, a["cardKey"]) {
+            // D83 重考时跳过：不再重考，算处理完（不写记录，没有撤销）
+            set(&d, slot, try TodayPlan.retryAdvance(s, key: a["cardKey"]!, outcome: "skipped", at: .number(at), policy: policy))
+            try TodayPlan.settle(&d, day: try dates.localDay(.number(at)), rules: ScheduleRules(dates: dates), policy: policy)
+            return .null
+        }
         let r = try Records.makeRecord(JSObject([("id", .string(try nextId())), ("cardKey", a["cardKey"]!), ("sessionId", s["id"]!), ("kind", .string("skipped")), ("at", .number(at)), ("help", JS.obj([("hints", .number(min(Schema.hintsShapeMax, max(0, hints(s, .number(JS.numberOr0(a["hints"]).rounded(.towardZero))))))), ("answerSeen", .bool(false)), ("traced", .bool(false))]))]), dates: dates)
         try append(&d, r); set(&d, slot, try SessionRules.advance(s, cardKey: a["cardKey"], recordId: r["id"], kind: .string("skipped"), fsrsBefore: nil, at: .number(at)))
+        try noteAndSettle(&d, s, key: a["cardKey"], kind: "skipped", at: at, dates: dates, policy: policy)
         return r
     }
     public static func commitSkip(_ store: Store, _ a: JSObject) -> JSValue {
@@ -155,17 +189,18 @@ public enum SessionWrites {
         return result["ok"] == .bool(true) && record != nil ? patch(result, [("record", record!)]) : result
     }
     static func canUndo(_ s: JSValue?, _ a: JSObject) -> Bool { s != nil && s?["id"] == a["sessionId"] && s?["items"]?.arrayValue?.last?["kind"] == .string("skipped") && s?["items"]?.arrayValue?.last?["recordId"] == a["recordId"] }
-    static func undo(_ d: inout JSObject, _ a: JSObject, at: Double) throws {
+    static func undo(_ d: inout JSObject, _ a: JSObject, at: Double, dates: Dates) throws {
         let slot = JS.string(a["slot"])
         guard let s = session(d, slot), let record = find(d, a["recordId"]), record["kind"] == .string("skipped"), record["sessionId"] == s["id"] else { throw CoreError.error("undo skip: skipped record not found") }
         let back = try SessionRules.undoSkip(s, a["recordId"], at: .number(at)); try replace(&d, record, remove: true)
+        TodayPlan.unnote(&d, session: s, key: JS.string(record["cardKey"]), day: try dates.localDay(.number(at))) // D83 撤销跳过：进度跟着退
         var p = JSObject(); if integer(record["help"]?["hints"]), JS.truthy(record["help"]?["hints"]) { p["hints"] = record["help"]?["hints"] }
         if let rows = a["strokes"]?.arrayValue, !rows.isEmpty { p["strokes"] = .array(rows) }
         set(&d, slot, p.count > 0 ? try SessionRules.withCurrent(back, .object(p), at: .number(at)) : back)
     }
     public static func commitUndoSkip(_ store: Store, _ a: JSObject) -> JSValue {
         guard canUndo(session(store.state, JS.string(a["slot"])), a) else { return failure("stale") }
-        return store.commit("write:skip-undo") { d,c in try undo(&d, a, at: c.now) }
+        return store.commit("write:skip-undo") { d,c in try undo(&d, a, at: c.now, dates: store.dates) }
     }
     static func canEnd(_ s: JSValue?) -> Bool { s != nil && ["picked", "daily"].contains(JS.string(s?["kind"])) && !SessionRules.isComplete(s) }
     static func judgedCount(_ state: JSObject, _ id: JSValue?) -> Int { Set(allRecords(state).filter { Records.isJudged($0) && $0["sessionId"] == id }.map { JS.string($0["cardKey"]) }).count }
@@ -176,6 +211,8 @@ public enum SessionWrites {
         let result = store.commit("write:end") { d,c in
             d["sessions"] = try SessionRules.endSlot(d["sessions"] ?? SessionRules.emptySessions(), slot, at: .number(c.now), early: !SessionRules.isComplete(s))
             ended = d["sessions"]?["lastEnded"]?[slot]; count = judgedCount(d, a["sessionId"])
+            // D83：结束这组时每个字都写过第一次了（只剩重考）→ 今天的练习也算完成（没写完的重考 = 明天再来）
+            try TodayPlan.settle(&d, day: try store.dates.localDay(.number(c.now)), rules: ScheduleRules(dates: store.dates), policy: ViewSupport.policy(a["policy"]))
         }
         return result["ok"] == .bool(true) ? patch(result, [("ended", ended ?? .null), ("judgedCount", .number(Double(count)))]) : result
     }

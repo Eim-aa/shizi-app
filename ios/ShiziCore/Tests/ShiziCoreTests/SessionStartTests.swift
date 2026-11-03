@@ -208,88 +208,6 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(env.commits, ["session:start-daily"])
     }
 
-    // test/core/session-start.test.mjs: daily: the first group after ≥ 7 days away is 3 chars through startDaily (D48 ⑧ / P184)
-    func testDailyTheFirstGroupAfter7DaysAwayIs3CharsThroughStartDaily() throws {
-        let env = makeEnv()
-        let zi = "\u{5B50}", chou = "\u{4E11}", yin = "\u{5BC5}"
-        seed(env,
-             records: [rec(1, zi, "judged", "correct", "2026-09-01"), rec(2, chou, "judged", "wrong", "2026-09-01"), rec(3, yin, "judged", "correct", "2026-09-01")],
-             schedTable: JS.obj([("base:" + zi, sched("2026-09-20", 9)), ("base:" + chou, sched("2026-09-22", 1)), ("base:" + yin, sched("2026-09-22", 3))]))
-        let r = try rules.startDaily(env.store, now: env.now, deck: fakeDeck(LIB, extra: ["base:" + zi, "base:" + chou, "base:" + yin]))
-        XCTAssertEqual(r["started"], .bool(true))
-        let s = try XCTUnwrap(env.sessions["A"])
-        XCTAssertEqual(Double(strs(s["queue"]).count), JS.number(policy["groupMix"]?["returnGroupSize"]), "last judgment 23 days ago -> a group of 3")
-        XCTAssertTrue(strs(r["plan"]?["newKeys"]).count >= 1, "the usual 1 new char is still given")
-    }
-
-    // test/core/session-start.test.mjs: daily: characters judged today never come back; skipped / answer-seen today stay out (D65 #5, P06 / P36)
-    func testDailyCharactersJudgedTodayNeverComeBackSkippedAnswerSeenTodayStayOut() throws {
-        let jia = "\u{7532}", yi = "\u{4E59}", bing = "\u{4E19}", zi = "\u{5B50}"
-        let records = [
-            rec(1, jia, "judged", "correct", TODAY),
-            rec(2, yi, "skipped", nil, TODAY),
-            rec(3, bing, "answer-seen", nil, TODAY),
-        ]
-        let schedTable = JS.obj([("base:" + jia, sched("2026-09-26"))])
-        let env = makeEnv()
-        seed(env, records: records, schedTable: schedTable)
-        var plan = try rules.planDaily(env.state, today: TODAY, deck: fakeDeck())
-        XCTAssertFalse(strs(plan["queue"]).contains("base:" + jia), "judged today -> excluded")
-        XCTAssertFalse(strs(plan["queue"]).contains("base:" + yi), "skipped today -> excluded (skipScope today)")
-        XCTAssertEqual(policy["answerSeenScope"], .string("today"))
-        XCTAssertFalse(strs(plan["queue"]).contains("base:" + bing), "answer-seen today -> excluded (answerSeenScope today)")
-        let loose = JS.with(policy, [("answerSeenScope", .string("none")), ("skipScope", .string("session")), ("skipNewDeferDays", .number(0))])
-        plan = try rules.planDaily(env.state, today: TODAY, deck: fakeDeck(), policy: loose)
-        XCTAssertTrue(strs(plan["queue"]).contains("base:" + bing), "answerSeenScope none -> can come back")
-        XCTAssertTrue(strs(plan["queue"]).contains("base:" + yi), "skipScope session -> can come back")
-
-        // 同一天：今天判断过的字即使到期也不再出
-        let env2 = makeEnv()
-        seed(env2, records: [rec(1, zi, "judged", "wrong", "2026-09-01"), rec(2, zi, "judged", "wrong", TODAY)], schedTable: JS.obj([("base:" + zi, sched("2026-09-20"))]))
-        plan = try rules.planDaily(env2.state, today: TODAY, deck: fakeDeck(LIB, extra: ["base:" + zi]))
-        XCTAssertFalse(strs(plan["queue"]).contains("base:" + zi))
-    }
-
-    // test/core/session-start.test.mjs: daily: custom characters not yet written do not enter the daily queue (P33 none)
-    func testDailyCustomCharactersNotYetWrittenDoNotEnterTheDailyQueue() throws {
-        let env = makeEnv()
-        seed(env, custom: J(#"{"added":[{"char":"\#u{7532}","at":0},{"char":"\#u{4E59}","at":0}]}"#))
-        let r = try rules.startDaily(env.store, now: env.now, deck: fakeDeck(), policy: JS.with(policy, [("newUserRamp", .null)])) // 新用户封顶（D66 ⑫）另测
-        let q = strs(env.sessions["A"]?["queue"])
-        XCTAssertEqual(r["started"], .bool(true))
-        XCTAssertFalse(q.contains("base:\u{7532}") || q.contains("base:\u{4E59}"))
-        XCTAssertEqual(q, K(ch("\u{4E19}\u{4E01}\u{620A}\u{5DF1}\u{5E9A}")))
-    }
-
-    // test/core/session-start.test.mjs: daily: at most dailyReviewCap (30) reviews a day, counted on judged records (P03 / P60)
-    func testDailyAtMostDailyReviewCap30ReviewsADayCountedOnJudgedRecords() throws {
-        let env = makeEnv()
-        var records: [JSValue] = []
-        var schedTable = JSObject()
-        var extra: [String] = []
-        // 28 个字今天已复习（以前写过）
-        for i in 0..<28 {
-            let c = String(Unicode.Scalar(0x4e00 + 100 + i)!)
-            records.append(rec(1 + i * 2, c, "judged", "correct", "2026-09-01"))
-            records.append(rec(2 + i * 2, c, "judged", "correct", TODAY))
-            schedTable["base:" + c] = sched("2026-09-30")
-            extra.append("base:" + c)
-        }
-        // 另 6 个到期字
-        for i in 0..<6 {
-            let c = String(Unicode.Scalar(0x4e00 + 300 + i)!)
-            records.append(rec(100 + i, c, "judged", "correct", "2026-09-01"))
-            schedTable["base:" + c] = sched("2026-09-2\(i)")
-            extra.append("base:" + c)
-        }
-        seed(env, records: records, schedTable: .object(schedTable))
-        let plan = try rules.planDaily(env.state, today: TODAY, deck: fakeDeck(LIB, extra: extra))
-        XCTAssertEqual(plan["reviewBudgetLeft"], .number(2))
-        XCTAssertEqual(strs(plan["dueKeys"]).count, 2, "only 2 reviews left under the cap of 30")
-        XCTAssertEqual(strs(plan["queue"]).count, 5, "the rest of the group is new characters")
-        XCTAssertEqual(strs(plan["newKeys"]), K(ch("\u{7532}\u{4E59}\u{4E19}")))
-    }
-
     // test/core/session-start.test.mjs: daily: nothing to write → no commit, {empty}; libraryExhausted when every library character has a record
     func testDailyNothingToWriteNoCommitEmptyLibraryExhaustedWhenEveryLibraryCharacterHasARecord() throws {
         let env = makeEnv()
@@ -552,40 +470,6 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: 阶段 1 P1-E4：D38 首练之后的第一组、D41 热身字、D40 特别组
 
-    // test/core/session-start.test.mjs: after the first practice (尴 赢 拾) the first daily group is 1 warm-up char at the head + 4 new chars, nothing to review yet (D28 / D41)
-    func testAfterTheFirstPracticeTheFirstDailyGroupIs1WarmUpCharAtTheHeadPlus4NewChars() throws {
-        let env = makeEnv()
-        let first3 = ["\u{5C34}", "\u{8D62}", "\u{62FE}"]
-        let records = first3.enumerated().map { (i, c) in rec(i + 1, c, "judged", i == 0 ? "wrong" : "correct", TODAY, sessionId: "s1") }
-        var schedTable = JSObject()
-        for c in first3 { schedTable["base:" + c] = sched("2026-09-25") }
-        seed(env, records: records, schedTable: .object(schedTable))
-        let chun = "base:\u{6625}", chuang = "base:\u{7A97}"
-        let deck = ScheduleDeck(
-            newCandidates: { _ in ["base:\u{9171}", "base:\u{915D}", "base:\u{5C34}", "base:\u{5737}", "base:\u{75D2}", "base:\u{917F}", "base:\u{7F50}"] },
-            warmupCandidates: { _ in [chun, chuang] },
-            practicable: { _ in true },
-            currentLibraryId: { _ in .string("core3500") })
-        let plan = try rules.planDaily(env.state, today: TODAY, deck: deck, policy: JS.with(policy, [("newUserRamp", .null)]))
-        XCTAssertEqual(strs(plan["queue"]), [chun, "base:\u{9171}", "base:\u{915D}", "base:\u{5737}", "base:\u{75D2}"], "warm-up first; the char already written is not new")
-        // D66 ⑫：新用户前 3 天每组新字至多 2 份（5 字一组 2 个，含热身字），没有别的字可补时组就短一点
-        let ramp = try rules.planDaily(env.state, today: TODAY, deck: deck)
-        XCTAssertEqual(strs(ramp["queue"]), [chun, "base:\u{9171}"], "day 1 again: warm-up + 1 new, not padded")
-        XCTAssertEqual(strs(plan["warmKeys"]), [chun])
-        XCTAssertEqual(strs(plan["dueKeys"]).count, 0)
-        XCTAssertEqual(plan["special"], .null)
-        // 第 2 天：三个首练字到期 → 复习 + 新字混合
-        let day2 = "2026-09-25"
-        let env2 = makeEnv(at(day2, 20))
-        seed(env2, records: records, schedTable: .object(schedTable))
-        let plan2 = try rules.planDaily(env2.state, today: day2, deck: deck)
-        XCTAssertEqual(strs(plan2["dueKeys"]).count, 3)
-        let n2 = strs(plan2["newKeys"]).count
-        XCTAssertTrue(n2 >= 1 && n2 <= 3)
-        XCTAssertEqual(strs(plan2["queue"]).count, 5)
-        XCTAssertEqual(strs(plan2["queue"]).first, chun, "the warm-up char is still allowed within 7 days")
-    }
-
     // test/core/session-start.test.mjs: startDaily opens the D40 special group as an ordinary daily session: one commit, queue 壹贰叁肆伍, then 陆柒捌玖拾 next
     func testStartDailyOpensTheD40SpecialGroupAsAnOrdinaryDailySessionOneCommit() throws {
         let env = makeEnv()
@@ -606,57 +490,4 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: D66 ⑨：离开 ≥ 30 天回来时把到期字摊开（只一次）
 
-    // test/core/session-start.test.mjs: D66 ⑨: back after ≥ 30 days → expireStale spreads the due chars over the next days in one commit, once per absence; planDaily already sees it
-    func testD66BackAfter30DaysExpireStaleSpreadsTheDueCharsOverTheNextDaysInOneCommitOncePerAbsence() throws {
-        let env = makeEnv()
-        let last = "2026-08-01" // 54 天前
-        var records: [JSValue] = []
-        var schedTable = JSObject()
-        for i in 0..<12 {
-            let c = String(Unicode.Scalar(0x4e00 + 300 + i)!)
-            records.append(rec(i + 1, c, "judged", "correct", last))
-            schedTable["base:" + c] = sched("2026-08-" + (5 + i < 10 ? "0" : "") + String(5 + i), Double(3 + i))
-        }
-        seed(env, records: records, schedTable: .object(schedTable)) // 每组 5 字 → 每天至多 round(5 × 0.5) = 3 个
-        let deck = fakeDeck(LIB, extra: schedTable.keys)
-        // 不写入的预览（首页 / 字库「今天要写」）已按摊开后的调度表选字
-        let preview = try rules.planDaily(env.state, today: TODAY, deck: deck)
-        XCTAssertEqual(preview["backlog"], .number(3), "only today's share counts as due")
-        let res = try rules.expireStale(env.store, now: env.now)
-        XCTAssertTrue(ok(res))
-        XCTAssertEqual(res["spread"]?["moved"], .number(12))
-        XCTAssertEqual(res["spread"]?["lastDay"], .string(last))
-        XCTAssertEqual(res["spread"]?["perDay"], .number(3))
-        XCTAssertEqual(env.commits, ["session:return-spread"])
-        let st = env.state
-        let dues = (st["sched"]?.objectValue?.entries ?? []).map { JS.string($0.value["due"]) }.sorted()
-        XCTAssertEqual(dues, [TODAY, TODAY, TODAY, "2026-09-25", "2026-09-25", "2026-09-25", "2026-09-26", "2026-09-26", "2026-09-26", "2026-09-27", "2026-09-27", "2026-09-27"])
-        XCTAssertEqual(st["settings"]?["returnSpreadFor"], .string(last), "marked as done for this absence")
-        XCTAssertEqual(try rules.planDaily(st, today: TODAY, deck: deck)["queue"], preview["queue"], "preview = what is committed")
-        // 同一天再打开、第二天（今天没练）再打开：不再摊
-        XCTAssertEqual(try rules.expireStale(env.store, now: env.now), J(#"{"ok":true,"expired":[],"spread":null}"#))
-        env.clock.t = at("2026-09-25", 20)
-        XCTAssertEqual(try rules.expireStale(env.store, now: env.now)["spread"], .null, "the same absence is spread only once")
-        XCTAssertEqual(env.commits.count, 1)
-    }
-
-    // test/core/session-start.test.mjs: D66 ⑨: no spread when away < 30 days or already written today; starting a group spreads too (no home visit)
-    func testD66NoSpreadWhenAwayLessThan30DaysOrAlreadyWrittenTodayStartingAGroupSpreadsToo() throws {
-        let jia = "\u{7532}", yi = "\u{4E59}", bing = "\u{4E19}", ding = "\u{4E01}"
-        let env = makeEnv()
-        seed(env, records: [rec(1, jia, "judged", "correct", "2026-09-01")], schedTable: JS.obj([("base:" + jia, sched("2026-09-05"))]))
-        XCTAssertEqual(try rules.expireStale(env.store, now: env.now)["spread"], .null, "23 days: only the shorter first group (P184)")
-        let env2 = makeEnv()
-        seed(env2,
-             records: [jia, yi, bing, ding].enumerated().map { (i, c) in rec(i + 1, c, "judged", "correct", "2026-07-01") },
-             schedTable: JS.obj([("base:" + jia, sched("2026-07-02")), ("base:" + yi, sched("2026-07-03")), ("base:" + bing, sched("2026-07-04")), ("base:" + ding, sched("2026-07-05"))]))
-        let started = try rules.startDaily(env2.store, now: env2.now, deck: fakeDeck())
-        XCTAssertEqual(started["started"], .bool(true))
-        let st = env2.state
-        XCTAssertEqual(st["settings"]?["returnSpreadFor"], .string("2026-07-01"))
-        XCTAssertEqual((st["sched"]?.objectValue?.entries ?? []).map { JS.string($0.value["due"]) }.sorted(), [TODAY, TODAY, TODAY, "2026-09-25"])
-        let env3 = makeEnv()
-        seed(env3, records: [rec(1, jia, "judged", "correct", "2026-07-01"), rec(2, yi, "judged", "correct", TODAY)], schedTable: JS.obj([("base:" + jia, sched("2026-07-02"))]))
-        XCTAssertEqual(try rules.expireStale(env3.store, now: env3.now)["spread"], .null, "already written today -> not the moment of return")
-    }
 }

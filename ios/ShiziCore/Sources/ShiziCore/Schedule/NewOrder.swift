@@ -165,9 +165,4 @@ public enum GroupSize {
         let n: Double = JS.isInteger(raw) && JS.number(raw) > 0 ? JS.number(raw) : 0
         return n != 0 ? Mix.scaledCount(n, JS.number(of(settings, policy: policy)), mix: policy["groupMix"]) : .infinity
     }
-
-    /// 按组大小换算后的每日到期复习上限。
-    public static func dailyReviewCapOf(_ size: JSValue?, policy: JSValue = Config.policy) -> Double {
-        Mix.scaledCount(JS.number(policy["dailyReviewCap"]), JS.number(valid(size, policy: policy)), mix: policy["groupMix"])
-    }
 }

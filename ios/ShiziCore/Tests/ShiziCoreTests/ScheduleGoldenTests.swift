@@ -8,12 +8,12 @@ import XCTest
 final class ScheduleGoldenTests: XCTestCase {
     func testFSRSGolden() throws {
         let n = try runOpGolden("fsrs")
-        XCTAssertGreaterThan(n, 5000)
+        XCTAssertGreaterThan(n, 1500) // D83：reviewCard / applyJudgment / replay / applyAnswerSeen 退役（写错 = 明天再来、只看当天第一次）
     }
 
     func testScheduleGolden() throws {
         let n = try runOpGolden("schedule")
-        XCTAssertGreaterThan(n, 600)
+        XCTAssertGreaterThan(n, 30) // D83：配比 / 选字 / 开组的条目退役（d83RetiredGoldenOps），剩 FSRS 评级、到期、热身字、特别组、会话形状等
     }
 
     /// V8 的 Math.exp / Math.log（fdlibm，arm64 上带 FMA 收缩）与 JSMath 逐位相同的抽样；完整的 120 万组对照见 B4.2 实施记录。

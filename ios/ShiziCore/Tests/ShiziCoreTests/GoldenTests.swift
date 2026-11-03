@@ -14,7 +14,21 @@ func loadFixture(_ name: String) throws -> JSObject {
     return o
 }
 
-/// 按 op 组织的夹具逐条跑；返回比对条数。
+/// S2（调度规则 v2，D83）：规则改了、不再与 JS 参考对照的 op（D82：JS 不再是参考；这些规则由 Swift 自己的测试守，
+/// 见 TodayPlanTests / TodayPlanSimulationTests）。夹具仍由 golden.mjs 从 JS 生成（--check 照常），这里跳过这些 op 的条目。
+let d83RetiredGoldenOps: Set<String> = [
+    // 配比（规则 D 的积压阀 / 新字目标 / 每日复习上限 / 新用户封顶 / 久别摊开）→ TodayPlan.compose
+    "mix.pressureOf", "mix.newTargetOf", "mix.planGroup", "mix.dueReviewsDoneOn", "mix.newUserCapOf",
+    "sessions.wrongReserveOf", "groupSize.dailyReviewCapOf", "spread.returnSpreadPlan", "spread.returnSpreadPerDay",
+    // 选字与开组（今天的练习一天一份、再来一组、到期字按回忆概率排、自加的字优先）
+    "sessions.selectDaily", "start.planDaily", "start.startDaily", "start.startNextA", "start.expireStale",
+    // FSRS：复习日期只看当天第一次；新字第一次就看答案记 Again
+    "fsrs.replay", "fsrs.applyAnswerSeen", "fsrs.applyJudgment", "fsrs.reviewCard", // 写错 = 明天再来（到期日夹到第二天）
+    // 首页（今天的进度 / 今天完成了 / 再来一组）、「我的」（新字比例档位）、字库「今日练习」
+    "view.home", "view.home.model", "view.home.helpers", "view.mine", "view.mine.helpers", "view.library", "view.library.plan",
+]
+
+/// 按 op 组织的夹具逐条跑；返回比对条数（跳过 d83RetiredGoldenOps）。
 func runOpGolden(_ name: String, file: StaticString = #filePath, line: UInt = #line) throws -> Int {
     let doc = try loadFixture(name)
     var n = 0
@@ -26,6 +40,7 @@ func runOpGolden(_ name: String, file: StaticString = #filePath, line: UInt = #l
         }
         let engine = CoreEngine(timeZone: tz)
         for c in group["cases"]?.arrayValue ?? [] {
+            if let op = c["op"]?.stringValue, d83RetiredGoldenOps.contains(op) { continue }
             let req = JSValue.object(JSObject([("op", c["op"]!), ("args", c["args"]!), ("state", .bool(false))]))
             let res = engine.handle(req)
             let label = tzName + " " + JSONWriter.stringify(req)

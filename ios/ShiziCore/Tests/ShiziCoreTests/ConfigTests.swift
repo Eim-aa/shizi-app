@@ -72,8 +72,8 @@ final class ConfigPolicyTests: XCTestCase {
          "earlyReviewFill":true,"earlyCountsTowardCap":false,"earlyFillWhenExhausted":false}
         """#)
         XCTAssertEqual(Config.policyNumber("groupMix.baseSize"), 5, "the counts are written for groups of 5 and scaled by size / 5 (D65 #2)")
-        XCTAssertEqual(Config.policyNumber("groupSize"), 20, "D65 #2: default per-group size 20")
-        assertPolicy("groupSizeOptions", "[5,10,20,30]")
+        XCTAssertEqual(Config.policyNumber("groupSize"), 15, "D83: default per-group size 15")
+        assertPolicy("groupSizeOptions", "[5,10,15,20,30]")
         XCTAssertEqual(Config.policyNumber("dailyReviewCap"), 30, "P03 stays as a safety net")
     }
 
@@ -155,8 +155,8 @@ final class ConfigPolicyTests: XCTestCase {
     // test/core/policy.test.mjs: policy: transitional defaults match 03 / the M0-6 card
     func testPolicyTransitionalDefaultsMatch03AndTheM06Card() {
         let policy = Config.policy
-        XCTAssertEqual(Config.policyNumber("groupSize"), 20) // D65 #2
-        assertPolicy("groupSizeOptions", "[5,10,20,30]") // P314
+        XCTAssertEqual(Config.policyNumber("groupSize"), 15) // D83（原 D65 #2 的 20）
+        assertPolicy("groupSizeOptions", "[5,10,15,20,30]") // P314 / D83
         XCTAssertEqual(Config.policyNumber("dailyReviewCap"), 30)
         assertPolicy("firstQueue", #"["\u5c34","\u8d62","\u62fe"]"#, "P09 decided D38: first queue is 3 chars")
         XCTAssertNil(policy["hintMax"], "P17 decided D64: no hint cap")
@@ -182,7 +182,7 @@ final class ConfigPolicyTests: XCTestCase {
         XCTAssertEqual(Config.policyBool("features.soundscape"), false)
         XCTAssertEqual(Config.policyString("defaultLibrary"), "core3500", "P73 default library")
         XCTAssertEqual(Config.policyBool("features.difficultyFeedback"), false)
-        XCTAssertEqual(Config.policyBool("features.nextReviewLine"), true)
+        XCTAssertEqual(Config.policyBool("features.nextReviewLine"), false) // D83 ⑦ 不显示「下次见」
         // M0 验收修复 F4：P56–P61
         assertPolicy("inkToneDays", "[7,30,90]", "P56")
         XCTAssertEqual(Config.policyNumber("storageWarnRatio"), 0.8, "P57")

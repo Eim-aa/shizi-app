@@ -467,7 +467,7 @@ test('spreadLegacyDue: overdue entries spread from today on, at most perDay a da
   assert.deepEqual({ ...out['base:' + String.fromCodePoint(0x4e00 + 24)], due: null }, { ...sched['base:' + String.fromCodePoint(0x4e00 + 24)], due: null });
   // 不够 perDay 个已到期：不动
   assert.equal(spreadLegacyDue({ 'base:甲': e('2026-09-01') }, { today: '2026-10-01', perDay: 10 }).moved, 0);
-  assert.equal(spreadPerDayOf(), 10, 'round(groupSize 20 × 0.5)');
+  assert.equal(spreadPerDayOf(), 8, 'round(groupSize 15 × 0.5)（D83 缺省 15）');
 });
 
 test('convertV1: an old user with 60 overdue chars gets them spread over the next days (≤ 10 a day), records and cards unchanged (D65 #2)', () => {
@@ -491,7 +491,7 @@ test('convertV1: an old user with 60 overdue chars gets them spread over the nex
   const byDay = new Map();
   for (const d of dues) byDay.set(d, (byDay.get(d) || 0) + 1);
   assert.ok([...byDay.values()].every(n => n <= 10), JSON.stringify([...byDay]));
-  assert.equal(dues.filter(d => d <= today).length, 10, 'only 10 left due on the migration day');
+  assert.equal(dues.filter(d => d <= today).length, 8, 'only 8 left due on the migration day (round(15 × 0.5), D83)');
   assert.equal(report.sched.spread, 60, 'all were before today: the first 10 move to today, the rest later');
   const noSpread = convertV1({ memory, fsrsLog: { version: 2, events } }, { now: NOW, policy: policyWith({ spreadDuePerDayShare: 0 }) });
   assert.equal(Object.values(noSpread.state.sched).filter(s => s.due <= today).length, 60);

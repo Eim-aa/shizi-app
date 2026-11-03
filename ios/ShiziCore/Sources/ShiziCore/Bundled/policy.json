@@ -31,6 +31,36 @@
   "customIntoDaily": "none",
   "dailyCapCountsPicked": true,
   "dailyExpiry": "discard",
+  "dailyPlan": {
+    "tiers": {
+      "more": [
+        2,
+        3
+      ],
+      "balanced": [
+        1,
+        2
+      ],
+      "review": [
+        1,
+        3
+      ],
+      "only": [
+        0,
+        1
+      ]
+    },
+    "tierOrder": [
+      "more",
+      "balanced",
+      "review",
+      "only"
+    ],
+    "defaultTier": "balanced",
+    "yieldAtGroups": 1,
+    "retryGap": 3,
+    "maxAttempts": 3
+  },
   "dailyReviewCap": 30,
   "dayStartHour": 4,
   "defaultLibrary": "core3500",
@@ -41,7 +71,7 @@
     "soundscape": false,
     "milestones": false,
     "difficultyFeedback": false,
-    "nextReviewLine": true,
+    "nextReviewLine": false,
     "photoHint": false,
     "imagePickChars": false,
     "appearanceSwitch": true,
@@ -79,10 +109,11 @@
     "earlyCountsTowardCap": false,
     "earlyFillWhenExhausted": false
   },
-  "groupSize": 20,
+  "groupSize": 15,
   "groupSizeOptions": [
     5,
     10,
+    15,
     20,
     30
   ],
@@ -108,6 +139,7 @@
   "inkBudgetByGroupSize": {
     "5": 1572864,
     "10": 1572864,
+    "15": 2097152,
     "20": 2097152,
     "30": 2621440
   },

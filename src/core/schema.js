@@ -486,7 +486,9 @@ const settingsFields = {
 
   large: v.bool,
   appearance: v.oneOf(['auto', 'light', 'dark']),
-  groupSize: v.oneOf([5, 10, 20, 30]), // D65 #2（P314）：「我的 › 每组字数」；缺省（没选过）按 policy.groupSize 20。取值与 policy.groupSizeOptions 一致（test/store 断言）
+  // D83（原生调度规则 v2）：新字比例档位；网页不读，形状表与原生同一份，网页读得了原生写的数据（备份 / 迁移）
+  mixTier: v.oneOf(['more', 'balanced', 'review', 'only']),
+  groupSize: v.oneOf([5, 10, 15, 20, 30]), // D65 #2（P314）：「我的 › 每组字数」；D83 新增 15 并设为缺省（policy.groupSize）。取值与 policy.groupSizeOptions 一致（test/store 断言；policy 改了这里跟着改，否则网页选 15 写不进去）
 };
 
 const conclusionFields = {
@@ -511,7 +513,8 @@ const legacyFields = {
 
 const PHASES = ['recall', 'compare', 'answer', 'trace', 'retrace'];
 const SESSION_KINDS = ['first', 'daily', 'picked'];
-const ITEM_KINDS = ['judged', 'answer-seen', 'skipped'];
+// retry：D83 原生的当天重考（不写记录）；网页不产生，形状表与原生同一份
+const ITEM_KINDS = ['judged', 'answer-seen', 'skipped', 'retry'];
 
 const currentFields = {
   phase: v.oneOf(PHASES),
@@ -529,6 +532,8 @@ const itemFields = {
   cardKey: v.cardKey,
   recordId: v.recordId,
   kind: v.oneOf(ITEM_KINDS),
+  outcome: v.oneOf(['correct', 'wrong', 'skipped']),
+  attempt: v.int,
   fsrsBefore: (x, p) => (x !== null && typeof x === 'object' ? null : fail(p, 'not an object/array')),
 };
 
@@ -556,7 +561,12 @@ const sessionFields = {
   added: v.arrayOf(v.recordId),
   // 第三轮 C3-R（I3-05）：结果页落印的时刻；记下后刷新 / 冷启动恢复结果页不再重演落印、不再响落款声与触觉
   sealedAt: v.num,
+  // D83 原生「再来一组」：今天的练习写完之后的额外组
+  extra: v.bool,
 };
+
+// D83 原生今天的账（sessions.today）：day、进度（每个字的第一次）、这一份几个字、是否已完成
+const todayFields = { day: v.day, handled: v.arrayOf(v.cardKey), target: v.int, done: v.bool };
 
 export function validateSession(session, path = 'session', slot = null) {
   const err = checkFields(session, path, sessionFields,
@@ -577,6 +587,7 @@ function validateSessions(value, path) {
       A: (y, q) => (y === null ? null : validateSession(y, q, 'A')),
       B: (y, q) => (y === null ? null : validateSession(y, q, 'B')),
     }, []),
+    today: (x, p) => checkFields(x, p, todayFields, ['day', 'handled', 'done']),
   };
   return checkFields(value, path, fields, ['A', 'B', 'lastEnded']);
 }

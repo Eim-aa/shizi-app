@@ -49,7 +49,7 @@ export default Object.freeze({
   'X-RESULT.cellCorrect': '写对',
   'X-RESULT.cellWrong': '写错',
   'X-RESULT.cellSkipped': '跳过',
-  'X-RESULT.again': '再写一组',
+  'X-RESULT.again': '再来一组',
   // 首练结果页的主按钮（R2-R1 / N2-05）：「再写一组」降为下面的文字按钮
   'X-RESULT.done': '完成',
   'X-RESULT.leaveHome': '回到首页',

@@ -44,7 +44,7 @@ public enum SessionResults {
                 d["sessions"] = SessionRules.clearLastEnded(d["sessions"] ?? SessionRules.emptySessions(), found.slot)
                 SessionWrites.set(&d, found.slot, .object(s))
             }
-            try SessionWrites.undo(&d, a, at: c.now)
+            try SessionWrites.undo(&d, a, at: c.now, dates: store.dates)
         }
     }
     static func correctableHere(_ record: JSValue?) -> Bool { record != nil && Records.isJudged(record) && !JS.truthy(record?["legacy"]) && !Records.isPaperRecord(record) }
@@ -70,7 +70,7 @@ public enum SessionResults {
             if mode == "detail" { entry = try rules.schedAfterCorrection(records: later, recordId: id, fsrsBefore: ScheduleRules.findFsrsBefore(d["sessions"], id), policy: policy, stoppedAt: d["sched"]?[key]?["stoppedAt"]) }
             else { entry = try rules.replay(SessionRules.fsrsBeforeOf(found, id), Records.sortById(later), policy: policy, stoppedAt: d["sched"]?[key]?["stoppedAt"]) }
             if let entry { d["sched"] = SessionWrites.patch(d["sched"], [(key, entry)]) }
-            if mode == "write", let found { SessionWrites.set(&d, slot, SessionRules.markLineChanged(found, id)) }
+            if mode == "write", let found { SessionWrites.set(&d, slot, TodayPlan.afterCorrection(SessionRules.markLineChanged(found, id), key: r["cardKey"] ?? .null, to: n["judgment"], policy: policy)) } // D83 改判后重考跟着变
         }
         return result["ok"] == .bool(true) && next != nil ? SessionWrites.patch(result, [("record", next!)]) : result
     }

@@ -182,7 +182,7 @@ final class EntryFlowTests: XCTestCase {
         let qa = QA(seed: "result-daily")
         qa.launch()
         qa.waitRouteTop("result")
-        qa.tap(qa.buttonContaining("再写一组"), "再写一组")
+        qa.tap(qa.buttonContaining("再来一组"), "再来一组") // D83
         qa.waitNative(true)
         XCTAssertTrue(qa.transitions.contains("present:push"), "\(qa.transitions)")
         qa.tapNative("native-write-back")

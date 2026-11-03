@@ -60,6 +60,7 @@ public struct Settings: JSCodable, Equatable {
     public var large: Bool?
     public var appearance: String?
     public var groupSize: Double?
+    public var mixTier: String?
     var order: [String]?
 
     public init(js: JSValue) throws {
@@ -78,6 +79,7 @@ public struct Settings: JSCodable, Equatable {
         large = try r.opt("large", Conv.bool)
         appearance = try r.opt("appearance", Conv.str)
         groupSize = try r.opt("groupSize", Conv.num)
+        mixTier = try r.opt("mixTier", Conv.str)
         order = r.order
     }
     public var js: JSValue {
@@ -86,6 +88,7 @@ public struct Settings: JSCodable, Equatable {
         w.add("capitalDeferredDay", capitalDeferredDay); w.add("returnSpreadFor", returnSpreadFor); w.add("writeMode", writeMode)
         w.add("paperSuggested", paperSuggested); w.add("answerNoteSeen", answerNoteSeen); w.add("shiHandoffDone", shiHandoffDone)
         w.add("firstTipSeen", firstTipSeen); w.add("large", large); w.add("appearance", appearance); w.add("groupSize", groupSize)
+        w.add("mixTier", mixTier)
         return w.build(order: order)
     }
 }
@@ -205,6 +208,9 @@ public struct SessionItem: JSCodable, Equatable {
     public var recordId: String?
     public var kind: String
     public var fsrsBefore: JSValue?
+    /// D83 重考 item：correct / wrong / skipped 与第几次。
+    public var outcome: String?
+    public var attempt: Double?
     var order: [String]?
     public init(js: JSValue) throws {
         let r = try Reader(js, "session.item")
@@ -212,11 +218,14 @@ public struct SessionItem: JSCodable, Equatable {
         recordId = try r.opt("recordId", Conv.str)
         kind = try r.req("kind", Conv.str)
         fsrsBefore = r.raw("fsrsBefore")
+        outcome = try r.opt("outcome", Conv.str)
+        attempt = try r.opt("attempt", Conv.num)
         order = r.order
     }
     public var js: JSValue {
         var w = Writer()
         w.add("cardKey", cardKey); w.add("recordId", recordId); w.add("kind", kind); w.add("fsrsBefore", fsrsBefore)
+        w.add("outcome", outcome); w.add("attempt", attempt)
         return w.build(order: order)
     }
 }
@@ -285,6 +294,7 @@ public struct Session: JSCodable, Equatable {
     public var endedEarly: Bool?
     public var added: [String]?
     public var sealedAt: Double?
+    public var extra: Bool?
     var order: [String]?
 
     public init(js: JSValue) throws {
@@ -305,6 +315,7 @@ public struct Session: JSCodable, Equatable {
         endedEarly = try r.opt("endedEarly", Conv.bool)
         added = try r.opt("added", Conv.array(Conv.str))
         sealedAt = try r.opt("sealedAt", Conv.num)
+        extra = try r.opt("extra", Conv.bool)
         order = r.order
     }
 
@@ -320,6 +331,7 @@ public struct Session: JSCodable, Equatable {
         w.add("endedAt", endedAt); w.add("endedEarly", endedEarly)
         w.add("added", array: added) { .string($0) }
         w.add("sealedAt", sealedAt)
+        w.add("extra", extra)
         return w.build(order: order)
     }
 }
@@ -347,17 +359,21 @@ public struct Sessions: JSCodable, Equatable {
     public var A: Session?
     public var B: Session?
     public var lastEnded: LastEnded
+    /// D83 今天的账（{day, handled, target?, done}，原样保留）。
+    public var today: JSValue?
     var order: [String]?
     public init(js: JSValue) throws {
         let r = try Reader(js, "sessions")
         A = try r.req("A", Conv.nullable(Conv.model(Session.self)))
         B = try r.req("B", Conv.nullable(Conv.model(Session.self)))
         lastEnded = try r.req("lastEnded", Conv.model(LastEnded.self))
+        today = r.raw("today")
         order = r.order
     }
     public var js: JSValue {
         var w = Writer()
         w.add("A", A.map { $0.js } ?? .null); w.add("B", B.map { $0.js } ?? .null); w.add("lastEnded", model: lastEnded)
+        w.add("today", today)
         return w.build(order: order)
     }
 }

@@ -19,7 +19,7 @@ export const features = Object.freeze({
   soundscape: false, // P07 练字背景音：按 Issue #166 删除
   milestones: false, // P08 里程碑庆祝：删除
   difficultyFeedback: false, // P11 文案-D6「这组字难不难」：不影响选字 → 整块不显示
-  nextReviewLine: true, // P12 文案-D7「下次练习 · 大约 X 日再练到」：保留（仅有 judged 记录时）
+  nextReviewLine: false, // P12 文案-D7「下次练习 · 大约 X 日再练到」：D83 ⑦（负责人 2026-11-02）起不显示（字详情「下次复习」、首练结果页「N 天后再见」都关）
   photoHint: false, // P13 文案-D10「写完提示做成图片」：删除
   imagePickChars: false, // P49 走查-M06 挑字 / L13 选用哪一次笔迹：不做
   appearanceSwitch: true, // P51 「外观：浅色/深色/跟随系统」：按冻结设计实现
@@ -42,7 +42,8 @@ export const inkFormat = 'v3';
 export const inkBudgetByGroupSize = Object.freeze({
   5: 1.5 * 1024 * 1024, // P326 每组 5 字
   10: 1.5 * 1024 * 1024, // P326 每组 10 字
-  20: 2 * 1024 * 1024, // P326 每组 20 字（缺省）
+  15: 2 * 1024 * 1024, // P326 每组 15 字（D83 起的缺省；沿用原缺省 20 字的 2MiB）
+  20: 2 * 1024 * 1024, // P326 每组 20 字
   30: 2.5 * 1024 * 1024, // P326 每组 30 字
 });
 // P05 / P78 存储前每笔最多点数（按弧长抽点）：v3 打包编码每点 4 字节，24 点/笔使 14 笔的字 ≈ 3.7KB（UTF-16）、
@@ -82,12 +83,13 @@ export const imageMaxChars = 80;
 
 // ---- 调度与选字 ----
 // P03 第二次起每组字数的缺省（D65 #2，覆盖 D41 的 5）：用户在「我的 › 每组字数」里选（settings.groupSize，取值见 groupSizeOptions，P314）；
-// 没选过（含所有老用户）按 20。今日计划、首页主按钮、字库「今日练习」、再写一组都读同一个值（core/group-size.js groupSizeOf）。
-export const groupSize = 20;
-// P314 「每组字数」可选的值（D65 #2）：5 / 10 / 20 / 30。配比、积压阀、每日复习上限、回来的第一组按组大小等比例换算（groupMix.baseSize）。
-export const groupSizeOptions = Object.freeze([5, 10, 20, 30]);
+// 没选过（含所有老用户）按 15（D83：今天的练习 = 一组，15 个字约 10 分钟；原缺省 20）。今日计划、首页主按钮、字库「今日练习」、再来一组都读同一个值（core/group-size.js groupSizeOf）。
+export const groupSize = 15;
+// P314 「每组字数」可选的值（D65 #2；D83 新增 15）：5 / 10 / 15 / 20 / 30。
+export const groupSizeOptions = Object.freeze([5, 10, 15, 20, 30]);
 // P03 每日到期复习上限（练完记账；D41 之后只作「一天写很多组」时的保险：按 5 字一组写的 30，组大小换了按比例换算（= 6 组的复习量，20 字一组为 120），
 // 要写 7 组以上才会碰到；到期不够时的「提前复习」补位不计入此上限，见 groupMix.earlyCountsTowardCap）
+// D83（调度规则 v2）起原生 App 不再读这一项（每天一份练习，积压按优先级往后排）；只留给冻结在仓库的网页版。
 export const dailyReviewCap = 30;
 // P125 每组复习与新字的配比（已决定 D41「保底一新 + 积压阀」，规则 D；依据 docs/engineering/v10/phase1/复习新字配比-研究与推荐.md §4.3 / §6.1，
 // 参考实现 docs/engineering/v10/phase1/tools/simulate-mix.mjs RULES.D；阈值以 groupSize=5 为前提，改组大小须重跑模拟）。
@@ -96,6 +98,7 @@ export const dailyReviewCap = 30;
 // 新字 1 / 2 / 3 份 → 20 字一组 4 / 8 / 12 个；积压折算 4 → 16；回来的第一组 3 → 12。p 的单位是「天」，所以天数阈值不用换算，
 // 按字数算的积压门槛自然随组大小等比例。比例不变的理由：D41 的配比是按「一组里新字占几成」在 5 字组上模拟定的（研究 §4.3），
 // 组变大以后每天的复习量与新字量同比例放大，积压的增长速度（以天计）和 5 字组一致；见 docs/qa/调度模拟报告.md 的 5 字 / 20 字对照。
+// D83（调度规则 v2）起原生 App 不读 groupMix / newUserRamp / wrongFirst / customIntoDaily / returnSpread（换成 dailyPlan，P327）；只留给冻结在仓库的网页版。
 export const groupMix = Object.freeze({
   baseSize: 5, // P314 下面各个数所依据的组大小（D41 按 5 字一组定的）
   newMax: 3, // P125 每组新字最多 3 个（到期与提前复习都不够补位时才补到第 4、5 个，例如首练后的第一组）
@@ -152,6 +155,24 @@ export const capitalNumerals = Object.freeze({
 });
 // P09 第一次练习的字（已决定 D38：尴 → 赢 → 拾，共 3 个，三字都在默认库「规范常用字」；首练组大小 = 此队列长度，只影响首练，之后每组仍是 groupSize）
 export const firstQueue = Object.freeze(['尴', '赢', '拾']);
+// P327 调度规则 v2「一天的练习」（已决定 D83，全文 docs/product/调度规则v2-一天的练习.md；原生 ShiziCore Schedule/DailyPlan.swift）：
+// 每天一份「今天的练习」= 一组（字数 = 每组字数），早上 dayStartHour 以后第一次开始时定下、当天不变；新字份额 = 每组字数 × 档位比例，
+// 四舍五入、正好一半时偏复习（15 × 1/2 → 7 新 8 复习，与规则文档的例子一致）；复习不够新字补，新字不够复习补，都不够这一份就少几个字；
+// 到期字 ≥ 每组字数 × yieldAtGroups 时算「复习太多」，新字让位到 1 个（只复习档 0 个）。写错（含看答案）当天隔 retryGap 个字重考，
+// 一个字最多考 maxAttempts 次；复习日期只看每个字当天的第一次。
+export const dailyPlan = Object.freeze({
+  tiers: Object.freeze({ // P327 新字比例的四个档位
+    more: Object.freeze([2, 3]), // P327 多学新字：新字 2/3（[分子, 分母]）
+    balanced: Object.freeze([1, 2]), // P327 均衡（缺省）：新字 1/2
+    review: Object.freeze([1, 3]), // P327 巩固为主：新字 1/3
+    only: Object.freeze([0, 1]), // P327 只复习：没有新字
+  }),
+  tierOrder: Object.freeze(['more', 'balanced', 'review', 'only']), // P327 设置里档位的排列顺序
+  defaultTier: 'balanced', // P327 没选过时的档位（负责人：默认均衡）
+  yieldAtGroups: 1, // P327 到期字 ≥ 每组字数 × 此值时新字让位到 1 个（规则文档：到期 40 → 14 复习 + 1 新；到期 12 → 仍 8 + 7）
+  retryGap: 3, // P327 写错后隔几个字再考（后面不够就放到最后）
+  maxAttempts: 3, // P327 一个字当天最多考几次（第 3 次还错 = 明天再来）
+});
 // P33 「自选了还没写」是否进入今天的练习：不进（只走 B 路径）
 export const customIntoDaily = 'none';
 // P34 带提示且判写对的 FSRS 评级（D65 #4，覆盖 D41 的「一律 Good」；D66 ② 改复习一档）：按点了几次提示取第 n 个（超出取最后一个），新字第一次判断与复习分开。
@@ -418,6 +439,7 @@ export const recordsFoldAfterDays = 400;
 // 只执行一次：settings.returnSpreadFor 记下这次离开前的最后一个练习日。FSRS 卡与记录不变。
 // 理由：停 90 天回来，修前当天「待复习」两百多、之后每天全是复习、新字关一个月（模拟 S19）；摊开后当天待复习回到一天的量，头几天有新字。
 // 每天的份额取 0.5（与迁移同一口径）：模拟里 0.3 / 0.5 都会在第 2 周起因为写错重学再积压，0.3 积压阀关得更久，故不取更小的值。
+// D83 起原生 App 不摊（每天一份约 10 分钟的练习，积压自然往后排）；只留给冻结在仓库的网页版。
 export const returnSpread = Object.freeze({
   afterDays: 30, // P323 离开至少几天才摊（离开 7–29 天只缩短回来的第一组，P184）
   perDayShare: 0.5, // P323 每天至多每组字数的几成（与迁移的 migration.spreadDuePerDayShare 同一口径）

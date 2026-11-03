@@ -332,8 +332,11 @@ final class FSRSTests: XCTestCase {
         // 当天已经判断过：不再记
         let judgedToday = try rules.applyJudgment(entry, rec(5, jing, "judged", "correct", day, at: at(day, 19))).entry
         XCTAssertFalse(try applied(judgedToday, rec(6, jing, "answer-seen", nil, day, at: at(day, 20))).applied, "already judged today")
-        // 新字：不建调度项
-        XCTAssertFalse(try applied(nil, rec(7, yi, "answer-seen", nil, day)).applied)
+        // D83：新字第一次就看答案 = 没记住，记 Again（明天再来）
+        let fresh = try applied(nil, rec(7, yi, "answer-seen", nil, day))
+        XCTAssertTrue(fresh.applied)
+        XCTAssertEqual(fresh.entry?["due"], .string(addDays(day, 1)), "a new char seen first comes back tomorrow")
+        XCTAssertEqual(fresh.entry?["seenAgainDay"], .string(day))
         // 开关关（对照）
         XCTAssertFalse(try applied(entry, seen, policy: policyWith([("answerSeenRating", .string("none"))])).applied)
     }
@@ -397,7 +400,9 @@ final class FSRSTests: XCTestCase {
         XCTAssertTrue(diffDays(next, due(after.entry)) <= 3, "seen before: Good \(diffDays(next, due(after.entry))) days")
         XCTAssertEqual(after.fsrsBefore["seenBefore"], .bool(true))
         XCTAssertEqual(try rules.replay(after.fsrsBefore, [judged]), after.entry, "correction replay keeps the rule")
-        XCTAssertEqual(try rules.replay(nil, [seen, judged]), after.entry, "full replay keeps the rule")
+        // D83：新字先看答案已记 Again（建了调度项），全量重放从那张卡接着走
+        let seenEntry = try rules.applyAnswerSeen(nil, seen).entry
+        XCTAssertEqual(try rules.replay(nil, [seen, judged]), try rules.applyJudgment(seenEntry, judged).entry, "full replay = Again for the seen answer, then the judgment")
         // 带提示：按复习一档（1 次 Hard，2 次起 Again）
         let hinted = rec(2, yi, "judged", "correct", next, at: at(next, 20), hints: 2)
         let h = try rules.applyJudgment(nil, hinted, records: [seen, hinted])
@@ -415,6 +420,8 @@ final class FSRSTests: XCTestCase {
         let two = try rules.applyJudgment(entry, rec(3, jing, "judged", "correct", day, at: at(day, 20), hints: 2)).entry
         let wrong = try rules.applyJudgment(entry, rec(3, jing, "judged", "wrong", day, at: at(day, 20))).entry
         XCTAssertTrue(diffDays(day, due(one)) > 30, "1 hint -> Hard: \(diffDays(day, due(one)))")
-        XCTAssertEqual(two["due"], wrong["due"], "2 hints -> Again = wrong")
+        XCTAssertEqual(two["fsrs"], wrong["fsrs"], "2 hints -> Again = wrong (same FSRS step)")
+        // D83 ③：写错 = 明天再来（到期日夹到第二天）；2 次提示写对按提示降级，日期照 FSRS
+        XCTAssertEqual(wrong["due"], .string(addDays(day, 1)))
     }
 }

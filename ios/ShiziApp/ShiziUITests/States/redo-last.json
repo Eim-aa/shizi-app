@@ -8,7 +8,7 @@
   "settle": 1000,
   "steps": [
     {
-      "repeat": 2,
+      "repeat": 1,
       "steps": [
         {
           "tap": {

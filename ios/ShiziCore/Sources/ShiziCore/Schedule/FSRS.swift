@@ -218,7 +218,8 @@ extension ScheduleRules {
         let today = try localDayOf(at)
         let tomorrow = try dates.addDays(today, 1)
         let fsrsDay = try localDayOf(try toMs(card["due"]))
-        let due = JSMath.lessThan(tomorrow, fsrsDay) ? fsrsDay : tomorrow
+        // D83 ③：写错 / 看了答案（judgment wrong）= 明天再来——FSRS 照记 Again（稳定度、难度照算），到期日夹到第二天（不错开）
+        let due = JS.isString(review["judgment"], "wrong") ? tomorrow : (JSMath.lessThan(tomorrow, fsrsDay) ? fsrsDay : tomorrow)
         return ReviewResult(card: card, due: due, rating: rating, clockBackMs: clockBackMs != 0 ? clockBackMs : nil)
     }
 
@@ -250,12 +251,32 @@ extension ScheduleRules {
         return .object(o)
     }
 
-    /// 看过答案后的调度项（D66 ①）。
+    /// 新字（还没有 FSRS 卡 / 一次都没复习过）第一次就看了答案，记一次 Again（D83 ③：「写错 / 看了答案 → 没记住，明天再来」）。
+    public func answerSeenNewApplies(_ entry: JSValue?, _ record: JSValue?, policy: JSValue = Config.policy) -> Bool {
+        if !JS.truthy(policy) || !JS.isString(policy["answerSeenRating"], "Again") { return false }
+        guard let r = record, JS.truthy(r), JS.isString(r["kind"], "answer-seen") else { return false }
+        let e = entry.flatMap { JS.truthy($0) ? $0 : nil }
+        if e?["stoppedAt"] != nil { return false }
+        guard let f = e?["fsrs"], JS.truthy(f) else { return true }
+        return JS.numberOr0(f["reps"]) == 0 && !JS.strictEquals(e?["seenAgainDay"], r["localDay"])
+    }
+
+    /// 看过答案后的调度项（D66 ①；D83 起新字第一次就看答案也记 Again）。
     public func applyAnswerSeen(_ entry: JSValue?, _ record: JSValue, policy: JSValue = Config.policy) throws -> (entry: JSValue?, applied: Bool) {
-        guard try answerSeenAgainApplies(entry, record, policy: policy), let e = entry else { return (entry, false) }
         let probe = JS.obj([("judgment", .string("wrong")), ("at", record["at"] ?? .null), ("cardKey", record["cardKey"] ?? .null)])
-        let step = try reviewCard(e["fsrs"], undefinedAware(probe, record), policy: policy)
-        return (ScheduleRules.entryOf(step.card, .string(step.due), e["lastJudgedAt"], record["localDay"], e["stoppedAt"]), true)
+        if try answerSeenAgainApplies(entry, record, policy: policy), let e = entry {
+            let step = try reviewCard(e["fsrs"], undefinedAware(probe, record), policy: policy)
+            return (ScheduleRules.entryOf(step.card, .string(step.due), e["lastJudgedAt"], record["localDay"], e["stoppedAt"]), true)
+        }
+        if answerSeenNewApplies(entry, record, policy: policy) {
+            let e = entry.flatMap { JS.truthy($0) ? $0 : nil }
+            let before = try e?["fsrs"].flatMap { JS.truthy($0) ? $0 : nil } ?? emptyCard(record["at"])
+            let step = try reviewCard(before, undefinedAware(probe, record), policy: policy)
+            // 调度项必有 lastJudgedAt（形状表）：新字还没判断过，记看答案的时刻
+            let seenAt = JSValue.number(try toMs(record["at"]))
+            return (ScheduleRules.entryOf(step.card, .string(step.due), e?["lastJudgedAt"] ?? seenAt, record["localDay"], e?["stoppedAt"]), true)
+        }
+        return (entry, false)
     }
 
     /// {judgment, at: record.at, cardKey: record.cardKey}：record 里缺的键在 JS 里是 undefined（不是 null）。
@@ -296,6 +317,10 @@ extension ScheduleRules {
             }
             return (ScheduleRules.entryOf(e["fsrs"], e["due"], .number(at), e["seenAgainDay"], e["stoppedAt"]), before)
         }
+        // D83：复习日期只看每个字当天的第一次——当天已经评过级（例如先在今天的练习里写过，又在自选里写）的不再评级
+        if let e = e, let f = e["fsrs"], JS.truthy(f), try reviewedOn(f, r["localDay"], policy: policy) {
+            return (ScheduleRules.entryOf(f, e["due"], .number(at), e["seenAgainDay"], e["stoppedAt"]), f)
+        }
         var fsrsBefore: JSValue
         if let e = e, JS.truthy(e["fsrs"]) {
             fsrsBefore = e["fsrs"]!
@@ -323,7 +348,16 @@ extension ScheduleRules {
         for record in records where JS.truthy(record) {
             if JS.isString(record["kind"], "answer-seen") {
                 guard let c = card, JS.truthy(c), JS.numberOr0(c["reps"]) != 0 else {
-                    seenBefore = true
+                    if answerSeenNewApplies(card.map { JS.obj([("fsrs", $0), ("seenAgainDay", seenAgainDay ?? .null)]) }, record, policy: policy) {
+                        let before = try card.flatMap { JS.truthy($0) ? $0 : nil } ?? emptyCard(record["at"])
+                        let step = try reviewCard(before, undefinedAware(JS.obj([("judgment", .string("wrong")), ("at", record["at"] ?? .null), ("cardKey", record["cardKey"] ?? .null)]), record), policy: policy)
+                        card = step.card
+                        due = step.due
+                        seenAgainDay = record["localDay"]
+                        if lastJudgedAt == nil { lastJudgedAt = try toMs(record["at"]) }
+                    } else {
+                        seenBefore = true
+                    }
                     continue
                 }
                 let probe = JS.obj([("fsrs", c), ("seenAgainDay", seenAgainDay ?? .null)])
@@ -337,11 +371,13 @@ extension ScheduleRules {
             if !JS.isString(record["kind"], "judged") { continue }
             judgedAny = true
             lastJudgedAt = try toMs(record["at"])
-            if let c = card, JS.truthy(c), JS.truthy(seenAgainDay), JS.strictEquals(seenAgainDay, record["localDay"]) {
+            // D83：同一天第二次起不评级（当天看答案已记过 Again，或当天已经评过级）
+            if let c = card, JS.truthy(c), try (JS.truthy(seenAgainDay) && JS.strictEquals(seenAgainDay, record["localDay"])) || reviewedOn(c, record["localDay"], policy: policy) {
                 if due == nil {
                     let fsrsDay = try localDayOf(try toMs(c["due"]), policy: policy)
                     let next = try dates.addDays(record["localDay"] ?? .null, 1)
-                    due = JSMath.lessThan(next, fsrsDay) ? fsrsDay : next
+                    // D83 ③：当天看过答案（记过 Again）= 明天再来；当天已评过级的照那次的结果
+                    due = JS.truthy(seenAgainDay) && JS.strictEquals(seenAgainDay, record["localDay"]) ? next : (JSMath.lessThan(next, fsrsDay) ? fsrsDay : next)
                 }
                 continue
             }

@@ -55,7 +55,7 @@ final class ResultFlowTests: XCTestCase {
         let qa = QA(seed: "result-daily")
         qa.launch()
         qa.waitResult(true)
-        XCTAssertEqual(qa.el("native-result-primary").label, "再写一组")
+        XCTAssertEqual(qa.el("native-result-primary").label, "再来一组") // D83
         qa.tapNative("native-result-primary")
         qa.waitNative(true)
         XCTAssertFalse(qa.resultShown)
@@ -99,7 +99,7 @@ final class ResultFlowTests: XCTestCase {
         qa.tapUndoBar()
         qa.waitNative(true)
         XCTAssertTrue(qa.transitions.contains("present:push"), "undo skip: the write page pushes in over the result page: \(qa.transitions)")
-        qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 4 }
+        qa.waitProbe("back on the last char") { (($0["sessions"] as? [String: Any])?["B"] as? [String: Any])?["cursor"] as? Int == 5 } // D83：前面有一次重考
         XCTAssertEqual(qa.kinds["skipped"] ?? 0, 0)
         XCTAssertFalse(qa.resultShown)
     }

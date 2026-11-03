@@ -204,7 +204,87 @@ function collect() {
   return rows;
 }
 
+// S2（调度规则 v2，D83；D82 起规则不再与 JS 一致）：这些用例断言的是旧规则（规则 D 配比 / 积压阀 / 每日复习上限 / 久别摊开 /
+// 新用户封顶 / 自加的字不进今天的练习 / 写错不当天重考 / 复习日期按每次判断）或逐字段对照 JS 的会话写入，随新规则退役，XCTest 删除。
+// 新规则的测试：ios/ShiziCore/Tests/ShiziCoreTests/TodayPlanTests.swift、TodayPlanSimulationTests.swift。
+const R = 'S2 退役';
+const S2_RETIRED = new Map([
+  ["test/core/group-size.test.mjs", new Set([
+    "selectDaily at 20: a fresh user gets a full group; the review/new mix is the 5-char mix × 4",
+  ])],
+  ["test/core/mix.test.mjs", new Set([
+    "mix vs simulate-mix: the sim and the app use the same warm-up list, group size and cap",
+    "mix vs simulate-mix: newTarget of rule D agrees on a grid across every threshold (0.5 / 1.5 / 4, accuracy 0.6, lastHadNew)",
+    "mix vs simulate-mix: planGroup (3000 random states) gives the same new / review / early counts and the same characters",
+    "rule D: p < 0.5 and recent new-char accuracy ≥ 0.6 → up to 3 new (reviews capped at 2); accuracy < 0.6 → only 2 new (reviews capped at 3)",
+    "rule D: 0.5 ≤ p < 1.5 → 2 new; 1.5 ≤ p < 4 → 1 new",
+    "valve (p ≥ 4, D65 #2): new chars drop to 0 whether or not the last group had new chars; the D41 alternating valve stays available for comparison",
+    "valve hysteresis (D65 #2): once closed it stays closed until p < valveReleaseDays (2), then the usual tiers come back",
+    "D41 alternating valve (valveReleaseDays null) never makes two full-review groups in a row: a 30-due backlog alternates until it shrinks",
+    "rule D: coming back after ≥ 7 days the first group still has 1 new char even though the last group had new chars",
+    "D48 ⑧ (P184): the first group after ≥ 7 days away is 3 chars; the next group the same day, 6 days away and the special group are not shortened",
+    "new chars: at most 3 while the due + early pool can fill the group; the 4th / 5th new only appear when nothing else can fill",
+    "library exhausted: no early reviews to fill a group (D66 ⑩) — nothing due → empty queue; some due → just those",
+    "early reviews: soonest due first then least stable; not warm-up chars; not chars written today; stopped cards are skipped",
+    "dailyReviewCap: an early review done today is not counted, an on-time one is (P125 earlyCountsTowardCap=false)",
+    "dailyReviewCap through selectDaily: 30 early reviews written today leave the whole budget for due chars",
+    "D66 ⑫ (policy.newUserRamp P325): days 1–3 after the first practice → at most 2 parts of new chars per group (20-char group: 8), no filling with new chars; day 4 back to normal",
+  ])],
+  ["test/core/session-start.test.mjs", new Set([
+    "daily: the first group after ≥ 7 days away is 3 chars through startDaily (D48 ⑧ / P184)",
+    "daily: characters judged today never come back; skipped / answer-seen today stay out (D65 #5, P06 / P36)",
+    "daily: custom characters not yet written do not enter the daily queue (P33 none)",
+    "daily: at most dailyReviewCap (30) reviews a day, counted on judged records (P03 / P60)",
+    "after the first practice (尴 赢 拾) the first daily group is 1 warm-up char at the head + 4 new chars, nothing to review yet (D28 / D41)",
+    "D66 ⑨: back after ≥ 30 days → expireStale spreads the due chars over the next days in one commit, once per absence; planDaily already sees it",
+    "D66 ⑨: no spread when away < 30 days or already written today; starting a group spreads too (no home visit)",
+  ])],
+  ["test/core/sessions.test.mjs", new Set([
+    "daily: a char skipped today stays out today; a skipped new char is deferred skipNewDeferDays days, then returns to its place (D65 #5)",
+    "daily: answer-seen today follows policy.answerSeenScope (P36)",
+    "daily: custom chars not yet written stay out of daily (P33 customIntoDaily=none)",
+    "daily: at most dailyReviewCap (30) due reviews per day, counted as they are done",
+    "daily: wrong-first (D65 #1) — last practice day's wrong chars lead the due list, then older wrong ones, then plain due; reserve survives an exhausted review budget",
+  ])],
+  ["test/core/spread.test.mjs", new Set([
+    "returnSpreadPlan (policy.returnSpread P323): ≥ 30 days away, not written today, not done for this absence; perDay = round(group size × 0.5)",
+  ])],
+  ["test/ui/native-write.test.mjs", new Set([
+    "judge through the API = the web judgment path, field by field (records, sched/FSRS, ink, session, lastEnded)",
+    "judge reply on the last card says finished; exit navigates to the result page",
+    "open: recovery is idempotent (a judged-but-not-advanced card is advanced once), snapshot + copy in one reply",
+    "hint op: every tap = the web hint path field by field, up to the whole char (= answer seen, D64 ①)",
+    "hint op: no group data → one stroke per tap; a segment already written is skipped (same skip as the web)",
+    "hints feed the judgment the same way on both paths (D66 ②: review with 2+ hints)",
+    "snapshot: hint range, answer seen and the previous card line (text; the 修改 › action text comes with it)",
+    "correct op: 改判 = the web commitCorrection field by field, flips once and never counts twice (D19 / D07)",
+    "correct op: only the line record of this session can be changed (sessions.canCorrect); a later card closes the door",
+    "correct op state: sheet data = the record (char, judgment, own strokes from the stored ink); a failed write changes nothing and the retry applies once",
+    "showAnswer = commitAnswerSeen: answer-seen record + straight into the trace phase (D64 ②), a review char gets one Again (D66 ①)",
+    "answer flow: trace → 凭记忆写 (retrace) → 下一个, strokes included — web path and API path agree on every commit (D70 ② no self ink, D66 ① Again)",
+    "answer flow: 再描一遍 (retrace → trace) and the recall-after-answer-seen path (hint gave the whole char) behave like the web",
+    "answer ops: a failed write changes nothing (D07), the retry succeeds once; a stale card is refused with the advanced snapshot; bad phase refused",
+    "answer flow: 下一个 on the last char finishes the group in the same call (same order as the web page)",
+    "skip + undoSkip = commitSkip + commitUndoSkip: record, session, hints and the strokes written back, field by field",
+    "skip: writes the same skipped record as the web (no judgment, not re-implemented)",
+    "skip: D07 — a failed skip changes nothing; the retry records once; a second skip of the same card is stale",
+    "undoSkip: only the last skipped record can be undone (stale otherwise); a failed undo changes nothing and retries",
+    "skip of the last char finishes the group; exit hands the undo chance (remaining ms + strokes) to the result page / source page",
+    "end: counts and commit = endConfirmCounts + commitEndGroup (web path); judged > 0 → result page, none judged → back to the source",
+    "prompt fill: the blank cell carries the answer only in the trace phase (web REVEAL_PHASES), never in recall / retrace (D16)",
+    "B2.7 result op = the web result page mount (commitFinish, idempotent) + the view of the same resultModel",
+    "B2.7 result view (page side): work cells / rows / kuan / reveal come from the web result page functions",
+    "B2.7 resultCell: the sheet model is the web ResultCellSheet (title / note / top label / flip); skipped and answer-seen only look",
+    "B2.7 resultCorrect = commitResultCorrection field by field (D19: same record, corrections appended, sched replayed); once only; failure changes nothing",
+    "B2.7 resultAdd / resultSealed = commitAdded / commitSealed (web path), the seal sound is asked for once per group",
+    "B2.7 resultUndoSkip = commitResultSkipUndo (session back in the slot, record removed, strokes written back), then the page goes back to the write page",
+    "B2.7 resultAgain = the web 再写一组 (startNextA with the group source), then the page replaces the result with the write page (D70)",
+    "B2.7 resultExit: leave → the web leaveTo(model.leave); redo → the wrong chars of this group; detail / share pass through; nothing is written",
+  ])],
+]);
+
 function classify(row) {
+  if (S2_RETIRED.get(row.file)?.has(row.name)) return { c: R, card: 'S2', note: 'D83 新规则取代（TodayPlanTests / TodayPlanSimulationTests）' };
   if(row.file==='test/ui/native-write.test.mjs')return {c:T,card:'B4.5a',note:'SessionTranscriptionTests：55 个原名/路径；session-contract 220 场景 × 1,196 步，完整回复/状态；另 session-completion 强制差分'};
   if(row.file==='test/ui/native-block.test.mjs'&&!/^B3.13 blockReasonOf:/.test(row.name))return {c:T,card:'B4.5a',note:'SessionPageTranscriptionTests：原名/路径与原断言；App 类名静态检查同原 node 契约，只读源码无需模拟器'};
   if(['test/ui/detail.test.mjs','test/ui/native-mine.test.mjs'].includes(row.file)&&/^(commitWordOff|commitRemoveCustom|B3\.5c (write ops:|D07:|the web prefs|op table:))/.test(row.name))return {c:T,card:'B4.5a',note:'SessionPageTranscriptionTests：真实 Store 提交/失败/重试/原位撤销'};

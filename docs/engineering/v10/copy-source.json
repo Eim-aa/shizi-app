@@ -41,7 +41,11 @@
     "{range}": "一段现成的笔序读法（X-WRITE.liveRangeOne / liveRangeMany，嵌进 liveHint / liveTrace）",
     "{base}": "一句已成型的读屏名称（X-JUDGE.refCardLabelPlus：参考字形：字，拼音，n 画）",
     "{extra}": "追加的一小段（结构 / 部件数）",
-    "{label}": "图片 / 墨迹所在的名称（X-DETAIL.heroCaption / heroCellLabel：第一次 / 最近一次）；原字库页「写错过 / 快忘了」块名的用法已随 D60 去掉"
+    "{label}": "图片 / 墨迹所在的名称（X-DETAIL.heroCaption / heroCellLabel：第一次 / 最近一次）；原字库页「写错过 / 快忘了」块名的用法已随 D60 去掉",
+    "{correct}": "结果页完成画面：第一次就写对的字数（D83）",
+    "{passed}": "结果页完成画面：重考过关的字数（D83）",
+    "{again}": "结果页完成画面：明天再来的字数（D83）",
+    "{fresh}": "结果页完成画面：今天新学的字数（D83）"
   },
   "normalization": [
     "{M} 月 {D} 日、{9 月 24 日} 这类日期、裸「M 月 D 日」、{日期} → {date}",
@@ -3756,10 +3760,10 @@
         },
         "again": {
           "raw": null,
-          "text": "再写一组",
+          "text": "再来一组",
           "origin": "extra",
-          "note": "原型 ShiziScreen-第十稿交接版 L118 resStd 主按钮（今天的练习结果页）",
-          "decision": "P55"
+          "note": "原型 ShiziScreen-第十稿交接版 L118 resStd 主按钮（今天的练习结果页）；D83（P327）改「再来一组」：今天完成后首页主按钮与结果页主按钮同一句",
+          "decision": "P327"
         },
         "done": {
           "raw": null,
@@ -4158,6 +4162,41 @@
           "origin": "extra",
           "note": "D65 ②：AX 档行右值、选择弹层每一项、分段每一项的读屏名（「20 个」）；n = 5 / 10 / 20 / 30",
           "decision": "P314"
+        },
+        "mixTier": {
+          "raw": null,
+          "text": "新字比例",
+          "origin": "extra",
+          "note": "D83：「我的」页常用设置组里每组字数下面一行；行右值 = 当前档位，点开选择弹层（四个档位放不进行内分段）；名称取规则文档档位表的列名",
+          "decision": "P327"
+        },
+        "mixTier.more": {
+          "raw": null,
+          "text": "多学新字",
+          "origin": "extra",
+          "note": "D83 档位名（规则文档「档位」表）：行右值与选择弹层每一项",
+          "decision": "P327"
+        },
+        "mixTier.balanced": {
+          "raw": null,
+          "text": "均衡",
+          "origin": "extra",
+          "note": "D83 档位名（规则文档「档位」表）：行右值与选择弹层每一项",
+          "decision": "P327"
+        },
+        "mixTier.review": {
+          "raw": null,
+          "text": "巩固为主",
+          "origin": "extra",
+          "note": "D83 档位名（规则文档「档位」表）：行右值与选择弹层每一项",
+          "decision": "P327"
+        },
+        "mixTier.only": {
+          "raw": null,
+          "text": "只复习",
+          "origin": "extra",
+          "note": "D83 档位名（规则文档「档位」表）：行右值与选择弹层每一项",
+          "decision": "P327"
         }
       }
     },
@@ -5396,9 +5435,9 @@
         },
         "todayDoneSub": {
           "raw": null,
-          "text": "想多写，再写一组",
+          "text": "想多写，再来一组",
           "origin": "docs/design/library/字库方向四.html（D60）",
-          "note": "写完的第二行小字"
+          "note": "写完的第二行小字；D83（P327）由「再写一组」改「再来一组」，与结果页 / 首页主按钮 X-RESULT.again 同一说法"
         },
         "writtenHeading": {
           "raw": null,
@@ -5583,6 +5622,41 @@
           "origin": "extra",
           "note": "D66 ③：对照阶段求助行按钮——回到空书写格重写这个字",
           "decision": "P55"
+        }
+      }
+    },
+    "X-TODAY": {
+      "screen": "home",
+      "milestone": "S2",
+      "source": "D83 调度规则 v2「一天的练习」（docs/product/调度规则v2-一天的练习.md 一 / 四）",
+      "slots": {
+        "progress": {
+          "raw": null,
+          "text": "今天的练习 {n} / {total}",
+          "origin": "extra",
+          "note": "首页按钮上方一行：今天的练习还没写完时的进度（只算每个字的第一次；自选写过的字也算）",
+          "decision": "P327"
+        },
+        "done": {
+          "raw": null,
+          "text": "今天完成了 ✓",
+          "origin": "extra",
+          "note": "首页按钮上方一行：今天的练习写完之后（规则文档四「首页显示『今天完成了 ✓』」）",
+          "decision": "P327"
+        },
+        "doneTitle": {
+          "raw": null,
+          "text": "今天完成了",
+          "origin": "extra",
+          "note": "结果页完成画面的标题（今天的练习写完那一组）",
+          "decision": "P327"
+        },
+        "summary": {
+          "raw": null,
+          "text": "写对 {correct}、重考过关 {passed}、明天再来 {again}、新学 {fresh} 个字",
+          "origin": "extra",
+          "note": "结果页汇总句（规则文档五的例子同一说法）",
+          "decision": "P327"
         }
       }
     }

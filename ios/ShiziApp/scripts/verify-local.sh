@@ -36,7 +36,7 @@ plutil -lint \
   "${IOS_ROOT}/ShiziApp/Info.plist" \
   "${IOS_ROOT}/ShiziApp/PrivacyInfo.xcprivacy" \
   "${IOS_ROOT}/ShiziApp/zh-Hans.lproj/InfoPlist.strings"
-# A7：Paper 颜色集必须与 src/config/tokens.css 的 --p 一致（启动屏 / WebView 底色同源）
+# A7：Paper 颜色集必须与 ShiziKitTokens.json 的 colors.*.paper 一致（启动屏 / 原生根视图底色同源）
 node "${SCRIPT_DIR}/generate-paper-colorset.mjs" --check
 for script in "${SCRIPT_DIR}"/*.sh; do
   # 按 shebang 选解释器检查语法（#!/bin/bash 的脚本可用进程替换等 bash 写法）

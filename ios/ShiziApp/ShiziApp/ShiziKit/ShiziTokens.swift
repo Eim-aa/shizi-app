@@ -1,7 +1,7 @@
 import UIKit
 
 // ShiziKit（B3.1；计划 B3B4-原生化架构与计划.md §3.2）：令牌、文案、动效的单一来源 = 构建期生成的资源
-// （scripts/build_shizikit.mjs → ShiziKit/Generated/ShiziKitTokens.json、ShiziKitCopy.json，从 tokens.json / tokens.css / policy / motion.js / src/config/copy 导出；
+// （ShiziKit/Generated/ShiziKitTokens.json、ShiziKitCopy.json 是手改的唯一真相源，D84 起不再由 scripts/build_shizikit.mjs 生成；
 //  生成物与来源不同步时 test/ios-shizikit.test.mjs 失败）。原生源码不写颜色、字号、时长与汉字。
 //
 // B2 的写字 / 判断 / 结果 / 重写错字页原来从写字会话 API 的 open 回包读颜色、字阶、文案与动效（页面现算）；B3.1 起这些键一律取生成值

@@ -1,45 +1,82 @@
-// B4.1 ShiziCore 配置与数据资源的 node 侧门禁（不需要 Swift）：
-//   1. 生成物（ios/ShiziCore/Sources/ShiziCore/Bundled/*.json）与 src/ 同步——改了 policy / motion / char-order / epigraphs / copy / 题库就要重跑 node scripts/build_core_config.mjs；
-//   2. 生成物里没有 JS 专属的东西（函数 / undefined / 非有限数），资源自洽（deck.json = deck-data.js + context-overrides.js；policy-meta 的登记表覆盖全部 policy 导出）；
-//   3. 形状工厂（差分与金标准共用）造出的合法值全过 schema，变异值有相当比例被拒；
-//   （Swift 与 JS 的 op 表同名由 core-diff.test.mjs 核对。）
+// B4.1 ShiziCore 配置与数据资源的 node 侧门禁（不需要 Swift）。D84：Bundled/*.json（deck.json 除外）是手改的唯一真相源，不再与 src/ 比对：
+//   1. 目录里恰好是约定的 16 个 JSON + README；资源都是纯 JSON 数据（无 undefined / 非有限数）；
+//   2. policy-meta 的登记表覆盖全部 policy 导出（verify_copy 的 checkPolicyMeta，读 JSON）；motion.json 带齐令牌表；signature.json 形状正确；
+//   3. deck.json 仍由 build_core_config.mjs 生成，与 deck-data.js + context-overrides.js 同步（清扫卡 B 处理）；
+//   4. 形状工厂（差分与金标准共用）造出的合法值全过 schema，变异值有相当比例被拒；
+//   （Swift 与 JS 的 op 表同名由 core-diff.test.mjs 核对；policy 键与类型由 Swift ConfigDataTests 守。）
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { OUT_DIR, deckSources, generate, sources } from '../../scripts/build_core_config.mjs';
+import { OUT_DIR, deckSources, generate } from '../../scripts/build_core_config.mjs';
+import { checkPolicyMeta, checkPolicyFiles, loadNativeCopy, PATHS } from '../../scripts/verify_copy.mjs';
 import { makeCtx, rng } from '../../scripts/core-diff/lib/gen.mjs';
 import { shapes } from '../../scripts/core-diff/lib/shapes.mjs';
 import { validateValue } from '../../src/core/schema.js';
-import * as policy from '../../src/config/policy.js';
 
-test('core-config: generated resources are in sync with src/ (node scripts/build_core_config.mjs)', async () => {
-  const files = await generate();
-  for (const [name, text] of Object.entries(files)) {
-    const cur = fs.readFileSync(path.join(OUT_DIR, name), 'utf8');
-    assert.ok(cur === text, `stale ${name}: run node scripts/build_core_config.mjs`);
-  }
-  const onDisk = fs.readdirSync(OUT_DIR).sort();
-  assert.deepEqual(onDisk, Object.keys(files).sort(), 'no stray files in Resources/');
+const readJson = (name) => JSON.parse(fs.readFileSync(path.join(OUT_DIR, name + '.json'), 'utf8'));
+const source = () => JSON.parse(fs.readFileSync(PATHS.source, 'utf8'));
+
+test('core-config: Bundled/ holds exactly the 16 resources and a README; every one is plain JSON data', () => {
+  const names = ['card-rules', 'char-order', 'copy', 'credits', 'deck-libraries', 'deck-meta', 'deck', 'epigraphs', 'fsrs-config', 'motion', 'policy-meta', 'policy', 'signature', 'unicode-scripts', 'view-brand', 'view-seal'];
+  assert.deepEqual(fs.readdirSync(OUT_DIR).sort(), ['README.md', ...names.map((n) => n + '.json')].sort());
+  const walk = (x, where) => {
+    assert.ok(x !== undefined && typeof x !== 'function', where);
+    if (typeof x === 'number') assert.ok(Number.isFinite(x), where);
+    if (x && typeof x === 'object') for (const [k, v] of Object.entries(x)) walk(v, where + '.' + k);
+  };
+  for (const n of names) walk(readJson(n), n);
 });
 
-test('core-config: policy.json is every policy export, in export order; motion.json carries the token tables', async () => {
-  const src = await sources();
-  assert.deepEqual(Object.keys(src.policy), Object.keys(policy));
-  assert.deepEqual(JSON.parse(JSON.stringify(src.policy)), JSON.parse(JSON.stringify({ ...policy })));
-  for (const k of ['duration', 'role', 'moment', 'easing', 'bezier', 'spring', 'scale', 'distance', 'gesture', 'timing', 'haptic', 'cssVars', 'roleKeys']) assert.ok(k in src.motion, `motion.${k}`);
-  assert.equal('css' in src.motion || 'M' in src.motion || 'prefersReducedMotion' in src.motion, false, 'no functions / duplicates in motion.json');
-  assert.deepEqual(Object.keys(src.signature).sort(), ['digits', 'two', 'units', 'zero']);
+test('core-config: deck.json is the only file build_core_config.mjs still generates', async () => {
+  assert.deepEqual(Object.keys(await generate()), ['deck.json']);
 });
 
-test('core-config: policy-meta registers a P number for every policy export and covers every registered P', async () => {
-  const meta = (await sources())['policy-meta'];
+test('core-config: motion.json carries the token tables; signature.json has the numeral parts', () => {
+  const motion = readJson('motion');
+  for (const k of ['duration', 'role', 'moment', 'easing', 'bezier', 'spring', 'scale', 'distance', 'gesture', 'timing', 'haptic', 'cssVars', 'roleKeys']) assert.ok(k in motion, `motion.${k}`);
+  assert.equal('css' in motion || 'M' in motion || 'prefersReducedMotion' in motion, false, 'no functions / duplicates in motion.json');
+  assert.deepEqual(Object.keys(readJson('signature')).sort(), ['digits', 'two', 'units', 'zero']);
+});
+
+test('core-config: policy-meta registers a P number for every policy export, matches 03, and covers every registered P', () => {
+  const policy = readJson('policy');
+  const meta = readJson('policy-meta');
+  assert.deepEqual(checkPolicyFiles(source()).errors, []);
   assert.deepEqual(Object.keys(meta.exports).sort(), Object.keys(policy).sort());
   for (const [name, entry] of Object.entries(meta.exports)) {
     assert.ok(entry.p.length > 0, name);
     for (const p of entry.p) assert.ok(meta.registered.includes(p), `${name} ${p}`);
   }
   assert.deepEqual(meta.registered.filter((p) => !meta.covered.includes(p)), []);
+});
+
+test('core-config: the policy-meta check catches a missing export, an unregistered P and a stale registry', () => {
+  const policy = readJson('policy');
+  const meta = readJson('policy-meta');
+  const pendingMarkdown = fs.readFileSync(PATHS.pending, 'utf8');
+  const run = (m, pol = policy) => checkPolicyMeta(source(), { policy: pol, meta: m, pendingMarkdown }).errors;
+  assert.deepEqual(run(meta), []);
+  const first = Object.keys(meta.exports)[0];
+  const noExport = structuredClone(meta);
+  delete noExport.exports[first];
+  assert.ok(run(noExport).some((e) => e.includes('differ from policy.json keys')));
+  const noP = structuredClone(meta);
+  noP.exports[first].p = [];
+  assert.ok(run(noP).some((e) => e.includes(`policy.${first}: export has no P number`)));
+  const badP = structuredClone(meta);
+  badP.exports[first].p = ['P999'];
+  assert.ok(run(badP).some((e) => e.includes('P999 is not registered')));
+  const stale = structuredClone(meta);
+  stale.registered = stale.registered.slice(1);
+  assert.ok(run(stale).some((e) => e.includes('registered differs')));
+});
+
+test('core-config: copy.json and ShiziKitCopy.json are identical and every key is registered in copy-source.json', () => {
+  const { modules, errors } = loadNativeCopy(source());
+  assert.deepEqual(errors, []);
+  assert.equal(modules.unregistered, undefined);
+  assert.equal(Object.values(modules).reduce((n, t) => n + Object.keys(t).length, 0), Object.keys(readJson('copy')).length);
 });
 
 test('core-config: deck.json = deck-data.js SEED / GROUPS + context-overrides.js', () => {

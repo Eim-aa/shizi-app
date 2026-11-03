@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/api/backup.js. Static copy structure is exported by session-resources.mjs.
+// src/session/api/backup.js. Static copy structure lives in SessionBundled/session-ui.json (hand-edited).
 extension PageAPI {
     static func dateRef(_ day: JSValue?, _ dates: Dates) throws -> JSValue {
         ViewSupport.ref("R-H02.dateFormat", dates.isValidDay(day ?? .null) ? try dates.monthDayParts(day!) : JS.obj([("month", .string("")), ("day", .string(""))]))

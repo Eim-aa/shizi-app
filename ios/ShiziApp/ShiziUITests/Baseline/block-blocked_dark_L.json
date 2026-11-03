@@ -1,0 +1,297 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-block-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "bg" : "#1B1814FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-block-page",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "blockMarker"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 380
+      },
+      "id" : "native-block-line",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "lineLabels[0]",
+      "text" : "可能是空间不够，或浏览器不让保存。",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 253.30000000000001,
+        "x" : 20,
+        "y" : 382
+      },
+      "visibleFrame" : {
+        "h" : 18,
+        "w" : 253.30000000000001,
+        "x" : 20,
+        "y" : 380
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 410
+      },
+      "id" : "native-block-line",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "lineLabels[1]",
+      "text" : "解决前暂不能写字，免得白写。",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 208.69999999999999,
+        "x" : 20,
+        "y" : 412
+      },
+      "visibleFrame" : {
+        "h" : 18,
+        "w" : 208.69999999999999,
+        "x" : 20,
+        "y" : 410
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 30,
+        "w" : 362,
+        "x" : 20,
+        "y" : 318
+      },
+      "id" : "native-block-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "blockTitleLabel",
+      "text" : "无法保存",
+      "textFrame" : {
+        "h" : 31.600000000000001,
+        "w" : 88,
+        "x" : 20,
+        "y" : 317.19999999999999
+      },
+      "visibleFrame" : {
+        "h" : 30,
+        "w" : 88,
+        "x" : 20,
+        "y" : 318
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 380
+      },
+      "id" : "native-block-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyMarker"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "再试一次",
+      "bg" : "#E2D9C9FF",
+      "class" : "UIButton",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 464
+      },
+      "id" : "native-block-retry",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "retryButton",
+      "radius" : 12,
+      "text" : "再试一次",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 167,
+        "y" : 481
+      },
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 464
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "导出备份",
+      "border" : "#6F675DFF",
+      "borderWidth" : 1,
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 530
+      },
+      "id" : "native-block-export",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "exportButton",
+      "radius" : 12,
+      "text" : "导出备份",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 167,
+        "y" : 547
+      },
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 530
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 530
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 583
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 530
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 530
+    }
+  ],
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "block-blocked",
+  "tag" : "dark_L",
+  "ui" : "native"
+}

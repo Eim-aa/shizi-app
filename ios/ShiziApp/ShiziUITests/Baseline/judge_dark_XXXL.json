@@ -1,0 +1,614 @@
+{
+  "cells" : [
+    {
+      "class" : "NativeGlyphView",
+      "h" : 41.600000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 41.600000000000001,
+      "x" : 206.19999999999999,
+      "y" : 164.19999999999999
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 229,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 229,
+      "x" : 86.5,
+      "y" : 228
+    },
+    {
+      "class" : "NativeGlyphView",
+      "h" : 231,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 231,
+      "x" : 85.5,
+      "y" : 457
+    }
+  ],
+  "decos" : [
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "接着写",
+      "class" : "NativeIconTextButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-write-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#ECE4D6FF"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 105
+      },
+      "id" : "native-write-sr-status",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "srStatusLabel",
+      "srOnly" : true
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 44,
+        "w" : 258,
+        "x" : 72,
+        "y" : 62
+      },
+      "id" : "native-write-progress",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "centerLabel",
+      "text" : "写对了吗",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 70.200000000000003
+      },
+      "visibleFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 62
+      }
+    },
+    {
+      "align" : "right",
+      "class" : "UILabel",
+      "color" : "#A0968AFF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 40,
+        "x" : 338,
+        "y" : 62
+      },
+      "id" : "native-write-count",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "progressLabel",
+      "text" : "1 \/ 5",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 40,
+        "x" : 338,
+        "y" : 71.799999999999997
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 40,
+        "x" : 338,
+        "y" : 62
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 85,
+        "w" : 402,
+        "x" : 0,
+        "y" : 126
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "promptView"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 52,
+        "w" : 104,
+        "x" : 149,
+        "y" : 159
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "promptRow"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "要写的字，第 1 个，读 yǒng，三声",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "UIView",
+      "frame" : {
+        "h" : 52,
+        "w" : 52,
+        "x" : 149,
+        "y" : 159
+      },
+      "id" : "native-write-blank",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "promptCells[0]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 44,
+        "x" : 153,
+        "y" : 126
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "yǒng",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 44,
+        "x" : 153,
+        "y" : 128.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 44,
+        "x" : 153,
+        "y" : 126
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "远",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 52,
+        "w" : 52,
+        "x" : 201,
+        "y" : 159
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "promptCells[1]"
+    },
+    {
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "UIView",
+      "frame" : {
+        "h" : 231,
+        "w" : 231,
+        "x" : 85.5,
+        "y" : 227
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "gridFrame"
+    },
+    {
+      "class" : "NativeHintLayerView",
+      "frame" : {
+        "h" : 360,
+        "w" : 360,
+        "x" : 21,
+        "y" : 228
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "hintLayer"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "你写的，2 笔",
+      "class" : "NativeInkView",
+      "frame" : {
+        "h" : 229,
+        "w" : 229,
+        "x" : 86.5,
+        "y" : 228
+      },
+      "id" : "native-write-grid",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "ink"
+    },
+    {
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "UIView",
+      "frame" : {
+        "h" : 231,
+        "w" : 231,
+        "x" : 85.5,
+        "y" : 457
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "refFrame"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "标准写法：永，yǒng，5 画，上下结构",
+      "class" : "NativeGlyphView",
+      "frame" : {
+        "h" : 231,
+        "w" : 231,
+        "x" : 85.5,
+        "y" : 457
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "refGlyph"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 168,
+        "w" : 402,
+        "x" : 0,
+        "y" : 706
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "footView"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "",
+      "border" : "#6F675DFF",
+      "borderWidth" : 1,
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 175,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "native-write-wrong",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "wrongButton",
+      "radius" : 12,
+      "text" : "写错了",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 68,
+        "x" : 73.700000000000003,
+        "y" : 799.20000000000005
+      },
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 175,
+        "x" : 20,
+        "y" : 786
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "",
+      "border" : "#6F675DFF",
+      "borderWidth" : 1,
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 175,
+        "x" : 207,
+        "y" : 786
+      },
+      "id" : "native-write-correct",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "correctButton",
+      "radius" : 12,
+      "text" : "写对了",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 68,
+        "x" : 260.69999999999999,
+        "y" : 799.20000000000005
+      },
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 175,
+        "x" : 207,
+        "y" : 786
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 52,
+      "x" : 149,
+      "y" : 159
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 52,
+      "x" : 149,
+      "y" : 210
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 52,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 149,
+      "y" : 159
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 52,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 200,
+      "y" : 159
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 231,
+      "x" : 85.5,
+      "y" : 227
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 231,
+      "x" : 85.5,
+      "y" : 457
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 231,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 85.5,
+      "y" : 227
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 231,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 315.5,
+      "y" : 227
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 231,
+      "x" : 85.5,
+      "y" : 457
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 231,
+      "x" : 85.5,
+      "y" : 687
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 231,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 85.5,
+      "y" : 457
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 231,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 315.5,
+      "y" : 457
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 175,
+      "x" : 20,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 175,
+      "x" : 20,
+      "y" : 839
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 194,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 175,
+      "x" : 207,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 175,
+      "x" : 207,
+      "y" : 839
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 207,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 786
+    }
+  ],
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "judge",
+  "tag" : "dark_XXXL",
+  "ui" : "native"
+}

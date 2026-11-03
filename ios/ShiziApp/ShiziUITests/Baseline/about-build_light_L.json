@@ -1,0 +1,538 @@
+{
+  "cells" : [
+    {
+      "h" : 64,
+      "kind" : "image",
+      "layer" : "page",
+      "w" : 64,
+      "x" : 169,
+      "y" : 146
+    }
+  ],
+  "decos" : [
+    {
+      "h" : 16,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 16,
+      "x" : 256.5,
+      "y" : 408.69999999999999
+    },
+    {
+      "h" : 16,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 16,
+      "x" : 256.5,
+      "y" : 408.69999999999999
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 532.5
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 584.5
+    },
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-about-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 768,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 543,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 222,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-about-head",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "headMarker"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 157,
+        "w" : 362,
+        "x" : 20,
+        "y" : 460
+      },
+      "id" : "native-about-rows",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowsMarker"
+    },
+    {
+      "class" : "UIImageView",
+      "frame" : {
+        "h" : 64,
+        "w" : 64,
+        "x" : 169,
+        "y" : 146
+      },
+      "id" : "native-about-logo",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "logoView",
+      "radius" : 12
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 22,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 226
+      },
+      "id" : "native-about-name",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "nameLabel",
+      "text" : "拾字",
+      "textFrame" : {
+        "h" : 31.600000000000001,
+        "w" : 44,
+        "x" : 179,
+        "y" : 221.19999999999999
+      },
+      "visibleFrame" : {
+        "h" : 22,
+        "w" : 44,
+        "x" : 179,
+        "y" : 226
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "版本 1.0.0，20261001，点按看完整构建号",
+      "class" : "NativeTextButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 182,
+        "x" : 110,
+        "y" : 264
+      },
+      "id" : "native-about-build",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "buildButton",
+      "text" : "版本 1.0.0（20261001）",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 165.30000000000001,
+        "x" : 118.3,
+        "y" : 277
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 182,
+        "x" : 110,
+        "y" : 264
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 316
+      },
+      "id" : "native-about-build-full",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "buildFullLabel",
+      "text" : "构建号 20261001-000000000000",
+      "textFrame" : {
+        "h" : 15.699999999999999,
+        "w" : 210.69999999999999,
+        "x" : 95.700000000000003,
+        "y" : 318.19999999999999
+      },
+      "visibleFrame" : {
+        "h" : 15.699999999999999,
+        "w" : 210.69999999999999,
+        "x" : 95.700000000000003,
+        "y" : 316
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 376
+      },
+      "id" : "native-about-motto",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "mottoLabel",
+      "text" : "提笔忘字，不是忘了，\n只是很久没写。",
+      "textFrame" : {
+        "h" : 46.100000000000001,
+        "w" : 170,
+        "x" : 116,
+        "y" : 378.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 52,
+        "w" : 170,
+        "x" : 116,
+        "y" : 376
+      }
+    },
+    {
+      "bg" : "#B03A27FF",
+      "class" : "NativeSealView",
+      "frame" : {
+        "h" : 16,
+        "w" : 16,
+        "x" : 256.5,
+        "y" : 408.69999999999999
+      },
+      "id" : "native-about-seal",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sealView"
+    },
+    {
+      "bg" : "#DDD5C7FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1,
+        "w" : 362,
+        "x" : 20,
+        "y" : 460
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowsTopLine"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "隐私，记录只存在这台手机上",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 461
+      },
+      "id" : "native-about-row-privacy",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "rowButtons[0]",
+      "text" : "隐私 记录只存在这台手机上 ›",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 476.60000000000002
+      },
+      "visibleFrame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 461
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "开源致谢",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 513
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 532.5
+      },
+      "id" : "native-about-row-credits",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "rowButtons[1]",
+      "text" : "开源致谢",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 20,
+        "y" : 528.60000000000002
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 513
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "联系我们",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 565
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 584.5
+      },
+      "id" : "native-about-row-letter",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "rowButtons[2]",
+      "text" : "联系我们",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 20,
+        "y" : 580.60000000000002
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 565
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0088FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "关于拾字",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "关于拾字",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 167.19999999999999,
+        "y" : 73.799999999999997
+      },
+      "visibleFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 167.30000000000001,
+        "y" : 73
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 460
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 512.5
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 564.5
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 616.5
+    }
+  ],
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "about-build",
+  "tag" : "light_L",
+  "ui" : "native"
+}

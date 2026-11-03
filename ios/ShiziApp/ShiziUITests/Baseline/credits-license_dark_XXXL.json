@@ -1,0 +1,2356 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-about-credits-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 768,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 4271,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-about-credits-intro",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "introLabel",
+      "text" : "用到的开源程序、数据和字体，\n谢谢作者。",
+      "textFrame" : {
+        "h" : 53.299999999999997,
+        "w" : 281,
+        "x" : 20,
+        "y" : 124.3
+      },
+      "visibleFrame" : {
+        "h" : 53.299999999999997,
+        "w" : 281,
+        "x" : 20,
+        "y" : 122
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 2135,
+        "w" : 362,
+        "x" : 20,
+        "y" : 212
+      },
+      "id" : "native-about-credits-group",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "groupMarkers[0]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 212
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "groupTitles[0]",
+      "text" : "程序",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 46,
+        "x" : 20,
+        "y" : 210
+      },
+      "visibleFrame" : {
+        "h" : 29,
+        "w" : 46,
+        "x" : 20,
+        "y" : 212
+      }
+    },
+    {
+      "bg" : "#38322BFF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1,
+        "w" : 362,
+        "x" : 20,
+        "y" : 249
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "groupTopLines[0]"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1578,
+        "w" : 362,
+        "x" : 20,
+        "y" : 250
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 262
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "Hanzi Writer 3.7.3",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 155.69999999999999,
+        "x" : 20,
+        "y" : 264.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 155.69999999999999,
+        "x" : 20,
+        "y" : 262
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 295
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 95,
+        "x" : 20,
+        "y" : 298
+      },
+      "visibleFrame" : {
+        "h" : 21,
+        "w" : 95,
+        "x" : 20,
+        "y" : 295
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 326
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "https:\/\/github.com\/chanind\/hanzi-writer",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 310,
+        "x" : 20,
+        "y" : 329
+      },
+      "visibleFrame" : {
+        "h" : 21,
+        "w" : 310,
+        "x" : 20,
+        "y" : 326
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "Hanzi Writer 3.7.3，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 357
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 368.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 357
+      }
+    },
+    {
+      "align" : "left",
+      "bg" : "#2A2520FF",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 14.84375,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 1386,
+        "w" : 338,
+        "x" : 32,
+        "y" : 417
+      },
+      "id" : "native-about-credit-text",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "vendor\/hanzi-writer.min.js (moved \nfrom the repository root in v10 M0-\n1, bytes unchanged) vendors the \nbrowser distribution of \nchanind\/hanzi-writer \n(https:\/\/github.com\/chanind\/hanzi-\nwriter) version 3.7.3.\n\nVendored SHA-256: \n17b11a1e025b780cb518d49b30faacc770df\na7fbc387aa3876e3e5c1bd31e642\n\nHanzi Writer is licensed under the \nMIT License, Copyright (c) 2014 \nDavid Chanin. The complete notice is \nincluded at licenses\/hanzi-writer-\nLICENSE.txt.\n\n— licenses\/hanzi-writer-LICENSE.txt \n—\n\nThe MIT License (MIT)\n\nCopyright (c) 2014 David Chanin\n\nPermission is hereby granted, free \nof charge, to any person obtaining a \ncopy of\nthis software and associated \ndocumentation files (the \n\"Software\"), to deal in\nthe Software without restriction, \nincluding without limitation the \nrights to\nuse, copy, modify, merge, publish, \ndistribute, sublicense, and\/or sell \ncopies of\nthe Software, and to permit persons \nto whom the Software is furnished to \ndo so,\nsubject to the following conditions:\n\nThe above copyright notice and this \npermission notice shall be included \nin all\ncopies or substantial portions of \nthe Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", \nWITHOUT WARRANTY OF ANY KIND, \nEXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED \nTO THE WARRANTIES OF \nMERCHANTABILITY, FITNESS\nFOR A PARTICULAR PURPOSE AND \nNONINFRINGEMENT. IN NO EVENT SHALL \nTHE AUTHORS OR\nCOPYRIGHT HOLDERS BE LIABLE FOR ANY \nCLAIM, DAMAGES OR OTHER LIABILITY, \nWHETHER\nIN AN ACTION OF CONTRACT, TORT OR \nOTHERWISE, ARISING FROM, OUT OF OR \nIN\nCONNECTION WITH THE SOFTWARE OR THE \nUSE OR OTHER DEALINGS IN THE \nSOFTWARE.",
+      "textFrame" : {
+        "h" : 1382.7,
+        "w" : 338,
+        "x" : 32,
+        "y" : 418.60000000000002
+      },
+      "visibleFrame" : {
+        "h" : 457,
+        "w" : 338,
+        "x" : 32,
+        "y" : 417
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "开源致谢",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "开源致谢",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 70.200000000000003
+      },
+      "visibleFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 69.5
+      }
+    }
+  ],
+  "offscreen" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1828
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1840
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Preact 10.29.8",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 127.7,
+        "x" : 20,
+        "y" : 1842.3
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1873
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 95,
+        "x" : 20,
+        "y" : 1876
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1904
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/preactjs\/preact",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 267,
+        "x" : 20,
+        "y" : 1907
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "Preact 10.29.8，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 1935
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 1946.7
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1992
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2004
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "htm 3.1.1",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 77.299999999999997,
+        "x" : 20,
+        "y" : 2006.3
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2037
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 2040
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2068
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/developit\/htm",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 256,
+        "x" : 20,
+        "y" : 2071
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "htm 3.1.1，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 2099
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 2110.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 191,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2156
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2168
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "ts-fsrs 5.2.0",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 107,
+        "x" : 20,
+        "y" : 2170.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2201
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 95,
+        "x" : 20,
+        "y" : 2204
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2232
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/open-\nspaced-repetition\/ts-fsrs",
+      "textFrame" : {
+        "h" : 48,
+        "w" : 196,
+        "x" : 20,
+        "y" : 2235
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "ts-fsrs 5.2.0，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 2290
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 2301.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1514,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2379
+      },
+      "id" : "native-about-credits-group",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "groupMarkers[1]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2379
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "groupTitles[1]",
+      "text" : "字形字源",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 92,
+        "x" : 20,
+        "y" : 2377
+      },
+      "visibleFrame" : null
+    },
+    {
+      "bg" : "#38322BFF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2416
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "groupTopLines[1]"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2417
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2429
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Hanzi Writer Data 2.0.1",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 201,
+        "x" : 20,
+        "y" : 2431.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2462
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Arphic Public License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 168.69999999999999,
+        "x" : 20,
+        "y" : 2465
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2493
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/chanind\/hanzi-writer-data",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 352,
+        "x" : 20,
+        "y" : 2496
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "Hanzi Writer Data 2.0.1，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 2524
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 2535.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2581
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2593
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "AnimCJK",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 82,
+        "x" : 20,
+        "y" : 2595.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2626
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Arphic Public License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 168.69999999999999,
+        "x" : 20,
+        "y" : 2629
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2657
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/parsimonhi\/animCJK",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 310,
+        "x" : 20,
+        "y" : 2660
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "AnimCJK，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 2688
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 2699.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2745
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2757
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Shuowen.org data",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 160.30000000000001,
+        "x" : 20,
+        "y" : 2759.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2790
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 2793
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2821
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/shuowenjiezi\/shuowen",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 324,
+        "x" : 20,
+        "y" : 2824
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "Shuowen.org data，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 2852
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 2863.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2909
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2921
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "OpenCC character mappings",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 258,
+        "x" : 20,
+        "y" : 2923.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2954
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 2957
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2985
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/BYVoid\/OpenCC",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 277,
+        "x" : 20,
+        "y" : 2988
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "OpenCC character mappings，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 3016
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 3027.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3073
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3085
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Make Me a Hanzi dictionary metadata",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 332.69999999999999,
+        "x" : 20,
+        "y" : 3087.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3118
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "GNU LGPL 3.0 or later",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 173.30000000000001,
+        "x" : 20,
+        "y" : 3121
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3149
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/skishore\/makemeahanzi",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 337,
+        "x" : 20,
+        "y" : 3152
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "Make Me a Hanzi dictionary metadata，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 3180
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 3191.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3237
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3249
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "jieba dictionary",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 134.30000000000001,
+        "x" : 20,
+        "y" : 3251.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3282
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 95,
+        "x" : 20,
+        "y" : 3285
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3313
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/fxsjy\/jieba",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 225.69999999999999,
+        "x" : 20,
+        "y" : 3316
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "jieba dictionary，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 3344
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 3355.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3401
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3413
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "pypinyin 0.55.0",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 135.30000000000001,
+        "x" : 20,
+        "y" : 3415.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3446
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 95,
+        "x" : 20,
+        "y" : 3449
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3477
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/mozillazg\/python-pinyin",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 335.69999999999999,
+        "x" : 20,
+        "y" : 3480
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "pypinyin 0.55.0，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 3508
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 3519.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3565
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3577
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "hanziDB",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 74,
+        "x" : 20,
+        "y" : 3579.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3610
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "MIT License",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 95,
+        "x" : 20,
+        "y" : 3613
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3641
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/ruddfawcett\/hanziDB.csv",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 344.69999999999999,
+        "x" : 20,
+        "y" : 3644
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "hanziDB，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 3672
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 3683.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3729
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3741
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "wordfreq",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 79.700000000000003,
+        "x" : 20,
+        "y" : 3743.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3774
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Apache License 2.0",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 153.69999999999999,
+        "x" : 20,
+        "y" : 3777
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3805
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/rspeer\/wordfreq",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 274,
+        "x" : 20,
+        "y" : 3808
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "wordfreq，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 3836
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 3847.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 420,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3925
+      },
+      "id" : "native-about-credits-group",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "groupMarkers[2]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3925
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "groupTitles[2]",
+      "text" : "字体",
+      "textFrame" : {
+        "h" : 33,
+        "w" : 46,
+        "x" : 20,
+        "y" : 3923
+      },
+      "visibleFrame" : null
+    },
+    {
+      "bg" : "#38322BFF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3962
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "groupTopLines[2]"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 164,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3963
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 3975
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "LXGW WenKai GB 1.522",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 213.69999999999999,
+        "x" : 20,
+        "y" : 3977.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 4008
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "SIL Open Font License 1.1",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 200,
+        "x" : 20,
+        "y" : 4011
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 4039
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/lxgw\/LxgwWenkaiGB",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 310.30000000000001,
+        "x" : 20,
+        "y" : 4042
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "LXGW WenKai GB 1.522，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 4070
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 4081.6999999999998
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 218,
+        "w" : 362,
+        "x" : 20,
+        "y" : 4127
+      },
+      "id" : "native-about-credit",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 4139
+      },
+      "id" : "native-about-credit-name",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "Noto Serif SC 2.003",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 177.30000000000001,
+        "x" : 20,
+        "y" : 4141.3000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 4172
+      },
+      "id" : "native-about-credit-license",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "SIL Open Font License 1.1",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 200,
+        "x" : 20,
+        "y" : 4175
+      },
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 81,
+        "w" : 362,
+        "x" : 20,
+        "y" : 4203
+      },
+      "id" : "native-about-credit-url",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "https:\/\/github.com\/google\/fonts\/tree\/8b0a1d0\nf5983c89bc2b93f1b5fb55f9e252744b5\/ofl\/n\notoserifsc",
+      "textFrame" : {
+        "h" : 75,
+        "w" : 359.30000000000001,
+        "x" : 20,
+        "y" : 4206
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "Noto Serif SC 2.003，许可全文",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 78,
+        "x" : 16,
+        "y" : 4288
+      },
+      "id" : "native-about-credit-toggle",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "许可全文",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 69.700000000000003,
+        "x" : 20,
+        "y" : 4299.6999999999998
+      },
+      "visibleFrame" : null
+    }
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 249
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1827
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1991
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2155
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2346
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2416
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2580
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2744
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2908
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3072
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3236
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3400
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3564
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3728
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3892
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 3962
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 4126
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 4344
+    }
+  ],
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "credits-license",
+  "tag" : "dark_XXXL",
+  "ui" : "native"
+}

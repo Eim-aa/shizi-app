@@ -1,0 +1,244 @@
+{
+  "cells" : [
+    {
+      "h" : 460,
+      "kind" : "image",
+      "layer" : "page",
+      "w" : 345,
+      "x" : 28.5,
+      "y" : 176
+    }
+  ],
+  "decos" : [
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "bg" : "#1B1814FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-detail-photo-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 714,
+        "w" : 402,
+        "x" : 0,
+        "y" : 160
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 714,
+        "w" : 402,
+        "x" : 0,
+        "y" : 160
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "bg" : "#302B25FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 460,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "frameView"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "旧版本拍下的照片",
+      "class" : "UIImageView",
+      "frame" : {
+        "h" : 460,
+        "w" : 362,
+        "x" : 20,
+        "y" : 176
+      },
+      "id" : "native-detail-photo-image",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "imageView"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#A0968AFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 42,
+        "w" : 362,
+        "x" : 20,
+        "y" : 668
+      },
+      "id" : "native-detail-photo-caption",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "caption",
+      "text" : "旧记录",
+      "textFrame" : {
+        "h" : 39.700000000000003,
+        "w" : 97.299999999999997,
+        "x" : 20,
+        "y" : 669.20000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39.700000000000003,
+        "w" : 97.299999999999997,
+        "x" : 20,
+        "y" : 668
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 126,
+        "w" : 362,
+        "x" : 20,
+        "y" : 716
+      },
+      "id" : "native-detail-photo-body",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "body",
+      "text" : "旧版本拍照的记录，只能看，不能做图。\n备份时会一起存下。",
+      "textFrame" : {
+        "h" : 127,
+        "w" : 353,
+        "x" : 20,
+        "y" : 715.5
+      },
+      "visibleFrame" : {
+        "h" : 126,
+        "w" : 353,
+        "x" : 20,
+        "y" : 716
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "left",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "「雪」的旧记录",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 48,
+        "w" : 330,
+        "x" : 36,
+        "y" : 106
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "「雪」的旧记录",
+      "textFrame" : {
+        "h" : 48,
+        "w" : 274.30000000000001,
+        "x" : 36,
+        "y" : 106
+      },
+      "visibleFrame" : {
+        "h" : 48,
+        "w" : 274.30000000000001,
+        "x" : 36,
+        "y" : 106
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+
+  ],
+  "screen" : {
+    "contentSize" : "AX3",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "photo",
+  "tag" : "light_AX3",
+  "ui" : "native"
+}

@@ -1,0 +1,466 @@
+{
+  "cells" : [
+    {
+      "class" : "CAShapeLayer",
+      "h" : 120,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 120,
+      "x" : 141,
+      "y" : 251.5
+    }
+  ],
+  "decos" : [
+    {
+      "h" : 16,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 16,
+      "x" : 312.5,
+      "y" : 480.30000000000001
+    },
+    {
+      "h" : 16,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 16,
+      "x" : 312.5,
+      "y" : 480.30000000000001
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 791,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-home-screen",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 549,
+        "w" : 362,
+        "x" : 20,
+        "y" : 102
+      },
+      "id" : "native-home-main",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 140,
+        "w" : 362,
+        "x" : 20,
+        "y" : 651
+      },
+      "id" : "native-home-foot",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 250,
+        "w" : 255,
+        "x" : 73.5,
+        "y" : 251.5
+      },
+      "id" : "native-home-first",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "提笔忘字，不是忘了，只是很久没写。",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 114,
+        "w" : 255,
+        "x" : 73.5,
+        "y" : 387.5
+      },
+      "id" : "native-home-motto",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "拾",
+      "bg" : "#FBF8F2FF",
+      "border" : "#95826BFF",
+      "borderWidth" : 1,
+      "class" : "UIView",
+      "frame" : {
+        "h" : 120,
+        "w" : 120,
+        "x" : 141,
+        "y" : 251.5
+      },
+      "id" : "native-home-brand-shi",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "ShiziShiMarkView",
+      "frame" : {
+        "h" : 120,
+        "w" : 120,
+        "x" : 141,
+        "y" : 251.5
+      },
+      "id" : "native-brand-shi-mark",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "bg" : "#B03A27FF",
+      "class" : "NativeSealView",
+      "frame" : {
+        "h" : 16,
+        "w" : 16,
+        "x" : 312.5,
+        "y" : 480.30000000000001
+      },
+      "id" : "native-home-seal",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 38,
+        "w" : 356.80000000000001,
+        "x" : 22.600000000000001,
+        "y" : 651
+      },
+      "id" : "native-home-first-tip",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "先写三个大家常忘的字。",
+      "textFrame" : {
+        "h" : 39.399999999999999,
+        "w" : 356.30000000000001,
+        "x" : 22.800000000000001,
+        "y" : 650.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 38,
+        "w" : 356.30000000000001,
+        "x" : 22.899999999999999,
+        "y" : 651
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "开始写字",
+      "bg" : "#26211DFF",
+      "class" : "UIButton",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 74,
+        "w" : 362,
+        "x" : 20,
+        "y" : 693
+      },
+      "id" : "native-home-start",
+      "kind" : "button",
+      "layer" : "page",
+      "radius" : 12,
+      "text" : "开始写字",
+      "textFrame" : {
+        "h" : 48,
+        "w" : 157,
+        "x" : 122.7,
+        "y" : 706
+      },
+      "visibleFrame" : {
+        "h" : 74,
+        "w" : 362,
+        "x" : 20,
+        "y" : 693
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 38,
+        "w" : 165,
+        "x" : 118.5,
+        "y" : 387.5
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "提笔忘字，",
+      "textFrame" : {
+        "h" : 47.399999999999999,
+        "w" : 165,
+        "x" : 118.5,
+        "y" : 382.80000000000001
+      },
+      "visibleFrame" : {
+        "h" : 38,
+        "w" : 165,
+        "x" : 118.5,
+        "y" : 387.5
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 38,
+        "w" : 165,
+        "x" : 118.5,
+        "y" : 425.5
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "不是忘了，",
+      "textFrame" : {
+        "h" : 47.399999999999999,
+        "w" : 165,
+        "x" : 118.5,
+        "y" : 420.80000000000001
+      },
+      "visibleFrame" : {
+        "h" : 38,
+        "w" : 165,
+        "x" : 118.5,
+        "y" : 425.5
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 38,
+        "w" : 231,
+        "x" : 73.5,
+        "y" : 463.5
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "只是很久没写。",
+      "textFrame" : {
+        "h" : 47.399999999999999,
+        "w" : 231,
+        "x" : 73.5,
+        "y" : 458.80000000000001
+      },
+      "visibleFrame" : {
+        "h" : 38,
+        "w" : 231,
+        "x" : 73.5,
+        "y" : 463.5
+      }
+    },
+    {
+      "axLabel" : "写字",
+      "class" : "UITabBarItem",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 68,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      },
+      "id" : "native-tab-home",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : true,
+      "text" : "写字",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 104,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "字库",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 154,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      },
+      "id" : "native-tab-library",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 190,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "我的",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 240,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      },
+      "id" : "native-tab-mine",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 276,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 120,
+      "x" : 141,
+      "y" : 251.5
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 120,
+      "x" : 141,
+      "y" : 370.5
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 120,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 141,
+      "y" : 251.5
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 120,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 260,
+      "y" : 251.5
+    }
+  ],
+  "screen" : {
+    "contentSize" : "AX3",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "home-first",
+  "tag" : "light_AX3",
+  "ui" : "native"
+}

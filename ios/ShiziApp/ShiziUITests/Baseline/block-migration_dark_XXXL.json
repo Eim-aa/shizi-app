@@ -1,0 +1,260 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-block-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "bg" : "#1B1814FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-block-page",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "blockMarker"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 320
+      },
+      "id" : "native-block-line",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "lineLabels[0]",
+      "text" : "可能是空间不够，或浏览器不让保存。",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 341,
+        "x" : 20,
+        "y" : 322.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 341,
+        "x" : 20,
+        "y" : 320
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 357
+      },
+      "id" : "native-block-line",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "lineLabels[1]",
+      "text" : "解决前暂不能写字，免得白写。",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 281,
+        "x" : 20,
+        "y" : 359.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 281,
+        "x" : 20,
+        "y" : 357
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 174,
+        "w" : 362,
+        "x" : 20,
+        "y" : 394
+      },
+      "id" : "native-block-migration",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "lineLabels[2]",
+      "text" : "\n之前的记录没能导入这一版，旧记录还\n原样留在这台手机上，没有丢。如果是\n存储空间不充足，先空出一些再点下\n面的按钮重新导入；一直不行的话，\n不要清理浏览器，也不要删掉拾字。",
+      "textFrame" : {
+        "h" : 169.30000000000001,
+        "w" : 341,
+        "x" : 20,
+        "y" : 396.30000000000001
+      },
+      "textNeed" : {
+        "box" : 0,
+        "fontLine" : 24.199999999999999,
+        "h" : 169.30000000000001,
+        "lines" : 7,
+        "room" : 7
+      },
+      "truncated" : true,
+      "visibleFrame" : {
+        "h" : 169.30000000000001,
+        "w" : 341,
+        "x" : 20,
+        "y" : 394
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 29.6875,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 40,
+        "w" : 362,
+        "x" : 20,
+        "y" : 248
+      },
+      "id" : "native-block-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "blockTitleLabel",
+      "text" : "无法保存",
+      "textFrame" : {
+        "h" : 42.700000000000003,
+        "w" : 119,
+        "x" : 20,
+        "y" : 246.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 40,
+        "w" : 119,
+        "x" : 20,
+        "y" : 248
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 248,
+        "w" : 362,
+        "x" : 20,
+        "y" : 320
+      },
+      "id" : "native-block-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyMarker"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "再试一次",
+      "bg" : "#E2D9C9FF",
+      "class" : "UIButton",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 600
+      },
+      "id" : "native-block-retry",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "retryButton",
+      "radius" : 12,
+      "text" : "再试一次",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 613.20000000000005
+      },
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 600
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+
+  ],
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "block-migration",
+  "tag" : "dark_XXXL",
+  "ui" : "native"
+}

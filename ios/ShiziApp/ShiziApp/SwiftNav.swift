@@ -6,7 +6,7 @@ import UIKit
 //
 // 原来只在 JS（src/ui/engine.js 引擎模式）的那一半——栈记账（route.save / stage.enter / stage.resync）、冷启动判定（route.plan：planColdStart、
 // RESTORE_GUARDS）、提醒深链（deeplink.reminder：runDeepLink）、宿主消息（hostBodies）、来源记账（planPaper）、网页界面层的 stage.cover / fence /
-// under 与 shiziNativeNav——由 ShiziCore Navigation/ 的同一套规则答（JS 是参考实现，core-diff 域 nav 0 差异）。
+// under 与 shiziNativeNav——由 ShiziCore Navigation/ 的同一套规则答（当年 JS 是参考实现，core-diff 域 nav 0 差异；D84 起 JS 对照退役）。
 // 「去哪」的规则（首页主按钮、结果页离开 / 再写一组、深链、开组失败、S02、查字……）由 EngineHost 调 SwiftNavigator 的同名入口：
 // 镜像记上 → {op:'nav'} 交 NativeStage 照做（与原来页面发的同一条消息）→ 宿主消息紧跟着（视图 / 会话回包延后按序求值）交原来的处理。
 

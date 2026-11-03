@@ -3,7 +3,7 @@ import XCTest
 
 @testable import ShiziCore
 
-/// Source-generated, independent JS oracles. Regenerate with scripts/image-parity/{geometry,selection}.mjs --fixtures.
+/// Source-generated, independent JS oracles. Frozen since D84 (the JS oracles are retired; do not regenerate).
 /// Exhaustive geometry: every 1–80 character page and both aspect ratios. Selection: correct,
 /// wrong/added, answer-seen, missing ink, paper, skipped, folded months and session slot precedence.
 final class ImageParityTests: XCTestCase {

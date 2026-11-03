@@ -1,34 +1,29 @@
 // QA-H1 逐屏取证（宿主一半）：在指定模拟器上按「外观 × 字号」逐轮启动 App（DEBUG 包，-shizi-qa parity），
 // App 逐个状态注入并写元素清单，本脚本在每个状态落定后用 simctl 截图、写回执，最后把清单拷出来。
 //
-// usage: node capture.mjs --udid <模拟器> --ui native|web --out <目录> [--states a,b] [--appearances light,dark] [--sizes L,XXXL,AX3,AX5] [--scale 1]
+// usage: node capture.mjs --udid <模拟器> --out <目录> [--states a,b] [--appearances light,dark] [--sizes L,XXXL,AX3,AX5] [--scale 1]
 //   输出：<out>/<状态>_<外观>_<字号>.png 与 .json（文件名 = 状态_外观_字号）
-//   --states 缺省：web = 全部参考状态（夹具 parity != false），native = 原生已实现的状态（夹具 native: true；给了 --states 也只取这些里 native 的）
+//   --states 缺省：原生已实现的状态（夹具 native: true；给了 --states 也只取这些里 native 的）
 //   --sizes  缺省 L,XXXL；某一档只取「夹具要这一档」的状态（夹具 ax: true → 另有 AX3 / AX5；sizes 数组直接指定，registry.mjs sizesOf）
-//   --scale：截图缩到几倍（1 = 逻辑点尺寸，参考图进仓库用；缺省 1）
+//   --scale：截图缩到几倍（1 = 逻辑点尺寸，基线进仓库用；缺省 1）
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync, copyFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { REFERENCE_STATES, STATES, APPEARANCES, SIZES, SIZE_SIM, BUNDLE_ID, fixtureOf, sizesOf } from './config.mjs';
+import { STATES, APPEARANCES, SIZES, SIZE_SIM, BUNDLE_ID, fixtureOf, sizesOf } from './config.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, arr) => (a.startsWith('--') ? [...acc, [a.slice(2), arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : 'true']] : acc), []));
 const udid = args.udid;
-const ui = args.ui || 'native';
+const ui = 'native'; // D84：网页参考退役，只有原生取证
 const out = args.out;
-let states = (args.states || (ui === 'web' ? REFERENCE_STATES : STATES).join(',')).split(',').filter(Boolean);
-// 原生取证只取原生页已实现的状态（夹具 native: true）；其余只有网页参考
-if (ui === 'native') states = states.filter(s => !fixtureOf[s] || fixtureOf[s].native === true);
+let states = (args.states || STATES.join(',')).split(',').filter(Boolean);
+// 只取原生页已实现的状态（夹具 native: true）
+states = states.filter(s => !fixtureOf[s] || fixtureOf[s].native === true);
 const appearances = (args.appearances || APPEARANCES.join(',')).split(',');
 const sizes = (args.sizes || SIZES.join(',')).split(',');
 const scale = Number(args.scale || 1);
 const CHUNK = Number(args.chunk || 30);
 if (!udid || !out) {
-  console.error('usage: node capture.mjs --udid <udid> --ui native|web --out <dir>');
-  process.exit(2);
-}
-// B3.F：App 里不再挂网页界面（引擎模式）——网页参考已在 B3.F 合并前取齐冻结（§5.1 取证截止），App 不能再取网页参考。
-if (ui === 'web') {
-  console.error('capture.mjs: --ui web is retired since B3.F (the app mounts no web UI; references are frozen in ShiziUITests/Reference)');
+  console.error('usage: node capture.mjs --udid <udid> --out <dir>');
   process.exit(2);
 }
 for (const s of states) if (!fixtureOf[s]) { console.error(`unknown state "${s}" (no ShiziUITests/States/${s}.json)`); process.exit(2); }
@@ -64,7 +59,7 @@ async function round(appearance, size, roundStates) {
         const png = join(out, `${state}_${tag}.png`);
         sim('io', udid, 'screenshot', '--type=png', png);
         if (scale !== 0) {
-          // 缩到 scale 倍逻辑点（参考图进仓库：1 倍）
+          // 缩到 scale 倍逻辑点（基线进仓库：1 倍）
           const json = JSON.parse(readFileSync(join(qa, ui, `${state}_${tag}.json`), 'utf8'));
           const w = Math.round(json.screen.w * scale);
           if (w > 0) execFileSync('sips', ['--resampleWidth', String(w), png], { stdio: 'ignore' });

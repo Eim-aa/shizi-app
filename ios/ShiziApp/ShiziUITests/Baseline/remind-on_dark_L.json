@@ -1,0 +1,292 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#1B1814FF",
+      "h" : 20,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 20,
+      "x" : 359,
+      "y" : 140
+    },
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-remind-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 768,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 160,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 112,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-remind-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyView"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习提醒",
+      "class" : "ShiziRowButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-remind-switch",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "switchButton",
+      "text" : "练习提醒 通知给一个词和拼音，想想是哪个字。",
+      "textFrame" : {
+        "h" : 40,
+        "w" : 219.30000000000001,
+        "x" : 20,
+        "y" : 129.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 178
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "timeRow"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 22,
+        "w" : 262,
+        "x" : 20,
+        "y" : 195
+      },
+      "id" : "native-remind-time-label",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "timeLabel",
+      "text" : "提醒时间",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 20,
+        "y" : 195.80000000000001
+      },
+      "visibleFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 20,
+        "y" : 195
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "20:30",
+      "bg" : "#302B25FF",
+      "class" : "ShiziTimeField",
+      "frame" : {
+        "h" : 44,
+        "w" : 88,
+        "x" : 294,
+        "y" : 184
+      },
+      "id" : "native-remind-time",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "timeField",
+      "radius" : 12
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "提醒",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "提醒",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 34,
+        "x" : 184,
+        "y" : 73.799999999999997
+      },
+      "visibleFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 34,
+        "x" : 184,
+        "y" : 73
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 122
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 177.69999999999999
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 233.69999999999999
+    }
+  ],
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "remind-on",
+  "tag" : "dark_L",
+  "ui" : "native"
+}

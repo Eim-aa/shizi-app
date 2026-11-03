@@ -1,0 +1,371 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-library-switch-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 700,
+        "w" : 402,
+        "x" : 0,
+        "y" : 174
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1683,
+        "w" : 402,
+        "x" : 0,
+        "y" : 174
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 470.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowViews[0]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 470.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "native-library-switch-row-0",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "visibleFrame" : {
+        "h" : 470.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      }
+    },
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 360.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 660.29999999999995
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowViews[1]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 360.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 660.29999999999995
+      },
+      "id" : "native-library-switch-row-1",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "visibleFrame" : {
+        "h" : 213.69999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 660.29999999999995
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1447,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "native-library-switch-list",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "listMarker"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "left",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习范围",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 62,
+        "w" : 330,
+        "x" : 36,
+        "y" : 106
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "练习范围",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 207.30000000000001,
+        "x" : 36,
+        "y" : 105.40000000000001
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 207.30000000000001,
+        "x" : 36,
+        "y" : 106
+      }
+    }
+  ],
+  "offscreen" : [
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 308.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1020.7
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "rowViews[2]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 308.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1020.7
+      },
+      "id" : "native-library-switch-row-2",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "visibleFrame" : null
+    },
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 308,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1329
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "rowViews[3]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 308,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1329
+      },
+      "id" : "native-library-switch-row-3",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#A0968AFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 156,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1669
+      },
+      "id" : "native-library-switch-source",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "sourceLabel",
+      "text" : "参考《通用规范\n汉字表》，部分\n字暂未收录。",
+      "textFrame" : {
+        "h" : 156.5,
+        "w" : 301.30000000000001,
+        "x" : 20,
+        "y" : 1668.7
+      },
+      "visibleFrame" : null
+    }
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 660
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1020.3
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1328.7
+    }
+  ],
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "switch",
+  "tag" : "dark_AX5",
+  "ui" : "native"
+}

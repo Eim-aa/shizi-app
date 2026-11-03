@@ -1,0 +1,335 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#FBF8F2FF",
+      "h" : 20,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 20,
+      "x" : 341,
+      "y" : 140.5
+    },
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-remind-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 768,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 190,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 142,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-remind-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyView"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习提醒",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 57,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-remind-switch",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "switchButton",
+      "text" : "练习提醒 通知没开",
+      "textFrame" : {
+        "h" : 53.299999999999997,
+        "w" : 90.700000000000003,
+        "x" : 20,
+        "y" : 122.7
+      },
+      "visibleFrame" : {
+        "h" : 57,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 73,
+        "w" : 362,
+        "x" : 20,
+        "y" : 191
+      },
+      "id" : "native-remind-note",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "noteView"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 191
+      },
+      "id" : "native-remind-note-text",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "noteLabel",
+      "text" : "要收提醒，请到手机设置打开通知。",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 321,
+        "x" : 20,
+        "y" : 193.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 321,
+        "x" : 20,
+        "y" : 191
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "手机设置 ›",
+      "class" : "NativeTextButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 102,
+        "x" : 16,
+        "y" : 220
+      },
+      "id" : "native-remind-open-system",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "noteButton",
+      "text" : "手机设置 ›",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 93.700000000000003,
+        "x" : 16,
+        "y" : 230
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 102,
+        "x" : 16,
+        "y" : 220
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0088FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "提醒",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "提醒",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 45.299999999999997,
+        "x" : 178.30000000000001,
+        "y" : 70.200000000000003
+      },
+      "visibleFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 45.299999999999997,
+        "x" : 178.30000000000001,
+        "y" : 69.5
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#6E655BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 44,
+      "x" : 338,
+      "y" : 137.5
+    },
+    {
+      "color" : "#6E655BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 44,
+      "x" : 338,
+      "y" : 162.5
+    },
+    {
+      "color" : "#6E655BFF",
+      "h" : 26,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 338,
+      "y" : 137.5
+    },
+    {
+      "color" : "#6E655BFF",
+      "h" : 26,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 137.5
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 122
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 178.69999999999999
+    }
+  ],
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "remind-denied",
+  "tag" : "light_XXXL",
+  "ui" : "native"
+}

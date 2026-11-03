@@ -1,0 +1,255 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "color" : "#24201BFF",
+      "h" : 20,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 20,
+      "x" : 341,
+      "y" : 140.5
+    },
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-remind-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 768,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 105,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 57,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-remind-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyView"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习提醒",
+      "class" : "ShiziRowButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 57,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-remind-switch",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "switchButton",
+      "text" : "练习提醒 通知给一个词和拼音，想想是哪个字。",
+      "textFrame" : {
+        "h" : 53.299999999999997,
+        "w" : 296,
+        "x" : 20,
+        "y" : 122.7
+      },
+      "visibleFrame" : {
+        "h" : 57,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "提醒",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "提醒",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 45.299999999999997,
+        "x" : 178.30000000000001,
+        "y" : 70.200000000000003
+      },
+      "visibleFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 45.299999999999997,
+        "x" : 178.30000000000001,
+        "y" : 69.5
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#A0968AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 44,
+      "x" : 338,
+      "y" : 137.5
+    },
+    {
+      "color" : "#A0968AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 44,
+      "x" : 338,
+      "y" : 162.5
+    },
+    {
+      "color" : "#A0968AFF",
+      "h" : 26,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 338,
+      "y" : 137.5
+    },
+    {
+      "color" : "#A0968AFF",
+      "h" : 26,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 137.5
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 122
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 178.69999999999999
+    }
+  ],
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "remind-off",
+  "tag" : "dark_XXXL",
+  "ui" : "native"
+}

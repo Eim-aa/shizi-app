@@ -153,8 +153,8 @@ export function diffRules(webRules, nativeRules, tol, els = {}, opts = GRAPHICS_
     if (over.some(n => (colorDelta(l.color, n.color) ?? 0) <= tol.color && Math.abs(l.t - n.t) <= (opts.lineWidth ?? 0.6))) continue;
     const msgs = [];
     const cd = colorDelta(l.color, best.color);
-    if (cd !== null && cd > tol.color) msgs.push(`线色 网页 ${l.color} 原生 ${best.color}`);
-    if (Math.abs(l.t - best.t) > (opts.lineWidth ?? 0.6)) msgs.push(`线宽 网页 ${r1(l.t)} 原生 ${r1(best.t)}`);
+    if (cd !== null && cd > tol.color) msgs.push(`线色 基线 ${l.color} 原生 ${best.color}`);
+    if (Math.abs(l.t - best.t) > (opts.lineWidth ?? 0.6)) msgs.push(`线宽 基线 ${r1(l.t)} 原生 ${r1(best.t)}`);
     if (msgs.length) out.push({ type: 'rule', aspects: ['rule'], label, msg: `${msgs.join('；')}（${ruleDesc(l)}）`, w: { frame: ruleRect(l) }, n: { frame: ruleRect(best) } });
   }
   for (const n of N) {
@@ -173,10 +173,10 @@ export function diffRules(webRules, nativeRules, tol, els = {}, opts = GRAPHICS_
       used.add(k);
       const n = extra[k].l;
       const dy = l.o === 'h' ? n.c - l.c : n.a - l.a;
-      out.push({ type: 'rule', aspects: ['rule'], label: m.label, vertical: true, msg: `线位置 网页${ruleDesc(l)} 原生竖向差 ${r1(dy)}pt`, w: { frame: ruleRect(l) }, n: { frame: ruleRect(n) } });
-    } else out.push({ type: 'rule', aspects: ['rule'], label: m.label, msg: `原生缺少线：网页${ruleDesc(l)}（没对上的长度 ${r1(m.un)}）`, w: { frame: ruleRect(l) } });
+      out.push({ type: 'rule', aspects: ['rule'], label: m.label, vertical: true, msg: `线位置 基线${ruleDesc(l)} 原生竖向差 ${r1(dy)}pt`, w: { frame: ruleRect(l) }, n: { frame: ruleRect(n) } });
+    } else out.push({ type: 'rule', aspects: ['rule'], label: m.label, msg: `原生缺少线：基线${ruleDesc(l)}（没对上的长度 ${r1(m.un)}）`, w: { frame: ruleRect(l) } });
   }
-  extra.forEach((x, i) => { if (!used.has(i)) out.push({ type: 'rule', aspects: ['rule'], label: x.label, msg: `原生多出线：${ruleDesc(x.l)}（网页没有的长度 ${r1(x.un)}）`, n: { frame: ruleRect(x.l) } }); });
+  extra.forEach((x, i) => { if (!used.has(i)) out.push({ type: 'rule', aspects: ['rule'], label: x.label, msg: `原生多出线：${ruleDesc(x.l)}（基线没有的长度 ${r1(x.un)}）`, n: { frame: ruleRect(x.l) } }); });
   return out;
 }
 
@@ -229,12 +229,12 @@ export function diffDecos(webDecos, nativeDecos, tol, els = {}, opts = GRAPHICS_
     out.pairs.push({ w, n, label: labelOf(ow[c.i]) });
     const msgs = [];
     let vertical = true;
-    if (Math.abs(c.dx) > tol.pos || Math.abs(c.dy) > tol.pos) { msgs.push(`${kindName(w)}位置 网页 (${w.x}, ${w.y}) 原生 (${n.x}, ${n.y})，${c.owned ? '相对所属元素' : ''}差 (${r1(c.dx)}, ${r1(c.dy)})pt`); if (Math.abs(c.dx) > tol.pos) vertical = false; }
-    if (Math.abs(w.w - n.w) > tol.size || Math.abs(w.h - n.h) > tol.size) { msgs.push(`${kindName(w)}尺寸 网页 ${w.w}×${w.h} 原生 ${n.w}×${n.h}`); vertical = false; }
-    if (w.kind === 'circle') { const cd = colorDelta(w.color, n.color); if (cd !== null && cd > tol.color) { msgs.push(`圆的颜色 网页 ${w.color} 原生 ${n.color}`); vertical = false; } }
+    if (Math.abs(c.dx) > tol.pos || Math.abs(c.dy) > tol.pos) { msgs.push(`${kindName(w)}位置 基线 (${w.x}, ${w.y}) 原生 (${n.x}, ${n.y})，${c.owned ? '相对所属元素' : ''}差 (${r1(c.dx)}, ${r1(c.dy)})pt`); if (Math.abs(c.dx) > tol.pos) vertical = false; }
+    if (Math.abs(w.w - n.w) > tol.size || Math.abs(w.h - n.h) > tol.size) { msgs.push(`${kindName(w)}尺寸 基线 ${w.w}×${w.h} 原生 ${n.w}×${n.h}`); vertical = false; }
+    if (w.kind === 'circle') { const cd = colorDelta(w.color, n.color); if (cd !== null && cd > tol.color) { msgs.push(`圆的颜色 基线 ${w.color} 原生 ${n.color}`); vertical = false; } }
     if (msgs.length) out.push({ type: 'deco', aspects: ['deco'], label: labelOf(ow[c.i]), vertical, msg: msgs.join('；'), w: { frame: w }, n: { frame: n } });
   }
-  W.forEach((w, i) => { if (!usedW.has(i) && !ctx.orphan(ow[i], 'web')) out.push({ type: 'deco', aspects: ['deco'], label: labelOf(ow[i]), msg: `原生缺少装饰：网页有${desc(w)}`, w: { frame: w } }); });
+  W.forEach((w, i) => { if (!usedW.has(i) && !ctx.orphan(ow[i], 'web')) out.push({ type: 'deco', aspects: ['deco'], label: labelOf(ow[i]), msg: `原生缺少装饰：基线有${desc(w)}`, w: { frame: w } }); });
   // 原生多出：屏外的不报（网页的字形轮廓等滚进来才画，屏外的网页清单里可能还没有）；屏上的另在截图上看是不是空的（compare.mjs：只为取证量框的透明图片不算）
   N.forEach((n, j) => { if (!usedN.has(j) && !n.off && !ctx.orphan(on[j], 'native')) out.push({ type: 'deco', aspects: ['deco'], label: labelOf(on[j]), lone: 'native', msg: `原生多出装饰：${desc(n)}`, n: { frame: n } }); });
   return out;
@@ -309,9 +309,9 @@ export function pairCells(webCells, nativeCells, tol, els = {}) {
     usedW.add(c.i); usedN.add(c.j);
     const w = W[c.i], n = N[c.j];
     const bigger = !c.ph && (Math.abs(n.w - w.w) > Math.max(tol.size, 0.25 * w.w) || Math.abs(n.h - w.h) > Math.max(tol.size, 0.25 * w.h));
-    if (bigger) { diffs.push({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(w), ctx.web)), msg: `格大小 网页${desc(w)} 原生${desc(n)}`, w: { frame: w }, n: { frame: n } }); continue; }
+    if (bigger) { diffs.push({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(w), ctx.web)), msg: `格大小 基线${desc(w)} 原生${desc(n)}`, w: { frame: w }, n: { frame: n } }); continue; }
     pairs.push({ w, n, dx: c.dx, dy: c.dy });
-    if (Math.abs(c.dx) > tol.pos || Math.abs(c.dy) > tol.pos) diffs.push({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(w), ctx.web)), vertical: Math.abs(c.dx) <= tol.pos, msg: `格位置 网页${desc(w)} 原生${desc(n)}，中心差 (${r1(c.dx)}, ${r1(c.dy)})pt`, w: { frame: w }, n: { frame: n } });
+    if (Math.abs(c.dx) > tol.pos || Math.abs(c.dy) > tol.pos) diffs.push({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(w), ctx.web)), vertical: Math.abs(c.dx) <= tol.pos, msg: `格位置 基线${desc(w)} 原生${desc(n)}，中心差 (${r1(c.dx)}, ${r1(c.dy)})pt`, w: { frame: w }, n: { frame: n } });
   }
   W.forEach((w, i) => {
     if (usedW.has(i) || N.some(n => inside(center(n), w))) return;
@@ -337,7 +337,7 @@ export function diffGraphics(webDump, nativeDump, tol, els = {}, opts = GRAPHICS
   const x = crossMatch(webDump.decos, nativeDump.decos, webDump.cells, nativeDump.cells, tol);
   const cells = pairCells(x.webCells, x.nativeCells, tol, els);
   const crossDiffs = x.pairs.filter(p => Math.abs(p.dy) > tol.pos).map(p => ({ type: 'cell', aspects: ['cell'], label: labelOf(ownerOf(center(p.w), els.web)), vertical: true,
-    msg: `格位置 网页 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h}) 原生 (${p.n.x}, ${p.n.y})，竖向差 ${r1(p.dy)}pt`, w: { frame: p.w }, n: { frame: p.n } }));
+    msg: `格位置 基线 (${p.w.x}, ${p.w.y} ${p.w.w}×${p.w.h}) 原生 (${p.n.x}, ${p.n.y})，竖向差 ${r1(p.dy)}pt`, w: { frame: p.w }, n: { frame: p.n } }));
   const decos = diffDecos(x.webDecos, x.nativeDecos, tol, els, opts);
   const diffs = [...crossDiffs, ...diffRules(webDump.rules, nativeDump.rules, tol, { ...els, cells: { web: webDump.cells, native: nativeDump.cells }, decos: { web: webDump.decos, native: nativeDump.decos } }, opts), ...decos, ...cells.diffs];
   // 配上对的图标另在截图上看「画出来没有」（被底色盖住、透明）：compare.mjs 取掩膜，一边有墨一边没有就报
@@ -451,12 +451,12 @@ export function judgeGlyph(web, native, opts = GRAPHICS_DEFAULTS.glyph) {
   if (!web || !native || !web.ink) return []; // 网页取不到字（空框 / 图标）→ 不比
   const hex = c => `#${c.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
   const lum = c => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
-  if (!native.ink) return [`画出来的字几乎看不见：网页字 ${hex(web.ink)} 在底 ${hex(web.bg)} 上（与底最大差 ${web.maxDist}），原生文字框里找不到字（与底 ${hex(native.bg)} 最大差只有 ${native.maxDist}）`];
+  if (!native.ink) return [`画出来的字几乎看不见：基线字 ${hex(web.ink)} 在底 ${hex(web.bg)} 上（与底最大差 ${web.maxDist}），原生文字框里找不到字（与底 ${hex(native.bg)} 最大差只有 ${native.maxDist}）`];
   const out = [];
   const pw = Math.sign(lum(web.ink) - lum(web.bg)), pn = Math.sign(lum(native.ink) - lum(native.bg));
-  if (pw !== pn) out.push(`画出来的字明暗反了：网页字 ${hex(web.ink)} / 底 ${hex(web.bg)}，原生字 ${hex(native.ink)} / 底 ${hex(native.bg)}`);
-  else if (Math.max(...web.ink.map((v, i) => Math.abs(v - native.ink[i]))) > (opts.color ?? 64)) out.push(`画出来的字色 网页 ${hex(web.ink)}（底 ${hex(web.bg)}）原生 ${hex(native.ink)}（底 ${hex(native.bg)}）`);
-  else if (native.maxDist < (opts.contrast ?? 0.5) * web.maxDist) out.push(`画出来的字对比弱：与底最大差 网页 ${web.maxDist} 原生 ${native.maxDist}`);
+  if (pw !== pn) out.push(`画出来的字明暗反了：基线字 ${hex(web.ink)} / 底 ${hex(web.bg)}，原生字 ${hex(native.ink)} / 底 ${hex(native.bg)}`);
+  else if (Math.max(...web.ink.map((v, i) => Math.abs(v - native.ink[i]))) > (opts.color ?? 64)) out.push(`画出来的字色 基线 ${hex(web.ink)}（底 ${hex(web.bg)}）原生 ${hex(native.ink)}（底 ${hex(native.bg)}）`);
+  else if (native.maxDist < (opts.contrast ?? 0.5) * web.maxDist) out.push(`画出来的字对比弱：与底最大差 基线 ${web.maxDist} 原生 ${native.maxDist}`);
   return out;
 }
 
@@ -553,15 +553,15 @@ export function judgeInk(m, cellPt, opts = GRAPHICS_DEFAULTS.ink) {
   if (!m) return [];
   const min = opts.minInk ?? 6;
   if (m.web < min && m.native < min) return [];
-  if (m.web < min) return [`格里原生有墨（${m.native} 点）、网页没有`];
-  if (m.native < min) return [`格里网页有墨（${m.web} 点）、原生没有`];
+  if (m.web < min) return [`格里原生有墨（${m.native} 点）、基线没有`];
+  if (m.native < min) return [`格里基线有墨（${m.web} 点）、原生没有`];
   const out = [];
   if (m.iou1 < (opts.iou1 ?? 0.6)) out.push(`墨形不合（容 1 格 IoU ${m.iou1} < ${opts.iou1 ?? 0.6}）`);
   const lim = Math.max(opts.centroidMin ?? 1.5, (opts.centroid ?? 0.05) * cellPt);
   if (Math.hypot(m.dx, m.dy) > lim) out.push(`墨的位置偏 (${m.dx}, ${m.dy})pt > ${r1(lim)}`);
   const sc = opts.scale ?? 0.12, smin = opts.scaleMin ?? 2;
   const [ww, wh, nw, nh] = m.box || [0, 0, 0, 0];
-  if (Math.abs(nw - ww) > Math.max(smin, sc * ww) || Math.abs(nh - wh) > Math.max(smin, sc * wh)) out.push(`墨的外框 网页 ${ww}×${wh} 原生 ${nw}×${nh}pt（容 ±${sc} 且 > ${smin}pt）`);
+  if (Math.abs(nw - ww) > Math.max(smin, sc * ww) || Math.abs(nh - wh) > Math.max(smin, sc * wh)) out.push(`墨的外框 基线 ${ww}×${wh} 原生 ${nw}×${nh}pt（容 ±${sc} 且 > ${smin}pt）`);
   return out;
 }
 

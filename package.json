@@ -22,7 +22,7 @@
     "verify:pwa": "node scripts/verify_pwa_upgrade.js",
     "verify:web": "node scripts/e2e/run.mjs && node scripts/verify_pwa_upgrade.js",
     "verify:native-ui": "bash ios/ShiziApp/scripts/verify-native-ui.sh",
-    "verify:core-diff": "node scripts/core-diff/verify.mjs",
+    "verify:core": "swift build -c release --package-path ios/ShiziCore && swift test --package-path ios/ShiziCore",
     "test": "pnpm run verify:data && pnpm run verify:unit && pnpm run verify:copy && pnpm run verify:tokens && pnpm run verify:web"
   },
   "devDependencies": {

@@ -4,7 +4,7 @@ import XCTest
 
 // test/core/images.test.mjs 的转写（35 个用例，用例名保留原名）。版式 / 分页 / 选字口径逐条对 ImageLayout / ImageSelection 断言；
 // 画图部分（renderWorkPage / renderSingleGlyph / renderAnnualLong / palette）的 canvas 调用断言是网页渲染器（src/core/images/render.js）的契约，
-// Swift 原生渲染器 ShiziImageRendering 在独立 target（ShiziCoreTests 不依赖它），构图等价性由 scripts/image-parity 参考 PNG 比对（46 页）门禁覆盖——
+// Swift 原生渲染器 ShiziImageRendering 在独立 target（ShiziCoreTests 不依赖它），构图等价性由 冻结的 PNG 基线 比对（46 页）门禁覆盖——
 // 这些行里没有 Swift 对应物的断言按 G1 约定以 XCTExpectFailure 登记（见各用例内说明与 GLM 报告）。
 // 几何与选字另有 JS 生成的金标准夹具（images-geometry.json 324 条 / images-selection.json 50 条）经 ImageParityTests 逐字段核对。
 
@@ -529,7 +529,7 @@ final class ImagesTranscriptionTests: XCTestCase {
             XCTAssertEqual(num(l, "W") * 4 / 3, w, "\(ratio) bitmap width")
             XCTAssertEqual(num(l, "H") * 4 / 3, h, "\(ratio) bitmap height")
         }
-        XCTExpectFailure("G1: dataset（members / modes / dots / recordIds / tags / signature / kind / n）与假 canvas 的逐次调用断言是网页渲染器（src/core/images/render.js）的契约；ShiziCore 不含渲染器，原生 ShiziImageRendering 在独立 target（ShiziCoreTests 不依赖它），构图等价性由 scripts/image-parity 参考 PNG 比对（46 页）门禁覆盖") {
+        XCTExpectFailure("G1: dataset（members / modes / dots / recordIds / tags / signature / kind / n）与假 canvas 的逐次调用断言是网页渲染器（src/core/images/render.js）的契约；ShiziCore 不含渲染器，原生 ShiziImageRendering 在独立 target（ShiziCoreTests 不依赖它），构图等价性由 冻结的 PNG 基线 比对（46 页）门禁覆盖") {
             XCTFail("canvas.dataset 与绘制调用断言属于网页渲染器")
         }
     }
@@ -540,7 +540,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         let l = try ImageLayout.layout(3, ratio: "3:4")
         XCTAssertEqual(l["cells"]!.arrayValue!.count, 3)
         XCTAssertEqual(ImageLayout.dayTag("2026-09-02"), "2")
-        XCTExpectFailure("G1: fillText / fillRect 的位置与「角标后面没有色块」是网页渲染器（src/core/images/render.js）的绘制断言；原生渲染在 ShiziImageRendering（独立 target），由 scripts/image-parity 参考 PNG 比对门禁覆盖") {
+        XCTExpectFailure("G1: fillText / fillRect 的位置与「角标后面没有色块」是网页渲染器（src/core/images/render.js）的绘制断言；原生渲染在 ShiziImageRendering（独立 target），由 冻结的 PNG 基线 比对门禁覆盖") {
             XCTFail("绘制调用断言属于网页渲染器")
         }
     }
@@ -557,14 +557,14 @@ final class ImagesTranscriptionTests: XCTestCase {
         let lifted = 11.5 * ImageLayout.inkWidthScale(tinyPt)
         XCTAssertGreaterThan(lifted, 11.5, "tiny cells: lifted to the minimum physical width only")
         XCTAssertLessThan(abs(lifted - 11.5 * ImageLayout.inkWidthScale(tinyPt)), 1e-9)
-        XCTExpectFailure("G1: 颜色断言（设计 tokens 的 color.light、无暗色字面量）是网页渲染器 + palette.js 的契约；ShiziCore 无调色板模块（原生渲染的调色板经 spec 传入，见下一用例的源码扫描），由 scripts/image-parity 参考 PNG 比对门禁覆盖") {
+        XCTExpectFailure("G1: 颜色断言（设计 tokens 的 color.light、无暗色字面量）是网页渲染器 + palette.js 的契约；ShiziCore 无调色板模块（原生渲染的调色板经 spec 传入，见下一用例的源码扫描），由 冻结的 PNG 基线 比对门禁覆盖") {
             XCTFail("颜色断言属于网页渲染器")
         }
     }
 
     // test/core/images.test.mjs: renderWorkPage awaits the injected requireFont (落款 song, tags hei 500; the seal is drawn, not set in a font) before creating the canvas
     func testRenderWorkPageAwaitsTheInjectedRequireFontKuanSongTagsHei500TheSealIsDrawnNotSetInAFontBeforeCreatingTheCanvas() {
-        XCTExpectFailure("G1: requireFont 注入与字体加载次序是网页渲染器的 document.fonts 契约；原生用 CoreText 直接取字（ShiziImageRendering），ShiziCore 无字体管线可断言，字形等价性由 scripts/image-parity 参考 PNG 比对门禁覆盖") {
+        XCTExpectFailure("G1: requireFont 注入与字体加载次序是网页渲染器的 document.fonts 契约；原生用 CoreText 直接取字（ShiziImageRendering），ShiziCore 无字体管线可断言，字形等价性由 冻结的 PNG 基线 比对门禁覆盖") {
             XCTFail("字体注入次序断言属于网页渲染器")
         }
     }
@@ -576,7 +576,7 @@ final class ImagesTranscriptionTests: XCTestCase {
             let src = try readRepoFile(rel)
             XCTAssertNil(src.range(of: "#[0-9a-fA-F]{6}\\b|rgba?\\(\\s*[0-9]", options: .regularExpression), "\(rel) has no colour literals (P1-E1a leftovers are gone)")
         }
-        XCTExpectFailure("G1: paletteFromTokens 读 tokens.json 的 color.light 是网页调色板函数（src/core/images/palette.js）的契约；ShiziCore 无该函数可断言，色彩等价性由 scripts/image-parity 参考 PNG 比对门禁覆盖") {
+        XCTExpectFailure("G1: paletteFromTokens 读 tokens.json 的 color.light 是网页调色板函数（src/core/images/palette.js）的契约；ShiziCore 无该函数可断言，色彩等价性由 冻结的 PNG 基线 比对门禁覆盖") {
             XCTFail("paletteFromTokens 属于网页调色板")
         }
     }
@@ -594,7 +594,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         }
         XCTAssertEqual(try ImageLayout.glyphLayout(.null, ratio: "portrait")["status"], .string("noInk"))
         XCTAssertTrue(ImageLayout.inkBounds(.array([])).isNull, "no ink → noInk without a canvas")
-        XCTExpectFailure("G1: caption / brand 的 fillText 断言是网页渲染器（render.js renderSingleGlyph）的绘制契约；原生在 ShiziImageRendering（独立 target），由 scripts/image-parity 参考 PNG 比对门禁覆盖") {
+        XCTExpectFailure("G1: caption / brand 的 fillText 断言是网页渲染器（render.js renderSingleGlyph）的绘制契约；原生在 ShiziImageRendering（独立 target），由 冻结的 PNG 基线 比对门禁覆盖") {
             XCTFail("caption / brand 绘制断言属于网页渲染器")
         }
     }
@@ -603,7 +603,7 @@ final class ImagesTranscriptionTests: XCTestCase {
 
     // test/core/images.test.mjs: annual long image: width 1440, height by content, not capped at 80 chars; a total over the limit is cut by month (rows if one month alone is too tall), no char dropped
     func testAnnualLongImageWidth1440HeightByContentNotCappedAt80CharsATotalOverTheLimitIsCutByMonthRowsIfOneMonthAloneIsTooTallNoCharDropped() {
-        XCTExpectFailure("G1: renderAnnualLong（宽 1440、按内容出高、限高按月 / 按行切、字一个不少）的画布断言属于网页渲染器（annual-render.js）；原生实现在 ShiziImageRendering.annualLong（独立 target，ShiziCoreTests 不依赖它），等价性由 scripts/image-parity 参考 PNG 比对门禁（长图切张在 inputs.json 内）覆盖") {
+        XCTExpectFailure("G1: renderAnnualLong（宽 1440、按内容出高、限高按月 / 按行切、字一个不少）的画布断言属于网页渲染器（annual-render.js）；原生实现在 ShiziImageRendering.annualLong（独立 target，ShiziCoreTests 不依赖它），等价性由 冻结的 PNG 基线 比对门禁（长图切张在 inputs.json 内）覆盖") {
             XCTFail("年报长图渲染断言属于网页渲染器")
         }
     }

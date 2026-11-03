@@ -3,7 +3,7 @@
 # InkModel.swift / InkModelCheck.swift，对 docs/engineering/v10/phase1/ink-model/vectors.json 跑 check.mjs 同口径断言，
 # 并与 reference.mjs 的输出（out/reference-dump.json）逐值比较。全部通过退出码 0。
 # 用法：ios/ShiziApp/scripts/ink-model-check.sh [--json out.json]
-# 模拟器 / 真机上的同一自检：DEBUG 启动参数 -shizi-ink-selfcheck（结果写 App 的 Documents/shizi-ink-selfcheck.json）。
+# 模拟器上的同一自检：XCTest ShiziWriteTests（InkSurfaceTests）。
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

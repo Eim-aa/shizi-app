@@ -58,8 +58,6 @@ while [ $# -gt 0 ]; do
   shift
 done
 case "$shards" in ''|*[!0-9]*|0) echo "--shards needs a positive integer" >&2; exit 2 ;; esac
-if [ -n "${ENGINE:-}" ]; then echo "ENGINE= is gone (B4.9: the app has only SwiftEngine)" >&2; exit 2; fi
-case " $* " in *" --update-reference "*|*" --reference-only "*) echo "--update-reference / --reference-only are retired (D84: the web reference is gone; use --update-baseline)" >&2; exit 2 ;; esac
 if [ "$update_baseline" = 1 ] && [ "$do_parity" = 0 ]; then echo "--update-baseline needs the per-screen capture (drop --flows-only)" >&2; exit 2; fi
 if [ "$do_parity" = 1 ] && [ "$update_baseline" = 0 ] && ! ls "$REF"/*.json >/dev/null 2>&1; then echo "no native baseline in $REF — record one with --update-baseline" >&2; exit 2; fi
 

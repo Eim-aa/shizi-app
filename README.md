@@ -24,7 +24,7 @@ licenses/               随包许可全文
 data/                   单字笔顺 JSON（7294 字）、字源 etymology.json、data/LICENSE.md
 assets/                 图标源 SVG（branding）、音效源
 generated/、sources/、audit/   题库生成结果、原始字表与词典、笔顺补充数据与合规审计证据
-scripts/                数据管线与门禁（Node / Python）、字体工具（scripts/fonts/）、笔顺 pack（stroke-pack/）、冻结夹具（fixtures/、image-parity/）
+scripts/                数据管线与门禁（Node / Python）、字体工具（scripts/fonts/）、笔顺 pack（stroke-pack/）、冻结夹具（fixtures/）
 test/                   node:test：原生工具与数据门禁的单测（native-ui-*、ios-*、core/ 下的合规与配置核对）
 docs/                   handoff/（接手）、product/、design/v10/（设计交付快照）、engineering/v10/（工程规划与验收）、adr/
 ```

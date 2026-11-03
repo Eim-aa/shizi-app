@@ -104,11 +104,6 @@ fi
 echo "Launching ${APP_ID}"
 LAUNCH_ARGS=()
 if [ "${DEV_MODE:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-dev); fi
-# B4.9：SMOKE_MODE（网页冒烟）与 NATIVE_INK / INK_SELFCHECK（网页上的原生书写层 spike）随 WKWebView 退役。
-if [ "${SMOKE_MODE:-0}" = "1" ] || [ -n "${NATIVE_INK_PRESET:-}" ] || [ "${INK_SELFCHECK:-0}" = "1" ]; then
-  echo "SMOKE_MODE / NATIVE_INK_PRESET / INK_SELFCHECK are retired (B4.9)" >&2
-  exit 64
-fi
 xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID" ${LAUNCH_ARGS[@]+"${LAUNCH_ARGS[@]}"}
 
 echo "Done. Continue manual iPhone handwriting and keyboard/safe-area checks on the device."

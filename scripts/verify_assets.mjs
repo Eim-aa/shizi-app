@@ -2,14 +2,14 @@
 // 资产门禁（M0-2）：从旧 scripts/legacy/verify_8105_app.js L90–158 抽出与 UI 无关的静态断言，
 // 外加 v10 新增项（01-架构设计 §11 第 1 层）。只读文件，不起浏览器。
 //
-//   许可文件 · index.html CSP · 无遥测 · sw.js 常量与指纹 · core-strokes 自包含 · 字源 fixture
-//   · iOS 自定义 scheme 的 CSP/nosniff 与桥约束 · audit/vector-data-381-* 回放包
-//   · Swift 源码不含面向用户的中文 alert 文案 · window.__shiziTest 只在 isTestHost() 分支赋值
+//   许可文件 · 原生源码无遥测 / 联网 · 字源 fixture · App 里没有网页层与原生源码约束 · audit/vector-data-381-* 回放包
+//   · Swift 源码不含面向用户的中文 alert 文案
 //
 // 失败项退出码 1；「warn」项只打印并写进报告（由后续卡收尾，见每条注释），不改变退出码。
 // 题记 52 条 fixture 断言不再保留（P23：旧语料随旧脚本进 scripts/legacy/）。
+// D84（卡 B）：删了纯网页断言（index.html CSP、sw.js / sw-manifest.js / build-info 指纹、core-strokes.js、src/ 的 __shiziTest 守卫）；
+// 无遥测改查原生源码；字源 fixture 的题库读 ShiziCore 的 deck.json。
 
-import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +19,6 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const rel = (...parts) => join(ROOT, ...parts);
 const read = (...parts) => readFileSync(rel(...parts), 'utf8');
 const readJSON = (...parts) => JSON.parse(read(...parts));
-const sha256 = buffer => createHash('sha256').update(buffer).digest('hex');
 
 const failures = [];
 const warnings = [];
@@ -50,9 +49,6 @@ function listFiles(dir, predicate) {
   return out.sort();
 }
 
-const html = read('index.html');
-const swSource = read('sw.js');
-
 // ---- 许可 ------------------------------------------------------------------
 {
   const notices = read('THIRD_PARTY_NOTICES.md');
@@ -74,91 +70,18 @@ const swSource = read('sw.js');
     && ['BLOCKED', 'CONDITIONAL', 'External actions still open', 'Arphic Technology'].every(text => legal.includes(text)));
 }
 
-// ---- index.html CSP --------------------------------------------------------
-function cspDirectives(policy) {
-  return Object.fromEntries(policy.split(';').map(part => part.trim()).filter(Boolean).map(part => {
-    const [name, ...values] = part.split(/\s+/);
-    return [name, values];
-  }));
-}
+// ---- 无遥测 / 不联网（D84：查 App 实际编译的原生源码） ----------------------------
 {
-  const policy = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/)?.[1];
-  check('index.html declares a CSP meta tag', !!policy);
-  const csp = cspDirectives(policy || '');
-  check("CSP default-src 'self'", JSON.stringify(csp['default-src']) === JSON.stringify(["'self'"]), csp['default-src']);
-  check("CSP script-src is exactly 'self' (no inline, no eval, no hosts)",
-    JSON.stringify(csp['script-src']) === JSON.stringify(["'self'"]), csp['script-src']);
-  check("CSP frame-src/object-src 'none'", csp['frame-src']?.[0] === "'none'" && csp['object-src']?.[0] === "'none'");
-  check('index.html has no remote stroke-data/CDN fallback', !/cdn\.jsdelivr\.net|unpkg\.com|cdnjs/i.test(html));
-  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)];
-  const inline = scripts.filter(([, attrs, body]) => !/\bsrc="/.test(attrs) || body.trim());
-  check('index.html has no inline scripts', inline.length === 0, inline.map(m => m[0].slice(0, 80)));
-  const remote = scripts.filter(([, attrs]) => /\bsrc="(?:https?:)?\/\//.test(attrs));
-  check('index.html loads scripts from same origin only', remote.length === 0, remote.map(m => m[1]));
-  check('index.html has no inline event handler attributes', !/<[^>]+\son[a-z]+\s*=/i.test(html));
-  check('index.html loads src/app.js as a module', /<script type="module" src="src\/app\.js"><\/script>/.test(html));
-}
-
-// ---- 无遥测 ----------------------------------------------------------------
-{
-  const shipped = [rel('index.html'), rel('sw.js'), ...listFiles('src', file => /\.(m?js|html)$/.test(file))];
+  const shipped = [...listFiles(join('ios', 'ShiziApp', 'ShiziApp'), file => file.endsWith('.swift')),
+    ...listFiles(join('ios', 'ShiziCore', 'Sources'), file => file.endsWith('.swift'))];
   const offenders = [];
   for (const file of shipped) {
-    const text = readFileSync(file, 'utf8');
-    if (/sendBeacon|\bgtag\(|google-analytics|googletagmanager|sentry|mixpanel|amplitude|segment\.io/i.test(text)
-      || /method\s*:\s*["']POST["']/i.test(text)) offenders.push(relative(ROOT, file));
+    const code = readFileSync(file, 'utf8').replace(/\/\/.*$/gm, '');
+    if (/\b(?:sendBeacon|gtag|google-analytics|googletagmanager|sentry|mixpanel|amplitude|segment\.io|firebase|crashlytics)\b/i.test(code)
+      || /\bURLSession\b|httpMethod\s*=\s*"POST"/.test(code)) offenders.push(relative(ROOT, file));
   }
-  check('no telemetry, beacon or POST request in shipped sources', offenders.length === 0, offenders);
+  check('no telemetry SDK, beacon or network request in shipped native sources', shipped.length > 50 && offenders.length === 0, offenders);
 }
-
-// ---- sw.js 常量与资产指纹（M5-1：v14 + 生成的 sw-manifest.js） ------------------
-{
-  const prefix12 = file => sha256(readFileSync(rel(file))).slice(0, 12);
-  const manifestSource = read('sw-manifest.js');
-  check('sw.js is the v14 worker and reads the generated sw-manifest.js',
-    swSource.includes("importScripts('./sw-manifest.js')") && swSource.includes('const VERSION = `shizi-v14-${BUILD}`')
-    && !/const (SHELL|BUILD) = \[?'/.test(swSource));
-  check('sw.js keeps atomic installation and a bounded stroke cache',
-    ['Promise.allSettled', 'INSTALL_BATCH_SIZE = 40', 'cacheFreshShell', 'cache.addAll(requests)',
-      "cache: 'reload'", 'STROKE_CACHE_LIMIT = 800', 'trimStrokeCache', 'cacheResponseBestEffort', 'updateCacheFromNetwork']
-      .every(text => swSource.includes(text)));
-  check('sw.js never force-navigates clients and announces new versions by postMessage',
-    !/\.navigate\(/.test(swSource) && swSource.includes("'shizi-sw-activated'") && swSource.includes('clients.claim()'));
-
-  const htmlMeta = html.match(/<meta name="shizi-asset-build" content="([^"]+)">/)?.[1];
-  const buildInfo = read('src', 'build-info.js').match(/export const BUILD = '([^']+)'/)?.[1];
-  const swBuild = manifestSource.match(/^\s*build: "([^"]+)",$/m)?.[1];
-  check('BUILD is <yyyymmdd>-<12 hex> and identical in index.html meta, src/build-info.js and sw-manifest.js',
-    /^\d{8}-[0-9a-f]{12}$/.test(htmlMeta || '') && htmlMeta === buildInfo && buildInfo === swBuild, { htmlMeta, buildInfo, swBuild });
-
-  const deferScripts = [...html.matchAll(/<script defer src="([^"?]+)\?v=([0-9a-f]+)"><\/script>/g)].map(m => ({ file: m[1], v: m[2] }));
-  for (const file of ['core-strokes.js', 'deck-data.js', 'data/context-overrides.js']) {
-    const tag = deferScripts.find(s => s.file === file);
-    check(`index.html <script defer> ${file} ?v= matches file content`, !!tag && tag.v === prefix12(file), { tag, file: prefix12(file) });
-    check(`sw-manifest.js lists ${file} with the same ?v=`, !!tag && manifestSource.includes(`"${file}?v=${tag.v}"`), { file });
-  }
-  const deckV = deferScripts.find(s => s.file === 'deck-data.js')?.v;
-  check('data/context-overrides.js defines CONTEXT_OVERRIDES', read('data', 'context-overrides.js').includes('const CONTEXT_OVERRIDES'));
-  const deckMeta = read('src', 'config', 'deck-meta.js').match(/DECK_FINGERPRINT = "([0-9a-f]{12})"/)?.[1];
-  check('src/config/deck-meta.js fingerprint matches index.html deck ?v=', deckMeta === deckV, { deckMeta, deckV });
-  const listed = [...manifestSource.matchAll(/^\s*"([^"]+)",$/gm)].map(m => m[1].split('?')[0]);
-  const missingShell = listed.filter(p => !existsSync(rel(p)));
-  check('every sw-manifest.js entry exists on disk', missingShell.length === 0, missingShell);
-}
-
-// ---- core-strokes 自包含 ----------------------------------------------------
-{
-  const core = read('core-strokes.js');
-  check('core-strokes.js is self-contained for the worker', core.includes('SHIZI_CORE_STROKES') && !core.includes('SEED'));
-  // M5-1：首练 5 字（policy.firstQueue，P09）笔顺内嵌，且与 data/<字>.json 逐字段相同。
-  const { firstQueue } = await import('../src/config/policy.js');
-  const scope = {};
-  new Function('self', core)(scope);
-  const embeddedOk = firstQueue.every(ch => JSON.stringify(scope.SHIZI_STROKE_DATA?.[ch]) === JSON.stringify(readJSON('data', `${ch}.json`)));
-  check('core-strokes.js embeds first-practice stroke data identical to data/<字>.json (P09)', embeddedOk
-    && firstQueue.every((ch, i) => scope.SHIZI_CORE_STROKES?.[i] === ch), firstQueue);
-}
-
 // ---- 字源 fixture（旧 L109–144 原样） ---------------------------------------
 {
   const etymology = readJSON('data', 'etymology.json');
@@ -167,8 +90,7 @@ function cspDirectives(policy) {
   const accuracy = readJSON('scripts', 'fixtures', 'etymology_accuracy.json');
   const contextAudit = readJSON('scripts', 'fixtures', 'etymology_context_audit.json');
   const copyReview = readJSON('scripts', 'fixtures', 'etymology_copy_review.json');
-  const deckSource = read('deck-data.js');
-  const deckCharacters = new Set(JSON.parse(deckSource.match(/const SEED = (\[.*\]);/s)[1]).map(row => row.target));
+  const deckCharacters = new Set(readJSON('ios', 'ShiziCore', 'Sources', 'ShiziCore', 'Bundled', 'deck.json').seed.map(row => row.target));
   const openccOneToMany = new Set(read('sources', 'opencc-st-characters.txt').split(/\r?\n/)
     .filter(line => line.includes('\t') && line.split('\t', 2)[1].trim().split(/\s+/).length > 1)
     .map(line => line.split('\t', 1)[0]));
@@ -254,7 +176,7 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
   }
   check('native smoke / test-host injection is compiled only under #if DEBUG', leaks.length === 0, leaks);
 
-  // Swift 源码不得含面向用户的中文 alert 文案（文案在 src/config/copy，构建期生成 ShiziKitCopy.json / ShiziCore 文案表）。M5-3 起硬检查。
+  // Swift 源码不得含面向用户的中文 alert 文案（文案在 ShiziCore Bundled/copy.json 与 ShiziKitCopy.json）。M5-3 起硬检查。
   const cjk = /[㐀-鿿豈-﫿]/;
   const alertLines = [];
   for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
@@ -284,58 +206,6 @@ const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
   }
 }
 
-// ---- window.__shiziTest 只在 isTestHost() 分支赋值（M0-5 产出） ----------------
-function stripCommentsAndStrings(source) {
-  // 保留长度与换行，便于按下标定位；字符串/模板/注释内容替换为空格。
-  return source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g,
-    match => match.replace(/[^\n]/g, ' '));
-}
-function blockEnd(code, openIndex) {
-  let depth = 0;
-  for (let i = openIndex; i < code.length; i += 1) {
-    if (code[i] === '{') depth += 1;
-    else if (code[i] === '}') { depth -= 1; if (depth === 0) return i; }
-  }
-  return code.length;
-}
-function enclosingBlockStart(code, index) {
-  let depth = 0;
-  for (let i = index - 1; i >= 0; i -= 1) {
-    if (code[i] === '}') depth += 1;
-    else if (code[i] === '{') { if (depth === 0) return i; depth -= 1; }
-  }
-  return -1;
-}
-{
-  const files = listFiles('src', file => /\.m?js$/.test(file));
-  const assignRe = /(?:window|globalThis|self|win)\s*\.\s*__shiziTest\s*=(?!=)|(?:window|globalThis|self|win)\s*\[\s*['"]__shiziTest['"]\s*\]\s*=(?!=)|Object\.defineProperty\(\s*(?:window|globalThis|self)\s*,\s*['"]__shiziTest['"]/g;
-  const sites = [];
-  for (const file of files) {
-    const source = readFileSync(file, 'utf8');
-    if (!source.includes('__shiziTest')) continue;
-    // 用原文找赋值位置（defineProperty 的键在字符串里），用去注释/字符串后的代码判断作用域。
-    const code = stripCommentsAndStrings(source);
-    for (const match of source.matchAll(assignRe)) {
-      if (code.slice(match.index, match.index + 6).trim() === '') continue; // 位于注释/字符串内
-      const guardedBlocks = [...code.matchAll(/if\s*\(\s*isTestHost\s*\([^)]*\)\s*\)\s*\{/g)]
-        .map(m => [m.index, blockEnd(code, m.index + m[0].length - 1)]);
-      const inGuardBlock = guardedBlocks.some(([start, end]) => match.index > start && match.index < end);
-      const scopeStart = enclosingBlockStart(code, match.index);
-      const earlyReturn = /if\s*\(\s*!\s*isTestHost\s*\([^)]*\)\s*\)\s*(?:\{\s*)?return\b/.test(code.slice(scopeStart + 1, match.index));
-      const line = source.slice(0, match.index).split('\n').length;
-      sites.push({ file: `${relative(ROOT, file)}:${line}`, guarded: inGuardBlock || earlyReturn });
-    }
-    const definition = code.match(/function\s+isTestHost\s*\(|(?:const|let)\s+isTestHost\s*=/);
-    if (definition) {
-      check(`isTestHost() in ${relative(ROOT, file)} restricts to local hosts`,
-        source.includes("'localhost'") || source.includes('"localhost"'));
-    }
-  }
-  if (!sites.length) skipped.push('window.__shiziTest assignment guard: no assignment under src/ yet (M0-5 not landed)');
-  else check('window.__shiziTest is only assigned inside an isTestHost() branch', sites.every(site => site.guarded),
-    sites.filter(site => !site.guarded));
-}
-
-const report = { status: failures.length ? 'failed' : 'passed', passed: passed.length, failures, warnings, skipped };
+const report ={ status: failures.length ? 'failed' : 'passed', passed: passed.length, failures, warnings, skipped };
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 if (failures.length) process.exit(1);

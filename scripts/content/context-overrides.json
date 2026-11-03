@@ -1,8 +1,4 @@
-// 人工审校覆盖独立于生成题库；批准词音与来源见 scripts/fixtures/content-quality-approved.json。
-// w/ci/py 固定词音，promptHint 是词题可见提示；gloss 沿用释义模式。
-// preserveCommon 仅显式 true 时保留原权重；boost 与未设/false 的 gloss 行为不变。
-// C1（D50 ③）：顾问审读 1.0 审定的语境词与合规全库排查的替换（round 4，清单见 docs/legal/语境词替换清单-C1.md）接在最后。
-const CONTEXT_OVERRIDES = {
+{
   "赵": {"boost": true},
   "晌": {"boost": true},
   "霎": {"boost": true},
@@ -869,4 +865,4 @@ const CONTEXT_OVERRIDES = {
   "雯": {"gloss": "成花纹的云彩。（雨字头）", "py": "wén", "preserveCommon": true},
   "洵": {"gloss": "确实、实在（书面语）。（三点水）", "py": "xún", "preserveCommon": true},
   "莎": {"w": "莎草", "ci": 0, "py": "suō"}
-};
+}

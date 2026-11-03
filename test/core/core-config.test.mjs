@@ -1,18 +1,19 @@
 // B4.1 ShiziCore 配置与数据资源的 node 侧门禁（不需要 Swift）。D84：Bundled/*.json（deck.json 除外）是手改的唯一真相源，不再与 src/ 比对：
 //   1. 目录里恰好是约定的 16 个 JSON + README；资源都是纯 JSON 数据（无 undefined / 非有限数）；
 //   2. policy-meta 的登记表覆盖全部 policy 导出（verify_copy 的 checkPolicyMeta，读 JSON）；motion.json 带齐令牌表；signature.json 形状正确；
-//   3. deck.json 仍由 build_core_config.mjs 生成，与 deck-data.js + context-overrides.js 同步（清扫卡 B 处理）；
+//   3. deck.json 由 scripts/build_8105_chars.py 写，内容一致性由 verify:content（content-corpus）守；
 //   4. 形状工厂（差分与金标准共用）造出的合法值全过 schema，变异值有相当比例被拒；
 //   （Swift 与 JS 的 op 表同名由 core-diff.test.mjs 核对；policy 键与类型由 Swift ConfigDataTests 守。）
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { OUT_DIR, deckSources, generate } from '../../scripts/build_core_config.mjs';
+import { fileURLToPath } from 'node:url';
 import { checkPolicyMeta, checkPolicyFiles, loadNativeCopy, PATHS } from '../../scripts/verify_copy.mjs';
 import { makeCtx, rng } from '../../scripts/core-diff/lib/gen.mjs';
 import { shapes } from '../../scripts/core-diff/lib/shapes.mjs';
 import { validateValue } from '../../src/core/schema.js';
+const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../ios/ShiziCore/Sources/ShiziCore/Bundled');
 
 const readJson = (name) => JSON.parse(fs.readFileSync(path.join(OUT_DIR, name + '.json'), 'utf8'));
 const source = () => JSON.parse(fs.readFileSync(PATHS.source, 'utf8'));
@@ -26,10 +27,6 @@ test('core-config: Bundled/ holds exactly the 16 resources and a README; every o
     if (x && typeof x === 'object') for (const [k, v] of Object.entries(x)) walk(v, where + '.' + k);
   };
   for (const n of names) walk(readJson(n), n);
-});
-
-test('core-config: deck.json is the only file build_core_config.mjs still generates', async () => {
-  assert.deepEqual(Object.keys(await generate()), ['deck.json']);
 });
 
 test('core-config: motion.json carries the token tables; signature.json has the numeral parts', () => {
@@ -77,16 +74,6 @@ test('core-config: copy.json and ShiziKitCopy.json are identical and every key i
   assert.deepEqual(errors, []);
   assert.equal(modules.unregistered, undefined);
   assert.equal(Object.values(modules).reduce((n, t) => n + Object.keys(t).length, 0), Object.keys(readJson('copy')).length);
-});
-
-test('core-config: deck.json = deck-data.js SEED / GROUPS + context-overrides.js', () => {
-  const deck = deckSources();
-  const file = JSON.parse(fs.readFileSync(path.join(OUT_DIR, 'deck.json'), 'utf8'));
-  assert.equal(file.seed.length, deck.seed.length);
-  assert.deepEqual(file.seed, JSON.parse(JSON.stringify(deck.seed)));
-  assert.deepEqual(file.overrides, JSON.parse(JSON.stringify(deck.overrides)));
-  assert.deepEqual(file.groups, JSON.parse(JSON.stringify(deck.groups)));
-  assert.ok(file.seed.length > 7000 && Object.keys(file.overrides).length > 800);
 });
 
 test('core-config: shape factories produce valid values; mutations are mostly rejected', () => {

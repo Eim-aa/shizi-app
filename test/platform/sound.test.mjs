@@ -9,7 +9,6 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBridge } from '../../src/platform/bridge.js';
 import * as policy from '../../src/config/policy.js';
-import { swLists } from '../../scripts/build_shell_manifest.mjs';
 import * as sound from '../../src/platform/sound.js';
 import { applyFeedback, COMMIT_FEEDBACK } from '../../src/platform/haptics.js';
 
@@ -175,19 +174,6 @@ test('scripts/sound/gen.mjs 可复跑：重新生成的 WAV / CAF 与入库文�
   assert.match(gen, /没有采样/);
   assert.doesNotMatch(gen, /https?:\/\/|fetch\(|require\(|child_process/, '不联网、不调外部程序');
   assert.match(readFileSync(join(ROOT, 'assets/sound/README.md'), 'utf8'), /无需署名/);
-});
-
-test('壳清单与 SW 预缓存：WAV 进网页壳清单与 SW 尽力批次；CAF 不在网页壳里（B4.9：iOS 包的原生资源 Sounds/）', () => {
-  const lines = readFileSync(join(ROOT, 'scripts/shell-manifest.txt'), 'utf8').split('\n').filter(Boolean);
-  for (const n of [...JUDGE, SEAL]) {
-    assert.ok(lines.includes(`assets/sound/${n}.wav`), `${n}.wav in shell manifest`);
-    assert.ok(!lines.includes(`assets/sound/${n}.caf`), `${n}.caf not in the web shell`);
-  }
-  const { bestEffort, shell } = swLists(lines, () => 'x');
-  for (const n of [...JUDGE, SEAL]) {
-    assert.ok(bestEffort.includes(`assets/sound/${n}.wav`), `${n}.wav precached`);
-    assert.ok(![...bestEffort, ...shell].some(p => p.endsWith('.caf')), 'caf not precached');
-  }
 });
 
 // ---------------------------------------------------------------- 网页路径（Web Audio，预解码）

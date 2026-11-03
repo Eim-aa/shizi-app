@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
 import {
   LIBRARIES, PROMPT_COPY, applyContextOverride, buildCards, cardKey, libraryById, libraryIdsFor,
   promptHTML, promptModel, visibleHint,
@@ -13,16 +12,10 @@ import {
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = rel => readFileSync(join(ROOT, rel), 'utf8');
 
-// 与页面相同：经典脚本在同一全局作用域求值，const 全局通过词法作用域取出（JSON 往返成主 realm 对象）。
+// D84：题库读 ShiziCore 的 deck.json（seed + overrides；build_8105_chars.py 写）。
 function loadClassicGlobals() {
-  const context = vm.createContext(Object.create(null), { codeGeneration: { strings: false, wasm: false } });
-  const run = (code, filename) => new vm.Script(code, { filename }).runInContext(context, { timeout: 5000 });
-  run(read('deck-data.js'), 'deck-data.js');
-  run(read('data/context-overrides.js'), 'data/context-overrides.js');
-  return {
-    seed: JSON.parse(run('JSON.stringify(SEED)', 'seed')),
-    overrides: JSON.parse(run('JSON.stringify(CONTEXT_OVERRIDES)', 'overrides')),
-  };
+  const deck = JSON.parse(read('ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json'));
+  return { seed: deck.seed, overrides: deck.overrides };
 }
 
 const { seed, overrides } = loadClassicGlobals();

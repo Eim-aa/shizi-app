@@ -15,13 +15,14 @@
 #   data/LICENSE.md                                      → data/LICENSE.md（改成 shizi-open 的路径说法，见下）
 #   licenses/{ARPHICPL.TXT,LGPL-3.0.txt,GPL-3.0.txt,Apache-2.0.txt,LXGW-WenKai-GB-OFL.txt} → licenses/
 #   audit/compliance-2026-10/arphic-modification-notices.json → notices/arphic-modification-notices.json
-# 不复制 data/context-overrides.js（项目自有内容，不在公开义务范围内）、App 代码与 README（shizi-open 自己维护 README）。
+# 不复制语境覆盖（项目自有内容，不在公开义务范围内；D84 起在 scripts/content/context-overrides.json，不在 data/ 里，
+# data/ 里出现 context-overrides.* 本脚本直接报错）、App 代码与 README（shizi-open 自己维护 README）。
 #
 # 只改工作区，不提交、不打标签、不推送；跑完看 git status / git diff 再提交。
 set -euo pipefail
 
 if [ "$#" -ne 1 ]; then
-  sed -n '2,20p' "$0" >&2
+  sed -n '2,21p' "$0" >&2
   exit 2
 fi
 
@@ -41,6 +42,13 @@ if [ "$DEST" = "$SRC" ]; then
   echo "error: destination is this repository" >&2
   exit 1
 fi
+
+for private in "$SRC"/data/context-overrides.*; do
+  if [ -e "$private" ]; then
+    echo "error: $private is private content; it lives in scripts/content/ (D84), not data/" >&2
+    exit 1
+  fi
+done
 
 mkdir -p "$DEST/data" "$DEST/licenses" "$DEST/notices"
 
@@ -65,10 +73,8 @@ swap('The files in this folder are **not** covered by the root `LICENSE` ("All\n
 swap("`audit/compliance-2026-10/arphic-modification-notices.json`",
      "`notices/arphic-modification-notices.json`")
 swap("(decision D50; `audit/compliance-2026-10/`).", "(2026-10-04).")
-head, sep, _ = text.partition("\n## Context-word overrides: `data/context-overrides.js`")
-if not sep:
-    sys.exit("data/LICENSE.md changed; update sync-open-data.sh: context-overrides section not found")
-text = head.rstrip("\n") + "\n"
+# D84：data/LICENSE.md 不再有语境覆盖一节（那份文件移出了 data/），整份公开；下面的 leftover 仍挡住它被误加回来。
+text = text.rstrip("\n") + "\n"
 for leftover in ("audit/", "context-overrides", "root `LICENSE`"):
     if leftover in text:
         sys.exit(f"data/LICENSE.md still mentions {leftover!r} after adaptation")

@@ -3,25 +3,33 @@
 # B4.9：App 里已没有 JS / WKWebView。包里 Web/ 只剩 data/（笔顺 / 字源 JSON，原生直读 Web/data/<字>.json）、fonts/（NativeType / ShiziScreen /
 # ImageRenderer 读 Web/fonts/*.woff2）与 licenses/；清单 scripts/app-bundle-manifest.txt 由 `pnpm run build:manifest`
 # （scripts/build_shell_manifest.mjs APP_BUNDLE_ROOTS）生成。网页壳（src/、vendor/、index.html …）冻结在仓库里，不进包。
-# 关于页的版本行：src/build-info.js 的 VERSION / BUILD 写成 Web/build-info.json（原生读 JSON）。
+# 关于页的版本行写成 Web/build-info.json（原生读 JSON；D84 起不读 src/build-info.js）：
+#   version = MARKETING_VERSION（Xcode 构建设置，来自 Config/Shared.xcconfig；不在 Xcode 里跑时直接读 Shared.xcconfig）
+#   build   = <HEAD 提交日 yyyymmdd>-<HEAD 的 12 位短 hash>：仍是「<yyyymmdd>-<12 hex>」的形状，关于页「版本 1.0.0（yyyymmdd）」与
+#             点按看到的完整构建号格式都不变。
 set -euo pipefail
 
 REPO_ROOT="$(cd "${SRCROOT}/../.." && pwd)"
 DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/Web"
 MANIFEST="${REPO_ROOT}/scripts/app-bundle-manifest.txt"
-BUILD_INFO="${REPO_ROOT}/src/build-info.js"
+XCCONFIG="${REPO_ROOT}/ios/ShiziApp/Config/Shared.xcconfig"
 
 test -f "${MANIFEST}" || { echo "error: missing ${MANIFEST}; run: pnpm run build:manifest" >&2; exit 65; }
-test -f "${BUILD_INFO}" || { echo "error: missing ${BUILD_INFO}; run: pnpm run build:manifest" >&2; exit 65; }
 
 rm -rf "${DEST}"
 mkdir -p "${DEST}"
 
 rsync -a --files-from="${MANIFEST}" "${REPO_ROOT}/" "${DEST}/"
 
-VERSION="$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" "${BUILD_INFO}")"
-BUILD="$(sed -n "s/^export const BUILD = '\(.*\)';$/\1/p" "${BUILD_INFO}")"
-test -n "${VERSION}" && test -n "${BUILD}" || { echo "error: cannot read VERSION / BUILD from ${BUILD_INFO}" >&2; exit 65; }
+VERSION="${MARKETING_VERSION:-}"
+if [ -z "${VERSION}" ]; then
+  VERSION="$(sed -n 's/^[[:space:]]*MARKETING_VERSION[[:space:]]*=[[:space:]]*\([0-9][^[:space:]]*\).*$/\1/p' "${XCCONFIG}" | head -n 1)"
+fi
+BUILD_DAY="$(git -C "${REPO_ROOT}" log -1 --format=%cd --date=format:%Y%m%d 2>/dev/null || true)"
+BUILD_HASH="$(git -C "${REPO_ROOT}" rev-parse --short=12 HEAD 2>/dev/null || true)"
+BUILD="${BUILD_DAY}-${BUILD_HASH}"
+[[ "${VERSION}" =~ ^[0-9][0-9A-Za-z.+-]*$ ]] || { echo "error: cannot read MARKETING_VERSION (build setting or ${XCCONFIG})" >&2; exit 65; }
+[[ "${BUILD}" =~ ^[0-9]{8}-[0-9a-f]{12}$ ]] || { echo "error: cannot derive BUILD from git HEAD of ${REPO_ROOT} (got '${BUILD}')" >&2; exit 65; }
 printf '{"version":"%s","build":"%s"}\n' "${VERSION}" "${BUILD}" > "${DEST}/build-info.json"
 
 test -d "${DEST}/data"

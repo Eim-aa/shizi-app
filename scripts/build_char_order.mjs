@@ -11,7 +11,7 @@
 //   docs/engineering/v10/phase1/tools/capital-numerals.mjs  D40 大写数字：两组特别组、佰仟、题面语境词
 //
 // 剔除规则（D39 / D40 / D45）：大写数字 12 个字一律从默认新字排序（order 与二级附录）里剔除；姓氏字、省份简称与常见地名（curation 的两张清单）
-// 只剔除「日常少用」的——字频序（题库 deck-data.js 的 rank）> COMMON_RANK_MAX、或题库里没有字频的；rank ≤ COMMON_RANK_MAX 的常用字
+// 只剔除「日常少用」的——字频序（题库 deck.json 的 rank）> COMMON_RANK_MAX、或题库里没有字频的；rank ≤ COMMON_RANK_MAX 的常用字
 // （熊、颜、藏、桂、厦……）留在默认排序原位（D45）。被剔除的字不进「清单之后按字频序」的尾部（src/core/new-order.js 同样排除 reserved），
 // 之后由独立主题「姓氏与地名」/ D40 特别组承接。被剔除的字逐个列在输出的 removed 里，留下的常用字列在 commonKept 里。
 // 阈值登记 P145；顾问审读 1.0 维持 3500（理由见 docs/engineering/v10/phase1/顾问审读-1.0.md Q3）。
@@ -20,7 +20,6 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import vm from 'node:vm';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, '..');
@@ -30,7 +29,7 @@ export const BUNDLED_PATH = 'ios/ShiziCore/Sources/ShiziCore/Bundled/char-order.
 const JSON_PATH = 'docs/engineering/v10/phase1/易忘度字表-1.0.json';
 const CURATION_PATH = 'docs/engineering/v10/phase1/tools/curation.mjs';
 const CAPITAL_PATH = 'docs/engineering/v10/phase1/tools/capital-numerals.mjs';
-const DECK_PATH = 'deck-data.js';
+const DECK_PATH = 'ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json'; // D84：题库读 ShiziCore 的 deck.json
 
 /**
  * D45 / P145：姓氏与地名清单里，字频序 rank ≤ 这个数的算「日常常用」，留在默认排序里；更靠后（或没有字频）的才剔除。
@@ -43,9 +42,9 @@ export const COMMON_RANK_MAX = 3500;
 const sha = (text) => createHash('sha256').update(text).digest('hex').slice(0, 12);
 const chars = (s) => Array.from(s);
 const q = (s) => JSON.stringify(s);
-/** 题库（deck-data.js 的 SEED）里每个目标字的最小字频序 rank。root 可注入。 */
+/** 题库（deck.json 的 seed）里每个目标字的最小字频序 rank。root 可注入。 */
 export function deckRanks(root = ROOT) {
-  const seed = vm.runInNewContext(readFileSync(join(root, DECK_PATH), 'utf8') + '\n;SEED');
+  const { seed } = JSON.parse(readFileSync(join(root, DECK_PATH), 'utf8'));
   const ranks = new Map();
   for (const row of seed) {
     const r = Number(row.rank);

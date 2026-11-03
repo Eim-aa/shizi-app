@@ -1,31 +1,61 @@
 // Pure, read-only execution of the app's real card expansion and initial prompt.
 //
-// v10 (M0-2): the card expansion no longer lives in index.html. deck-data.js and
-// data/context-overrides.js are evaluated in an isolated VM context (exactly the
-// classic-script globals the page gets), then the shared pure module
-// src/core/cards.js builds the cards and prompts — the same code the UI imports.
-// The sourcePatches / overrides injection points are kept for drift tests.
+// D84: the card expansion is the native one. The deck (seed + context overrides) is read from
+// ShiziCore's Bundled/deck.json — the file the app ships — and expanded by `shizi-core-cli cards-dump`
+// (ShiziCore Cards.swift: buildCards / cardKey / promptModel / promptHTML / libraryIdsFor). Before the
+// switch the Swift output was proven byte-identical to the former src/core/cards.js expansion over the
+// whole deck and over the drift variants below. The sourcePatches / overrides injection points are kept
+// for drift tests: the patched deck goes to the CLI on stdin, nothing is written to disk.
 const fs = require("node:fs");
 const path = require("node:path");
-const vm = require("node:vm");
 const crypto = require("node:crypto");
-const { pathToFileURL } = require("node:url");
+const { spawnSync } = require("node:child_process");
 
 const sha256 = value => crypto.createHash("sha256").update(typeof value === "string" ? value : JSON.stringify(value)).digest("hex");
 
-const CARDS_MODULE = path.join("src", "core", "cards.js");
-// cards.js must stay a pure module (01-架构设计 §2: core has no browser/storage/network access).
-const IMPURE = /\blocalStorage\b|\bsessionStorage\b|\bdocument\.|\bwindow\.|\bfetch\(|\bXMLHttpRequest\b|\brequire\(|\bindexedDB\b|\bnavigator\./;
+const DECK_JSON = path.join("ios", "ShiziCore", "Sources", "ShiziCore", "Bundled", "deck.json");
+// Hand-edited truth of the context overrides (private: not under data/, so not published to shizi-open).
+// build_8105_chars.py copies it verbatim into deck.json's "overrides".
+const CONTEXT_OVERRIDES_JSON = path.join("scripts", "content", "context-overrides.json");
+const CORE_PACKAGE = path.join("ios", "ShiziCore");
 
-const modules = new Map();
-async function cardsModule(root) {
-  const file = path.resolve(root, CARDS_MODULE);
-  if (!modules.has(file)) {
-    const source = fs.readFileSync(file, "utf8");
-    if (IMPURE.test(source)) throw new Error(`Non-pure operation in ${CARDS_MODULE}`);
-    modules.set(file, import(pathToFileURL(file).href));
+// Build (incrementally) and locate shizi-core-cli once per process; SHIZI_CORE_CLI overrides the binary.
+const clis = new Map();
+function coreCli(root) {
+  if (process.env.SHIZI_CORE_CLI) return process.env.SHIZI_CORE_CLI;
+  const pkg = path.resolve(root, CORE_PACKAGE);
+  if (!clis.has(pkg)) {
+    const build = spawnSync("swift", ["build", "--package-path", pkg, "--product", "shizi-core-cli"], {encoding:"utf8", maxBuffer:64 * 1024 * 1024});
+    if (build.status !== 0) throw new Error(`swift build shizi-core-cli failed:\n${build.stdout}\n${build.stderr}`);
+    clis.set(pkg, path.join(pkg, ".build", "debug", "shizi-core-cli"));
   }
-  return modules.get(file);
+  return clis.get(pkg);
+}
+
+function readDeck(root) {
+  return JSON.parse(fs.readFileSync(path.join(root, DECK_JSON), "utf8"));
+}
+
+function readContextOverrides(root) {
+  return JSON.parse(fs.readFileSync(path.join(root, CONTEXT_OVERRIDES_JSON), "utf8"));
+}
+
+// Text of the retired deck-data.js for the same seed/groups (build_8105_chars.py wrote it from the same
+// values until D84). content-quality-baseline.json pins its SHA-256 (deckSha256); rebuilding the text
+// keeps that pin meaningful without a JS data file.
+function legacyDeckDataText(deck) {
+  return "// 拾字题库数据（由 scripts/build_8105_chars.py 生成，勿手改）\n"
+    + "// SEED：候选字词卡（拼音/语境词/难度/主题/规范等级）\n"
+    + "const SEED = " + JSON.stringify(deck.seed) + ";\n"
+    + `// 每个字的部件分组（自动生成：${Object.keys(deck.groups).length} 个通用规范汉字候选，按 Make Me a Hanzi matches 递归部件分组）\n`
+    + "const GROUPS=" + JSON.stringify(deck.groups) + ";\n";
+}
+
+// Native expansion: one JSON line per card from shizi-core-cli cards-dump.
+function nativeCards(root, seed, overrides) {
+  const run = spawnSync(coreCli(root), ["cards-dump"], {input:JSON.stringify({seed, overrides}), encoding:"utf8", maxBuffer:1 << 30});
+  if (run.status !== 0) throw new Error(`shizi-core-cli cards-dump failed: ${run.stderr}`);
+  return run.stdout.split("\n").filter(Boolean).map(line => JSON.parse(line));
 }
 
 function originalOverrides(fixture) {
@@ -38,16 +68,11 @@ function originalOverrides(fixture) {
   };
 }
 
-// Evaluate the classic data scripts the way the page does and hand back plain
-// (main-realm, JSON round-tripped) SEED / CONTEXT_OVERRIDES.
+// Plain (freshly parsed) SEED / CONTEXT_OVERRIDES from deck.json, with the optional injections applied.
 function loadSources(root, options = {}) {
-  const read = file => fs.readFileSync(path.join(root, file), "utf8");
-  const context = vm.createContext(Object.create(null), {codeGeneration:{strings:false, wasm:false}});
-  const run = (text, name) => new vm.Script(text, {filename:name}).runInContext(context, {timeout:3000});
-  run(read("deck-data.js"), "deck-data.js");
-  run(options.overrides ? `const CONTEXT_OVERRIDES=${JSON.stringify(options.overrides)};` : read("data/context-overrides.js"), "data/context-overrides.js");
-  const seed = JSON.parse(run("JSON.stringify(SEED)", "export-seed"));
-  const overrides = JSON.parse(run("JSON.stringify(typeof CONTEXT_OVERRIDES===\"object\"&&CONTEXT_OVERRIDES?CONTEXT_OVERRIDES:{})", "export-overrides"));
+  const deck = readDeck(root);
+  const seed = deck.seed;
+  const overrides = options.overrides ? JSON.parse(JSON.stringify(options.overrides)) : (deck.overrides || {});
   if (options.sourcePatches) {
     const sourcePatches = options.sourcePatches;
     seed.forEach(row => { if (sourcePatches[row.target]) Object.assign(row, sourcePatches[row.target]); });
@@ -56,13 +81,12 @@ function loadSources(root, options = {}) {
 }
 
 async function loadCorpus(root, options = {}) {
-  const {buildCards, cardKey, promptHTML, promptModel, libraryIdsFor} = await cardsModule(root);
   const {seed, overrides} = loadSources(root, options);
-  const cards = buildCards({seed, overrides}).map((card, index) => {
-    const model = promptModel(card);
-    return {...card, index, cardKey:cardKey(card), promptHTML:promptHTML(card), visibleHint:model.visibleHint,
+  const cards = nativeCards(root, seed, overrides).map((row, index) => {
+    const card = row.card;
+    return {...card, index, cardKey:row.cardKey, promptHTML:row.promptHTML, visibleHint:row.visibleHint,
       blankPrompt:card.chars.map((ch, i) => i === card.ci || ch === card.target ? "□" : ch).join(""),
-      libraries:libraryIdsFor(card), contentHint:model.contentHint, instruction:model.instruction};
+      libraries:row.libraries, contentHint:row.contentHint, instruction:row.instruction};
   });
   // Freshly parsed copies: callers compare seed/overrides with deepStrictEqual.
   return JSON.parse(JSON.stringify({cards, seed, overrides}));
@@ -131,5 +155,5 @@ function blockedWordHits(cards, words) {
   return hits;
 }
 
-module.exports = {loadCorpus, loadSources, originalOverrides, reviewedOverrides, protectedCardData, sha256, identity, issues, promptSignature,
+module.exports = {loadCorpus, loadSources, readDeck, readContextOverrides, legacyDeckDataText, DECK_JSON, CONTEXT_OVERRIDES_JSON, originalOverrides, reviewedOverrides, protectedCardData, sha256, identity, issues, promptSignature,
   blocklistWords, blockedWordHits};

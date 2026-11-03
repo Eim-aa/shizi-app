@@ -1,7 +1,6 @@
 // 模拟环境：加载真实题库、真实 FSRS，建一个内存里的真实 store。不复制任何调度逻辑。
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { loadFSRSGlobal } from '../../../test/core/helpers.mjs';
 import { MemoryStorage } from '../../../test/store/helpers.mjs';
@@ -12,15 +11,12 @@ import { setDeckSource } from '../../../src/data/deck.js';
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 let booted = false;
-/** 加载 FSRS 库与真实题库（deck-data.js + data/context-overrides.js），只做一次。 */
+/** 加载 FSRS 库与真实题库（D84：ShiziCore 的 deck.json，seed + overrides），只做一次。 */
 export function bootDeck() {
   if (booted) return;
   loadFSRSGlobal();
-  const ctx = {};
-  vm.createContext(ctx);
-  vm.runInContext(`${fs.readFileSync(path.join(ROOT, 'deck-data.js'), 'utf8')}\n;globalThis.__seed = SEED;`, ctx);
-  vm.runInContext(`${fs.readFileSync(path.join(ROOT, 'data/context-overrides.js'), 'utf8')}\n;globalThis.__ov = CONTEXT_OVERRIDES;`, ctx);
-  setDeckSource({ seed: ctx.__seed, overrides: ctx.__ov });
+  const deck = JSON.parse(fs.readFileSync(path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json'), 'utf8'));
+  setDeckSource({ seed: deck.seed, overrides: deck.overrides });
   booted = true;
 }
 

@@ -16,16 +16,13 @@ import { querySheetModel, deckPredicates, commitAdd } from '../../src/session/vi
 import { sheetModel } from '../../src/session/views/query.js';
 import { t } from '../../src/config/copy/index.js';
 import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
 import { setDeckSource } from '../../src/data/deck.js';
 import '../../src/ui/screens/home/index.js'; // 注册 tab 根页（路由要有一个 tab）
 
 // 真题库（node 里没有全局 SEED）：查字的「能不能练」与拼音索引都靠它（与 library-switch.test.mjs 同一份做法）
-const deckCtx = {};
-vm.createContext(deckCtx);
-vm.runInContext(`${readFileSync(new URL('../../deck-data.js', import.meta.url), 'utf8')}\n;globalThis.__seed = SEED;`, deckCtx);
-vm.runInContext(`${readFileSync(new URL('../../data/context-overrides.js', import.meta.url), 'utf8')}\n;globalThis.__ov = CONTEXT_OVERRIDES;`, deckCtx);
-setDeckSource({ seed: deckCtx.__seed, overrides: deckCtx.__ov });
+// D84：读 ShiziCore 的 deck.json（seed + overrides）。
+const deckJSON = JSON.parse(readFileSync(new URL('../../ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json', import.meta.url), 'utf8'));
+setDeckSource({ seed: deckJSON.seed, overrides: deckJSON.overrides });
 
 const NOW = '2026-10-05T19:30:00';
 const REAL_NOW = Date.now;

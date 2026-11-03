@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""生成 8105 字库：deck-data.js（SEED/GROUPS）、core-strokes.js、src/config/deck-meta.js 与 generated/ 下的审计 JSON。
+"""生成 8105 字库：ShiziCore 的 deck.json（seed / overrides / groups）与 generated/ 下的审计 JSON。
 
-用法：python3 scripts/build_8105_chars.py（需 requirements.txt 里的 pypinyin / jieba / wordfreq）。
+用法：python3 scripts/build_8105_chars.py（需 requirements.txt 里的 pypinyin / jieba）。
+注意：可复现的构建**不装 wordfreq**（脚本对它是可选导入）。装了它，语境词会换成 wordfreq 的补充词，题库整体变动。
 
-deck-data.js、core-strokes.js 都是壳文件（scripts/shell-manifest.txt 逐文件列出），内容一变 BUILD、sw-manifest 的
-SHELL、index.html 的 meta 与 ?v= 都必须跟着变（01 §8.3）。所以 main() 在写完这些文件之后，最后一步用 subprocess
-调用 `node scripts/build_shell_manifest.mjs` 重跑壳清单生成器；生成器失败（或找不到 node）时本脚本以非零退出，
-不留下「数据已变、清单未变」的工作区。
+D84：题库只写 ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json（App 与内容 / 治理 / 字体门禁都读它），一行一张卡，
+与原 build_core_config.mjs 的 deckText() 逐字节相同：输入不变时重跑零 diff。
+语境覆盖的真相源是 scripts/content/context-overrides.json（手改；不放 data/，所以不进公开数据仓库 shizi-open），
+原样并入 deck.json 的 overrides。不再写网页壳的 deck-data.js / core-strokes.js / src/config/deck-meta.js，也不再调 node。
 """
 import json
 import hashlib
 import logging
 import math
 import re
-import subprocess
 import sys
 import time
 import urllib.parse
@@ -36,15 +36,11 @@ HANZI_DB_PATH = SRC_DIR / "hanzi_db.json"
 JIEBA_DICT_PATH = SRC_DIR / "jieba_dict.txt"
 CURRICULUM_PATH = SRC_DIR / "curriculum-common-2500.txt"
 PY_DEPS = ROOT / ".python-deps"
-DECK_KEY = "shizi.deck.v8105.context2"
-DECK_META_PATH = ROOT / "src" / "config" / "deck-meta.js"
+DECK_JSON_PATH = ROOT / "ios" / "ShiziCore" / "Sources" / "ShiziCore" / "Bundled" / "deck.json"
+CONTEXT_OVERRIDES_PATH = ROOT / "scripts" / "content" / "context-overrides.json"
 GENERATED_JSON = "selected_8105_candidates.json"
 COVERAGE_JSON = "hanzi_writer_coverage.json"
 LIBRARY_AUDIT_JSON = "library-governance.json"
-CORE_STROKE_SCRIPT = "core-strokes.js"
-CORE_STROKE_COUNT = 600
-SHELL_MANIFEST_SCRIPT = ROOT / "scripts" / "build_shell_manifest.mjs"
-CALIBRATION_CORE_CHARS = ["尴", "嚏", "狩", "晤", "飓", "痿", "俾", "跻", "徵", "瞰", "裘", "娩", "邃", "暧", "煲"]
 HANZI_WRITER_FLAT_URL = "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat"
 HANZI_WRITER_VERSION = "2.0.1"
 HANZI_WRITER_BASELINE_STANDARD_COUNT = 6854
@@ -934,17 +930,10 @@ def js_string(value):
 
 
 def patch_index(chosen, word_index):
-    """生成 deck-data.js（SEED/GROUPS 题库数据）、core-strokes.js，并写出 src/config/deck-meta.js。
+    """生成题库 deck.json（seed / overrides / groups）。内容不变时不重写文件，重复运行 git diff 为空。
 
-    第十稿起不再读写 index.html：DECK_KEY 与 deck 指纹（deck-data.js 内容 SHA-256 前 12 位，
-    与 ?v= 指纹同源）写进 ES 模块 src/config/deck-meta.js，由 src/ 代码 import；内容不变时不重写，
-    保证重复运行 git diff 为空。index.html / sw.js 里的 ?v= 指纹与 BUILD 仍须与文件内容一致，
-    由 scripts/build_shell_manifest.mjs 生成——main() 写完本函数的输出后最后一步调用它（regenerate_shell_manifest）。
-    函数名沿用 patch_index 以保持历史可追溯。
+    overrides 原样取自 scripts/content/context-overrides.json（手改的语境覆盖）。函数名沿用 patch_index 以保持历史可追溯。
     """
-    data_path = ROOT / "deck-data.js"
-    core_path = ROOT / CORE_STROKE_SCRIPT
-
     seed = []
     for item in chosen:
         context = choose_context(item, word_index)
@@ -980,41 +969,25 @@ def patch_index(chosen, word_index):
             "ctx": context["context_source"],
         })
     groups = {item["character"]: item["groups"] for item in chosen}
-    ranked_core = [row["target"] for row in sorted(seed, key=lambda row: row["rank"])]
-    core_chars = list(dict.fromkeys(CALIBRATION_CORE_CHARS + ranked_core))[:CORE_STROKE_COUNT]
+    overrides = json.loads(CONTEXT_OVERRIDES_PATH.read_text(encoding="utf-8"))
+    write_deck_json(seed, overrides, groups)
 
-    data_path.write_text(
-        "// 拾字题库数据（由 scripts/build_8105_chars.py 生成，勿手改）\n"
-        "// SEED：候选字词卡（拼音/语境词/难度/主题/规范等级）\n"
-        "const SEED = " + js_string(seed) + ";\n"
-        f"// 每个字的部件分组（自动生成：{len(chosen)} 个通用规范汉字候选，按 Make Me a Hanzi matches 递归部件分组）\n"
-        "const GROUPS=" + js_string(groups) + ";\n",
-        encoding="utf-8",
-    )
-    core_path.write_text(
-        "// 由 scripts/build_8105_chars.py 同步生成：首日校准字优先，再按题库字频补满 600 字。\n"
-        "(function(scope){\n"
-        f"  scope.SHIZI_CORE_STROKES={js_string(core_chars)};\n"
-        "})(self);\n",
-        encoding="utf-8",
+
+def deck_json_text(seed, overrides, groups):
+    """deck.json 的文本：一行一张卡，overrides / groups 各占一行（= JS JSON.stringify 的紧凑形，便于审阅 diff）。"""
+    return (
+        '{"seed":[\n' + ",\n".join(js_string(row) for row in seed) + "\n],\n"
+        + '"overrides":' + js_string(overrides) + ",\n"
+        + '"groups":' + js_string(groups) + "}\n"
     )
 
-    write_deck_meta(data_path)
 
-
-def write_deck_meta(data_path):
-    """写 src/config/deck-meta.js（ES 模块）；内容相同则不动文件。"""
-    fingerprint = file_sha256(data_path)[:12]
-    meta = (
-        "// 由 scripts/build_8105_chars.py 生成，勿手改。\n"
-        "// DECK_KEY：题库身份键；DECK_FINGERPRINT：deck-data.js 内容 SHA-256 前 12 位（与 ?v= 指纹同源）。\n"
-        f"export const DECK_KEY = {js_string(DECK_KEY)};\n"
-        f"export const DECK_FINGERPRINT = {js_string(fingerprint)};\n"
-    )
-    DECK_META_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if DECK_META_PATH.is_file() and DECK_META_PATH.read_text(encoding="utf-8") == meta:
+def write_deck_json(seed, overrides, groups):
+    """写 Bundled/deck.json；内容相同则不动文件。"""
+    text = deck_json_text(seed, overrides, groups)
+    if DECK_JSON_PATH.is_file() and DECK_JSON_PATH.read_text(encoding="utf-8") == text:
         return
-    DECK_META_PATH.write_text(meta, encoding="utf-8")
+    DECK_JSON_PATH.write_text(text, encoding="utf-8")
 
 
 def library_governance_report(standard_rows, curriculum_table_one, chosen, skipped, source_inventory):
@@ -1082,20 +1055,6 @@ def library_governance_report(standard_rows, curriculum_table_one, chosen, skipp
             "difficulty_is_not_an_education_stage": True,
         },
     }
-def regenerate_shell_manifest():
-    """重跑壳清单生成器（01 §8.3）：core-strokes.js / deck-data.js / deck-meta.js 变了，BUILD、SHELL、meta、?v= 要跟着变。
-
-    用 subprocess 调 `node scripts/build_shell_manifest.mjs`（cwd=仓库根）；非零退出或找不到 node 都以 SystemExit 非零退出。
-    """
-    command = ["node", str(SHELL_MANIFEST_SCRIPT)]
-    try:
-        result = subprocess.run(command, cwd=str(ROOT), check=False)
-    except OSError as error:
-        raise SystemExit(f"build_shell_manifest.mjs could not start ({' '.join(command)}): {error}") from error
-    if result.returncode != 0:
-        raise SystemExit(f"build_shell_manifest.mjs failed with exit code {result.returncode}")
-
-
 def main():
     DATA_DIR.mkdir(exist_ok=True)
     GENERATED_DIR.mkdir(exist_ok=True)
@@ -1145,8 +1104,6 @@ def main():
     print("group_count_range=", min(len(x["groups"]) for x in chosen), max(len(x["groups"]) for x in chosen))
     print("norm_counts=", {level: sum(1 for x in chosen if x["norm_level"] == level) for level, _ in LEVEL_PATHS})
     print("sample=", "".join(x["character"] for x in chosen[:50]))
-    # 最后一步：core-strokes.js / deck-data.js 已写出，重跑壳清单生成器（失败即非零退出）。
-    regenerate_shell_manifest()
 
 
 if __name__ == "__main__":

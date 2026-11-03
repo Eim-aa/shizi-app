@@ -8,7 +8,7 @@
 //
 // 哪些文件算「笔顺文件」：与应用一致——文件名去掉 .json 后恰好是一个 Unicode 码点
 // （src/data/strokes.js 的 strokesURL + isSingleChar：data/<单字>.json；原生 NativeGlyph.swift 同一命名）。
-// 据此排除 data/ 里的 etymology.json、context-overrides.js、LICENSE.md 等非每字文件。
+// 据此排除 data/ 里的 etymology.json、LICENSE.md 等非每字文件。
 //
 // 格式（版本 1，详见 docs/engineering/v10/B4.10-笔顺打包.md）：
 //   头部 16 字节：magic "SZPK"（4）｜version u16le（2）｜entrySize u16le（2）｜count u32le（4）｜dataOffset u32le（4）

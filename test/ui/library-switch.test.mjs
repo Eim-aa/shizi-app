@@ -4,7 +4,6 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -112,11 +111,9 @@ test('judgedChars: only judged (correct / wrong) records, deduped by char', () =
 });
 
 test('real deck: counts come from the data (3500 / 2974 / 744 / 2500)', () => {
-  const ctx = {};
-  vm.createContext(ctx);
-  vm.runInContext(`${fs.readFileSync(path.join(ROOT, 'deck-data.js'), 'utf8')}\n;globalThis.__seed = SEED;`, ctx);
-  vm.runInContext(`${fs.readFileSync(path.join(ROOT, 'data/context-overrides.js'), 'utf8')}\n;globalThis.__ov = CONTEXT_OVERRIDES;`, ctx);
-  setDeckSource({ seed: ctx.__seed, overrides: ctx.__ov });
+  // D84：真题库读 ShiziCore 的 deck.json（seed + overrides）。
+  const deck = JSON.parse(fs.readFileSync(path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json'), 'utf8'));
+  setDeckSource({ seed: deck.seed, overrides: deck.overrides });
   try {
     const rows = libraryRows({ settings: null, records: { '2026-09': [rec('r1', '的'), rec('r2', '耶')] } });
     assert.deepEqual(rows.map(r => r.total), [3500, 2974, 744, 2500]);

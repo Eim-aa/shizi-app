@@ -9,7 +9,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DECK_PATH = ROOT / "deck-data.js"
+# D84：题库读 ShiziCore 的 deck.json（build_8105_chars.py 写），不再读网页壳的 deck-data.js。
+DECK_PATH = ROOT / "ios" / "ShiziCore" / "Sources" / "ShiziCore" / "Bundled" / "deck.json"
 HANZI_DB_PATH = ROOT / "sources" / "hanzi_db.json"
 MAKE_ME_A_HANZI_PATH = ROOT / "sources" / "make-me-a-hanzi-dict.txt"
 OPENCC_ST_PATH = ROOT / "sources" / "opencc-st-characters.txt"
@@ -141,10 +142,10 @@ def read_json_lines(path):
 
 
 def read_deck():
-    match = re.search(r"const SEED = (\[.*\]);", DECK_PATH.read_text(), re.S)
-    if not match:
+    seed = json.loads(DECK_PATH.read_text(encoding="utf-8")).get("seed")
+    if not isinstance(seed, list):
         raise SystemExit(f"Could not parse {DECK_PATH}")
-    return json.loads(match.group(1))
+    return seed
 
 
 def read_opencc(path):

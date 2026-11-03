@@ -64,25 +64,27 @@ def validate_curriculum_members(rows, level_one):
     require(len(set(level_one) - set(rows)) == 1000, "derived curriculum table two must contain 1000 characters")
 
 
+# D84: the deck is ShiziCore's Bundled/deck.json (written by build_8105_chars.py; the app ships it).
+CORE_BUNDLED = ROOT / "ios" / "ShiziCore" / "Sources" / "ShiziCore" / "Bundled"
+DECK_JSON_PATH = CORE_BUNDLED / "deck.json"
+CORE_PACKAGE = ROOT / "ios" / "ShiziCore"
+
+
+def load_deck():
+    return json.loads(DECK_JSON_PATH.read_text(encoding="utf-8"))
+
+
 def load_seed():
-    source = (ROOT / "deck-data.js").read_text(encoding="utf-8")
-    prefix = "const SEED = "
-    start = source.index(prefix) + len(prefix)
-    end = source.index(";\n", start)
-    return json.loads(source[start:end])
+    return load_deck()["seed"]
 
 
 def load_groups():
-    source = (ROOT / "deck-data.js").read_text(encoding="utf-8")
-    prefix = "const GROUPS="
-    start = source.index(prefix) + len(prefix)
-    end = source.index(";\n", start)
-    return json.loads(source[start:end])
+    return load_deck()["groups"]
 
 
-# v10: the four libraries live in the pure module src/core/cards.js (LIBRARIES: id, label,
-# officialTotal, test). Labels are asserted there, not in index.html or src/config/copy/.
-CARDS_MODULE = ROOT / "src" / "core" / "cards.js"
+# The four libraries are native data: Bundled/card-rules.json "libraries" (id, label, officialTotal and the
+# membership rule ShiziCore Cards reads) and Bundled/deck-libraries.json (the selection index). Labels are
+# asserted there, not in UI copy.
 EXPECTED_LIBRARIES = [
     # (id, label, officialTotal, practice-ready count)
     ("core3500", "常用字", 3500, 3500),
@@ -93,50 +95,46 @@ EXPECTED_LIBRARIES = [
 RETIRED_LIBRARY_LABEL = "义教基础字"
 SCHOOL_STAGE_NAMES = ("小学", "初中", "高中")
 SCHOOL_STAGE_IDS = ("primary", "junior", "senior")
-TEXT_SUFFIXES = {".js", ".mjs", ".cjs", ".css", ".html", ".json", ".txt", ".md", ".svg"}
-# Evaluates deck-data.js + data/context-overrides.js like the page does, builds cards with
-# src/core/cards.js and prints each library's id/label/officialTotal/count as JSON.
-LIBRARY_COUNT_SCRIPT = r"""
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import vm from 'node:vm';
-const root = process.argv[1];
-const { LIBRARIES, buildCards } = await import(pathToFileURL(join(root, 'src', 'core', 'cards.js')).href);
-const context = vm.createContext(Object.create(null), { codeGeneration: { strings: false, wasm: false } });
-const run = (file) => new vm.Script(readFileSync(join(root, file), 'utf8'), { filename: file }).runInContext(context);
-run('deck-data.js');
-run('data/context-overrides.js');
-const seed = JSON.parse(new vm.Script('JSON.stringify(SEED)').runInContext(context));
-const overrides = JSON.parse(new vm.Script('JSON.stringify(CONTEXT_OVERRIDES)').runInContext(context));
-const cards = buildCards({ seed, overrides });
-process.stdout.write(JSON.stringify({ cards: cards.length, libraries: LIBRARIES.map(lib => ({
-  id: lib.id, label: lib.label, officialTotal: lib.officialTotal, count: cards.filter(lib.test).length })) }));
-"""
+TEXT_SUFFIXES = {".swift", ".js", ".mjs", ".cjs", ".css", ".html", ".json", ".txt", ".md", ".svg", ".strings", ".xcstrings", ".plist"}
+# What the app ships: ShiziCore (rules + bundled data) and the app target's sources / resources.
+SCANNED_ROOTS = [ROOT / "ios" / "ShiziCore" / "Sources", ROOT / "ios" / "ShiziApp" / "ShiziApp"]
+
+
+def native_cards(deck):
+    """Expand the deck with the app's own code: `shizi-core-cli cards-dump` (ShiziCore Cards.swift)."""
+    build = subprocess.run(["swift", "build", "--package-path", str(CORE_PACKAGE), "--product", "shizi-core-cli"],
+                           cwd=ROOT, capture_output=True, text=True, check=False)
+    require(build.returncode == 0, f"swift build shizi-core-cli failed: {build.stderr.strip() or build.stdout.strip()}")
+    cli = CORE_PACKAGE / ".build" / "debug" / "shizi-core-cli"
+    payload = json.dumps({"seed": deck["seed"], "overrides": deck.get("overrides") or {}}, ensure_ascii=False)
+    result = subprocess.run([str(cli), "cards-dump"], cwd=ROOT, input=payload, capture_output=True, text=True, check=False)
+    require(result.returncode == 0, f"cards-dump failed: {result.stderr.strip()}")
+    return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
 
 
 def scanned_sources():
-    files = [ROOT / "index.html"]
-    files += sorted(path for path in (ROOT / "src").rglob("*") if path.is_file() and path.suffix in TEXT_SUFFIXES)
+    files = sorted(path for base in SCANNED_ROOTS for path in base.rglob("*") if path.is_file() and path.suffix in TEXT_SUFFIXES)
     return [(path, path.read_text(encoding="utf-8")) for path in files]
 
 
 def verify_library_table(seed):
-    source = CARDS_MODULE.read_text(encoding="utf-8")
-    # Static view of the table: every entry declares its id, label and officialTotal literally.
-    declared = re.findall(r"id:\s*'([a-z0-9]+)',\s*label:\s*'([^']+)',\s*officialTotal:\s*(\d+)", source)
-    require([(lib_id, label, int(total)) for lib_id, label, total in declared] == [row[:3] for row in EXPECTED_LIBRARIES],
-            f"src/core/cards.js LIBRARIES must declare exactly the four governed libraries: {declared}")
+    rules = json.loads((CORE_BUNDLED / "card-rules.json").read_text(encoding="utf-8"))["libraries"]
+    declared = [(row["id"], row["label"], row["officialTotal"]) for row in rules]
+    require(declared == [row[:3] for row in EXPECTED_LIBRARIES],
+            f"Bundled/card-rules.json libraries must declare exactly the four governed libraries: {declared}")
+    index = json.loads((CORE_BUNDLED / "deck-libraries.json").read_text(encoding="utf-8"))
+    indexed = [(row["id"], row["label"], row["officialTotal"], len(row["keys"])) for row in index["libraries"]]
+    require(indexed == EXPECTED_LIBRARIES, f"Bundled/deck-libraries.json disagrees with governance: {indexed}")
 
-    # Runtime view: the module's own predicates over the real deck.
-    result = subprocess.run(["node", "--input-type=module", "-e", LIBRARY_COUNT_SCRIPT, str(ROOT)],
-                            cwd=ROOT, capture_output=True, text=True, check=False)
-    require(result.returncode == 0, f"library count probe failed: {result.stderr.strip()}")
-    probe = json.loads(result.stdout)
-    require(probe["cards"] == EXPECTED_PRACTICE_READY, "src/core/cards.js buildCards must yield one card per practice-ready character")
-    runtime = [(row["id"], row["label"], row["officialTotal"], row["count"]) for row in probe["libraries"]]
-    require(runtime == EXPECTED_LIBRARIES, f"LIBRARIES ids/labels/totals/counts disagree with governance: {runtime}")
-    # Cross-check the module predicates against the governed SEED fields independently.
+    # Runtime view: the app's own predicates (ShiziCore Cards.libraryIdsFor) over the real deck.
+    cards = native_cards(load_deck())
+    require(len(cards) == EXPECTED_PRACTICE_READY, "ShiziCore buildCards must yield one card per practice-ready character")
+    counts = Counter(lib for row in cards for lib in row["libraries"])
+    runtime = [(lib_id, label, total, counts.get(lib_id, 0)) for lib_id, label, total, _ in EXPECTED_LIBRARIES]
+    require(runtime == EXPECTED_LIBRARIES, f"library ids/labels/totals/counts disagree with governance: {runtime}")
+    require(all(row["libraries"] for row in cards) and set(counts) == {row[0] for row in EXPECTED_LIBRARIES},
+            "every card must belong to a governed library and no other library may exist")
+    # Cross-check the native predicates against the governed SEED fields independently.
     independent = {
         "core3500": sum(row.get("norm") == "一级" for row in seed),
         "adv3000": sum(row.get("norm") == "二级" for row in seed),
@@ -147,7 +145,7 @@ def verify_library_table(seed):
     require(independent["core3500"] == EXPECTED_AVAILABLE["一级"] and independent["adv3000"] == EXPECTED_AVAILABLE["二级"]
             and independent["rare"] == EXPECTED_AVAILABLE["三级"], "library counts disagree with practice availability")
 
-    # Negative checks over everything the page ships from src/ plus index.html.
+    # Negative checks over everything the app ships (ShiziCore sources + bundled data, the app target).
     for path, text in scanned_sources():
         rel = path.relative_to(ROOT).as_posix()
         require("日常读写九成五" not in text, f"unsupported 95% claim is still visible: {rel}")
@@ -156,8 +154,7 @@ def verify_library_table(seed):
                 f"unsupported school-stage library is still declared: {rel}")
         require(not re.search(r"\bid\s*:\s*['\"](?:%s)['\"]" % "|".join(SCHOOL_STAGE_IDS), text),
                 f"retired school-stage library id is still declared: {rel}")
-        if rel.startswith("src/"):
-            require(RETIRED_LIBRARY_LABEL not in text, f"retired library label {RETIRED_LIBRARY_LABEL} still appears in {rel}")
+        require(RETIRED_LIBRARY_LABEL not in text, f"retired library label {RETIRED_LIBRARY_LABEL} still appears in {rel}")
 
 
 def main():
@@ -244,7 +241,7 @@ def main():
     require(sum(row.get("edu") == "表一" for row in seed) == 2500 and sum(row.get("edu") == "表二" for row in seed) == 1000, "runtime curriculum membership is incomplete")
     runtime_groups = load_groups()
     require(set(runtime_groups) == selected_chars, "runtime GROUPS must cover exactly the runtime character set")
-    require(removed_chars.isdisjoint(runtime_chars) and removed_chars.isdisjoint(runtime_groups), "a compliance-removed character is still in deck-data.js")
+    require(removed_chars.isdisjoint(runtime_chars) and removed_chars.isdisjoint(runtime_groups), "a compliance-removed character is still in deck.json")
     require(all(runtime_groups.get(char) == groups for char, groups in hint_groups.items()), "runtime GROUPS differ from the reviewed supplement groups")
 
     audit_path = ROOT / "generated" / "library-governance.json"

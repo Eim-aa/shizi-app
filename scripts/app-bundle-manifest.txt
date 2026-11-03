@@ -1,5 +1,4 @@
 data/LICENSE.md
-data/context-overrides.js
 data/etymology.json
 data/㬎.json
 data/一.json

@@ -1,6 +1,6 @@
 import Foundation
 
-// 题库数据（deck.json：deck-data.js 的 SEED / GROUPS 与 data/context-overrides.js 的 CONTEXT_OVERRIDES，目前由 scripts/build_core_config.mjs 生成，真相源去向见 D84 / 清扫卡 B）。
+// 题库数据（deck.json：seed / overrides / groups。D84 起由 scripts/build_8105_chars.py 写；overrides 原样取自 scripts/content/context-overrides.json）。
 // 这里只给原始数据（JSValue）；卡片构建（core/cards.js buildCards）在 B4.3。懒加载：约 2MB，首次访问才解析。
 
 public final class DeckData {

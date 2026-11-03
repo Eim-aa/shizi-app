@@ -21,12 +21,11 @@ const receipt = JSON.parse(fs.readFileSync(path.join(ROOT, 'audit/compliance-202
 const REMOVED = receipt.removed.map(row => row.character);
 
 function loadDeckGlobals() {
+  // D84：题库读 ShiziCore 的 deck.json；core-strokes.js 已停止生成（留到删网页时一起删），仍核它不含移除字。
+  const deck = JSON.parse(fs.readFileSync(path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json'), 'utf8'));
   const context = vm.createContext(Object.create(null));
-  for (const file of ['deck-data.js', 'data/context-overrides.js', 'core-strokes.js']) {
-    const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    new vm.Script(file === 'core-strokes.js' ? `var self = globalThis; ${src}` : src, { filename: file }).runInContext(context);
-  }
-  return JSON.parse(new vm.Script('JSON.stringify({ seed: SEED, groups: GROUPS, overrides: CONTEXT_OVERRIDES, core: self.SHIZI_CORE_STROKES })').runInContext(context));
+  new vm.Script(`var self = globalThis; ${fs.readFileSync(path.join(ROOT, 'core-strokes.js'), 'utf8')}`, { filename: 'core-strokes.js' }).runInContext(context);
+  return { seed: deck.seed, groups: deck.groups, overrides: deck.overrides, core: JSON.parse(new vm.Script('JSON.stringify(self.SHIZI_CORE_STROKES)').runInContext(context)) };
 }
 const DECK = loadDeckGlobals();
 
@@ -49,8 +48,8 @@ test('the 76 source-problem characters are gone from the deck, the stroke data a
   assert.equal(DECK.seed.length, 7218);
   assert.equal(Object.keys(DECK.groups).length, 7218);
   assert.ok(targets.has('𬇕') && fs.existsSync(path.join(ROOT, 'data', '𬇕.json')), '𬇕 (LXGW WenKai GB outline, OFL) is kept');
-  const manifest = fs.readFileSync(path.join(ROOT, 'scripts/shell-manifest.txt'), 'utf8').split('\n');
-  for (const ch of REMOVED) assert.ok(!manifest.includes(`data/${ch}.json`), `shell manifest still lists data/${ch}.json`);
+  const manifest = fs.readFileSync(path.join(ROOT, 'scripts/app-bundle-manifest.txt'), 'utf8').split('\n'); // D84：随 App 分发的清单
+  for (const ch of REMOVED) assert.ok(!manifest.includes(`data/${ch}.json`), `app bundle manifest still lists data/${ch}.json`);
 });
 
 // ---------------------------------------------------------------- 旧记录降级

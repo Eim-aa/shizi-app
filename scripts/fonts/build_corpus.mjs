@@ -3,11 +3,13 @@
 //
 // 子集 = #180 冻结的 F8 语料（corpus/f8/，逐字不改）∪ 第十稿界面实际要用这两款字体显示的文字：
 //   ShiziKai（题面词语、参考字形回退、字源、大字）
-//     文案 src/config/copy/ 全部值 + 题记 src/config/epigraphs.js + 四库名 + 题面固定字串 PROMPT_COPY
-//     + 题库卡片（deck-data.js SEED 套 data/context-overrides.js 后的 word / py / hint / promptHint）
+//     文案（ShiziCore Bundled/copy.json ∪ ShiziKit Generated/ShiziKitCopy.json 全部值）+ 题记 Bundled/epigraphs.json
+//     + 四库名与题面固定字串（Bundled/card-rules.json 的 libraries / promptCopy）
+//     + 题库卡片（Bundled/deck.json 的 seed 套 overrides，经 ShiziCore 展开：shizi-core-cli cards-dump；word / py / hint / promptHint）
 //     + 字源 data/etymology.json（gloss / source）
 //   ShiziSerifSC 400 / 500（首页标题、题记、页标题、大数字、详情拼音）
-//     文案 src/config/copy/ 的值（去掉只用黑体显示的 HEI_ONLY_COPY）+ 题记 + 四库名 + 题库拼音 py
+//     文案的值（去掉只用黑体显示的 HEI_ONLY_COPY）+ 题记 + 四库名 + 题库拼音 py
+// D84：全部读 App 实际带的原生资源，不再读 src/、deck-data.js、data/context-overrides.js。
 // 文本先 NFC 归一化，去掉空白与控制字符，按码点收集。
 //
 // 输出（与 #180 同格式：一行 `U+XXXX,U+YYYY,…`，按码点升序）：
@@ -20,15 +22,28 @@
 //   node scripts/fonts/build_corpus.mjs --check   只检查：语料与当前文案 / 题库不一致则退出码 1（先改语料再重建字体）
 
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
 
 export const FONTS_TOOL_DIR = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(FONTS_TOOL_DIR, '..', '..');
 
 const rel = p => join(ROOT, p);
 const read = p => readFileSync(rel(p), 'utf8');
+const readJSON = p => JSON.parse(read(p));
+const { loadCorpus } = createRequire(import.meta.url)('../content-corpus.cjs');
+
+const BUNDLED = 'ios/ShiziCore/Sources/ShiziCore/Bundled';
+/** 文字来源（原生资源，相对仓库根）。 */
+export const SOURCES = Object.freeze({
+  copy: `${BUNDLED}/copy.json`,
+  shiziKitCopy: 'ios/ShiziApp/ShiziApp/ShiziKit/Generated/ShiziKitCopy.json',
+  epigraphs: `${BUNDLED}/epigraphs.json`,
+  cardRules: `${BUNDLED}/card-rules.json`,
+  deck: `${BUNDLED}/deck.json`,
+  etymology: 'data/etymology.json',
+});
 
 /** `U+0020,U+4E00,…` → Set<number> */
 export function parseUnicodes(text) {
@@ -57,19 +72,16 @@ export function codepointsOf(text) {
   return out;
 }
 
-/** 与页面相同：经典脚本在同一全局作用域求值，取 SEED 与 CONTEXT_OVERRIDES。 */
-export function loadDeckGlobals(root = ROOT) {
-  const context = vm.createContext(Object.create(null), { codeGeneration: { strings: false, wasm: false } });
-  const run = (code, filename) => new vm.Script(code, { filename }).runInContext(context, { timeout: 5000 });
-  run(readFileSync(join(root, 'deck-data.js'), 'utf8'), 'deck-data.js');
-  run(readFileSync(join(root, 'data/context-overrides.js'), 'utf8'), 'data/context-overrides.js');
-  return {
-    seed: JSON.parse(run('JSON.stringify(SEED)', 'seed')),
-    overrides: JSON.parse(run('JSON.stringify(CONTEXT_OVERRIDES)', 'overrides')),
-  };
+/** 文案键值对：copy.json 全部，再加 ShiziKitCopy.json 里键不在 copy.json 或值不同的项（两份同源；分叉时两边的字都要有字形）。 */
+export function copyEntries() {
+  const copy = readJSON(SOURCES.copy);
+  const kit = readJSON(SOURCES.shiziKitCopy);
+  const entries = Object.entries(copy);
+  for (const [key, value] of Object.entries(kit)) {
+    if (!(key in copy) || JSON.stringify(copy[key]) !== JSON.stringify(value)) entries.push([key, value]);
+  }
+  return entries;
 }
-
-const importRepo = p => import(pathToFileURL(rel(p)).href);
 
 /**
  * 只在黑体（系统字体，不在 ShiziSerifSC 子集里）显示的文案键：这些值里有宋体子集里没有的字（找 昨 锁），宋体语料不收，
@@ -105,18 +117,17 @@ export const HEI_ONLY_COPY = Object.freeze([
  *   deckWords:string, deckPinyin:string, deckHints:string, etymology:string}>}
  */
 export async function appTexts() {
-  const { COPY } = await importRepo('src/config/copy/index.js');
-  const { EPIGRAPHS } = await importRepo('src/config/epigraphs.js');
-  const { LIBRARIES, PROMPT_COPY, buildCards } = await importRepo('src/core/cards.js');
-  const { seed, overrides } = loadDeckGlobals();
-  const cards = buildCards({ seed, overrides });
-  const ety = JSON.parse(read('data/etymology.json'));
+  const copy = copyEntries();
+  const epigraphs = readJSON(SOURCES.epigraphs);
+  const { libraries, promptCopy } = readJSON(SOURCES.cardRules);
+  const { cards } = await loadCorpus(ROOT);
+  const ety = readJSON(SOURCES.etymology);
   return {
-    copy: Object.values(COPY).join('\n'),
-    copySerif: Object.entries(COPY).filter(([key]) => !HEI_ONLY_COPY.includes(key)).map(([, value]) => value).join('\n'),
-    epigraphs: EPIGRAPHS.map(e => [...e.lines, e.source].join('\n')).join('\n'),
-    libraries: LIBRARIES.map(l => l.label).join('\n'),
-    promptCopy: Object.values(PROMPT_COPY).join('\n'),
+    copy: copy.map(([, value]) => value).join('\n'),
+    copySerif: copy.filter(([key]) => !HEI_ONLY_COPY.includes(key)).map(([, value]) => value).join('\n'),
+    epigraphs: epigraphs.map(e => [...e.lines, e.source].join('\n')).join('\n'),
+    libraries: libraries.map(l => l.label).join('\n'),
+    promptCopy: Object.values(promptCopy).join('\n'),
     deckWords: cards.map(c => c.word).join('\n'),
     deckPinyin: cards.map(c => c.py).join('\n'),
     deckHints: cards.map(c => [c.hint || '', c.promptHint || ''].join('\n')).join('\n'),

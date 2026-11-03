@@ -13,7 +13,7 @@ import { CREDITS, LICENSE_TEXTS } from '../../src/config/credits.js';
 
 const read = rel => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const sha = buf => crypto.createHash('sha256').update(buf).digest('hex');
-const manifestLines = () => read('scripts/shell-manifest.txt').split('\n');
+const manifestLines = () => read('scripts/app-bundle-manifest.txt').split('\n'); // D84：随 App 分发的清单
 
 test('A1: the unmodified Arphic Public License ships as licenses/ARPHICPL.TXT (and the other license texts the notices cite)', () => {
   assert.equal(read('licenses/ARPHICPL.TXT'), read('sources/LICENSE-ARPHIC-PUBLIC.txt'));
@@ -23,7 +23,7 @@ test('A1: the unmodified Arphic Public License ships as licenses/ARPHICPL.TXT (a
   assert.equal(sha(fs.readFileSync(path.join(ROOT, 'licenses/GPL-3.0.txt'))), '8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903', 'canonical GPL-3.0 text (LGPL-3.0 incorporates it)');
   const lines = manifestLines();
   for (const f of ['licenses/ARPHICPL.TXT', 'licenses/LGPL-3.0.txt', 'licenses/GPL-3.0.txt', 'licenses/Apache-2.0.txt', 'licenses/jieba-LICENSE.txt', 'licenses/pypinyin-LICENSE.txt', 'data/LICENSE.md']) {
-    assert.ok(lines.includes(f), `${f} is in the shell manifest (bundled with the app)`);
+    assert.ok(lines.includes(f), `${f} is in the app bundle manifest`);
   }
   assert.ok(CREDITS.find(c => c.name === 'Hanzi Writer Data').licenseFiles.includes('licenses/ARPHICPL.TXT'));
   assert.equal(LICENSE_TEXTS['licenses/ARPHICPL.TXT'], read('licenses/ARPHICPL.TXT').replace(/\s+$/, '') + '\n');

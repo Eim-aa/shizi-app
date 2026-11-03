@@ -209,10 +209,18 @@ final class ConfigPolicyTests: XCTestCase {
     }
 
     // test/core/policy.test.mjs: policy: --k defaults to 1 = contentSizeScale.L (P130); the P58 lamp token is gone (D43)
+    // （D84：网页 tokens.css 不再是来源，改读 ShiziKitTokens.json）
     func testPolicyKDefaultsTo1EqualsContentSizeScaleLTheP58LampTokenIsGone() throws {
-        let css = try readRepoFile("src/config/tokens.css")
-        XCTAssertFalse(css.contains("--lamp"), "no --lamp token")
-        XCTAssertNotNil(css.range(of: #"--k:\s*1;"#, options: .regularExpression), "tokens.css --k default 1")
+        // D84：网页的 tokens.css 不再是来源，改读手改的 ShiziKitTokens.json：L 档（系统默认字号）的 k = 1，颜色里没有 lamp（P58 已撤）。
+        let data = try Data(contentsOf: repoRoot.appendingPathComponent("ios/ShiziApp/ShiziApp/ShiziKit/Generated/ShiziKitTokens.json"))
+        let root = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let categories = try XCTUnwrap((root["type"] as? [String: Any])?["categories"] as? [String: Any])
+        XCTAssertEqual((categories["L"] as? [String: Any])?["k"] as? Double, 1, "ShiziKitTokens.json type.categories.L.k = 1")
+        let colors = try XCTUnwrap(root["colors"] as? [String: Any])
+        for theme in ["light", "dark"] {
+            let table = try XCTUnwrap(colors[theme] as? [String: Any])
+            XCTAssertFalse(table.keys.contains { $0.contains("lamp") }, "no lamp colour in \(theme)")
+        }
         XCTAssertEqual(Config.policyNumber("contentSizeScale.L"), 1, "system default size maps to the same 1")
     }
 

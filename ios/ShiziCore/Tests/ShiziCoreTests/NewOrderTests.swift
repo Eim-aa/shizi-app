@@ -35,7 +35,7 @@ final class NewOrderTests: XCTestCase {
     // test/core/new-order.test.mjs: char-order.js is generated from the draft table (--check passes) and a change to the table makes it stale
     func testCharOrderJsIsGeneratedFromTheDraftTableCheckPassesAndAChangeToTheTableMakesItStale() throws {
         // JS 原测试跑生成器脚本 scripts/build_char_order.mjs --check / generate()，对的是 src/config/char-order.js。
-        // Swift 没有这个生成器：资源 char-order.json 由 scripts/build_core_config.mjs 导出，并由它的 --check 守与 src/ 同步。
+        // Swift 没有这个生成器：资源 char-order.json 由 scripts/build_char_order.mjs 直接写入 Bundled。
         // 这里转成数据层的判定：资源带着三份输入的指纹（orderTable / curation / capitalNumerals），状态说明与阈值齐全；
         // 「表变了即过期」由指纹 + 同步门禁负责，「生成物与表一致」见下一条测试（order == 表序 − reserved）。
         let meta = Config.charOrderData["meta"]
@@ -97,11 +97,8 @@ final class NewOrderTests: XCTestCase {
         // 阈值与字频：reserved 里的姓氏 / 地名都比阈值靠后，commonKept 都不超过阈值；两边合起来正好是 curation 的两张清单
         let ranks = try deckRanks()
         let max = Double(CO.commonRankMax)
-        // JS 导入生成器的 COMMON_RANK_MAX 常量；Swift 没有生成器，从脚本源码里取同一个常量核对资源里的阈值。
-        let script = try readRepoFile("scripts/build_char_order.mjs")
-        let m = script.range(of: "export const COMMON_RANK_MAX = [0-9]+", options: .regularExpression)
-        XCTAssertNotNil(m)
-        XCTAssertEqual(Double(script[m!].split(separator: " ").last!), max)
+        // D84：阈值（P145）住在 char-order.json 的 meta.commonRankMax，这里钉死 3500（一级字边界）；换阈值要同时改 JSON 与这里，并重跑 build_char_order.mjs 重排 order。
+        XCTAssertEqual(CO.commonRankMax, 3500)
         let surnameOnly = Set(CO.surnameOnly)
         for c in CO.surnames + CO.places where !surnameOnly.contains(c) {
             XCTAssertFalse((ranks[c] ?? .infinity) <= max, "\(c) \u{751F}\u{50FB}\u{FF08}\u{5B57}\u{9891} > \(max)\u{FF09}\u{624D}\u{5254}\u{9664}")

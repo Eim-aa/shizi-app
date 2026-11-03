@@ -2,8 +2,8 @@
 # Xcode Run Script「Sync Web Assets」：把原生仍在读的资源同步进 App 包的 Web/。
 # B4.9：App 里已没有 JS / WKWebView。包里 Web/ 只剩 data/（笔顺 / 字源 JSON，原生直读 Web/data/<字>.json）、fonts/（NativeType / ShiziScreen /
 # ImageRenderer 读 Web/fonts/*.woff2）与 licenses/；清单 scripts/app-bundle-manifest.txt 由 `pnpm run build:manifest`
-# （scripts/build_shell_manifest.mjs APP_BUNDLE_ROOTS）生成。网页壳（src/、vendor/、index.html …）冻结在仓库里，不进包。
-# 关于页的版本行写成 Web/build-info.json（原生读 JSON；D84 起不读 src/build-info.js）：
+# （scripts/build_shell_manifest.mjs APP_BUNDLE_ROOTS）生成。网页壳已随 D84 从仓库删除；下面「不得进包」的断言留作防回归。
+# 关于页的版本行写成 Web/build-info.json（原生读 JSON；D84 起 src/build-info.js 已不存在）：
 #   version = MARKETING_VERSION（Xcode 构建设置，来自 Config/Shared.xcconfig；不在 Xcode 里跑时直接读 Shared.xcconfig）
 #   build   = <HEAD 提交日 yyyymmdd>-<HEAD 的 12 位短 hash>：仍是「<yyyymmdd>-<12 hex>」的形状，关于页「版本 1.0.0（yyyymmdd）」与
 #             点按看到的完整构建号格式都不变。
@@ -44,7 +44,7 @@ done
 INK_DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/InkModel"
 rm -rf "${INK_DEST}"
 # B3.3 QA-H1 夹具（只在 Debug）：ShiziUITests/States 的 JSON 进包的 QAStates/，NativeQAHarness / QAFixtures 按状态名读（Release 不含）。
-# B4.9：op 由 Swift 执行（QAOps.swift）；_ops/*.js、_runtime/*.js 只是网页参考的开发工具（scripts/native-ui/fixture-dev.mjs）用，不进包。
+# B4.9：op 由 Swift 执行（QAOps.swift）；States 里不再有 .js（下面的 --exclude 留作防回归）。
 QA_DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/QAStates"
 rm -rf "${QA_DEST}"
 if [ "${CONFIGURATION:-}" = "Debug" ]; then

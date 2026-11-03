@@ -12,13 +12,11 @@ concurrency:
   group: verify-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Three independent jobs run in parallel (02-实现计划 §0 门禁):
-#   data       — syntax checks + API floor (iOS >= 15) + verify:data (governance, vector440, content, assets, sw-unit, api)
-#   unit-copy  — verify:unit (node:test) + verify:copy
-#   web        — verify:web = Playwright e2e (scripts/e2e/run.mjs) + PWA upgrade gate
-#                (scripts/verify_pwa_upgrade.js: real v10 / v13 replayed to the v14 worker, BUILD A→B, 503 fallback).
-#                The PWA gate fetches its two pinned legacy commits by SHA when the checkout is shallow.
-# scripts/legacy/ holds retired v8/v9 gates; it is neither syntax-checked nor run.
+# D84：网页版（web job、API floor、sw-unit、PWA 门禁）已随网页一起删除。剩两个互相独立的 job：
+#   data       — 脚本语法检查 + 不需要 Swift 的数据门禁（vector440、assets、order）
+#   unit-copy  — verify:unit (node:test) + verify:copy + verify:tokens
+# verify:governance 与 verify:content 要用 `swift build` 出的 shizi-core-cli（cards-dump）展开题库，ubuntu 上没有 Swift，
+# 且决定不加 macOS runner：这两项只在本机跑（pnpm run verify:data / bash ios/ShiziApp/scripts/verify-local.sh）。
 
 jobs:
   data:
@@ -42,18 +40,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # node --check every scripts/**/*.{js,mjs,cjs} except scripts/legacy/.
-          find scripts -path scripts/legacy -prune -o -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0 \
+          # node --check every scripts/**/*.{js,mjs,cjs}.
+          find scripts -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0 \
             | sort -z | xargs -0 -n1 node --check
           python3 -m py_compile scripts/*.py
           for script in ios/ShiziApp/scripts/*.sh; do bash -n "$script"; done
           git diff --check
-      - name: API floor (iOS >= 15 WKWebView)
-        # scripts/verify_api_floor.mjs: banned APIs / syntax per 01-架构设计 §13; container-query units are listed as warnings.
-        # Also part of verify:data; run first here so an API-floor failure shows up before the slow browser checks.
-        run: pnpm run verify:api
-      - name: Verify data integrity
-        run: pnpm run verify:data
+      - name: Verify data integrity (no-Swift gates)
+        # governance + content need shizi-core-cli (Swift) and run locally only; see the header comment.
+        run: |
+          pnpm run verify:vector440
+          pnpm run verify:assets
+          pnpm run verify:order
 
   unit-copy:
     runs-on: ubuntu-latest
@@ -73,35 +71,5 @@ jobs:
         run: pnpm run verify:unit
       - name: Copy check
         run: pnpm run verify:copy
-
-  web:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Enable pinned pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.16.0 --activate
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-      - name: Start local app
-        run: |
-          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/shizi-server.log 2>&1 &
-          echo $! >/tmp/shizi-server.pid
-          for attempt in {1..30}; do
-            curl --fail --silent http://127.0.0.1:8000/ >/dev/null && exit 0
-            sleep 1
-          done
-          cat /tmp/shizi-server.log
-          exit 1
-      - name: Run browser regressions and the PWA upgrade gate
-        run: pnpm run verify:web
-      - name: Stop local app
-        if: always()
-        run: test ! -f /tmp/shizi-server.pid || kill "$(cat /tmp/shizi-server.pid)" || true
+      - name: Token check
+        run: pnpm run verify:tokens

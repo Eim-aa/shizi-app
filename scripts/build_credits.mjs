@@ -3,7 +3,7 @@
 //
 // 输入：THIRD_PARTY_NOTICES.md（每个 `## ` 小节一项）+ 小节里用反引号引用的许可全文文件
 //       （licenses/*、sources/LICENSE-*）。
-// 输出：src/config/credits.js —— 关于页「开源资料 · 致谢」子页的全部内容（逐字取自上面两处，不另写说明）：
+// 输出：ShiziCore 的 Bundled/credits.json —— 关于页「开源资料 · 致谢」子页的全部内容（逐字取自上面两处，不另写说明）：
 //   CREDITS       [{id, title, name, version, kind:'code'|'data'|'font', url, license, notice, licenseFiles:[path]}]
 //   LICENSE_TEXTS {path: 全文}
 //   SOURCE        生成来源说明
@@ -21,8 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const NOTICES_PATH = 'THIRD_PARTY_NOTICES.md';
-export const OUT_PATH = 'src/config/credits.js';
-/** D84：ShiziCore 的 Bundled/credits.json 由本脚本直接写（不经 build_core_config）；不读 src/。 */
+/** D84：网页壳已删，Bundled/credits.json 是唯一产物（中间的 JS 模块文本只在内存里转 JSON）。 */
 export const BUNDLED_PATH = 'ios/ShiziCore/Sources/ShiziCore/Bundled/credits.json';
 
 // 许可名：按小节正文里出现的字样识别（先匹配的优先）。显示名保持英文原名（许可的正式名称，不是界面文案）。
@@ -133,7 +132,7 @@ export function buildCredits(notices, readText) {
 export function renderModule({ credits, licenseTexts }) {
   return [
     '// 由 scripts/build_credits.mjs 从 THIRD_PARTY_NOTICES.md 与其引用的许可全文生成，勿手改。',
-    '// 关于页「开源资料 · 致谢」（src/ui/screens/mine/about.js）按需 import。',
+    '// 关于页「开源资料 · 致谢」（原生 About.swift 读 Bundled/credits.json）。',
     '',
     `export const SOURCE = ${JSON.stringify(NOTICES_PATH)};`,
     '',
@@ -156,7 +155,7 @@ export function generate(root = ROOT) {
   return renderModule(buildCredits(notices, readRepoText(root)));
 }
 
-/** 模块文本 → Bundled JSON 文本（{CREDITS, LICENSE_TEXTS, SOURCE}；只 import 生成物自己的文本，不读 src/）。 */
+/** 模块文本 → Bundled JSON 文本（{CREDITS, LICENSE_TEXTS, SOURCE}；只 import 生成物自己的文本）。 */
 export async function bundledJson(moduleText) {
   const mod = await import('data:text/javascript;base64,' + Buffer.from(moduleText).toString('base64'));
   return JSON.stringify({ ...mod }, null, 2) + '\n';
@@ -165,7 +164,7 @@ export async function bundledJson(moduleText) {
 async function main(argv) {
   const check = argv.includes('--check');
   const text = generate(ROOT);
-  const outputs = [[OUT_PATH, text], [BUNDLED_PATH, await bundledJson(text)]];
+  const outputs = [[BUNDLED_PATH, await bundledJson(text)]];
   let stale = 0;
   for (const [rel, next] of outputs) {
     const out = join(ROOT, rel);

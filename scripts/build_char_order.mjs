@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 生成 src/config/char-order.js：新字顺序数据（D28 易忘度排序、热身字、D39 姓氏与地名 / D40 大写数字的剔除、D40 特别组数据）。
+// 生成 ShiziCore 的 Bundled/char-order.json：新字顺序数据（D28 易忘度排序、热身字、D39 姓氏与地名 / D40 大写数字的剔除、D40 特别组数据）。
 //
 // 用法（仓库根目录）：
 //   node scripts/build_char_order.mjs           生成（有变化才写）
@@ -12,7 +12,7 @@
 //
 // 剔除规则（D39 / D40 / D45）：大写数字 12 个字一律从默认新字排序（order 与二级附录）里剔除；姓氏字、省份简称与常见地名（curation 的两张清单）
 // 只剔除「日常少用」的——字频序（题库 deck.json 的 rank）> COMMON_RANK_MAX、或题库里没有字频的；rank ≤ COMMON_RANK_MAX 的常用字
-// （熊、颜、藏、桂、厦……）留在默认排序原位（D45）。被剔除的字不进「清单之后按字频序」的尾部（src/core/new-order.js 同样排除 reserved），
+// （熊、颜、藏、桂、厦……）留在默认排序原位（D45）。被剔除的字不进「清单之后按字频序」的尾部（ShiziCore 的 NewOrder.swift 同样排除 reserved），
 // 之后由独立主题「姓氏与地名」/ D40 特别组承接。被剔除的字逐个列在输出的 removed 里，留下的常用字列在 commonKept 里。
 // 阈值登记 P145；顾问审读 1.0 维持 3500（理由见 docs/engineering/v10/phase1/顾问审读-1.0.md Q3）。
 
@@ -23,8 +23,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, '..');
-export const OUT_PATH = 'src/config/char-order.js';
-/** D84：ShiziCore 的 Bundled/char-order.json 由本脚本直接写（不经 build_core_config）；不读 src/。 */
+/** D84：网页壳已删，Bundled/char-order.json 是唯一产物（中间的 JS 模块文本只在内存里转 JSON）。 */
 export const BUNDLED_PATH = 'ios/ShiziCore/Sources/ShiziCore/Bundled/char-order.json';
 const JSON_PATH = 'docs/engineering/v10/phase1/易忘度字表-1.0.json';
 const CURATION_PATH = 'docs/engineering/v10/phase1/tools/curation.mjs';
@@ -114,7 +113,7 @@ export async function generate(root = ROOT, { commonRankMax = COMMON_RANK_MAX } 
   const lines = [];
   lines.push('// 新字顺序数据（D28 易忘度排序 / 热身字 / D39 姓氏与地名 / D40 大写数字）。');
   lines.push('// 由 scripts/build_char_order.mjs 生成，勿手改；换表：改输入后重跑，`--check` 在 pnpm run verify:data 里。');
-  lines.push('// 排序是易忘度字表 1.0（AI 顾问审读，非外部专家；T3 / T7 未验证）；数据与代码分离，读取方是 src/core/new-order.js。');
+  lines.push('// 排序是易忘度字表 1.0（AI 顾问审读，非外部专家；T3 / T7 未验证）；数据与代码分离，读取方是 ShiziCore 的 NewOrder.swift。');
   lines.push('');
   lines.push('export const CHAR_ORDER = Object.freeze({');
   lines.push('  meta: Object.freeze({');
@@ -169,7 +168,7 @@ export async function generate(root = ROOT, { commonRankMax = COMMON_RANK_MAX } 
   return lines.join('\n');
 }
 
-/** 模块文本 → Bundled JSON 文本（只 import 生成物自己的文本，不读 src/）。 */
+/** 模块文本 → Bundled JSON 文本（只 import 生成物自己的文本）。 */
 export async function bundledJson(moduleText) {
   const mod = await import('data:text/javascript;base64,' + Buffer.from(moduleText).toString('base64'));
   return JSON.stringify(mod.CHAR_ORDER, null, 2) + '\n';
@@ -178,7 +177,7 @@ export async function bundledJson(moduleText) {
 async function main(argv) {
   const check = argv.includes('--check');
   const text = await generate(ROOT);
-  const outputs = [[OUT_PATH, text], [BUNDLED_PATH, await bundledJson(text)]];
+  const outputs = [[BUNDLED_PATH, await bundledJson(text)]];
   let stale = 0;
   for (const [rel, next] of outputs) {
     const out = join(ROOT, rel);

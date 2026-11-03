@@ -11,7 +11,7 @@
 | `Sources/ShiziCore/JSON/` | `JSValue` / `JSObject`（JS 对象键序：数组下标形的键升序在前、其余按插入序；字符串按码点判等，不用 Swift 的规范等价）；`JSONParser` ≡ `JSON.parse`；`JSONWriter` ≡ `JSON.stringify`（数字按 ECMAScript Number::toString） |
 | `Sources/ShiziCore/Dates/` | `JSDate`：JS Date 的本地时间语义（前推格里历、TimeClip、夏令时缺口按 V8 取跳变前偏移）；`Dates`：`src/core/dates.js` 的 1:1 移植（B4.0 示例域）；`Signature.swift`：落款汉字数字 cnDigits / cnNumber / cnCount / signature*（汉字读生成的 signature.json） |
 | `Sources/ShiziCore/Config/` | 生成配置的读取：`Config`（policy / motion / credits / char-order / epigraphs / copy 的 JSValue 与 `policyValue("a.b")`）、`CharOrder`、`Epigraphs`、`Copy`（占位符填充与取用，≡ `config/copy/index.js`）、`PolicyCoverage`（P 编号登记检查） |
-| `Sources/ShiziCore/Resources/*.json` | **生成物**（`node scripts/build_core_config.mjs`；`--check` 守与 `src/` 同步）：policy / policy-meta / motion / char-order / epigraphs / credits / deck-meta / signature / copy / deck，B4.2 加 fsrs-config（`FSRS_CONFIG`）与 deck-libraries（全部卡键、四个字库的成员与缺省字库，`data/deck.js` 现算）。Swift 源码里没有规则数值与汉字字面量，全部读这里 |
+| `Sources/ShiziCore/Resources/*.json` | **手改的唯一真相源**（D84，见 `Bundled/README.md`；只有 deck.json 仍由 `build_core_config.mjs` 生成，char-order / credits 由各自脚本写入）：policy / policy-meta / motion / char-order / epigraphs / credits / deck-meta / signature / copy / deck，B4.2 加 fsrs-config（`FSRS_CONFIG`）与 deck-libraries（全部卡键、四个字库的成员与缺省字库，`data/deck.js` 现算）。Swift 源码里没有规则数值与汉字字面量，全部读这里 |
 | `Sources/ShiziCore/Deck/` | `DeckData`：deck.json（SEED / GROUPS / CONTEXT_OVERRIDES）的原始数据，懒加载 |
 | `Sources/ShiziCore/Schema/` | `Schema`：`src/core/schema.js` 的 1:1 移植（键表、形状校验、备份外壳），返回的「路径: 原因」字串与 JS 逐字相同 |
 | `Sources/ShiziCore/Models/` | 全部域的模型（记录 / 折叠月 / sched / 墨 v2 v3 v4 / 设置 / 会话 / 保护副本 / 事务日志 …）。**不是 Foundation 的 Codable**（JSONEncoder 没有 JS 的键序与数字格式），而是 `JSCodable`（`init(js:)` / `js`）：解码记下键序，编码先按记下的键序写、新建的按 JS 写入处的规范键序；三态字段（缺省 / null / 值）用 `Field<T>`；数字一律 Double |
@@ -95,7 +95,7 @@ pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子
 
 ### 配置与数据怎么进 Swift（B4.1）
 
-规则数据（policy / motion / char-order / epigraphs / credits / 文案 / 题库 / 落款汉字数字）**不手抄进 Swift**：`scripts/build_core_config.mjs` 从 `src/` 导出 JSON 到 `Sources/ShiziCore/Resources/`（SwiftPM 资源，`Bundle.module`），Swift 一侧只读。改了 `src/config/*`、`src/core/dates.js` 的汉字数字表、`deck-data.js`、`data/context-overrides.js` 就要重跑它；漏了 `test/core/core-config.test.mjs`（verify:unit）、`pnpm run verify:core-config`、`verify:core-diff` 都会红。Xcode 工程接入（B4.5）时把它加成构建阶段（`--check` 模式）。
+规则数据（policy / motion / char-order / epigraphs / credits / 文案 / 题库 / 落款汉字数字）**不手抄进 Swift**：放在 `Sources/ShiziCore/Bundled/*.json`（SwiftPM 资源，`Bundle.module`），Swift 一侧只读。D84 起这些 JSON 是手改的唯一真相源（见 `Bundled/README.md`）；只有 `deck.json`（`scripts/build_core_config.mjs`）、`char-order.json`、`credits.json`（各自脚本）仍有生成脚本。
 
 ### B4.5b views
 

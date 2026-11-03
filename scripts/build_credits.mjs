@@ -15,13 +15,15 @@
 //
 // ShiziKai / ShiziSerifSC 在 M5-2 写进 NOTICES（及 licenses/）后，重跑本脚本即出现在关于页，不用改代码。
 
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const NOTICES_PATH = 'THIRD_PARTY_NOTICES.md';
 export const OUT_PATH = 'src/config/credits.js';
+/** D84：ShiziCore 的 Bundled/credits.json 由本脚本直接写（不经 build_core_config）；不读 src/。 */
+export const BUNDLED_PATH = 'ios/ShiziCore/Sources/ShiziCore/Bundled/credits.json';
 
 // 许可名：按小节正文里出现的字样识别（先匹配的优先）。显示名保持英文原名（许可的正式名称，不是界面文案）。
 const LICENSE_RULES = [
@@ -154,22 +156,32 @@ export function generate(root = ROOT) {
   return renderModule(buildCredits(notices, readRepoText(root)));
 }
 
-function main(argv) {
+/** 模块文本 → Bundled JSON 文本（{CREDITS, LICENSE_TEXTS, SOURCE}；只 import 生成物自己的文本，不读 src/）。 */
+export async function bundledJson(moduleText) {
+  const mod = await import('data:text/javascript;base64,' + Buffer.from(moduleText).toString('base64'));
+  return JSON.stringify({ ...mod }, null, 2) + '\n';
+}
+
+async function main(argv) {
   const check = argv.includes('--check');
-  const out = join(ROOT, OUT_PATH);
-  const next = generate(ROOT);
-  const prev = existsSync(out) ? readFileSync(out, 'utf8') : null;
-  if (prev === next) {
-    console.log(`${OUT_PATH} up to date`);
-    return 0;
+  const text = generate(ROOT);
+  const outputs = [[OUT_PATH, text], [BUNDLED_PATH, await bundledJson(text)]];
+  let stale = 0;
+  for (const [rel, next] of outputs) {
+    const out = join(ROOT, rel);
+    const prev = existsSync(out) ? readFileSync(out, 'utf8') : null;
+    if (prev === next) {
+      console.log(`${rel} up to date`);
+    } else if (check) {
+      console.error(`${rel} is stale: run node scripts/build_credits.mjs`);
+      stale += 1;
+    } else {
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, next);
+      console.log(`wrote ${rel}`);
+    }
   }
-  if (check) {
-    console.error(`${OUT_PATH} is stale: run node scripts/build_credits.mjs`);
-    return 1;
-  }
-  writeFileSync(out, next);
-  console.log(`wrote ${OUT_PATH}`);
-  return 0;
+  return stale ? 1 : 0;
 }
 
 function isMain() {
@@ -181,5 +193,5 @@ function isMain() {
 }
 
 if (isMain()) {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 }

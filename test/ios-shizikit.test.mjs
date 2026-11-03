@@ -1,55 +1,60 @@
-// B3.1 原生组件库 ShiziKit 的 node 侧门禁（计划 B3B4-原生化架构与计划.md §3.2 / §6.1 B3.1 行）：
-// 1. 生成物同步：ios/ShiziApp/ShiziApp/ShiziKit/Generated/*.json 与 tokens.json / tokens.css / policy / motion.js / copy 同步（改了来源要重跑
-//    node scripts/build_shizikit.mjs；pnpm run verify:tokens / verify:copy 也跑 --check）；
-// 2. 生成规则：颜色 = tokens.css 浅 / 深块的声明原文（页面 getComputedStyle 同串）且与 tokens.json 同值；字阶 = 各档位 --k 下的表达式（WebKit 1/64 截断），
-//    AX 档 = :root[data-ax] 直接取值；写字 / 结果页的动效与时刻 = write-api.js 同一批函数；文案 = COPY；
-//    （「生成规则 = 页面在 WKWebView 里真算出来的值」由 ShiziWriteTests/ShiziKitTests.swift 在 12 个字号档位 × 浅 / 深逐项核对。）
-// 3. 工程接入：生成物在 App 的 Resources 阶段（进包），ShiziKit 的 Swift 文件都在 App 的 Sources 阶段；
-// 4. App 的原生源码（ios/ShiziApp/ShiziApp 下全部 Swift；整文件 DEBUG 的开发工具除外）没有汉字字符串字面量——用户可见的字只来自 src/config/copy（ShiziCopy / 回包）。
+// B3.1 原生组件库 ShiziKit 的 node 侧门禁（计划 B3B4-原生化架构与计划.md §3.2 / §6.1 B3.1 行）。D84 起 ShiziKit/Generated/*.json 是手改的唯一真相源
+// （README 见该目录），不再有生成器；这里改成直接读 JSON：
+// 1. 目录里只有两份 JSON + README；ShiziKitCopy.json 与 ShiziCore Bundled/copy.json 逐字相同；ShiziKitTokens.json 的 motion 与 Bundled/motion.json 相同；
+// 2. 颜色 = 浅 / 深两套同键且与 design-system-v1/tokens.json 同值；字阶 = 各档位的 pt 值（1/64 截断倍数；档位 k = Bundled/policy.json contentSizeScale）；AX 档取值表见 test/ax-type.test.mjs；
+//    （「JSON 的值 = 页面真算出来的值」由 ShiziWriteTests/ShiziKitTests.swift 在 12 个字号档位 × 浅 / 深逐项核对。）
+// 3. 工程接入：JSON 在 App 的 Resources 阶段（进包），ShiziKit 的 Swift 文件都在 App 的 Sources 阶段；
+// 4. App 的原生源码（ios/ShiziApp/ShiziApp 下全部 Swift；整文件 DEBUG 的开发工具除外）没有汉字字符串字面量——用户可见的字只来自 ShiziKitCopy.json。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './core/helpers.mjs';
-import { OUT_DIR, CATEGORIES, generate, sources, layoutUnit } from '../scripts/build_shizikit.mjs';
-import * as policy from '../src/config/policy.js';
-import { COPY } from '../src/config/copy/index.js';
-import { writeMotion, writeTiming, resultMotion } from '../src/session/write-api.js';
-import { NATIVE_WRITE_COLOR_TOKENS, NATIVE_WRITE_TYPE_TOKENS } from '../src/ui/screens/write/native-session.js';
 
 const IOS = path.join(ROOT, 'ios/ShiziApp');
-const tokensJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'docs/design/design-system-v1/tokens.json'), 'utf8'));
+const GEN = path.join(IOS, 'ShiziApp/ShiziKit/Generated');
+const BUNDLED = path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled');
+const readJson = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
+const tokensJson = readJson(path.join(ROOT, 'docs/design/design-system-v1/tokens.json'));
+const kit = readJson(path.join(GEN, 'ShiziKitTokens.json'));
+const kitCopy = readJson(path.join(GEN, 'ShiziKitCopy.json'));
+const policy = readJson(path.join(BUNDLED, 'policy.json'));
 
-test('shizikit: generated resources are in sync with their sources (node scripts/build_shizikit.mjs)', async () => {
-  const files = await generate();
-  for (const [name, text] of Object.entries(files)) {
-    const cur = fs.readFileSync(path.join(OUT_DIR, name), 'utf8');
-    assert.ok(cur === text, `stale ${name}: run node scripts/build_shizikit.mjs`);
-  }
-  assert.deepEqual(fs.readdirSync(OUT_DIR).sort(), Object.keys(files).sort(), 'no stray files in ShiziKit/Generated/');
+/** 原生页面要的颜色 / 字阶令牌（写字页 + 结果页；从原 src/ui/screens/write/native-session.js 的清单搬来）。 */
+const COLOR_TOKENS = ['paper', 'hand', 'ref', 'frame', 'line', 'ink1', 'ink2', 'ink3', 'ink4', 'field', 'danzhu', 'toast-bg', 'toast-fg', 'toast-act', 'toast-line', 'toast-shadow', 'scrim', 'elev', 'sheet', 'btn-bg', 'btn-fg', 'guide', 'under', 'zhu', 'seal', 'on-seal'];
+const TYPE_TOKENS = ['fs13', 'lh13', 'fs15', 'lh15', 'fs17', 'lh17', 'lh17s', 'fs22', 'lh22', 'fs28', 'btn-h', 'r-box'];
+const CATEGORIES = ['xS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'AX1', 'AX2', 'AX3', 'AX4', 'AX5'];
+const layoutUnit = (px) => Math.trunc(px * 64 + 1e-9) / 64;
+
+test('shizikit: Generated/ holds the two hand-edited JSON files and a README; copy and motion agree with ShiziCore Bundled', () => {
+  assert.deepEqual(fs.readdirSync(GEN).sort(), ['README.md', 'ShiziKitCopy.json', 'ShiziKitTokens.json']);
+  assert.deepEqual(kitCopy, readJson(path.join(BUNDLED, 'copy.json')), 'ShiziKitCopy.json = Bundled/copy.json');
+  assert.deepEqual(kit.motion, readJson(path.join(BUNDLED, 'motion.json')), 'ShiziKitTokens.json motion = Bundled/motion.json');
+  for (const f of ['ShiziKitTokens.json', 'ShiziKitCopy.json']) assert.ok(fs.readFileSync(path.join(GEN, f), 'utf8').endsWith('\n'), f);
 });
 
-test('shizikit: colours are the tokens.css declarations (light / dark) and agree with tokens.json; every colour the B2 pages ask for is there', async () => {
-  const { ShiziKitTokens: t } = await sources();
+test('shizikit: colours — light / dark carry the same keys, agree with tokens.json, and every colour the B2 pages ask for is there', () => {
   const camel = (k) => k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  assert.deepEqual(Object.keys(kit.colors.light), Object.keys(kit.colors.dark));
   for (const theme of ['light', 'dark']) {
-    for (const k of NATIVE_WRITE_COLOR_TOKENS) assert.ok(t.colors[theme][k], `${theme} ${k}`);
-    for (const [k, v] of Object.entries(t.colors[theme])) {
+    for (const k of COLOR_TOKENS) assert.ok(kit.colors[theme][k], `${theme} ${k}`);
+    for (const [k, v] of Object.entries(kit.colors[theme])) {
       if (k.endsWith('-shadow')) continue;
       const j = tokensJson.color[theme][camel(k)];
       if (j && /^#/.test(j)) assert.equal(v.toUpperCase(), j.toUpperCase(), `${theme} ${k} vs tokens.json`);
     }
   }
-  assert.notEqual(t.colors.light.paper, t.colors.dark.paper);
+  assert.notEqual(kit.colors.light.paper, kit.colors.dark.paper);
 });
 
-test('shizikit: type scale per content size = tokens.css at --k (1/64 px truncation); AX rows are the data-ax values', async () => {
-  const { ShiziKitTokens: t } = await sources();
-  assert.deepEqual(Object.keys(t.type.categories), [...CATEGORIES]);
+test('shizikit: type scale per content size (1/64 pt multiples); k = policy.contentSizeScale; AX rows are absolute values', () => {
+  const t = kit;
+  assert.deepEqual(Object.keys(t.type.categories), CATEGORIES);
+  assert.equal(t.type.compactTextScale, policy.compactTextScale);
   for (const cat of CATEGORIES) {
     const row = t.type.categories[cat];
     assert.equal(row.k, policy.contentSizeScale[cat]);
-    for (const k of NATIVE_WRITE_TYPE_TOKENS) assert.ok(row.values[k] > 0, `${cat} ${k}`);
+    for (const k of TYPE_TOKENS) assert.ok(row.values[k] > 0, `${cat} ${k}`);
     for (const v of Object.values(row.values)) assert.equal(v, layoutUnit(v), `${cat}: values are LayoutUnit multiples`);
   }
   const L = t.type.categories.L.values;
@@ -68,14 +73,15 @@ test('shizikit: type scale per content size = tokens.css at --k (1/64 px truncat
   }
 });
 
-test('shizikit: page motion / timing are the write-api bundles; copy is COPY', async () => {
-  const { ShiziKitTokens: t, ShiziKitCopy: copy } = await sources();
-  assert.deepEqual(t.write.motion, JSON.parse(JSON.stringify(writeMotion())));
-  assert.deepEqual(t.write.timing, writeTiming());
-  assert.deepEqual(t.result.motion, JSON.parse(JSON.stringify({ ...writeMotion(), result: resultMotion() })));
-  assert.deepEqual(copy, JSON.parse(JSON.stringify(COPY)));
-  for (const k of ['duration', 'role', 'moment', 'bezier', 'gesture', 'timing']) assert.ok(k in t.motion, `motion.${k}`);
-  for (const k of ['space', 'radius', 'line', 'touch']) assert.deepEqual(t[k], tokensJson[k]);
+test('shizikit: page motion / timing bundles and the design-system tables are present', () => {
+  for (const k of ['duration', 'role', 'moment', 'bezier', 'gesture', 'timing']) assert.ok(k in kit.motion, `motion.${k}`);
+  for (const k of ['motion', 'timing']) {
+    assert.ok(kit.write[k] && Object.keys(kit.write[k]).length > 0, `write.${k}`);
+    assert.ok(kit.result[k] && Object.keys(kit.result[k]).length > 0, `result.${k}`);
+  }
+  assert.ok(kit.result.motion.result, 'result.motion.result');
+  for (const k of ['space', 'radius', 'line', 'touch']) assert.deepEqual(kit[k], tokensJson[k]);
+  for (const v of Object.values(kitCopy)) assert.ok(typeof v === 'string' || (Array.isArray(v) && v.every((x) => typeof x === 'string')));
 });
 
 test('shizikit: the Xcode project ships the generated resources and compiles every ShiziKit source into the app', () => {

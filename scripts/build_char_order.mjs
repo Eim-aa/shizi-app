@@ -17,7 +17,7 @@
 // 阈值登记 P145；顾问审读 1.0 维持 3500（理由见 docs/engineering/v10/phase1/顾问审读-1.0.md Q3）。
 
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm from 'node:vm';
@@ -25,6 +25,8 @@ import vm from 'node:vm';
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const ROOT = resolve(HERE, '..');
 export const OUT_PATH = 'src/config/char-order.js';
+/** D84：ShiziCore 的 Bundled/char-order.json 由本脚本直接写（不经 build_core_config）；不读 src/。 */
+export const BUNDLED_PATH = 'ios/ShiziCore/Sources/ShiziCore/Bundled/char-order.json';
 const JSON_PATH = 'docs/engineering/v10/phase1/易忘度字表-1.0.json';
 const CURATION_PATH = 'docs/engineering/v10/phase1/tools/curation.mjs';
 const CAPITAL_PATH = 'docs/engineering/v10/phase1/tools/capital-numerals.mjs';
@@ -168,22 +170,32 @@ export async function generate(root = ROOT, { commonRankMax = COMMON_RANK_MAX } 
   return lines.join('\n');
 }
 
+/** 模块文本 → Bundled JSON 文本（只 import 生成物自己的文本，不读 src/）。 */
+export async function bundledJson(moduleText) {
+  const mod = await import('data:text/javascript;base64,' + Buffer.from(moduleText).toString('base64'));
+  return JSON.stringify(mod.CHAR_ORDER, null, 2) + '\n';
+}
+
 async function main(argv) {
   const check = argv.includes('--check');
-  const out = join(ROOT, OUT_PATH);
-  const next = await generate(ROOT);
-  const prev = existsSync(out) ? readFileSync(out, 'utf8') : null;
-  if (prev === next) {
-    console.log(`${OUT_PATH} up to date`);
-    return 0;
+  const text = await generate(ROOT);
+  const outputs = [[OUT_PATH, text], [BUNDLED_PATH, await bundledJson(text)]];
+  let stale = 0;
+  for (const [rel, next] of outputs) {
+    const out = join(ROOT, rel);
+    const prev = existsSync(out) ? readFileSync(out, 'utf8') : null;
+    if (prev === next) {
+      console.log(`${rel} up to date`);
+    } else if (check) {
+      console.error(`${rel} is stale: run node scripts/build_char_order.mjs`);
+      stale += 1;
+    } else {
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, next);
+      console.log(`wrote ${rel}`);
+    }
   }
-  if (check) {
-    console.error(`${OUT_PATH} is stale: run node scripts/build_char_order.mjs`);
-    return 1;
-  }
-  writeFileSync(out, next);
-  console.log(`wrote ${OUT_PATH}`);
-  return 0;
+  return stale ? 1 : 0;
 }
 
 function isMain() {

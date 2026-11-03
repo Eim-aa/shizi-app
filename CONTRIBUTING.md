@@ -8,22 +8,21 @@
 
 ## 本地验证
 
-安装固定依赖并启动页面：
+安装固定依赖：
 
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
-pnpm start
 ```
 
-另开终端运行：
+然后运行（data + unit + copy + tokens + core；其中 `verify:content`、`verify:governance` 和 `verify:core` 需要 Swift 工具链）：
 
 ```bash
 pnpm test
 ```
 
-涉及 iOS、Web 资源或发布脚本时，再运行：
+涉及 iOS、包内资源或发布脚本时，再运行：
 
 ```bash
 ios/ShiziApp/scripts/verify-local.sh
@@ -36,7 +35,7 @@ ios/ShiziApp/scripts/verify-local.sh
 - 新提交采用 Conventional Commits，例如 `fix: prevent partial backup restore` 或 `feat: bound offline stroke cache`。
 - 一个提交只表达一个可审查意图；生成数据与其生成器、fixture、说明放在同一功能提交中。
 - PR 使用仓库模板，写明关联 Issue、验证命令、真机待办和第三方数据影响。
-- 合并前要求 `Verify / data`、`Verify / unit-copy`、`Verify / web` 三个 job（M0-2 起拆分；分支保护的必需检查需同步改名） 通过，并由非实现者完成代码审查。
+- 合并前要求 `Verify / data`、`Verify / unit-copy` 两个 job 通过（`web` job 已随 D84 删除，分支保护的必需检查需同步去掉 `Verify / web`），本机跑过 `pnpm test` 与 `ios/ShiziApp/scripts/verify-local.sh`（CI 没有 macOS runner，Swift 与模拟器门禁只在本机），并由非实现者完成代码审查。
 - 发布 tag 只在负责人确认可发布构建后创建，使用 `v<major>.<minor>.<patch>`，不得用 tag 冒充尚未验收的版本。
 
 ## 合并后

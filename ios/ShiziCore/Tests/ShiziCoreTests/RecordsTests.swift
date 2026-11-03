@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import ShiziCore
 
-// test/core/records.test.mjs 的转写（18 个用例，用例名保留原名）。另有 records.json 金标准与随机差分（verify:core-diff）逐条核对。
+// test/core/records.test.mjs 的转写（18 个用例，用例名保留原名）。另有 records.json 金标准逐条核对。
 
 final class RecordsTests: XCTestCase {
     let today = "2026-09-24"

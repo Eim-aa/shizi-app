@@ -1,7 +1,7 @@
 import Foundation
 
 // B4.3 的 op：记录 / 查字 / 卡片 / 结构 / 作品成员 / 取墨 / 首练结果页 / 提醒题目 / 墨 v2 v3 v4 编解码 / V8 数学函数。
-// 参考实现在 scripts/core-diff/lib/js-ops-b43.mjs（同名、同参数校验、同错误码）；规则一律直接调 src/。
+// 当年的 JS 参考实现（同名、同参数校验、同错误码）已随 D84 退役；规则一律直接调 ShiziCore 自己的实现。
 // 参数约定：记录 / 卡片 / 墨迹等都是原样 JSON 值；注入函数（hasInk 之类）用数据描述：{ids: [记录 id…], throwIds?: [抛错的记录 id…]}。
 
 extension CoreEngine {

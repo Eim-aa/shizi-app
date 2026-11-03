@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.9a：导航层的差分 op（JS 参考 scripts/core-diff/lib/js-ops-b49.mjs，同名同参同回包）。
+// B4.9a：导航层的差分 op（JS 参考已随 D84 退役）。
 
 /// 场景里 hostBodies 的桩（与 js-ops-b49.mjs 的 io 同一组）：会话 API / 视图回包只回 {ok, op|view}，调用记进 calls。
 final class NavStubIO: HostIO {

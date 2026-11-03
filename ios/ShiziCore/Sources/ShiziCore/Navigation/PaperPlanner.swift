@@ -181,7 +181,7 @@ public final class PaperPlanner {
         return Self.shape(planPaperDrag(top, under))
     }
 
-    /// paperSourceOf(entryId)（诊断 / core-diff）。
+    /// paperSourceOf(entryId)（诊断）。
     public func sourceOf(_ entryId: String) -> JSValue {
         switch sources[entryId] {
         case nil: return .null

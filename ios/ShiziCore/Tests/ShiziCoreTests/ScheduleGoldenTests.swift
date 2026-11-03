@@ -3,7 +3,7 @@ import XCTest
 @testable import ShiziCore
 
 // B4.2 金标准（计划 §4.3 ①）：FSRS（每档评分 × 稳定度 × 难度 × 间隔 × fuzz 种子，三个时区）与选字 / 组成（随机状态 × 真 / 假题库 × policy 覆盖）。
-// 夹具由 node scripts/core-golden/golden.mjs 用 JS 参考实现生成（domains/fsrs.mjs、domains/schedule.mjs）。
+// 夹具当年由 JS 参考实现生成（D84 起冻结，生成脚本已删）。
 
 final class ScheduleGoldenTests: XCTestCase {
     func testFSRSGolden() throws {

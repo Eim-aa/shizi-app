@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import ShiziCore
 
-// 备份双向往返（B4.4；计划 §4.4）：夹具 Fixtures/backup-roundtrip.json 由 scripts/core-golden/domains/backup-roundtrip.mjs 在 JS 参考引擎上生成。
+// 备份双向往返（B4.4；计划 §4.4）：夹具 Fixtures/backup-roundtrip.json 当年由 JS 参考引擎生成，D84 起冻结、不再重生成。
 // 每一步 Swift 的回包（含 store 状态快照：整份状态、磁盘上每个键的原始字串、status）校验和必须与 JS 相同：
 //   · JS → Swift：backup.restore 的输入是 JS 导出的文件（v2 的 24 份状态，含 v2 / v3 / v4 墨迹、折叠月；另有 v1 旧备份 300 字）；
 //   · Swift → JS：Swift backup.export 的文本与 JS 导出的逐字节相同（JS 恢复它 = JS 恢复自己的文件，夹具里的第 2 步就是 JS 跑的结果）。

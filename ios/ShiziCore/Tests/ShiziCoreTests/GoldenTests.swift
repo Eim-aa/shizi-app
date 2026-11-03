@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import ShiziCore
 
-// 金标准（计划 §4.3 ①）：夹具由 node scripts/core-golden/golden.mjs 用 JS 参考实现生成，这里逐条比对。
+// 金标准（计划 §4.3 ①）：夹具当年由 JS 参考实现生成（D84 起冻结，生成脚本已删），这里逐条比对。
 // 按 op 组织的域：每组一个时区，CoreEngine 跑同一个 op，比 ok、reply（值相等 + 序列化逐字节相同）或错误码。
 
 func loadFixture(_ name: String) throws -> JSObject {

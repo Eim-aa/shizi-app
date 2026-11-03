@@ -10,7 +10,7 @@ import UIKit
 //   2. 逐屏取证（-shizi-qa parity -shizi-qa-states a,b,… -shizi-qa-tag <外观_字号>）：
 //      逐个状态注入 → 等动画落定 → 把元素清单（位置尺寸 / 文案 / 颜色 / 字号 / 可点）写到 Documents/qa/native/<状态>_<tag>.json →
 //      写 Documents/qa/ready 通知宿主脚本截图 → 等宿主写回 Documents/qa/ack-<序号> 再做下一个（截图由宿主 simctl 截，含真实合成结果）。
-//      取 UIKit 视图树 + 无障碍属性（accessibilityIdentifier / Label / Frame）；网页参考图冻结在仓库里（ShiziUITests/Reference/）。
+//      取 UIKit 视图树 + 无障碍属性（accessibilityIdentifier / Label / Frame）；网页参考图已随 D84 删除，基线是 ShiziUITests/Baseline/。
 //   3. 探针（-shizi-qa-probe）：一个 1pt 的透明窗口，读屏元素 id「qa-probe」的 value 是 store 摘要 JSON（路由、会话、记录条数、
 //      已练字数、原生写字页的阶段与字），每 0.3 秒刷新；XCUITest 经无障碍树读它断言「数据真的写进去了」。
 // 状态注入走的是正式代码：造数据用 ShiziCore 里与真人判断同一批函数，导航走 SwiftNavigator，点按走原生页自己的按钮动作。
@@ -96,7 +96,7 @@ extension RootViewController {
     // MARK: 逐屏取证
 
     private func qaRunParity() async {
-        let ui = "native" // B4.9：App 里没有网页；网页参考图冻结在仓库里（ShiziUITests/Reference/）
+        let ui = "native" // B4.9：App 里没有网页；网页参考图已随 D84 删除，基线在 ShiziUITests/Baseline/
         let tag = Self.qaArg("-shizi-qa-tag") ?? "light_L"
         let states = Self.qaArg("-shizi-qa-states")?.split(separator: ",").map(String.init) ?? QAFixture.parityNames()
         let fm = FileManager.default

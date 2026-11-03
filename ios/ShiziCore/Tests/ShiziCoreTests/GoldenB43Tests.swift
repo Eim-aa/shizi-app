@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import ShiziCore
 
-// B4.3 金标准（计划 §4.3 ①）：夹具由 node scripts/core-golden/golden.mjs 用 JS 参考实现生成（records / query / cards / members / ink），这里逐条比对
+// B4.3 金标准（计划 §4.3 ①）：夹具当年由 JS 参考实现生成（D84 起冻结，生成脚本已删）（records / query / cards / members / ink），这里逐条比对
 // （值相等 + 序列化逐字节相同；依赖时区的 op 另在 New_York / Lord_Howe 各出一组）。
 
 final class GoldenB43Tests: XCTestCase {

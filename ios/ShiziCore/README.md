@@ -67,31 +67,27 @@ echo '{"op":"dates.localDay","args":{"t":1772395199999}}' | TZ=Asia/Shanghai ios
 # {"ok":true,"reply":"2026-03-01","state":{"clock":0,"kv":{}}}
 ```
 
-## 等价性门禁
+## 核心门禁（D84）
 
 ```sh
-pnpm run verify:core-diff            # 编译、swift test、金标准同步、驱动自检、随机差分（4 个时区）、转写清单同步
-pnpm run verify:core-diff --nightly  # 夜间 / 合并前：Shanghai 5000 种子、其余各 500
+pnpm run verify:core    # = swift build -c release --package-path ios/ShiziCore && swift test --package-path ios/ShiziCore
 ```
 
-| 层（计划 §4.3） | 位置 |
-|---|---|
-| ① 金标准 | `scripts/core-golden/golden.mjs`（`--check` 由 `test/core/core-diff.test.mjs` 守）→ `Tests/ShiziCoreTests/Fixtures/`；有 `dates`（6 个时区 × 4 点分界 / 0 点 / 夏令时 / 非法键）、`number-format`（JS 数字格式）、`schema`（形状表正反例 + 模型往返 + 基线状态）、`signature`（落款汉字数字 / 题记）、`copy`（文案取用）、`fsrs`（B4.2：四档评分 × 稳定度 × 难度 × 间隔 × fuzz 种子、时钟回拨、看答案、重放，三个时区）、`schedule`（B4.2：随机状态的选字 / 开组 / 过期 / 配比 / 摊开）。配置 / 数据资源另由 `node scripts/build_core_config.mjs --check`（`test/core/core-config.test.mjs`、`pnpm run verify:core-config`）守 |
-| ② 单测转写 | 清单 [B4-单测转写清单.md](../../docs/engineering/v10/B4-单测转写清单.md)（`scripts/core-diff/transcription-list.mjs` 生成） |
-| ③ 调度模拟器 | `scripts/sim/schedule-sim.mjs --engine js\|swift\|both`：规则适配层 `scripts/sim/lib/rules.mjs`（选字 / 开组 / 过期 / 判断 / 跳过 / 撤销 / 看答案 / 改判里的规则经命令行，记录与存储仍走 JS 的真实 store）、同步调用 `scripts/sim/lib/sync-engine.mjs`（命名管道）；both = 主 store 走 JS、影子 store 走 Swift，逐步比回包与状态，有差异退出码 1 |
-| ④ 随机差分 | `scripts/core-diff/run.mjs`：种子化随机序列 → 两引擎逐步比（值 + 字节）→ 失败自动缩小（ddmin，1-最小）→ `scripts/core-diff/out/repro-<种子>.jsonl`，`--replay` 重放；`--only store` 只跑 B4.4 的 store 域（写失败 / 撞配额 / 中断 / 原生结果未知注入）。备份双向往返另有 `scripts/core-diff/backup-roundtrip.mjs` 与金标准 `backup-roundtrip` / `native-rows` |
+B4 期间 ShiziCore 对 JS 参考引擎做过四层等价性核对（金标准夹具、单测转写、调度模拟器、随机差分，`verify:core-diff`）。**D84（2026-11-03）删除网页版与仓库 JS，这套对照退役**：最后一次 `verify:core-diff --nightly`（Shanghai 5000 × 300 等）的结果存档在 [D84-最后一次JS差分.md](../../docs/engineering/v10/D84-最后一次JS差分.md)，之后的参考只剩 Swift 自己的测试：
+
+- `Tests/ShiziCoreTests/` 的转写用例（702 项以上）；
+- `Tests/ShiziCoreTests/Fixtures/*.json`：**冻结的 Swift 回归夹具**，不再重生成（见该目录 README；D83 调度规则 v2 改了行为的 op 由 `d83RetiredGoldenOps` 等跳过表排除）；
+- 配置 / 数据资源 `Bundled/*.json` 是手改的唯一真相源，由 `ConfigDataTests` 等读 JSON 守；
+- `shizi-core-cli`（下面各 op 说明里的 JS 一侧路径都是历史说明，对应脚本已删，要找回看 Git 历史）。
 
 ### 与 V8 逐位对齐的数学函数（B4.3）
 
 墨宽（`decodeInk` v4 → `buildStroke`）对 `Math.exp` / `Math.hypot` 的每一位都敏感，落盘与差分都按字节比，所以 `JSMath` 复刻 V8 的实现而不用 libm：`Math.hypot` = 先按最大值缩放再 Kahan 求和（`builtins/math.tq`）；`Math.exp` = fdlibm（`base/ieee754.cc`，含 exp(1) = E 的特例）。**arm64 的 clang 会把 C++ 里的 `a*b+c` 合成 fma，所以参考值依赖平台**：这里的 `exp` 在会被合成的位置用 `addingProduct`，与 arm64 Mac 上的 Node 逐位一致（`scripts/core-diff` 的 `jsmath.exp` 随机差分是证据）；x86-64 的 Node 没有这个合成，金标准要在 arm64 上生成与核对（CI 同 dev 机）。
 
-### 加一个域（B4.1 起每张卡）
+### 加一个域
 
-1. Swift：在 `Sources/ShiziCore/<域>/` 移植，在 `CoreEngine.ops` 登记 op（参数校验用 `required / string / finite / bounded / int`）。
-2. JS：在 `js-engine.mjs` 的 `OPS` 登记同名 op，参数校验同一规则，规则直接调 `src/`。`test/core/core-diff.test.mjs` 核对两边 op 名一致。
-3. 差分：`scripts/core-diff/domains/<域>.mjs` 写参数生成器（偏向边界值），加进 `lib/gen.mjs` 的 `DOMAINS`。生成器只用两边都有的 op（`hello` 取交集），所以 Swift 没移植完的 op 不会误报。
-4. 金标准：`scripts/core-golden/domains/<域>.mjs`（`build({ withTZ, opCases })`），加进 `golden.mjs` 的 `DOMAINS`；Swift 测试里调 `runOpGolden("<域>")`。
-5. 转写清单里该卡的用例逐条转 XCTest（用例名保留原名，注释写原文件路径）。
+1. Swift：在 `Sources/ShiziCore/<域>/` 实现，在 `CoreEngine.ops` 登记 op（参数校验用 `required / string / finite / bounded / int`）。
+2. XCTest：在 `Tests/ShiziCoreTests/` 写规则断言；需要钉死大量数值输出时，手写（或用 `shizi-core-cli` 跑出来、人看过之后存下）一份 JSON 夹具放进 `Fixtures/`，并在测试里读它。夹具生成是一次性的，之后冻结（`Fixtures/README.md`）。
 
 ### 配置与数据怎么进 Swift（B4.1）
 

@@ -7,7 +7,7 @@ import Foundation
 // 几何照 src/ui/canvas/brush.js paintBrushStroke：起点圆 + 每段「两点间四边形色带 + 末端圆」（半宽 max(0.5, w/2)），
 //   同色不混合写入 = 并集（Metal 端见 NativeInkRenderer）。
 // 参数一律由页面随 open 下发（write-api.js writeInk() = inkParams(policy)：policy.ink + INK_SPEC），本文件不写数值；
-// 金标准：ios/ShiziApp/scripts/web-ink-golden.mjs 用 ink-math.js 生成 ShiziWriteTests/Fixtures/web-ink-golden.json，WebInkTests 逐点比。
+// 金标准：ShiziWriteTests/Fixtures/web-ink-golden.json（当年用网页 ink-math.js 生成，D84 起冻结、不再重生成），WebInkTests 逐点比。
 // 不移植：网页的飞白 / 洇墨细节（brush.js detail：α ≤ .2 的虚线擦、α .11 的外晕），属笔锋细节、不改墨区与粗细，见 B2 架构文档 §12 R11-A。
 //
 // ink-model-1.0（InkModel.swift，速度 / 方向宽度剖面）保留作 T2 盲测候选，不在产品路径上（只有 DEBUG 的 NativeInkSpike 还用它）。

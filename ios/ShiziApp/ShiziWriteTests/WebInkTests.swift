@@ -3,8 +3,7 @@ import XCTest
 @testable import Shizi
 
 // R11-A（D72 ②）：原生书写面的墨与网页同一算法。
-// 金标准 Fixtures/web-ink-golden.json 由 ios/ShiziApp/scripts/web-ink-golden.mjs 用网页 src/core/ink-math.js buildStroke 生成
-// （node test/core/web-ink-golden.test.mjs 核它与代码 / policy 同步）。这里 Swift WebInk.buildStroke 逐点比：
+// 金标准 Fixtures/web-ink-golden.json 当年由网页 src/core/ink-math.js buildStroke 生成（D84 起冻结，生成脚本已删、不再重生成）。这里 Swift WebInk.buildStroke 逐点比：
 //   点数相同；x / y / w 误差 ≤ 1e-3 单位（345 单位格），t ≤ 1e-3 ms，p ≤ 1e-6；v30 / endK ≤ 1e-4；dot / single / pressure 相同。
 // （金标准数值保留 6 位小数；实测最大误差见测试输出 [shizi] web-ink golden。）
 

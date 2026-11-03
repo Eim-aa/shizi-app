@@ -31,7 +31,7 @@ private func throwsWrite(_ body: () throws -> Void, file: StaticString = #filePa
 }
 
 final class StorageTests: XCTestCase {
-    // test/store/storage.test.mjs: writeAll: txn first, fixed data order (ink.<月> → records.<月> → sched → … → meta → sessions last), txn removed
+    // writeAll: txn first, fixed data order (ink.<月> → records.<月> → sched → … → meta → sessions last), txn removed
     func testWriteAllTxnFirstFixedDataOrderTxnRemoved() throws {
         let backend = seedBackend()
         let storage = StoreStorage(backend, now: { 42 })
@@ -54,7 +54,7 @@ final class StorageTests: XCTestCase {
         XCTAssertGreaterThan(StoreStorage.writeRank(SK("meta")), StoreStorage.writeRank(SK("safety")))
     }
 
-    // test/store/storage.test.mjs: write failure: rolls back in reverse order; previously-missing key rolls back to null (removeItem)
+    // write failure: rolls back in reverse order; previously-missing key rolls back to null (removeItem)
     func testWriteFailureRollsBackInReverseOrderPreviouslyMissingKeyRollsBackToNull() throws {
         let backend = seedBackend()
         let before = backend.snapshot()
@@ -69,7 +69,7 @@ final class StorageTests: XCTestCase {
         XCTAssertEqual(backend.snapshot().map { $0.0 + "=" + $0.1 }, before.map { $0.0 + "=" + $0.1 }, "all keys back to pre-write values, txn gone")
     }
 
-    // test/store/storage.test.mjs: read-back verification mismatch triggers rollback
+    // read-back verification mismatch triggers rollback
     func testReadBackVerificationMismatchTriggersRollback() throws {
         let backend = seedBackend()
         let before = backend.snapshot().map { $0.0 + "=" + $0.1 }
@@ -86,7 +86,7 @@ final class StorageTests: XCTestCase {
         XCTAssertEqual(backend.snapshot().map { $0.0 + "=" + $0.1 }, before)
     }
 
-    // test/store/storage.test.mjs: rollback failure: unrecoverable keys quarantined to shizi.corrupt.*, txn copied, BlockingStorageError, later writes blocked
+    // rollback failure: unrecoverable keys quarantined to shizi.corrupt.*, txn copied, BlockingStorageError, later writes blocked
     func testRollbackFailureUnrecoverableKeysQuarantinedTxnCopiedBlockingLaterWritesBlocked() throws {
         let backend = seedBackend()
         let storage = StoreStorage(backend)
@@ -120,7 +120,7 @@ final class StorageTests: XCTestCase {
         XCTAssertNil(backend.rawGet(SK("txn")))
     }
 
-    // test/store/storage.test.mjs: quota classification
+    // quota classification
     func testQuotaClassification() throws {
         XCTAssertEqual(StoreStorage.classify(MemoryDisk.makeError("quota")), "quota")
         let ns = StoreJSError(.plain, name: "NS_ERROR_DOM_QUOTA_REACHED", message: "")
@@ -152,7 +152,7 @@ final class StorageTests: XCTestCase {
         XCTAssertTrue(tiny.snapshot().isEmpty, "nothing left behind")
     }
 
-    // test/store/storage.test.mjs: storage-level failNextWrite (test hook path): kinds and matchKey prefix
+    // storage-level failNextWrite (test hook path): kinds and matchKey prefix
     func testStorageLevelFailNextWriteKindsAndMatchKeyPrefix() throws {
         let backend = seedBackend()
         let storage = StoreStorage(backend)
@@ -169,7 +169,7 @@ final class StorageTests: XCTestCase {
         throwsWrite({ try storage.writeAll([(SK("settings"), "{}")]) }) { $0.kind == "security" }
     }
 
-    // test/store/storage.test.mjs: finalize: when txn removal fails the txn is marked done; repair keeps the post-write state
+    // finalize: when txn removal fails the txn is marked done; repair keeps the post-write state
     func testFinalizeWhenTxnRemovalFailsTheTxnIsMarkedDoneRepairKeepsThePostWriteState() throws {
         let backend = seedBackend()
         let storage = StoreStorage(backend)
@@ -183,7 +183,7 @@ final class StorageTests: XCTestCase {
         XCTAssertNil(backend.rawGet(SK("txn")))
     }
 
-    // test/store/storage.test.mjs: repair: bad JSON / bad shape quarantined, original removed, reported once; good keys untouched
+    // repair: bad JSON / bad shape quarantined, original removed, reported once; good keys untouched
     func testRepairBadJSONBadShapeQuarantinedOriginalRemovedReportedOnceGoodKeysUntouched() throws {
         let backend = seedBackend()
         backend.rawSet(SK("sched"), "{not json")
@@ -202,7 +202,7 @@ final class StorageTests: XCTestCase {
         XCTAssertEqual(second["quarantined"], .array([]), "second boot has nothing new to report")
     }
 
-    // test/store/storage.test.mjs: probe: security error on write is reported as unavailable
+    // probe: security error on write is reported as unavailable
     func testProbeSecurityErrorOnWriteIsReportedAsUnavailable() {
         let backend = MemoryDisk()
         backend.failReads("security")
@@ -212,7 +212,7 @@ final class StorageTests: XCTestCase {
         XCTAssertTrue(StoreStorage(MemoryDisk()).probe().ok)
     }
 
-    // test/store/storage.test.mjs: writeAll refuses to touch txn/probe keys and non-string values
+    // writeAll refuses to touch txn/probe keys and non-string values
     func testWriteAllRefusesToTouchTxnProbeKeysAndNonStringValues() throws {
         let storage = StoreStorage(MemoryDisk())
         throwsWrite({ try storage.writeAll([(SK("txn"), "{}")]) }) { $0.name == "TypeError" }
@@ -221,7 +221,7 @@ final class StorageTests: XCTestCase {
         XCTAssertEqual(try storage.writeAll([]), [])
     }
 
-    // test/store/storage.test.mjs: writeOne: single-key atomic write without txn (budget side recovery); verify mismatch restores the old value
+    // writeOne: single-key atomic write without txn (budget side recovery); verify mismatch restores the old value
     func testWriteOneSingleKeyAtomicWriteWithoutTxnVerifyMismatchRestoresTheOldValue() throws {
         let backend = seedBackend()
         let storage = StoreStorage(backend)

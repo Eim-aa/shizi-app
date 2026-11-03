@@ -28,7 +28,7 @@ final class QueryTests: XCTestCase {
 
     // ---------------------------------------------------------------- 输入过滤（R-Q03 / P45）
 
-    // test/core/query.test.mjs: filterInput: keeps Han only, dedupes in first-seen order, counts removed code points and duplicates
+    // filterInput: keeps Han only, dedupes in first-seen order, counts removed code points and duplicates
     func testFilterInputKeepsHanOnlyDedupesInFirstSeenOrderCountsRemovedCodePointsAndDuplicates() {
         let f = filtered(yong43 + "a" + he43 + "!" + yong43)
         XCTAssertEqual(f.chars, [yong43, he43])
@@ -45,7 +45,7 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(filtered(hao + hao + hao).duplicates, [hao], "each repeated char listed once")
     }
 
-    // test/core/query.test.mjs: filterInput: supplementary-plane Han counts as one char; punctuation / kana are removed
+    // filterInput: supplementary-plane Han counts as one char; punctuation / kana are removed
     func testFilterInputSupplementaryPlaneHanCountsAsOneCharPunctuationKanaAreRemoved() {
         let f = filtered(sup + "\u{FF0C}" + yong43 + "\u{3002}" + kana)
         XCTAssertEqual(f.chars, [sup, yong43])
@@ -54,7 +54,7 @@ final class QueryTests: XCTestCase {
         XCTAssertTrue(Query.containsHan(zero), "Script=Han (same predicate as the prototype)")
     }
 
-    // test/core/query.test.mjs: filterInput: no hard cap by default (P45 queryInputMax=null); an explicit cap truncates the list and reports overLimit
+    // filterInput: no hard cap by default (P45 queryInputMax=null); an explicit cap truncates the list and reports overLimit
     func testFilterInputNoHardCapByDefaultP45QueryInputMaxNullAnExplicitCapTruncatesTheListAndReportsOverLimit() {
         XCTAssertEqual(Config.policyValue("queryInputMax"), .null)
         XCTAssertEqual(filtered(long).chars.count, 13, "default: nothing truncated")
@@ -64,7 +64,7 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(filtered(long, max: n43(0)).chars.count, 13, "non-positive cap = no cap")
     }
 
-    // test/core/query.test.mjs: filterNotes: the three R-Q03 notes, duplicates only in the rows view, several duplicates in one line
+    // filterNotes: the three R-Q03 notes, duplicates only in the rows view, several duplicates in one line
     func testFilterNotesTheThreeRQ03NotesDuplicatesOnlyInTheRowsViewSeveralDuplicatesInOneLine() throws {
         XCTAssertEqual(Query.filterNotes(filtered("abc"), view: "hint"), [J("{\"key\":\"R-Q03.onlyHanzi\"}")])
         XCTAssertEqual(Query.filterNotes(filtered(yong43 + "a" + he43 + "!" + yong43), view: "rows"), [
@@ -85,7 +85,7 @@ final class QueryTests: XCTestCase {
 
     // ---------------------------------------------------------------- 能不能练、自选
 
-    // test/core/query.test.mjs: isPracticable: 不能练 = not in the current library AND not in the deck; non-Han never practicable
+    // isPracticable: 不能练 = not in the current library AND not in the deck; non-Han never practicable
     func testIsPracticableNotInTheCurrentLibraryAndNotInTheDeckNonHanNeverPracticable() {
         let bull = "\u{7287}"
         let inDeck: (String) -> Bool = { $0 == yong43 || $0 == bull }
@@ -97,7 +97,7 @@ final class QueryTests: XCTestCase {
         XCTAssertFalse(Query.isPracticable(s43(yong43)), "no predicates -> not practicable")
     }
 
-    // test/core/query.test.mjs: withCustomAdded: appends {char, at}; no-op (null) when already added; never mutates; result passes the schema
+    // withCustomAdded: appends {char, at}; no-op (null) when already added; never mutates; result passes the schema
     func testWithCustomAddedAppendsCharAtNoOpNullWhenAlreadyAddedNeverMutatesResultPassesTheSchema() throws {
         let empty = try Query.withCustomAdded(.null, s43(yong43), n43(AT))!
         XCTAssertEqual(empty, obj43([("added", jsArray43([obj43([("char", s43(yong43)), ("at", n43(AT))])]))]))
@@ -116,14 +116,14 @@ final class QueryTests: XCTestCase {
 
     // ---------------------------------------------------------------- 记录情况（R-Q04 / R-Q05 / P43）
 
-    // test/core/query.test.mjs: flattenRecords: month arrays and folded months (kept)
+    // flattenRecords: month arrays and folded months (kept)
     func testFlattenRecordsMonthArraysAndFoldedMonthsKept() {
         let domain = obj43([("2026-08", jsArray43([qrec("r1", yong43)])), ("2026-09", obj43([("folded", .bool(true)), ("kept", jsArray43([qrec("r2", he43)]))])), ("bad", .null)])
         XCTAssertEqual(ids43(Query.flattenRecords(domain)), ["r1", "r2"])
         XCTAssertEqual(Query.flattenRecords(.null), [])
     }
 
-    // test/core/query.test.mjs: charSummary: counts judged only; latest by id; custom flag; sched due
+    // charSummary: counts judged only; latest by id; custom flag; sched due
     func testCharSummaryCountsJudgedOnlyLatestByIdCustomFlagSchedDue() {
         let records = [qrec("r1", yong43, "judged", "wrong", "2026-09-20"), qrec("r2", yong43, "answer-seen"), qrec("r3", yong43, "skipped"),
                        qrec("r4", yong43, "judged", "correct", "2026-09-24"), qrec("r5", he43, "answer-seen")]
@@ -142,7 +142,7 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(h["custom"], .bool(true))
     }
 
-    // test/core/query.test.mjs: rowStatus: 记录了 N 次 / 还没有记录 / 暂时不能练 / 自选的字 · … (P43 transitional wording)
+    // rowStatus: 记录了 N 次 / 还没有记录 / 暂时不能练 / 自选的字 · … (P43 transitional wording)
     func testRowStatusRecordedNTimesNoRecordUnavailableCustomP43TransitionalWording() throws {
         func base(_ over: [(String, JSValue)] = []) -> JSValue {
             var o = JSObject([("char", s43(yong43)), ("practicable", .bool(true)), ("custom", .bool(false)), ("count", n43(0))])
@@ -158,7 +158,7 @@ final class QueryTests: XCTestCase {
         XCTAssertFalse(try copyT("R-Q04.rowCustomNone").isEmpty)
     }
 
-    // test/core/query.test.mjs: cardStat: record line with date day, or 还没有记录
+    // cardStat: record line with date day, or 还没有记录
     func testCardStatRecordLineWithDateDayOrNoRecord() {
         XCTAssertEqual(Query.cardStat(obj43([("count", n43(2)), ("latestDay", s43(DAY))])), J("{\"key\":\"R-Q05.cardStat\",\"vars\":{\"n\":2,\"day\":\"\(DAY)\"}}"))
         XCTAssertEqual(Query.cardStat(obj43([("count", n43(0)), ("latestDay", .null)])), J("{\"key\":\"R-Q04.rowNone\"}"))
@@ -166,7 +166,7 @@ final class QueryTests: XCTestCase {
 
     // ---------------------------------------------------------------- 视图与 pick 底栏（R-Q06）
 
-    // test/core/query.test.mjs: queryView: hint → rows → card / bad; a single char opens its card; cur must still be in the input
+    // queryView: hint → rows → card / bad; a single char opens its card; cur must still be in the input
     func testQueryViewHintRowsCardBadASingleCharOpensItsCardCurMustStillBeInTheInput() {
         let practicable: (String) -> Bool = { $0 != self.ju }
         func v(_ chars: [String], _ cur: String = "") -> [String] { let r = Query.queryView(chars: chars, cur: cur, practicable: practicable); return [r.view, r.cur] }
@@ -178,7 +178,7 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(v([yong43, he43], chun43), ["rows", ""], "stale cur ignored")
     }
 
-    // test/core/query.test.mjs: selectedChars: only chars still typed and practicable, in input order; nothing selected by default
+    // selectedChars: only chars still typed and practicable, in input order; nothing selected by default
     func testSelectedCharsOnlyCharsStillTypedAndPracticableInInputOrderNothingSelectedByDefault() {
         let practicable: (String) -> Bool = { $0 != self.ju }
         XCTAssertEqual(Query.selectedChars([yong43, he43], [], practicable: practicable), [], "typing selects nothing")
@@ -186,7 +186,7 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(Query.selectedChars([yong43], [yong43]), [yong43])
     }
 
-    // test/core/query.test.mjs: pickBar: 0 →「先选字」disabled; 1 →「练这个字」; N →「练这 N 个字」
+    // pickBar: 0 →「先选字」disabled; 1 →「练这个字」; N →「练这 N 个字」
     func testPickBar0First1ThisChar() throws {
         XCTAssertSameJSON(Query.pickBar(n43(0)), J("{\"key\":\"R-Q06.btnNone\",\"disabled\":true}"))
         XCTAssertSameJSON(Query.pickBar(n43(1)), J("{\"key\":\"R-Q05.btnPractice\",\"disabled\":false}"))
@@ -195,7 +195,7 @@ final class QueryTests: XCTestCase {
         XCTAssertTrue(try copyT("R-Q06.btnPracticeN", [("n", n43(3))]).contains("3"))
     }
 
-    // test/core/query.test.mjs: normalizeMode: only lookup / pick (P42: no add mode)
+    // normalizeMode: only lookup / pick (P42: no add mode)
     func testNormalizeModeOnlyLookupPickP42NoAddMode() throws {
         XCTAssertEqual(Config.policyValue("queryModes"), arrayOf43(["lookup", "pick"]))
         XCTAssertEqual(try Query.normalizeMode(s43("lookup")), "lookup")
@@ -204,7 +204,7 @@ final class QueryTests: XCTestCase {
         XCTAssertThrowsCore("range") { _ = try Query.normalizeMode(nil) }
     }
 
-    // test/core/query.test.mjs: copy: every R-Q key the component uses exists (R-Q01–R-Q06 filled)
+    // copy: every R-Q key the component uses exists (R-Q01–R-Q06 filled)
     func testCopyEveryRQKeyTheComponentUsesExistsRQ01RQ06Filled() {
         let keys = [
             "R-Q01.titleLookup", "R-Q01.titlePick", "R-Q01.placeholder", "R-Q02.pickNote", "R-Q02.lookupNote",
@@ -226,7 +226,7 @@ final class QueryTests: XCTestCase {
         return [e(shi4, "sh\u{EC}"), e(shi2, "sh\u{ED}"), e(shi10, "sh\u{ED}"), e(shi4b, "sh\u{EC}"), e(nv, "n\u{1DA}"), e(song, "s\u{F2}ng")]
     }
 
-    // test/core/query.test.mjs: pyKey / parsePinyinInput: strip tones, v = ü, letters only; Han or digits are not pinyin
+    // pyKey / parsePinyinInput: strip tones, v = ü, letters only; Han or digits are not pinyin
     func testPyKeyParsePinyinInputStripTonesVULettersOnlyHanOrDigitsAreNotPinyin() {
         XCTAssertEqual(Query.pyKey(s43("n\u{1DA}")), "nu")
         XCTAssertEqual(Query.pyKey(s43("nv")), "nu")
@@ -240,7 +240,7 @@ final class QueryTests: XCTestCase {
         XCTAssertNil(Query.parsePinyinInput(s43("  ")))
     }
 
-    // test/core/query.test.mjs: pinyinMatches: exact reading first else prefix; written chars first, then deck (frequency) order
+    // pinyinMatches: exact reading first else prefix; written chars first, then deck (frequency) order
     func testPinyinMatchesExactReadingFirstElsePrefixWrittenCharsFirstThenDeckFrequencyOrder() {
         let shi4 = "\u{662F}", shi2 = "\u{65F6}", shi10 = "\u{5341}", shi4b = "\u{4E8B}", nv = "\u{5973}", song = "\u{5B8B}"
         let entries = pyEntries()
@@ -253,7 +253,7 @@ final class QueryTests: XCTestCase {
         XCTAssertEqual(Query.pinyinMatches("shi", many).count, Query.pinyinMax, "capped")
     }
 
-    // test/core/query.test.mjs: writtenChars: chars with a judged record
+    // writtenChars: chars with a judged record
     func testWrittenCharsCharsWithAJudgedRecord() {
         let shi10 = "\u{5341}", shi4 = "\u{662F}"
         let recs = [obj43([("cardKey", s43("base:" + shi10)), ("kind", s43("judged")), ("judgment", s43("correct")), ("char", s43(shi10))]),

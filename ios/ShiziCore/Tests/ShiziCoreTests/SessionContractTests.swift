@@ -38,7 +38,7 @@ let d83RetiredSessionContracts: Set<String> = [
 ]
 
 final class SessionContractTests: XCTestCase {
-    // test/ui/native-write.test.mjs — original contract names are preserved per fixture group.
+    // original contract names are preserved per fixture group.
     // JS real Store → Swift real Store; compare every reply and full normalized store snapshot.
     func testWriteAndResultContracts() throws {
         JSMath.flavor = .v8
@@ -53,7 +53,7 @@ final class SessionContractTests: XCTestCase {
             }
         }
     }
-    // test/ui/native-write.test.mjs — D07: a failed judgment changes nothing and does not advance; the retry records once
+    // D07: a failed judgment changes nothing and does not advance; the retry records once
     func testFailurePublishesNothingAndRetryRecordsOnce() throws {
         let doc = try loadFixture("session-contract")
         for group in doc["groups"]!.arrayValue! where JS.string(group["name"]).hasPrefix("D07:") {

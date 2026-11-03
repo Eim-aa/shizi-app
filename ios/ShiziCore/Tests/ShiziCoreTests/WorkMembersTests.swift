@@ -63,7 +63,7 @@ final class WorkMembersTests: XCTestCase {
         return stateOf43(records, inked: ["r1", "r2", "r3"])
     }
 
-    // test/core/work-members.test.mjs: isWorkMember: correct and after-seen-with-ink are in; wrong only when added (dot); paper / skipped / seen-without-ink are out
+    // isWorkMember: correct and after-seen-with-ink are in; wrong only when added (dot); paper / skipped / seen-without-ink are out
     func testIsWorkMemberCorrectAndAfterSeenWithInkAreInWrongOnlyWhenAddedDotPaperSkippedSeenWithoutInkAreOut() {
         let has = inkIn43(["r3"])
         let all = allRecords43(fixture())
@@ -81,7 +81,7 @@ final class WorkMembersTests: XCTestCase {
         XCTAssertFalse(WorkMembers.isWorkMember(.null))
     }
 
-    // test/core/work-members.test.mjs: workMembers: wrong in / out, after-seen, D42 across days (record with ink, tag day = firstDay), first / last order
+    // workMembers: wrong in / out, after-seen, D42 across days (record with ink, tag day = firstDay), first / last order
     func testWorkMembersWrongInOutAfterSeenD42AcrossDaysRecordWithInkTagDayFirstDayFirstLastOrder() {
         let records = [
             rec43(1, yong43, "judged", "correct", "2026-10-01"), rec43(2, ying43, "judged", "wrong", "2026-10-01"), rec43(3, he43, "answer-seen", nil, "2026-10-02"),
@@ -99,7 +99,7 @@ final class WorkMembersTests: XCTestCase {
         XCTAssertEqual(ids43(WorkMembers.workMemberRecords(records, hasInk: has)), ["r1", "r3", "r4", "r5"])
     }
 
-    // test/core/work-members.test.mjs: exits agree: session work, month sheet, annual all drop the wrong char and keep correct ∪ after-seen (the home row is gone, D55)
+    // exits agree: session work, month sheet, annual all drop the wrong char and keep correct ∪ after-seen (the home row is gone, D55)
     func testExitsAgreeSessionWorkMonthSheetAnnualAllDropTheWrongCharAndKeepCorrectUnionAfterSeen() {
         let st = fixture()
         let has = hasInkOfState43(st)
@@ -119,7 +119,7 @@ final class WorkMembersTests: XCTestCase {
         XCTAssertEqual(seen.count, 2)
     }
 
-    // test/core/work-members.test.mjs: buildWork stays in step with isWorkMember: a cell iff (has ink ∧ member); the dot iff a wrong member
+    // buildWork stays in step with isWorkMember: a cell iff (has ink ∧ member); the dot iff a wrong member
     func testBuildWorkStaysInStepWithIsWorkMemberACellIffHasInkAndMemberTheDotIffAWrongMember() {
         let kinds: [(String, String?)] = [("judged", "correct"), ("judged", "wrong"), ("answer-seen", nil), ("skipped", nil)]
         for (kind, judgment) in kinds {
@@ -142,7 +142,7 @@ final class WorkMembersTests: XCTestCase {
         }
     }
 
-    // test/core/work-members.test.mjs: folded month: wrong chars never draw wrong ink — the member rule applies to what is still kept
+    // folded month: wrong chars never draw wrong ink — the member rule applies to what is still kept
     func testFoldedMonthWrongCharsNeverDrawWrongInkTheMemberRuleAppliesToWhatIsStillKept() throws {
         let kept = [rec43(1, yong43, "judged", "correct", "2026-09-03"), rec43(2, ying43, "judged", "wrong", "2026-09-04")]
         let fold = obj43([("folded", .bool(true)), ("byDay", obj43([("2026-09-03", arrayOf43([yong43])), ("2026-09-04", arrayOf43([ying43]))])), ("chars", arrayOf43([yong43, ying43])), ("kept", jsArray43(kept))])

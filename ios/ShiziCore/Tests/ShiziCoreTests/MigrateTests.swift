@@ -47,7 +47,7 @@ private func boot(_ d: TestDisk, _ now: Double = NOW) -> StoreEnv { freshStore(.
 private func v1Snapshot(_ d: TestDisk) -> [String] { d.snapshot().filter { !$0.0.hasPrefix(Schema.v2Prefix) }.map { $0.0 + "=" + $0.1 } }
 
 final class MigrateTests: XCTestCase {
-    // test/store/migrate.test.mjs: canonicalCardKey: base/custom 收敛，旧 custom:<n>: 去序号，legacy / 多字丢弃
+    // canonicalCardKey: base/custom 收敛，旧 custom:<n>: 去序号，legacy / 多字丢弃
     func testCanonicalCardKey() {
         XCTAssertEqual(Migrate.canonicalCardKey(.string("base:" + cDa)), "base:" + cDa)
         XCTAssertEqual(Migrate.canonicalCardKey(.string("custom:12:" + cBiao)), "custom:" + cBiao)
@@ -56,7 +56,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertNil(Migrate.canonicalCardKey(.number(7)))
     }
 
-    // test/store/migrate.test.mjs: convertV1: 事件 → 记录（Good/wrong/dontKnow；不太确定与 P35 hinted 不生成判断），ids 按时间先后，全部 legacy
+    // convertV1: 事件 → 记录（Good/wrong/dontKnow；不太确定与 P35 hinted 不生成判断），ids 按时间先后，全部 legacy
     func testConvertV1EventsToRecords() throws {
         let r = try convert(try smallV1())
         let records = r.state["records"]!.objectValue!
@@ -81,7 +81,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertTrue(r.state["legacy"]!["days"]!.arrayValue!.contains(.string(uncertainDay)), "uncertain day kept in legacy.days")
     }
 
-    // test/store/migrate.test.mjs: convertV1: P35 legacyHintedAs correct / wrong 把 hintCount>0 的 hinted 变成判断（帮助事实照实），hints 照实（D64：不再夹到 2）
+    // convertV1: P35 legacyHintedAs correct / wrong 把 hintCount>0 的 hinted 变成判断（帮助事实照实），hints 照实（D64：不再夹到 2）
     func testConvertV1LegacyHintedAsCorrectWrong() throws {
         for judgment in ["correct", "wrong"] {
             let r = try convert(try smallV1(), policy: policyWith(migration: [("legacyHintedAs", .string(judgment))]))
@@ -93,7 +93,7 @@ final class MigrateTests: XCTestCase {
         }
     }
 
-    // test/store/migrate.test.mjs: convertV1: 有 memory 无事件的字按 memory 合成；加字残留不算练习；从没练过不合成
+    // convertV1: 有 memory 无事件的字按 memory 合成；加字残留不算练习；从没练过不合成
     func testConvertV1SynthesizeFromMemory() throws {
         let r = try convert(try smallV1())
         let recs = flatRecords(r.state["records"]!.objectValue!)
@@ -120,7 +120,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertNil(off.state["sched"]!["base:" + cGu], "and no sched for them")
     }
 
-    // test/store/migrate.test.mjs: convertV1: sched 不变式（sched 存在 ⇒ 有 judged 记录）与 due 口径
+    // convertV1: sched 不变式（sched 存在 ⇒ 有 judged 记录）与 due 口径
     func testConvertV1SchedInvariantAndDue() throws {
         let r = try convert(try smallV1())
         let judged = KeySet(flatRecords(r.state["records"]!.objectValue!).filter { $0["kind"] == .string("judged") }.map { $0["cardKey"]!.stringValue! })
@@ -139,7 +139,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(due, .string(try shanghai.addDays(.string(try shanghai.localDay(.number(base))), 1)), "dueBase moves tomorrow")
     }
 
-    // test/store/migrate.test.mjs: convertV1: 照片（沿旧预算）、自选、wordOff、设置（scene 丢弃）、上次导出、练习日
+    // convertV1: 照片（沿旧预算）、自选、wordOff、设置（scene 丢弃）、上次导出、练习日
     func testConvertV1PhotosCustomWordOffSettingsBackupMetaDays() throws {
         let v = try smallV1()
         let present = Migrate.v1Keys.map { $0.key }.filter { $0 != Migrate.v1Key("safety") }
@@ -181,7 +181,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(try convert(.object(JSObject([("wild", .object(JSObject([("captures", .object(big))])))]))).report["photos"]!["kept"], .number(3), "420KiB / (60000×2) → 3")
     }
 
-    // test/store/migrate.test.mjs: convertV1: perRecordInk 开启时 recentInk → 最近一次 correct 记录的 v3 墨迹（P31）；关闭时跳过
+    // convertV1: perRecordInk 开启时 recentInk → 最近一次 correct 记录的 v3 墨迹（P31）；关闭时跳过
     func testConvertV1PerRecordInk() throws {
         let off = try convert(try smallV1(), policy: policyWith(features: [("perRecordInk", .bool(false))]))
         XCTAssertEqual(off.state["ink"], .object(JSObject()))
@@ -199,7 +199,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(on.report["ink"]!["migrated"], .number(1))
     }
 
-    // test/store/migrate.test.mjs: readV1: 严格模式整单拒绝坏键；宽松模式跳过并登记
+    // readV1: 严格模式整单拒绝坏键；宽松模式跳过并登记
     func testReadV1StrictAndLoose() {
         XCTAssertEqual(Migrate.readV1(J(#"{"shizi.memory.v1":"{\"base:大\":{}}","shizi.quality.v1":"{oops"}"#), strict: true), J(#"{"ok":false,"reason":"shape","key":"shizi.quality.v1"}"#))
         XCTAssertEqual(Migrate.readV1(J(#"{"shizi.memory.v1":"[1]"}"#), strict: true), J(#"{"ok":false,"reason":"shape","key":"shizi.memory.v1"}"#))
@@ -210,7 +210,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(loose["bad"], J(#"["shizi.wild.v1"]"#))
     }
 
-    // test/store/migrate.test.mjs: legacyBackupToV2 / importLegacyBackup / inspectBackup：真实 v1 fixture（300 字）→ 合法 v2 备份与报告
+    // legacyBackupToV2 / importLegacyBackup / inspectBackup：真实 v1 fixture（300 字）→ 合法 v2 备份与报告
     func testLegacyBackupToV2RealFixture() throws {
         let text = try backupText()
         let backup = J(text)
@@ -249,7 +249,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(Migrate.legacyBackupToV2(J(#"{"app":"other","version":1,"data":{}}"#))["reason"], .string("format"))
     }
 
-    // test/store/migrate.test.mjs: bootMigration: 一次 writeAll 写全部 v2 键（meta 在数据键之后）、核对 meta.migratedAt、即删大键、其余 v1 键保留
+    // bootMigration: 一次 writeAll 写全部 v2 键（meta 在数据键之后）、核对 meta.migratedAt、即删大键、其余 v1 键保留
     func testBootMigrationSingleWriteMetaLastBigKeysDropped() throws {
         let backend = try deviceBackend()
         let env = boot(backend)
@@ -303,7 +303,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(backend.writeCount, before, "no writes on later boots inside the window")
     }
 
-    // test/store/migrate.test.mjs: bootMigration 失败（配额注入）：v1 键完好、没有任何 v2 键、没有 meta；重启可重试
+    // bootMigration 失败（配额注入）：v1 键完好、没有任何 v2 键、没有 meta；重启可重试
     func testBootMigrationFailureQuotaInjection() throws {
         let injections: [(StoreStorage) -> Void] = [
             { $0.failNextWrite(1, kind: "quota") },
@@ -330,7 +330,7 @@ final class MigrateTests: XCTestCase {
         }
     }
 
-    // test/store/migrate.test.mjs: 迁移不做预算回收（reclaim:false）：真实配额不够时直接失败、不折叠
+    // 迁移不做预算回收（reclaim:false）：真实配额不够时直接失败、不折叠
     func testMigrationDoesNotReclaim() throws {
         let backend = try deviceBackend()
         backend.quotaBytes = backend.usedBytes() + 20000
@@ -342,7 +342,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertNil(backend.rawGet(SK("meta")))
     }
 
-    // test/store/migrate.test.mjs: P53 回退窗口：30 天到期或导出过一次 v2 后删其余 v1 键；窗口内保留
+    // P53 回退窗口：30 天到期或导出过一次 v2 后删其余 v1 键；窗口内保留
     func testP53RollbackWindow() throws {
         let backend = try deviceBackend()
         XCTAssertEqual(Migrate.bootMigration(boot(backend).store, now: { NOW })["action"], .string("migrated"))
@@ -368,7 +368,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(Migrate.bootMigration(boot(b3).store, now: { NOW + DAY })["released"], .array([]))
     }
 
-    // test/store/migrate.test.mjs: bootMigration: 没有 v1 → none；policy 关闭 → disabled；v2 已有记录却没有 meta → 不覆盖；存储不可用 → 不迁
+    // bootMigration: 没有 v1 → none；policy 关闭 → disabled；v2 已有记录却没有 meta → 不覆盖；存储不可用 → 不迁
     func testBootMigrationNoneDisabledSkippedUnavailable() throws {
         XCTAssertEqual(Migrate.bootMigration(boot(MemoryDisk()).store, now: { NOW })["action"], .string("none"))
         XCTAssertEqual(Migrate.bootMigration(boot(try deviceBackend()).store, now: { NOW }, policy: policyWith(migration: [("importLegacy", .bool(false))]))["action"], .string("disabled"))
@@ -387,7 +387,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(Migrate.bootMigration(store, now: { NOW })["action"], .string("unavailable"))
     }
 
-    // test/store/migrate.test.mjs: spreadLegacyDue: overdue entries spread from today on, at most perDay a day (counting entries already due that day), never earlier, others untouched
+    // spreadLegacyDue: overdue entries spread from today on, at most perDay a day (counting entries already due that day), never earlier, others untouched
     func testSpreadLegacyDue() throws {
         func e(_ due: String, _ stability: Double = 5) -> JSValue { JS.obj([("fsrs", JS.obj([("stability", .number(stability))])), ("due", .string(due)), ("lastJudgedAt", .number(0))]) }
         var sched = JSObject()
@@ -420,7 +420,7 @@ final class MigrateTests: XCTestCase {
         XCTAssertEqual(Migrate.spreadPerDayOf(), 8, "round(groupSize 15 × 0.5)（D83 缺省 15）")
     }
 
-    // test/store/migrate.test.mjs: convertV1: an old user with 60 overdue chars gets them spread over the next days (≤ 10 a day), records and cards unchanged (D65 #2)
+    // convertV1: an old user with 60 overdue chars gets them spread over the next days (≤ 10 a day), records and cards unchanged (D65 #2)
     func testConvertV1OldUserWith60OverdueCharsSpread() throws {
         let today = try shanghai.localDay(.number(NOW))
         var memory = JSObject()

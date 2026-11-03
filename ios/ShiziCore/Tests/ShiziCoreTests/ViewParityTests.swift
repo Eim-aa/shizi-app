@@ -10,7 +10,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(try runOpGolden("views-basic"), 640)
     }
 
-    // test/ui/annual.test.mjs — empty year and folded work members retain their year.
+    // empty year and folded work members retain their year.
     func testAnnualEmptyAndFoldedYears() throws {
         let state = try value(#"{"records":{"2025-02":{"folded":true,"chars":["永"],"kept":[],"byDay":{"2025-02-01":["永"]},"work":{"2025-02-01":["永"]},"workJudged":{"2025-02-01":["永"]}}}}"#)
         XCTAssertEqual(AnnualView.annualYears(state, dates: dates), [2025])
@@ -20,7 +20,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(model["count"], .number(1)); XCTAssertEqual(model["first"]?["record"], .null)
     }
 
-    // test/ui/library-list.test.mjs — selection normalization, word parts and real disabled zero state.
+    // selection normalization, word parts and real disabled zero state.
     func testListSelectionAndEmpty() throws {
         XCTAssertEqual(LibraryListView.normalizeKind(.string("againList")), "wrong")
         XCTAssertTrue(LibraryListView.sameSel(try value(#"["永","甲","永"]"#), try value(#"["甲","永"]"#)))
@@ -40,7 +40,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(HomeView.homeViewOf(try value(#"{"records":"record","resume":"B","capital":null,"gapDays":0}"#)), "progress")
     }
 
-    // test/ui/library-all.test.mjs — old filters map to due; search mode and batching.
+    // old filters map to due; search mode and batching.
     func testAllFiltersFindAndBatch() throws {
         XCTAssertEqual(LibraryAllView.normalizeFilter(.string("wrong")), "due")
         XCTAssertEqual(LibraryAllView.normalizeFilter(.string("forget")), "due")
@@ -52,7 +52,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertTrue(LibraryAllView.takeCells(groups, limit: 0).isEmpty)
     }
 
-    // test/ui/detail.test.mjs — hero uses first / latest screen judgments; old photos remain read-only.
+    // hero uses first / latest screen judgments; old photos remain read-only.
     func testDetailHeroAndPhoto() throws {
         let first = srec(1, cYong), last = srec(2, cYong, judgment: "wrong")
         let one = DetailView.detailHero(ViewSupport.obj([("cells", .array([first]))]))
@@ -66,7 +66,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(DetailView.cellCopy(last, dates: dates)["caption"], ViewSupport.ref("X-RESULT.cellWrong"))
     }
 
-    // test/ui/native-mine-sub.test.mjs — B3.9 the sheet geometry is the web sheetGrid rule.
+    // B3.9 the sheet geometry is the web sheetGrid rule.
     func testMineSubGeometryAndLabels() throws {
         XCTAssertEqual(MineSubView.sheetGeometry(0, width: 402)["cols"], .number(0))
         let g = MineSubView.sheetGeometry(1, width: 402)
@@ -78,7 +78,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(try MineSubView.monthSheetOf(.null, month: "2026-03", policy: Config.policy, dates: dates), .null)
     }
 
-    // test/ui/native-mine.test.mjs — small sheets sign; AX limits columns; trim re-tags the first cell.
+    // small sheets sign; AX limits columns; trim re-tags the first cell.
     func testMinePageAXTrimAndBackupValues() throws {
         XCTAssertEqual(MinePageView.mineSheetRows(80, ax: 5)["cols"], .number(4))
         XCTAssertEqual(MinePageView.mineSheetRows(80, ax: 0)["max"], .number(16))
@@ -91,7 +91,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(choices["appearance"]?["options"]?.arrayValue?.map { $0["id"]! }, ["auto","light","dark"].map(JSValue.string))
     }
 
-    // test/ui/mine.test.mjs — weekdayIndex: Monday first; week wraps across months.
+    // weekdayIndex: Monday first; week wraps across months.
     // overview (D63): streak counts back from today, or from yesterday when today is not written yet.
     func testMineDatesAndLegacyOverview() throws {
         XCTAssertEqual(try ViewSupport.weekdayIndex("2026-09-21", dates: dates), 0)
@@ -102,7 +102,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(model["empty"], .bool(true)); XCTAssertEqual(model["overview"]?["total"], .number(1))
     }
 
-    // test/ui/library.test.mjs — empty / big number / facts; test/ui/library-zones.test.mjs — exclusive zones, sum = recorded.
+    // empty / big number / facts; test/ui/library-zones.test.mjs — exclusive zones, sum = recorded.
     func testLibraryFactsAndZonePartition() throws {
         let records = [srec(1,cYong),srec(2,cRen,judgment:"wrong"),srec(3,cKou,kind:"answer-seen"),srec(4,cDa,kind:"skipped")]
         let state = ViewSupport.obj([("records",ViewSupport.obj([("2026-09",.array(records))]))])
@@ -153,7 +153,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(off["appearance"], .string("auto")); XCTAssertEqual(off["appearanceSwitch"], .bool(false))
     }
 
-    // test/ui/prefs.test.mjs — time helpers
+    // time helpers
     func testTimeHelpers() throws {
         XCTAssertEqual(SettingsView.parseTime(.string("20:00")), try value(#"{"hour":20,"minute":0}"#))
         XCTAssertEqual(SettingsView.parseTime(.string("7:05")), try value(#"{"hour":7,"minute":5}"#))
@@ -174,7 +174,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(v["remindPage"]?["note"]?["link"], ViewSupport.ref("R-S02.link"))
     }
 
-    // test/ui/about.test.mjs — B7 (G43, D36): version line 「版本 1.0（20261001）」 from VERSION + the date part of BUILD; full BUILD on tap, selectable
+    // B7 (G43, D36): version line 「版本 1.0（20261001）」 from VERSION + the date part of BUILD; full BUILD on tap, selectable
     func testB7VersionLine() throws {
         XCTAssertEqual(AboutView.buildDay(.string("20261001-abcdef123456")), "20261001")
         XCTAssertEqual(AboutView.buildDay(.string("weird")), "weird")
@@ -184,7 +184,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(v["aria"]?["copy"], .string("X-ABOUT.versionAria"))
     }
 
-    // test/ui/about.test.mjs — C1 / P197: the privacy network sentence depends on the platform (iOS shell never goes online; web says what it fetches)
+    // C1 / P197: the privacy network sentence depends on the platform (iOS shell never goes online; web says what it fetches)
     func testPrivacyPlatform() {
         let ios = AboutView.privacyModel(.bool(true))["paragraphs"]!.arrayValue!
         let web = AboutView.privacyModel(.bool(false))["paragraphs"]!.arrayValue!
@@ -194,7 +194,7 @@ final class ViewParityTests: XCTestCase {
         for i in [0, 1, 3] { XCTAssertEqual(ios[i], web[i]) }
     }
 
-    // test/ui/about.test.mjs — sub-pages: privacy paragraphs, credits groups (code → data → font), letter transitional note (P21)
+    // sub-pages: privacy paragraphs, credits groups (code → data → font), letter transitional note (P21)
     func testAboutSubPages() {
         let groups = AboutView.creditGroupRefs()
         XCTAssertEqual(groups.map { $0["kind"]! }, ["code", "data", "font"].map(JSValue.string))
@@ -204,7 +204,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(AboutView.letterModel()["address"], ViewSupport.ref("R-AB01.letterAddressPending"))
     }
 
-    // test/ui/work-text.test.mjs — 落款 text (§5.2 / §6.4): 汉字日期 + 全角空格 + 汉字字数；2 写「两」；一个字也写「一字」（V2-05）
+    // 落款 text (§5.2 / §6.4): 汉字日期 + 全角空格 + 汉字字数；2 写「两」；一个字也写「一字」（V2-05）
     func testKuanDateAndCount() throws {
         for n in [1, 2, 3, 12] {
             let r = try KuanView.kuanRef(JSObject([("day", .string("2026-10-05")), ("n", .number(Double(n)))]), now: 0, dates: dates)
@@ -215,7 +215,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(try KuanView.dateRef(nil, now: 0, dates: dates), try KuanView.dateRef(.string("1970-01-01"), now: 0, dates: dates))
     }
 
-    // test/ui/work-text.test.mjs — 自选组的落款 (T2-03): 「自选N字」，数量照样带
+    // 自选组的落款 (T2-03): 「自选N字」，数量照样带
     func testKuanPicked() throws {
         for n in [1, 2, 5] {
             let r = try KuanView.kuanRef(JSObject([("day", .string("2026-10-04")), ("n", .number(Double(n))), ("picked", .bool(true))]), now: 0, dates: dates)
@@ -224,7 +224,7 @@ final class ViewParityTests: XCTestCase {
         }
     }
 
-    // test/ui/work-text.test.mjs — 分张的落款 (D39 / §6.7): 其一 / 其二 appended, each page writes its own count; one page has no 其几
+    // 分张的落款 (D39 / §6.7): 其一 / 其二 appended, each page writes its own count; one page has no 其几
     func testKuanParts() throws {
         for (n, part) in [(80, 1), (16, 2)] {
             let r = try KuanView.kuanRef(JSObject([("month", .string("2026-09")), ("n", .number(Double(n))), ("part", .number(Double(part))), ("of", .number(2))]), now: 0, dates: dates)
@@ -249,7 +249,7 @@ final class ViewParityTests: XCTestCase {
         lines.setLineMeasurer(nil)
         XCTAssertEqual(lines.measureLines(.null), .null)
     }
-    // test/ui/prefs.test.mjs — commitSettings on an empty store creates settings with the one field (schema-valid)
+    // commitSettings on an empty store creates settings with the one field (schema-valid)
     func testCommitSettingsEmptyStore() throws {
         let env = freshStore(.local)
         XCTAssertEqual(env.store.state["settings"], .null)
@@ -257,7 +257,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(env.store.state["settings"], try value(#"{"appearance":"auto"}"#))
     }
 
-    // test/ui/prefs.test.mjs — commitSettings: one commit writes only settings; keeps other fields; failure publishes nothing; retry works; no-op skips the write
+    // commitSettings: one commit writes only settings; keeps other fields; failure publishes nothing; retry works; no-op skips the write
     func testCommitSettingsRollbackRetryAndNoOp() throws {
         let env = freshStore(.local)
         let initial = try value(#"{"settings":{"library":"adv3000"},"custom":{"added":[{"char":"永","at":1790906400000}]}}"#)
@@ -277,7 +277,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(env.disk.writeCount, writes)
     }
 
-    // test/ui/prefs.test.mjs — remind: enabling fills the P18 default time once; time change and permission keep the other remind fields; sync hook called
+    // remind: enabling fills the P18 default time once; time change and permission keep the other remind fields; sync hook called
     // The JS platform sync hook stays outside the pure Swift package.
     func testRemindEnableTimeAndPermission() throws {
         let store = freshStore(.local).store
@@ -295,7 +295,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(SettingsView.remindOf(store)["permission"], .string("unknown"))
     }
 
-    // test/ui/library-switch.test.mjs — real deck: counts come from the data (3500 / 2974 / 744 / 2500)
+    // real deck: counts come from the data (3500 / 2974 / 744 / 2500)
     func testLibraryRowsRealDeckCounts() {
         let rows = LibrarySwitchView.libraryRows(nil).arrayValue!
         XCTAssertEqual(rows.map { $0["total"]! }, [3500, 2974, 744, 2500].map { .number(Double($0)) })
@@ -303,7 +303,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(rows.map { $0["current"]! }, [.bool(true), .bool(false), .bool(false), .bool(false)])
     }
 
-    // test/ui/library-switch.test.mjs — libraryRows: current follows settings.library; unknown id falls back to the default library
+    // libraryRows: current follows settings.library; unknown id falls back to the default library
     func testLibraryRowsCurrentLibrary() throws {
         for id in ["adv3000", "curriculum2500", "nope"] {
             let state = ViewSupport.obj([("settings", ViewSupport.obj([("library", .string(id))]))])
@@ -314,14 +314,14 @@ final class ViewParityTests: XCTestCase {
         }
     }
 
-    // test/ui/library-switch.test.mjs — judgedChars: only judged (correct / wrong) records, deduped by char
+    // judgedChars: only judged (correct / wrong) records, deduped by char
     func testJudgedChars() {
         let records = [srec(1, cRen), srec(2, cRen, judgment: "wrong"), srec(3, cKou, kind: "answer-seen"), srec(4, cDa, kind: "skipped")]
         let state = ViewSupport.obj([("records", ViewSupport.obj([("2026-09", .array(records))]))])
         XCTAssertEqual(LibrarySwitchView.judgedChars(state).items, [cRen])
     }
 
-    // test/ui/native-block.test.mjs — B3.13 blockReasonOf: unavailable / blocked / migration, and none when everything is fine
+    // B3.13 blockReasonOf: unavailable / blocked / migration, and none when everything is fine
     func testBlockReasonOf() throws {
         XCTAssertEqual(BlockView.blockReasonOf(nil), try value(#"{"kind":"unavailable","detail":"no-store"}"#))
         XCTAssertEqual(BlockView.blockReasonOf(try value(#"{"available":false,"unavailableKind":"probe"}"#)), try value(#"{"kind":"unavailable","detail":"probe"}"#))
@@ -331,7 +331,7 @@ final class ViewParityTests: XCTestCase {
         XCTAssertEqual(BlockView.blockReasonOf(status), .null)
     }
 
-    // test/ui/library-switch.test.mjs — libraryRows: four rows in LIBRARIES order, names / descs from copy, n = keys in the library, m = judged chars in it
+    // libraryRows: four rows in LIBRARIES order, names / descs from copy, n = keys in the library, m = judged chars in it
     func testLibraryRowsCountsAndOrder() throws {
         let records = [srec(1, cRen), srec(2, cKou, judgment: "wrong"), srec(3, cRen, judgment: "wrong"), srec(4, cDa), srec(5, cYong, kind: "answer-seen"), srec(6, cTian, kind: "skipped")]
         let state = ViewSupport.obj([("records", ViewSupport.obj([("2026-09", .array(records)), ("2026-08", ViewSupport.obj([("folded", .bool(true)), ("kept", .array([srec(7, cShui)]))]))]))])

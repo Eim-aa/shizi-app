@@ -109,7 +109,7 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: 题库（P73）
 
-    // test/core/session-start.test.mjs: planDaily: a deck without currentLibraryId falls back to settings.library, then policy.defaultLibrary (P73)
+    // planDaily: a deck without currentLibraryId falls back to settings.library, then policy.defaultLibrary (P73)
     func testPlanDailyADeckWithoutCurrentLibraryIdFallsBackToSettingsLibraryThenPolicyDefaultLibrary() throws {
         var asked: [String] = []
         let lib = LIB
@@ -123,7 +123,7 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: 第一次练习
 
-    // test/core/session-start.test.mjs: first practice: fixed 3 characters from policy.firstQueue (P09 / D38), slot A, one commit
+    // first practice: fixed 3 characters from policy.firstQueue (P09 / D38), slot A, one commit
     func testFirstPracticeFixed3CharactersFromPolicyFirstQueueSlotAOneCommit() throws {
         let env = makeEnv()
         seed(env)
@@ -145,7 +145,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(env.sessions["B"], .null)
     }
 
-    // test/core/session-start.test.mjs: after clearing all records: next A is first again (P46) but not a first visit (R-H09)
+    // after clearing all records: next A is first again (P46) but not a first visit (R-H09)
     func testAfterClearingAllRecordsNextAIsFirstAgainP46ButNotAFirstVisitRH09() throws {
         let env = makeEnv()
         seed(env, backupMeta: J(#"{"lastExportAt":null,"lastExportSig":null,"lastConclusion":{"kind":"clear","date":"2026-09-23","count":3}}"#))
@@ -160,7 +160,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertFalse(info.firstVisit)
     }
 
-    // test/core/session-start.test.mjs: startFirst ignores the deck and does not expire a first session across days (P61 never)
+    // startFirst ignores the deck and does not expire a first session across days (P61 never)
     func testStartFirstIgnoresTheDeckAndDoesNotExpireAFirstSessionAcrossDays() throws {
         let env = makeEnv()
         seed(env, sessions: JS.obj([("A", session(kind: "first", chars: ["\u{5C34}", "\u{568F}"], day: YESTERDAY)), ("B", .null), ("lastEnded", .object(JSObject()))]))
@@ -175,7 +175,7 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: 今天的练习
 
-    // test/core/session-start.test.mjs: daily: due ordered overdue desc / stability asc, new characters in library order, interleaved review-new (D41); group size 5
+    // daily: due ordered overdue desc / stability asc, new characters in library order, interleaved review-new (D41); group size 5
     func testDailyDueOrderedOverdueDescStabilityAscNewCharactersInLibraryOrderInterleavedReviewNew() throws {
         let env = makeEnv()
         let zi = "\u{5B50}", chou = "\u{4E11}", yin = "\u{5BC5}", mao = "\u{536F}"
@@ -208,7 +208,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(env.commits, ["session:start-daily"])
     }
 
-    // test/core/session-start.test.mjs: daily: nothing to write → no commit, {empty}; libraryExhausted when every library character has a record
+    // daily: nothing to write → no commit, {empty}; libraryExhausted when every library character has a record
     func testDailyNothingToWriteNoCommitEmptyLibraryExhaustedWhenEveryLibraryCharacterHasARecord() throws {
         let env = makeEnv()
         let records = LIB.enumerated().map { (i, k) in rec(i + 1, String(k.dropFirst(5)), "judged", "correct", TODAY) }
@@ -224,7 +224,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(env.sessions["A"], .null)
     }
 
-    // test/core/session-start.test.mjs: daily: an unfinished A is not replaced (occupied); a finished-but-not-ended A is ended in the same commit
+    // daily: an unfinished A is not replaced (occupied); a finished-but-not-ended A is ended in the same commit
     func testDailyAnUnfinishedAIsNotReplacedAFinishedButNotEndedAIsEndedInTheSameCommit() throws {
         let jia = "\u{7532}", yi = "\u{4E59}"
         let env = makeEnv()
@@ -247,7 +247,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(env2.commits.count, 1)
     }
 
-    // test/core/session-start.test.mjs: daily expires across days (P37 discard): judged records stay, the slot is cleared, a new daily starts in one commit
+    // daily expires across days (P37 discard): judged records stay, the slot is cleared, a new daily starts in one commit
     func testDailyExpiresAcrossDaysP37DiscardJudgedRecordsStayTheSlotIsClearedANewDailyStartsInOneCommit() throws {
         let jia = "\u{7532}", yi = "\u{4E59}", bing = "\u{4E19}", ding = "\u{4E01}"
         let env = makeEnv()
@@ -293,7 +293,7 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: 这次选的字（B）与 S02
 
-    // test/core/session-start.test.mjs: picked: free slot → one commit; source kept; duplicates and non-practicable characters dropped
+    // picked: free slot → one commit; source kept; duplicates and non-practicable characters dropped
     func testPickedFreeSlotOneCommitSourceKeptDuplicatesAndNonPracticableCharactersDropped() throws {
         let env = makeEnv()
         seed(env)
@@ -310,7 +310,7 @@ final class SessionStartTests: XCTestCase {
         }
     }
 
-    // test/core/session-start.test.mjs: picked while the old B is unfinished → no write, S02 data lists the unwritten characters (R-H05)
+    // picked while the old B is unfinished → no write, S02 data lists the unwritten characters (R-H05)
     func testPickedWhileTheOldBIsUnfinishedNoWriteS02DataListsTheUnwrittenCharacters() throws {
         let e = "\u{989D}", xian = "\u{9C9C}", jing = "\u{5883}"
         let env = makeEnv()
@@ -328,7 +328,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(env.commits.count, 0)
     }
 
-    // test/core/session-start.test.mjs: S02 end-and-start: single commit; old B endedEarly into lastEnded.B; toast only when the old B had judgments (P38)
+    // S02 end-and-start: single commit; old B endedEarly into lastEnded.B; toast only when the old B had judgments (P38)
     func testS02EndAndStartSingleCommitOldBEndedEarlyIntoLastEndedBToastOnlyWhenTheOldBHadJudgments() throws {
         let e = "\u{989D}", xian = "\u{9C9C}", zi = "\u{5B50}"
         // 有判断
@@ -366,7 +366,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(ScheduleRules.recordsOf(env2.state).count, 0)
     }
 
-    // test/core/session-start.test.mjs: S02 end-and-start: a failed write publishes nothing (D07) and a retry succeeds once
+    // S02 end-and-start: a failed write publishes nothing (D07) and a retry succeeds once
     func testS02EndAndStartAFailedWritePublishesNothingD07AndARetrySucceedsOnce() throws {
         let e = "\u{989D}", xian = "\u{9C9C}"
         let env = makeEnv()
@@ -386,7 +386,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(env.sessions["lastEnded"]?["B"]?["id"], .string("s91"))
     }
 
-    // test/core/session-start.test.mjs: picked: a finished-but-not-ended B gives no S02 and is ended in the same commit
+    // picked: a finished-but-not-ended B gives no S02 and is ended in the same commit
     func testPickedAFinishedButNotEndedBGivesNoS02AndIsEndedInTheSameCommit() throws {
         let e = "\u{989D}"
         let env = makeEnv()
@@ -402,7 +402,7 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: data/deck.js
 
-    // test/core/session-start.test.mjs: deck.js: cards from the injected SEED, library membership, SEED order as new-character order, default library
+    // deck.js: cards from the injected SEED, library membership, SEED order as new-character order, default library
     // 只转写字库部分（DeckIndex）：成员、SEED 顺序、默认字库、currentLibraryId、可练。注入 SEED / allCards / cardForKey / setCardResolver / loadDeck 的
     // 失败路径（「no SEED global」「deck is not available」）是 data/deck.js 的卡片装载，属于 B4.3，留在 JS。
     func testDeckJsCardsFromTheInjectedSeedLibraryMembershipSeedOrderAsNewCharacterOrderDefaultLibrary() throws {
@@ -440,7 +440,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertFalse(adapter.practicable("custom:\u{4E00}"), "only base: cards are practicable")
     }
 
-    // test/core/session-start.test.mjs: deck.js via prompt.js: the M1-8 import path re-exports the same cardForKey / setCardResolver
+    // deck.js via prompt.js: the M1-8 import path re-exports the same cardForKey / setCardResolver
     // prompt.js 对 data/deck.js 的再导出（模块导入路径）是 JS 模块结构，Swift 没有对应物；这里转写的是它背后的不变量：
     // 「选字用的题库访问只有一份」——ScheduleDeck.real 的新字 / 热身 / 可练都直接来自 DeckIndex.shared（同一个对象，不是第二份拷贝）。
     func testDeckJsViaPromptJsTheM18ImportPathReExportsTheSameCardForKeySetCardResolver() throws {
@@ -453,7 +453,7 @@ final class SessionStartTests: XCTestCase {
         XCTAssertEqual(adapter.currentLibraryId?(nil), idx.currentLibraryId(nil))
     }
 
-    // test/core/session-start.test.mjs: S02 body names the unwritten characters (R-H05)
+    // S02 body names the unwritten characters (R-H05)
     // 「鲜」「境」的引号拼接（quoteChars）在 UI 的 s02.js 里，留在 JS；这里转写正文模板（R-H05.body，copy 表）+ s02Data 的未写字列表。
     func testS02BodyNamesTheUnwrittenCharacters() throws {
         func quoteChars(_ chars: [String]) -> String { chars.map { "\u{300C}\($0)\u{300D}" }.joined() }
@@ -470,7 +470,7 @@ final class SessionStartTests: XCTestCase {
 
     // MARK: 阶段 1 P1-E4：D38 首练之后的第一组、D41 热身字、D40 特别组
 
-    // test/core/session-start.test.mjs: startDaily opens the D40 special group as an ordinary daily session: one commit, queue 壹贰叁肆伍, then 陆柒捌玖拾 next
+    // startDaily opens the D40 special group as an ordinary daily session: one commit, queue 壹贰叁肆伍, then 陆柒捌玖拾 next
     func testStartDailyOpensTheD40SpecialGroupAsAnOrdinaryDailySessionOneCommit() throws {
         let env = makeEnv()
         var records: [JSValue] = []

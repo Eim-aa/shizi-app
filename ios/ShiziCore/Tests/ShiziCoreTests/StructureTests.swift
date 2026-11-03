@@ -22,7 +22,7 @@ final class StructureTests: XCTestCase {
 
     let de = "\u{7684}", gen = "\u{6839}", he2 = "\u{548C}", si = "\u{601D}", hua = "\u{82B1}", nan = "\u{7537}", chang = "\u{660C}", ga = "\u{5C34}", tong = "\u{540C}", guo = "\u{56FD}"
 
-    // test/core/structure.test.mjs: validGroups：每组正整数、总和 = 笔画数
+    // validGroups：每组正整数、总和 = 笔画数
     func testValidGroupsEveryGroupAPositiveIntegerSumEqualsStrokeCount() {
         XCTAssertTrue(Structure.validGroups(J("[5,3]"), 8))
         XCTAssertFalse(Structure.validGroups(J("[5,3]"), 9))
@@ -31,17 +31,17 @@ final class StructureTests: XCTestCase {
         XCTAssertFalse(Structure.validGroups(.null, 8))
     }
 
-    // test/core/structure.test.mjs: 左右结构：的（白 + 勺）、根（木 + 艮）、和（禾 + 口）
+    // 左右结构：的（白 + 勺）、根（木 + 艮）、和（禾 + 口）
     func testLeftRightStructureDeGenHe() {
         for ch in [de, gen, he2] { XCTAssertEqual(Structure.inferStructure(groupsOf(ch), mediansOf(ch)), "lr", ch) }
     }
 
-    // test/core/structure.test.mjs: 上下结构：思（田 + 心）、花（艹 + 化）、男（田 + 力）、昌（日 + 日）
+    // 上下结构：思（田 + 心）、花（艹 + 化）、男（田 + 力）、昌（日 + 日）
     func testTopBottomStructureSiHuaNanChang() {
         for ch in [si, hua, nan, chang] { XCTAssertEqual(Structure.inferStructure(groupsOf(ch), mediansOf(ch)), "tb", ch) }
     }
 
-    // test/core/structure.test.mjs: 包围 / 半包围 / 镶嵌与单部件不断言结构：尴（⿺）、同（⿵）、国（⿴）、大
+    // 包围 / 半包围 / 镶嵌与单部件不断言结构：尴（⿺）、同（⿵）、国（⿴）、大
     func testEnclosingAndSingleComponentAreNotClaimed() {
         for ch in [ga, tong, guo] {
             if (groupsOf(ch).arrayValue?.count ?? 0) != 2 { continue }
@@ -55,7 +55,7 @@ final class StructureTests: XCTestCase {
         Self.groups.keys.first { (Self.groups[$0]?.arrayValue?.count ?? 0) == count && hasData($0) }
     }
 
-    // test/core/structure.test.mjs: describeStructure：断言了结构就不重复部件数；没结构时 2–4 个部件报部件数；1 个与 5 个不说
+    // describeStructure：断言了结构就不重复部件数；没结构时 2–4 个部件报部件数；1 个与 5 个不说
     func testDescribeStructureNoRepeatOfPartsPartsOnlyFor2To4NothingFor1And5() {
         func d(_ g: JSValue, _ m: JSValue) -> JSValue { Structure.describeStructure(groups: g, medians: m) }
         XCTAssertEqual(d(groupsOf(de), mediansOf(de)), J("{\"structure\":\"lr\",\"parts\":null}"))
@@ -68,7 +68,7 @@ final class StructureTests: XCTestCase {
         XCTAssertEqual(Structure.describeStructure(groups: nil, medians: nil), J("{\"structure\":null,\"parts\":null}"))
     }
 
-    // test/core/structure.test.mjs: 参考字形读屏名称：字，拼音，n 画，结构 / 部件数；没数据的部分不说（判断页与看答案页共用 ref-label.js）
+    // 参考字形读屏名称：字，拼音，n 画，结构 / 部件数；没数据的部分不说（判断页与看答案页共用 ref-label.js）
     func testReferenceGlyphReadoutNameInputsStrokeCountStructurePartsNothingWithoutData() {
         func d(_ ch: String) -> JSValue { Structure.describeStructure(groups: groupsOf(ch), medians: mediansOf(ch)) }
         func strokes(_ ch: String) -> Int { mediansOf(ch).arrayValue?.count ?? 0 }
@@ -87,7 +87,7 @@ final class StructureTests: XCTestCase {
         XCTAssertEqual(Structure.describeStructure(groups: nil, medians: mediansOf(de)), J("{\"structure\":null,\"parts\":null}"))
     }
 
-    // test/core/structure.test.mjs: 校准：2 部件字里断言的结构与 MMAH 的 IDS 一致（只读测试，不随 App 发布）
+    // 校准：2 部件字里断言的结构与 MMAH 的 IDS 一致（只读测试，不随 App 发布）
     func testCalibrationTwoComponentClaimsAgreeWithMMAHIDS() throws {
         let path = repoRoot.appendingPathComponent("sources/make-me-a-hanzi-dict.txt")
         guard FileManager.default.fileExists(atPath: path.path) else { throw XCTSkip("sources/make-me-a-hanzi-dict.txt is not in this checkout") }

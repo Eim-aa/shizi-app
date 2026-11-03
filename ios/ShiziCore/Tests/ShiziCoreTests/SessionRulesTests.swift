@@ -81,7 +81,7 @@ private func assertThrowsRange<T>(_ expr: @autoclosure () throws -> T, _ part: S
 private func lastEnded(_ sessions: JSValue, _ slot: String) -> JSValue? { sessions["lastEnded"]?[slot] }
 
 final class SessionRulesTests: XCTestCase {
-    // test/core/sessions.test.mjs: sessions: kinds map to slots A/B and createSession validates its queue
+    // sessions: kinds map to slots A/B and createSession validates its queue
     func testSessionsKindsMapToSlotsABAndCreateSessionValidatesItsQueue() throws {
         XCTAssertEqual(try SessionRules.slotOfKind(S("first")), "A")
         XCTAssertEqual(try SessionRules.slotOfKind(S("daily")), "A")
@@ -98,7 +98,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try SessionRules.createSession(id: S("s3"), kind: S("daily"), source: nil, queue: .array([]), at: N(1), dates: rules.dates), "non-empty")
     }
 
-    // test/core/sessions.test.mjs: sessions: advancing records items, moves the cursor and sets the result line (D19)
+    // sessions: advancing records items, moves the cursor and sets the result line (D19)
     func testSessionsAdvancingRecordsItemsMovesTheCursorAndSetsTheResultLineD19() throws {
         var s = try daily("s1", "\u{9759}\u{4EA6}\u{6162}")
         s = try cur(s, [("strokes", J("[[1,2]]")), ("hints", N(1))])
@@ -117,7 +117,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try cur(s, [("phase", S("feedback"))]), "phase")
     }
 
-    // test/core/sessions.test.mjs: sessions: result line can switch to "changed" and collapses on demand
+    // sessions: result line can switch to "changed" and collapses on demand
     func testSessionsResultLineCanSwitchToChangedAndCollapsesOnDemand() throws {
         var s = try adv(try daily("s1", "\u{9759}\u{4EA6}"), "base:\u{9759}", "r1", "judged", fsrsBefore: .null)
         XCTAssertEqual(SessionRules.markLineChanged(s, S("r9")), s, "other record: unchanged")
@@ -127,7 +127,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(SessionRules.clearLine(s)["lastLine"], .null)
     }
 
-    // test/core/sessions.test.mjs: sessions: skip undo puts the char back at the cursor (W16)
+    // sessions: skip undo puts the char back at the cursor (W16)
     func testSessionsSkipUndoPutsTheCharBackAtTheCursorW16() throws {
         var s = try adv(try daily("s1", "\u{9759}\u{4EA6}"), "base:\u{9759}", "r1", "skipped")
         s = try SessionRules.undoSkip(s, S("r1"), at: N(9))
@@ -138,7 +138,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try SessionRules.undoSkip(judged, S("r2"), at: nil), "not this skip")
     }
 
-    // test/core/sessions.test.mjs: sessions: fsrsBefore lives only in the session and gates corrections
+    // sessions: fsrsBefore lives only in the session and gates corrections
     func testSessionsFsrsBeforeLivesOnlyInTheSessionAndGatesCorrections() throws {
         let card = J(#"{"due":"2026-09-30T00:00:00.000Z"}"#)
         var s = try adv(try daily("s1", "\u{9759}\u{4EA6}\u{6162}"), "base:\u{9759}", "r1", "judged", fsrsBefore: card)
@@ -149,7 +149,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertFalse(SessionRules.canCorrect(nil, S("r1")))
     }
 
-    // test/core/sessions.test.mjs: sessions: A and B are isolated — opening B leaves A exactly as it was (D05)
+    // sessions: A and B are isolated — opening B leaves A exactly as it was (D05)
     func testSessionsAAndBAreIsolatedOpeningBLeavesAExactlyAsItWasD05() throws {
         var sessions = SessionRules.emptySessions()
         let a = try cur(try daily("s1", "\u{9759}\u{4EA6}\u{6162}"), [("strokes", J("[[1,2,3]]")), ("hints", N(1)), ("phase", S("recall"))])
@@ -162,7 +162,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try SessionRules.startInSlot(sessions, try picked("s4", "\u{989D}")), "occupied")
     }
 
-    // test/core/sessions.test.mjs: sessions: ending moves the session to lastEnded; the next start in that slot clears it
+    // sessions: ending moves the session to lastEnded; the next start in that slot clears it
     func testSessionsEndingMovesTheSessionToLastEndedTheNextStartInThatSlotClearsIt() throws {
         var sessions = try SessionRules.startInSlot(try SessionRules.startInSlot(SessionRules.emptySessions(), try daily("s1", "\u{9759}")), try picked("s2", "\u{9C9C}"))
         sessions = try SessionRules.endSlot(sessions, "B", at: N(50), early: true)
@@ -179,7 +179,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try SessionRules.endSlot(SessionRules.emptySessions(), "A", at: N(1)), "empty")
     }
 
-    // test/core/sessions.test.mjs: sessions: home resume lines list B first, then A, with remaining counts (S01)
+    // sessions: home resume lines list B first, then A, with remaining counts (S01)
     func testSessionsHomeResumeLinesListBFirstThenAWithRemainingCountsS01() throws {
         let a = try adv(try daily("s1", "\u{9759}\u{4EA6}\u{6162}"), "base:\u{9759}", "r1", "judged", fsrsBefore: .null)
         let sessions = try SessionRules.startInSlot(try SessionRules.startInSlot(SessionRules.emptySessions(), a), try picked("s2", "\u{9C9C}\u{5883}"))
@@ -189,7 +189,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(SessionRules.resumeLines(SessionRules.emptySessions()), .array([]))
     }
 
-    // test/core/sessions.test.mjs: sessions: S02 prompt lists the unwritten chars of the old B and its judged count
+    // sessions: S02 prompt lists the unwritten chars of the old B and its judged count
     func testSessionsS02PromptListsTheUnwrittenCharsOfTheOldBAndItsJudgedCount() throws {
         var b = try picked("s2", "\u{989D}\u{9C9C}\u{5883}")
         b = try adv(b, "base:\u{989D}", "r1", "judged", fsrsBefore: .null)
@@ -203,7 +203,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(SessionRules.s02Prompt(try SessionRules.startInSlot(SessionRules.emptySessions(), try daily("s1", "\u{9759}"))), .null, "only B triggers S02")
     }
 
-    // test/core/sessions.test.mjs: sessions: "结束那组，开新的" ends old B early into lastEnded and starts the new one in one step (P38)
+    // sessions: "结束那组，开新的" ends old B early into lastEnded and starts the new one in one step (P38)
     func testSessionsEndOldGroupAndStartNewEndsOldBEarlyIntoLastEndedAndStartsTheNewOneInOneStepP38() throws {
         var b = try picked("s2", "\u{989D}\u{9C9C}\u{5883}")
         b = try adv(b, "base:\u{989D}", "r1", "judged", fsrsBefore: .null)
@@ -220,7 +220,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(zero.notice, .null, "no judged \u{2192} no toast")
     }
 
-    // test/core/sessions.test.mjs: sessions: S02 policy alternative shows the old result page instead
+    // sessions: S02 policy alternative shows the old result page instead
     func testSessionsS02PolicyAlternativeShowsTheOldResultPageInstead() throws {
         let b = try adv(try picked("s2", "\u{989D}\u{9C9C}"), "base:\u{989D}", "r1", "judged", fsrsBefore: .null)
         let res = try SessionRules.endAndStartPicked(try SessionRules.startInSlot(SessionRules.emptySessions(), b), try picked("s3", "\u{6162}"), at: N(1),
@@ -230,7 +230,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try SessionRules.endAndStartPicked(SessionRules.emptySessions(), try daily("s4", "\u{9759}"), at: N(1)), "picked")
     }
 
-    // test/core/sessions.test.mjs: sessions: an unfinished daily from yesterday expires; today, first and picked do not (P37)
+    // sessions: an unfinished daily from yesterday expires; today, first and picked do not (P37)
     func testSessionsAnUnfinishedDailyFromYesterdayExpiresTodayFirstAndPickedDoNotP37() throws {
         let yesterday = try daily("s1", "\u{9759}\u{4EA6}", "2026-09-23")
         func box(_ a: JSValue?, _ b: JSValue? = nil) -> JSValue { JS.obj([("A", a ?? .null), ("B", b ?? .null), ("lastEnded", .object(JSObject()))]) }
@@ -248,7 +248,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try SessionRules.expireDaily(box(yesterday), S(TODAY), policy: JS.obj([("dailyExpiry", S("x"))])), "dailyExpiry")
     }
 
-    // test/core/sessions.test.mjs: sessions: first / picked cross-day expiry follows policy.sessionExpiry (P61)
+    // sessions: first / picked cross-day expiry follows policy.sessionExpiry (P61)
     func testSessionsFirstPickedCrossDayExpiryFollowsPolicySessionExpiryP61() throws {
         let first = try makeSession("s3", "first", K("\u{5C34}"), at: at("2026-09-20"))
         let oldPicked = try makeSession("s4", "picked", K("\u{989D}"), source: JS.obj([("view", S("home"))]), at: at("2026-09-20", 9))
@@ -271,7 +271,7 @@ final class SessionRulesTests: XCTestCase {
         assertThrowsRange(try SessionRules.expireDaily(both, S(TODAY), policy: badPolicy), "sessionExpiry.first")
     }
 
-    // test/core/sessions.test.mjs: sessions: recovery is idempotent — a committed judgment is not counted twice (D07)
+    // sessions: recovery is idempotent — a committed judgment is not counted twice (D07)
     func testSessionsRecoveryIsIdempotentACommittedJudgmentIsNotCountedTwiceD07() throws {
         let s = try cur(try daily("s1", "\u{9759}\u{4EA6}"), [("phase", S("compare")), ("strokes", J("[[1]]"))])
         let records = [rec(4, "\u{9759}", "judged", "correct", TODAY, sessionId: "s1")]
@@ -286,7 +286,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertFalse(other.recovered, "another session\u{2019}s record does not count")
     }
 
-    // test/core/sessions.test.mjs: sessions: compare with no strokes falls back to recall on restore
+    // sessions: compare with no strokes falls back to recall on restore
     func testSessionsCompareWithNoStrokesFallsBackToRecallOnRestore() throws {
         let s = try cur(try daily("s1", "\u{9759}"), [("phase", S("compare")), ("strokes", .array([]))])
         let r = try SessionRules.recoverSession(s, [])
@@ -294,7 +294,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(r.session?["current"]?["phase"], S("recall"))
     }
 
-    // test/core/sessions.test.mjs: sessions (D63): a stored current.paper=true (the removed 在纸上写 mode) is dropped on restore and the card goes back to recall
+    // sessions (D63): a stored current.paper=true (the removed 在纸上写 mode) is dropped on restore and the card goes back to recall
     func testSessionsD63AStoredCurrentPaperTrueIsDroppedOnRestoreAndTheCardGoesBackToRecall() throws {
         let s = try cur(try daily("s1", "\u{9759}"), [("phase", S("compare")), ("strokes", .array([])), ("paper", .bool(true))])
         let r = try SessionRules.recoverSession(s, [])
@@ -303,7 +303,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertNil(r.session?["current"]?["paper"])
     }
 
-    // test/core/sessions.test.mjs: sessions: first practice is the fixed 3 chars 尴 赢 拾 (D38 / P09; was 5 chars in D17)
+    // sessions: first practice is the fixed 3 chars 尴 赢 拾 (D38 / P09; was 5 chars in D17)
     func testSessionsFirstPracticeIsTheFixed3CharsD38P09WasFiveCharsInD17() throws {
         let q = SessionRules.selectFirst()
         XCTAssertEqual(q.count, 3)
@@ -315,7 +315,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(Config.policyNumber("groupSize"), 15, "D38: first practice only; ordinary groups default to 15 (D83)")
     }
 
-    // test/core/sessions.test.mjs: sessions: next A group is first until any judged record exists (P46)
+    // sessions: next A group is first until any judged record exists (P46)
     func testSessionsNextAGroupIsFirstUntilAnyJudgedRecordExistsP46() throws {
         XCTAssertEqual(SessionRules.nextAKind([]), "first")
         XCTAssertEqual(SessionRules.nextAKind([rec(1, "\u{9759}", "answer-seen", nil, TODAY)]), "first", "answer-seen is not a record")
@@ -324,7 +324,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(SessionRules.nextAKind([], policy: policyWith([("afterClearRestartFirst", .bool(false))]), everPracticed: true), "daily")
     }
 
-    // test/core/sessions.test.mjs: daily: chars judged today are excluded
+    // daily: chars judged today are excluded
     func testDailyCharsJudgedTodayAreExcluded() throws {
         let records = [rec(1, "\u{9759}", "judged", "correct", TODAY)]
         let s = table([("base:\u{9759}", sched("2026-09-20"))])
@@ -333,7 +333,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(plan.queue, K("\u{4EA6}\u{6162}\u{989D}\u{9C9C}\u{5883}"))
     }
 
-    // test/core/sessions.test.mjs: daily: due chars are taken most overdue first then least stable; new chars in candidate order, interleaved (D41)
+    // daily: due chars are taken most overdue first then least stable; new chars in candidate order, interleaved (D41)
     func testDailyDueCharsAreTakenMostOverdueFirstThenLeastStableNewCharsInCandidateOrderInterleavedD41() throws {
         let s = table([
             ("base:\u{9759}", sched("2026-09-22", 10)),
@@ -348,7 +348,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(res.newKeys, K("\u{9C9C}\u{5883}"))
     }
 
-    // test/core/sessions.test.mjs: daily: group size comes from policy (P03) and stopped cards are skipped
+    // daily: group size comes from policy (P03) and stopped cards are skipped
     func testDailyGroupSizeComesFromPolicyP03AndStoppedCardsAreSkipped() throws {
         let s = table([("base:\u{9759}", JS.with(sched("2026-09-01"), [("stoppedAt", N(3))]))])
         let cands = K("\u{4E00}\u{4E8C}\u{4E09}\u{56DB}\u{4E94}\u{516D}\u{4E03}\u{516B}")
@@ -362,7 +362,7 @@ final class SessionRulesTests: XCTestCase {
         XCTAssertEqual(try selectDaily(sched: .object(JSObject()), records: [], newCandidates: []).queue, [], "nothing to write (R-H11)")
     }
 
-    // test/core/sessions.test.mjs: daily: custom: keys outside the deck are never selected
+    // daily: custom: keys outside the deck are never selected
     func testDailyCustomKeysOutsideTheDeckAreNeverSelected() throws {
         let res = try selectDaily(sched: table([("custom:\u{2000B}", sched("2026-09-01"))]), records: [], newCandidates: ["custom:\u{2000B}", "base:\u{9759}"])
         XCTAssertEqual(res.queue, ["base:\u{9759}"])

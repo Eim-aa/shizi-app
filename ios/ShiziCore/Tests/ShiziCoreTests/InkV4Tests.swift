@@ -35,7 +35,7 @@ func randomStroke43(_ r: inout InkRng, pen: Bool = false, n nOpt: Int? = nil, t0
 }
 
 final class InkV4Tests: XCTestCase {
-    // test/core/ink-v4.test.mjs: Ink v4 packing is the exact inverse of encodeRawStrokes rows (random strokes, finger + pen, out-of-grid, long pauses)
+    // Ink v4 packing is the exact inverse of encodeRawStrokes rows (random strokes, finger + pen, out-of-grid, long pauses)
     func testInkV4PackingIsTheExactInverseOfEncodeRawStrokesRowsRandomStrokesFingerPenOutOfGridLongPauses() {
         var r = InkRng(20261021)
         for i in 0..<400 {
@@ -46,7 +46,7 @@ final class InkV4Tests: XCTestCase {
         XCTAssertNil(InkMath.rawRowToPacked([3, 1, 2]), "bad row")
     }
 
-    // test/core/ink-v4.test.mjs: Ink v4: corrupted packed strings never decode (truncated varint, bad stride, too short, not base64)
+    // Ink v4: corrupted packed strings never decode (truncated varint, bad stride, too short, not base64)
     func testInkV4CorruptedPackedStringsNeverDecodeTruncatedVarintBadStrideTooShortNotBase64() {
         let good = InkMath.rawRowToPacked(InkMath.encodeRawStrokes([[InkPoint(x: 10, y: 20, t: 0, order: InkPoint.orderXYTP), InkPoint(x: 40, y: 20, t: 8, order: InkPoint.orderXYTP)]])[0])!
         let bytes = InkMath.base64ToBytes(good)!
@@ -62,7 +62,7 @@ final class InkV4Tests: XCTestCase {
         XCTAssertNil(try InkMath.decodeInk(obj43([("v", n43(4)), ("c", n43(345)), ("r", arrayOf43([good])), ("g", jsArray43([n43(0), n43(1)]))])), "g length must match (decodeInk)")
     }
 
-    // test/core/ink-v4.test.mjs: Ink v4: encode keeps strokes ≤ inkMaxStrokes, gaps between strokes, empty strokes dropped; schema and inkHasStrokes agree
+    // Ink v4: encode keeps strokes ≤ inkMaxStrokes, gaps between strokes, empty strokes dropped; schema and inkHasStrokes agree
     func testInkV4EncodeKeepsStrokesAtMostInkMaxStrokesGapsBetweenStrokesEmptyStrokesDroppedSchemaAndInkHasStrokesAgree() throws {
         var r = InkRng(7)
         var strokes: [[InkPoint]] = []
@@ -88,7 +88,7 @@ final class InkV4Tests: XCTestCase {
         XCTAssertSameJSON(InkMath.encodeInkRaw([]), J("{\"v\":4,\"c\":345,\"r\":[],\"g\":[]}"))
     }
 
-    // test/core/ink-v4.test.mjs: Ink v4 on the web: decodeInk = buildStroke(final) over the decoded raw points (same pipeline as when written); cached per ink object
+    // Ink v4 on the web: decodeInk = buildStroke(final) over the decoded raw points (same pipeline as when written); cached per ink object
     func testInkV4OnTheWebDecodeInkBuildStrokeFinalOverTheDecodedRawPointsSamePipelineAsWhenWrittenCachedPerInkObject() throws {
         // 缓存（WeakMap，按墨迹对象）是网页的优化，Swift 版不移植；这里核对「解码 = 对解出的原始点逐笔 buildStroke(final)」，且自定义参数起作用
         var r = InkRng(11)
@@ -107,7 +107,7 @@ final class InkV4Tests: XCTestCase {
         XCTAssertNotEqual(try InkMath.decodeInk(ink, options: InkOptions(overrides: ["base": 15], base: 15))!, got, "custom params change the widths")
     }
 
-    // test/core/ink-v4.test.mjs: encodeStoredInk: raw (native) → Ink v4; v3 (web localStorage) → the old pipeline
+    // encodeStoredInk: raw (native) → Ink v4; v3 (web localStorage) → the old pipeline
     func testEncodeStoredInkRawNativeInkV4V3WebLocalStorageTheOldPipeline() throws {
         let strokes = [[InkPoint(x: 60, y: 170, t: 0, order: InkPoint.orderXYTP), InkPoint(x: 170, y: 171, t: 60, order: InkPoint.orderXYTP), InkPoint(x: 280, y: 172, t: 120, order: InkPoint.orderXYTP)]]
         XCTAssertTrue(InkMath.isInkV4(try InkMath.encodeStoredInk(strokes)), "default raw")
@@ -115,7 +115,7 @@ final class InkV4Tests: XCTestCase {
         XCTAssertTrue(InkMath.isInkV3(try InkMath.encodeStoredInk(strokes, format: "v3")))
     }
 
-    // test/core/ink-v4.test.mjs: replay fixture (ink-v4-fixture.json, shared with the native XCTest) is up to date; replay ≈ written (area within 1%)
+    // replay fixture (ink-v4-fixture.json, shared with the native XCTest) is up to date; replay ≈ written (area within 1%)
     func testReplayFixtureInkV4FixtureJsonSharedWithTheNativeXCTestIsUpToDateReplayWrittenAreaWithin1() throws {
         // 夹具与代码同步由 node 测试守（--check），「回放面积与书写时 ≤ 1%」用的是 ink-model 参考实现，留在 node；
         // ShiziCore 这一半：夹具里每条墨迹，Swift 解出的行（rows）与原始点（raw）与 JS 逐点相同。

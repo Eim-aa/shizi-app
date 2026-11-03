@@ -46,7 +46,7 @@ private func legacyDisk(_ B: TestBackend) -> (disk: TestDisk, tables: JSObject, 
 private func pick(_ o: JSObject?, _ keys: [String]) -> JSValue { .object(JSObject(keys.map { ($0, o?[$0] ?? .null) })) }
 
 enum InkSchemaContract {
-    // test/store/ink-schema.test.mjs: ink schema 1 → 2 at load: every legacy month becomes one key per record, state unchanged, idempotent
+    // ink schema 1 → 2 at load: every legacy month becomes one key per record, state unchanged, idempotent
     static func migratesAtLoad(_ B: TestBackend) {
         let (disk, tables, base) = legacyDisk(B)
         XCTAssertTrue(disk.rawGet(Schema.inkKey("2026-09")) != nil && disk.rawGet(Schema.inkKey("2026-10")) != nil, "legacy month keys on disk")
@@ -66,7 +66,7 @@ enum InkSchemaContract {
         XCTAssertEqual(sortedJSON(.object(again.state)), sortedJSON(.object(store.state)))
     }
 
-    // test/store/ink-schema.test.mjs: ink schema migration failure: that month rolls back untouched, earlier months stay migrated, diagnostic recorded, next start retries
+    // ink schema migration failure: that month rolls back untouched, earlier months stay migrated, diagnostic recorded, next start retries
     static func migrationFailure(_ B: TestBackend) {
         let (disk, tables, _) = legacyDisk(B)
         disk.failWhen { w in w.op == "set" && w.key == Schema.inkRecordKey("2026-10", "r5") ? .corrupt("{}") : nil }
@@ -98,7 +98,7 @@ enum InkSchemaContract {
         XCTAssertEqual(disk.rawGet(Schema.inkRecordKey("2026-10", "r5")), str(tables["2026-10"]!["r5"]!))
     }
 
-    // test/store/ink-schema.test.mjs: a commit that touches a not-yet-migrated month converts that month in the same transaction
+    // a commit that touches a not-yet-migrated month converts that month in the same transaction
     static func commitConvertsTouchedMonth(_ B: TestBackend) {
         let (disk, tables, _) = legacyDisk(B)
         disk.failWhen { w in w.op == "set" && w.key.hasPrefix("shizi.v2.ink.") ? .generic("generic") : nil }
@@ -123,7 +123,7 @@ enum InkSchemaContract {
         XCTAssertEqual(sortedJSON(again.state["ink"]!), sortedJSON(store.state["ink"]!))
     }
 
-    // test/store/ink-schema.test.mjs: judge commit writes only its own ink record (bytes: one record vs the whole month)
+    // judge commit writes only its own ink record (bytes: one record vs the whole month)
     static func judgeWritesOnlyItsOwnRecord(_ B: TestBackend) {
         let disk = B.make()
         let store = open(B, disk).store
@@ -168,7 +168,7 @@ enum InkSchemaContract {
         XCTAssertLessThan(after * 30, before, "one record is a small fraction of the month")
     }
 
-    // test/store/ink-schema.test.mjs: judge ink encoding follows the backend (policy P05): native raw points (Ink v4), localStorage v3
+    // judge ink encoding follows the backend (policy P05): native raw points (Ink v4), localStorage v3
     static func judgeInkEncodingFollowsBackend(_ B: TestBackend) throws {
         let disk = B.make()
         let store = open(B, disk).store
@@ -207,7 +207,7 @@ enum InkSchemaContract {
         XCTAssertNotNil(disk.rawGet(Schema.inkRecordKey(String(record["localDay"]!.stringValue!.prefix(7)), record["id"]!.stringValue!)), "one key per record on disk")
     }
 
-    // test/store/ink-schema.test.mjs: backup: export groups ink by month (format unchanged), restore of an old (schema 1 era) backup writes one key per record
+    // backup: export groups ink by month (format unchanged), restore of an old (schema 1 era) backup writes one key per record
     static func backupGroupsInkByMonth(_ B: TestBackend) throws {
         let (disk, _, base) = legacyDisk(B)
         let store = open(B, disk).store

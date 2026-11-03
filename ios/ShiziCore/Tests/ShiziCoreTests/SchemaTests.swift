@@ -32,7 +32,7 @@ final class SchemaTests: XCTestCase {
         return .object(JSObject([("app", .string("shizi")), ("version", .number(2)), ("date", .string("2026-09-15T01:00:00.000Z")), ("data", .object(data))]))
     }
 
-    // test/store/schema.test.mjs: key coverage invariant: schema key table = backup whitelist ∪ exclusion table, disjoint
+    // key coverage invariant: schema key table = backup whitelist ∪ exclusion table, disjoint
     func testKeyCoverageInvariantSchemaKeyTableEqualsBackupWhitelistUnionExclusionTableDisjoint() {
         let ids = Schema.keySpecs.map { $0.id }.sorted()
         let union = (Schema.backupWhitelist + Schema.backupExcluded).sorted()
@@ -41,7 +41,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertEqual(Set(ids).count, ids.count, "schema ids unique")
     }
 
-    // test/store/schema.test.mjs: key coverage invariant: every store domain maps to a schema key, and 01 §3.6 backup column holds
+    // key coverage invariant: every store domain maps to a schema key, and 01 §3.6 backup column holds
     func testKeyCoverageInvariantEveryStoreDomainMapsToASchemaKeyAnd01Section36BackupColumnHolds() {
         for domain in Schema.domains {
             XCTAssertNotNil(Schema.keySpecs.first { $0.domain == domain }, "domain \(domain) has no schema entry")
@@ -60,7 +60,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertFalse(Schema.isBackupKey(Schema.inkRecordKey("2026-09", "r5")), "one-record ink keys are storage-only (backup groups ink by month)")
     }
 
-    // test/store/schema.test.mjs: B2.3 ink schema 2: one key per record shizi.v2.ink.<YYYY-MM>.<recordId> = one Ink (v4 raw points | v3 | v2)
+    // B2.3 ink schema 2: one key per record shizi.v2.ink.<YYYY-MM>.<recordId> = one Ink (v4 raw points | v3 | v2)
     func testB23InkSchema2OneKeyPerRecordIsOneInk() {
         let key = Schema.inkRecordKey("2026-09", "r12")
         XCTAssertEqual(key, "shizi.v2.ink.2026-09.r12")
@@ -89,7 +89,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertTrue(contains(valid(key, J(#"{"v":4,"c":345,"r":[]}"#)), "missing"))
     }
 
-    // test/store/schema.test.mjs: ink is split by record month: shizi.v2.ink.<YYYY-MM> = {recordId: Ink v3 | legacy v2} (F3 / P78)
+    // ink is split by record month: shizi.v2.ink.<YYYY-MM> = {recordId: Ink v3 | legacy v2} (F3 / P78)
     func testInkIsSplitByRecordMonth() throws {
         XCTAssertEqual(Schema.inkKey("2026-09"), "shizi.v2.ink.2026-09")
         XCTAssertEqual(try Schema.keyForDomain("ink", month: "2026-09"), "shizi.v2.ink.2026-09")
@@ -118,7 +118,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertTrue(contains(v2rows, "integer") || contains(v2rows, "array"), "v2 rows must be int arrays")
     }
 
-    // test/store/schema.test.mjs: baseline fixture passes every key shape
+    // baseline fixture passes every key shape
     func testBaselineFixturePassesEveryKeyShape() throws {
         let state = try baselineState()
         for domain in Schema.domains {
@@ -132,7 +132,7 @@ final class SchemaTests: XCTestCase {
         }
     }
 
-    // test/store/schema.test.mjs: record shape rules (judged needs judgment; char matches cardKey; month ownership; ascending ids)
+    // record shape rules (judged needs judgment; char matches cardKey; month ownership; ascending ids)
     func testRecordShapeRules() {
         let ren = "\u{4EBA}", kou = "\u{53E3}"
         XCTAssertNil(Schema.validateRecord(makeRecord(1, ren)))
@@ -151,7 +151,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertTrue(Schema.isLocalDay("2028-02-29"))
     }
 
-    // test/store/schema.test.mjs: folded month shape
+    // folded month shape
     func testFoldedMonthShape() {
         let ren = "\u{4EBA}"
         let folded = JSValue.object(JSObject([
@@ -163,7 +163,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertTrue(contains(valid(Schema.recordsKey("2025-02"), folded), "month"))
     }
 
-    // test/store/schema.test.mjs: session shape: slot/kind pairing, cursor bound
+    // session shape: slot/kind pairing, cursor bound
     func testSessionShapeSlotKindPairingCursorBound() throws {
         let s = try XCTUnwrap(try baselineState()["sessions"])
         XCTAssertNil(valid(Schema.sessionsKey, s))
@@ -171,7 +171,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertTrue(contains(valid(Schema.sessionsKey, settingPath(s, ["A", "cursor"], .number(99))), "cursor"))
     }
 
-    // test/store/schema.test.mjs: parseAndValidate: invalid JSON and bad shape are reported
+    // parseAndValidate: invalid JSON and bad shape are reported
     func testParseAndValidateInvalidJSONAndBadShapeAreReported() {
         func ok(_ raw: String) -> Bool { if case .ok = Schema.parseAndValidate(key: Schema.metaKey, raw: .string(raw)) { return true }; return false }
         XCTAssertFalse(ok("{"))
@@ -179,7 +179,7 @@ final class SchemaTests: XCTestCase {
         XCTAssertTrue(ok(#"{"schema":2,"serial":0,"createdAt":1,"months":[]}"#))
     }
 
-    // test/store/schema.test.mjs: backup v2 envelope: good file parses, sessions ignored
+    // backup v2 envelope: good file parses, sessions ignored
     func testBackupV2EnvelopeGoodFileParsesSessionsIgnored() throws {
         let parsed = Schema.parseBackupV2(backupOf(try baselineState()))
         XCTAssertEqual(parsed["ok"], .bool(true))
@@ -187,7 +187,7 @@ final class SchemaTests: XCTestCase {
         for e in parsed["entries"]?.arrayValue ?? [] { XCTAssertTrue(Schema.isBackupKey(e.arrayValue?.first?.stringValue ?? "")) }
     }
 
-    // test/store/schema.test.mjs: backup v2 envelope: any single bad key rejects the whole file
+    // backup v2 envelope: any single bad key rejects the whole file
     func testBackupV2EnvelopeAnySingleBadKeyRejectsTheWholeFile() throws {
         let base = backupOf(try baselineState())
         let data = try XCTUnwrap(base["data"]?.objectValue)

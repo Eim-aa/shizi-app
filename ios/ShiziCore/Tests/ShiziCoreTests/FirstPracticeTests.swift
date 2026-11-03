@@ -15,7 +15,7 @@ private func table() throws -> JSValue {
 private func firstQueue() -> [String] { (Config.policy["firstQueue"]?.arrayValue ?? []).compactMap { $0.stringValue } }
 
 final class FirstPracticeTests: XCTestCase {
-    // test/core/first-practice.test.mjs: policy.firstQueue is 尴 赢 拾: the table's default combination A, none of them a warm-up char
+    // policy.firstQueue is 尴 赢 拾: the table's default combination A, none of them a warm-up char
     func testPolicyFirstQueueIsAwkwardWinPickUpTheTablesDefaultCombinationANoneOfThemAWarmUpChar() throws {
         XCTAssertEqual(firstQueue(), ["\u{5C34}", "\u{8D62}", "\u{62FE}"])
         XCTAssertEqual(SessionRules.selectFirst(), ["base:\u{5C34}", "base:\u{8D62}", "base:\u{62FE}"])
@@ -29,7 +29,7 @@ final class FirstPracticeTests: XCTestCase {
         }
     }
 
-    // test/core/first-practice.test.mjs: all three first-practice chars are in the default library (规范常用字 = norm 一级) and their words are 尴尬 / 赢得 / 收拾
+    // all three first-practice chars are in the default library (规范常用字 = norm 一级) and their words are 尴尬 / 赢得 / 收拾
     func testAllThreeFirstPracticeCharsAreInTheDefaultLibraryNormLevel1AndTheirWordsAreAwkwardWinCleanUp() throws {
         let words = ["\u{5C34}": "\u{5C34}\u{5C2C}", "\u{8D62}": "\u{8D62}\u{5F97}", "\u{62FE}": "\u{6536}\u{62FE}"]
         let seed = DeckData.shared.seed
@@ -44,7 +44,7 @@ final class FirstPracticeTests: XCTestCase {
         }
     }
 
-    // test/core/first-practice.test.mjs: the first group is 3 characters and only the first practice: progress reads 1 / 3, later groups stay at groupSize
+    // the first group is 3 characters and only the first practice: progress reads 1 / 3, later groups stay at groupSize
     func testTheFirstGroupIs3CharactersAndOnlyTheFirstPracticeProgressReads13LaterGroupsStayAtGroupSize() throws {
         let dates = Dates(timeZone: tz)
         let q = SessionRules.selectFirst().map { JSValue.string($0) }

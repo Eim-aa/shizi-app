@@ -54,7 +54,7 @@ private func settingsMutation(_ patch: [(String, JSValue)]) -> (inout JSObject, 
 
 /// 契约用例（两种后端各跑一遍，见文件末的两个测试类）。
 enum StoreContract {
-    // test/store/store.test.mjs: commit success: publishes new frozen state, notifies subscribers, allocates ids from derived serial
+    // commit success: publishes new frozen state, notifies subscribers, allocates ids from derived serial
     static func commitSuccess(_ B: TestBackend) {
         let env = seeded(B)
         let (store, backend) = (env.store, env.disk)
@@ -93,7 +93,7 @@ enum StoreContract {
         XCTAssertEqual(store.getInk(after["records"]!["2026-10"]!.arrayValue![0]), inkEntry())
     }
 
-    // test/store/store.test.mjs: ink v3 (P78): legacy v2 ink on disk still loads and decodes; v2 and v3 entries live side by side in one month
+    // ink v3 (P78): legacy v2 ink on disk still loads and decodes; v2 and v3 entries live side by side in one month
     static func inkV3LegacyV2Loads(_ B: TestBackend) throws {
         let backend = B.make()
         let env = seeded(B, disk: backend)
@@ -113,7 +113,7 @@ enum StoreContract {
         XCTAssertEqual(try InkMath.decodeInk(fresh.store.getInk(r3))!.map { $0.count }, [8, 8, 8])
     }
 
-    // test/store/store.test.mjs: ink helpers: getInk / setInk / deleteInk address state.ink[record month]; on disk one key per record, txn only carries that record
+    // ink helpers: getInk / setInk / deleteInk address state.ink[record month]; on disk one key per record, txn only carries that record
     static func inkHelpers(_ B: TestBackend) throws {
         let env = seeded(B)
         let (store, backend) = (env.store, env.disk)
@@ -150,7 +150,7 @@ enum StoreContract {
         XCTAssertEqual(errKind(badMonth), "shape")
     }
 
-    // test/store/store.test.mjs: write failure does not publish: in-memory state and storage stay as before; retry succeeds without double count
+    // write failure does not publish: in-memory state and storage stay as before; retry succeeds without double count
     static func writeFailureDoesNotPublish(_ B: TestBackend) {
         let env = seeded(B)
         let (store, storage, backend) = (env.store, env.storage, env.disk)
@@ -172,7 +172,7 @@ enum StoreContract {
         XCTAssertEqual(store.state["records"]!["2026-10"]!.arrayValue![0]["id"], .string("r4"), "failed attempt did not burn a persisted id")
     }
 
-    // test/store/store.test.mjs: verify mismatch → rollback → not published
+    // verify mismatch → rollback → not published
     static func verifyMismatch(_ B: TestBackend) {
         let env = seeded(B)
         let (store, backend) = (env.store, env.disk)
@@ -191,7 +191,7 @@ enum StoreContract {
         XCTAssertEqual(diskObject(backend), beforeDisk)
     }
 
-    // test/store/store.test.mjs: mutator mutating frozen state in place is rejected (copy-on-write discipline); shape errors never reach storage
+    // mutator mutating frozen state in place is rejected (copy-on-write discipline); shape errors never reach storage
     static func mutatorAndShapeErrors(_ B: TestBackend) {
         let env = seeded(B)
         let (store, backend) = (env.store, env.disk)
@@ -224,7 +224,7 @@ enum StoreContract {
         XCTAssertEqual(noop, J(#"{"ok":true,"keys":[],"recovered":[]}"#))
     }
 
-    // test/store/store.test.mjs: interruptAfterWrite(k) matrix k=1..N: after reload state is exactly pre or post; records unique; ids do not collide
+    // interruptAfterWrite(k) matrix k=1..N: after reload state is exactly pre or post; records unique; ids do not collide
     static func interruptMatrix(_ B: TestBackend) {
         let probe = seeded(B)
         let pre = plainState(probe.store)
@@ -258,7 +258,7 @@ enum StoreContract {
         XCTAssertTrue(outcomes.prefix(N - 1).allSatisfy { $0 == "pre" }, "any interruption before txn removal rolls back")
     }
 
-    // test/store/store.test.mjs: interruption during repair (double crash) still converges to pre-state
+    // interruption during repair (double crash) still converges to pre-state
     static func doubleCrash(_ B: TestBackend) throws {
         let env = seeded(B)
         let pre = plainState(env.store)
@@ -275,7 +275,7 @@ enum StoreContract {
         XCTAssertEqual(plainState(third.store), pre)
     }
 
-    // test/store/store.test.mjs: mock-level interruption (backend dies mid-write) is repaired the same way
+    // mock-level interruption (backend dies mid-write) is repaired the same way
     static func mockLevelInterruption(_ B: TestBackend) {
         let env = seeded(B)
         let pre = plainState(env.store)
@@ -289,8 +289,8 @@ enum StoreContract {
         XCTAssertEqual(plainState(reloaded.store), pre)
     }
 
-    // test/store/store.test.mjs: rollback failure → keys quarantined, store blocked (R-B09), commits refused
-    // test/store/store.test.mjs: outcome unknown (native timeout after commit) → store blocked (R-B09), commits refused; restart trusts the database
+    // rollback failure → keys quarantined, store blocked (R-B09), commits refused
+    // outcome unknown (native timeout after commit) → store blocked (R-B09), commits refused; restart trusts the database
     static func rollbackFailureOrOutcomeUnknown(_ B: TestBackend) {
         let env = seeded(B)
         let (store, backend) = (env.store, env.disk)
@@ -324,7 +324,7 @@ enum StoreContract {
         XCTAssertEqual(reloaded.store.state["records"]!["2026-10"]!.arrayValue!.count, 1, "the database is the truth")
     }
 
-    // test/store/store.test.mjs: bad stored values: quarantined at boot, original removed, notice flag set once (not on next boot)
+    // bad stored values: quarantined at boot, original removed, notice flag set once (not on next boot)
     static func badStoredValues(_ B: TestBackend) {
         let backend = B.make()
         backend.rawSet(SK("settings"), #"{"appearance":"neon"}"#)
@@ -343,7 +343,7 @@ enum StoreContract {
         XCTAssertEqual(backend.rawGet("shizi.corrupt." + SK("sched")), "not json", "quarantined copy kept for export")
     }
 
-    // test/store/store.test.mjs: storage unavailable (SecurityError) → status.available=false, commits refused with kind unavailable
+    // storage unavailable (SecurityError) → status.available=false, commits refused with kind unavailable
     static func storageUnavailable(_ B: TestBackend) {
         let backend = B.make()
         backend.failReads("security")
@@ -356,7 +356,7 @@ enum StoreContract {
         XCTAssertEqual(errKind(r), "unavailable")
     }
 
-    // test/store/store.test.mjs: quota hit → budget recovery (ink by §9 priority) → one retry succeeds; latest-per-char ink kept
+    // quota hit → budget recovery (ink by §9 priority) → one retry succeeds; latest-per-char ink kept
     static func quotaHitRecoveryRetry(_ B: TestBackend) {
         let state = inkHeavyState(24)
         let probeEnv = freshStore(B)
@@ -403,7 +403,7 @@ enum StoreContract {
         XCTAssertEqual(plainState(reloaded.store), plainState(store), "disk == memory after side recovery")
     }
 
-    // test/store/store.test.mjs: quota side recovery: evicted old ink months are persisted even if the retried commit still fails
+    // quota side recovery: evicted old ink months are persisted even if the retried commit still fails
     static func quotaSideRecoveryPersisted(_ B: TestBackend) {
         let backend = B.make()
         let store = freshStore(B, disk: backend).store
@@ -424,7 +424,7 @@ enum StoreContract {
         XCTAssertEqual(plainState(reloaded.store), plainState(store), "disk == memory")
     }
 
-    // test/store/store.test.mjs: commit {reclaim:false} (I2): quota hit → {ok:false, kind:quota}, no side recovery, every key unchanged, nothing published
+    // commit {reclaim:false} (I2): quota hit → {ok:false, kind:quota}, no side recovery, every key unchanged, nothing published
     static func reclaimFalseQuotaHit(_ B: TestBackend) {
         let backend = B.make()
         let store = freshStore(B, disk: backend).store
@@ -450,7 +450,7 @@ enum StoreContract {
         XCTAssertGreaterThanOrEqual(writes, 1, "the write was really attempted")
     }
 
-    // test/store/store.test.mjs: commit {reclaim:false} (I2): pre-write over-budget estimate does not recover; the commit writes as-is
+    // commit {reclaim:false} (I2): pre-write over-budget estimate does not recover; the commit writes as-is
     static func reclaimFalsePreWrite(_ B: TestBackend) {
         let store = freshStore(B, budgets: JSObject([("inkBudgetBytes", .number(20000))])).store
         XCTAssertTrue(ok(store.seed(.object(inkHeavyState(24)))))
@@ -463,7 +463,7 @@ enum StoreContract {
         XCTAssertTrue(ok(d) && !(d["recovered"]?.arrayValue ?? []).isEmpty, "the default commit still recovers")
     }
 
-    // test/store/store.test.mjs: commit {replace:true} tags the notification as a whole-state replacement
+    // commit {replace:true} tags the notification as a whole-state replacement
     static func replaceTag(_ B: TestBackend) {
         let store = seeded(B).store
         var seen: [Bool] = []
@@ -472,7 +472,7 @@ enum StoreContract {
         XCTAssertEqual(seen, [true])
     }
 
-    // test/store/store.test.mjs: quota hit with nothing recoverable → {ok:false, kind:quota}, nothing published
+    // quota hit with nothing recoverable → {ok:false, kind:quota}, nothing published
     static func quotaNothingRecoverable(_ B: TestBackend) {
         let backend = B.make()
         let store = freshStore(B, disk: backend).store
@@ -485,7 +485,7 @@ enum StoreContract {
         XCTAssertEqual(str(.object(store.state)), before)
     }
 
-    // test/store/store.test.mjs: pre-write estimate over budget → recover first (ink budget), then write
+    // pre-write estimate over budget → recover first (ink budget), then write
     static func preWriteOverBudget(_ B: TestBackend) {
         let store = freshStore(B, budgets: JSObject([("inkBudgetBytes", .number(20000))])).store
         XCTAssertTrue(ok(store.seed(.object(inkHeavyState(24)))), "seed does not recover")
@@ -498,7 +498,7 @@ enum StoreContract {
         XCTAssertNotNil(flatInk(.object(inkState))["r34"], "latest water kept")
     }
 
-    // test/store/store.test.mjs: pre-write: months older than 400 days are folded (P28); current month never folded
+    // pre-write: months older than 400 days are folded (P28); current month never folded
     static func agedMonthsFolded(_ B: TestBackend) {
         var s = storeBaseline()
         var recs = s["records"]!.objectValue!
@@ -517,7 +517,7 @@ enum StoreContract {
         XCTAssertNotNil(store.state["records"]!["2026-10"]!.arrayValue)
     }
 
-    // test/store/store.test.mjs: usage estimate is refreshed and exposed on status
+    // usage estimate is refreshed and exposed on status
     static func usageOnStatus(_ B: TestBackend) {
         let env = seeded(B)
         let usage = env.store.usage!
@@ -525,7 +525,7 @@ enum StoreContract {
         XCTAssertEqual(usage["level"], .string("ok"))
     }
 
-    // test/store/store.test.mjs: seed replaces every v2 domain (missing domains deleted) and validates shapes first
+    // seed replaces every v2 domain (missing domains deleted) and validates shapes first
     static func seedReplaces(_ B: TestBackend) {
         let env = seeded(B)
         let (store, backend) = (env.store, env.disk)
@@ -543,7 +543,7 @@ enum StoreContract {
         XCTAssertFalse(ok(store.seed(J(#"{"nope":1}"#))))
     }
 
-    // test/store/store.test.mjs: backup v2: any bad key → whole file rejected and writeAll never called
+    // backup v2: any bad key → whole file rejected and writeAll never called
     static func backupAnyBadKey(_ B: TestBackend) {
         let env = seeded(B)
         let (store, backend) = (env.store, env.disk)
@@ -566,7 +566,7 @@ enum StoreContract {
         XCTAssertEqual(diskObject(backend), snapshot)
     }
 
-    // test/store/store.test.mjs: backup v2: good file replaces whitelisted keys, leaves sessions alone, clears shizi.corrupt.*
+    // backup v2: good file replaces whitelisted keys, leaves sessions alone, clears shizi.corrupt.*
     static func backupGoodFile(_ B: TestBackend) throws {
         let env = seeded(B)
         let (store, storage, backend) = (env.store, env.storage, env.disk)
@@ -592,7 +592,7 @@ enum StoreContract {
         XCTAssertGreaterThanOrEqual(store.serial, 7)
     }
 
-    // test/store/store.test.mjs: deriveSerial takes the max over meta.serial, records (incl. folded kept), sessions and ink ids
+    // deriveSerial takes the max over meta.serial, records (incl. folded kept), sessions and ink ids
     static func deriveSerialMax(_ B: TestBackend) {
         var s = storeBaseline()
         var meta = s["meta"]!.objectValue!
@@ -619,7 +619,7 @@ enum StoreContract {
         XCTAssertEqual(Store.deriveSerial(s), 90)
     }
 
-    // test/store/store.test.mjs: replacement notifications (G1): load / seed are tagged as whole-state replacements, commit is not
+    // replacement notifications (G1): load / seed are tagged as whole-state replacements, commit is not
     static func replacementNotifications(_ B: TestBackend) {
         let store = freshStore(B).store
         var seen: [JSObject] = []

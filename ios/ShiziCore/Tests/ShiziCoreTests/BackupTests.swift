@@ -70,7 +70,7 @@ private func withActiveSessions() -> JSObject {
 private func lines(_ status: JSObject) -> [String] { status["lines"]!.arrayValue!.map { $0["key"]!.stringValue! } }
 
 final class BackupTests: XCTestCase {
-    // test/core/backup.test.mjs: buildBackupV2: 只含白名单键、值 = 落盘字串、缺 meta 时补一份且 parseBackupV2 认得
+    // buildBackupV2: 只含白名单键、值 = 落盘字串、缺 meta 时补一份且 parseBackupV2 认得
     func testBuildBackupV2WhitelistRawValuesMetaFilledIn() throws {
         let env = makeStore(currentState())
         let state = env.store.state
@@ -91,7 +91,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(J(try Backup.buildBackupV2(withMeta, now: NOW)["data"]![SK("meta")]!.stringValue!)["serial"], .number(42))
     }
 
-    // test/core/backup.test.mjs: inspectBackup: 报告（日期、字数含折叠月）与失败原因 → R-B06 口径
+    // inspectBackup: 报告（日期、字数含折叠月）与失败原因 → R-B06 口径
     func testInspectBackupReportAndFailureReasons() throws {
         var s = oldBackupState()
         var recs = s["records"]!.objectValue!
@@ -130,7 +130,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(Backup.maxBytes, 64 * 1024 * 1024)
     }
 
-    // test/core/backup.test.mjs: v1 备份：转换器未注册是桩（v1-unsupported）；M5-4 注册后走同一份报告
+    // v1 备份：转换器未注册是桩（v1-unsupported）；M5-4 注册后走同一份报告
     func testV1BackupImporterStubThenRegistered() throws {
         let v1 = J(#"{"app":"shizi","version":1,"date":"2026-08-01T10:00:00.000Z","data":{"shizi.memory.v1":"{}"}}"#)
         let saved = Backup.legacyImporter
@@ -147,7 +147,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(Backup.importLegacyBackup(.string("{"))["reason"], .string("json"))
     }
 
-    // test/core/backup.test.mjs: recordsSignature: 只看 judged 的 id 与判断；更正、新增改变签名，看过答案不改变
+    // recordsSignature: 只看 judged 的 id 与判断；更正、新增改变签名，看过答案不改变
     func testRecordsSignature() {
         let s = currentState()["records"]!.objectValue!
         let base = Backup.recordsSignature(.object(s))
@@ -165,7 +165,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(Backup.recordsSignature(.object(JSObject())), "0:811c9dc5")
     }
 
-    // test/core/backup.test.mjs: lossRange / confirmModel：现在的记录里晚于备份日期的日子（P26 / K04）；没有记录 → 恢复措辞
+    // lossRange / confirmModel：现在的记录里晚于备份日期的日子（P26 / K04）；没有记录 → 恢复措辞
     func testLossRangeAndConfirmModel() {
         let s = JSValue.object(currentState())
         XCTAssertEqual(Backup.lossRange(s["records"], .string("2026-09-01")), J(#"{"from":"2026-09-02","to":"2026-09-20","days":2}"#))
@@ -178,7 +178,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(Backup.confirmModel(J(#"{"records":{}}"#), report), J(#"{"mode":"restore","day":"2026-09-01","n":23,"m":0,"loss":null}"#).objectValue!)
     }
 
-    // test/core/backup.test.mjs: backupStatus：T07 状态机（无记录 / 从没备份 / 一致 / 有改动 / 结论只写结论）
+    // backupStatus：T07 状态机（无记录 / 从没备份 / 一致 / 有改动 / 结论只写结论）
     func testBackupStatusT07() {
         func keys(_ st: JSValue) -> [String] { lines(Backup.backupStatus(st, dates: shanghai)) }
         XCTAssertEqual(keys(J(#"{"records":{}}"#)), ["R-B02.noRecords"])
@@ -202,7 +202,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(keys(setting(.object(s), "backupMeta", cleared["backupMeta"]!)), [])
     }
 
-    // test/core/backup.test.mjs: makeSafety：形状合 schema（白名单键原始字串 + 现在的 sessions，P79）
+    // makeSafety：形状合 schema（白名单键原始字串 + 现在的 sessions，P79）
     func testMakeSafetyShape() {
         let env = makeStore(currentState())
         let safety = Backup.makeSafety(env.store.state, kind: "restore", now: NOW, backupDate: .string("2026-09-01"), count: .number(2))
@@ -225,7 +225,7 @@ final class BackupTests: XCTestCase {
         XCTAssertTrue(contains(Schema.validateValue(key: SK("safety"), value: withPayload(SK("funnel"), "{}")), "bad key"))
     }
 
-    // test/core/backup.test.mjs: P79 / M6-6：替换备份结束进行中的组（A/B 置 null、lastEnded 清空），撤销后会话与全部 v2 键逐字还原
+    // P79 / M6-6：替换备份结束进行中的组（A/B 置 null、lastEnded 清空），撤销后会话与全部 v2 键逐字还原
     func testP79RestoreEndsActiveGroupsUndoRestores() throws {
         let env = makeStore(withActiveSessions())
         let before = v2Raw(env.disk)
@@ -244,7 +244,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(v2Raw(env.disk), before, "K03")
     }
 
-    // test/core/backup.test.mjs: P79：清空所有记录同样结束进行中的组；撤销还原会话；清空失败时会话不动
+    // P79：清空所有记录同样结束进行中的组；撤销还原会话；清空失败时会话不动
     func testP79ClearEndsActiveGroupsUndoRestores() {
         let env = makeStore(withActiveSessions())
         let before = v2Raw(env.disk)
@@ -264,7 +264,7 @@ final class BackupTests: XCTestCase {
         XCTAssertNotEqual(b.store.state["sessions"]!["A"], .null, "A still there")
     }
 
-    // test/core/backup.test.mjs: M6-6：endActiveSessions——只有 lastEnded 时也清；什么都没有时不写；没有 sessions 域时不建
+    // M6-6：endActiveSessions——只有 lastEnded 时也清；什么都没有时不写；没有 sessions 域时不建
     func testEndActiveSessions() {
         var onlyEnded = J(#"{"sessions":{"A":null,"B":null,"lastEnded":{"A":{"id":"s1"}}}}"#).objectValue!
         Backup.endActiveSessions(&onlyEnded)
@@ -278,7 +278,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(none["sessions"], .null)
     }
 
-    // test/core/backup.test.mjs: I2：保护副本 / 清空 / 撤销走 store.commit 的 reclaim:false——撞配额不回收、全部键不变；通知是整体替换
+    // I2：保护副本 / 清空 / 撤销走 store.commit 的 reclaim:false——撞配额不回收、全部键不变；通知是整体替换
     func testI2SafetyClearUndoDoNotReclaim() {
         let env = makeStore(currentState())
         let before = v2Raw(env.disk)
@@ -296,7 +296,7 @@ final class BackupTests: XCTestCase {
         XCTAssertTrue(seen.filter { $0["type"] == .string("commit") }.allSatisfy { $0["replace"] == .bool(true) })
     }
 
-    // test/core/backup.test.mjs: 恢复 → 撤销：替换采用备份（backupMeta 换成本机日期 + 结论、sessions 不动、清 corrupt），撤销后全部 v2 键逐字相等
+    // 恢复 → 撤销：替换采用备份（backupMeta 换成本机日期 + 结论、sessions 不动、清 corrupt），撤销后全部 v2 键逐字相等
     func testRestoreThenUndo() throws {
         let env = makeStore(currentState())
         env.disk.rawSet("shizi.corrupt.shizi.v2.custom", "\"garbage\"")
@@ -318,7 +318,7 @@ final class BackupTests: XCTestCase {
         XCTAssertNil(Backup.safetyOf(env.store.state))
     }
 
-    // test/core/backup.test.mjs: R-B04：保护副本写失败（配额两次 / 通用）→ 不替换、不做预算回收、全部键不变
+    // R-B04：保护副本写失败（配额两次 / 通用）→ 不替换、不做预算回收、全部键不变
     func testRB04SafetyWriteFailure() throws {
         for (n, kind, matchKey) in [(2.0, "quota", SK("safety")), (1.0, "generic", nil), (2.0, "quota", nil)] as [(Double, String, String?)] {
             let env = makeStore(currentState())
@@ -335,7 +335,7 @@ final class BackupTests: XCTestCase {
         }
     }
 
-    // test/core/backup.test.mjs: 覆盖失败已回滚：替换中途写失败 → store 回滚、副本删除、全部键不变（R-B06 没能恢复）
+    // 覆盖失败已回滚：替换中途写失败 → store 回滚、副本删除、全部键不变（R-B06 没能恢复）
     func testReplaceFailureRolledBackSafetyDropped() throws {
         let env = makeStore(currentState())
         let before = v2Raw(env.disk)
@@ -349,7 +349,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(env.store.state["records"], currentState()["records"])
     }
 
-    // test/core/backup.test.mjs: R-B05：撤销失败 → 仍是备份里的记录、副本保留、可以再点；再点成功
+    // R-B05：撤销失败 → 仍是备份里的记录、副本保留、可以再点；再点成功
     func testRB05UndoFailureKeepsSafety() throws {
         let env = makeStore(currentState())
         let before = v2Raw(env.disk)
@@ -364,7 +364,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(Backup.undoFromSafety(env.store), J(#"{"ok":false,"error":{"kind":"no-safety"}}"#))
     }
 
-    // test/core/backup.test.mjs: 清空所有记录 → 撤销：清掉记录类域、保留 settings 与本机备份日期、写入结论；撤销逐字还原
+    // 清空所有记录 → 撤销：清掉记录类域、保留 settings 与本机备份日期、写入结论；撤销逐字还原
     func testClearThenUndo() {
         let env = makeStore(currentState())
         let before = v2Raw(env.disk)
@@ -383,7 +383,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(v2Raw(env.disk), before)
     }
 
-    // test/core/backup.test.mjs: 清空：副本失败 / 清空本身失败 → 全部键不变
+    // 清空：副本失败 / 清空本身失败 → 全部键不变
     func testClearFailuresLeaveEveryKey() {
         let a = makeStore(currentState())
         let beforeA = v2Raw(a.disk)
@@ -397,7 +397,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(v2Raw(b.disk), beforeB)
     }
 
-    // test/core/backup.test.mjs: 导出记账：lastExportAt / 签名、清结论 → 「现在的记录都已经备份了」；dropSafety 无副本不写
+    // 导出记账：lastExportAt / 签名、清结论 → 「现在的记录都已经备份了」；dropSafety 无副本不写
     func testMarkExportedAndDropSafety() {
         let env = makeStore(currentState())
         let writes = env.disk.writeCount
@@ -410,7 +410,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(Backup.judgedCharsOf(env.store.state["records"]).count, 3)
     }
 
-    // test/core/backup.test.mjs: 备份页文案小工具（mine/backup.js）：撤销底栏两行、丢失范围句、结论句、「我的」菜单右侧
+    // 备份页文案小工具（mine/backup.js）：撤销底栏两行、丢失范围句、结论句、「我的」菜单右侧
     func testBackupPageTextHelpers() throws {
         XCTAssertEqual(try BackupText.undoLines("restore", failed: false), ["\u{5DF2}\u{6362}\u{6210}\u{5907}\u{4EFD}\u{91CC}\u{7684}\u{8BB0}\u{5F55}", "\u{79BB}\u{5F00}\u{8FD9}\u{4E00}\u{9875}\u{524D}\u{53EF}\u{4EE5}\u{64A4}\u{9500}"])
         XCTAssertEqual(try BackupText.undoLines("clear", failed: false), ["\u{8BB0}\u{5F55}\u{5DF2}\u{6E05}\u{7A7A}", "\u{79BB}\u{5F00}\u{8FD9}\u{4E00}\u{9875}\u{524D}\u{53EF}\u{4EE5}\u{64A4}\u{9500}"])
@@ -427,7 +427,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(BackupText.noteKeys.map { $0.1 }, ["R-B04.protectFailed", "R-B06.notBackup", "R-B06.restoreFailed"])
     }
 
-    // test/core/backup.test.mjs: D27：备份信封含墨迹（每字第一次 + 最近一次，跨月键）；导出 → 新机恢复逐字相等；恢复旧备份 → 撤销，墨迹往返不丢
+    // D27：备份信封含墨迹（每字第一次 + 最近一次，跨月键）；导出 → 新机恢复逐字相等；恢复旧备份 → 撤销，墨迹往返不丢
     func testD27BackupEnvelopeCarriesInk() throws {
         func stroke(_ y: Double, _ t0: Double) throws -> [InkPoint] {
             try InkMath.buildStroke([InkPoint(x: 60, y: y, t: t0), InkPoint(x: 170, y: y + 2, t: t0 + 60), InkPoint(x: 280, y: y + 9, t: t0 + 120)], options: InkOptions(final: true)).points

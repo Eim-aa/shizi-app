@@ -21,7 +21,7 @@ final class ContractTests: XCTestCase {
         XCTAssertSameJSON(try Models.roundTrip(specId: spec.id, value: value), value, label, file: file, line: line)
     }
 
-    // test/core/contract.test.mjs: contract: records built and corrected by core pass the schema
+    // contract: records built and corrected by core pass the schema
     func testContractRecordsBuiltAndCorrectedByCorePassTheSchema() throws {
         let list = try cases(prefix: "records:")
         XCTAssertEqual(list.count, 2)
@@ -37,21 +37,21 @@ final class ContractTests: XCTestCase {
         XCTAssertNil(Schema.validateValue(key: Schema.recordsKey("2026-09"), value: .array([fixed])))
     }
 
-    // test/core/contract.test.mjs: contract: sched entries from applyJudgment / replay pass the schema
+    // contract: sched entries from applyJudgment / replay pass the schema
     func testContractSchedEntriesFromApplyJudgmentReplayPassTheSchema() throws {
         let list = try cases(prefix: "sched:")
         XCTAssertEqual(list.count, 3)
         for c in list { try check(c) }
     }
 
-    // test/core/contract.test.mjs: contract: sessions through their whole lifecycle pass the schema
+    // contract: sessions through their whole lifecycle pass the schema
     func testContractSessionsThroughTheirWholeLifecyclePassTheSchema() throws {
         let list = try cases(prefix: "sessions:")
         XCTAssertEqual(list.count, 8)
         for c in list { try check(c) }
     }
 
-    // test/core/contract.test.mjs: contract: cards.js placeholder prompt copy (M0-2) equals the copy table
+    // contract: cards.js placeholder prompt copy (M0-2) equals the copy table
     func testContractCardsJsPlaceholderPromptCopyM02EqualsTheCopyTable() throws {
         XCTAssertEqual(CardRules.promptCopy["repeatInstruction"], s43(try Copy.text("R-W28.repeatBlankNote")))
         XCTAssertEqual(CardRules.promptCopy["fallbackHint"], s43(try Copy.text("X-PROMPT.fallbackHint")))

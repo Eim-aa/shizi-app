@@ -13,14 +13,14 @@ final class SheetGridTranscriptionTests: XCTestCase {
     func page(_ n: Int, _ ratio: String) throws -> JSValue { try ImageLayout.layout(n, ratio: ratio, sheet: true) }
     func num(_ v: JSValue?, _ k: String) -> Double { JS.number(v?[k] ?? .null) }
 
-    // test/core/sheet-grid.test.mjs: column rule: 1-4 chars one row (n columns), 5-12 -> 4, 13-24 -> 6, 25+ -> 8
+    // column rule: 1-4 chars one row (n columns), 5-12 -> 4, 13-24 -> 6, 25+ -> 8
     func testColumnRule14CharsOneRowNColumns512To41324To625To8() {
         let want: [(Int, Int)] = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 4), (12, 4), (13, 6), (24, 6), (25, 8), (72, 8), (80, 8), (900, 8)]
         for (n, cols) in want { XCTAssertEqual(ImageLayout.sheetColumns(n), cols, "n=\(n)") }
         XCTAssertEqual(ImageLayout.sheetColumns(0), 0)
     }
 
-    // test/core/sheet-grid.test.mjs: cell count equals char count for every n — no empty cells, ever
+    // cell count equals char count for every n — no empty cells, ever
     func testCellCountEqualsCharCountForEveryNNoEmptyCellsEver() throws {
         for n in 1...100 {
             let g = try grid(n, 350), cells = g["cells"]!.arrayValue!
@@ -30,7 +30,7 @@ final class SheetGridTranscriptionTests: XCTestCase {
         }
     }
 
-    // test/core/sheet-grid.test.mjs: 3 chars: one row of 110pt cells; 72 chars: 8 columns, 9 rows, cells fit the width
+    // 3 chars: one row of 110pt cells; 72 chars: 8 columns, 9 rows, cells fit the width
     func testThreeCharsOneRowOf110ptCells72Chars8Columns9RowsCellsFitTheWidth() throws {
         let a = try grid(3, 350)
         XCTAssertEqual([num(a, "cols"), num(a, "rows"), num(a, "c"), num(a, "W")], [3, 1, 110, 330])
@@ -42,7 +42,7 @@ final class SheetGridTranscriptionTests: XCTestCase {
         XCTAssertEqual(try grid(72, 335)["c"], .number(41), "375 wide screen")
     }
 
-    // test/core/sheet-grid.test.mjs: short last row: the outline is a staircase (one frame), the inner lines stop at the last cell
+    // short last row: the outline is a staircase (one frame), the inner lines stop at the last cell
     func testShortLastRowTheOutlineIsAStaircaseOneFrameTheInnerLinesStopAtTheLastCell() throws {
         XCTAssertEqual(try grid(18, 350)["full"], .bool(true), "6 cols x 3 rows, last row 6 -> full")
         let s = try grid(19, 350)
@@ -53,14 +53,14 @@ final class SheetGridTranscriptionTests: XCTestCase {
         XCTAssertEqual(try grid(8, 350)["full"], .bool(true))
     }
 
-    // test/core/sheet-grid.test.mjs: maxHeight shrinks the cell so the grid fits (export on 1:1)
+    // maxHeight shrinks the cell so the grid fits (export on 1:1)
     func testMaxHeightShrinksTheCellSoTheGridFitsExportOn11() throws {
         let g = try grid(80, 974, unit: 2.69, maxHeight: 700)
         XCTAssertLessThanOrEqual(num(g, "H"), 700)
         XCTAssertEqual(g["cells"]!.arrayValue!.count, 80)
     }
 
-    // test/core/sheet-grid.test.mjs: date tag: only the first char of each day; a page with one day has none
+    // date tag: only the first char of each day; a page with one day has none
     func testDateTagOnlyTheFirstCharOfEachDayAPageWithOneDayHasNone() throws {
         let cells = [J(#"{"ch":"甲","day":"2026-09-01"}"#), J(#"{"ch":"乙","day":"2026-09-01"}"#), J(#"{"ch":"丙","day":"2026-09-03"}"#), J(#"{"ch":"丁","day":"2026-09-03"}"#)]
         XCTAssertEqual(ImageLayout.sheetTags(ImageLayout.withDayTags(cells)), ["1", "", "3", ""].map(JSValue.string))
@@ -68,7 +68,7 @@ final class SheetGridTranscriptionTests: XCTestCase {
         XCTAssertEqual(ImageLayout.sheetTags([]), [] as [JSValue])
     }
 
-    // test/core/sheet-grid.test.mjs: mine page cap is one sheet (80 chars)
+    // mine page cap is one sheet (80 chars)
     func testMinePageCapIsOneSheet80Chars() {
         let cells = (0..<85).map { _ in J(#"{"ch":"永","day":"2026-09-01"}"#) }
         // MINE_SHEET_MAX_CHARS = 80：超过 80 只放最近的 80 个，第一格重标日期（Swift 的默认上限就是它）
@@ -80,7 +80,7 @@ final class SheetGridTranscriptionTests: XCTestCase {
         XCTAssertEqual(kept["cells"]!.arrayValue!, Array(cells.prefix(80)), "≤ 80 untouched")
     }
 
-    // test/core/sheet-grid.test.mjs: export page layout uses the same column rule and staircase as the screen (D31)
+    // export page layout uses the same column rule and staircase as the screen (D31)
     func testExportPageLayoutUsesTheSameColumnRuleAndStaircaseAsTheScreenD31() throws {
         for n in [1, 3, 4, 5, 12, 13, 24, 25, 72, 80] {
             for ratio in ["3:4", "1:1"] {
@@ -99,7 +99,7 @@ final class SheetGridTranscriptionTests: XCTestCase {
         XCTAssertLessThanOrEqual(abs(num(three["grid"], "c") / 2.69 - 110), 1.5, "3 chars: ~110pt cells on the export too")
     }
 
-    // test/core/sheet-grid.test.mjs: export signature: full last row -> seal under the last cell, right edge aligned; short last row -> seal right of the last cell, bottoms aligned
+    // export signature: full last row -> seal under the last cell, right edge aligned; short last row -> seal right of the last cell, bottoms aligned
     func testExportSignatureFullLastRowSealUnderTheLastCellRightEdgeAlignedShortLastRowSealRightOfTheLastCellBottomsAligned() throws {
         let full = try page(8, "3:4")
         XCTAssertEqual(full["below"], .bool(true))

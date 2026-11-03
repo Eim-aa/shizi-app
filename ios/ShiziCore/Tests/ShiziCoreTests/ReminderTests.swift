@@ -70,7 +70,7 @@ final class ReminderTests: XCTestCase {
 
     func candidates(_ state: JSValue, policy: JSObject? = nil) throws -> [Reminder.Candidate] { try Reminder.reminderCandidates(state, deck: deck, policy: policy, dates: shanghai43) }
 
-    // test/platform/reminder.test.mjs: candidates follow P48: 写错过 first, then the longest overdue; stopped / unpracticable / no-context-word excluded
+    // candidates follow P48: 写错过 first, then the longest overdue; stopped / unpracticable / no-context-word excluded
     func testCandidatesFollowP48FirstThenTheLongestOverdueStoppedUnpracticableNoContextWordExcluded() throws {
         let list = try candidates(try baseState())
         XCTAssertEqual(list.map { "\($0.cardKey)|\($0.wrong)|\($0.due)" }, ["base:\(xi)|true|2026-09-25", "base:\(kong)|false|2026-09-20", "base:\(bai)|false|2026-09-24", "base:\(chuan)|false|2026-10-10"])
@@ -84,7 +84,7 @@ final class ReminderTests: XCTestCase {
         XCTAssertThrowsCore("range", containing: "reminderPick") { _ = try candidates(try baseState(), policy: Reminder.policyObject(JSObject([("reminderPick", s43("random"))]))) }
     }
 
-    // test/platform/reminder.test.mjs: questions: one per day from chars due by that day, 写错过 first, no repeats while others are left
+    // questions: one per day from chars due by that day, 写错过 first, no repeats while others are left
     func testQuestionsOnePerDayFromCharsDueByThatDayFirstNoRepeatsWhileOthersAreLeft() throws {
         let qs = try Reminder.reminderQuestions(try baseState(), today: s43(TODAY), deck: deck, dates: shanghai43)
         XCTAssertEqual(Reminder.reminderDays, 8)
@@ -105,7 +105,7 @@ final class ReminderTests: XCTestCase {
         XCTAssertThrowsCore("range", containing: "invalid today") { _ = try Reminder.reminderQuestions(try baseState(), today: s43("2026-9-24"), deck: deck, dates: shanghai43) }
     }
 
-    // test/platform/reminder.test.mjs: masked word: every position of the target is blanked; policy.reminderWord=word keeps the old whole word
+    // masked word: every position of the target is blanked; policy.reminderWord=word keeps the old whole word
     func testMaskedWordEveryPositionOfTheTargetIsBlankedPolicyReminderWordWordKeepsTheOldWholeWord() {
         func card(_ chars: [String], _ target: String, word: String? = nil) -> JSValue {
             var o = JSObject([("chars", arrayOf43(chars)), ("target", s43(target))])
@@ -121,7 +121,7 @@ final class ReminderTests: XCTestCase {
         XCTAssertEqual(Config.policyString("reminderWord"), "blank", "P48 transitional default")
     }
 
-    // test/platform/reminder.test.mjs: practicedToday (D66 ⑦): written at 1 am belongs to the day before — tonight's reminder still fires
+    // practicedToday (D66 ⑦): written at 1 am belongs to the day before — tonight's reminder still fires
     func testPracticedTodayD66WrittenAt1AmBelongsToTheDayBeforeTonightsReminderStillFires() throws {
         // 凌晨 1 点（日历 9 月 25 日）写了一个字：localDay = 9 月 24 日；今晚 21:05 的提醒属于 9 月 25 日，没练过
         let oneAm = at43("2026-09-25", 1, 0)
@@ -143,7 +143,7 @@ final class ReminderTests: XCTestCase {
         XCTAssertEqual(try Reminder.fireDayOf(n43(oneAm), obj43([("hour", n43(2)), ("minute", n43(0))]), s43("2026-09-24"), dates: shanghai43), s43("2026-09-24"))
     }
 
-    // test/platform/reminder.test.mjs: normalizeTargetKey accepts base:/custom:/bare single chars only
+    // normalizeTargetKey accepts base:/custom:/bare single chars only
     func testNormalizeTargetKeyAcceptsBaseCustomBareSingleCharsOnly() {
         XCTAssertEqual(Reminder.normalizeTargetKey(s43("base:" + xi)), "base:" + xi)
         XCTAssertEqual(Reminder.normalizeTargetKey(s43(" " + xi + " ")), "base:" + xi)
@@ -153,7 +153,7 @@ final class ReminderTests: XCTestCase {
         XCTAssertNil(Reminder.normalizeTargetKey(s43("")))
     }
 
-    // test/platform/reminder.test.mjs: affectsReminder: records / sched / settings / wordOff writes and replacements; not session strokes or status
+    // affectsReminder: records / sched / settings / wordOff writes and replacements; not session strokes or status
     func testAffectsReminderRecordsSchedSettingsWordOffWritesAndReplacementsNotSessionStrokesOrStatus() {
         func a(_ json: String) -> Bool { Reminder.affectsReminder(J(json)) }
         XCTAssertTrue(a("{\"type\":\"commit\",\"keys\":[\"shizi.v2.records.2026-09\",\"shizi.v2.sessions\"]}"))

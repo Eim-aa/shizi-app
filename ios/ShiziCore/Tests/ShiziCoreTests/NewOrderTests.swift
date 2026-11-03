@@ -32,7 +32,7 @@ private func deckRanks() throws -> [String: Double] {
 }
 
 final class NewOrderTests: XCTestCase {
-    // test/core/new-order.test.mjs: char-order.js is generated from the draft table (--check passes) and a change to the table makes it stale
+    // char-order.js is generated from the draft table (--check passes) and a change to the table makes it stale
     func testCharOrderJsIsGeneratedFromTheDraftTableCheckPassesAndAChangeToTheTableMakesItStale() throws {
         // JS 原测试跑生成器脚本 scripts/build_char_order.mjs --check / generate()，对的是 src/config/char-order.js。
         // Swift 没有这个生成器：资源 char-order.json 由 scripts/build_char_order.mjs 直接写入 Bundled。
@@ -45,7 +45,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertFalse(CO.order.isEmpty)
     }
 
-    // test/core/new-order.test.mjs: default order = the table order minus the reserved chars; nothing is reordered or invented
+    // default order = the table order minus the reserved chars; nothing is reordered or invented
     func testDefaultOrderIsTheTableOrderMinusTheReservedCharsNothingIsReorderedOrInvented() throws {
         let table = try loadTable()
         XCTAssertEqual(CO.order, strs(table["order"]).filter { !reservedAll.contains($0) })
@@ -55,7 +55,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertGreaterThan(CO.order.count, 400)
     }
 
-    // test/core/new-order.test.mjs: D39 / D40 / D45: rarely-used surnames / place names and capital numerals are not in the default sort
+    // D39 / D40 / D45: rarely-used surnames / place names and capital numerals are not in the default sort
     func testD39D40D45RarelyUsedSurnamesPlaceNamesAndCapitalNumeralsAreNotInTheDefaultSort() throws {
         let inOrder = Set(CO.order + CO.level2)
         let sample: [(String, String)] = [("surnames", "\u{6ED5}\u{7FDF}\u{853A}"), ("places", "\u{9ED4}\u{6EC7}\u{6E1D}"), ("capital", "\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}\u{9646}\u{67D2}\u{634C}\u{7396}\u{62FE}\u{4F70}\u{4EDF}")]
@@ -78,7 +78,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertEqual(CO.capitalNumerals.joined(), "\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}\u{9646}\u{67D2}\u{634C}\u{7396}\u{62FE}\u{4F70}\u{4EDF}")
     }
 
-    // test/core/new-order.test.mjs: D45 / P145: commonly-used surnames and place names (熊 颜 藏 桂 厦 傅 鞠 豫 疆 …) are back in the default sort, at their table positions
+    // D45 / P145: commonly-used surnames and place names (熊 颜 藏 桂 厦 傅 鞠 豫 疆 …) are back in the default sort, at their table positions
     func testD45P145CommonlyUsedSurnamesAndPlaceNamesAreBackInTheDefaultSortAtTheirTablePositions() throws {
         let table = try loadTable()
         let inOrder = Set(CO.order + CO.level2)
@@ -108,7 +108,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertEqual(CO.places.count + CO.commonKeptPlaces.count, 21)
     }
 
-    // test/core/new-order.test.mjs: D45 / P145: the threshold is a generator parameter — a stricter one (1500) removes more of the list
+    // D45 / P145: the threshold is a generator parameter — a stricter one (1500) removes more of the list
     func testD45P145TheThresholdIsAGeneratorParameterAStricterOne1500RemovesMoreOfTheList() throws {
         // JS 原测试用 generate(ROOT, {commonRankMax: 1500}) 重新生成并比对文本。Swift 没有生成器；
         // 数据层的后果是：阈值 1500 时「熊 桂」仍会被剔除（字频 > 1500）而「谢 藏」留下（字频 ≤ 1500）——
@@ -123,7 +123,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertGreaterThan(CO.commonRankMax, 1500)
     }
 
-    // test/core/new-order.test.mjs: listed chars come first in table order; unlisted chars follow in the original frequency order; keys outside the list are kept
+    // listed chars come first in table order; unlisted chars follow in the original frequency order; keys outside the list are kept
     func testListedCharsComeFirstInTableOrderUnlistedCharsFollowInTheOriginalFrequencyOrderKeysOutsideTheListAreKept() throws {
         let freq = K("\u{7684}\u{4E00}\u{662F}\u{4E86}\u{4E0D}\u{6211}\u{9171}\u{4EBA}\u{5728}\u{5C34}\u{6709}\u{4ED6}\u{8FD9}\u{6625}\u{4E2D}\u{5927}\u{6765}\u{918B}\u{4E0A}\u{56FD}\u{4E2A}\u{5230}\u{8BF4}\u{4EEC}\u{4E3A}\u{5B50}\u{548C}\u{4F60}\u{5730}\u{51FA}\u{9053}\u{4E5F}\u{65F6}\u{5E74}\u{5F97}\u{5C31}\u{90A3}\u{8981}\u{4E0B}\u{4EE5}\u{751F}\u{4F1A}\u{81EA}\u{7740}\u{53BB}\u{4E4B}\u{8FC7}\u{5BB6}\u{5B66}\u{5BF9}\u{53EF}\u{5979}\u{91CC}\u{540E}\u{5C0F}\u{4E48}\u{5FC3}\u{591A}\u{5929}\u{800C}\u{80FD}\u{597D}\u{90FD}\u{7136}\u{6CA1}\u{65E5}\u{4E8E}\u{8D77}\u{8FD8}\u{53D1}\u{6210}\u{4E8B}\u{53EA}\u{4F5C}\u{5F53}\u{60F3}\u{770B}\u{6587}\u{65E0}\u{5F00}\u{624B}\u{5341}\u{7528}\u{4E3B}\u{884C}\u{65B9}\u{53C8}\u{5982}\u{524D}\u{6240}\u{672C}\u{89C1}\u{7ECF}\u{5934}\u{9762}\u{516C}\u{540C}\u{4E09}\u{5DF2}\u{8001}\u{4ECE}\u{52A8}\u{4E24}\u{957F}\u{77E5}\u{6C11}\u{6837}\u{73B0}\u{5206}\u{5C06}\u{5916}\u{4F46}\u{8EAB}\u{4E9B}\u{4E0E}\u{9AD8}\u{610F}\u{8FDB}\u{628A}\u{6CD5}\u{6B64}\u{5B9E}\u{56DE}\u{4E8C}\u{7406}\u{7F8E}\u{70B9}\u{6708}\u{660E}\u{5176}\u{79CD}\u{58F0}\u{5168}\u{5DE5}\u{5DF2}")
         let ordered = NewOrder.orderNewKeys(freq)
@@ -140,7 +140,7 @@ final class NewOrderTests: XCTestCase {
         // JS 还试了 orderNewKeys(null) → []；Swift 的参数类型是 [String]，不接受 null，没有对应情形。
     }
 
-    // test/core/new-order.test.mjs: swapping the table swaps the order: orderNewKeys / warmupKeys read only the data they are given
+    // swapping the table swaps the order: orderNewKeys / warmupKeys read only the data they are given
     func testSwappingTheTableSwapsTheOrderOrderNewKeysWarmupKeysReadOnlyTheDataTheyAreGiven() throws {
         func a(_ s: String) -> JSValue { .array(chars(s).map { S($0) }) }
         let data = JS.obj([
@@ -155,7 +155,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertTrue(NewOrder.isReservedChar("\u{620A}", data: data))
     }
 
-    // test/core/new-order.test.mjs: deck adapter: newCandidates are in table order for the default library, 的 一 是 do not lead, warm-up chars are listed separately
+    // deck adapter: newCandidates are in table order for the default library, 的 一 是 do not lead, warm-up chars are listed separately
     func testDeckAdapterNewCandidatesAreInTableOrderForTheDefaultLibraryDeYiShiDoNotLeadWarmUpCharsAreListedSeparately() throws {
         // JS 用 setDeckSource 注入一份小题库（一级 / 二级两个库）。Swift 的适配器是 ScheduleDeck + DeckIndex（B4.2 里它的数据来自生成的
         // deck-libraries.json）；这里用同样形状的手工索引：core3500 = 一级行的字（字频序），adv3000 = 二级行的字。
@@ -191,7 +191,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertEqual(ScheduleDeck.real.warmupCandidates?(S("core3500")), NewOrder.warmupKeys(DeckIndex.shared.library(S("core3500"))!.keys))
     }
 
-    // test/core/new-order.test.mjs: capital numerals data: groups 壹贰叁肆伍 / 陆柒捌玖拾, 佰仟 after; every one has a leak-free context word with the target exactly once
+    // capital numerals data: groups 壹贰叁肆伍 / 陆柒捌玖拾, 佰仟 after; every one has a leak-free context word with the target exactly once
     func testCapitalNumeralsDataGroupsAfterEveryOneHasALeakFreeContextWordWithTheTargetExactlyOnce() throws {
         XCTAssertEqual(NewOrder.capitalGroupKeys().map { $0.map(char).joined() }, ["\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}", "\u{9646}\u{67D2}\u{634C}\u{7396}\u{62FE}"])
         XCTAssertEqual(NewOrder.capitalAfterKeys(), K("\u{4F70}\u{4EDF}"))
@@ -212,7 +212,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertFalse(NewOrder.isCapitalQueue([]))
     }
 
-    // test/core/new-order.test.mjs: capitalCard swaps in the money context only for a whole-capital queue; other cards and queues are untouched
+    // capitalCard swaps in the money context only for a whole-capital queue; other cards and queues are untouched
     func testCapitalCardSwapsInTheMoneyContextOnlyForAWholeCapitalQueueOtherCardsAndQueuesAreUntouched() throws {
         // data/deck.js 的 capitalCard（造卡）属于 B4.3，这里没有移植。它的规则只有两步：队列整组是大写数字（NewOrder.isCapitalQueue）、
         // 且这个字有语境（CharOrder.capitalContext(of:)）才换题面。下面的本地函数按 deck.js 的写法实现同一规则，对手工构造的 JSValue 卡检验。
@@ -238,7 +238,7 @@ final class NewOrderTests: XCTestCase {
         XCTAssertEqual(capitalCard(noCtx, K("\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}")), noCtx)
     }
 
-    // test/core/new-order.test.mjs: D50 ⑤ ⑥ (C1): surname-only chars go to 「姓氏与地名」 whatever their frequency; heavy chars never come as new, yet stay practicable
+    // D50 ⑤ ⑥ (C1): surname-only chars go to 「姓氏与地名」 whatever their frequency; heavy chars never come as new, yet stay practicable
     func testD50N5N6C1SurnameOnlyCharsGoToSurnamesAndPlacesWhateverTheirFrequencyHeavyCharsNeverComeAsNewYetStayPracticable() throws {
         XCTAssertEqual(CO.surnameOnly, chars("\u{859B}\u{5F6D}\u{6F58}\u{8521}\u{960E}\u{9B4F}\u{8881}"))
         for c in chars("\u{859B}\u{5F6D}\u{6F58}\u{8521}\u{960E}\u{9B4F}\u{8881}") {

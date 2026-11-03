@@ -58,7 +58,7 @@ final class InkMathTests: XCTestCase {
 
     func pol(_ k: String) -> Double { Config.policyNumber(k)! }
 
-    // test/core/ink-math.test.mjs: ink-math: body width = BASE × (1.06 − 0.12·min(v,1.5)); slow is wider than fast
+    // ink-math: body width = BASE × (1.06 − 0.12·min(v,1.5)); slow is wider than fast
     func testInkMathBodyWidthBASE106012MinV15SlowIsWiderThanFast() throws {
         close43(InkMath.speedFactor(0), 1.06, 1e-12, "v=0")
         close43(InkMath.speedFactor(1.5), 0.88, 1e-12, "v=1.5")
@@ -72,14 +72,14 @@ final class InkMathTests: XCTestCase {
         close43(wFast, B * InkMath.speedFactor(1.2), 0.15, "fast mid-stroke settles on the body width")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: width smoothing is by time (α = 1 − e^(−Δt/35ms)), so 60Hz and 120Hz settle the same
+    // ink-math: width smoothing is by time (α = 1 − e^(−Δt/35ms)), so 60Hz and 120Hz settle the same
     func testInkMathWidthSmoothingIsByTime60HzAnd120HzSettleTheSame() throws {
         let at120 = try buildPts43(inkLine43(v: 1.0, step: hz120x43)).points
         let at60 = try buildPts43(inkLine43(v: 1.0, step: 1000.0 / 60)).points
         close43(meanWidthBetween43(at120, 80, 140), meanWidthBetween43(at60, 80, 140), 0.08, "mid width independent of sample rate")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: pen pressure replaces the speed factor (D10, not multiplied)
+    // ink-math: pen pressure replaces the speed factor (D10, not multiplied)
     func testInkMathPenPressureReplacesTheSpeedFactorD10NotMultiplied() throws {
         close43(InkMath.pressureFactor(1), 1.52, 1e-12, "p=1")
         close43(InkMath.pressureFactor(0.25), 0.58 + 0.5 * 0.94, 1e-12, "p=.25")
@@ -96,7 +96,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertTrue(slowPen.points.allSatisfy { $0.p == 0.25 }, "pressure survives Catmull-Rom resampling")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: start of stroke 0.85× → 1.08× → 1.0× over 0–6–12 units
+    // ink-math: start of stroke 0.85× → 1.08× → 1.0× over 0–6–12 units
     func testInkMathStartOfStroke085108510Over0612Units() throws {
         let pts = try buildPts43(inkLine43(v: 0.3)).points
         close43(pts[0].w! / B, 0.85, 1e-9, "first point 0.85 x body")
@@ -110,7 +110,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertTrue(peak / after > 1.04 && peak / after < 1.09, "bulge ~ 1.08x (\(peak / after))")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: lift taper follows the 30ms average speed (0.25 / 0.9 thresholds)
+    // ink-math: lift taper follows the 30ms average speed (0.25 / 0.9 thresholds)
     func testInkMathLiftTaperFollowsThe30msAverageSpeed025And09Thresholds() throws {
         let slow = try buildPts43(inkLine43(v: 0.2))
         let fast = try buildPts43(inkLine43(v: 1.2))
@@ -123,7 +123,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertGreaterThan(live.endK, fast.endK, "taper only after lift (final=true)")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: 30ms window is interpolated to exactly 30ms (frame-rate independent)
+    // ink-math: 30ms window is interpolated to exactly 30ms (frame-rate independent)
     func testInkMath30msWindowIsInterpolatedToExactly30msFrameRateIndependent() {
         // 1 单位/ms 到 t=100，然后 0.2 单位/ms 走 20ms；采样每 20ms。窗口 [90,120]：20ms×0.2 + 10ms×1 = 14 → 14/30。
         var raw = [0.0, 20, 40, 60, 80, 100].map { InkPoint(x: $0, y: 0, t: $0, order: InkPoint.orderXYTP) }
@@ -140,7 +140,7 @@ final class InkMathTests: XCTestCase {
         close43(InkMath.liftSpeed([InkPoint(x: 0, y: 0, t: 0, order: InkPoint.orderXYTP), InkPoint(x: 10, y: 0, t: 10, order: InkPoint.orderXYTP)])!, 1, 1e-12, "shorter than 30ms uses the whole duration")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: zero-dt samples merge (last position wins) and do not enter speed
+    // ink-math: zero-dt samples merge (last position wins) and do not enter speed
     func testInkMathZeroDtSamplesMergeLastPositionWinsAndDoNotEnterSpeed() throws {
         func p(_ x: Double, _ y: Double, _ t: Double) -> InkPoint { InkPoint(x: x, y: y, t: t, order: InkPoint.orderXYTP) }
         let raw = [p(10, 10, 0), p(20, 10, 10), p(21, 10, 10), p(30, 10, 20)]
@@ -155,7 +155,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertEqual([same.points[0].x, same.points[0].y], [2, 2], "keeps the last position")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: single point = 0.9 × body width; dot (<24 units, after lift) 0.7 → 1.1 → 0.9
+    // ink-math: single point = 0.9 × body width; dot (<24 units, after lift) 0.7 → 1.1 → 0.9
     func testInkMathSinglePoint09BodyWidthDotLessThan24UnitsAfterLift07119() throws {
         let one = try buildPts43([InkPoint(x: 100, y: 100, t: 0, order: InkPoint.orderXYTP)])
         XCTAssertEqual(one.points.count, 1)
@@ -174,7 +174,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertFalse(try buildPts43(inkLine43(len: 40)).dot, ">= 24 units is not a dot")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: Catmull-Rom resamples about every 3 units and keeps the end point
+    // ink-math: Catmull-Rom resamples about every 3 units and keeps the end point
     func testInkMathCatmullRomResamplesAboutEvery3UnitsAndKeepsTheEndPoint() throws {
         func p(_ x: Double, _ t: Double) -> InkPoint { InkPoint(x: x, y: 0, t: t, order: InkPoint.orderXYTP) }
         let pts = InkMath.catmullRom([p(0, 0), p(30, 30), p(60, 60)])
@@ -184,7 +184,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertEqual(try buildPts43([]).points.count, 0, "empty input -> no points")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: thinning keeps ≤ inkMaxPointsPerStroke points by arc length, first and last kept
+    // ink-math: thinning keeps ≤ inkMaxPointsPerStroke points by arc length, first and last kept
     func testInkMathThinningKeepsAtMostInkMaxPointsPerStrokePointsByArcLengthFirstAndLastKept() throws {
         XCTAssertEqual(pol("inkMaxPointsPerStroke"), 24, "P05 / P78: 24 points per stroke")
         XCTAssertEqual(pol("inkMaxStrokes"), 36)
@@ -199,7 +199,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertEqual(InkMath.thinStroke(pts, max: 8).count, 8, "custom cap")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: base64 helpers round-trip bytes; dt quantizes to 16 log-spaced levels
+    // ink-math: base64 helpers round-trip bytes; dt quantizes to 16 log-spaced levels
     func testInkMathBase64HelpersRoundTripBytesDtQuantizesTo16LogSpacedLevels() {
         for n in [0, 1, 2, 3, 4, 5, 96] {
             let bytes = (0..<n).map { UInt8(($0 * 37 + 11) & 255) }
@@ -218,7 +218,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertEqual(InkMath.quantizeDt(60000), 15, "long pauses saturate at the top level")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: encodeInk → Ink v3 → decodeInk round trip (4 bytes per point, schema-valid)
+    // ink-math: encodeInk → Ink v3 → decodeInk round trip (4 bytes per point, schema-valid)
     func testInkMathEncodeInkInkV3DecodeInkRoundTrip4BytesPerPointSchemaValid() throws {
         let strokes: [[InkPoint]] = [
             try buildPts43(inkLine43(x0: 30, y: 60, len: 120, v: 0.4)).points,
@@ -266,7 +266,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertNil(try InkMath.decodeInk(J("{\"v\":3,\"c\":345,\"s\":[\"AAAAAA==\"],\"p\":[\"AAA=\"]}")), "p byte count must match points")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: packing clamps x / y to 10 bits and w to 8 bits
+    // ink-math: packing clamps x / y to 10 bits and w to 8 bits
     func testInkMathPackingClampsXYTo10BitsAndWTo8Bits() throws {
         func p(_ x: Double, _ y: Double, _ w: Double, _ t: Double) -> InkPoint { InkPoint(x: x, y: y, t: t, w: w, order: InkPoint.orderXYWTP) }
         let ink = try InkMath.encodeInk([[p(-20, 400, B * 3, 0), p(353, 10, 0, 10)]])
@@ -278,7 +278,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertEqual(back[0][1].w, 0)
     }
 
-    // test/core/ink-math.test.mjs: ink-math: decodeInk still reads legacy InkV2 (P78 read compatibility)
+    // ink-math: decodeInk still reads legacy InkV2 (P78 read compatibility)
     func testInkMathDecodeInkStillReadsLegacyInkV2P78ReadCompatibility() throws {
         let v2 = J("{\"v\":2,\"c\":345,\"s\":[[100,200,100,110,210,90]],\"dt\":[[0,16]],\"p\":[[0,50]]}")
         XCTAssertTrue(InkMath.isInkV2(v2) && InkMath.isInk(v2))
@@ -293,7 +293,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertNil(try InkMath.decodeInk(J("{\"v\":2,\"c\":345,\"s\":[[1,2]]}")), "row not a multiple of 3 -> nil")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: pen pressure survives encoding (p = 1 byte per point, only when present)
+    // ink-math: pen pressure survives encoding (p = 1 byte per point, only when present)
     func testInkMathPenPressureSurvivesEncodingP1BytePerPointOnlyWhenPresent() throws {
         let pen = try buildPts43(inkLine43(len: 100, v: 0.5, p: 0.42)).points
         let ink = try InkMath.encodeInk([pen])
@@ -306,7 +306,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertTrue(back[0].allSatisfy { abs($0.p! - 0.42) <= 0.5 / 255 + 1e-9 })
     }
 
-    // test/core/ink-math.test.mjs: ink-math: encodeInk caps strokes at inkMaxStrokes and points at inkMaxPointsPerStroke
+    // ink-math: encodeInk caps strokes at inkMaxStrokes and points at inkMaxPointsPerStroke
     func testInkMathEncodeInkCapsStrokesAtInkMaxStrokesAndPointsAtInkMaxPointsPerStroke() throws {
         var many: [[InkPoint]] = []
         for i in 0..<50 { many.append(try buildPts43(inkLine43(y: 5 + Double(i) * 6, len: 250, v: 0.05, t0: Double(i) * 10000)).points) }
@@ -335,7 +335,7 @@ final class InkMathTests: XCTestCase {
         return strokes
     }
 
-    // test/core/ink-math.test.mjs: ink-math: P78 capacity — 14 strokes × 24 points ≤ 4KB per record; 300 records ≤ 1.2MiB
+    // ink-math: P78 capacity — 14 strokes × 24 points ≤ 4KB per record; 300 records ≤ 1.2MiB
     func testInkMathP78Capacity14Strokes24PointsAtMost4KBPerRecord300RecordsAtMost12MiB() throws {
         let uniform = InkMath.EncodeOptions(tolerance: .none)
         let strokes = try bigChar()
@@ -442,7 +442,7 @@ final class InkMathTests: XCTestCase {
     var common300: [String] { Self.deckChars.prefix(300).map { $0.ch } }
     var heavy300: [String] { Self.deckChars.filter { $0.strokes >= 12 }.prefix(300).map { $0.ch } }
 
-    // test/core/ink-math.test.mjs: ink-math (Q1 / P176): after-seen ink on top of D27 two copies — measured against the 1.2MiB target and the P05 budget
+    // ink-math (Q1 / P176): after-seen ink on top of D27 two copies — measured against the 1.2MiB target and the P05 budget
     func testInkMathQ1P176AfterSeenInkOnTopOfD27TwoCopiesMeasuredAgainstThe12MiBTargetAndTheP05Budget() throws {
         let MiB = 1024.0 * 1024
         let common = common300, heavy = heavy300
@@ -460,7 +460,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertTrue(Double(cTyp.bytes) <= 1.2 * MiB && Double(hTyp.bytes) <= 1.2 * MiB, "20% share stays within 1.2MiB")
     }
 
-    // test/core/ink-math.test.mjs: ink-math (P121): simplifyStroke keeps corners, width changes and pauses; straight steady strokes need few points; cap holds
+    // ink-math (P121): simplifyStroke keeps corners, width changes and pauses; straight steady strokes need few points; cap holds
     func testInkMathP121SimplifyStrokeKeepsCornersWidthChangesAndPausesStraightSteadyStrokesNeedFewPointsCapHolds() throws {
         let straight = try buildPts43(inkLine43(len: 240, v: 0.4)).points
         let s1 = InkMath.simplifyStroke(straight)
@@ -509,7 +509,7 @@ final class InkMathTests: XCTestCase {
         return (bytes, Double(bytes) / Double(chars.count * 2), Double(points) / Double(strokes))
     }
 
-    // test/core/ink-math.test.mjs: ink-math (B2.3 ink v4 raw points): 300 real characters × 2 copies — measured against the web (P05 / P326) and native ink budgets
+    // ink-math (B2.3 ink v4 raw points): 300 real characters × 2 copies — measured against the web (P05 / P326) and native ink budgets
     func testInkMathB23InkV4RawPoints300RealCharacters2CopiesMeasuredAgainstTheWebP05P326AndNativeInkBudgets() throws {
         let common = common300, heavy = heavy300
         var rows: [(hz: Double, a: (bytes: Int, perRecord: Double, avgPoints: Double), b: (bytes: Int, perRecord: Double, avgPoints: Double))] = []
@@ -529,7 +529,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertGreaterThan(at120.a.bytes, v3 * 2, "raw points are several times v3 — why the web keeps v3")
     }
 
-    // test/core/ink-math.test.mjs: ink-math (D27 / P1-E3): 300 real characters × 2 copies (first + latest) ≤ 1.2MiB with ink v3
+    // ink-math (D27 / P1-E3): 300 real characters × 2 copies (first + latest) ≤ 1.2MiB with ink v3
     func testInkMathD27P1E3300RealCharacters2CopiesFirstLatestAtMost12MiBWithInkV3() throws {
         let common = common300, heavy = heavy300
         XCTAssertEqual(common.count, 300)
@@ -542,7 +542,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertLessThanOrEqual(Double(b.bytes), pol("inkBudgetBytes"), "fits the P05 ink budget (so routine commits never need to recycle first / latest)")
     }
 
-    // test/core/ink-math.test.mjs: ink-math (P121): store-time simplification keeps the shape — replay stays within 2 units / width within 0.75 units of the written stroke
+    // ink-math (P121): store-time simplification keeps the shape — replay stays within 2 units / width within 0.75 units of the written stroke
     func testInkMathP121StoreTimeSimplificationKeepsTheShapeReplayStaysWithin2UnitsWidthWithin075UnitsOfTheWrittenStroke() throws {
         func segDist(_ p: InkPoint, _ a: InkPoint, _ b: InkPoint) -> (d: Double, w: Double) {
             let dx = b.x - a.x, dy = b.y - a.y
@@ -581,7 +581,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertTrue(worst.xy <= worstUniform.xy && worst.w <= worstUniform.w, "no worse than the old uniform 24-point thinning")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: raw session strokes encode losslessly enough to rebuild the same ink
+    // ink-math: raw session strokes encode losslessly enough to rebuild the same ink
     func testInkMathRawSessionStrokesEncodeLosslesslyEnoughToRebuildTheSameInk() throws {
         let raws = [inkLine43(len: 90, v: 0.35), inkLine43(len: 50, v: 0.6, p: 0.3, t0: 4000)]
         let rows = InkMath.encodeRawStrokes(raws)
@@ -605,7 +605,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertEqual(InkMath.decodeRawStrokes([[5, 1, 2, 3], [.nan], [3, 1, 2]]).count, 0, "bad rows skipped")
     }
 
-    // test/core/ink-math.test.mjs: ink-math: hand-feel constants come from policy.ink (P65); decided spec stays in INK_SPEC
+    // ink-math: hand-feel constants come from policy.ink (P65); decided spec stays in INK_SPEC
     func testInkMathHandFeelConstantsComeFromPolicyInkP65DecidedSpecStaysInINKSPEC() {
         let ink = Config.policyValue("ink")!
         XCTAssertEqual([ink["base"], ink["lo"], ink["hi"], ink["pressureLo"], ink["pressureGain"], ink["pressureHi"]], [n43(11.5), n43(0.25), n43(0.9), n43(0.58), n43(0.94), n43(1.52)], "P65 transitional values")
@@ -617,7 +617,7 @@ final class InkMathTests: XCTestCase {
         XCTAssertEqual(InkMath.pressureFactor(0), 0.58)
     }
 
-    // test/core/ink-math.test.mjs: ink-math: policy.ink can be injected (opts.policy) and single keys overridden (opts.base / lo / hi …)
+    // ink-math: policy.ink can be injected (opts.policy) and single keys overridden (opts.base / lo / hi …)
     func testInkMathPolicyInkCanBeInjectedOptsPolicyAndSingleKeysOverriddenOptsBaseLoHi() throws {
         let raw = inkLine43(v: 0.3)
         let def = try buildPts43(raw).points

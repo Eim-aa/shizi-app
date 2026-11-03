@@ -15,7 +15,7 @@ final class ImagesTranscriptionTests: XCTestCase {
     func num(_ v: JSValue?, _ k: String) -> Double { JS.number(v?[k] ?? .null) }
     func chars(_ list: [JSValue]) -> [String] { list.map { JS.string($0["ch"] ?? $0["char"] ?? .null) } }
 
-    // test/core/images.test.mjs: layout: the §6.2 result table — 3:4 and 1:1 columns × rows and cell size
+    // layout: the §6.2 result table — 3:4 and 1:1 columns × rows and cell size
     func testLayoutThe62ResultTable34And11ColumnsRowsAndCellSize() throws {
         let t34: [(Int, [Double])] = [(1, [1, 1, 670]), (2, [2, 1, 443]), (3, [3, 1, 295]), (4, [2, 2, 367]), (5, [3, 2, 295]), (20, [4, 5, 221]), (46, [6, 8, 146]), (80, [8, 10, 110])]
         for (n, want) in t34 {
@@ -38,7 +38,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertThrowsCore("bad-args", containing: "INVALID_COUNT") { _ = try ImageLayout.layout(-1, ratio: "3:4") }
     }
 
-    // test/core/images.test.mjs: layout: every cell fits the paper, the grid is never taller than the paper, and the last row is left-aligned (n = 1..80 × both ratios)
+    // layout: every cell fits the paper, the grid is never taller than the paper, and the last row is left-aligned (n = 1..80 × both ratios)
     func testLayoutEveryCellFitsThePaperTheGridIsNeverTallerThanThePaperAndTheLastRowIsLeftAlignedN180BothRatios() throws {
         for ratio in ["3:4", "1:1"] {
             let H = ratio == "3:4" ? 1440.0 : 1080.0
@@ -58,7 +58,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         }
     }
 
-    // test/core/images.test.mjs: layout: one row on a portrait paper keeps top : bottom white space at 2 : 3 (D46 acceptance improvement)
+    // layout: one row on a portrait paper keeps top : bottom white space at 2 : 3 (D46 acceptance improvement)
     func testLayoutOneRowOnAPortraitPaperKeepsTopBottomWhiteSpaceAt23D46AcceptanceImprovement() throws {
         for n in [1, 2, 3] {
             let l = try ImageLayout.layout(n, ratio: "3:4")
@@ -72,7 +72,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(num(l, "top"), (1440 - blockH) / 2 - 1440 * 0.025)
     }
 
-    // test/core/images.test.mjs: layout: seal and 落款 — last cell in the rightmost column → seal under it (right edges aligned), 落款 left of the seal; otherwise seal beside the last cell, 落款 under the grid right-aligned (§6.4)
+    // layout: seal and 落款 — last cell in the rightmost column → seal under it (right edges aligned), 落款 left of the seal; otherwise seal beside the last cell, 落款 under the grid right-aligned (§6.4)
     func testLayoutSealAndKuanLastCellInTheRightmostColumnSealUnderItRightEdgesAlignedOtherwiseSealBesideTheLastCellKuanUnderTheGridRightAligned() throws {
         let three = try ImageLayout.layout(3, ratio: "3:4")
         XCTAssertEqual(three["below"], .bool(true))
@@ -103,12 +103,12 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(try ImageLayout.layout(6, ratio: "3:4")["frame"]!.arrayValue!.count, 1, "full rows → one rectangle")
     }
 
-    // test/core/images.test.mjs: D47: 1–3 chars default to 1:1, 4 and more to 3:4 (a constant, not a magic number)
+    // D47: 1–3 chars default to 1:1, 4 and more to 3:4 (a constant, not a magic number)
     func testD4713CharsDefaultTo114AndMoreTo34AConstantNotAMagicNumber() {
         XCTAssertEqual([1, 2, 3, 4, 5, 20, 80].map { ImageLayout.defaultRatio($0) }, ["1:1", "1:1", "1:1", "3:4", "3:4", "3:4", "3:4"])
     }
 
-    // test/core/images.test.mjs: result-page work cells (§5.2, D49: no board, cw = b): 402 → 181 / 181 / 120 / 144 / 120, plus the SE 375 and Pro Max 440 columns; same cols × rows as the 3:4 image
+    // result-page work cells (§5.2, D49: no board, cw = b): 402 → 181 / 181 / 120 / 144 / 120, plus the SE 375 and Pro Max 440 columns; same cols × rows as the 3:4 image
     func testResultPageWorkCells525D49NoBoardCwB402181181120144120PlusTheSE375AndProMax440ColumnsSameColsRowsAsThe34Image() throws {
         let widths: [(Double, [Double])] = [(402, [181, 181, 120, 144, 120]), (375, [167, 167, 111, 134, 111]), (440, [200, 200, 133, 160, 133])]
         for (w, expected) in widths {
@@ -121,7 +121,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertSameJSON(try ImageLayout.resultGrid(0, screenWidth: 402), J(#"{"cols":0,"rows":0,"c":0}"#))
     }
 
-    // test/core/images.test.mjs: ink width compensation table (§1.1) and the red dot (components.wrongDot)
+    // ink width compensation table (§1.1) and the red dot (components.wrongDot)
     func testInkWidthCompensationTable11AndTheRedDotComponentswrongDot() throws {
         // R2-R1 / V2-03：只有一条规则——原宽，小格只抬到最小物理线宽 1.2pt（旧补偿表 ×1.15 / 1.35 / 1.5 已废）
         XCTAssertEqual([160, 150, 100, 70, 50, 47.5].map { ImageLayout.inkWidthScale($0) }, [1, 1, 1, 1, 1, 1])
@@ -145,7 +145,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertLessThan(abs(num(exported, "d") - 8 * 2.69), 1e-9, "export unit: 8pt × 2.69")
     }
 
-    // test/core/images.test.mjs: month page grid: 6 columns (Pro Max 7, AX 4), cell ⌊(W − 40) / cols⌋; day tags only on the first char of each day
+    // month page grid: 6 columns (Pro Max 7, AX 4), cell ⌊(W − 40) / cols⌋; day tags only on the first char of each day
     func testMonthPageGrid6ColumnsProMax7AX4CellW40ColsDayTagsOnlyOnTheFirstCharOfEachDay() {
         XCTAssertEqual([402, 375, 440].map { ImageLayout.monthColumns(Double($0)) }, [6, 6, 7])
         XCTAssertEqual(ImageLayout.monthColumns(402, ax: true), 4)
@@ -163,7 +163,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         (0..<n).map { i in obj43([("ch", .string(String(Unicode.Scalar(0x4e00 + from + i)!))), ("day", .string(day))]) }
     }
 
-    // test/core/images.test.mjs: paginate: ≤ 80 chars is one page; whole days go to the next page instead of being split; each page ≤ 80
+    // paginate: ≤ 80 chars is one page; whole days go to the next page instead of being split; each page ≤ 80
     func testPaginate80CharsIsOnePageWholeDaysGoToTheNextPageInsteadOfBeingSplitEachPage80() {
         XCTAssertEqual(ImageLayout.paginate([]), [] as [[JSValue]])
         XCTAssertEqual(ImageLayout.paginate(cellsOn("2026-09-01", 80)).count, 1)
@@ -176,7 +176,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         for p in pages { XCTAssertEqual(Set(p.map { JS.string($0["day"] ?? .null) }).count, p.count == 50 ? 1 : 2) }
     }
 
-    // test/core/images.test.mjs: paginate: a single day over 80 chars is cut inside the day at 80; the remainder page can take later days
+    // paginate: a single day over 80 chars is cut inside the day at 80; the remainder page can take later days
     func testPaginateASingleDayOver80CharsIsCutInsideTheDayAt80TheRemainderPageCanTakeLaterDays() {
         let cells = cellsOn("2026-09-01", 10) + cellsOn("2026-09-02", 170, from: 10) + cellsOn("2026-09-03", 5, from: 180)
         let pages = ImageLayout.paginate(cells)
@@ -189,7 +189,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(ImageLayout.paginate(noDay, max: 3).map(\.count), [3, 3, 1])
     }
 
-    // test/core/images.test.mjs: paginate: every page re-runs the layout with its own count (the last page is not a big grid with one corner filled); a new page starts with a day tag
+    // paginate: every page re-runs the layout with its own count (the last page is not a big grid with one corner filled); a new page starts with a day tag
     func testPaginateEveryPageReRunsTheLayoutWithItsOwnCountTheLastPageIsNotABigGridWithOneCornerFilledANewPageStartsWithADayTag() throws {
         let pages = ImageLayout.paginate(cellsOn("2026-09-01", 96))
         let layouts = try pages.map { try ImageLayout.layout($0.count, ratio: "3:4") }
@@ -217,7 +217,7 @@ final class ImagesTranscriptionTests: XCTestCase {
             hasInk: { r in ink.contains(Int(JS.string(r["id"]).dropFirst())! - 1) }, added: added)
     }
 
-    // test/core/images.test.mjs: work members: default = right ∪ (saw answer ∧ wrote after, with ink); wrong with ink can be added; no ink can never be added
+    // work members: default = right ∪ (saw answer ∧ wrote after, with ink); wrong with ink can be added; no ink can never be added
     func testWorkMembersDefaultRightSawAnswerWroteAfterWithInkWrongWithInkCanBeAddedNoInkCanNeverBeAdded() {
         // 疆 写对有墨 / 酱 写对有墨 / 痒 写错有墨 / 酝 看后写（有墨）/ 嚷 跳过 / 醋 看过答案没写
         let w = group(["correct", "correct", "wrong", "seen", "skip", "seen"], ink: [0, 1, 2, 3])
@@ -238,7 +238,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(noInk["addable"], .array([]))
     }
 
-    // test/core/images.test.mjs: work members: 纸上记录 (D46-13) — judged but never in the work, not addable; the interface is isPaperRecord(record.source)
+    // work members: 纸上记录 (D46-13) — judged but never in the work, not addable; the interface is isPaperRecord(record.source)
     func testWorkMembersPaperRecordsD4613JudgedButNeverInTheWorkNotAddableTheInterfaceIsIsPaperRecordrecordsource() {
         XCTAssertEqual(Records.isPaperRecord(J(#"{"source":"paper"}"#)), true)
         XCTAssertEqual(Records.isPaperRecord(J(#"{"source":"screen"}"#)), false)
@@ -250,7 +250,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(w["addable"], .array([]), "no 「放进去」 for a paper record")
     }
 
-    // test/core/images.test.mjs: 「放进去」 state helpers: addedOf / toggleAdded are pure, keep first-added order, and ignore garbage
+    // 「放进去」 state helpers: addedOf / toggleAdded are pure, keep first-added order, and ignore garbage
     func testPutItInStateHelpersAddedOfToggleAddedArePureKeepFirstAddedOrderAndIgnoreGarbage() {
         XCTAssertEqual(ImageSelection.addedOf(nil), [])
         XCTAssertEqual(ImageSelection.addedOf(J(#"{"added":["r2",7,"r5"]}"#)), ["r2", "r5"])
@@ -270,7 +270,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         { r in r["kind"] == .string("answer-seen") ? nil : try base(r) }
     }
 
-    // test/core/images.test.mjs: session image: the plan carries the work members in group order; the added wrong char is back in place with its dot; others are missing
+    // session image: the plan carries the work members in group order; the added wrong char is back in place with its dot; others are missing
     func testSessionImageThePlanCarriesTheWorkMembersInGroupOrderTheAddedWrongCharIsBackInPlaceWithItsDotOthersAreMissing() throws {
         let recs = [
             rec43(1, Self.jiang, "judged", "correct", "2026-10-05", sessionId: "s9"),
@@ -306,7 +306,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(found, .string("2026-10-05"))
     }
 
-    // test/core/images.test.mjs: month cells (§7): first-appearance order, ink = FIRST judgment in the month with ink (D42); a char with no ink all month stays as an under cell; tags only on the first char of each day
+    // month cells (§7): first-appearance order, ink = FIRST judgment in the month with ink (D42); a char with no ink all month stays as an under cell; tags only on the first char of each day
     func testMonthCells7FirstAppearanceOrderInkFirstJudgmentInTheMonthWithInkD42ACharWithNoInkAllMonthStaysAsAnUnderCellTagsOnlyOnTheFirstCharOfEachDay() throws {
         let recs = [
             rec43(1, cYong, "judged", "wrong", "2026-08-30"), rec43(2, cYong, "judged", "correct", "2026-09-02"),
@@ -340,7 +340,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(last["members"]!.arrayValue!.map { $0["record"]!["id"]! }, ["r6", "r3", "r5", "r7"].map(JSValue.string))
     }
 
-    // test/core/images.test.mjs: month cells: 纸上 records are not in the month page and are not counted (D46-13: the judgment interface is isPaperRecord)
+    // month cells: 纸上 records are not in the month page and are not counted (D46-13: the judgment interface is isPaperRecord)
     func testMonthCellsPaperRecordsAreNotInTheMonthPageAndAreNotCountedD4613TheJudgmentInterfaceIsIsPaperRecordrecordsource() throws {
         let paper = setting(rec43(2, he43, "judged", "correct", "2026-09-02"), "source", .string("paper"))
         let st = stateOf([rec43(1, cYong, "judged", "correct", "2026-09-02"), paper, rec43(3, cShan, "judged", "correct", "2026-09-03")])
@@ -350,7 +350,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(try ImageSelection.dayMembers(st, day: "2026-09-02", dates: dates)["members"]!.arrayValue!.count, 1, "the day list skips it too")
     }
 
-    // test/core/images.test.mjs: month cells on a folded month: members from byDay, only kept records can carry ink; the rest are under cells
+    // month cells on a folded month: members from byDay, only kept records can carry ink; the rest are under cells
     func testMonthCellsOnAFoldedMonthMembersFromByDayOnlyKeptRecordsCanCarryInkTheRestAreUnderCells() throws {
         let kept = rec43(9, he43, "judged", "correct", "2025-01-10")
         let st = obj43([
@@ -369,7 +369,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(ImageSelection.flattenRecords(state["records"]).map { $0["id"]! }, [.string("r9")])
     }
 
-    // test/core/images.test.mjs: day image (R-P03): that day judged chars, each char = latest that day; no ink → missing, not drawn
+    // day image (R-P03): that day judged chars, each char = latest that day; no ink → missing, not drawn
     func testDayImageRP03ThatDayJudgedCharsEachCharLatestThatDayNoInkMissingNotDrawn() throws {
         let recs = [
             rec43(1, cYong, "judged", "wrong", "2026-09-24"), rec43(2, he43, "judged", "correct", "2026-09-23"),
@@ -396,7 +396,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         ], inked: inked)
     }
 
-    // test/core/images.test.mjs: D42 month cells: September picks 9-22 (the month's ink-bearing one), August keeps its own — no ink borrowed across months
+    // D42 month cells: September picks 9-22 (the month's ink-bearing one), August keeps its own — no ink borrowed across months
     func testD42MonthCellsSeptemberPicks922TheMonthsInkBearingOneAugustKeepsItsOwnNoInkBorrowedAcrossMonths() throws {
         let st = jingState(), has = hasInkOfState43(st)
         let sep = try ImageSelection.monthMembers(st, month: "2026-09", hasInk: has, dates: dates)
@@ -408,7 +408,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(try ImageSelection.monthMembers(st, month: "2026-09", dates: dates)["members"]!.arrayValue!.first?["record"]!["id"], .string("r2"), "without hasInk: the plain first of the month")
     }
 
-    // test/core/images.test.mjs: D42 month cells: nothing with ink inside the month → an under cell (preferred record kept for the day); ink outside the month does not stand in
+    // D42 month cells: nothing with ink inside the month → an under cell (preferred record kept for the day); ink outside the month does not stand in
     func testD42MonthCellsNothingWithInkInsideTheMonthAnUnderCellPreferredRecordKeptForTheDayInkOutsideTheMonthDoesNotStandIn() throws {
         let st = jingState(inked: ["r1"]), has = hasInkOfState43(st)
         let plan = try ImageSelection.imagePlan(st, scope: obj43([("kind", .string("month")), ("month", .string("2026-09"))]), inkOf: { r in try has(r) ? Self.INK : nil }, dates: dates)
@@ -417,14 +417,14 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(plan["drawn"], .array([]), "drawn = cells with ink")
     }
 
-    // test/core/images.test.mjs: D42 month cells: preference direction — first scans early→late, last scans late→early
+    // D42 month cells: preference direction — first scans early→late, last scans late→early
     func testD42MonthCellsPreferenceDirectionFirstScansEarlylateLastScansLateearly() throws {
         let st = jingState(inked: ["r2", "r3"]), has = hasInkOfState43(st)
         XCTAssertEqual(try ImageSelection.monthMembers(st, month: "2026-09", pick: "first", hasInk: has, dates: dates)["members"]!.arrayValue!.first?["record"]!["id"], .string("r2"))
         XCTAssertEqual(try ImageSelection.monthMembers(st, month: "2026-09", pick: "last", hasInk: has, dates: dates)["members"]!.arrayValue!.first?["record"]!["id"], .string("r3"), "last: r4 has none → r3, not r2")
     }
 
-    // test/core/images.test.mjs: D42 month cells on a folded month: only kept records are candidates; the one with ink wins
+    // D42 month cells on a folded month: only kept records are candidates; the one with ink wins
     func testD42MonthCellsOnAFoldedMonthOnlyKeptRecordsAreCandidatesTheOneWithInkWins() throws {
         let k1 = rec43(8, he43, "judged", "correct", "2025-01-03"), k2 = rec43(9, he43, "judged", "correct", "2025-01-10")
         var st = obj43([
@@ -440,7 +440,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(m["members"]!.arrayValue!.map { (c: JSValue) -> [JSValue] in [.string(chars([c]).first!), c["record"]!.isNull ? .string("null") : c["record"]!["id"]!] }, [[.string(he43), .string("r9")], [.string(cShan), .string("null")]])
     }
 
-    // test/core/images.test.mjs: D42 day image: each char = the latest record of THAT day that has ink (older same-day one), none that day → missing
+    // D42 day image: each char = the latest record of THAT day that has ink (older same-day one), none that day → missing
     func testD42DayImageEachCharTheLatestRecordOfTHATDayThatHasInkOlderSameDayOneNoneThatDayMissing() throws {
         let recs = [
             rec43(1, jing43, "judged", "correct", "2026-09-24"), rec43(2, jing43, "judged", "wrong", "2026-09-24"),
@@ -454,7 +454,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(plan["missing"], .array([.string(cShan)]))
     }
 
-    // test/core/images.test.mjs: glyph image (A05): latest judged of the char; that record without ink → noInk (no fallback to an older one, I03)
+    // glyph image (A05): latest judged of the char; that record without ink → noInk (no fallback to an older one, I03)
     func testGlyphImageA05LatestJudgedOfTheCharThatRecordWithoutInkNoInkNoFallbackToAnOlderOneI03() throws {
         let recs = [rec43(1, jing43, "judged", "correct", "2026-09-20"), rec43(2, jing43, "judged", "wrong", "2026-09-22"), rec43(3, jing43, "answer-seen", nil, "2026-09-23")]
         let st = stateOf(recs)
@@ -467,7 +467,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(try ImageSelection.imagePlan(st, scope: obj43([("kind", .string("glyph")), ("char", .string(he43))]), inkOf: { _ in Self.INK }, dates: dates)["status"], .string("noInk"))
     }
 
-    // test/core/images.test.mjs: > 80 chars is not pending any more (D39 / D12): the plan returns pages, each ≤ 80, in date order, nothing truncated
+    // > 80 chars is not pending any more (D39 / D12): the plan returns pages, each ≤ 80, in date order, nothing truncated
     func test80CharsIsNotPendingAnyMoreD39D12ThePlanReturnsPagesEach80InDateOrderNothingTruncated() throws {
         var recs: [JSValue] = []
         for i in 0..<96 { recs.append(rec43(i + 1, String(Unicode.Scalar(0x4e00 + i)!), "judged", "correct", "2026-09-10")) }
@@ -482,7 +482,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         XCTAssertEqual(try ImageSelection.imagePlan(stateOf(Array(recs.prefix(80))), scope: obj43([("kind", .string("month")), ("month", .string("2026-09"))]), inkOf: { _ in Self.INK }, dates: dates)["pages"]!.arrayValue!.count, 1)
     }
 
-    // test/core/images.test.mjs: cellOfMember: ink → hand, none → under only when asked; day follows the record (or the first day for a folded month)
+    // cellOfMember: ink → hand, none → under only when asked; day follows the record (or the first day for a folded month)
     func testCellOfMemberInkHandNoneUnderOnlyWhenAskedDayFollowsTheRecordOrTheFirstDayForAFoldedMonth() throws {
         let r = rec43(1, cYong, "judged", "correct", "2026-09-02")
         let m = obj43([("char", .string(cYong)), ("record", r)])
@@ -495,7 +495,7 @@ final class ImagesTranscriptionTests: XCTestCase {
 
     // ---------------------------------------------------------------- 单字手写图（A05，沿用）
 
-    // test/core/images.test.mjs: glyph layout (A05): ink box ≈ 60% of the width (or limited by height), centered, caption under it, seal bottom-right
+    // glyph layout (A05): ink box ≈ 60% of the width (or limited by height), centered, caption under it, seal bottom-right
     func testGlyphLayoutA05InkBox60OfTheWidthOrLimitedByHeightCenteredCaptionUnderItSealBottomRight() throws {
         let pts = J(#"[[{"x":100,"y":60,"w":12},{"x":250,"y":60,"w":12}],[{"x":172,"y":40,"w":12},{"x":172,"y":300,"w":12}]]"#)
         let b = ImageLayout.inkBounds(pts)
@@ -521,7 +521,7 @@ final class ImagesTranscriptionTests: XCTestCase {
 
     // ---------------------------------------------------------------- 渲染（假 canvas → 原生无 canvas 契约，见文件头）
 
-    // test/core/images.test.mjs: renderWorkPage: 1440×1920 / 1440×1440 (logical 1080 × 4/3), only the given cells, dataset carries members / modes / dots / record ids / 落款
+    // renderWorkPage: 1440×1920 / 1440×1440 (logical 1080 × 4/3), only the given cells, dataset carries members / modes / dots / record ids / 落款
     func testRenderWorkPage1440192014401440Logical108043OnlyTheGivenCellsDatasetCarriesMembersModesDotsRecordIdsKuan() throws {
         // 画布尺寸 = 版式的逻辑 W/H × 4/3：3:4 → 1440×1920，1:1 → 1440×1440；under 格不画墨、只给 under 格取参考字形是选字口径（上面已核对）
         for (ratio, w, h) in [("3:4", 1440.0, 1920.0), ("1:1", 1440.0, 1440.0)] {
@@ -534,7 +534,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         }
     }
 
-    // test/core/images.test.mjs: renderWorkPage: the day tag is drawn inside its own cell, top-left, without a colour block — it never rides a grid line (V2-09)
+    // renderWorkPage: the day tag is drawn inside its own cell, top-left, without a colour block — it never rides a grid line (V2-09)
     func testRenderWorkPageTheDayTagIsDrawnInsideItsOwnCellTopLeftWithoutAColourBlockItNeverRidesAGridLineV209() throws {
         // 版式侧：三格 3:4 的格框（角标的落点就在这些格内），V2-09 的几何约束在这里
         let l = try ImageLayout.layout(3, ratio: "3:4")
@@ -545,7 +545,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         }
     }
 
-    // test/core/images.test.mjs: renderWorkPage: colours come from the LIGHT design tokens (never the dark ones); ink keeps its own width, only tiny cells are lifted to the minimum physical width (R2-R1)
+    // renderWorkPage: colours come from the LIGHT design tokens (never the dark ones); ink keeps its own width, only tiny cells are lifted to the minimum physical width (R2-R1)
     func testRenderWorkPageColoursComeFromTheLightDesignTokensNeverTheDarkOnesInkKeepsItsOwnWidthOnlyTinyCellsAreLiftedToTheMinimumPhysicalWidthR2R1() throws {
         // 一个 670px 的格 ≈ 249pt：笔锋收到的点宽就是 11.5（原宽）；3 字格 295px ≈ 110pt：原宽（旧 ×1.15 已废）；80 字的小格只抬到最小物理线宽
         let single = 11.5 * ImageLayout.inkWidthScale(670 / 2.69)
@@ -562,14 +562,14 @@ final class ImagesTranscriptionTests: XCTestCase {
         }
     }
 
-    // test/core/images.test.mjs: renderWorkPage awaits the injected requireFont (落款 song, tags hei 500; the seal is drawn, not set in a font) before creating the canvas
+    // renderWorkPage awaits the injected requireFont (落款 song, tags hei 500; the seal is drawn, not set in a font) before creating the canvas
     func testRenderWorkPageAwaitsTheInjectedRequireFontKuanSongTagsHei500TheSealIsDrawnNotSetInAFontBeforeCreatingTheCanvas() {
         XCTExpectFailure("G1: requireFont 注入与字体加载次序是网页渲染器的 document.fonts 契约；原生用 CoreText 直接取字（ShiziImageRendering），ShiziCore 无字体管线可断言，字形等价性由 冻结的 PNG 基线 比对门禁覆盖") {
             XCTFail("字体注入次序断言属于网页渲染器")
         }
     }
 
-    // test/core/images.test.mjs: palette: paletteFromTokens reads color.light only and has no colour literal of its own
+    // palette: paletteFromTokens reads color.light only and has no colour literal of its own
     func testPalettePaletteFromTokensReadsColorLightOnlyAndHasNoColourLiteralOfItsOwn() throws {
         // 同一条不变式对 Swift 侧成立：图片模块（ShiziCore/Images 与 ShiziImageRendering）不写颜色字面量（调色板经 spec 传入）
         for rel in ["ios/ShiziCore/Sources/ShiziCore/Images/ImageLayout.swift", "ios/ShiziCore/Sources/ShiziCore/Images/ImageSelection.swift", "ios/ShiziCore/Sources/ShiziImageRendering/ImageRenderer.swift"] {
@@ -581,7 +581,7 @@ final class ImagesTranscriptionTests: XCTestCase {
         }
     }
 
-    // test/core/images.test.mjs: renderSingleGlyph: A05 sizes, caption and brand; no ink → noInk without a canvas
+    // renderSingleGlyph: A05 sizes, caption and brand; no ink → noInk without a canvas
     func testRenderSingleGlyphA05SizesCaptionAndBrandNoInkNoInkWithoutACanvas() throws {
         // A05 尺寸：portrait 1080×1440 / square 1080×1080（× 4/3 = 1440×1920 / 1440×1440 位图）；caption 在 info 行（居中）；无墨 → noInk、不出图
         for ratio in ["portrait", "square"] {
@@ -601,7 +601,7 @@ final class ImagesTranscriptionTests: XCTestCase {
 
     // ---------------------------------------------------------------- 年报长图（§8.2）
 
-    // test/core/images.test.mjs: annual long image: width 1440, height by content, not capped at 80 chars; a total over the limit is cut by month (rows if one month alone is too tall), no char dropped
+    // annual long image: width 1440, height by content, not capped at 80 chars; a total over the limit is cut by month (rows if one month alone is too tall), no char dropped
     func testAnnualLongImageWidth1440HeightByContentNotCappedAt80CharsATotalOverTheLimitIsCutByMonthRowsIfOneMonthAloneIsTooTallNoCharDropped() {
         XCTExpectFailure("G1: renderAnnualLong（宽 1440、按内容出高、限高按月 / 按行切、字一个不少）的画布断言属于网页渲染器（annual-render.js）；原生实现在 ShiziImageRendering.annualLong（独立 target，ShiziCoreTests 不依赖它），等价性由 冻结的 PNG 基线 比对门禁（长图切张在 inputs.json 内）覆盖") {
             XCTFail("年报长图渲染断言属于网页渲染器")

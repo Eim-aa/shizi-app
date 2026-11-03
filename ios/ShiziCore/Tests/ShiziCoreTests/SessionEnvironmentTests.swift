@@ -14,7 +14,7 @@ final class SessionEnvironmentTests: XCTestCase {
         _ = await provider.load();_ = await provider.load()
         XCTAssertEqual(reads,2);XCTAssertEqual(provider.etymologyOf("人")?["source"],.string(""))
     }
-    // test/ui/native-about.test.mjs — build and native are host environment, not user-controlled page args.
+    // build and native are host environment, not user-controlled page args.
     func testAboutEnvironmentIsInjected() {
         let core = SessionPageContractTests().runtime()
         core.hooks.native = true

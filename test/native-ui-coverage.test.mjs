@@ -17,37 +17,19 @@ function walk(dir, out = []) {
   for (const f of readdirSync(dir)) {
     const p = join(dir, f);
     if (statSync(p).isDirectory()) walk(p, out);
-    else if (p.endsWith('.js')) out.push(p);
+    else if (p.endsWith('.swift')) out.push(p);
   }
   return out;
 }
 
-/** src/ui 里 registerScreen(名字…) 注册的全部屏名（名字是字符串字面量，或同文件 const 常量）。 */
+/** 通用原生屏：Swift 里 @objc(ShiziScreen_<屏名，- 换 _>) 声明的全部屏（NativeStage 的 ShiziScreenRegistry 按此约定取类）。
+ *  写字三页（write / result / redo）走 nativeWrite 通道，不是 ShiziScreen_ 类，单列。 */
 function registeredScreens() {
-  const names = new Set();
-  for (const file of walk(join(root, 'src/ui'))) {
-    if (file.endsWith('/router.js')) continue;
-    const src = readFileSync(file, 'utf8').split('\n').filter(l => !/^\s*(\/\/|\*)/.test(l)).join('\n');
-    for (const m of src.matchAll(/registerScreen\(\s*([A-Za-z_][A-Za-z0-9_]*|'[^']+')/g)) {
-      const arg = m[1];
-      if (arg.startsWith("'")) { names.add(arg.slice(1, -1)); continue; }
-      const def = new RegExp(`const ${arg}\\s*=\\s*'([^']+)'`).exec(src);
-      assert.ok(def, `${file}: registerScreen(${arg}) — 找不到 const ${arg} = '…'`);
-      names.add(def[1]);
-    }
+  const names = new Set(['write', 'result', 'redo']);
+  for (const file of walk(join(root, 'ios/ShiziApp/ShiziApp'))) {
+    const src = readFileSync(file, 'utf8').split('\n').filter(l => !/^\s*\/\//.test(l)).join('\n');
+    for (const m of src.matchAll(/@objc\(ShiziScreen_([A-Za-z0-9_]+)\)/g)) names.add(m[1].replace(/_/g, '-'));
   }
-  return names;
-}
-
-/** src/ui 里的弹层名：export const X_OVERLAY = '…' 与 openOverlay(…, { name: '…' })。 */
-function overlayNames() {
-  const names = new Set();
-  for (const file of walk(join(root, 'src/ui'))) {
-    const src = readFileSync(file, 'utf8').split('\n').filter(l => !/^\s*(\/\/|\*)/.test(l)).join('\n');
-    for (const m of src.matchAll(/const [A-Z_]*OVERLAY\s*=\s*'([^']+)'/g)) names.add(m[1]);
-    for (const m of src.matchAll(/openOverlay\([^)]*\{\s*name:\s*'([^']+)'/g)) names.add(m[1]);
-  }
-  names.delete('overlay');
   return names;
 }
 
@@ -58,6 +40,7 @@ test('every registered screen has a fixture or is listed as not applicable', () 
   const known = new Set([...coverage.screens, ...NA]);
   const registered = registeredScreens();
   const unlisted = [...registered].filter(n => !known.has(n));
+  assert.ok(registered.size >= 20, `Swift 里只扫到 ${registered.size} 个屏，扫描模式可能失效`);
   assert.deepEqual(unlisted, [], `新注册的屏没有在 coverage.json 登记：${unlisted.join(', ')}`);
   for (const name of coverage.screens) {
     assert.ok(coveredBy('screen', name).length > 0, `屏 ${name} 没有任何状态夹具（ShiziUITests/States/*.json 的 "screen": "${name}"）`);
@@ -65,9 +48,7 @@ test('every registered screen has a fixture or is listed as not applicable', () 
 });
 
 test('every overlay and floater has a fixture or is listed as not applicable', () => {
-  const known = new Set([...coverage.overlays, ...NA]);
-  const unlisted = [...overlayNames()].filter(n => !known.has(n));
-  assert.deepEqual(unlisted, [], `新弹层没有在 coverage.json 登记：${unlisted.join(', ')}`);
+  // D84：弹层没有 Swift 侧的统一登记（原来扫网页的 OVERLAY 常量），这里只核已登记的每个都有夹具
   for (const name of coverage.overlays) assert.ok(coveredBy('overlay', name).length > 0, `弹层 ${name} 没有任何状态夹具（"overlay": "${name}"）`);
   for (const name of coverage.floaters) assert.ok(coveredBy('floater', name).length > 0, `浮条 ${name} 没有任何状态夹具（"floater": "${name}"）`);
 });

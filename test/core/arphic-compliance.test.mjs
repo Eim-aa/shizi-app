@@ -1,6 +1,6 @@
 // 卡 C1（D50 ②，合规说明 §1.6.6 A1–A6 与 §1.16）：Arphic 数据补救与遗漏署名。
 //   A1 APL 原文随包（licenses/ARPHICPL.TXT 与 sources 原件逐字相同，并在壳清单里）；
-//   A2 363 个 AnimCJK 衍生文件首键 "_notice" 写明怎么改、什么时候改，去掉它就是清单里验收的原字节；core-strokes.js 头注释写明来源；
+//   A2 363 个 AnimCJK 衍生文件首键 "_notice" 写明怎么改、什么时候改，去掉它就是清单里验收的原字节；
 //   A3 data/LICENSE.md 逐文件写明许可，根 LICENSE 写明 data/ 例外；A4 写明公开获取地点；
 //   A6 关于页「开源资料 · 致谢」的数据条目面向用户：不出现 audit/ 路径、清单文件名、「release gates」之类内部措辞；补 AnimCJK、jieba、pypinyin、hanziDB、wordfreq。
 import test from 'node:test';
@@ -8,8 +8,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { ROOT } from './helpers.mjs';
-import { CREDITS, LICENSE_TEXTS } from '../../src/config/credits.js';
+import { fileURLToPath } from 'node:url';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const { CREDITS, LICENSE_TEXTS } = JSON.parse(fs.readFileSync(path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled/credits.json'), 'utf8')); // D84：致谢数据读 ShiziCore 的 credits.json
 
 const read = rel => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 const sha = buf => crypto.createHash('sha256').update(buf).digest('hex');
@@ -51,7 +52,6 @@ test('A2: every AnimCJK-derived file states how and when it was changed; strippi
   assert.match(byChar.get('镵').notice, /stroke 13 from 1-2-3 to 2-1-3/);
   // 未修改的基础数据没有 _notice
   assert.ok(!('_notice' in JSON.parse(read('data/一.json'))));
-  assert.match(read('core-strokes.js').split('\n').slice(0, 5).join('\n'), /hanzi-writer-data 2\.0\.1，Arphic Public License，未修改/);
 });
 
 test('A3 / A4: data/LICENSE.md lists the license of every data file and the public place to get them; the root LICENSE carves data/ out', () => {

@@ -1,4 +1,0 @@
-{
-  "//": "让 node 把本目录 .js（e2e spec）当 ES 模块解析，避免 MODULE_TYPELESS_PACKAGE_JSON 重解析警告。",
-  "type": "module"
-}

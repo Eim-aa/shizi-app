@@ -1,0 +1,55 @@
+{
+  "state": "result-undo",
+  "name": "结果页 · 带跳过撤销条",
+  "order": 20,
+  "screen": "result",
+  "template": "result",
+  "native": true,
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "mark",
+      "slot": "B",
+      "sid": "sid"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong",
+        "correct"
+      ],
+      "n": 4,
+      "tick": 4
+    },
+    {
+      "op": "call",
+      "name": "skip"
+    },
+    {
+      "op": "handoffSkipUndo",
+      "slot": "B"
+    },
+    {
+      "op": "unpinClock"
+    },
+    {
+      "op": "push",
+      "screen": "result",
+      "params": {
+        "slot": "B",
+        "sessionId": "$sid"
+      }
+    }
+  ],
+  "floater": "undo-bar",
+  "parity": true
+}

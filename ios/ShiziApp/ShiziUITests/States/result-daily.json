@@ -1,0 +1,79 @@
+{
+  "state": "result-daily",
+  "name": "结果页 · 今天的练习（有写错行；每组 5 字）",
+  "order": 17,
+  "screen": "result",
+  "template": "result",
+  "native": true,
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ax": true,
+  "setup": [
+    {
+      "op": "patch",
+      "domain": "settings",
+      "value": {
+        "groupSize": 5
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "openApi",
+      "slot": "A"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "judge",
+      "slot": "A",
+      "judgments": [
+        "wrong",
+        "correct",
+        "correct"
+      ],
+      "strokes": "one",
+      "tick": 4
+    },
+    {
+      "op": "openApi",
+      "slot": "A"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "mark",
+      "slot": "A",
+      "sid": "sid",
+      "total": "total"
+    },
+    {
+      "op": "judge",
+      "slot": "A",
+      "judgments": [
+        "wrong",
+        "correct",
+        "correct"
+      ],
+      "n": "all",
+      "strokes": "one",
+      "tick": 21
+    },
+    {
+      "op": "unpinClock"
+    },
+    {
+      "op": "push",
+      "screen": "result",
+      "params": {
+        "slot": "A",
+        "sessionId": "$sid"
+      }
+    }
+  ],
+  "parity": true
+}

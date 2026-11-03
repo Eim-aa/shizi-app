@@ -1,0 +1,74 @@
+{
+  "state": "s02",
+  "name": "S02 · 上一组还没写完（三键）",
+  "screen": "s02",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T19:30:00"
+  },
+  "overlay": "s02",
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "疆",
+          "at": "2026-10-04T20:00:00"
+        },
+        {
+          "char": "酱",
+          "at": "2026-10-04T20:01:00"
+        },
+        {
+          "char": "肆",
+          "at": "2026-10-04T20:02:00"
+        },
+        {
+          "char": "酝",
+          "at": "2026-10-04T20:03:00"
+        },
+        {
+          "char": "春",
+          "at": "2026-10-04T20:04:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "correct",
+        "wrong"
+      ],
+      "n": 2
+    },
+    {
+      "op": "switchTab",
+      "remount": true,
+      "tab": "home"
+    },
+    {
+      "op": "openS02"
+    }
+  ],
+  "ready": {
+    "web": "screen-home",
+    "native": "id:native-s02-ready"
+  },
+  "steps": [
+    {
+      "js": "const { startPicked } = await import('/src/ui/screens/session/index.js'); startPicked(['火'], { source: { view: 'home' } });"
+    },
+    {
+      "wait": 800
+    }
+  ],
+  "ax": true
+}

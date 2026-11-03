@@ -1,0 +1,32 @@
+{
+  "state": "hint-full",
+  "name": "提示到整字",
+  "order": 6,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] .sz-hintbtn",
+        "native": "native-write-hint",
+        "nativeSelector": "tapHint"
+      },
+      "times": 8
+    }
+  ],
+  "parity": true
+}

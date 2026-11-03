@@ -1,0 +1,9 @@
+/* 拾字字体（决定-D13；01-架构设计 §8.4；02 M5-2）。
+ * 修改版 OFL 字体：ShiziKai 由霞鹜文楷 GB 1.522 子集改名，ShiziSerifSC 由 Noto Serif SC 静态化（400 / 500）子集改名。
+ * 随包分发两份原 OFL 与改名说明：licenses/LXGW-WenKai-GB-OFL.txt、licenses/Noto-Serif-SC-OFL.txt、
+ * licenses/Shizi-fonts-COPYRIGHT-NOTICES.md。重建：scripts/fonts/README.md。
+ * font-display: swap（#180 原为 block）：题面词语用 DOM 文本，回退期显示系统字体优于空白（01 §8.4）。
+ * 每个 face 只声明一个精确字重；canvas 绘制前由 src/data/font-loader.js 的 requireFont 按精确字重加载并核对。 */
+@font-face { font-family: "ShiziKai"; src: url("./ShiziKai-Regular.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: "ShiziSerifSC"; src: url("./ShiziSerifSC-Regular.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: "ShiziSerifSC"; src: url("./ShiziSerifSC-Medium.woff2") format("woff2"); font-style: normal; font-weight: 500; font-display: swap; }

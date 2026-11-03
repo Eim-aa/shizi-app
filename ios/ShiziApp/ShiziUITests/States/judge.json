@@ -1,0 +1,31 @@
+{
+  "state": "judge",
+  "name": "判断页",
+  "order": 9,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "call",
+      "name": "phase",
+      "args": {
+        "phase": "compare",
+        "strokes": "two"
+      }
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "parity": true
+}

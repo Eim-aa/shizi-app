@@ -1,5 +1,46 @@
 # 变更记录
 
+## 未发布 - 第十稿重建（v10）
+
+分支 `v10/integration`（自 `main` `639f592` 切出），尚未合入 `main`、尚未发布。规划与验收记录见 `docs/engineering/v10/`；切换与回退步骤见 `docs/engineering/v10/acceptance/M7-切换方案.md`。
+
+### 架构
+
+- 按第十稿交接版重写全部界面：原生 ES 模块（`src/`）、无打包器，Preact 10.29.8 + htm 3.1.1 从 npm 官方包取出放进 `vendor/`（ADR 0002）。`index.html` 只剩精简壳，无内联脚本；CSP 收紧为只允许 `'self'`（去掉 `style-src 'unsafe-inline'` 与 `font-src data:`），组件样式经 CSSOM 注入。iOS 自定义 scheme 同步。
+- 随包字体 ShiziKai（霞鹜文楷 GB 1.522 子集改名）与 ShiziSerifSC（Noto Serif SC 2.003 400 / 500 子集改名），SIL OFL 1.1 全文与改名说明在 `licenses/`；旧 `index.html` 内嵌的 4.2KiB 文楷子集不再使用。
+- 所有过渡默认值集中在 `src/config/policy.js`（带 P 编号，在 `docs/engineering/v10/03-待产品决定.md` 登记）；界面文案集中在 `src/config/copy/`，与 `copy-source.json` 逐字一致由 `verify:copy` 把关。
+
+### 数据与兼容
+
+- **数据模型 v2**：`localStorage` 键改为 `shizi.v2.*`——`meta`、`records.<YYYY-MM>`（按月分键）、`sched`、`ink.<yyyy-mm>`、`custom`、`wordOff`、`settings`、`photos`、`legacy`、`backupMeta`（进备份），以及 `sessions`、`funnel`、`safety`、`txn`（不进备份）；坏值隔离到 `shizi.corrupt.<键>`。所有写入经 `src/store/storage.js` 的事务，保存成功才推进，失败留现场可重试、不重复计数。
+- **备份文件 version 2**：`{app:'shizi', version:2, date, data:{'shizi.v2.*': …}}`，只含白名单键，不含会话。旧 version 1 备份文件仍可导入（经同一套 v1 → v2 转换）。替换与清空前写设备内保护副本，离开备份页前可撤销。
+- **Service Worker 缓存 `shizi-v14-<BUILD>`**：BUILD 为壳内容指纹，与 `index.html` meta、`src/build-info.js`、`sw-manifest.js` 同源（`pnpm run build:manifest` 生成）；注册时 `updateViaCache:'none'`；核心壳原子预缓存，题库 / 字体 / 字源尽力批次；发现新版本时非写字页刷新一次，写字页等离开后再刷新；旧缓存延迟删除。`verify:pwa` 回放真实 v10 / v13 两代升级到 v14。
+- **迁移（v1 → v2）**：首次启动检测到 `shizi.memory.v1` 且无 `shizi.v2.meta` 时自动执行一次，单次写入全部 v2 键、最后写 `meta`；失败整体回滚，出现阻断页迁移变体，重启可重试。练过的字、写错过、练习日历、旧照片、设置、自选字迁入；校准、里程碑、背景音场景、漏斗旧事件、旧会话不迁。旧版「不太确定」不生成判断记录（P35）。
+- **回退窗口**：迁移成功后立即删除 `shizi.session.v1`（含大图）与 `shizi.safety.v1`；其余 v1 键保留 30 天或到用户完成一次 v2 导出（先到者，P53），期间回退到旧版仍能读到迁移前的数据（不含迁移后新写的记录）。旧版按固定键表读写，不读也不改 `shizi.v2.*`。
+- 旧主屏 PWA 不被强刷：停在旧页面会继续使用旧版，下次打开才进新版并迁移（P92）。
+
+### 删除的功能
+
+- 拍字 / OCR 与相机（`recognizeChars` 桥、相机输入、`NSCameraUsageDescription`）；旧照片保留只读查看并随备份。
+- 首次校准组、盖章 / 重盖与印历、补帖（补记）、练字背景音（Issue #166，P07；`soundscape` 原生消息为 no-op）、里程碑庆祝（P08）。
+
+### 新增与重做
+
+- 写字页：提示（每次接着给约四分之一笔画）、「看答案」后「描一遍 / 自己写」、「跳过」（3 秒内可撤销）、判断与更正同一记录、结束这组、切后台 / 进程被杀后回到离开时的阶段；题面遮字不泄露答案（决定-D16）。
+- 结果页（三态）与修改判断；第一次练习 5 个字，以后按记忆曲线出题，「这次选的字」优先。
+- 查字组件（首页「自己选字」与字库共用，iOS 同步聚焦弹键盘、键盘避让）；换库弹层（四个在学字库）。
+- 字库墨墙、写错过 / 快忘了清单、有记录的字、单字详情；我的：这一周、练习记录、年度报告（按第十稿重做）、设置、备份与恢复、图片、关于（隐私、开源资料 · 致谢由 `THIRD_PARTY_NOTICES.md` 生成）。
+- 存储不可用阻断页（存储不可读写〔含隐私模式〕/ 写失败且回滚失败 / 迁移失败三种变体）与坏值一次性提示。
+- iOS：边缘返回由原生识别器驱动跟手转场，写字页与 tab 根页 / 阻断页关闭返回手势（`backGestureEnabled`）；备份导入改为页内确认、不再 reload；原生 alert 全部移除，分享 / 保存失败经 `shiziShareFailed` 由页面提示；提醒标题目标字遮成 □，点通知以「这次选的字」开该字。
+- 门禁：`pnpm test` = `verify:data`（含 `verify:api` iOS ≥ 15 API 下限）+ `verify:unit` + `verify:copy` + `verify:web`（39 个 e2e spec + `verify:pwa`），含 448 格显示矩阵、可访问性、300 字性能与场景回归。
+
+### 已知未覆盖
+
+- 真机项全部未执行：书写手感与 Pencil / ProMotion、边缘手势手感、查字框键盘、130% 系统字号、iOS 15.x 运行时与 CSSOM / CSP、Safari / WKWebView 字体与拼音组合调号、切后台与进程被杀、迁移配额、隐私模式、PWA 主屏升级、真实通知 / 分享 / 相册、VoiceOver。清单见 `ios/ShiziApp/DEVICE_QA.md`。
+- 逐判断笔迹存储未开启（`features.perRecordInk=false`，P31），相关页面按「有记录无笔迹」显示。
+- `docs/engineering/v10/03-待产品决定.md` 中 P 项为过渡默认值，待产品确认；GitHub Actions 远端未在本分支运行。
+- 根 `LICENSE` 与补充笔顺数据的再分发授权仍是发布前外部门槛（`LEGAL_RELEASE_CHECKLIST.md`）。
+
 ## 2026-08-28 - 升级兼容修复：脏 activity 记录与关键资源 503 回落
 
 - 旧 `activity.daily` 里某一天为 `null` 会让稳定字键迁移在遍历 `targetKeys` 时抛 `TypeError`：整页启动中断、首页按钮不绑定，坏数据还留在本地，之后每次打开都再崩一次。旧版 `dailyActivity()` 对这种行按 `{}` 自愈，所以线上确实存在这种记录。`normalizeActivity()` 改为逐日规范化，`null` / 数组 / 标量 / 字符串行统一归一成合法空行，健康的那一天原样保留；迁移侧另加非对象行的防御。

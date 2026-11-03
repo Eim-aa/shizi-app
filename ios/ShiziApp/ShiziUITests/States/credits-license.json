@@ -1,0 +1,38 @@
+{
+  "state": "credits-license",
+  "name": "致谢 · 展开一项许可全文",
+  "screen": "about-credits",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "about-credits",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "about-credits-screen",
+    "native": "id:native-about-credits-intro"
+  },
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "about-credit-toggle",
+        "native": "native-about-credit-toggle"
+      },
+      "times": 1
+    },
+    {
+      "wait": 600
+    }
+  ]
+}

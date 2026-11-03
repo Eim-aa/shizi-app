@@ -1,0 +1,104 @@
+import UIKit
+import XCTest
+@testable import Shizi
+
+// B3.1 ShiziKit：构建期生成的令牌 / 文案 / 动效（ShiziKitTokens.json、ShiziKitCopy.json）。
+// 生成物与来源（tokens.css / policy / motion.js / copy）不同步由 node 侧 test/ios-shizikit.test.mjs 守。
+// B4.9：App 里没有网页了——原来「生成规则 = WebKit 现算的页面令牌包」的两条（字阶 × 12 档、颜色 × 浅深）随 WKWebView 退役；
+// 这里守生成表本身齐全、ShiziLook 用生成值，以及写字页 / 结果页回包（SwiftEngine）与生成值一致。
+
+@MainActor
+final class ShiziKitTests: XCTestCase {
+    private var host: TestHost!
+    private var bridge: WriteSessionChannel!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        host = try TestHost()
+        try await waitUntil("engine ready") { self.host.ready }
+        bridge = WriteSessionChannel()
+    }
+
+    private func call(_ op: String, _ args: [String: Any]) async -> NativeWriteReply {
+        await withCheckedContinuation { cont in bridge.call(op, args) { cont.resume(returning: $0) } }
+    }
+
+    private func waitUntil(_ what: String, timeout: TimeInterval = 15, _ cond: @escaping () async -> Bool) async throws {
+        let end = Date().addingTimeInterval(timeout)
+        while Date() < end {
+            if await cond() { return }
+            try await Task.sleep(nanoseconds: 30_000_000)
+        }
+        XCTFail("timed out waiting for \(what)")
+        throw CancellationError()
+    }
+
+    private static let categories: [(UIContentSizeCategory, String)] = [
+        (.extraSmall, "xS"), (.small, "S"), (.medium, "M"), (.large, "L"), (.extraLarge, "XL"), (.extraExtraLarge, "XXL"), (.extraExtraExtraLarge, "XXXL"),
+        (.accessibilityMedium, "AX1"), (.accessibilityLarge, "AX2"), (.accessibilityExtraLarge, "AX3"), (.accessibilityExtraExtraLarge, "AX4"),
+        (.accessibilityExtraExtraExtraLarge, "AX5"),
+    ]
+
+    /// 字阶：12 个档位的名字（同 text-size.js）与生成表的一行（至少 12 个字阶键）。
+    func testTypeScaleHasAGeneratedRowForEveryContentSize() throws {
+        for (category, name) in Self.categories {
+            XCTAssertEqual(ShiziTokens.categoryName(category), name)
+            let gen = try XCTUnwrap(ShiziTokens.lengths(category), "\(name): generated row")
+            XCTAssertGreaterThanOrEqual(gen.count, 12, "\(name): generated row")
+        }
+    }
+
+    /// 颜色：浅 / 深两套生成表齐全；ShiziLook 换上的颜色来自生成表、主题按回包。
+    func testColorsComeFromTheGeneratedTables() {
+        for theme in [ShiziTokens.Theme.light, .dark] {
+            let gen = ShiziTokens.colorStrings(theme)
+            XCTAssertGreaterThanOrEqual(gen.count, 20, theme.rawValue)
+            let look = ShiziLook.resolve(["colors": [String: String](), "theme": theme.rawValue], page: .write)
+            XCTAssertEqual(look["colors"] as? [String: String], gen)
+        }
+    }
+
+    /// 文案、动效、时刻：写字页 open 与结果页 resultLook 的回包 = 生成值（copy 是这一页的键；动效与时刻整份相同），ShiziLook 核对不报不一致。
+    func testCopyMotionAndTimingMatchThePage() async throws {
+        let before = ShiziLook.mismatches.count
+        for (op, page) in [("open", ShiziLook.Page.write), ("resultLook", .result)] {
+            let r = await call(op, op == "open" ? ["slot": "A"] : [:])
+            XCTAssertTrue(r.ok, op)
+            let copy = try XCTUnwrap(r.body["copy"] as? [String: String], op)
+            XCTAssertGreaterThan(copy.count, 20)
+            for (k, v) in copy { XCTAssertEqual(ShiziCopy.strings[k], v, "\(op) copy \(k)") }
+            XCTAssertTrue(NSDictionary(dictionary: r.body["motion"] as? [String: Any] ?? [:]).isEqual(to: ShiziTokens.pageMotion(page)), "\(op) motion")
+            XCTAssertTrue(NSDictionary(dictionary: r.body["timing"] as? [String: Any] ?? [:]).isEqual(to: ShiziTokens.pageTiming(page)), "\(op) timing")
+            _ = ShiziLook.resolve(r.body, page: page)
+        }
+        XCTAssertEqual(Array(ShiziLook.mismatches.dropFirst(before)), [])
+    }
+
+    /// 文案的占位符填充与页面 format() 同一规则（缺值原样保留）。
+    func testCopyFillsPlaceholdersLikeThePage() {
+        let key = "R-W01.progress"
+        let raw = ShiziCopy.strings[key] ?? ""
+        XCTAssertTrue(raw.contains("{"), "progress has placeholders")
+        let filled = ShiziCopy.t(key, ["n": 2, "total": 5])
+        XCTAssertFalse(filled.contains("{n}"))
+        XCTAssertEqual(ShiziCopy.t("no.such.key"), "")
+    }
+
+    /// D81 ①（B4.9c）：AX 档的逐元素版式是原生常量——五档都有全部角色，档位口径同 text-size.js axLevelOf；
+    /// 回包里页面给的 ax / roles 不采用（ShiziLook 只按系统字号档填）。
+    func testAXLayoutIsNativeConstants() {
+        let names: Set<String> = ["headAct", "progress", "title", "tool", "note", "noteTight", "help", "helpTight", "judge", "prompt",
+                                  "resultFoot", "exrow", "change", "invite", "confirm", "undoBar"]
+        for level in 1...5 { XCTAssertEqual(Set(NativeAXLayout.roles(level).keys), names, "AX\(level)") }
+        XCTAssertTrue(NativeAXLayout.roles(0).isEmpty)
+        XCTAssertEqual(NativeAXLayout.level(.accessibilityMedium), 1)
+        XCTAssertEqual(NativeAXLayout.level(.accessibilityExtraExtraExtraLarge), 5)
+        XCTAssertEqual(NativeAXLayout.level(.extraExtraExtraLarge), 0)
+        XCTAssertEqual((NativeAXLayout.roles(5)["help"]?["r5"] as? [String: Any])?["minH"] as? Double, 88.9)
+        let fake: [String: Any] = ["type": ["ax": 3, "roles": ["help": ["minH": 999]]]]
+        let type = ShiziLook.resolve(fake, page: .write)["type"] as? [String: Any] ?? [:]
+        let level = NativeAXLayout.level()
+        XCTAssertEqual((type["ax"] as? NSNumber)?.intValue ?? 0, level, "ax comes from the system text size, not the payload")
+        if level == 0 { XCTAssertNil(type["roles"]) }
+    }
+}

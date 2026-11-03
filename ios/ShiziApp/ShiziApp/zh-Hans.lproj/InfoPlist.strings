@@ -1,0 +1,4 @@
+/* 拾字 iOS 壳的本地化 Info.plist 文案（A6 / G18）。相册说明正文见 03-待产品决定 P100；Info.plist 里的基础值与此一致。 */
+"CFBundleDisplayName" = "拾字";
+"CFBundleName" = "拾字";
+"NSPhotoLibraryAddUsageDescription" = "用于把你保存的练字图片存进系统相册。";

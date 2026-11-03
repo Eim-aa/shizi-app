@@ -1,0 +1,28 @@
+{
+  "state": "list-empty",
+  "name": "区详情 · 空（这一档没有字）",
+  "screen": "library-list",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "push",
+      "screen": "library-list",
+      "params": {
+        "kind": "due"
+      }
+    }
+  ],
+  "ready": {
+    "web": "list-screen",
+    "native": "id:native-library-list-screen"
+  }
+}

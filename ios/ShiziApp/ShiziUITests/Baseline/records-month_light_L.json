@@ -1,0 +1,3833 @@
+{
+  "cells" : [
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 26.399999999999999,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "NativeGlyphView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 71.400000000000006,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 116.40000000000001,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 161.40000000000001,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 206.40000000000001,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 251.40000000000001,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 296.39999999999998,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 341.39999999999998,
+      "y" : 657.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 26.399999999999999,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 71.400000000000006,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 116.40000000000001,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 161.40000000000001,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 206.40000000000001,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 251.40000000000001,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 296.39999999999998,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 341.39999999999998,
+      "y" : 702.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 26.399999999999999,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 71.400000000000006,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 116.40000000000001,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 161.40000000000001,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 206.40000000000001,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 251.40000000000001,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 296.39999999999998,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 341.39999999999998,
+      "y" : 747.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 26.399999999999999,
+      "y" : 792.89999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 34.200000000000003,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 34.200000000000003,
+      "x" : 71.400000000000006,
+      "y" : 792.89999999999998
+    }
+  ],
+  "decos" : [
+    {
+      "h" : 24,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 24,
+      "x" : 119,
+      "y" : 808.5
+    },
+    {
+      "h" : 24,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 24,
+      "x" : 119,
+      "y" : 808.5
+    },
+    {
+      "h" : 18,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 18,
+      "x" : 311,
+      "y" : 135
+    },
+    {
+      "color" : "#E4DDD0FF",
+      "h" : 34,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 34,
+      "x" : 303,
+      "y" : 127
+    },
+    {
+      "h" : 18,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 18,
+      "x" : 359,
+      "y" : 135
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 34,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 34,
+      "x" : 351,
+      "y" : 127
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 117,
+      "y" : 599.5
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 198.5,
+      "y" : 355
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 248.5,
+      "y" : 355
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 298.5,
+      "y" : 355
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 348.5,
+      "y" : 355
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 48.5,
+      "y" : 399
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 98.5,
+      "y" : 399
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 148.5,
+      "y" : 399
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 198.5,
+      "y" : 399
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 248.5,
+      "y" : 399
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 298.5,
+      "y" : 399
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 348.5,
+      "y" : 399
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 48.5,
+      "y" : 443
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 98.5,
+      "y" : 443
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 148.5,
+      "y" : 443
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 198.5,
+      "y" : 443
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 248.5,
+      "y" : 443
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 298.5,
+      "y" : 443
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 348.5,
+      "y" : 443
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 48.5,
+      "y" : 487
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 98.5,
+      "y" : 487
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 5,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 5,
+      "x" : 148.5,
+      "y" : 487
+    },
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-records-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 768,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 820.5,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 772.5,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-records-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyMarker"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 264,
+        "w" : 362,
+        "x" : 20,
+        "y" : 288
+      },
+      "id" : "native-records-calendar",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "calendarMarker"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 310.5,
+        "w" : 362,
+        "x" : 20,
+        "y" : 584
+      },
+      "id" : "native-records-sheet",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetMarker"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 28,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 36,
+        "w" : 58,
+        "x" : 20,
+        "y" : 125.8
+      },
+      "id" : "native-records-month",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "monthLabel",
+      "text" : "10月",
+      "textFrame" : {
+        "h" : 40.200000000000003,
+        "w" : 57.299999999999997,
+        "x" : 20,
+        "y" : 123.59999999999999
+      },
+      "visibleFrame" : {
+        "h" : 36,
+        "w" : 57.299999999999997,
+        "x" : 20,
+        "y" : 125.8
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 33,
+        "x" : 87.299999999999997,
+        "y" : 140.30000000000001
+      },
+      "id" : "native-records-year",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "yearLabel",
+      "text" : "2026",
+      "textFrame" : {
+        "h" : 15.699999999999999,
+        "w" : 32.700000000000003,
+        "x" : 87.299999999999997,
+        "y" : 143.40000000000001
+      },
+      "visibleFrame" : {
+        "h" : 15.699999999999999,
+        "w" : 32.700000000000003,
+        "x" : 87.299999999999997,
+        "y" : 140.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 22,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 30,
+        "w" : 362,
+        "x" : 20,
+        "y" : 198
+      },
+      "id" : "native-records-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel2",
+      "text" : "10月写了 21 天",
+      "textFrame" : {
+        "h" : 31.600000000000001,
+        "w" : 145,
+        "x" : 20,
+        "y" : 197.19999999999999
+      },
+      "visibleFrame" : {
+        "h" : 30,
+        "w" : 145,
+        "x" : 20,
+        "y" : 198
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 362,
+        "x" : 20,
+        "y" : 234
+      },
+      "id" : "native-records-legend",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "legendLabel",
+      "text" : "墨点表示这天有记录，不分对错。",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 223.30000000000001,
+        "x" : 20,
+        "y" : 236
+      },
+      "visibleFrame" : {
+        "h" : 18,
+        "w" : 223.30000000000001,
+        "x" : 20,
+        "y" : 234
+      }
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 44,
+        "w" : 105,
+        "x" : 20,
+        "y" : 584
+      },
+      "id" : "native-records-sheet-title",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetTitleLabel"
+    },
+    {
+      "class" : "ShiziSheetPaper",
+      "frame" : {
+        "h" : 218,
+        "w" : 360,
+        "x" : 21,
+        "y" : 644.5
+      },
+      "id" : "native-records-sheet-grid",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetPaper"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 20,
+        "w" : 360,
+        "x" : 21,
+        "y" : 842.5
+      },
+      "id" : "native-month-sign",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 156,
+        "x" : 225,
+        "y" : 842.5
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "二〇二六年十月　二十六字",
+      "textFrame" : {
+        "h" : 19,
+        "w" : 156,
+        "x" : 225,
+        "y" : 843
+      },
+      "visibleFrame" : {
+        "h" : 19,
+        "w" : 156,
+        "x" : 225,
+        "y" : 842.5
+      }
+    },
+    {
+      "bg" : "#B03A27FF",
+      "class" : "NativeSealView",
+      "frame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 119,
+        "y" : 808.5
+      },
+      "id" : "native-month-seal",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "云 · 10月1日，10月21日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 21,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[0]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 8,
+        "x" : 26,
+        "y" : 644.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "1",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 7.2999999999999998,
+        "x" : 26,
+        "y" : 644.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 7.2999999999999998,
+        "x" : 26,
+        "y" : 644.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "山，这个月没有留下笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 66,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[1]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 66,
+        "y" : 652.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "木 · 10月2日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 111,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[2]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 8,
+        "x" : 116,
+        "y" : 644.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "2",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 7.2999999999999998,
+        "x" : 116,
+        "y" : 644.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 7.2999999999999998,
+        "x" : 116,
+        "y" : 644.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鸟 · 10月2日，10月7日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 156,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[3]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 156,
+        "y" : 652.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "花 · 10月3日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 201,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[4]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 8,
+        "x" : 206,
+        "y" : 644.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "3",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 7.2999999999999998,
+        "x" : 206,
+        "y" : 644.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 7.2999999999999998,
+        "x" : 206,
+        "y" : 644.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "雪 · 10月3日，10月13日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 246,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[5]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 246,
+        "y" : 652.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "雨 · 10月4日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 291,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[6]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 8,
+        "x" : 296,
+        "y" : 644.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "4",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 7.2999999999999998,
+        "x" : 296,
+        "y" : 644.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 7.2999999999999998,
+        "x" : 296,
+        "y" : 644.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "永 · 10月4日，10月10日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 336,
+        "y" : 652.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[7]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 336,
+        "y" : 652.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "火 · 10月5日，10月17日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 21,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[8]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 8,
+        "x" : 26,
+        "y" : 689.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "5",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 7.2999999999999998,
+        "x" : 26,
+        "y" : 689.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 7.2999999999999998,
+        "x" : 26,
+        "y" : 689.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "字 · 10月8日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 66,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[9]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 8,
+        "x" : 71,
+        "y" : 689.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "8",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 7.2999999999999998,
+        "x" : 71,
+        "y" : 689.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 7.2999999999999998,
+        "x" : 71,
+        "y" : 689.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "学 · 10月8日，10月16日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 111,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[10]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 111,
+        "y" : 697.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "人 · 10月9日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 156,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[11]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 8,
+        "x" : 161,
+        "y" : 689.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "9",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 7.2999999999999998,
+        "x" : 161,
+        "y" : 689.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 7.2999999999999998,
+        "x" : 161,
+        "y" : 689.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "月 · 10月11日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 201,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[12]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 206,
+        "y" : 689.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "11",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 206,
+        "y" : 689.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 206,
+        "y" : 689.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "天 · 10月11日，10月19日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 246,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[13]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 246,
+        "y" : 697.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "春 · 10月12日，10月21日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 291,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[14]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 296,
+        "y" : 689.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "12",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 296,
+        "y" : 689.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 296,
+        "y" : 689.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "土 · 10月12日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 336,
+        "y" : 697.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[15]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 336,
+        "y" : 697.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "中 · 10月13日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 21,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[16]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 26,
+        "y" : 734.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "13",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 26,
+        "y" : 734.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 26,
+        "y" : 734.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "国 · 10月15日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 66,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[17]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 71,
+        "y" : 734.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "15",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 71,
+        "y" : 734.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 71,
+        "y" : 734.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "大 · 10月15日，10月20日的笔迹",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 111,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[18]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 111,
+        "y" : 742.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "和 · 10月16日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 156,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[19]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 161,
+        "y" : 734.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "16",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 161,
+        "y" : 734.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 161,
+        "y" : 734.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "书 · 10月17日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 201,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[20]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 206,
+        "y" : 734.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "17",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 206,
+        "y" : 734.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 206,
+        "y" : 734.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "小 · 10月18日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 246,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[21]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 251,
+        "y" : 734.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "18",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 251,
+        "y" : 734.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 251,
+        "y" : 734.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "日 · 10月20日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 291,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[22]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 296,
+        "y" : 734.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "20",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 296,
+        "y" : 734.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 296,
+        "y" : 734.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鱼 · 10月21日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 336,
+        "y" : 742.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[23]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 14,
+        "w" : 15,
+        "x" : 341,
+        "y" : 734.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "21",
+      "textFrame" : {
+        "h" : 13.1,
+        "w" : 14.300000000000001,
+        "x" : 341,
+        "y" : 734.89999999999998
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 14.300000000000001,
+        "x" : 341,
+        "y" : 734.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "猫 · 10月21日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 21,
+        "y" : 787.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[24]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 21,
+        "y" : 787.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "狗 · 10月21日",
+      "class" : "ShiziPaperCell",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 66,
+        "y" : 787.5
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "sheetCells[25]"
+    },
+    {
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 45,
+        "w" : 45,
+        "x" : 66,
+        "y" : 787.5
+      },
+      "id" : "native-records-sheet-cell",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "上个月",
+      "class" : "UIButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 298,
+        "y" : 122
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 18,
+        "w" : 18,
+        "x" : 311,
+        "y" : 135
+      },
+      "id" : "native-records-prev",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "prevButton",
+      "text" : "",
+      "tint" : "#0088FFFF"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "下个月",
+      "class" : "UIButton",
+      "color" : "#8E8477FF",
+      "enabled" : false,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 346,
+        "y" : 122
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 18,
+        "w" : 18,
+        "x" : 359,
+        "y" : 135
+      },
+      "id" : "native-records-next",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "nextButton",
+      "text" : "",
+      "tint" : "#0088FFFF"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月字帖",
+      "class" : "ShiziTrailIconButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 22,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 44,
+        "w" : 105,
+        "x" : 20,
+        "y" : 584
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 117,
+        "y" : 599.5
+      },
+      "id" : "native-records-sheet-open",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "sheetOpenButton",
+      "text" : "10月字帖",
+      "textFrame" : {
+        "h" : 31.600000000000001,
+        "w" : 89,
+        "x" : 20,
+        "y" : 590.20000000000005
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 105,
+        "x" : 20,
+        "y" : 584
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "保存图片",
+      "class" : "UIButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 68,
+        "x" : 318,
+        "y" : 588.5
+      },
+      "id" : "native-records-sheet-save",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "sheetSaveButton",
+      "text" : "保存图片",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 59.700000000000003,
+        "x" : 322,
+        "y" : 601.5
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 68,
+        "x" : 318,
+        "y" : 588.5
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 50,
+        "x" : 26,
+        "y" : 298
+      },
+      "id" : "native-records-weekday",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "weekdayLabels[0]",
+      "text" : "一",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 45.5,
+        "y" : 302.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 45.700000000000003,
+        "y" : 298
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 50,
+        "x" : 76,
+        "y" : 298
+      },
+      "id" : "native-records-weekday",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "weekdayLabels[1]",
+      "text" : "二",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 95.5,
+        "y" : 302.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 95.700000000000003,
+        "y" : 298
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 50,
+        "x" : 126,
+        "y" : 298
+      },
+      "id" : "native-records-weekday",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "weekdayLabels[2]",
+      "text" : "三",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 145.5,
+        "y" : 302.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 145.69999999999999,
+        "y" : 298
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 50,
+        "x" : 176,
+        "y" : 298
+      },
+      "id" : "native-records-weekday",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "weekdayLabels[3]",
+      "text" : "四",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 195.5,
+        "y" : 302.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 195.69999999999999,
+        "y" : 298
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 50,
+        "x" : 226,
+        "y" : 298
+      },
+      "id" : "native-records-weekday",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "weekdayLabels[4]",
+      "text" : "五",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 245.5,
+        "y" : 302.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 245.69999999999999,
+        "y" : 298
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 50,
+        "x" : 276,
+        "y" : 298
+      },
+      "id" : "native-records-weekday",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "weekdayLabels[5]",
+      "text" : "六",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 295.5,
+        "y" : 302.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 295.69999999999999,
+        "y" : 298
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 11,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 50,
+        "x" : 326,
+        "y" : 298
+      },
+      "id" : "native-records-weekday",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "weekdayLabels[6]",
+      "text" : "日",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 345.5,
+        "y" : 302.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 11,
+        "x" : 345.69999999999999,
+        "y" : 298
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月1日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 322
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[0]",
+      "text" : "1",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 196.30000000000001,
+        "y" : 328
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 322
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月2日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 322
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[1]",
+      "text" : "2",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 246.30000000000001,
+        "y" : 328
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 322
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月3日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 322
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[2]",
+      "text" : "3",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 296.30000000000001,
+        "y" : 328
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 322
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月4日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 326,
+        "y" : 322
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[3]",
+      "text" : "4",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 346.30000000000001,
+        "y" : 328
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 326,
+        "y" : 322
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月5日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 26,
+        "y" : 366
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[4]",
+      "text" : "5",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 46.299999999999997,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 26,
+        "y" : 366
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月6日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 76,
+        "y" : 366
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[5]",
+      "text" : "6",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 96.299999999999997,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 76,
+        "y" : 366
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月7日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 126,
+        "y" : 366
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[6]",
+      "text" : "7",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 146.30000000000001,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 126,
+        "y" : 366
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月8日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 366
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[7]",
+      "text" : "8",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 196.30000000000001,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 366
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月9日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 366
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[8]",
+      "text" : "9",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 246.30000000000001,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 366
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月10日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 366
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[9]",
+      "text" : "10",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 291.69999999999999,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 366
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月11日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 326,
+        "y" : 366
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[10]",
+      "text" : "11",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 341.69999999999999,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 326,
+        "y" : 366
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月12日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 26,
+        "y" : 410
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[11]",
+      "text" : "12",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 41.700000000000003,
+        "y" : 416
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 26,
+        "y" : 410
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月13日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 76,
+        "y" : 410
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[12]",
+      "text" : "13",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 91.700000000000003,
+        "y" : 416
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 76,
+        "y" : 410
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月14日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 126,
+        "y" : 410
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[13]",
+      "text" : "14",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 141.69999999999999,
+        "y" : 416
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 126,
+        "y" : 410
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月15日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 410
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[14]",
+      "text" : "15",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 191.69999999999999,
+        "y" : 416
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 410
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月16日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 410
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[15]",
+      "text" : "16",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 241.69999999999999,
+        "y" : 416
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 410
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月17日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 410
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[16]",
+      "text" : "17",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 291.69999999999999,
+        "y" : 416
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 410
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月18日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 326,
+        "y" : 410
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[17]",
+      "text" : "18",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 341.69999999999999,
+        "y" : 416
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 326,
+        "y" : 410
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月19日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 26,
+        "y" : 454
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[18]",
+      "text" : "19",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 41.700000000000003,
+        "y" : 460
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 26,
+        "y" : 454
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月20日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 76,
+        "y" : 454
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[19]",
+      "text" : "20",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 91.700000000000003,
+        "y" : 460
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 76,
+        "y" : 454
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月21日，有记录",
+      "class" : "ShiziDayButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 126,
+        "y" : 454
+      },
+      "id" : "native-records-day",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "dayHosts[20]",
+      "text" : "21",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 141.69999999999999,
+        "y" : 460
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 126,
+        "y" : 454
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 454
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[21]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 15,
+      "fontWeight" : 0.30000001192092896,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 186,
+        "y" : 454
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "22",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 19.300000000000001,
+        "x" : 191.30000000000001,
+        "y" : 460
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 19.300000000000001,
+        "x" : 191.30000000000001,
+        "y" : 454
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 454
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[22]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 236,
+        "y" : 454
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "23",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 241.69999999999999,
+        "y" : 460
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 241.69999999999999,
+        "y" : 454
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 454
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[23]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 286,
+        "y" : 454
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "24",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 291.69999999999999,
+        "y" : 460
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 291.69999999999999,
+        "y" : 454
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 326,
+        "y" : 454
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[24]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 336,
+        "y" : 454
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "25",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 341.69999999999999,
+        "y" : 460
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 341.69999999999999,
+        "y" : 454
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 26,
+        "y" : 498
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[25]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 36,
+        "y" : 498
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "26",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 41.700000000000003,
+        "y" : 504
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 41.700000000000003,
+        "y" : 498
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 76,
+        "y" : 498
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[26]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 86,
+        "y" : 498
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "27",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 91.700000000000003,
+        "y" : 504
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 91.700000000000003,
+        "y" : 498
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 126,
+        "y" : 498
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[27]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 136,
+        "y" : 498
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "28",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 141.69999999999999,
+        "y" : 504
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 141.69999999999999,
+        "y" : 498
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 176,
+        "y" : 498
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[28]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 186,
+        "y" : 498
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "29",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 191.69999999999999,
+        "y" : 504
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 191.69999999999999,
+        "y" : 498
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 226,
+        "y" : 498
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[29]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 236,
+        "y" : 498
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "30",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 241.69999999999999,
+        "y" : 504
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 241.69999999999999,
+        "y" : 498
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 50,
+        "x" : 276,
+        "y" : 498
+      },
+      "id" : "native-records-day",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "dayHosts[30]"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 30,
+        "w" : 30,
+        "x" : 286,
+        "y" : 498
+      },
+      "id" : "native-records-day-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "31",
+      "textFrame" : {
+        "h" : 17.899999999999999,
+        "w" : 18.699999999999999,
+        "x" : 291.69999999999999,
+        "y" : 504
+      },
+      "visibleFrame" : {
+        "h" : 15,
+        "w" : 18.699999999999999,
+        "x" : 291.69999999999999,
+        "y" : 498
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0088FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习记录",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "练习记录",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 167.19999999999999,
+        "y" : 73.799999999999997
+      },
+      "visibleFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 167.30000000000001,
+        "y" : 73
+      }
+    }
+  ],
+  "offscreen" : [
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 874.5
+      },
+      "id" : "native-month-note",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "sheetNoteLabel",
+      "text" : "浅色的字这个月没有笔迹，点字看详情。",
+      "textFrame" : {
+        "h" : 15.699999999999999,
+        "w" : 232.30000000000001,
+        "x" : 20,
+        "y" : 876.70000000000005
+      },
+      "visibleFrame" : null
+    }
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 65.599999999999994,
+      "y" : 652.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 110.59999999999999,
+      "y" : 652.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 155.59999999999999,
+      "y" : 652.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 200.59999999999999,
+      "y" : 652.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 245.59999999999999,
+      "y" : 652.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 290.60000000000002,
+      "y" : 652.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 335.60000000000002,
+      "y" : 652.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 65.599999999999994,
+      "y" : 697.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 110.59999999999999,
+      "y" : 697.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 155.59999999999999,
+      "y" : 697.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 200.59999999999999,
+      "y" : 697.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 245.59999999999999,
+      "y" : 697.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 290.60000000000002,
+      "y" : 697.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 335.60000000000002,
+      "y" : 697.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 65.599999999999994,
+      "y" : 742.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 110.59999999999999,
+      "y" : 742.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 155.59999999999999,
+      "y" : 742.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 200.59999999999999,
+      "y" : 742.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 245.59999999999999,
+      "y" : 742.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 290.60000000000002,
+      "y" : 742.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 335.60000000000002,
+      "y" : 742.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 45,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 0.80000000000000004,
+      "x" : 65.599999999999994,
+      "y" : 787.5
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 0.80000000000000004,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 360,
+      "x" : 21,
+      "y" : 697.10000000000002
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 0.80000000000000004,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 360,
+      "x" : 21,
+      "y" : 742.10000000000002
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 0.80000000000000004,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 90,
+      "x" : 21,
+      "y" : 787.10000000000002
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 360,
+      "x" : 21,
+      "y" : 652.5
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 135.5,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 1,
+      "x" : 380,
+      "y" : 652.5
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 271,
+      "x" : 110,
+      "y" : 787
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 45.5,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 1,
+      "x" : 110,
+      "y" : 787
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 90,
+      "x" : 21,
+      "y" : 831.5
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 180,
+      "layer" : "page",
+      "src" : "drawn",
+      "w" : 1,
+      "x" : 21,
+      "y" : 652.5
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 34,
+      "x" : 351,
+      "y" : 127
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 34,
+      "x" : 351,
+      "y" : 160
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 34,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 351,
+      "y" : 127
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 34,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 384,
+      "y" : 127
+    }
+  ],
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "records-month",
+  "tag" : "light_L",
+  "ui" : "native"
+}

@@ -1,0 +1,21 @@
+{
+  "state": "block-unavailable",
+  "name": "阻断 · 存储不可用",
+  "screen": "block",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "blockMode",
+      "kind": "unavailable"
+    }
+  ],
+  "ready": {
+    "web": "block-screen",
+    "native": "id:native-block-title"
+  }
+}

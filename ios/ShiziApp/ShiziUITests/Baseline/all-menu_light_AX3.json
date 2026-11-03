@@ -1,0 +1,2688 @@
+{
+  "cells" : [
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 22.399999999999999,
+      "y" : 378.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 82.700000000000003,
+      "y" : 378.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 143.09999999999999,
+      "y" : 378.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 203.40000000000001,
+      "y" : 378.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 263.69999999999999,
+      "y" : 378.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 324.10000000000002,
+      "y" : 378.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 22.399999999999999,
+      "y" : 439.30000000000001
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 82.700000000000003,
+      "y" : 439.30000000000001
+    },
+    {
+      "h" : 60.299999999999997,
+      "kind" : "image",
+      "layer" : "page",
+      "w" : 60.299999999999997,
+      "x" : 140.69999999999999,
+      "y" : 436.80000000000001
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 203.40000000000001,
+      "y" : 439.30000000000001
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 263.69999999999999,
+      "y" : 439.30000000000001
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 324.10000000000002,
+      "y" : 439.30000000000001
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 22.399999999999999,
+      "y" : 499.60000000000002
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 82.700000000000003,
+      "y" : 499.60000000000002
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 143.09999999999999,
+      "y" : 499.60000000000002
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 203.40000000000001,
+      "y" : 499.60000000000002
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 263.69999999999999,
+      "y" : 499.60000000000002
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 324.10000000000002,
+      "y" : 499.60000000000002
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 22.399999999999999,
+      "y" : 559.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 82.700000000000003,
+      "y" : 559.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 143.09999999999999,
+      "y" : 559.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 203.40000000000001,
+      "y" : 559.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 263.69999999999999,
+      "y" : 559.89999999999998
+    },
+    {
+      "h" : 60.299999999999997,
+      "kind" : "image",
+      "layer" : "page",
+      "w" : 60.299999999999997,
+      "x" : 321.69999999999999,
+      "y" : 557.5
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 22.399999999999999,
+      "y" : 620.29999999999995
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 82.700000000000003,
+      "y" : 620.29999999999995
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 143.09999999999999,
+      "y" : 620.29999999999995
+    },
+    {
+      "h" : 60.299999999999997,
+      "kind" : "image",
+      "layer" : "page",
+      "w" : 60.299999999999997,
+      "x" : 20,
+      "y" : 759.89999999999998
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 82.700000000000003,
+      "y" : 762.29999999999995
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 143.09999999999999,
+      "y" : 762.29999999999995
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 203.40000000000001,
+      "y" : 762.29999999999995
+    },
+    {
+      "class" : "LibraryInkView",
+      "h" : 55.5,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 55.5,
+      "x" : 263.69999999999999,
+      "y" : 762.29999999999995
+    }
+  ],
+  "decos" : [
+    {
+      "color" : "#B03A27FF",
+      "h" : 6,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 6,
+      "x" : 189.59999999999999,
+      "y" : 442.30000000000001
+    },
+    {
+      "color" : "#B03A27FF",
+      "h" : 6,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 6,
+      "x" : 370.60000000000002,
+      "y" : 562.89999999999998
+    },
+    {
+      "color" : "#B03A27FF",
+      "h" : 6,
+      "kind" : "circle",
+      "layer" : "page",
+      "w" : 6,
+      "x" : 68.900000000000006,
+      "y" : 765.29999999999995
+    },
+    {
+      "h" : 18,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 18,
+      "x" : 36,
+      "y" : 231.80000000000001
+    },
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 80.400000000000006
+    },
+    {
+      "h" : 7,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 20,
+      "x" : 20,
+      "y" : 643.5
+    },
+    {
+      "h" : 7,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 20,
+      "x" : 149.69999999999999,
+      "y" : 643.5
+    },
+    {
+      "h" : 7,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 20,
+      "x" : 20,
+      "y" : 685.5
+    },
+    {
+      "h" : 7,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 20,
+      "x" : 178.30000000000001,
+      "y" : 685.5
+    },
+    {
+      "color" : "#B03A27FF",
+      "h" : 6,
+      "kind" : "circle",
+      "layer" : "sheet",
+      "w" : 6,
+      "x" : 20,
+      "y" : 728
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-library-all-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 699.20000000000005,
+        "w" : 402,
+        "x" : 0,
+        "y" : 174.80000000000001
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 753.79999999999995,
+        "w" : 402,
+        "x" : 0,
+        "y" : 174.80000000000001
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "GroupView",
+      "frame" : {
+        "h" : 363.39999999999998,
+        "w" : 362,
+        "x" : 20,
+        "y" : 314.80000000000001
+      },
+      "id" : "native-library-all-group",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "groupViews[0]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月 27 个字",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 53.700000000000003,
+        "w" : 362,
+        "x" : 20,
+        "y" : 314.80000000000001
+      },
+      "id" : "native-library-all-group-head",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "10月 27 个字",
+      "visibleFrame" : {
+        "h" : 53.700000000000003,
+        "w" : 362,
+        "x" : 20,
+        "y" : 314.80000000000001
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 301.69999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 376.5
+      },
+      "id" : "native-library-all-cells",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "狗，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 376.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 376.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "猫，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 376.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 376.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鱼，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 376.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 376.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "春，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 376.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 376.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "云，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 376.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 376.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "日，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 376.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 376.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "大，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 436.80000000000001
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 436.80000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "天，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 436.80000000000001
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 436.80000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "山，写错过",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 436.80000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 436.80000000000001
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "山",
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 436.80000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "小，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 436.80000000000001
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 436.80000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "火，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 436.80000000000001
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 436.80000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "书，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 436.80000000000001
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 436.80000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "和，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 497.19999999999999
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 497.19999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "学，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 497.19999999999999
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 497.19999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "国，一周内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 497.19999999999999
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 497.19999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "雪，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 497.19999999999999
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 497.19999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "中，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 497.19999999999999
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 497.19999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "土，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 497.19999999999999
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 497.19999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "月，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 557.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 557.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "永，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 557.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 557.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "人，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 557.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 557.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "字，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 557.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 557.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鸟，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 557.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 557.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "风，写错过",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 557.5
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 557.5
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "风",
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 321.69999999999999,
+        "y" : 557.5
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "雨，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 617.79999999999995
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 617.79999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "花，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 617.79999999999995
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 617.79999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "木，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 617.79999999999995
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 617.79999999999995
+      }
+    },
+    {
+      "class" : "GroupView",
+      "frame" : {
+        "h" : 122,
+        "w" : 362,
+        "x" : 20,
+        "y" : 698.20000000000005
+      },
+      "id" : "native-library-all-group",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "groupViews[1]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "9月 5 个字",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 53.700000000000003,
+        "w" : 362,
+        "x" : 20,
+        "y" : 698.20000000000005
+      },
+      "id" : "native-library-all-group-head",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "9月 5 个字",
+      "visibleFrame" : {
+        "h" : 53.700000000000003,
+        "w" : 362,
+        "x" : 20,
+        "y" : 698.20000000000005
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 759.89999999999998
+      },
+      "id" : "native-library-all-cells",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "习，写错过",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 759.89999999999998
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 759.89999999999998
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "习",
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 20,
+        "y" : 759.89999999999998
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "水，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 759.89999999999998
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 80.299999999999997,
+        "y" : 759.89999999999998
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "地，一个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 759.89999999999998
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 140.69999999999999,
+        "y" : 759.89999999999998
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "金，三个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 759.89999999999998
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 201,
+        "y" : 759.89999999999998
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "法，三个月内",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 759.89999999999998
+      },
+      "id" : "native-library-all-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "",
+      "visibleFrame" : {
+        "h" : 60.299999999999997,
+        "w" : 60.299999999999997,
+        "x" : 261.30000000000001,
+        "y" : 759.89999999999998
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 651.20000000000005,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190.80000000000001
+      },
+      "id" : "native-library-all-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyMarker"
+    },
+    {
+      "bg" : "#E4DDD0FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 100,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190.80000000000001
+      },
+      "id" : "native-library-all-find-field",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "findField",
+      "radius" : 12
+    },
+    {
+      "class" : "UIImageView",
+      "frame" : {
+        "h" : 18,
+        "w" : 18,
+        "x" : 36,
+        "y" : 231.80000000000001
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "findIcon"
+    },
+    {
+      "class" : "UITextField",
+      "frame" : {
+        "h" : 52,
+        "w" : 300,
+        "x" : 66,
+        "y" : 214.80000000000001
+      },
+      "id" : "native-library-all-find",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "findInput"
+    },
+    {
+      "class" : "LibraryPlaceholderView",
+      "frame" : {
+        "h" : 52,
+        "w" : 300,
+        "x" : 66,
+        "y" : 214.80000000000001
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "findPlaceholder"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 52.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 844.20000000000005
+      },
+      "id" : "native-library-all-closed",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "closedMarker"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "8月 4 个字 ›",
+      "class" : "MonthButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 844.60000000000002
+      },
+      "id" : "native-library-all-month",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "monthButtons[0]",
+      "text" : "8月 4 个字 ›",
+      "visibleFrame" : {
+        "h" : 29.399999999999999,
+        "w" : 362,
+        "x" : 20,
+        "y" : 844.60000000000002
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 69.400000000000006
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 80.400000000000006
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0088FFFF"
+    },
+    {
+      "align" : "left",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "已练汉字",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 48,
+        "w" : 330,
+        "x" : 36,
+        "y" : 120.8
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 48,
+        "w" : 157,
+        "x" : 36,
+        "y" : 120.8
+      },
+      "visibleFrame" : {
+        "h" : 48,
+        "w" : 157,
+        "x" : 36,
+        "y" : 120.8
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "排序 · 筛选",
+      "class" : "ShiziLineButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58.799999999999997,
+        "w" : 183,
+        "x" : 203,
+        "y" : 62
+      },
+      "id" : "native-library-all-menu-open",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "排序 · 筛选",
+      "visibleFrame" : {
+        "h" : 58.799999999999997,
+        "w" : 183,
+        "x" : 203,
+        "y" : 62
+      }
+    },
+    {
+      "bg" : "#26211D52",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-change-scrim",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "bg" : "#FBF8F2FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 664.79999999999995,
+        "w" : 402,
+        "x" : 0,
+        "y" : 209.19999999999999
+      },
+      "id" : "native-library-all-menu",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.view",
+      "radius" : 24
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 664.79999999999995,
+        "w" : 402,
+        "x" : 0,
+        "y" : 209.19999999999999
+      },
+      "id" : "native-library-all-menu-scroll",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 58.799999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 233.19999999999999
+      },
+      "id" : "native-library-all-sheet-head",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.head"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 40,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 48,
+        "w" : 262,
+        "x" : 20,
+        "y" : 238.59999999999999
+      },
+      "id" : "native-library-all-sheet-title",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.titleLabel",
+      "text" : "排序 · 筛选",
+      "textFrame" : {
+        "h" : 48,
+        "w" : 183.30000000000001,
+        "x" : 20,
+        "y" : 238.59999999999999
+      },
+      "visibleFrame" : {
+        "h" : 48,
+        "w" : 183.30000000000001,
+        "x" : 20,
+        "y" : 238.59999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "完成",
+      "class" : "ShiziLineButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58.799999999999997,
+        "w" : 78.700000000000003,
+        "x" : 307.30000000000001,
+        "y" : 233.19999999999999
+      },
+      "id" : "native-library-all-sheet-done",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.doneButton",
+      "text" : "完成",
+      "visibleFrame" : {
+        "h" : 58.799999999999997,
+        "w" : 78.700000000000003,
+        "x" : 307.30000000000001,
+        "y" : 233.19999999999999
+      }
+    },
+    {
+      "bg" : "#E4DDD0FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 90,
+        "w" : 362,
+        "x" : 20,
+        "y" : 308
+      },
+      "id" : "native-library-all-sorts",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.sortsBox",
+      "radius" : 12
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "最近写的",
+      "bg" : "#FBF8F2FF",
+      "class" : "ShiziLineButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 118.59999999999999,
+        "x" : 23,
+        "y" : 311
+      },
+      "id" : "native-library-all-sort",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.sortButtons[0]",
+      "radius" : 9,
+      "text" : "最近写的",
+      "visibleFrame" : {
+        "h" : 84,
+        "w" : 118.59999999999999,
+        "x" : 23,
+        "y" : 311
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "拼音",
+      "class" : "ShiziLineButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 118.59999999999999,
+        "x" : 141.69999999999999,
+        "y" : 311
+      },
+      "id" : "native-library-all-sort",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.sortButtons[1]",
+      "radius" : 9,
+      "text" : "拼音",
+      "visibleFrame" : {
+        "h" : 84,
+        "w" : 118.59999999999999,
+        "x" : 141.69999999999999,
+        "y" : 311
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "多久没写",
+      "class" : "ShiziLineButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 84,
+        "w" : 118.59999999999999,
+        "x" : 260.30000000000001,
+        "y" : 311
+      },
+      "id" : "native-library-all-sort",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.sortButtons[2]",
+      "radius" : 9,
+      "text" : "多久没写",
+      "visibleFrame" : {
+        "h" : 84,
+        "w" : 118.59999999999999,
+        "x" : 260.30000000000001,
+        "y" : 311
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 200,
+        "w" : 362,
+        "x" : 20,
+        "y" : 414
+      },
+      "id" : "native-library-all-chips",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.chipsBox"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "待复习 6",
+      "border" : "#8E8477FF",
+      "borderWidth" : 0.5,
+      "class" : "ShiziLineButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 168.30000000000001,
+        "x" : 20,
+        "y" : 414
+      },
+      "id" : "native-library-all-chip",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.chipButtons[0]",
+      "radius" : 12,
+      "text" : "待复习 6",
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 168.30000000000001,
+        "x" : 20,
+        "y" : 414
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "未熟悉 5",
+      "border" : "#8E8477FF",
+      "borderWidth" : 0.5,
+      "class" : "ShiziLineButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 167.30000000000001,
+        "x" : 196.30000000000001,
+        "y" : 414
+      },
+      "id" : "native-library-all-chip",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.chipButtons[1]",
+      "radius" : 12,
+      "text" : "未熟悉 5",
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 167.30000000000001,
+        "x" : 196.30000000000001,
+        "y" : 414
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "已熟悉 25",
+      "border" : "#8E8477FF",
+      "borderWidth" : 0.5,
+      "class" : "ShiziLineButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 188,
+        "x" : 20,
+        "y" : 466
+      },
+      "id" : "native-library-all-chip",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.chipButtons[2]",
+      "radius" : 12,
+      "text" : "已熟悉 25",
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 188,
+        "x" : 20,
+        "y" : 466
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "自选未写 0",
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.5,
+      "class" : "ShiziLineButton",
+      "color" : "#8E8477FF",
+      "enabled" : false,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 203.30000000000001,
+        "x" : 20,
+        "y" : 518
+      },
+      "id" : "native-library-all-chip",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.chipButtons[3]",
+      "radius" : 12,
+      "text" : "自选未写 0",
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 203.30000000000001,
+        "x" : 20,
+        "y" : 518
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "自选字 0",
+      "border" : "#DDD5C7FF",
+      "borderWidth" : 0.5,
+      "class" : "ShiziLineButton",
+      "color" : "#8E8477FF",
+      "enabled" : false,
+      "fontSize" : 36,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 168,
+        "x" : 20,
+        "y" : 570
+      },
+      "id" : "native-library-all-chip",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "sheet.chipButtons[4]",
+      "radius" : 12,
+      "text" : "自选字 0",
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 168,
+        "x" : 20,
+        "y" : 570
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 118,
+        "w" : 362,
+        "x" : 20,
+        "y" : 630
+      },
+      "id" : "native-library-all-legend",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.legendBox"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 29,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 34,
+        "w" : 85.700000000000003,
+        "x" : 48,
+        "y" : 630
+      },
+      "id" : "native-library-all-legend-tone",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.legendLabels[0]",
+      "text" : "一周内",
+      "textFrame" : {
+        "h" : 34.600000000000001,
+        "w" : 85.700000000000003,
+        "x" : 48,
+        "y" : 629.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 34,
+        "w" : 85.700000000000003,
+        "x" : 48,
+        "y" : 630
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 7,
+        "w" : 20,
+        "x" : 20,
+        "y" : 643.5
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.legendSwatches[0]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 29,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 177.69999999999999,
+        "y" : 630
+      },
+      "id" : "native-library-all-legend-tone",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.legendLabels[1]",
+      "text" : "一个月内",
+      "textFrame" : {
+        "h" : 34.600000000000001,
+        "w" : 114.3,
+        "x" : 177.69999999999999,
+        "y" : 629.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 177.69999999999999,
+        "y" : 630
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 7,
+        "w" : 20,
+        "x" : 149.69999999999999,
+        "y" : 643.5
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.legendSwatches[1]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 29,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 48,
+        "y" : 672
+      },
+      "id" : "native-library-all-legend-tone",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.legendLabels[2]",
+      "text" : "三个月内",
+      "textFrame" : {
+        "h" : 34.600000000000001,
+        "w" : 114.3,
+        "x" : 48,
+        "y" : 671.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 48,
+        "y" : 672
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 7,
+        "w" : 20,
+        "x" : 20,
+        "y" : 685.5
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.legendSwatches[2]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 29,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 206.30000000000001,
+        "y" : 672
+      },
+      "id" : "native-library-all-legend-tone",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.legendLabels[3]",
+      "text" : "超三个月",
+      "textFrame" : {
+        "h" : 34.600000000000001,
+        "w" : 114.3,
+        "x" : 206.30000000000001,
+        "y" : 671.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 206.30000000000001,
+        "y" : 672
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 7,
+        "w" : 20,
+        "x" : 178.30000000000001,
+        "y" : 685.5
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.legendSwatches[3]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 29,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 34,
+        "w" : 85.700000000000003,
+        "x" : 34,
+        "y" : 714
+      },
+      "id" : "native-library-all-legend-wrong",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.legendLabels[4]",
+      "text" : "写错过",
+      "textFrame" : {
+        "h" : 34.600000000000001,
+        "w" : 85.700000000000003,
+        "x" : 34,
+        "y" : 713.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 34,
+        "w" : 85.700000000000003,
+        "x" : 34,
+        "y" : 714
+      }
+    },
+    {
+      "bg" : "#B03A27FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 6,
+        "w" : 6,
+        "x" : 20,
+        "y" : 728
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.legendSwatches[4]",
+      "radius" : 3
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 29,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 152.69999999999999,
+        "y" : 714
+      },
+      "id" : "native-library-all-legend-hollow",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.legendLabels[5]",
+      "text" : "自选未写",
+      "textFrame" : {
+        "h" : 34.600000000000001,
+        "w" : 114.3,
+        "x" : 152.69999999999999,
+        "y" : 713.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 34,
+        "w" : 114.3,
+        "x" : 152.69999999999999,
+        "y" : 714
+      }
+    },
+    {
+      "border" : "#8E8477FF",
+      "borderWidth" : 1,
+      "class" : "UIView",
+      "frame" : {
+        "h" : 9,
+        "w" : 9,
+        "x" : 135.69999999999999,
+        "y" : 726.5
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.legendSwatches[5]"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 33,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 76,
+        "w" : 362,
+        "x" : 20,
+        "y" : 764
+      },
+      "id" : "native-library-all-note",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheet.noteLabel",
+      "text" : "按最近写的月份排，每格是最近的笔迹。",
+      "textFrame" : {
+        "h" : 77.400000000000006,
+        "w" : 356.30000000000001,
+        "x" : 20,
+        "y" : 763.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 76,
+        "w" : 356.30000000000001,
+        "x" : 20,
+        "y" : 764
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 896.20000000000005
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 844.20000000000005
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 168.30000000000001,
+      "x" : 20,
+      "y" : 414
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 168.30000000000001,
+      "x" : 20,
+      "y" : 457.5
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 20,
+      "y" : 414
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 187.80000000000001,
+      "y" : 414
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 167.30000000000001,
+      "x" : 196.30000000000001,
+      "y" : 414
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 167.30000000000001,
+      "x" : 196.30000000000001,
+      "y" : 457.5
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 196.30000000000001,
+      "y" : 414
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 363.19999999999999,
+      "y" : 414
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 188,
+      "x" : 20,
+      "y" : 466
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 188,
+      "x" : 20,
+      "y" : 509.5
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 20,
+      "y" : 466
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 207.5,
+      "y" : 466
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 203.30000000000001,
+      "x" : 20,
+      "y" : 518
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 203.30000000000001,
+      "x" : 20,
+      "y" : 561.5
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 20,
+      "y" : 518
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 222.80000000000001,
+      "y" : 518
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 168,
+      "x" : 20,
+      "y" : 570
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.5,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 168,
+      "x" : 20,
+      "y" : 613.5
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 20,
+      "y" : 570
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 44,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 0.5,
+      "x" : 187.5,
+      "y" : 570
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 1,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 9,
+      "x" : 135.69999999999999,
+      "y" : 726.5
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 1,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 9,
+      "x" : 135.69999999999999,
+      "y" : 734.5
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 9,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 1,
+      "x" : 135.69999999999999,
+      "y" : 726.5
+    },
+    {
+      "color" : "#8E8477FF",
+      "h" : 9,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 1,
+      "x" : 143.69999999999999,
+      "y" : 726.5
+    },
+    {
+      "color" : "#26211D1A",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "drawn",
+      "w" : 402,
+      "x" : 0,
+      "y" : 208.90000000000001
+    }
+  ],
+  "screen" : {
+    "contentSize" : "AX3",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "all-menu",
+  "tag" : "light_AX3",
+  "ui" : "native"
+}

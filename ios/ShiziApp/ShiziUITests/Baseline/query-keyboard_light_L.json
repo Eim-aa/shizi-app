@@ -1,0 +1,3729 @@
+{
+  "cells" : [
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 255.40000000000001,
+      "y" : 421.19999999999999
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 293.39999999999998,
+      "y" : 421.19999999999999
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 331.39999999999998,
+      "y" : 421.19999999999999
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 255.40000000000001,
+      "y" : 477.19999999999999
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 293.39999999999998,
+      "y" : 477.19999999999999
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 331.39999999999998,
+      "y" : 477.19999999999999
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 255.40000000000001,
+      "y" : 533.20000000000005
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 293.39999999999998,
+      "y" : 533.20000000000005
+    },
+    {
+      "class" : "NativeInkView",
+      "h" : 31.300000000000001,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 31.300000000000001,
+      "x" : 331.39999999999998,
+      "y" : 533.20000000000005
+    }
+  ],
+  "decos" : [
+    {
+      "h" : 18,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 18,
+      "x" : 36,
+      "y" : 137
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 209.69999999999999
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 296
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 430.30000000000001
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 486.30000000000001
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 542.29999999999995
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 225.30000000000001
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 244.80000000000001
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 293.69999999999999
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 313.19999999999999
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 362
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 381.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 430.30000000000001
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 449.80000000000001
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 498.69999999999999
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 518.20000000000005
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 567
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 586.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 635.29999999999995
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 654.79999999999995
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 703.70000000000005
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 723.20000000000005
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 772
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 791.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 28,
+      "x" : 20,
+      "y" : 840.29999999999995
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "w" : 8,
+      "x" : 374,
+      "y" : 859.79999999999995
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 908.70000000000005
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 928.20000000000005
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 977
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 996.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1045.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1064.8
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1113.7
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1133.2
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1182
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1201.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1250.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1269.8
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1318.7
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1338.2
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1387
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1406.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1455.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1474.8
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1523.7
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1543.2
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1592
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1611.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1660.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1677.8
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1724.7
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1744.2
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1793
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1812.5
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 1861.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1880.8
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1949.2
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2017.5
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2085.8000000000002
+    },
+    {
+      "h" : 28,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 28,
+      "x" : 20,
+      "y" : 2134.6999999999998
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "sheet",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2154.1999999999998
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 691.29999999999995,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-library-screen",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "字库",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 28,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 36,
+        "w" : 362,
+        "x" : 20,
+        "y" : 78
+      },
+      "id" : "native-library-title",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 40.200000000000003,
+        "w" : 56,
+        "x" : 20,
+        "y" : 75.900000000000006
+      },
+      "visibleFrame" : {
+        "h" : 36,
+        "w" : 56,
+        "x" : 20,
+        "y" : 78
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 537.29999999999995,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-library-home",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-library-search",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-library-query-slot",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 360.69999999999999
+      },
+      "id" : "native-library-written",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 56.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 603
+      },
+      "id" : "native-library-skipped-block",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "搜索汉字或拼音",
+      "bg" : "#E4DDD0FF",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 18,
+        "w" : 18,
+        "x" : 364,
+        "y" : 137
+      },
+      "id" : "native-library-query-open",
+      "kind" : "button",
+      "layer" : "page",
+      "radius" : 12,
+      "text" : "搜索汉字或拼音",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 118,
+        "x" : 64,
+        "y" : 135.80000000000001
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 48,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习范围 常用字",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 188.30000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 209.80000000000001
+      },
+      "id" : "native-library-range",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "练习范围 常用字",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 346,
+        "x" : 20,
+        "y" : 206
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 188.30000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "今日练习 5 个新字 5 个字",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 64,
+        "w" : 362,
+        "x" : 20,
+        "y" : 270.69999999999999
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 296.19999999999999
+      },
+      "id" : "native-library-today",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "今日练习\n5 个新字 5 个字",
+      "textFrame" : {
+        "h" : 42.299999999999997,
+        "w" : 346,
+        "x" : 20,
+        "y" : 280.5
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 64,
+        "w" : 362,
+        "x" : 20,
+        "y" : 270.69999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "待复习 6 山 风 习",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 409
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 430.5
+      },
+      "id" : "native-library-zone-0",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "待复习 6",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 68.299999999999997,
+        "x" : 20,
+        "y" : 426.69999999999999
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 409
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "未熟悉 5 狗 鱼 猫",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 465
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 486.5
+      },
+      "id" : "native-library-zone-1",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "未熟悉 5",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 68.299999999999997,
+        "x" : 20,
+        "y" : 482.69999999999999
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 465
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "已熟悉 25 雪 月 和",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 521
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 542.5
+      },
+      "id" : "native-library-zone-2",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "已熟悉 25",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 77.700000000000003,
+        "x" : 20,
+        "y" : 538.70000000000005
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 521
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 56,
+        "w" : 362,
+        "x" : 20,
+        "y" : 603.29999999999995
+      },
+      "id" : "native-library-skipped",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 22,
+        "w" : 51,
+        "x" : 20,
+        "y" : 620.20000000000005
+      },
+      "id" : "native-library-skipped-name",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "已跳过",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 50.700000000000003,
+        "x" : 20,
+        "y" : 621
+      },
+      "visibleFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 50.700000000000003,
+        "x" : 20,
+        "y" : 620.20000000000005
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 10,
+        "x" : 79,
+        "y" : 620.20000000000005
+      },
+      "id" : "native-library-skipped-count",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "0",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 79,
+        "y" : 622.20000000000005
+      },
+      "visibleFrame" : {
+        "h" : 18,
+        "w" : 9.3000000000000007,
+        "x" : 79,
+        "y" : 620.20000000000005
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 22,
+        "w" : 68,
+        "x" : 20,
+        "y" : 371.69999999999999
+      },
+      "id" : "native-library-written-heading",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 20,
+        "y" : 372.5
+      },
+      "visibleFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 20,
+        "y" : 371.69999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 19,
+        "x" : 96,
+        "y" : 371.69999999999999
+      },
+      "id" : "native-library-written-count",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "36",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 96,
+        "y" : 373.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 18,
+        "w" : 18.699999999999999,
+        "x" : 96,
+        "y" : 371.69999999999999
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "全部已练汉字",
+      "class" : "NativeTextButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 49,
+        "x" : 337,
+        "y" : 360.69999999999999
+      },
+      "id" : "native-library-all-open",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "全部 ›",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 40.299999999999997,
+        "x" : 341.30000000000001,
+        "y" : 373.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 49,
+        "x" : 337,
+        "y" : 360.69999999999999
+      }
+    },
+    {
+      "axLabel" : "写字",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 68,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      },
+      "id" : "native-tab-home",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "写字",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 104,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "字库",
+      "class" : "UITabBarItem",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 154,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      },
+      "id" : "native-tab-library",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : true,
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 190,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "我的",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 240,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      },
+      "id" : "native-tab-mine",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 276,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet.view"
+    },
+    {
+      "bg" : "#26211D52",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-query-scrim",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "scrim"
+    },
+    {
+      "bg" : "#FBF8F2FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 474,
+        "w" : 402,
+        "x" : 0,
+        "y" : 65
+      },
+      "id" : "native-query-sheet",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "sheet",
+      "radius" : 24
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 44,
+        "w" : 362,
+        "x" : 20,
+        "y" : 89
+      },
+      "id" : "native-query-head",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "head"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 22,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 30,
+        "w" : 308,
+        "x" : 20,
+        "y" : 96
+      },
+      "id" : "native-query-title",
+      "kind" : "text",
+      "layer" : "sheet",
+      "prop" : "sheetTitle",
+      "text" : "查字",
+      "textFrame" : {
+        "h" : 31.600000000000001,
+        "w" : 44,
+        "x" : 20,
+        "y" : 95.200000000000003
+      },
+      "visibleFrame" : {
+        "h" : 30,
+        "w" : 44,
+        "x" : 20,
+        "y" : 96
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "完成",
+      "class" : "NativeTextButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 38,
+        "x" : 348,
+        "y" : 89
+      },
+      "id" : "native-query-done",
+      "kind" : "button",
+      "layer" : "sheet",
+      "prop" : "doneButton",
+      "text" : "完成",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 30,
+        "x" : 352,
+        "y" : 102
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 38,
+        "x" : 348,
+        "y" : 89
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 374,
+        "w" : 362,
+        "x" : 20,
+        "y" : 149
+      },
+      "id" : "native-query-body",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "queryBody"
+    },
+    {
+      "bg" : "#E4DDD0FF",
+      "border" : "#26211DFF",
+      "borderWidth" : 1,
+      "class" : "UITextField",
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 149
+      },
+      "id" : "native-query-input",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "inputField",
+      "radius" : 12
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 306,
+        "w" : 362,
+        "x" : 20,
+        "y" : 217
+      },
+      "id" : "native-query-scroll",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "scrollArea"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 2014,
+        "w" : 362,
+        "x" : 20,
+        "y" : 217
+      },
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "scrollContent"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 1978,
+        "w" : 362,
+        "x" : 20,
+        "y" : 217
+      },
+      "id" : "native-query-rows",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowsBox"
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 217.30000000000001
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[0]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "永 yǒng，写过 4 次",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 217.30000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 225.30000000000001
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "永 yǒng 永远 写过 4 次",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 222.30000000000001
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 217.30000000000001
+      }
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 285.69999999999999
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[1]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "用 yòng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 285.69999999999999
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 293.69999999999999
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "用 yòng 使用 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 290.60000000000002
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 285.69999999999999
+      }
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 354
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[2]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "拥 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 354
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 362
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "拥 yōng 拥有 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 358.89999999999998
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 354
+      }
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 422.30000000000001
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[3]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "勇 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 422.30000000000001
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 430.30000000000001
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "勇 yǒng 勇气 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 427.30000000000001
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 422.30000000000001
+      }
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 490.69999999999999
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[4]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "涌 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 490.69999999999999
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 498.69999999999999
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "涌 yǒng 涌现 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 495.60000000000002
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : {
+        "h" : 32.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 490.69999999999999
+      }
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 559
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[5]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "庸 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 559
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 567
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "庸 yōng 庸俗 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 563.89999999999998
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 627.29999999999995
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[6]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "佣 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 627.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 635.29999999999995
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "佣 yōng 雇佣 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 632.20000000000005
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 695.70000000000005
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[7]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "泳 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 695.70000000000005
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 703.70000000000005
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "泳 yǒng 游泳 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 700.60000000000002
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 764
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[8]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "雍 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 764
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 772
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "雍 yōng 雍容 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 768.89999999999998
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 832.29999999999995
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "prop" : "rowViews[9]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "咏 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 832.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 840.29999999999995
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "text" : "咏 yǒng 歌咏 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 837.20000000000005
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    }
+  ],
+  "offscreen" : [
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 900.70000000000005
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[10]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "踊 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 900.70000000000005
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 908.70000000000005
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "踊 yǒng 踊跃 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 905.60000000000002
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 969
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[11]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "恿 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 969
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 977
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "恿 yǒng 怂恿 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 973.89999999999998
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1037.3
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[12]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "蛹 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1037.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1045.3
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "蛹 yǒng 蚕蛹 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1042.3
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1105.7
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[13]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "甬 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1105.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1113.7
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "甬 yǒng 甬道 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1110.5999999999999
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1174
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[14]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "俑 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1174
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1182
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "俑 yǒng 兵马俑 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1178.9000000000001
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1242.3
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[15]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "臃 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1242.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1250.3
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "臃 yōng 臃肿 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1247.3
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1310.7
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[16]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "邕 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1310.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1318.7
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "邕 yōng 邕江 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1315.5999999999999
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1379
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[17]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "慵 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1379
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1387
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "慵 yōng 慵懒 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1383.9000000000001
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1447.3
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[18]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "痈 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1447.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1455.3
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "痈 yōng 痈疽 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1452.3
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1515.7
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[19]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "饔 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1515.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1523.7
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "饔 yōng 佐饔得尝 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1520.5999999999999
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1584
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[20]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "壅 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1584
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1592
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "壅 yōng 壅塞 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1588.9000000000001
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 64.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1652.3
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[21]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "镛 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 64,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1652.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1660.3
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "镛 yōng 还没写过",
+      "textFrame" : {
+        "h" : 35,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1657.2
+      },
+      "textNeed" : {
+        "box" : 34.799999999999997,
+        "fontLine" : 17.899999999999999,
+        "h" : 35,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1716.7
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[22]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "喁 yóng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1716.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1724.7
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "喁 yóng 喁字 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1721.5999999999999
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1785
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[23]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "墉 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1785
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1793
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "墉 yōng 金墉城 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1789.9000000000001
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1853.3
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[24]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鳙 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1853.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 1861.3
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "鳙 yōng 鳙鱼 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1858.2
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1921.7
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[25]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "颙 yóng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1921.7
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "颙 yóng 颙字 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1926.5999999999999
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1990
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[26]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鄘 yōng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1990
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "鄘 yōng 鄘字 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 1994.9000000000001
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2058.3000000000002
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[27]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鲬 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2058.3000000000002
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "鲬 yǒng 鲬字 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 2063.1999999999998
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "class" : "QueryCharRow",
+      "frame" : {
+        "h" : 68.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2126.6999999999998
+      },
+      "id" : "native-query-row",
+      "kind" : "view",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "rowViews[28]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "埇 yǒng，还没写过",
+      "class" : "QueryRowButton",
+      "clipped" : true,
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2126.6999999999998
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 28,
+        "w" : 28,
+        "x" : 20,
+        "y" : 2134.6999999999998
+      },
+      "id" : "native-query-row-open",
+      "kind" : "button",
+      "layer" : "sheet",
+      "off" : true,
+      "text" : "埇 yǒng 埇字 还没写过",
+      "textFrame" : {
+        "h" : 54.299999999999997,
+        "w" : 343,
+        "x" : 19,
+        "y" : 2131.5999999999999
+      },
+      "textNeed" : {
+        "box" : 54.200000000000003,
+        "fontLine" : 17.899999999999999,
+        "h" : 54.299999999999997,
+        "lines" : 1,
+        "room" : 1
+      },
+      "tint" : "#0088FFFF",
+      "truncated" : true,
+      "visibleFrame" : null
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 13,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 20,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2211
+      },
+      "id" : "native-query-hint",
+      "kind" : "text",
+      "layer" : "sheet",
+      "off" : true,
+      "prop" : "hintLabel",
+      "text" : "点一个字，看标准写法、练它或加入自选字。",
+      "textFrame" : {
+        "h" : 15.699999999999999,
+        "w" : 258,
+        "x" : 20,
+        "y" : 2213.1999999999998
+      },
+      "visibleFrame" : null
+    }
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 188
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 270.30000000000001
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 408.69999999999999
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 603
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 244
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 334.30000000000001
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 464.69999999999999
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 520.70000000000005
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 576.70000000000005
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 659
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 1,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 149
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 1,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 200
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 52,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 149
+    },
+    {
+      "color" : "#26211DFF",
+      "h" : 52,
+      "layer" : "sheet",
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 149
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 285.30000000000001
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 353.69999999999999
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 422
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 490.30000000000001
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 558.70000000000005
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 627
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 695.29999999999995
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 763.70000000000005
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 832
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 900.29999999999995
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 968.70000000000005
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1037
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1105.3
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1173.7
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1242
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1310.3
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1378.7
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1447
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1515.3
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1583.7
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1652
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1716.3
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1784.7
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1853
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1921.3
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1989.7
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2058
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2126.3000000000002
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2194.6999999999998
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 217
+    },
+    {
+      "color" : "#26211D1A",
+      "h" : 0.29999999999999999,
+      "layer" : "sheet",
+      "src" : "drawn",
+      "w" : 402,
+      "x" : 0,
+      "y" : 64.700000000000003
+    }
+  ],
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "query-keyboard",
+  "tag" : "light_L",
+  "ui" : "native"
+}

@@ -1,0 +1,60 @@
+{
+  "state": "preview-paged",
+  "name": "图片预览 · 超过 80 字分页（月字帖 90 字）",
+  "screen": "image-preview",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "image-preview",
+  "ready": {
+    "web": "month-screen",
+    "native": "id:native-image-preview-screen"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "lib": {
+        "id": "core3500",
+        "n": 90,
+        "from": "2026-08-01",
+        "perDay": 3
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "month",
+      "params": {
+        "month": "2026-08"
+      }
+    },
+    {
+      "op": "openImage",
+      "sel": "[data-testid=\"month-adjust\"]",
+      "scope": {
+        "kind": "month",
+        "month": "2026-08"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "month-adjust"
+      },
+      "times": 1
+    },
+    {
+      "wait": 2500
+    }
+  ]
+}

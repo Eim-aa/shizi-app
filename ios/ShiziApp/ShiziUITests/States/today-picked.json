@@ -1,0 +1,43 @@
+{
+  "state": "today-picked",
+  "name": "自选写字页（今天的练习还没开始，每组 5 字，流程用；D83）",
+  "screen": "write",
+  "native": true,
+  "parity": false,
+  "template": "write",
+  "clock": {
+    "pin": "2026-10-06T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "尴赢拾",
+          "at": "2026-10-05T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "patch",
+      "domain": "settings",
+      "value": {
+        "groupSize": 5
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "startPicked",
+      "keys": [
+        "永",
+        "和"
+      ]
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ]
+}

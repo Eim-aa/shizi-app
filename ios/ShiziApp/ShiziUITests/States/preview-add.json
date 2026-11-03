@@ -1,0 +1,35 @@
+{
+  "state": "preview-add",
+  "name": "图片预览 · 「也放进来」选中一个写错的字",
+  "screen": "result",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "image-preview",
+  "base": "result",
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "result-share",
+        "native": "native-result-share"
+      },
+      "times": 1
+    },
+    {
+      "wait": 1800
+    },
+    {
+      "tap": {
+        "webTestid": "image-chip",
+        "native": "qa-image-chip"
+      },
+      "times": 1
+    },
+    {
+      "wait": 900
+    }
+  ]
+}

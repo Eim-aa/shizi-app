@@ -1,0 +1,42 @@
+{
+  "state": "change-sheet",
+  "name": "改判弹层",
+  "order": 11,
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong"
+      ],
+      "n": 1
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ],
+  "overlay": "write-change-sheet",
+  "steps": [
+    {
+      "tap": {
+        "web": ".sz-layer[data-top=\"true\"] .sz-line__change",
+        "native": "native-write-line-change",
+        "nativeSelector": "tapChange"
+      },
+      "times": 1
+    }
+  ],
+  "settle": 1200,
+  "parity": true
+}

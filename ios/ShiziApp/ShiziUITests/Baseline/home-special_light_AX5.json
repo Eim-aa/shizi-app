@@ -1,0 +1,418 @@
+{
+  "cells" : [
+    {
+      "class" : "CAShapeLayer",
+      "h" : 158.69999999999999,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 158.69999999999999,
+      "x" : 121.59999999999999,
+      "y" : 165.40000000000001
+    }
+  ],
+  "decos" : [
+
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 791,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-home-screen",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 393.60000000000002,
+        "w" : 362,
+        "x" : 20,
+        "y" : 126
+      },
+      "id" : "native-home-main",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 271.39999999999998,
+        "w" : 362,
+        "x" : 20,
+        "y" : 519.60000000000002
+      },
+      "id" : "native-home-foot",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 128,
+        "w" : 352.5,
+        "x" : 24.800000000000001,
+        "y" : 180.80000000000001
+      },
+      "id" : "native-home-group",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 74
+      },
+      "id" : "native-home-date",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "10月5日 · 晚上",
+      "textFrame" : {
+        "h" : 52.5,
+        "w" : 285,
+        "x" : 20,
+        "y" : 73.700000000000003
+      },
+      "visibleFrame" : {
+        "h" : 52,
+        "w" : 285,
+        "x" : 20,
+        "y" : 74
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "拾",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 128,
+        "w" : 128,
+        "x" : 137,
+        "y" : 180.80000000000001
+      },
+      "id" : "native-home-brand-shi",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "ShiziShiMarkView",
+      "frame" : {
+        "h" : 158.69999999999999,
+        "w" : 158.69999999999999,
+        "x" : 121.59999999999999,
+        "y" : 165.40000000000001
+      },
+      "id" : "native-brand-shi-mark",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 156,
+        "w" : 301.89999999999998,
+        "x" : 50.100000000000001,
+        "y" : 308.80000000000001
+      },
+      "id" : "native-home-capital-body",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "今天写两组大写\n数字，借条、红\n包上用得着。",
+      "textFrame" : {
+        "h" : 156.5,
+        "w" : 301.30000000000001,
+        "x" : 50.299999999999997,
+        "y" : 308.5
+      },
+      "visibleFrame" : {
+        "h" : 156,
+        "w" : 301.30000000000001,
+        "x" : 50.399999999999999,
+        "y" : 308.80000000000001
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "自己选字",
+      "class" : "NativeTextButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 75.700000000000003,
+        "w" : 200,
+        "x" : 101,
+        "y" : 519.60000000000002
+      },
+      "id" : "native-home-pick",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "自己选字",
+      "textFrame" : {
+        "h" : 58.700000000000003,
+        "w" : 191.69999999999999,
+        "x" : 105.3,
+        "y" : 528.39999999999998
+      },
+      "visibleFrame" : {
+        "h" : 75.700000000000003,
+        "w" : 200,
+        "x" : 101,
+        "y" : 519.60000000000002
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "写平常字",
+      "class" : "NativeTextButton",
+      "color" : "#564E46FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 75.700000000000003,
+        "w" : 200,
+        "x" : 101,
+        "y" : 599.29999999999995
+      },
+      "id" : "native-home-capital-defer",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "写平常字",
+      "textFrame" : {
+        "h" : 58.700000000000003,
+        "w" : 191.69999999999999,
+        "x" : 105.3,
+        "y" : 608.10000000000002
+      },
+      "visibleFrame" : {
+        "h" : 75.700000000000003,
+        "w" : 200,
+        "x" : 101,
+        "y" : 599.29999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "开始写字",
+      "bg" : "#26211DFF",
+      "class" : "UIButton",
+      "color" : "#F4EFE6FF",
+      "enabled" : true,
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 88,
+        "w" : 362,
+        "x" : 20,
+        "y" : 679
+      },
+      "id" : "native-home-start",
+      "kind" : "button",
+      "layer" : "page",
+      "radius" : 12,
+      "text" : "开始写字",
+      "textFrame" : {
+        "h" : 62,
+        "w" : 207.30000000000001,
+        "x" : 97.299999999999997,
+        "y" : 692
+      },
+      "visibleFrame" : {
+        "h" : 88,
+        "w" : 362,
+        "x" : 20,
+        "y" : 679
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "",
+      "class" : "UILabel",
+      "frame" : {
+        "h" : 1,
+        "w" : 1,
+        "x" : 19,
+        "y" : 73
+      },
+      "id" : "native-page-title",
+      "kind" : "view",
+      "layer" : "page",
+      "srOnly" : true
+    },
+    {
+      "axLabel" : "写字",
+      "class" : "UITabBarItem",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 68,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      },
+      "id" : "native-tab-home",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : true,
+      "text" : "写字",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 104,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "字库",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 154,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      },
+      "id" : "native-tab-library",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 190,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "我的",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 240,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      },
+      "id" : "native-tab-mine",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 276,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+
+  ],
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "home-special",
+  "tag" : "light_AX5",
+  "ui" : "native"
+}

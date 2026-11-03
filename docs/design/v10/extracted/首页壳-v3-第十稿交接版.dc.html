@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script>(function(){['https://cdn.jsdelivr.net/npm/lxgw-wenkai-gb-web@1.522.0/lxgwwenkaigb-regular/'+'result.css','https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&display=swap'].forEach(function(h){if(!document.querySelector('link[data-szf="'+h+'"]')){var l=document.createElement('link');l.rel='stylesheet';l.href=h;l.setAttribute('data-szf',h);document.head.appendChild(l);}});})();</script>
+</helmet>
+<div style="{{ frame }}">
+
+  <div style="position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(140,125,105,.028) 1px,transparent 1.2px),radial-gradient(rgba(140,125,105,.022) 1px,transparent 1.2px);background-size:7px 7px,11px 11px;background-position:0 0,3px 5px"></div>
+
+  {{ lightLayer }}
+
+  <div style="position:absolute;left:0;top:0;right:0;height:330px;color:transparent">
+    <image-slot id="leafQuiet" shape="rect" fit="cover" placeholder="素材位 · 叶影（弱）"></image-slot>
+  </div>
+  <sc-if value="{{ shield }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;top:0;right:0;height:330px"></div></sc-if>
+
+  <sc-if value="{{ chrome }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:0;right:0;top:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;font-size:15px;font-weight:600;color:var(--i1,#3B2F28);letter-spacing:.01em">
+    <span>9:41</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8"></rect><rect x="5" y="5.5" width="3" height="6.5" rx=".8"></rect><rect x="10" y="3" width="3" height="9" rx=".8"></rect><rect x="15" y="0" width="3" height="12" rx=".8"></rect></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 4.2a10 10 0 0 1 14 0"></path><path d="M3.6 6.9a6.4 6.4 0 0 1 8.8 0"></path><path d="M6.3 9.5a2.6 2.6 0 0 1 3.4 0"></path></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".7" y=".7" width="21" height="10.6" rx="3.2" stroke="currentColor" stroke-opacity=".38" stroke-width="1.1"></rect><rect x="2.4" y="2.4" width="17.6" height="7.2" rx="2" fill="currentColor"></rect><path d="M23.2 4.3v3.4a2 2 0 0 0 0-3.4Z" fill="currentColor" fill-opacity=".4"></path></svg>
+    </span>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isStd }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:24px;top:74px;font-size:15px;line-height:22px;color:var(--tm,#5D5952);letter-spacing:.04em;white-space:nowrap">9 月 24 日 · {{ periodCh }}</div>
+
+  <div style="position:absolute;right:28px;top:110px;display:flex;align-items:flex-start;gap:12px">
+    <div style="{{ srcCol }}">
+      <div style="width:20px;height:1px;background:var(--ln,#CFC7B9)"></div>
+      <div style="writing-mode:vertical-rl;font-family:'Noto Serif SC',serif;font-size:12px;line-height:1.5;color:var(--tm,#5D5952);letter-spacing:.16em">{{ src }}</div>
+      <div title="闲章 · 字" style="margin-top:-6px;width:15px;height:15px;box-sizing:border-box;border-radius:2px;background:var(--seal,#A6533F);padding:1.25px;display:grid"><span style="border:.5px solid rgba(255,249,241,.55);border-radius:1px;display:grid;place-items:center;font-family:'LXGW WenKai GB',serif;font-size:10px;line-height:1;color:#FFF9F1">字</span></div>
+    </div>
+    <div style="display:flex;flex-direction:row-reverse;gap:12px;font-family:'Noto Serif SC',serif;font-weight:400;font-size:14px;color:var(--tm,#5D5952)">
+      <div style="{{ qCol }}">{{ q1 }}</div>
+      <div style="{{ qCol }}">{{ q2 }}</div>
+    </div>
+  </div>
+
+  <h2 style="position:absolute;left:24px;top:219px;width:300px;margin:0;font-family:'Noto Serif SC',serif;font-weight:500;font-size:34px;line-height:42px;letter-spacing:.02em;color:var(--tt,#5D5952)">今天写几个字</h2>
+
+  <sc-if value="{{ isBlock }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ onStart }}" aria-label="{{ ctaLabel }}" style="position:absolute;left:98.5px;top:402px;width:196px;height:190px;padding:0;border:0;border-radius:28px;background-color:var(--btn,#A6533F);background-image:radial-gradient(rgba(60,20,10,.06) 1px,transparent 1.2px),radial-gradient(rgba(60,20,10,.06) 1px,transparent 1.2px);background-size:7px 7px,11px 11px;background-position:0 0,3px 5px;box-shadow:inset 0 0 0 1px rgba(80,30,20,.10),0 10px 24px rgba(120,50,30,.16);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px" style-active="background-color:var(--down)">
+      <span style="font-family:'LXGW WenKai GB','Noto Serif SC',serif;font-size:64px;line-height:1;color:#FFF9F1">拾</span>
+      <span style="position:relative;font-size:15px;line-height:22px;color:#FFF9F1;letter-spacing:.06em">{{ ctaLabel }}<span style="position:absolute;left:100%;top:0;margin-left:6px;letter-spacing:0">→</span></span>
+    </button>
+  </sc-if>
+  <sc-if value="{{ isBar }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ onStart }}" style="position:absolute;left:71.5px;top:449px;width:250px;height:96px;padding:0;border:0;border-radius:34px;background:var(--btn,#A6533F);cursor:pointer;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:14px">
+      <span style="font-family:'LXGW WenKai GB','Noto Serif SC',serif;font-size:30px;line-height:1;color:#FFF9F1">拾</span>
+      <span style="font-size:22px;line-height:1;color:#FFF9F1;letter-spacing:.06em">{{ ctaLabel }}</span>
+      <span style="font-size:19px;line-height:1;color:#FFF9F1">→</span>
+    </button>
+  </sc-if>
+
+  <!-- 第十稿走查 S01：继续写字时写明继续的是哪一组、还剩几个；两组都没写完时，另一组在下面再列一行 -->
+  <sc-if value="{{ resumeOn }}" hint-placeholder-val="{{ false }}">
+    <p style="position:absolute;left:0;right:0;top:604px;margin:0;text-align:center;font-size:15px;line-height:22px;color:var(--tb,#6A645B);letter-spacing:.02em">{{ resumeLine }}</p>
+    <sc-if value="{{ otherOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onOther }}" style="position:absolute;left:60px;right:60px;top:630px;height:44px;padding:0;border:0;background:transparent;cursor:pointer;font-family:inherit;font-size:15px;line-height:22px;color:var(--tb,#6A645B);letter-spacing:.02em;text-align:center;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4,#B3AC9F)">{{ otherLine }} ›</button></sc-if>
+  </sc-if>
+  <sc-if value="{{ hasInkS }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ onInk }}" aria-label="今天有记录的字，打开练习记录" style="position:absolute;left:0;right:0;top:599px;height:44px;padding:9px 0;box-sizing:border-box;border:0;background:transparent;cursor:pointer;display:flex;justify-content:center;gap:6px">
+      <sc-for list="{{ inkRow }}" as="k" hint-placeholder-count="6"><span style="width:26px;height:26px;flex:none;display:block">{{ k.el }}</span></sc-for>
+    </button>
+  </sc-if>
+
+  <sc-if value="{{ noResume }}" hint-placeholder-val="{{ true }}"><p style="position:absolute;left:0;right:0;top:646px;margin:0;text-align:center;font-size:15px;line-height:22px;color:var(--tb,#6A645B);letter-spacing:.02em">{{ rowText }}</p></sc-if>
+
+  <button onClick="{{ onPick }}" style="position:absolute;left:98.5px;top:682px;width:196px;height:44px;padding:0;border:0;background:transparent;cursor:pointer;font-family:inherit;font-size:15px;line-height:22px;color:var(--tb,#6A645B);letter-spacing:.04em;text-align:center">自己选字 →</button>
+
+  <div style="position:absolute;left:12px;right:12px;bottom:22px;height:64px;border-radius:32px;background:var(--c,#FBF8F2);border:.5px solid var(--i5,#DED8CD);box-sizing:border-box;display:flex;align-items:center">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--ar,#A6533F)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.4 11 3l8 6.4V19H3V9.4M8.4 19v-6.6h5.2V19"></path></svg><span style="font-size:11px;line-height:13px;letter-spacing:.06em">习字</span></div>
+    <div onClick="{{ onTabLib }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--tn,#6A645B)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5.4C7.8 3 4.6 3.8 3 4.6v13.2c2.4-.8 5.4-.4 8 1.2 2.6-1.6 5.6-2 8-1.2V4.6c-1.6-.8-4.8-1.6-8 .8ZM11 5.4v13.6"></path></svg><span style="font-size:11px;line-height:13px;letter-spacing:.06em">字库</span></div>
+    <div onClick="{{ onTabMine }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--tn,#6A645B)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="7" r="3.6"></circle><path d="M4.2 19.4v-3a6.8 6.8 0 0 1 13.6 0v3"></path></svg><span style="font-size:11px;line-height:13px;letter-spacing:.06em">我的</span></div>
+  </div>
+  <sc-if value="{{ chrome }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:129.5px;bottom:8px;width:134px;height:5px;border-radius:3px;background:var(--hi,rgba(37,35,31,.5))"></div></sc-if>
+  </sc-if>
+  <sc-if value="{{ isCompact }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:20px;top:58px;font-size:17px;line-height:24px;color:var(--tm,#5D5952);letter-spacing:.04em;white-space:nowrap">9 月 24 日 · {{ periodCh }}</div>
+  <div style="position:absolute;right:22px;top:88px;display:flex;align-items:flex-start;gap:10px">
+    <div style="{{ srcColC }}">
+      <div style="width:16px;height:1px;background:var(--ln,#CFC7B9)"></div>
+      <div style="writing-mode:vertical-rl;font-family:'Noto Serif SC',serif;font-size:12px;line-height:1.5;color:var(--tm,#5D5952);letter-spacing:.16em">{{ src }}</div>
+      <div title="闲章 · 字" style="margin-top:-6px;width:15px;height:15px;box-sizing:border-box;border-radius:2px;background:var(--seal,#A6533F);padding:1.25px;display:grid"><span style="border:.5px solid rgba(255,249,241,.55);border-radius:1px;display:grid;place-items:center;font-family:'LXGW WenKai GB',serif;font-size:10px;line-height:1;color:#FFF9F1">字</span></div>
+    </div>
+    <div style="display:flex;flex-direction:row-reverse;gap:10px;font-family:'Noto Serif SC',serif;font-weight:400;font-size:14px;color:var(--tm,#5D5952)">
+      <div style="{{ qCol }}">{{ q1 }}</div>
+      <div style="{{ qCol }}">{{ q2 }}</div>
+    </div>
+  </div>
+  <h2 style="position:absolute;left:20px;top:150px;width:300px;margin:0;font-family:'Noto Serif SC',serif;font-weight:500;font-size:36px;line-height:46px;letter-spacing:.02em;color:var(--tt,#5D5952)">今天写几个字</h2>
+  <button onClick="{{ onStart }}" aria-label="{{ ctaLabel }}" style="position:absolute;left:109.5px;top:302px;width:141px;height:120px;padding:0;border:0;border-radius:19px;background-color:var(--btn,#A6533F);background-image:radial-gradient(rgba(60,20,10,.06) 1px,transparent 1.2px),radial-gradient(rgba(60,20,10,.06) 1px,transparent 1.2px);background-size:7px 7px,11px 11px;background-position:0 0,3px 5px;box-shadow:inset 0 0 0 1px rgba(80,30,20,.10),0 10px 24px rgba(120,50,30,.16);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px" style-active="background-color:var(--down)">
+    <span style="font-family:'LXGW WenKai GB','Noto Serif SC',serif;font-size:56px;line-height:1;color:#FFF9F1">拾</span>
+    <span style="position:relative;font-size:17px;line-height:24px;color:#FFF9F1;letter-spacing:.06em">{{ ctaLabel }}<span style="position:absolute;left:100%;top:0;margin-left:6px;letter-spacing:0">→</span></span>
+  </button>
+  <sc-if value="{{ resumeOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:20px;right:20px;top:432px;height:44px;display:flex;align-items:center;justify-content:center;font-size:17px;line-height:24px;color:var(--tb,#6A645B);letter-spacing:.02em;white-space:nowrap">{{ resumeLine }}</div>
+    <sc-if value="{{ otherOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onOther }}" style="position:absolute;left:20px;right:20px;top:476px;height:44px;padding:0;border:0;background:transparent;cursor:pointer;font-family:inherit;font-size:17px;line-height:24px;color:var(--tb,#6A645B);letter-spacing:.02em;text-align:center;white-space:nowrap;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4,#B3AC9F)">{{ otherLine }} ›</button></sc-if>
+  </sc-if>
+  <sc-if value="{{ noResume }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:20px;right:20px;top:432px;height:44px;display:flex;align-items:center;justify-content:center;gap:12px">
+    <sc-if value="{{ hasInk }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ onInk }}" aria-label="今天有记录的字，打开练习记录" style="flex:none;height:44px;padding:7px 0;box-sizing:border-box;border:0;background:transparent;cursor:pointer;display:flex;align-items:center;gap:6px"><sc-for list="{{ inkRowC }}" as="k" hint-placeholder-count="4"><span style="width:30px;height:30px;flex:none;display:block">{{ k.el }}</span></sc-for></button>
+    </sc-if>
+    <span style="flex:none;font-size:17px;line-height:24px;color:var(--tb,#6A645B);letter-spacing:.02em;white-space:nowrap">{{ rowText }}</span>
+  </div>
+  </sc-if>
+  <button onClick="{{ onPick }}" style="position:absolute;left:82px;top:{{ pickTopC }};width:196px;height:44px;padding:0;border:0;background:transparent;cursor:pointer;font-family:inherit;font-size:17px;line-height:24px;color:var(--tb,#6A645B);letter-spacing:.04em;text-align:center">自己选字 →</button>
+  <div style="position:absolute;left:10px;right:10px;bottom:12px;height:60px;border-radius:30px;background:var(--c,#FBF8F2);border:.5px solid var(--i5,#DED8CD);box-sizing:border-box;display:flex;align-items:center">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ar,#A6533F)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.4 11 3l8 6.4V19H3V9.4M8.4 19v-6.6h5.2V19"></path></svg><span style="font-size:13px;line-height:15px;letter-spacing:.06em">习字</span></div>
+    <div onClick="{{ onTabLib }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--tn,#6A645B)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5.4C7.8 3 4.6 3.8 3 4.6v13.2c2.4-.8 5.4-.4 8 1.2 2.6-1.6 5.6-2 8-1.2V4.6c-1.6-.8-4.8-1.6-8 .8ZM11 5.4v13.6"></path></svg><span style="font-size:13px;line-height:15px;letter-spacing:.06em">字库</span></div>
+    <div onClick="{{ onTabMine }}" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--tn,#6A645B)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="7" r="3.6"></circle><path d="M4.2 19.4v-3a6.8 6.8 0 0 1 13.6 0v3"></path></svg><span style="font-size:13px;line-height:15px;letter-spacing:.06em">我的</span></div>
+  </div>
+  <sc-if value="{{ chrome }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:113px;bottom:6px;width:134px;height:5px;border-radius:3px;background:var(--hi,rgba(37,35,31,.5))"></div></sc-if>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:393,&quot;height&quot;:852},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;first&quot;,&quot;empty&quot;,&quot;record&quot;],&quot;default&quot;:&quot;record&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;resume&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;base&quot;,&quot;th1&quot;],&quot;default&quot;:&quot;base&quot;,&quot;tsType&quot;:&quot;'base'|'th1'&quot;,&quot;section&quot;:&quot;光影&quot;},&quot;period&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dawn&quot;,&quot;noon&quot;,&quot;dusk&quot;,&quot;night&quot;,&quot;auto&quot;],&quot;default&quot;:&quot;dawn&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;光影&quot;},&quot;lamp&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.04,&quot;max&quot;:0.06,&quot;step&quot;:0.01,&quot;default&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;光影&quot;},&quot;quote&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;4&quot;,&quot;5&quot;,&quot;7&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;题记&quot;},&quot;pressed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;entry&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;block&quot;,&quot;bar&quot;],&quot;default&quot;:&quot;block&quot;,&quot;tsType&quot;:&quot;'block'|'bar'&quot;,&quot;section&quot;:&quot;旧方案&quot;},&quot;fill&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;base&quot;,&quot;f1&quot;,&quot;f2&quot;,&quot;f3&quot;],&quot;default&quot;:&quot;base&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;旧方案&quot;},&quot;resumeLine&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;第十稿走查 S01&quot;},&quot;otherLine&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;第十稿走查 S01&quot;}}">
+// 首页壳（第八稿；第九稿第四批加紧凑版 size="compact"）：颜色走令牌（3.1），光影分浅深、分时段（3.2），「拾」一方印（3.3），今天有记录的字（4.1），题记三种长度（4.2）
+const S=345, PAD=.06, KK=S*(1-2*PAD)/1024, OFF=S*PAD, FLOOR=1.6*S/26;
+const TH={
+  light:{'--p':'#F4F0E7','--c':'#FBF8F2','--i1':'#3B2F28','--i2':'#5D5952','--i3':'#6A645B','--i5':'#DED8CD','--ar':'#A6533F','--seal':'#A6533F','--ln':'#CFC7B9',
+         '--tt':'#5D5952','--tb':'#6A645B','--tm':'#5D5952','--tn':'#6A645B','--hi':'rgba(59,47,40,.5)',btn:'#A6533F',down:'#984B39'},
+  dark:{'--p':'#221E1A','--c':'#2D2823','--i1':'#DCCFB8','--i2':'#B4AC9E','--i3':'#A09A8E','--i5':'#413A33','--ar':'#D47A5D','--seal':'#D07558','--ln':'#413A33',
+        '--tt':'#DCCFB8','--tb':'#B4AC9E','--tm':'#B4AC9E','--tn':'#A09A8E','--hi':'rgba(234,228,216,.45)',btn:'#AE5A44',down:'#A0523E'}
+};
+const FILLS={f1:'#8E4433',f2:'#2F2C28',f3:'#5E6B57'};
+// 4.2 题记：句库只收上下两半等长的对句；每个字连同标点各占 18pt
+const QUOTES=[{q:['心不厌精，','手不忘熟。'],src:'孙过庭《书谱》'},{q:['文章千古事，','得失寸心知。'],src:'杜甫《偶题》'},{q:['我书意造本无法，','点画信手烦推求。'],src:'苏轼《石苍舒醉墨堂》'}];
+const QH={4:96,5:114,7:150};
+const PERIOD={dawn:'早上',noon:'中午',dusk:'傍晚',night:'晚上'};
+// 叶影（晨为基准；坐标沿用交接版）。a 不透明度，b 模糊，c 颜色
+const BRANCHES=[
+  {x:-52,y:-26,w:246,h:26,rot:26,twig:{y:11,a:.10,b:7},c:'88,97,70',leaves:[
+    {l:26,t:-16,w:58,h:21,r:'50% 12% 50% 12%',rot:-39,a:.16,b:6},{l:62,t:14,w:54,h:19,r:'12% 50% 12% 50%',rot:35,a:.16,b:6},
+    {l:100,t:-16,w:56,h:20,r:'50% 12% 50% 12%',rot:-43,a:.16,b:6},{l:140,t:13,w:48,h:17,r:'12% 50% 12% 50%',rot:30,a:.085,b:13}]},
+  {x:-74,y:96,w:250,h:30,rot:14,twig:{y:13,a:.07,b:10},c:'92,100,74',leaves:[
+    {l:36,t:-17,w:62,h:23,r:'50% 12% 50% 12%',rot:-36,a:.08,b:15},{l:84,t:15,w:58,h:22,r:'12% 50% 12% 50%',rot:33,a:.07,b:16},
+    {l:134,t:-16,w:56,h:21,r:'50% 12% 50% 12%',rot:-40,a:.065,b:15}]}
+];
+// 今天（9 月 24 日）判断过的字，按判断先后；「户」跳过，不放
+const TODAY=[['数','R'],['感','R'],['警','W'],['部','R'],['主','R'],['虽','R']];
+const WRONG={'警@9-24':{drop:[13],tilt:{from:12,dx:6,dy:10,a:5}}};
+const REAL_FIX={};
+const ST=window.__szStore||(window.__szStore={data:{},pend:{}});
+function load(c){
+  if(ST.data[c]!==undefined) return Promise.resolve(ST.data[c]);
+  if(!ST.pend[c]) ST.pend[c]=fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/'+encodeURIComponent(c)+'.json').then(r=>r.json()).then(d=>(ST.data[c]=d)).catch(()=>(ST.data[c]=null));
+  return ST.pend[c];
+}
+
+class Component extends DCLogic {
+  layerRef=React.createRef();
+  componentDidMount(){
+    this.reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+    Promise.all(TODAY.map(([c])=>c).concat((this.props.records||[]).filter(r=>!r.strokes).map(r=>r.c)).map(load)).then(()=>{if(!this._gone)this.forceUpdate();});
+    const wait=()=>{if(this._gone)return;if(window.SZInk)this.forceUpdate();else setTimeout(wait,60);};wait();
+    this.onInk=()=>{if(!this._gone)this.forceUpdate();}; window.addEventListener('szink',this.onInk);
+  }
+  componentWillUnmount(){this._gone=true; window.removeEventListener('szink',this.onInk);}
+  // 时段切换：淡入 600ms，不做持续摆动；减少动态效果时直接切换
+  componentDidUpdate(){ const was=this._per; this._per=this.props.period; if(was!==undefined&&was!==this.props.period&&!this.reduce){const el=this.layerRef.current; if(el&&el.animate) el.animate([{opacity:0},{opacity:1}],{duration:600,easing:'ease-out'});} }
+  period(){const p=this.props.period||'dawn'; if(p!=='auto') return PERIOD[p]?p:'dawn'; const h=new Date().getHours(); return h>=5&&h<10?'dawn':h<15&&h>=10?'noon':h>=15&&h<19?'dusk':'night';}
+  // 与 ShiziScreen 的 hand() 同算法、同种子：同一条记录在首页和练习记录里是同一份笔迹
+  // 第九稿：今天的字从 records 实时算，按判断先后去重（同一个字只留最近一次）
+  todayList(R,today){const m=new Map(); R.forEach(r=>{if(r.d===today&&(r.v==='R'||r.v==='W')){m.delete(r.c); m.set(r.c,r);}}); return [...m.values()];}
+  hand(c,d,v,live){const h=React.createElement,D=ST.data[c];
+    if(live&&live.length&&window.SZInk) return h('svg',{viewBox:'0 0 '+S+' '+S,width:26,height:26,style:{display:'block'}},live.map((p,i)=>p.length?h('path',{key:i,d:SZInk.outline(p,FLOOR),style:{fill:'var(--i1)'}}):null));
+    if(!D||!window.SZInk) return null;
+    const rec=SZInk.pick(c,v==='W'?'wrong':'normal'); let strokes=[];
+    // 与 ShiziScreen 一致：没有登记的写错记录用默认 WRONG；错位支持 tilt.to；真人样本不像错的（REAL_FIX）同样删笔、错位
+    const W=v==='W'?WRONG[c+'@'+d]||{drop:[Math.floor(D.medians.length*.6)],tilt:{from:Math.floor(D.medians.length*.5),dx:-20,dy:18,a:-10}}:{};
+    if(rec) strokes=v==='W'&&REAL_FIX[c]?SZInk.wrongFix(SZInk.fromRecord(rec),W,S/2):SZInk.fromRecord(rec);
+    else { let seed=0;for(const ch of (c+d)) seed=(seed*31+ch.charCodeAt(0))%233280;
+      const rnd=()=>{seed=(seed*9301+49297)%233280;return seed/233280-.5;};
+      const a=(rnd()*6)*Math.PI/180, sc=.84+rnd()*.06, cc=S/2;
+      D.medians.forEach((m,idx)=>{ if(W.drop&&W.drop.includes(idx)) return;
+        const t=W.tilt&&idx>=W.tilt.from&&(W.tilt.to==null||idx<=W.tilt.to)?W.tilt:null, ta=t?t.a*Math.PI/180:0;
+        strokes.push(SZInk.synth(m.map(([x,y])=>{let px=x*KK+OFF-cc,py=(900-y)*KK+OFF-cc;
+          if(t){const qx=px*Math.cos(ta)-py*Math.sin(ta),qy=px*Math.sin(ta)+py*Math.cos(ta);px=qx+t.dx;py=qy+t.dy;}
+          return {x:cc+(px*Math.cos(a)-py*Math.sin(a))*sc+3+rnd()*5,y:cc+(px*Math.sin(a)+py*Math.cos(a))*sc-1+rnd()*5};})));}); }
+    return h('svg',{viewBox:'0 0 '+S+' '+S,width:26,height:26,style:{display:'block'}},strokes.map((p,i)=>p.length?h('path',{key:i,d:SZInk.outline(p,FLOOR),style:{fill:'var(--i1)'}}):null));}
+  // 3.2 光影层（装饰，不作令牌）
+  lightLayer(per,dark){
+    const h=React.createElement, kids=[];
+    if(per!=='night'){
+      const noon=per==='noon', dusk=per==='dusk', k=noon?.7:1, db=noon?3:0;
+      if(!dark) kids.push(h('div',{key:'base',style:{position:'absolute',inset:0,background:'radial-gradient(130% 90% at '+(noon?'50%':'-10%')+' -20%,rgba('+(dusk?'120,86,52':'103,110,84')+','+(.085*k)+'),rgba('+(dusk?'120,86,52':'103,110,84')+','+(.03*k)+') 42%,transparent 70%)'}}));
+      BRANCHES.forEach((b,bi)=>{
+        const col=(a)=>dark?'rgba(0,0,0,.30)':'rgba('+(dusk?'120,86,52':b.c)+','+(dusk?.10:a*k)+')', blur=(x)=>dark?12:x+db;
+        kids.push(h('div',{key:'b'+bi,style:{position:'absolute',left:b.x+(noon?126:0),top:b.y,width:b.w,height:b.h,transform:'rotate('+b.rot+'deg)',transformOrigin:'left center'}},
+          h('div',{style:{position:'absolute',left:0,top:b.twig.y,width:b.w,height:3,borderRadius:2,background:dark?'rgba(0,0,0,.30)':'rgba('+(dusk?'120,86,52':'88,97,70')+','+(b.twig.a*k)+')',filter:'blur('+blur(b.twig.b)+'px)'}}),
+          b.leaves.map((f,i)=>h('div',{key:i,style:{position:'absolute',left:f.l,top:f.t,width:f.w,height:f.h,borderRadius:f.r,transform:'rotate('+f.rot+'deg)',background:col(f.a),filter:'blur('+blur(f.b)+'px)'}}))));
+      });
+      if(!dark) kids.push(h('div',{key:'sun',style:{position:'absolute',inset:0,background:'linear-gradient(200deg,rgba(255,252,243,.42) 0%,rgba(255,252,243,0) 46%)'}}));
+    } else if(!dark) kids.push(h('div',{key:'lamp',style:{position:'absolute',left:0,top:0,width:393,height:852,background:'radial-gradient(275px 383px at 346px -43px,rgba(255,196,130,.08),transparent 70%)'}}));
+    return h('div',{ref:this.layerRef,style:{position:'absolute',left:0,top:0,width:393,height:per==='night'?852:330,overflow:'hidden',pointerEvents:'none',transform:per==='dusk'?'scaleX(-1)':'none'}},kids);
+  }
+  renderVals(){
+    const P=this.props, dark=P.theme==='th1', t=dark?TH.dark:TH.light, per=this.period(), lamp=P.lamp??.05;
+    // 第九稿第四批：紧凑版（size="compact"，360×640）——按 ShiziScreen 紧凑版规则新画，文字放大一档、间距收紧
+    const C=P.size==='compact';
+    const qi=P.quote==='5'?1:P.quote==='7'?2:P.quote==='4'?0:(267%QUOTES.length), Q=QUOTES[qi], n=Q.q[0].length-1, colH=QH[n]||96;
+    const btn=(P.pressed??false)?t.down:(FILLS[P.fill]||t.btn);
+    const vars={}; Object.keys(t).forEach(k=>{if(k.startsWith('--'))vars[k]=t[k];}); vars['--btn']=btn; vars['--down']=t.down;
+    const state=P.state??'record', today=P.today||'9-24', list=P.records?this.todayList(P.records,today):TODAY.map(([c,v])=>({c,v})), recs=list.slice(-8);
+    const nav=k=>P.onNavigate?()=>P.onNavigate(k):undefined;
+    return {
+      frame:Object.assign({position:'relative',width:C?360:393,height:C?640:852,borderRadius:P.bare?0:C?28:42,overflow:'hidden',background:'var(--p)',backgroundImage:dark?'radial-gradient(275px 383px at 346px -43px,rgba(255,214,170,'+lamp+'),transparent 70%)':'none',backgroundRepeat:'no-repeat',boxShadow:P.bare?'none':'0 26px 64px rgba(48,38,26,.18),0 2px 8px rgba(48,38,26,.10)',fontFamily:"-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif",WebkitFontSmoothing:'antialiased'},vars),
+      lightLayer:this.lightLayer(per,dark),
+      periodCh:PERIOD[per],
+      q1:Q.q[0], q2:Q.q[1], src:Q.src,
+      qCol:{writingMode:'vertical-rl',height:colH,lineHeight:1,letterSpacing:'.286em'},
+      srcCol:{display:'flex',flexDirection:'column',alignItems:'center',gap:10,paddingTop:70+(colH-96)/2},
+      isBlock:(P.entry??'block')!=='bar', isBar:P.entry==='bar',
+      ctaLabel:(P.resume??false)?'继续写字':'开始写字',
+      hasInk:state==='record', hasInkS:state==='record'&&!P.resumeLine,
+      resumeOn:!!P.resumeLine, noResume:!P.resumeLine, resumeLine:P.resumeLine||'', otherOn:!!P.resumeLine&&!!P.otherLine, otherLine:P.otherLine||'', pickTopC:P.resumeLine&&P.otherLine?'522px':'484px',
+      inkRow:state==='record'?recs.map(r=>({el:this.hand(r.c,today,r.v,r.strokes)})):[],
+      // 第九稿审美返修 A09：紧凑版墨迹和计数合成一行，360 宽只放得下最近 4 个字的墨迹
+      inkRowC:state==='record'&&C?list.slice(-4).map(r=>({el:this.hand(r.c,today,r.v,r.strokes)})):[],
+      isStd:!C, isCompact:C, srcColC:{display:'flex',flexDirection:'column',alignItems:'center',gap:8,paddingTop:56+(colH-96)/2},
+      chrome:!P.bare, shield:!!P.onNavigate, onStart:nav('start'), onPick:nav('pick'), onInk:nav('records'), onTabLib:nav('library'), onOther:nav('other'), onTabMine:nav('mine'),
+      rowText:({record:'今天记录了 '+list.length+' 个字',empty:'',first:'第一次来，先写 5 个字试试。'})[state]??''
+    };
+  }
+}
+</script>
+</body>
+</html>

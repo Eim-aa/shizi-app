@@ -18,6 +18,10 @@
 6. [设计师交付接口](designer-delivery.md)及[交互验收清单](../product/03-interaction-handoff-checklist.md)：拿到新交互后按场景验证。
 7. [第十稿交接状态](../product/04-v10-handoff.md)与 [docs/design/v10](../design/v10/README.md)：当前有效的设计交付。
 
+## 第十稿工程规划与验收记录
+
+第十稿接入生产代码的工程规划与验收记录在 [docs/engineering/v10/](../engineering/v10/00-README.md)：架构设计、M0–M7 实现计划、待产品决定（P 编号，均有过渡默认值）、逐页需求清单（R 编号）、各里程碑验收记录（`acceptance/M0.md` 起）与发布切换方案（`acceptance/M7-切换方案.md`）。代码在 `v10/integration` 分支，合入 `main` 前仍以本页与决定表为产品依据；工程目录不新增产品授权。真机检查清单见 [ios/ShiziApp/DEVICE_QA.md](../../ios/ShiziApp/DEVICE_QA.md)，由产品负责人或测试执行。
+
 ## 当前代码与成果地图
 
 以下为交接时核实的快照，不是“已发布”的声明。接手时再次检查 PR 状态与提交 SHA。

@@ -34,17 +34,24 @@ run_logged() {
 echo "== Lint plist and shell scripts =="
 plutil -lint \
   "${IOS_ROOT}/ShiziApp/Info.plist" \
-  "${IOS_ROOT}/ShiziApp/PrivacyInfo.xcprivacy"
+  "${IOS_ROOT}/ShiziApp/PrivacyInfo.xcprivacy" \
+  "${IOS_ROOT}/ShiziApp/zh-Hans.lproj/InfoPlist.strings"
+# A7：Paper 颜色集必须与 ShiziKitTokens.json 的 colors.*.paper 一致（启动屏 / 原生根视图底色同源）
+node "${SCRIPT_DIR}/generate-paper-colorset.mjs" --check
 for script in "${SCRIPT_DIR}"/*.sh; do
-  sh -n "$script"
+  # 按 shebang 选解释器检查语法（#!/bin/bash 的脚本可用进程替换等 bash 写法）
+  if head -1 "$script" | grep -q bash; then bash -n "$script"; else sh -n "$script"; fi
 done
 PYTHONPYCACHEPREFIX="${IOS_ROOT}/build/verify/pycache" \
-  python3 -m py_compile "${SCRIPT_DIR}/validate-native-smoke.py" "${REPO_ROOT}/scripts/summarize_backups.py" "${REPO_ROOT}/scripts/verify_library_governance.py"
+  python3 -m py_compile "${REPO_ROOT}/scripts/verify_library_governance.py"
 python3 "${REPO_ROOT}/scripts/verify_library_governance.py"
 run_logged "Verify 440 vector-data approvals" "${LOG_DIR}/verify-vector-data-440.log" \
   node "${REPO_ROOT}/scripts/verify_vector_data_440.js"
-run_logged "Verify PWA corpus upgrade" "${LOG_DIR}/verify-pwa-upgrade.log" \
-  node "${REPO_ROOT}/scripts/verify_pwa_upgrade.js"
+run_logged "Verify content corpus" "${LOG_DIR}/verify-content-corpus.log" \
+  node "${REPO_ROOT}/scripts/verify_content_corpus.cjs"
+run_logged "Verify static assets" "${LOG_DIR}/verify-assets.log" \
+  node "${REPO_ROOT}/scripts/verify_assets.mjs"
+# D84：网页版（service worker / PWA 升级门禁）已删除，这里不再有对应步骤。
 
 if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$REPO_ROOT" diff --check
@@ -81,14 +88,10 @@ run_logged "Archive Release iPhoneOS without signing" "${LOG_DIR}/archive-releas
 
 "${SCRIPT_DIR}/verify-archive.sh" "$ARCHIVE_PATH"
 
-if [ "${RUN_SMOKE:-0}" = "1" ]; then
-  echo "== Run simulator smoke test =="
-  OUT_DIR="${IOS_ROOT}/build/verify/smoke" "${SCRIPT_DIR}/smoke-simulator.sh"
-fi
-
-if [ "${RUN_DEV_SMOKE:-0}" = "1" ]; then
-  echo "== Run simulator dev smoke test =="
-  DEV_MODE=1 OUT_DIR="${IOS_ROOT}/build/verify/smoke" "${SCRIPT_DIR}/smoke-simulator.sh"
+if [ "${RUN_SMOKE:-0}" = "1" ] || [ "${RUN_DEV_SMOKE:-0}" = "1" ]; then
+  # B4.9：网页冒烟（smoke-simulator.sh / NativeSmoke.swift）随 WKWebView 退役；模拟器上的检查是 verify-native-ui.sh（XCUITest 流程 + 逐屏对比）。
+  echo "RUN_SMOKE is retired (B4.9); run ios/ShiziApp/scripts/verify-native-ui.sh instead" >&2
+  exit 64
 fi
 
 echo "Local iOS verification OK"

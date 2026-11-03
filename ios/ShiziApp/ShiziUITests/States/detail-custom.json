@@ -1,0 +1,143 @@
+{
+  "state": "detail-custom",
+  "name": "字详情 · 自选字（从自选的字移除）",
+  "screen": "detail",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ready": {
+    "web": "detail-screen",
+    "native": "id:native-detail-screen",
+    "timeout": 20
+  },
+  "steps": [
+    {
+      "js": "document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"detail-remove\"]').scrollIntoView({ block: 'center' });"
+    },
+    {
+      "tap": {
+        "native": "native-detail-qa-scroll-remove"
+      },
+      "times": 1
+    },
+    {
+      "wait": 300
+    }
+  ],
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2026-08-03",
+        "days": 80,
+        "perDay": 2,
+        "chars": "永和春日月山水火木金土人大小中国学习写字书法天地花鸟风云雨雪",
+        "seed": 7,
+        "wrongEvery": 9
+      }
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "龙",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "龙",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-08-30"
+        }
+      ]
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "鱼猫狗",
+          "at": "2026-10-21T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "patch",
+      "domain": "custom",
+      "value": {
+        "added": [
+          {
+            "char": "瓜",
+            "at": 1792461600000
+          }
+        ]
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "push",
+      "screen": "detail",
+      "params": {
+        "char": "瓜"
+      }
+    }
+  ]
+}

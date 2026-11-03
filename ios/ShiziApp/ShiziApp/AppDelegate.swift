@@ -9,9 +9,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        NativeStage.launchedAt = Date().timeIntervalSince1970 // B3.F 冷启动量测：didFinishLaunching 时刻
         UNUserNotificationCenter.current().delegate = self
         let window = UIWindow(frame: UIScreen.main.bounds)
-        window.rootViewController = WebViewController()
+        ShiziTheme.boot(window: window)
+        window.rootViewController = RootViewController()
         window.makeKeyAndVisible()
         self.window = window
         return true
@@ -37,7 +39,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         guard
             let targetCardKey = response.notification.request.content.userInfo["targetCardKey"] as? String,
             !targetCardKey.isEmpty,
-            let controller = window?.rootViewController as? WebViewController
+            let controller = window?.rootViewController as? RootViewController
         else {
             return
         }

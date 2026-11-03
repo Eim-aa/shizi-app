@@ -1,0 +1,156 @@
+{
+  "state": "library-leave-undo",
+  "name": "字库 · 写字页跳过后离开，撤销条跟到字库",
+  "screen": "library",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "floater": "leave-undo",
+  "ready": {
+    "web": "screen-library",
+    "native": "id:native-library-screen"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2026-08-03",
+        "days": 80,
+        "perDay": 2,
+        "chars": "永和春日月山水火木金土人大小中国学习写字书法天地花鸟风云雨雪",
+        "seed": 7,
+        "wrongEvery": 9
+      }
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "龙",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "龙",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-08-30"
+        }
+      ]
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "鱼猫狗",
+          "at": "2026-10-21T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "leaveUndoCleanup"
+    },
+    {
+      "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "switchTab",
+      "remount": true,
+      "tab": "library"
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "library-today",
+        "native": "native-library-today"
+      },
+      "times": 1
+    },
+    {
+      "ready": {
+        "web": "write-screen",
+        "native": "write"
+      }
+    },
+    {
+      "wait": 700
+    },
+    {
+      "tap": {
+        "webTestid": "write-skip",
+        "native": "native-write-skip"
+      },
+      "times": 1
+    },
+    {
+      "wait": 300
+    },
+    {
+      "tap": {
+        "webTestid": "page-back",
+        "native": "native-write-back"
+      },
+      "times": 1
+    },
+    {
+      "wait": 600
+    }
+  ]
+}

@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""生成 8105 字库：ShiziCore 的 deck.json（seed / overrides / groups）与 generated/ 下的审计 JSON。
+
+用法：python3 scripts/build_8105_chars.py（需 requirements.txt 里的 pypinyin / jieba）。
+注意：可复现的构建**不装 wordfreq**（脚本对它是可选导入）。装了它，语境词会换成 wordfreq 的补充词，题库整体变动。
+
+D84：题库只写 ios/ShiziCore/Sources/ShiziCore/Bundled/deck.json（App 与内容 / 治理 / 字体门禁都读它），一行一张卡，
+与原 build_core_config.mjs 的 deckText() 逐字节相同：输入不变时重跑零 diff。
+语境覆盖的真相源是 scripts/content/context-overrides.json（手改；不放 data/，所以不进公开数据仓库 shizi-open），
+原样并入 deck.json 的 overrides。不再写网页壳的 deck-data.js / core-strokes.js / src/config/deck-meta.js，也不再调 node。
+"""
 import json
 import hashlib
 import logging
@@ -26,13 +36,11 @@ HANZI_DB_PATH = SRC_DIR / "hanzi_db.json"
 JIEBA_DICT_PATH = SRC_DIR / "jieba_dict.txt"
 CURRICULUM_PATH = SRC_DIR / "curriculum-common-2500.txt"
 PY_DEPS = ROOT / ".python-deps"
-DECK_KEY = "shizi.deck.v8105.context2"
+DECK_JSON_PATH = ROOT / "ios" / "ShiziCore" / "Sources" / "ShiziCore" / "Bundled" / "deck.json"
+CONTEXT_OVERRIDES_PATH = ROOT / "scripts" / "content" / "context-overrides.json"
 GENERATED_JSON = "selected_8105_candidates.json"
 COVERAGE_JSON = "hanzi_writer_coverage.json"
 LIBRARY_AUDIT_JSON = "library-governance.json"
-CORE_STROKE_SCRIPT = "core-strokes.js"
-CORE_STROKE_COUNT = 600
-CALIBRATION_CORE_CHARS = ["尴", "嚏", "狩", "晤", "飓", "痿", "俾", "跻", "徵", "瞰", "裘", "娩", "邃", "暧", "煲"]
 HANZI_WRITER_FLAT_URL = "https://data.jsdelivr.com/v1/package/npm/hanzi-writer-data@2.0.1/flat"
 HANZI_WRITER_VERSION = "2.0.1"
 HANZI_WRITER_BASELINE_STANDARD_COUNT = 6854
@@ -43,6 +51,15 @@ VECTOR_DATA_SUPPLEMENT_COUNT = 440
 VECTOR_DATA_HUMAN_ACCEPTED_COUNT = 440
 VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT = 0
 VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256 = "c8835eaa2eb28c133a82433854bd460f6e8632e15812a5d4bba51921103c8dbc"
+# D50 ①（C1）：76 个来源授权有问题的补充字从题库与 data/ 移除（合规说明 §1.8–§1.10、附录 B）。2026-08 的 440 条清单作为
+# 历史证据不改；可练补充 = 清单 − 回执里逐字列出的移除字（回执绑定决定记录与历史清单的哈希，成员另由下面的摘要钉死）。
+COMPLIANCE_REMOVAL_RECEIPT_PATH = ROOT / "audit" / "compliance-2026-10" / "source-removal-76.receipt.json"
+COMPLIANCE_REMOVAL_COUNT = 76
+COMPLIANCE_REMOVAL_MEMBERS_SHA256 = "8cbe427a2ab67d4c15c7816d85d8460544e0f47d3fff796e83019a322344675c"
+PRACTICE_SUPPLEMENT_COUNT = VECTOR_DATA_SUPPLEMENT_COUNT - COMPLIANCE_REMOVAL_COUNT
+# D50 ②（C1，APL §2(a)）：AnimCJK 衍生的 363 个文件首键是 "_notice"（怎么改、什么时候改）；去掉这段前缀就是清单里验收的原字节。
+# 前缀文字以 audit 里的 notice 为准（D59 起末句写公开数据仓库 shizi-open），这里按记录拼前缀核对，不另存一份文字。
+ARPHIC_NOTICES_PATH = ROOT / "audit" / "compliance-2026-10" / "arphic-modification-notices.json"
 NORMATIVE_SOURCE_URL = "https://www.gov.cn/gzdt/att/att/site1/20130819/tygfhzb.pdf"
 CURRICULUM_SOURCE_URL = "https://hudong.moe.gov.cn/srcsite/A26/s8001/202204/W020220420582344386456.pdf"
 CURRICULUM_SOURCE_SHA256 = "3ef0ec8a30b5a950211202658df07d99f5427f750f8ba0c3cfda12736b7bd71a"
@@ -323,15 +340,61 @@ def file_sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def read_compliance_removals():
+    """D50 ①：返回 {字: 回执行}。回执须绑定当前历史清单与决定记录的哈希，成员摘要与常量一致，且被移除字的 data/<字>.json 不存在。"""
+    receipt = json.loads(COMPLIANCE_REMOVAL_RECEIPT_PATH.read_text(encoding="utf-8"))
+    if receipt.get("artifact") != "shizi-vector-data-compliance-76-removal-receipt":
+        raise RuntimeError("Unexpected compliance-removal receipt")
+    for key in ("decision_binding", "historical_manifest_binding"):
+        binding = receipt.get(key) or {}
+        bound_path = ROOT / str(binding.get("path", ""))
+        if not bound_path.is_file() or file_sha256(bound_path) != binding.get("sha256"):
+            raise RuntimeError(f"Compliance-removal receipt {key} hash mismatch")
+    if receipt["historical_manifest_binding"]["path"] != str(VECTOR_DATA_MANIFEST_PATH.relative_to(ROOT)):
+        raise RuntimeError("Compliance-removal receipt is bound to a different manifest")
+    rows = receipt.get("removed") or []
+    removals = {row.get("character"): row for row in rows}
+    if len(removals) != len(rows) or len(rows) != COMPLIANCE_REMOVAL_COUNT:
+        raise RuntimeError("Compliance removal must list exactly 76 unique characters")
+    manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
+    order = "".join(record["character"] for record in manifest["records"] if record["character"] in removals)
+    if hashlib.sha256(order.encode("utf-8")).hexdigest() != COMPLIANCE_REMOVAL_MEMBERS_SHA256:
+        raise RuntimeError("Compliance-removal membership changed")
+    for character, row in removals.items():
+        if row.get("removed_data_path") != f"data/{character}.json" or (ROOT / row["removed_data_path"]).exists():
+            raise RuntimeError(f"Compliance-removed stroke data is still present for {character}")
+    return removals
+
+
+def read_arphic_notices():
+    payload = json.loads(ARPHIC_NOTICES_PATH.read_text(encoding="utf-8"))
+    if payload.get("artifact") != "shizi-arphic-modification-notices" or payload.get("count") != 363:
+        raise RuntimeError("Unexpected Arphic modification-notice list")
+    return {row["character"]: row for row in payload["records"]}
+
+
+def accepted_payload_bytes(data_path, notice_row):
+    """打包文件的字节；带修改说明的 AnimCJK 文件去掉 "_notice" 前缀后还原成验收时的原字节。"""
+    raw = data_path.read_bytes()
+    if notice_row is None:
+        return raw
+    prefix = ('{"_notice":' + json.dumps(notice_row["notice"], ensure_ascii=False) + ",").encode("utf-8")
+    if not raw.startswith(prefix):
+        raise RuntimeError(f"Modified file {data_path.name} does not start with its recorded notice")
+    return b"{" + raw[len(prefix):]
+
+
 def read_hanzi_writer_available_chars(standard_rows):
     """Return the exact, locally bundled practice-data inventory.
 
     The original 6,854-character baseline is independently pinned to the
     Hanzi Writer Data 2.0.1 membership used by this repository. The only
     explicit additions are the 440 records in the final technical supplement
-    manifest; an arbitrary JSON file copied into data/ cannot silently enter
-    the practice deck. Human-review state remains separately hash-bound so a
-    later payload change cannot inherit an earlier acceptance.
+    manifest, minus the 76 records removed for source-licensing reasons
+    (D50 ①, audit/compliance-2026-10/); an arbitrary JSON file copied into
+    data/ cannot silently enter the practice deck. Human-review state remains
+    separately hash-bound so a later payload change cannot inherit an earlier
+    acceptance.
     """
     manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
     if manifest.get("schema_version") != 2 or manifest.get("artifact") != "shizi-vector-data-440-technical-manifest":
@@ -358,6 +421,17 @@ def read_hanzi_writer_available_chars(standard_rows):
     if not supplement_chars <= standard_set:
         raise RuntimeError("The vector-data supplement contains a non-normative character")
 
+    removals = read_compliance_removals()
+    if not set(removals) <= supplement_chars:
+        raise RuntimeError("A compliance-removed character is not in the historical supplement")
+    for record in records:
+        if record["character"] in removals and removals[record["character"]].get("removed_data_sha256") != record.get("data_sha256"):
+            raise RuntimeError(f"Compliance-removal receipt hash differs from the manifest for {record['character']}")
+    historical_chars = supplement_chars
+    supplement_chars = historical_chars - set(removals)
+    records = [record for record in records if record["character"] in supplement_chars]
+
+    notices = read_arphic_notices()
     review_status_by_char = {}
     for record in records:
         character = record["character"]
@@ -369,9 +443,12 @@ def read_hanzi_writer_available_chars(standard_rows):
         if record.get("data_path") != expected_path:
             raise RuntimeError(f"Unexpected supplement data path for {character}")
         data_path = ROOT / expected_path
-        if not data_path.is_file() or file_sha256(data_path) != record.get("data_sha256"):
+        if not data_path.is_file():
+            raise RuntimeError(f"Supplement data missing for {character}")
+        original = accepted_payload_bytes(data_path, notices.get(character))
+        if hashlib.sha256(original).hexdigest() != record.get("data_sha256"):
             raise RuntimeError(f"Supplement data hash mismatch for {character}")
-        payload = json.loads(data_path.read_text(encoding="utf-8"))
+        payload = json.loads(original.decode("utf-8"))
         strokes = payload.get("strokes")
         medians = payload.get("medians")
         expected_count = record.get("normative_stroke_count")
@@ -396,13 +473,16 @@ def read_hanzi_writer_available_chars(standard_rows):
     supplement_digest = hashlib.sha256("".join(supplement_order).encode("utf-8")).hexdigest()
     if len(baseline_chars) != HANZI_WRITER_BASELINE_STANDARD_COUNT or baseline_digest != HANZI_WRITER_BASELINE_MEMBERS_SHA256:
         raise RuntimeError("The pinned Hanzi Writer Data 2.0.1 baseline membership changed")
-    if supplement_digest != VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256:
+    historical_digest = hashlib.sha256("".join(c for c in standard_order if c in historical_chars).encode("utf-8")).hexdigest()
+    if historical_digest != VECTOR_DATA_SUPPLEMENT_MEMBERS_SHA256:
         raise RuntimeError("The reviewed 440-character supplement membership changed")
+    if len(supplement_chars) != PRACTICE_SUPPLEMENT_COUNT:
+        raise RuntimeError("The practice supplement must be the 440 reviewed records minus the 76 compliance removals")
     if local_standard_chars != baseline_chars | supplement_chars:
         raise RuntimeError("Local vector-data inventory is not exactly baseline plus reviewed supplement")
     review_counts = Counter(review_status_by_char.values())
     if (
-        review_counts["HUMAN_ACCEPTED"] != VECTOR_DATA_HUMAN_ACCEPTED_COUNT
+        review_counts["HUMAN_ACCEPTED"] != PRACTICE_SUPPLEMENT_COUNT
         or review_counts["PENDING_HUMAN_REVIEW"] != VECTOR_DATA_HUMAN_REVIEW_PENDING_COUNT
         or set(review_counts) - {"HUMAN_ACCEPTED", "PENDING_HUMAN_REVIEW"}
     ):
@@ -427,15 +507,24 @@ def read_hanzi_writer_available_chars(standard_rows):
             "evidence_index_path": str(evidence_path.relative_to(ROOT)),
             "evidence_index_sha256": file_sha256(evidence_path),
             "license_review": evidence.get("license_review"),
+            "historical_reviewed_character_count": len(historical_chars),
+            "historical_members_sha256": historical_digest,
+            "compliance_removal": {
+                "receipt_path": str(COMPLIANCE_REMOVAL_RECEIPT_PATH.relative_to(ROOT)),
+                "receipt_sha256": file_sha256(COMPLIANCE_REMOVAL_RECEIPT_PATH),
+                "character_count": len(removals),
+                "members_sha256": COMPLIANCE_REMOVAL_MEMBERS_SHA256,
+                "decision": "D50 ①",
+            },
         },
         "combined_standard_character_count": len(local_standard_chars),
     }
-    return local_standard_chars, source_inventory, review_status_by_char
+    return local_standard_chars, source_inventory, review_status_by_char, set(removals)
 
 
-def read_vector_data_hint_groups():
+def read_vector_data_hint_groups(removed_chars):
     manifest = json.loads(VECTOR_DATA_MANIFEST_PATH.read_text(encoding="utf-8"))
-    manifest_records = {record["character"]: record for record in manifest["records"]}
+    all_manifest_records = {record["character"]: record for record in manifest["records"]}
     payload = json.loads(VECTOR_DATA_HINT_GROUPS_PATH.read_text(encoding="utf-8"))
     if payload.get("artifact") != "shizi-vector-data-440-hint-groups":
         raise RuntimeError("Unexpected vector-data hint-group manifest")
@@ -446,6 +535,10 @@ def read_vector_data_hint_groups():
         raise RuntimeError("A vector-data hint-group gate is false")
 
     records = payload.get("records") or []
+    if {record.get("character") for record in records} != set(all_manifest_records) or len(records) != VECTOR_DATA_SUPPLEMENT_COUNT:
+        raise RuntimeError("Hint-group manifest must cover the exact reviewed 440-character supplement")
+    manifest_records = {character: record for character, record in all_manifest_records.items() if character not in removed_chars}
+    records = [record for record in records if record.get("character") not in removed_chars]
     groups_by_char = {}
     for record in records:
         character = record.get("character")
@@ -463,8 +556,8 @@ def read_vector_data_hint_groups():
         ):
             raise RuntimeError(f"Invalid hint groups for {character}: {groups}")
         groups_by_char[character] = groups
-    if set(groups_by_char) != set(manifest_records) or len(groups_by_char) != VECTOR_DATA_SUPPLEMENT_COUNT:
-        raise RuntimeError("Hint-group manifest must cover the exact reviewed 440-character supplement")
+    if set(groups_by_char) != set(manifest_records) or len(groups_by_char) != PRACTICE_SUPPLEMENT_COUNT:
+        raise RuntimeError("Hint groups must cover the exact practice supplement (440 reviewed − 76 compliance removals)")
     return groups_by_char, {
         "path": str(VECTOR_DATA_HINT_GROUPS_PATH.relative_to(ROOT)),
         "sha256": file_sha256(VECTOR_DATA_HINT_GROUPS_PATH),
@@ -681,6 +774,7 @@ def choose_candidates(
     curriculum_table_one,
     supplemental_groups,
     supplemental_review_statuses,
+    compliance_removed,
 ):
     resolve_groups = build_group_resolver(mm)
     rows_by_char = {}
@@ -690,9 +784,12 @@ def choose_candidates(
             rows_by_char[ch] = row
 
     candidates = []
-    skipped = {"no_hanzi_writer": [], "no_make_me_hanzi": [], "stroke_mismatch": []}
+    skipped = {"no_hanzi_writer": [], "source_license_removed": [], "no_make_me_hanzi": [], "stroke_mismatch": []}
     for standard in standard_rows:
         ch = standard["character"]
+        if ch in compliance_removed:
+            skipped["source_license_removed"].append(standard)
+            continue
         if ch not in hanzi_writer_chars:
             skipped["no_hanzi_writer"].append(standard)
             continue
@@ -833,17 +930,10 @@ def js_string(value):
 
 
 def patch_index(chosen, word_index):
-    """生成 deck-data.js（SEED/GROUPS 题库数据），并同步 index.html 里的 DECK_KEY。
+    """生成题库 deck.json（seed / overrides / groups）。内容不变时不重写文件，重复运行 git diff 为空。
 
-    题库数据独立成文件后，index.html 只含界面与逻辑（~90KB）；
-    数据更新后必须同步 index.html/sw.js 的内容指纹与 BUILD；
-    verify_pwa_upgrade.js 会在标准门禁中阻止指纹不一致的提交。
+    overrides 原样取自 scripts/content/context-overrides.json（手改的语境覆盖）。函数名沿用 patch_index 以保持历史可追溯。
     """
-    index_path = ROOT / "index.html"
-    data_path = ROOT / "deck-data.js"
-    core_path = ROOT / CORE_STROKE_SCRIPT
-    html = index_path.read_text(encoding="utf-8")
-
     seed = []
     for item in chosen:
         context = choose_context(item, word_index)
@@ -879,34 +969,25 @@ def patch_index(chosen, word_index):
             "ctx": context["context_source"],
         })
     groups = {item["character"]: item["groups"] for item in chosen}
-    ranked_core = [row["target"] for row in sorted(seed, key=lambda row: row["rank"])]
-    core_chars = list(dict.fromkeys(CALIBRATION_CORE_CHARS + ranked_core))[:CORE_STROKE_COUNT]
+    overrides = json.loads(CONTEXT_OVERRIDES_PATH.read_text(encoding="utf-8"))
+    write_deck_json(seed, overrides, groups)
 
-    data_path.write_text(
-        "// 拾字题库数据（由 scripts/build_8105_chars.py 生成，勿手改）\n"
-        "// SEED：候选字词卡（拼音/语境词/难度/主题/规范等级）\n"
-        "const SEED = " + js_string(seed) + ";\n"
-        f"// 每个字的部件分组（自动生成：{len(chosen)} 个通用规范汉字候选，按 Make Me a Hanzi matches 递归部件分组）\n"
-        "const GROUPS=" + js_string(groups) + ";\n",
-        encoding="utf-8",
-    )
-    core_path.write_text(
-        "// 由 scripts/build_8105_chars.py 同步生成：首日校准字优先，再按题库字频补满 600 字。\n"
-        "(function(scope){\n"
-        f"  scope.SHIZI_CORE_STROKES={js_string(core_chars)};\n"
-        "})(self);\n",
-        encoding="utf-8",
+
+def deck_json_text(seed, overrides, groups):
+    """deck.json 的文本：一行一张卡，overrides / groups 各占一行（= JS JSON.stringify 的紧凑形，便于审阅 diff）。"""
+    return (
+        '{"seed":[\n' + ",\n".join(js_string(row) for row in seed) + "\n],\n"
+        + '"overrides":' + js_string(overrides) + ",\n"
+        + '"groups":' + js_string(groups) + "}\n"
     )
 
-    html, key_count = re.subn(
-        r'const DECK_KEY="[^"]+"',
-        f'const DECK_KEY="{DECK_KEY}"',
-        html,
-        count=1,
-    )
-    if key_count != 1:
-        raise RuntimeError("Could not update DECK_KEY in index.html")
-    index_path.write_text(html, encoding="utf-8")
+
+def write_deck_json(seed, overrides, groups):
+    """写 Bundled/deck.json；内容相同则不动文件。"""
+    text = deck_json_text(seed, overrides, groups)
+    if DECK_JSON_PATH.is_file() and DECK_JSON_PATH.read_text(encoding="utf-8") == text:
+        return
+    DECK_JSON_PATH.write_text(text, encoding="utf-8")
 
 
 def library_governance_report(standard_rows, curriculum_table_one, chosen, skipped, source_inventory):
@@ -982,8 +1063,8 @@ def main():
     curriculum_table_one = read_curriculum_table_one()
     rows = read_hanzi_db()
     word_index = read_context_words()
-    hanzi_writer_chars, source_inventory, supplemental_review_statuses = read_hanzi_writer_available_chars(standard_rows)
-    supplemental_groups, hint_group_inventory = read_vector_data_hint_groups()
+    hanzi_writer_chars, source_inventory, supplemental_review_statuses, compliance_removed = read_hanzi_writer_available_chars(standard_rows)
+    supplemental_groups, hint_group_inventory = read_vector_data_hint_groups(compliance_removed)
     source_inventory["reviewed_project_supplement"]["hint_groups"] = hint_group_inventory
     coverage = coverage_report(standard_rows, hanzi_writer_chars, source_inventory)
     (GENERATED_DIR / COVERAGE_JSON).write_text(
@@ -998,6 +1079,7 @@ def main():
         set(curriculum_table_one),
         supplemental_groups,
         supplemental_review_statuses,
+        compliance_removed,
     )
     if not chosen:
         raise RuntimeError("No candidates selected")

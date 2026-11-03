@@ -1,0 +1,18 @@
+{
+  "state": "redo-ink",
+  "name": "重写错字 · 写了两笔",
+  "order": 23,
+  "screen": "redo",
+  "native": true,
+  "base": "_redo-open",
+  "settle": 1000,
+  "steps": [
+    {
+      "strokes": "redo"
+    },
+    {
+      "wait": 500
+    }
+  ],
+  "parity": true
+}

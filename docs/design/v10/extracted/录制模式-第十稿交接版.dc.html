@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="{{ frame }}">
+  <sc-if value="{{ chrome }}" hint-placeholder-val="{{ true }}"><div style="height:54px"></div></sc-if>
+  <sc-if value="{{ bareSp }}" hint-placeholder-val="{{ false }}"><div style="height:54px"></div></sc-if>
+  <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 8px">
+    <button onClick="{{ onExit }}" style="min-height:44px;padding:0 10px;border:0;background:transparent;font:inherit;font-size:15px;color:var(--i2);cursor:pointer">退出</button>
+    <span style="font-size:17px;font-weight:500;letter-spacing:.04em;color:var(--i1)">录制模式</span>
+    <span style="min-width:60px;text-align:right;font-size:13px;color:var(--i3);font-variant-numeric:tabular-nums">{{ progress }}</span>
+  </div>
+  <sc-if value="{{ errOn }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:4px 24px 0;padding:10px 12px;border-radius:12px;background:#F3E6DE;color:#6E3527;font-size:13px;line-height:1.6;display:flex;justify-content:space-between;gap:10px;align-items:center"><span>{{ err }}</span><button onClick="{{ onErrRetry }}" style="flex:none;min-height:36px;padding:0 12px;border:0;border-radius:10px;background:#A6533F;color:#FFF9F1;font:inherit;font-size:13px;cursor:pointer">{{ errBtn }}</button></div>
+  </sc-if>
+
+  <sc-if value="{{ vSetup }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;min-height:0;overflow:auto;padding:16px 24px 24px;display:flex;flex-direction:column;gap:18px">
+      <span style="font-size:13px;line-height:1.7;color:var(--i2);text-wrap:pretty">录下的是写字人本人的笔迹，只存在这台设备，不进演示记录。每写完一个字存一条，不对照、不判断。格式见 data/handwriting/格式-第十稿交接版.md。</span>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--i2)">写字人编号</span><input value="{{ wid }}" onChange="{{ onWid }}" inputmode="numeric" placeholder="例如 01" style="min-height:44px;box-sizing:border-box;border:.5px solid var(--i5);border-radius:12px;background:var(--c);padding:0 14px;font:inherit;font-size:17px;color:var(--i1)"></label>
+      <button onClick="{{ onExtra }}" style="display:flex;align-items:center;gap:10px;min-height:44px;padding:0;border:0;background:transparent;font:inherit;font-size:15px;color:var(--i1);text-align:left;cursor:pointer">
+        <sc-if value="{{ extraOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:20px;height:20px;border-radius:5px;background:var(--i1);color:var(--p);display:grid;place-items:center;font-size:13px">✓</span></sc-if>
+        <sc-if value="{{ extraOff }}" hint-placeholder-val="{{ true }}"><span style="flex:none;width:20px;height:20px;box-sizing:border-box;border-radius:5px;border:1px solid var(--i3)"></span></sc-if>
+        <span>这位写附加任务</span>
+      </button>
+      <span style="font-size:13px;line-height:1.7;color:var(--i3)">{{ planText }}</span>
+      <button onClick="{{ onStart }}" style="min-height:52px;border:0;border-radius:16px;background:{{ startBg }};color:#FFF9F1;font:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">{{ startLabel }}</button>
+      <sc-if value="{{ hasWriters }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;border-top:.5px solid var(--i5)">
+          <sc-for list="{{ writers }}" as="w" hint-placeholder-count="1">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:56px;border-bottom:.5px solid var(--i5)">
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;color:var(--i1)">{{ w.name }}</span><span style="font-size:13px;color:var(--i3);font-variant-numeric:tabular-nums">{{ w.meta }}</span></span>
+              <button onClick="{{ w.onExport }}" style="flex:none;white-space:nowrap;min-height:40px;padding:0 14px;border:.5px solid var(--i5);border-radius:12px;background:var(--c);color:var(--i1);font:inherit;font-size:15px;cursor:pointer">导出</button>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ outOn }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;line-height:1.6;color:var(--i2)">{{ outMsg }}</span>
+          <div style="display:flex;gap:8px"><button onClick="{{ onCopy }}" style="min-height:40px;padding:0 14px;border:.5px solid var(--i5);border-radius:12px;background:var(--c);color:var(--i1);font:inherit;font-size:15px;cursor:pointer">复制全文</button><button onClick="{{ onShowText }}" style="min-height:40px;padding:0 14px;border:.5px solid var(--i5);border-radius:12px;background:var(--c);color:var(--i1);font:inherit;font-size:15px;cursor:pointer">显示全文</button></div>
+          <sc-if value="{{ textOn }}" hint-placeholder-val="{{ false }}"><textarea ref="{{ taRef }}" readonly="{{ true }}" value="{{ outText }}" style="width:100%;height:160px;box-sizing:border-box;border:.5px solid var(--i5);border-radius:10px;background:var(--c);padding:8px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--i1)"></textarea></sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ vTask }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;padding:6px 24px 0;gap:10px">
+      <span style="font-size:13px;letter-spacing:.06em;color:var(--i3)">{{ kindLabel }}</span>
+      <div style="height:92px;display:flex;align-items:center;justify-content:center;gap:16px">
+        <sc-if value="{{ showTarget }}" hint-placeholder-val="{{ true }}"><span style="font-family:'LXGW WenKai GB',serif;font-size:64px;line-height:1;color:var(--i1)">{{ target }}</span></sc-if>
+        <span style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="font-size:15px;color:var(--i2)">{{ py }}</span><span style="font-family:'LXGW WenKai GB',serif;font-size:24px;letter-spacing:.06em;color:var(--i1)">{{ word }}</span></span>
+      </div>
+      <div style="position:relative;width:345px;height:345px;box-sizing:border-box;border:.5px solid var(--i5);border-radius:16px;background:var(--c);overflow:hidden">{{ grid }}</div>
+      <div style="width:345px;display:flex;justify-content:space-between;align-items:center;min-height:44px">
+        <span style="font-size:13px;color:var(--i3)">{{ note }}</span>
+        <span style="display:flex;gap:4px"><button onClick="{{ onUndo }}" style="min-height:44px;padding:0 10px;border:0;background:transparent;font:inherit;font-size:15px;color:var(--i2);cursor:pointer">撤销</button><button onClick="{{ onClear }}" style="min-height:44px;padding:0 0 0 10px;border:0;background:transparent;font:inherit;font-size:15px;color:var(--i2);cursor:pointer">清空</button></span>
+      </div>
+    </div>
+    <div style="padding:8px 24px 24px;display:grid;grid-template-columns:112px 1fr;gap:12px">
+      <button onClick="{{ onPause }}" style="min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font:inherit;font-size:17px;cursor:pointer">暂停</button>
+      <button onClick="{{ onDone }}" style="min-height:52px;border:0;border-radius:16px;background:{{ doneBg }};color:{{ doneFg }};font:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">{{ doneLabel }}</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ vFinish }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center">
+      <span style="font-family:'Noto Serif SC',serif;font-size:26px;font-weight:500;color:var(--i1)">{{ finTitle }}</span>
+      <span style="font-size:15px;line-height:1.7;color:var(--i2)">{{ finSub }}</span>
+      <button onClick="{{ onBackSetup }}" style="min-height:52px;padding:0 24px;border:0;border-radius:16px;background:var(--a);color:#FFF9F1;font:inherit;font-size:17px;cursor:pointer">回到录制首页导出</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+// 第九稿 5.2 录制模式：原型工具，不属于产品界面。需要 proto-model-第十稿交接版.js（SZProto 出题数据、SZRec 录制存储）和 ink-第十稿交接版.js；存储在 IndexedDB shizi-proto-v9-rec，不可用时退到 localStorage 同名键
+const S=345, PAD=.06, KK=S*(1-2*PAD)/1024, OFF=S*PAD;
+const glyphT='translate('+OFF+' '+(OFF+900*KK)+') scale('+KK+' '+(-KK)+')';
+const ST=window.__szStore||(window.__szStore={data:{},pend:{}});
+function load(c){ if(ST.data[c]!==undefined) return Promise.resolve(ST.data[c]); if(!ST.pend[c]) ST.pend[c]=fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/'+encodeURIComponent(c)+'.json').then(r=>r.json()).then(d=>(ST.data[c]=d)).catch(()=>(ST.data[c]=null)); return ST.pend[c]; }
+// ——— 存储：window.SZRec（proto-model-第十稿交接版.js）：{writers:{id:{extra}}, recs:[{key,writer,task,...record}]} ———
+const REC=()=>window.SZRec;
+// 出题：30 字 × 3 遍；附加任务：「静」写满 12 遍、写错样本 9 条（题两遍）、描写「警」前 9 笔
+function plan(extra){ const Z=window.SZProto, cs=Object.keys(Z.SAMPLES), t=[];
+  cs.forEach(c=>{ for(let p=1;p<=3;p++) t.push({id:'n-'+c+'-'+p,char:c,kind:'normal',pass:p}); });
+  if(extra){ for(let p=4;p<=12;p++) t.push({id:'n-静-'+p,char:'静',kind:'normal',pass:p});
+    '境惊题静额豕整警'.split('').forEach(c=>t.push({id:'w-'+c+'-1',char:c,kind:'wrong',pass:1})); t.push({id:'w-题-2',char:'题',kind:'wrong',pass:2});
+    t.push({id:'t-警-1',char:'警',kind:'trace',pass:1,count:9}); }
+  return t; }
+const r1=v=>Math.round(v*10)/10;
+
+class Component extends DCLogic {
+  taRef=React.createRef();
+  state={view:'setup',wid:'',extra:false,data:{writers:{},recs:[]},i:0,strokes:[],err:'',errT:null,out:null,textOn:false,rev:0};
+  componentDidMount(){ const w=()=>{ if(this._g) return; if(window.SZInk&&window.SZProto&&window.SZRec){ this.refresh(); this.forceUpdate(); } else setTimeout(w,60); }; w(); }
+  componentWillUnmount(){ this._g=true; }
+  async refresh(){ try{ const data=await REC().all(); if(!this._g) this.setState({data}); }catch(e){ this.setState({err:'录制数据读不出来：'+(e&&e.message||e),errT:'reload'}); } }
+  tasks(){ return window.SZProto?plan(this.state.extra):[]; }
+  doneSet(wid){ return new Set(this.state.data.recs.filter(r=>r.writer===wid).map(r=>r.task)); }
+  nextIndex(wid,extra){ const t=plan(extra), d=this.doneSet(wid); const i=t.findIndex(x=>!d.has(x.id)); return i<0?t.length:i; }
+  async start(){ const wid=(this.state.wid||'').trim(); if(!wid) return;
+    try{ await REC().setWriter({id:wid,extra:this.state.extra}); }catch(e){ this.setState({err:'写字人设置没有存进去：'+(e&&e.message||e),errT:'start'}); return; }
+    await this.refresh(); const i=this.nextIndex(wid,this.state.extra); this.setState({view:i>=plan(this.state.extra).length?'finish':'task',i,strokes:[],err:''}); this.loadChar(); }
+  loadChar(){ const t=this.tasks()[this.state.i]; if(t) load(t.char).then(()=>{ if(!this._g) this.forceUpdate(); }); }
+  // ——— 采集：x、y 换算到 345，t 从这一条第一次落笔起算，p 只在 pen 且大于 0 时记 ———
+  pt(e,r){ const q={x:r1((e.clientX-r.left)*S/r.width),y:r1((e.clientY-r.top)*S/r.height),t:r1(e.timeStamp-this.t0)}; if(e.pointerType==='pen'&&e.pressure>0) q.p=Math.round(e.pressure*1000)/1000; return q; }
+  down=e=>{ const el=e.currentTarget; try{el.setPointerCapture(e.pointerId);}catch(_){} if(!this.state.strokes.length&&!this.cur){ this.t0=e.timeStamp; this.input=e.pointerType||'mouse'; this.cs=el.getBoundingClientRect().width; }
+    this.cur={end:'up',points:[this.pt(e,el.getBoundingClientRect())]}; this.forceUpdate(); };
+  move=e=>{ if(!this.cur) return; const r=e.currentTarget.getBoundingClientRect(), ev=e.nativeEvent&&e.nativeEvent.getCoalescedEvents?e.nativeEvent.getCoalescedEvents():[]; (ev&&ev.length?ev:[e]).forEach(x=>this.cur.points.push(this.pt(x,r))); this.forceUpdate(); };
+  up=e=>{ if(!this.cur) return; const q=this.pt(e,e.currentTarget.getBoundingClientRect()), l=this.cur.points[this.cur.points.length-1]; if(l.x!==q.x||l.y!==q.y) this.cur.points.push(q); const s=this.cur; this.cur=null; this.setState(st=>({strokes:[...st.strokes,s]})); };
+  cancel=()=>{ if(!this.cur) return; const s=Object.assign(this.cur,{end:'cancel'}); this.cur=null; this.setState(st=>({strokes:[...st.strokes,s]})); };
+  async save(){ const t=this.tasks()[this.state.i], wid=this.state.wid.trim(); if(!t||!this.state.strokes.length) return;
+    const rec={key:wid+':'+t.id,task:t.id,writer:wid,char:t.char,pass:t.pass,input:this.input||'touch',canvas:{size:Math.round(this.cs||345),dpr:window.devicePixelRatio||1},clock:'event.timeStamp',ua:navigator.userAgent,strokes:this.state.strokes};
+    if(t.kind!=='normal') rec.kind=t.kind;
+    try{ await REC().put(rec); if(this.props.onSaved) this.props.onSaved(rec); }catch(e){ this.setState({err:'这一条没有存进去（'+(e&&e.name||'写入失败')+'）。笔迹还在，点「重试」再存一次。',errT:'save'}); return; }
+    await this.refresh(); const i=this.nextIndex(wid,this.state.extra); this.setState({i,strokes:[],err:'',view:i>=plan(this.state.extra).length?'finish':'task'}); this.loadChar(); }
+  // ——— 导出：分享文件 → 下载 → 复制 → 选中全文 ———
+  async exportW(wid){ const arr=this.state.data.recs.filter(r=>r.writer===wid).map(r=>{const o=Object.assign({},r);delete o.key;delete o.task;return o;});
+    const text=JSON.stringify(arr), name='writer-'+wid+'.json'; let msg='';
+    try{ const f=new File([text],name,{type:'application/json'}); if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:name}); msg='已交给系统分享：'+name+'（'+arr.length+' 条）。'; } else throw Error('noshare'); }
+    catch(e){ if(e&&e.name==='AbortError') msg='已取消分享。可以改用下面的复制。';
+      else { try{ const u=URL.createObjectURL(new Blob([text],{type:'application/json'})), a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); msg='已开始下载 '+name+'（'+arr.length+' 条）。没有下载到时，用下面的复制。'; }catch(e2){ msg='分享和下载都不可用，请用下面的复制。'; } } }
+    this.setState({out:{wid,text,msg},textOn:false}); }
+  async copy(){ const o=this.state.out; if(!o) return; try{ await navigator.clipboard.writeText(o.text); this.setState({out:Object.assign({},o,{msg:'已复制 '+o.text.length+' 个字符。'})}); }catch(e){ this.setState({textOn:true,out:Object.assign({},o,{msg:'复制失败，已在下面选中全文，请长按拷贝。'})},()=>{const t=this.taRef.current; if(t){t.focus();t.select();t.setSelectionRange(0,t.value.length);}}); } }
+
+  grid(){ const h=React.createElement, t=this.tasks()[this.state.i]; if(!t||!window.SZInk) return null; const d=ST.data[t.char], kids=[];
+    const g={stroke:'var(--g)',strokeWidth:1,strokeDasharray:'4 5'}; kids.push(h('line',{key:'a',x1:S/2,y1:0,x2:S/2,y2:S,style:g}),h('line',{key:'b',x1:0,y1:S/2,x2:S,y2:S/2,style:g}));
+    if(t.kind==='trace'&&d){ const ss=d.strokes.slice(0,t.count); kids.push(h('g',{key:'tr',transform:glyphT},ss.map((p,i)=>h('path',{key:'o'+i,d:p,style:{fill:'none',stroke:'var(--tl)',strokeWidth:4,vectorEffect:'non-scaling-stroke'}})),ss.map((p,i)=>h('path',{key:'f'+i,d:p,style:{fill:'var(--tf)'}})))); }
+    const all=this.state.strokes.concat(this.cur?[this.cur]:[]);
+    all.forEach((s,i)=>{ const pts=SZInk.build(s.points.map(q=>({x:q.x,y:q.y,t:q.t})),s!==this.cur&&s.end==='up'); kids.push(h('path',{key:'s'+i,d:SZInk.outline(pts),style:{fill:'var(--i1)'}})); });
+    return h('svg',{viewBox:'0 0 345 345',width:345,height:345,style:{display:'block',touchAction:'none'},onPointerDown:this.down,onPointerMove:this.move,onPointerUp:this.up,onPointerCancel:this.cancel},kids); }
+
+  renderVals(){ const P=this.props, s=this.state, dark=P.theme==='dark', Z=window.SZProto;
+    const vars=dark?{'--p':'#221E1A','--c':'#2D2823','--i1':'#DCCFB8','--i2':'#B4AC9E','--i3':'#A09A8E','--i5':'#413A33','--a':'#AE5A44','--g':'rgba(200,110,85,.34)','--tf':'#38322C','--tl':'#7C766C'}:{'--p':'#F4F0E7','--c':'#FBF8F2','--i1':'#3B2F28','--i2':'#5D5952','--i3':'#6A645B','--i5':'#DED8CD','--a':'#A6533F','--g':'#A6533F47','--tf':'#EBE6DE','--tl':'#948D81'};
+    const T=this.tasks(), t=T[s.i], it=t&&Z?Z.item(t.char):null, wid=s.wid.trim(), ws=Object.keys(s.data.writers).sort();
+    const counts={}; s.data.recs.forEach(r=>{counts[r.writer]=(counts[r.writer]||0)+1;});
+    const word=it?(t.kind==='wrong'?(it.word.length?it.word.map((c,i)=>i===it.blank?'□':c).join(''):it.gloss):(it.word.length?it.word.join(''):it.gloss)):'';
+    return {
+      frame:Object.assign({position:'relative',width:393,height:852,display:'flex',flexDirection:'column',background:'var(--p)',overflow:'hidden',borderRadius:P.bare?0:42,boxShadow:P.bare?'none':'0 26px 64px rgba(48,38,26,.18)',fontFamily:"-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif",color:'var(--i1)',userSelect:'none',WebkitUserSelect:'none'},vars),
+      chrome:!P.bare, bareSp:!!P.bare, onExit:()=>P.onExit&&P.onExit(),
+      progress:s.view==='task'?(s.i+1)+' / '+T.length:'',
+      errOn:!!s.err, err:s.err, errBtn:s.errT==='save'?'重试':s.errT==='start'?'重试':'重新读取', onErrRetry:()=>{ if(s.errT==='save') this.save(); else if(s.errT==='start') this.start(); else this.refresh(); },
+      vSetup:s.view==='setup', vTask:s.view==='task', vFinish:s.view==='finish',
+      wid:s.wid, onWid:e=>this.setState({wid:e.target.value.replace(/[^0-9A-Za-z_-]/g,'').slice(0,12)}),
+      extraOn:s.extra, extraOff:!s.extra, onExtra:()=>this.setState({extra:!s.extra}),
+      planText:'要写 '+T.length+' 个：30 个字各 3 遍'+(s.extra?'；附加：「静」写满 12 遍、写错样本 9 条（题两遍）、描写「警」前 9 笔。':'。')+(wid&&counts[wid]?' 这位已录 '+counts[wid]+' 条，接着写。':''),
+      startLabel:wid?(counts[wid]?'接着录 '+wid:'开始录 '+wid):'先填写字人编号', startBg:wid?'var(--a)':'var(--i5)', onStart:()=>this.start(),
+      hasWriters:ws.length>0, writers:ws.map(w=>({name:'写字人 '+w+(s.data.writers[w].extra?' · 附加任务':''),meta:(counts[w]||0)+' / '+plan(s.data.writers[w].extra).length+' 条',onExport:()=>this.exportW(w)})),
+      outOn:!!s.out, outMsg:s.out?s.out.msg:'', outText:s.out?s.out.text:'', textOn:s.textOn, taRef:this.taRef, onCopy:()=>this.copy(), onShowText:()=>this.setState({textOn:true},()=>{const x=this.taRef.current;if(x){x.focus();x.select();}}),
+      kindLabel:t?(t.kind==='wrong'?'写错样本 · 凭记忆写 · 第 '+t.pass+' 遍':t.kind==='trace'?'描写 · 前 '+t.count+' 笔':'第 '+t.pass+' 遍'):'',
+      showTarget:!!t&&t.kind==='normal', target:t?t.char:'', py:it?it.py:'', word,
+      grid:s.view==='task'?this.grid():null,
+      note:t&&t.kind==='trace'?'沿着参考字形描前 '+t.count+' 笔':s.strokes.length?s.strokes.length+' 笔':'',
+      onUndo:()=>this.setState({strokes:s.strokes.slice(0,-1)}), onClear:()=>this.setState({strokes:[]}),
+      onPause:()=>{ this.setState({view:'setup',strokes:[]}); },
+      doneLabel:t&&t.kind==='trace'?'描好了':'写好了', doneBg:s.strokes.length?'var(--a)':'var(--i5)', doneFg:s.strokes.length?'#FFF9F1':'var(--i3)', onDone:()=>this.save(),
+      finTitle:'写字人 '+wid+' 录完了', finSub:'共 '+(counts[wid]||0)+' 条，存在这台设备。回到录制首页导出。', onBackSetup:()=>this.setState({view:'setup'})
+    }; }
+}
+</script>
+</body>
+</html>

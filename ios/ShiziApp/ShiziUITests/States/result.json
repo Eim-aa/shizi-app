@@ -1,0 +1,47 @@
+{
+  "state": "result",
+  "name": "结果页 · 这次选的字",
+  "order": 16,
+  "screen": "result",
+  "template": "result",
+  "native": true,
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ax": true,
+  "setup": [
+    {
+      "op": "startPicked"
+    },
+    {
+      "op": "openApi",
+      "slot": "B"
+    },
+    {
+      "op": "mark",
+      "slot": "B",
+      "sid": "sid"
+    },
+    {
+      "op": "judge",
+      "judgments": [
+        "wrong",
+        "correct"
+      ],
+      "n": 5,
+      "tick": 4
+    },
+    {
+      "op": "unpinClock"
+    },
+    {
+      "op": "push",
+      "screen": "result",
+      "params": {
+        "slot": "B",
+        "sessionId": "$sid"
+      }
+    }
+  ],
+  "parity": true
+}

@@ -1,0 +1,23 @@
+{
+  "//": "B3.3 覆盖门禁（test/native-ui-coverage.test.mjs）：B3B4 §1 的每个已注册屏（Swift 的 @objc(ShiziScreen_…) 与写字三页）、弹层、浮条，至少有一个带原生基线的状态夹具（夹具的 screen / overlay / floater 字段指向它），或在 notApplicable 里写明不适用的理由。新注册一屏 / 新弹层时，测试先红，逼着在这里登记（有夹具就写进 screens / overlays，没有就写 notApplicable + 理由）。",
+  "screens": [
+    "home", "library", "mine",
+    "library-all", "library-list", "library-switch",
+    "detail", "detail-photo",
+    "records", "month", "annual", "remind", "backup",
+    "about", "about-privacy", "about-credits", "about-letter",
+    "write", "result", "redo", "session-none", "block",
+    "image-preview", "image-toast", "query", "s02"
+  ],
+  "overlays": [
+    "query", "s02", "detail-zoom", "library-all-menu", "mine-group-size", "mine-appearance", "backup-restore", "backup-clear", "image-preview",
+    "write-change-sheet", "write-end-dialog", "result-sheet"
+  ],
+  "floaters": ["toast", "undo-bar", "leave-undo", "corrupt-notice"],
+  "notApplicable": {
+    "_demo/sub": "开发 / 演示页（测试宿主才注册，B4.9 删），不进原生（§1.2）",
+    "query-demo": "开发 / 演示页（components/query/demo.js，测试宿主才注册，B4.9 删）",
+    "glyph-demo": "开发 / 演示页（dev/glyph-demo.js，isTestHost 才注册，B4.9 删）",
+    "demo-sheet": "开发 / 演示弹层（_demo/sub.js），不进原生"
+  }
+}

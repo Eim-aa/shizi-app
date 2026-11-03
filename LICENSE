@@ -1,0 +1,17 @@
+Copyright (c) 2026 Eim-aa. All rights reserved.
+
+This applies to the project-authored code and content of 拾字 (Shizi) in this
+repository. No license is granted to copy, modify, distribute or use them
+except as permitted by applicable law or by written permission of the
+copyright holder.
+
+Third-party components, fonts and stroke data keep their own licenses; see
+THIRD_PARTY_NOTICES.md, licenses/ and sources/LICENSE-*.
+
+Exception for data/: the stroke data files data/<character>.json and the
+character-origin file data/etymology.json are NOT covered by the reservation
+above. They, including this project's modifications to them, are provided
+under the licenses of the works they derive from (Arphic Public License, SIL
+Open Font License 1.1, Apache License 2.0, GNU LGPL 3.0 or later), file by
+file as listed in data/LICENSE.md. Nothing in this LICENSE restricts the
+rights those licenses give you.

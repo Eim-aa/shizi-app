@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script>(function(){['https://cdn.jsdelivr.net/npm/lxgw-wenkai-gb-web@1.522.0/lxgwwenkaigb-regular/'+'result.css','https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&display=swap'].forEach(function(h){if(!document.querySelector('link[data-szf="'+h+'"]')){var l=document.createElement('link');l.rel='stylesheet';l.href=h;l.setAttribute('data-szf',h);document.head.appendChild(l);}});})();</script>
+<style>
+@keyframes szDraw{from{stroke-dashoffset:1.02}to{stroke-dashoffset:0}}
+body{margin:0}
+</style>
+</helmet>
+<div style="{{ frame }}">
+<sc-if value="{{ isStd }}" hint-placeholder-val="{{ true }}">
+  <sc-if value="{{ chrome }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;left:32px;right:28px;top:0;height:54px;display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:600;color:var(--i1,#2B2824)">
+    <span>9:41</span>
+    <span style="display:flex;gap:6px;align-items:center"><svg width="17" height="11" viewBox="0 0 17 11" style="fill:var(--i1,#2B2824)"><rect x="0" y="7" width="3" height="4" rx=".7"></rect><rect x="4.7" y="5" width="3" height="6" rx=".7"></rect><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"></rect><rect x="14" y="0" width="3" height="11" rx=".7"></rect></svg><svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" style="stroke:var(--i4,#ADA699)"></rect><rect x="2" y="2" width="18" height="8" rx="1.8" style="fill:var(--i1,#2B2824)"></rect><rect x="23" y="4" width="1.5" height="4" rx=".75" style="fill:var(--i4,#ADA699)"></rect></svg></span>
+  </div>
+  </sc-if>
+
+  <div style="position:absolute;left:0;right:0;top:54px;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 24px 0 8px">
+    <span style="position:absolute;left:0;right:0;top:0;height:44px;display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:17px;font-weight:500;letter-spacing:.04em;color:var(--i1,#2B2824)">{{ title }}</span>
+    <button onClick="{{ onBack }}" aria-label="{{ backLabel }}" style="position:relative;min-width:44px;height:44px;border:0;padding:0 8px 0 0;background:transparent;display:flex;align-items:center;justify-content:flex-start;gap:0;font-family:inherit;font-size:15px;letter-spacing:.04em;color:var(--i1,#2B2824);cursor:pointer"><span style="width:44px;height:44px;display:grid;place-items:center;flex:none"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5 7.5 11l6 6"></path></svg></span><sc-if value="{{ backText }}" hint-placeholder-val="{{ false }}"><span style="margin-left:-10px">{{ backText }}</span></sc-if></button>
+    <span style="position:relative;font-size:13px;color:var(--i3,#736D64);font-variant-numeric:tabular-nums;letter-spacing:.04em">{{ counter }}</span>
+    <sc-if value="{{ dots1 }}" hint-placeholder-val="{{ false }}"><span aria-label="第 1 步，共 2 步：描一遍" style="position:absolute;left:0;right:0;top:36px;display:flex;justify-content:center;gap:5px;pointer-events:none"><span style="width:5px;height:5px;border-radius:50%;background:var(--i1,#3B2F28)"></span><span style="width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid var(--i3,#6A645B)"></span></span></sc-if>
+    <sc-if value="{{ dots2 }}" hint-placeholder-val="{{ false }}"><span aria-label="第 2 步，共 2 步：自己写" style="position:absolute;left:0;right:0;top:36px;display:flex;justify-content:center;gap:5px;pointer-events:none"><span style="width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid var(--i3,#6A645B)"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--i1,#3B2F28)"></span></span></sc-if>
+  </div>
+
+  <sc-if value="{{ tipOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:24px;right:24px;top:98px;height:40px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;letter-spacing:.02em;color:var(--i1,#3B2F28)"><span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--ar,#A6533F)"></span><span>{{ tipText }}</span></div>
+  </sc-if>
+  <sc-if value="{{ hasLine }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:24px;right:24px;top:98px;height:40px;display:flex;align-items:center;justify-content:center;gap:8px;border-bottom:1px solid var(--i5,#DDD6CA);font-size:15px;letter-spacing:.04em;color:var(--i2,#57524B)">
+      <span>{{ lineText }}</span>
+      <sc-if value="{{ lineAction }}" hint-placeholder-val="{{ false }}"><span style="color:var(--i4,#ADA699)">·</span><button onClick="{{ onLineAction }}" style="height:40px;padding:0;border:0;background:transparent;display:flex;align-items:center;gap:4px;font-family:inherit;font-size:15px;letter-spacing:.04em;color:var(--i1,#3B2F28);cursor:pointer">{{ lineAction }}<span aria-hidden="true">›</span></button></sc-if>
+    </div>
+  </sc-if>
+
+  <div ref="{{ pageRef }}" style="position:absolute;left:0;top:138px;width:393px;height:560px;pointer-events:none">
+    <sc-if value="{{ hasWord }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:0;right:0;top:4px;height:22px;display:flex;justify-content:center;font-size:15px;line-height:22px;letter-spacing:0;color:var(--i2,#57524B)">{{ py }}</div>
+    <div style="{{ rowStyle }}">
+      <sc-for list="{{ cells }}" as="cell" hint-placeholder-count="4">
+        <sc-if value="{{ cell.plain }}" hint-placeholder-val="{{ true }}">
+          <span style="width:56px;height:54px;border-left:1px solid var(--g);font-family:'LXGW WenKai GB',serif;font-size:34px;line-height:54px;text-align:center;color:var(--i1,#2B2824)">{{ cell.ch }}</span>
+        </sc-if>
+        <sc-if value="{{ cell.blank }}" hint-placeholder-val="{{ false }}">
+          <span style="position:relative;width:56px;height:54px;border-left:1px solid var(--g);box-shadow:inset 0 0 0 1.5px var(--ar,#A6533F);font-family:'LXGW WenKai GB',serif;font-size:34px;line-height:54px;text-align:center;color:var(--i1,#2B2824)">
+            <sc-if value="{{ cell.filled }}" hint-placeholder-val="{{ false }}"><span data-szblank="1" style="display:block">{{ cell.ch }}</span></sc-if>
+            <sc-if value="{{ cell.empty }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;left:50%;top:9px;bottom:9px;border-left:1px dashed var(--g)"></span><span style="position:absolute;top:50%;left:9px;right:9px;border-top:1px dashed var(--g)"></span></sc-if>
+            <sc-if value="{{ cell.boxH }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0">{{ cell.bh }}</span></sc-if>
+          </span>
+        </sc-if>
+      </sc-for>
+    </div>
+    </sc-if>
+    <sc-if value="{{ noWord }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:24px;right:24px;top:10px;height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center">
+        <span style="font-size:22px;letter-spacing:0;color:var(--i1,#2B2824)">{{ pyBig }}</span>
+        <span style="font-family:'LXGW WenKai GB',serif;font-size:19px;letter-spacing:.06em;color:var(--i1,#2B2824)">{{ gloss }}</span>
+        <sc-if value="{{ nwBox }}" hint-placeholder-val="{{ false }}"><span style="position:relative;flex:none;width:56px;height:54px;box-shadow:inset 0 0 0 1.5px var(--ar,#A6533F);background:var(--c,#FBF8F2)">{{ boxHint }}</span></sc-if>
+      </div>
+    </sc-if>
+    <div style="position:absolute;left:0;top:86px;width:393px;height:72px">{{ projection }}</div>
+
+    <sc-if value="{{ showGridCard }}" hint-placeholder-val="{{ true }}">
+      <div ref="{{ gridRef }}" style="position:absolute;left:24px;top:158px;width:345px;height:345px;box-sizing:border-box;border:.5px solid var(--i5,#DDD6CA);border-radius:16px;background:var(--c,#FBF8F2);overflow:hidden;pointer-events:auto">{{ grid }}</div>
+    </sc-if>
+    <sc-if value="{{ showGridMarks }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:24px;top:158px;width:345px;height:345px;pointer-events:auto">{{ grid }}</div>
+    </sc-if>
+    <sc-if value="{{ showGridBleed }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:0;top:158px;width:393px;height:393px;box-sizing:border-box;border-top:1px solid var(--i4,#ADA699);border-bottom:1px solid var(--i4,#ADA699);overflow:hidden;pointer-events:auto">{{ grid }}</div>
+    </sc-if>
+
+    <sc-if value="{{ dbgOn }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:24px;top:158px;width:345px;box-sizing:border-box;padding:8px 12px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:14px;color:var(--i3,#6A645B);font-variant-numeric:tabular-nums"><span>{{ dbg1 }}</span><span>{{ dbg2 }}</span></div>
+    </sc-if>
+
+    <sc-if value="{{ showAnswer }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:24px;top:158px;width:345px;height:345px;box-sizing:border-box;border:.5px solid var(--i5,#DDD6CA);border-radius:16px;background:var(--c,#FBF8F2);overflow:hidden">{{ ansRef }}</div>
+    </sc-if>
+    <sc-if value="{{ showCompare }}" hint-placeholder-val="{{ false }}">
+      <div ref="{{ cmpRef }}" style="position:absolute;left:24px;right:24px;top:158px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-if value="{{ hasUserMini }}" hint-placeholder-val="{{ true }}"><div ref="{{ userCardRef }}" style="aspect-ratio:1;box-sizing:border-box;border:.5px solid var(--i5,#DDD6CA);border-radius:12px;background:var(--c,#FBF8F2);overflow:hidden;transform-origin:0 0;position:relative;z-index:1">{{ userMini }}</div></sc-if>
+          <sc-if value="{{ noUserMini }}" hint-placeholder-val="{{ false }}"><div style="aspect-ratio:1;box-sizing:border-box;border:1px dashed var(--i4,#ADA699);border-radius:12px;display:grid;place-items:center;font-size:13px;color:var(--i3,#736D64);letter-spacing:.04em">这次没写</div></sc-if>
+          <span style="text-align:center;font-size:13px;letter-spacing:.12em;color:var(--i3,#736D64)">你的书写</span>
+        </div>
+        <div ref="{{ rightRef }}" style="display:flex;flex-direction:column;gap:12px">
+          <div style="aspect-ratio:1;box-sizing:border-box;border:.5px solid var(--i5,#DDD6CA);border-radius:12px;background:var(--c,#FBF8F2);overflow:hidden">{{ refMini }}</div>
+          <span style="text-align:center;font-size:13px;letter-spacing:.12em;color:var(--i3,#736D64)">参考字形</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="position:absolute;left:24px;right:24px;top:507px;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:auto">
+      <span style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.55;letter-spacing:.02em;color:var(--i3,#736D64);text-wrap:pretty">
+        <sc-if value="{{ hintNote }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:6px;height:6px;margin-top:7px;border-radius:50%;background:var(--o,#9A5B33);opacity:.7"></span></sc-if>
+        <span>{{ gridNote }}</span>
+      </span>
+      <sc-if value="{{ showTools }}" hint-placeholder-val="{{ false }}">
+        <span style="flex:none;display:flex;gap:4px;margin-right:-10px">
+          <button onClick="{{ onUndo }}" style="height:44px;padding:0 10px;border:0;background:transparent;font-family:inherit;font-size:15px;letter-spacing:.08em;color:var(--i2,#57524B);cursor:pointer">撤销</button>
+          <button onClick="{{ onClear }}" style="height:44px;padding:0 10px;border:0;background:transparent;font-family:inherit;font-size:15px;letter-spacing:.08em;color:var(--i2,#57524B);cursor:pointer">清空</button>
+        </span>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{ ansLink }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ onAskAnswer }}" style="position:absolute;left:14px;top:692px;height:36px;padding:0 10px;border:0;background:transparent;font-family:inherit;font-size:15px;letter-spacing:.04em;color:var(--i2,#57524B);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4,#ADA699);cursor:pointer">看答案</button>
+  </sc-if>
+  <div style="{{ btnRow }}">
+    <sc-for list="{{ buttons }}" as="b" hint-placeholder-count="2">
+      <sc-if value="{{ b.solid }}" hint-placeholder-val="{{ false }}"><button onClick="{{ b.on }}" style="height:52px;border:1px solid var(--a,#A6533F);border-radius:16px;background:var(--a,#A6533F);color:#FFF9F1;font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer;transition:transform .12s" style-active="transform:scale(.98)">{{ b.label }}</button></sc-if>
+      <sc-if value="{{ b.outline }}" hint-placeholder-val="{{ true }}"><button onClick="{{ b.on }}" style="height:52px;padding:0 6px;border:.5px solid var(--i5,#DDD6CA);border-radius:16px;background:var(--c,#FBF8F2);color:var(--i1,#2B2824);font-family:inherit;font-size:{{ b.fs }};letter-spacing:.04em;white-space:nowrap;cursor:pointer;transition:transform .12s" style-active="transform:scale(.98)">{{ b.label }}</button></sc-if>
+      <sc-if value="{{ b.off }}" hint-placeholder-val="{{ false }}"><button disabled style="height:52px;padding:0 6px;border:0;border-radius:16px;background:var(--off,#EAE4D9);color:var(--i4,#ADA699);font-family:inherit;font-size:{{ b.fs }};letter-spacing:.04em;white-space:nowrap">{{ b.label }}</button></sc-if>
+      <sc-if value="{{ b.txt }}" hint-placeholder-val="{{ false }}"><span style="height:52px;display:flex;align-items:center;font-size:13px;line-height:1.45;color:var(--i3,#736D64);text-wrap:pretty">{{ b.label }}</span></sc-if>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ isJudge }}" hint-placeholder-val="{{ false }}">
+    <p style="position:absolute;left:24px;right:24px;top:516px;margin:0;text-align:center;font-size:13px;line-height:18px;letter-spacing:.06em;color:var(--i3,#736D64)">你来判断，点一下就记下。</p>
+    <div style="position:absolute;left:24px;right:24px;top:548px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button onClick="{{ onWrong }}" style="height:72px;border:.5px solid var(--i5,#DDD6CA);border-radius:20px;background:var(--c,#FBF8F2);color:var(--i1,#2B2824);font-family:inherit;font-size:17px;font-weight:400;letter-spacing:.1em;cursor:pointer;transition:transform .12s,background .12s" style-active="transform:scale(.98);background:var(--off,#EAE4D9)">写错了</button>
+      <button onClick="{{ onRight }}" style="height:72px;border:.5px solid var(--i5,#DDD6CA);border-radius:20px;background:var(--c,#FBF8F2);color:var(--i1,#2B2824);font-family:inherit;font-size:17px;font-weight:400;letter-spacing:.1em;cursor:pointer;transition:transform .12s,background .12s" style-active="transform:scale(.98);background:var(--off,#EAE4D9)">写对了</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasBtnNote }}" hint-placeholder-val="{{ false }}">
+    <p style="position:absolute;left:24px;right:24px;bottom:148px;margin:0;text-align:center;font-size:13px;line-height:18px;letter-spacing:.02em;color:var(--i3,#736D64);text-wrap:pretty">{{ btnNote }}</p>
+  </sc-if>
+
+  <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+    <h2 style="position:absolute;left:24px;right:24px;top:300px;margin:0;text-align:center;font-family:'Noto Serif SC',serif;font-weight:500;font-size:26px;line-height:34px;letter-spacing:.02em;color:var(--i1,#3B2F28)">这一组写完了</h2>
+    <div ref="{{ doneRef }}" style="{{ doneGrid }}">
+      <sc-for list="{{ doneCells }}" as="d" hint-placeholder-count="7"><span data-zc="1" style="width:44px;height:44px;box-sizing:border-box;border:1px solid var(--g);background:var(--c,#FBF8F2)">{{ d.el }}</span></sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showSkip }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:0;right:0;top:788px;display:flex;justify-content:center">
+      <button onClick="{{ onSkip }}" style="height:40px;padding:0 12px;border:0;background:transparent;font-family:inherit;font-size:15px;letter-spacing:.04em;color:var(--i2,#57524B);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4,#ADA699);cursor:pointer">{{ skipLabel }}</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{ showEnd }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;right:16px;top:788px;display:flex">
+      <button onClick="{{ onEndAsk }}" aria-label="结束这组" style="height:40px;padding:0 8px;border:0;background:transparent;font-family:inherit;font-size:15px;letter-spacing:.04em;color:var(--i2,#57524B);cursor:pointer">结束这组</button>
+    </div>
+  </sc-if>
+</sc-if>
+<sc-if value="{{ isCompact }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:none;height:40px;padding:0 24px 0 28px;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600;color:var(--i1)"><sc-if value="{{ chrome }}" hint-placeholder-val="{{ true }}"><span>9:41</span><span style="width:24px;height:11px;border-radius:3px;border:1px solid var(--i4)"></span></sc-if></div>
+  <!-- 第十稿走查 W15 / 核对 V02：紧凑版整页可以滚动，提示和说明往下推；按钮区在第一屏，书写格在 258–345pt 之间尽量大（fitC） -->
+  <div ref="{{ scRef }}" style="position:relative;flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;display:flex;flex-direction:column">
+  <div style="position:relative;flex:none;min-height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px 0 4px">
+    <span onClick="{{ onBack }}" aria-label="{{ backLabel }}" style="min-width:44px;height:44px;display:flex;align-items:center;gap:0;color:var(--i1);cursor:pointer;font-size:calc(15px*var(--k,1))"><span style="width:44px;height:44px;display:grid;place-items:center;flex:none"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 5 7.5 11l6 6"></path></svg></span><sc-if value="{{ backText }}" hint-placeholder-val="{{ false }}"><span style="margin-left:-10px;white-space:nowrap">{{ backText }}</span></sc-if></span>
+    <span style="flex:1;min-width:0;padding:6px 8px;text-align:center;font-size:calc(17px*var(--k,1));line-height:1.3;font-weight:500;color:var(--i1);text-wrap:balance;pointer-events:none">{{ titleC }}</span>
+    <span style="font-size:calc(13px*var(--k,1));color:var(--i3);white-space:nowrap">{{ counter }}</span>
+    <sc-if value="{{ dots1 }}" hint-placeholder-val="{{ false }}"><span aria-label="第 1 步，共 2 步：描一遍" style="position:absolute;left:0;right:0;bottom:2px;display:flex;justify-content:center;gap:5px;pointer-events:none"><span style="width:5px;height:5px;border-radius:50%;background:var(--i1,#3B2F28)"></span><span style="width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid var(--i3,#6A645B)"></span></span></sc-if><sc-if value="{{ dots2 }}" hint-placeholder-val="{{ false }}"><span aria-label="第 2 步，共 2 步：自己写" style="position:absolute;left:0;right:0;bottom:2px;display:flex;justify-content:center;gap:5px;pointer-events:none"><span style="width:5px;height:5px;box-sizing:border-box;border-radius:50%;border:1px solid var(--i3,#6A645B)"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--i1,#3B2F28)"></span></span></sc-if>
+  </div>
+  <!-- 这一行的高度固定：上一个字的结果（W11）和第一次的提示（W01）都放在这里，收起时书写格不跳 -->
+  <div style="flex:none;margin:0 20px;height:36px;display:flex;align-items:stretch">
+    <sc-if value="{{ tipOn }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-size:calc(13px*var(--k,1));color:var(--i1);white-space:nowrap"><span style="flex:none;width:6px;height:6px;border-radius:50%;background:var(--ar)"></span><span>{{ tipText }}</span></div></sc-if>
+    <sc-if value="{{ hasLine }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border-bottom:1px solid var(--i5);font-size:calc(15px*var(--k,1));color:var(--i2);white-space:nowrap"><span>{{ lineText }}</span><sc-if value="{{ lineAction }}" hint-placeholder-val="{{ false }}"><span style="color:var(--i4)">·</span><span onClick="{{ onLineAction }}" style="min-height:36px;display:flex;align-items:center;gap:4px;color:var(--i1);cursor:pointer">{{ lineAction }}<span aria-hidden="true">›</span></span></sc-if></div></sc-if>
+    <!-- V02：紧凑版的撤销 / 清空放在这一行（写下第一笔后这一行是空的），书写格下的说明占满整行，少折一行 -->
+    <sc-if value="{{ showTools }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;justify-content:flex-end;align-items:center;font-size:calc(15px*var(--k,1));color:var(--i2)"><span onClick="{{ onUndo }}" style="min-height:44px;padding:0 8px;display:flex;align-items:center;cursor:pointer">撤销</span><span onClick="{{ onClear }}" style="min-height:44px;padding:0 0 0 8px;display:flex;align-items:center;cursor:pointer">清空</span></div></sc-if>
+  </div>
+  <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 20px 2px">
+    <sc-if value="{{ hasWord }}" hint-placeholder-val="{{ true }}">
+      <span style="font-size:calc(15px*var(--k,1));letter-spacing:0;color:var(--i2)">{{ py }}</span>
+      <div style="display:flex;border:1px solid var(--g);border-left:0;background:var(--c)">
+        <sc-for list="{{ cells }}" as="cell" hint-placeholder-count="2"><span style="position:relative;width:calc(56px*var(--k,1));height:calc(54px*var(--k,1));border-left:1px solid var(--g);box-shadow:{{ cell.sh }};font-family:'LXGW WenKai GB',serif;font-size:calc(34px*var(--k,1));line-height:calc(54px*var(--k,1));text-align:center;color:var(--i1)">{{ cell.shown }}<sc-if value="{{ cell.boxH }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0">{{ cell.bh }}</span></sc-if></span></sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ noWord }}" hint-placeholder-val="{{ false }}"><span style="font-size:calc(22px*var(--k,1));letter-spacing:0">{{ pyBig }}</span><span style="font-family:'LXGW WenKai GB',serif;font-size:calc(19px*var(--k,1))">{{ gloss }}</span><sc-if value="{{ nwBox }}" hint-placeholder-val="{{ false }}"><span style="position:relative;flex:none;width:calc(56px*var(--k,1));height:calc(54px*var(--k,1));box-shadow:inset 0 0 0 1.5px var(--ar);background:var(--c)">{{ boxHint }}</span></sc-if></sc-if>
+  </div>
+  <div ref="{{ midRef }}" style="position:relative;flex:none;display:flex;flex-direction:column;align-items:center;gap:10px;padding:2px 0">
+    <sc-if value="{{ isDoneC }}" hint-placeholder-val="{{ false }}">
+      <div style="min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(20px*var(--k,1))">
+        <h2 style="flex:none;margin:0;text-align:center;font-family:'Noto Serif SC',serif;font-weight:500;font-size:calc(26px*var(--k,1));line-height:calc(34px*var(--k,1));letter-spacing:.02em;color:var(--i1)">这一组写完了</h2>
+        <div ref="{{ doneRef }}" style="{{ doneGridC }}"><sc-for list="{{ doneCells }}" as="d" hint-placeholder-count="7"><span data-zc="1" style="width:44px;height:44px;box-sizing:border-box;border:1px solid var(--g);background:var(--c)">{{ d.el }}</span></sc-for></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showGridAny }}" hint-placeholder-val="{{ true }}"><div style="flex:none;width:{{ gC }};height:{{ gC }};box-sizing:border-box;border:.5px solid var(--i5);border-radius:14px;background:var(--c);overflow:hidden">{{ grid }}</div></sc-if>
+    <sc-if value="{{ showAnswer }}" hint-placeholder-val="{{ false }}"><div style="flex:none;width:{{ gC }};height:{{ gC }};box-sizing:border-box;border:.5px solid var(--i5);border-radius:14px;background:var(--c);overflow:hidden">{{ ansRef }}</div></sc-if>
+    <sc-if value="{{ showCompare }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;box-sizing:border-box;padding:0 20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
+        <div style="display:flex;flex-direction:column;gap:6px"><sc-if value="{{ hasUserMini }}" hint-placeholder-val="{{ true }}"><div style="aspect-ratio:1;box-sizing:border-box;border:.5px solid var(--i5);border-radius:12px;background:var(--c);overflow:hidden">{{ userMini }}</div></sc-if><sc-if value="{{ noUserMini }}" hint-placeholder-val="{{ false }}"><div style="aspect-ratio:1;box-sizing:border-box;border:1px dashed var(--i3);border-radius:12px;display:grid;place-items:center;font-size:calc(13px*var(--k,1));color:var(--i3)">这次没写</div></sc-if><span style="text-align:center;font-size:calc(13px*var(--k,1));color:var(--i3)">你的书写</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><div style="aspect-ratio:1;box-sizing:border-box;border:.5px solid var(--i5);border-radius:12px;background:var(--c);overflow:hidden">{{ refMini }}</div><span style="text-align:center;font-size:calc(13px*var(--k,1));color:var(--i3)">参考字形</span></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isJudge }}" hint-placeholder-val="{{ false }}">
+      <p style="margin:6px 20px 0;text-align:center;font-size:calc(13px*var(--k,1));line-height:calc(18px*var(--k,1));color:var(--i3);text-wrap:pretty">你来判断，点一下就记下。</p>
+      <div style="width:100%;box-sizing:border-box;padding:0 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px"><span onClick="{{ onWrong }}" style="min-height:calc(72px*var(--k,1));box-sizing:border-box;border:.5px solid var(--i5);border-radius:20px;background:var(--c);display:grid;place-items:center;font-size:calc(17px*var(--k,1));letter-spacing:.08em;cursor:pointer">写错了</span><span onClick="{{ onRight }}" style="min-height:calc(72px*var(--k,1));box-sizing:border-box;border:.5px solid var(--i5);border-radius:20px;background:var(--c);display:grid;place-items:center;font-size:calc(17px*var(--k,1));letter-spacing:.08em;cursor:pointer">写对了</span></div>
+    </sc-if>
+  </div>
+  <sc-if value="{{ noNoteB }}" hint-placeholder-val="{{ true }}"><div style="flex:none;min-height:28px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 20px;font-size:calc(13px*var(--k,1));line-height:1.45;color:var(--i3)">
+    <span style="flex:1;min-width:0;text-wrap:pretty">{{ noteC }}</span>
+  </div></sc-if>
+  <sc-if value="{{ hasNoteB }}" hint-placeholder-val="{{ false }}"><p style="flex:none;margin:0;padding:4px 20px 10px;text-align:center;font-size:calc(13px*var(--k,1));line-height:calc(18px*var(--k,1));color:var(--i3);text-wrap:pretty">{{ noteB }}</p></sc-if>
+  <!-- V02：主按钮一行（提示按钮不折行）；看答案 · 跳过 · 结束这组并成下面一行 -->
+  <div ref="{{ bzRef }}" style="flex:none;display:flex;flex-direction:column;gap:2px;padding:2px 20px 2px">
+    <div style="display:grid;grid-template-columns:{{ colsC }};gap:10px">
+      <sc-for list="{{ buttons }}" as="b" hint-placeholder-count="2"><span onClick="{{ b.on }}" style="min-height:56px;box-sizing:border-box;border-radius:16px;display:grid;place-items:center;text-align:center;padding:0 12px;white-space:nowrap;font-size:{{ b.fsC }};letter-spacing:.02em;background:{{ b.bg }};color:{{ b.fg }};border:{{ b.bd }};cursor:pointer">{{ b.label }}</span></sc-for>
+    </div>
+    <div style="min-height:40px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;font-size:calc(15px*var(--k,1));color:var(--i2)">
+      <span style="justify-self:start;display:flex"><sc-if value="{{ ansLink }}" hint-placeholder-val="{{ false }}"><span onClick="{{ onAskAnswer }}" style="min-height:40px;display:flex;align-items:center;cursor:pointer;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4)">看答案</span></sc-if></span>
+      <span style="justify-self:center;display:flex"><sc-if value="{{ showSkip }}" hint-placeholder-val="{{ true }}"><span onClick="{{ onSkip }}" style="min-height:40px;display:flex;align-items:center;padding:0 8px;cursor:pointer;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--i4)">{{ skipLabel }}</span></sc-if></span>
+      <span style="justify-self:end;display:flex"><sc-if value="{{ showEnd }}" hint-placeholder-val="{{ false }}"><span onClick="{{ onEndAsk }}" style="min-height:40px;display:flex;align-items:center;letter-spacing:.04em;cursor:pointer">结束这组</span></sc-if></span>
+    </div>
+  </div>
+  </div>
+</sc-if>
+  <!-- 第十稿走查 W03：看答案先确认一次（标准尺寸和紧凑版共用） -->
+  <sc-if value="{{ ask }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onAskNo }}" style="position:absolute;inset:0;z-index:6;background:var(--scrim,rgba(43,40,36,.32))"></div>
+    <div style="position:absolute;left:32px;right:32px;top:50%;transform:translateY(-50%);z-index:7;box-sizing:border-box;border-radius:20px;background:var(--p,#F7F4ED);box-shadow:0 10px 30px rgba(48,38,26,.16);padding:24px 20px 16px;display:flex;flex-direction:column;gap:20px;color:var(--i1)">
+      <span style="font-size:calc(15px*var(--k,1));line-height:1.7;color:var(--i1);text-wrap:pretty">看了答案，这个字就记为看过答案。</span>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><button onClick="{{ onAskNo }}" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:calc(17px*var(--k,1));letter-spacing:.06em;cursor:pointer">接着想</button><button onClick="{{ onAskYes }}" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:calc(17px*var(--k,1));letter-spacing:.06em;cursor:pointer">看答案</button></div>
+    </div>
+  </sc-if>
+  <!-- 修改判断弹层：标准尺寸和紧凑版共用（第十稿核对后：紧凑版的“修改判断 ›”接上点击） -->
+  <sc-if value="{{ sheet }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onCloseSheet }}" style="position:absolute;inset:0;background:var(--scrim,rgba(43,40,36,.32))"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:456px;background:var(--p,#F7F4ED);border-radius:24px 24px 0 0">
+      <div style="position:absolute;left:50%;top:8px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--i5,#DDD6CA)"></div>
+      <div style="position:absolute;left:24px;right:12px;top:24px;height:44px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:17px;font-weight:500;letter-spacing:.04em;color:var(--i1,#2B2824)">{{ sheetTitle }}</span>
+        <button onClick="{{ onCloseSheet }}" style="height:44px;padding:0 12px;border:0;background:transparent;font-family:inherit;font-size:15px;color:var(--i2,#57524B);cursor:pointer">取消</button>
+      </div>
+      <div style="position:absolute;left:24px;right:24px;top:88px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:flex;flex-direction:column;gap:12px"><div style="aspect-ratio:1;box-sizing:border-box;border:.5px solid var(--i5,#DDD6CA);border-radius:12px;background:var(--c,#FBF8F2);overflow:hidden">{{ lastUserMini }}</div><span style="text-align:center;font-size:13px;letter-spacing:.12em;color:var(--i3,#736D64)">你的书写</span></div>
+        <div style="display:flex;flex-direction:column;gap:12px"><div style="aspect-ratio:1;box-sizing:border-box;border:.5px solid var(--i5,#DDD6CA);border-radius:12px;background:var(--c,#FBF8F2);overflow:hidden">{{ lastRefMini }}</div><span style="text-align:center;font-size:13px;letter-spacing:.12em;color:var(--i3,#736D64)">参考字形</span></div>
+      </div>
+      <p style="position:absolute;left:24px;right:24px;top:316px;margin:0;text-align:center;font-size:13px;line-height:1.6;letter-spacing:.02em;color:var(--i3,#736D64)">{{ sheetNote }}</p>
+      <sc-if value="{{ sheetOk }}" hint-placeholder-val="{{ true }}"><button onClick="{{ onFlip }}" style="position:absolute;left:24px;right:24px;top:356px;height:52px;border:1px solid var(--a,#A6533F);border-radius:16px;background:var(--a,#A6533F);color:#FFF9F1;font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer" style-active="transform:scale(.98)">{{ flipLabel }}</button></sc-if>
+      <sc-if value="{{ sheetFail }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:24px;right:24px;top:356px;display:grid;grid-template-columns:1fr 1fr;gap:12px"><button onClick="{{ onSheetStay }}" style="height:52px;border:.5px solid var(--i5,#DDD6CA);border-radius:16px;background:var(--c,#FBF8F2);color:var(--i1,#2B2824);font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer" style-active="transform:scale(.98)">先不改</button><button onClick="{{ onFlip }}" style="height:52px;border:1px solid var(--a,#A6533F);border-radius:16px;background:var(--a,#A6533F);color:#FFF9F1;font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer" style-active="transform:scale(.98)">再试一次</button></div></sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{ chrome }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:50%;bottom:8px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:var(--hi,rgba(59,47,40,.5))"></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:393,&quot;height&quot;:852},&quot;start&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;C2&quot;,&quot;K&quot;,&quot;N&quot;,&quot;D&quot;,&quot;W&quot;,&quot;E&quot;,&quot;F&quot;,&quot;S&quot;,&quot;G&quot;,&quot;H&quot;,&quot;I&quot;,&quot;J&quot;,&quot;P&quot;,&quot;Z&quot;,&quot;Z15&quot;,&quot;Z30&quot;],&quot;default&quot;:&quot;A&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;std&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;std&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;card&quot;,&quot;bleed&quot;],&quot;default&quot;:&quot;card&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;interactive&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;projection&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;guides&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;lamp&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.04,&quot;max&quot;:0.06,&quot;step&quot;:0.01,&quot;default&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;深色暖灯&quot;},&quot;replay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;真人笔迹&quot;},&quot;endable&quot;:{&quot;editor&quot;:null,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;onEnd&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;(snap, confirmed:boolean)=>void&quot;},&quot;endFail&quot;:{&quot;editor&quot;:null,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;noStroke&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;第十稿&quot;},&quot;hintMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;fade&quot;,&quot;box&quot;],&quot;default&quot;:&quot;fade&quot;,&quot;tsType&quot;:&quot;'fade'|'box'&quot;,&quot;section&quot;:&quot;第十稿走查 K24 提示方案&quot;},&quot;firstTip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;total&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;onSaw&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;function&quot;},&quot;onNext&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;function&quot;}}">
+const CHARS=[
+  {c:'数',py:'shù',word:['人','数'],blank:1,groups:[[0,1,2,3,4,5],[6,7,8],[9,10,11,12]]},
+  {c:'感',py:'gǎn',word:['感','到'],blank:0,groups:[[0,1,2,3,4,5,6,7,8],[9,10,11,12]]},
+  {c:'警',py:'jǐng',word:['军','警'],blank:1,groups:[[0,1,2],[3,4,5,6,7],[8,9,10,11],[12,13,14,15,16,17,18]]},
+  {c:'部',py:'bù',word:['部','分'],blank:0,groups:[[0,1,2,3,4,5,6,7],[8,9]]},
+  {c:'户',py:'hù',word:['用','户'],blank:1,groups:[[0,1,2,3]]},
+  {c:'主',py:'zhǔ',word:['主','要'],blank:0,groups:[[0,1,2,3,4]]},
+  {c:'虽',py:'suī',word:['虽','然'],blank:0,groups:[[0,1,2],[3,4,5,6,7,8]]},
+  {c:'亦',py:'yì',word:[],blank:0,gloss:'也；又',groups:[[0,1,2,3,4,5]]}
+];
+const LAST=6;
+const WRONG={2:{drop:[13],tilt:{from:12,dx:6,dy:10,a:5}}};
+// 1.3：真人写错样本如果写出来不像错的，把字列在这里，仍套用 WRONG 的删笔和错位
+const REAL_FIX={};
+const A40='的是我在有他这国到说们和你地出道时年得就那要生会自着去过家学对可里后多能好都然没';
+const GMIN=258, GC0=300;
+const S=345, BASE=11.5, PAD=.06, KK=S*(1-2*PAD)/1024, OFF=S*PAD, ZC=44, ZFLOOR=1.6*S/42, K0=166.5/345;
+const TH={
+  light:{c:'#FBF8F2',off:'#EFE8DC',p:'#F4F0E7',i1:'#3B2F28',i2:'#5D5952',i3:'#6A645B',g:'#A6533F47',ref:'#5D5952',tf:'#EBE6DE',tl:'#948D81',ho:.6,i4:'#B3AC9F',i5:'#DED8CD',o:'#9A5B33',a:'#A6533F',ar:'#A6533F',scrim:'rgba(60,42,28,.22)'},
+  dark:{c:'#2D2823',off:'#36302A',p:'#221E1A',i1:'#DCCFB8',i2:'#B4AC9E',i3:'#A09A8E',i4:'#6B645A',i5:'#413A33',g:'rgba(200,110,85,.34)',ref:'#A09A8E',tf:'#38322C',tl:'#7C766C',ho:.45,o:'#C08256',a:'#AE5A44',ar:'#D47A5D',scrim:'rgba(0,0,0,.55)'}
+};
+const INK='var(--i1,#2B2824)';
+const ST=window.__szStore||(window.__szStore={data:{},pend:{}});
+function load(c){
+  if(ST.data[c]!==undefined) return Promise.resolve(ST.data[c]);
+  if(!ST.pend[c]) ST.pend[c]=fetch('https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0/'+encodeURIComponent(c)+'.json').then(r=>r.json()).then(d=>(ST.data[c]=d)).catch(()=>(ST.data[c]=null));
+  return ST.pend[c];
+}
+const medD=m=>'M'+m.map(q=>q[0]+' '+q[1]).join('L');
+const glyphT='translate('+OFF+' '+(OFF+900*KK)+') scale('+KK+' '+(-KK)+')';
+function bez(x1,y1,x2,y2){return t=>{let lo=0,hi=1,u=t;for(let i=0;i<24;i++){u=(lo+hi)/2;const x=3*(1-u)*(1-u)*u*x1+3*(1-u)*u*u*x2+u*u*u;if(x<t)lo=u;else hi=u;}return 3*(1-u)*(1-u)*u*y1+3*(1-u)*u*u*y2+u*u*u;};}
+const EASE=bez(.2,.7,.2,1), CURVE='cubic-bezier(.2,.7,.2,1)';
+
+class Component extends DCLogic {
+  uid='sz'+Math.random().toString(36).slice(2,7);
+  pageRef=React.createRef(); midRef=React.createRef(); scRef=React.createRef(); bzRef=React.createRef(); gridRef=React.createRef(); cmpRef=React.createRef(); userCardRef=React.createRef(); rightRef=React.createRef(); doneRef=React.createRef();
+  cur=null; fk=null;
+  state=this.props&&this.props.init?this.fromInit(this.props.init):this.preset((this.props&&this.props.start)||'A');
+
+  // 第九稿 1.1：字表与初始状态注入。不传 queue / init 时仍用 CHARS 和预设
+  Q(){const P=this.props||{};return P.queue||(P.init&&P.init.queue)||CHARS;}
+  lastI(){const P=this.props||{};return (P.queue||(P.init&&P.init.queue))?this.Q().length-1:LAST;}
+  fromInit(it){
+    const w=a=>(a||[]).map(p=>({pts:p})), i=it.i||0;
+    // 第九稿审美返修（主画布「保存失败统一样式」对照用）：init.saveFail 直接进失败态；不传时和原来一样
+    return {ci:i,n:i+1,phase:it.saveFail?'saveFail':(it.phase||'recall'),prev:it.saveFail?(it.phase||'recall'):null,hints:it.hints||0,used:it.used||0,saw:!!it.saw,strokes:w(it.strokes),sim:it.sim||0,hr:it.hr||null,dim:false,hout:false,ask:false,tipGone:false,
+      last:it.last?Object.assign({},it.last,{strokes:it.last.strokes?w(it.last.strokes):undefined}):null,line:it.line||null,
+      sheet:!!it.sheet,sheetFail:!!it.sheetFail,save:it.saveFail?'fail':null,pend:it.saveFail?{t:'back'}:null,cnt:it.cnt||0,done:(it.done||[]).map(d=>d.strokes?Object.assign({},d,{strokes:w(d.strokes)}):d)};
+  }
+  snap(){const s=this.state; let st=s.strokes, sim=0;
+    if(s.sim){const u=this.userStrokes(); if(u.length) st=u; else sim=s.sim;}
+    return {i:s.ci,c:(this.Q()[s.ci]||{}).c,phase:this.viewPhase(),hints:s.hints,used:Math.max(s.used||0,s.hints),saw:!!s.saw,strokes:st.map(x=>x.pts),sim,line:s.line,hr:s.hr||null};}
+  chg(a,b){return a.ci!==b.ci||a.phase!==b.phase||a.hints!==b.hints||a.used!==b.used||a.saw!==b.saw||a.strokes!==b.strokes||a.line!==b.line||a.last!==b.last||a.sim!==b.sim||a.hr!==b.hr;}
+  fail(r){return r===false||(r&&r.ok===false);}
+  // 2.5 / 2.6：返回 = 保存并返回；保存失败时留在原处，按钮换成「留在这里 / 重试保存」
+  doBack(){const P=this.props; const r=P.onBack(this.snap()); if(this.fail(r)) this.setState({prev:this.viewPhase(),phase:'saveFail',save:'fail',pend:{t:'back'},sheet:false,sheetFail:false});}
+  retry(){const s=this.state,p=s.pend; this.setState({phase:s.prev,prev:null,save:null,pend:null},()=>{ if(p.t==='judge') this.next(p.v); else if(p.t==='back') this.doBack(); else if(p.t==='end'&&this.props.onEnd) this.props.onEnd(this.snap(),true); });}
+  flipVerdict(){const s=this.state,P=this.props,nv=s.last.verdict==='right'?'wrong':'right';
+    if(P.onCorrect&&this.fail(P.onCorrect(s.last.id,nv))){this.setState({sheetFail:true});return;}
+    this.setState({sheet:false,sheetFail:false,line:'changed',last:Object.assign({},s.last,{verdict:nv})});}
+  tb(){const T=this.props.tune;return T&&T.base?T.base:undefined;}
+
+  preset(k){
+    const b={ci:0,n:1,phase:'recall',prev:null,hints:0,used:0,saw:false,strokes:[],sim:0,hr:null,dim:false,hout:false,ask:false,tipGone:false,last:null,sheet:false,sheetFail:false,line:null,save:null,pend:null,cnt:0,done:[]};
+    const rec={ci:0,verdict:'right',sim:true}, gan={ci:1,verdict:'right',sim:true}, bu={ci:3,verdict:'right',sim:true};
+    const dz=(cs,skip)=>cs.split('').map((c,i)=>skip.includes(i)?{c,none:true}:{c,seed:i+8});
+    return Object.assign(b,({
+      B:{sim:'full'}, C:{hints:1}, C2:{hints:2},
+      // 第十稿走查静态预设：T 第一次的提示；H1 / H2 写了 3 笔后点提示（K24 方案① / ②）；Q 看答案前的确认；G2 看过答案后的答案页；R2 看过答案、自己写完（按钮“下一个”）；L 上一个字的结果行
+      T:{ft:true,n:1}, H1:{sim:'part',hints:1,used:1,dim:true}, H2:{sim:'part',hints:1,used:1,hm:'box'}, Q:{sim:'part',ask:true},
+      G2:{ci:2,n:3,phase:'answer',saw:true}, R2:{ci:2,n:3,phase:'retrace',sim:'wrong',saw:true}, L:{ci:1,n:2,last:rec,line:'record'}, K:{ci:5,n:6,last:bu,line:'record'}, N:{ci:7,n:8},
+      D:{phase:'compare',sim:'full'}, W:{ci:2,n:3,phase:'compare',sim:'wrong',last:gan,line:'record'},
+      E:{ci:1,n:2,last:rec,line:'record'}, F:{ci:1,n:2,last:rec,line:'record',sheet:true},
+      S:{ci:5,n:6,last:bu,line:'record',sim:'part'},
+      G:{ci:2,n:3,phase:'answer',hints:2,last:gan,line:'record'}, H:{ci:2,n:3,phase:'trace',sim:'trace',last:gan,line:'record'}, I:{ci:2,n:3,phase:'retrace',sim:'wrong',last:gan,line:'record'},
+      J:{ci:1,n:2,last:rec,line:'record',phase:'saveFail',prev:'recall',sim:'full',save:'fail'},
+      P:{ci:3,n:1},
+      Z:{ci:6,n:7,phase:'done',cnt:6,last:{ci:6,verdict:'right',sim:true},line:'record',done:[{ci:0},{ci:1},{ci:2,mode:'wrong'},{ci:3},{ci:4,none:true},{ci:5},{ci:6}]},
+      Z15:{ci:6,n:15,phase:'done',cnt:13,last:{ci:6,c:'出',verdict:'right',sim:true},line:'record',done:dz(A40.slice(0,15),[4,11])},
+      Z30:{ci:6,n:30,phase:'done',cnt:27,last:{ci:6,c:'道',verdict:'right',sim:true},line:'record',done:dz(A40.slice(0,30),[4,11,23])}
+    })[k]||{});
+  }
+  componentDidMount(){ this.arm(); this.penArm(); this._ps=this.state; setTimeout(()=>{ if(!this._gone) this.fitC(); },0); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ if(!this._gone) this.fitC(); });
+    this.reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const extra=(this.state.done||[]).filter(d=>d.c).map(d=>d.c);
+    Promise.all(this.Q().map(c=>c.c).concat(extra).map(load)).then(()=>{if(!this._gone) this.forceUpdate();});
+    const wait=()=>{if(this._gone)return;if(window.SZInk)this.forceUpdate();else setTimeout(wait,60);};wait();
+    this.onInk=()=>{if(!this._gone)this.forceUpdate();}; window.addEventListener('szink',this.onInk);
+    if(this.state.phase==='done'&&this.props.interactive) setTimeout(()=>this.fadeDone(),80);
+    if(this.props.replay) setTimeout(()=>this.replay(),400);
+  }
+  componentWillUnmount(){this._gone=true; window.removeEventListener('szink',this.onInk); if(this.stopPlay) this.stopPlay();}
+  // 第十稿走查 W08：新页面或新状态出现后 0.4 秒内按钮不响应（防连点误判）
+  arm(){ this._arm=performance.now()+400; }
+  // 第十稿走查核对 V01：换到下一个字后约 0.3 秒内书写格不接受落笔（连点时第二下不落进下一个字）
+  penArm(){ const up=()=>{ this._pen=Math.max(this._pen||0,performance.now()+300); }; up(); if(window.requestAnimationFrame) requestAnimationFrame(up); }
+  // 判断落笔时间用事件自己的 timeStamp（主线程忙时排队的点击也按它真正发生的时间算）；新字画出来的那一帧再从头计 0.3 秒
+  armed(){ return performance.now()>=(this._arm||0); }
+  // 第十稿走查 W10：DC 运行时的 componentDidUpdate 只传 prevProps，不传 prevState，原来的 ps 一直是 undefined，所以书写中的笔迹、提示、阶段从来没有通过 onStateChange 存下来（离开或刷新回到空白写字页）。改为自己记上一份 state
+  componentDidUpdate(pp){ const ps=this._ps; this._ps=this.state; const ph=this.state.phase; if(ps&&(ps.phase!==ph||ps.ci!==this.state.ci||ps.ask!==this.state.ask)) this.arm(); if(ps&&ps.ci!==this.state.ci) this.penArm(); this.fitC(); if(this._ph&&this._ph!=='done'&&ph==='done') this.fadeDone(); this._ph=ph;
+    const P=this.props;
+    // 第十稿 10.10：结束这组时保存失败 → 留在原处，“留在这里 / 重试保存”（同 2.6）；重试成功后再结束
+    if(P.endFail&&pp&&P.endFail!==pp.endFail&&this.state.phase!=='saveFail'){ this.materialize(); this.setState({prev:this.viewPhase(),phase:'saveFail',save:'fail',pend:{t:'end'},sheet:false,sheetFail:false}); return; }
+    if(P.init&&pp&&pp.init&&P.init.key!==pp.init.key){ if(this.stopPlay) this.stopPlay(); this.raw=null; this.cur=null; this.dbg=null; this.arm(); this.penArm(); this.setState(this.fromInit(P.init)); return; }
+    if(P.replay&&P.replaySrc&&ps&&ps.ci!==this.state.ci&&this.state.phase==='recall') setTimeout(()=>{ if(!this._gone) this.replay(); },300);
+    if(P.onStateChange&&ps&&this.chg(ps,this.state)) P.onStateChange(this.snap()); }
+
+  // 演示笔迹：有真人记录时用记录（1.3），否则按速度模型合成（1.2）
+  synthC(c,seed0,count,mode,W){
+    const d=ST.data[c]; if(!d||!window.SZInk) return [];
+    const kind=mode==='trace'?'trace':mode==='wrong'?'wrong':'normal', rec=SZInk.pick(c,kind);
+    if(rec){let raw=SZInk.fromRecord(rec); if(mode==='wrong'&&REAL_FIX[c]) raw=SZInk.wrongFix(raw,W,S/2); let st=raw.map(pts=>({pts})); if(count!=null) st=st.slice(0,count); return st;}
+    W=W||{}; const tr=mode==='trace', as=seed0<8?seed0:seed0%6;
+    const a=tr?0:(-2.2+as*1.6)*Math.PI/180, sc=tr?1:.91, cc=S/2, ox=tr?0:5, oy=tr?0:-3, jit=tr?1.6:5; let seed=11+seed0*17;
+    const rnd=()=>{seed=(seed*9301+49297)%233280; return seed/233280-.5;};
+    const out=[];
+    d.medians.slice(0,count==null?d.medians.length:count).forEach((m,idx)=>{
+      if(W.drop&&W.drop.includes(idx)) return;
+      const t=W.tilt&&idx>=W.tilt.from?W.tilt:null, ta=t?t.a*Math.PI/180:0;
+      const pts=m.map(([x,y])=>{let px=x*KK+OFF-cc, py=(900-y)*KK+OFF-cc;
+        if(t){const qx=px*Math.cos(ta)-py*Math.sin(ta), qy=px*Math.sin(ta)+py*Math.cos(ta); px=qx+t.dx; py=qy+t.dy;}
+        return {x:cc+(px*Math.cos(a)-py*Math.sin(a))*sc+ox+rnd()*jit, y:cc+(px*Math.sin(a)+py*Math.cos(a))*sc+oy+rnd()*jit};});
+      out.push({pts:SZInk.synth(pts)});
+    });
+    return out;
+  }
+  simStrokes(ci,count,mode){return this.synthC(this.Q()[ci].c,ci,count,mode,mode==='wrong'?WRONG[ci]||{}:{});}
+  userStrokes(){
+    const s=this.state;
+    return s.sim==='full'?this.simStrokes(s.ci):s.sim==='part'?this.simStrokes(s.ci,3):s.sim==='trace'?this.simStrokes(s.ci,9,'trace'):s.sim==='wrong'?this.simStrokes(s.ci,null,'wrong'):s.strokes;
+  }
+  lastStrokes(){const l=this.state.last; if(!l) return []; return l.sim?this.simStrokes(l.ci):l.strokes;}
+  materialize(){ if(this.state.sim){ const st=this.userStrokes(); this.setState({strokes:st,sim:0}); return st;} return this.state.strokes; }
+  // 第十稿走查核对 V02：紧凑版（更大字体）按钮区必须在第一屏；书写格不小于同一屏宽下标准字号的格子（360 宽时约 258pt），在这个范围里尽量大（最大 345pt）
+  fitC(){ if(this.props.size!=='compact') return; const sc=this.scRef.current, bz=this.bzRef.current; if(!sc||!bz) return; if(this.viewPhase()!=='answer') return;
+    const cur=this.state.gC||GC0, other=bz.offsetTop+bz.offsetHeight-cur, g=Math.max(this.viewPhase()==='answer'?200:GMIN,Math.min(S,Math.floor(sc.clientHeight-other))); if(Math.abs(g-cur)>1) this.setState({gC:g}); }
+  viewPhase(){const s=this.state; return s.phase==='saveFail'?s.prev:s.phase;}
+  drawable(){return !!this.props.interactive && ['recall','trace','retrace'].includes(this.state.phase) && !this.state.sheet;}
+
+  // 实时输入、回放共用 down / move / up
+  pDown(p){this.materialize(); this.touch(); this.raw=[p]; this.cur=SZInk.build(this.raw,false,this.tb(),this.props.tune); this.forceUpdate();}
+  pMove(ps){if(!this.raw) return; ps.forEach(p=>this.raw.push(p)); this.cur=SZInk.build(this.raw,false,this.tb(),this.props.tune); this.forceUpdate();}
+  // cancel：pointercancel 不算正常收笔，不补点、不收尖（第一批修订 2.4）
+  pUp(cancel){ if(!this.raw) return; const pts=SZInk.build(this.raw,!cancel,this.tb(),this.props.tune); this.dbg=cancel?{cancel:true}:{v30:pts.v30,endK:pts.endK,dot:pts.dot,single:pts.single}; this.raw=null; this.cur=null; this.setState(s=>({strokes:[...s.strokes,{pts,d:SZInk.outline(pts),end:cancel?'cancel':'up'}]})); }
+  // 写下一笔：上一个字的结果行收起（W11）、第一次的提示消失（W01）、方案①里提示淡出、自己的笔迹恢复（K24）
+  touch(){ const s=this.state, o={}; if(s.line) o.line=null; if(!s.tipGone) o.tipGone=true;
+    if(s.dim){ o.dim=false; o.hout=true; setTimeout(()=>{ if(!this._gone&&this.state.hout) this.setState({hout:false,hr:{from:0,to:0}}); },260); }
+    if(Object.keys(o).length) this.setState(o); }
+  // 第十稿走查 W04：提示接着已经写下的笔画往下给，每次约为总笔画的四分之一（至少 1 笔）；原型按“已写笔数”近似：已写 n 笔就从第 n+1 笔开始。没有部件分组的字（fb）仍是前 1 / 前 2 笔
+  hmode(){ return this.props.hintMode==='box'||this.state.hm==='box'?'box':'fade'; }
+  rangeFor(k,n){ const ch=this.Q()[this.state.ci], d=this.sd(ch.c); if(!d) return null; const N=d.strokes.length;
+    if(ch.fb) return {from:0,to:Math.min(N,k)}; const q=Math.max(1,Math.round(N/4)), from=Math.max(0,Math.min(n,N-q)); return {from,to:from+q}; }
+  hrOf(){ const s=this.state; if(!s.hints) return null; return s.hr||this.rangeFor(s.hints,this.userStrokes().length); }
+  hint(){ const s=this.state; if(s.hints>=2) return; const st=this.materialize(), hr=this.rangeFor(s.hints+1,st.length); if(!hr) return;
+    this.setState({hints:s.hints+1,used:Math.max(s.used||0,s.hints+1),hr,dim:this.hmode()==='fade',hout:false,save:null}); }
+  // K25：确认看答案 → 这一次记为看过答案（onSaw），之后描一遍、自己写只是练习，写完“下一个”（onNext），不出判断页
+  seeAnswer(){ const s=this.state, P=this.props, ch=this.Q()[s.ci]; this.materialize(); const first=!s.saw;
+    this.setState({phase:'answer',saw:true,ask:false,save:null,dim:false,hr:null,line:null});
+    if(first&&P.onSaw) P.onSaw({i:s.ci,c:ch.c,hints:Math.max(s.used||0,s.hints)}); }
+  pt(ev,r){return {x:(ev.clientX-r.left)*S/r.width,y:(ev.clientY-r.top)*S/r.height,t:ev.timeStamp||performance.now()};}
+  down=e=>{ if(!this.drawable()||!window.SZInk||(e.timeStamp||performance.now())<(this._pen||0)||performance.now()<(this._pen||0)) return; try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){} this.pDown(this.pt(e,e.currentTarget.getBoundingClientRect())); };
+  move=e=>{ if(!this.raw) return; const r=e.currentTarget.getBoundingClientRect(), evs=e.nativeEvent&&e.nativeEvent.getCoalescedEvents?e.nativeEvent.getCoalescedEvents():[];
+    this.pMove(evs&&evs.length?evs.map(ev=>this.pt(ev,r)):[this.pt(e,r)]); };
+  // 抬笔时把 up 事件的位置补成最后一个原始点（和最后一个 move 同位置则不重复）
+  up=e=>{ if(this.raw&&e&&e.currentTarget&&e.clientX!=null){ const q=this.pt(e,e.currentTarget.getBoundingClientRect()), l=this.raw[this.raw.length-1]; if(!l||l.x!==q.x||l.y!==q.y) this.raw.push(q); } this.pUp(false); };
+  cancel=()=>this.pUp(true);
+  // 第九稿：replaySrc(c) 由原型给一条记录（data/handwriting 或本机刚录的），不登记到全局
+  replay(){ if(!window.SZInk) return; const c=this.Q()[this.state.ci].c, rec=this.props.replaySrc?this.props.replaySrc(c):SZInk.pick(c); if(!rec) return; if(this.stopPlay) this.stopPlay();
+    this.setState({strokes:[],sim:0}); this.stopPlay=SZInk.play(rec,{down:p=>this.pDown(p),move:p=>this.pMove([p]),up:()=>this.pUp(),cancel:()=>this.pUp(true)}); }
+
+  // 1.6 写好了 → 对照
+  toCompare(){
+    const I=!!this.props.interactive, std=this.props.size!=='compact', g=this.gridRef.current, pg=this.pageRef.current;
+    let ghost=null;
+    if(I&&std&&this.reduce&&g&&pg){ghost=g.cloneNode(true); ghost.style.pointerEvents='none'; ghost.style.zIndex='2'; pg.appendChild(ghost);}
+    // 紧凑版：中间区克隆一份叠在上面做 120ms 交叉淡化（异议 8）
+    const mid=this.midRef.current;
+    if(I&&!std&&mid&&mid.parentNode&&mid.animate){ghost=mid.cloneNode(true); Object.assign(ghost.style,{position:'absolute',left:mid.offsetLeft+'px',top:mid.offsetTop+'px',width:mid.offsetWidth+'px',height:mid.offsetHeight+'px',boxSizing:'border-box',pointerEvents:'none',zIndex:'2',background:'var(--p)'}); mid.parentNode.appendChild(ghost);}
+    this.materialize();
+    if(I&&std&&!this.reduce) this.fk=1/(K0*2.0721);
+    this.setState({phase:'compare'},()=>this.flip(ghost));
+  }
+  flip(ghost){
+    const pg=this.pageRef.current, blank=pg&&pg.querySelector('[data-szblank]'), card=this.userCardRef.current, right=this.rightRef.current, cmp=this.cmpRef.current;
+    if(ghost&&this.props.size==='compact'){ const a=ghost.animate([{opacity:1},{opacity:0}],{duration:120,fill:'forwards'}); a.onfinish=()=>ghost.remove(); setTimeout(()=>{ if(ghost.parentNode) ghost.remove(); },400); const m=this.midRef.current; if(m) m.animate([{opacity:0},{opacity:1}],{duration:120,fill:'backwards'}); return; }
+    if(ghost){ const a=ghost.animate([{opacity:1},{opacity:0}],{duration:120,fill:'forwards'}); a.onfinish=()=>ghost.remove();
+      if(cmp) cmp.animate([{opacity:0},{opacity:1}],{duration:120,fill:'backwards'});
+      if(blank) blank.animate([{opacity:0},{opacity:1}],{duration:120,fill:'backwards'}); return; }
+    if(!card||!card.animate||this.fk==null){this.fk=null; return;}
+    const s0=345/(card.offsetWidth||166.5);
+    card.animate([{transform:'scale('+s0+')',borderRadius:(16/s0)+'px'},{transform:'none',borderRadius:'12px'}],{duration:260,easing:CURVE});
+    if(right) right.animate([{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'none'}],{duration:200,delay:120,easing:CURVE,fill:'backwards'});
+    if(blank) blank.animate([{opacity:0},{opacity:1}],{duration:160,delay:120,easing:'ease-out',fill:'backwards'});
+    // 笔宽：屏幕上从书写格里的宽度连续过渡到卡内 0.68 倍，结束时不跳
+    const t0=performance.now();
+    const step=()=>{ if(this._gone) return; const p=Math.min(1,(performance.now()-t0)/260), e=EASE(p), s=s0+(1-s0)*e;
+      this.fk=p<1?(1-.32*e)/(K0*s):null; this.forceUpdate(); if(p<1) requestAnimationFrame(step); };
+    this.fk=1/(K0*s0); requestAnimationFrame(step);
+  }
+  // 5.1 写完一组：逐字淡入，每字 180ms，间隔 60ms，总长不超过 600ms
+  fadeDone(){ const el=this.doneRef.current; if(!el||this.reduce||!this.props.interactive) return; const kids=[...el.querySelectorAll('[data-zc]')], n=kids.length, gap=n>1?Math.min(60,420/(n-1)):0;
+    kids.forEach((k,i)=>k.animate&&k.animate([{opacity:0},{opacity:1}],{duration:180,delay:i*gap,easing:'ease-out',fill:'backwards'})); }
+
+  turn(){const el=this.pageRef.current; if(el&&el.animate&&!this.reduce) el.animate([{transform:'translateX(14px)',opacity:0},{transform:'none',opacity:1}],{duration:240,easing:CURVE});}
+  next(rec,sawNext){
+    const s=this.state, P=this.props, strokes=this.userStrokes(), c=this.Q()[s.ci].c, hu=Math.max(s.used||0,s.hints);
+    let id;
+    // 判断要等保存成功再推进（2.6）；跳过是独立事件，不进失败模拟
+    if(rec&&P.onJudge){const r=P.onJudge({i:s.ci,c,verdict:rec,strokes:strokes.map(x=>x.pts),hints:hu,saw:!!s.saw}); if(this.fail(r)){this.materialize(); this.setState({prev:'compare',phase:'saveFail',save:'fail',pend:{t:'judge',v:rec},sheet:false,sheetFail:false}); return;} id=r&&r.id;}
+    if(!rec&&sawNext&&P.onNext) P.onNext({i:s.ci,c,strokes:strokes.map(x=>x.pts)}); else if(!rec&&!sawNext&&P.onSkip) P.onSkip({i:s.ci,c,saw:false,hints:hu});
+    const done=[...(s.done||[]),rec?{ci:s.ci,strokes}:sawNext?{ci:s.ci,strokes,saw:true}:{ci:s.ci,none:true}], L=rec?{ci:s.ci,c,verdict:rec,strokes,id}:sawNext?{ci:s.ci,c,saw:true}:s.last, ln=rec?'record':sawNext?'saw':null;
+    const clr={hints:0,used:0,saw:false,hr:null,dim:false,hout:false,ask:false,sheet:false,sheetFail:false,prev:null,pend:null,save:null};
+    if(s.ci>=this.lastI()){this.setState(Object.assign(clr,{phase:'done',done,cnt:s.cnt+(rec?1:0),last:L,line:ln}));return;}
+    this.setState(Object.assign(clr,{ci:s.ci+1,n:s.n+1,cnt:s.cnt+(rec?1:0),phase:'recall',strokes:[],sim:0,done,last:L,line:ln}),()=>this.turn());
+  }
+
+  inkEls(strokes,key,wk,floor){
+    const h=React.createElement; if(!window.SZInk) return [];
+    return strokes.map((s,i)=>{let p=s.pts; if(!p||!p.length) return null;
+      const d=!wk&&!floor&&s.d?s.d:SZInk.outline(wk?p.map(q=>Object.assign({},q,{w:q.w*wk})):p,floor);
+      return h('path',{key:key+i,d,style:{fill:INK,fillRule:'nonzero'}});});
+  }
+  guides(){
+    if(this.props.guides===false) return null;
+    const h=React.createElement, st={stroke:'var(--g)',strokeWidth:1,strokeDasharray:'4 5'};
+    if(this.props.layout==='marks'){
+      const m={stroke:'var(--i4,#ADA699)',strokeWidth:1,fill:'none'}, c=S/2, L=18, e=.5, E=S-.5;
+      return h('g',{key:'mk'},
+        h('path',{d:`M${e} ${L}V${e}H${L} M${E-L} ${e}H${E}V${L} M${E} ${E-L}V${E}H${E-L} M${L} ${E}H${e}V${E-L}`,style:m}),
+        h('path',{d:`M${c-8} ${c}H${c+8} M${c} ${c-8}V${c+8} M${c} 0V10 M${c} ${S}V${S-10} M0 ${c}H10 M${S} ${c}H${S-10}`,style:{stroke:'var(--g)',strokeWidth:1}}));
+    }
+    return h('g',{key:'gd'},h('line',{x1:S/2,y1:0,x2:S/2,y2:S,style:st}),h('line',{x1:0,y1:S/2,x2:S,y2:S/2,style:st}));
+  }
+  // 第十稿 10.13：这个字的笔画数据取不到（加载失败 / 文件损坏；原型用 noStroke 模拟）→ null
+  sd(c){ return this.props.noStroke&&this.Q()[this.state.ci]&&this.Q()[this.state.ci].c===c?null:ST.data[c]; }
+  refGlyphC(c,fill){
+    const h=React.createElement, d=this.sd(c);
+    if(!d) return h('text',{key:'fb',x:S/2,y:S/2+S*.03,textAnchor:'middle',dominantBaseline:'central',style:{font:(S*.78)+"px 'LXGW WenKai GB',serif",fill}},c);
+    return h('g',{key:'rg',transform:glyphT},d.strokes.map((p,i)=>h('path',{key:i,d:p,style:{fill}})));
+  }
+  refGlyph(ci,fill){return this.refGlyphC(this.Q()[ci].c,fill);}
+  mini(children){return React.createElement('svg',{viewBox:'0 0 '+S+' '+S,width:'100%',height:'100%',style:{display:'block'}},this.guides(),children);}
+  zCell(d,i){
+    const h=React.createElement, c=d.c||this.Q()[d.ci].c;
+    const kid=d.none?this.refGlyphC(c,'var(--i4,#B3AC9F)'):h('g',null,this.inkEls(d.strokes||(d.ci!=null?this.simStrokes(d.ci,null,d.mode):this.synthC(c,d.seed,null,null,{})),'z'+i,null,ZFLOOR));
+    return h('svg',{viewBox:'0 0 '+S+' '+S,width:'100%',height:'100%',style:{display:'block'}},kid);
+  }
+
+  gridSvg(vp){
+    const h=React.createElement, s=this.state, ch=this.Q()[s.ci], d=this.sd(ch.c), kids=[this.guides()], t0=this.props.theme==='dark'?TH.dark:TH.light;
+    // 10.13：没有笔画数据时，描一遍照着完整的楷体字形描（浅色，不分笔顺）
+    if(vp==='trace'&&d===null) kids.push(h('text',{key:'trk',x:S/2,y:S/2+S*.03,textAnchor:'middle',dominantBaseline:'central',style:{font:(S*.78)+"px 'LXGW WenKai GB',serif",fill:'var(--tf)'}},ch.c));
+    if(vp==='trace'&&d) kids.push(h('g',{key:'tr',transform:glyphT},d.strokes.map((p,i)=>h('path',{key:'o'+i,d:p,style:{fill:'none',stroke:'var(--tl)',strokeWidth:4,vectorEffect:'non-scaling-stroke',strokeLinejoin:'round'}})),d.strokes.map((p,i)=>h('path',{key:'f'+i,d:p,style:{fill:'var(--tf)'}}))));
+    // K24 方案①（fade）：提示用细的暖墨红中线画在书写格里，自己的笔迹变浅到 35%；写下一笔后提示淡出、笔迹恢复。方案②（box）的提示画在题面红框里（boxHint）
+    const hr=vp==='recall'&&d&&this.hmode()==='fade'?this.hrOf():null;
+    if(hr){ const anim=!!this.props.interactive&&!this.reduce, n=hr.to-hr.from, dur=Math.round(Math.min(Math.max(1100/n,110),240,1200/(.3+.7*n))), hs=[];
+      for(let idx=hr.from,j=0;idx<hr.to;idx++,j++) if(d.medians[idx]) hs.push(h('path',{key:'h'+s.ci+'-'+s.hints+'-'+idx,d:medD(d.medians[idx]),pathLength:1,style:{fill:'none',stroke:'var(--ar)',strokeWidth:18,strokeLinecap:'round',strokeLinejoin:'round',strokeDasharray:'1 2',strokeDashoffset:0,animation:anim?'szDraw '+dur+'ms cubic-bezier(.4,0,.2,1) '+(j*dur*.7)+'ms both':'none'}}));
+      kids.push(h('g',{key:'hint',transform:glyphT,style:{opacity:s.hout?0:.92,transition:'opacity .25s'}},hs)); }
+    kids.push(h('g',{key:'ink',style:{opacity:s.dim&&vp==='recall'?.35:1,transition:'opacity .2s'}},this.inkEls(this.userStrokes(),'u')));
+    if(this.cur) kids.push(h('g',{key:'cur'},this.inkEls([{pts:this.cur}],'c')));
+    return h('svg',{viewBox:'0 0 '+S+' '+S,width:'100%',height:'100%',
+      style:{display:'block',touchAction:'none',cursor:this.drawable()?'crosshair':'default'},
+      onPointerDown:this.down,onPointerMove:this.move,onPointerUp:this.up,onPointerCancel:this.cancel},kids);
+  }
+
+  // K24 方案②：提示画在题面的红框小格里；已经写过的那几笔用浅灰，这次给的用提示色
+  boxHintEl(){ const s=this.state, h=React.createElement, ch=this.Q()[s.ci], d=this.sd(ch.c), hr=this.hrOf(); if(!d||!hr) return null;
+    return h('svg',{viewBox:'0 0 '+S+' '+S,width:'100%',height:'100%',style:{display:'block'}},h('g',{transform:glyphT},d.strokes.map((p,i)=>i<hr.to?h('path',{key:i,d:p,style:{fill:i<hr.from?'var(--i4)':'var(--o,#9A5B33)'}}):null))); }
+  renderVals(){
+    // V01：换到下一个字的那一次渲染就开始计 0.3 秒（不等生命周期），这段时间书写格不接受落笔
+    if(this._penCi!==this.state.ci){ this._penCi=this.state.ci; this.penArm(); }
+    const s=this.state, P=this.props, dark=P.theme==='dark', t=dark?TH.dark:TH.light, I=!!P.interactive, bleed=P.layout==='bleed';
+    const on=f=>I?(...x)=>{ if(!this.armed()) return; return f(...x); }:undefined;
+    const vp=this.viewPhase(), ch=this.Q()[s.ci], strokes=this.userStrokes(), has=strokes.length>0, FAIL='没保存上，你写的字还在。', failW=s.save==='fail'&&['recall','trace','retrace'].includes(vp), failB=s.save==='fail'&&['compare','answer','done'].includes(vp);
+    // 10.13：笔画数据取不到（null；undefined 是还在加载）。提示没有部分可给，“看答案”就是完整字形，照实记为看过答案；描一遍照着完整字形描
+    const ND=this.sd(ch.c)===null, NDR='这个字暂时没有提示，可以直接看答案。', NDA='这个字记为看过答案，后面再写只算练习。', ANS=NDA, NDT='浅色是参考字形。';
+    const revealed=['compare','answer','trace'].includes(vp), saw=!!s.saw, left=2-s.hints, boxOn=vp==='recall'&&this.hmode()==='box'&&s.hints>0&&!!this.hrOf(), boxHint=boxOn?this.boxHintEl():null;
+    const total=P.total||(this.Q()===CHARS?LAST+1:this.Q().length), tipOn=(!!P.firstTip||!!s.ft)&&!s.tipGone&&vp==='recall'&&!has&&!s.line;
+    const rowLeft=168.5-ch.blank*56;
+    const h=React.createElement;
+    const C=P.size==='compact';
+
+    const set=o=>this.setState(o);
+    const go=(o)=>{this.materialize(); this.setState(o);};
+    let cols='1fr 1fr', buttons=[];
+    const B=(label,kind,fn,sm)=>({label,solid:kind==='solid',outline:kind==='outline',off:kind==='off',txt:kind==='txt',fs:sm?'15px':'17px',fsC:kind==='txt'?'calc(13px*var(--k,1))':sm?'calc(15px*var(--k,1))':'calc(17px*var(--k,1))',on:kind==='off'||kind==='txt'?undefined:on(fn)});
+    if(s.phase==='saveFail'){
+      buttons=[B('先不保存','outline',()=>set({phase:s.prev,prev:null,save:null,pend:null})),B('再试一次','solid',()=>s.pend?this.retry():set({phase:s.prev,prev:null,save:'saved'}))];
+    } else if(s.phase==='done'){
+      cols='1fr'; buttons=[B('查看这次练习','solid',()=>{ if(P.onNavigate) P.onNavigate('result'); })];
+    } else if(vp==='recall'){
+      // W03：提示在左下（写剩几次，用完变灰；没有分步提示的字不显示按钮）；看答案在提示上方的一行文字按钮，先确认
+      cols='148px 1fr';
+      if(saw) buttons=[B('看答案','outline',()=>set({phase:'answer',save:null})),B('下一个','solid',()=>this.next(null,true))];
+      else buttons=[ND?B('暂时没有提示','txt'):left>0?B('提示 · 还有 '+left+' 次','outline',()=>this.hint(),true):B('提示已用完','off',null,true),B('写好了',has?'solid':'off',()=>this.toCompare())];
+    } else if(vp==='compare'){
+      buttons=[];
+    } else if(vp==='answer'){
+      buttons=[B('自己写','outline',()=>set({phase:'retrace',strokes:[],sim:0,hr:null,dim:false,save:null,line:null})),B('描一遍','solid',()=>set({phase:'trace',strokes:[],sim:0,save:null}))];
+    } else if(vp==='trace'){
+      cols='1fr'; buttons=[B('描好了，自己写',has?'solid':'off',()=>set({phase:'retrace',strokes:[],sim:0,save:null}))];
+    } else if(vp==='retrace'){
+      buttons=[B('再描一遍','outline',()=>set({phase:'trace',strokes:[],sim:0,save:null})),B(saw?'下一个':'写好了',saw||has?'solid':'off',()=>saw?this.next(null,true):this.toCompare())];
+    }
+
+    const titles={done:'',recall:'凭记忆写出这个字',compare:'对照一下，写对了吗？',answer:'这个字这样写',trace:'描一遍',retrace:'自己写一遍'};
+    const lastC=s.last?(s.last.c||this.Q()[s.last.ci].c):'';
+    // W11：写明结果；开始写下一个字的第一笔时收起；判断页、结果页不显示
+    const lines={record:'「'+lastC+'」记为'+(s.last&&s.last.verdict==='right'?'写对':'写错'),changed:'「'+lastC+'」已改为'+(s.last&&s.last.verdict==='right'?'写对':'写错'),saw:'「'+lastC+'」记为看过答案'};
+    const verd=s.last&&s.last.verdict==='right';
+    const doneNote='这次记录了 '+s.cnt+' 个字，跳过和看过答案的字不算在内。';
+
+    const projection=P.projection===false||!ch.word.length||vp==='done'||vp==='answer'?null:h('svg',{width:393,height:72,viewBox:'0 0 393 72',style:{display:'block'}},
+      h('path',{d:'M'+(rowLeft+ch.blank*56+.5)+' 0 L'+(bleed&&vp!=='compare'&&vp!=='answer'?'0':'24.5')+' 72 M'+(rowLeft+ch.blank*56+56.5)+' 0 L'+(bleed&&vp!=='compare'&&vp!=='answer'?'393':'368.5')+' 72',style:{fill:'none',stroke:'var(--g)',strokeWidth:1}}));
+
+    const vars={'--a':t.a,'--ar':t.ar,'--g':t.g,'--ref':t.ref,'--tf':t.tf,'--tl':t.tl,'--p':t.p,'--c':t.c||'#FBF8F2','--off':t.off||'#EAE4D9','--i1':t.i1,'--i2':t.i2,'--i3':t.i3,'--i4':t.i4,'--i5':t.i5,'--o':t.o,'--scrim':t.scrim,'--hi':dark?'rgba(234,228,216,.45)':'rgba(59,47,40,.5)'};
+    buttons=buttons.map(b=>Object.assign(b,{bg:b.solid?'var(--a)':b.off?'var(--off)':b.txt?'transparent':'var(--c)',fg:b.solid?'#FFF9F1':b.off?'var(--i4)':b.txt?'var(--i3)':'var(--i1)',bd:b.outline?'.5px solid var(--i5)':'0'}));
+    const hintTxt=this.hmode()==='box'?'提示在上面的红框里，只给一部分。':'浅红色是提示，只给一部分。接着写下一笔，提示就收起。', sawTxt='这个字看过答案了，再写只算练习。';
+    const noteRecall=ND&&!failW&&s.save!=='saved'&&vp==='recall'&&!saw?NDR:ND&&!failW&&s.save!=='saved'&&vp==='trace'?NDT:failW?FAIL:s.save==='saved'?'保存好了。':vp==='recall'&&s.hints>0&&!saw?hintTxt:saw&&(vp==='recall'||vp==='retrace')?sawTxt:vp==='trace'?'浅色是参考字形。':'';
+    const lamp=P.lamp??.05, lampImg='radial-gradient('+(C?'252px 288px at 317px -32px':'275px 383px at 346px -43px')+',rgba(255,214,170,'+lamp+'),transparent 70%)';
+    const dl=vp==='done'?(s.done||[]):[], zn=dl.length, zc=C?6:zn>18?7:6, zg=C?8:zn>18?6:8, zw=zc*ZC+(zc-1)*zg;
+    return {
+      isStd:!C, isCompact:C, cols, colsC:cols==='148px 1fr'?'auto minmax(0,1fr)':cols, scRef:this.scRef, bzRef:this.bzRef, gC:(C&&['recall','trace','retrace'].includes(vp)?GMIN:(s.gC||GC0))+'px', showGridAny:['recall','trace','retrace'].includes(vp),
+      tipOn, tipText:'看拼音和提示，把这个字写在格子里。', nwBox:boxOn&&!ch.word.length, boxHint,
+      showAnswer:vp==='answer', ansRef:vp==='answer'?this.mini(this.refGlyph(s.ci,'var(--ref)')):null,
+      ansLink:vp==='recall'&&!saw&&s.phase!=='saveFail'&&!!P.interactive, onAskAnswer:on(()=>set({ask:true})), ask:!!s.ask, onAskNo:on(()=>set({ask:false})), onAskYes:on(()=>this.seeAnswer()),
+      backLabel:vp==='compare'&&s.phase!=='saveFail'?'回到格子里接着写':'保存并返回', backText:vp==='compare'&&s.phase!=='saveFail'?'接着写':'',
+      skipLabel:saw?'下一个':'跳过',
+      // 6.3：书写格下的提示左对齐（noteC）；按钮上方的说明居中、离按钮 24pt（noteB）
+      noteC:noteRecall,
+      hasNoteB:(!s.save&&['done','answer'].includes(vp))||failB, noNoteB:!((!s.save&&['done','answer','compare'].includes(vp))||failB),
+      noteB:failB?FAIL:ND&&vp==='answer'?NDA:vp==='done'?doneNote:vp==='answer'?ANS:'',
+      isDoneC:vp==='done'&&C, midRef:this.midRef,
+      doneGridC:{display:'grid',gridTemplateColumns:'repeat(6,'+ZC+'px)',gap:8,minHeight:0,overflowY:'auto',flex:'0 1 auto'},
+      frame:Object.assign({position:'relative',width:C?360:393,height:C?640:852,display:C?'flex':'block',flexDirection:'column','--k':C?1.3:1,borderRadius:P.bare?0:C?28:42,overflow:'hidden',background:t.p,backgroundImage:dark?lampImg:'radial-gradient(rgba(140,125,105,.028) 1px,transparent 1.2px),radial-gradient(rgba(140,125,105,.022) 1px,transparent 1.2px)',backgroundSize:dark?'auto':'7px 7px,11px 11px',backgroundRepeat:dark?'no-repeat':'repeat',backgroundPosition:dark?'0 0':'0 0,3px 5px',boxShadow:P.bare?'none':'0 26px 64px rgba(48,38,26,.18),0 2px 8px rgba(48,38,26,.10)',fontFamily:"-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif",color:t.i1,userSelect:'none',WebkitUserSelect:'none',WebkitFontSmoothing:'antialiased'},vars),
+      title:titles[vp]||'', titleC:titles[vp]||'', titleL:vp==='compare'&&s.phase!=='saveFail'?'104px':'52px',
+      // W12：右上角一律“3 / 5”
+      counter:vp==='done'?'':s.n+' / '+total,
+      dots1:vp==='trace', dots2:vp==='retrace',
+      chrome:!P.bare,
+      dbgOn:!!P.debug&&!C&&['recall','trace','retrace'].includes(vp),
+      dbg1:!this.dbg?'写一笔后显示':this.dbg.cancel?'取消':this.dbg.v30==null?'抬笔前 30ms 均速 —':'抬笔前 30ms 均速 '+this.dbg.v30.toFixed(2)+' pt/ms',
+      dbg2:!this.dbg||this.dbg.cancel?'':this.dbg.single?'单点 · ×0.90':this.dbg.dot?'点画 · 末端 ×0.90':'末端笔宽 ×'+this.dbg.endK.toFixed(2),
+      onBack:on(()=>{ if(vp==='compare'&&s.phase!=='saveFail'){ set({phase:'recall'}); return; } if(P.onBack){ this.doBack(); return; } if(s.phase!=='saveFail'){ this.materialize(); set({prev:s.phase,phase:'saveFail',save:'fail',sheet:false}); } }),
+      hasLine:!!s.line&&!!lines[s.line]&&vp==='recall'&&!has&&!tipOn, lineText:lines[s.line]||'',
+      lineAction:(s.line==='record'||s.line==='changed')?'修改':'',
+      onLineAction:on(()=>set({sheet:true})),
+      pageRef:this.pageRef, gridRef:this.gridRef, cmpRef:this.cmpRef, userCardRef:this.userCardRef, rightRef:this.rightRef, doneRef:this.doneRef,
+      py:ch.py,
+      rowStyle:{position:'absolute',top:30,left:rowLeft,height:54,display:'flex',borderTop:'1px solid var(--g)',borderBottom:'1px solid var(--g)',borderRight:'1px solid var(--g)',background:'var(--c,#FBF8F2)'},
+      hasWord:vp!=='done'&&ch.word.length>0, noWord:vp!=='done'&&!ch.word.length, gloss:ch.gloss||'', pyBig:ch.py,
+      cells:ch.word.map((c,i)=>({ch:c,plain:i!==ch.blank,blank:i===ch.blank,filled:revealed,empty:!revealed&&!(boxOn&&i===ch.blank),boxH:boxOn&&i===ch.blank,bh:boxOn&&i===ch.blank?boxHint:null,shown:i!==ch.blank||revealed?c:'',sh:i===ch.blank?'inset 0 0 0 1.5px var(--ar,#A6533F)':'none'})),
+      projection,
+      showGridMarks:P.layout==='marks'&&['recall','trace','retrace'].includes(vp),
+      showGridCard:!bleed&&P.layout!=='marks'&&['recall','trace','retrace'].includes(vp),
+      showGridBleed:bleed&&['recall','trace','retrace'].includes(vp),
+      grid:this.gridSvg(vp),
+      showCompare:vp==='compare',
+      hasUserMini:has, noUserMini:!has,
+      // 1.7：对照卡的缩略图只在显示时计算，书写时不重算
+      userMini:vp==='compare'?this.mini(h('g',null,this.inkEls(strokes,'m',this.fk!=null?this.fk:1.41))):null,
+      refMini:this.mini(this.refGlyph(s.ci,'var(--ref)')),
+      isJudge:vp==='compare'&&s.phase!=='saveFail',
+      onRight:on(()=>this.next('right')),
+      onWrong:on(()=>this.next('wrong')),
+      hintNote:vp==='recall'&&!saw&&(s.hints>0||ND),
+      gridNote:noteRecall,
+      hasBtnNote:((vp==='answer'||vp==='done')&&!s.save)||failB, btnNote:failB?FAIL:ND&&vp==='answer'?NDA:vp==='done'?doneNote:ANS,
+      isDone:vp==='done'&&!C,
+      doneGrid:{position:'absolute',left:(393-zw)/2,top:354,width:zw,maxHeight:6*ZC+5*zg,overflowY:zn>42?'auto':'visible',display:'grid',gridTemplateColumns:'repeat('+zc+','+ZC+'px)',gap:zg},
+      doneCells:dl.map((d,i)=>({el:this.zCell(d,i)})),
+      showTools:['recall','trace','retrace'].includes(vp)&&has,
+      onUndo:on(()=>{const st=this.materialize(); set({strokes:st.slice(0,-1),sim:0});}),
+      onClear:on(()=>set({strokes:[],sim:0})),
+      btnRow:{position:'absolute',left:24,right:24,top:732,display:'grid',gridTemplateColumns:cols,gap:12},
+      buttons,
+      showSkip:['recall','answer','trace','retrace'].includes(vp)&&s.phase!=='saveFail'&&!(saw&&(vp==='recall'||vp==='retrace')),
+      // 第十稿 10.10：“结束这组”只在“这次选的字”里有（endable），写字页下方跳过那一行的右边；写完、保存失败、修改判断弹层开着时不显示
+      showEnd:!!P.endable&&!!P.interactive&&vp!=='done'&&s.phase!=='saveFail'&&!s.sheet, onEndAsk:on(()=>{ if(P.onEnd) P.onEnd(this.snap(),false); }),
+      onSkip:on(()=>saw?this.next(null,true):this.next(null)),
+      sheet:s.sheet&&!!s.last,
+      onCloseSheet:on(()=>set({sheet:false,sheetFail:false})),
+      sheetOk:!s.sheetFail, sheetFail:!!s.sheetFail, onSheetStay:on(()=>set({sheetFail:false})),
+      lastUserMini:s.sheet&&s.last?this.mini(h('g',null,this.inkEls(this.lastStrokes(),'l',1.41))):null,
+      lastRefMini:s.last?this.mini(this.refGlyph(s.last.ci,'var(--ref)')):null,
+      sheetTitle:'修改「'+lastC+'」的判断',
+      sheetNote:s.sheetFail?'没改成，还是原来的判断。':'刚才记的是'+(verd?'写对':'写错')+'。改了只换掉这一次，不会多算一次。',
+      flipLabel:'改为'+(verd?'写错':'写对'),
+      onFlip:on(()=>this.flipVerdict())
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -12,10 +12,17 @@ concurrency:
   group: verify-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# D84：网页版（web job、API floor、sw-unit、PWA 门禁）已随网页一起删除。剩两个互相独立的 job：
+#   data       — 脚本语法检查 + 不需要 Swift 的数据门禁（vector440、assets、order）
+#   unit-copy  — verify:unit (node:test) + verify:copy + verify:tokens
+# verify:governance 与 verify:content 要用 `swift build` 出的 shizi-core-cli（cards-dump）展开题库，ubuntu 上没有 Swift，
+# 且决定不加 macOS runner：这两项只在本机跑（pnpm run verify:data / bash ios/ShiziApp/scripts/verify-local.sh）。
+# verify:unit 里同样要展开题库的用例（content-blocklist、font-loader 覆盖）在非 macOS 上自动跳过（test/core/helpers.mjs NEEDS_SWIFT）。
+
 jobs:
-  quality-gate:
+  data:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,29 +35,42 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install Chromium
+        # verify_vector_data_440.js renders all 440 supplement glyphs in a browser.
         run: pnpm exec playwright install --with-deps chromium
       - name: Check source syntax
+        shell: bash
         run: |
-          node --check scripts/verify_8105_app.js
-          node --check scripts/verify_redesign_v3.js
-          node --check scripts/verify_vector_data_440.js
-          python3 -m py_compile scripts/verify_library_governance.py ios/ShiziApp/scripts/validate-native-smoke.py
+          set -euo pipefail
+          # node --check every scripts/**/*.{js,mjs,cjs}.
+          find scripts -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) -print0 \
+            | sort -z | xargs -0 -n1 node --check
+          python3 -m py_compile scripts/*.py
           for script in ios/ShiziApp/scripts/*.sh; do bash -n "$script"; done
           git diff --check
-      - name: Start local app
+      - name: Verify data integrity (no-Swift gates)
+        # governance + content need shizi-core-cli (Swift) and run locally only; see the header comment.
         run: |
-          python3 -m http.server 8000 --bind 127.0.0.1 >/tmp/shizi-server.log 2>&1 &
-          echo $! >/tmp/shizi-server.pid
-          for attempt in {1..30}; do
-            curl --fail --silent http://127.0.0.1:8000/ >/dev/null && exit 0
-            sleep 1
-          done
-          cat /tmp/shizi-server.log
-          exit 1
-      - name: Verify data integrity
-        run: pnpm run verify:data
-      - name: Run browser regressions
-        run: pnpm run verify:web
-      - name: Stop local app
-        if: always()
-        run: test ! -f /tmp/shizi-server.pid || kill "$(cat /tmp/shizi-server.pid)" || true
+          pnpm run verify:vector440
+          pnpm run verify:assets
+          pnpm run verify:order
+
+  unit-copy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.16.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Unit tests
+        run: pnpm run verify:unit
+      - name: Copy check
+        run: pnpm run verify:copy
+      - name: Token check
+        run: pnpm run verify:tokens

@@ -59,12 +59,36 @@ test "$app_device_family" = "1" || { echo "Expected iPhone-only UIDeviceFamily=1
 test -n "$app_minimum_os" || { echo "Missing MinimumOSVersion" >&2; exit 65; }
 test -n "$app_executable" && test -f "${APP}/${app_executable}" || { echo "Archived executable is missing" >&2; exit 65; }
 
-for marker in "__shizi_native_smoke_confirm__" "nativeSmokeResult" "shizi-native-smoke.json"; do
-  if LC_ALL=C grep -aFq "$marker" "${APP}/${app_executable}"; then
+# M5-3：DEBUG 冒烟与测试宿主注入（NativeSmoke.swift、?test=1 + __shiziNativeDev）不得进 Release 可执行文件。
+# B3.1：原生写字流程（写字 / 判断 / 结果 / 重写错字页与 ShiziKit）转正进 Release，开关 -shizi-native-write / __shiziNativeWrite（默认关，到 B3.F）随之进包，
+#   从本表移出；仍只在 DEBUG 的：纵切量测（NativeWriteMetrics、shizi-native-write-metrics.json）、QA-H1 测试宿主（-shizi-qa*、qa-probe、QATrace、QAProbe、
+#   NativeQAHarness）——原生页面只经 ShiziProbe 留钩子，Release 里是空操作。
+# B4.9：引擎选择、影子比对、网页冒烟、原生书写面 spike 随 WKWebView 删除（源码里已没有，标记留着防回潮）；QA 夹具的 Swift op（QAOps）只在 DEBUG。
+for marker in "ShadowEngine" "ShadowJournal" "__shiziShadowOp" "SHIZI-SHADOW" "__shiziNativeDev" "nativeSmokeResult" "nativeSmokeControl" "shizi-native-smoke.json" "-shizi-smoke" "__shiziSmokeEvents" "restorecheck" "rafWriteDrawing" "deviceInfo" "shizi-smoke-probe.js" "-shizi-probe-arg" "__shiziNativeInk" "-shizi-native-ink" "shizi-native-ink-latency.json" "shizi-ink-selfcheck" "touchToTargetMs" "shizi-native-write-metrics.json" "NativeWriteMetrics" "SHIZI_NW_AUTO" "-shizi-qa" "qa-probe" "NativeQAHarness" "QATrace" "QAProbe" "QAFixture" "QAFixtureRunner" "QAStates"; do
+  if LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}"; then
     echo "Release executable contains Debug native-smoke marker: ${marker}" >&2
     exit 65
   fi
 done
+
+# B3.1：Release 含原生写字流程与 ShiziKit（页面类、转场对象）与构建期生成的令牌 / 文案资源。
+for marker in "NativeWriteViewController" "NativeResultViewController" "NativeWriteTransitions" "NativeChangeSheetViewController"; do
+  LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}" || { echo "Release executable is missing the native write flow (${marker})" >&2; exit 65; }
+done
+for resource in "ShiziKitTokens.json" "ShiziKitCopy.json"; do
+  test -s "${APP}/${resource}" || { echo "Release app is missing the ShiziKit resource ${resource}" >&2; exit 65; }
+done
+
+# B2.1：原生书写面转正——Release 可执行文件必须含书写面：NativeInkView（ObjC 名 ShiziNativeInkView）与 Metal 渲染器的着色器（ink_vs；
+# 笔锋模型由书写面每帧调用，随之保留）。spike 叠层（NativeInkSpike）、金标准自检、T1 量测仍只在 Debug（上面的标记表）。
+for marker in "ShiziNativeInkView" "ink_vs"; do
+  LC_ALL=C grep -aFq -e "$marker" "${APP}/${app_executable}" || { echo "Release executable is missing the native ink surface (${marker})" >&2; exit 65; }
+done
+
+# P1-S2：原生书写面 spike 的笔锋模型金标准文件只在 Debug 构建复制进包（sync-web-assets.sh）。
+test ! -e "${APP}/InkModel" || { echo "Release app contains Debug-only InkModel/ self-check files" >&2; exit 65; }
+# B3.3：QA-H1 状态夹具（ShiziUITests/States → QAStates/，sync-web-assets.sh 只在 Debug 复制）
+test ! -e "${APP}/QAStates" || { echo "Release app contains Debug-only QAStates/ fixtures" >&2; exit 65; }
 
 if [ -n "${EXPECTED_BUNDLE_ID:-}" ] && [ "$app_bundle_id" != "$EXPECTED_BUNDLE_ID" ]; then
   echo "Expected bundle ID ${EXPECTED_BUNDLE_ID}, got ${app_bundle_id}" >&2

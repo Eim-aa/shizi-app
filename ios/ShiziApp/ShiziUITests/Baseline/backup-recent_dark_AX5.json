@@ -1,0 +1,464 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 374,
+      "y" : 737.29999999999995
+    },
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-backup-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 566,
+        "w" : 402,
+        "x" : 0,
+        "y" : 174
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 852,
+        "w" : 402,
+        "x" : 0,
+        "y" : 174
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 804,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "native-backup-body",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "bodyView"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 184,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "native-backup-status",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "statusView"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#A0968AFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 190
+      },
+      "id" : "native-backup-last-label",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "lastLabel",
+      "text" : "上次备份",
+      "textFrame" : {
+        "h" : 52.700000000000003,
+        "w" : 172.30000000000001,
+        "x" : 20,
+        "y" : 192.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 52.700000000000003,
+        "w" : 172.30000000000001,
+        "x" : 20,
+        "y" : 190
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 58,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 58,
+        "w" : 362,
+        "x" : 20,
+        "y" : 256
+      },
+      "id" : "native-backup-last-date",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "lastDate",
+      "text" : "10月20日",
+      "textFrame" : {
+        "h" : 83.299999999999997,
+        "w" : 242,
+        "x" : 20,
+        "y" : 243.30000000000001
+      },
+      "visibleFrame" : {
+        "h" : 58,
+        "w" : 242,
+        "x" : 20,
+        "y" : 256
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#A0968AFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 52,
+        "w" : 362,
+        "x" : 20,
+        "y" : 322
+      },
+      "id" : "native-backup-status-note",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "statusNote",
+      "text" : "记录都已备份。",
+      "textFrame" : {
+        "h" : 52.5,
+        "w" : 301.30000000000001,
+        "x" : 20,
+        "y" : 321.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 52,
+        "w" : 301.30000000000001,
+        "x" : 20,
+        "y" : 322
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 174,
+        "w" : 362,
+        "x" : 20,
+        "y" : 406
+      },
+      "id" : "native-backup-intro",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "introLabel",
+      "text" : "记录只在这台手\n机上，换手机前\n先导出备份。",
+      "textFrame" : {
+        "h" : 174.5,
+        "w" : 335.30000000000001,
+        "x" : 20,
+        "y" : 405.80000000000001
+      },
+      "visibleFrame" : {
+        "h" : 174,
+        "w" : 335.30000000000001,
+        "x" : 20,
+        "y" : 406
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 382,
+        "w" : 362,
+        "x" : 20,
+        "y" : 612
+      },
+      "id" : "native-backup-list",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "listView"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "恢复备份",
+      "class" : "ShiziRowButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 263.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 612.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 737.29999999999995
+      },
+      "id" : "native-backup-restore",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "restoreRow",
+      "text" : "恢复备份 会替换现有记录，离开前可撤销",
+      "textFrame" : {
+        "h" : 239.90000000000001,
+        "w" : 335.30000000000001,
+        "x" : 20,
+        "y" : 623.70000000000005
+      },
+      "tint" : "#0091FFFF",
+      "visibleFrame" : {
+        "h" : 127.7,
+        "w" : 362,
+        "x" : 20,
+        "y" : 612.29999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "left",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "备份",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 62,
+        "w" : 330,
+        "x" : 36,
+        "y" : 106
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "备份",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 103.7,
+        "x" : 36,
+        "y" : 105.40000000000001
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 103.7,
+        "x" : 36,
+        "y" : 106
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "导出备份",
+      "bg" : "#E2D9C9FF",
+      "class" : "UIButton",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 88,
+        "w" : 362,
+        "x" : 20,
+        "y" : 752
+      },
+      "id" : "native-backup-export",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "exportButton",
+      "radius" : 12,
+      "text" : "导出备份",
+      "textFrame" : {
+        "h" : 63.299999999999997,
+        "w" : 207.30000000000001,
+        "x" : 97.299999999999997,
+        "y" : 764.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 88,
+        "w" : 362,
+        "x" : 20,
+        "y" : 752
+      }
+    }
+  ],
+  "offscreen" : [
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "清空记录",
+      "class" : "ShiziRowButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 86.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 907.70000000000005
+      },
+      "id" : "native-backup-clear",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "prop" : "clearRow",
+      "text" : "清空记录",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 919
+      },
+      "visibleFrame" : null
+    }
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 612
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 875.29999999999995
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 907.70000000000005
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 993.70000000000005
+    }
+  ],
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "backup-recent",
+  "tag" : "dark_AX5",
+  "ui" : "native"
+}

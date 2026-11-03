@@ -1,0 +1,1677 @@
+{
+  "cells" : [
+    {
+      "h" : 63.200000000000003,
+      "kind" : "glyph",
+      "layer" : "page",
+      "text" : "天",
+      "w" : 52,
+      "x" : 89,
+      "y" : 231.69999999999999
+    },
+    {
+      "h" : 63.200000000000003,
+      "kind" : "glyph",
+      "layer" : "page",
+      "text" : "天",
+      "w" : 52,
+      "x" : 89,
+      "y" : 372
+    },
+    {
+      "h" : 63.200000000000003,
+      "kind" : "glyph",
+      "layer" : "page",
+      "text" : "字",
+      "w" : 52,
+      "x" : 89,
+      "y" : 512.39999999999998
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 31.800000000000001,
+      "y" : 768.10000000000002
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 121.8,
+      "y" : 768.10000000000002
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 211.80000000000001,
+      "y" : 768.10000000000002
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 301.80000000000001,
+      "y" : 768.10000000000002
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 31.800000000000001,
+      "y" : 858.10000000000002
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 121.8,
+      "y" : 858.10000000000002
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 211.80000000000001,
+      "y" : 858.10000000000002
+    },
+    {
+      "class" : "ShiziPointsInkView",
+      "h" : 68.400000000000006,
+      "kind" : "ink",
+      "layer" : "page",
+      "w" : 68.400000000000006,
+      "x" : 301.80000000000001,
+      "y" : 858.10000000000002
+    },
+    {
+      "h" : 58.5,
+      "kind" : "glyph",
+      "layer" : "page",
+      "off" : true,
+      "text" : "关",
+      "w" : 48,
+      "x" : 20,
+      "y" : 1177.4000000000001
+    }
+  ],
+  "decos" : [
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 8,
+      "x" : 252,
+      "y" : 701.79999999999995
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1169.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1305.7
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1442
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1578.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1714.7
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 1890.3
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2055.6999999999998
+    },
+    {
+      "h" : 13,
+      "kind" : "icon",
+      "layer" : "page",
+      "off" : true,
+      "w" : 8,
+      "x" : 374,
+      "y" : 2163
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 140,
+        "w" : 362,
+        "x" : 20,
+        "y" : 162.30000000000001
+      },
+      "id" : "native-mine-stat-streak",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 53,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62,
+        "w" : 65,
+        "x" : 20,
+        "y" : 232.30000000000001
+      },
+      "id" : "native-mine-stat-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "80",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 65,
+        "x" : 20,
+        "y" : 231.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 65,
+        "x" : 20,
+        "y" : 232.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 53,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62,
+        "w" : 52,
+        "x" : 89,
+        "y" : 232.30000000000001
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "天",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 52,
+        "x" : 89,
+        "y" : 231.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 52,
+        "x" : 89,
+        "y" : 232.30000000000001
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 62,
+        "w" : 362,
+        "x" : 20,
+        "y" : 170.30000000000001
+      },
+      "id" : "native-mine-stat-label",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "连续练习",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 169.69999999999999
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 170.30000000000001
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 140,
+        "w" : 362,
+        "x" : 20,
+        "y" : 302.69999999999999
+      },
+      "id" : "native-mine-stat-total",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 53,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62,
+        "w" : 65,
+        "x" : 20,
+        "y" : 372.69999999999999
+      },
+      "id" : "native-mine-stat-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "84",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 65,
+        "x" : 20,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 65,
+        "x" : 20,
+        "y" : 372.69999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 53,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62,
+        "w" : 52,
+        "x" : 89,
+        "y" : 372.69999999999999
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "天",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 52,
+        "x" : 89,
+        "y" : 372
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 52,
+        "x" : 89,
+        "y" : 372.69999999999999
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 62,
+        "w" : 362,
+        "x" : 20,
+        "y" : 310.69999999999999
+      },
+      "id" : "native-mine-stat-label",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "累计练习",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 310
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 310.69999999999999
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 140,
+        "w" : 362,
+        "x" : 20,
+        "y" : 443
+      },
+      "id" : "native-mine-stat-chars",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 53,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62,
+        "w" : 65,
+        "x" : 20,
+        "y" : 513
+      },
+      "id" : "native-mine-stat-num",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "36",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 65,
+        "x" : 20,
+        "y" : 512.39999999999998
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 65,
+        "x" : 20,
+        "y" : 513
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#564E46FF",
+      "fontSize" : 53,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 62,
+        "w" : 52,
+        "x" : 89,
+        "y" : 513
+      },
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "字",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 52,
+        "x" : 89,
+        "y" : 512.39999999999998
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 52,
+        "x" : 89,
+        "y" : 513
+      }
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 53,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 62,
+        "w" : 362,
+        "x" : 20,
+        "y" : 451
+      },
+      "id" : "native-mine-stat-label",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "已练汉字",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 450.39999999999998
+      },
+      "visibleFrame" : {
+        "h" : 62,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 451
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 2354.6999999999998,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-screen-mine",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 2168.6999999999998,
+        "w" : 362,
+        "x" : 20,
+        "y" : 154
+      },
+      "id" : "native-mine-home",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 421.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 162
+      },
+      "id" : "native-mine-overview",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 504,
+        "w" : 362,
+        "x" : 20,
+        "y" : 593.29999999999995
+      },
+      "id" : "native-mine-sheet",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#26211DFF",
+      "fontSize" : 58,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 68,
+        "w" : 362,
+        "x" : 20,
+        "y" : 78
+      },
+      "id" : "native-mine-title",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 83.299999999999997,
+        "w" : 116,
+        "x" : 20,
+        "y" : 70.299999999999997
+      },
+      "visibleFrame" : {
+        "h" : 68,
+        "w" : 116,
+        "x" : 20,
+        "y" : 78
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "10月字帖 全部 26 字",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 152,
+        "w" : 362,
+        "x" : 20,
+        "y" : 593.29999999999995
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 252,
+        "y" : 701.79999999999995
+      },
+      "id" : "native-mine-sheet-head",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "10月字帖 全部 26 字",
+      "textFrame" : {
+        "h" : 143.5,
+        "w" : 226.30000000000001,
+        "x" : 20,
+        "y" : 594.10000000000002
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : {
+        "h" : 152,
+        "w" : 362,
+        "x" : 20,
+        "y" : 593.29999999999995
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 188,
+        "w" : 360,
+        "x" : 21,
+        "y" : 749.29999999999995
+      },
+      "id" : "native-mine-sheet-grid",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 180,
+        "w" : 360,
+        "x" : 21,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-month-stage",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "bg" : "#FBF8F2FF",
+      "class" : "UIView",
+      "frame" : {
+        "h" : 180,
+        "w" : 360,
+        "x" : 21,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-month-sheet",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 180,
+        "w" : 360,
+        "x" : 21,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-month-lines",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 180,
+        "w" : 360,
+        "x" : 21,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-month-frame",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "大 · 10月15日，10月20日的笔迹",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 21,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "15",
+      "textFrame" : {
+        "h" : 13,
+        "w" : 14.300000000000001,
+        "x" : 26,
+        "y" : 750.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 33.700000000000003,
+        "w" : 90,
+        "x" : 21,
+        "y" : 757.29999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "和 · 10月16日",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 111,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "16",
+      "textFrame" : {
+        "h" : 13,
+        "w" : 14.300000000000001,
+        "x" : 116,
+        "y" : 750.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 33.700000000000003,
+        "w" : 90,
+        "x" : 111,
+        "y" : 757.29999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "书 · 10月17日",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 201,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "17",
+      "textFrame" : {
+        "h" : 13,
+        "w" : 14.300000000000001,
+        "x" : 206,
+        "y" : 750.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 33.700000000000003,
+        "w" : 90,
+        "x" : 201,
+        "y" : 757.29999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "小 · 10月18日",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 291,
+        "y" : 757.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "18",
+      "textFrame" : {
+        "h" : 13,
+        "w" : 14.300000000000001,
+        "x" : 296,
+        "y" : 750.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 33.700000000000003,
+        "w" : 90,
+        "x" : 291,
+        "y" : 757.29999999999995
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "日 · 10月20日",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 21,
+        "y" : 847.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "20",
+      "textFrame" : {
+        "h" : 13,
+        "w" : 14.300000000000001,
+        "x" : 26,
+        "y" : 840.29999999999995
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "鱼 · 10月21日",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 111,
+        "y" : 847.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "21",
+      "textFrame" : {
+        "h" : 13,
+        "w" : 14.300000000000001,
+        "x" : 116,
+        "y" : 840.29999999999995
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "猫 · 10月21日",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 201,
+        "y" : 847.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : ""
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "狗 · 10月21日",
+      "class" : "MineSheetCell",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 90,
+        "w" : 90,
+        "x" : 291,
+        "y" : 847.29999999999995
+      },
+      "id" : "native-mine-sheet-cell",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : ""
+    },
+    {
+      "axLabel" : "写字",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 68,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      },
+      "id" : "native-tab-home",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "写字",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 104,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 103,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "字库",
+      "class" : "UITabBarItem",
+      "color" : "#6E655BFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 154,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      },
+      "id" : "native-tab-library",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : false,
+      "text" : "字库",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 190,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 189,
+        "y" : 803
+      }
+    },
+    {
+      "axLabel" : "我的",
+      "class" : "UITabBarItem",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 11,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 94,
+        "x" : 240,
+        "y" : 795
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 24,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      },
+      "id" : "native-tab-mine",
+      "kind" : "button",
+      "layer" : "tabBar",
+      "selected" : true,
+      "text" : "我的",
+      "textFrame" : {
+        "h" : 13.300000000000001,
+        "w" : 22,
+        "x" : 276,
+        "y" : 828.70000000000005
+      },
+      "visibleFrame" : {
+        "h" : 39,
+        "w" : 24,
+        "x" : 275,
+        "y" : 803
+      }
+    }
+  ],
+  "offscreen" : [
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 156,
+        "w" : 362,
+        "x" : 20,
+        "y" : 941.29999999999995
+      },
+      "id" : "native-month-note",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "浅色的字这个月没有笔迹，点字看详情。",
+      "textFrame" : {
+        "h" : 156.5,
+        "w" : 344.69999999999999,
+        "x" : 20,
+        "y" : 941.10000000000002
+      },
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "提醒",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 136.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1107.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1169.3
+      },
+      "id" : "native-mine-remind",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "提醒 关",
+      "textFrame" : {
+        "h" : 120.90000000000001,
+        "w" : 103.7,
+        "x" : 20,
+        "y" : 1115
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习范围",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 136.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1244
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1305.7
+      },
+      "id" : "native-mine-library",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "练习范围 常用字",
+      "textFrame" : {
+        "h" : 120.90000000000001,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 1251.4000000000001
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "外观",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 136.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1380.3
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1442
+      },
+      "id" : "native-mine-appearance",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "外观 跟随系统",
+      "textFrame" : {
+        "h" : 120.90000000000001,
+        "w" : 191.69999999999999,
+        "x" : 20,
+        "y" : 1387.7
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "每组字数",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 136.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1516.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1578.3
+      },
+      "id" : "native-mine-group-size",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "每组字数 15 个",
+      "textFrame" : {
+        "h" : 120.90000000000001,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 1524
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "新字比例",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 136.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1653
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1714.7
+      },
+      "id" : "native-mine-mix-tier",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "新字比例 均衡",
+      "textFrame" : {
+        "h" : 120.90000000000001,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 1660.4000000000001
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "备份",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 194.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1799.7
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 1890.3
+      },
+      "id" : "native-mine-menu-backup",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "备份 113 天没有备份",
+      "textFrame" : {
+        "h" : 178.90000000000001,
+        "w" : 292,
+        "x" : 20,
+        "y" : 1807
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "年度报告",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 136.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 1994
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 2055.6999999999998
+      },
+      "id" : "native-mine-menu-annual",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "年度报告 2026",
+      "textFrame" : {
+        "h" : 120.90000000000001,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 2001.4000000000001
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "关于拾字",
+      "class" : "ShiziRowButton",
+      "color" : "#26211DFF",
+      "enabled" : true,
+      "fontSize" : 49,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 78.299999999999997,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2130.3000000000002
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 13,
+        "w" : 8,
+        "x" : 374,
+        "y" : 2163
+      },
+      "id" : "native-mine-menu-about",
+      "kind" : "button",
+      "layer" : "page",
+      "off" : true,
+      "text" : "关于拾字",
+      "textFrame" : {
+        "h" : 63.200000000000003,
+        "w" : 207.30000000000001,
+        "x" : 20,
+        "y" : 2137.6999999999998
+      },
+      "tint" : "#0088FFFF",
+      "visibleFrame" : null
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#6E655BFF",
+      "fontSize" : 44,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 104,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2218.6999999999998
+      },
+      "id" : "native-version-text",
+      "kind" : "text",
+      "layer" : "page",
+      "off" : true,
+      "text" : "版本 1.0.0（20261001）",
+      "textFrame" : {
+        "h" : 104.5,
+        "w" : 285.30000000000001,
+        "x" : 58.299999999999997,
+        "y" : 2218.4000000000001
+      },
+      "visibleFrame" : null
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 104,
+        "w" : 362,
+        "x" : 20,
+        "y" : 2218.6999999999998
+      },
+      "id" : "native-mine-version",
+      "kind" : "view",
+      "layer" : "page",
+      "off" : true
+    }
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 162
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 302.30000000000001
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 442.69999999999999
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 583
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1243.7
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1380
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1789
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1993.7
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2130
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 2208.3000000000002
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1107.3
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1799.3
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 90,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 0.80000000000000004,
+      "x" : 110.59999999999999,
+      "y" : 757.29999999999995
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 90,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 0.80000000000000004,
+      "x" : 200.59999999999999,
+      "y" : 757.29999999999995
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 90,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 0.80000000000000004,
+      "x" : 290.60000000000002,
+      "y" : 757.29999999999995
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 90,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 0.80000000000000004,
+      "x" : 110.59999999999999,
+      "y" : 847.29999999999995
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 90,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 0.80000000000000004,
+      "x" : 200.59999999999999,
+      "y" : 847.29999999999995
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 90,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 0.80000000000000004,
+      "x" : 290.60000000000002,
+      "y" : 847.29999999999995
+    },
+    {
+      "color" : "#D3C6B3FF",
+      "h" : 0.80000000000000004,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 360,
+      "x" : 21,
+      "y" : 847
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 360,
+      "x" : 21,
+      "y" : 756.79999999999995
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 180,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 1,
+      "x" : 380.5,
+      "y" : 757.29999999999995
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 1,
+      "layer" : "page",
+      "off" : true,
+      "src" : "shape",
+      "w" : 360,
+      "x" : 21,
+      "y" : 936.79999999999995
+    },
+    {
+      "color" : "#95826BFF",
+      "h" : 180,
+      "layer" : "page",
+      "src" : "shape",
+      "w" : 1,
+      "x" : 20.5,
+      "y" : 757.29999999999995
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1516.3
+    },
+    {
+      "color" : "#DDD5C7FF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "off" : true,
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 1652.7
+    }
+  ],
+  "screen" : {
+    "contentSize" : "AX5",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "light",
+    "w" : 402
+  },
+  "state" : "mine-records",
+  "tag" : "light_AX5",
+  "ui" : "native"
+}

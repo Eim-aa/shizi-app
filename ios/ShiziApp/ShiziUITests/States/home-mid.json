@@ -1,0 +1,46 @@
+{
+  "state": "home-mid",
+  "name": "首页（今天的练习写了 1 字）",
+  "screen": "home",
+  "parity": false,
+  "template": "home",
+  "setup": [
+    {
+      "op": "openApi",
+      "slot": "A"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "judge",
+      "slot": "A",
+      "judgments": [
+        "wrong",
+        "correct",
+        "correct"
+      ],
+      "strokes": "one"
+    },
+    {
+      "op": "openApi",
+      "slot": "A"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "judge",
+      "slot": "A",
+      "judgments": [
+        "correct"
+      ],
+      "n": 1,
+      "strokes": "one"
+    },
+    {
+      "op": "switchTab",
+      "tab": "home"
+    }
+  ]
+}

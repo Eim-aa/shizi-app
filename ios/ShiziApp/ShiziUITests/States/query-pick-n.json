@@ -1,0 +1,84 @@
+{
+  "state": "query-pick-n",
+  "name": "自己选字 · 选了三个（练这 3 个字）",
+  "screen": "query",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T19:30:00"
+  },
+  "overlay": "query",
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "疆",
+          "at": "2026-10-04T20:00:00"
+        },
+        {
+          "char": "酱",
+          "at": "2026-10-04T20:01:00"
+        },
+        {
+          "char": "肆",
+          "at": "2026-10-04T20:02:00"
+        },
+        {
+          "char": "酝",
+          "at": "2026-10-04T20:03:00"
+        },
+        {
+          "char": "春",
+          "at": "2026-10-04T20:04:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "remount": true,
+      "tab": "home"
+    },
+    {
+      "op": "openQuery",
+      "mode": "pick",
+      "text": "永和春日月",
+      "selected": [
+        "永",
+        "和",
+        "春"
+      ]
+    }
+  ],
+  "ready": {
+    "web": "screen-home",
+    "native": "id:native-query-ready"
+  },
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "home-pick"
+      },
+      "times": 1
+    },
+    {
+      "wait": 700
+    },
+    {
+      "js": "const el = document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"query-input\"], [data-testid=\"query-input\"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, \"永和春日月\"); el.dispatchEvent(new Event('input', { bubbles: true }));"
+    },
+    {
+      "wait": 800
+    },
+    {
+      "js": "const els = [...document.querySelectorAll('[data-testid=\"query-row-select\"]')].slice(0, 3); els.forEach(e => e.click());"
+    },
+    {
+      "wait": 400
+    }
+  ]
+}

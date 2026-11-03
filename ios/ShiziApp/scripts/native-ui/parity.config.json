@@ -1,0 +1,11 @@
+{
+  "//": "逐屏对比的全局口径（容差）。D84：对比对象是冻结的原生基线（ShiziUITests/Baseline/），网页参考时代的逐项豁免 / 忽略 / 墨格语义键（parity/*.json、TAB-01 等）与 native-truth.json 已随网页参考退役；线 / 装饰 / 墨格的阈值用 graphics.mjs GRAPHICS_DEFAULTS，需要时在这里加 graphics 键覆盖。",
+  "tolerance": {
+    "pos": 3,
+    "size": 3,
+    "textHeight": 4,
+    "color": 8,
+    "font": 0.5,
+    "weight": 0.1
+  }
+}

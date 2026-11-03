@@ -1,0 +1,54 @@
+{
+  "state": "home-today",
+  "name": "首页 · 今天完成了（再来一组；D83）",
+  "screen": "home",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T12:30:00"
+  },
+  "ax": false,
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "疆",
+          "at": "2026-10-05T08:00:00",
+          "judgment": "correct"
+        },
+        {
+          "char": "酱",
+          "at": "2026-10-05T08:01:00",
+          "judgment": "correct"
+        },
+        {
+          "char": "肆",
+          "at": "2026-10-05T08:02:00",
+          "judgment": "wrong"
+        },
+        {
+          "char": "酝",
+          "at": "2026-10-05T08:03:00",
+          "judgment": "correct"
+        }
+      ]
+    },
+    {
+      "op": "today",
+      "done": true
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "remount": true
+    }
+  ],
+  "ready": {
+    "web": "screen-home",
+    "native": "id:native-home-start"
+  }
+}

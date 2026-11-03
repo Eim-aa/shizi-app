@@ -7,28 +7,278 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1A0000000000000000B35C04 /* MineParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35C03 /* MineParts.swift */; };
+		1A0000000000000000B35C02 /* Mine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35C01 /* Mine.swift */; };
+		1A0000000000000000B32024 /* NativeStageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32023 /* NativeStageFlowTests.swift */; };
+		1A0000000000000000B32022 /* NativeStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32021 /* NativeStageTests.swift */; };
+		B49900000000000000000008 /* AppHostSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000007 /* AppHostSupport.swift */; };
+		1A0000000000000000B32012 /* About.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32011 /* About.swift */; };
+		1A0000000000000000B31312 /* Remind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31311 /* Remind.swift */; };
+		1A0000000000000000B31112 /* Backup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31111 /* Backup.swift */; };
+		1A0000000000000000B31202 /* SessionNone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31201 /* SessionNone.swift */; };
+		1A0000000000000000B31302 /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31301 /* Block.swift */; };
+		1A0000000000000000B31402 /* CorruptNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31401 /* CorruptNotice.swift */; };
+		1A0000000000000000B31602 /* ShiziPageText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31601 /* ShiziPageText.swift */; };
+		1A00000000000000000B3152 /* NoneFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3151 /* NoneFlowTests.swift */; };
+		1A0000000000000000B36A12 /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B36A11 /* Query.swift */; };
+		1A0000000000000000B35A12 /* Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35A11 /* Home.swift */; };
+		1A0000000000000000B35B12 /* Library.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B35B11 /* Library.swift */; };
+		1A0000000000000000B3B112 /* ImagePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3B111 /* ImagePreview.swift */; };
+		1A0000000000000000B3B122 /* ImagePreviewHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3B121 /* ImagePreviewHost.swift */; };
+		1A0000000000000000B38C12 /* LibraryCommon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B38C11 /* LibraryCommon.swift */; };
+		1A0000000000000000B38C22 /* LibraryList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B38C21 /* LibraryList.swift */; };
+		1A0000000000000000B38C32 /* LibraryAll.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B38C31 /* LibraryAll.swift */; };
+		1A0000000000000000B38C42 /* LibrarySwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B38C41 /* LibrarySwitch.swift */; };
+		1A00000000000000000B3423 /* LibrarySubFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3422 /* LibrarySubFlowTests.swift */; };
+		1A0000000000000000B39A12 /* MineSub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39A11 /* MineSub.swift */; };
+		1A0000000000000000B39B12 /* Month.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39B11 /* Month.swift */; };
+		1A0000000000000000B39C12 /* Annual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39C11 /* Annual.swift */; };
+		1A0000000000000000B39D12 /* Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39D11 /* Records.swift */; };
+		1A0000000000000000B32004 /* ShiziScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32003 /* ShiziScreen.swift */; };
+		1A0000000000000000B32002 /* ShiziEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32001 /* ShiziEngine.swift */; };
+		1A00000000000000000A1112 /* QAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1111 /* QAApp.swift */; };
+		1A00000000000000000A1114 /* EntryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1113 /* EntryFlowTests.swift */; };
+		1A0000000000000000B27006 /* ResultFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B27005 /* ResultFlowTests.swift */; };
+		1A00000000000000000A1116 /* WriteFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1115 /* WriteFlowTests.swift */; };
+		1A00000000000000000A1118 /* KnownIssueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1117 /* KnownIssueTests.swift */; };
+		1A00000000000000000A1131 /* AccessibilityFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1130 /* AccessibilityFlowTests.swift */; };
+		1A00000000000000000A1102 /* NativeQAHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1101 /* NativeQAHarness.swift */; };
+		1A0000000000000000B24602 /* NativeTrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B24601 /* NativeTrace.swift */; };
+		1A0000000000000000B27004 /* NativeInkPaint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B27003 /* NativeInkPaint.swift */; };
+		1A0000000000000000B27002 /* NativeResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B27001 /* NativeResult.swift */; };
+		1A0000000000000000B24606 /* NativeTraceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B24605 /* NativeTraceTests.swift */; };
+		1A0000000000000000B24608 /* NativeAnswerSkipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B24607 /* NativeAnswerSkipTests.swift */; };
+		1A0000000000000000B31102 /* ShiziKitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31101 /* ShiziKitTests.swift */; };
+		1A000000000000000000B2A7 /* NativeHintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A6 /* NativeHintTests.swift */; };
+		1A000000000000000000B25D /* NativeJudgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B25C /* NativeJudgeTests.swift */; };
+		1A000000000000000000B2A5 /* NativeHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A4 /* NativeHint.swift */; };
+		1A00000000000000000B11A2 /* WebInk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B11A1 /* WebInk.swift */; };
+		1A00000000000000000B11A4 /* WebInkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B11A3 /* WebInkTests.swift */; };
+		1A000000000000000000B25B /* NativeJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B25A /* NativeJudge.swift */; };
+		1A000000000000000000B2A3 /* NativeWriteLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A2 /* NativeWriteLayout.swift */; };
+		1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A0 /* NativeInkWire.swift */; };
 		1A0000000000000000000021 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000020 /* AppDelegate.swift */; };
-		1A0000000000000000000023 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000022 /* WebViewController.swift */; };
-		1A0000000000000000000025 /* LocalWebSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000024 /* LocalWebSchemeHandler.swift */; };
+		1A0000000000000000000023 /* RootViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000022 /* RootViewController.swift */; };
+		1A00000000000000000000D1 /* InkModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D0 /* InkModel.swift */; };
+		1A00000000000000000000D3 /* InkModelCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D2 /* InkModelCheck.swift */; };
+		1A00000000000000000000D5 /* NativeInkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000D4 /* NativeInkView.swift */; };
+		1A00000000000000000000E1 /* NativeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E0 /* NativeStore.swift */; };
+		1A00000000000000000000E3 /* AppDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E2 /* AppDatabase.swift */; };
+		1A00000000000000000000F1 /* NativeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000E0 /* NativeStore.swift */; };
+		1A00000000000000000000F3 /* NativeStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000F2 /* NativeStoreTests.swift */; };
 		1A0000000000000000000027 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000026 /* Assets.xcassets */; };
 		1A000000000000000000002B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000002A /* PrivacyInfo.xcprivacy */; };
+		1A00000000000000000000C2 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000C0 /* InfoPlist.strings */; };
+		1A0000000000000000000B21 /* NativeGlyph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B20 /* NativeGlyph.swift */; };
+		1A0000000000000000000B23 /* WriteSessionChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B22 /* WriteSessionChannel.swift */; };
+		1A0000000000000000000B25 /* NativeWriteViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B24 /* NativeWriteViewController.swift */; };
+		1A0000000000000000000B27 /* NativeStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000B26 /* NativeStage.swift */; };
+		1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000C21 /* InkSurfaceTests.swift */; };
+		1A0000000000000000B31002 /* NativeType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31001 /* NativeType.swift */; };
+		1A0000000000000000B31004 /* ShiziA11y.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31003 /* ShiziA11y.swift */; };
+		1A0000000000000000B31006 /* ShiziButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31005 /* ShiziButtons.swift */; };
+		1A0000000000000000B31008 /* ShiziChangeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31007 /* ShiziChangeSheet.swift */; };
+		1A0000000000000000B3100A /* ShiziConfirm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31009 /* ShiziConfirm.swift */; };
+		1A0000000000000000B3100C /* ShiziOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3100B /* ShiziOverlay.swift */; };
+		1A0000000000000000B3100E /* ShiziPageHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3100D /* ShiziPageHeader.swift */; };
+		1A0000000000000000B31010 /* ShiziProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3100F /* ShiziProbe.swift */; };
+		1A0000000000000000B31012 /* ShiziTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31011 /* ShiziTokens.swift */; };
+		1A0000000000000000B31014 /* ShiziTransitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31013 /* ShiziTransitions.swift */; };
+		1A0000000000000000B31016 /* ShiziUndoBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31015 /* ShiziUndoBar.swift */; };
+		1A0000000000000000B31018 /* ShiziKitCopy.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31017 /* ShiziKitCopy.json */; };
+		1A0000000000000000B3101A /* ShiziKitTokens.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B31019 /* ShiziKitTokens.json */; };
+		1A0000000000000000B3101C /* NativeWriteMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3101B /* NativeWriteMetrics.swift */; };
+		1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3320 /* HomeFlowTests.swift */; };
+		1A0000000000000000052D02 /* TodayPlanFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000052D01 /* TodayPlanFlowTests.swift */; };
+		1A0000000000000000B39E12 /* MineSubFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39E11 /* MineSubFlowTests.swift */; };
+		1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3322 /* LibraryFlowTests.swift */; };
+		1A00000000000000000B3325 /* DetailFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3324 /* DetailFlowTests.swift */; };
+		1A00000000000000000B3327 /* QueryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3326 /* QueryFlowTests.swift */; };
+		1A00000000000000000B3329 /* MineFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3328 /* MineFlowTests.swift */; };
+		1A00000000000000000B332B /* BackupFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332A /* BackupFlowTests.swift */; };
+		1A00000000000000000B3431 /* RemindFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3430 /* RemindFlowTests.swift */; };
+		1A00000000000000000B332D /* ImageFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332C /* ImageFlowTests.swift */; };
+		1A00000000000000000B332F /* NavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B332E /* NavigationTests.swift */; };
+		1A00000000000000000B3331 /* RestoreAndDeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */; };
+		1A00000000000000000B3333 /* BlockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3332 /* BlockTests.swift */; };
+		1A00000000000000000B3335 /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3334 /* AccessibilityAuditTests.swift */; };
+		1A00000000000000000B3302 /* QAFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B3301 /* QAFixtures.swift */; };
+		B49900000000000000000002 /* QAOps.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000001 /* QAOps.swift */; };
+		B49900000000000000000004 /* SoundPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000003 /* SoundPlayer.swift */; };
+		B49900000000000000000006 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000005 /* Sounds */; };
+		B4990000000000000000000A /* Branding in Resources */ = {isa = PBXBuildFile; fileRef = B49900000000000000000009 /* Branding */; };
+		1A0000000000000000B37002 /* Detail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37001 /* Detail.swift */; };
+		1A0000000000000000B37004 /* DetailZoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37003 /* DetailZoom.swift */; };
+		1A0000000000000000B37006 /* DetailPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37005 /* DetailPhoto.swift */; };
+		1A0000000000000000B37008 /* DetailParts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B37007 /* DetailParts.swift */; };
+        B46000000000000000000001 /* ShiziImageRendering in Frameworks */ = {isa = PBXBuildFile; productRef = B46000000000000000000002; };
+		B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000012 /* SwiftEngineCore.swift */; };
+		B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000014 /* SwiftEngineRuntime.swift */; };
+		B49A00000000000000000002 /* SwiftNav.swift in Sources */ = {isa = PBXBuildFile; fileRef = B49A00000000000000000001 /* SwiftNav.swift */; };
+		B45C00000000000000000017 /* SwiftEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45C00000000000000000016 /* SwiftEngine.swift */; };
+        B45C0000000000000000000A /* ShiziCore in Frameworks */ = {isa = PBXBuildFile; productRef = B45C0000000000000000000B; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		1A0000000000000000000C0B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A0000000000000000000004;
+			remoteInfo = Shizi;
+		};
+		1A00000000000000000A1121 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A0000000000000000000004;
+			remoteInfo = Shizi;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		1A0000000000000000B35C03 /* MineParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineParts.swift; sourceTree = "<group>"; };
+		1A0000000000000000B35C01 /* Mine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mine.swift; sourceTree = "<group>"; };
+		1A0000000000000000B32023 /* NativeStageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B32021 /* NativeStageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStageTests.swift; sourceTree = "<group>"; };
+		B49900000000000000000007 /* AppHostSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHostSupport.swift; sourceTree = "<group>"; };
+		1A0000000000000000B32011 /* About.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = About.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31311 /* Remind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Remind.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31111 /* Backup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backup.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31201 /* SessionNone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionNone.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31301 /* Block.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Block.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31401 /* CorruptNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorruptNotice.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31601 /* ShiziPageText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziPageText.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3151 /* NoneFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoneFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B36A11 /* Query.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Query.swift; sourceTree = "<group>"; };
+		1A0000000000000000B35A11 /* Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Home.swift; sourceTree = "<group>"; };
+		1A0000000000000000B35B11 /* Library.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Library.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3B111 /* ImagePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreview.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3B121 /* ImagePreviewHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreviewHost.swift; sourceTree = "<group>"; };
+		1A0000000000000000B38C11 /* LibraryCommon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCommon.swift; sourceTree = "<group>"; };
+		1A0000000000000000B38C21 /* LibraryList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryList.swift; sourceTree = "<group>"; };
+		1A0000000000000000B38C31 /* LibraryAll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryAll.swift; sourceTree = "<group>"; };
+		1A0000000000000000B38C41 /* LibrarySwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySwitch.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39A11 /* MineSub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineSub.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39B11 /* Month.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Month.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39C11 /* Annual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annual.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39D11 /* Records.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Records.swift; sourceTree = "<group>"; };
+		1A0000000000000000B32003 /* ShiziScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziScreen.swift; sourceTree = "<group>"; };
+		1A0000000000000000B32001 /* ShiziEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziEngine.swift; sourceTree = "<group>"; };
+		1A00000000000000000A1111 /* QAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAApp.swift; sourceTree = "<group>"; };
+		1A00000000000000000A1113 /* EntryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B27005 /* ResultFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000A1115 /* WriteFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000A1117 /* KnownIssueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownIssueTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000A1130 /* AccessibilityFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000A1120 /* ShiziUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShiziUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A00000000000000000A1101 /* NativeQAHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeQAHarness.swift; sourceTree = "<group>"; };
+		1A000000000000000000B2A6 /* NativeHintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeHintTests.swift; sourceTree = "<group>"; };
+		1A000000000000000000B25C /* NativeJudgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeJudgeTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B24601 /* NativeTrace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeTrace.swift; sourceTree = "<group>"; };
+		1A0000000000000000B27003 /* NativeInkPaint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkPaint.swift; sourceTree = "<group>"; };
+		1A0000000000000000B27001 /* NativeResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeResult.swift; sourceTree = "<group>"; };
+		1A0000000000000000B24605 /* NativeTraceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeTraceTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B24607 /* NativeAnswerSkipTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAnswerSkipTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31101 /* ShiziKitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziKitTests.swift; sourceTree = "<group>"; };
+		1A000000000000000000B2A4 /* NativeHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeHint.swift; sourceTree = "<group>"; };
+		1A00000000000000000B11A1 /* WebInk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebInk.swift; sourceTree = "<group>"; };
+		1A00000000000000000B11A3 /* WebInkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebInkTests.swift; sourceTree = "<group>"; };
+		1A000000000000000000B25A /* NativeJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeJudge.swift; sourceTree = "<group>"; };
+		1A000000000000000000B2A2 /* NativeWriteLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteLayout.swift; sourceTree = "<group>"; };
+		1A000000000000000000B2A0 /* NativeInkWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkWire.swift; sourceTree = "<group>"; };
 		1A0000000000000000000005 /* Shizi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Shizi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000020 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		1A0000000000000000000022 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
-		1A0000000000000000000024 /* LocalWebSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalWebSchemeHandler.swift; sourceTree = "<group>"; };
+		1A0000000000000000000022 /* RootViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootViewController.swift; sourceTree = "<group>"; };
+		1A00000000000000000000D0 /* InkModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkModel.swift; sourceTree = "<group>"; };
+		1A00000000000000000000D2 /* InkModelCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkModelCheck.swift; sourceTree = "<group>"; };
+		1A00000000000000000000D4 /* NativeInkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkView.swift; sourceTree = "<group>"; };
+		1A00000000000000000000E0 /* NativeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStore.swift; sourceTree = "<group>"; };
+		1A00000000000000000000E2 /* AppDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDatabase.swift; sourceTree = "<group>"; };
+		1A00000000000000000000F2 /* NativeStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStoreTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000000F4 /* ShiziStoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShiziStoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000026 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A0000000000000000000028 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1A0000000000000000000029 /* sync-web-assets.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "sync-web-assets.sh"; sourceTree = "<group>"; };
 		1A000000000000000000002A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1A000000000000000000002C /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
 		1A000000000000000000002D /* Signing.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig.example; sourceTree = "<group>"; };
+		1A00000000000000000000C1 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		1A0000000000000000000B20 /* NativeGlyph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeGlyph.swift; sourceTree = "<group>"; };
+		1A0000000000000000000B22 /* WriteSessionChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteSessionChannel.swift; sourceTree = "<group>"; };
+		1A0000000000000000000B24 /* NativeWriteViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteViewController.swift; sourceTree = "<group>"; };
+		1A0000000000000000000B26 /* NativeStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeStage.swift; sourceTree = "<group>"; };
+		1A0000000000000000000C21 /* InkSurfaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InkSurfaceTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000000C03 /* ShiziWriteTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShiziWriteTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000000000000000B31001 /* NativeType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeType.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31003 /* ShiziA11y.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziA11y.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31005 /* ShiziButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziButtons.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31007 /* ShiziChangeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziChangeSheet.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31009 /* ShiziConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziConfirm.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3100B /* ShiziOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziOverlay.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3100D /* ShiziPageHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziPageHeader.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3100F /* ShiziProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziProbe.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31011 /* ShiziTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziTokens.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31013 /* ShiziTransitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziTransitions.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31015 /* ShiziUndoBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziUndoBar.swift; sourceTree = "<group>"; };
+		1A0000000000000000B31017 /* ShiziKitCopy.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ShiziKitCopy.json; sourceTree = "<group>"; };
+		1A0000000000000000B31019 /* ShiziKitTokens.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ShiziKitTokens.json; sourceTree = "<group>"; };
+		1A0000000000000000B3101B /* NativeWriteMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteMetrics.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3320 /* HomeFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000052D01 /* TodayPlanFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayPlanFlowTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B39E11 /* MineSubFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineSubFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3322 /* LibraryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3422 /* LibrarySubFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibrarySubFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3324 /* DetailFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3326 /* QueryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3328 /* MineFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MineFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B332A /* BackupFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3430 /* RemindFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B332C /* ImageFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFlowTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B332E /* NavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreAndDeepLinkTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3332 /* BlockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3334 /* AccessibilityAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000B3301 /* QAFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAFixtures.swift; sourceTree = "<group>"; };
+		B49900000000000000000001 /* QAOps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAOps.swift; sourceTree = "<group>"; };
+		B49900000000000000000003 /* SoundPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlayer.swift; sourceTree = "<group>"; };
+		B49900000000000000000005 /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sounds; sourceTree = "<group>"; };
+		B49900000000000000000009 /* Branding */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Branding; sourceTree = "<group>"; };
+		1A0000000000000000B37001 /* Detail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detail.swift; sourceTree = "<group>"; };
+		1A0000000000000000B37003 /* DetailZoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailZoom.swift; sourceTree = "<group>"; };
+		1A0000000000000000B37005 /* DetailPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPhoto.swift; sourceTree = "<group>"; };
+		1A0000000000000000B37007 /* DetailParts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailParts.swift; sourceTree = "<group>"; };
+		B45C00000000000000000012 /* SwiftEngineCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineCore.swift; sourceTree = "<group>"; };
+		B45C00000000000000000014 /* SwiftEngineRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngineRuntime.swift; sourceTree = "<group>"; };
+		B49A00000000000000000001 /* SwiftNav.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftNav.swift; sourceTree = "<group>"; };
+		B45C00000000000000000016 /* SwiftEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		1A0000000000000000000007 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+                B46000000000000000000001 /* ShiziImageRendering in Frameworks */,
+                B45C0000000000000000000A /* ShiziCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A00000000000000000000F7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A0000000000000000000C06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A00000000000000000A1122 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -38,10 +288,37 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1A00000000000000000000F5 /* ShiziStoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				1A00000000000000000000F2 /* NativeStoreTests.swift */,
+			);
+			path = ShiziStoreTests;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000C04 /* ShiziWriteTests */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000B32021 /* NativeStageTests.swift */,
+				B49900000000000000000007 /* AppHostSupport.swift */,
+				1A0000000000000000000C21 /* InkSurfaceTests.swift */,
+				1A000000000000000000B2A6 /* NativeHintTests.swift */,
+				1A00000000000000000B11A3 /* WebInkTests.swift */,
+				1A000000000000000000B25C /* NativeJudgeTests.swift */,
+				1A0000000000000000B24605 /* NativeTraceTests.swift */,
+				1A0000000000000000B24607 /* NativeAnswerSkipTests.swift */,
+				1A0000000000000000B31101 /* ShiziKitTests.swift */,
+			);
+			path = ShiziWriteTests;
+			sourceTree = "<group>";
+		};
 		1A0000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000000030 /* ShiziApp */,
+				1A0000000000000000000C04 /* ShiziWriteTests */,
+				1A00000000000000000A1123 /* ShiziUITests */,
+				1A00000000000000000000F5 /* ShiziStoreTests */,
 				1A0000000000000000000032 /* Config */,
 				1A0000000000000000000031 /* scripts */,
 				1A0000000000000000000003 /* Products */,
@@ -52,6 +329,9 @@
 			isa = PBXGroup;
 			children = (
 				1A0000000000000000000005 /* Shizi.app */,
+				1A00000000000000000000F4 /* ShiziStoreTests.xctest */,
+				1A0000000000000000000C03 /* ShiziWriteTests.xctest */,
+				1A00000000000000000A1120 /* ShiziUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -59,12 +339,37 @@
 		1A0000000000000000000030 /* ShiziApp */ = {
 			isa = PBXGroup;
 			children = (
+				1A0000000000000000B32010 /* Screens */,
+				1A0000000000000000B3101D /* ShiziKit */,
 				1A0000000000000000000020 /* AppDelegate.swift */,
-				1A0000000000000000000022 /* WebViewController.swift */,
-				1A0000000000000000000024 /* LocalWebSchemeHandler.swift */,
+				1A0000000000000000000022 /* RootViewController.swift */,
+				1A00000000000000000000D2 /* InkModelCheck.swift */,
+				1A0000000000000000000B20 /* NativeGlyph.swift */,
+				1A0000000000000000000B22 /* WriteSessionChannel.swift */,
+				1A0000000000000000B3101B /* NativeWriteMetrics.swift */,
+				1A0000000000000000000B24 /* NativeWriteViewController.swift */,
+				1A0000000000000000000B26 /* NativeStage.swift */,
+				1A000000000000000000B2A4 /* NativeHint.swift */,
+				1A000000000000000000B25A /* NativeJudge.swift */,
+				1A0000000000000000B24601 /* NativeTrace.swift */,
+				1A0000000000000000B27001 /* NativeResult.swift */,
+				1A000000000000000000B2A2 /* NativeWriteLayout.swift */,
+				1A00000000000000000000E0 /* NativeStore.swift */,
+				B45C00000000000000000012 /* SwiftEngineCore.swift */,
+				B45C00000000000000000014 /* SwiftEngineRuntime.swift */,
+				B49A00000000000000000001 /* SwiftNav.swift */,
+				B45C00000000000000000016 /* SwiftEngine.swift */,
+				1A00000000000000000000E2 /* AppDatabase.swift */,
+				1A00000000000000000A1101 /* NativeQAHarness.swift */,
+				1A00000000000000000B3301 /* QAFixtures.swift */,
+				B49900000000000000000001 /* QAOps.swift */,
+				B49900000000000000000003 /* SoundPlayer.swift */,
 				1A0000000000000000000026 /* Assets.xcassets */,
 				1A0000000000000000000028 /* Info.plist */,
 				1A000000000000000000002A /* PrivacyInfo.xcprivacy */,
+				B49900000000000000000005 /* Sounds */,
+				B49900000000000000000009 /* Branding */,
+				1A00000000000000000000C0 /* InfoPlist.strings */,
 			);
 			path = ShiziApp;
 			sourceTree = "<group>";
@@ -86,6 +391,112 @@
 			path = Config;
 			sourceTree = "<group>";
 		};
+		1A00000000000000000A1123 /* ShiziUITests */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000B32023 /* NativeStageFlowTests.swift */,
+				1A00000000000000000A1111 /* QAApp.swift */,
+				1A00000000000000000A1113 /* EntryFlowTests.swift */,
+				1A0000000000000000B27005 /* ResultFlowTests.swift */,
+				1A00000000000000000A1115 /* WriteFlowTests.swift */,
+				1A00000000000000000A1117 /* KnownIssueTests.swift */,
+				1A00000000000000000A1130 /* AccessibilityFlowTests.swift */,
+				1A00000000000000000B3320 /* HomeFlowTests.swift */,
+				1A0000000000000000052D01 /* TodayPlanFlowTests.swift */,
+				1A0000000000000000B39E11 /* MineSubFlowTests.swift */,
+				1A00000000000000000B3322 /* LibraryFlowTests.swift */,
+				1A00000000000000000B3422 /* LibrarySubFlowTests.swift */,
+				1A00000000000000000B3324 /* DetailFlowTests.swift */,
+				1A00000000000000000B3326 /* QueryFlowTests.swift */,
+				1A00000000000000000B3328 /* MineFlowTests.swift */,
+				1A00000000000000000B332A /* BackupFlowTests.swift */,
+				1A00000000000000000B3430 /* RemindFlowTests.swift */,
+				1A00000000000000000B332C /* ImageFlowTests.swift */,
+				1A00000000000000000B332E /* NavigationTests.swift */,
+				1A00000000000000000B3330 /* RestoreAndDeepLinkTests.swift */,
+				1A00000000000000000B3332 /* BlockTests.swift */,
+				1A00000000000000000B3151 /* NoneFlowTests.swift */,
+				1A00000000000000000B3334 /* AccessibilityAuditTests.swift */,
+			);
+			path = ShiziUITests;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000B3101D /* ShiziKit */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000B32003 /* ShiziScreen.swift */,
+				1A0000000000000000B32001 /* ShiziEngine.swift */,
+				1A0000000000000000B3101E /* Ink */,
+				1A0000000000000000B3101F /* Generated */,
+				1A0000000000000000B31001 /* NativeType.swift */,
+				1A0000000000000000B31003 /* ShiziA11y.swift */,
+				1A0000000000000000B31005 /* ShiziButtons.swift */,
+				1A0000000000000000B31007 /* ShiziChangeSheet.swift */,
+				1A0000000000000000B31009 /* ShiziConfirm.swift */,
+				1A0000000000000000B3100B /* ShiziOverlay.swift */,
+				1A0000000000000000B3100D /* ShiziPageHeader.swift */,
+				1A0000000000000000B3100F /* ShiziProbe.swift */,
+				1A0000000000000000B31011 /* ShiziTokens.swift */,
+				1A0000000000000000B31013 /* ShiziTransitions.swift */,
+				1A0000000000000000B31015 /* ShiziUndoBar.swift */,
+			);
+			path = ShiziKit;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000B3101E /* Ink */ = {
+			isa = PBXGroup;
+			children = (
+				1A00000000000000000000D0 /* InkModel.swift */,
+				1A00000000000000000000D4 /* NativeInkView.swift */,
+				1A0000000000000000B27003 /* NativeInkPaint.swift */,
+				1A000000000000000000B2A0 /* NativeInkWire.swift */,
+				1A00000000000000000B11A1 /* WebInk.swift */,
+			);
+			path = Ink;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000B3101F /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000B31017 /* ShiziKitCopy.json */,
+				1A0000000000000000B31019 /* ShiziKitTokens.json */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000B32010 /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000B32011 /* About.swift */,
+				1A0000000000000000B31311 /* Remind.swift */,
+				1A0000000000000000B31111 /* Backup.swift */,
+				1A0000000000000000B36A11 /* Query.swift */,
+				1A0000000000000000B35A11 /* Home.swift */,
+				1A0000000000000000B35B11 /* Library.swift */,
+				1A0000000000000000B3B111 /* ImagePreview.swift */,
+				1A0000000000000000B3B121 /* ImagePreviewHost.swift */,
+				1A0000000000000000B31201 /* SessionNone.swift */,
+				1A0000000000000000B31301 /* Block.swift */,
+				1A0000000000000000B31401 /* CorruptNotice.swift */,
+				1A0000000000000000B31601 /* ShiziPageText.swift */,
+				1A0000000000000000B37001 /* Detail.swift */,
+				1A0000000000000000B37003 /* DetailZoom.swift */,
+				1A0000000000000000B37005 /* DetailPhoto.swift */,
+				1A0000000000000000B37007 /* DetailParts.swift */,
+				1A0000000000000000B35C03 /* MineParts.swift */,
+				1A0000000000000000B35C01 /* Mine.swift */,
+				1A0000000000000000B38C11 /* LibraryCommon.swift */,
+				1A0000000000000000B38C21 /* LibraryList.swift */,
+				1A0000000000000000B38C31 /* LibraryAll.swift */,
+				1A0000000000000000B38C41 /* LibrarySwitch.swift */,
+				1A0000000000000000B39A11 /* MineSub.swift */,
+				1A0000000000000000B39B11 /* Month.swift */,
+				1A0000000000000000B39C11 /* Annual.swift */,
+				1A0000000000000000B39D11 /* Records.swift */,
+			);
+			path = Screens;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -102,10 +513,61 @@
 			);
 			dependencies = (
 			);
-			name = Shizi;
+			packageProductDependencies = (B46000000000000000000002, B45C0000000000000000000B);
+            name = Shizi;
 			productName = Shizi;
 			productReference = 1A0000000000000000000005 /* Shizi.app */;
 			productType = "com.apple.product-type.application";
+		};
+		1A00000000000000000000F8 /* ShiziStoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A00000000000000000000F9 /* Build configuration list for PBXNativeTarget "ShiziStoreTests" */;
+			buildPhases = (
+				1A00000000000000000000F6 /* Sources */,
+				1A00000000000000000000F7 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ShiziStoreTests;
+			productName = ShiziStoreTests;
+			productReference = 1A00000000000000000000F4 /* ShiziStoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		1A0000000000000000000C07 /* ShiziWriteTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000000000000000000C08 /* Build configuration list for PBXNativeTarget "ShiziWriteTests" */;
+			buildPhases = (
+				1A0000000000000000000C05 /* Sources */,
+				1A0000000000000000000C06 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A0000000000000000000C0C /* PBXTargetDependency */,
+			);
+			name = ShiziWriteTests;
+			productName = ShiziWriteTests;
+			productReference = 1A0000000000000000000C03 /* ShiziWriteTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		1A00000000000000000A1124 /* ShiziUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A00000000000000000A1125 /* Build configuration list for PBXNativeTarget "ShiziUITests" */;
+			buildPhases = (
+				1A00000000000000000A1126 /* Sources */,
+				1A00000000000000000A1122 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A00000000000000000A1127 /* PBXTargetDependency */,
+			);
+			name = ShiziUITests;
+			productName = ShiziUITests;
+			productReference = 1A00000000000000000A1120 /* ShiziUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -120,22 +582,38 @@
 					1A0000000000000000000004 = {
 						CreatedOnToolsVersion = 26.6;
 					};
+					1A00000000000000000000F8 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					1A0000000000000000000C07 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 1A0000000000000000000004;
+					};
+					1A00000000000000000A1124 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 1A0000000000000000000004;
+					};
 				};
 			};
 			buildConfigurationList = 1A0000000000000000000010 /* Build configuration list for PBXProject "ShiziApp" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = 1A0000000000000000000002;
-			productRefGroup = 1A0000000000000000000003 /* Products */;
+			packageReferences = (B46000000000000000000003);
+            productRefGroup = 1A0000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				1A0000000000000000000004 /* Shizi */,
+				1A00000000000000000000F8 /* ShiziStoreTests */,
+				1A0000000000000000000C07 /* ShiziWriteTests */,
+				1A00000000000000000A1124 /* ShiziUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -147,6 +625,11 @@
 			files = (
 				1A0000000000000000000027 /* Assets.xcassets in Resources */,
 				1A000000000000000000002B /* PrivacyInfo.xcprivacy in Resources */,
+				B49900000000000000000006 /* Sounds in Resources */,
+				B4990000000000000000000A /* Branding in Resources */,
+				1A00000000000000000000C2 /* InfoPlist.strings in Resources */,
+				1A0000000000000000B31018 /* ShiziKitCopy.json in Resources */,
+				1A0000000000000000B3101A /* ShiziKitTokens.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -175,19 +658,198 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1A00000000000000000000F6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A00000000000000000000F1 /* NativeStore.swift in Sources */,
+				1A00000000000000000000F3 /* NativeStoreTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		1A0000000000000000000006 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				1A0000000000000000000021 /* AppDelegate.swift in Sources */,
-				1A0000000000000000000023 /* WebViewController.swift in Sources */,
-				1A0000000000000000000025 /* LocalWebSchemeHandler.swift in Sources */,
+				1A0000000000000000B32012 /* About.swift in Sources */,
+				1A0000000000000000B31312 /* Remind.swift in Sources */,
+				1A0000000000000000B31112 /* Backup.swift in Sources */,
+				1A0000000000000000B36A12 /* Query.swift in Sources */,
+				1A0000000000000000B35A12 /* Home.swift in Sources */,
+				1A0000000000000000B35B12 /* Library.swift in Sources */,
+				1A0000000000000000B3B112 /* ImagePreview.swift in Sources */,
+				1A0000000000000000B3B122 /* ImagePreviewHost.swift in Sources */,
+				1A0000000000000000B31202 /* SessionNone.swift in Sources */,
+				1A0000000000000000B31302 /* Block.swift in Sources */,
+				1A0000000000000000B31402 /* CorruptNotice.swift in Sources */,
+				1A0000000000000000B31602 /* ShiziPageText.swift in Sources */,
+				1A0000000000000000B37006 /* DetailPhoto.swift in Sources */,
+				1A0000000000000000B37004 /* DetailZoom.swift in Sources */,
+				1A0000000000000000B37002 /* Detail.swift in Sources */,
+				1A0000000000000000B37008 /* DetailParts.swift in Sources */,
+				1A0000000000000000B35C04 /* MineParts.swift in Sources */,
+				1A0000000000000000B35C02 /* Mine.swift in Sources */,
+				1A0000000000000000B38C12 /* LibraryCommon.swift in Sources */,
+				1A0000000000000000B38C22 /* LibraryList.swift in Sources */,
+				1A0000000000000000B38C32 /* LibraryAll.swift in Sources */,
+				1A0000000000000000B38C42 /* LibrarySwitch.swift in Sources */,
+				1A0000000000000000B39A12 /* MineSub.swift in Sources */,
+				1A0000000000000000B39B12 /* Month.swift in Sources */,
+				1A0000000000000000B39C12 /* Annual.swift in Sources */,
+				1A0000000000000000B39D12 /* Records.swift in Sources */,
+				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
+				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
+				1A0000000000000000000023 /* RootViewController.swift in Sources */,
+				1A00000000000000000000D1 /* InkModel.swift in Sources */,
+				1A00000000000000000000D3 /* InkModelCheck.swift in Sources */,
+				1A00000000000000000000D5 /* NativeInkView.swift in Sources */,
+				1A0000000000000000000B21 /* NativeGlyph.swift in Sources */,
+				1A0000000000000000000B23 /* WriteSessionChannel.swift in Sources */,
+				1A0000000000000000000B25 /* NativeWriteViewController.swift in Sources */,
+				1A0000000000000000000B27 /* NativeStage.swift in Sources */,
+				1A000000000000000000B2A5 /* NativeHint.swift in Sources */,
+				1A00000000000000000B11A2 /* WebInk.swift in Sources */,
+				1A000000000000000000B25B /* NativeJudge.swift in Sources */,
+				1A0000000000000000B24602 /* NativeTrace.swift in Sources */,
+				1A0000000000000000B27004 /* NativeInkPaint.swift in Sources */,
+				1A0000000000000000B27002 /* NativeResult.swift in Sources */,
+				1A000000000000000000B2A3 /* NativeWriteLayout.swift in Sources */,
+				1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */,
+				1A00000000000000000000E1 /* NativeStore.swift in Sources */,
+				B45C00000000000000000013 /* SwiftEngineCore.swift in Sources */,
+				B45C00000000000000000015 /* SwiftEngineRuntime.swift in Sources */,
+				B49A00000000000000000002 /* SwiftNav.swift in Sources */,
+				B45C00000000000000000017 /* SwiftEngine.swift in Sources */,
+				1A00000000000000000000E3 /* AppDatabase.swift in Sources */,
+				1A00000000000000000A1102 /* NativeQAHarness.swift in Sources */,
+				1A0000000000000000B31002 /* NativeType.swift in Sources */,
+				1A0000000000000000B31004 /* ShiziA11y.swift in Sources */,
+				1A0000000000000000B31006 /* ShiziButtons.swift in Sources */,
+				1A0000000000000000B31008 /* ShiziChangeSheet.swift in Sources */,
+				1A0000000000000000B3100A /* ShiziConfirm.swift in Sources */,
+				1A0000000000000000B3100C /* ShiziOverlay.swift in Sources */,
+				1A0000000000000000B3100E /* ShiziPageHeader.swift in Sources */,
+				1A0000000000000000B31010 /* ShiziProbe.swift in Sources */,
+				1A0000000000000000B31012 /* ShiziTokens.swift in Sources */,
+				1A0000000000000000B31014 /* ShiziTransitions.swift in Sources */,
+				1A0000000000000000B31016 /* ShiziUndoBar.swift in Sources */,
+				1A0000000000000000B3101C /* NativeWriteMetrics.swift in Sources */,
+				1A00000000000000000B3302 /* QAFixtures.swift in Sources */,
+				B49900000000000000000002 /* QAOps.swift in Sources */,
+				B49900000000000000000004 /* SoundPlayer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A0000000000000000000C05 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0000000000000000B32022 /* NativeStageTests.swift in Sources */,
+				B49900000000000000000008 /* AppHostSupport.swift in Sources */,
+				1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */,
+				1A000000000000000000B2A7 /* NativeHintTests.swift in Sources */,
+				1A00000000000000000B11A4 /* WebInkTests.swift in Sources */,
+				1A000000000000000000B25D /* NativeJudgeTests.swift in Sources */,
+				1A0000000000000000B24606 /* NativeTraceTests.swift in Sources */,
+				1A0000000000000000B24608 /* NativeAnswerSkipTests.swift in Sources */,
+				1A0000000000000000B31102 /* ShiziKitTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A00000000000000000A1126 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A00000000000000000A1112 /* QAApp.swift in Sources */,
+				1A0000000000000000B32024 /* NativeStageFlowTests.swift in Sources */,
+				1A00000000000000000A1114 /* EntryFlowTests.swift in Sources */,
+				1A0000000000000000B27006 /* ResultFlowTests.swift in Sources */,
+				1A00000000000000000A1116 /* WriteFlowTests.swift in Sources */,
+				1A00000000000000000A1118 /* KnownIssueTests.swift in Sources */,
+				1A00000000000000000A1131 /* AccessibilityFlowTests.swift in Sources */,
+				1A00000000000000000B3321 /* HomeFlowTests.swift in Sources */,
+				1A0000000000000000052D02 /* TodayPlanFlowTests.swift in Sources */,
+				1A0000000000000000B39E12 /* MineSubFlowTests.swift in Sources */,
+				1A00000000000000000B3323 /* LibraryFlowTests.swift in Sources */,
+				1A00000000000000000B3423 /* LibrarySubFlowTests.swift in Sources */,
+				1A00000000000000000B3325 /* DetailFlowTests.swift in Sources */,
+				1A00000000000000000B3327 /* QueryFlowTests.swift in Sources */,
+				1A00000000000000000B3329 /* MineFlowTests.swift in Sources */,
+				1A00000000000000000B332B /* BackupFlowTests.swift in Sources */,
+				1A00000000000000000B3431 /* RemindFlowTests.swift in Sources */,
+				1A00000000000000000B332D /* ImageFlowTests.swift in Sources */,
+				1A00000000000000000B332F /* NavigationTests.swift in Sources */,
+				1A00000000000000000B3331 /* RestoreAndDeepLinkTests.swift in Sources */,
+				1A00000000000000000B3333 /* BlockTests.swift in Sources */,
+				1A00000000000000000B3152 /* NoneFlowTests.swift in Sources */,
+				1A00000000000000000B3335 /* AccessibilityAuditTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		1A0000000000000000000C0C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A0000000000000000000004 /* Shizi */;
+			targetProxy = 1A0000000000000000000C0B /* PBXContainerItemProxy */;
+		};
+		1A00000000000000000A1127 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A0000000000000000000004 /* Shizi */;
+			targetProxy = 1A00000000000000000A1121 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		1A00000000000000000000C0 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1A00000000000000000000C1 /* zh-Hans */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCLocalSwiftPackageReference section */
+        B46000000000000000000003 = {isa = XCLocalSwiftPackageReference; relativePath = ../ShiziCore; };
+/* End XCLocalSwiftPackageReference section */
+/* Begin XCSwiftPackageProductDependency section */
+        B46000000000000000000002 = {isa = XCSwiftPackageProductDependency; productName = ShiziImageRendering; };
+        B45C0000000000000000000B = {isa = XCSwiftPackageProductDependency; package = B46000000000000000000003; productName = ShiziCore; };
+/* End XCSwiftPackageProductDependency section */
+
 /* Begin XCBuildConfiguration section */
+		1A00000000000000000000FA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eimaa.shizi.storetests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		1A00000000000000000000FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eimaa.shizi.storetests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		1A0000000000000000000012 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -346,9 +1008,80 @@
 			};
 			name = Release;
 		};
+		1A0000000000000000000C09 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eimaa.shizi.writetests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shizi.app/Shizi";
+			};
+			name = Debug;
+		};
+		1A0000000000000000000C0A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eimaa.shizi.writetests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shizi.app/Shizi";
+			};
+			name = Release;
+		};
+		1A00000000000000000A1128 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eimaa.shizi.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Shizi;
+			};
+			name = Debug;
+		};
+		1A00000000000000000A1129 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.eimaa.shizi.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Shizi;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		1A00000000000000000000F9 /* Build configuration list for PBXNativeTarget "ShiziStoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A00000000000000000000FA /* Debug */,
+				1A00000000000000000000FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		1A0000000000000000000010 /* Build configuration list for PBXProject "ShiziApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -367,7 +1100,26 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		1A0000000000000000000C08 /* Build configuration list for PBXNativeTarget "ShiziWriteTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000C09 /* Debug */,
+				1A0000000000000000000C0A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A00000000000000000A1125 /* Build configuration list for PBXNativeTarget "ShiziUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A00000000000000000A1128 /* Debug */,
+				1A00000000000000000A1129 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
 	rootObject = 1A0000000000000000000001 /* Project object */;
 }
+

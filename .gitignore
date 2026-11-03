@@ -18,3 +18,11 @@ ios/ShiziApp/Config/Signing.local.xcconfig
 AuthKey_*.p8
 *.ipa
 *.xcarchive
+ios/ShiziCore/.build/
+ios/ShiziCore/.swiftpm/
+
+# B4.10 笔顺 pack（构建产物，不入库；scripts/stroke-pack/build.mjs 产出）
+/build/
+
+# Reproducible B4.6 raster diagnostics
+artifacts/image-parity/

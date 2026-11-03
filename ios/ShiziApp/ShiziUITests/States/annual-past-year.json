@@ -1,0 +1,41 @@
+{
+  "state": "annual-past-year",
+  "name": "年报 · 往年（今年没有记录，指向最近有记录的一年）",
+  "screen": "annual",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ready": {
+    "web": "annual-screen",
+    "native": "id:native-annual-body",
+    "timeout": 20
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2025-03-03",
+        "days": 90,
+        "perDay": 1,
+        "chars": "一二三四五六七八九十上下左右前后东西南北春夏秋冬红黄蓝绿白黑",
+        "seed": 3,
+        "wrongEvery": 11
+      }
+    },
+    {
+      "op": "foldNow"
+    },
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "annual",
+      "params": {}
+    }
+  ]
+}

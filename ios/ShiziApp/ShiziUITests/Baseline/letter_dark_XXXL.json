@@ -1,0 +1,173 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-about-letter-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 768,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 77,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-about-letter-address",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "addressLabel",
+      "text" : "来信地址还没定，暂时收不到来信。",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 321,
+        "x" : 20,
+        "y" : 124.3
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 321,
+        "x" : 20,
+        "y" : 122
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "联系我们",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "联系我们",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 70.200000000000003
+      },
+      "visibleFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 69.5
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+
+  ],
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "letter",
+  "tag" : "dark_XXXL",
+  "ui" : "native"
+}

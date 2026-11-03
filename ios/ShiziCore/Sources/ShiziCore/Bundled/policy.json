@@ -1,0 +1,355 @@
+{
+  "afterClearRestartFirst": true,
+  "afterSeenInkKeepDays": 30,
+  "answerSeenRating": "Again",
+  "answerSeenScope": "today",
+  "assumedQuotaBytes": 5242880,
+  "axShortPrimaryFrom": 3,
+  "backGesture": "single-webview",
+  "brushDetail": true,
+  "capitalNumerals": {
+    "enabled": true,
+    "afterGroups": 10,
+    "belowDays": 1.5
+  },
+  "compactMaxHeight": 760,
+  "compactTextScale": 1.3,
+  "contentSizeScale": {
+    "xS": 0.82,
+    "S": 0.88,
+    "M": 0.94,
+    "L": 1,
+    "XL": 1.12,
+    "XXL": 1.24,
+    "XXXL": 1.35,
+    "AX1": 1.6,
+    "AX2": 1.8,
+    "AX3": 2,
+    "AX4": 2.2,
+    "AX5": 2.4
+  },
+  "customIntoDaily": "none",
+  "dailyCapCountsPicked": true,
+  "dailyExpiry": "discard",
+  "dailyPlan": {
+    "tiers": {
+      "more": [
+        2,
+        3
+      ],
+      "balanced": [
+        1,
+        2
+      ],
+      "review": [
+        1,
+        3
+      ],
+      "only": [
+        0,
+        1
+      ]
+    },
+    "tierOrder": [
+      "more",
+      "balanced",
+      "review",
+      "only"
+    ],
+    "defaultTier": "balanced",
+    "yieldAtGroups": 1,
+    "retryGap": 3,
+    "maxAttempts": 3
+  },
+  "dailyReviewCap": 30,
+  "dayStartHour": 4,
+  "defaultLibrary": "core3500",
+  "devToolsParam": "dev",
+  "epigraphRotation": "day-of-year",
+  "features": {
+    "perRecordInk": true,
+    "soundscape": false,
+    "milestones": false,
+    "difficultyFeedback": false,
+    "nextReviewLine": false,
+    "photoHint": false,
+    "imagePickChars": false,
+    "appearanceSwitch": true,
+    "devTools": true
+  },
+  "firstQueue": [
+    "尴",
+    "赢",
+    "拾"
+  ],
+  "firstTip": {
+    "scope": "first-session-first-card",
+    "position": "under-title",
+    "dismissOn": "first-stroke"
+  },
+  "forgetCap": 12,
+  "forgetRule": "due",
+  "groupMix": {
+    "baseSize": 5,
+    "newMax": 3,
+    "threeNewBelowDays": 0.5,
+    "threeNewMinAccuracy": 0.6,
+    "twoNewBelowDays": 1.5,
+    "valveDays": 4,
+    "valveReleaseDays": 2,
+    "reviewsPerGroupForPressure": 4,
+    "pressureWindowDays": 7,
+    "recentNewWindow": 10,
+    "newAccuracyPrior": 0.5,
+    "allAccuracyPrior": 0.7,
+    "accuracyPriorWeight": 2,
+    "returnAfterDays": 7,
+    "returnGroupSize": 3,
+    "earlyReviewFill": true,
+    "earlyCountsTowardCap": false,
+    "earlyFillWhenExhausted": false
+  },
+  "groupSize": 15,
+  "groupSizeOptions": [
+    5,
+    10,
+    15,
+    20,
+    30
+  ],
+  "hintUseGroups": false,
+  "imageMaxChars": 80,
+  "imageMissingInk": "omit",
+  "ink": {
+    "base": 11.5,
+    "lo": 0.25,
+    "hi": 0.9,
+    "pressureLo": 0.58,
+    "pressureGain": 0.94,
+    "pressureHi": 1.52,
+    "step": 3,
+    "tapMax": 28,
+    "tapRatio": 0.3,
+    "endMinSlow": 0.9,
+    "endMinFast": 0.12,
+    "euroMinCutoff": 1,
+    "euroBeta": 0.02,
+    "euroDCutoff": 1
+  },
+  "inkBudgetByGroupSize": {
+    "5": 1572864,
+    "10": 1572864,
+    "15": 2097152,
+    "20": 2097152,
+    "30": 2621440
+  },
+  "inkBudgetBytes": 1572864,
+  "inkFormat": "v3",
+  "inkMaxPointsPerStroke": 24,
+  "inkMaxStrokes": 36,
+  "inkStoreTolerance": {
+    "xy": 0.3,
+    "w": 0.3,
+    "t": 24
+  },
+  "inkToneDays": [
+    7,
+    30,
+    90
+  ],
+  "keySoundEvents": [
+    "judge",
+    "seal"
+  ],
+  "knownZone": {
+    "stabilityDays": 21,
+    "minSuccesses": 3
+  },
+  "legacyPhotoCountsAsRecord": false,
+  "listDefaultSelect": 5,
+  "mainButtonLine": {
+    "gapAboveEdge": 24
+  },
+  "migration": {
+    "importLegacy": true,
+    "legacyHintedAs": "none",
+    "synthesizeFromMemory": true,
+    "spreadDuePerDayShare": 0.5,
+    "legacyKeyRetentionDays": 30,
+    "legacyKeyReleaseOnExport": true
+  },
+  "monthSheetPick": "first",
+  "motion": {
+    "answerSpeed": 1.6,
+    "answerStrokeGapMs": 180,
+    "answerFadeMs": 220,
+    "hintStrokeMs": 220,
+    "hintStagger": 0.7,
+    "reducedFadeMs": 150,
+    "persistNoticeMs": 5000,
+    "hintFadeInMs": 150,
+    "answerRevealMs": 400,
+    "stepPlayMaxMs": 1600
+  },
+  "nativeStorage": {
+    "quotaBytes": 67108864,
+    "totalTargetBytes": 50331648,
+    "recordsBudgetBytes": 16777216,
+    "inkBudgetBytes": 33554432,
+    "inkFormat": "raw"
+  },
+  "newUserRamp": {
+    "days": 3,
+    "newMax": 2
+  },
+  "paperTransition": {
+    "openMs": 420,
+    "closeMs": 360,
+    "openEase": [
+      0.3,
+      0,
+      0.1,
+      1
+    ],
+    "closeEase": [
+      0.2,
+      0.7,
+      0.2,
+      1
+    ],
+    "fullMs": 300,
+    "minFinishMs": 120,
+    "cancelMs": 220,
+    "dragLeanPt": 60,
+    "dragRadiusPt": 24,
+    "contentFadeFrom": 0.6,
+    "quietOpenMs": 220,
+    "quietCloseMs": 180,
+    "quietScaleFrom": 0.96,
+    "quietDragPt": 40,
+    "reducedMs": 150,
+    "veilTo": 0.25,
+    "sourceFreshMs": 2000
+  },
+  "pinyinSource": "seed-py",
+  "queryCardInk": "latest",
+  "queryInputMax": null,
+  "queryModes": [
+    "lookup",
+    "pick"
+  ],
+  "ratingFirstCorrect": "Easy",
+  "ratingWithHint": {
+    "first": [
+      "Good",
+      "Hard",
+      "Again"
+    ],
+    "review": [
+      "Hard",
+      "Again",
+      "Again"
+    ]
+  },
+  "recordsBudgetBytes": 1572864,
+  "recordsFoldAfterDays": 400,
+  "remindDefault": "20:00",
+  "remindMode": "user",
+  "reminderBlank": "＿",
+  "reminderOpens": "picked-s02",
+  "reminderPick": "wrong-then-overdue",
+  "reminderWord": "blank",
+  "replaceConfirmShowsLostRange": true,
+  "returnSpread": {
+    "afterDays": 30,
+    "perDayShare": 0.5
+  },
+  "routeRestore": {
+    "enabled": true,
+    "maxAgeMinutes": 360,
+    "crossDay": false
+  },
+  "s02EndOld": "toast",
+  "sessionExpiry": {
+    "first": "never",
+    "picked": "never"
+  },
+  "skipNewDeferDays": 7,
+  "skipScope": "today",
+  "skipUndo": {
+    "ms": 5000,
+    "pauseWhileHeld": true,
+    "keepOpenWithAssistiveTech": true
+  },
+  "soundGainDb": {
+    "judge": 0,
+    "seal": 0
+  },
+  "storageWarnRatio": 0.8,
+  "strokeSaveFailure": "non-blocking",
+  "traceHook": {
+    "widthPt": 0.75,
+    "moreContrastPt": 1.5
+  },
+  "undoAfterReload": "resume",
+  "undoSnapshot": "persist",
+  "wallMoreScope": "wall-members",
+  "warmup": {
+    "mode": "gated",
+    "firstDays": 7,
+    "accuracyBelow": 0.6,
+    "window": 10,
+    "perGroupMax": 1,
+    "easyOnCorrect": true
+  },
+  "writeGrid": {
+    "min": 258,
+    "max": 400,
+    "sideMargin": 20,
+    "promptGap": 16,
+    "toolsHeight": 40,
+    "toolRowHeight": 48,
+    "axMin": 220,
+    "axNoteHeight": 56,
+    "axAux": {
+      "pinyin": [
+        22,
+        28
+      ],
+      "note": [
+        17,
+        22
+      ],
+      "progress": [
+        17,
+        22
+      ],
+      "title": [
+        17,
+        22
+      ],
+      "links": [
+        17,
+        22
+      ],
+      "paper": [
+        22,
+        28
+      ]
+    },
+    "promptFitMin": 0.6,
+    "fitGridMin": 180,
+    "axPromptScaleMax": 1.6,
+    "bottomGap": 16,
+    "topShare": 0.4,
+    "topMin": 12,
+    "nominalHead": 44,
+    "nominalFoot": 134,
+    "footBottomMin": 24,
+    "nominalPrompt": 80
+  },
+  "wrongFirst": {
+    "enabled": true,
+    "reserveShare": 0.2
+  }
+}

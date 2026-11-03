@@ -1,3 +1,4 @@
+# scripts/build_8105_chars.py 的依赖。
+# 有意不列 wordfreq：题库（Bundled/deck.json）按「不装 wordfreq」构建；装了它语境词会换成 wordfreq 的补充词，题库整体变动（D84 卡 B）。
 pypinyin
-wordfreq
 jieba

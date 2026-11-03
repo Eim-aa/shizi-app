@@ -17,6 +17,19 @@ const CLOSURE_PATH = path.join(ROOT, "audit/vector-data-460-evidence/review-deci
 const PRODUCTION_APPROVAL_PATH = path.join(ROOT, "audit/vector-data-460-evidence/authorizations/finalize-440-production-import.json");
 const RECEIPT_PATH = path.join(ROOT, "audit/vector-data-460-evidence/imports/finalize-440.json");
 const EXPECTED_SOURCE_TARGET_MAP_SHA256 = "6bbffe4eee03c7d07efcafba9294a8fbe6e79c2d34c9bc3a0bd7f2e5cec0ef5b";
+// D50 ①（C1）：76 个来源授权有问题的补充字移除。2026-08 的 440 条清单与证据链原样保留、照旧逐条核验（历史证据）；
+// 被移除的字另外核：回执逐字绑定清单里的 data_sha256、data/<字>.json 已不存在、成员摘要与常量一致。可练补充 = 364。
+const COMPLIANCE_DECISION_PATH = path.join(ROOT, "audit/compliance-2026-10/source-removal-76.decision.json");
+const COMPLIANCE_RECEIPT_PATH = path.join(ROOT, "audit/compliance-2026-10/source-removal-76.receipt.json");
+const EXPECTED_COMPLIANCE_REMOVED_MEMBERS_SHA256 = "8cbe427a2ab67d4c15c7816d85d8460544e0f47d3fff796e83019a322344675c";
+const EXPECTED_COMPLIANCE_REMOVED_ROUTES = { animcjk_363: 0, moe_stroke_svg_10: 10, human_generated_8: 7, strokeorder_merge_79: 59 };
+const EXPECTED_PRACTICE_ROUTE_COUNTS = { animcjk_363: 363, moe_stroke_svg_10: 0, human_generated_8: 1, strokeorder_merge_79: 0 };
+const EXPECTED_PRACTICE_SUPPLEMENT = 364;
+// D50 ②（C1，APL §2(a) / 合规说明 A2）：363 个 AnimCJK 衍生文件在文件内首键 "_notice" 写明怎么改的、什么时候改的。
+// 去掉这段前缀就还原成 2026-08 验收导入的原字节（哈希 = 清单 data_sha256），所以历史证据链照旧逐字节可核。
+// D59（2026-10-12）：前缀末句的获取地点改为公开数据仓库 shizi-open；只换前缀，前缀之后的原字节未动。
+const ARPHIC_NOTICES_PATH = path.join(ROOT, "audit/compliance-2026-10/arphic-modification-notices.json");
+const NOTICE_REQUIRED_PARTS = ["Derived from AnimCJK", "ec5e17cca76c87587790bcbce5ea0b4d4fb753d6", "Arphic Public License", "Modified by the Shizi project", "licenses/ARPHICPL.TXT", "https://github.com/Eim-aa/shizi-open"];
 const EXPECTED_ROUTE_COUNTS = { animcjk_363: 363, moe_stroke_svg_10: 10, human_generated_8: 8, strokeorder_merge_79: 59 };
 const EXPECTED_ACCEPTANCE_PATH_COUNTS = {
   "audit/vector-data-460-evidence/acceptances/animcjk-363.json": 363,
@@ -396,6 +409,82 @@ function validatePayload(character, payload, expectedCount) {
   });
 }
 
+function loadComplianceRemovals(manifest) {
+  validatePortableAuditJson(COMPLIANCE_DECISION_PATH);
+  validatePortableAuditJson(COMPLIANCE_RECEIPT_PATH);
+  const decision = readJson(COMPLIANCE_DECISION_PATH);
+  const receipt = readJson(COMPLIANCE_RECEIPT_PATH);
+  check(
+    decision.artifact === "shizi-vector-data-compliance-76-source-removal"
+      && decision.decision === "REMOVE_76_SUPPLEMENT_CHARACTERS_WITHOUT_REDISTRIBUTION_BASIS"
+      && decision.reviewer_role === "product_owner"
+      && decision.reviewer_response_verbatim === "按推荐"
+      && decision.historical_evidence_unchanged === true,
+    "Compliance-removal decision changed",
+  );
+  check(receipt.artifact === "shizi-vector-data-compliance-76-removal-receipt", "Unexpected compliance-removal receipt");
+  check(receipt.decision_binding?.path === relative(COMPLIANCE_DECISION_PATH) && receipt.decision_binding.sha256 === sha256(COMPLIANCE_DECISION_PATH), "Compliance-removal receipt does not bind the decision");
+  check(receipt.historical_manifest_binding?.path === relative(MANIFEST_PATH) && receipt.historical_manifest_binding.sha256 === sha256(MANIFEST_PATH), "Compliance-removal receipt does not bind the historical manifest");
+  checkUniqueCharacterRows(receipt.removed, "Compliance-removal receipt");
+  const removals = new Map(receipt.removed.map(row => [row.character, row]));
+  const manifestOrder = manifest.records.filter(record => removals.has(record.character)).map(record => record.character).join("");
+  check(removals.size === 76 && receipt.counts?.removed === 76 && receipt.counts.remaining_practice_supplement === EXPECTED_PRACTICE_SUPPLEMENT, "Compliance-removal counts changed");
+  check(sha256Text(manifestOrder) === EXPECTED_COMPLIANCE_REMOVED_MEMBERS_SHA256 && [...manifestOrder].length === 76, "Compliance-removal membership changed without review");
+  check(decision.removed_members_in_manifest_order === manifestOrder, "Compliance-removal decision and receipt list different characters");
+  check(decision.retained_exception?.character === "𬇕" && !removals.has("𬇕"), "The LXGW-derived record must stay out of the removal");
+  return removals;
+}
+
+function loadArphicNotices(manifest) {
+  validatePortableAuditJson(ARPHIC_NOTICES_PATH);
+  const doc = readJson(ARPHIC_NOTICES_PATH);
+  check(doc.artifact === "shizi-arphic-modification-notices" && doc.count === 363 && Array.isArray(doc.records) && doc.records.length === 363, "Arphic modification-notice list changed");
+  checkUniqueCharacterRows(doc.records, "Arphic modification-notice list");
+  const notices = new Map(doc.records.map(row => [row.character, row]));
+  const animcjk = manifest.records.filter(record => record.route === "animcjk_363");
+  check(sameMembers([...notices.keys()], animcjk.map(record => record.character)), "Every AnimCJK-derived record (and only those) needs a modification notice");
+  for (const record of animcjk) {
+    const row = notices.get(record.character);
+    check(row.data_path === record.data_path && row.original_sha256 === record.data_sha256 && row.original_byte_size === record.byte_size, "Modification notice is not bound to the accepted payload", { character: record.character });
+    check(NOTICE_REQUIRED_PARTS.every(part => row.notice.includes(part)) && /^[\x20-\x7e]+$/.test(row.notice), "Modification notice is incomplete", { character: record.character });
+    // D59：主仓库已改私有，获取地点只能写公开数据仓库 shizi-open。
+    check(!row.notice.includes("github.com/Eim-aa/shizi-app"), "Modification notice still names the private main repository", { character: record.character });
+  }
+  return notices;
+}
+
+/** 读打包的笔顺文件：AnimCJK 衍生文件先去掉 "_notice" 前缀，核对原字节；返回 {payload, notice}。 */
+function readPracticePayload(record, notices) {
+  const dataPath = path.join(ROOT, record.data_path);
+  check(fs.existsSync(dataPath), "Final data file is missing", { character: record.character });
+  const bytes = fs.readFileSync(dataPath);
+  let original = bytes;
+  const row = notices.get(record.character);
+  if (row) {
+    const prefix = Buffer.from(`{"_notice":${JSON.stringify(row.notice)},`, "utf8");
+    check(bytes.subarray(0, prefix.length).equals(prefix), "Modified file does not start with its recorded notice", { character: record.character });
+    check(sha256Text(bytes) === row.annotated_sha256 && bytes.length === row.annotated_byte_size, "Annotated file differs from the notice list", { character: record.character });
+    original = Buffer.concat([Buffer.from("{", "utf8"), bytes.subarray(prefix.length)]);
+    check(JSON.parse(bytes.toString("utf8"))._notice === row.notice, "Notice field differs", { character: record.character });
+  }
+  check(sha256Text(original) === record.data_sha256 && original.length === record.byte_size, "Final data binding mismatch", { character: record.character });
+  return { payload: JSON.parse(original.toString("utf8")), notice: row ? row.notice : null };
+}
+
+function validateRemovedRecord(record, removal) {
+  check(removal, "Record is not listed in the compliance-removal receipt", { character: record.character });
+  check(
+    removal.removed_data_path === record.data_path
+      && removal.removed_data_sha256 === record.data_sha256
+      && removal.byte_size === record.byte_size
+      && removal.route === record.route
+      && removal.acceptance_path === record.acceptance_path,
+    "Compliance-removal receipt differs from the historical manifest",
+    { character: record.character },
+  );
+  check(!fs.existsSync(path.join(ROOT, record.data_path)), "A compliance-removed character is still bundled in data/", { character: record.character });
+}
+
 function validateManifest() {
   validatePortableAuditJson(MANIFEST_PATH);
   const manifest = readJson(MANIFEST_PATH);
@@ -428,6 +517,11 @@ function validateManifest() {
   const acceptancePathCounts = Object.fromEntries(Object.keys(EXPECTED_ACCEPTANCE_PATH_COUNTS).map(acceptancePath => [acceptancePath, 0]));
   const acceptanceCatalog = new Map();
   const replaySources = loadAcceptedSourceReplay();
+  const removals = loadComplianceRemovals(manifest);
+  const notices = loadArphicNotices(manifest);
+  let annotatedFiles = 0;
+  const removedRoutes = Object.fromEntries(Object.keys(EXPECTED_ROUTE_COUNTS).map(route => [route, 0]));
+  const practiceRoutes = Object.fromEntries(Object.keys(EXPECTED_ROUTE_COUNTS).map(route => [route, 0]));
   let strokeTotal = 0;
   let semanticAcceptanceRecords = 0;
   let replayedSourceBindings = 0;
@@ -445,9 +539,14 @@ function validateManifest() {
     acceptancePathCounts[record.acceptance_path] += 1;
     semanticAcceptanceRecords += 1;
     check(record.data_path === `data/${record.character}.json`, "Data path/character mismatch", { character: record.character });
-    const dataPath = path.join(ROOT, record.data_path);
-    check(fs.existsSync(dataPath) && sha256(dataPath) === record.data_sha256 && fs.statSync(dataPath).size === record.byte_size, "Final data binding mismatch", { character: record.character });
-    const payload = readJson(dataPath);
+    if (removals.has(record.character)) {
+      validateRemovedRecord(record, removals.get(record.character));
+      removedRoutes[record.route] += 1;
+      continue;
+    }
+    practiceRoutes[record.route] += 1;
+    const { payload, notice } = readPracticePayload(record, notices);
+    if (notice) annotatedFiles += 1;
     validatePayload(record.character, payload, record.normative_stroke_count);
     const bindingType = validateProductionPayloadReplay(record, accepted, replaySources, payload);
     if (bindingType === "replayed-source") replayedSourceBindings += 1;
@@ -458,8 +557,10 @@ function validateManifest() {
   check(characters.size === 440 && JSON.stringify(routes) === JSON.stringify(EXPECTED_ROUTE_COUNTS), "Observed final membership changed", { characters: characters.size, routes });
   check(JSON.stringify(acceptancePathCounts) === JSON.stringify(EXPECTED_ACCEPTANCE_PATH_COUNTS), "Manifest acceptance-file coverage changed", acceptancePathCounts);
   check(acceptanceCatalog.size === 11 && semanticAcceptanceRecords === 440, "Semantic acceptance coverage is incomplete", { files: acceptanceCatalog.size, records: semanticAcceptanceRecords });
-  check(replayedSourceBindings === 381 && acceptedTargetBindings === 59 && replaySources.size === 381, "Production payload binding coverage changed", { replayedSourceBindings, acceptedTargetBindings, replaySources: replaySources.size });
-  const sampleRecord = manifest.records.find(record => replaySources.has(record.character));
+  check(JSON.stringify(removedRoutes) === JSON.stringify(EXPECTED_COMPLIANCE_REMOVED_ROUTES) && JSON.stringify(practiceRoutes) === JSON.stringify(EXPECTED_PRACTICE_ROUTE_COUNTS), "Compliance-removal route split changed", { removedRoutes, practiceRoutes });
+  // 留下的 364 条都能从验收时的源字节重放（2026-08 直接按目标字节验收的 59 条都在移除之列）。
+  check(replayedSourceBindings === EXPECTED_PRACTICE_SUPPLEMENT && acceptedTargetBindings === 0 && replaySources.size === 381, "Production payload binding coverage changed", { replayedSourceBindings, acceptedTargetBindings, replaySources: replaySources.size });
+  const sampleRecord = manifest.records.find(record => replaySources.has(record.character) && !removals.has(record.character));
   const sampleAcceptance = acceptanceCatalog.get(sampleRecord.acceptance_path).get(sampleRecord.character);
   const targetRecord = manifest.records.find(record => {
     const accepted = acceptanceCatalog.get(record.acceptance_path).get(record.character);
@@ -470,24 +571,31 @@ function validateManifest() {
     sampleRecord,
     sampleAcceptance,
     replaySources,
-    readJson(path.join(ROOT, sampleRecord.data_path)),
+    readPracticePayload(sampleRecord, notices).payload,
     targetRecord,
     targetAcceptance,
   );
+  check(annotatedFiles === 363, "Every AnimCJK-derived file must carry its modification notice", { annotatedFiles });
+  mustRejectMutation("notice_text_tampered", () => readPracticePayload(sampleRecord, new Map([[sampleRecord.character, { ...notices.get(sampleRecord.character), notice: "x" }]])));
+  mustRejectMutation("removed_record_still_bundled", () => validateRemovedRecord(sampleRecord, { character: sampleRecord.character, removed_data_path: sampleRecord.data_path, removed_data_sha256: sampleRecord.data_sha256, byte_size: sampleRecord.byte_size, route: sampleRecord.route, acceptance_path: sampleRecord.acceptance_path }));
+  mustRejectMutation("removed_record_hash_swapped", () => validateRemovedRecord(targetRecord, { ...removals.get(targetRecord.character), removed_data_sha256: "0".repeat(64) }));
   return {
     manifest,
     characters,
+    removals,
+    practiceRecords: manifest.records.filter(record => !removals.has(record.character)),
     strokeTotal,
     semanticAcceptanceRecords,
     acceptanceFiles: acceptanceCatalog.size,
-    semanticMutationGuards,
+    semanticMutationGuards: semanticMutationGuards + 3,
+    annotatedFiles,
     productionPayloadBindings: replayedSourceBindings + acceptedTargetBindings,
     replayedSourceBindings,
     acceptedTargetBindings,
   };
 }
 
-function validateReplacementBinding(row, approved, manifestRecord, indexed) {
+function validateReplacementBinding(row, approved, manifestRecord, indexed, removals = new Map()) {
   check(approved && manifestRecord, "Replacement is absent from approval or manifest", { character: row.character });
   check(indexed.has(row.acceptance_path), "Replacement acceptance is not indexed", { character: row.character, path: row.acceptance_path });
   check(row.final_data_path === `data/${row.character}.json`, "Replacement character/final path mismatch", { character: row.character, final_data_path: row.final_data_path });
@@ -500,7 +608,13 @@ function validateReplacementBinding(row, approved, manifestRecord, indexed) {
     "Replacement receipt differs from manifest",
     { character: row.character },
   );
-  check(sha256(path.join(ROOT, row.final_data_path)) === row.final_data_sha256 && row.final_data_sha256 === row.candidate_sha256, "Replacement final hash differs from accepted candidate", { character: row.character });
+  if (removals.has(row.character)) {
+    // D50 ①：这 29 条替换随 strokeorder.cc 来源一起移除；文件已删，核对回执记下的删除哈希就是当年导入的那份字节。
+    check(removals.get(row.character).removed_data_sha256 === row.final_data_sha256 && row.final_data_sha256 === row.candidate_sha256 && !fs.existsSync(path.join(ROOT, row.final_data_path)),
+      "Removed replacement differs from the imported payload or is still bundled", { character: row.character });
+  } else {
+    check(sha256(path.join(ROOT, row.final_data_path)) === row.final_data_sha256 && row.final_data_sha256 === row.candidate_sha256, "Replacement final hash differs from accepted candidate", { character: row.character });
+  }
   check(
     approved.candidate_sha256 === row.candidate_sha256
       && approved.acceptance_path === row.acceptance_path
@@ -531,7 +645,7 @@ function validateReceiptMutationGuards(receipt, approvedReplacements, manifestBy
   return 3;
 }
 
-function validateEvidence(manifest) {
+function validateEvidence(manifest, removals) {
   validatePortableAuditJson(INDEX_PATH);
   const index = readJson(INDEX_PATH);
   check(index.artifact === "shizi-vector-data-440-clean-clone-evidence-index" && index.status === "TECHNICAL_AND_HUMAN_REVIEW_PASS_440", "Unexpected final evidence index");
@@ -631,7 +745,7 @@ function validateEvidence(manifest) {
   const manifestByCharacter = new Map(manifest.records.map(row => [row.character, row]));
   for (const row of receipt.accepted_replacements) {
     const approved = approvedReplacements.get(row.character);
-    validateReplacementBinding(row, approved, manifestByCharacter.get(row.character), indexed);
+    validateReplacementBinding(row, approved, manifestByCharacter.get(row.character), indexed, removals);
   }
   for (const row of receipt.product_scope_exclusions) {
     const approved = approvedExclusions.get(row.character);
@@ -685,11 +799,11 @@ function findChromeExecutable() {
   ].filter(Boolean).find(fs.existsSync);
 }
 
-async function validateBrowserPaths(manifest, browserSampleSize = null) {
+async function validateBrowserPaths(practiceRecords, browserSampleSize = null) {
   const { chromium } = require("playwright");
   const executablePath = findChromeExecutable();
   check(executablePath, "No Chrome or Chromium executable is available");
-  const records = browserSampleSize === null ? manifest.records : manifest.records.slice(0, browserSampleSize);
+  const records = browserSampleSize === null ? practiceRecords : practiceRecords.slice(0, browserSampleSize);
   const rows = records.map(record => ({ character: record.character, expectedStrokeCount: record.stroke_count }));
   const expectedStrokeTotal = rows.reduce((sum, row) => sum + row.expectedStrokeCount, 0);
   const server = http.createServer((request, response) => {
@@ -767,6 +881,9 @@ async function validateBrowserPaths(manifest, browserSampleSize = null) {
 async function main() {
   const {
     manifest,
+    removals,
+    practiceRecords,
+    annotatedFiles,
     strokeTotal,
     semanticAcceptanceRecords,
     acceptanceFiles,
@@ -775,12 +892,12 @@ async function main() {
     replayedSourceBindings,
     acceptedTargetBindings,
   } = validateManifest();
-  const evidence = validateEvidence(manifest);
+  const evidence = validateEvidence(manifest, removals);
   const staticOnly = process.argv.includes("--static-only");
   const sampleArgument = process.argv.find(value => value.startsWith("--browser-sample="));
   const browserSampleSize = sampleArgument ? Number(sampleArgument.split("=")[1]) : null;
-  check(browserSampleSize === null || (Number.isInteger(browserSampleSize) && browserSampleSize > 0 && browserSampleSize <= 440), "Invalid --browser-sample value");
-  const rendered = staticOnly ? null : await validateBrowserPaths(manifest, browserSampleSize);
+  check(browserSampleSize === null || (Number.isInteger(browserSampleSize) && browserSampleSize > 0 && browserSampleSize <= EXPECTED_PRACTICE_SUPPLEMENT), "Invalid --browser-sample value");
+  const rendered = staticOnly ? null : await validateBrowserPaths(practiceRecords, browserSampleSize);
   process.stdout.write(`${JSON.stringify({
     status: "TECHNICAL_AND_HUMAN_REVIEW_PASS_440",
     manifest: relative(MANIFEST_PATH),
@@ -790,6 +907,9 @@ async function main() {
     human_accepted_characters: 440,
     human_review_pending_characters: 0,
     product_scope_excluded_characters: 20,
+    compliance_removed_characters: removals.size,
+    practice_supplement_characters: practiceRecords.length,
+    arphic_modification_notices_in_files: annotatedFiles,
     accepted_replacements: evidence.replacements,
     production_import_approval_gate: evidence.productionApproval,
     approval_locator_mutation_guards_verified: evidence.approvalLocatorMutationGuards,

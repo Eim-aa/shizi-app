@@ -23,8 +23,10 @@ async function main() {
   const svgs = Object.fromEntries(Object.entries(SOURCES).map(([key, file]) => [key, fs.readFileSync(path.join(BRANDING, file), "utf8")]));
   const pick = size => (size <= SMALL_MAX ? "small" : "light");
   // file -> { source, size }
-  const outputs = new Map([180, 192, 512].map(size => [path.join(ROOT, `icon-${size}.png`), { source: pick(size), size }]));
-  outputs.set(path.join(ROOT, "icon-512-maskable.png"), { source: "maskable", size: 512 });
+  // D84：网页的根目录图标（icon-180/192/512/512-maskable.png）随网页版删除，不再导出。
+  const outputs = new Map();
+  // B4.9：关于页的标志——App 的原生资源 Branding/icon-512.png，与 App 图标 512 版同一张
+  outputs.set(path.join(ROOT, "ios/ShiziApp/ShiziApp/Branding/icon-512.png"), { source: pick(512), size: 512 });
   const catalog = JSON.parse(fs.readFileSync(path.join(CATALOG, "Contents.json"), "utf8"));
   for (const entry of catalog.images) {
     if (!entry.filename) continue;

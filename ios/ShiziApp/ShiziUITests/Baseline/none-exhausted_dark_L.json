@@ -1,0 +1,449 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-session-none-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 602,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 602,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 554,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-session-none-body-wrap",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "emptyMarker"
+    },
+    {
+      "bg" : "#24201BFF",
+      "border" : "#806E5AFF",
+      "borderWidth" : 1,
+      "class" : "UIView",
+      "frame" : {
+        "h" : 72,
+        "w" : 72,
+        "x" : 165,
+        "y" : 284
+      },
+      "id" : "native-session-none-cell",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "cellView"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22,
+      "fontWeight" : 0.20000000298023224,
+      "frame" : {
+        "h" : 30,
+        "w" : 176,
+        "x" : 113,
+        "y" : 372
+      },
+      "id" : "native-session-none-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "emptyTitleLabel",
+      "text" : "现在没有要写的字",
+      "textFrame" : {
+        "h" : 31.600000000000001,
+        "w" : 176,
+        "x" : 113,
+        "y" : 371.19999999999999
+      },
+      "visibleFrame" : {
+        "h" : 30,
+        "w" : 176,
+        "x" : 113,
+        "y" : 372
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 208.40000000000001,
+        "x" : 96.799999999999997,
+        "y" : 410
+      },
+      "id" : "native-session-none-body",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "bodyLabel",
+      "text" : "想接着写，可以自己选几个字。",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 208.69999999999999,
+        "x" : 96.700000000000003,
+        "y" : 412
+      },
+      "visibleFrame" : {
+        "h" : 18,
+        "w" : 208.69999999999999,
+        "x" : 96.799999999999997,
+        "y" : 410
+      }
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 22,
+        "w" : 223.19999999999999,
+        "x" : 89.400000000000006,
+        "y" : 440
+      },
+      "id" : "native-session-none-nochars",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "extraLabel",
+      "text" : "可以换练习范围，或先复习旧字。",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 223.30000000000001,
+        "x" : 89.299999999999997,
+        "y" : 442
+      },
+      "visibleFrame" : {
+        "h" : 18,
+        "w" : 223.30000000000001,
+        "x" : 89.400000000000006,
+        "y" : 440
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "待复习 ›",
+      "class" : "NativeTextButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 65,
+        "x" : 168.5,
+        "y" : 478
+      },
+      "id" : "native-session-none-wrong",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "wrongButton",
+      "text" : "待复习 ›",
+      "textFrame" : {
+        "h" : 18,
+        "w" : 55.299999999999997,
+        "x" : 173.5,
+        "y" : 491
+      },
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 65,
+        "x" : 168.5,
+        "y" : 478
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 15,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "写字",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 22,
+        "w" : 258,
+        "x" : 72,
+        "y" : 73
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "写字",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 34,
+        "x" : 184,
+        "y" : 73.799999999999997
+      },
+      "visibleFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 34,
+        "x" : 184,
+        "y" : 73
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "换范围",
+      "bg" : "#E2D9C9FF",
+      "class" : "UIButton",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 720
+      },
+      "id" : "native-session-none-libswitch",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "primaryButton",
+      "radius" : 12,
+      "text" : "换范围",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 50.700000000000003,
+        "x" : 176,
+        "y" : 737
+      },
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 720
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "自己选字",
+      "border" : "#6F675DFF",
+      "borderWidth" : 1,
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 17,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "native-session-none-pick",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "secondaryButton",
+      "radius" : 12,
+      "text" : "自己选字",
+      "textFrame" : {
+        "h" : 20.300000000000001,
+        "w" : 67.700000000000003,
+        "x" : 167,
+        "y" : 803
+      },
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 72,
+      "x" : 165,
+      "y" : 284
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 72,
+      "x" : 165,
+      "y" : 355
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 72,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 165,
+      "y" : 284
+    },
+    {
+      "color" : "#806E5AFF",
+      "h" : 72,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 236,
+      "y" : 284
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 1,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 362,
+      "x" : 20,
+      "y" : 839
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 20,
+      "y" : 786
+    },
+    {
+      "color" : "#6F675DFF",
+      "h" : 54,
+      "layer" : "page",
+      "src" : "border",
+      "w" : 1,
+      "x" : 381,
+      "y" : 786
+    }
+  ],
+  "screen" : {
+    "contentSize" : "L",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "none-exhausted",
+  "tag" : "dark_L",
+  "ui" : "native"
+}

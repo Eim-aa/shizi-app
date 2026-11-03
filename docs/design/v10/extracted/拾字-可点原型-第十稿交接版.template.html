@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="78904995-93b0-44b5-b77f-6fce7b0349bf"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="拾字原型">
+<meta name="theme-color" content="#F4F0E7">
+<script src="36416a1c-db89-47ce-aac8-1c3c0b11cd2c"></script>
+<script src="989b48fc-9296-41bd-b77c-2d77960e81c6"></script>
+<script src="12d5b84c-7516-4194-8dcd-6f35474b2181"></script>
+
+<style>
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#E8E3D9}
+/* 交互表·按下态：按钮、列表行、字格按下时透明度降到 .7，0ms 进入，松手 120ms 恢复；首页「拾」红块按第八稿（组件自己处理），遮罩不算 */
+button:not([aria-label="开始写字"]):not([aria-label="继续写字"]):active,[data-nav]:not([data-nav="closeOver"]):active{opacity:.7!important;transition:opacity 0s!important}
+button,[data-nav]{transition:opacity .12s}
+*{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{-webkit-touch-callout:none;-webkit-text-size-adjust:100%;font-family:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}
+a{color:#A6533F}a:hover{color:#8E4534}
+</style>
+</helmet>
+<div style="{{ rootStyle }}">
+  <div style="{{ stageBox }}">
+    <div ref="{{ stageRef }}" style="{{ stageInner }}">
+      <div ref="{{ pageRef }}" style="position:absolute;inset:0">
+      <sc-if value="{{ vHome }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="首页壳-v3-第十稿交接版" state="{{ hState }}" resume="{{ hResume }}" resume-line="{{ hResumeLine }}" other-line="{{ hOtherLine }}" records="{{ recs }}" today="9-24" theme="{{ hTheme }}" period="{{ period }}" lamp="{{ lamp }}" bare="{{ bare }}" size="{{ sizeProp }}" on-navigate="{{ onHomeNav }}" hint-size="393px,852px"></dc-import>
+        <sc-if value="{{ homeLkOn }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;z-index:3"><dc-import name="字库墨墙屏-第十稿交接版" sheet-only="{{ true }}" screen="home" records="{{ recs }}" added="{{ added }}" today="9-24" library="{{ libName }}" theme="{{ sTheme }}" lamp="{{ lamp }}" bare="{{ bare }}" size="{{ sizeProp }}" fixed="{{ true }}" lk="{{ lkObj }}" kb="{{ kbOff }}" on-navigate="{{ onScrNav }}" on-lk-input="{{ onLkInput }}" hint-size="393px,852px"></dc-import></div></sc-if>
+      </sc-if>
+      <sc-if value="{{ vWrite }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="ShiziWriteScreen-第十稿交接版" interactive="{{ true }}" hint-mode="{{ hintMode }}" first-tip="{{ wFirstTip }}" total="{{ wTotal }}" on-saw="{{ onWSaw }}" on-next="{{ onWNext }}" endable="{{ wEndable }}" on-end="{{ onWEnd }}" end-fail="{{ endFail }}" no-stroke="{{ noStroke }}" queue="{{ wQueue }}" init="{{ wInit }}" theme="{{ sTheme }}" lamp="{{ lamp }}" bare="{{ bare }}" size="{{ sizeProp }}" debug="{{ dbgOn }}" tune="{{ tune }}" replay="{{ realOn }}" replay-src="{{ replaySrc }}" on-back="{{ onWBack }}" on-judge="{{ onWJudge }}" on-skip="{{ onWSkip }}" on-correct="{{ onWCorrect }}" on-state-change="{{ onWState }}" on-navigate="{{ onWNav }}" hint-size="393px,852px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ vScr }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="ShiziScreen-第十稿交接版" screen="{{ scr }}" theme="{{ sTheme }}" lamp="{{ lamp }}" bare="{{ bare }}" size="{{ sizeProp }}" settings="{{ settingsObj }}" backup-count="{{ backupCount }}" bk-note="{{ bkNote }}" bk-match="{{ bkMatch }}" bk-last="{{ bkLastText }}" undo="{{ undoTexts }}" fixed="{{ true }}" records="{{ recs }}" today="9-24" added="{{ added }}" last-backup="{{ lastBackupP }}" library="{{ libName }}" chars="{{ chars }}" result="{{ resData }}" sheet="{{ sheet }}" onboard-note="{{ obNote }}" char="{{ scrChar }}" under="{{ under }}" lib-target="{{ libTarget }}" img-items="{{ imgItems }}" img-title="{{ imgTitle }}" img-note="{{ imgNote }}" img-sign="{{ imgSign }}" img-fail="{{ imgFail }}" img-char="{{ imgChar }}" img-msg="{{ imgMsg }}" img-top="{{ true }}" lib-fail="{{ libFail }}" clear-fail="{{ clearFail }}" bk-retry="{{ bkRetry }}" on-navigate="{{ onScrNav }}" hint-size="393px,852px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ vLib }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="字库墨墙屏-第十稿交接版" screen="{{ libScr }}" records="{{ recs }}" added="{{ added }}" today="9-24" library="{{ libName }}" theme="{{ sTheme }}" lamp="{{ lamp }}" bare="{{ bare }}" size="{{ sizeProp }}" fixed="{{ true }}" sort="{{ libSort }}" filter="{{ libFilter }}" fold="{{ libFold }}" find="{{ libFind }}" off="{{ libOff }}" lk="{{ lkObj }}" kb="{{ kbOff }}" on-navigate="{{ onScrNav }}" on-lk-input="{{ onLkInput }}" on-find-input="{{ onFindInput }}" hint-size="393px,852px"></dc-import>
+      </sc-if>
+      <sc-if value="{{ vOver }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;z-index:3"><dc-import name="ShiziScreen-第十稿交接版" screen="{{ overScr }}" under="none" records="{{ recs }}" today="9-24" theme="{{ sTheme }}" lamp="{{ lamp }}" bare="{{ bare }}" size="{{ sizeProp }}" fixed="{{ true }}" library="{{ libName }}" lib-target="{{ libTarget }}" lib-fail="{{ libFail }}" on-navigate="{{ onScrNav }}" hint-size="393px,852px"></dc-import></div>
+      </sc-if>
+      <sc-if value="{{ vRec }}" hint-placeholder-val="{{ false }}">
+        <dc-import name="录制模式-第十稿交接版" theme="{{ sTheme }}" bare="{{ bare }}" on-exit="{{ recExit }}" on-saved="{{ recSaved }}" hint-size="393px,852px"></dc-import>
+      </sc-if>
+      </div>
+      <div ref="{{ ghostRef }}" style="position:absolute;inset:0;display:none;pointer-events:none"></div>
+
+      <div style="{{ ovVars }}">
+        <sc-if value="{{ w12fOn }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;background:var(--p);color:var(--i1);font-family:-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif">
+            <sc-if value="{{ w12fStatus }}" hint-placeholder-val="{{ false }}"><div style="flex:none;height:54px;padding:0 28px 0 32px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:600;color:var(--i1)"><span>9:41</span><span style="display:flex;gap:6px;align-items:center"><svg width="17" height="11" sc-camel-view-box="0 0 17 11" style="fill:var(--i1)"><rect x="0" y="7" width="3" height="4" rx=".7"></rect><rect x="4.7" y="5" width="3" height="6" rx=".7"></rect><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"></rect><rect x="14" y="0" width="3" height="11" rx=".7"></rect></svg><svg width="25" height="12" sc-camel-view-box="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" style="stroke:var(--i4)"></rect><rect x="2" y="2" width="18" height="8" rx="1.8" style="fill:var(--i1)"></rect><rect x="23" y="4" width="1.5" height="4" rx=".75" style="fill:var(--i4)"></rect></svg></span></div></sc-if>
+            <sc-if value="{{ w12fBare }}" hint-placeholder-val="{{ true }}"><div style="flex:none;height:54px"></div></sc-if>
+            <div style="flex:none;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;letter-spacing:.02em">习字</div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 40px;text-align:center"><span style="width:88px;height:88px;box-sizing:border-box;border:1px solid var(--g);display:grid;place-items:center;font-family:'LXGW WenKai GB',serif;font-size:56px;color:var(--i4)"></span><span style="font-family:'Noto Serif SC',serif;font-size:22px;font-weight:500;letter-spacing:.04em">现在没有要写的字</span><span style="font-size:15px;line-height:1.7;color:var(--i2);text-wrap:pretty">想接着写，可以自己选几个字。</span></div>
+            <div style="flex:none;display:flex;flex-direction:column;gap:12px;padding:12px 24px 34px"><button data-nav="w12fPick" sc-camel-on-click="{{ w12fPick }}" style="width:100%;min-height:52px;border:0;border-radius:16px;background:var(--a);color:#FFF9F1;font-family:inherit;font-size:17px;letter-spacing:.08em;cursor:pointer">自己选字</button><span sc-camel-on-click="{{ w12fHome }}" style="align-self:center;min-height:44px;display:flex;align-items:center;gap:6px;font-size:15px;letter-spacing:.04em;color:var(--i2);cursor:pointer">回到首页 ›</span></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ pickOn }}" hint-placeholder-val="{{ false }}">
+          <div sc-camel-on-click="{{ pickCancel }}" style="position:absolute;inset:0;z-index:4;background:var(--scrim)"></div>
+          <div ref="{{ pickElRef }}" style="{{ pickSheetStyle }}">
+            <span style="align-self:center;flex:none;width:36px;height:5px;border-radius:3px;background:var(--i5)"></span>
+            <span style="font-family:'Noto Serif SC',serif;font-size:20px;font-weight:500">{{ pickTitle }}</span>
+            <input ref="{{ pickRef }}" value="{{ pickText }}" sc-camel-on-change="{{ pickInput }}" autocomplete="off" autocorrect="off" spellcheck="{{ false }}" enterkeyhint="done" style="width:100%;min-height:52px;box-sizing:border-box;border:1px solid var(--i2);border-radius:16px;background:var(--c);padding:0 16px;font-family:'LXGW WenKai GB',serif;font-size:24px;color:var(--i1);outline:none">
+            <sc-if value="{{ pickNoteOn }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:var(--off)"><span style="width:6px;height:6px;margin-top:8px;flex:none;border-radius:50%;background:var(--i2)"></span><span style="flex:1;font-size:13px;line-height:1.7;color:var(--i3)">{{ pickNote }}</span></div>
+            </sc-if>
+            <sc-if value="{{ pickTilesOn }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <sc-for list="{{ pickTiles }}" as="t" hint-placeholder-count="2">
+                  <button sc-camel-on-click="{{ t.on }}" aria-pressed="{{ t.sel }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;border:0;background:transparent;font:inherit;cursor:pointer"><span style="width:64px;height:64px;box-sizing:border-box;border:1px solid var(--g);box-shadow:{{ t.sh }};background:var(--c);display:grid;place-items:center;font-family:'LXGW WenKai GB',serif;font-size:38px;color:{{ t.fg }}">{{ t.c }}</span><span style="font-size:11px;color:var(--i3)">{{ t.cap }}</span></button>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ pickHintOn }}" hint-placeholder-val="{{ true }}"><span style="font-size:15px;line-height:1.7;color:var(--i2);text-wrap:pretty">{{ pickHint }}</span></sc-if>
+            <sc-if value="{{ pickOk }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><button sc-camel-on-click="{{ pickCancel }}" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">取消</button><button sc-camel-on-click="{{ pickStart }}" disabled="{{ pickDis }}" style="width:100%;min-height:52px;border:0;border-radius:16px;background:{{ pickBg }};color:{{ pickFg }};font-family:inherit;font-size:17px;letter-spacing:.08em;cursor:pointer">{{ pickLabel }}</button></div>
+            </sc-if>
+            <sc-if value="{{ pickFail }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:15px;line-height:1.6;color:var(--i2)">没保存上，输入的字还在。</span><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><button sc-camel-on-click="{{ pickStay }}" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">先不保存</button><button sc-camel-on-click="{{ pickStart }}" style="width:100%;min-height:52px;border:0;border-radius:16px;background:var(--a);color:#FFF9F1;font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">再试一次</button></div></div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ confirmOn }}" hint-placeholder-val="{{ false }}">
+          <div sc-camel-on-click="{{ confirmCancel }}" style="position:absolute;inset:0;z-index:6;background:var(--scrim)"></div>
+          <div ref="{{ confirmRef }}" style="position:absolute;left:32px;right:32px;top:50%;transform:translateY(-50%);z-index:7;box-sizing:border-box;border-radius:20px;background:var(--sh);box-shadow:0 10px 30px rgba(48,38,26,.16);padding:24px 20px 16px;display:flex;flex-direction:column;gap:20px;color:var(--i1)">
+            <span style="font-size:15px;line-height:1.7;color:var(--i1);text-wrap:pretty">{{ confirmText }}</span>
+            <div style="display:grid;grid-template-columns:{{ confirmCols }};gap:12px"><sc-if value="{{ confirmTwo }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ confirmCancel }}" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">{{ confirmNo }}</button></sc-if><button sc-camel-on-click="{{ confirmOk }}" style="width:100%;min-height:52px;border:0;border-radius:16px;background:var(--a);color:#FFF9F1;font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">{{ confirmYes }}</button></div>
+            <sc-if value="{{ confirmThree }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:12px;margin-top:-8px"><button sc-camel-on-click="{{ confirmMid }}" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:17px;letter-spacing:.04em;cursor:pointer">{{ confirmMidLabel }}</button><button sc-camel-on-click="{{ confirmCancel }}" style="width:100%;min-height:44px;border:0;background:transparent;color:var(--i2);font-family:inherit;font-size:15px;letter-spacing:.06em;cursor:pointer">取消</button></div></sc-if>
+          </div>
+        </sc-if>
+
+
+        <sc-if value="{{ wfOn }}" hint-placeholder-val="{{ false }}">
+          <div sc-camel-on-click="{{ wfCancel }}" style="position:absolute;inset:0;z-index:4;background:var(--scrim)"></div>
+          <div ref="{{ wfRef }}" style="position:absolute;left:0;right:0;bottom:0;z-index:5;box-sizing:border-box;border-radius:28px 28px 0 0;background:var(--sh);box-shadow:0 -10px 30px rgba(48,38,26,.12);padding:10px 24px 34px;display:flex;flex-direction:column;gap:18px;color:var(--i1)">
+            <span style="align-self:center;flex:none;width:36px;height:5px;border-radius:3px;background:var(--i5)"></span>
+            <span style="font-family:'Noto Serif SC',serif;font-size:20px;font-weight:500">换掉这个词语？</span>
+            <div aria-label="{{ wfWord }}" style="align-self:flex-start;display:flex;border:1px solid var(--g);border-left:0;background:var(--c)"><sc-for list="{{ wfCells }}" as="w" hint-placeholder-count="2"><span style="width:56px;height:54px;border-left:1px solid var(--g);font-family:'LXGW WenKai GB',serif;font-size:34px;line-height:54px;text-align:center;color:var(--i1)">{{ w.ch }}</span></sc-for></div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px"><button sc-camel-on-click="{{ wfCancel }}" style="width:100%;min-height:52px;border:.5px solid var(--i5);border-radius:16px;background:var(--c);color:var(--i1);font-family:inherit;font-size:17px;letter-spacing:.06em;cursor:pointer">取消</button><button sc-camel-on-click="{{ wfOk }}" style="width:100%;min-height:52px;border:0;border-radius:16px;background:var(--a);color:#FFF9F1;font-family:inherit;font-size:17px;letter-spacing:.08em;cursor:pointer">不再用这个词语</button></div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ wfBannerOn }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:24px;right:24px;top:98px;height:40px;z-index:2;display:flex;align-items:center;justify-content:center;gap:8px;border-bottom:1px solid var(--i5);background:var(--p);font-size:15px;letter-spacing:.02em;color:var(--i2)"><span>{{ wfBanner }}</span><span style="color:var(--i4)">·</span><button sc-camel-on-click="{{ wfUndo }}" style="height:40px;padding:0;border:0;background:transparent;font:inherit;font-size:15px;color:var(--i1);cursor:pointer">撤销</button></div>
+        </sc-if>
+
+        <sc-if value="{{ noteOn }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:24px;right:24px;bottom:110px;z-index:10;display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:var(--off);box-shadow:0 6px 18px rgba(48,38,26,.10)"><span style="width:6px;height:6px;margin-top:8px;flex:none;border-radius:50%;background:var(--i2)"></span><span style="flex:1;font-size:15px;line-height:1.7;color:var(--i2)">{{ noteText }}</span></div>
+        </sc-if>
+
+        <sc-if value="{{ sysOn }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;z-index:8;background:var(--scrim)"></div>
+          <div ref="{{ sysRef }}" style="position:absolute;left:8px;right:8px;bottom:8px;z-index:9;border-radius:24px;background:var(--sy0);padding:16px;display:flex;flex-direction:column;gap:12px;font-family:-apple-system,sans-serif">
+            <span style="padding:0 4px 10px;border-bottom:1px solid var(--syl);font-size:14px;color:var(--syt)">{{ sysTitle }}</span>
+            <sc-for list="{{ sysRows }}" as="r" hint-placeholder-count="3">
+              <button sc-camel-on-click="{{ r.on }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:0 14px;border:0;border-radius:12px;background:var(--syr);text-align:left;font:inherit;cursor:pointer"><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:15px;color:{{ r.fg }}">{{ r.label }}</span><sc-if value="{{ r.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--sys)">{{ r.sub }}</span></sc-if></span></button>
+            </sc-for>
+            <span style="padding:6px 0 0;text-align:center;font-size:12px;color:var(--sys)">{{ sysFoot }} · 由系统提供，不仿制</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ undoneOn }}" hint-placeholder-val="{{ false }}">
+          <div role="status" ref="{{ undoneRef }}" style="position:absolute;left:16px;right:16px;bottom:var(--ubb,34px);z-index:3;box-sizing:border-box;min-height:72px;display:flex;align-items:center;padding:14px 16px;border-radius:16px;background:#3B2F28;color:#F4F0E7;box-shadow:var(--ubs);font-size:15px;line-height:22px">已撤销</div>
+        </sc-if>
+        <sc-if value="{{ undoOn }}" hint-placeholder-val="{{ false }}">
+          <div ref="{{ undoRef }}" style="position:absolute;left:16px;right:16px;bottom:var(--ubb,34px);z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:16px;background:#3B2F28;color:#F4F0E7;box-shadow:var(--ubs)"><span style="display:flex;flex-direction:column;font-size:15px;line-height:22px"><span style="white-space:nowrap">{{ undoL1 }}</span><span style="white-space:nowrap">{{ undoL2 }}</span></span><button sc-camel-on-click="{{ undoDo }}" style="flex:none;min-height:44px;padding:0 4px;border:0;background:transparent;font:inherit;font-size:15px;color:#F4F0E7;font-weight:500;cursor:pointer">撤销</button></div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ tabHint }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ tabHintStyle }}"><span style="padding:4px 12px;border-radius:12px;background:rgba(59,47,40,.78);color:#FBF8F2;font-size:12px;line-height:16px;letter-spacing:.04em">添加到主屏幕后再用</span></div>
+  </sc-if>
+
+  <sc-if value="{{ panelShown }}" hint-placeholder-val="{{ false }}">
+    <div sc-camel-on-click="{{ closePanel }}" style="{{ panelOuter }}">
+      <div sc-camel-on-click="{{ stop }}" style="{{ panelCard }}">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+          <span style="font-size:15px;font-weight:600;color:#3B2F28;letter-spacing:.02em">场景面板</span>
+          <span style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;color:#8A8378">原型工具 · 不属于产品界面</span><sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ closePanel }}" style="min-height:32px;padding:0 10px;border:1px solid #DED8CD;border-radius:8px;background:#FFFDF9;color:#3B2F28;font:inherit;font-size:13px;cursor:pointer">收起</button></sc-if></span>
+        </div>
+        <sc-if value="{{ noticeOn }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;background:#F3E6DE;color:#6E3527;font-size:12px;line-height:1.5"><span>{{ notice }}</span><button sc-camel-on-click="{{ clearNotice }}" style="flex:none;border:0;background:transparent;color:#6E3527;font:inherit;font-size:12px;cursor:pointer">知道了</button></div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:600;color:#6A645B;letter-spacing:.08em">用户状态 · 切换即重置演示</span>
+          <div style="display:flex;flex-direction:column;border:1px solid #E6E0D5;border-radius:10px;overflow:hidden;background:#FFFDF9">
+            <sc-for list="{{ users }}" as="u" hint-placeholder-count="7">
+              <button sc-camel-on-click="{{ u.on }}" style="display:flex;align-items:center;gap:10px;min-height:38px;padding:0 12px;border:0;border-top:{{ u.bt }};background:transparent;text-align:left;font:inherit;font-size:13px;color:#3B2F28;cursor:pointer">
+                <sc-if value="{{ u.sel }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:4px solid #3B2F28"></span></sc-if>
+                <sc-if value="{{ u.idle }}" hint-placeholder-val="{{ true }}"><span style="flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1px solid #B3AC9F"></span></sc-if>
+                <span>{{ u.label }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:600;color:#6A645B;letter-spacing:.08em">流程起点（同 ?flow=）</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <sc-for list="{{ flows }}" as="f" hint-placeholder-count="3">
+              <button sc-camel-on-click="{{ f.on }}" style="min-height:32px;padding:0 12px;border:1px solid #DED8CD;border-radius:8px;background:#FFFDF9;color:#3B2F28;font:inherit;font-size:13px;cursor:pointer">{{ f.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:600;color:#6A645B;letter-spacing:.08em">边界开关</span>
+          <div style="display:flex;flex-direction:column;border:1px solid #E6E0D5;border-radius:10px;overflow:hidden;background:#FFFDF9">
+            <sc-for list="{{ toggles }}" as="g" hint-placeholder-count="4">
+              <button sc-camel-on-click="{{ g.on }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:6px 12px;border:0;border-top:{{ g.bt }};background:transparent;text-align:left;font:inherit;cursor:pointer">
+                <span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:13px;color:{{ g.fg }}">{{ g.label }}</span><span style="font-size:11px;line-height:1.4;color:#8A8378">{{ g.sub }}</span></span>
+                <sc-if value="{{ g.isOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#3B2F28"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if>
+                <sc-if value="{{ g.isOff }}" hint-placeholder-val="{{ true }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#DED8CD"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if>
+                <sc-if value="{{ g.isDis }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:11px;color:#B3AC9F">{{ g.later }}</span></sc-if>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;font-weight:600;color:#6A645B;letter-spacing:.08em">外观</span>
+          <sc-for list="{{ segs }}" as="sg" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+              <span style="font-size:13px;color:#3B2F28">{{ sg.label }}</span>
+              <span style="display:flex;padding:2px;border-radius:9px;background:#EFE8DC">
+                <sc-for list="{{ sg.opts }}" as="o" hint-placeholder-count="2">
+                  <sc-if value="{{ o.sel }}" hint-placeholder-val="{{ false }}"><button sc-camel-on-click="{{ o.on }}" style="min-width:38px;min-height:30px;padding:0 8px;border:0;border-radius:7px;background:#FFFDF9;box-shadow:0 1px 2px rgba(48,38,26,.16);color:#3B2F28;font:inherit;font-size:12px;cursor:pointer">{{ o.label }}</button></sc-if>
+                  <sc-if value="{{ o.idle }}" hint-placeholder-val="{{ true }}"><button sc-camel-on-click="{{ o.on }}" style="min-width:38px;min-height:30px;padding:0 8px;border:0;border-radius:7px;background:transparent;color:#6A645B;font:inherit;font-size:12px;cursor:pointer">{{ o.label }}</button></sc-if>
+                </sc-for>
+              </span>
+            </div>
+          </sc-for>
+          <button sc-camel-on-click="{{ tgLarge }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0;border:0;background:transparent;font:inherit;cursor:pointer"><span style="font-size:13px;color:#3B2F28">更大字体（紧凑版 360×640）</span><sc-if value="{{ largeOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#3B2F28"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if><sc-if value="{{ largeOff }}" hint-placeholder-val="{{ true }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#DED8CD"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if></button>
+          <button sc-camel-on-click="{{ tgReduce }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:36px;padding:0;border:0;background:transparent;font:inherit;cursor:pointer"><span style="display:flex;flex-direction:column;gap:2px;text-align:left"><span style="font-size:13px;color:#3B2F28">减少动态效果（模拟系统设置）</span><span style="font-size:11px;line-height:1.4;color:#8A8378">{{ reduceSub }}</span></span><sc-if value="{{ reduceOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#3B2F28"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if><sc-if value="{{ reduceOff }}" hint-placeholder-val="{{ true }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#DED8CD"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if></button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;font-weight:600;color:#6A645B;letter-spacing:.08em">笔迹调试叠层（写字页）</span>
+          <button sc-camel-on-click="{{ tgDbg }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:40px;padding:0 12px;border:1px solid #E6E0D5;border-radius:10px;background:#FFFDF9;font:inherit;cursor:pointer">
+            <span style="font-size:13px;color:#3B2F28">在书写格角落显示均速和末端倍数</span>
+            <sc-if value="{{ dbgOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#3B2F28"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if>
+            <sc-if value="{{ dbgOff }}" hint-placeholder-val="{{ true }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#DED8CD"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if>
+          </button>
+          <sc-for list="{{ sliders }}" as="sl" hint-placeholder-count="3">
+            <label style="display:flex;flex-direction:column;gap:2px">
+              <span style="display:flex;justify-content:space-between;font-size:12px;color:#3B2F28"><span>{{ sl.label }}</span><span style="font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums">{{ sl.text }}</span></span>
+              <input type="range" min="{{ sl.min }}" max="{{ sl.max }}" step="{{ sl.step }}" value="{{ sl.value }}" sc-camel-on-change="{{ sl.on }}" style="width:100%;margin:0;accent-color:#3B2F28;touch-action:none">
+            </label>
+          </sc-for>
+          <button sc-camel-on-click="{{ dbgReset }}" style="align-self:flex-start;min-height:30px;padding:0 10px;border:1px solid #DED8CD;border-radius:8px;background:#FFFDF9;color:#3B2F28;font:inherit;font-size:12px;cursor:pointer">滑杆恢复默认</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;font-weight:600;color:#6A645B;letter-spacing:.08em">真人笔迹与录制（5.2）</span>
+          <button sc-camel-on-click="{{ tgReal }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:6px 12px;border:1px solid #E6E0D5;border-radius:10px;background:#FFFDF9;text-align:left;font:inherit;cursor:pointer">
+            <span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;color:{{ realFg }}">写字页回放真人笔迹</span><span style="font-size:11px;line-height:1.4;color:#8A8378">{{ realSub }}</span></span>
+            <sc-if value="{{ realOn }}" hint-placeholder-val="{{ false }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:#3B2F28"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if>
+            <sc-if value="{{ realOff }}" hint-placeholder-val="{{ true }}"><span style="flex:none;position:relative;width:36px;height:22px;border-radius:11px;background:{{ realTrack }}"><span style="position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#FFFDF9"></span></span></sc-if>
+          </button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <button sc-camel-on-click="{{ recEnter }}" style="min-height:32px;padding:0 12px;border:1px solid #DED8CD;border-radius:8px;background:#FFFDF9;color:#3B2F28;font:inherit;font-size:13px;cursor:pointer">进入录制模式（?rec=1）</button>
+            <button sc-camel-on-click="{{ recClear }}" style="min-height:32px;padding:0 12px;border:1px solid #DED8CD;border-radius:8px;background:#FFFDF9;color:{{ recClearFg }};font:inherit;font-size:13px;cursor:pointer">{{ recClearLabel }}</button>
+          </div>
+          <span style="font-size:11px;line-height:1.5;color:#8A8378">{{ recInfo }}</span>
+        </div>
+
+        <button sc-camel-on-click="{{ resetDemo }}" style="min-height:40px;border:1px solid #3B2F28;border-radius:10px;background:#3B2F28;color:#FBF8F2;font:inherit;font-size:13px;letter-spacing:.06em;cursor:pointer">重置演示（{{ userLabel }}）</button>
+
+        <div style="display:flex;flex-direction:column;gap:6px;padding-top:4px;border-top:1px solid #E6E0D5">
+          <span style="font-size:12px;font-weight:600;color:#6A645B;letter-spacing:.08em">原型说明</span>
+          <sc-for list="{{ notes }}" as="n" hint-placeholder-count="4"><span style="font-size:12px;line-height:1.6;color:#5D5952;text-wrap:pretty">{{ n.t }}</span></sc-for>
+          <span style="font-size:11px;line-height:1.5;color:#8A8378;font-family:ui-monospace,Menlo,monospace">{{ diag }}</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:0;right:0;bottom:max(24px,env(safe-area-inset-bottom));z-index:60;display:flex;justify-content:center;pointer-events:none"><span style="max-width:80vw;padding:8px 14px;border-radius:10px;background:rgba(40,32,24,.86);color:#FBF8F2;font-size:13px;line-height:1.5;text-align:center">{{ toast }}</span></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;demo&quot;:{&quot;editor&quot;:null,&quot;default&quot;:null,&quot;tsType&quot;:&quot;string|null&quot;,&quot;section&quot;:&quot;静态示意（主画布“新画”一节用；不读写演示存储）&quot;}}">
+const FLOWS={'2.1':{us:'first',label:'2.1 首次使用'},'2.2':{us:'noToday',label:'2.2 日常练习'},'2.3':{us:'noToday',label:'2.3 看答案之后'},'2.4':{us:'noToday',label:'2.4 跳过'},'2.5':{us:'ordHalf',label:'2.5 离开与恢复'},'2.6':{us:'noToday',fail:true,label:'2.6 保存失败'},'2.7':{us:'noToday',label:'2.7 自己选字'},'2.8':{us:'today',view:{name:'library'},label:'2.8 字库'},'2.9':{us:'today',view:{name:'mine'},label:'2.9 我的与记录'},'2.10':{us:'today',view:{name:'settings',from:{name:'mine'}},label:'2.10 设置与备份'},'2.11':{us:'today',label:'2.11 边界'},
+ '10.1':{us:'today',view:{name:'library'},label:'10.1 字库首页'},'10.2':{us:'today',view:{name:'library'},ui:{lk:{mode:'lookup',text:'感慨',cur:''}},label:'10.2 查字 · 添加'},'10.3':{us:'today',big:true,view:{name:'allWritten',from:{name:'library'}},label:'10.3 有记录的字（300 个字）'},'10.4':{us:'today',view:{name:'wrongList',from:{name:'library'}},label:'10.4 写错过 · 快忘了'},'10.5':{us:'today',view:{name:'detail',c:'题',from:{name:'library'}},label:'10.5 单字详情'},'10.6':{us:'today',view:{name:'mine'},label:'10.6 我的'},'10.7':{us:'today',ui:{noChars:true},label:'10.7 改名'},'10.8':{us:'today',view:{name:'forgetList',from:{name:'library'}},label:'10.8 会话规则'},'10.9':{us:'today',big:true,view:{name:'library'},label:'10.9 演示数据 · 300 个字'},
+ '10.10':{us:'noToday',app:a=>F10(a,true),label:'10.10 结束这组 · 有判断'},'10.10b':{us:'bothHalf',view:{name:'write',slot:'B'},label:'10.10 结束这组 · 零判断'},'10.10c':{us:'noToday',fail:true,app:a=>F10(a,true),label:'10.10 结束这组 · 保存失败'},
+ '10.11':{us:'today',app:a=>F11(a,'题','R','wrongList'),label:'10.11 写对后离开 · 改为写错后进入'},'10.11b':{us:'today',app:a=>F11(a,'题','W','wrongList'),label:'10.11 改为写对后离开'},'10.11c':{us:'today',app:a=>F11(a,'茂','R','forgetList'),label:'10.11 快忘了 · 写过就离开'},
+ '10.12':{us:'today',ink:true,view:{name:'library'},label:'10.12 记录和本人笔迹'},'10.13':{us:'noToday',ui:{noStroke:true},app:a=>{ const Z=window.SZProto; a.A=Z.session(a,'ord',Z.QUEUES.ord,'home'); a.view={name:'write',slot:'A'}; },label:'10.13 笔画数据取不到'},
+ '10.14':{us:'today',view:{name:'backup',from:{name:'mine'}},ui:{protFail:true},label:'10.14 保护副本保存失败'},'10.15':{us:'today',view:{name:'backup',from:{name:'mine'}},ui:{undoFail:true},label:'10.15 撤销失败'}};
+// 10.12 笔迹缺失的样例（同 proto-model build 的 ink 选项）：静、感最近一次没有留下笔迹，体只有形状
+function INK12(a){ a.inkDemo=true; const mk=(c,d,k)=>{ const r=a.records.filter(x=>x.c===c&&x.d===d).pop(); if(r) r.ink=k; }; mk('静','9-22','none'); mk('感','9-24','none'); mk('体','9-22','shape'); }
+// 10.10：这次选的字 额、鲜、境（从首页开始），judge=true 时「额」已判断写对、停在「鲜」写了几笔
+function F10(a,judge){ const Z=window.SZProto, B=Z.session(a,'pick',['额','鲜','境'],'home'); if(judge){ const id='r'+(++a.serial); a.records.push({id,c:'额',d:Z.TODAY,v:'R',i:a.records.filter(r=>r.d===Z.TODAY).length,help:'',sid:B.id,strokes:null}); B.items.push({c:'额',v:'R',rid:id}); B.lastRid=id; B.line='record'; B.i=1; } B.sim='part'; a.B=B; a.view={name:'write',slot:'B'}; }
+// 10.11：从清单页开始的“这次选的字”只有一个字，刚写完、判断为 v，停在结果页（可以修改判断）
+function F11(a,c,v,list){ const Z=window.SZProto, B=Z.session(a,'pick',[c],{name:list,from:{name:'library'}}); const id='r'+(++a.serial); a.records.push({id,c,d:Z.TODAY,v,i:a.records.filter(r=>r.d===Z.TODAY).length,help:'',sid:B.id,strokes:null}); B.items.push({c,v,rid:id}); B.lastRid=id; B.line='record'; B.done=true; B.phase='done'; a.B=B; a.view={name:'result',slot:'B'}; }
+const SET0=()=>({sound:true,bg:1,photoHint:true,large:false,dark:'auto'});
+const PAPER={light:'#F4F0E7',dark:'#221E1A'};
+// 原型层弹层用的颜色，抄 ShiziScreen 的 TH
+const OV={
+ light:{'--p':'#F4F0E7','--c':'#FBF8F2','--sh':'#F7F3EB','--off':'#EFE8DC','--i1':'#3B2F28','--i2':'#5D5952','--i3':'#6A645B','--i4':'#B3AC9F','--i5':'#DED8CD','--a':'#A6533F','--ar':'#A6533F','--g':'#A6533F47','--scrim':'rgba(60,42,28,.22)','--sy0':'#E9E9EB','--syr':'#F2F2F7','--syt':'#1C1C1E','--sys':'#6C6C70','--syl':'#D1D1D6','--ubs':'0 10px 24px rgba(0,0,0,.18)'},
+ dark:{'--p':'#221E1A','--c':'#2D2823','--sh':'#28231E','--off':'#36302A','--i1':'#DCCFB8','--i2':'#B4AC9E','--i3':'#A09A8E','--i4':'#6B645A','--i5':'#413A33','--a':'#AE5A44','--ar':'#D47A5D','--g':'rgba(200,110,85,.34)','--scrim':'rgba(0,0,0,.55)','--sy0':'#1C1C1E','--syr':'#2C2C2E','--syt':'#F2F2F7','--sys':'#8E8E93','--syl':'#38383A','--ubs':'inset 0 0 0 .5px rgba(220,207,184,.18),0 10px 28px rgba(0,0,0,.45)'}
+};
+// 第九稿审美返修：A03 系统示意深色用系统深色面板（--sy*）；T04-B 深色撤销底栏（--ubs）；T01-B 推入投影
+const PUSH_SH={light:'-8px 0 24px rgba(48,38,26,.10)',dark:'-8px 0 24px rgba(0,0,0,.35)'};
+const TOOL0=()=>({scheme:'light',period:'auto',lamp:.05,real:false,reduce:false,debug:{on:false,lo:.25,hi:.9,base:11.5}});
+// 「这次选的字」结果页的离开按钮文字，随来源变化（二.12 第 3 项）。来源键 = 开始这次练习的页面名
+// 第十稿 10.7、10.8：改名“写错过”；写错过 / 快忘了清单、有记录的字完整页也是“这次选的字”的来源
+const LEAVE={home:'回到首页',library:'回到字库',detail:'回到这个字',wrongList:'回到写错过',forgetList:'回到快忘了',allWritten:'回到有记录的字',mine:'回到我的'};
+// 交互表默认动效（第九稿简报三；核对意见一.4 要求原型实现）
+const EASE='cubic-bezier(.2,.7,.2,1)', DUR={push:300,sheetIn:280,sheetOut:220,confirm:180,bar:200,reduce:120};
+// 字库：库名和能练的字数（换库列表用；字库首页练习范围一行只写库名）
+const LIBS={'规范常用字':'可以练 3500 个字','规范次常用字':'可以练 2976 个字','规范专门用字':'可以练 818 个字','小学初中常用字':'可以练 2482 个字'};
+const mdz=d=>{const [m,x]=d.split('-');return m+' 月 '+(+x)+' 日';};
+const HAN=/\p{Script=Han}/u;
+const CN='零一两三四五六七八九'.split('');
+const cn=n=>n<10?CN[n]:n<20?'十'+(n%10?CN[n%10]:''):CN[Math.floor(n/10)].replace('两','二')+'十'+(n%10?CN[n%10]:'');
+
+class Component extends DCLogic {
+  stageRef=React.createRef(); pickRef=React.createRef(); pageRef=React.createRef(); ghostRef=React.createRef();
+  pickElRef=React.createRef(); confirmRef=React.createRef(); bfRef=React.createRef(); wfRef=React.createRef(); sysRef=React.createRef(); undoRef=React.createRef();
+  state={rev:0,lay:null};
+  app=null; wkey=0; localRecs=[]; localWriters=0;
+  ui={libFail:false,clearFail:false,imgMsg:null,panel:false,toast:'',failNext:false,blockSim:false,blockReal:false,blockView:false,blockFrom:null,sheet:null,diffFail:null,notice:'',rec:false,pick:null,confirm:null,sys:null,undo:null,obNote:null,clearArm:false,over:null,libTarget:null,imgMode:null,imgFail:false,bf:null,wf:null,wfBanner:null,note:null};
+
+  // ——— 静态示意（demo 属性）：给主画布“新画”一节用。不读不写 localStorage，不接手机模式和面板 ———
+  static DEMOS(){ const Z=window.SZProto, first=(a)=>{ a.A=Z.session(a,'first',Z.QUEUES.first,'home'); a.A.remind='ask'; };
+    const done=(a,kind,items,extra,src)=>{ const s=Z.session(a,kind,items.map(x=>x.c),src||'home'); s.done=true; s.phase='done'; s.i=items.length-1; items.forEach((it,i)=>{ if(it.v==='S'){ s.items.push({c:it.c,v:'S'}); return; } const id='r'+(++a.serial); a.records.push({id,c:it.c,d:Z.TODAY,v:it.v,i:i,help:'',sid:s.id,strokes:null}); s.items.push({c:it.c,v:it.v,rid:id}); s.lastRid=id; s.line='record'; }); Object.assign(s,extra||{}); a.A=s; a.view={name:'result',slot:'A'}; };
+    const LB=a=>{ a.view={name:'library'}; }, res3=(a,sheetI)=>{ done(a,'ord',[{c:'数',v:'R'},{c:'感',v:'W'},{c:'警',v:'R'}],{}); a.A.items.push({c:'户',v:'A',at:3},{c:'主',v:'S'}); a.A.queue=['数','感','警','户','主']; };
+    return {
+      // ——— 第十稿走查（18 节新画） ———
+      zcWFirst:{us:'first',app:a=>{a.introSeen=true;first(a);a.view={name:'write',slot:'A'};}},
+      zcHomeOne:{us:'pickHalf'}, zcHomeTwo:{us:'bothHalf'},
+      zcS02:{us:'pickHalf',app:LB,run:P=>P.startB(['静','题'],'library')},
+      zcLkRows:{us:'today',app:LB,ui:u=>{u.lk={mode:'lookup',text:'感慨静',cur:'',unsel:['慨'],src:'library'};}},
+      zcLkCard:{us:'today',app:LB,ui:u=>{u.lk={mode:'lookup',text:'感慨静',cur:'感',unsel:[],src:'library'};}},
+      zcLkNew:{us:'today',app:LB,ui:u=>{u.lk={mode:'lookup',text:'馨',cur:'',unsel:[],src:'library'};}},
+      zcLkBad:{us:'today',app:LB,ui:u=>{u.lk={mode:'lookup',text:'龘',cur:'',unsel:[],src:'library'};}},
+      zcLkHome:{us:'today',ui:u=>{u.lk={mode:'pick',text:'题',cur:'',unsel:[],src:'home'};}},
+      zcWrong:{us:'today',app:a=>{a.view={name:'wrongList',from:{name:'library'}};}},
+      zcDetailRm:{us:'today',app:a=>{a.view={name:'detail',c:'馨',from:{name:'library'}};}},
+      zcDetailRmd:{us:'today',app:a=>{a.added=a.added.filter(c=>c!=='馨'); a.view={name:'detail',c:'馨',from:{name:'library'}};},ui:u=>{u.rm={c:'馨'};}},
+      zcRes:{us:'noToday',app:a=>res3(a)},
+      zcResSheet:{us:'noToday',app:a=>res3(a),ui:(u,a)=>{u.sheet={rid:a.A.items[1].rid,fail:false};}},
+      zcResSaw:{us:'noToday',app:a=>res3(a),ui:u=>{u.sheet={item:{c:'户',v:'A',strokes:null},fail:false};}},
+      zcRecords:{us:'today',app:a=>{a.view={name:'records',m:9,from:{name:'mine'}};}},
+      zcBkUndo:{us:'today',app:a=>{const d=Z.restoreData(); a.records=d.records; a.events=d.events; a.view={name:'backup',from:{name:'mine'}};},ui:u=>{u.undo={l1:'已换成备份里的记录',l2:'离开这一页前可以撤销',prev:null,kind:'restore'};}},
+      zcBkLast:{us:'today',app:a=>{const d=Z.restoreData(); a.records=d.records; a.events=d.events; a.bkLast='已换成 9 月 1 日备份里的记录，一共 '+new Set(d.records.map(r=>r.c)).size+' 个字。'; a.view={name:'backup',from:{name:'mine'}};}},
+      zcBkMatch:{us:'today',app:a=>{a.lastBackup='9-24'; a.view={name:'backup',from:{name:'mine'}};},run:P=>{P.app.expSig=P.expSig(P.app);}},
+      zcBkEmpty:{us:'first',app:a=>{a.view={name:'backup',from:{name:'mine'}};}},
+      zcMineFirst:{us:'first',app:a=>{a.view={name:'mine'};}},
+      pick:{us:'noToday',ui:u=>{u.pick={text:'静 题x静山',sel:['静','题'],fail:false,src:'home'};}},
+      pickFail:{us:'noToday',ui:u=>{u.pick={text:'额',sel:['额'],fail:true,src:'home'};}},
+      busy:{us:'pickHalf',ui:u=>{u.confirm={text:'上一组还有「鲜」「境」没写。',yes:'接着写完',no:'取消',ok:()=>{}};}},
+      firstTip:{us:'first',app:a=>{a.introSeen=true;first(a);a.view={name:'write',slot:'A'};}},
+      remindCard:{us:'first',app:a=>{a.introSeen=true;done(a,'first',[{c:'部',v:'R'},{c:'主',v:'W'},{c:'虽',v:'R'}],{remind:'ask'});}},
+      sysFiles:{us:'first',app:a=>{a.view={name:'onboard'};},ui:u=>{u.sys={kind:'files',from:'onboard'};}},
+      sysNotify:{us:'first',app:a=>{a.introSeen=true;done(a,'first',[{c:'部',v:'R'},{c:'主',v:'W'},{c:'虽',v:'R'}],{remind:'ask'});},ui:u=>{u.sys={kind:'notify'};}},
+      sysShare:{us:'today',app:a=>{a.view={name:'records',m:9};},ui:u=>{u.over='image34';u.imgMode='month';u.sys={kind:'share'};}},
+      sysPhotos:{us:'today',app:a=>{a.view={name:'records',m:9};},ui:u=>{u.over='image34';u.imgMode='month';u.sys={kind:'photos'};}},
+      sysExport:{us:'today',app:a=>{a.view={name:'backup'};},ui:u=>{u.sys={kind:'export'};}},
+      undoHome:{us:'noToday',ui:u=>{u.undo={l1:'已换成备份里的记录',l2:'离开这一页前可以撤销',prev:null};}},
+      w04cCancel:{us:'first',app:a=>{a.view={name:'onboard'};},ui:u=>{u.obNote={text:'没有选文件，你的记录没有变。',repick:false};}},
+      w04cInvalid:{us:'first',app:a=>{a.view={name:'onboard'};},ui:u=>{u.obNote={text:'这个文件不是拾字的备份，没法恢复。',repick:true};}},
+      lookupCard:{us:'today',app:a=>{a.view={name:'library'};},ui:u=>{u.lk={mode:'lookup',text:'静',cur:''};}},
+      addSheet:{us:'today',app:a=>{a.view={name:'library'};},ui:u=>{u.lk={mode:'add',text:'性教',unsel:[],fail:false};}},
+      w14d:{us:'ordHalf',app:a=>{a.view={name:'records',m:9};},ui:u=>{u.confirm={text:'已有一份还没结束的练习，可以先返回继续。原进度不会被覆盖。',yes:'返回练习记录',one:true,ok:()=>{}};}},
+      w12fResult:{us:'noToday',app:a=>{done(a,'ord',[{c:'数',v:'S'},{c:'感',v:'S'},{c:'警',v:'S'}],{});}},
+      // 二.12 第 3、4 项：「这次选的字」结果页的横幅与随来源变化的离开按钮
+      pickedHome:{us:'noToday',app:a=>{done(a,'pick',[{c:'静',v:'R'},{c:'题',v:'W'}],{},'home');}},
+      leaveLibrary:{us:'today',app:a=>{done(a,'pick',[{c:'额',v:'R'}],{},'library');}},
+      leaveDetail:{us:'today',app:a=>{done(a,'pick',[{c:'静',v:'R'}],{},{name:'detail',c:'静'});}},
+      leaveAgain:{us:'today',app:a=>{done(a,'pick',[{c:'警',v:'R'},{c:'题',v:'W'},{c:'整',v:'R'},{c:'额',v:'R'},{c:'豕',v:'W'}],{},'wrongList');}},
+      // 第十稿 10.10：结束这组的确认、中途结束的结果页、零判断回到首页的轻提示、结束时保存失败
+      // 第十稿 10.12：笔迹缺失（墙、单字详情、查字卡片、字帖图片 / 这次的图片）；10.13：笔画数据取不到（回忆、看答案、描一遍）
+      inkWall:{us:'today',app:a=>{INK12(a); a.view={name:'library'};}},
+      inkDetail:{us:'today',app:a=>{INK12(a); a.view={name:'detail',c:'静',from:{name:'library'}};}},
+      inkLookup:{us:'today',app:a=>{INK12(a); a.view={name:'library'};},ui:u=>{u.lk={mode:'lookup',text:'静',cur:''};}},
+      inkMonth:{us:'today',app:a=>{INK12(a); a.view={name:'records',m:9};},ui:u=>{u.over='image34';u.imgMode='month';}},
+      inkSession:{us:'today',app:a=>{INK12(a); done(a,'ord',[{c:'数',v:'R'},{c:'感',v:'W'},{c:'警',v:'R'}],{}); a.records.filter(r=>r.sid===a.A.id&&r.c==='感').forEach(r=>{r.ink='none';});},ui:u=>{u.over='image34';u.imgMode='session';}},
+      noStroke:{us:'noToday',app:a=>{a.A=Z.session(a,'ord',Z.QUEUES.ord,'home'); a.view={name:'write',slot:'A'};},ui:u=>{u.noStroke=true;}},
+      noStrokeAnswer:{us:'noToday',app:a=>{a.A=Z.session(a,'ord',Z.QUEUES.ord,'home'); a.A.phase='answer'; a.A.saw=true; a.view={name:'write',slot:'A'};},ui:u=>{u.noStroke=true;}},
+      noStrokeTrace:{us:'noToday',app:a=>{a.A=Z.session(a,'ord',Z.QUEUES.ord,'home'); a.A.phase='trace'; a.A.saw=true; a.view={name:'write',slot:'A'};},ui:u=>{u.noStroke=true;}},
+      // 第十稿 10.14 / 10.15：保护副本存失败（备份页说明框 + 再试一次）；撤销失败（替换后 / 清空后）
+      protFail:{us:'today',app:a=>{a.view={name:'backup'};},ui:u=>{u.bkNote='没能换成备份，你现在的记录没有变。';u.bkRetry=true;}},
+      undoFailRestore:{us:'today',app:a=>{a.view={name:'backup'}; const d=Z.restoreData(); a.records=d.records; a.events=d.events;},ui:u=>{u.bkNote='';u.undo={l1:'没能撤销，现在还是备份里的记录',l2:'可以再点一次撤销',prev:null,kind:'restore',failed:true};}},
+      undoFailClear:{us:'today',app:a=>{a.view={name:'backup'};a.records=[];a.events=[];},ui:u=>{u.bkNote='';u.undo={l1:'没能撤销，记录还是空的',l2:'可以再点一次撤销',prev:null,kind:'clear',failed:true};}},
+      endConfirm:{us:'noToday',app:a=>{F10(a,true);},ui:u=>{u.confirm={text:'还有 2 个字没写，结束后就不写了。判断过的 1 个字已经记下。',yes:'结束这组',no:'接着写',ok:()=>{}};}},
+      endResult:{us:'noToday',app:a=>{done(a,'pick',[{c:'额',v:'R'}],{ended:true},'home'); a.A.queue=['额','鲜','境'];}},
+      endNone:{us:'noToday',ui:u=>{u.note='这组结束了，没有记下字。';}},
+      endFail:{us:'noToday',app:a=>{F10(a,true); a.B.demoFail=true;}},
+      leaveForget:{us:'today',app:a=>{done(a,'pick',[{c:'桥',v:'R'},{c:'碑',v:'R'},{c:'茂',v:'W'}],{},'forgetList');}},
+      leaveAll:{us:'today',app:a=>{done(a,'pick',[{c:'馨',v:'R'},{c:'鼎',v:'R'}],{},'allWritten');}},
+      // 二.12 第 7 项：修改判断弹层的保存失败态（写字页 / 结果页）
+      csFailWrite:{us:'noToday',app:a=>{const s=Z.session(a,'ord',Z.QUEUES.ord,'home'); const id='r'+(++a.serial); a.records.push({id,c:'数',d:Z.TODAY,v:'R',i:0,help:'',sid:s.id,strokes:null}); s.items.push({c:'数',v:'R',rid:id}); s.lastRid=id; s.line='record'; s.i=1; s.demoSheet=true; a.A=s; a.view={name:'write',slot:'A'};}},
+      csFailResult:{us:'noToday',app:a=>{done(a,'ord',[{c:'数',v:'R'},{c:'感',v:'W'},{c:'警',v:'R'},{c:'部',v:'R'}],{});},ui:(u,a)=>{u.sheet={rid:a.A.lastRid,fail:true};}},
+      // 二.12 第 16 项：难度反馈三态（未选见普通结果页；选中；保存失败）
+      diffSel:{us:'noToday',app:a=>{done(a,'ord',[{c:'数',v:'R'},{c:'感',v:'W'},{c:'警',v:'R'},{c:'部',v:'R'}],{diff:1});}},
+      diffFail:{us:'noToday',app:a=>{done(a,'ord',[{c:'数',v:'R'},{c:'感',v:'W'},{c:'警',v:'R'},{c:'部',v:'R'}],{});},ui:u=>{u.diffFail=1;}},
+      sessionImg:{us:'today',app:a=>{done(a,'ord',[{c:'数',v:'R'},{c:'感',v:'W'},{c:'警',v:'R'},{c:'部',v:'R'}],{});},ui:u=>{u.over='image34';u.imgMode='session';}},
+      charImg:{us:'today',app:a=>{a.view={name:'detail',c:'静'};},ui:u=>{u.over='image11';u.imgMode='char';}},
+      wordFeedback:{us:'today',app:a=>{a.view={name:'detail',c:'静'};},ui:u=>{u.wf={c:'静',word:'平静'};}},
+      wfBanner:{us:'today',app:a=>{a.view={name:'detail',c:'静'};},ui:u=>{u.wfBanner={c:'静',word:'平静'};}},
+      imgFail:{us:'today',app:a=>{a.view={name:'records',m:9};},ui:u=>{u.over='image34';u.imgMode='month';u.imgFail=true;}},
+      shareCancel:{us:'today',app:a=>{a.view={name:'records',m:9};},ui:u=>{u.over='image34';u.imgMode='month';u.imgMsg='已取消分享。';}},
+      // 审美返修 A05：手写字图片 3:4（1:1 见 charImg）；A10：保存失败统一样式的对照；A06：撤销底栏在有导航的页面
+      charImg34:{us:'today',app:a=>{a.view={name:'detail',c:'静'};},ui:u=>{u.over='image34';u.imgMode='char';}},
+      bkCancel:{us:'today',app:a=>{a.view={name:'backup'};},ui:u=>{u.bkNote='没有选文件，你的记录没有变。';}},
+      shareCancelS:{us:'today',app:a=>{done(a,'ord',[{c:'数',v:'R'},{c:'感',v:'W'},{c:'警',v:'R'},{c:'部',v:'R'}],{});},ui:u=>{u.over='image34';u.imgMode='session';u.imgMsg='已取消分享。';}},
+      shareCancelC:{us:'today',app:a=>{a.view={name:'detail',c:'静'};},ui:u=>{u.over='image11';u.imgMode='char';u.imgMsg='已取消分享。';}},
+      writeFail:{us:'noToday',app:a=>{const s=Z.session(a,'ord',Z.QUEUES.ord,'home'); s.sim=3; s.demoFail=true; a.A=s; a.view={name:'write',slot:'A'};}},
+      addFail:{us:'today',app:a=>{a.view={name:'library'};},ui:u=>{u.lk={mode:'add',text:'性教',unsel:[],fail:true};}},
+      clearFail:{us:'today',app:a=>{a.view={name:'backup'};},ui:u=>{u.over='clearConfirm';u.clearFail=true;}},
+      undoMine:{us:'today',app:a=>{a.view={name:'mine'};a.records=[];a.events=[];},ui:u=>{u.undo={l1:'已清空所有记录',l2:'离开这一页前可以撤销',prev:null};}},
+      w12f:{us:'today',ui:u=>{u.w12f=true;}},
+      w18c:{us:'today',app:a=>{a.view={name:'backup'};},ui:u=>{u.bkNote='这个文件不是拾字的备份，没法恢复。你的记录没有变。';}},
+      w18f:{us:'today',app:a=>{a.view={name:'backup'};},ui:u=>{u.bkNote='没能恢复，你的记录还是原来的。';}},
+      clearUndo:{us:'today',app:a=>{a.view={name:'backup'};a.records=[];a.events=[];},ui:u=>{u.bkNote='';u.undo={l1:'已清空所有记录',l2:'离开这一页前可以撤销',prev:null};}},
+      homeCompact:{us:'today',app:a=>{a.settings=Object.assign(SET0(),{large:true});}},
+      libFail:{us:'today',app:a=>{a.view={name:'library'};},ui:u=>{u.over='libConfirm';u.libTarget='小学初中常用字';u.libFail=true;}},
+      block:{us:'today',ui:u=>{u.blockSim=true;u.blockView=true;u.blockFrom={name:'home'};}}
+    }; }
+  bootDemo(){ const Z=window.SZProto, D=Component.DEMOS()[this.props.demo]; if(!D){ this.app=Z.build('today'); } else { this.app=Object.assign(Z.build(D.us),{tool:TOOL0()}); if(D.app) D.app(this.app); if(D.ui) D.ui(this.ui,this.app); if(D.run) D.run(this); }
+    // 自查用：demo-dark 深色、demo-large 紧凑版（更大字体）
+    if(this.props.demoDark) this.app.tool=Object.assign(this.app.tool||TOOL0(),{scheme:'dark'}); if(this.props.demoLarge) this.app.settings=Object.assign(SET0(),this.app.settings||{},{large:true});
+    this.demo=true; const d=this.dims(); this.setState({lay:{mode:'demo',s:1,W:d.W,H:d.H,SW:d.W,SH:d.H,kb:0}}); }
+  componentDidMount(){
+    this.q=new URLSearchParams(location.search);
+    if(this.props.demo!=null){ const w=()=>{ if(this._gone) return; if(window.SZProto&&window.SZRec) this.bootDemo(); else setTimeout(w,40); }; w(); return; }
+    const m=document.querySelector('meta[name=viewport]'); if(m) m.setAttribute('content','width=device-width, initial-scale=1, viewport-fit=cover');
+    const pr=document.createElement('div'); pr.style.cssText='position:fixed;left:0;top:0;width:1px;height:env(safe-area-inset-top);visibility:hidden;pointer-events:none'; document.body.appendChild(pr); this.probe=pr;
+    this.onResize=()=>this.relayout(); addEventListener('resize',this.onResize); addEventListener('orientationchange',this.onResize);
+    if(window.visualViewport){ visualViewport.addEventListener('resize',this.onResize); visualViewport.addEventListener('scroll',this.onResize); }
+    if(window.ResizeObserver){ this.ro=new ResizeObserver(this.onResize); this.ro.observe(document.documentElement); }
+    requestAnimationFrame(this.onResize);
+    // 1.2 防止双指缩放
+    this.ges=e=>e.preventDefault(); ['gesturestart','gesturechange','gestureend'].forEach(n=>document.addEventListener(n,this.ges,{passive:false}));
+    this.ts=e=>this.tStart(e); this.tm=e=>this.tMove(e); this.te=()=>this.tEnd();
+    addEventListener('touchstart',this.ts,{passive:true}); addEventListener('touchmove',this.tm,{passive:true}); addEventListener('touchend',this.te); addEventListener('touchcancel',this.te);
+    const wait=()=>{ if(this._gone) return; if(window.SZProto&&window.SZRec) this.boot(); else setTimeout(wait,40); }; wait();
+  }
+  componentWillUnmount(){ this._gone=true; removeEventListener('resize',this.onResize); removeEventListener('orientationchange',this.onResize);
+    ['gesturestart','gesturechange','gestureend'].forEach(n=>document.removeEventListener(n,this.ges));
+    removeEventListener('touchstart',this.ts); removeEventListener('touchmove',this.tm); removeEventListener('touchend',this.te); removeEventListener('touchcancel',this.te);
+    if(this.ro) this.ro.disconnect(); if(this.probe) this.probe.remove(); clearTimeout(this._tt); clearTimeout(this._ut); }
+  componentDidUpdate(){ const p=this._pend; if(p){ this._pend=null; this.runTrans(p.kind); } this.animIn(); this.fitUndone(); }
+  // 收尾核对 Y02：备份页撤销以后页面变长时，“已撤销”不盖住下面的按钮——页底先留出提示的高度（--bkpb），再把页面往上滚到最后一行在提示上方
+  fitUndone(){ const u=this.ui.undone; if(!u||u.v!=='backup'||this._udFit===u) return; this._udFit=u;
+    const fit=()=>{ const t=this._undoneEl; if(!t||!t.parentElement) return; const end=document.querySelector('[data-bk-end]'); const sc=end&&end.parentElement; if(!sc) return;
+      const tr=t.getBoundingClientRect(), er=end.getBoundingClientRect(), s=t.offsetHeight?tr.height/t.offsetHeight:1, over=(er.bottom-tr.top)/s+12; if(over<=0) return;
+      sc.style.setProperty('--bkpb',Math.ceil(t.offsetHeight+(sc.getBoundingClientRect().bottom-tr.bottom)/s+24)+'px'); sc.scrollTop+=over; };
+    fit(); setTimeout(fit,60); }
+  undoneRef=el=>{ this._undoneEl=el; };
+
+  // ——— 交互表动效（核对意见一.4）。位移动画在「减少动态效果」下改为 120ms 交叉淡化 ———
+  reduce(){ const t=this.app&&this.app.tool; if(t&&t.reduce) return true; try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } }
+  // 页面推入 / 推出：把当前页的 DOM 克隆成一张静态「影子」，新页从右推入盖住它，或旧页（影子）向右推出露出新页
+  beginTrans(kind){ if(this.demo) return; const P=this.pageRef.current, G=this.ghostRef.current; if(!P||!G||!P.animate) return;
+    try{ const c=P.cloneNode(true); const a=P.querySelectorAll('canvas'), b=c.querySelectorAll('canvas'); a.forEach((cv,i)=>{ try{ const d=b[i]; d.width=cv.width; d.height=cv.height; d.getContext('2d').drawImage(cv,0,0); }catch(e){} });
+      c.style.position='absolute'; c.style.inset='0'; G.innerHTML=''; G.appendChild(c); this._pend={kind}; }catch(e){ G.innerHTML=''; } }
+  runTrans(kind){ const P=this.pageRef.current, G=this.ghostRef.current; if(!P||!G||!G.firstChild) return; if(this._ta) this._ta.forEach(x=>{try{x.cancel();}catch(e){}}); try{ G.getAnimations().forEach(a=>a.cancel()); P.getAnimations().forEach(a=>a.cancel()); }catch(e){}
+    let fined=false; const fin=()=>{ if(fined) return; fined=true; try{ G.getAnimations().forEach(a=>a.cancel()); }catch(e){} G.style.display='none'; G.innerHTML=''; G.style.zIndex=''; P.style.zIndex=''; P.style.boxShadow=''; G.style.boxShadow=''; this._ta=null; };
+    P.style.boxShadow=''; G.style.boxShadow='';
+    G.style.display='block'; setTimeout(fin,(this.reduce()?DUR.reduce:DUR.push)+120);
+    if(this.reduce()){ G.style.zIndex=2; const an=G.animate([{opacity:1},{opacity:0}],{duration:DUR.reduce,easing:'linear',fill:'forwards'}); an.onfinish=fin; this._ta=[an]; return; }
+    // T01-B：推入时新页左缘一道淡投影；返回时退出的那一页带同样的投影；旧页不动、不压暗；动画结束去掉（减少动态效果下不加）
+    const sh=PUSH_SH[this._dark?'dark':'light'];
+    if(kind==='push'){ G.style.zIndex=0; P.style.zIndex=1; P.style.boxShadow=sh; const an=P.animate([{transform:'translateX(100%)'},{transform:'translateX(0)'}],{duration:DUR.push,easing:EASE}); an.onfinish=fin; this._ta=[an]; }
+    else { G.style.zIndex=2; G.style.boxShadow=sh; const an=G.animate([{transform:'translateX(0)'},{transform:'translateX(100%)'}],{duration:DUR.push,easing:EASE,fill:'forwards'}); an.onfinish=fin; this._ta=[an]; } }
+  // 弹层元素：原型层的用 ref；组件内的（换库、确认、图片、修改判断）按 z-index:5 的绝对定位元素找
+  ov(k){ const R={pick:this.pickElRef,confirm:this.confirmRef,bf:this.bfRef,wf:this.wfRef,sys:this.sysRef,undo:this.undoRef}[k]; if(R) return R.current;
+    if(k==='lk'){ const P=this.pageRef.current; return P?P.querySelector('[data-lksheet]'):null; }
+    if(k==='over'){ const P=this.pageRef.current; return P?[...P.querySelectorAll('[style*="z-index"]')].find(e=>e.style.zIndex==='5'&&e.style.position==='absolute')||null:null; } return null; }
+  scrimOf(el){ const s=el&&el.previousElementSibling; return s&&s!==el&&s.style.inset==='0px'&&s.style.position==='absolute'?s:null; }
+  kindOf(el){ return el.style.top==='50%'?'confirm':'sheet'; }
+  // 进场：底部弹层升起 280ms（遮罩同时淡入）；居中确认 180ms 从 .96 放大；撤销底栏升起 200ms
+  animIn(){ if(this.demo) return; const red=this.reduce();
+    const list=[['pick','sheet'],['bf','sheet'],['wf','sheet'],['sys','sheet'],['confirm','confirm'],['undo','bar']].map(([k,kind])=>[this.ov(k),kind]);
+    const P=this.pageRef.current; if(P) P.querySelectorAll('[style*="z-index"]').forEach(el=>{ if(el.style.zIndex==='5'&&el.style.position==='absolute'&&(el.style.top==='50%'||el.style.bottom!=='')) list.push([el,this.kindOf(el)]); });
+    list.forEach(([el,kind])=>{ if(!el||el.__in||!el.animate) return; el.__in=true; const sc=this.scrimOf(el), d=red?DUR.reduce:kind==='sheet'?DUR.sheetIn:kind==='confirm'?DUR.confirm:DUR.bar, base=el.style.transform||'';
+      const kf=red?[{opacity:0},{opacity:1}]:kind==='confirm'?[{opacity:0,transform:base+' scale(.96)'},{opacity:1,transform:base+' scale(1)'}]:[{transform:'translateY(100%)'},{transform:'translateY(0)'}];
+      el.animate(kf,{duration:d,easing:red?'linear':EASE}); if(sc) sc.animate([{opacity:0},{opacity:1}],{duration:d,easing:'linear'}); }); }
+  // 退场：弹层下落 220ms（遮罩同时淡出）；确认 180ms 淡出；撤销底栏 200ms 淡出。动画完了再执行关闭
+  leave(k,fn){ const el=this.ov(k); if(!el||!el.animate||this.demo){ fn(); return; } if(el.__closing) return; el.__closing=true;
+    const red=this.reduce(), kind=k==='undo'?'bar':k==='confirm'?'confirm':k==='over'?this.kindOf(el):'sheet', d=red?DUR.reduce:kind==='sheet'?DUR.sheetOut:kind==='confirm'?DUR.confirm:DUR.bar, sc=this.scrimOf(el);
+    const kf=red||kind!=='sheet'?[{opacity:1},{opacity:0}]:[{transform:'translateY(0)'},{transform:'translateY(100%)'}];
+    const an=el.animate(kf,{duration:d,easing:red?'linear':'cubic-bezier(.4,0,.2,1)',fill:'forwards'}); if(sc) sc.animate([{opacity:1},{opacity:0}],{duration:d,easing:'linear',fill:'forwards'});
+    let done=false; const go=()=>{ if(done) return; done=true; fn(); }; an.onfinish=go; setTimeout(go,d+80); }
+
+  // ——— 启动：深链 → 已存进度 → 默认「今天还没记录」 ———
+  boot(){
+    const Z=window.SZProto, q=this.q, flow=q.get('flow');
+    const r=Z.load(); let tool=Object.assign(TOOL0(),(r.state&&r.state.tool)||{});
+    if(q.get('scheme')==='dark'||q.get('scheme')==='light') tool.scheme=q.get('scheme');
+    if(r.blocked){ this.ui.blockReal=true; this.app=Object.assign(Z.build('noToday'),{tool}); this.ui.blockView=true; this.ui.blockFrom={name:'home'}; }
+    else if(flow&&FLOWS[flow]){ const F=FLOWS[flow]; this.app=Object.assign(Z.build(F.us,F.big||F.ink?{big:!!F.big,ink:!!F.ink}:null),{tool:Object.assign(tool,{debug:TOOL0().debug})}); this.ui.failNext=!!F.fail; if(F.view) this.app.view=JSON.parse(JSON.stringify(F.view)); if(F.ui) Object.assign(this.ui,JSON.parse(JSON.stringify(F.ui))); if(F.app) F.app(this.app); Z.save(this.app); }
+    else if(r.state){ this.app=r.state; this.app.tool=tool; }
+    else { this.app=Object.assign(Z.build('noToday'),{tool}); if(r.reset) this.ui.notice=r.reset; Z.save(this.app); }
+    if(flow){ try{ q.delete('flow'); const s=q.toString(); history.replaceState(null,'',location.pathname+(s?'?'+s:'')); }catch(e){} }
+    if(q.get('panel')==='1') this.ui.panel=true;
+    if(q.get('rec')==='1') this.ui.rec=true;
+    this.loadRecs(); this.relayout(); this.bump();
+  }
+  bump(){ if(!this._gone) this.setState(s=>({rev:s.rev+1})); }
+  // 收尾 X04：“已撤销”放在手机框里、撤销底栏原来的位置（--ubb），2.4 秒；换页就不显示
+  undone(){ const ui=this.ui; ui.undone={v:this.app.view.name}; clearTimeout(this._udt); this._udt=setTimeout(()=>{ ui.undone=null; this.bump(); },2400); this.bump(); }
+  toast(t){ this.ui.toast=t; clearTimeout(this._tt); this._tt=setTimeout(()=>{this.ui.toast='';this.bump();},2600); this.bump(); }
+  // 5.2 本机录制：只读一份缓存，给真人笔迹开关用；录制模式每存一条就刷新
+  loadRecs(){ window.SZRec.all().then(d=>{ if(this._gone) return; this.localRecs=d.recs||[]; this.localWriters=Object.keys(d.writers||{}).length; this.bump(); }).catch(()=>{}); }
+  realAvail(){ const I=window.SZInk; return !!(this.localRecs.some(r=>!r.kind||r.kind==='normal')||(I&&Object.keys(window.SZProto.SAMPLES).some(c=>I.pick(c)))); }
+  replaySrc=c=>{ const I=window.SZInk, f=I&&I.pick(c); if(f) return f; return this.localRecs.find(r=>r.char===c&&(!r.kind||r.kind==='normal'))||null; };
+
+  // ——— 1.2 手机模式与缩放 ———
+  standalone(){ return !!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||(this.q&&this.q.get('sa')==='1')); }
+  // 舞台尺寸：更大字体开着时是紧凑版 360×640
+  dims(){ const L=this.app&&this.app.settings&&this.app.settings.large; return L?{W:360,H:640}:{W:393,H:852}; }
+  relayout(){
+    if(!this.q||this.demo) return; const D=this.dims();
+    // 自查用：?vw=&vh= 模拟视口尺寸，?it= 模拟顶部安全区（只在检查时用）
+    const q=this.q, W=+q.get('vw')||innerWidth,H=+q.get('vh')||innerHeight,phone=W<=500||q.get('phone')==='1',sa=this.standalone();
+    // 视口尚未量出（iframe 冷启动、PWA 启动瞬间）：不写 scale 0，稍后重试
+    if(!(W>0&&H>0)){ if(!this._gone) requestAnimationFrame(()=>this.relayout()); return; }
+    const it=q.get('it')!=null?+q.get('it'):this.probe?this.probe.getBoundingClientRect().height||0:0;
+    // 键盘：visualViewport 变矮的部分，弹层随之上移（2.7 / 2.8）
+    const vv=window.visualViewport, kb=phone&&vv&&!q.get('vh')?Math.max(0,Math.round(innerHeight-vv.height-vv.offsetTop)):0;
+    if(!phone){ const s=Math.max(.4,Math.min(1,(H-48)/D.H,(W-340-96)/D.W)); this.setState({lay:{mode:'desk',W,H,s,sa,kb:0,SW:D.W,SH:D.H}}); return; }
+    const s=Math.min(W/D.W,H/D.H), top=sa?Math.max(0,Math.min(it-54*s,20*s)):0;
+    this.setState({lay:{mode:'phone',W,H,s,top,left:(W-D.W*s)/2,sa,it,kb,SW:D.W,SH:D.H}});
+  }
+  // 两指长按左上角 1 秒打开面板；独立模式下左边缘右滑 = 返回
+  tStart(e){ const L=this.state.lay; if(!L||L.mode!=='phone') return; const T=e.touches;
+    if(T.length===2&&T[0].clientX<150&&T[0].clientY<150&&T[1].clientX<150&&T[1].clientY<150){ clearTimeout(this._lp); this._lp=setTimeout(()=>{this.ui.panel=true;this.bump();},1000); this._lpAt=[T[0].clientX,T[0].clientY]; }
+    else clearTimeout(this._lp);
+    if(T.length===1&&L.sa&&T[0].clientX<20) this._sw={x:T[0].clientX,y:T[0].clientY,done:false}; else this._sw=null; }
+  tMove(e){ const T=e.touches;
+    if(this._lpAt&&T[0]&&Math.hypot(T[0].clientX-this._lpAt[0],T[0].clientY-this._lpAt[1])>24) clearTimeout(this._lp);
+    const w=this._sw; if(!w||w.done||!T[0]) return; const dx=T[0].clientX-w.x, dy=Math.abs(T[0].clientY-w.y);
+    if(dy>60) this._sw=null; else if(dx>72&&dy<dx*.6){ w.done=true; this.edgeBack(); } }
+  tEnd(){ clearTimeout(this._lp); this._lpAt=null; this._sw=null; }
+  // 一.5：侧滑返回对所有下一层页面有效；tab 根页（首页、字库、我的）和阻断页不动；弹层开着时先不响应
+  edgeBack(){ const v=this.curView(), ui=this.ui; if(ui.panel||ui.rec||ui.pick||ui.lk||ui.confirm||ui.sys||ui.bf||ui.wf) return;
+    if(ui.w12f){ ui.w12f=false; this.bump(); return; }
+    if(ui.over){ this.scrNav('closeOver'); return; }
+    if(v.name==='write'){ const r=this.stageRef.current, b=r&&(r.querySelector('button[aria-label="保存并返回"]')||r.querySelector('button[aria-label="回到格子里接着写"]')); if(b) b.click(); }
+    else if(v.name==='result') this.scrNav('close');
+    else if(v.name==='home'||v.name==='library'||v.name==='mine'||v.name==='block') return;
+    else this.back(); }
+
+  // ——— 1.3 写入：显式写入可被「下一次保存失败」拦下；存储不可用时进阻断页 ———
+  blocked(){ return this.ui.blockSim||this.ui.blockReal; }
+  toBlock(){ if(!this.ui.blockView){ this.ui.blockFrom=this.app.view; this.ui.blockView=true; Object.assign(this.ui,{sheet:null,pick:null,lk:null,confirm:null,sys:null,over:null,bf:null,wf:null,libFail:false,clearFail:false,imgMsg:null}); } this.bump(); }
+  commit(fn,explicit){ let kind=this._kind; this._kind=null;
+    if(this.blocked()){ this.toBlock(); return false; }
+    if(explicit&&this.ui.failNext){ this.ui.failNext=false; this.bump(); return false; }
+    const next=JSON.parse(JSON.stringify(this.app)); fn(next); if(this._kind){ kind=this._kind; this._kind=null; } this.expireUndo(next);
+    if(this.demo){ this.app=next; this.bump(); return true; }
+    if(!window.SZProto.save(next)){ this.ui.blockReal=true; this.toBlock(); return false; }
+    if(JSON.stringify(next.view)!==JSON.stringify(this.app.view)){ this._vt=performance.now(); if(kind) this.beginTrans(kind); }
+    this.app=next; this.bump(); return true;
+  }
+  go(view){ return this.commit(a=>{a.view=view;},false); }
+  curView(){ return this.ui.blockView?{name:'block'}:(this.app?this.app.view:{name:'home'}); }
+  // 第十稿走查 W13：最后一个字判断完（或看过答案后点“下一个”、跳过）直接进结果页，不再有“这一组写完了”中间页
+  adv(s,a){ s.strokes=[];s.hints=0;s.used=0;s.saw=false;s.sim=0;s.hr=null; if(s.i>=s.queue.length-1){s.phase='done';s.done=true; if(a&&a.view&&a.view.name==='write'){ a.view={name:'result',slot:a.view.slot}; this._kind='push'; }} else {s.i++;s.phase='recall';} }
+  viewOf(src){ return typeof src==='string'?{name:src}:(src||{name:'home'}); }
+  dayIdx(a){ return a.records.filter(r=>r.d===window.SZProto.TODAY).length+a.events.filter(e=>e.d===window.SZProto.TODAY).length; }
+  openWrite(slot){ this.wkey++; this._kind='push'; this.go({name:'write',slot}); }
+  resetTo(us,extra,opt){ const Z=window.SZProto, tool=Object.assign({},(this.app&&this.app.tool)||TOOL0(),{debug:TOOL0().debug});
+    const next=Object.assign(Z.build(us,opt&&(opt.big||opt.ink)?{big:!!opt.big,ink:!!opt.ink}:null),{tool});
+    if(this.blocked()){ this.toast('存储阻断开着，演示没法重置'); return; }
+    if(!Z.save(next)){ this.ui.blockReal=true; this.toBlock(); return; }
+    this.app=next; this.wkey++; clearTimeout(this._ut); Object.assign(this.ui,{sheet:null,diffFail:null,pick:null,lk:null,confirm:null,sys:null,undo:null,obNote:null,over:null,imgFail:false,bf:null,wf:null,wfBanner:null,note:null,libFail:false,clearFail:false,imgMsg:null},extra||{}); this.bump(); }
+
+  // ——— 首页 ———
+  homeNav=k=>{ const a=this.app, ui=this.ui;
+    if(k==='start'){
+      if(a.B&&!a.B.done) return this.openWrite('B');
+      if(a.A&&!a.A.done) return this.openWrite('A');
+      // 第十稿走查 W01：去掉首次说明页，第一次也直接进写字页（第一次练习 5 个字，K26）
+      if(!a.introSeen){ this.wkey++; this._kind='push'; this.commit(x=>{ x.introSeen=true; x.A=window.SZProto.session(x,'first',window.SZProto.QUEUES.first,'home'); x.A.remind='ask'; x.view={name:'write',slot:'A'}; },false); return; }
+      if(ui.noSched){ ui.w12f=true; this.bump(); return; }
+      this.wkey++; this._kind='push'; this.commit(x=>{x.A=window.SZProto.session(x,'ord',window.SZProto.QUEUES.ord,'home');x.view={name:'write',slot:'A'};},false); return; }
+    // 第十稿走查 L01：首页“自己选字”打开和字库查字同一个弹层（标题“自己选字”）；有一组没写完时，在开始新组那一刻统一弹 S02 的框
+    if(k==='pick'){ ui.lk={mode:'pick',text:'',cur:'',unsel:[],src:'home'}; this.bump(); return; }
+    if(k==='other'){ const o=this.otherSlot(); if(o) return this.openWrite(o); return; }
+    if(k==='library'||k==='mine') return this.go({name:k});
+    if(k==='records') return this.push({name:'records',m:9}); };
+  // ——— 页面栈：进下一层记住来处，返回回来处 ———
+  push(v){ this.ui.over=null; this.ui.lk=null; this._kind='push'; this.commit(a=>{ v.from=a.view; a.view=v; },false); }
+  back(){ const ui=this.ui, v=this.curView(); ui.over=null; ui.imgFail=false; ui.wfBanner=null;
+    const lk=v.name==='detail'&&v.lookup?v.lookup:null;
+    this._kind='pop'; this.commit(a=>{ a.view=a.view.from||{name:'home'}; },false);
+    // 10.2：从查字进的单字详情，返回时回到查字弹层，输入和选中的字不变
+    if(lk){ ui.lk={mode:lk.mode||'lookup',text:lk.text||'',cur:lk.cur||'',unsel:[],src:lk.src||'library'}; this.bump(); } }
+  startFlow(k){ const F=FLOWS[k]; this.resetTo(F.us,Object.assign({failNext:false,panel:false,rec:false,noStroke:false,protFail:false,undoFail:false,bkRetry:false},F.ui?JSON.parse(JSON.stringify(F.ui)):{}),{big:!!F.big,ink:!!F.ink}); if(F.app) this.commit(a=>F.app(a),false); else if(F.view) this.go(JSON.parse(JSON.stringify(F.view))); this.ui.failNext=!!F.fail; this.bump(); }
+  // 10.10 中途结束“这次选的字”：先确认；已判断的字保留为记录，没写的字不算记录也不算跳过；有判断 → 结果页，零判断 → 直接回到来源并给一句轻提示；结束时保存失败留在写字页（同 2.6），重试成功后再结束
+  wEnd=(snap,confirmed)=>{ const a=this.app, s=a.B; if(!s||s.done||this.slot()!=='B') return;
+    const judged=s.items.filter(it=>it.v==='R'||it.v==='W').length, rest=Math.max(0,s.queue.length-s.items.length);
+    if(confirmed) return this.endGroup();
+    this.ui.confirm={text:'还有 '+rest+' 个字没写，结束后就不写了。'+(judged?'判断过的 '+judged+' 个字已经记下。':''),yes:'结束这组',no:'接着写',ok:()=>{ this.ui.confirm=null; this.endGroup(); }}; this.bump(); };
+  endGroup(){ const a=this.app, s=a.B; if(!s) return; const judged=s.items.some(it=>it.v==='R'||it.v==='W'), src=s.src;
+    this._kind=judged?'push':'pop';
+    const ok=this.commit(x=>{ const b=x.B; b.done=true; b.phase='done'; b.ended=true; if(judged) x.view={name:'result',slot:'B'}; else { x.B=null; x.view=this.viewOf(src); } },true);
+    if(!ok){ if(!this.ui.blockView){ this.ui.endFail=(this.ui.endFail||0)+1; this.bump(); } return; }
+    if(!judged) this.note('这组结束了，没有记下字。'); }
+  // ——— 第十稿：查字 / 添加自选的字弹层（组件「字库墨墙屏」画，状态在 ui.lk） ———
+  lkCur(){ const L=this.ui.lk; if(!L) return ''; const han=[...new Set([...(L.text||'')].filter(ch=>HAN.test(ch)))]; return L.cur&&han.includes(L.cur)?L.cur:han.length===1?han[0]:''; }
+  onLkInput=t=>{ const L=this.ui.lk; if(!L) return; L.text=t; L.cur=''; L.unsel=[]; L.addFail=false; this.bump(); };
+  // S01：首页“继续写字”继续的是哪一组（B 优先），另一组在下面再列一行
+  grpLabel(s){ return !s?'':s.kind==='pick'?'这次选的字':s.kind==='first'?'第一次练习':'今天的练习'; }
+  grpRest(s){ return Math.max(0,s.queue.length-s.items.length); }
+  otherSlot(){ const a=this.app, b=a.B&&!a.B.done, aa=a.A&&!a.A.done; return b&&aa?'A':null; }
+  // 添加自选的字：输入即勾选（只勾能练的字），开始练以后才加进自选的字；保存失败留在弹层（W19-b）
+  addStart(){ const ui=this.ui, L=ui.lk; if(!L) return; const Z=window.SZProto, ST=window.__szStore, han=[...new Set([...(L.text||'')].filter(ch=>HAN.test(ch)))];
+    const sel=han.filter(c=>Z.canPractice(c)&&!(ST&&ST.data[c]===null)&&!(L.unsel||[]).includes(c)); if(!sel.length) return;
+    const a=this.app; if(a.B&&!a.B.done){ ui.lk=null; return this.startB(sel,'library'); }
+    this.wkey++; this._kind='push';
+    const ok=this.commit(x=>{ sel.forEach(c=>{ if(!x.added.includes(c)) x.added.push(c); }); x.B=Z.session(x,'pick',sel,'library'); x.view={name:'write',slot:'B'}; },true);
+    if(ok) ui.lk=null; else if(!ui.blockView) L.fail=true; this.bump(); }
+  // 有记录的字完整页：月份默认展开最近两个月，其余收起；fold 记下手动展开 / 收起
+  monthsDesc(){ const L=window.SZProto.lists(this.app.records,window.SZProto.TODAY).latest; return [...new Set(Object.values(L).map(r=>+r.d.split('-')[0]))].sort((x,y)=>y-x); }
+  onFindInput=t=>{ if(this.curView().name!=='allWritten') return; this.commit(x=>{ x.view.find=t; },false); };
+  // 开始一组「这次选的字」（B）：来源决定写完回哪里；B 没写完时先弹占用提示
+  // 第十稿走查 S02：有一组“这次选的字”没写完时开新组，统一弹这个框（首页自己选字、清单练这些字、查字练这个字、单字详情练这个字都走这里）
+  startB(chars,src,explicit){ const a=this.app, ui=this.ui; if(!chars.length) return false;
+    if(a.B&&!a.B.done){ const rest=a.B.queue.slice(a.B.items.length);
+      ui.confirm={text:'上一组还有'+rest.map(c=>'「'+c+'」').join('')+'没写。',yes:'接着写那组',three:true,mid:'结束那组，开新的',
+        ok:()=>{ ui.confirm=null; this.openWrite('B'); },
+        okMid:()=>{ ui.confirm=null; ui.over=null; ui.wfBanner=null; this.wkey++; this._kind='push';
+          // 按 10.10 的结束规则结束旧组：已判断的字保留为记录，没写的字不算记录也不算跳过；不出旧组的结果页，直接用刚选的字开新组
+          this.commit(x=>{ x.B=window.SZProto.session(x,'pick',chars,src); x.view={name:'write',slot:'B'}; },true); this.bump(); }};
+      this.bump(); return false; }
+    this.wkey++; ui.over=null; ui.wfBanner=null; this._kind='push';
+    return this.commit(x=>{ x.B=window.SZProto.session(x,'pick',chars,src); x.view={name:'write',slot:'B'}; },!!explicit); }
+
+  // ——— 2.7 自己选字弹层 ———
+  parsePick(text){ const Z=window.SZProto, chars=[...text], han=chars.filter(ch=>HAN.test(ch)), other=chars.length-han.length, uniq=[...new Set(han)], dups=[...new Set(han.filter((c,i)=>han.indexOf(c)!==i))];
+    return {other,dups,ok:uniq.filter(c=>Z.SAMPLES[c]),bad:uniq.filter(c=>!Z.SAMPLES[c])}; }
+  pickStart(){ const ui=this.ui, p=ui.pick; if(!p||!p.sel.length) return;
+    const a=this.app; if(a.B&&!a.B.done){ ui.pick=null; return this.startB(p.sel,p.src); }
+    this.wkey++; this._kind='push';
+    // 添加自选的字：明确开始以后，这些字才加进自选的字（术语修订四.10）
+    const ok=this.commit(x=>{ if(p.mode==='add') p.sel.forEach(c=>{ if(!x.added.includes(c)) x.added.push(c); }); x.B=window.SZProto.session(x,'pick',p.sel,p.src||'home'); x.view={name:'write',slot:'B'}; },true);
+    if(ok) ui.pick=null; else if(!ui.blockView) p.fail=true; this.bump(); }
+
+  // ——— 写字页回调（2.2 / 2.5 / 2.6） ———
+  slot(){ return this.app.view.slot; }
+  wBack=snap=>{ this._kind='pop'; return this.commit(a=>{ const s=a[a.view.slot];
+    if(s&&!s.done&&snap.i===s.i) Object.assign(s,{phase:snap.phase,hints:snap.hints,used:snap.used,saw:snap.saw,strokes:snap.strokes,sim:snap.sim,line:snap.line,hr:snap.hr||null});
+    a.view=this.viewOf(s&&s.src); },true); };
+  wJudge=o=>{ let id=null; const ok=this.commit(a=>{ const s=a[a.view.slot]; if(!s||s.done||s.i!==o.i) return; const v=o.verdict==='right'?'R':'W';
+      id='r'+(++a.serial); a.records.push({id,c:o.c,d:window.SZProto.TODAY,v,i:this.dayIdx(a),help:o.saw?'answer':o.hints?'hint':'',sid:s.id,strokes:o.strokes});
+      s.items.push({c:o.c,v,rid:id}); s.lastRid=id; s.lastC=null; s.line='record'; if(s.kind==='first'&&s.i===0) a.tipSeen=true; this.adv(s,a); },true);
+    return ok&&id?{ok:true,id}:false; };
+  wSkip=o=>{ this.commit(a=>{ const s=a[a.view.slot]; if(!s||s.done||s.i!==o.i) return; const v=o.saw?'A':'S';
+      a.events.push({id:'e'+(++a.serial),c:o.c,d:window.SZProto.TODAY,v,i:this.dayIdx(a),sid:s.id}); s.items.push({c:o.c,v}); s.line=null; s.lastC=null; if(s.kind==='first'&&s.i===0) a.tipSeen=true; this.adv(s,a); },false); return true; };
+  wCorrect=(id,verdict)=>this.commit(a=>{ const r=a.records.find(x=>x.id===id), v=verdict==='right'?'R':'W'; if(r){r.v=v;r.rev=(r.rev||0)+1;}
+      const s=a[a.view.slot]; if(s){ s.line='changed'; const it=s.items.find(x=>x.rid===id); if(it) it.v=v; } },true);
+  wState=snap=>{ const s=this.app[this.slot()]; if(!s||s.done||snap.i!==s.i||snap.phase==='done') return;
+    this.commit(a=>{ const ss=a[a.view.slot]; Object.assign(ss,{phase:snap.phase,hints:snap.hints,used:snap.used,saw:snap.saw,strokes:snap.strokes,sim:snap.sim,line:snap.line,hr:snap.hr||null}); if(ss.kind==='first'&&ss.i===0&&snap.strokes&&snap.strokes.length) a.tipSeen=true; },false); };
+  // K25：确认看答案的那一刻就记为“看过答案”（不是有效记录，和跳过一样不进写错过 / 快忘了）；之后点“下一个”只翻页，不出判断页
+  wSaw=o=>{ this.commit(a=>{ const s=a[a.view.slot]; if(!s||s.done||s.i!==o.i||s.items.some(it=>it.c===o.c&&it.v==='A'&&it.at===s.i)) return;
+      a.events.push({id:'e'+(++a.serial),c:o.c,d:window.SZProto.TODAY,v:'A',i:this.dayIdx(a),sid:s.id}); s.items.push({c:o.c,v:'A',at:s.i}); s.saw=true; s.phase='answer'; s.line='saw'; s.lastC=o.c; },false); return true; };
+  wNext=o=>{ this.commit(a=>{ const s=a[a.view.slot]; if(!s||s.done||s.i!==o.i) return; const it=s.items.find(x=>x.v==='A'&&x.at===s.i); if(it&&o.strokes&&o.strokes.length) it.strokes=o.strokes; s.line='saw'; s.lastC=o.c; this.adv(s,a); },false); return true; };
+  wNav=k=>{ if(k==='result'){ this._kind='push'; this.go({name:'result',slot:this.slot()}); } };
+
+  // ——— 2.1 恢复（首次说明）：文件选择示意 → 有效备份直接恢复，首页出撤销底栏 ———
+  openFiles(from){ this.ui.sys={kind:'files',from}; this.bump(); }
+  restoreFromOnboard(){ const Z=window.SZProto, ui=this.ui, prev=JSON.parse(JSON.stringify(this.app));
+    ui.sys=null; ui.obNote=null; this._kind='pop';
+    const ok=this.commit(a=>{ const d=Z.restoreData(); a.records=d.records; a.events=d.events; a.introSeen=true; a.lastBackup='9-1'; a.view={name:'home'}; },false);
+    if(ok) this.showUndo('已换成备份里的记录','离开这一页前可以撤销',prev); }
+  focusPick(){ setTimeout(()=>{const el=this.pickRef.current; if(el) try{el.focus();}catch(e){}},60); }
+  note(text){ const ui=this.ui; clearTimeout(this._nt); ui.note=text; this._nt=setTimeout(()=>{ ui.note=null; this.bump(); },3200); this.bump(); }
+  // A04：取消分享的一句放进图片弹层正文，暂时替换说明行（3.2 秒，或弹层里有别的操作时收回）
+  imgMsg(text){ const ui=this.ui; clearTimeout(this._imt); ui.imgMsg=text; this._imt=setTimeout(()=>{ ui.imgMsg=null; this.bump(); },3200); this.bump(); }
+  // 单字详情：词语反馈 → 横幅（离开页面后消失，在此之前可以撤销）
+  wfOk(){ const ui=this.ui, w=ui.wf; if(!w) return; ui.wf=null;
+    const ok=this.commit(x=>{ x.wordOff=x.wordOff||[]; if(!x.wordOff.includes(w.c)) x.wordOff.push(w.c); },false);
+    if(ok) ui.wfBanner={c:w.c,word:w.word}; this.bump(); }
+  wfUndo(){ const ui=this.ui, b=ui.wfBanner; if(!b) return; ui.wfBanner=null; if(this.commit(x=>{ x.wordOff=(x.wordOff||[]).filter(c=>c!==b.c); },false)) this.undone(); }
+  // 第十稿走查 K30（K01）：替换和清空后的撤销在备份与恢复页一直有效，离开这一页才失效；失效以后页面留一句结论（bkLast）
+  showUndo(l1,l2,prev,kind){ const ui=this.ui; clearTimeout(this._ut); const k=kind||(l1.startsWith('已清空')?'clear':'restore'), n=new Set(window.SZProto.restoreData().records.map(r=>r.c)).size;
+    ui.undo={l1,l2:'离开这一页前可以撤销',prev,kind:k,last:k==='clear'?'记录已清空。':'已换成 9 月 1 日备份里的记录，一共 '+n+' 个字。'}; this.bump(); }
+  expireUndo(next){ if(this.ui.rm&&next&&(next.view.name!=='detail'||next.view.c!==this.ui.rm.c)) this.ui.rm=null; const u=this.ui.undo; if(!u||!next||next.view.name==='backup') return; next.bkLast=u.last||null; this.ui.undo=null; }
+  expSig(a){ const v=a.records.filter(r=>r.v==='R'||r.v==='W'); return v.length+':'+v.map(r=>r.id+r.v).join('').length+':'+(v.length?v[v.length-1].id:''); }
+  // 系统示意的行（share 屏的样子，不仿制 iOS）
+  sysRows(){ const ui=this.ui, S=ui.sys; if(!S) return {title:'',rows:[],foot:''};
+    if(S.kind==='files'&&S.from==='backup') return {title:'选择一份文件',foot:'文件选择',rows:[
+      {label:'拾字备份-2026-09-01',sub:'拾字备份文件',on:()=>{ ui.sys=null; ui.over='restoreConfirm'; this.bump(); }},
+      {label:'照片.jpg',sub:'JPEG 图片',on:()=>{ ui.sys=null; ui.bkNote='这个文件不是拾字的备份，没法恢复。你的记录没有变。'; this.bump(); }},
+      {label:'取消',on:()=>{ ui.sys=null; ui.bkNote='没有选文件，你的记录没有变。'; this.bump(); }}]};
+    if(S.kind==='files') return {title:'选择一份文件',foot:'文件选择',rows:[
+      {label:'拾字备份-2026-09-01',sub:'拾字备份文件',on:()=>this.restoreFromOnboard()},
+      {label:'照片.jpg',sub:'JPEG 图片',on:()=>{ ui.sys=null; ui.obNote={text:'这个文件不是拾字的备份，没法恢复。',repick:true}; this.bump(); }},
+      {label:'取消',on:()=>{ ui.sys=null; ui.obNote={text:'没有选文件，你的记录没有变。',repick:false}; this.bump(); }}]};
+    if(S.kind==='notify') return {title:'允许“拾字”发送通知？',foot:'通知权限',rows:[
+      {label:'允许',on:()=>this.remind('on')},{label:'不允许',on:()=>this.remind('denied')}]};
+    if(S.kind==='export') return {title:'拾字备份-2026-09-24',foot:'系统分享面板',rows:[
+      {label:'完成',sub:'存到文件 / AirDrop',on:()=>{ ui.sys=null; this.commit(x=>{ x.lastBackup='9-24'; x.expSig=this.expSig(x); x.bkLast=null; },false); }},
+      {label:'取消',on:()=>{ ui.sys=null; this.bump(); }}]};
+    // 图片：分享 / 保存到照片。完成回原页给一句结果；取消分享只显示“已取消分享。”（W16-d）
+    if(S.kind==='share') return {title:'分享图片',foot:'系统分享面板',rows:[
+      {label:'完成',on:()=>{ ui.sys=null; ui.over=null; ui.imgFail=false; this.note('已分享。'); }},
+      {label:'取消',on:()=>{ ui.sys=null; this.imgMsg('已取消分享。'); }}]};
+    if(S.kind==='photos') return {title:'保存到照片',foot:'系统相册权限',rows:[
+      {label:'完成',on:()=>{ ui.sys=null; ui.over=null; ui.imgFail=false; this.note('已保存到相册。'); }},
+      {label:'取消',on:()=>{ ui.sys=null; this.bump(); }}]};
+    return {title:'',rows:[],foot:''}; }
+  remind(v){ const ui=this.ui, view=this.curView(); ui.sys=null;
+    this.commit(a=>{ const s=view.name==='result'&&a[view.slot]; if(s) s.remind=v; if(v==='on'||v==='denied'){ a.reminder=v==='on'; a.reminderDenied=v==='denied'; } },false); }
+  undoDo(){ const ui=this.ui; if(!ui.undo) return;
+    // 10.15：撤销失败——底栏说清现在是哪一种状态，时间窗不变，还在的时候可以再点一次；不承诺保护副本能存多久（O04）
+    if(ui.undoFail){ const k=ui.undo.kind||'restore'; ui.undo=Object.assign({},ui.undo,{l1:k==='clear'?'没能撤销，记录还是空的':'没能撤销，现在还是备份里的记录',l2:'可以再点一次撤销',failed:true}); this.bump(); return; }
+    clearTimeout(this._ut); const prev=ui.undo.prev; ui.undo=null; ui.bkNote=null; prev.tool=this.app.tool; prev.settings=this.app.settings;
+    prev.view=this.app.view; // 撤销后留在当前页（核对意见四.6）
+    if(!window.SZProto.save(prev)){ this.ui.blockReal=true; this.toBlock(); return; } this.app=prev; this.wkey++; this.bump(); this.undone(); }
+
+  // ——— 结果页与其他 ShiziScreen 页 ———
+  // 第十稿走查 S03：开始这一组的页面属于哪个 tab（沿 from 找到根页）
+  tabOf(v){ while(v&&v.from) v=v.from; const n=v&&v.name; return ['library','allWritten','wrongList','forgetList'].includes(n)?'library':['mine','records','backup','settings','annual','about'].includes(n)?'mine':'home'; }
+  endSess(a,slot){ const s=a[slot]; a[slot]=null; a.view=this.viewOf(s&&s.src); }
+  dn(d){ const a=d.split('-').map(Number); return a[0]*100+a[1]; }
+  wordOf(c){ const it=window.SZProto.SAMPLES[c]; return it?(it.word.length?it.word.join(''):it.gloss):c; }
+  scrNav=k=>{ const v=this.curView(), ui=this.ui, a=this.app;
+    // 第十稿走查 W08：结果页出现后 0.4 秒内按钮不响应
+    if(v.name==='result'&&performance.now()-(this._vt||0)<400) return;
+    // ——— 第三批：字库 / 我的 / 记录 / 图片 / 单字详情（模板里的 data-nav） ———
+    if(k==='back') return this.back();
+    if(k==='closeOver'){ this.leave('over',()=>{ ui.over=null; ui.imgMode=null; ui.imgFail=false; ui.imgMsg=null; ui.libFail=false; ui.clearFail=false; this.bump(); }); return; }
+    if(k==='libSwitch'){ ui.over='libSwitch'; this.bump(); return; }
+    if(k.startsWith('lib:')){ const name=k.slice(4); if(name===a.library){ ui.over=null; this.bump(); return; } ui.libTarget=name; ui.libFail=false; ui.over='libConfirm'; this.bump(); return; }
+    // A10：换库失败在确认框里就地换成「留在这里 / 重试保存」，不再在页面底部出说明框
+    if(k==='libConfirm'){ const name=ui.libTarget; const ok=this.commit(x=>{ x.library=name; },true); if(ok){ ui.over=null; ui.libFail=false; } else if(!ui.blockView) ui.libFail=true; this.bump(); return; }
+    if(k==='libStay'){ ui.libFail=false; this.bump(); return; }
+    // ——— 第十稿 10.1–10.4：字库首页、查字、添加、有记录的字、写错过 / 快忘了清单 ———
+    if(k==='lookup'){ ui.lk={mode:'lookup',text:'',cur:'',unsel:[],src:'library'}; this.bump(); return; }
+    if(k==='addSheet'){ ui.lk={mode:'add',text:'',cur:'',unsel:[],src:'library'}; this.bump(); return; }
+    // L01：逐字列表 ↔ 卡片；圆圈勾选；练这几个字；加入自选的字（K29：用户明确点了才加入）
+    if(k==='lkList'){ if(ui.lk){ ui.lk.cur=''; ui.lk.addFail=false; this.bump(); } return; }
+    if(k.startsWith('lkSel:')){ const L=ui.lk; if(!L) return; const c=k.slice(6), u=L.unsel||[]; L.unsel=u.includes(c)?u.filter(x=>x!==c):u.concat(c); this.bump(); return; }
+    if(k==='lkGo'){ const L=ui.lk; if(!L) return; const Z=window.SZProto, ST=window.__szStore, han=[...new Set([...(L.text||'')].filter(ch=>HAN.test(ch)))];
+      const sel=han.filter(c=>Z.canPractice(c)&&ST&&ST.data[c]&&!(L.unsel||[]).includes(c)); if(!sel.length) return; const src=L.src||'library'; ui.lk=null; this.startB(sel,src); this.bump(); return; }
+    if(k==='lkAdd'){ const L=ui.lk, c=this.lkCur(); if(!L||!c) return; const ok=this.commit(x=>{ if(!x.added.includes(c)) x.added.push(c); },true);
+      if(ok){ L.addFail=false; this.note('「'+c+'」已加入自选的字。'); } else if(!ui.blockView) L.addFail=true; this.bump(); return; }
+    if(k==='lkAddStay'){ if(ui.lk) ui.lk.addFail=false; this.bump(); return; }
+    if(k==='lkClose'){ this.leave('lk',()=>{ ui.lk=null; this.bump(); }); return; }
+    if(k.startsWith('lkPick:')){ if(ui.lk){ ui.lk.cur=k.slice(7); this.bump(); } return; }
+    if(k==='lkPractice'||k==='lkDetail'){ const c=this.lkCur(); if(!c) return;
+      if(k==='lkDetail'){ const lkv={text:ui.lk.text,cur:c,mode:ui.lk.mode,src:ui.lk.src}; ui.lk=null; return this.push({name:'detail',c,lookup:lkv}); }
+      if(!window.SZProto.canPractice(c)){ this.note('原型只能练演示里的字；真机上这里会进习字。'); return; }
+      const src=ui.lk.src||'library'; ui.lk=null; this.startB([c],src); this.bump(); return; }
+    if(k.startsWith('addTile:')){ const L=ui.lk; if(!L) return; const c=k.slice(8), u=L.unsel||[]; L.unsel=u.includes(c)?u.filter(x=>x!==c):u.concat(c); this.bump(); return; }
+    if(k==='addStay'){ if(ui.lk) ui.lk.fail=false; this.bump(); return; }
+    if(k==='addStart') return this.addStart();
+    if(k.startsWith('sort:')){ const s=k.slice(5); this.commit(x=>{ x.view.sort=s; },false); return; }
+    if(k.startsWith('filter:')){ const f=k.slice(7); this.commit(x=>{ x.view.filter=x.view.filter===f?'':f; },false); return; }
+    if(k.startsWith('fold:')){ const m=+k.slice(5), ms=this.monthsDesc(), fold=Object.assign({},v.fold||{}), open=fold[m]!=null?fold[m]:ms.slice(0,2).includes(m); fold[m]=!open; this.commit(x=>{ x.view.fold=fold; },false); return; }
+    if(k==='filterGo'){ const f=v.filter; if(f==='wrong'||f==='forget') return this.push({name:f==='wrong'?'wrongList':'forgetList'});
+      if(f==='unw'){ const Lt=window.SZProto.lists(a.records,window.SZProto.TODAY).latest, hol=a.added.filter(c=>!Lt[c]); return this.startB(hol,{name:'allWritten',sort:v.sort,filter:v.filter,fold:v.fold,from:v.from}); } return; }
+    if(k.startsWith('sel:')){ const c=k.slice(4); this.commit(x=>{ const o=x.view.off||[]; x.view.off=o.includes(c)?o.filter(y=>y!==c):o.concat(c); },false); return; }
+    // 10.4：练这些字 → 这次选的字；写完回到清单（重新全选），清单按 K15、K16 重新算
+    if(k==='listGo'){ const Ls=window.SZProto.lists(a.records,window.SZProto.TODAY), list=(v.name==='wrongList'?Ls.wrong:Ls.forget).map(r=>r.c).filter(c=>!(v.off||[]).includes(c)); if(!list.length) return; return this.startB(list,{name:v.name,from:v.from}); }
+    if(k==='allWritten'||k==='wrongList'||k==='forgetList'||k==='annual'||k==='about'||k==='settings'||k==='backup') return this.push({name:k});
+    if(k==='againList') return this.push({name:'wrongList'});
+    if(k==='records') return this.push({name:'records',m:9});
+    if(k==='prevMonth'){ if(v.name==='records'&&v.m===9) this.commit(x=>{x.view.m=8;},false); return; }
+    if(k==='nextMonth'){ if(v.name==='records'&&v.m===8) this.commit(x=>{x.view.m=9;},false); return; }
+    if(k.startsWith('detail:')) return this.push({name:'detail',c:k.slice(7)});
+    // 第十稿走查 L07：单字详情“从自选的字移除”——轻确认，可撤销
+    if(k==='rmCustom'&&v.name==='detail'){ const c=v.c; ui.confirm={text:'把「'+c+'」从自选的字移除？这个字的记录不会删掉。',yes:'移除',no:'取消',ok:()=>{ ui.confirm=null; const at=a.added.indexOf(c); const ok=this.commit(x=>{ x.added=x.added.filter(y=>y!==c); },true); if(ok){ ui.rm={c}; ui.rmAt=at; } this.bump(); }}; this.bump(); return; }
+    if(k==='practiceOne'&&v.name==='detail') return this.startB([v.c],Object.assign({name:'detail',c:v.c,from:v.from},v.lookup!=null?{lookup:v.lookup}:{}));
+    if(k==='resultImage'){ ui.over='image34'; ui.imgMode='session'; this.bump(); return; }
+    // 收尾核对 Y03：练习记录页底“9 月 24 日写的字 · 这次的图片”打开今天写的字的图片，和结果页的“这次的图片”同一种
+    if(k==='imageToday'){ ui.over='image34'; ui.imgMode='today'; ui.imgFail=false; ui.imgMsg=null; this.bump(); return; }
+    // A05：没有笔迹时不生成图片，入口按第八稿（不可点）
+    if(k==='photo'&&v.name==='detail'){ const rr=a.records.filter(r=>r.c===v.c); if(!rr.length||rr[rr.length-1].ink==='none') return; ui.over='image11'; ui.imgMode='char'; ui.imgMsg=null; this.bump(); return; }
+    // 冻结 Z01：从页面上的入口（练习记录、我的“9 月字帖”）进来一律是 9 月字帖；弹层里的 3:4 / 1:1 切换保留当前这张图
+    if(k==='image34'||k==='image11'){ const inImg=ui.over==='image34'||ui.over==='image11'; ui.over=k; if(!inImg||!ui.imgMode) ui.imgMode='month'; ui.imgFail=false; ui.imgMsg=null; this.bump(); return; }
+    if(k==='imgShare'){ ui.imgMsg=null; ui.sys={kind:'share'}; this.bump(); return; }
+    if(k==='imgSave'){ ui.imgMsg=null; if(ui.failNext){ ui.failNext=false; ui.imgFail=true; this.bump(); return; } ui.sys={kind:'photos'}; this.bump(); return; }
+    if(k==='wordFeedback'&&v.name==='detail'){ ui.wf={c:v.c,word:this.wordOf(v.c)}; this.bump(); return; }
+    if(k==='schedule'){ this.toast('下次练习：只是说明行，没有页面'); return; }
+    // ——— 第四批：设置 / 备份 / 边界 ———
+    if(k.startsWith('set:')){ const key=k.slice(4);
+      if(key==='remind'){ if(a.reminder){ this.commit(x=>{x.reminder=false;},false); } else if(a.reminderDenied){ this.bump(); } else { ui.sys={kind:'notify'}; this.bump(); } return; }
+      if(key==='dark'){ const order=['auto','light','dark']; this.commit(x=>{ x.settings=Object.assign(SET0(),x.settings); x.settings.dark=order[(order.indexOf(x.settings.dark)+1)%3]; },false); return; }
+      if(key.startsWith('bg:')){ this.commit(x=>{ x.settings=Object.assign(SET0(),x.settings); x.settings.bg=+key.slice(3); },false); return; }
+      if(key==='large'){ this.commit(x=>{ x.settings=Object.assign(SET0(),x.settings); x.settings.large=!x.settings.large; },false); this.relayout(); return; }
+      this.commit(x=>{ x.settings=Object.assign(SET0(),x.settings); x.settings[key]=!x.settings[key]; },false); return; }
+    if(k==='sysSettings'){ this.note('原型里打不开手机设置；真机上会跳到拾字的通知设置。'); return; }
+    if(k==='howFix'){ this.note('清出一些存储空间，或在浏览器设置里允许拾字保存数据，然后再试一次。'); return; }
+    if(k==='export'){ if(!a.records.some(r=>r.v==='R'||r.v==='W')) return; ui.sys={kind:'export'}; this.bump(); return; }
+    if(k==='restore'){ ui.bkNote=null; ui.bkRetry=false; return this.openFiles('backup'); }
+    if(k==='restoreOnboard'){ ui.obNote=null; return this.openFiles('onboard'); }
+    if(k==='clearAll'){ if(!this.app.records.length) return; ui.clearFail=false; ui.over='clearConfirm'; this.bump(); return; }
+    if(k==='restoreRetry'){ ui.bkNote=null; ui.bkRetry=false; ui.over='restoreConfirm'; this.bump(); return; }
+    if(k==='restoreOk'){ const Z=window.SZProto, prev=JSON.parse(JSON.stringify(a)); ui.over=null; ui.bkRetry=false;
+      // 10.14：替换前先把现在的记录存成保护副本；存失败就不覆盖，留在备份与恢复页，说明框 + 再试一次
+      if(ui.protFail){ ui.bkNote='没能换成备份，你现在的记录没有变。'; ui.bkRetry=true; this.bump(); return; }
+      const ok=this.commit(x=>{ const d=Z.restoreData(); x.records=d.records; x.events=d.events; x.bkLast=null; x.A=null; x.B=null; },true);
+      if(ok){ ui.bkNote=''; this.showUndo('已换成备份里的记录','离开这一页前可以撤销',prev); } else if(!ui.blockView){ ui.bkNote='没能恢复，你的记录还是原来的。'; this.bump(); } return; }
+    // A10（一并）：清空失败时弹层不关，就地换成「留在这里 / 重试保存」
+    if(k==='clearOk'){ const prev=JSON.parse(JSON.stringify(a));
+      const ok=this.commit(x=>{ x.records=[]; x.events=[]; x.diffs=[]; x.added=[]; x.bkLast=null; x.A=null; x.B=null; x.introSeen=true; },true);
+      if(ok){ ui.over=null; ui.clearFail=false; ui.bkNote=''; this.showUndo('已清空所有记录','离开这一页前可以撤销',prev); } else if(!ui.blockView){ ui.clearFail=true; this.bump(); } return; }
+    if(k==='clearStay'){ ui.clearFail=false; this.bump(); return; }
+    if(k==='undo'){ return this.undoDo(); }
+    if(k==='w12fPick'){ ui.w12f=false; ui.lk={mode:'pick',text:'',cur:'',unsel:[],src:'home'}; this.bump(); return; }
+    if(k==='w12fHome'){ ui.w12f=false; this.bump(); return; }
+    if(k==='home'||k==='library'||k==='mine'){ if(v.name==='result'){ this._kind='pop'; const s0=this.app[v.slot], tb=this.tabOf(this.viewOf(s0&&s0.src)); this.commit(a=>{this.endSess(a,v.slot); if(k!=='home'&&k!==tb) a.view={name:k};},false); ui.sheet=null; ui.diffFail=null; return; } return this.go({name:k}); }
+    if(k==='close'){ this._kind='pop'; this.commit(a=>this.endSess(a,v.slot),false); ui.sheet=null; ui.diffFail=null; return; }
+    if(k==='again'){ this.wkey++; ui.sheet=null; ui.diffFail=null; this._kind='push'; this.commit(a=>{ this.endSess(a,v.slot); a.A=window.SZProto.session(a,'ord',window.SZProto.QUEUES.again,'home'); a.view={name:'write',slot:'A'}; },false); return; }
+    if(k==='first'){ this.wkey++; ui.obNote=null; this._kind='push'; this.commit(a=>{ a.introSeen=true; a.A=window.SZProto.session(a,'first',window.SZProto.QUEUES.first,'home'); a.A.remind='ask'; a.view={name:'write',slot:'A'}; },false); return; }
+    if(k==='remindOn'){ ui.sys={kind:'notify'}; this.bump(); return; }
+    if(k==='remindOff'){ return this.remind('off'); }
+    if(k==='retryStore'){ if(ui.blockSim) return; if(ui.blockReal){ try{localStorage.setItem('shizi-proto-v9-probe','1');localStorage.removeItem('shizi-proto-v9-probe');ui.blockReal=false;}catch(e){return;} }
+      ui.blockView=false; if(ui.blockFrom) this.app.view=ui.blockFrom; window.SZProto.save(this.app); this.bump(); return; }
+    const s=v.name==='result'&&this.app[v.slot];
+    if(!s) return;
+    if(k==='correct'){ const r=this.app.records.find(x=>x.id===s.lastRid); if(r){ ui.sheet={rid:r.id,fail:false}; this.bump(); } return; }
+    // W14：点结果页的格子 → 对照（判断过的字可以修改判断）
+    if(k.startsWith('cell:')){ const it=s.items[+k.slice(5)]; if(!it) return; ui.sheet=it.rid?{rid:it.rid,fail:false}:{item:{c:it.c,v:it.v,strokes:it.strokes||null},fail:false}; this.bump(); return; }
+    if(k==='csClose'){ ui.sheet=null; this.bump(); return; }
+    if(k==='csStay'){ if(ui.sheet) ui.sheet.fail=false; this.bump(); return; }
+    if(k==='csFlip'&&ui.sheet&&ui.sheet.rid){ const rid=ui.sheet.rid, r=this.app.records.find(x=>x.id===rid); const nv=r.v==='R'?'W':'R';
+      const ok=this.commit(a=>{ const rr=a.records.find(x=>x.id===rid); rr.v=nv; rr.rev=(rr.rev||0)+1; const ss=a[v.slot]; ss.line='changed'; const it=ss.items.find(x=>x.rid===rid); if(it) it.v=nv; },true);
+      if(ok) ui.sheet=null; else if(!ui.blockView) ui.sheet.fail=true; this.bump(); return; }
+    if(k.startsWith('diff:')){ if(s.diff!=null) return; this.setDiff(+k.slice(5)); return; }
+    if(k==='diffStay'){ ui.diffFail=null; this.bump(); return; }
+    if(k==='diffRetry'&&ui.diffFail!=null){ this.setDiff(ui.diffFail); return; }
+  };
+  setDiff(i){ const v=this.curView(); const ok=this.commit(a=>{ a[v.slot].diff=i; a.diffs.push({sid:a[v.slot].id,v:i}); },true);
+    this.ui.diffFail=ok||this.ui.blockView?null:i; this.bump(); }
+
+  // ——— 面板 ———
+  setTool(fn){ this.commit(a=>fn(a.tool),false); }
+
+  renderVals(){
+    const L=this.state.lay||{mode:'desk',s:1,W:1200,H:900,kb:0}, a=this.app, ui=this.ui, Z=window.SZProto, phone=L.mode==='phone';
+    const tool=Object.assign(TOOL0(),(a&&a.tool)||{}), SETv=Object.assign(SET0(),(a&&a.settings)||{});
+    // 深色：设置页“跟随系统”时听面板（面板代表系统外观）；设置页选了浅色 / 深色就以设置为准
+    const dark=(SETv.dark==='auto'?tool.scheme:SETv.dark)==='dark', paper=PAPER[dark?'dark':'light'], s=L.s, SW=L.SW||393, SHh=L.SH||852;
+    if(SETv.large!==this._lastLarge&&!this.demo){ this._lastLarge=SETv.large; setTimeout(()=>this.relayout(),0); }
+    if(typeof document!=='undefined'){ const tc=document.querySelector('meta[name=theme-color]'); if(tc&&tc.getAttribute('content')!==paper) tc.setAttribute('content',paper); }
+    const demo=L.mode==='demo';
+    const out={
+      rootStyle:demo?{position:'relative',width:SW,height:SHh,overflow:'hidden',borderRadius:SETv.large?28:42,background:paper,boxShadow:'0 26px 64px rgba(48,38,26,.18),0 2px 8px rgba(48,38,26,.10)'}:phone?(this.q&&this.q.get('vw')?{position:'fixed',left:0,top:0,width:L.W,height:L.H,overflow:'hidden',background:paper,outline:'1px solid #B3AC9F',transform:innerHeight<L.H?'scale('+(innerHeight/L.H)+')':'none',transformOrigin:'0 0'}:{position:'fixed',inset:0,overflow:'hidden',background:paper}):{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',gap:40,padding:24,boxSizing:'border-box',background:'#E8E3D9',overflow:'hidden'},
+      stageBox:phone?{position:'absolute',left:L.left||0,top:L.top||0,width:SW*s,height:SHh*s,background:paper}:{position:'relative',flex:'none',width:SW*s,height:SHh*s},
+      stageInner:{position:'absolute',left:0,top:0,width:SW,height:SHh,transform:s===1?'none':'scale('+s+')',transformOrigin:'0 0'},
+      sizeProp:SETv.large?'compact':undefined,
+      stageRef:this.stageRef, pageRef:this.pageRef, ghostRef:this.ghostRef, pickElRef:this.pickElRef, confirmRef:this.confirmRef, bfRef:this.bfRef, wfRef:this.wfRef, sysRef:this.sysRef, undoRef:this.undoRef, isPhone:phone, bare:phone||demo,
+      ovVars:Object.assign({display:'contents'},OV[dark?'dark':'light']),
+      tabHint:phone&&!L.sa, tabHintStyle:{position:'absolute',left:0,right:0,top:Math.max(4,(54*s-24)/2),display:'flex',justifyContent:'center',pointerEvents:'none',zIndex:40},
+      panelShown:!!a&&!demo&&(!phone||ui.panel),
+      panelOuter:phone?{position:'absolute',inset:0,zIndex:50,background:'rgba(40,32,24,.32)',display:'flex',justifyContent:'center',alignItems:'flex-start',padding:'max(12px, env(safe-area-inset-top)) 12px 12px',boxSizing:'border-box'}:{display:'contents'},
+      panelCard:Object.assign({display:'flex',flexDirection:'column',gap:16,padding:16,boxSizing:'border-box',borderRadius:14,background:'#FBF8F2',border:'1px solid #DED8CD',boxShadow:'0 10px 30px rgba(48,38,26,.10)',overflowY:'auto',WebkitOverflowScrolling:'touch',overscrollBehavior:'contain'},phone?{width:'min(100%,400px)',maxHeight:'100%'}:{flex:'none',width:340,maxHeight:(L.H||900)-48}),
+      closePanel:()=>{ if(phone){ ui.panel=false; this.bump(); } }, stop:e=>e.stopPropagation(),
+      toastOn:!!ui.toast, toast:ui.toast,
+      noticeOn:!!ui.notice, notice:ui.notice, clearNotice:()=>{ui.notice='';this.bump();},
+      vHome:false, vWrite:false, vScr:false, vLib:false, vOver:false, vRec:false, tipOn:false, pickOn:false, confirmOn:false, sysOn:false, undoOn:false, bfOn:false, wfOn:false, wfBannerOn:false, noteOn:false, realOn:false, realOff:true, replaySrc:this.replaySrc
+    };
+    if(!a) return Object.assign(out,{users:[],flows:[],toggles:[],segs:[],sliders:[],notes:[],userLabel:'',diag:'',dbgOn:false,dbgOff:true,realFg:'#B3AC9F',realSub:'',realTrack:'#EFE8DC',recClearLabel:'清空录制',recClearFg:'#3B2F28',recInfo:''});
+    const v=this.curView(), recs=a.records, today=Z.TODAY;
+    const A=a.A, B=a.B, resume=(B&&!B.done)||(A&&!A.done);
+    const realOn=!!tool.real&&this.realAvail();
+    Object.assign(out,{recs, added:a.added, lastBackup:a.lastBackup, lastBackupP:a.lastBackup||'', bkLastText:a.bkLast||(this.ui.undo&&this.ui.undo.last)||'', libName:a.library, chars:Z.SAMPLES,
+      hTheme:dark?'th1':'base', sTheme:dark?'dark':'light', period:tool.period, lamp:tool.lamp, realOn, realOff:!realOn,
+      onHomeNav:this.homeNav, onScrNav:this.scrNav, onWBack:this.wBack, onWJudge:this.wJudge, onWSkip:this.wSkip, onWCorrect:this.wCorrect, onWState:this.wState, onWNav:this.wNav,
+      recExit:()=>{ ui.rec=false; this.loadRecs(); this.bump(); }, recSaved:()=>this.loadRecs(), obNote:v.name==='onboard'?ui.obNote:undefined});
+    if(ui.rec){ out.vRec=true; }
+    else {
+    // 首页：按钮只看有没有没写完的练习；下面一行只看今天有没有有效记录（2.5）
+    out.vHome=v.name==='home';
+    out.hState=recs.length===0?'first':recs.some(r=>r.d===today)?'record':'empty'; out.hResume=!!resume; { const cs=a.B&&!a.B.done?a.B:a.A&&!a.A.done?a.A:null, os=this.otherSlot(); out.hResumeLine=cs?this.grpLabel(cs)+' · 还有 '+this.grpRest(cs)+' 个字没写':''; out.hOtherLine=os?this.grpLabel(a[os])+' · 还有 '+this.grpRest(a[os])+' 个字没写':''; }
+    // 写字页
+    const ws=v.name==='write'&&a[v.slot];
+    if(ws){ out.vWrite=true; out.noStroke=!!ui.noStroke; out.hintMode=tool.hintBox?'box':'fade'; out.wTotal=ws.queue.length; out.wFirstTip=ws.kind==='first'&&ws.i===0&&!a.tipSeen; out.onWSaw=this.wSaw; out.onWNext=this.wNext; out.wEndable=ws.kind==='pick'; out.onWEnd=this.wEnd; out.endFail=ui.endFail||0; out.wQueue=ws.queue.map(Z.item);
+      const lr=ws.lastRid&&recs.find(r=>r.id===ws.lastRid), lci=lr?ws.items.findIndex(it=>it.rid===lr.id):-1;
+      const sawLast=ws.line==='saw'&&ws.lastC?{ci:Math.max(0,ws.queue.indexOf(ws.lastC)),c:ws.lastC,saw:true}:null;
+      out.wInit={key:ws.id+':'+this.wkey,i:ws.i,phase:ws.phase,hints:ws.hints,used:ws.used,saw:ws.saw,strokes:ws.strokes,sim:ws.sim,line:ws.line,hr:ws.hr||null,
+        cnt:ws.items.filter(it=>it.v==='R'||it.v==='W').length, sheet:!!ws.demoSheet, sheetFail:!!ws.demoSheet, saveFail:!!ws.demoFail,
+        last:sawLast||(lr?Object.assign({id:lr.id,c:lr.c,ci:lci,verdict:lr.v==='R'?'right':'wrong'},lr.strokes?{strokes:lr.strokes}:{sim:true}):null),
+        done:ws.items.map((it,k)=>{ if(it.v==='S'||it.v==='A') return {ci:k,none:true}; const r=recs.find(x=>x.id===it.rid)||{}; return r.strokes?{ci:k,strokes:r.strokes}:{ci:k,mode:r.v==='W'?'wrong':undefined}; })};
+      out.dbgOn=!!tool.debug.on; out.tune={lo:tool.debug.lo,hi:tool.debug.hi,base:tool.debug.base};
+    }
+    // ShiziScreen 各页
+    let scr=null;
+    if(v.name==='result'&&a[v.slot]){ const rs=a[v.slot]; scr=rs.kind==='first'?'firstResult':rs.kind==='pick'?'endPicked':'result';
+      const items=rs.items.map(it=>{ if(it.v==='S'||it.v==='A') return {c:it.c,v:it.v,strokes:it.strokes||null}; const r=recs.find(x=>x.id===it.rid)||{}; return {c:it.c,v:r.v||it.v,help:r.help,strokes:r.strokes,d:r.d,ink:r.ink}; });
+      const lr=rs.lastRid&&recs.find(r=>r.id===rs.lastRid);
+      out.resData={items,count:new Set(items.filter(r=>r.v==='R'||r.v==='W').map(r=>r.c)).size,inkCount:new Set(items.filter(r=>(r.v==='R'||r.v==='W')&&r.ink!=='none').map(r=>r.c)).size,line:lr?{c:lr.c,v:lr.v,changed:rs.line==='changed'}:null,diff:rs.diff,diffFail:ui.diffFail!=null,date:today,
+        leave:rs.kind==='pick'?(rs.src&&rs.src.name==='detail'&&rs.src.c?'回到「'+rs.src.c+'」':LEAVE[typeof rs.src==='string'?rs.src:(rs.src&&rs.src.name)]||'回到首页'):undefined, remind:rs.kind==='first'?rs.remind:undefined, ended:!!rs.ended, rest:Math.max(0,rs.queue.length-rs.items.length)};
+      if(ui.sheet){ const r=ui.sheet.rid&&recs.find(x=>x.id===ui.sheet.rid); if(r) out.sheet={c:r.c,v:r.v,strokes:r.strokes,d:r.d,fail:ui.sheet.fail}; else if(ui.sheet.item) out.sheet=Object.assign({fail:false},ui.sheet.item); } }
+    else if(v.name==='onboard') scr='onboard';
+    else if(v.name==='mine') scr=recs.length===0?'mineEmpty':'mine';
+    else if(v.name==='block') scr='storageBlock';
+    else if(v.name==='detail'){ scr=recs.some(r=>r.c===v.c)?'detail':'detailEmpty'; out.scrChar=v.c; }
+    else if(v.name==='records') scr=v.m===8?'recordsHistory':recs.some(r=>r.d.startsWith('9-'))?'records':'recordsEmpty';
+    else if(v.name==='annual') scr=recs.length?'annual':'annualEmpty';
+    else if(v.name==='about') scr='about';
+    else if(v.name==='settings') scr=a.reminderDenied&&!a.reminder?'settingsDenied':'settings';
+    // A01：只有真正替换或清空（有撤销）时才用带底栏的 backupDone；只有说明框（取消、无效文件、恢复失败）时用 backup 屏加说明框
+    else if(v.name==='backup'){ scr=ui.undo?'backupDone':'backup'; out.bkNote=ui.undo?'':(ui.bkNote||undefined); out.bkRetry=!ui.undo&&!!ui.bkRetry&&!!ui.bkNote; if(ui.undo){ out.undoTexts={l1:ui.undo.l1,l2:ui.undo.l2}; } out.bkMatch=!!a.lastBackup&&(a.expSig?a.expSig===this.expSig(a):false); }
+    // 2.11 这个字库的字都有记录了：习字 tab 换成 noChars 页
+    if(v.name==='home'&&ui.noChars) scr='noChars';
+    // 第十稿：字库 tab 的页（首页、有记录的字、写错过、快忘了）由「字库墨墙屏」画；换库列表 / 确认用 ShiziScreen 的“只画弹层”叠在上面
+    const LIBV={library:'home',allWritten:'all',wrongList:'wrong',forgetList:'forget'};
+    if(LIBV[v.name]){ out.vLib=true; out.libScr=LIBV[v.name]; out.libSort=v.sort||'recent'; out.libFilter=v.filter||''; out.libFold=v.fold||null; out.libFind=v.find||''; out.libOff=v.off||null; out.kbOff=(L.kb||0)/s;
+      out.lkObj=v.name==='library'&&ui.lk?Object.assign({},ui.lk):null; out.onLkInput=this.onLkInput; out.onFindInput=this.onFindInput;
+      if(ui.over==='libSwitch'||ui.over==='libConfirm'){ out.vOver=true; out.overScr=ui.over; out.libTarget=ui.libTarget; out.libFail=ui.over==='libConfirm'&&!!ui.libFail; } }
+    out.homeLkOn=v.name==='home'&&!!ui.lk; if(out.homeLkOn){ out.lkObj=Object.assign({},ui.lk); out.onLkInput=this.onLkInput; out.kbOff=(L.kb||0)/s; }
+    out.settingsObj=Object.assign(SET0(),a.settings||{},{remind:!!a.reminder}); out.backupCount=new Set(Z.restoreData().records.map(r=>r.c)).size;
+    // 结果页：这次的图片入口（count 为 0 时 W12-f）
+    if(out.resData&&v.name==='result'&&a[v.slot]){ out.resData.img=true; }
+    // 组件内的弹层（换库、图片）盖在当前页上
+    if(scr&&ui.over){ out.under=scr; scr=ui.over; out.libTarget=ui.libTarget; out.libFail=ui.over==='libConfirm'&&!!ui.libFail; out.clearFail=ui.over==='clearConfirm'&&!!ui.clearFail;
+      if(ui.over==='image34'||ui.over==='image11'){ out.imgFail=!!ui.imgFail; out.imgMsg=ui.imgMsg||undefined;
+        if(ui.imgMode==='session'&&v.name==='result'&&a[v.slot]){ const rs=a[v.slot]; const all=rs.items.filter(it=>it.v==='R'||it.v==='W').map(it=>{const r=recs.find(x=>x.id===it.rid)||{}; return {c:it.c,d:r.d,v:r.v,strokes:r.strokes,ink:r.ink};}), miss=all.filter(x=>x.ink==='none');
+          // 10.12：本次练习图片只画这一次留下了笔迹的字；没有笔迹的写在说明里，落款的字数跟着减
+          out.imgItems=all.filter(x=>x.ink!=='none'); out.imgTitle='这次的图片'; out.imgNote=(miss.length?miss.map(x=>'「'+x.c+'」').join('')+'这一次没有笔迹，不在图里。':'')+'存下来的是图片，不能用来恢复记录。'; out.imgSign='二〇二六年九月二十四日 · '+cn(out.imgItems.length)+'个字'; }
+        else if(ui.imgMode==='today'&&v.name==='records'){ const at={}, all=[]; recs.filter(r=>r.d===today&&(r.v==='R'||r.v==='W')).forEach(r=>{ const x={c:r.c,d:r.d,v:r.v,strokes:r.strokes,ink:r.ink}; if(at[r.c]!=null) all[at[r.c]]=x; else { at[r.c]=all.length; all.push(x); } }); const miss=all.filter(x=>x.ink==='none');
+          out.imgItems=all.filter(x=>x.ink!=='none'); out.imgTitle='这次的图片'; out.imgNote=(miss.length?miss.map(x=>'「'+x.c+'」').join('')+'这一次没有笔迹，不在图里。':'')+'存下来的是图片，不能用来恢复记录。'; out.imgSign='二〇二六年九月二十四日 · '+cn(out.imgItems.length)+'个字'; }
+        // A05：手写字图片按单字规格另画（组件 charEl），只用最近一份笔迹
+        else if(ui.imgMode==='char'&&v.name==='detail'){ const rr=recs.filter(r=>r.c===v.c); const r=rr[rr.length-1]; out.imgChar=r?{c:r.c,d:r.d,v:r.v,py:(Z.SAMPLES[v.c]||{}).py||'',strokes:r.strokes}:undefined; out.imgTitle='手写字图片'; out.imgNote='用的是你最近一次写的这个字。存下来的是图片，不能用来恢复记录。'; }
+        else { out.imgTitle=undefined; out.imgNote=undefined; } } }
+    if(scr){ out.vScr=true; out.scr=scr; out.vHome=false; if(!out.resData) out.resData=undefined; if(!out.sheet) out.sheet=undefined; }
+    // 2.11 暂时没有可安排的字（原型层整页）
+    if(ui.w12f){ out.w12fOn=true; out.vHome=false; out.vScr=false; out.w12fStatus=!out.bare; out.w12fBare=!!out.bare; out.w12fPick=()=>this.scrNav('w12fPick'); out.w12fHome=()=>this.scrNav('w12fHome'); }
+    // 单字详情：词语反馈横幅
+    if(v.name==='detail'&&ui.wfBanner&&ui.wfBanner.c===v.c&&!ui.over){ out.wfBannerOn=true; out.wfBanner='「'+ui.wfBanner.word+'」以后不会再出现'; out.wfUndo=()=>this.wfUndo(); }
+    if(!out.vHome&&!out.vWrite&&!out.vScr&&!out.vLib){ out.vHome=true; }
+    }
+    // A06：有底部导航的页面（首页、字库、我的），撤销底栏浮在导航上方 8pt；其他页 bottom 34。紧凑版同样处理
+    { const cpt=!!SETv.large, base=out.under||out.scr, homeNav=out.vHome&&!out.vScr&&!out.w12fOn&&!ui.rec, scrNav=(out.vScr&&['mine','mineEmpty'].includes(base))||(!!out.vLib&&out.libScr==='home');
+      out.ovVars['--ubb']=homeNav?(cpt?80:94)+'px':scrNav?(cpt?119.8:94)+'px':(out.vScr&&String(base).startsWith('detail'))?(cpt?80:94)+'px':'34px'; }
+    // 走查核对 V08：单字详情底部有“练这个字”，撤销底栏浮在按钮上方，不压按钮
+    this._dark=dark;
+
+    // ——— 原型层弹层 ———
+    const kbOff=(L.kb||0)/s;
+    const P=ui.pick;
+    if(P){ const r=this.parsePick(P.text), mode=P.mode||'pick'; out.pickOn=true; out.pickText=P.text; out.pickRef=this.pickRef;
+      out.pickTitle=mode==='pick'?'自己选字':'查字';
+      out.pickHintOn=mode!=='lookup'&&!P.fail; out.pickHint='输入一个字或一个词，再点你要的那个字。';
+      out.pickSheetStyle={position:'absolute',left:0,right:0,bottom:kbOff,zIndex:5,maxHeight:'88%',overflow:'auto',boxSizing:'border-box',borderRadius:'28px 28px 0 0',background:'var(--sh)',boxShadow:'0 -10px 30px rgba(48,38,26,.12)',padding:'10px 24px '+(kbOff?'16px':'34px'),display:'flex',flexDirection:'column',gap:18,color:'var(--i1)'};
+      // 输入：自己选字 = 输入后再选；添加自选的字 = 输入即勾选（2.8）
+      out.pickInput=e=>{ P.text=e.target.value; const rr=this.parsePick(P.text); P.sel=mode==='add'?rr.ok.filter(c=>!(P.unsel||[]).includes(c)):P.sel.filter(c=>rr.ok.includes(c)); P._loaded=false; this.bump(); };
+      const notes=[]; if(r.other) notes.push('只能输入汉字，已去掉 '+r.other+' 个字母或符号'); if(r.dups.length) notes.push((r.other?'，':'')+'重复的'+r.dups.map(c=>'「'+c+'」').join('')+'只算一次');
+      let note=notes.length?notes.join('')+'。':''; if(r.bad.length) note+=(note?' ':'')+r.bad.map(c=>'「'+c+'」').join('')+'暂时不能练：原型只能练演示里的字。';
+      out.pickNoteOn=!!note; out.pickNote=note;
+      const cnt=c=>recs.filter(x=>x.c===c).length;
+      out.pickTiles=r.ok.map(c=>{ const sel=P.sel.includes(c), n=cnt(c); return {c,sel,sh:sel?'inset 0 0 0 1.5px var(--ar)':'none',fg:'var(--i1)',cap:n?'记录了 '+n+' 次':'还没有记录',on:()=>{ if(sel){ P.sel=P.sel.filter(x=>x!==c); P.unsel=(P.unsel||[]).concat(c); } else { P.sel=P.sel.concat(c); P.unsel=(P.unsel||[]).filter(x=>x!==c); } this.bump(); }}; })
+        .concat(r.bad.map(c=>({c,sel:false,sh:'none',fg:'var(--i4)',cap:'暂时不能练',on:undefined})));
+      out.pickTilesOn=mode!=='lookup'&&out.pickTiles.length>0;
+      out.pickOk=mode!=='lookup'&&!P.fail; out.pickFail=!!P.fail; out.pickDis=!P.sel.length; out.pickLabel=P.sel.length?'练这几个字：'+P.sel.join('、'):'先选一个字';
+      out.pickBg=P.sel.length?'var(--a)':'var(--i5)'; out.pickFg=P.sel.length?'#FFF9F1':'var(--i3)';
+      out.pickStart=()=>this.pickStart(); out.pickStay=()=>{ P.fail=false; this.bump(); }; out.pickCancel=()=>this.leave('pick',()=>{ ui.pick=null; this.bump(); }); }
+    if(ui.confirm){ const C=ui.confirm; out.confirmOn=true; out.confirmText=C.text; out.confirmYes=C.yes; out.confirmNo=C.no||''; out.confirmTwo=!C.one&&!C.three; out.confirmCols=C.one||C.three?'minmax(0,1fr)':'minmax(0,1fr) minmax(0,1fr)'; out.confirmOk=C.ok; out.confirmThree=!!C.three; out.confirmMidLabel=C.mid||''; out.confirmMid=C.okMid; out.confirmCancel=()=>this.leave('confirm',()=>{ ui.confirm=null; this.bump(); }); }
+    if(ui.wf){ out.wfOn=true; out.wfWord=ui.wf.word; out.wfCells=[...ui.wf.word].map(ch=>({ch})); out.wfOk=()=>this.wfOk(); out.wfCancel=()=>this.leave('wf',()=>{ ui.wf=null; this.bump(); }); }
+    if(ui.note){ out.noteOn=true; out.noteText=ui.note; }
+    if(ui.sys){ const R=this.sysRows(); out.sysOn=true; out.sysTitle=R.title; out.sysFoot=R.foot; out.sysRows=R.rows.map(r=>({label:r.label,sub:r.sub||'',hasSub:!!r.sub,fg:'var(--syt)',on:()=>this.leave('sys',r.on)})); }
+    // L07：从自选的字移除后，底栏可以撤销，离开这个单字详情就失效
+    if(ui.rm&&v.name==='detail'){ out.undoOn=true; out.undoL1='「'+ui.rm.c+'」已从自选的字移除'; out.undoL2='离开这一页前可以撤销'; out.undoDo=()=>{ const c=ui.rm&&ui.rm.c; if(!c) return; ui.rm=null; const ok=this.commit(x=>{ if(!x.added.includes(c)) x.added.splice(Math.min(ui.rmAt||0,x.added.length),0,c); },true); if(ok) this.undone(); }; }
+
+    out.undoneOn=!!ui.undone&&ui.undone.v===v.name&&!out.undoOn; out.undoneRef=this.undoneRef;
+    // ——— 面板内容 ———
+    const us=a.userState;
+    out.users=Z.USER_STATES.map(([k,label],i)=>({label,sel:us===k,idle:us!==k,bt:i?'1px solid #EFE8DC':'0',on:()=>this.resetTo(k)}));
+    out.userLabel=(Z.USER_STATES.find(x=>x[0]===us)||[])[1]||'';
+    out.flows=Object.keys(FLOWS).map(k=>({label:FLOWS[k].label,on:()=>this.startFlow(k)}));
+    const T=(label,sub,on,click,bt)=>({label,sub,isOn:!!on,isOff:!on,isDis:false,fg:'#3B2F28',on:click,bt});
+    const D=(label,sub,later,bt)=>({label,sub,isOn:false,isOff:false,isDis:true,later,fg:'#B3AC9F',on:undefined,bt});
+    out.toggles=[
+      T('下一次保存失败','下一次写入失败一次：返回、判断、改判断、开始练、难度反馈等',ui.failNext,()=>{ui.failNext=!ui.failNext;this.bump();},'0'),
+      T('存储阻断','打开即进存储阻断页；关掉后在阻断页点「再试一次」回到原页',ui.blockSim,()=>{ ui.blockSim=!ui.blockSim; if(ui.blockSim) this.toBlock(); else this.bump(); },'1px solid #EFE8DC'),
+      T('这个字库的字都有记录了','习字 tab 换成 noChars 页（更换字库 / 去写错过）',ui.noChars,()=>{ui.noChars=!ui.noChars;ui.w12f=false;this.bump();},'1px solid #EFE8DC'),
+      T('暂时没有可安排的字','首页点「开始写字」进 W12-f 页（自己选字 / 回首页）',ui.noSched,()=>{ui.noSched=!ui.noSched;ui.w12f=false;this.bump();},'1px solid #EFE8DC'),
+      T('300 个字','第十稿 10.1：换成 300 个字的演示数据（同画布：现在的 30 个字 + 270 个）；切换即重置演示为“今天有记录”',!!a.big,()=>this.resetTo('today',{},{big:!a.big}),'1px solid #EFE8DC'),
+      T('保护副本保存失败','第十稿 10.14：从备份文件恢复时，替换前存保护副本失败：不替换，留在备份与恢复页，说明框里“再试一次”',ui.protFail,()=>{ui.protFail=!ui.protFail;this.bump();},'1px solid #EFE8DC'),
+      T('撤销失败','第十稿 10.15：替换或清空后点撤销会失败：底栏说清现在是哪种状态，离开这一页前可以再点',ui.undoFail,()=>{ui.undoFail=!ui.undoFail;this.bump();},'1px solid #EFE8DC'),
+      T('笔迹缺失的样例','第十稿 10.12：静、感最近一次有记录但没有留下笔迹（更早一次有），体只有形状、没有 t / p；切换即重置演示',!!a.inkDemo,()=>this.resetTo(us==='first'||us==='firstHalf'?'today':us,{},{big:!!a.big,ink:!a.inkDemo}),'1px solid #EFE8DC'),
+      T('K24 提示方案②：画在题面红框里','第十稿走查 W02：关着是方案①（点提示后自己的笔迹变浅，提示用细的暖墨红画在书写格里，接着写就恢复）；开着是方案②（提示不进书写格，画在上方题面的红框小格里）',!!tool.hintBox,()=>this.setTool(t=>{t.hintBox=!t.hintBox;}),'1px solid #EFE8DC'),
+      T('这个字的笔画数据取不到','第十稿 10.13：写字页当前的字按“笔画数据加载失败”处理：提示只能看完整字形（照实记为看过答案），描一遍照着完整字形描',ui.noStroke,()=>{ui.noStroke=!ui.noStroke;this.bump();},'1px solid #EFE8DC')];
+    const SEG=(label,key,opts)=>({label,opts:opts.map(([val,l])=>({label:l,sel:tool[key]===val,idle:tool[key]!==val,on:()=>this.setTool(t=>{t[key]=val;})}))});
+    out.largeOn=!!(a.settings&&a.settings.large); out.largeOff=!out.largeOn; out.tgLarge=()=>this.scrNav('set:large');
+    const osRed=(()=>{ try{ return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){ return false; } })();
+    out.reduceOn=!!tool.reduce; out.reduceOff=!tool.reduce; out.tgReduce=()=>this.setTool(t=>{t.reduce=!t.reduce;}); out.reduceSub=osRed?'系统已开启减少动态效果，位移动画已改为 120ms 交叉淡化':'开着时推入、弹层、确认改为 120ms 交叉淡化；翻到下一字不做动画';
+    out.segs=[SEG('深色（设置里“跟随系统”时生效）','scheme',[['light','浅色'],['dark','深色']]),SEG('首页时段','period',[['dawn','晨'],['noon','午'],['dusk','暮'],['night','夜'],['auto','自动']]),SEG('暖灯（深色）','lamp',[[.04,'.04'],[.05,'.05'],[.06,'.06']])];
+    const dbg=tool.debug;
+    out.dbgOn=!!dbg.on; out.dbgOff=!dbg.on; out.tgDbg=()=>this.setTool(t=>{t.debug.on=!t.debug.on;});
+    const SL=(label,key,min,max,step,unit)=>({label,min,max,step,value:dbg[key],text:(+dbg[key]).toFixed(step<.1?2:1)+unit,on:e=>{const x=+e.target.value;this.setTool(t=>{t.debug[key]=x; if(t.debug.lo>=t.debug.hi){ if(key==='lo') t.debug.hi=Math.min(2,+(x+.05).toFixed(2)); else t.debug.lo=Math.max(0,+(x-.05).toFixed(2)); }});}});
+    out.sliders=[SL('收笔阈值 · 低（默认 0.25）','lo',.05,1,.01,' pt/ms'),SL('收笔阈值 · 高（默认 0.9）','hi',.3,2,.01,' pt/ms'),SL('笔宽 BASE（默认 11.5）','base',8,16,.5,' pt')];
+    out.dbgReset=()=>this.setTool(t=>{t.debug=Object.assign(TOOL0().debug,{on:t.debug.on});});
+    // 真人笔迹与录制
+    const avail=this.realAvail(), nLocal=this.localRecs.length, nFile=window.SZInk?Object.keys(Z.SAMPLES).filter(c=>window.SZInk.pick(c)).length:0;
+    out.realFg=avail?'#3B2F28':'#B3AC9F'; out.realTrack=avail?'#DED8CD':'#EFE8DC';
+    out.realSub=avail?('来源：'+(nFile?'data/handwriting（'+nFile+' 个字有记录）':'本机录制（'+nLocal+' 条）')+'；只换写字页当前字，其他页面不换'):'还没有任何笔迹记录，开关不可用';
+    out.tgReal=()=>{ if(!avail) return; this.setTool(t=>{t.real=!t.real;}); };
+    out.recEnter=()=>{ ui.rec=true; ui.panel=false; ui.clearArm=false; this.bump(); };
+    out.recClearLabel=ui.clearArm?'再点一次确认清空':'清空录制'; out.recClearFg=ui.clearArm?'#A6533F':'#3B2F28';
+    out.recClear=()=>{ if(!ui.clearArm){ ui.clearArm=true; this.bump(); clearTimeout(this._ca); this._ca=setTimeout(()=>{ui.clearArm=false;this.bump();},4000); return; }
+      clearTimeout(this._ca); ui.clearArm=false; window.SZRec.clear().then(()=>{ this.loadRecs(); this.toast('已清空本机录制'); }).catch(e=>this.toast('清空失败：'+(e&&e.message||e))); };
+    out.recInfo='本机录制 '+nLocal+' 条 · '+this.localWriters+' 位写字人 · 存 IndexedDB shizi-proto-v9-rec，重置演示不动它';
+    out.resetDemo=()=>this.resetTo(us,undefined,{big:!!a.big,ink:!!a.inkDemo});
+    out.notes=[
+      {t:'2.1–2.11、10.1–10.9 接通；首页、写字页、结果页、字库、我的、记录、备份的计数都从记录实时算。单字详情的“下次练习”一行只是说明（D7，待工程确认）。'},
+      {t:'字库 tab（首页、查字、有记录的字、写错过、快忘了）由组件「字库墨墙屏」画。快忘了按“最近一次有效记录在三个月以前、判断写对”模拟（K07），最多 12 个，最久没写的在前；正式按记忆曲线。'},
+      {t:'10.10：“这次选的字”写字页下方右边有“结束这组”（只在这次选的字里有），先确认；有判断进结果页（标题“结束了”），零判断直接回到来源、底部一句“这组结束了，没有记下字。”（文案待定）。'},
+      {t:'查字：演示字表以外的字（例如「山」）能查、能看参考字形，“练这个字”只提示原型练不了；hanzi-writer 里没有的字（例如「龘」）说“暂时不能练”。300 个字里另外 270 个字只有拼音题面，没有词语和释义。'},
+      {t:'交互表默认动效已实现：下一层页面从右推入 300ms、返回反向；底部弹层 280 / 220ms；居中确认 180ms；撤销底栏 200ms 出现，在备份与恢复页一直在、离开这一页才失效（走查 K30）；按下态 .7。写字组件内第八稿的动效不变。'},
+      {t:'查字 / 首页自己选字是同一个弹层（字库“＋ 添加自选的字”入口已删，走查核对异议 2），画在组件「字库墨墙屏」里（走查 L01）；开新组的框（S02）、词语反馈、系统示意、撤销底栏、W12-f 页画在原型层，不在组件里。'},
+      {t:'录制模式固定 393×852，只在标准尺寸下用；「更大字体」开着时请先关掉再录。'},
+      {t:'第十稿走查：补记已去掉（K27），原来的补记门槛待定一并作废。K24 两个提示方案用上面的开关“K24 提示方案②”切换。K03（300 个字时导出 → 替换 → 撤销记录变少）按简报的步骤没有复现，见《第十稿-进度》十。'},
+      {t:'10.12：记录分三种——有那一次的笔迹；有记录但那一次没有留下笔迹（墙、清单、单字详情、查字卡片里画黑体的字和“没有笔迹”，不拿别的笔迹补位）；没有记录。只有形状、没有 t / p 的照常画。图片只画有笔迹的字，说明里写出不在图里的字；最近一次没有笔迹的字不能做手写字图片。'},
+      {t:'10.14 / 10.15：面板“保护副本保存失败”开着时，备份页用备份替换不会执行，说明框写明现在的记录没有被改动，可以“再试一次”；“撤销失败”开着时，替换或清空后的撤销底栏换成“没能撤销，现在还是备份里的记录 / 记录还是空的”，离开这一页前可以再点。“离开这一页前可以撤销”只说撤销的时间窗，不承诺保护副本存多久（O04）。'},
+      {t:'10.13：面板“这个字的笔画数据取不到”打开后，写字页当前的字没有部分提示，按钮直接是“看答案”（完整楷体字形，照实记为看过答案）；描一遍照着完整字形描，不分笔顺。'},
+      {t:'没有部件分组的字按前 1 / 前 2 笔提示（已定）。17 个字的拼音和释义是原型示意，待字库定稿。'},
+      {t:'添加到主屏幕后状态栏文字是白色，浅色纸上看不清——这是原型才有的问题（为了 393 宽时书写格 1:1）。'},
+      {t:'手机上：网址加 ?panel=1，或两指按住左上角 1 秒打开本面板；点面板外空白处收起。'}];
+    out.diag='有效记录 '+recs.length+' 条 · 今天 '+new Set(recs.filter(r=>r.d===today).map(r=>r.c)).size+' 字 · 普通 '+(A?(A.done?'已写完':'第 '+(A.i+1)+' 个 '+A.phase):'无')+' · 这次选的字 '+(B?(B.done?'已写完':'第 '+(B.i+1)+' 个 '+B.phase):'无')+' · 提醒 '+(a.reminder==null?'未问':a.reminder?'开':'关')+' · '+(phone?'手机 '+(L.sa?'独立':'标签页')+' ×'+s.toFixed(3)+(L.kb?' 键盘 '+L.kb:''):'电脑 ×'+s.toFixed(3));
+    return out;
+  }
+}
+</script>
+
+
+</body></html>

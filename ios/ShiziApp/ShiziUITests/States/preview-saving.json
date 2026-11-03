@@ -1,0 +1,44 @@
+{
+  "state": "preview-saving",
+  "name": "图片预览 · 保存中（等原生回包）",
+  "screen": "result",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "image-preview",
+  "base": "result",
+  "setup": [
+    {
+      "op": "stubNative"
+    },
+    {
+      "op": "stubSave",
+      "reply": false
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "result-share",
+        "native": "native-result-share"
+      },
+      "times": 1
+    },
+    {
+      "wait": 1800
+    },
+    {
+      "tap": {
+        "webTestid": "image-save",
+        "native": "qa-image-save"
+      },
+      "times": 1
+    },
+    {
+      "wait": 700
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "state": "write-overflow",
+  "screen": "write",
+  "template": "write",
+  "native": true,
+  "parity": false,
+  "sizes": [
+    "AX5"
+  ],
+  "setup": [
+    {
+      "op": "startPicked",
+      "keys": [
+        "姥",
+        "永"
+      ]
+    },
+    {
+      "op": "writeOverflowPrompt"
+    },
+    {
+      "op": "openWrite",
+      "slot": "B"
+    }
+  ]
+}

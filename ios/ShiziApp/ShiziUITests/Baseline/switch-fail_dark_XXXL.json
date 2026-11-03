@@ -1,0 +1,483 @@
+{
+  "cells" : [
+
+  ],
+  "decos" : [
+    {
+      "h" : 22,
+      "kind" : "icon",
+      "layer" : "page",
+      "w" : 22,
+      "x" : 13.300000000000001,
+      "y" : 73
+    }
+  ],
+  "elements" : [
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 874,
+        "w" : 402,
+        "x" : 0,
+        "y" : 0
+      },
+      "id" : "native-library-switch-screen",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "screenMarker"
+    },
+    {
+      "class" : "UIScrollView",
+      "frame" : {
+        "h" : 575,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "scroll"
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 603,
+        "w" : 402,
+        "x" : 0,
+        "y" : 106
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "content"
+    },
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 144.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowViews[0]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 144.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-library-switch-row-0",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "常用字 日常最常用的字。大多数人从这里开始。 可练 3500 个 · 写过 36 个 正在用",
+      "visibleFrame" : {
+        "h" : 144.30000000000001,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      }
+    },
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 117.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 266.30000000000001
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowViews[1]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 117.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 266.30000000000001
+      },
+      "id" : "native-library-switch-row-1",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "次常用字 看书看报会碰到的字。常用字写熟再换。 可练 2974 个 · 写过 0 个 ›",
+      "visibleFrame" : {
+        "h" : 117.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 266.30000000000001
+      }
+    },
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 117.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 383.69999999999999
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowViews[2]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 117.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 383.69999999999999
+      },
+      "id" : "native-library-switch-row-2",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "少见字 人名、地名、古文里的少见字。 可练 744 个 · 写过 0 个 ›",
+      "visibleFrame" : {
+        "h" : 117.3,
+        "w" : 362,
+        "x" : 20,
+        "y" : 383.69999999999999
+      }
+    },
+    {
+      "class" : "RowView",
+      "frame" : {
+        "h" : 117,
+        "w" : 362,
+        "x" : 20,
+        "y" : 501
+      },
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "rowViews[3]"
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "class" : "ShiziLineButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 117,
+        "w" : 362,
+        "x" : 20,
+        "y" : 501
+      },
+      "id" : "native-library-switch-row-3",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "课本字 小学到初中语文课要会写的字。 可练 2500 个 · 写过 36 个 ›",
+      "visibleFrame" : {
+        "h" : 117,
+        "w" : 362,
+        "x" : 20,
+        "y" : 501
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 496,
+        "w" : 362,
+        "x" : 20,
+        "y" : 122
+      },
+      "id" : "native-library-switch-list",
+      "kind" : "view",
+      "layer" : "page",
+      "prop" : "listMarker"
+    },
+    {
+      "align" : "left",
+      "class" : "UILabel",
+      "color" : "#A0968AFF",
+      "fontSize" : 17.546875,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 27,
+        "w" : 362,
+        "x" : 20,
+        "y" : 650
+      },
+      "id" : "native-library-switch-source",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "sourceLabel",
+      "text" : "参考《通用规范汉字表》，部分字暂未收录。",
+      "textFrame" : {
+        "h" : 21,
+        "w" : 348,
+        "x" : 20,
+        "y" : 653
+      },
+      "visibleFrame" : {
+        "h" : 21,
+        "w" : 348,
+        "x" : 20,
+        "y" : 650
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "返回",
+      "class" : "UIButton",
+      "color" : "#ECE4D6FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 44,
+        "x" : 2.2999999999999998,
+        "y" : 62
+      },
+      "hasIcon" : true,
+      "iconFrame" : {
+        "h" : 22,
+        "w" : 22,
+        "x" : 13.300000000000001,
+        "y" : 73
+      },
+      "id" : "native-page-back",
+      "kind" : "button",
+      "layer" : "page",
+      "prop" : "backButton",
+      "text" : "",
+      "tint" : "#0091FFFF"
+    },
+    {
+      "align" : "center",
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "练习范围",
+      "class" : "UILabel",
+      "color" : "#ECE4D6FF",
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 29,
+        "w" : 258,
+        "x" : 72,
+        "y" : 69.5
+      },
+      "id" : "native-page-title",
+      "kind" : "text",
+      "layer" : "page",
+      "prop" : "titleLabel",
+      "text" : "练习范围",
+      "textFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 70.200000000000003
+      },
+      "visibleFrame" : {
+        "h" : 27.699999999999999,
+        "w" : 90.700000000000003,
+        "x" : 155.69999999999999,
+        "y" : 69.5
+      }
+    },
+    {
+      "class" : "UIView",
+      "frame" : {
+        "h" : 147,
+        "w" : 362,
+        "x" : 20,
+        "y" : 693
+      },
+      "id" : "native-library-switch-fail",
+      "kind" : "view",
+      "layer" : "page"
+    },
+    {
+      "align" : "center",
+      "class" : "UILabel",
+      "color" : "#C2B8A8FF",
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 29,
+        "w" : 362,
+        "x" : 20,
+        "y" : 693
+      },
+      "id" : "native-library-switch-fail-note",
+      "kind" : "text",
+      "layer" : "page",
+      "text" : "没保存上，刚才的选择没记下。",
+      "textFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 281,
+        "x" : 60.5,
+        "y" : 695.29999999999995
+      },
+      "visibleFrame" : {
+        "h" : 24.300000000000001,
+        "w" : 281,
+        "x" : 60.700000000000003,
+        "y" : 693
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "先不换",
+      "class" : "ShiziLineButton",
+      "color" : "#C2B8A8FF",
+      "enabled" : true,
+      "fontSize" : 20.25,
+      "fontWeight" : 0,
+      "frame" : {
+        "h" : 44,
+        "w" : 68.299999999999997,
+        "x" : 16,
+        "y" : 734
+      },
+      "id" : "native-library-switch-fail-cancel",
+      "kind" : "button",
+      "layer" : "page",
+      "text" : "先不换",
+      "visibleFrame" : {
+        "h" : 44,
+        "w" : 68.299999999999997,
+        "x" : 16,
+        "y" : 734
+      }
+    },
+    {
+      "axFrame" : {
+        "h" : 0,
+        "w" : 0,
+        "x" : 0,
+        "y" : 0
+      },
+      "axLabel" : "再试一次",
+      "bg" : "#E2D9C9FF",
+      "class" : "ShiziPrimaryButton",
+      "color" : "#1B1814FF",
+      "enabled" : true,
+      "fontSize" : 22.9375,
+      "fontWeight" : 0.23000000417232513,
+      "frame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      },
+      "id" : "native-library-switch-fail-retry",
+      "kind" : "button",
+      "layer" : "page",
+      "radius" : 12,
+      "text" : "再试一次",
+      "visibleFrame" : {
+        "h" : 54,
+        "w" : 362,
+        "x" : 20,
+        "y" : 786
+      }
+    }
+  ],
+  "offscreen" : [
+
+  ],
+  "ok" : true,
+  "rules" : [
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 266
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 383.30000000000001
+    },
+    {
+      "color" : "#38322BFF",
+      "h" : 0.29999999999999999,
+      "layer" : "page",
+      "src" : "thin",
+      "w" : 362,
+      "x" : 20,
+      "y" : 500.69999999999999
+    }
+  ],
+  "screen" : {
+    "contentSize" : "XXXL",
+    "h" : 874,
+    "safeBottom" : 34,
+    "safeTop" : 62,
+    "scale" : 3,
+    "style" : "dark",
+    "w" : 402
+  },
+  "state" : "switch-fail",
+  "tag" : "dark_XXXL",
+  "ui" : "native"
+}

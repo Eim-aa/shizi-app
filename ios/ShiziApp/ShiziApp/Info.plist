@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>zh-Hans</string>
 	<key>CFBundleDisplayName</key>
 	<string>拾字</string>
 	<key>CFBundleExecutable</key>
@@ -10,6 +12,10 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh-Hans</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>拾字</string>
 	<key>CFBundlePackageType</key>
@@ -22,12 +28,13 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>用于拍摄生活中遇到的汉字。照片默认只在当前设备处理与保存，主动导出备份时会包含在备份文件中。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>用于将你制作的手写字卡保存到系统相册。</string>
+	<string>用于把你保存的练字图片存进系统相册。</string>
 	<key>UILaunchScreen</key>
-	<dict/>
+	<dict>
+		<key>UIColorName</key>
+		<string>Paper</string>
+	</dict>
 	<key>UIRequiresFullScreen</key>
 	<false/>
 	<key>UISupportedInterfaceOrientations</key>

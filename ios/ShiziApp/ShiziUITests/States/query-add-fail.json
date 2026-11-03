@@ -1,0 +1,147 @@
+{
+  "state": "query-add-fail",
+  "name": "查字 · 加入自选失败（三段式）",
+  "screen": "query",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "query",
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2026-08-03",
+        "days": 80,
+        "perDay": 2,
+        "chars": "永和春日月山水火木金土人大小中国学习写字书法天地花鸟风云雨雪",
+        "seed": 7,
+        "wrongEvery": 9
+      }
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "龙",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "龙",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-08-30"
+        }
+      ]
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "鱼猫狗",
+          "at": "2026-10-21T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "remount": true,
+      "tab": "library"
+    },
+    {
+      "op": "openQuery",
+      "mode": "lookup",
+      "text": "宝"
+    }
+  ],
+  "ready": {
+    "web": "screen-library",
+    "native": "id:native-query-ready"
+  },
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "library-query-open"
+      },
+      "times": 1
+    },
+    {
+      "wait": 700
+    },
+    {
+      "js": "const el = document.querySelector('.sz-layer[data-top=\"true\"] [data-testid=\"query-input\"], [data-testid=\"query-input\"]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, \"宝\"); el.dispatchEvent(new Event('input', { bubbles: true }));"
+    },
+    {
+      "wait": 800
+    },
+    {
+      "js": "window.__shiziTest.failNextWrite(1, { kind: 'generic' });"
+    },
+    {
+      "tap": {
+        "webTestid": "query-card-add",
+        "native": "native-query-card-add"
+      },
+      "times": 1
+    },
+    {
+      "wait": 600
+    }
+  ],
+  "failNext": 1
+}

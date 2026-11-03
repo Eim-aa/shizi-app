@@ -1,0 +1,50 @@
+{
+  "state": "preview-fail",
+  "name": "图片预览 · 保存失败（三段式 + 再试一次）",
+  "screen": "result",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "image-preview",
+  "base": "result",
+  "setup": [
+    {
+      "op": "stubNative"
+    },
+    {
+      "op": "stubSave",
+      "success": false
+    }
+  ],
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "result-share",
+        "native": "native-result-share"
+      },
+      "times": 1
+    },
+    {
+      "wait": 1800
+    },
+    {
+      "tap": {
+        "webTestid": "image-save",
+        "native": "qa-image-save"
+      },
+      "times": 1
+    },
+    {
+      "wait": 300
+    },
+    {
+      "js": "window.shiziCardSaved({ success: false });"
+    },
+    {
+      "wait": 500
+    }
+  ]
+}

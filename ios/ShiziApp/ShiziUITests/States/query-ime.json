@@ -1,0 +1,134 @@
+{
+  "state": "query-ime",
+  "name": "查字 · 中文输入法组字中（拼音还没选字，不提前查）",
+  "screen": "query",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "overlay": "query",
+  "setup": [
+    {
+      "op": "seedRecords",
+      "gen": {
+        "from": "2026-08-03",
+        "days": 80,
+        "perDay": 2,
+        "chars": "永和春日月山水火木金土人大小中国学习写字书法天地花鸟风云雨雪",
+        "seed": 7,
+        "wrongEvery": 9
+      }
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "char": "龙",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "龙",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "龙",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "虎",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "虎",
+          "day": "2026-08-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-01"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-04"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-12"
+        },
+        {
+          "char": "马",
+          "day": "2026-07-30"
+        },
+        {
+          "char": "马",
+          "day": "2026-08-30"
+        }
+      ]
+    },
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "鱼猫狗",
+          "at": "2026-10-21T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "remount": true,
+      "tab": "library"
+    },
+    {
+      "op": "openQuery",
+      "mode": "lookup",
+      "text": "yong",
+      "composing": true
+    }
+  ],
+  "ready": {
+    "web": "screen-library",
+    "native": "id:native-query-ready"
+  },
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "library-query-open"
+      },
+      "times": 1
+    },
+    {
+      "wait": 700
+    },
+    {
+      "js": "const el = document.querySelector('[data-testid=\"query-input\"]'); el.focus(); el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' })); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(el, 'yong'); el.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true, data: 'g', inputType: 'insertCompositionText' }));"
+    },
+    {
+      "wait": 800
+    }
+  ]
+}

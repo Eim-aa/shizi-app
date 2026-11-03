@@ -1,0 +1,30 @@
+{
+  "state": "home-used",
+  "name": "首页（首练 3 字写完）",
+  "screen": "home",
+  "parity": false,
+  "template": "home",
+  "setup": [
+    {
+      "op": "openApi",
+      "slot": "A"
+    },
+    {
+      "op": "startNextA"
+    },
+    {
+      "op": "judge",
+      "slot": "A",
+      "judgments": [
+        "wrong",
+        "correct",
+        "correct"
+      ],
+      "strokes": "one"
+    },
+    {
+      "op": "switchTab",
+      "tab": "home"
+    }
+  ]
+}

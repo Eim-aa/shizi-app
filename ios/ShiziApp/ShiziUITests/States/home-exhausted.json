@@ -1,0 +1,28 @@
+{
+  "state": "home-exhausted",
+  "name": "首页 · 练习范围学完",
+  "screen": "home",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T12:30:00"
+  },
+  "setup": [
+    {
+      "op": "exhaustLibrary",
+      "at": "2026-10-05T08:00:00"
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "remount": true
+    }
+  ],
+  "ready": {
+    "web": "screen-home",
+    "native": "id:native-home-start"
+  }
+}

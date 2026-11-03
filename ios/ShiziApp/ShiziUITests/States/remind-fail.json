@@ -1,0 +1,39 @@
+{
+  "state": "remind-fail",
+  "name": "提醒 · 开关写入失败（三段式）",
+  "screen": "remind",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "remind",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "remind-screen",
+    "native": "id:native-remind-body"
+  },
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "remind-switch",
+        "native": "native-remind-switch"
+      },
+      "times": 1
+    },
+    {
+      "wait": 600
+    }
+  ],
+  "failNext": 1
+}

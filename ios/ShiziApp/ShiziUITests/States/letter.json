@@ -1,0 +1,27 @@
+{
+  "state": "letter",
+  "name": "写给你的信",
+  "screen": "about-letter",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "about-letter",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "about-letter-screen",
+    "native": "id:native-about-letter-address"
+  },
+  "ax": true
+}

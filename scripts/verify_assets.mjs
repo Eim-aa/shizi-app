@@ -1,0 +1,211 @@
+#!/usr/bin/env node
+// 资产门禁（M0-2）：从旧 scripts/legacy/verify_8105_app.js L90–158 抽出与 UI 无关的静态断言，
+// 外加 v10 新增项（01-架构设计 §11 第 1 层）。只读文件，不起浏览器。
+//
+//   许可文件 · 原生源码无遥测 / 联网 · 字源 fixture · App 里没有网页层与原生源码约束 · audit/vector-data-381-* 回放包
+//   · Swift 源码不含面向用户的中文 alert 文案
+//
+// 失败项退出码 1；「warn」项只打印并写进报告（由后续卡收尾，见每条注释），不改变退出码。
+// 题记 52 条 fixture 断言不再保留（P23：旧语料随旧脚本进 scripts/legacy/）。
+// D84（卡 B）：删了纯网页断言（index.html CSP、sw.js / sw-manifest.js / build-info 指纹、core-strokes.js、src/ 的 __shiziTest 守卫）；
+// 无遥测改查原生源码；字源 fixture 的题库读 ShiziCore 的 deck.json。
+
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const rel = (...parts) => join(ROOT, ...parts);
+const read = (...parts) => readFileSync(rel(...parts), 'utf8');
+const readJSON = (...parts) => JSON.parse(read(...parts));
+
+const failures = [];
+const warnings = [];
+const skipped = [];
+const passed = [];
+
+function check(name, condition, details) {
+  if (condition) passed.push(name);
+  else failures.push(details === undefined ? name : `${name}: ${JSON.stringify(details)}`);
+}
+function warn(name, details) {
+  warnings.push(details === undefined ? name : `${name}: ${JSON.stringify(details)}`);
+}
+
+function listFiles(dir, predicate) {
+  const out = [];
+  const abs = rel(dir);
+  if (!existsSync(abs)) return out;
+  const walk = current => {
+    for (const name of readdirSync(current)) {
+      if (name.startsWith('.')) continue;
+      const full = join(current, name);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (predicate(full)) out.push(full);
+    }
+  };
+  walk(abs);
+  return out.sort();
+}
+
+// ---- 许可 ------------------------------------------------------------------
+{
+  const notices = read('THIRD_PARTY_NOTICES.md');
+  const legal = read('LEGAL_RELEASE_CHECKLIST.md');
+  check('THIRD_PARTY_NOTICES pins Hanzi Writer 3.7.3 and its SHA-256',
+    notices.includes('Hanzi Writer 3.7.3') && notices.includes('17b11a1e025b780cb518d49b30faacc770dfa7fbc387aa3876e3e5c1bd31e642'));
+  check('THIRD_PARTY_NOTICES registers preact and htm', /preact/i.test(notices) && /\bhtm\b/.test(notices));
+  const licenseFiles = ['sources/LICENSE-MIT-HANZI-WRITER.txt', 'sources/LICENSE-ARPHIC-PUBLIC.txt',
+    'licenses/preact-LICENSE.txt', 'licenses/htm-LICENSE.txt'];
+  const missing = licenseFiles.filter(file => !existsSync(rel(file)) || statSync(rel(file)).size === 0);
+  check('complete local license texts exist', missing.length === 0, missing);
+  // C1（D50）：三组来源有问题的补充数据已移除，行保留并写明 REMOVED；仍需外部动作的行与事项必须写明（CONDITIONAL + 末段清单）。
+  const rowOf = label => legal.split('\n').find(line => line.startsWith('| ' + label)) || '';
+  check('LEGAL_RELEASE_CHECKLIST keeps unresolved release gates explicit',
+    ['Project-authored code and content', 'Hanzi Writer Data 2.0.1 baseline', 'AnimCJK-derived supplement', 'Make Me a Hanzi metadata']
+      .every(label => /\| (CLEARED|CONDITIONAL|BLOCKED) \|/.test(rowOf(label)))
+    && ['MOE stroke-order supplement', 'Font-outline extraction from STKaitiSC', 'Stroke-order merged supplement']
+      .every(label => rowOf(label).includes('| REMOVED |'))
+    && ['BLOCKED', 'CONDITIONAL', 'External actions still open', 'Arphic Technology'].every(text => legal.includes(text)));
+}
+
+// ---- 无遥测 / 不联网（D84：查 App 实际编译的原生源码） ----------------------------
+{
+  const shipped = [...listFiles(join('ios', 'ShiziApp', 'ShiziApp'), file => file.endsWith('.swift')),
+    ...listFiles(join('ios', 'ShiziCore', 'Sources'), file => file.endsWith('.swift'))];
+  const offenders = [];
+  for (const file of shipped) {
+    const code = readFileSync(file, 'utf8').replace(/\/\/.*$/gm, '');
+    if (/\b(?:sendBeacon|gtag|google-analytics|googletagmanager|sentry|mixpanel|amplitude|segment\.io|firebase|crashlytics)\b/i.test(code)
+      || /\bURLSession\b|httpMethod\s*=\s*"POST"/.test(code)) offenders.push(relative(ROOT, file));
+  }
+  check('no telemetry SDK, beacon or network request in shipped native sources', shipped.length > 50 && offenders.length === 0, offenders);
+}
+// ---- 字源 fixture（旧 L109–144 原样） ---------------------------------------
+{
+  const etymology = readJSON('data', 'etymology.json');
+  const coverage = readJSON('generated', 'etymology-coverage.json');
+  const builder = read('scripts', 'build_etymology.py');
+  const accuracy = readJSON('scripts', 'fixtures', 'etymology_accuracy.json');
+  const contextAudit = readJSON('scripts', 'fixtures', 'etymology_context_audit.json');
+  const copyReview = readJSON('scripts', 'fixtures', 'etymology_copy_review.json');
+  const deckCharacters = new Set(readJSON('ios', 'ShiziCore', 'Sources', 'ShiziCore', 'Bundled', 'deck.json').seed.map(row => row.target));
+  const openccOneToMany = new Set(read('sources', 'opencc-st-characters.txt').split(/\r?\n/)
+    .filter(line => line.includes('\t') && line.split('\t', 2)[1].trim().split(/\s+/).length > 1)
+    .map(line => line.split('\t', 1)[0]));
+  const hasCjkExtension = text => Array.from(String(text)).some(char => {
+    const cp = char.codePointAt(0);
+    return (cp >= 0x3400 && cp <= 0x4dbf) || (cp >= 0x20000 && cp <= 0x323af);
+  });
+  const isOpaqueAncientGloss = gloss => {
+    const match = String(gloss).split('。', 1)[0].match(/^(.{1,2})(?:也|同)$/u);
+    return !!match && Array.from(match[1]).some(char => !deckCharacters.has(char));
+  };
+
+  check('etymology records are unique, compact and attributed',
+    Array.isArray(etymology) && etymology.length === coverage.totals.entries && new Set(etymology.map(row => row.char)).size === etymology.length
+    && etymology.every(row => Object.keys(row).sort().join() === 'char,gloss,source' && Array.from(row.char).length === 1
+      && row.gloss.length >= 1 && row.gloss.length <= 20 && ['《说文解字》', 'Make Me a Hanzi'].includes(row.source)),
+    { count: etymology.length });
+  check('every top-frequency and radical coverage gap is explicit',
+    coverage.schemaVersion === 2 && coverage.totals.topCharacters === 1000 && coverage.totals.topCovered >= 900
+    && coverage.totals.radicalCovered + coverage.missingRadicalCharacters.length === coverage.totals.radicalCharacters
+    && coverage.missingRadicalCharacters.every(char => coverage.omissions[char])
+    && coverage.missingTopCharacters.every(char => !etymology.some(row => row.char === char)), coverage.totals);
+  check('etymology builder uses exact headword indexing and one-to-one-only OpenCC resolution',
+    builder.includes('build_shuowen_indexes') && builder.includes('len(traditional) == 1')
+    && !builder.includes('next((candidate for candidate in candidates'));
+  check('every published source match discloses a safe resolution path', Object.entries(coverage.detail).every(([char, row]) => {
+    const baseKind = row.matchKind.replace('+reviewed-copy', '');
+    return ['exact', 'reviewed-alias', 'reviewed-context', 'opencc-one-to-one', 'make-me-a-hanzi'].includes(baseKind)
+      && (baseKind !== 'exact' || row.sourceHeadword === char);
+  }));
+  check('every OpenCC one-to-many character requires context review',
+    Object.entries(coverage.detail).every(([char, row]) => !openccOneToMany.has(char) || row.matchKind.startsWith('reviewed-context')));
+  check('the complete context audit remains enforced',
+    contextAudit.entries.length === contextAudit.expectedCount && coverage.contextAudit.count === contextAudit.expectedCount);
+  check('every readability exception has an explicit human decision',
+    copyReview.entries.length === copyReview.expectedCount && coverage.copyReview.count === copyReview.expectedCount);
+  check('published etymology copy rejects CJK extensions and opaque ancient one-word definitions',
+    etymology.every(row => !hasCjkExtension(row.gloss) && !isOpaqueAncientGloss(row.gloss)));
+  const byChar = new Map(etymology.map(row => [row.char, row]));
+  check('reviewed exact-headword and ambiguity fixtures match generated output', accuracy.entries.every(expected => {
+    const row = byChar.get(expected.char), detail = coverage.detail[expected.char], omission = coverage.omissions[expected.char];
+    if (expected.status === 'absent') return !row && !detail && omission?.reason === expected.strategy;
+    return row?.source === expected.source && row?.gloss === expected.gloss && detail?.sourceHeadword === expected.sourceHeadword
+      && detail?.matchKind === expected.matchKind && detail?.gloss === expected.gloss;
+  }));
+  check('every approved plain-language copy or intentional omission matches its fixed candidate', copyReview.entries.every(expected => {
+    const row = byChar.get(expected.char), detail = coverage.detail[expected.char], omission = coverage.omissions[expected.char];
+    if (expected.status === 'absent') return !row && !detail && omission?.reason === 'readability-review-omission' && omission?.candidate === expected.candidate;
+    return row?.gloss === expected.copy && detail?.gloss === expected.copy && detail?.matchKind.endsWith('+reviewed-copy');
+  }));
+}
+
+// ---- iOS：App 里没有网页层（B4.9）与原生源码约束 ------------------------------
+// B4.9 之前这里核对自定义 scheme（LocalWebSchemeHandler）的 CSP / nosniff、WKWebView 原生桥的主框架 / 外链 / 子框架约束——它们随 WKWebView 一起删了；
+// 现在反过来断言：App 源码不再有 WebKit、页面桥与自定义 scheme，包里 Web/ 的清单只剩原生在读的 data / fonts / licenses（scripts/app-bundle-manifest.txt）。
+const swiftDir = join('ios', 'ShiziApp', 'ShiziApp');
+{
+  const webLayer = /import WebKit|WKWebView|WKUserScript|WKScriptMessage|evaluateJavaScript|callAsyncJavaScript|LocalWebSchemeHandler|shizi-resource:/;
+  const webFiles = listFiles(swiftDir, f => f.endsWith('.swift'))
+    .filter(file => webLayer.test(readFileSync(file, 'utf8').split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n')))
+    .map(file => relative(ROOT, file));
+  check('iOS app sources have no WebKit / page bridge / custom scheme (B4.9)', webFiles.length === 0, webFiles);
+  const appManifest = existsSync(rel('scripts', 'app-bundle-manifest.txt')) ? read('scripts', 'app-bundle-manifest.txt').split('\n').filter(Boolean) : [];
+  check('iOS bundle manifest lists only data / fonts / licenses (no JS, no web shell)', appManifest.length > 7000
+    && appManifest.every(f => /^(data|fonts|licenses)\//.test(f)), appManifest.filter(f => !/^(data|fonts|licenses)\//.test(f)).slice(0, 5));
+  // M5-3：冒烟与测试宿主注入（__shiziNativeDev、?test=1、nativeSmoke*）只在 #if DEBUG 里（Release 不编译；产物另由 verify-archive.sh 查）。
+  // P1-S2：原生书写面 spike 叠层（__shiziNativeInk、-shizi-native-ink、NativeInkSpike）、金标准自检 InkModelCheck、T1 量测 NativeInkLatency 同样只在 DEBUG。
+  //   B2.1 起书写面本身（NativeInkView / InkModel）转正为 Release 组件，不在此列（verify-archive.sh 反过来断言 Release 含它）。
+  // B2.0：原生写字页最小纵切只在 DEBUG；B3.1 起写字 / 判断 / 结果 / 重写错字页与 ShiziKit 转正进 Release（开关 -shizi-native-write 默认关、到 B3.F），
+  //   只剩纵切量测（NativeWriteMetrics、shizi-native-write-metrics.json）只在 DEBUG。
+  // QA-H1：界面测试的状态注入 / 取证 / 探针 / 时钟（-shizi-qa*、NativeQAHarness、QAProbe、QATrace、QAClock）只在 DEBUG（原生页面经 ShiziProbe 留钩子）。
+  const debugOnly = /__shiziNativeDev|nativeSmoke|shizi-native-smoke|"test", value: "1"|__shiziNativeInk|shizi-native-ink|NativeInkSpike|InkModelCheck|NativeInkLatency|shizi-native-write-metrics|NativeWriteMetrics|shizi-qa|NativeQA|QAProbe|QATrace|QAClock|QAFixture|QAOps|qa-probe/;
+  const leaks = [];
+  for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
+    const stack = [];
+    readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+      const directive = line.trim();
+      if (/^#if\b/.test(directive)) stack.push(/^#if\s+DEBUG\b/.test(directive));
+      else if (/^#else\b/.test(directive) && stack.length) stack[stack.length - 1] = false; // #if DEBUG 的 #else 分支 = Release
+      else if (/^#endif\b/.test(directive)) stack.pop();
+      else if (debugOnly.test(line.replace(/\/\/.*$/, '')) && !stack.some(Boolean)) leaks.push(`${relative(ROOT, file)}:${index + 1}`);
+    });
+  }
+  check('native smoke / test-host injection is compiled only under #if DEBUG', leaks.length === 0, leaks);
+
+  // Swift 源码不得含面向用户的中文 alert 文案（文案在 ShiziCore Bundled/copy.json 与 ShiziKitCopy.json）。M5-3 起硬检查。
+  const cjk = /[㐀-鿿豈-﫿]/;
+  const alertLines = [];
+  for (const file of listFiles(swiftDir, f => f.endsWith('.swift'))) {
+    readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+      const code = line.replace(/\/\/.*$/, '');
+      if (/UIAlertController|UIAlertAction|presentError\(|\.addTextField/.test(code)
+        && [...code.matchAll(/"((?:[^"\\]|\\.)*)"/g)].some(m => cjk.test(m[1]))) {
+        alertLines.push(`${relative(ROOT, file)}:${index + 1}`);
+      }
+    });
+  }
+  check('Swift sources contain no user-facing Chinese alert copy', alertLines.length === 0, alertLines);
+  check('native shell presents no UIAlertController', !listFiles(swiftDir, f => f.endsWith('.swift'))
+    .some(file => /UIAlertController\(/.test(readFileSync(file, 'utf8').replace(/\/\/.*$/gm, ''))));
+}
+
+// ---- audit/vector-data-381-* 回放包 ------------------------------------------
+{
+  const gz = rel('audit', 'vector-data-381-accepted-source-replay.json.gz');
+  const md = rel('audit', 'vector-data-381-source-replay.md');
+  check('audit/vector-data-381 replay bundle and its README exist', existsSync(gz) && existsSync(md));
+  if (existsSync(gz)) {
+    let payload = null;
+    try { payload = JSON.parse(gunzipSync(readFileSync(gz)).toString('utf8')); } catch (error) { payload = null; }
+    check('audit/vector-data-381 replay bundle decodes to 381 accepted-source records',
+      payload?.artifact === 'shizi-vector-data-381-accepted-source-replay' && Array.isArray(payload?.records) && payload.records.length === 381);
+  }
+}
+
+const report ={ status: failures.length ? 'failed' : 'passed', passed: passed.length, failures, warnings, skipped };
+process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+if (failures.length) process.exit(1);

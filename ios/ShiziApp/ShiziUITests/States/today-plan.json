@@ -1,0 +1,40 @@
+{
+  "state": "today-plan",
+  "name": "今天的练习（每组 5 字，流程用；D83）",
+  "screen": "home",
+  "native": true,
+  "parity": false,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-06T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "entries": [
+        {
+          "chars": "尴赢拾",
+          "at": "2026-10-05T20:00:00"
+        }
+      ]
+    },
+    {
+      "op": "patch",
+      "domain": "settings",
+      "value": {
+        "groupSize": 5
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "remount": true
+    }
+  ],
+  "ready": {
+    "web": "screen-home",
+    "native": "id:native-home-start"
+  }
+}

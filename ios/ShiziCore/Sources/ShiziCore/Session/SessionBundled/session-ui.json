@@ -1,0 +1,577 @@
+{
+  "apiOps": [
+    "backup.clear",
+    "backup.dropSafety",
+    "backup.export",
+    "backup.exportDone",
+    "backup.picked",
+    "backup.restore",
+    "backup.restorePreview",
+    "backup.undoClear",
+    "backup.undoRestore",
+    "backup.undoState",
+    "block.export",
+    "block.exportable",
+    "block.retry",
+    "detail.addCustom",
+    "detail.correct",
+    "detail.image",
+    "detail.practice",
+    "detail.removeCustom",
+    "detail.restoreCustom",
+    "detail.wordOff",
+    "detail.wordOn",
+    "home.deferSpecial",
+    "home.expire",
+    "home.pick",
+    "home.resumeOther",
+    "home.source",
+    "home.start",
+    "home.switchLibrary",
+    "home.undoLeave",
+    "home.undoLeaveCancel",
+    "image.add",
+    "image.closed",
+    "image.persist",
+    "image.render",
+    "image.save",
+    "image.spec",
+    "image.view",
+    "library.all.start",
+    "library.list.start",
+    "library.openQuery",
+    "library.startToday",
+    "library.switch",
+    "library.undoLeave",
+    "library.undoLeaveCancel",
+    "mine.appearance",
+    "mine.groupSize",
+    "query.add",
+    "query.detail",
+    "query.pick",
+    "remind.enabled",
+    "remind.time",
+    "reminder.plan",
+    "reminder.status",
+    "s02.decide",
+    "session.libSwitch",
+    "session.pick",
+    "session.wrongList",
+    "stage.enter",
+    "stage.resync",
+    "view.about",
+    "view.about-credits",
+    "view.about-letter",
+    "view.about-privacy",
+    "view.annual",
+    "view.backup",
+    "view.block",
+    "view.detail",
+    "view.detail-photo",
+    "view.home",
+    "view.library",
+    "view.library-all",
+    "view.library-list",
+    "view.library-switch",
+    "view.mine",
+    "view.month",
+    "view.query",
+    "view.records",
+    "view.remind",
+    "view.s02",
+    "view.session-none"
+  ],
+  "hintDraw": {
+    "minMs": 150,
+    "maxMs": 220,
+    "stagger": 0.7,
+    "opacity": 1
+  },
+  "backupTemplate": {
+    "title": {
+      "copy": "R-M03.backup"
+    },
+    "lastLabel": {
+      "copy": "R-B02.lastBackupLabel"
+    },
+    "lastDate": {
+      "copy": "R-B02.noBackup"
+    },
+    "lastDay": null,
+    "statusLines": [
+      {
+        "copy": "R-B02.noRecords"
+      }
+    ],
+    "noteKeys": [
+      "R-B02.noRecords"
+    ],
+    "intro": {
+      "copy": "X-BACKUP.introEmpty"
+    },
+    "hasRecords": false,
+    "count": 0,
+    "restore": {
+      "label": {
+        "copy": "X-BACKUP.restoreRow"
+      },
+      "sub": {
+        "copy": "X-BACKUP.restoreRowSub"
+      }
+    },
+    "clear": {
+      "label": {
+        "copy": "X-BACKUP.clearRow"
+      }
+    },
+    "export": {
+      "label": {
+        "copy": "R-B02.export"
+      }
+    },
+    "undo": {
+      "restore": {
+        "l1": {
+          "copy": "R-B01.undoL1"
+        },
+        "l2": {
+          "copy": "R-B01.undoL2"
+        }
+      },
+      "clear": {
+        "l1": {
+          "copy": "R-B01.clearUndoL1"
+        },
+        "l2": {
+          "copy": "R-B01.clearUndoL2"
+        }
+      },
+      "failedRestore": {
+        "l1": {
+          "copy": "R-B05.undoFailedRestore"
+        },
+        "l2": {
+          "copy": "R-B05.undoAgain"
+        }
+      },
+      "failedClear": {
+        "l1": {
+          "copy": "R-B05.undoFailedClear"
+        },
+        "l2": {
+          "copy": "R-B05.undoAgain"
+        }
+      }
+    },
+    "noteBox": {
+      "protectFailed": {
+        "kind": "protectFailed",
+        "text": {
+          "copy": "R-B04.protectFailed"
+        },
+        "retry": {
+          "copy": "X-BACKUP.retry"
+        },
+        "stay": {
+          "copy": "X-BACKUP.restoreStay"
+        }
+      },
+      "notBackup": {
+        "kind": "notBackup",
+        "text": {
+          "copy": "R-B06.notBackup"
+        },
+        "retry": null,
+        "stay": null
+      },
+      "restoreFailed": {
+        "kind": "restoreFailed",
+        "text": {
+          "copy": "R-B06.restoreFailed"
+        },
+        "retry": {
+          "copy": "X-BACKUP.retry"
+        },
+        "stay": {
+          "copy": "X-BACKUP.restoreStay"
+        }
+      }
+    },
+    "exportFail": {
+      "text": {
+        "copy": "X-BACKUP.exportFailed"
+      },
+      "stay": {
+        "copy": "X-BACKUP.exportStay"
+      },
+      "retry": {
+        "copy": "X-BACKUP.retry"
+      }
+    },
+    "clearSheet": {
+      "title": {
+        "copy": "X-BACKUP.clearTitle"
+      },
+      "body": {
+        "copy": "R-B03.clearBody",
+        "params": {
+          "n": 0
+        }
+      },
+      "cancel": {
+        "copy": "X-BACKUP.confirmCancel"
+      },
+      "ok": {
+        "copy": "X-BACKUP.clearOk"
+      },
+      "failed": {
+        "body": {
+          "copy": "X-BACKUP.clearFailed"
+        },
+        "cancel": {
+          "copy": "X-BACKUP.clearStay"
+        },
+        "retry": {
+          "copy": "X-BACKUP.retry"
+        }
+      }
+    },
+    "restoreConfirm": {
+      "replaceTitle": {
+        "copy": "X-BACKUP.replaceTitle"
+      },
+      "restoreTitle": {
+        "copy": "R-B03.restoreTitle"
+      },
+      "replaceBody": {
+        "copy": "R-B03.replaceBody"
+      },
+      "restoreBody": {
+        "copy": "R-B03.restoreBody"
+      },
+      "cancel": {
+        "copy": "X-BACKUP.confirmCancel"
+      },
+      "replaceOk": {
+        "copy": "X-BACKUP.replaceOk"
+      },
+      "restoreOk": {
+        "copy": "R-B03.restoreBtn"
+      },
+      "lossRange": {
+        "copy": "X-BACKUP.lossRange"
+      },
+      "lossDay": {
+        "copy": "X-BACKUP.lossDay"
+      },
+      "exportFirst": {
+        "copy": "X-BACKUP.exportFirst"
+      }
+    }
+  },
+  "writeOps": [
+    "open",
+    "strokes",
+    "phase",
+    "judge",
+    "exit",
+    "copy",
+    "hint",
+    "correct",
+    "showAnswer",
+    "answerPhase",
+    "answerNext",
+    "skip",
+    "undoSkip",
+    "end",
+    "firstTip",
+    "redoOpen",
+    "redoNext",
+    "redoExit",
+    "refLabel"
+  ],
+  "resultOps": [
+    "result",
+    "resultCell",
+    "resultCorrect",
+    "resultAdd",
+    "resultSealed",
+    "resultUndoSkip",
+    "resultAgain",
+    "resultExit",
+    "resultInvite"
+  ],
+  "writeKeys": [
+    "R-W01.progress",
+    "R-W01.progressLabel",
+    "X-WRITE.firstTip",
+    "R-W03.titleRecall",
+    "R-W03.titleCompare",
+    "R-W05.hintLabel",
+    "R-W07.btnShowAnswer",
+    "R-W07.btnNext",
+    "R-W07.answerNote",
+    "R-W07.selfNote",
+    "R-W08.answerNote",
+    "R-W03.titleSelf",
+    "R-W04.stepTrace",
+    "R-W04.stepSelf",
+    "X-ANSWER.titleTrace",
+    "X-ANSWER.btnTraceDone",
+    "X-ANSWER.btnRetrace",
+    "X-COMMON.leave",
+    "R-W09.btnWrong",
+    "R-W09.btnCorrect",
+    "R-W09.continueWriting",
+    "R-W09.labelMine",
+    "R-W09.mineCardLabel",
+    "R-W09.refCardLabelChar",
+    "R-W09.labelReference",
+    "R-W10.changeBodyCorrect",
+    "R-W10.changeBodyWrong",
+    "R-W10.changeFailed",
+    "R-W10.retry",
+    "R-W10.cancel",
+    "R-D07.noInkLarge",
+    "R-W17.noInk",
+    "X-JUDGE.changeTitle",
+    "X-JUDGE.changeToWrong",
+    "X-JUDGE.changeToCorrect",
+    "X-JUDGE.changeCancel",
+    "X-JUDGE.paperMineBox",
+    "R-W14.btnSkip",
+    "R-W15.end",
+    "R-W15.confirmBody",
+    "R-W15.confirmBodyNone",
+    "R-W15.continue",
+    "R-W20.skippedToast",
+    "R-W20.undo",
+    "R-W16.saveFailed",
+    "R-W16.retry",
+    "R-W16.cancel",
+    "R-W18.btnUndo",
+    "R-W18.btnClear",
+    "R-W29.btnDone",
+    "X-COMMON.back",
+    "X-PROMPT.groupLabel",
+    "X-WRITE.gridLabel",
+    "X-WRITE.gridLabelCount",
+    "X-WRITE.liveStroke",
+    "X-WRITE.liveRestored",
+    "X-WRITE.liveUndo",
+    "X-WRITE.liveUndoEmpty",
+    "X-WRITE.liveCleared",
+    "X-WRITE.liveRangeOne",
+    "X-WRITE.liveRangeMany",
+    "X-WRITE.liveTrace",
+    "X-WRITE.liveTraceWhole",
+    "X-DETAIL.viewChar",
+    "X-REDO.title",
+    "X-REDO.note",
+    "X-REDO.again",
+    "X-RESULT.done"
+  ],
+  "resultKeys": [
+    "X-COMMON.close",
+    "X-WORK.shareAria",
+    "X-RESULT.again",
+    "X-RESULT.done",
+    "X-RESULT.againFailed",
+    "X-RESULT.againCancel",
+    "X-RESULT.againRetry",
+    "X-REDO.title",
+    "X-FIRST.addIn",
+    "X-INVITE.yes",
+    "X-INVITE.no",
+    "X-INVITE.changeTime",
+    "X-INVITE.blankLabel",
+    "X-INVITE.denied",
+    "X-SETTINGS.saveFailed",
+    "X-SETTINGS.cancel",
+    "R-W09.labelMine",
+    "R-W09.labelReference",
+    "R-W09.mineCardLabel",
+    "R-W09.refCardLabelChar",
+    "R-W10.changeFailed",
+    "R-W10.retry",
+    "R-W10.cancel",
+    "R-D07.noInkLarge",
+    "R-R02.sheetNoInk",
+    "X-DETAIL.viewChar",
+    "R-W20.skippedToast",
+    "R-W20.undo",
+    "R-W16.saveFailed",
+    "R-W16.retry",
+    "R-W16.cancel",
+    "X-JUDGE.changeToWrong",
+    "X-JUDGE.changeToCorrect"
+  ],
+  "timing": {
+    "penArmMs": 250,
+    "judgeAppearMs": 320,
+    "judgeReadyMs": 440,
+    "pressGuardMs": 400
+  },
+  "motion": {
+    "fade": 150,
+    "textOut": 75,
+    "inkFlip": 200,
+    "phaseReverse": 280,
+    "reduce": 150,
+    "hintIn": 150,
+    "hintOut": 260,
+    "hintReduced": 150,
+    "easeOut": [
+      0.2,
+      0.7,
+      0.2,
+      1
+    ],
+    "settle": {
+      "lift": 100,
+      "fadeFrom": 380,
+      "end": 460,
+      "countBox": 14,
+      "liftScale": 0.97,
+      "gather": [
+        0.5,
+        0,
+        0.15,
+        1
+      ]
+    },
+    "overlay": {
+      "sheetIn": 280,
+      "sheetOut": 220,
+      "scrimIn": 200,
+      "scrimOut": 180,
+      "confirmIn": 200,
+      "confirmOut": 180,
+      "confirmFrom": 0.96,
+      "snap": 200,
+      "easeIn": [
+        0.4,
+        0,
+        1,
+        1
+      ],
+      "directionSlop": 10,
+      "commitRatio": 0.3333333333333333,
+      "commitVelocity": 500,
+      "returnVelocity": -200
+    },
+    "nav": {
+      "push": {
+        "ms": 300,
+        "outMs": 300,
+        "gestureMinMs": 150,
+        "snapMs": 200,
+        "parallax": 0.3,
+        "ease": [
+          0.2,
+          0.7,
+          0.2,
+          1
+        ]
+      },
+      "paper": {
+        "openMs": 420,
+        "closeMs": 360,
+        "fullMs": 300,
+        "minFinishMs": 120,
+        "cancelMs": 220,
+        "openEase": [
+          0.3,
+          0,
+          0.1,
+          1
+        ],
+        "closeEase": [
+          0.2,
+          0.7,
+          0.2,
+          1
+        ],
+        "dragLeanPt": 60,
+        "dragRadiusPt": 24,
+        "contentFadeFrom": 0.6,
+        "veilTo": 0.25
+      },
+      "quiet": {
+        "openMs": 220,
+        "closeMs": 180,
+        "scaleFrom": 0.96,
+        "dragPt": 40
+      },
+      "reduceMs": 150,
+      "phaseMs": 150
+    }
+  },
+  "layout": {
+    "min": 258,
+    "max": 400,
+    "sideMargin": 20,
+    "promptGap": 16,
+    "noteHeight": 40,
+    "toolRowHeight": 48,
+    "axMin": 220,
+    "axNoteHeight": 56,
+    "fitGridMin": 180,
+    "promptFitMin": 0.6,
+    "bottomGap": 16,
+    "topShare": 0.4,
+    "topMin": 12,
+    "nominalHead": 44,
+    "nominalFoot": 134,
+    "footBottomMin": 24,
+    "nominalPrompt": 80,
+    "hintMatchMaxDist": 40
+  },
+  "trace": {
+    "maxMs": 1600,
+    "speed": 1.6,
+    "gapMs": 180,
+    "fadeMs": 220,
+    "hookWidthPt": 0.75,
+    "hookWidthMoreContrastPt": 1.5
+  },
+  "skipUndo": {
+    "ms": 5000,
+    "pauseWhileHeld": true,
+    "keepOpenWithAssistiveTech": true
+  },
+  "ink": {
+    "base": 11.5,
+    "lo": 0.25,
+    "hi": 0.9,
+    "pressureLo": 0.58,
+    "pressureGain": 0.94,
+    "pressureHi": 1.52,
+    "step": 3,
+    "tapMax": 28,
+    "tapRatio": 0.3,
+    "endMinSlow": 0.9,
+    "endMinFast": 0.12,
+    "euroMinCutoff": 1,
+    "euroBeta": 0.02,
+    "euroDCutoff": 1,
+    "speedCap": 1.5,
+    "tau": 35,
+    "window": 30,
+    "dotLen": 24,
+    "single": 0.9
+  },
+  "resultMotion": {
+    "cellIn": 180,
+    "stagger": 50,
+    "kuanIn": 150,
+    "sealDrop": 220,
+    "rebound": 120,
+    "sealFrom": 1.25,
+    "sealContact": 0.92,
+    "max": 750,
+    "lateIn": 150,
+    "inviteDelay": 600,
+    "inviteIn": 300
+  }
+}

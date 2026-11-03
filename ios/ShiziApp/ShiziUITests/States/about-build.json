@@ -1,0 +1,38 @@
+{
+  "state": "about-build",
+  "name": "关于 · 版本行展开完整 BUILD",
+  "screen": "about",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "about",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "about-screen",
+    "native": "id:native-about-build"
+  },
+  "steps": [
+    {
+      "tap": {
+        "webTestid": "about-build",
+        "native": "native-about-build"
+      },
+      "times": 1
+    },
+    {
+      "wait": 500
+    }
+  ]
+}

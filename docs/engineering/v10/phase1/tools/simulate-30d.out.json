@@ -1,0 +1,299 @@
+{
+ "params": {
+  "combo": "A",
+  "groupsPerDay": 1,
+  "runs": 200,
+  "seed": 1,
+  "size": 5,
+  "reviewCap": 5,
+  "start": "2026-10-05",
+  "highFreqRank": 500,
+  "pshift": 0
+ },
+ "representative": [
+  {
+   "day": 1,
+   "date": "2026-10-05",
+   "groups": [
+    [
+     {
+      "ch": "尴",
+      "kind": "首练",
+      "ok": false,
+      "rank": 2726
+     },
+     {
+      "ch": "赢",
+      "kind": "首练",
+      "ok": true,
+      "rank": 1836
+     },
+     {
+      "ch": "拾",
+      "kind": "首练",
+      "ok": true,
+      "rank": 1961
+     }
+    ],
+    [
+     {
+      "ch": "春",
+      "kind": "热身",
+      "ok": false,
+      "rank": 921
+     },
+     {
+      "ch": "酱",
+      "kind": "新",
+      "ok": false,
+      "rank": 3100
+     },
+     {
+      "ch": "疆",
+      "kind": "新",
+      "ok": true,
+      "rank": 2036
+     },
+     {
+      "ch": "肆",
+      "kind": "新",
+      "ok": false,
+      "rank": 2445
+     },
+     {
+      "ch": "酝",
+      "kind": "新",
+      "ok": false,
+      "rank": 3362
+     }
+    ]
+   ],
+   "text": "尴〔首练〕✗ 赢〔首练〕 拾〔首练〕 ｜ 春〔热身〕✗ 酱✗ 疆 肆✗ 酝✗"
+  },
+  {
+   "day": 2,
+   "date": "2026-10-06",
+   "groups": [
+    [
+     {
+      "ch": "春",
+      "kind": "复习",
+      "ok": true,
+      "rank": 921
+     },
+     {
+      "ch": "尴",
+      "kind": "复习",
+      "ok": false,
+      "rank": 2726
+     },
+     {
+      "ch": "肆",
+      "kind": "复习",
+      "ok": true,
+      "rank": 2445
+     },
+     {
+      "ch": "酝",
+      "kind": "复习",
+      "ok": true,
+      "rank": 3362
+     },
+     {
+      "ch": "酱",
+      "kind": "复习",
+      "ok": true,
+      "rank": 3100
+     }
+    ]
+   ],
+   "text": "春〔复习〕 尴〔复习〕✗ 肆〔复习〕 酝〔复习〕 酱〔复习〕"
+  },
+  {
+   "day": 3,
+   "date": "2026-10-07",
+   "groups": [
+    [
+     {
+      "ch": "尴",
+      "kind": "复习",
+      "ok": true,
+      "rank": 2726
+     },
+     {
+      "ch": "拾",
+      "kind": "复习",
+      "ok": true,
+      "rank": 1961
+     },
+     {
+      "ch": "疆",
+      "kind": "复习",
+      "ok": true,
+      "rank": 2036
+     },
+     {
+      "ch": "赢",
+      "kind": "复习",
+      "ok": true,
+      "rank": 1836
+     },
+     {
+      "ch": "嚷",
+      "kind": "新",
+      "ok": true,
+      "rank": 2256
+     }
+    ]
+   ],
+   "text": "尴〔复习〕 拾〔复习〕 疆〔复习〕 赢〔复习〕 嚷"
+  },
+  {
+   "day": 7,
+   "date": "2026-10-11",
+   "groups": [
+    [
+     {
+      "ch": "窗",
+      "kind": "复习",
+      "ok": true,
+      "rank": 1074
+     },
+     {
+      "ch": "尬",
+      "kind": "复习",
+      "ok": false,
+      "rank": 2729
+     },
+     {
+      "ch": "罐",
+      "kind": "复习",
+      "ok": false,
+      "rank": 2410
+     },
+     {
+      "ch": "痒",
+      "kind": "复习",
+      "ok": true,
+      "rank": 2646
+     },
+     {
+      "ch": "酿",
+      "kind": "复习",
+      "ok": true,
+      "rank": 2764
+     }
+    ]
+   ],
+   "text": "窗〔复习〕 尬〔复习〕✗ 罐〔复习〕✗ 痒〔复习〕 酿〔复习〕"
+  },
+  {
+   "day": 30,
+   "date": "2026-11-03",
+   "groups": [
+    [
+     {
+      "ch": "笑",
+      "kind": "复习",
+      "ok": true,
+      "rank": 346
+     },
+     {
+      "ch": "阎",
+      "kind": "复习",
+      "ok": true,
+      "rank": 2473
+     },
+     {
+      "ch": "截",
+      "kind": "复习",
+      "ok": true,
+      "rank": 1552
+     },
+     {
+      "ch": "憋",
+      "kind": "新",
+      "ok": false,
+      "rank": 3141
+     },
+     {
+      "ch": "冀",
+      "kind": "新",
+      "ok": false,
+      "rank": 2550
+     }
+    ]
+   ],
+   "text": "笑〔复习〕 阎〔复习〕 截〔复习〕 憋✗ 冀✗"
+  }
+ ],
+ "representativeCheck": {
+  "groupsWithMoreThanOneHighFreq": 0,
+  "top100Appear": [],
+  "adjacentHighFreq": 0,
+  "groups": 31
+ },
+ "aggregate": {
+  "runs": 200,
+  "violations": {
+   "groupsWithMoreThanOneHighFreq": 0,
+   "top100Appear": 0,
+   "adjacentHighFreq": 0,
+   "groups": 6200
+  },
+  "curatedIntroducedBy30": {
+   "min": 23,
+   "median": 32,
+   "max": 39
+  },
+  "warmIntroducedBy30": {
+   "min": 4,
+   "median": 7,
+   "max": 11
+  },
+  "kindsPerDay": [
+   {
+    "day": 2,
+    "avg": {
+     "热身": 0.4,
+     "复习": 3.5,
+     "新": 1
+    }
+   },
+   {
+    "day": 3,
+    "avg": {
+     "热身": 0,
+     "复习": 4.8,
+     "新": 0.2
+    }
+   },
+   {
+    "day": 7,
+    "avg": {
+     "热身": 0.2,
+     "复习": 3.6,
+     "新": 1.2
+    }
+   },
+   {
+    "day": 14,
+    "avg": {
+     "热身": 0.3,
+     "复习": 3.7,
+     "新": 1.1
+    }
+   },
+   {
+    "day": 30,
+    "avg": {
+     "热身": 0.1,
+     "复习": 4.4,
+     "新": 0.6
+    }
+   }
+  ],
+  "correctRateNew": 0.507,
+  "correctRateReview": 0.861
+ }
+}

@@ -1,0 +1,22 @@
+{
+  "state": "_restore-late",
+  "internal": true,
+  "name": "B3.F 冷启动恢复：凌晨 3 点停在「关于」（RestoreAndDeepLinkTests 拨钟跨 4 点用）",
+  "clock": {
+    "pin": "2026-10-22T03:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "about",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "native": "id:native-about-build"
+  }
+}

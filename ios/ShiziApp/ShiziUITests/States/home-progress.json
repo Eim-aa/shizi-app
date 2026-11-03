@@ -1,0 +1,44 @@
+{
+  "state": "home-progress",
+  "name": "首页 · 写到一半（继续写字 + other-line）",
+  "screen": "home",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-05T12:30:00"
+  },
+  "ax": true,
+  "setup": [
+    {
+      "op": "seedRecords",
+      "groups": [
+        {
+          "at": "2026-10-05T12:00:00",
+          "chars": [
+            "疆",
+            "嚷",
+            "醋",
+            "膝",
+            "窗"
+          ],
+          "steps": [
+            "correct",
+            "correct"
+          ]
+        }
+      ]
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "remount": true
+    }
+  ],
+  "ready": {
+    "web": "screen-home",
+    "native": "id:native-home-start"
+  }
+}

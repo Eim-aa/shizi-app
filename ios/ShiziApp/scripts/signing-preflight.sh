@@ -10,6 +10,7 @@ SIGNING_XCCONFIG="${SIGNING_XCCONFIG:-}"
 PREFLIGHT_MODE="${PREFLIGHT_MODE:-device}"
 DEFAULT_BUNDLE_ID="com.eimaa.shizi"
 PROFILE_DIR="${HOME}/Library/MobileDevice/Provisioning Profiles"
+XCODE_PROFILE_DIR="${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles"
 
 failures=0
 warnings=0
@@ -135,16 +136,11 @@ elif [ "$PREFLIGHT_MODE" = "testflight" ]; then
   warn "No App Store Connect API key provided; upload/export will rely on an Xcode account already signed in on this Mac."
 fi
 
+identities=""
+development_identity_hashes=""
 if [ -n "${DEVELOPMENT_TEAM:-}" ] && command -v security >/dev/null 2>&1; then
   identities="$(security find-identity -v -p codesigning 2>/dev/null || true)"
-  if printf '%s\n' "$identities" | grep -F "Apple Development:" | grep -F "(${DEVELOPMENT_TEAM})" >/dev/null 2>&1; then
-    ok "Apple Development signing identity found for ${DEVELOPMENT_TEAM}"
-  elif [ "$PREFLIGHT_MODE" = "device" ]; then
-    fail "No Apple Development signing identity found for ${DEVELOPMENT_TEAM}."
-  else
-    warn "No Apple Development signing identity found for ${DEVELOPMENT_TEAM}."
-  fi
-
+  development_identity_hashes="$(printf '%s\n' "$identities" | awk '/"Apple Development: / { line=$0; sub(/^[[:space:]]*[0-9]+\)[[:space:]]*/, "", line); print substr(line, 1, 40) }')"
   if printf '%s\n' "$identities" | grep -F "Apple Distribution:" | grep -F "(${DEVELOPMENT_TEAM})" >/dev/null 2>&1; then
     ok "Apple Distribution signing identity found for ${DEVELOPMENT_TEAM}"
   elif [ "$PREFLIGHT_MODE" = "testflight" ]; then
@@ -156,28 +152,42 @@ profile_count=0
 matching_profiles=0
 device_profiles=0
 app_store_profiles=0
+matching_development_identity=0
 
-if [ -d "$PROFILE_DIR" ]; then
-  profile_count="$(find "$PROFILE_DIR" -maxdepth 1 -name '*.mobileprovision' -type f | wc -l | tr -d '[:space:]')"
-  if [ "$profile_count" != "0" ] && [ -n "${DEVELOPMENT_TEAM:-}" ]; then
-    for profile in "$PROFILE_DIR"/*.mobileprovision; do
-      [ -f "$profile" ] || continue
-      decoded="$(mktemp "${TMPDIR:-/tmp}/shizi-profile.XXXXXX")"
-      if security cms -D -i "$profile" >"$decoded" 2>/dev/null; then
-        team_id="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$decoded" 2>/dev/null || true)"
-        app_identifier="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$decoded" 2>/dev/null || true)"
-        if [ "$team_id" = "$DEVELOPMENT_TEAM" ] && bundle_matches_profile "$app_identifier"; then
-          matching_profiles=$((matching_profiles + 1))
-          if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices:0' "$decoded" >/dev/null 2>&1; then
-            device_profiles=$((device_profiles + 1))
-          else
-            app_store_profiles=$((app_store_profiles + 1))
-          fi
+profile_files="$(find "$PROFILE_DIR" "$XCODE_PROFILE_DIR" -maxdepth 1 -name '*.mobileprovision' -type f -print 2>/dev/null || true)"
+if [ -n "$profile_files" ]; then
+  while IFS= read -r profile; do
+    [ -n "$profile" ] || continue
+    profile_count=$((profile_count + 1))
+    decoded="$(mktemp "${TMPDIR:-/tmp}/shizi-profile.XXXXXX")"
+    if security cms -D -i "$profile" >"$decoded" 2>/dev/null; then
+      team_id="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$decoded" 2>/dev/null || true)"
+      app_identifier="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$decoded" 2>/dev/null || true)"
+      if [ "$team_id" = "$DEVELOPMENT_TEAM" ] && bundle_matches_profile "$app_identifier"; then
+        matching_profiles=$((matching_profiles + 1))
+        profile_has_devices=0
+        if /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices:0' "$decoded" >/dev/null 2>&1; then
+          device_profiles=$((device_profiles + 1))
+          profile_has_devices=1
+        else
+          app_store_profiles=$((app_store_profiles + 1))
+        fi
+
+        if [ "$profile_has_devices" = "1" ] && [ -n "$development_identity_hashes" ]; then
+          profile_cert_hashes="$(/usr/bin/python3 -c 'import hashlib, plistlib, sys; p=plistlib.load(open(sys.argv[1], "rb")); print("\n".join(hashlib.sha1(cert).hexdigest().upper() for cert in p.get("DeveloperCertificates", [])))' "$decoded" 2>/dev/null || true)"
+          for identity_hash in $development_identity_hashes; do
+            if printf '%s\n' "$profile_cert_hashes" | grep -Fx "$identity_hash" >/dev/null 2>&1; then
+              matching_development_identity=1
+              break
+            fi
+          done
         fi
       fi
-      rm -f "$decoded"
-    done
-  fi
+    fi
+    rm -f "$decoded"
+  done <<EOF
+$profile_files
+EOF
 fi
 
 if [ "$profile_count" = "0" ]; then
@@ -196,6 +206,14 @@ else
     fi
   else
     ok "Found ${matching_profiles} matching profile(s) for ${BUNDLE_ID}"
+  fi
+
+  if [ "$matching_development_identity" = "1" ]; then
+    ok "A valid Apple Development identity is included in a matching profile for ${DEVELOPMENT_TEAM}"
+  elif [ "$PREFLIGHT_MODE" = "device" ]; then
+    fail "No valid Apple Development identity is included in a matching profile for ${DEVELOPMENT_TEAM}."
+  else
+    warn "No valid Apple Development identity is included in a matching profile for ${DEVELOPMENT_TEAM}."
   fi
 
   if [ "$PREFLIGHT_MODE" = "device" ] && [ "$device_profiles" = "0" ]; then

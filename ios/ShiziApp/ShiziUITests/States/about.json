@@ -1,0 +1,27 @@
+{
+  "state": "about",
+  "name": "关于 · 版本行 + 三行入口",
+  "screen": "about",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "switchTab",
+      "tab": "mine"
+    },
+    {
+      "op": "push",
+      "screen": "about",
+      "params": {}
+    }
+  ],
+  "ready": {
+    "web": "about-screen",
+    "native": "id:native-about-build"
+  },
+  "ax": true
+}

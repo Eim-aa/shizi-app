@@ -76,7 +76,7 @@ ios/ShiziApp/scripts/verify-native-ui.sh --update-baseline [--parity-only] [--st
 **逐屏基线（D84）**：逐屏对比的参考是仓库里冻结的**原生截图基线** `ShiziUITests/Baseline/<状态>_<外观>_<字号>.png` 与 `.json`（1 倍点尺寸，取证原样存下；网页参考 `Reference/`、`native-truth.json`、`--update-reference` 随网页版一起退役，要找回看 Git 历史）。基线只是**回归守卫**——原生的任何一处变动（元素位置 / 尺寸 / 文案 / 颜色 / 字号字重 / 线 / 装饰 / 墨格）都报成差异，退出码 1；不需要负责人逐屏审。有意改了界面之后：
 
 1. 先跑 `verify-native-ui.sh --states <改到的状态>` 看差异报告和并排图（`parity/side-by-side/`，左基线、右这次），确认每一条都是预期的改动；
-2. 再跑 `verify-native-ui.sh --update-baseline --parity-only --states <改到的状态>`（改动面大时不带 `--states`，全量重录，3 台模拟器约 35–40 分钟）。只有取证全部成功才写，写完立刻再对这份新基线比一次，应当 0 差异；
+2. 再跑 `verify-native-ui.sh --update-baseline --parity-only --states <改到的状态>`（改动面大时不带 `--states`，全量重录，3 台模拟器只取证约 23 分钟）。只有取证全部成功才写，写完立刻再对这份新基线比一次，应当 0 差异；
 3. 基线图**单独一个提交**（提交说明写清是哪次界面改动），和代码改动分开，方便回看和回退。
 
 夹具新增 / 删除状态、改字号档时同理：新状态没有基线会报「没有基线」，`--update-baseline --states <新状态>` 补上即可。覆盖门禁（`test/native-ui-coverage.test.mjs`）核对每个 `native: true` 夹具的基线齐全、没有孤儿文件。

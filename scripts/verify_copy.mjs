@@ -11,17 +11,19 @@
 //   4. 旧词表禁用、引号只用「」；值以 TODO: 开头的必须在 json.todo 允许表里，只报警（但第 13 项一律报错，所以 json.todo 现为空）。
 //   5. policy.js：能被加载；每个导出项与嵌套键的注释含 P 编号，且编号在 03-待产品决定 有登记；
 //      03 的每个 P 编号都被 policy.js、copy-source.json 的 decision 或 json.nonRuntimeDecisions 覆盖。
+//   D84：门禁对象从 src/config/copy 改成原生的两份手改 JSON——ShiziCore Bundled/copy.json 与 ShiziKit/Generated/ShiziKitCopy.json（二者必须逐字相同），
+//   对照 copy-source.json。原第 3 项里的「在哪个 copy/<screen>.js」改成按 copy-source 的 screen 分组；policy 的 P 编号检查读 Bundled/policy.json +
+//   policy-meta.json（冻结的手改登记表），不再解析 policy.js 的注释。下面两项已退役（src/ 随网页版一起删）：
+//   6. （退役）硬编码中文：src/ 内含中文的字符串字面量扫描（函数还在，只是不再进门禁）。
+//  12. （退役）core/cards.js 的 PROMPT_COPY / LIBRARIES.label 镜像常量核对。
 //   M6-4 文案审计（02 §8）：
-//   6. 硬编码中文：src/ 内（除 copy/、_demo、dev 目录、注释、正则）含中文的字符串 / 模板字面量一律报错；
-//      例外只有 HARDCODE_ALLOW（逐条写理由，过期也报错）与拼字引号「」（{chars} 约定）。
-//   7. 旧词表（json.bannedWords）同样扫 src/ 源码字面量。
+//   7. 旧词表（json.bannedWords）扫 copy 值（不再扫 src/ 源码字面量）。
 //   8. 数字口径（04 §3.1 T10）：copy 里汉字数字只许 json.numeralAllow 登记的键（R-M06 节号、落款等）；
-//      汉字数字转换函数只许落款代码 import（CN_HELPER_FILES）。
+//      （汉字数字转换函数只许落款代码 import 的 src/ 扫描已退役。）
 //   9. 「导出」只作按钮名「导出备份」（D61 前叫「导出备份文件」，两者都认）出现（04 §4.2 D24），其余登记在 json.exportWordAllow。
 //  10. 占位符：copy 与 json 值里的花括号全部是登记过的 {name}；登记表里没人用的占位符报错。
 //  11. TODO：json.todo 的键须在 json.todoRegistry 登记 P 编号且属于 json.todoDecisions（P55/P66/P76/P90）；
 //      汇总为 warning 按 P 编号列出。
-//  12. 镜像常量：core/cards.js 的 PROMPT_COPY / LIBRARIES.label 与 copy 逐字一致。
 //  13. 占位文案（F2）：运行时文案值不得含 TODO / TBD / FIXME / 待补 / 占位（大小写不敏感）——会原样渲染给用户；
 //      待产品定稿的槽写过渡文案并在 copy-source.json 的 note / 03 里标明，不再用 TODO 占位。
 //
@@ -39,6 +41,11 @@ export const PATHS = Object.freeze({
   pending: path.join(ROOT, 'docs/engineering/v10/03-待产品决定.md'),
   copyDir: path.join(ROOT, 'src/config/copy'),
   policy: path.join(ROOT, 'src/config/policy.js'),
+  // D84：原生的手改真相源
+  copyJson: path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled/copy.json'),
+  kitCopyJson: path.join(ROOT, 'ios/ShiziApp/ShiziApp/ShiziKit/Generated/ShiziKitCopy.json'),
+  policyJson: path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled/policy.json'),
+  policyMetaJson: path.join(ROOT, 'ios/ShiziCore/Sources/ShiziCore/Bundled/policy-meta.json'),
 });
 
 // ---------------------------------------------------------------------------
@@ -300,14 +307,14 @@ export function checkCopy(source, copyModules, { scope = 'all' } = {}) {
     for (const key of Object.keys(table)) {
       if (fileOfKey.has(key)) errors.push(key + ': defined in both ' + fileOfKey.get(key) + ' and ' + screen);
       fileOfKey.set(key, screen);
-      if (!byKey.has(key)) errors.push(key + ': in copy/' + screen + '.js but not registered in copy-source.json');
+      if (!byKey.has(key)) errors.push(key + ': in the native copy files (' + screen + ') but not registered in copy-source.json');
     }
   }
   let checked = 0;
   for (const s of slots) {
     const screen = fileOfKey.get(s.key);
     if (!screen) {
-      errors.push(s.key + ': missing from src/config/copy/' + s.screen + '.js');
+      errors.push(s.key + ': registered in copy-source.json (' + s.screen + ') but missing from the native copy files');
       continue;
     }
     if (screen !== s.screen) errors.push(s.key + ': expected in copy/' + s.screen + '.js, found in copy/' + screen + '.js');
@@ -446,6 +453,81 @@ export async function checkPolicy(source) {
   for (const p of Object.keys(source.nonRuntimeDecisions || {})) covered.add(p);
   for (const p of registered) if (!covered.has(p)) errors.push(p + ': registered in 03 but not covered by policy.js / copy-source decisions / nonRuntimeDecisions');
   return { errors, referenced: result.referenced, covered, registered, pMap: result.pMap };
+}
+
+/**
+ * 5'.（D84）policy 的 P 编号登记，读 Bundled/policy.json + policy-meta.json（手改）：
+ * meta.exports 的键 = policy.json 的顶层键；每个导出带 P 编号，嵌套键的 P 编号都在 03 登记；meta.registered = 03 的登记表；
+ * 03 的每个 P 编号都被 meta 的导出 / 键、copy-source 的 decision 或 nonRuntimeDecisions 覆盖，且 meta.covered 正好是这个覆盖集。
+ */
+export function checkPolicyMeta(source, { policy, meta, pendingMarkdown }) {
+  const errors = [];
+  const registered = registeredPNumbers(pendingMarkdown);
+  const P_RE = /\bP\d{2,3}b?\b/g;
+  const policyKeys = Object.keys(policy).sort();
+  const metaKeys = Object.keys(meta.exports || {}).sort();
+  if (policyKeys.join(',') !== metaKeys.join(',')) {
+    const miss = policyKeys.filter((k) => !metaKeys.includes(k));
+    const extra = metaKeys.filter((k) => !policyKeys.includes(k));
+    errors.push('policy-meta.json exports differ from policy.json keys' + (miss.length ? ' (missing: ' + miss.join(',') + ')' : '') + (extra.length ? ' (extra: ' + extra.join(',') + ')' : ''));
+  }
+  const referenced = new Set();
+  const note = (where, ps) => {
+    for (const p of ps) {
+      referenced.add(p);
+      if (!registered.has(p)) errors.push(where + ': ' + p + ' is not registered in 03-待产品决定');
+    }
+  };
+  for (const [name, entry] of Object.entries(meta.exports || {})) {
+    if (!Array.isArray(entry.p) || entry.p.length === 0) errors.push('policy.' + name + ': export has no P number in policy-meta.json');
+    note('policy.' + name, entry.p || []);
+    const value = policy[name];
+    for (const [k, ps] of Object.entries(entry.keys || {})) {
+      if (!Array.isArray(ps) || ps.length === 0) errors.push('policy.' + name + '.' + k + ': key has no P number in policy-meta.json');
+      note('policy.' + name + '.' + k, ps || []);
+      if (value && typeof value === 'object' && !Array.isArray(value) && !(k in value)) errors.push('policy-meta.json lists policy.' + name + '.' + k + ' but policy.json has no such key');
+    }
+  }
+  const sameSet = (a, b) => [...a].sort().join(',') === [...b].sort().join(',');
+  if (!sameSet(meta.registered || [], registered)) errors.push('policy-meta.json registered differs from the P table in 03-待产品决定 (add / remove the P numbers in policy-meta.json)');
+  const covered = new Set(referenced);
+  for (const s of flattenSource(source)) {
+    for (const m of String(s.spec.decision || '').matchAll(P_RE)) covered.add(m[0]);
+  }
+  for (const entry of Object.values({ ...(source.entries || {}), ...(source.extra || {}) })) {
+    for (const d of entry.dropped || []) for (const m of String(d.why || '').matchAll(P_RE)) covered.add(m[0]);
+  }
+  for (const p of Object.keys(source.nonRuntimeDecisions || {})) covered.add(p);
+  for (const p of registered) if (!covered.has(p)) errors.push(p + ': registered in 03 but not covered by policy-meta.json / copy-source decisions / nonRuntimeDecisions');
+  if (!sameSet(meta.covered || [], covered)) errors.push('policy-meta.json covered differs from the computed coverage (P numbers of exports, keys, copy-source decisions and nonRuntimeDecisions)');
+  return { errors, referenced, covered, registered };
+}
+
+/** 读 Bundled/policy.json + policy-meta.json + 03，跑 checkPolicyMeta。 */
+export function checkPolicyFiles(source) {
+  const policy = JSON.parse(fs.readFileSync(PATHS.policyJson, 'utf8'));
+  const meta = JSON.parse(fs.readFileSync(PATHS.policyMetaJson, 'utf8'));
+  return checkPolicyMeta(source, { policy, meta, pendingMarkdown: fs.readFileSync(PATHS.pending, 'utf8') });
+}
+
+/**
+ * （D84）原生文案文件：Bundled/copy.json 与 ShiziKitCopy.json 必须逐字相同；按 copy-source 的 screen 分组成 {screen: {key: value}}
+ * （没登记的键放进 'unregistered'，让 checkCopy 报错）。
+ */
+export function loadNativeCopy(source) {
+  const core = JSON.parse(fs.readFileSync(PATHS.copyJson, 'utf8'));
+  const kit = JSON.parse(fs.readFileSync(PATHS.kitCopyJson, 'utf8'));
+  const errors = [];
+  for (const k of Object.keys(core)) if (!(k in kit)) errors.push(k + ': in Bundled/copy.json but not in ShiziKitCopy.json');
+  for (const k of Object.keys(kit)) if (!(k in core)) errors.push(k + ': in ShiziKitCopy.json but not in Bundled/copy.json');
+  for (const k of Object.keys(core)) if (k in kit && !sameValue(core[k], kit[k])) errors.push(k + ': Bundled/copy.json ' + JSON.stringify(core[k]) + ' ≠ ShiziKitCopy.json ' + JSON.stringify(kit[k]));
+  const screenOf = new Map(flattenSource(source).map((s) => [s.key, s.screen]));
+  const modules = {};
+  for (const [key, value] of Object.entries(core)) {
+    const screen = screenOf.get(key) || 'unregistered';
+    (modules[screen] ||= {})[key] = value;
+  }
+  return { modules, errors };
 }
 
 // ---------------------------------------------------------------------------
@@ -907,22 +989,17 @@ export async function checkMirrors(copyModules) {
   return errors;
 }
 
-/** 汇总 6–12。 */
-export async function checkAudit(source, copyModules, { root = ROOT } = {}) {
-  const literals = collectSourceLiterals(root);
-  const hard = checkHardcoded(literals);
-  const errors = [...hard.errors];
-  errors.push(...checkBannedInSource(literals, source.bannedWords || []));
+/** 汇总 7–13（D84：不含 src/ 硬编码中文扫描、src/ 源码旧词、汉字数字 helper 扫描与 cards.js 镜像常量）。 */
+export function checkAudit(source, copyModules) {
+  const errors = [];
   errors.push(...checkNumerals(copyModules, source).errors);
-  errors.push(...checkNumeralHelpers(root));
   errors.push(...checkExportWord(copyModules, source));
   errors.push(...checkPlaceholders(copyModules, source));
   const registered = registeredPNumbers(fs.readFileSync(PATHS.pending, 'utf8'));
   const todo = checkTodo(copyModules, source, registered);
   errors.push(...todo.errors);
-  errors.push(...(await checkMirrors(copyModules)));
   errors.push(...checkNoPlaceholderText(copyModules));
-  return { errors, warnings: todo.warnings, allowedLiterals: hard.allowed };
+  return { errors, warnings: todo.warnings };
 }
 
 export async function loadCopyModules() {
@@ -936,12 +1013,12 @@ export async function run({ scope } = {}) {
   const effectiveScope = scope || (source.gate && source.gate.defaultScope) || 'all';
   const errors = [];
   errors.push(...checkSource(source, markdown));
-  const copyModules = await loadCopyModules();
-  const copyResult = checkCopy(source, copyModules, { scope: effectiveScope });
+  const native = loadNativeCopy(source);
+  errors.push(...native.errors);
+  const copyResult = checkCopy(source, native.modules, { scope: effectiveScope });
   errors.push(...copyResult.errors);
-  const policyResult = await checkPolicy(source);
-  errors.push(...policyResult.errors);
-  const audit = await checkAudit(source, copyModules);
+  errors.push(...checkPolicyFiles(source).errors);
+  const audit = checkAudit(source, native.modules);
   errors.push(...audit.errors);
   return {
     errors,
@@ -949,7 +1026,6 @@ export async function run({ scope } = {}) {
     checked: copyResult.checked,
     total: flattenSource(source).length,
     scope: effectiveScope,
-    allowedLiterals: audit.allowedLiterals,
   };
 }
 
@@ -962,8 +1038,7 @@ async function main() {
   for (const e of result.errors) process.stderr.write('[verify-copy] ' + e + '\n');
   process.stdout.write(
     '[verify-copy] scope=' + result.scope + ' checked ' + result.checked + '/' + result.total + ' slots; ' +
-      result.errors.length + ' error(s), ' + result.warnings.length + ' warning(s); ' +
-      result.allowedLiterals + ' allowlisted source literal(s)\n',
+      result.errors.length + ' error(s), ' + result.warnings.length + ' warning(s)\n',
   );
   process.exit(result.errors.length ? 1 : 0);
 }

@@ -1,5 +1,5 @@
 {
-  "//": "逐屏对比的全局口径（容差与墨迹取样口径）。逐项豁免 / 忽略 / 墨格语义键按屏放在 parity/<屏>.json（B3.3 数据驱动，registry.mjs 合并）；原先这里的 waive / ignore / ink.states 现在在 parity/write.json。",
+  "//": "逐屏对比的全局口径（容差）。D84：对比对象是冻结的原生基线（ShiziUITests/Baseline/），网页参考时代的逐项豁免 / 忽略 / 墨格语义键（parity/*.json、TAB-01 等）与 native-truth.json 已随网页参考退役；线 / 装饰 / 墨格的阈值用 graphics.mjs GRAPHICS_DEFAULTS，需要时在这里加 graphics 键覆盖。",
   "tolerance": {
     "pos": 3,
     "size": 3,
@@ -7,102 +7,5 @@
     "color": 8,
     "font": 0.5,
     "weight": 0.1
-  },
-  "ignore": [
-    {
-      "waiver": "TAB-01",
-      "label": "tab-home",
-      "aspects": [
-        "position",
-        "size",
-        "color",
-        "font",
-        "icon",
-        "deco",
-        "rule"
-      ],
-      "//": "TAB-01（D73 ③，计划 §7 第 3 条）：Tab 栏用系统 UITabBarController（iOS 26 浮起的玻璃胶囊：左右各缩进、圆角、选中项有玻璃底、图标与标签在格里的位置由系统排），网页参考是 Tabs.js 的通栏（高 49 + 下安全区、纸色底、顶部发丝线、三等分）。只豁免 Tab 栏三项（tab-home / tab-library / tab-mine）的位置、尺寸、颜色、字号字重与图标框；文案（写字 / 字库 / 我的）、三项有无、可点状态照比。根页内容不豁免（根页只铺到原生 Tab 栏上沿，与网页内容区同高）。负责人统一测试时可改为自画 / 逐 pt 一致（只动 NativeStage.swift ShiziTabController 一处）。 QA-H2：Tab 栏三项里的图标（装饰 deco）与网页 Tabs 通栏顶部的发丝线（线 rule，所属元素按位置落在 tab-* 上）同属这条豁免。"
-    },
-    {
-      "waiver": "TAB-01",
-      "label": "tab-library",
-      "aspects": [
-        "position",
-        "size",
-        "color",
-        "font",
-        "icon",
-        "deco",
-        "rule"
-      ],
-      "//": "TAB-01（同上）"
-    },
-    {
-      "waiver": "TAB-01",
-      "label": "tab-mine",
-      "aspects": [
-        "position",
-        "size",
-        "color",
-        "font",
-        "icon",
-        "deco",
-        "rule"
-      ],
-      "//": "TAB-01（同上）"
-    },
-    {
-      "waiver": "PHOTO-AX",
-      "state": "photo",
-      "sizes": [
-        "AX3",
-        "AX5"
-      ],
-      "label": "photo-image",
-      "aspects": [
-        "position",
-        "size",
-        "rule",
-        "cell"
-      ],
-      "//": "PHOTO-AX（D78 ①）：旧记录页 photo 在 AX3 / AX5 下，网页照片框 .sz-dphoto__frame（3:4 + 网格居中）被 flex 压低后 <img> 仍按压缩前的盒溢出框外（AX5 盒 362×204 落在 y 391，框在 y 252）——是网页自己的怪异；原生按框内 contain 画。只豁免图片格的位置 / 尺寸与线（对比器里图片格的位置 / 缺少 / 多出都记作 cell 方面）；文案、元素有无、颜色、读屏照比。网页在 B4 后退场，不改网页、不重取参照。"
-    },
-    {
-      "waiver": "PHOTO-AX",
-      "state": "photo",
-      "sizes": [
-        "AX3",
-        "AX5"
-      ],
-      "label": "photo-caption",
-      "aspects": [
-        "position",
-        "size",
-        "rule",
-        "cell"
-      ],
-      "//": "PHOTO-AX（同上）"
-    },
-    {
-      "waiver": "SHEET-TITLE-AX5",
-      "state": "result-sheet",
-      "sizes": [
-        "AX5"
-      ],
-      "aspects": [
-        "position",
-        "size",
-        "rule"
-      ],
-      "//": "SHEET-TITLE-AX5（D78 ②）：结果页对照 / 改判弹层在 AX5 下，网页标题「「春」写错了」只留右侧 64pt，压到「取消」底下一行放下，弹层刚好放得下；原生按 B2.9b 避让「取消」，标题折两行，弹层多出一截，其下所有元素与线整体下移。只豁免这一状态 AX5 档的位置 / 尺寸 / 线差异（不指定元素：下移波及弹层里的每一条线）；文案、元素有无、颜色、字号字重、读屏照比。网页在 B4 后退场，不改网页、不重取参照。"
-    }
-  ],
-  "ink": {
-    "//": "R11-A（D72 ②）墨迹像素比较：states = 状态 → 墨格的语义键（elements.mjs；网页 / 原生各取自己的框）。同一组注入笔画（NativeQAHarness 两笔）。掩膜：墨格内 N×N（N = 网页墨格边长 pt，1 倍图）、内缩 inset pt 避开格线，与格底亮度差 > max(40, 格内最大差 × threshold) 记为墨。iou = 逐像素交并比下限；iou1 = 容 1 像素（边缘抗锯齿 / 亚像素对位：双方墨点落在对方墨 1 像素内的比例，取小者）下限；thickness = 墨面积比（原生 / 网页，中线相同时 = 平均笔宽比）与 1 的允许偏差（±10%）。 B2.7：结果页取作品第一格（work-cell-0，格内 12% 内边里的墨，网页 paintCellContent 同一线宽倍数），对照弹层取「你写的」小卡。",
-    "inset": 2,
-    "threshold": 0.5,
-    "iou": 0.8,
-    "iou1": 0.97,
-    "thickness": 0.1
   }
 }

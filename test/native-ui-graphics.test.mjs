@@ -66,7 +66,7 @@ test('decos: missing selected-day circle and wrong circle colour; duplicate nati
   const native = [{ kind: 'circle', ...f(48, 400, 5, 5), color: '#B03A27FF' }, { kind: 'icon', ...f(374, 209.8, 8, 13) }, { kind: 'icon', ...f(374, 209.7, 8, 13) }];
   const d = diffDecos(web, native, tol);
   assert.equal(d.length, 2);
-  assert.ok(d.some(x => /原生缺少装饰：网页有圆 \(336, 410/.test(x.msg)));
+  assert.ok(d.some(x => /原生缺少装饰：基线有圆 \(336, 410/.test(x.msg)));
   assert.ok(d.some(x => /圆的颜色/.test(x.msg)));
 });
 

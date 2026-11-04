@@ -12,12 +12,14 @@ concurrency:
   group: verify-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# D84：网页版（web job、API floor、sw-unit、PWA 门禁）已随网页一起删除。剩两个互相独立的 job：
-#   data       — 脚本语法检查 + 不需要 Swift 的数据门禁（vector440、assets、order）
-#   unit-copy  — verify:unit (node:test) + verify:copy + verify:tokens
-# verify:governance 与 verify:content 要用 `swift build` 出的 shizi-core-cli（cards-dump）展开题库，ubuntu 上没有 Swift，
-# 且决定不加 macOS runner：这两项只在本机跑（pnpm run verify:data / bash ios/ShiziApp/scripts/verify-local.sh）。
-# verify:unit 里同样要展开题库的用例（content-blocklist、font-loader 覆盖）在非 macOS 上自动跳过（test/core/helpers.mjs NEEDS_SWIFT）。
+# 四个互相独立的 job：
+#   data       （ubuntu）脚本语法检查 + 不需要 Swift 的数据门禁（vector440、assets、order）
+#   unit-copy  （ubuntu）verify:unit (node:test) + verify:copy + verify:tokens
+#   swift-core （macOS）verify:core（ShiziCore 编译 + swift test）、要 shizi-core-cli 的 verify:governance /
+#               verify:content，以及 verify:unit 里只在 macOS 跑的用例（test/core/helpers.mjs NEEDS_SWIFT）
+#   ios-app    （macOS）App 模拟器构建 + 包内资源核对、三个测试 target 编译、ShiziStoreTests / ShiziWriteTests 在模拟器上跑
+# 不在 CI 里的：逐屏对比与 XCUITest 流程（pnpm run verify:native-ui，约 1 小时、要固定的模拟器机型与运行时）、
+# Release archive 与签名（ios/ShiziApp/scripts/verify-local.sh、真机），都在本机跑。
 
 jobs:
   data:
@@ -74,3 +76,68 @@ jobs:
         run: pnpm run verify:copy
       - name: Token check
         run: pnpm run verify:tokens
+
+  swift-core:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.16.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: ShiziCore build + tests (verify:core)
+        run: pnpm run verify:core
+      - name: Library governance (needs shizi-core-cli)
+        run: pnpm run verify:governance
+      - name: Content corpus (needs shizi-core-cli)
+        run: pnpm run verify:content
+      - name: Unit tests incl. macOS-only cases
+        run: pnpm run verify:unit
+
+  ios-app:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      PROJECT: ios/ShiziApp/ShiziApp.xcodeproj
+      DD: ios/ShiziApp/build/ci-dd
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build app (Debug, simulator)
+        run: |
+          set -o pipefail
+          xcodebuild -project "$PROJECT" -scheme Shizi -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO build -quiet
+      - name: Bundle assets
+        run: bash ios/ShiziApp/scripts/verify-bundle-assets.sh "$DD/Build/Products/Debug-iphonesimulator/Shizi.app"
+      - name: Pick a simulator
+        run: |
+          UDID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          echo "Simulator: $UDID"
+          echo "SIM=$UDID" >> "$GITHUB_ENV"
+      - name: Compile UI test target (ShiziUITests; not run in CI)
+        run: |
+          xcodebuild -project "$PROJECT" -scheme ShiziUITests -destination "id=$SIM" -derivedDataPath "$DD" \
+            CODE_SIGNING_ALLOWED=NO build-for-testing -quiet
+      - name: ShiziStoreTests
+        run: |
+          xcodebuild -project "$PROJECT" -scheme ShiziStoreTests -destination "id=$SIM" -derivedDataPath "$DD" \
+            CODE_SIGNING_ALLOWED=NO test -quiet
+      - name: ShiziWriteTests
+        run: |
+          xcodebuild -project "$PROJECT" -scheme ShiziWriteTests -destination "id=$SIM" -derivedDataPath "$DD" \
+            CODE_SIGNING_ALLOWED=NO test -quiet

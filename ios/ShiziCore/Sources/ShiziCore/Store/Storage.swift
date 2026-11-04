@@ -516,10 +516,21 @@ public final class StoreStorage {
         return removed
     }
 
+    /// bucketOfKey 的结果按键记住：它只看键本身（纯函数），而每次提交后的占用估算都要对全部键各算一遍。
+    private var bucketMemo = [JSKey: String]()
+
     /// 占用估算（同源全部键）。
     public func estimateUsage(_ budgets: Budgets) throws -> JSObject {
         if let usageOverride { return usageOverride }
-        return Budget.estimateUsage(try readAll("").compactMap { k, v in v.map { (k, $0) } }, budgets)
+        let pairs = try readAll("").compactMap { k, v in v.map { (k, $0) } }
+        if bucketMemo.count > 2 * pairs.count + 1024 { bucketMemo = [:] }
+        return Budget.estimateUsage(pairs, budgets) { key in
+            let k = JSKey(s: key)
+            if let b = bucketMemo[k] { return b }
+            let b = Budget.bucketOfKey(key)
+            bucketMemo[k] = b
+            return b
+        }
     }
 
     // MARK: 故障注入（测试 / 差分）
@@ -559,7 +570,7 @@ func mergeSortStable<T>(_ items: [T], _ less: (T, T) -> Bool) -> [T] {
 func rawEq(_ a: String?, _ b: String?) -> Bool {
     switch (a, b) {
     case (nil, nil): return true
-    case (let x?, let y?): return x.utf8.elementsEqual(y.utf8)
+    case (let x?, let y?): return utf8Equal(x, y)
     default: return false
     }
 }

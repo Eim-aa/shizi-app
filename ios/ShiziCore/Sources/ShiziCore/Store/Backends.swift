@@ -116,7 +116,7 @@ package enum UTF16Order {
         for c in p.utf16 { guard let d = i.next(), d == c else { return false } }
         return true
     }
-    static func eq(_ a: String, _ b: String) -> Bool { a.utf8.elementsEqual(b.utf8) }
+    static func eq(_ a: String, _ b: String) -> Bool { utf8Equal(a, b) }
     /// JS 字串长度（UTF-16 码元数）。
     static func length(_ s: String) -> Int { s.utf16.count }
 }
@@ -224,9 +224,35 @@ public final class NativeMirrorBackend: KVBackend {
             throw NativeMirrorBackend.storageError(e, keys: entries.map { $0.0 })
         }
         for (k, v) in entries {
-            if let v = v { mem[JSKey(s: k)] = v } else { mem[JSKey(s: k)] = nil }
+            let jk = JSKey(s: k)
+            if let v = v {
+                if mem.updateValue(v, forKey: jk) == nil { insertSorted(k) }
+            } else if mem.removeValue(forKey: jk) != nil {
+                removeSorted(k)
+            }
         }
-        sortedKeys = nil
+    }
+
+    /// sortedKeys（已建好时）随 mem 增删一个键：始终等于 UTF16Order.sorted(mem 的全部键)，不必每次事务后整表重排。
+    /// UTF-16 序是全序（不同的串码元序列不同），排好的表唯一；二分找插入 / 删除位置。
+    private func sortedPosition(_ k: String) -> Int {
+        var lo = 0, hi = sortedKeys!.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if UTF16Order.less(sortedKeys![mid], k) { lo = mid + 1 } else { hi = mid }
+        }
+        return lo
+    }
+
+    private func insertSorted(_ k: String) {
+        guard sortedKeys != nil else { return }
+        sortedKeys!.insert(k, at: sortedPosition(k))
+    }
+
+    private func removeSorted(_ k: String) {
+        guard sortedKeys != nil else { return }
+        let i = sortedPosition(k)
+        if i < sortedKeys!.count && UTF16Order.eq(sortedKeys![i], k) { sortedKeys!.remove(at: i) }
     }
 
     /// E_FULL → QuotaExceededError；其余 NativeStoreError（code 原样）。

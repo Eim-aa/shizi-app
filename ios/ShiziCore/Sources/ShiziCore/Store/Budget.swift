@@ -81,14 +81,35 @@ public enum Budget {
 
     /// {total, byBucket, ratio, level}。
     public static func estimateUsage(_ pairs: [(String, String)], _ budgets: Budgets = .defaults) -> JSObject {
-        var byBucket = JSObject()
+        estimateUsage(pairs, budgets, bucketOf: bucketOfKey)
+    }
+
+    /// bucketOf ≡ bucketOfKey（调用方可以记住结果）。桶按第一次出现的次序、各桶按出现次序累加：与逐条改 byBucket 同序同值
+    /// （第一笔 0 + bytes == bytes：bytes 是非负的 Double(整数)）。
+    static func estimateUsage(_ pairs: [(String, String)], _ budgets: Budgets, bucketOf: (String) -> String) -> JSObject {
+        var names: [String] = []
+        var sums: [Double] = []
+        var slots = [JSKey: Int]()
+        var prev = -1
         var total = 0.0
         for (k, v) in pairs {
             let bytes = entryBytes(k, v)
             total += bytes
-            let bucket = bucketOfKey(k)
-            byBucket[bucket] = .number((byBucket[bucket]?.numberValue ?? 0) + bytes)
+            let bucket = bucketOf(k)
+            if prev >= 0 && UTF16Order.eq(names[prev], bucket) {
+                sums[prev] += bytes
+            } else if let i = slots[JSKey(s: bucket)] {
+                sums[i] += bytes
+                prev = i
+            } else {
+                prev = names.count
+                slots[JSKey(s: bucket)] = prev
+                names.append(bucket)
+                sums.append(bytes)
+            }
         }
+        var byBucket = JSObject()
+        for i in names.indices { byBucket[names[i]] = .number(sums[i]) }
         let ratio = budgets.quotaBytes > 0 ? total / budgets.quotaBytes : 1
         let level = ratio >= 1 ? "full" : ratio > budgets.warnRatio ? "warn" : "ok"
         return JSObject([("total", .number(total)), ("byBucket", .object(byBucket)), ("ratio", .number(ratio)), ("level", .string(level))])

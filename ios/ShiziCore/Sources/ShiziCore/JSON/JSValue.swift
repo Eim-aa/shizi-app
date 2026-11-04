@@ -36,7 +36,7 @@ public enum JSValue: Equatable, CustomStringConvertible {
         case (.null, .null): return true
         case (.bool(let x), .bool(let y)): return x == y
         case (.number(let x), .number(let y)): return x == y
-        case (.string(let x), .string(let y)): return x.utf8.elementsEqual(y.utf8)
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
         case (.array(let x), .array(let y)): return x == y
         case (.object(let x), .object(let y)): return x == y
         default: return false
@@ -44,11 +44,34 @@ public enum JSValue: Equatable, CustomStringConvertible {
     }
 }
 
-/// 按 UTF-8 字节判等的键（见文件头）。
+/// 两串 UTF-8 字节是否相同（= `a.utf8.elementsEqual(b.utf8)`）；连续存储时整段 memcmp（同一块存储直接相同）。
+func utf8Equal(_ a: String, _ b: String) -> Bool {
+    let fast = a.utf8.withContiguousStorageIfAvailable { pa in
+        b.utf8.withContiguousStorageIfAvailable { pb -> Bool in
+            if pa.count != pb.count { return false }
+            if pa.count == 0 || pa.baseAddress == pb.baseAddress { return true }
+            return memcmp(pa.baseAddress!, pb.baseAddress!, pa.count) == 0
+        }
+    }
+    if let f = fast, let eq = f { return eq }
+    return a.utf8.elementsEqual(b.utf8)
+}
+
+/// 两个值的位模式完全相同（同一个引用 / 同一块写时复制的存储，或同一个内联小值）。true ⇒ 是同一个值；false 什么也不说明。
+func sameRepresentation<T>(_ a: T, _ b: T) -> Bool {
+    var x = a, y = b
+    return withUnsafeBytes(of: &x) { px in withUnsafeBytes(of: &y) { py in px.elementsEqual(py) } }
+}
+
+/// 按 UTF-8 字节判等的键（见文件头）。散列 = 整串 UTF-8 字节一次喂给 Hasher（与 == 一致：字节相同 ⇒ 散列相同）。
 struct JSKey: Hashable {
     let s: String
-    static func == (a: JSKey, b: JSKey) -> Bool { a.s.utf8.elementsEqual(b.s.utf8) }
-    func hash(into h: inout Hasher) { for b in s.utf8 { h.combine(b) } }
+    static func == (a: JSKey, b: JSKey) -> Bool { utf8Equal(a.s, b.s) }
+    func hash(into h: inout Hasher) {
+        if s.utf8.withContiguousStorageIfAvailable({ h.combine(bytes: UnsafeRawBufferPointer($0)) }) == nil {
+            Array(s.utf8).withUnsafeBytes { h.combine(bytes: $0) }
+        }
+    }
 }
 
 /// JS 普通对象（键序见文件头）。
@@ -78,8 +101,9 @@ public struct JSObject: Equatable {
         }
     }
 
-    /// 键序与 JS `Object.keys` 相同。
+    /// 键序与 JS `Object.keys` 相同。没有下标形的键时就是插入序（常见情形，不另建数组）。
     public var keys: [String] {
+        if !insertion.contains(where: { JSObject.arrayIndex($0) != nil }) { return insertion }
         var index: [(UInt32, String)] = []
         var named: [String] = []
         for k in insertion {
@@ -93,9 +117,10 @@ public struct JSObject: Equatable {
 
     /// 规范数组下标：「0」或不以 0 开头的十进制，值 ≤ 2^32 − 2。
     static func arrayIndex(_ k: String) -> UInt32? {
-        let u = Array(k.utf8)
-        if u.isEmpty || u.count > 10 { return nil }
-        if u.count > 1 && u[0] == 0x30 { return nil }
+        let u = k.utf8
+        let n = u.count
+        if n == 0 || n > 10 { return nil }
+        if n > 1 && u.first == 0x30 { return nil }
         var v: UInt64 = 0
         for c in u {
             guard c >= 0x30 && c <= 0x39 else { return nil }
@@ -103,6 +128,9 @@ public struct JSObject: Equatable {
         }
         return v <= 4_294_967_294 ? UInt32(v) : nil
     }
+
+    /// 与 other 是同一块存储（写时复制的副本，之后两边都没改过）：true ⇒ 键、键序、值全同；false 什么也不说明。
+    func sharesStorage(with other: JSObject) -> Bool { sameRepresentation(self, other) }
 
     public static func == (a: JSObject, b: JSObject) -> Bool { a.values == b.values }
 }

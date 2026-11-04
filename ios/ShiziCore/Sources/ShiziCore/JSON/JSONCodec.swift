@@ -212,6 +212,31 @@ public enum JSONWriter {
 
     static let hex: [Character] = Array("0123456789abcdef")
 
+    /// stringify(a) 与 stringify(b) 是否逐字节相同，不真的拼出字串。JSON 文本的解析唯一，所以逐层比「各自会写成什么」：
+    /// 有限数写最短往返串（不同的有限数串不同，±0 都写「0」）⇔ JS ===；非有限数写「null」；字符串的转义逐码点一一对应 ⇔ 原串逐字节相同；
+    /// 数组逐元素；对象按 keys 序逐个比键与值。
+    static func sameText(_ a: JSValue, _ b: JSValue) -> Bool {
+        switch (a, b) {
+        case (.number(let x), .number(let y)): return x.isFinite ? (y.isFinite && x == y) : !y.isFinite
+        case (.number(let x), .null), (.null, .number(let x)): return !x.isFinite
+        case (.null, .null): return true
+        case (.bool(let x), .bool(let y)): return x == y
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
+        case (.array(let x), .array(let y)):
+            if x.count != y.count { return false }
+            for i in 0..<x.count where !sameText(x[i], y[i]) { return false }
+            return true
+        case (.object(let x), .object(let y)):
+            if x.count != y.count { return false }
+            let kx = x.keys, ky = y.keys
+            for i in 0..<kx.count {
+                guard utf8Equal(kx[i], ky[i]), let vx = x[kx[i]], let vy = y[ky[i]], sameText(vx, vy) else { return false }
+            }
+            return true
+        default: return false
+        }
+    }
+
     public static func quote(_ s: String, into out: inout String) {
         out += "\""
         for u in s.unicodeScalars {

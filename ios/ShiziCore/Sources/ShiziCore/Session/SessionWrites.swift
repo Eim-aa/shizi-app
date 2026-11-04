@@ -59,7 +59,9 @@ public enum SessionWrites {
         let key = JS.string(a["cardKey"]), phase = s["current"]?["phase"]
         guard s["current"] != nil, inkKey(key, phase) == JS.string(a["inkKey"]) else { return clean }
         let r = rows(raw(a)); var p = JSObject()
-        if JSONWriter.stringify(r) != JSONWriter.stringify(s["current"]?["strokes"] ?? .array([])) { p["strokes"] = r }
+        // 原来比两边序列化后的字串（Swift ==，按规范等价）；r 的文本只有 ASCII、没有引号，规范等价与逐字节相同在这里是一回事，
+        // 所以改用 sameText（逐字节相同、不拼字串）。
+        if !JSONWriter.sameText(r, s["current"]?["strokes"] ?? .array([])) { p["strokes"] = r }
         if let next = a["phase"], next != phase, ["recall", "compare"].contains(JS.string(next)), ["recall", "compare"].contains(JS.string(phase)), next == .string("recall") || !(r.arrayValue ?? []).isEmpty { p["phase"] = next }
         if p.count == 0 { return clean }
         return store.commit("write:strokes") { d,c in set(&d, JS.string(a["slot"]), try SessionRules.withCurrent(s, .object(p), at: .number(c.now))) }

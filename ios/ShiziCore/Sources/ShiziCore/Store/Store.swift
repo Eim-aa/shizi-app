@@ -69,7 +69,7 @@ public final class Store: ScheduleStore {
         case (.null, .null): return true
         case (.bool(let x), .bool(let y)): return x == y
         case (.number(let x), .number(let y)): return x == y
-        case (.string(let x), .string(let y)): return x.utf8.elementsEqual(y.utf8)
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
         case (.array(let x), .array(let y)):
             if x.count != y.count { return false }
             for i in 0..<x.count where !same(x[i], y[i]) { return false }
@@ -101,6 +101,57 @@ public final class Store: ScheduleStore {
             return true
         default:
             return same(a, b)
+        }
+    }
+
+    /// same，另加捷径：两边是同一块存储（写时复制的副本、都没改过）就直接算相同（任何一层）。
+    /// 与 same 只在「共享的子值里有 NaN」时不同（same 认为 NaN ≠ NaN）；只给 plan 用，理由见 unchanged。
+    static func sameOrShared(_ a: JSValue, _ b: JSValue) -> Bool {
+        switch (a, b) {
+        case (.null, .null): return true
+        case (.bool(let x), .bool(let y)): return x == y
+        case (.number(let x), .number(let y)): return x == y
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
+        case (.array(let x), .array(let y)):
+            if x.count != y.count { return false }
+            if sameRepresentation(x, y) { return true }
+            for i in 0..<x.count where !sameOrShared(x[i], y[i]) { return false }
+            return true
+        case (.object(let x), .object(let y)):
+            if x.count != y.count { return false }
+            if x.sharesStorage(with: y) { return true }
+            let kx = x.keys, ky = y.keys
+            for i in 0..<kx.count {
+                guard UTF16Order.eq(kx[i], ky[i]), let vx = x[kx[i]], let vy = y[ky[i]], sameOrShared(vx, vy) else { return false }
+            }
+            return true
+        default: return false
+        }
+    }
+
+    /// plan 的「这个键的值没动过」：与 shallowEqual(lastValues[key], value) 结论相同时照用；只在共享子值里有 NaN 时可能
+    /// 说「没动过」而 shallowEqual 说「动过」——那时 plan 走 shallowEqual 那条路也是序列化后与 lastRaw 逐字节相同、不写，
+    /// 结果一样（见 plan）。顶层对象键序与上次不同时退回 shallowEqual 本身（那条路的序列化与 lastRaw 不再必然相同）。
+    static func unchanged(_ a: JSValue?, _ b: JSValue?) -> Bool {
+        guard let a = a, let b = b else { return a == nil && b == nil }
+        switch (a, b) {
+        case (.array(let x), .array(let y)):
+            if x.count != y.count { return false }
+            if sameRepresentation(x, y) { return true }
+            for i in 0..<x.count where !sameOrShared(x[i], y[i]) { return false }
+            return true
+        case (.object(let x), .object(let y)):
+            if x.count != y.count { return false }
+            if x.sharesStorage(with: y) { return true }
+            let kx = x.keys, ky = y.keys
+            var ordered = true
+            for i in 0..<kx.count {
+                if ordered && !UTF16Order.eq(kx[i], ky[i]) { ordered = false }
+                guard let vx = x[kx[i]], let vy = y[kx[i]], sameOrShared(vx, vy) else { return false }
+            }
+            return ordered || shallowEqual(a, b)
+        default:
+            return sameOrShared(a, b)
         }
     }
 
@@ -416,13 +467,17 @@ public final class Store: ScheduleStore {
         var entries: [(String, String?)] = []
         var raws = KeyMap<String>()
         var error: (kind: String, key: String, reason: String)?
+        /// 算这个 plan 用的 stateToEntries(draft)；之后草稿又被改过（回收没回收到东西也可能动草稿）就置 nil。
+        /// publish 发布的正是这个草稿时，它就是 publish 要重算的 lastValues（见 publish）。
+        var next: KeyMap<JSValue>?
     }
 
     private func plan(_ draft: JSObject, convertAll: Bool) -> Plan {
         let next = stateToEntries(draft, legacy: convertAll ? nil : legacyInk)
         var p = Plan()
+        p.next = next
         for (key, value) in next.entries {
-            if let last = lastRaw[key], Store.shallowEqual(lastValues[key], value) {
+            if let last = lastRaw[key], Store.unchanged(lastValues[key], value) {
                 p.raws[key] = last
                 continue
             }
@@ -524,10 +579,22 @@ public final class Store: ScheduleStore {
         return (written, nil)
     }
 
+    /// sizesOf 的键分类（1 = records 月键、2 = ink 存储键、0 = 其它）按键记住：只看键本身（纯函数），每次提交都要对全部键各分一次。
+    private var keyKinds = [JSKey: UInt8]()
+
     private func sizesOf(_ raws: KeyMap<String>) -> (records: Double, ink: Double) {
         var r = 0.0, i = 0.0
+        if keyKinds.count > 2 * raws.count + 1024 { keyKinds = [:] }
         for (k, raw) in raws.entries {
-            if Schema.isRecordsKey(k) { r += Budget.entryBytes(k, raw) } else if Schema.isInkStorageKey(k) { i += Budget.entryBytes(k, raw) }
+            let jk = JSKey(s: k)
+            let kind: UInt8
+            if let known = keyKinds[jk] {
+                kind = known
+            } else {
+                kind = Schema.isRecordsKey(k) ? 1 : Schema.isInkStorageKey(k) ? 2 : 0
+                keyKinds[jk] = kind
+            }
+            if kind == 1 { r += Budget.entryBytes(k, raw) } else if kind == 2 { i += Budget.entryBytes(k, raw) }
         }
         return (r, i)
     }
@@ -548,7 +615,10 @@ public final class Store: ScheduleStore {
         }
     }
 
-    private func publish(_ draft: JSObject, _ raws: KeyMap<String>, _ nextSerial: Double, _ info: JSObject) {
+    /// entries：算出 raws 的那个 plan 的 next（草稿之后没再改过时）。它等于 stateToEntries(draft, legacy: 剪过的 legacyInk)：
+    /// plan 保留旧月键 ⇔ raws 里有那个月键 ⇔ 剪完 legacyInk 还留着那个月（且旧表、草稿都没变，shallowEqual 结论相同）；
+    /// 其余月 plan 拆成单条键，剪完的 legacyInk 里也没有它，同样拆。convertAll（legacy nil）时剪完的 legacyInk 不含草稿里的任何月，同。
+    private func publish(_ draft: JSObject, _ raws: KeyMap<String>, _ nextSerial: Double, _ info: JSObject, entries: KeyMap<JSValue>? = nil) {
         state = draft
         lastRaw = raws
         for month in legacyInk.keys where !raws.has(Schema.inkKey(month)) { legacyInk[month] = nil }
@@ -556,7 +626,7 @@ public final class Store: ScheduleStore {
             s["schema"] = .number(2)
             inkSchema = s
         }
-        lastValues = stateToEntries(state, legacy: legacyInk)
+        lastValues = entries ?? stateToEntries(state, legacy: legacyInk)
         serial = nextSerial
         refreshUsage()
         notify(info)
@@ -570,7 +640,7 @@ public final class Store: ScheduleStore {
         var p = plan(draft, convertAll: replace)
         if let e = p.error { return Store.errorResult(e.kind, label, [("key", .string(e.key)), ("reason", .string(e.reason))]) }
         if p.entries.isEmpty {
-            publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array([]))] + tag))
+            publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array([]))] + tag), entries: p.next)
             return .object(JSObject([("ok", .bool(true)), ("keys", .array([])), ("recovered", .array([]))]))
         }
         var recovered: [JSValue] = []
@@ -583,6 +653,8 @@ public final class Store: ScheduleStore {
                     Store.syncMonths(&draft)
                     p = plan(draft, convertAll: replace)
                     if let e = p.error { return Store.errorResult(e.kind, label, [("key", .string(e.key)), ("reason", .string(e.reason))]) }
+                } else {
+                    p.next = nil
                 }
             }
         }
@@ -602,6 +674,8 @@ public final class Store: ScheduleStore {
                 p = plan(draft, convertAll: replace)
                 if let e = p.error { return Store.errorResult(e.kind, label, [("key", .string(e.key)), ("reason", .string(e.reason))]) }
                 failure = write(p.entries, label)
+            } else {
+                p.next = nil
             }
         }
         if let f = failure {
@@ -609,7 +683,7 @@ public final class Store: ScheduleStore {
             return Store.errorResult(f["kind"]!.stringValue!, label, [("key", f["key"] ?? .null), ("reason", f["reason"] ?? .null), ("recoveredAttempted", .bool(!recovered.isEmpty))])
         }
         let keys: [JSValue] = p.entries.map { .string($0.0) }
-        publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array(keys)), ("recovered", .array(recovered))] + tag))
+        publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array(keys)), ("recovered", .array(recovered))] + tag), entries: p.next)
         return .object(JSObject([("ok", .bool(true)), ("keys", .array(keys)), ("recovered", .array(recovered))]))
     }
 

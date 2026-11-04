@@ -54,15 +54,60 @@ struct NativeResultInvite {
     let show: Bool
     let title: String
     let titleEvening: String
-    /// 正文（带时刻的几段，NativeInviteView.Strings.body 原样收字典）。
-    let body: [String: Any]
+    /// 正文（带时刻的几段）。
+    let body: NativeInviteBody
 
     init(_ raw: Any?) {
         let i = raw as? [String: Any] ?? [:]
         show = (i["show"] as? Bool) == true
         title = i["title"] as? String ?? ""
         titleEvening = i["titleEvening"] as? String ?? ""
-        body = i["body"] as? [String: Any] ?? [:]
+        body = NativeInviteBody(i["body"])
+    }
+}
+
+/// 邀请正文（view.invite.body）：整句 plain，或 pre + word（逐字，blanks[i] 为真的那一位画成空框）+ post。
+/// 整块缺失或不是对象 = 各字段取默认（与原来 `?? [:]` 一致）。
+struct NativeInviteBody {
+    /// 有它就整句照排（不画空框）；缺键 = nil。
+    let plain: String?
+    /// 缺键 = ""。
+    let pre: String
+    let post: String
+    /// 缺键或不是字符串数组 = []。
+    let word: [String]
+    /// 缺键或不是 Bool 数组 = []。
+    let blanks: [Bool]
+
+    init(_ raw: Any?) {
+        let b = raw as? [String: Any] ?? [:]
+        plain = b["plain"] as? String
+        pre = b["pre"] as? String ?? ""
+        post = b["post"] as? String ?? ""
+        word = b["word"] as? [String] ?? []
+        blanks = b["blanks"] as? [Bool] ?? []
+    }
+}
+
+/// 写字页交过来的跳过撤销机会（view.undo；写字页 NativeSkipUndoHandoff.wire 经引擎带回）。
+/// recordId 是字符串、remainingMs 是数且 > 0 才算，否则 nil（与原来 render 里的条件一致）。
+struct NativeResultUndo {
+    /// 缺键 = nil（用的地方回退到本页的 sessionId）。
+    let sessionId: String?
+    let recordId: String
+    /// 缺键 = ""。
+    let char: String
+    /// 原值（撤销时原样带回 resultUndoSkip）。
+    let strokes: Any?
+    let remainingMs: Double
+
+    init?(_ raw: Any?) {
+        guard let u = raw as? [String: Any], let rid = u["recordId"] as? String, let remaining = (u["remainingMs"] as? NSNumber)?.doubleValue, remaining > 0 else { return nil }
+        sessionId = u["sessionId"] as? String
+        recordId = rid
+        char = u["char"] as? String ?? ""
+        strokes = u["strokes"]
+        remainingMs = remaining
     }
 }
 
@@ -530,8 +575,8 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         againTextButton.isHidden = kind != "first"
         primaryButton.setTitle(kind == "first" ? tr("X-RESULT.done") : kind == "again" ? tr("X-RESULT.again") : foot.leave, for: .normal)
         if fresh {
-            if let u = model["undo"] as? [String: Any], let rid = u["recordId"] as? String, let remaining = (u["remainingMs"] as? NSNumber)?.doubleValue, remaining > 0 {
-                beginUndo(sessionId: u["sessionId"] as? String ?? sessionId, recordId: rid, char: u["char"] as? String ?? "", strokes: u["strokes"], remainingMs: remaining)
+            if let u = NativeResultUndo(model["undo"]) {
+                beginUndo(sessionId: u.sessionId ?? sessionId, recordId: u.recordId, char: u.char, strokes: u.strokes, remainingMs: u.remainingMs)
             }
             prepareReveal()
         }
@@ -1694,7 +1739,7 @@ final class NativeInviteView: UIView {
         var ink1: UIColor, ink2: UIColor, ink3: UIColor, ink4: UIColor, line: UIColor, frame: UIColor, field: UIColor, type: NativeTypeScale
     }
     struct Strings {
-        var title = "", titleEvening = "", body: [String: Any] = [:], yes = "", no = "", changeTime = "", blank = "", saveFailed = "", cancel = "", retry = ""
+        var title = "", titleEvening = "", body = NativeInviteBody(nil), yes = "", no = "", changeTime = "", blank = "", saveFailed = "", cancel = "", retry = ""
     }
     enum Phase: Equatable {
         case wait, invite, pending, gone
@@ -1938,8 +1983,8 @@ final class NativeAttachmentLabel: UILabel, ShiziDrawnLines {
         set { super.text = newValue; plain = newValue ?? "" }
     }
 
-    func setBody(_ body: [String: Any], font: UIFont, color: UIColor, line: CGFloat, box: UIColor, blankLabel: String, breaks: [Int] = []) {
-        let f = NativeType.hasCJKPunctuation((body["pre"] as? String ?? "") + (body["plain"] as? String ?? "")) ? NativeType.cjkFont(size: font.pointSize, weight: .regular) : font
+    func setBody(_ body: NativeInviteBody, font: UIFont, color: UIColor, line: CGFloat, box: UIColor, blankLabel: String, breaks: [Int] = []) {
+        let f = NativeType.hasCJKPunctuation(body.pre + (body.plain ?? "")) ? NativeType.cjkFont(size: font.pointSize, weight: .regular) : font
         let p = NSMutableParagraphStyle()
         p.lineSpacing = max(0, line - f.lineHeight)
         // 网页行高比字体自然行高小（AX 档苹方）：行盒钉成网页行高，字在行盒里竖向居中（同 NativeType.set）
@@ -1953,7 +1998,7 @@ final class NativeAttachmentLabel: UILabel, ShiziDrawnLines {
         // 字距同 NativeType.set：先铺显式 0；含全角标点时拉丁 / 数字按 SF 字宽排，中文字补 trak 差（网页是 SF + 苹方 UI）
         var attrs: [NSAttributedString.Key: Any] = [.font: f, .foregroundColor: color, .paragraphStyle: p, .kern: 0]
         if boxShift != 0 { attrs[.baselineOffset] = boxShift }
-        let allText = (body["plain"] as? String) ?? ((body["pre"] as? String ?? "") + ((body["word"] as? [String]) ?? []).joined() + (body["post"] as? String ?? ""))
+        let allText = body.plain ?? (body.pre + body.word.joined() + body.post)
         let punct = NativeType.hasCJKPunctuation(allText)
         let track = NativeType.hasCJK(allText) ? NativeType.cjkTrack(size: font.pointSize, weight: NativeType.weight(of: font)) : 0
         let sf = UIFont.systemFont(ofSize: font.pointSize, weight: NativeType.weight(of: font))
@@ -1980,13 +2025,13 @@ final class NativeAttachmentLabel: UILabel, ShiziDrawnLines {
                 unit += 1
             }
         }
-        if let plainText = body["plain"] as? String {
+        if let plainText = body.plain {
             addText(plainText)
             spoken = plainText
         } else {
-            let pre = body["pre"] as? String ?? "", post = body["post"] as? String ?? ""
-            let word = body["word"] as? [String] ?? []
-            let blanks = body["blanks"] as? [Bool] ?? []
+            let pre = body.pre, post = body.post
+            let word = body.word
+            let blanks = body.blanks
             addText(pre)
             spoken += pre
             for (i, ch) in word.enumerated() {

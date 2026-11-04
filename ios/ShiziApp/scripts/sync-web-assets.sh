@@ -16,10 +16,15 @@ XCCONFIG="${REPO_ROOT}/ios/ShiziApp/Config/Shared.xcconfig"
 
 test -f "${MANIFEST}" || { echo "error: missing ${MANIFEST}; run: pnpm run build:manifest" >&2; exit 65; }
 
-rm -rf "${DEST}"
+# 增量同步：rsync 只复制大小 / 修改时间变了的文件（这一阶段每次构建都跑，原来先 rm -rf 再整份复制约 7300 个文件）；
+# 再删掉清单里已经没有的旧文件，结果与整份重来相同。
 mkdir -p "${DEST}"
-
 rsync -a --files-from="${MANIFEST}" "${REPO_ROOT}/" "${DEST}/"
+LC_ALL=C comm -23 \
+  <(cd "${DEST}" && find . -type f ! -path ./build-info.json | sed 's|^\./||' | LC_ALL=C sort) \
+  <(grep -v -e '^#' -e '^;' -e '^[[:space:]]*$' "${MANIFEST}" | LC_ALL=C sort) \
+  | while IFS= read -r stale; do rm -f "${DEST}/${stale}"; done
+find "${DEST}" -mindepth 1 -type d -empty -delete
 
 VERSION="${MARKETING_VERSION:-}"
 if [ -z "${VERSION}" ]; then

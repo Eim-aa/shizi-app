@@ -107,8 +107,42 @@ final class AColdStartBenchmarkTests: XCTestCase {
         bench("store.load.populated", { $0.count }) { store.load() }
         try bench("home.populated.first", { $0.objectValue?.count ?? 0 }) { try home(store) }
         try bench("home.populated.second", { $0.objectValue?.count ?? 0 }) { try home(store) }
+        try homeSubSteps(.object(store.state), now: homeNow, dates: store.dates)
 
         print("BENCH coldstart-note sink=\(sink)")
+    }
+
+    /// 首页构建（HomeView.homeModel / homeView）的分项，各自单独跑一次（懒加载此时都已就绪）：`BENCH coldstart home.sub.<name> <ms>`。
+    /// 分项之间有重叠（例如 todayProgress 里含一次 planDaily → selectDaily → dueOrder / practiceStats），只用来看时间花在哪一层。
+    private func homeSubSteps(_ st: JSValue, now: Double, dates: Dates) throws {
+        let policy = Config.policy, rules = ScheduleRules(dates: dates), deck = ScheduleDeck.real
+        let today = try dates.localDay(.number(now))
+        let recs = bench("home.sub.flattenRecords", { $0.count }) { Query.flattenRecords(st["records"]) }
+        bench("home.sub.recordsOf", { $0.count }) { ScheduleRules.recordsOf(st) }
+        bench("home.sub.recordsState", { $0.utf8.count }) { HomeView.recordsStateOf(st, today: today, policy: policy) }
+        try bench("home.sub.todayProgress", { $0.total }) { try TodayPlan.progress(st, day: today, rules: rules, deck: deck, policy: policy) }
+        try bench("home.sub.resume", { $0.objectValue?.count ?? 0 }) { try HomeView.resumeOf(st, now: now, policy: policy, dates: dates) }
+        try bench("home.sub.planSpecial", { $0.isNull ? 0 : 1 }) { try rules.planSpecial(st, today: today, deck: deck, policy: policy) }
+        try bench("home.sub.noCharsLeft", { $0 ? 1 : 0 }) { try HomeView.noCharsLeft(st, today: today, deck: deck, policy: policy, dates: dates) }
+        try bench("home.sub.planDaily", { $0.objectValue?.count ?? 0 }) { try rules.planDaily(st, today: today, deck: deck, policy: policy) }
+        try bench("home.sub.practiceStats", { Int($0.groupsTotal) }) { try rules.practiceStats(recs, today, policy: policy, isWarm: NewOrder.isWarmupKey) }
+        bench("home.sub.sortById.sched", { $0.count }) { SchedRecords.sortById(recs) }
+        bench("home.sub.sortById.records", { $0.count }) { Records.sortById(recs) }
+        bench("home.sub.capitalProgress", { $0.count }) { Special.capitalProgress(recs, policy: policy) }
+        bench("home.sub.practicedByChar", { $0.count }) { Records.practicedByChar(recs) }
+        bench("home.sub.lastJudgedDay", { $0.isNull ? 0 : 1 }) { HomeView.lastJudgedDayOf(recs) }
+        let entries = st["sched"]?.objectValue?.entries ?? []
+        try bench("home.sub.overdueScan.direct", { $0 }) { () throws -> Int in
+            var n = 0
+            for (_, e) in entries { if let od = try rules.overdueDays(e, today), od >= 0 { n += 1 } }
+            return n
+        }
+        try bench("home.sub.overdueScan.memo", { $0 }) { () throws -> Int in
+            var memo = ScheduleRules.OverdueMemo(today: today), n = 0
+            for (_, e) in entries { if let od = try memo.days(e, rules), od >= 0 { n += 1 } }
+            return n
+        }
+        try bench("home.sub.epigraph", { $0.lines.count }) { try Epigraphs.epigraph(for: .string(today), dates: dates) }
     }
 
     /// 2000 条记录（2026-01 … 2026-09，每条带墨迹）、对应的调度项、设置 = 缺省字库。seed 失败时只打印、不让测试失败（这是量测，不是规则测试）。

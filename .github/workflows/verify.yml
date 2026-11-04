@@ -8,9 +8,10 @@ on:
 permissions:
   contents: read
 
+# 每个提交各跑一次、互不取消：多批改动连续合入时，每批都有自己完整的结果（公开仓库，托管 runner 不计费）。
 concurrency:
-  group: verify-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: verify-${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
 
 # 四个互相独立的 job：
 #   data       （ubuntu）脚本语法检查 + 不需要 Swift 的数据门禁（vector440、assets、order）

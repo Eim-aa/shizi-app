@@ -169,6 +169,7 @@ final class NativeInkStrokeMesh {
     }
 
     /// 书写中的一笔（final = false）：已记的原始点 + 这一帧的预测点（只做临时尾巴，下一帧丢弃；时间夹成单调）。
+    /// 整笔重算的参照写法：书写面每帧用的是增量的 WebInk.LiveStroke（逐位相同，WebInkTests 逐帧比），这里留给测试与量测对照。
     static func live(raw: [InkRawPoint], predicted: [InkRawPoint], params: WebInkParams, into out: inout [Float]) {
         var pts = raw
         for q in predicted { NativeInkView.append(q, to: &pts) }
@@ -297,9 +298,10 @@ final class NativeInkRenderer {
         return vertices.withUnsafeBytes { device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared) }
     }
 
-    /// 画一帧并呈现。presented 在 drawable 真正上屏时回调（模拟器上拿不到）。
+    /// 画一帧并呈现。presented 在 drawable 真正上屏时回调（模拟器上拿不到）；completed 在 GPU 画完这一帧时回调（Metal 的线程上；
+    /// 只在提交了的帧上回调——返回 false 时没有提交，调用方自己收尾）。
     @discardableResult
-    func render(layer: CAMetalLayer, batches: [Batch], presented: ((CFTimeInterval) -> Void)?) -> Bool {
+    func render(layer: CAMetalLayer, batches: [Batch], presented: ((CFTimeInterval) -> Void)?, completed: (() -> Void)? = nil) -> Bool {
         guard let drawable = layer.nextDrawable() else { return false }
         let tex = drawable.texture
         if msaa == nil || msaa!.width != tex.width || msaa!.height != tex.height {
@@ -348,9 +350,110 @@ final class NativeInkRenderer {
             drawable.addPresentedHandler { d in presented(d.presentedTime) }
         }
         #endif
+        if let completed { cb.addCompletedHandler { _ in completed() } }
         cb.present(drawable)
         cb.commit()
         return true
+    }
+}
+
+/// 书写中那一笔的顶点缓冲：几块轮换（默认 3 块，都在 GPU 上时再加一块）、按需长大，不再每帧 makeBuffer。
+/// 同一代（LiveStroke.generation）里稳定前缀只追加不改：每块记着自己已经与 stableVertices 相同的前缀，这一帧只写新增的稳定部分与尾巴。
+/// 一块在 GPU 画完之前（inFlight > 0）不写（completed handler 在 Metal 的线程上减，故用锁）。
+final class NativeInkLiveBuffers {
+    private final class Slot {
+        var buffer: MTLBuffer?
+        var generation = -1 // 前缀属于哪一代；-1 = 没有可复用的前缀
+        var stable = 0 // 这块里与 stableVertices[0 ..< stable] 相同的 Float 数
+        var inFlight = 0 // 用到这块、GPU 还没画完的帧数（受 lock 保护）
+    }
+
+    private var slots = [Slot(), Slot(), Slot()]
+    private var next = 0
+    private let lock = NSLock()
+    /// 最近写好的一块（nil = 没有可画的）与它的顶点数。
+    private var current: Slot?
+    private(set) var vertexCount = 0
+
+    var buffer: MTLBuffer? { current?.buffer }
+
+    func clear() {
+        current = nil
+        vertexCount = 0
+    }
+
+    /// 写这一帧的顶点：stable 的前 stableUsed 个 Float（generation 为它的代；-1 表示不复用）+ tail。建不起缓冲时返回 false、没有可画的。
+    @discardableResult
+    func write(stable: [Float], stableUsed: Int, generation: Int, tail: [Float], device: MTLDevice) -> Bool {
+        let total = stableUsed + tail.count
+        guard total > 0 else {
+            clear()
+            return true
+        }
+        let slot = freeSlot()
+        let bytes = total * MemoryLayout<Float>.stride
+        if slot.buffer.map({ $0.length < bytes }) ?? true {
+            // 按 1.5 倍长大（至少 64KB），长一次够写很多帧
+            let cap = max(64 * 1024, bytes + bytes / 2)
+            slot.buffer = device.makeBuffer(length: cap, options: .storageModeShared)
+            slot.generation = -1
+            slot.stable = 0
+        }
+        guard let buf = slot.buffer else {
+            clear()
+            return false
+        }
+        let dst = buf.contents()
+        let size = MemoryLayout<Float>.stride
+        let from = generation >= 0 && slot.generation == generation ? min(slot.stable, stableUsed) : 0
+        if stableUsed > from {
+            stable.withUnsafeBytes { src in
+                // swiftlint:disable:next force_unwrapping
+                (dst + from * size).copyMemory(from: src.baseAddress! + from * size, byteCount: (stableUsed - from) * size)
+            }
+        }
+        if !tail.isEmpty {
+            tail.withUnsafeBytes { src in
+                // swiftlint:disable:next force_unwrapping
+                (dst + stableUsed * size).copyMemory(from: src.baseAddress!, byteCount: tail.count * size)
+            }
+        }
+        slot.generation = generation
+        slot.stable = generation >= 0 ? stableUsed : 0
+        current = slot
+        vertexCount = total / 2
+        return true
+    }
+
+    /// 这一帧要画最近写好的那块：记上「GPU 在用」，返回画完时调的收尾（render 没提交时调用方自己马上调）。
+    func use() -> () -> Void {
+        guard let slot = current else { return {} }
+        let lock = self.lock
+        lock.lock()
+        slot.inFlight += 1
+        lock.unlock()
+        return {
+            lock.lock()
+            slot.inFlight -= 1
+            lock.unlock()
+        }
+    }
+
+    /// 下一块 GPU 不在用的（轮换）；都在用时加一块。
+    private func freeSlot() -> Slot {
+        lock.lock()
+        defer { lock.unlock() }
+        for k in 0..<slots.count {
+            let i = (next + k) % slots.count
+            if slots[i].inFlight == 0 {
+                next = (i + 1) % slots.count
+                return slots[i]
+            }
+        }
+        let slot = Slot()
+        slots.append(slot)
+        next = 0
+        return slot
     }
 }
 
@@ -411,7 +514,9 @@ final class NativeInkView: UIView {
     private var heldStartedAt: TimeInterval = 0
     private var heldDone: [[InkRawPoint]] = [] // 门限之前已经抬笔的笔，到点整笔交出
     private var palm = (start: CGPoint.zero, maxRadius: CGFloat(0), moved: CGFloat(0), startedAt: TimeInterval(0))
-    private var liveVertices: [Float] = []
+    /// 书写中那一笔的几何：增量计算（WebInk.LiveStroke，与整笔重算逐位相同）与轮换的顶点缓冲。
+    private var liveStroke = WebInk.LiveStroke()
+    private let liveBuffers = NativeInkLiveBuffers()
     private var liveDirty = false { didSet { if liveDirty { wakeFrameLoop() } } }
     private(set) var needsRender = true { didSet { if needsRender { wakeFrameLoop() } } }
     /// 每帧回调；没东西可动时暂停（frameLoopIdle），任何要画的变化都经 needsRender / liveDirty / overlayFrame / drawable 唤醒（wakeFrameLoop）。
@@ -632,6 +737,7 @@ final class NativeInkView: UIView {
     private func remapStrokeInProgress(from a: CGRect, to b: CGRect) {
         guard current != nil || !heldDone.isEmpty, a.width > 0, b.width > 0 else { return }
         raw = raw.map { Self.remap($0, from: a, to: b) }
+        liveStroke.clear() // 原始点整笔换了：增量状态从头来
         predicted = predicted.map { Self.remap($0, from: a, to: b) }
         heldDone = heldDone.map { s in s.map { Self.remap($0, from: a, to: b) } }
         liveDirty = !held
@@ -802,6 +908,7 @@ final class NativeInkView: UIView {
         current = id
         currentKind = s.kind
         raw = [gridPoint(s)]
+        liveStroke.clear()
         predicted = []
         palm = (s.location, s.majorRadius, 0, s.timestamp)
         held = s.timestamp < acceptFrom
@@ -854,10 +961,16 @@ final class NativeInkView: UIView {
         if currentKind == .pencil { inputPolicy.notePencil(at: last.timestamp) }
         let stroke = raw
         let wasHeld = held
+        // 抬笔后的几何：书写中的增量状态接着算 final（与 mesh(stroke) 逐位相同）；持住的笔、线宽倍数 ≠ 1 或 ink-model 时照旧整笔算
+        var lifted: NativeInkStrokeMesh?
+        if !wasHeld, inkModel == nil, widthScale == 1, let params {
+            liveStroke.update(raw: stroke, predicted: [], params: params, final: true)
+            lifted = NativeInkStrokeMesh(raw: stroke, vertices: liveStroke.vertices)
+        }
         current = nil
         raw = []
         predicted = []
-        liveVertices = []
+        clearLive()
         held = false
         if wasHeld, CACurrentMediaTime() < acceptFrom {
             heldDone.append(stroke) // P227：这一笔不丢，到点整笔交出
@@ -868,11 +981,11 @@ final class NativeInkView: UIView {
             return
         }
         if wasHeld { delegate?.nativeInkDidBeginStroke(self, at: heldStartedAt) }
-        finish(stroke)
+        finish(stroke, mesh: lifted)
     }
 
-    private func finish(_ stroke: [InkRawPoint]) {
-        pendingStrokes.append(mesh(stroke))
+    private func finish(_ stroke: [InkRawPoint], mesh built: NativeInkStrokeMesh? = nil) {
+        pendingStrokes.append(built ?? mesh(stroke))
         pendingSince = CACurrentMediaTime()
         #if DEBUG
         latency.strokes += 1
@@ -889,7 +1002,7 @@ final class NativeInkView: UIView {
         current = nil
         raw = []
         predicted = []
-        liveVertices = []
+        clearLive()
         held = false
         #if DEBUG
         latency.dropPending()
@@ -992,26 +1105,35 @@ final class NativeInkView: UIView {
         guard needsRender || liveDirty || hasExtra else { return }
         let callback = CACurrentMediaTime()
         if liveDirty, !raw.isEmpty, !held {
-            var v: [Float] = []
-            v.reserveCapacity(liveVertices.count + 64)
             if let k = inkModel {
+                var v: [Float] = []
                 NativeInkStrokeMesh.triangles(InkModel.geometry(InkModel.analyze(raw, final: false, predicted: predicted, params: k)), into: &v)
+                liveBuffers.write(stable: [], stableUsed: 0, generation: -1, tail: v, device: renderer.device)
             } else if let params {
-                NativeInkStrokeMesh.live(raw: raw, predicted: predicted, params: params, into: &v)
+                // 增量：只重算新点影响得到的尾巴（WebInk.LiveStroke）；缓冲只写新增的稳定部分与尾巴
+                liveStroke.update(raw: raw, predicted: predicted, params: params)
+                liveBuffers.write(stable: liveStroke.stableVertices, stableUsed: liveStroke.stableUsed, generation: liveStroke.generation,
+                                  tail: liveStroke.tailVertices, device: renderer.device)
+            } else {
+                liveBuffers.clear()
             }
-            liveVertices = v
         }
         liveDirty = false
         let a = inkOpacity
         let color = SIMD4<Float>(inkColor.x * a, inkColor.y * a, inkColor.z * a, a)
         let u = NativeInkRenderer.uniforms(color: color)
         var batches: [NativeInkRenderer.Batch] = []
-        for m in pageStrokes + pendingStrokes {
+        batches.reserveCapacity(pageStrokes.count + pendingStrokes.count + 3)
+        func strokeBatch(_ m: NativeInkStrokeMesh) {
             if m.buffer == nil { m.buffer = renderer.makeBuffer(m.vertices) }
             batches.append(.init(vertices: nil, buffer: m.buffer, count: m.vertexCount, uniforms: u))
         }
-        if !liveVertices.isEmpty, !held {
-            batches.append(.init(vertices: liveVertices, buffer: nil, count: liveVertices.count / 2, uniforms: u))
+        for m in pageStrokes { strokeBatch(m) }
+        for m in pendingStrokes { strokeBatch(m) }
+        var liveDone: (() -> Void)?
+        if let buf = liveBuffers.buffer, liveBuffers.vertexCount > 0, !held {
+            batches.append(.init(vertices: nil, buffer: buf, count: liveBuffers.vertexCount, uniforms: u))
+            liveDone = liveBuffers.use()
         }
         if let h = hoverPoint {
             // 落笔预览点：墨色 40%，叠在最上面（混合管线），不落墨
@@ -1028,12 +1150,13 @@ final class NativeInkView: UIView {
         #if DEBUG
         let frameId = latency.frame(callback: callback, target: link.targetTimestamp, cpuMs: cpu)
         let lat = latency
-        let ok = renderer.render(layer: metalLayer, batches: batches) { t in
+        let ok = renderer.render(layer: metalLayer, batches: batches, presented: { t in
             DispatchQueue.main.async { lat.presented(frame: frameId, at: t) }
-        }
+        }, completed: liveDone)
         #else
-        let ok = renderer.render(layer: metalLayer, batches: batches, presented: nil)
+        let ok = renderer.render(layer: metalLayer, batches: batches, presented: nil, completed: liveDone)
         #endif
+        if !ok { liveDone?() } // 没提交：缓冲没交给 GPU
         needsRender = !ok
         afterFrame?(link.targetTimestamp)
         // 代理迟迟没同步回来（例如这一笔被丢弃）：2s 后不再显示待确认的笔
@@ -1047,6 +1170,12 @@ final class NativeInkView: UIView {
     }
 
     func requestRender() { needsRender = true }
+
+    /// 不再画书写中的那一笔（抬笔 / 取消）：增量状态与缓冲都放下（保留容量给下一笔）。
+    private func clearLive() {
+        liveStroke.clear()
+        liveBuffers.clear()
+    }
 
     /// 每帧回调可以暂停：不用画（needsRender / liveDirty 都没有）、没有外部动画（overlayFrame）、没有在写或持住的笔
     /// （releaseHeldIfDue 靠每帧到点交出）、没有待确认的笔（2s 过期靠每帧检查），且不可写（可写的书写面一直跑，落笔第一帧不等唤醒）。

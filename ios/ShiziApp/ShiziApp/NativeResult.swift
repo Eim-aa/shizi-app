@@ -28,6 +28,58 @@ protocol NativeResultCoordinating: AnyObject {
     func nativeResultLeave(_ vc: NativeResultViewController)
 }
 
+// MARK: - 结果页视图模型里多处读的几块（resultView 回包的 view 对象；其余键仍按字典读）
+// cast 与默认值与原来逐处写的一致；整块缺失或不是对象 = 各字段取默认。
+
+/// 底栏（view.footer）。
+struct NativeResultFooter {
+    /// first（完成）/ again（再写一组）/ 其余 = 离开（按钮字取 leave）；缺键 = "again"。
+    let kind: String
+    /// 显示「重写错字」：只有 true 才算。
+    let redo: Bool
+    /// 离开按钮的字；缺键 = ""。
+    let leave: String
+
+    init(_ raw: Any?) {
+        let f = raw as? [String: Any] ?? [:]
+        kind = f["kind"] as? String ?? "again"
+        redo = (f["redo"] as? Bool) == true
+        leave = f["leave"] as? String ?? ""
+    }
+}
+
+/// 提醒邀请（view.invite）。
+struct NativeResultInvite {
+    /// 这次要问：只有 true 才算。
+    let show: Bool
+    let title: String
+    let titleEvening: String
+    /// 正文（带时刻的几段，NativeInviteView.Strings.body 原样收字典）。
+    let body: [String: Any]
+
+    init(_ raw: Any?) {
+        let i = raw as? [String: Any] ?? [:]
+        show = (i["show"] as? Bool) == true
+        title = i["title"] as? String ?? ""
+        titleEvening = i["titleEvening"] as? String ?? ""
+        body = i["body"] as? [String: Any] ?? [:]
+    }
+}
+
+/// 显现与落印（view.reveal）。
+struct NativeResultReveal {
+    /// 这组已落过印（冷启动后看 sealedAt）：只有 true 才算。
+    let sealed: Bool
+    /// 显现的时刻编排（ms；stagger / cellMs / kuanDelay …），NSNumber 按键取。
+    let plan: [String: Any]
+
+    init(_ raw: Any?) {
+        let r = raw as? [String: Any]
+        sealed = (r?["sealed"] as? Bool) == true
+        plan = r?["plan"] as? [String: Any] ?? [:]
+    }
+}
+
 final class NativeResultViewController: UIViewController, UIGestureRecognizerDelegate, UIScrollViewDelegate {
     let slot: String
     let sessionId: String
@@ -95,6 +147,14 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     var rowCount: Int { rows.count }
     var undoBarForTesting: NativeUndoBarView? { undoBar }
     private var work: [String: Any]? { model["work"] as? [String: Any] }
+    /// 有作品且不是空作品（work.empty 不是 true）：要显现 / 落印。
+    private var hasWork: Bool {
+        guard let work else { return false }
+        return (work["empty"] as? Bool) != true
+    }
+    private var footerModel: NativeResultFooter { NativeResultFooter(model["footer"]) }
+    private var inviteModel: NativeResultInvite { NativeResultInvite(model["invite"]) }
+    private var revealModel: NativeResultReveal { NativeResultReveal(model["reveal"]) }
     private var rows: [[String: Any]] { model["rows"] as? [[String: Any]] ?? [] }
     private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
     private var ts: NativeTypeScale { NativeTypeScale(type: textType, ax: traitCollection.preferredContentSizeCategory.isAccessibilityCategory) }
@@ -304,18 +364,18 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         previewLabel.isHidden = preview.isEmpty
         NativeType.set(previewLabel, preview, font: ts.font(15), color: ink2, line: ts.lineHeight(15))
         // 邀请
-        let inv = model["invite"] as? [String: Any] ?? [:]
+        let inv = inviteModel
         inviteView.look = .init(ink1: ink1, ink2: ink2, ink3: ink3, ink4: color("ink4", .tertiaryLabel), line: color("line", .separator), frame: color("frame", .separator), field: color("field", .secondarySystemFill), type: ts)
         inviteView.bodyBreaks = (lines["inviteBody"] as? [NSNumber])?.map { $0.intValue } ?? []
-        inviteView.strings = .init(title: inv["title"] as? String ?? "", titleEvening: inv["titleEvening"] as? String ?? "", body: inv["body"] as? [String: Any] ?? [:],
+        inviteView.strings = .init(title: inv.title, titleEvening: inv.titleEvening, body: inv.body,
                                    yes: tr("X-INVITE.yes"), no: tr("X-INVITE.no"), changeTime: tr("X-INVITE.changeTime"), blank: tr("X-INVITE.blankLabel"),
                                    saveFailed: tr("X-SETTINGS.saveFailed"), cancel: tr("X-SETTINGS.cancel"), retry: tr("R-W16.retry"))
         // 底栏
-        let foot = model["footer"] as? [String: Any] ?? [:]
-        let kind = foot["kind"] as? String ?? "again"
-        redoButton.isHidden = (foot["redo"] as? Bool) != true
+        let foot = footerModel
+        let kind = foot.kind
+        redoButton.isHidden = !foot.redo
         againTextButton.isHidden = kind != "first"
-        primaryButton.setTitle(kind == "first" ? tr("X-RESULT.done") : kind == "again" ? tr("X-RESULT.again") : foot["leave"] as? String ?? "", for: .normal)
+        primaryButton.setTitle(kind == "first" ? tr("X-RESULT.done") : kind == "again" ? tr("X-RESULT.again") : foot.leave, for: .normal)
         if fresh {
             if let u = model["undo"] as? [String: Any], let rid = u["recordId"] as? String, let remaining = (u["remainingMs"] as? NSNumber)?.doubleValue, remaining > 0 {
                 beginUndo(sessionId: u["sessionId"] as? String ?? sessionId, recordId: rid, char: u["char"] as? String ?? "", strokes: u["strokes"], remainingMs: remaining)
@@ -566,15 +626,15 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private var sealKey: String { "\(slot):\(sessionId)" }
 
     private func shouldReveal() -> Bool {
-        guard let work, (work["empty"] as? Bool) != true else { return false }
-        let sealed = ((model["reveal"] as? [String: Any])?["sealed"] as? Bool) == true
+        guard hasWork else { return false }
+        let sealed = revealModel.sealed
         return !sealed && !Self.revealed.contains(sealKey) && !reduceMotion
     }
 
     /// 打开时：要演就先只显示作品（其余隐藏、底栏隐藏），否则直接终态（没落过印的组照样发一次触觉与盖章声、记 sealedAt）。
     private func prepareReveal() {
-        let hasSeal = work != nil && (work?["empty"] as? Bool) != true
-        let sealed = ((model["reveal"] as? [String: Any])?["sealed"] as? Bool) == true
+        let hasSeal = hasWork
+        let sealed = revealModel.sealed
         sealedForTesting = sealed
         if shouldReveal() {
             landed = false
@@ -595,7 +655,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         guard revealing else { return }
         revealToken += 1
         let token = revealToken
-        let plan = (model["reveal"] as? [String: Any])?["plan"] as? [String: Any] ?? [:]
+        let plan = revealModel.plan
         func p(_ k: String) -> TimeInterval { ((plan[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
         workView.playReveal(stagger: p("stagger"), cellMs: p("cellMs"), kuanDelay: p("kuanDelay"), kuanMs: p("kuanMs"), sealDelay: p("sealDelay"),
                             fall: p("contactMs"), rebound: ms("rebound"), sealFrom: CGFloat(rmotion["sealFrom"] ?? 1.25), contact: CGFloat(rmotion["sealContact"] ?? 0.92),
@@ -647,8 +707,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     // MARK: 提醒邀请（D35 / D46 ③；网页 useReminderInvite）
 
     private func scheduleInvite() {
-        let inv = model["invite"] as? [String: Any] ?? [:]
-        guard (inv["show"] as? Bool) == true, invitePhase == "wait" else { return }
+        guard inviteModel.show, invitePhase == "wait" else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + ms("inviteDelay")) { [weak self] in
             guard let self, self.invitePhase == "wait" else { return }
             self.bridge.call("resultInvite", ["slot": self.slot, "sessionId": self.sessionId, "action": "shown"]) { [weak self] reply in
@@ -790,8 +849,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     }
 
     private func tapPrimary() {
-        let kind = (model["footer"] as? [String: Any])?["kind"] as? String ?? "again"
-        if kind == "again" { again() } else { tapLeave() }
+        if footerModel.kind == "again" { again() } else { tapLeave() }
     }
 
     @objc private func tapLeave() {

@@ -56,10 +56,6 @@ fi
 
 mkdir -p "$BUILD_DIR"
 
-# NATIVE_INK=1：Debug 包的 Info.plist 加 CADisableMinimumFrameDurationOnPhone（ProMotion 机上原生书写层可请求 120Hz；sync-web-assets.sh）
-EXTRA_BUILD_SETTINGS=()
-if [ "${NATIVE_INK:-0}" = "1" ]; then EXTRA_BUILD_SETTINGS+=(SHIZI_NATIVE_INK_120HZ=YES); fi
-
 echo "Building ${SCHEME} for device (${DESTINATION})"
 if [ -n "${BUNDLE_ID:-}" ]; then
   run_xcodebuild \
@@ -72,7 +68,6 @@ if [ -n "${BUNDLE_ID:-}" ]; then
     PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
     -allowProvisioningUpdates \
     -allowProvisioningDeviceRegistration \
-    ${EXTRA_BUILD_SETTINGS[@]+"${EXTRA_BUILD_SETTINGS[@]}"} \
     build
 else
   run_xcodebuild \
@@ -84,7 +79,6 @@ else
     DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
     -allowProvisioningUpdates \
     -allowProvisioningDeviceRegistration \
-    ${EXTRA_BUILD_SETTINGS[@]+"${EXTRA_BUILD_SETTINGS[@]}"} \
     build
 fi
 

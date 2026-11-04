@@ -53,14 +53,4 @@ if [ "${CONFIGURATION:-}" = "Debug" ]; then
   INK_SRC="${REPO_ROOT}/docs/engineering/v10/phase1/ink-model"
   mkdir -p "${INK_DEST}"
   cp "${INK_SRC}/vectors.json" "${INK_SRC}/out/reference-dump.json" "${INK_SRC}/ink-v4-fixture.json" "${INK_DEST}/"
-  # ProMotion 120Hz：CADisplayLink 要超过 60Hz 需要 CADisableMinimumFrameDurationOnPhone。只在显式要求时（xcodebuild … SHIZI_NATIVE_INK_120HZ=YES，
-  # run-device.sh NATIVE_INK=1 会带上）写进 Debug 包的 Info.plist，平常的 Debug / Release 构建不变。
-  PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
-  if [ -f "${PLIST}" ]; then
-    # 先删：上一次带开关的增量构建留下的键不会因 Info.plist 未变而被 Xcode 重写
-    /usr/libexec/PlistBuddy -c "Delete :CADisableMinimumFrameDurationOnPhone" "${PLIST}" >/dev/null 2>&1 || true
-    if [ "${SHIZI_NATIVE_INK_120HZ:-NO}" = "YES" ]; then
-      /usr/libexec/PlistBuddy -c "Add :CADisableMinimumFrameDurationOnPhone bool true" "${PLIST}"
-    fi
-  fi
 fi

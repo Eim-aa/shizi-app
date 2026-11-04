@@ -193,6 +193,8 @@ final class NativeInkStrokeMesh {
 // MARK: - 渲染
 
 /// Metal 渲染器：4×MSAA，画进 CAMetalLayer 的 drawable。两条管线：墨（不混合 = 并集）与叠加（预乘 alpha 混合：悬停预览点）。
+/// 不可变的 GPU 对象（设备、命令队列、着色器库、两条管线）全进程共用一份（NativeInkRenderer.GPU.shared，第一次用到时建）；
+/// 每个渲染器自己只有随 drawable 尺寸变的 MSAA 纹理。
 final class NativeInkRenderer {
     let device: MTLDevice
     private let queue: MTLCommandQueue
@@ -232,30 +234,53 @@ final class NativeInkRenderer {
     fragment float4 ink_fs(VOut in [[stage_in]], constant U &u [[buffer(1)]]) { return u.color; }
     """
 
+    /// 共用的 GPU 对象不可用（没有 Metal / 着色器或管线建不起来）时 nil。
     init?() {
-        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { return nil }
-        self.device = device
-        self.queue = queue
-        do {
-            // 着色器随源码编译（两个函数、几十字节；工程里不加 .metal 构建规则，构建机不需要单独的 Metal 工具链）
-            let library = try device.makeLibrary(source: Self.shaderSource, options: nil)
-            let desc = MTLRenderPipelineDescriptor()
-            desc.vertexFunction = library.makeFunction(name: "ink_vs")
-            desc.fragmentFunction = library.makeFunction(name: "ink_fs")
-            desc.colorAttachments[0].pixelFormat = .bgra8Unorm
-            desc.colorAttachments[0].isBlendingEnabled = false // 并集：同色覆盖即可，不混合
-            desc.rasterSampleCount = Self.sampleCount
-            pipeline = try device.makeRenderPipelineState(descriptor: desc)
-            let att = desc.colorAttachments[0]!
-            att.isBlendingEnabled = true // 叠加：预乘 alpha 的 source-over
-            att.sourceRGBBlendFactor = .one
-            att.sourceAlphaBlendFactor = .one
-            att.destinationRGBBlendFactor = .oneMinusSourceAlpha
-            att.destinationAlphaBlendFactor = .oneMinusSourceAlpha
-            blendPipeline = try device.makeRenderPipelineState(descriptor: desc)
-        } catch {
-            NSLog("[shizi] ink surface: Metal pipeline failed: %@", error.localizedDescription)
-            return nil
+        guard let gpu = GPU.shared else { return nil }
+        device = gpu.device
+        queue = gpu.queue
+        pipeline = gpu.pipeline
+        blendPipeline = gpu.blendPipeline
+    }
+
+    /// 不可变的 GPU 对象，全进程一份：设备、命令队列、着色器库（运行时编译）与两条管线状态。
+    /// 结果页每格、字帖每格都是一个只读书写面，原先每个各编一次着色器、各建一套管线（QA：结果页一屏十几份）。
+    final class GPU {
+        let device: MTLDevice
+        let queue: MTLCommandQueue
+        let library: MTLLibrary
+        let pipeline: MTLRenderPipelineState
+        let blendPipeline: MTLRenderPipelineState
+
+        /// 第一次用到时建（static let：惰性、只建一次、线程安全）；建不起来就一直是 nil（与原先每次新建都失败同语义）。
+        static let shared: GPU? = GPU()
+
+        private init?() {
+            guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { return nil }
+            self.device = device
+            self.queue = queue
+            do {
+                // 着色器随源码编译（两个函数、几十字节；工程里不加 .metal 构建规则，构建机不需要单独的 Metal 工具链）
+                let library = try device.makeLibrary(source: NativeInkRenderer.shaderSource, options: nil)
+                self.library = library
+                let desc = MTLRenderPipelineDescriptor()
+                desc.vertexFunction = library.makeFunction(name: "ink_vs")
+                desc.fragmentFunction = library.makeFunction(name: "ink_fs")
+                desc.colorAttachments[0].pixelFormat = .bgra8Unorm
+                desc.colorAttachments[0].isBlendingEnabled = false // 并集：同色覆盖即可，不混合
+                desc.rasterSampleCount = NativeInkRenderer.sampleCount
+                pipeline = try device.makeRenderPipelineState(descriptor: desc)
+                let att = desc.colorAttachments[0]!
+                att.isBlendingEnabled = true // 叠加：预乘 alpha 的 source-over
+                att.sourceRGBBlendFactor = .one
+                att.sourceAlphaBlendFactor = .one
+                att.destinationRGBBlendFactor = .oneMinusSourceAlpha
+                att.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+                blendPipeline = try device.makeRenderPipelineState(descriptor: desc)
+            } catch {
+                NSLog("[shizi] ink surface: Metal pipeline failed: %@", error.localizedDescription)
+                return nil
+            }
         }
     }
 
@@ -365,6 +390,8 @@ final class NativeInkView: UIView {
                 cancelStroke(reason: "reset", notify: true)
                 heldDone = []
                 hideHover()
+            } else {
+                wakeFrameLoop() // 可写的书写面不暂停（见 frameLoopIdle）
             }
         }
     }
@@ -385,8 +412,9 @@ final class NativeInkView: UIView {
     private var heldDone: [[InkRawPoint]] = [] // 门限之前已经抬笔的笔，到点整笔交出
     private var palm = (start: CGPoint.zero, maxRadius: CGFloat(0), moved: CGFloat(0), startedAt: TimeInterval(0))
     private var liveVertices: [Float] = []
-    private var liveDirty = false
-    private(set) var needsRender = true
+    private var liveDirty = false { didSet { if liveDirty { wakeFrameLoop() } } }
+    private(set) var needsRender = true { didSet { if needsRender { wakeFrameLoop() } } }
+    /// 每帧回调；没东西可动时暂停（frameLoopIdle），任何要画的变化都经 needsRender / liveDirty / overlayFrame / drawable 唤醒（wakeFrameLoop）。
     private var link: CADisplayLink?
     var lastFrameCpuMs = 0.0
 
@@ -396,9 +424,13 @@ final class NativeInkView: UIView {
     private var pencilInteraction: UIPencilInteraction?
 
     /// 外部动画每帧追加的绘制（返回 nil 表示动画结束）：判断落定 M23（NativeSettle，B2.5 起是产品功能，B3.1 进 Release）与 spike 叠层的落定原型。
-    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)?
+    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)? {
+        didSet { if overlayFrame != nil { wakeFrameLoop() } }
+    }
     /// 每帧画完后的钩子（判断落定在「第一帧」同帧发触觉，F1）。
-    var afterFrame: ((CFTimeInterval) -> Void)?
+    var afterFrame: ((CFTimeInterval) -> Void)? {
+        didSet { if afterFrame != nil { wakeFrameLoop() } }
+    }
     #if DEBUG
     /// T1 测量（DEBUG）：触点 → 帧预计上屏 / 真正上屏。
     var latency = NativeInkLatency()
@@ -947,6 +979,8 @@ final class NativeInkView: UIView {
     // MARK: 每帧
 
     fileprivate func tick(_ link: CADisplayLink) {
+        // 每条返回路径（含隐藏时提前返回）都在最后看一次：没东西可动就暂停，省掉空转的 120Hz 回调
+        defer { if frameLoopIdle { link.isPaused = true } }
         #if DEBUG
         latency.tick(duration: link.targetTimestamp - link.timestamp)
         #endif
@@ -1013,6 +1047,18 @@ final class NativeInkView: UIView {
     }
 
     func requestRender() { needsRender = true }
+
+    /// 每帧回调可以暂停：不用画（needsRender / liveDirty 都没有）、没有外部动画（overlayFrame）、没有在写或持住的笔
+    /// （releaseHeldIfDue 靠每帧到点交出）、没有待确认的笔（2s 过期靠每帧检查），且不可写（可写的书写面一直跑，落笔第一帧不等唤醒）。
+    /// 只读墨（结果页、字帖、弹层小卡）画完一帧就停；判断落定的叠层播完就停。
+    var frameLoopIdle: Bool {
+        !needsRender && !liveDirty && overlayFrame == nil && current == nil && !held && heldDone.isEmpty && pendingStrokes.isEmpty && !drawable
+    }
+
+    /// 暂停中的每帧回调恢复（下一次刷新就会 tick）。没有 link（不在窗口里）时不用管：进窗口时新建的 link 本来就在跑。
+    private func wakeFrameLoop() {
+        if let link, link.isPaused { link.isPaused = false }
+    }
 }
 
 extension NativeInkView: UIPencilInteractionDelegate {

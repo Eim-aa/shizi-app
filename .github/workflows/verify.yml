@@ -135,9 +135,15 @@ jobs:
             CODE_SIGNING_ALLOWED=NO build-for-testing -quiet
       - name: ShiziStoreTests
         run: |
+          set -o pipefail
           xcodebuild -project "$PROJECT" -scheme ShiziStoreTests -destination "id=$SIM" -derivedDataPath "$DD" \
-            CODE_SIGNING_ALLOWED=NO test -quiet
+            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "$RUNNER_TEMP/ShiziStoreTests.log" \
+            | grep -E "Executed [0-9]+ tests?|error:|failed|\*\* TEST (SUCCEEDED|FAILED)" | grep -v "^Test Case .* passed" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/ShiziStoreTests.log"
       - name: ShiziWriteTests
         run: |
+          set -o pipefail
           xcodebuild -project "$PROJECT" -scheme ShiziWriteTests -destination "id=$SIM" -derivedDataPath "$DD" \
-            CODE_SIGNING_ALLOWED=NO test -quiet
+            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "$RUNNER_TEMP/ShiziWriteTests.log" \
+            | grep -E "Executed [0-9]+ tests?|error:|failed|\*\* TEST (SUCCEEDED|FAILED)" | grep -v "^Test Case .* passed" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/ShiziWriteTests.log"

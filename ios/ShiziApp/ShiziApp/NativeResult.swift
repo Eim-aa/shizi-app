@@ -80,6 +80,158 @@ struct NativeResultReveal {
     }
 }
 
+// MARK: - 作品与没放进图里的行（view.work / view.rows；NativeWorkView、NativeResultRowView 读）
+// 每个字段的 cast 与默认值与原来逐处写的一致；strokes 仍是原值，由 NativeInkWire.rawStrokes 在用的地方读（与原来同一时机）。
+
+/// 朱点（作品格 / 行的 dot）：相对字格的中心 cx / cy、直径 d；各键按 NSNumber 取，缺键 = 0。
+struct NativeResultDot {
+    let cx: CGFloat
+    let cy: CGFloat
+    let d: CGFloat
+
+    init(_ raw: [String: Any]) {
+        func v(_ k: String) -> CGFloat { CGFloat((raw[k] as? NSNumber)?.doubleValue ?? 0) }
+        cx = v("cx")
+        cy = v("cy")
+        d = v("d")
+    }
+}
+
+/// 作品里的一格（view.work.cells[i]）。
+struct NativeResultCell {
+    /// 点开对照弹层时原样带给 resultCell（缺键 = nil = 不带这个参数）。
+    let recordId: String?
+    let kind: String?
+    let char: String?
+    let label: String?
+    /// 空作品格下的状态；缺键 = ""。
+    let status: String
+    /// 格内底边小注（「看后写的」）。
+    let cap: String?
+    /// 写错放进来的字带朱点；没有 dot 对象 = nil。
+    let dot: NativeResultDot?
+    let strokes: Any?
+
+    init(_ raw: [String: Any]) {
+        recordId = raw["recordId"] as? String
+        kind = raw["kind"] as? String
+        char = raw["char"] as? String
+        label = raw["label"] as? String
+        status = raw["status"] as? String ?? ""
+        cap = raw["cap"] as? String
+        dot = (raw["dot"] as? [String: Any]).map(NativeResultDot.init)
+        strokes = raw["strokes"]
+    }
+}
+
+/// 落款旁的印（view.work.seal）：整块缺失或不是对象 = 各字段取默认。
+struct NativeResultSeal {
+    /// 印在落款右边（末字在最右列）：只有 true 才算。
+    let below: Bool
+    /// 缺键 = 24。
+    let size: CGFloat
+    /// 不在下面时相对作品左缘的位置；缺键 = 0。
+    let x: CGFloat
+    let y: CGFloat
+
+    init(_ raw: Any?) {
+        let s = raw as? [String: Any] ?? [:]
+        below = (s["below"] as? Bool) == true
+        size = CGFloat((s["size"] as? NSNumber)?.doubleValue ?? 24)
+        x = CGFloat((s["x"] as? NSNumber)?.doubleValue ?? 0)
+        y = CGFloat((s["y"] as? NSNumber)?.doubleValue ?? 0)
+    }
+}
+
+/// 作品（view.work）。
+struct NativeResultWork {
+    /// 空作品（一格墨都没有）：只有 true 才算。
+    let empty: Bool
+    /// 格边长；缺键 = 0。
+    let c: CGFloat
+    /// 缺键或不是 Int = 1。
+    let cols: Int
+    let rows: Int
+    /// 缺键或不是对象数组 = []。
+    let cells: [NativeResultCell]
+    let label: String?
+    /// 笺（x / y / w / h，NSNumber 取，缺键 = 0）；缺键或不是对象数组 = []。
+    let frames: [CGRect]
+    /// 格内边比；缺键 = 0.12。
+    let pad: CGFloat
+    /// 墨宽倍数；缺键 = 1。
+    let widthScale: Double
+    /// 印文路径（页面给的单位方块内的段）；缺键 = []。
+    let sealPath: [[Any]]
+    /// 落款文字。
+    let kuan: String?
+    let seal: NativeResultSeal
+
+    init(_ raw: [String: Any]) {
+        empty = (raw["empty"] as? Bool) == true
+        c = CGFloat((raw["c"] as? NSNumber)?.doubleValue ?? 0)
+        cols = (raw["cols"] as? Int) ?? 1
+        rows = (raw["rows"] as? Int) ?? 1
+        cells = (raw["cells"] as? [[String: Any]] ?? []).map(NativeResultCell.init)
+        label = raw["label"] as? String
+        frames = (raw["frames"] as? [[String: Any]] ?? []).map(NativeResultWork.frame)
+        pad = CGFloat((raw["pad"] as? NSNumber)?.doubleValue ?? 0.12)
+        widthScale = (raw["widthScale"] as? NSNumber)?.doubleValue ?? 1
+        sealPath = raw["sealPath"] as? [[Any]] ?? []
+        kuan = raw["kuan"] as? String
+        seal = NativeResultSeal(raw["seal"])
+    }
+
+    private static func frame(_ f: [String: Any]) -> CGRect {
+        func v(_ k: String) -> CGFloat { CGFloat((f[k] as? NSNumber)?.doubleValue ?? 0) }
+        return CGRect(x: v("x"), y: v("y"), width: v("w"), height: v("h"))
+    }
+}
+
+/// 没放进图里的一行（view.rows[i]）。
+struct NativeResultRow {
+    /// 点开对照弹层时原样带给 resultCell；「放进图里」要有它才发。
+    let recordId: String?
+    let kind: String?
+    let char: String?
+    /// 显示「修改 ›」/「放进图里」：只有 true 才算。
+    let change: Bool
+    let add: Bool
+    /// 「修改 ›」的字；缺键 = ""。
+    let changeLabel: String
+    let changeAria: String?
+    let addAria: String?
+    let label: String?
+    /// 状态；缺键 = ""。
+    let text: String
+    /// 状态后的小字（「· 纸上」）；缺键 = ""。
+    let tag: String
+    /// hand = 画本人墨，其余画衬底参考字。
+    let mode: String?
+    let strokes: Any?
+    /// 墨宽倍数；缺键 = 1。
+    let widthScale: Double
+    let dot: NativeResultDot?
+
+    init(_ raw: [String: Any]) {
+        recordId = raw["recordId"] as? String
+        kind = raw["kind"] as? String
+        char = raw["char"] as? String
+        change = (raw["change"] as? Bool) == true
+        add = (raw["add"] as? Bool) == true
+        changeLabel = raw["changeLabel"] as? String ?? ""
+        changeAria = raw["changeAria"] as? String
+        addAria = raw["addAria"] as? String
+        label = raw["label"] as? String
+        text = raw["text"] as? String ?? ""
+        tag = raw["tag"] as? String ?? ""
+        mode = raw["mode"] as? String
+        strokes = raw["strokes"]
+        widthScale = (raw["widthScale"] as? NSNumber)?.doubleValue ?? 1
+        dot = (raw["dot"] as? [String: Any]).map(NativeResultDot.init)
+    }
+}
+
 final class NativeResultViewController: UIViewController, UIGestureRecognizerDelegate, UIScrollViewDelegate {
     let slot: String
     let sessionId: String
@@ -143,19 +295,20 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private static var revealed: Set<String> = []
 
     var variant: String { model["variant"] as? String ?? "" }
-    var workCellCount: Int { (work?["cells"] as? [[String: Any]])?.count ?? 0 }
+    var workCellCount: Int { work?.cells.count ?? 0 }
     var rowCount: Int { rows.count }
     var undoBarForTesting: NativeUndoBarView? { undoBar }
-    private var work: [String: Any]? { model["work"] as? [String: Any] }
+    /// view.work 是对象才有。
+    private var work: NativeResultWork? { (model["work"] as? [String: Any]).map(NativeResultWork.init) }
     /// 有作品且不是空作品（work.empty 不是 true）：要显现 / 落印。
     private var hasWork: Bool {
         guard let work else { return false }
-        return (work["empty"] as? Bool) != true
+        return !work.empty
     }
     private var footerModel: NativeResultFooter { NativeResultFooter(model["footer"]) }
     private var inviteModel: NativeResultInvite { NativeResultInvite(model["invite"]) }
     private var revealModel: NativeResultReveal { NativeResultReveal(model["reveal"]) }
-    private var rows: [[String: Any]] { model["rows"] as? [[String: Any]] ?? [] }
+    private var rows: [NativeResultRow] { (model["rows"] as? [[String: Any]] ?? []).map(NativeResultRow.init) }
     private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
     private var ts: NativeTypeScale { NativeTypeScale(type: textType, ax: traitCollection.preferredContentSizeCategory.isAccessibilityCategory) }
 
@@ -926,13 +1079,13 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
 
     // MARK: 对照与改判弹层（与写字页改判弹层同一组件，R9-B）
 
-    private func openCell(_ cell: [String: Any]) {
+    private func openCell(_ cell: NativeResultCell) {
         guard !revealing else { return }
-        openSheet(recordId: cell["recordId"] as? String, kind: cell["kind"] as? String, char: cell["char"] as? String)
+        openSheet(recordId: cell.recordId, kind: cell.kind, char: cell.char)
     }
 
-    private func openRow(_ row: [String: Any]) {
-        openSheet(recordId: row["recordId"] as? String, kind: row["kind"] as? String, char: row["char"] as? String)
+    private func openRow(_ row: NativeResultRow) {
+        openSheet(recordId: row.recordId, kind: row.kind, char: row.char)
     }
 
     private func openSheet(recordId: String?, kind: String?, char: String?) {
@@ -961,8 +1114,8 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         }
     }
 
-    private func addRow(_ row: [String: Any]) {
-        guard let rid = row["recordId"] as? String, !busy else { return }
+    private func addRow(_ row: NativeResultRow) {
+        guard let rid = row.recordId, !busy else { return }
         dismissUndoForAction()
         busy = true
         bridge.call("resultAdd", ["slot": slot, "sessionId": sessionId, "recordId": rid, "width": view.bounds.width, "ax": ts.ax]) { [weak self] reply in
@@ -1007,20 +1160,20 @@ final class NativeWorkView: UIView {
         var ink1: UIColor, ink2: UIColor, ink3: UIColor, field: UIColor, type: NativeTypeScale
     }
 
-    var onOpen: (([String: Any]) -> Void)?
-    private var work: [String: Any] = [:]
+    var onOpen: ((NativeResultCell) -> Void)?
+    private var work = NativeResultWork([:])
     private var look: Look?
-    private var cells: [[String: Any]] = []
+    private var cells: [NativeResultCell] = []
     private var sheets: [UIView] = []
     private var cellButtons: [NativeWorkCellButton] = []
     private var statusLabels: [UILabel] = []
     private let framesLayer = CAShapeLayer()
     private let seal = NativeSealView()
     private let kuanLabel = UILabel()
-    private var empty: Bool { (work["empty"] as? Bool) == true }
-    private var c: CGFloat { CGFloat((work["c"] as? NSNumber)?.doubleValue ?? 0) }
-    private var cols: Int { (work["cols"] as? Int) ?? 1 }
-    private var rows: Int { (work["rows"] as? Int) ?? 1 }
+    private var empty: Bool { work.empty }
+    private var c: CGFloat { work.c }
+    private var cols: Int { work.cols }
+    private var rows: Int { work.rows }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -1036,10 +1189,10 @@ final class NativeWorkView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(work w: [String: Any]?, look l: Look) {
-        work = w ?? [:]
+    func configure(work w: NativeResultWork?, look l: Look) {
+        work = w ?? NativeResultWork([:])
         look = l
-        cells = work["cells"] as? [[String: Any]] ?? []
+        cells = work.cells
         subviews.forEach { $0.removeFromSuperview() }
         sheets = []
         cellButtons = []
@@ -1047,7 +1200,7 @@ final class NativeWorkView: UIView {
         framesLayer.removeFromSuperlayer()
         guard w != nil else { isHidden = true; return }
         isHidden = false
-        accessibilityLabel = work["label"] as? String
+        accessibilityLabel = work.label
         if empty {
             for cell in cells {
                 let box = UIView()
@@ -1061,14 +1214,14 @@ final class NativeWorkView: UIView {
                 addSubview(b)
                 cellButtons.append(b)
                 let s = UILabel()
-                NativeType.set(s, cell["status"] as? String ?? "", font: l.type.font(13), color: l.ink3, align: .center, line: l.type.lineHeight(13))
-                s.isHidden = (cell["status"] as? String ?? "").isEmpty
+                NativeType.set(s, cell.status, font: l.type.font(13), color: l.ink3, align: .center, line: l.type.lineHeight(13))
+                s.isHidden = cell.status.isEmpty
                 addSubview(s)
                 statusLabels.append(s)
             }
             return
         }
-        for _ in (work["frames"] as? [[String: Any]] ?? []) {
+        for _ in work.frames {
             let s = UIView()
             s.backgroundColor = l.sheet
             s.isUserInteractionEnabled = false
@@ -1076,8 +1229,7 @@ final class NativeWorkView: UIView {
             sheets.append(s)
         }
         for (i, cell) in cells.enumerated() {
-            let b = NativeWorkCellButton(cell: cell, side: c, mode: "hand", look: l, pad: CGFloat((work["pad"] as? NSNumber)?.doubleValue ?? 0.12),
-                                         inkScale: (work["widthScale"] as? NSNumber)?.doubleValue ?? 1)
+            let b = NativeWorkCellButton(cell: cell, side: c, mode: "hand", look: l, pad: work.pad, inkScale: work.widthScale)
             b.lastCol = (i + 1) % cols == 0 || i == cells.count - 1
             b.lastRow = i + cols >= cells.count
             b.addAction(UIAction { [weak self] _ in self?.onOpen?(cell) }, for: .touchUpInside)
@@ -1086,17 +1238,17 @@ final class NativeWorkView: UIView {
         }
         framesLayer.strokeColor = l.frame.cgColor
         layer.addSublayer(framesLayer)
-        seal.configure(path: work["sealPath"] as? [[Any]] ?? [], fill: l.seal, glyph: l.onSeal)
+        seal.configure(path: work.sealPath, fill: l.seal, glyph: l.onSeal)
         addSubview(seal)
         // 落款是图形：宋 13 / 20 固定，不随系统字号（D49）
         let kfont = NativeType.song(size: 13, weight: .regular)
         kuanLabel.font = kfont
         kuanLabel.textColor = l.ink2
-        kuanLabel.text = work["kuan"] as? String
+        kuanLabel.text = work.kuan
         addSubview(kuanLabel)
     }
 
-    private var sealBelow: Bool { ((work["seal"] as? [String: Any])?["below"] as? Bool) == true }
+    private var sealBelow: Bool { work.seal.below }
 
     func height(for width: CGFloat) -> CGFloat {
         guard !cells.isEmpty || !empty else { return 0 }
@@ -1129,33 +1281,28 @@ final class NativeWorkView: UIView {
         }
         let gw = CGFloat(cols) * c
         let sx = (W - gw) / 2
-        for (i, f) in (work["frames"] as? [[String: Any]] ?? []).enumerated() where i < sheets.count {
-            sheets[i].frame = rect(f).offsetBy(dx: sx, dy: 0)
+        for (i, f) in work.frames.enumerated() where i < sheets.count {
+            sheets[i].frame = f.offsetBy(dx: sx, dy: 0)
         }
         for (i, b) in cellButtons.enumerated() {
             b.frame = CGRect(x: sx + CGFloat(i % cols) * c, y: CGFloat(i / cols) * c, width: c, height: c)
         }
         let path = UIBezierPath()
-        for f in (work["frames"] as? [[String: Any]] ?? []) { path.append(UIBezierPath(rect: rect(f).offsetBy(dx: sx, dy: 0).insetBy(dx: 0.5, dy: 0.5))) }
+        for f in work.frames { path.append(UIBezierPath(rect: f.offsetBy(dx: sx, dy: 0).insetBy(dx: 0.5, dy: 0.5))) }
         framesLayer.frame = bounds
         framesLayer.path = path.cgPath
         let gridH = CGFloat(rows) * c
         let signY = gridH + 14
         let kw = ceil(kuanLabel.sizeThatFits(CGSize(width: W, height: 20)).width)
-        let s = (work["seal"] as? [String: Any]) ?? [:]
-        let sealSize = CGFloat((s["size"] as? NSNumber)?.doubleValue ?? 24)
+        let s = work.seal
+        let sealSize = s.size
         if sealBelow {
             seal.frame = CGRect(x: sx + gw - sealSize, y: signY, width: sealSize, height: sealSize)
             kuanLabel.frame = CGRect(x: sx + gw - sealSize - 8 - kw, y: signY + 2, width: kw, height: 20)
         } else {
-            seal.frame = CGRect(x: sx + CGFloat((s["x"] as? NSNumber)?.doubleValue ?? 0), y: CGFloat((s["y"] as? NSNumber)?.doubleValue ?? 0), width: sealSize, height: sealSize)
+            seal.frame = CGRect(x: sx + s.x, y: s.y, width: sealSize, height: sealSize)
             kuanLabel.frame = CGRect(x: sx + gw - kw, y: signY, width: kw, height: 20)
         }
-    }
-
-    private func rect(_ f: [String: Any]) -> CGRect {
-        func v(_ k: String) -> CGFloat { CGFloat((f[k] as? NSNumber)?.doubleValue ?? 0) }
-        return CGRect(x: v("x"), y: v("y"), width: v("w"), height: v("h"))
     }
 
     // 显现
@@ -1209,16 +1356,16 @@ final class NativeWorkCellButton: UIButton {
     private let glyph = NativeGlyphView()
     private let dot = UIView()
     private let cap = UILabel()
-    private let cell: [String: Any]
+    private let cell: NativeResultCell
     private let pad: CGFloat
     private let mode: String
 
-    init(cell: [String: Any], side: CGFloat, mode: String, look: NativeWorkView.Look, pad: CGFloat, inkScale: Double = 1) {
+    init(cell: NativeResultCell, side: CGFloat, mode: String, look: NativeWorkView.Look, pad: CGFloat, inkScale: Double = 1) {
         self.cell = cell
         self.pad = pad
         self.mode = mode
         super.init(frame: .zero)
-        accessibilityLabel = cell["label"] as? String
+        accessibilityLabel = cell.label
         accessibilityIdentifier = "native-result-cell"
         setTitleColor(look.ink1, for: .normal)
         titleLabel?.font = look.type.font(15)
@@ -1228,25 +1375,24 @@ final class NativeWorkCellButton: UIButton {
             addSubview(g)
         }
         let inner = side * (1 - 2 * pad)
-        let strokes = NativeInkWire.rawStrokes(cell["strokes"])
+        let strokes = NativeInkWire.rawStrokes(cell.strokes)
         if mode == "hand", let v = NativeInkPaint.view(strokes: strokes, side: inner, color: look.hand, widthScale: inkScale) {
             ink = v
             addSubview(v)
         } else {
-            glyph.char = cell["char"] as? String ?? ""
+            glyph.char = cell.char ?? ""
             glyph.color = look.under
             glyph.isUserInteractionEnabled = false
             addSubview(glyph)
         }
-        if let d = cell["dot"] as? [String: Any] {
-            func v(_ k: String) -> CGFloat { CGFloat((d[k] as? NSNumber)?.doubleValue ?? 0) }
-            dot.frame = CGRect(x: v("cx") - v("d") / 2, y: v("cy") - v("d") / 2, width: v("d"), height: v("d"))
-            dot.layer.cornerRadius = v("d") / 2
+        if let d = cell.dot {
+            dot.frame = CGRect(x: d.cx - d.d / 2, y: d.cy - d.d / 2, width: d.d, height: d.d)
+            dot.layer.cornerRadius = d.d / 2
             dot.backgroundColor = look.zhu
             dot.isUserInteractionEnabled = false
             addSubview(dot)
         }
-        if let t = cell["cap"] as? String, !t.isEmpty {
+        if let t = cell.cap, !t.isEmpty {
             // 「看后写的」：黑体 11 / 16、500、ink3，格内底边上 4（图形文字，不随字号）
             cap.font = UIFont.systemFont(ofSize: 11, weight: .medium)
             cap.textColor = look.ink3
@@ -1331,10 +1477,10 @@ final class NativeResultRowView: UIView {
         var ink1: UIColor, ink2: UIColor, ink3: UIColor, under: UIColor, zhu: UIColor, hand: SIMD4<Float>?, field: UIColor, type: NativeTypeScale, addIn: String
     }
 
-    var onOpen: (([String: Any]) -> Void)?
-    var onChange: (([String: Any]) -> Void)?
-    var onAdd: (([String: Any]) -> Void)?
-    private(set) var row: [String: Any] = [:]
+    var onOpen: ((NativeResultRow) -> Void)?
+    var onChange: ((NativeResultRow) -> Void)?
+    var onAdd: ((NativeResultRow) -> Void)?
+    private(set) var row = NativeResultRow([:])
     private let openButton = NativeRowOpenButton(type: .custom)
     private let changeButton = NativeTextButton(type: .system)
     private let addButton = NativeTextButton(type: .system)
@@ -1356,26 +1502,26 @@ final class NativeResultRowView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(row r: [String: Any], glyph: CGFloat, pad: CGFloat, look: Look) {
+    func configure(row r: NativeResultRow, glyph: CGFloat, pad: CGFloat, look: Look) {
         row = r
         type = look.type.type
         glyphSide = glyph
         openButton.configure(row: r, glyph: glyph, pad: pad, look: look)
-        changeButton.isHidden = (r["change"] as? Bool) != true
-        addButton.isHidden = (r["add"] as? Bool) != true
+        changeButton.isHidden = !r.change
+        addButton.isHidden = !r.add
         // 「修改 ›」：写字页结果行同一个组件（R9-B：13 ink1，盒 = 字宽 + 8，至少 44）
-        changeButton.setTitle(r["changeLabel"] as? String ?? "", for: .normal)
+        changeButton.setTitle(r.changeLabel, for: .normal)
         changeButton.titleLabel?.font = look.type.font(13)
         changeButton.setTitleColor(look.ink1, for: .normal)
         changeButton.contentHorizontalAlignment = .left
         changeButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
-        changeButton.accessibilityLabel = r["changeAria"] as? String
+        changeButton.accessibilityLabel = r.changeAria
         addButton.setTitle(look.addIn, for: .normal)
         addButton.titleLabel?.font = look.type.font(15)
         addButton.setTitleColor(look.ink2, for: .normal)
         addButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
         addButton.contentHorizontalAlignment = .left
-        addButton.accessibilityLabel = r["addAria"] as? String
+        addButton.accessibilityLabel = r.addAria
         setNeedsLayout()
     }
 
@@ -1462,15 +1608,15 @@ final class NativeRowOpenButton: UIButton {
     private var lineH: CGFloat = 22
     private var pressColor: UIColor = .clear
 
-    func configure(row r: [String: Any], glyph side: CGFloat, pad p: CGFloat, look: NativeResultRowView.Look) {
+    func configure(row r: NativeResultRow, glyph side: CGFloat, pad p: CGFloat, look: NativeResultRowView.Look) {
         glyphSide = side
         pad = p
         lineH = look.type.lh17s
-        accessibilityLabel = r["label"] as? String
+        accessibilityLabel = r.label
         ink?.removeFromSuperview()
         ink = nil
-        let text = r["text"] as? String ?? ""
-        let tag = r["tag"] as? String ?? ""
+        let text = r.text
+        let tag = r.tag
         let f = look.type.font(17)
         let s = NSMutableAttributedString(string: text, attributes: [.font: f, .foregroundColor: look.ink2, .kern: 0])
         if !tag.isEmpty { s.append(NSAttributedString(string: " " + tag, attributes: [.font: f, .foregroundColor: look.ink3, .kern: 0])) }
@@ -1490,23 +1636,22 @@ final class NativeRowOpenButton: UIButton {
         titleLabel?.lineBreakMode = .byTruncatingTail
         contentHorizontalAlignment = .left
         let inner = side * (1 - 2 * p)
-        if (r["mode"] as? String) == "hand", let v = NativeInkPaint.view(strokes: NativeInkWire.rawStrokes(r["strokes"]), side: inner, color: look.hand, widthScale: (r["widthScale"] as? NSNumber)?.doubleValue ?? 1) {
+        if r.mode == "hand", let v = NativeInkPaint.view(strokes: NativeInkWire.rawStrokes(r.strokes), side: inner, color: look.hand, widthScale: r.widthScale) {
             v.isUserInteractionEnabled = false
             ink = v
             addSubview(v)
             glyph.isHidden = true
         } else {
             glyph.isHidden = false
-            glyph.char = r["char"] as? String ?? ""
+            glyph.char = r.char ?? ""
             glyph.color = look.under
             glyph.isUserInteractionEnabled = false
             if glyph.superview == nil { addSubview(glyph) }
         }
-        if let d = r["dot"] as? [String: Any] {
-            func v(_ k: String) -> CGFloat { CGFloat((d[k] as? NSNumber)?.doubleValue ?? 0) }
-            dotSpec = (v("cx"), v("cy"), v("d"))
-            dot.frame = CGRect(x: v("cx") - v("d") / 2, y: (52 - side) / 2 + v("cy") - v("d") / 2, width: v("d"), height: v("d"))
-            dot.layer.cornerRadius = v("d") / 2
+        if let d = r.dot {
+            dotSpec = (d.cx, d.cy, d.d)
+            dot.frame = CGRect(x: d.cx - d.d / 2, y: (52 - side) / 2 + d.cy - d.d / 2, width: d.d, height: d.d)
+            dot.layer.cornerRadius = d.d / 2
             dot.backgroundColor = look.zhu
             dot.isUserInteractionEnabled = false
             dot.isHidden = false

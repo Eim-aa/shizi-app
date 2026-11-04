@@ -3,9 +3,9 @@ import Foundation
 // B4.3 共用的 JS 语义小工具：真值、字符串按码元比较、稳定排序、Number()、按插入序的映射。
 // 规则代码（Records / Query / WorkMembers …）直接处理 JSValue（与 JS 对象一一对应，透传原值逐字节不变），所以这里放 JS 的那几条隐式规则。
 
-enum JSX {
+package enum JSX {
     /// JS 真值：null / false / 0 / NaN / 空串为假；数组与对象恒真。
-    static func truthy(_ v: JSValue?) -> Bool {
+    package static func truthy(_ v: JSValue?) -> Bool {
         guard let v = v else { return false }
         switch v {
         case .null: return false
@@ -17,8 +17,8 @@ enum JSX {
     }
 
     /// 字符串相等：逐码点（UTF-8 字节），不是 Swift 的规范等价。
-    static func eq(_ a: String, _ b: String) -> Bool { a.utf8.elementsEqual(b.utf8) }
-    static func eq(_ a: JSValue?, _ b: String) -> Bool {
+    package static func eq(_ a: String, _ b: String) -> Bool { a.utf8.elementsEqual(b.utf8) }
+    package static func eq(_ a: JSValue?, _ b: String) -> Bool {
         if case .string(let s)? = a { return eq(s, b) }
         return false
     }

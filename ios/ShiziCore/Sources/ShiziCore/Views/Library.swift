@@ -73,7 +73,7 @@ public enum LibraryView {
 }
 
 extension ViewSupport {
-    static func libraryRecords(_ state: JSValue) -> (records: [JSValue], foldedDays: [String]) {
+    package static func libraryRecords(_ state: JSValue) -> (records: [JSValue], foldedDays: [String]) {
         var records: [JSValue] = [], days: [String] = []
         for month in (state["records"]?.objectValue?.keys ?? []).sorted() {
             let value = state["records"]![month]!
@@ -82,14 +82,14 @@ extension ViewSupport {
         }
         return (records, days)
     }
-    static func successesOf(_ entry: JSValue?) -> Double { max(0, (JS.number(entry?["fsrs"]?["reps"]).isNaN ? 0 : JS.number(entry?["fsrs"]?["reps"])) - (JS.number(entry?["fsrs"]?["lapses"]).isNaN ? 0 : JS.number(entry?["fsrs"]?["lapses"]))) }
-    static func memoryZoneOf(_ record: JSValue, _ entry: JSValue?, today: String, knownDays: Double, minSuccesses: Double, dates: Dates) throws -> String {
+    package static func successesOf(_ entry: JSValue?) -> Double { max(0, (JS.number(entry?["fsrs"]?["reps"]).isNaN ? 0 : JS.number(entry?["fsrs"]?["reps"])) - (JS.number(entry?["fsrs"]?["lapses"]).isNaN ? 0 : JS.number(entry?["fsrs"]?["lapses"]))) }
+    package static func memoryZoneOf(_ record: JSValue, _ entry: JSValue?, today: String, knownDays: Double, minSuccesses: Double, dates: Dates) throws -> String {
         if record["judgment"] == .string("wrong") || record["kind"] == .string("answer-seen") { return "due" }
         if let entry, entry["stoppedAt"] == nil, let od = try ScheduleRules(dates: dates).overdueDays(entry, today), od >= 0 { return "due" }
         let stability = JS.number(entry?["fsrs"]?["stability"])
         return stability >= knownDays && successesOf(entry) >= minSuccesses ? "known" : "shaky"
     }
-    static func memoryZones(_ state: JSValue, today: String, knownDays: Double? = nil, minSuccesses: Double? = nil, dates: Dates) throws -> JSValue {
+    package static func memoryZones(_ state: JSValue, today: String, knownDays: Double? = nil, minSuccesses: Double? = nil, dates: Dates) throws -> JSValue {
         let latest = Records.practicedByChar(libraryRecords(state).records)
         var buckets: [String: [JSValue]] = ["due": [], "shaky": [], "known": []]
         for (_, r) in latest.entries {
@@ -111,7 +111,7 @@ extension ViewSupport {
         }
         return obj([("recorded", .number(Double(latest.count))), ("zones", .object(zones))])
     }
-    static func skippedZone(_ state: JSValue) -> JSValue {
+    package static func skippedZone(_ state: JSValue) -> JSValue {
         let records = libraryRecords(state).records, judged = Records.practicedByChar(records)
         var latest = OMap<JSValue>()
         for r in records where r["kind"] == .string("skipped") {
@@ -124,14 +124,14 @@ extension ViewSupport {
 }
 
 extension ViewSupport {
-    static func customCharsOf(_ custom: JSValue?) -> [String] {
+    package static func customCharsOf(_ custom: JSValue?) -> [String] {
         var out = KeySet()
         for e in custom?["added"]?.arrayValue ?? [] { if let c = e["char"]?.stringValue, c.unicodeScalars.count == 1 { out.insert(c) } }; return out.items
     }
-    static func wallColumns(large: Bool, width: JSValue?) -> Int {
+    package static func wallColumns(large: Bool, width: JSValue?) -> Int {
         guard let w = width?.numberValue, w.isFinite, w > 0 else { return large ? 6 : 8 }; return max(4, min(large ? 6 : 9, Int(floor((w-40)/44))))
     }
-    static func toneOf(_ day: JSValue?, today: String, days: JSValue?, dates: Dates) -> Int {
+    package static func toneOf(_ day: JSValue?, today: String, days: JSValue?, dates: Dates) -> Int {
         guard dates.isValidDay(day ?? .null), dates.isValidDay(.string(today)), let ago = try? dates.diffDays(day!, .string(today)) else { return 3 }
         let d = (days?.arrayValue?.count ?? 0) >= 3 ? days!.arrayValue! : [7,30,90].map { .number(Double($0)) }
         for i in 0..<3 where ago <= JS.number(d[i]) { return i }; return 3

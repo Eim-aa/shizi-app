@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 extension CoreEngine {
     static func writeHost(_ store: Store, _ a: JSObject) throws -> JSValue {

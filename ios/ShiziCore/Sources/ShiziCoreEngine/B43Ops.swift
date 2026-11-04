@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 // B4.3 的 op：记录 / 查字 / 卡片 / 结构 / 作品成员 / 取墨 / 首练结果页 / 提醒题目 / 墨 v2 v3 v4 编解码 / V8 数学函数。
 // 当年的 JS 参考实现（同名、同参数校验、同错误码）已随 D84 退役；规则一律直接调 ShiziCore 自己的实现。
@@ -82,8 +83,6 @@ extension CoreEngine {
     static func strokes(_ a: JSObject, _ k: String) throws -> [[InkPoint]] {
         try array(a, k).map { try points($0, k) }
     }
-
-    static func strokesJS(_ s: [[InkPoint]]) -> JSValue { .array(s.map { .array($0.map { $0.js }) }) }
 
     static func rowsOf(_ v: JSValue, _ k: String) throws -> [[Double]] {
         guard case .array(let l) = v else { throw CoreError.badArgs(k + " must be an array") }

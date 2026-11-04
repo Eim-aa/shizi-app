@@ -1,6 +1,7 @@
 import Foundation
 import XCTest
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 // JSON 行协议与 JS 同规则编解码（B4.0）。与 JS 的逐行对照当年在 node 侧做过（D84 起退役），这里守 Swift 自身的不变式。
 final class ProtocolTests: XCTestCase {

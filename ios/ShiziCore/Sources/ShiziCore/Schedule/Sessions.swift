@@ -17,7 +17,7 @@ extension JS {
     }
 
     /// `{...base, k1: v1, …}`；值为 nil 表示 undefined（JSON 里不出现：已有的键删掉）。
-    static func with(_ base: JSValue?, _ pairs: [(String, JSValue?)]) -> JSValue {
+    package static func with(_ base: JSValue?, _ pairs: [(String, JSValue?)]) -> JSValue {
         var o = spread(base)
         for (k, v) in pairs { o[k] = v }
         return .object(o)

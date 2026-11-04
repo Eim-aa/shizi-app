@@ -6,7 +6,7 @@ public enum ResultPageView {
         let state = store.state
         func ink(_ r: JSValue?) throws -> JSValue {
             guard let r, let raw = store.getInk(r), let decoded = try InkMath.decodeInk(raw), !decoded.isEmpty else { return .null }
-            return CoreEngine.strokesJS(InkMath.resampleForReplay(decoded))
+            return WriteWire.strokesJS(InkMath.resampleForReplay(decoded))
         }
         let m = try ResultModels.model(state,a,dates:store.dates,hasInk:{ r in JS.truthy(try ink(r)) })
         let work = m["work"], session = m["session"], quiet = work?["empty"] == .bool(true), cells = m["cells"]?.arrayValue ?? []

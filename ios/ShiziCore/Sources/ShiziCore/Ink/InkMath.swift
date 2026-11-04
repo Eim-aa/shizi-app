@@ -101,7 +101,7 @@ public struct InkParams: Equatable {
         self.init(values: v)
     }
 
-    subscript(key: String) -> Double? {
+    package subscript(key: String) -> Double? {
         switch key {
         case "base": return base
         case "lo": return lo

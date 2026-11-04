@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 /// Source-generated, independent JS oracles. Frozen since D84 (the JS oracles are retired; do not regenerate).
 /// Exhaustive geometry: every 1–80 character page and both aspect ratios. Selection: correct,

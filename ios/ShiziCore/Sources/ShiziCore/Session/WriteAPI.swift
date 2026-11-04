@@ -37,7 +37,7 @@ public enum WriteAPI {
             let r = try SessionWrites.commitRecover(store, a); let out = try look(dependencies: dependencies)
             var ordered = JSObject([("ok", .bool(true)), ("recovered", .bool(r["ok"] == .bool(true) && r["noop"] != .bool(true))), ("snapshot", try snapshot())])
             for (k,v) in out.entries where k != "ok" { ordered[k] = v }; return .object(ordered)
-        case "strokes", "phase", "judge", "answerPhase", "answerNext": args["strokes"] = CoreEngine.strokesJS(WriteModels.fromWire(a["strokes"]))
+        case "strokes", "phase", "judge", "answerPhase", "answerNext": args["strokes"] = WriteWire.strokesJS(WriteModels.fromWire(a["strokes"]))
         default: break
         }
         switch op {

@@ -1,5 +1,6 @@
 import Foundation
 import ShiziCore
+import ShiziCoreEngine
 
 // shizi-core-cli：ShiziCore 的 JSON 行协议外壳（B4.0）。stdin 一行一个请求，stdout 一行一个回包（协议见 ../../README.md）。
 //   shizi-core-cli [--tz <IANA 时区>] [--math v8|darwin]

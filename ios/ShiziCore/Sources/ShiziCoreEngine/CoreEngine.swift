@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 // ShiziCore 的 op 表与 JSON 行协议（B4.0；计划 §4.2 / §4.3 ④；协议全文见 ios/ShiziCore/README.md）。
 // 当年的 JS 参考引擎（同一张 op 表、同一套参数校验、同一种错误码）与逐字段差分已随 D84 退役。

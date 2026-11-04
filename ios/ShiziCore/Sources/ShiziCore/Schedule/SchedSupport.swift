@@ -8,9 +8,9 @@ import Foundation
 
 // MARK: - JS 取值
 
-enum JS {
+package enum JS {
     /// `Number(v)`（v 为 nil = undefined → NaN）。
-    static func number(_ v: JSValue?) -> Double {
+    package static func number(_ v: JSValue?) -> Double {
         guard let v = v else { return .nan }
         switch v {
         case .null: return 0
@@ -44,7 +44,7 @@ enum JS {
     }
 
     /// `String(v)`（v 为 nil = undefined）。
-    static func string(_ v: JSValue?) -> String {
+    package static func string(_ v: JSValue?) -> String {
         guard let v = v else { return "undefined" }
         if case .null = v { return "null" }
         return toPrimitiveString(v)
@@ -96,7 +96,7 @@ enum JS {
     }
 
     /// JS 真值。
-    static func truthy(_ v: JSValue?) -> Bool {
+    package static func truthy(_ v: JSValue?) -> Bool {
         guard let v = v else { return false }
         switch v {
         case .null: return false
@@ -117,7 +117,7 @@ enum JS {
     static func str(_ v: JSValue?) -> String? { v?.stringValue }
 
     /// `v === s`（v 是字符串且逐码点相等）。
-    static func isString(_ v: JSValue?, _ s: String) -> Bool {
+    package static func isString(_ v: JSValue?, _ s: String) -> Bool {
         guard case .string(let x)? = v else { return false }
         return jsEq(x, s)
     }
@@ -160,7 +160,7 @@ enum JS {
         return x <= y
     }
 
-    static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
+    package static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
 }
 
 // MARK: - 按码点判等的有序集合（JS Set<string>）

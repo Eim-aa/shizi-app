@@ -6,6 +6,12 @@ import Foundation
 public struct Epigraph: Equatable {
     public let lines: [String]
     public let source: String
+
+    /// 与原来的逐成员构造器同签名；标 package 让 ShiziCoreEngine 的 epigraphs.author op 也能构造。
+    package init(lines: [String], source: String) {
+        self.lines = lines
+        self.source = source
+    }
 }
 
 public enum Epigraphs {

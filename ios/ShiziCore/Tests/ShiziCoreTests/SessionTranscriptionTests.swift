@@ -1,5 +1,6 @@
 import XCTest
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 final class SessionTranscriptionTests: XCTestCase {
     func run(_ name: String) throws {

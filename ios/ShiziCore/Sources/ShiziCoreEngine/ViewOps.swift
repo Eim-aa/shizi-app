@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 extension CoreEngine {
     // Pure model results (as with images.*), without the App API transport envelope.

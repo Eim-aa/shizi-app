@@ -1,6 +1,7 @@
 import Foundation
 import XCTest
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 // 备份双向往返（B4.4；计划 §4.4）：夹具 Fixtures/backup-roundtrip.json 当年由 JS 参考引擎生成，D84 起冻结、不再重生成。
 // 每一步 Swift 的回包（含 store 状态快照：整份状态、磁盘上每个键的原始字串、status）校验和必须与 JS 相同：

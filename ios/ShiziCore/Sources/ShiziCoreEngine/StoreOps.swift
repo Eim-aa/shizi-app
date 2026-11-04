@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 // B4.4 的 op（store / storage / budget / backup / migrate / 原生校验和）。JS 参考实现（同名、同参数校验、同错误码；store 会话、数据描述的 mutate 与磁盘注入规则、存储层抛错的回包）已随 D84 退役。
 

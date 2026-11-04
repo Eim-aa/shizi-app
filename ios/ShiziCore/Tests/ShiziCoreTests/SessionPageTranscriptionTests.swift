@@ -1,5 +1,6 @@
 import XCTest
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 final class SessionPageTranscriptionTests: XCTestCase {
     // B3.12 view.session-none = the same model function the web page renders (web path == API path)

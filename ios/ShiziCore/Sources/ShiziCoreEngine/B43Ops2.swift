@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 // B4.3 的 op（续）：卡片 / 题库访问、结构、作品成员与取墨、首练结果页、提醒题目、墨编解码、V8 数学函数。JS 参考实现已随 D84 退役。
 
@@ -139,7 +140,7 @@ extension CoreEngine {
         ]))
     }
 
-    static func decodedJS(_ d: [[InkPoint]]?) -> JSValue { d.map { strokesJS($0) } ?? .null }
+    static func decodedJS(_ d: [[InkPoint]]?) -> JSValue { d.map { WriteWire.strokesJS($0) } ?? .null }
 
     static let inkOps: [String: Op] = [
         "jsmath.hypot": { _, a in num(JSMath.hypot(try numberArg(a, "a"), try numberArg(a, "b"))) },
@@ -183,10 +184,10 @@ extension CoreEngine {
         },
         "ink.decodeInk": { _, a in decodedJS(try InkMath.decodeInk(try required(a, "ink"), options: try optionsArg(a))) },
         "ink.resampleForReplay": { _, a in
-            strokesJS(InkMath.resampleForReplay(try strokes(a, "decoded"), step: try optNumber(a, "step") ?? InkParams.standard.step))
+            WriteWire.strokesJS(InkMath.resampleForReplay(try strokes(a, "decoded"), step: try optNumber(a, "step") ?? InkParams.standard.step))
         },
         "ink.encodeRawStrokes": { _, a in rowsJS(InkMath.encodeRawStrokes(try strokes(a, "strokes"))) },
-        "ink.decodeRawStrokes": { _, a in strokesJS(InkMath.decodeRawStrokes(try rowsOf(try required(a, "rows"), "rows"))) },
+        "ink.decodeRawStrokes": { _, a in WriteWire.strokesJS(InkMath.decodeRawStrokes(try rowsOf(try required(a, "rows"), "rows"))) },
         "ink.rawRowToPacked": { _, a in
             guard case .array(let r) = try required(a, "row") else { throw CoreError.badArgs("row must be an array") }
             let row = try rowsOf(.array([.array(r)]), "row")[0]

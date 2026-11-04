@@ -1,5 +1,6 @@
 import XCTest
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 /// S2（调度规则 v2，D83）：这组契约场景的回包与状态和 JS 参考不同（D82：会话域的 JS 对照退役），主测试不重放它；
 /// 夹具里留着它，是因为下面的 testFailurePublishesNothingAndRetryRecordsOnce 按名字读它。其余退役场景已从夹具删掉（2026-11 清扫）。

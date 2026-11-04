@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 // B4.9a：导航层的差分 op（JS 参考已随 D84 退役）。
 

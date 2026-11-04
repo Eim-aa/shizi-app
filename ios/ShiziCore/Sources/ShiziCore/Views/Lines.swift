@@ -13,8 +13,8 @@ public final class ViewLines {
 
 // Line starts: the pure registration / result contract. Actual text
 // measurement is injected by the renderer, exactly as it is in the JS module.
-enum ViewLineStarts {
-    static var provider: ((String, String) throws -> JSValue)?
+package enum ViewLineStarts {
+    package static var provider: ((String, String) throws -> JSValue)?
     static func starts(_ kind: String, _ text: JSValue) -> JSValue {
         guard let provider, let rendered = try? Copy.tRef(text), JS.truthy(rendered) else { return .null }
         guard let r = try? provider(kind, JS.string(rendered)), r.arrayValue != nil else { return .null }; return r

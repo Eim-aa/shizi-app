@@ -3,12 +3,12 @@ import Foundation
 // Annual view. Maps/Sets are serialized only at the op boundary.
 public enum AnnualView {
     typealias V = ViewSupport
-    struct Slice {
+    package struct Slice {
         var year: Int; var judged: [JSValue]; var works: [JSValue]; var days: [String]; var chars: [String]; var folded: JSObject; var firstSeen: JSObject; var state: JSValue
-        var js: JSValue { V.obj([("year", .number(Double(year))), ("judged", .array(judged)), ("works", .array(works)), ("days", .array(days.map(JSValue.string))), ("chars", .array(chars.map(JSValue.string))), ("firstSeen", .array(firstSeen.entries.map { .array([.string($0.key), $0.value]) })), ("folded", .object(folded)), ("ink", state["ink"] ?? .null)]) }
+        package var js: JSValue { V.obj([("year", .number(Double(year))), ("judged", .array(judged)), ("works", .array(works)), ("days", .array(days.map(JSValue.string))), ("chars", .array(chars.map(JSValue.string))), ("firstSeen", .array(firstSeen.entries.map { .array([.string($0.key), $0.value]) })), ("folded", .object(folded)), ("ink", state["ink"] ?? .null)]) }
     }
     static func yearOfDay(_ day: String, dates: Dates) -> Int? { dates.isValidDay(.string(day)) ? Int(day.prefix(4)) : nil }
-    static func yearSlice(_ state: JSValue, year: Int, dates: Dates) -> Slice {
+    package static func yearSlice(_ state: JSValue, year: Int, dates: Dates) -> Slice {
         let index = V.recordIndex(state, dates: dates), prefix = String(year) + "-"
         let judged = index.judged.filter { WorkMembers.isWorkMember($0) && JS.string($0["localDay"]).hasPrefix(prefix) && dates.isValidDay($0["localDay"] ?? .null) }
         let works = index.works.filter { JS.string($0["localDay"]).hasPrefix(prefix) && dates.isValidDay($0["localDay"] ?? .null) }
@@ -40,7 +40,7 @@ public enum AnnualView {
         let years = annualYears(state, dates: dates)
         return .number(Double(years.isEmpty || years.contains(cur) ? cur : years.filter { $0 <= cur }.last ?? years[0]))
     }
-    static func firstOfYear(_ s: Slice, hasInk: InkPick.HasInk?, dates: Dates) -> JSValue {
+    package static func firstOfYear(_ s: Slice, hasInk: InkPick.HasInk?, dates: Dates) -> JSValue {
         let r0 = s.judged.first
         var fold: (day: String, char: JSValue)?
         for (_, f) in s.folded.entries {
@@ -60,7 +60,7 @@ public enum AnnualView {
         if let found = InkPick.pickInkRecord(s.works.filter { $0["char"] == base["char"] }, prefer: .string("first"), hasInk: has) { return V.obj([("char", found["char"]!), ("day", found["localDay"]!), ("record", found)]) }
         return base
     }
-    static func twiceOfYear(_ s: Slice, hasInk: InkPick.HasInk?, dates: Dates) throws -> JSValue {
+    package static func twiceOfYear(_ s: Slice, hasInk: InkPick.HasInk?, dates: Dates) throws -> JSValue {
         let has: InkPick.HasInk = hasInk ?? { InkPick.storedInkPresent(s.state, $0, timeZone: dates.timeZone) }
         var byChar = OMap<[JSValue]>()
         for r in s.works where (try? has(r)) ?? false { let c = JS.string(r["char"]); byChar[c] = (byChar[c] ?? []) + [r] }
@@ -74,7 +74,7 @@ public enum AnnualView {
         }
         return best
     }
-    static func yearMonths(_ state: JSValue, _ s: Slice, policy: JSValue, dates: Dates) throws -> [JSValue] {
+    package static func yearMonths(_ state: JSValue, _ s: Slice, policy: JSValue, dates: Dates) throws -> [JSValue] {
         let months = Set(s.works.map { String(JS.string($0["localDay"]).prefix(7)) } + s.folded.keys)
         return try months.sorted().compactMap { m in
             let n = try ImageSelection.monthMembers(state, month: m, pick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)["members"]!.arrayValue!.count

@@ -1,6 +1,7 @@
 import Foundation
 import XCTest
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 // Rule-only transcriptions from the JS view suites. UI / DOM / bridge assertions
 // remain in node; each original rule name and path is retained beside its test.

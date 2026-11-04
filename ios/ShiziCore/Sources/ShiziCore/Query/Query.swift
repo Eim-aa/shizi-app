@@ -114,7 +114,7 @@ public enum Query {
             ]))
         }
 
-        init?(js v: JSValue) {
+        package init?(js v: JSValue) {
             guard case .array(let cs)? = v["chars"], case .array(let ds)? = v["duplicates"],
                   let removed = v["removed"]?.numberValue else { return nil }
             chars = cs.compactMap { $0.stringValue }

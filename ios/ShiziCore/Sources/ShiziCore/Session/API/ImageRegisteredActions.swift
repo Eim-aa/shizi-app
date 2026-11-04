@@ -17,7 +17,7 @@ public final class ImageRegisteredActions {
     public func inkPoints(_ record: JSValue) -> JSValue { ((try? ink(record)) ?? nil) ?? .null }
     func ink(_ record: JSValue) throws -> JSValue? {
         guard let raw = store.getInk(record), let decoded = try InkMath.decodeInk(raw), !decoded.isEmpty else { return nil }
-        return CoreEngine.strokesJS(InkMath.resampleForReplay(decoded))
+        return WriteWire.strokesJS(InkMath.resampleForReplay(decoded))
     }
     func job(_ a: JSObject) throws -> (scope: JSValue, plan: JSValue, annual: Bool) {
         var scope = a["scope"]?.objectValue ?? JSObject()

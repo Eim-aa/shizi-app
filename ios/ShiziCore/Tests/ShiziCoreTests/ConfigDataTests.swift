@@ -1,6 +1,7 @@
 import Foundation
 import XCTest
 @testable import ShiziCore
+@testable import ShiziCoreEngine
 
 // 生成资源（Resources/*.json）的读取与类型化访问。D84：资源是手改的唯一真相源（Bundled/README.md），原先生成器保证的结构由本文件的类型表与 policy 覆盖测试守，
 // 两个引擎对同一资源的一致由差分域 config（config.get / deck.*）守；这里只验 Swift 侧读得出、取得到。

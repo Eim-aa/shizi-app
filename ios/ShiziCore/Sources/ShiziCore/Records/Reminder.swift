@@ -10,7 +10,7 @@ public enum Reminder {
     public static let reminderDays = 8
     public static let permissions = ["granted", "denied", "unknown"]
 
-    static func policyObject(_ overrides: JSObject?) -> JSObject {
+    package static func policyObject(_ overrides: JSObject?) -> JSObject {
         var pol = Config.policy.objectValue ?? JSObject()
         if let o = overrides { for (k, v) in o.entries { pol[k] = v } }
         return pol

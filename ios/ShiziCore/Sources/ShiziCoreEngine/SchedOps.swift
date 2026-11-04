@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 // B4.2 的 op（FSRS 与出题调度）。JS 参考实现（同名、同参数校验、同错误码）已随 D84 退役。
 

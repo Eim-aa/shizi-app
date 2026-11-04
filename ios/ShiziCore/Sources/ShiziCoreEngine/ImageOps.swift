@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 extension CoreEngine {
     static let imageOps: [String: Op] = [

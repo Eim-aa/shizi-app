@@ -1,4 +1,5 @@
 import Foundation
+import ShiziCore
 
 // B4.1 的 op（形状表校验 / 键工具 / 模型往返）。JS 参考实现已随 D84 退役。
 

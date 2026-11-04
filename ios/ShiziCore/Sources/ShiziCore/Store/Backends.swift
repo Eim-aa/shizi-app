@@ -105,13 +105,13 @@ public extension KVBackend {
 
 // MARK: - 字符串次序（JS 默认排序 / 关系运算：UTF-16 码元序）
 
-enum UTF16Order {
+package enum UTF16Order {
     static func less(_ a: String, _ b: String) -> Bool { a.utf16.lexicographicallyPrecedes(b.utf16) }
     static func sorted(_ xs: [String]) -> [String] { xs.sorted(by: less) }
     /// JS `a < b ? -1 : a > b ? 1 : 0`。
     static func compare(_ a: String, _ b: String) -> Int { less(a, b) ? -1 : less(b, a) ? 1 : 0 }
     /// `str.indexOf(prefix) === 0`（按 UTF-16 码元）。
-    static func hasPrefix(_ s: String, _ p: String) -> Bool {
+    package static func hasPrefix(_ s: String, _ p: String) -> Bool {
         var i = s.utf16.makeIterator()
         for c in p.utf16 { guard let d = i.next(), d == c else { return false } }
         return true
@@ -306,7 +306,7 @@ public protocol TestDisk: AnyObject {
 }
 
 extension TestDisk {
-    func snapshotObject() -> JSObject {
+    package func snapshotObject() -> JSObject {
         var o = JSObject()
         for (k, v) in snapshot() { o[k] = .string(v) }
         return o

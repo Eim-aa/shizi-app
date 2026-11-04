@@ -79,6 +79,42 @@ extension NativeHintButton {
     }
 }
 
+/// 跳过撤销条的参数（open 回包 skipUndo；写字页与结果页同一份）。缺键用默认：5 秒、按住暂停、读屏不自动收起。
+struct NativeSkipUndoParams {
+    var ms: Double = 5000
+    var pauseWhileHeld = true
+    /// 键名是 keepOpenWithAssistiveTech。
+    var keepOpen = true
+}
+
+extension NativeSkipUndoParams {
+    init(_ raw: [String: Any]) {
+        ms = (raw["ms"] as? NSNumber)?.doubleValue ?? 5000
+        pauseWhileHeld = (raw["pauseWhileHeld"] as? NSNumber)?.boolValue ?? true
+        keepOpen = (raw["keepOpenWithAssistiveTech"] as? NSNumber)?.boolValue ?? true
+    }
+}
+
+/// 结果页提醒邀请 resultInvite 回包（shown / yes / time）。缺键 = nil，默认值留在用的地方（各 action 不同）。
+struct NativeInviteReply {
+    /// shown：现在是不是傍晚（问法不同）；只有 true 才算。
+    let evening: Bool
+    /// yes：failed / denied / 其余 = 已开提醒。
+    let phase: String?
+    /// yes / time：结果行文字。
+    let text: String?
+    let hour: Int?
+    let minute: Int?
+
+    init(_ body: [String: Any]) {
+        evening = (body["evening"] as? Bool) == true
+        phase = body["phase"] as? String
+        text = body["text"] as? String
+        hour = body["hour"] as? Int
+        minute = body["minute"] as? Int
+    }
+}
+
 /// skip 回包里的撤销机会（body.undo）：撤销条 / 交给结果页的 handoff 都用它。
 struct NativeSkipUndo {
     let sessionId: String

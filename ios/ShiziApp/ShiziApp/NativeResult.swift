@@ -46,7 +46,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private var motion: [String: Double] = [:]
     private var rmotion: [String: Double] = [:]
     private var easeOut: [Double]?
-    private var skipUndoParams = (ms: 5000.0, pauseWhileHeld: true, keepOpen: true)
+    private var skipUndoParams = NativeSkipUndoParams()
     private(set) var model: [String: Any] = [:]
 
     // 页头
@@ -137,11 +137,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             easeOut = (m["easeOut"] as? [NSNumber])?.map { $0.doubleValue }
             overlaySpec = NativeOverlaySpec(motion: m)
         }
-        if let u = look["skipUndo"] as? [String: Any] {
-            skipUndoParams = (ms: (u["ms"] as? NSNumber)?.doubleValue ?? 5000,
-                              pauseWhileHeld: (u["pauseWhileHeld"] as? NSNumber)?.boolValue ?? true,
-                              keepOpen: (u["keepOpenWithAssistiveTech"] as? NSNumber)?.boolValue ?? true)
-        }
+        if let u = look["skipUndo"] as? [String: Any] { skipUndoParams = NativeSkipUndoParams(u) }
     }
 
     private func color(_ name: String, _ fallback: UIColor) -> UIColor { colors[name] ?? fallback }
@@ -657,7 +653,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             guard let self, self.invitePhase == "wait" else { return }
             self.bridge.call("resultInvite", ["slot": self.slot, "sessionId": self.sessionId, "action": "shown"]) { [weak self] reply in
                 guard let self, reply.ok, self.invitePhase == "wait" else { return } // 写不进去就不问（不让「问了几次」失真）
-                self.inviteView.evening = (reply.body["evening"] as? Bool) == true
+                self.inviteView.evening = NativeInviteReply(reply.body).evening
                 self.invitePhase = "invite"
                 self.inviteView.phase = .invite
                 self.layoutAll()
@@ -685,18 +681,18 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         inviteView.phase = .pending
         bridge.call("resultInvite", ["slot": slot, "sessionId": sessionId, "action": "yes"]) { [weak self] reply in
             guard let self else { return }
-            let phase = reply.body["phase"] as? String
-            if !reply.ok || phase == "failed" {
+            let r = NativeInviteReply(reply.body)
+            if !reply.ok || r.phase == "failed" {
                 self.invitePhase = "invite"
                 self.inviteView.phase = .invite
                 self.inviteView.failed = true
                 NativeA11y.announce(self.tr("X-SETTINGS.saveFailed"))
-            } else if phase == "denied" {
+            } else if r.phase == "denied" {
                 self.invitePhase = "denied"
-                self.inviteView.phase = .line(reply.body["text"] as? String ?? self.tr("X-INVITE.denied"), time: nil)
+                self.inviteView.phase = .line(r.text ?? self.tr("X-INVITE.denied"), time: nil)
             } else {
                 self.invitePhase = "accepted"
-                self.inviteView.phase = .line(reply.body["text"] as? String ?? "", time: ((reply.body["hour"] as? Int) ?? 20, (reply.body["minute"] as? Int) ?? 30))
+                self.inviteView.phase = .line(r.text ?? "", time: (r.hour ?? 20, r.minute ?? 30))
             }
             self.layoutAll()
         }
@@ -713,7 +709,8 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private func inviteTime(hour: Int, minute: Int) {
         bridge.call("resultInvite", ["slot": slot, "sessionId": sessionId, "action": "time", "hour": hour, "minute": minute]) { [weak self] reply in
             guard let self else { return }
-            self.inviteView.phase = .line(reply.body["text"] as? String ?? "", time: ((reply.body["hour"] as? Int) ?? hour, (reply.body["minute"] as? Int) ?? minute))
+            let r = NativeInviteReply(reply.body)
+            self.inviteView.phase = .line(r.text ?? "", time: (r.hour ?? hour, r.minute ?? minute))
             self.inviteView.timeFailed = !reply.ok
             self.layoutAll()
         }

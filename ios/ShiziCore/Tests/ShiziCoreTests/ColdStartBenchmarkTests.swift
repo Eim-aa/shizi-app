@@ -82,6 +82,10 @@ final class AColdStartBenchmarkTests: XCTestCase {
         // ---- 2. 不经 static 从头再做一遍（可重复）----
         let deckText = try bench("fresh.read.deck", { $0.utf8.count }) { try resourceText("deck") }
         let deckValue = try bench("fresh.parse.deck") { try JSONParser.parse(deckText) }
+        // 同一位置、同一份原文：改动前的解析器、现在的解析器再一遍、改动前的再一遍（看先后与堆状态的影响，只用来对照）
+        try bench("fresh.parse.deck.ref") { try DeckBuildEquivalenceTests.RefJSONParser.parse(deckText) }
+        try bench("fresh.parse.deck.again") { try JSONParser.parse(deckText) }
+        try bench("fresh.parse.deck.ref2") { try DeckBuildEquivalenceTests.RefJSONParser.parse(deckText) }
         let data = bench("fresh.DeckData.init", { $0.seed.count }) { DeckData(deckValue) }
         let overrides = JSValue.object(data.overrides)
         try bench("fresh.Cards.buildCards", { $0.count }) { try Cards.buildCards(seed: data.seed, overrides: overrides) }

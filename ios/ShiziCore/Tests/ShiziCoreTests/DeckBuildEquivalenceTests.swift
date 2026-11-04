@@ -10,8 +10,8 @@ import XCTest
 final class DeckBuildEquivalenceTests: XCTestCase {
     // MARK: 参照（改动前的写法）
 
-    /// 改动前的 JSONParser（逐字照抄，只改了名字）。
-    private struct RefJSONParser {
+    /// 改动前的 JSONParser（逐字照抄，只改了名字）。冷启动量测（AColdStartBenchmarkTests）也拿它在同一位置对照。
+    struct RefJSONParser {
         private let b: [UInt8]
         private var i = 0
 

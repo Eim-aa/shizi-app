@@ -12,7 +12,17 @@ struct NativeGlyphData {
     static let units: CGFloat = 1024
     static let baseline: CGFloat = 900
 
-    private static var cache: [String: NativeGlyphData] = [:]
+    /// 字形缓存。原来是字典、满 256 个就整份清空：「已练汉字」等页有上千个字时，每次排版都会把字形从磁盘重读、重新解析。
+    /// 改用 NSCache：容量 1500 个、按需逐出（不再整份清空），内存吃紧时由系统回收。
+    private final class Entry {
+        let glyph: NativeGlyphData
+        init(_ glyph: NativeGlyphData) { self.glyph = glyph }
+    }
+    private static let cache: NSCache<NSString, Entry> = {
+        let c = NSCache<NSString, Entry>()
+        c.countLimit = 1500
+        return c
+    }()
     private static var missing: Set<String> = []
 
     static var dataDirectory: URL? {
@@ -21,7 +31,7 @@ struct NativeGlyphData {
 
     /// 取一个字的字形（主线程用；缓存成功与「确无数据」）。
     static func load(_ char: String) -> NativeGlyphData? {
-        if let hit = cache[char] { return hit }
+        if let hit = cache.object(forKey: char as NSString) { return hit.glyph }
         if missing.contains(char) { return nil }
         guard let dir = dataDirectory,
               let data = try? Data(contentsOf: dir.appendingPathComponent("\(char).json")),
@@ -29,8 +39,7 @@ struct NativeGlyphData {
             missing.insert(char)
             return nil
         }
-        if cache.count > 256 { cache.removeAll() }
-        cache[char] = glyph
+        cache.setObject(Entry(glyph), forKey: char as NSString)
         return glyph
     }
 

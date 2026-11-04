@@ -1015,13 +1015,13 @@ final class NativeWriteViewController: UIViewController {
         clearButton.isEnabled = !strokes.isEmpty
         // 说明位：结果行（D19：回忆阶段、没看过答案、没有本人笔画、本字没落过笔）+ 提示说明 / 看答案流程的说明 / 没保存上
         let line = session.line
-        let lineText = line?["text"] as? String ?? ""
+        let lineText = line?.text ?? ""
         let lineOn = phase == .recall && !answerSeen && flowFail == nil && strokes.isEmpty && !penDown && !lineText.isEmpty
         NativeType.set(lineLabel, lineOn ? lineText : nil, font: axFont("note", sub: "r2", else: textType.font("fs13")), color: color("ink3", .secondaryLabel))
         lineLabel.isHidden = !lineOn
         // 「修改 ›」只对可改的记录开放（sessions.canCorrect → line.canChange；看过答案 / 跳过不可改）
-        let action = line?["action"] as? String ?? ""
-        let changeOn = lineOn && (line?["canChange"] as? Bool) == true && !action.isEmpty
+        let action = line?.action ?? ""
+        let changeOn = lineOn && line?.canChange == true && !action.isEmpty
         changeButton.isHidden = !changeOn
         lineDot.isHidden = !changeOn
         if changeOn {
@@ -1818,7 +1818,7 @@ final class NativeWriteViewController: UIViewController {
         bridge.call(op, args) { [weak self] reply in
             guard let self else { return }
             self.flowBusy = false
-            if reply.ok, let fin = reply.body["finished"] as? [String: Any], let sid = fin["sessionId"] as? String {
+            if reply.ok, let sid = reply.finishedSessionId {
                 self.coordinator?.nativeWriteDidFinish(self, sessionId: sid, undo: nil)
                 return
             }
@@ -1874,15 +1874,11 @@ final class NativeWriteViewController: UIViewController {
             self.skipBusy = false
             if reply.ok {
                 self.lightHaptic.impact("light", 0.5)
-                let u = reply.body["undo"] as? [String: Any]
-                let info = u.flatMap { b -> (String, String, String)? in
-                    guard let sid = b["sessionId"] as? String, let rid = b["recordId"] as? String else { return nil }
-                    return (sid, rid, b["char"] as? String ?? "")
-                }
-                if let fin = reply.body["finished"] as? [String: Any], let sid = fin["sessionId"] as? String {
+                let info = reply.skipUndo
+                if let sid = reply.finishedSessionId {
                     // 最后一字跳过：这组结束，撤销机会随 exit 交给结果页（网页 handoffSkipUndo）
                     var handoff: [String: Any]?
-                    if let info { handoff = ["sessionId": info.0, "recordId": info.1, "char": info.2, "strokes": NativeInkWire.wire(held), "remainingMs": self.skipUndoParams.ms] }
+                    if let info { handoff = ["sessionId": info.sessionId, "recordId": info.recordId, "char": info.char, "strokes": NativeInkWire.wire(held), "remainingMs": self.skipUndoParams.ms] }
                     self.coordinator?.nativeWriteDidFinish(self, sessionId: sid, undo: handoff)
                     return
                 }
@@ -1890,7 +1886,7 @@ final class NativeWriteViewController: UIViewController {
                     self.advance(to: snap)
                     self.scheduleAutoStep()
                 }
-                if let info { self.beginUndo(sessionId: info.0, recordId: info.1, char: info.2, strokes: held) }
+                if let info { self.beginUndo(sessionId: info.sessionId, recordId: info.recordId, char: info.char, strokes: held) }
                 return
             }
             if reply.errorKind == "stale", let snap = reply.snapshot {
@@ -1982,7 +1978,8 @@ final class NativeWriteViewController: UIViewController {
             guard let self else { return }
             self.endBusy = false
             guard reply.ok else { return }
-            self.showEndDialog(n: reply.body["n"] as? Int ?? 0, m: reply.body["m"] as? Int ?? 0, sessionId: sid)
+            let counts = reply.endCounts
+            self.showEndDialog(n: counts.n, m: counts.m, sessionId: sid)
         }
     }
 
@@ -2027,7 +2024,7 @@ final class NativeWriteViewController: UIViewController {
             guard let self else { return }
             self.endBusy = false
             if reply.ok {
-                let judged = reply.body["judgedCount"] as? Int ?? 0
+                let judged = reply.judgedCount
                 self.dismissEndDialog()
                 if judged > 0 {
                     self.lightHaptic.impact("light", 0.5) // F1：结束这组确认、换成结果页
@@ -2366,7 +2363,7 @@ final class NativeWriteViewController: UIViewController {
             guard let self else { return }
             self.redoBusy = false
             guard reply.ok else { self.refresh(); return }
-            if (reply.body["done"] as? Bool) == true {
+            if reply.done {
                 self.coordinator?.nativeWriteDidRequestBack(self)
                 return
             }
@@ -2463,8 +2460,7 @@ final class NativeWriteViewController: UIViewController {
     }
 
     @objc private func tapChange() {
-        guard phase == .recall, !submitting, let line = session.line, (line["canChange"] as? Bool) == true,
-              let rid = line["recordId"] as? String else { return }
+        guard phase == .recall, !submitting, let line = session.line, line.canChange, let rid = line.recordId else { return }
         bridge.call("correct", ["slot": slot, "recordId": rid, "action": "state"]) { [weak self] reply in
             guard let self else { return }
             guard reply.ok, let model = NativeChangeSheetViewController.Model(reply.body) else {
@@ -2574,8 +2570,7 @@ final class NativeWriteViewController: UIViewController {
                 return
             }
             self.failed = false
-            let finished = reply.body["finished"] as? [String: Any]
-            if let finished, let sid = finished["sessionId"] as? String {
+            if let sid = reply.finishedSessionId {
                 self.judgeHaptic.impact("judge", 0.7)
                 self.coordinator?.nativeWriteDidFinish(self, sessionId: sid)
                 return

@@ -13,6 +13,48 @@ struct NativeWriteReply {
     var jsMs: Double { (body["ms"] as? NSNumber)?.doubleValue ?? 0 }
     var errorKind: String? { (body["error"] as? [String: Any])?["kind"] as? String }
     var snapshot: [String: Any]? { body["snapshot"] as? [String: Any] }
+    /// body.finished.sessionId：这组已写完（judge / skip / 看答案流程的回包），交给结果页用的会话 id。
+    var finishedSessionId: String? { (body["finished"] as? [String: Any])?["sessionId"] as? String }
+    /// body.undo：skip 回包给的撤销机会（sessionId、recordId 都在才算）。
+    var skipUndo: NativeSkipUndo? { (body["undo"] as? [String: Any]).flatMap(NativeSkipUndo.init) }
+    /// end（action: counts）回包：还没写的首练字数 n、已判断数 m；缺键 = 0。
+    var endCounts: (n: Int, m: Int) { (body["n"] as? Int ?? 0, body["m"] as? Int ?? 0) }
+    /// end 提交回包：这组判断过几个字；缺键 = 0。
+    var judgedCount: Int { body["judgedCount"] as? Int ?? 0 }
+    /// redoNext 回包：重写错字已到最后（没有下一个字）。
+    var done: Bool { (body["done"] as? Bool) == true }
+}
+
+/// skip 回包里的撤销机会（body.undo）：撤销条 / 交给结果页的 handoff 都用它。
+struct NativeSkipUndo {
+    let sessionId: String
+    let recordId: String
+    /// 缺键 = ""（与原来逐处的默认一致）。
+    let char: String
+
+    init?(_ raw: [String: Any]) {
+        guard let sid = raw["sessionId"] as? String, let rid = raw["recordId"] as? String else { return nil }
+        sessionId = sid
+        recordId = rid
+        char = raw["char"] as? String ?? ""
+    }
+}
+
+/// 快照里的「上一个字」结果行（snapshot.line；ShiziCore WriteModels 拼出）。
+struct NativeWriteLine {
+    let text: String?
+    /// 「修改 ›」按钮文字；可改的记录才有。
+    let action: String?
+    /// sessions.canCorrect（看过答案 / 跳过不可改）；缺键或不是 Bool = false。
+    let canChange: Bool
+    let recordId: String?
+
+    init(_ raw: [String: Any]) {
+        text = raw["text"] as? String
+        action = raw["action"] as? String
+        canChange = (raw["canChange"] as? Bool) == true
+        recordId = raw["recordId"] as? String
+    }
 }
 
 /// 写字会话快照（open 与各 op 回包里的 snapshot 对象，ShiziCore WriteModels.snapshot / WriteAPI redoOpen·redoNext 拼出）的类型化读法。
@@ -38,7 +80,7 @@ struct NativeWriteSnapshot {
     let answerPhase: String?
     let firstTip: Bool?
     let prompt: [String: Any]?
-    let line: [String: Any]?
+    let line: NativeWriteLine?
 
     init(_ raw: [String: Any]) {
         sessionId = raw["sessionId"] as? String
@@ -61,7 +103,7 @@ struct NativeWriteSnapshot {
         answerPhase = raw["answerPhase"] as? String
         firstTip = raw["firstTip"] as? Bool
         prompt = raw["prompt"] as? [String: Any]
-        line = raw["line"] as? [String: Any]
+        line = (raw["line"] as? [String: Any]).map(NativeWriteLine.init)
     }
 
     /// 这组已不在进行（不活跃，或已写完）：stale 对账时据此交给结果页 / 来源。

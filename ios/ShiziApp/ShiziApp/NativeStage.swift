@@ -358,6 +358,48 @@ final class NativeStage: NSObject {
         return Self.coveredByPresented(page)
     }
 
+    /// 这一页看不见（ShiziScreenViewController.isShown：看不见时不重拉，露出来时补拉）：isCovered 的同一条不透明口径，
+    /// 只是 leaving 这一层（连同它上面的）与正在收起的层不算——返回起手时，收起后露出来的页就算看得见；也只算原生页 / 写字 / 结果页
+    /// （它们收起都经过这里或 ShiziScreenViewController.viewDidDisappear，补拉有着落），页面自己弹的选择弹层、图片弹层等不算盖住。
+    func isObscured(_ page: ShiziScreenViewController, ignoring leaving: UIViewController?) -> Bool {
+        if page === rootScreen { return Self.obscuredByPresented(host, ignoring: leaving) }
+        guard screens.contains(where: { $0 === page }) else { return false }
+        return Self.obscuredByPresented(page, ignoring: leaving)
+    }
+
+    static func obscuredByPresented(_ vc: UIViewController, ignoring leaving: UIViewController?) -> Bool {
+        var cur = vc.presentedViewController
+        while let c = cur, c !== leaving {
+            if !c.isBeingDismissed, c is NativeTransitionPage, coversBelow(c) { return true }
+            cur = c.presentedViewController
+        }
+        return false
+    }
+
+    /// leaving 这一层要收起（nil = 按此刻的栈）：收起后看得见的页把看不见时攒着的变化补拉一次。
+    /// then = 补拉的视图都画好了（没有要补的：立即；最多等 planWait）——返回转场等它再放，露出来的第一帧就是新的。
+    func revealUnder(_ leaving: UIViewController?, then: (() -> Void)? = nil) {
+        var waiting = 0
+        var finished = false
+        let finish: () -> Void = {
+            guard !finished else { return }
+            finished = true
+            then?()
+        }
+        for page in Array(roots.values) + screens {
+            let started = page.revealIfNeeded(ignoring: leaving, done: {
+                waiting -= 1
+                if waiting == 0 { finish() }
+            })
+            if started { waiting += 1 }
+        }
+        if waiting == 0 {
+            finish()
+        } else if then != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.planWait) { finish() }
+        }
+    }
+
     /// 从 vc 往上有没有任何一层呈现着的模态层（R16，读屏一支）：透明的弹层屏（查字 / S02）、选择弹层、底部弹层、图片弹层都算——
     /// 弹层下面的内容读屏摸不到、划不到（主控 R16 决定）。正在收起的那一层不算；查字 / S02 自己的绘制层（QueryOverlayLayer）是这一页本身，不算盖住它。
     static func modalAbove(_ vc: UIViewController) -> Bool {
@@ -497,8 +539,10 @@ final class NativeStage: NSObject {
         ShiziProbe.note("screen:release \(gone.map(\.screen).joined(separator: ","))")
         gone.forEach { $0.exitHandled = true; $0.transitions.finishNow() }
         if let top = gone.last { NativeResultCover.cover(top.view, in: host.view) }
+        revealUnder(gone[0])
         NativeStage.dismissWhenSettled(gone[0]) { [weak self] in
             guard let self else { then(); return }
+            self.revealUnder(nil)
             if fade { NativeResultCover.fadeLater(bridge: WriteSessionChannel()) }
             then()
         }
@@ -697,7 +741,11 @@ final class NativeStage: NSObject {
     func back(_ page: ShiziScreenViewController) {
         guard isTop(page), !page.transitions.isLeaving, page.presentingViewController != nil else { return }
         page.transitions.plan = NativeNavPlan(kind: page.enteredKind)
-        page.transitions.leave(page)
+        page.transitions.isLeaving = true // 等下面的页补拉期间不再接受第二次返回（leave 自己也会设）
+        revealUnder(page) { [weak page] in
+            guard let page, page.presentingViewController != nil else { return }
+            page.transitions.leave(page)
+        }
     }
 
     /// 原生页收起了（点按返回或左缘跟手完成）：出栈（原生改栈、引擎记账；下面那页若是让开过的结果页 / 写字页，回包里带它的 return）。
@@ -869,6 +917,7 @@ final class NativeStage: NSObject {
             await withCheckedContinuation { cont in DispatchQueue.main.async { NativeStage.dismissWhenSettled(first) { cont.resume() } } }
         }
         NativeResultCover.clear()
+        revealUnder(nil)
     }
     #endif
 
@@ -961,8 +1010,16 @@ final class NativeStage: NSObject {
         t.plan = plan
         t.host = host.view
         let bridge = WriteSessionChannel()
-        t.planProvider = { done in
-            bridge.callNav("back") { reply in done(reply.ok ? NativeNavPlan(reply.body["plan"] as? [String: Any]) : nil) }
+        t.planProvider = { [weak self, weak t] done in
+            let ask: () -> Void = {
+                bridge.callNav("back") { reply in done(reply.ok ? NativeNavPlan(reply.body["plan"] as? [String: Any]) : nil) }
+            }
+            // 跟手起手 / 返回前问路：收起后露出来的页先补拉、排好版再问（纸缩回的落点是首页主按钮此刻的位置）；present 完成后的那次问路不算
+            if let self, let t, t.isRunning || t.isLeaving, let top = self.host.presentedViewController, (top as? NativeTransitionPage)?.transitions === t {
+                self.revealUnder(top, then: ask)
+            } else {
+                ask()
+            }
         }
     }
 
@@ -970,8 +1027,10 @@ final class NativeStage: NSObject {
     private func stepAsideLeavingCover(_ page: UIViewController) {
         (page as? NativeTransitionPage)?.transitions.finishNow()
         NativeResultCover.cover(page.view, in: host.view)
+        revealUnder(page)
         Self.dismissWhenSettled(page) { [weak self] in
-            guard self != nil else { return }
+            guard let self else { return }
+            self.revealUnder(nil)
             NativeResultCover.fadeLater(bridge: WriteSessionChannel())
         }
     }
@@ -991,7 +1050,8 @@ final class NativeStage: NSObject {
                 return
             }
             (page as? NativeTransitionPage)?.transitions.finishNow()
-            Self.dismissWhenSettled(page)
+            self?.revealUnder(page)
+            Self.dismissWhenSettled(page) { self?.revealUnder(nil) }
         }
     }
 
@@ -1000,17 +1060,20 @@ final class NativeStage: NSObject {
         guard page.presentingViewController != nil, !t.isLeaving else { return }
         t.isLeaving = true
         var done = false
-        let go: (NativeNavPlan?) -> Void = { [weak page, weak t] plan in
+        let go: (NativeNavPlan?) -> Void = { [weak self, weak page, weak t] plan in
             guard !done, let page, let t else { return }
             done = true
             if let plan { t.plan = plan }
-            t.leave(page)
+            t.leave(page) { self?.revealUnder(nil) }
         }
-        if let ask = t.planProvider {
-            ask { plan in go(plan) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.planWait) { go(nil) }
-        } else {
-            go(nil)
+        // 收起后露出来的页（首页 / 字库）先把看不见时攒着的变化补拉、排好版（首页排版时报主按钮此刻的位置与字），再问回去的路：纸缩回落在新的主按钮上
+        revealUnder(page) { [weak t] in
+            if let ask = t?.planProvider {
+                ask { plan in go(plan) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.planWait) { go(nil) }
+            } else {
+                go(nil)
+            }
         }
     }
 

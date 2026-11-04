@@ -95,6 +95,9 @@ final class SessionNoneScreen: ShiziScreenViewController {
 
     // MARK: 视图数据
 
+    /// 视图回包不读 store（ShiziCore SessionNoneAPI view.session-none：只读参数 exhausted 与 hooks 有没有）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
+
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m

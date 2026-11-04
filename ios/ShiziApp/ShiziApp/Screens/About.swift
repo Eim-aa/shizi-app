@@ -73,6 +73,9 @@ final class AboutScreen: ShiziScreenViewController {
         view.setNeedsLayout()
     }
 
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about：只读构建版本号）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
+
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m
@@ -308,6 +311,9 @@ final class AboutPrivacyScreen: ShiziScreenViewController {
 
     private(set) var paragraphLabels: [UILabel] = []
 
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about-privacy：只看 hooks.native）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
+
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)
         setTitle(m.title.text)
@@ -534,6 +540,9 @@ final class AboutCreditsScreen: ShiziScreenViewController {
         super.viewDidLoad()
     }
 
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about-credits：包里的致谢）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
+
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m
@@ -736,6 +745,9 @@ final class AboutLetterScreen: ShiziScreenViewController {
         content.addSubview(addressLabel)
         super.viewDidLoad()
     }
+
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about-letter：定文）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
 
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)

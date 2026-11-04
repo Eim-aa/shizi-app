@@ -246,7 +246,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         expire()
         clock = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.expire()
-            self?.reload()
+            self?.reloadWhenShown() // 看不见时（写字页盖着、切到别的 tab）只记着，露出来时补拉；跨天过期照查
         }
         foreground = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
             self?.expire()

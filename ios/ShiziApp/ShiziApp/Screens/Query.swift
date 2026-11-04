@@ -2225,6 +2225,9 @@ final class S02Screen: ShiziScreenViewController {
         layoutDialog()
     }
 
+    /// 视图回包不读 store（ShiziCore QueryAPI view.s02：只读参数 chars）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
+
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: Model.self)
         model = m

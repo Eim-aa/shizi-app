@@ -149,7 +149,7 @@ final class NativeStageTests: XCTestCase {
         XCTAssertNil(Bundle.main.url(forResource: "Web/index", withExtension: "html"), "no web shell in the bundle")
         XCTAssertNotNil(SoundPlayer.directory, "sounds are a native resource")
         host.reset()
-        let names = { self.root.stage.entries.map { $0["n"] as? String ?? "" } }
+        let names = { self.root.stage.entries.map { $0.n ?? "" } }
         // 1. 冷启动判定（route.plan → 无转场重建）
         var planned = false
         root.stage.replanForTesting { planned = true }

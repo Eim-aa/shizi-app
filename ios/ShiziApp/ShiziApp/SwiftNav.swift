@@ -74,7 +74,7 @@ final class SwiftNavigator {
         router.idPrefix = "s" // 与页面路由（QA 镜像里的测试脚本）开的 e<n> 条目分开编号
         router.hosts = { [unowned self] prev, next, _, _ in HostBodies.bodies(prev, next, io: io, state: host.state, paper: host.paper) }
         router.post = { [weak self] wire in
-            self?.stage?.engineNav(EngineValue.any(.object(wire)) as? [String: Any] ?? [:])
+            self?.stage?.engineNav(EngineValue.any(.object(wire)))
             self?.onStack?()
         }
         router.deliver = { [weak self] bodies in self?.deliver(bodies) }
@@ -134,10 +134,10 @@ final class SwiftNavigator {
     }
 
     /// 原生发起的导航 / 冷启动 / 重载对齐：回包里带求好值的宿主消息（排在已经发出的那些后面）。
-    @MainActor private func resolved(_ bodies: [HostBody]) async -> [[String: Any]] {
+    @MainActor private func resolved(_ bodies: [HostBody]) async -> [NativeHostMessage] {
         let reqs = io.drain()
         let prev = chain
-        var out: [[String: Any]] = []
+        var out: [NativeHostMessage] = []
         let mine = Task { @MainActor [weak self] in
             await prev?.value
             guard let self else { return }
@@ -149,7 +149,7 @@ final class SwiftNavigator {
     }
 
     /// 占位按发出顺序求值（commitLeave 在它之后的 open 之前），换回消息里；重写错字页 redo-open 求出来不是 ok → 丢掉、退回去。
-    @MainActor private func resolve(_ bodies: [HostBody], _ reqs: [AppHostIO.Req]) async -> [[String: Any]] {
+    @MainActor private func resolve(_ bodies: [HostBody], _ reqs: [AppHostIO.Req]) async -> [NativeHostMessage] {
         var values: [JSValue] = []
         var committed = false
         for r in reqs {
@@ -174,12 +174,12 @@ final class SwiftNavigator {
             default: return v
             }
         }
-        var out: [[String: Any]] = []
+        var out: [NativeHostMessage] = []
         var back = false
         for b in bodies {
             let body = fill(b.body)
             if b.redoGuard, body["payload"]?["ok"] != .bool(true) { back = true; continue }
-            out.append(["type": b.type, "body": EngineValue.any(body)])
+            out.append(NativeHostMessage(type: b.type, body: EngineValue.any(body)))
         }
         if back { DispatchQueue.main.async { [weak self] in self?.router.back() } } // redoOpenBody：Promise.resolve().then(() => nav.back())
         return out
@@ -206,7 +206,7 @@ final class SwiftNavigator {
     /// 一个栈往来 op；不是的回 nil。
     @MainActor func answer(function: String, op: String, args: JSObject) async -> JSValue? {
         func reply(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
-        func bodiesValue(_ list: [[String: Any]]) -> JSValue { EngineValue.js(list) }
+        func bodiesValue(_ list: [NativeHostMessage]) -> JSValue { EngineValue.js(list.map(\.wire)) }
         if function == EngineOps.nav {
             switch op {
             case "back": return host.backPlan()
@@ -334,10 +334,10 @@ final class SwiftNavigator {
 
     /// 宿主自己发的原生屏消息（图片预览的开 / 收、阻断页、坏值提示）：排在已经发出的宿主消息后面。
     func post(_ msg: JSObject) {
-        deliverRaw([["type": "native", "body": EngineValue.any(.object(msg))]])
+        deliverRaw([NativeHostMessage(type: "native", body: EngineValue.any(.object(msg)))])
     }
 
-    private func deliverRaw(_ list: [[String: Any]]) {
+    private func deliverRaw(_ list: [NativeHostMessage]) {
         let prev = chain
         chain = Task { @MainActor [weak self] in
             await prev?.value

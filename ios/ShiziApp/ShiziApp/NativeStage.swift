@@ -971,7 +971,7 @@ final class NativeStage: NSObject {
         (page as? NativeTransitionPage)?.transitions.finishNow()
         NativeResultCover.cover(page.view, in: host.view)
         Self.dismissWhenSettled(page) { [weak self] in
-            guard let self else { return }
+            guard self != nil else { return }
             NativeResultCover.fadeLater(bridge: WriteSessionChannel())
         }
     }

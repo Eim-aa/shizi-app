@@ -326,6 +326,7 @@ public final class Store: ScheduleStore {
             guard let spec = Schema.specForKey(key), let domain = spec.domain, let raw = rawOpt else { continue }
             guard case .ok(let value) = Schema.parseAndValidate(key: key, raw: .string(raw)) else { continue }
             raws[key] = raw
+            validatedValues[key] = value
             if spec.id == "inkRecord" {
                 let p = Schema.parseInkRecordKey(key)!
                 var t = recordTables[p.month] ?? JSObject()
@@ -445,6 +446,8 @@ public final class Store: ScheduleStore {
         if let q = report["quarantined"]?.arrayValue, !q.isEmpty {
             corruptNotice = JSObject([("keys", .array(q.map { $0["key"] ?? .null }))])
         }
+        validatedValues = KeyMap()
+        childTexts = [:]
         let (next, raws, legacy) = readState()
         state = next
         lastRaw = raws
@@ -481,10 +484,10 @@ public final class Store: ScheduleStore {
                 p.raws[key] = last
                 continue
             }
-            let raw = JSONWriter.stringify(value)
+            let raw = stringify(key, value)
             p.raws[key] = raw
             if rawEq(lastRaw[key], raw) { continue }
-            if let err = Schema.validateValue(key: key, value: value) {
+            if let err = validate(key, value) {
                 p.error = ("shape", key, err)
                 return p
             }
@@ -492,6 +495,114 @@ public final class Store: ScheduleStore {
         }
         for key in lastRaw.keys where !next.has(key) { p.entries.append((key, nil)) }
         return p
+    }
+
+    // MARK: 校验与序列化的增量做法（结果与整值的 Schema.validateValue / JSONWriter.stringify 逐字相同）
+
+    /// 每个键上一次「整值校验通过」的值：读盘时 parseAndValidate 通过的，或 plan 里 validate 通过的。
+    /// 「validateValue(key, 这个值) == nil」是关于这个值本身的事实，永不过期；这里持有它，它的存储也就不会被回收重用。
+    var validatedValues = KeyMap<JSValue>()
+    /// 键 → 子键 → (子值, 它的 JSON 文本)：上次在 plan 里序列化这个键时各子值的文本（持有子值，理由同上）。
+    private var childTexts = [JSKey: [JSKey: (value: JSValue, text: String)]]()
+
+    /// 两个值显然是同一个值：容器是同一块存储；数逐位、串逐字节相同。true ⇒ 校验结论、序列化文本都相同。
+    static func samePayload(_ a: JSValue, _ b: JSValue) -> Bool {
+        switch (a, b) {
+        case (.null, .null): return true
+        case (.bool(let x), .bool(let y)): return x == y
+        case (.number(let x), .number(let y)): return x.bitPattern == y.bitPattern
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
+        case (.array(let x), .array(let y)): return sameRepresentation(x, y)
+        case (.object(let x), .object(let y)): return x.sharesStorage(with: y)
+        default: return false
+        }
+    }
+
+    /// 校验是「逐条独立」的映射的键（Schema.keySpecs 里 validate 只是 checkMap(x, 只由键决定的 path, keyOk, each)：
+    /// 每条只看自己的子键与子值、报第一条错）。改 keySpecs 里这几项的校验时要一并看这里。
+    static let entryLocalMaps: Set<String> = ["sched", "wordOff", "photos", "ink"]
+
+    /// = Schema.validateValue(key: key, value: value)；通过时记下这个值。
+    func validate(_ key: String, _ value: JSValue) -> String? {
+        let err = Store.validate(key, value, previous: validatedValues[key])
+        if err == nil { validatedValues[key] = value }
+        return err
+    }
+
+    /// = Schema.validateValue(key: key, value: value)，利用同一个键上一次整值校验通过的值 previous 只校验变了的部分：
+    /// · 逐条独立的映射：checkMap 按 keys 序逐条查、报第一条错；与 previous 同子键且同一个值的那条当时查过没错（查法只看子键与子值），
+    ///   现在也没错——所以第一条错一定在其余各条里，按原来的次序只查它们（子集按原序插入，keys 序不变；path 只由键决定），结论相同。
+    /// · records 月表（数组）且 previous 是它逐元素相同的前缀（追加）：前缀里每条的 validateRecord 与递增检查只看前缀，当时都过了；
+    ///   从前缀之后照 Schema.validateRecordList 的同一个循环接着查（prev 接前缀最后一条的序号），结论相同。
+    /// 其余一律整值校验。
+    static func validate(_ key: String, _ value: JSValue, previous: JSValue?) -> String? {
+        guard let prev = previous, let spec = Schema.specForKey(key) else { return Schema.validateValue(key: key, value: value) }
+        if entryLocalMaps.contains(spec.id), case .object(let v) = value, case .object(let p) = prev {
+            var changed = JSObject()
+            for (k, e) in v.entries {
+                if let pe = p[k], samePayload(pe, e) { continue }
+                changed[k] = e
+            }
+            return Schema.validateValue(key: key, value: .object(changed))
+        }
+        if spec.id == "records", case .array(let v) = value, case .array(let p) = prev, v.count >= p.count,
+           !(0..<p.count).contains(where: { !samePayload(v[$0], p[$0]) }) {
+            let month = Schema.monthOfRecordsKey(key)
+            var last = p.isEmpty ? 0.0 : Schema.serialOf(v[p.count - 1]["id"]?.stringValue ?? "")
+            for i in p.count..<v.count {
+                let r = v[i]
+                if let err = Schema.validateRecord(r, path: key + "[" + String(i) + "]", month: month) { return err }
+                let serial = Schema.serialOf(r["id"]?.stringValue ?? "")
+                if serial <= last { return Schema.fail(key + "[" + String(i) + "].id", "ids must be strictly ascending") }
+                last = serial
+            }
+            return nil
+        }
+        return Schema.validateValue(key: key, value: value)
+    }
+
+    /// = JSONWriter.stringify(value)。大的对象 / 数组按子值拼：JSONWriter 写对象 = 「{」+ 按 keys 序的「"键":子值文本」以「,」相连 +「}」，
+    /// 数组同理，子值文本就是 stringify(子值)；与上次同一个子值（samePayload）的文本直接沿用。
+    func stringify(_ key: String, _ value: JSValue) -> String {
+        let jk = JSKey(s: key)
+        switch value {
+        case .object(let o) where o.count >= 16:
+            let old = childTexts[jk] ?? [:]
+            var memo = [JSKey: (value: JSValue, text: String)](minimumCapacity: o.count)
+            var out = "{"
+            for (n, e) in o.entries.enumerated() {
+                if n > 0 { out += "," }
+                JSONWriter.quote(e.key, into: &out)
+                out += ":"
+                let ck = JSKey(s: e.key)
+                let text: String
+                if let hit = old[ck], Store.samePayload(hit.value, e.value) { text = hit.text } else { text = JSONWriter.stringify(e.value) }
+                out += text
+                memo[ck] = (e.value, text)
+            }
+            out += "}"
+            childTexts[jk] = memo
+            return out
+        case .array(let a) where a.count >= 16:
+            let old = childTexts[jk] ?? [:]
+            var memo = [JSKey: (value: JSValue, text: String)](minimumCapacity: a.count)
+            var out = "["
+            for (n, e) in a.enumerated() {
+                if n > 0 { out += "," }
+                // 子键只为命中：记录按 id，其余按下标；沿用与否只看 samePayload
+                let ck: JSKey
+                if case .string(let id)? = e["id"] { ck = JSKey(s: "id:" + id) } else { ck = JSKey(s: "#" + String(n)) }
+                let text: String
+                if let hit = old[ck], Store.samePayload(hit.value, e) { text = hit.text } else { text = JSONWriter.stringify(e) }
+                out += text
+                memo[ck] = (e, text)
+            }
+            out += "]"
+            childTexts[jk] = memo
+            return out
+        default:
+            return JSONWriter.stringify(value)
+        }
     }
 
     private func projectedTotal(_ entries: [(String, String?)]) -> Double {

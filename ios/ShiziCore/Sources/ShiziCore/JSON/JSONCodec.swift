@@ -238,6 +238,13 @@ public enum JSONWriter {
     }
 
     public static func quote(_ s: String, into out: inout String) {
+        // 没有要转义的码点（" \ 与 U+0000–U+001F；UTF-8 里这些字节只会是它们自己）时逐码点原样追加 = 整串追加
+        if !s.utf8.contains(where: { $0 == 0x22 || $0 == 0x5C || $0 < 0x20 }) {
+            out += "\""
+            out += s
+            out += "\""
+            return
+        }
         out += "\""
         for u in s.unicodeScalars {
             switch u.value {
@@ -267,6 +274,9 @@ public enum JSNumber {
         if x == 0 { return "0" } // 含 −0
         if x.isInfinite { return x < 0 ? "-Infinity" : "Infinity" }
         if x < 0 { return "-" + toString(-x) }
+        // 小于 2^53 的整数：相邻整数都能精确表示，比它短的十进制串只能是别的整数，所以最短往返串就是它自己的十进制数字，
+        // n = 位数 ≤ 16 落在「k ≤ n ≤ 21」那一支（数字 + 补零）——正是它的十进制写法。
+        if x < 9_007_199_254_740_992, x.rounded(.towardZero) == x { return String(Int64(x)) }
         let (digits, n) = shortest(x)
         let k = digits.count
         if k <= n && n <= 21 { return digits + String(repeating: "0", count: n - k) }

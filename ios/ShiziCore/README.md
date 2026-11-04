@@ -76,7 +76,7 @@ pnpm run verify:core    # = swift build -c release --package-path ios/ShiziCore 
 B4 期间 ShiziCore 对 JS 参考引擎做过四层等价性核对（金标准夹具、单测转写、调度模拟器、随机差分，`verify:core-diff`）。**D84（2026-11-03）删除网页版与仓库 JS，这套对照退役**：最后一次 `verify:core-diff --nightly`（Shanghai 5000 × 300 等）的结果存档在 [D84-最后一次JS差分.md](../../docs/engineering/v10/D84-最后一次JS差分.md)，之后的参考只剩 Swift 自己的测试：
 
 - `Tests/ShiziCoreTests/` 的转写用例（702 项以上）；
-- `Tests/ShiziCoreTests/Fixtures/*.json`：**冻结的 Swift 回归夹具**，不再重生成（见该目录 README；D83 调度规则 v2 改了行为的 op 由 `d83RetiredGoldenOps` 等跳过表排除）；
+- `Tests/ShiziCoreTests/Fixtures/*.json`：**冻结的 Swift 回归夹具**，不再重生成（见该目录 README；D83 调度规则 v2 改了行为的条目已从夹具删掉）；
 - 配置 / 数据资源 `Bundled/*.json` 是手改的唯一真相源，由 `ConfigDataTests` 等读 JSON 守；
 - `shizi-core-cli`（下面各 op 说明里的 JS 一侧路径都是历史说明，对应脚本已删，要找回看 Git 历史）。
 

@@ -107,9 +107,28 @@ final class AColdStartBenchmarkTests: XCTestCase {
         bench("store.load.populated", { $0.count }) { store.load() }
         try bench("home.populated.first", { $0.objectValue?.count ?? 0 }) { try home(store) }
         try bench("home.populated.second", { $0.objectValue?.count ?? 0 }) { try home(store) }
+        try storeSubSteps(disk)
         try homeSubSteps(.object(store.state), now: homeNow, dates: store.dates)
 
         print("BENCH coldstart-note sink=\(sink)")
+    }
+
+    /// Store.load 的分项：在同一份有数据的盘上新建一个 store，按 load() 的顺序逐步调同样的内部函数各量一次：`BENCH coldstart store.sub.<name> <ms>`。
+    /// 盘已被上面的 load 修复过，这里的 repair 是对干净盘再跑一遍；ink 迁移在这份数据上（无旧月键）走提前返回。
+    private func storeSubSteps(_ disk: TestDisk) throws {
+        let store = Store(storage: StoreStorage(disk.open(), now: { STORE_NOW }), now: { STORE_NOW }, dates: shanghai)
+        let storage = store.storage
+        bench("store.sub.probe", { $0.ok ? 1 : 0 }) { storage.probe() }
+        try bench("store.sub.repair", { $0.count }) { try storage.repair() }
+        let (next, raws, legacy) = bench("store.sub.readState", { $0.raws.count }) { store.readState() }
+        store.legacyInk = legacy
+        store.lastRaw = raws
+        let entries = bench("store.sub.stateToEntries", { $0.keys.count }) { store.stateToEntries(next, legacy: legacy) }
+        bench("store.sub.deriveSerial", { Int($0) }) { Store.deriveSerial(next) }
+        bench("store.sub.migrateInkSchema", { $0.count }) { store.migrateInkSchema() }
+        bench("store.sub.inkSchemaReport", { $0.count }) { store.inkSchemaReport(schema: 2, legacyMonths: legacy.count) }
+        bench("store.sub.refreshUsage", { $0?.count ?? 0 }) { store.refreshUsage() }
+        sink &+= entries.keys.count
     }
 
     /// 首页构建（HomeView.homeModel / homeView）的分项，各自单独跑一次（懒加载此时都已就绪）：`BENCH coldstart home.sub.<name> <ms>`。

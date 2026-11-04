@@ -316,7 +316,7 @@ public final class Store: ScheduleStore {
 
     // MARK: 读
 
-    private func readState() -> (next: JSObject, raws: KeyMap<String>, legacy: KeyMap<JSValue>) {
+    func readState() -> (next: JSObject, raws: KeyMap<String>, legacy: KeyMap<JSValue>) {
         var next = Store.emptyState()
         var raws = KeyMap<String>()
         var monthTables = KeyMap<JSValue>()
@@ -358,12 +358,12 @@ public final class Store: ScheduleStore {
         return (next, raws, legacy)
     }
 
-    private func inkSchemaReport(schema: Int, legacyMonths: Int) -> JSObject {
+    func inkSchemaReport(schema: Int, legacyMonths: Int) -> JSObject {
         JSObject([("schema", .number(Double(schema))), ("legacyMonths", .number(Double(legacyMonths))), ("migrated", .number(0)), ("records", .number(0)), ("failed", .null)])
     }
 
     /// ink schema 1 → 2：把旧月键逐月改成单条键（每月一个事务；失败这个月回滚、停止、记诊断）。
-    private func migrateInkSchema() -> JSObject {
+    func migrateInkSchema() -> JSObject {
         let started = now()
         let months = UTF16Order.sorted(legacyInk.keys)
         var report = inkSchemaReport(schema: months.isEmpty ? 2 : 1, legacyMonths: months.count)

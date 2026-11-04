@@ -15,6 +15,59 @@ struct NativeWriteReply {
     var snapshot: [String: Any]? { body["snapshot"] as? [String: Any] }
 }
 
+/// 写字会话快照（open 与各 op 回包里的 snapshot 对象，ShiziCore WriteModels.snapshot / WriteAPI redoOpen·redoNext 拼出）的类型化读法。
+/// 边界上仍是字典（引擎回的是 JSON 形状的值，原生页把它原样存着、再原样交回去）；这里只把读的字段收成一处。
+/// 每个字段的转换与原来逐处写的 `as?` 一字不差（Int / Bool / String 原样 cast，不放宽成 NSNumber），缺键或类型不对 = nil；
+/// 缺省值留在用的地方（各处不同，如 cursor 有 `?? 0` 也有 `?? -1`）。strokes 仍由 NativeInkWire.rawStrokes 读原值。
+struct NativeWriteSnapshot {
+    let sessionId: String?
+    let cardKey: String?
+    let char: String?
+    let cursor: Int?
+    let total: Int?
+    let canEnd: Bool?
+    let hints: Int?
+    /// 已给出的提示段 from..<to：只收 from、to 都是 Int 且 to > from ≥ 0 的，否则 nil。
+    let hintRange: Range<Int>?
+    let answerSeen: Bool?
+    /// 重写错字页：这是最后一个字（redoOpen / redoNext 给；正式会话的快照没有这个键）。
+    let last: Bool?
+    let active: Bool?
+    let done: Bool?
+    let phase: String?
+    let answerPhase: String?
+    let firstTip: Bool?
+    let prompt: [String: Any]?
+    let line: [String: Any]?
+
+    init(_ raw: [String: Any]) {
+        sessionId = raw["sessionId"] as? String
+        cardKey = raw["cardKey"] as? String
+        char = raw["char"] as? String
+        cursor = raw["cursor"] as? Int
+        total = raw["total"] as? Int
+        canEnd = raw["canEnd"] as? Bool
+        hints = raw["hints"] as? Int
+        if let r = raw["hintRange"] as? [String: Any], let a = r["from"] as? Int, let b = r["to"] as? Int, b > a, a >= 0 {
+            hintRange = a..<b
+        } else {
+            hintRange = nil
+        }
+        answerSeen = raw["answerSeen"] as? Bool
+        last = raw["last"] as? Bool
+        active = raw["active"] as? Bool
+        done = raw["done"] as? Bool
+        phase = raw["phase"] as? String
+        answerPhase = raw["answerPhase"] as? String
+        firstTip = raw["firstTip"] as? Bool
+        prompt = raw["prompt"] as? [String: Any]
+        line = raw["line"] as? [String: Any]
+    }
+
+    /// 这组已不在进行（不活跃，或已写完）：stale 对账时据此交给结果页 / 来源。
+    var ended: Bool { active != true || done == true }
+}
+
 final class WriteSessionChannel {
     init() {}
 

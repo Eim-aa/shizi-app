@@ -67,7 +67,9 @@ final class NativeWriteViewController: UIViewController {
     weak var coordinator: NativeWriteCoordinating?
     let transitions = NativeWriteTransitions()
 
-    private(set) var snapshot: [String: Any]
+    private(set) var snapshot: [String: Any] { didSet { session = NativeWriteSnapshot(snapshot) } }
+    /// snapshot 的类型化读法（随 snapshot 一起换；原生页读快照字段都走这里，字典本身仍原样存着交回页面 / 测试）。
+    private var session: NativeWriteSnapshot
     private var copy: [String: String]
     private var colors: [String: UIColor] = [:]
     /// 页面令牌原串（颜色以外的令牌，如 toast-shadow 的 box-shadow 串）。
@@ -262,7 +264,9 @@ final class NativeWriteViewController: UIViewController {
         self.redo = redo
         self.redoChars = redo ? (payload["chars"] as? [String] ?? []) : []
         self.bridge = bridge
-        self.snapshot = payload["snapshot"] as? [String: Any] ?? [:]
+        let snapshot = payload["snapshot"] as? [String: Any] ?? [:]
+        self.snapshot = snapshot
+        self.session = NativeWriteSnapshot(snapshot)
         self.copy = (payload["copy"] as? [String: String]) ?? [:]
         super.init(nibName: nil, bundle: nil)
         applyColors(payload["colors"] as? [String: String])
@@ -629,25 +633,26 @@ final class NativeWriteViewController: UIViewController {
 
     // MARK: 快照
 
-    var cardKey: String? { snapshot["cardKey"] as? String }
-    private var char: String { snapshot["char"] as? String ?? "" }
+    var cardKey: String? { session.cardKey }
+    private var char: String { session.char ?? "" }
 
     /// 用快照刷新页面。keepLocal：同一个字时保留本地笔画与提示（页面重载后的重新同步）。
     func apply(snapshot next: [String: Any], keepLocal: Bool) {
-        let sameCard = (next["cardKey"] as? String) == cardKey
+        let prevCard = cardKey
         let prevPhase = phase
         snapshot = next
+        let sameCard = session.cardKey == prevCard
         if !(keepLocal && sameCard) {
             strokes = NativeInkWire.rawStrokes(next["strokes"])
             cleared = nil
-            switch next["answerPhase"] as? String {
+            switch session.answerPhase {
             case "trace": phase = .trace
             case "retrace": phase = .retrace
-            default: phase = (next["phase"] as? String) == "compare" && !strokes.isEmpty ? .compare : .recall
+            default: phase = session.phase == "compare" && !strokes.isEmpty ? .compare : .recall
             }
             penDown = false
             flowFail = nil
-            firstTipDue = next["firstTip"] as? Bool ?? false
+            firstTipDue = session.firstTip ?? false
             firstTipGone = false
             firstTipSent = false
             loadHint()
@@ -714,7 +719,7 @@ final class NativeWriteViewController: UIViewController {
     private func rebuildPrompt() {
         promptCells.forEach { $0.removeFromSuperview() }
         promptCells = []
-        let prompt = snapshot["prompt"] as? [String: Any] ?? [:]
+        let prompt = session.prompt ?? [:]
         let cells = prompt["cells"] as? [[String: Any]] ?? []
         promptRow.accessibilityLabel = tr("X-PROMPT.groupLabel")
         let hintText = prompt["hint"] as? String ?? ""
@@ -794,7 +799,7 @@ final class NativeWriteViewController: UIViewController {
     // MARK: 描一遍（B2.4；NativeTrace.swift）
 
     private var traceChar: String?
-    private var previewKey: String { "\(snapshot["sessionId"] as? String ?? "")|\(cardKey ?? "")" }
+    private var previewKey: String { "\(session.sessionId ?? "")|\(cardKey ?? "")" }
 
     /// 换字 / 换阶段：描红层读这个字的字形；这个字第一次进描一遍（会话 id + 字，只记在本次运行里）要先快放一遍笔顺，等版式定了再播。
     private func loadTrace() {
@@ -832,13 +837,10 @@ final class NativeWriteViewController: UIViewController {
         glyph = char.isEmpty ? nil : NativeGlyphData.load(char)
         medians = glyph.map { NativeHintMatch.medians345($0, padRatio: hintLayer.padRatio) }
         hintLayer.setGlyph(glyph)
-        let used = snapshot["hints"] as? Int ?? 0
-        var range: Range<Int>?
-        if let r = snapshot["hintRange"] as? [String: Any], let a = r["from"] as? Int, let b = r["to"] as? Int, b > a, a >= 0 { range = a..<b }
-        hint = NativeHintView(used: used, range: range, written: strokes.count)
+        hint = NativeHintView(used: session.hints ?? 0, range: session.hintRange, written: strokes.count)
         hintCleared = false
         hintBusy = false
-        answerSeen = snapshot["answerSeen"] as? Bool ?? false
+        answerSeen = session.answerSeen ?? false
         hintButton = ["kind": "loading", "text": tr("R-W05.hintLabel"), "label": tr("R-W05.hintLabel"), "disabled": true]
         hintNoteText = nil
         renderHint(fadeIn: false)
@@ -939,9 +941,9 @@ final class NativeWriteViewController: UIViewController {
 
     // MARK: 状态 → 控件
 
-    private var cursorNumber: Int { (snapshot["cursor"] as? Int ?? 0) + 1 }
-    private var totalCount: Int { snapshot["total"] as? Int ?? 0 }
-    private var canEnd: Bool { snapshot["canEnd"] as? Bool ?? false }
+    private var cursorNumber: Int { (session.cursor ?? 0) + 1 }
+    private var totalCount: Int { session.total ?? 0 }
+    private var canEnd: Bool { session.canEnd ?? false }
     /// 看过答案后留在回忆阶段（提示给完整字 / 恢复现场）：底栏同看答案流程。
     private var recallSeen: Bool { phase == .recall && answerSeen }
     private var inFlowPhase: Bool { phase == .trace || phase == .retrace }
@@ -1012,7 +1014,7 @@ final class NativeWriteViewController: UIViewController {
         undoButton.isEnabled = !strokes.isEmpty || cleared != nil
         clearButton.isEnabled = !strokes.isEmpty
         // 说明位：结果行（D19：回忆阶段、没看过答案、没有本人笔画、本字没落过笔）+ 提示说明 / 看答案流程的说明 / 没保存上
-        let line = snapshot["line"] as? [String: Any]
+        let line = session.line
         let lineText = line?["text"] as? String ?? ""
         let lineOn = phase == .recall && !answerSeen && flowFail == nil && strokes.isEmpty && !penDown && !lineText.isEmpty
         NativeType.set(lineLabel, lineOn ? lineText : nil, font: axFont("note", sub: "r2", else: textType.font("fs13")), color: color("ink3", .secondaryLabel))
@@ -1835,8 +1837,8 @@ final class NativeWriteViewController: UIViewController {
 
     /// 结果未知后重发 / 连点：页面回 stale 且快照已经变了 → 以快照为准（已不是这个字，或这组已经写完）。
     private func reconcile(with snap: [String: Any]) {
-        if (snap["active"] as? Bool) != true || (snap["done"] as? Bool) == true {
-            coordinator?.nativeWriteDidFinish(self, sessionId: snapshot["sessionId"] as? String ?? "", undo: nil)
+        if NativeWriteSnapshot(snap).ended {
+            coordinator?.nativeWriteDidFinish(self, sessionId: session.sessionId ?? "", undo: nil)
         } else {
             advance(to: snap)
             scheduleAutoStep()
@@ -1866,7 +1868,7 @@ final class NativeWriteViewController: UIViewController {
         flowFail = nil
         ink?.acceptFrom = .infinity
         let held = strokes
-        let hints = max(snapshot["hints"] as? Int ?? 0, hint?.used ?? 0)
+        let hints = max(session.hints ?? 0, hint?.used ?? 0)
         bridge.call("skip", ["slot": slot, "cardKey": key, "hints": hints]) { [weak self] reply in
             guard let self else { return }
             self.skipBusy = false
@@ -1973,7 +1975,7 @@ final class NativeWriteViewController: UIViewController {
     // MARK: 结束这组（B2.6）
 
     @objc private func tapEnd() {
-        guard phase != .compare, canEnd, !endBusy, endDialog == nil, let sid = snapshot["sessionId"] as? String else { return }
+        guard phase != .compare, canEnd, !endBusy, endDialog == nil, let sid = session.sessionId else { return }
         endUndo() // 打开确认框即结束跳过的撤销机会
         endBusy = true
         bridge.call("end", ["slot": slot, "sessionId": sid, "action": "counts"]) { [weak self] reply in
@@ -2337,7 +2339,7 @@ final class NativeWriteViewController: UIViewController {
     // MARK: 重写错字（B2.9a；只练习：本地换阶段，换字经 redoNext 取页面给的下一个字快照，离开发 redoExit）
 
     /// 这是本组最后一个要重写的字（对照页主按钮是「完成」）。
-    private var redoLast: Bool { (snapshot["last"] as? Bool) ?? (cursorNumber >= totalCount) }
+    private var redoLast: Bool { session.last ?? (cursorNumber >= totalCount) }
 
     /// 写的时候「看答案」：直接去对照（网页 toCheck，没写也能看；没写时上格「这次没写」）。
     @objc private func tapRedoAnswer() {
@@ -2360,7 +2362,7 @@ final class NativeWriteViewController: UIViewController {
         guard redo, phase == .compare, !redoBusy else { return }
         redoBusy = true
         refresh()
-        bridge.call("redoNext", ["chars": redoChars, "index": snapshot["cursor"] as? Int ?? 0]) { [weak self] reply in
+        bridge.call("redoNext", ["chars": redoChars, "index": session.cursor ?? 0]) { [weak self] reply in
             guard let self else { return }
             self.redoBusy = false
             guard reply.ok else { self.refresh(); return }
@@ -2372,7 +2374,7 @@ final class NativeWriteViewController: UIViewController {
         }
     }
 
-    var redoIndexForTesting: Int { snapshot["cursor"] as? Int ?? -1 }
+    var redoIndexForTesting: Int { session.cursor ?? -1 }
     var redoTotalForTesting: Int { totalCount }
 
     // MARK: 判断两键的出现与就绪（时刻编排 M1：0–judgeAppear 不显示，之后 60% 且不可点，judgeReady 变实可点；取代看不见的锁）
@@ -2461,7 +2463,7 @@ final class NativeWriteViewController: UIViewController {
     }
 
     @objc private func tapChange() {
-        guard phase == .recall, !submitting, let line = snapshot["line"] as? [String: Any], (line["canChange"] as? Bool) == true,
+        guard phase == .recall, !submitting, let line = session.line, (line["canChange"] as? Bool) == true,
               let rid = line["recordId"] as? String else { return }
         bridge.call("correct", ["slot": slot, "recordId": rid, "action": "state"]) { [weak self] reply in
             guard let self else { return }
@@ -2480,7 +2482,7 @@ final class NativeWriteViewController: UIViewController {
                                      type: textType, overlay: overlaySpec)
         let vc = NativeChangeSheetViewController(slot: slot, model: model, bridge: bridge, style: style) { [weak self] snap in
             // 改判成功：结果行换成「已改为……」，当前字的笔迹 / 提示 / 阶段原样（只改这一次，D19）
-            if let snap, (snap["cardKey"] as? String) == self?.cardKey { self?.apply(snapshot: snap, keepLocal: true) }
+            if let snap, NativeWriteSnapshot(snap).cardKey == self?.cardKey { self?.apply(snapshot: snap, keepLocal: true) }
         }
         vc.onViewChar = { [weak self] char in self?.openCharDetail(char) }
         present(vc, animated: true)
@@ -2555,12 +2557,12 @@ final class NativeWriteViewController: UIViewController {
         refresh()
         judgeHaptic.prepare()
         // D66 ②：提示次数取本地与已存的较大者（提示写入失败时本地多于已存，P52）
-        let hints = max(snapshot["hints"] as? Int ?? 0, hint?.used ?? 0)
+        let hints = max(session.hints ?? 0, hint?.used ?? 0)
         bridge.call("judge", ["slot": slot, "cardKey": key, "judgment": judgment, "strokes": NativeInkWire.wire(strokes), "hints": hints]) { [weak self] reply in
             guard let self else { return }
             self.submitting = false
             // 结果未知后重发（或连点）：页面回 stale 且快照已经不是这个字 → 上一次其实已提交，按成功对账（不多记，D07）
-            let advanced = !reply.ok && reply.errorKind == "stale" && reply.snapshot.map { ($0["cardKey"] as? String) != key } == true
+            let advanced = !reply.ok && reply.errorKind == "stale" && reply.snapshot.map { NativeWriteSnapshot($0).cardKey != key } == true
             guard reply.ok || advanced else {
                 // D07：没保存上——留在判断页，笔迹还在；两键换成「先不保存 / 再试一次」。这期间持住的笔不属于任何一个字，丢掉
                 self.ink?.dropHeld()
@@ -2578,10 +2580,10 @@ final class NativeWriteViewController: UIViewController {
                 self.coordinator?.nativeWriteDidFinish(self, sessionId: sid)
                 return
             }
-            if advanced, let snap = reply.snapshot, (snap["active"] as? Bool) != true || (snap["done"] as? Bool) == true {
+            if advanced, let snap = reply.snapshot, NativeWriteSnapshot(snap).ended {
                 // 已提交的是最后一个字：这组已结束，交给结果页
                 self.judgeHaptic.impact("judge", 0.7)
-                self.coordinator?.nativeWriteDidFinish(self, sessionId: self.snapshot["sessionId"] as? String ?? "")
+                self.coordinator?.nativeWriteDidFinish(self, sessionId: self.session.sessionId ?? "")
                 return
             }
             if let next = reply.snapshot {

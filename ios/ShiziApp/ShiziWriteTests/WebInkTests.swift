@@ -141,3 +141,62 @@ final class WebInkTests: XCTestCase {
         XCTAssertEqual(v.pageStrokes.first?.vertices, want2)
     }
 }
+
+// MARK: - 书写中一笔的每帧几何：量测（BENCH）
+
+/// 书写中一笔逐帧长大时，每帧重建墨迹几何的耗时（CI 日志里 grep BENCH）。只打印、不断言时间。
+///   BENCH ink live n=<原始点数> median=…ms max=…ms floats=<这一帧的顶点 Float 数>
+/// 模拟：Pencil 120Hz（8.33ms 一个合并点）、螺旋一笔 400 点（约 2.5 单位 / 点，带压力），每帧另带 2 个预测点；
+/// 每帧调一次产品书写面用的同一入口，取 n 附近 10 帧（n − 9 … n）的中位数 / 最大值。
+enum WebInkBench {
+    /// 螺旋一笔（345 单位格，中心起笔向外绕两圈），第 i 个点。
+    static func spiral(_ i: Int, of count: Int) -> InkRawPoint {
+        let u = Double(i) / Double(count - 1)
+        let a = u * 4 * Double.pi, r = 20 + 120 * u
+        var q = InkRawPoint(x: 172 + r * cos(a), y: 172 + r * sin(a), t: 1000 + Double(i) * 1000 / 120)
+        q.p = 0.35 + 0.2 * sin(u * 9)
+        return q
+    }
+
+    static func stroke(_ count: Int = 400) -> [InkRawPoint] { (0..<count).map { spiral($0, of: count) } }
+
+    /// 第 i 帧（已有 i 个原始点）的预测点：沿同一条曲线往前 1、2 个点。
+    static func predicted(after i: Int, of count: Int) -> [InkRawPoint] {
+        (i..<(i + 2)).map { j in
+            var q = spiral(j, of: count)
+            q.predicted = true
+            return q
+        }
+    }
+
+    static func ms(_ from: UInt64, _ to: UInt64) -> Double { Double(to - from) / 1e6 }
+
+    static func report(_ name: String, _ frames: [Double], floats: [Int], at ns: [Int]) {
+        for n in ns where n <= frames.count {
+            let w = frames[max(0, n - 10)..<n].sorted()
+            print(String(format: "BENCH \(name) n=%ld median=%.3fms max=%.3fms floats=%ld", n, w[w.count / 2], w.last ?? 0, floats[n - 1]))
+        }
+    }
+}
+
+final class WebInkLiveBenchTests: XCTestCase {
+    func testLiveMeshCostPerFrameAsTheStrokeGrows() throws {
+        let k = try WebInkFixture.params()
+        let count = 400
+        let all = WebInkBench.stroke(count)
+        var raw: [InkRawPoint] = []
+        var frames: [Double] = [], floats: [Int] = []
+        for i in 1...count {
+            raw.append(all[i - 1])
+            let pre = WebInkBench.predicted(after: i, of: count)
+            var v: [Float] = []
+            let t0 = DispatchTime.now().uptimeNanoseconds
+            NativeInkStrokeMesh.live(raw: raw, predicted: pre, params: k, into: &v)
+            let t1 = DispatchTime.now().uptimeNanoseconds
+            frames.append(WebInkBench.ms(t0, t1))
+            floats.append(v.count)
+        }
+        WebInkBench.report("ink live", frames, floats: floats, at: [50, 100, 200, 300, 400])
+        XCTAssertEqual(frames.count, count)
+    }
+}

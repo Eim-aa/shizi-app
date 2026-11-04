@@ -4,6 +4,11 @@ on:
   pull_request:
   # GitHub 偶尔丢 pull_request 事件（推送时 500），这时可以在 Actions 页对分支手动补跑。
   workflow_dispatch:
+    inputs:
+      bench_release:
+        description: '另在 Release（-O）下跑一遍 ShiziCore 的性能量测（BENCH 行）；verify:core 的 swift test 是 Debug，量出的毫秒数偏大'
+        type: boolean
+        default: false
   push:
     branches: [main]
 
@@ -98,6 +103,13 @@ jobs:
           corepack prepare pnpm@11.16.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Release benchmarks (manual only)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bench_release }}
+        shell: bash
+        run: |
+          swift test -c release -Xswiftc -enable-testing --package-path ios/ShiziCore \
+            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests' 2>&1 \
+            | grep -E "BENCH|error:|Executed [0-9]+ tests?|failed"
       - name: ShiziCore build + tests (verify:core)
         run: pnpm run verify:core
       - name: Library governance (needs shizi-core-cli)

@@ -147,6 +147,23 @@ struct NativeWriteLine {
     }
 }
 
+/// 宿主推来的 open 载荷（write-open / redo-open 消息的 body.payload）的信封读法：ok、快照、引擎耗时 ms。
+/// 载荷本身仍原样交给 NativeWriteViewController（它要读外观等其余键）。
+struct NativeWriteOpenPayload {
+    /// 只有 true 才算。
+    let ok: Bool
+    /// payload.snapshot 是对象才有。
+    let snapshot: NativeWriteSnapshot?
+    /// 缺键 = 0。
+    let jsMs: Double
+
+    init(_ payload: [String: Any]) {
+        ok = (payload["ok"] as? Bool) == true
+        snapshot = (payload["snapshot"] as? [String: Any]).map { NativeWriteSnapshot($0) }
+        jsMs = (payload["ms"] as? NSNumber)?.doubleValue ?? 0
+    }
+}
+
 /// 写字会话快照（open 与各 op 回包里的 snapshot 对象，ShiziCore WriteModels.snapshot / WriteAPI redoOpen·redoNext 拼出）的类型化读法。
 /// 边界上仍是字典（引擎回的是 JSON 形状的值，原生页把它原样存着、再原样交回去）；这里只把读的字段收成一处。
 /// 每个字段的转换与原来逐处写的 `as?` 一字不差（Int / Bool / String 原样 cast，不放宽成 NSNumber），缺键或类型不对 = nil；

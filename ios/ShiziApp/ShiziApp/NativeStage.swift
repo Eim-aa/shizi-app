@@ -955,7 +955,8 @@ final class NativeStage: NSObject {
         let receivedAt = CACurrentMediaTime()
         let receivedEpochMs = Date().timeIntervalSince1970 * 1000
         let payload = body["payload"] as? [String: Any] ?? [:]
-        guard (payload["ok"] as? Bool) == true, let snap = payload["snapshot"] as? [String: Any], (snap["active"] as? Bool) == true else {
+        let envelope = NativeWriteOpenPayload(payload)
+        guard envelope.ok, envelope.snapshot?.active == true else {
             ShiziProbe.log("native-write open without an active session (slot \(slot))")
             // 宿主还在、组已经没了（重载后恢复出的写字条目，组已作废）：盖着的同槽原生页收起，不留一张写不了的页
             if let top = nativeWriteTop, top.slot == slot, !top.exitHandled, !top.redo {
@@ -967,7 +968,7 @@ final class NativeStage: NSObject {
         }
         NativeNavMotion.update(payload: payload)
         #if DEBUG
-        NativeWriteMetrics.shared.recordJs("open", ms: (payload["ms"] as? NSNumber)?.doubleValue ?? 0)
+        NativeWriteMetrics.shared.recordJs("open", ms: envelope.jsMs)
         #endif
         let via = body["via"] as? String ?? ""
         if let top = nativeWriteTop, top.slot == slot, !top.exitHandled, !top.redo {
@@ -1173,7 +1174,8 @@ final class NativeStage: NSObject {
             return
         }
         let payload = body["payload"] as? [String: Any] ?? [:]
-        guard (payload["ok"] as? Bool) == true, payload["snapshot"] is [String: Any] else {
+        let envelope = NativeWriteOpenPayload(payload)
+        guard envelope.ok, envelope.snapshot != nil else {
             ShiziProbe.log("native-redo open without chars")
             return
         }

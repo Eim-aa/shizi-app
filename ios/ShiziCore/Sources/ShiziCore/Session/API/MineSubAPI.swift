@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/api/mine-sub.js.
 extension PageAPI {
     static func mineSub(_ op: String, _ store: Store, _ a: JSObject) throws -> JSValue {
         let today = try store.dates.localDay(.number(store.now())), state = JSValue.object(store.state)

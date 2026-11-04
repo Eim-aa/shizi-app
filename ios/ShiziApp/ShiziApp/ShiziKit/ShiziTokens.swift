@@ -1,7 +1,7 @@
 import UIKit
 
 // ShiziKit（B3.1；计划 B3B4-原生化架构与计划.md §3.2）：令牌、文案、动效的单一来源 = 构建期生成的资源
-// （ShiziKit/Generated/ShiziKitTokens.json、ShiziKitCopy.json 是手改的唯一真相源，D84 起不再由 scripts/build_shizikit.mjs 生成；
+// （ShiziKit/Generated/ShiziKitTokens.json、ShiziKitCopy.json 是手改的唯一真相源，D84 起不再由脚本生成；
 //  生成物与来源不同步时 test/ios-shizikit.test.mjs 失败）。原生源码不写颜色、字号、时长与汉字。
 //
 // B2 的写字 / 判断 / 结果 / 重写错字页原来从写字会话 API 的 open 回包读颜色、字阶、文案与动效（页面现算）；B3.1 起这些键一律取生成值
@@ -50,7 +50,7 @@ enum ShiziTokens {
 
     // MARK: 字阶
 
-    /// 系统字号档位名（xS … XXXL、AX1 … AX5；与 JS 参考 text-size.js 同名，RootViewController.contentSizeName）。
+    /// 系统字号档位名（xS … XXXL、AX1 … AX5；与 JS 参考版同名，RootViewController.contentSizeName）。
     static func categoryName(_ category: UIContentSizeCategory) -> String { RootViewController.contentSizeName(category) }
 
     /// 该档位的长度令牌（pt：fs13 / lh13 … / btn-h / r-box / gutter …）= 页面 --名 在该档位的计算值（WebKit 1/64 截断）。表里没有的档位 → nil。
@@ -67,15 +67,15 @@ enum ShiziTokens {
 
     // MARK: 动效
 
-    /// 写字页 / 结果页回包形状的动效与时刻（write-api.js writeMotion / resultMotion / writeTiming 同一份值）。
+    /// 写字页 / 结果页回包形状的动效与时刻（writeMotion / resultMotion / writeTiming 同一份值）。
     static func pageMotion(_ page: ShiziLook.Page) -> [String: Any] { ((root[page.rawValue] as? [String: Any])?["motion"] as? [String: Any]) ?? [:] }
     static func pageTiming(_ page: ShiziLook.Page) -> [String: Any] { ((root[page.rawValue] as? [String: Any])?["timing"] as? [String: Any]) ?? [:] }
 
-    /// src/config/motion.js 的全部数据导出（duration / role / moment / easing / bezier / scale / distance / gesture / timing / haptic …），给 B3 页面。
+    /// 全部数据导出（duration / role / moment / easing / bezier / scale / distance / gesture / timing / haptic …），给 B3 页面。
     static var motion: [String: Any] { root["motion"] as? [String: Any] ?? [:] }
 }
 
-/// 文案（src/config/copy 合并后的 COPY；占位符 {n} {char} … 由 t 的参数填，缺值原样保留——与页面 format() 同一规则）。
+/// 文案（合并后的 COPY；占位符 {n} {char} … 由 t 的参数填，缺值原样保留——与页面 format() 同一规则）。
 enum ShiziCopy {
     static let table: [String: Any] = ShiziKitResource.load("ShiziKitCopy") as? [String: Any] ?? [:]
 

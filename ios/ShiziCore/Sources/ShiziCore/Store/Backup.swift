@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/backup.js 的 1:1 移植（B4.4）：备份文件的构造 / 解析报告、记录签名、丢失范围、状态句，以及保护副本编排
+// 1:1 移植自原 JS 版（B4.4）：备份文件的构造 / 解析报告、记录签名、丢失范围、状态句，以及保护副本编排
 // （写副本 → 替换 → 撤销 / 清空 / 导出记账，全部经 Store 的公开原语，且不做预算回收）。回包形状与 JS 逐字段相同。
 // 文件格式不变（{app:'shizi', version:2, date, data:{'shizi.v2.<键>': JSON 字串}}，墨迹按月分组）：Swift 导出的备份 JS 能导入，反之亦然。
 
@@ -162,7 +162,7 @@ public enum Backup {
 
     // MARK: v1 备份文件
 
-    /// v1 → v2 的备份转换器（store/migrate.js 在 JS 里加载时注册；Swift 缺省就是 Migrate.legacyBackupToV2）。nil = 未注册（v1-unsupported）。
+    /// v1 → v2 的备份转换器（原 JS 里由 migrate 在加载时注册；Swift 缺省就是 Migrate.legacyBackupToV2）。nil = 未注册（v1-unsupported）。
     public static var legacyImporter: ((JSObject, Double?) -> JSValue)? = { obj, now in Migrate.legacyBackupToV2(.object(obj), now: now) }
 
     /// v1 备份 → {ok:true, backup, report} | {ok:false, reason, key?, detail?}。
@@ -506,7 +506,7 @@ public enum Backup {
     }
 }
 
-/// 备份页的文案小工具（src/ui/screens/mine/backup.js：dateText / lineText / undoLines / lossText / backupMenuStatus / NOTE_KEYS）。
+/// 备份页的文案小工具（dateText / lineText / undoLines / lossText / backupMenuStatus / NOTE_KEYS）。
 public enum BackupText {
     public static let noteKeys: [(String, String)] = [("protectFailed", "R-B04.protectFailed"), ("notBackup", "R-B06.notBackup"), ("restoreFailed", "R-B06.restoreFailed")]
 

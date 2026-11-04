@@ -1,15 +1,15 @@
 import UIKit
 
-// B3.5b 字库 tab 根页（网页 src/ui/screens/library/index.js「字库方向四」，1:1 移植；视图模型 src/session/views/library.js libraryPageView，App API view.library）。
+// B3.5b 字库 tab 根页（网页「字库方向四」，1:1 移植；视图模型 libraryPageView，App API view.library）。
 // 屏名 ⇄ 类：library ⇄ ShiziScreen_library。tab 根页：NativeStage 把它挂在原生 Tab 栏控制器（B3.5d，UITabBarController）里它那一格下面、
 // 只铺到 Tab 栏上沿。
 //
 // 只读页：不写 store。「今日练习」= op library.startToday（网页字库页同一个动作；D62：从字库进写字页是普通推入 T-push，不是纸展开——不记纸来源）；
 // 搜索框 = 让给网页的查字弹层（原生查字弹层 B3.6 之前：先把本页的样子交给宿主层 stage.cover，再开弹层）；
 // 其余行（练习范围 / 全部 / 三档 / 已跳过）= nav.push（目标屏还是网页屏：NativeStage 先把本页的样子交给宿主层再让开，回来时按原样盖回）。
-// 离开撤销条跟到字库（网页 write/skip.js 同一份状态；原生经 library.undoLeave / undoLeaveCancel）。
+// 离开撤销条跟到字库（网页版同一份状态；原生经 library.undoLeave / undoLeaveCancel）。
 //
-// 版式按网页 CSS 逐项排（library/index.js 的 .sz-libr__* / .sz-libq / Page.js .sz-tabpage），数值取 ShiziTokens（fs* / lh* / s* / gutter / hit / r-ctl），
+// 版式按网页 CSS 逐项排（.sz-libr__* / .sz-libq / .sz-tabpage），数值取 ShiziTokens（fs* / lh* / s* / gutter / hit / r-ctl），
 // 文案取视图模型给的引用（{copy, params}，原生递归渲染）。
 
 /// 字库首页的一行（名称 / 值 / 样字 / chevron）的按压反馈（网页 .sz-btn[data-pressed]：缩到 0.97，按下 120ms、松开 220ms）。
@@ -468,7 +468,7 @@ final class LibraryScreen: ShiziScreenViewController, ShiziRootProbing {
         guard let stage, stage.isTop(self), !starting else { return }
         starting = true
         // D62：从字库进写字页是普通推入（T-push），不是纸展开——把被点的这一行当来源报给网页：
-        // 网页按「被点进来的、又不是从首页进来的」记成普通推入（paper-transition.js planPaper 的 PUSHED 分支），转场与网页自己点这一行时一致。
+        // 网页按「被点进来的、又不是从首页进来的」记成普通推入（planPaper 的 PUSHED 分支），转场与网页自己点这一行时一致。
         var args: [String: Any] = [:]
         if todayRow.button.window != nil { args["source"] = source(todayRow.button) }
         stage.engine.raw("library.startToday", args) { [weak self] reply in

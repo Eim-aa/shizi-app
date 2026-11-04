@@ -69,7 +69,7 @@ enum EngineOps {
 
 // MARK: - 宿主（导航、平台、量测、界面状态）
 
-/// JS 参考实现里这些由界面层注入（ui/screens/*、ui/images-entry.js、ui/screens/write/native-session.js、ui/native-stage.js）；
+/// JS 参考实现里这些由界面层注入；
 /// 这里是同一组函数的原生版。导航交 SwiftNavigator 真改栈，同时记进 navigations（诊断）。
 final class EngineHost {
     let store: Store
@@ -81,8 +81,8 @@ final class EngineHost {
     private(set) var navigations: [String] = []
     /// 量测：原生量（NativeLineMeasure）。
     let measure: EngineMeasure
-    /// 不是 store 提交的 changed（界面状态）：离开撤销条变了（write/skip.js emitLeaveUndo）→ 首页、字库两个订阅者各推一次
-    /// {domains:['ui'], label:'leave-undo'}（ui/screens/home/index.js、library/index.js 的 onLeaveUndo），原生首页 / 字库重拉视图。
+    /// 不是 store 提交的 changed（界面状态）：离开撤销条变了（emitLeaveUndo）→ 首页、字库两个订阅者各推一次
+    /// {domains:['ui'], label:'leave-undo'}（onLeaveUndo），原生首页 / 字库重拉视图。
     var onChanged: ((JSValue) -> Void)?
     private func emitLeaveUndo() {
         for _ in 0..<2 { onChanged?(EngineValue.obj([("domains", .array([.string("ui")])), ("label", .string("leave-undo"))])) }
@@ -95,7 +95,7 @@ final class EngineHost {
 
     /// B4.9a：导航者（「去哪」的规则真正改栈、发宿主消息）。
     weak var navigator: SwiftNavigator?
-    /// 离开撤销条的「撤销」正在开写字页（skip.js undoLeave 用 nav.push，不是 openWrite）。
+    /// 离开撤销条的「撤销」正在开写字页（undoLeave 用 nav.push，不是 openWrite）。
     private var undoing = false
 
 
@@ -119,7 +119,7 @@ final class EngineHost {
     }
 
     private func install() {
-        // 首页 / 字库 / S02 的登记动作（ui/screens/home、library、session）：存储一半是 ShiziCore，导航交 open
+        // 首页 / 字库 / S02 的登记动作（首页、字库、会话）：存储一半是 ShiziCore，导航交 open
         pages.clockNow = { [unowned self] in clockNow() }
         pages.open = { [unowned self] kind, params in
             nav("open:" + kind, params)
@@ -129,7 +129,7 @@ final class EngineHost {
             case "write":
                 if undoing { try n.push("write", .object(JSObject([("slot", params["slot"] ?? .null)]))) } // undoLeave(slot => nav.push('write', {slot}))
                 else {
-                    if params["s02"] == .string("continue") { n.markOverlayTap() } // S02「继续写那组」：弹层里的点按（s02.js overlayTapped）
+                    if params["s02"] == .string("continue") { n.markOverlayTap() } // S02「继续写那组」：弹层里的点按（overlayTapped）
                     try n.openWrite(params["slot"]?.stringValue ?? "A")
                 }
             case "session-none": try n.openNone(params["exhausted"])
@@ -140,7 +140,7 @@ final class EngineHost {
             default: break
             }
         }
-        // 原生入口此刻的位置与字（home/index.js setHomeActions source → setNativeLiveSource）
+        // 原生入口此刻的位置与字（setHomeActions source → setNativeLiveSource）
         pages.paperSource = { [unowned self] kind, a in
             nav("paper:" + kind, .object(a))
             guard kind == "source", let n = navigator else { return }
@@ -150,14 +150,14 @@ final class EngineHost {
             n.setLive(["other-line", "home-capital-defer"].contains(key) ? key : "home-start", live)
         }
         pages.install(on: hooks)
-        // 首页主按钮 / 「接着写」/「这次先写平常的字」、字库「今日练习」：原生量的被点元素记成写字页的来源（D62；home/index.js withNativeSource、library/index.js startToday）
+        // 首页主按钮 / 「接着写」/「这次先写平常的字」、字库「今日练习」：原生量的被点元素记成写字页的来源（D62；withNativeSource、startToday）
         for (op, key) in [("home.start", "home-start"), ("home.resumeOther", "other-line"), ("home.deferSpecial", "home-capital-defer"), ("library.startToday", "library-today")] {
             hooks.set(op) { [unowned self] a in
                 navigator?.markSource(a["source"], key: key)
                 return try pages.call(op, a)
             }
         }
-        // 离开撤销条的「撤销」/「先不保存」：skip.js undoLeave（有机会时结束或标失败，各推一次）/ clearLeaveUndo（总推一次）
+        // 离开撤销条的「撤销」/「先不保存」：undoLeave（有机会时结束或标失败，各推一次）/ clearLeaveUndo（总推一次）
         for op in ["home.undoLeave", "library.undoLeave"] {
             hooks.set(op) { [unowned self] a in
                 let had = pages.leaveUndo != nil
@@ -180,9 +180,9 @@ final class EngineHost {
         for op in ["session.pick", "session.libSwitch", "session.wrongList"] {
             hooks.set(op) { [unowned self] _ in
                 nav(op)
-                if op == "session.pick" { openQuery(mode: "pick"); try navigator?.openQuery("pick") } // home/index.js setNoneActions pick → openPick
-                if op == "session.libSwitch" { try navigator?.openLibrarySwitch() } // library/switch.js setNoneActions libSwitch
-                if op == "session.wrongList" { try navigator?.replace("library-list", .object(JSObject([("kind", .string("due"))]))) } // library/list.js wrongList
+                if op == "session.pick" { openQuery(mode: "pick"); try navigator?.openQuery("pick") } // setNoneActions pick → openPick
+                if op == "session.libSwitch" { try navigator?.openLibrarySwitch() } // setNoneActions libSwitch
+                if op == "session.wrongList" { try navigator?.replace("library-list", .object(JSObject([("kind", .string("due"))]))) } // wrongList
                 return .null
             }
         }
@@ -193,10 +193,10 @@ final class EngineHost {
         hooks.set("detail.practice") { [unowned self] a in try startPicked(a["chars"]?.arrayValue ?? [], source: a["source"] ?? .null) }
         hooks.set("detail.image") { [unowned self] a in
             nav("detail.image", .object(a))
-            navigator?.openImagePreview(JSObject([("kind", .string("glyph")), ("char", a["char"] ?? .null)])) // images-entry.js openGlyphImage
+            navigator?.openImagePreview(JSObject([("kind", .string("glyph")), ("char", a["char"] ?? .null)])) // openGlyphImage
             return .null
         }
-        // 图片：palette = tokens 的浅色一套（core/images/palette.js：导出图恒为浅纸，无纹理）；存相册是平台（SwiftEngine 接上 RootViewController.saveCard）
+        // 图片：palette = tokens 的浅色一套（导出图恒为浅纸，无纹理）；存相册是平台（SwiftEngine 接上 RootViewController.saveCard）
         images.palette = { Self.palette }
         images.saveFile = { [unowned self] file in
             nav("image.save", file["name"] ?? .null)
@@ -206,7 +206,7 @@ final class EngineHost {
             nav("image.post", msg)
             if let n = navigator, let o = msg.objectValue { n.post(o) } // closeNativePreview：收掉这条原生屏（网页栈里没有这一层）
         }
-        images.thumb = { [unowned self] _ in measure.host("thumb") } // 选字条的缩略图是渲染器画的位图（images-entry.js）
+        images.thumb = { [unowned self] _ in measure.host("thumb") } // 选字条的缩略图是渲染器画的位图
         images.install(on: hooks)
         // 环境
         hooks.native = true
@@ -214,24 +214,24 @@ final class EngineHost {
         hooks.charData = EtymologyProvider { Self.etymologyRows() }
         hooks.measurer = { [unowned self] spec in measure.measure(spec) }
         hooks.lineBreaker = { [unowned self] kind, text in measure.lineStarts(kind, text) }
-        // 备份页 / 提醒页的折行点（session/text-lines.js 的登记表；网页由 ui/screens/mine/backup.js、remind.js 登记）
+        // 备份页 / 提醒页的折行点（登记表；网页版由这两页各自登记）
         for key in ["backup.intro", "backup.confirmBody", "remind.sub"] {
             SessionTextLines.shared.register(key) { [unowned self] text, _ in measure.lineStarts(key, text) }
         }
-        // 全部字 / 清单的版式量测（library-sub.js setLibrarySubMeasure：组头高、pretty 段落折行点、页头文字按钮宽——网页 DOM 量的）
+        // 全部字 / 清单的版式量测（setLibrarySubMeasure：组头高、pretty 段落折行点、页头文字按钮宽——网页 DOM 量的）
         for name in ["measure.list", "measure.all"] { hooks.set(name) { [unowned self] _ in measure.host("metrics") } }
         hooks.queryLayout = ["s02Body": { [unowned self] text in measure.lineStarts("s02-body", text) },
                              "cardAction": { [unowned self] text in measure.lineStarts("card-action", text) }]
-        // 写字会话（native-session.js createWriteSessionApi 的 deps）
+        // 写字会话（createWriteSessionApi 的 deps）
         deps.groups = .object(DeckData.shared.groups)
         deps.colors = { [unowned self] in measure.host("colors") }
         deps.type = { [unowned self] in measure.host("type") }
         deps.theme = { [unowned self] in measure.host("theme") }
         deps.refLabel = { a in Self.refLabel(char: a["char"]?.stringValue ?? "", cardKey: a["cardKey"]?.stringValue) }
-        // now = 界面单调时钟（跳过撤销的 until 用它；result/native-view.js resultView 的 clockNow）
+        // now = 界面单调时钟（跳过撤销的 until 用它；resultView 的 clockNow）
         deps.resultView = { [unowned self] store, a in try ResultPageView.view(store, a, now: clockNow(), shareAvailable: true) }
         deps.navigate = [
-            // 跳过的撤销条还在时离开：剩余的撤销机会交给来源页（S4，write/skip.js handoffLeaveUndo）
+            // 跳过的撤销条还在时离开：剩余的撤销机会交给来源页（S4，handoffLeaveUndo）
             "back": { [unowned self] args in
                 let slot = args.first ?? .null, undo = args.count > 1 ? args[1] : .null
                 if var u = undo.objectValue {
@@ -255,7 +255,7 @@ final class EngineHost {
             },
             "redoBack": { [unowned self] _ in nav("write.redoBack"); navigator?.redoBack(); return .null },
         ]
-        // 落款声 s1（sound.js keySound('seal', {key})：同一个 key 只响一次）
+        // 落款声 s1（keySound('seal', {key})：同一个 key 只响一次）
         deps.seal = { [unowned self] key in
             nav("result.seal", .string(key))
             guard !sealed.contains(key), (Config.policy["keySoundEvents"]?.arrayValue ?? []).contains(.string("seal")) else { return }
@@ -264,7 +264,7 @@ final class EngineHost {
             onSound?("s1_wood_muted", pow(10, (db.isFinite ? db : 0) / 20))
         }
         // 结果条目被移出页面栈（离开 / 再写一组 / 撤销跳过换回写字页）→ 清 lastEnded[slot]（01 §3.3；JS 由引擎路由的宿主消息
-        // native-session.js resultCloseBody 在同一次导航里同步提交 result:leave）
+        // resultCloseBody 在同一次导航里同步提交 result:leave）
         // 真导航（缺省模式）：结果条目离栈时的 commitLeave 由宿主消息 resultCloseBody 做（HostBodies），这里不再替它清
         deps.toWrite = { [unowned self] slot in
             nav("result.toWrite", .string(slot))
@@ -292,7 +292,7 @@ final class EngineHost {
             nav("result.share", .object(a))
             var scope = JSObject([("kind", .string("session"))])
             scope["slot"] = a["slot"]; scope["sessionId"] = a["sessionId"]
-            navigator?.openImagePreview(scope) // images-entry.js openSessionImage
+            navigator?.openImagePreview(scope) // openSessionImage
             return .bool(true)
         }
     }
@@ -315,7 +315,7 @@ final class EngineHost {
     private func openQuery(mode: String) {
         registered["query"] = epoch
         hooks.queryMode = mode
-        // 先关弹层（查字屏出栈）再开写字页；出栈作废了记下的点按，关完再记一次（components/query/index.js close）
+        // 先关弹层（查字屏出栈）再开写字页；出栈作废了记下的点按，关完再记一次（close）
         hooks.queryClose = { [unowned self] in nav("query.close"); navigator?.closeTop("query"); navigator?.markOverlayTap() }
         let home = EngineValue.obj([("view", .string("home"))]), library = EngineValue.obj([("view", .string("library"))])
         if mode == "pick" {
@@ -357,7 +357,7 @@ final class EngineHost {
     }
     #endif
 
-    /// ui/screens/session/index.js startPicked：开 B 组（写字页）或弹 S02（登记 S02 的四个回调）。
+    /// 开 B 组（写字页）或弹 S02（登记 S02 的四个回调）。
     func startPicked(_ keys: [JSValue], source: JSValue) throws -> JSValue {
         let rules = ScheduleRules(dates: store.dates)
         let src: JSValue = source.isNull ? EngineValue.obj([("view", .string("home"))]) : source
@@ -375,7 +375,7 @@ final class EngineHost {
         registered["s02"] = epoch
         hooks.s02Registered = true
         hooks.s02Cancel = nil
-        // session/s02.js openS02 的原生分支：关框（出栈）再记一次弹层点按；两个开写字页的键记成弹层里的入口（D62 普通推入）
+        // openS02 的原生分支：关框（出栈）再记一次弹层点按；两个开写字页的键记成弹层里的入口（D62 普通推入）
         hooks.s02Close = { [unowned self] in nav("s02.close"); navigator?.closeTop("s02"); navigator?.markOverlayTap() }
         hooks.s02Continue = { [unowned self] in nav("open:write", .string("B")); navigator?.markOverlayTap(); try navigator?.openWrite("B") }
         hooks.s02EndStart = { [unowned self] in
@@ -398,7 +398,7 @@ final class EngineHost {
 
     static let webRoot: URL? = Bundle.main.url(forResource: "Web", withExtension: nil)
 
-    /// 关于页的版本行（ui/screens/mine/about.js aboutBuild：src/build-info.js 的 VERSION / BUILD，构建时写成 Web/build-info.json；QA 里钉住）。
+    /// 关于页的版本行（aboutBuild：VERSION / BUILD，构建时写成 Web/build-info.json；QA 里钉住）。
     static var build: JSValue {
         #if DEBUG
         if RootViewController.qaEnabled { return EngineValue.obj([("version", .string("1.0.0")), ("build", .string("20261001-000000000000"))]) }
@@ -416,13 +416,13 @@ final class EngineHost {
         return EngineValue.obj([("version", .string(version)), ("build", .string(build))])
     }()
 
-    /// data/etymology.json（data/etymology.js loadEtymology 读的同一个文件）。
+    /// data/etymology.json（loadEtymology 读的同一个文件）。
     static func etymologyRows() -> JSValue? {
         guard let url = webRoot?.appendingPathComponent("data/etymology.json"), let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         return try? JSONParser.parse(text)
     }
 
-    /// 导出图调色板（palette.js PALETTE_VARS ← tokens 的 color.light；textures 恒空、tiles = [240]）。
+    /// 导出图调色板（PALETTE_VARS ← tokens 的 color.light；textures 恒空、tiles = [240]）。
     static let palette: JSValue = {
         let light = ShiziTokens.colorStrings(.light)
         let keys: [(String, String)] = [("paper", "paper"), ("sheet", "sheet"), ("line", "line"), ("frame", "frame"), ("guide", "guide"), ("ink1", "ink1"), ("ink2", "ink2"), ("ink3", "ink3"),
@@ -434,7 +434,7 @@ final class EngineHost {
         return .object(o)
     }()
 
-    /// 参考字形的读屏名称（ui/screens/write/ref-label.js refCardLabel：字、拼音、笔画数、结构 / 部件数）。
+    /// 参考字形的读屏名称（refCardLabel：字、拼音、笔画数、结构 / 部件数）。
     static func refLabel(char: String, cardKey: String?) -> JSValue {
         let py = cardKey.flatMap { DeckCards.shared.cardForKey($0)?["py"]?.stringValue }?.trimmingCharacters(in: .whitespaces) ?? ""
         func t(_ key: String, _ vars: [(String, JSValue)]) -> JSValue { (try? Copy.t(key, JSObject(vars))) ?? .string("") }
@@ -461,8 +461,8 @@ final class EngineHost {
 
 // MARK: - 排版量测（折行点等）：页面的字体与宽度
 
-/// B4.5a/b 留下的注入口：折行点（core/line-starts.js lineStarts kind）、段落量测（session/views/lines.js measureLines variant）、
-/// 查字 / S02 的折行（query.js setQueryLayout）、写字页的颜色 / 字阶令牌（native-session.js colorBundle / typeBundle / themeOf）。
+/// B4.5a/b 留下的注入口：折行点（lineStarts kind）、段落量测（measureLines variant）、
+/// 查字 / S02 的折行（setQueryLayout）、写字页的颜色 / 字阶令牌（colorBundle / typeBundle / themeOf）。
 /// JS 由网页 DOM 量；原生页本来就按原生字体排，所以 swift 模式由原生量（NativeLineMeasure）。
 protocol EngineMeasure: AnyObject {
     func lineStarts(_ kind: String, _ text: String) -> JSValue

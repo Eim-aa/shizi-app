@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/kuan.js; invalid/missing day falls back to the injected clock.
+// Kuan view; invalid/missing day falls back to the injected clock.
 public enum KuanView {
     public static func dateRef(_ day: JSValue?, now: Double, dates: Dates) throws -> JSValue {
         let valid = day.map { dates.isValidDay($0) } ?? false

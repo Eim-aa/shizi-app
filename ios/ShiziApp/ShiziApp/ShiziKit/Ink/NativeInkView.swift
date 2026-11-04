@@ -7,7 +7,7 @@ import UIKit
 // 管线（输入沿规格 §7；墨的几何见下）：UITouch（合并点 coalescedTouches + 预测点 predictedTouches；Pencil 时 force / altitude）
 //   → 原始点（345 单位格、ms = UITouch.timestamp × 1000、p 仅 Pencil；时间戳不单调时夹到前一点，规格 §2.1）
 //   → CADisplayLink（preferredFrameRateRange 最高 120）每帧：WebInk.buildStroke(原始点 + 预测点, final: false) → 三角形
-//      （R11-A，D72 ②：墨与网页同一算法 ink-math.js buildStroke + brush.js 画法，参数由页面随 open 下发；ink-model-1.0 / InkModel
+//      （R11-A，D72 ②：墨与网页同一算法 buildStroke + 画法，参数由页面随 open 下发；ink-model-1.0 / InkModel
 //       只留作 T2 盲测候选，见 inkModel）
 //   → Metal：CAMetalLayer 直接呈现，4×MSAA；墨的三角形同一墨色、不混合地写入 = 规格 §4.2 的「并集」（重叠处颜色相同，非零规则自然成立），
 //      MSAA resolve 得到预乘 alpha 的抗锯齿边。悬停预览点另一条混合管线叠在最上面（半透明，不落墨）。
@@ -19,7 +19,7 @@ import UIKit
 //     在笔尖下方画落笔预览点（直径 0.9 × B × F_p(0.35)，不落墨、不存）；双击（UIPencilInteraction）按系统偏好映射成「清空 / 撤销」交给代理。
 //   - 手指与 Pencil 同时出现（写字时手掌误触）：见 NativeInkInputPolicy——Pencil 优先、Pencil 刚用过时手指不落墨、大接触面积 / 静止的手指判为手掌。
 //   - 换字落笔门限（P227，acceptFrom）：门限之前落下的笔先「持住」——照常记点，但不画、不通知；到点补开始并接着实时画，抬笔早于门限时整笔
-//     等到门限再交出——这一笔不丢（与网页 ink-canvas.js 同语义）。门限 = .infinity 表示「等下一个字」（判断回包前落下的笔）。
+//     等到门限再交出——这一笔不丢（与网页版同语义）。门限 = .infinity 表示「等下一个字」（判断回包前落下的笔）。
 //   - 书写中书写面移动 / 改尺寸（换阶段、换字的版式变化）：已记的点按屏幕位置换算到新格，笔不断、不丢（T0 规则 3：这次输入照常生效）。
 // 测量（T1，只在 DEBUG）：每个合并点记 touch 时间戳 → 首次包含它的那一帧的 targetTimestamp / presentedTime（NativeInkLatency）。
 
@@ -147,13 +147,13 @@ final class NativeInkStrokeMesh {
         }
     }
 
-    /// 一笔抬笔后的几何（R11-A，D72 ②）：网页同一算法 WebInk.buildStroke(final: true) → brush.js 同一画法的三角形。
-    /// params 为 nil（页面还没下发 ink 表）时没有几何——书写面只在写字页 open 之后存在，open 一定带 ink（契约 test/ui/native-write.test.mjs）。
+    /// 一笔抬笔后的几何（R11-A，D72 ②）：网页同一算法 WebInk.buildStroke(final: true) → 同一画法的三角形。
+    /// params 为 nil（页面还没下发 ink 表）时没有几何——书写面只在写字页 open 之后存在，open 一定带 ink（契约）。
     static func build(raw: [InkRawPoint], params: WebInkParams?, widthScale: Double = 1) -> NativeInkStrokeMesh {
         var v: [Float] = []
         if let params {
             var pts = WebInk.buildStroke(raw, final: true, params: params).points
-            // B2.7：小方框里的只读墨（结果页作品格 / 行）按网页 paintHand 的 widthScale 抬到最小物理线宽（core/images/layout.js inkWidthScale）
+            // B2.7：小方框里的只读墨（结果页作品格 / 行）按网页 paintHand 的 widthScale 抬到最小物理线宽（inkWidthScale）
             if widthScale != 1 { pts = pts.map { var q = $0; q.w *= widthScale; return q } }
             WebInk.triangles(pts, into: &v)
         }
@@ -333,7 +333,7 @@ final class NativeInkRenderer {
 
 @objc(ShiziNativeInkView)
 final class NativeInkView: UIView {
-    /// 墨的算法与参数（R11-A，D72 ②）：与网页同一算法 WebInk（= ink-math.js buildStroke），参数是页面随 open 下发的 ink 表
+    /// 墨的算法与参数（R11-A，D72 ②）：与网页同一算法 WebInk（= buildStroke），参数是页面随 open 下发的 ink 表
     /// （policy.ink + INK_SPEC，WebInkParams.current），不在原生写数值。取代 D71 ① 的 ink-model-1.0 参数（base 13 / vMin 0.62 / dirH 0.72）。
 
     override class var layerClass: AnyClass { CAMetalLayer.self }

@@ -5,9 +5,9 @@ import UIKit
 // 「只看不写」的墨迹——结果页作品格、没放进图里那一行的小字、对照与改判弹层「你写的」小卡——都经这一个接口画：
 //   输入：原始点（345 单位格；存下的 Ink v4 解出的点，或本页面刚记下的笔画，NativeInkWire.rawStrokes 的形状）+ 方框边长（pt）+ 墨色 + 线宽下限（pt）；
 //   输出：一张只读、不接收触摸、铺满方框的视图（调用方只管放在哪）。
-// 实现（NativeInkSurfacePainter）：原生书写面 NativeInkView（drawable = false）只读回放——R11-A 起它画的就是网页 src/core/ink-math.js buildStroke
-// 的同一算法（WebInk.swift，参数 WebInkParams.current = 页面下发的 ink 表）+ brush.js 同一画法的三角形，经原有 Metal 管线；不用 ink-model-1.0。
-// 线宽倍数 = 网页 paintHand 的 widthScale（core/images/layout.js inkWidthScale：小格抬到最小物理线宽 1.2pt），由页面视图给。
+// 实现（NativeInkSurfacePainter）：原生书写面 NativeInkView（drawable = false）只读回放——R11-A 起它画的就是网页 buildStroke
+// 的同一算法（WebInk.swift，参数 WebInkParams.current = 页面下发的 ink 表）+ 同一画法的三角形，经原有 Metal 管线；不用 ink-model-1.0。
+// 线宽倍数 = 网页 paintHand 的 widthScale（inkWidthScale：小格抬到最小物理线宽 1.2pt），由页面视图给。
 // 结果页的墨迹纳入逐屏对比（parity.config.json ink：NP-07 平均笔宽 ±10%、NP-22 墨区 IoU，与写字页同一口径）。
 
 /// 画墨的实现。

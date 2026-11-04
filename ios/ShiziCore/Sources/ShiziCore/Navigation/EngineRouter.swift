@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.9a：引擎的导航镜像（src/ui/engine.js createEngineRouter 的 Swift 版；同一套改栈语义 push / replace / pop / tab / params / restore）。
+// B4.9a：引擎的导航镜像（createEngineRouter 的 Swift 版；同一套改栈语义 push / replace / pop / tab / params / restore）。
 // 真相仍在原生 NativeStage 的栈：原生发起的导航 apply(intent, origin: native) 只记账、回宿主消息；「去哪」的规则（首页主按钮、结果页离开……）
 // 发起的 request(intent) 记上之后把 {op:'nav', …} 交给 post（原生照做、存栈），宿主消息紧跟着交给 deliver。
 // 来源记账（planPaper / noteNativePlan）在 PaperPlanner；宿主消息（hostBodies）由 hosts 回调算。
@@ -38,9 +38,9 @@ public final class EngineRouter {
     public var post: (JSObject) -> Void = { _ in }
     /// 宿主消息交给原生（按序）。
     public var deliver: ([HostBody]) -> Void = { _ in }
-    /// 转场记录（engine.js account 的 traceNav：'push:native' / 'pop:native' / 'replace:native'——这一下交给原生画）。只给 QA 探针读（webNav，B4.9c）。
+    /// 转场记录（account 的 traceNav：'push:native' / 'pop:native' / 'replace:native'——这一下交给原生画）。只给 QA 探针读（webNav，B4.9c）。
     public var trace: (String) -> Void = { _ in }
-    /// 原生发起的导航：订阅者（路由提示写入是一次同步落库）推迟到转场之后（engine.js NATIVE_EMIT_DELAY_MS）；nil = 立即。
+    /// 原生发起的导航：订阅者（路由提示写入是一次同步落库）推迟到转场之后（NATIVE_EMIT_DELAY_MS）；nil = 立即。
     public var deferNativeEmit: ((@escaping () -> Void) -> Void)?
 
     public init(screens: NavScreens, paper: PaperPlanner, defaultTab: String = "home") {
@@ -118,7 +118,7 @@ public final class EngineRouter {
         transition = .object(t)
     }
 
-    /// 来源记账（engine.js account）：进写字页的计划随 open 交给原生；返回时删来源。
+    /// 来源记账（account）：进写字页的计划随 open 交给原生；返回时删来源。
     private func account(_ t: JSValue) {
         guard JS.truthy(t["from"]), JS.truthy(t["to"]) else { return }
         let kind = t["kind"]?.stringValue ?? ""

@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/home.js；D83（调度规则 v2）起首页显示今天的进度：没写完「今天的练习 n / N」，写完「今天完成了 ✓」+「再来一组」。
+// 首页视图模型。D83（调度规则 v2）起首页显示今天的进度：没写完「今天的练习 n / N」，写完「今天完成了 ✓」+「再来一组」。
 public enum HomeView {
     typealias V = ViewSupport
     static func lineOf(_ s: JSValue, slot: String, plan: TodayPlan.Progress? = nil) -> JSValue {

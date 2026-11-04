@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/query.js 的 1:1 移植：查字 / 自己选字组件的纯逻辑（M2-0；D21；04 R-Q01–R-Q06；03 P42 / P43 / P45）。
+// 1:1 移植自原 JS 版：查字 / 自己选字组件的纯逻辑（M2-0；D21；04 R-Q01–R-Q06；03 P42 / P43 / P45）。
 // 不碰存储与文案表：文案由调用方按这里给出的 copy 键取，数字 / 字作为占位符值一并给出（{key, vars}）。
 // 汉字判定 = \p{Script=Han}（生成的 unicode-scripts.json）；拼音比较键的去声调 = NFD 去组合符号（U+0300–U+036F）。
 

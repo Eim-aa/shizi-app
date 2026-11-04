@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/ink-math.js 的 1:1 移植（B4.3）：笔迹管线（01 §6.2；D09 / D10）+ 存储编码 / 解码 / 抽点（01 §3.5）。
+// 1:1 移植自原 JS 版（B4.3）：笔迹管线（01 §6.2；D09 / D10）+ 存储编码 / 解码 / 抽点（01 §3.5）。
 //   buildStroke（原始采样 → 带宽度的点列）、simplifyStroke / thinStroke（存储前抽点）、
 //   Ink v3 打包编码 / 解码（encodeInk，P78）、旧 v2 读取、Ink v4 原始点编码 / 解码（encodeInkRaw，B2.3 / DQ2-C）、会话现场的原始笔画行。
 // 与 App 里已有的 WebInk（书写面实时用）与 InkStoredInk（v4 解包）同一算法；ShiziCore 这份是规则层的字节级等价版（JS 为准）：
@@ -62,7 +62,7 @@ public struct BuiltStroke {
     public var pressure: Bool
 }
 
-/// 笔迹参数表（ink-math.js inkParams：policy.ink 的 14 个键 + 已定规格 INK_SPEC），键名与网页相同。
+/// 笔迹参数表（inkParams：policy.ink 的 14 个键 + 已定规格 INK_SPEC），键名与网页相同。
 public struct InkParams: Equatable {
     public var base: Double, lo: Double, hi: Double
     public var pressureLo: Double, pressureGain: Double, pressureHi: Double
@@ -160,7 +160,7 @@ public struct InkOptions {
         for k in InkParams.tunableKeys { if case .number(let d)? = a[k], d.isFinite { overrides[k] = d } }
     }
 
-    /// ink-math.js params(opts)：policy 注入 → 其 ink 表；同名有限数值且不等于表值的键覆盖。
+    /// policy 注入 → 其 ink 表；同名有限数值且不等于表值的键覆盖。
     func params() throws -> InkParams {
         var table = policy != nil ? try InkParams(policy: policy) : InkParams.standard
         for k in InkParams.tunableKeys {
@@ -735,7 +735,7 @@ public enum InkMath {
         return a.map { $0.numberValue! }
     }
 
-    /// 旧 InkV2（JSON 数字编码）形状是否合法（与 core/schema.js 同口径，再加行长度一致）。
+    /// 旧 InkV2（JSON 数字编码）形状是否合法（与 Schema 同口径，再加行长度一致）。
     public static func isInkV2(_ ink: JSValue?) -> Bool {
         guard let ink = ink, case .object = ink, case .number(let v)? = ink["v"], v == 2, case .number(let c)? = ink["c"], c.isFinite, c > 0 else { return false }
         guard case .array(let s)? = ink["s"] else { return false }

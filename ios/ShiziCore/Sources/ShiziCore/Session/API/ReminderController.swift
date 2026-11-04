@@ -1,6 +1,6 @@
 import Foundation
 
-/// src/platform/reminder.js: platform delivery, debounce and cold-start queue are injected.
+/// Reminder controller: platform delivery, debounce and cold-start queue are injected.
 public final class ReminderController {
     public let store: Store
     public var deck: Reminder.Deck = .shared

@@ -1,7 +1,7 @@
 import Foundation
 
-// 记录域模型：meta / records（含折叠月）/ sched / ink / custom / wordOff。形状见 src/core/schema.js（01-架构设计 §3）。
-// 数字一律 Double（JS Number；整数字段由 Schema 校验保证是整数）。规范键序 = JS 写入处的字面量序（core/records.js makeRecord 等）。
+// 记录域模型：meta / records（含折叠月）/ sched / ink / custom / wordOff。形状见 Schema.swift（01-架构设计 §3）。
+// 数字一律 Double（JS Number；整数字段由 Schema 校验保证是整数）。规范键序 = JS 写入处的字面量序（makeRecord 等）。
 
 public struct Help: JSCodable, Equatable {
     public var hints: Double
@@ -177,7 +177,7 @@ public struct Meta: JSCodable, Equatable {
     }
 }
 
-/// sched 的一项（FSRS 紧凑卡归 core/fsrs，这里原样保留）。
+/// sched 的一项（FSRS 紧凑卡归 FSRS.swift，这里原样保留）。
 public struct SchedEntry: JSCodable, Equatable {
     public var fsrs: JSValue
     /// 到期日；null（练习范围学完等）为 nil。

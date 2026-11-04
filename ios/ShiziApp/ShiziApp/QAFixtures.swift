@@ -2,7 +2,7 @@
 import UIKit
 
 // QA-H1 数据驱动（B3.3）：一个状态 = 一个夹具文件 ios/ShiziApp/ShiziUITests/States/<状态>.json。
-// 原生取证、XCUITest（-shizi-qa-seed <状态>）与仓库里冻结的网页参考（scripts/native-ui/fixture-dev.mjs）读同一份；加一个状态只加文件，不改任何共享枚举 / switch / 脚本。
+// 原生取证、XCUITest（-shizi-qa-seed <状态>）与仓库里冻结的网页参考读同一份；加一个状态只加文件，不改任何共享枚举 / switch / 脚本。
 // 夹具 JSON 在 Debug 构建时由 scripts/sync-web-assets.sh 拷进 App 包的 QAStates/（Release 不含；verify-archive 同样靠「没有 NativeQAHarness / -shizi-qa」断言）。
 // B4.9：setup 的 op 由 Swift 执行（QAOps.swift QAFixtureRunner）；App 里没有网页，ready / steps 只认原生那一半（web / webTestid / js 字段只给网页参考）。
 //
@@ -17,7 +17,7 @@ import UIKit
 //   base        先整条跑另一个夹具（数据与导航），再跑本夹具的 setup / steps；只有顶层夹具收拾现有原生页
 //   clock       {"pin": "2026-10-22T09:00:00"}：造数据期间把应用时钟钉在这个时刻（每次读数 +5ms，顺序确定），造完（unpinClock 或 setup 结束）从那一刻起照常流逝；
 //               全 App 的钟随之平移（QAClock，B2.9b）。缺省 = 用真实时间
-//   setup       依次执行的造数据 / 导航操作：[{op, …}]，op 见 QAOps.swift（与 States/_ops/<op>.js 同名同参）
+//   setup       依次执行的造数据 / 导航操作：[{op, …}]，op 见 QAOps.swift（与原 JS 夹具 op 同名同参）
 //   ready       等页面出现：{native: "write"|"result"|"redo"|"id:<accessibilityIdentifier>", timeout: 秒}（web / webSelector 只给网页参考）
 //   settleBefore 页面出现后先等几毫秒（0.4s 防误点等）
 //   steps       界面上的操作：{tap:{native:<id>, nativeSelector?:<选择器名>}, times, gap?} | {wait:ms} | {ready:{…}}
@@ -50,7 +50,7 @@ struct QAFixture {
         return QAFixture(name: name, json: obj)
     }
 
-    /// 参与逐屏取证的状态名（parity != false、native == true、不是内部夹具），按 order 再按文件名排序（与 scripts/native-ui/registry.mjs 同一规则）。
+    /// 参与逐屏取证的状态名（parity != false、native == true、不是内部夹具），按 order 再按文件名排序。
     static func parityNames() -> [String] {
         guard let dir, let files = try? FileManager.default.contentsOfDirectory(atPath: dir.path) else { return [] }
         let all = files.filter { $0.hasSuffix(".json") && !$0.hasPrefix("_") }.map { String($0.dropLast(5)) }.compactMap { load($0) }

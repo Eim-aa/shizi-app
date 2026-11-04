@@ -6,8 +6,8 @@ import UIKit
 // NativeStage 用 NSClassFromString 找类（不设共享登记表）：页面卡只新增自己的 Swift 文件，并在自己的 JS 屏文件里给 registerScreen 加 native:true。
 // 页面不持有业务状态：open 回包（view.<屏名>，宿主挂载时随消息带来，首帧不等桥）、changed 推送或引擎重新就绪时重拉同一个 view op。
 //
-// 页面骨架 = 网页 components/Page.js：44 页头（左「‹」图标按钮外缘对页边线、中间标题 17 / 500、右槽）+ 竖向滚动的正文（上 s4、左右页边、下 s8）。
-// 颜色 / 字号 / 间距 / 时长一律取 ShiziTokens（构建期从 tokens.json / tokens.css 生成），文案取 ShiziCopy；本文件不写数值与汉字。
+// 页面骨架 = 网页：44 页头（左「‹」图标按钮外缘对页边线、中间标题 17 / 500、右槽）+ 竖向滚动的正文（上 s4、左右页边、下 s8）。
+// 颜色 / 字号 / 间距 / 时长一律取 ShiziTokens（构建期从 tokens.json / 生成），文案取 ShiziCopy；本文件不写数值与汉字。
 
 /// 当前系统字号档位的长度令牌（pt；= 网页 --名 在该档位的计算值）与字体（系统字体，中文接苹方 UI 正文款 = NativeType.compose）。
 struct ShiziMetrics {
@@ -87,7 +87,7 @@ final class ShiziRowButton: UIButton {
     var composedText: String { [label.text, valueLabel.isHidden ? nil : valueLabel.text].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ") }
 }
 
-/// 网页 Chevron.js（icons.js chevron：8 × 13 的线形箭头，线宽 1.5、圆端圆角）。
+/// 网页（chevron：8 × 13 的线形箭头，线宽 1.5、圆端圆角）。
 enum ShiziChevron {
     static func image(_ color: UIColor, size: CGSize) -> UIImage {
         let fmt = UIGraphicsImageRendererFormat.preferred()
@@ -315,7 +315,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     func setTitle(_ text: String) {
         titleText = text
         if axLayout {
-            // AX 档（components/ax.js）：标题单独占页头第二行，左对齐、可折行、行高 lh17
+            // AX 档：标题单独占页头第二行，左对齐、可折行、行高 lh17
             titleLabel.numberOfLines = 0
             NativeType.set(titleLabel, text, font: metrics.font(17, .medium), color: color("ink1"), line: metrics.line("lh17"))
         } else {
@@ -326,7 +326,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     }
 
     private var titleText = ""
-    /// 系统字号在 AX1–AX5（网页 :root[data-ax] 的版式：components/ax.js）。
+    /// 系统字号在 AX1–AX5（网页 :root[data-ax] 的版式）。
     var axLayout: Bool { metrics.category.isAccessibilityCategory }
 
     override func viewDidLayoutSubviews() {
@@ -357,7 +357,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
         scroll.contentSize = CGSize(width: w, height: contentH)
     }
 
-    // MARK: 按钮与防误点（网页 Button.js createPressGuard：新状态后 pressGuard 内不响应；同一按钮两次按下也隔 pressGuard）
+    // MARK: 按钮与防误点（网页 createPressGuard：新状态后 pressGuard 内不响应；同一按钮两次按下也隔 pressGuard）
 
     private var pressGuard: CFTimeInterval {
         CFTimeInterval(((ShiziTokens.motion["timing"] as? [String: Any])?["pressGuard"] as? NSNumber)?.doubleValue ?? 0) / 1000

@@ -5,7 +5,7 @@ import Foundation
 extension CoreEngine {
     var rules: ScheduleRules { ScheduleRules(dates: dates) }
 
-    // ---- 参数校验（与 js-ops-b42.mjs 同一规则）----
+    // ---- 参数校验 ----
 
     static func objArg(_ a: JSObject, _ k: String) throws -> JSValue {
         let v = try required(a, k)

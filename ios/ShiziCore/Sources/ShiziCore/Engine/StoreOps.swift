@@ -34,7 +34,7 @@ final class StoreSession {
     }
 }
 
-/// 磁盘注入规则表 → failWhen（与 js-ops-b44.mjs makeFailWhen 同一规则：每条规则自己数命中次数）。
+/// 磁盘注入规则表 → failWhen（与 makeFailWhen 同一规则：每条规则自己数命中次数）。
 func makeFailWhen(_ rules: [JSObject]) -> (DiskWrite) -> DiskVerdict? {
     final class Box { var hits: [Int]; init(hits: [Int]) { self.hits = hits } }
     let box = Box(hits: Array(repeating: 0, count: rules.count))
@@ -61,7 +61,7 @@ func makeFailWhen(_ rules: [JSObject]) -> (DiskWrite) -> DiskVerdict? {
 }
 
 extension CoreEngine {
-    // ---- 参数（与 js-ops-b44.mjs 同一规则）----
+    // ---- 参数 ----
 
     static func arrArg(_ a: JSObject, _ k: String) throws -> [JSValue] {
         guard case .array(let arr) = try required(a, k) else { throw CoreError.badArgs(k + " must be an array") }
@@ -544,7 +544,7 @@ extension CoreEngine {
         },
     ]
 
-    /// 每个 B4.4 op 开始时清空「本步收到的通知」（与 js-ops-b44.mjs 同）。
+    /// 每个 B4.4 op 开始时清空「本步收到的通知」。
     static let b44Ops: [String: Op] = {
         var wrapped: [String: Op] = [:]
         for (name, fn) in b44Raw {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// src/session/write-api.js. Platform callbacks and elapsed `ms` belong to the host.
+/// Write-session API. Platform callbacks and elapsed `ms` belong to the host.
 public enum WriteAPI {
     static func plain(_ r: JSValue) -> JSValue {
         var error = JSObject([("kind", r["error"]?["kind"]?.stringValue.map(JSValue.string) ?? .string("generic"))])

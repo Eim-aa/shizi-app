@@ -1,6 +1,6 @@
 import Foundation
 
-// src/platform/reminder.js 的规则部分（B4.0 暂记 B4.5，B4.3 认领）：提醒的题目选取。
+// 规则部分（B4.0 暂记 B4.5，B4.3 认领）：提醒的题目选取。
 // 页面只管算内容：时间（settings.remind，缺省 policy.remindDefault）、题目（从今天起 8 天，每天取「到那天为止已到期」的字，
 // 按 P48 写错过优先、其次到期最久，已被前几天用过的字尽量不重复）、practicedToday（今天有没有 judged 记录，「今天」按提醒时刻归到的那一天，D66 ⑦）。
 // 不移植：createReminder / startReminder / inviteReminder（桥与设置页的运行时，仅网页；原生壳的提醒调度在 B4.5 之后另算）。

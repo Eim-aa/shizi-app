@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/lines.js. Measurement is injected per instance, with no DOM dependency.
+// ViewLines. Measurement is injected per instance, with no DOM dependency.
 public final class ViewLines {
     private var measurer: ((JSValue) throws -> JSValue)?
     public init() {}
@@ -11,7 +11,7 @@ public final class ViewLines {
     }
 }
 
-// src/core/line-starts.js: the pure registration / result contract. Actual text
+// Line starts: the pure registration / result contract. Actual text
 // measurement is injected by the renderer, exactly as it is in the JS module.
 enum ViewLineStarts {
     static var provider: ((String, String) throws -> JSValue)?

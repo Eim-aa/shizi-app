@@ -8,7 +8,7 @@ import ShiziCore
 // 空行忽略；EOF 退出 0。stderr 只在启动参数错时写。
 
 //   shizi-core-cli cards-dump
-//     D84：题库卡片展开（内容 / 治理 / 字体门禁用，取代 src/core/cards.js）。stdin 一份 JSON {seed, overrides}（缺省 = 包内 deck.json），
+//     D84：题库卡片展开（内容 / 治理 / 字体门禁用，取代原 JS 的 cards）。stdin 一份 JSON {seed, overrides}（缺省 = 包内 deck.json），
 //     stdout 一行一张卡：{card, cardKey, promptHTML, visibleHint, contentHint, instruction, libraries}（键序同 Cards 的 JSValue）。
 
 if CommandLine.arguments.dropFirst().first == "cards-dump" {

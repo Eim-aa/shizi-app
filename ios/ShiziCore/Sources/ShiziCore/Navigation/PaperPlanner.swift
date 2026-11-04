@@ -1,6 +1,6 @@
 import Foundation
 
-// B4.9a：写字页进出转场的来源记账（src/ui/paper-transition.js 引擎模式用到的那一半：没有 DOM，root = null）。
+// B4.9a：写字页进出转场的来源记账（引擎模式用到的那一半：没有 DOM，root = null）。
 // 记的东西与 JS 同一份：pending（这次点按）、sources（下层页面 id → 来源 / PUSHED / QUIET）、nativeLive（原生入口此刻的位置）、
 // nativePlans（宿主条目进来时的计划，最多 16 条）。D62：只有从首页（tab 根 home）页面上的元素进写字页才是纸展开 B1。
 public final class PaperPlanner {

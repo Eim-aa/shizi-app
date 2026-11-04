@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/library.js. Shared zone / wall calculations live in this
+// Library view. Shared zone / wall calculations live in this
 // file too, after their first consumers were ported earlier in the series.
 public enum LibraryView {
     typealias V = ViewSupport

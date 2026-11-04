@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/api/image.js. The task builder/renderer/persistence are injected by B4.6/host.
+// Image API. The task builder/renderer/persistence are injected by B4.6/host.
 // This is the complete action-dispatch envelope; it never draws or saves an image.
 extension PageAPI {
     static func image(_ op: String, _ a: JSObject, hooks: SessionActionHooks?) throws -> JSValue {

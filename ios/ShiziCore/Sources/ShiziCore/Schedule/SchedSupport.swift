@@ -1,9 +1,9 @@
 import Foundation
 
 // 调度规则（B4.2）共用的小工具：JS 取值语义（Number(x) / 真值 / Number.isInteger）、按码点判等的有序集合、稳定排序、
-// 记录查询（src/core/records.js 里选字与 FSRS 用到的那几个，逐行同语义）。
+// 记录查询（原 JS 里选字与 FSRS 用到的那几个，逐行同语义）。
 //
-// 记录（records.js）整体由 B4.3 移植；这里只放调度规则依赖的纯查询，名字带 Sched 前缀以免与 B4.3 的 `Records` 冲突，
+// 记录整体由 B4.3 移植；这里只放调度规则依赖的纯查询，名字带 Sched 前缀以免与 B4.3 的 `Records` 冲突，
 // 合并后可改为调用 B4.3 的同名函数（行为相同，转写单测两边都有）。
 
 // MARK: - JS 取值
@@ -235,7 +235,7 @@ extension Array {
     }
 }
 
-// MARK: - 记录查询（records.js 子集）
+// MARK: - 记录查询（子集）
 
 enum SchedRecords {
     /// 'r12' → 12；不合法 NaN。

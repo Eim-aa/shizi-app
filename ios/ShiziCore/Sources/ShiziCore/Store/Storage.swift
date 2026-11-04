@@ -1,8 +1,8 @@
 import Foundation
 
-// src/store/storage.js 的 1:1 移植（B4.4）：存储驱动——事务写（txn 日志 + 固定顺序 + 逐键读回 + 逆序回滚；事务后端 = 一个原生事务）、
+// 1:1 移植自原 JS 版（B4.4）：存储驱动——事务写（txn 日志 + 固定顺序 + 逐键读回 + 逆序回滚；事务后端 = 一个原生事务）、
 // 单键缩小写 writeOne、路由提示 writeRoute、启动修复 repair、探测 probe、故障注入（failNextWrite / interruptAfterWrite）。
-// 语义、失败分类与错误文案逐字照 JS（文件头的说明见 storage.js）。
+// 语义、失败分类与错误文案逐字照 JS。
 
 public final class StoreStorage {
     public let backend: KVBackend

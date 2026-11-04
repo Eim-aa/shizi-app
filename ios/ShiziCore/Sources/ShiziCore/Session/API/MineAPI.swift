@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/api/mine.js, session/prefs-ops.js.
 extension PageAPI {
     static func mine(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         if op == "mine.appearance" || op == "mine.groupSize" || op == "mine.mixTier" {

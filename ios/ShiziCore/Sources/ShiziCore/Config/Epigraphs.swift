@@ -1,6 +1,6 @@
 import Foundation
 
-// src/config/epigraphs.js 的移植：首页题记（上句、下句、出处），数据来自生成的 epigraphs.json；
+// 移植自原 JS 版：首页题记（上句、下句、出处），数据来自生成的 epigraphs.json；
 // 轮换按日「一年中第几天 mod 条数」（P23）。
 
 public struct Epigraph: Equatable {

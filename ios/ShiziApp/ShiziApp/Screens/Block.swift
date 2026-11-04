@@ -1,6 +1,6 @@
 import UIKit
 
-// B3.13 原生阻断页（网页 src/ui/screens/block/index.js，1:1 移植；视图模型 src/session/views/block.js blockView，App API view.block）。
+// B3.13 原生阻断页（照网页版 1:1 移植；视图模型 blockView，App API view.block）。
 // 屏名 ⇄ 类：block ⇄ ShiziScreen_block。
 //
 // 三种来由（blockReasonOf）：unavailable（存储探测不过）/ blocked（写失败且回滚也失败，内存状态仍在、可导出）/ migration（v1 → v2 导入失败）。
@@ -10,15 +10,15 @@ import UIKit
 //   文案全在 ShiziCopy（构建期生成）；来由取宿主带来的 params，没有时取 ShiziEngine.status（blocked(reason)）；
 //   可导出与否取宿主带来的 params，没有时问 block.exportable op；动作走 block.retry / block.export op。
 //
-// 版式（网页 block/index.js 的 .sz-block）：整页（无页头）、竖向居中；上内边距 s8 + 安全区、下 s8 + 安全区、左右页边；
+// 版式（网页的 .sz-block）：整页（无页头）、竖向居中；上内边距 s8 + 安全区、下 s8 + 安全区、左右页边；
 // 标题（宋 22 / 500）、说明逐行（15 墨二，块间 8）、按钮（主 / 次，块间 12）；块之间 group-gap。
 
 @objc(ShiziScreen_block)
 final class BlockScreen: ShiziScreenViewController {
-    /// 视图模型（views/block.js blockView）。
+    /// 视图模型（blockView）。
     struct View: Decodable {
         struct ExportFail: Decodable { let text: ShiziCopyRef; let cancel: ShiziCopyRef; let retry: ShiziCopyRef }
-        /// 网页量出来的折行点（每一行从第几个字开始；views/block.js blockView 的 lines）。
+        /// 网页量出来的折行点（每一行从第几个字开始；blockView 的 lines）。
         struct Lines: Decodable { let body: [[Int]?]?; let migration: [Int]?; let still: [Int]? }
         let kind: String
         let title: ShiziCopyRef

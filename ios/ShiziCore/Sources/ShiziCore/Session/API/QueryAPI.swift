@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/api/query.js: pure state actions and models. Navigation hooks stay with host.
+// Query API: pure state actions and models. Navigation hooks stay with host.
 extension PageAPI {
     static func queryLines(_ kind: String, _ text: String, _ hooks: SessionActionHooks?) throws -> JSValue? {
         guard !text.isEmpty, let fn = hooks?.queryLayout[kind] else { return nil }

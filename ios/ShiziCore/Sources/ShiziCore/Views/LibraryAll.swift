@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/library-all.js
 public enum LibraryAllView {
     typealias V = ViewSupport
     static let sorts = ["recent", "py", "age"], filters = ["due", "shaky", "known", "unw", "custom"]

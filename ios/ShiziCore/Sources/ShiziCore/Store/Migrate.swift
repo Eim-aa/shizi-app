@@ -1,8 +1,8 @@
 import Foundation
 
-// src/store/migrate.js 的 1:1 移植（B4.4）：v1 → v2 转换（convertV1，纯函数）、读 v1 键（readV1）、v1 备份 → v2 备份（legacyBackupToV2）、
+// 1:1 移植自原 JS 版（B4.4）：v1 → v2 转换（convertV1，纯函数）、读 v1 键（readV1）、v1 备份 → v2 备份（legacyBackupToV2）、
 // 设备迁移（runMigration / bootMigration：一次不回收的 commit，核对 meta 后删旧大键）、P53 回退窗口（releaseLegacyKeys）。
-// 转换规则逐条照 JS（文件头 01 §12 的说明见 migrate.js）；报告、记录、调度项、墨迹的键序与 JS 相同。
+// 转换规则逐条照 JS；报告、记录、调度项、墨迹的键序与 JS 相同。
 
 public enum Migrate {
     /// v1 键（声明顺序同 JS V1_KEYS）。
@@ -188,7 +188,7 @@ public enum Migrate {
         try ScheduleRules(dates: dates).spreadDue(sched, today: today, perDay: perDay)
     }
 
-    /// fsrs.js serializeCard（v1 卡对象 → CompactCard）。
+    /// serializeCard（v1 卡对象 → CompactCard）。
     static func serializeCard(_ card: JSValue, _ rules: ScheduleRules) throws -> JSValue {
         guard case .object(let c) = card else { throw CoreError.type("serializeCard expects a card object") }
         func n(_ k: String) -> JSValue { .number(JS.numberOr0(c[k])) }

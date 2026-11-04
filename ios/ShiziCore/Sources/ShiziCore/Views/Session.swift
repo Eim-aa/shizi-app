@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/session.js
 public enum SessionView {
     public static func noneView(_ a: JSObject = JSObject()) -> JSValue {
         let exhausted = JS.truthy(a["exhausted"]), pick = JS.truthy(a["pick"])

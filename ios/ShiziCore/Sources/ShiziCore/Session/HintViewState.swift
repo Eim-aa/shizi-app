@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/ops/hint.js: pure presentation state; no drawing or platform clocks.
+// Hint-op view state: pure presentation state; no drawing or platform clocks.
 public enum HintViewState {
     static func number(_ v: JSValue?) -> Double { JS.numberOr0(v).rounded(.towardZero) }
     public static func initial(_ key: JSValue, stored: JSValue?, written: JSValue? = nil) -> JSValue {

@@ -2,9 +2,9 @@ import CoreText
 import UIKit
 
 // B3.8 字库子页（原生）的共用件。
-// 网页标准答案：src/ui/screens/library/{list,all,switch}.js + src/session/views/library-*.js。
+// 标准答案是原先的网页字库子页。
 //
-// 取证口径（scripts/native-ui/elements.mjs + App 内 NativeQAHarness）：
+// 取证口径（App 内 NativeQAHarness）：
 //   网页的行 / 格子是 <button>，取证脚本跳过按钮的子节点；原生这边同样把字放在按钮的子视图里（不单独成可取证元素），
 //   按钮自己给「整块文字」（currentTitle）、颜色、字号、可点状态与图标框。
 //   原生按钮不画文字（titleLabel 留空），所以原生没有文字框 → 对比按按钮外框比（网页那一侧有文字框时也落到按钮外框）。
@@ -96,7 +96,7 @@ final class ShiziPrimaryButton: ShiziLineButton {
     }
 }
 
-/// 练习字字形（网页 components/PracticeGlyph.js：hanzi-writer 轮廓，每笔一条路径，1024 单位、基线 900）。
+/// 练习字字形（网页：hanzi-writer 轮廓，每笔一条路径，1024 单位、基线 900）。
 /// face = 字面占格比例（墙 0.8 / 清单行 0.7 / 占满 1/1.1）；hollow = 双钩（描边不填，自选未写）。
 /// 几何与网页同一个仿射：1024 方框占格 face × 1.1，居中。
 enum LibraryGlyph {
@@ -131,7 +131,7 @@ enum LibraryGlyph {
     }
 }
 
-/// 本人笔迹小图（网页 write/compare.js 的 InkMini：把本人的笔画画在一张方卡里）。
+/// 本人笔迹小图（网页的 InkMini：把本人的笔画画在一张方卡里）。
 /// 点是书写格 345 单位空间里的 {x, y, w}（API 给的墨迹），按卡宽等比缩放。
 final class LibraryInkView: UIView {
     struct Point: Decodable { let x: Double; let y: Double; let w: Double? }
@@ -170,7 +170,7 @@ final class LibraryInkView: UIView {
     }
 }
 
-/// 网页 icons.js 的线形图标（线宽 1.5、圆端圆角；本卡只用到勾与查找）。
+/// 网页的线形图标（线宽 1.5、圆端圆角；本卡只用到勾与查找）。
 enum LibraryIcon {
     /// 勾（14 栅格；清单选中圆里，纸色）。
     static func check(_ color: UIColor, size: CGFloat = 14) -> UIImage {
@@ -181,7 +181,7 @@ enum LibraryIcon {
         }
     }
 
-    /// 查找（22 栅格，视觉 18；网页 icons.js search）。
+    /// 查找（22 栅格，视觉 18；网页 search）。
     static func search(_ color: UIColor, size: CGFloat = 18) -> UIImage {
         let fmt = UIGraphicsImageRendererFormat.preferred()
         fmt.opaque = false
@@ -239,13 +239,13 @@ final class LibraryPlaceholderView: UIView {
     }
 }
 
-/// 字库子页的共用底座：页头右槽（文字按钮）+ 底栏（网页 Page.js 的 .sz-page__foot）+ 三段式（网页 FailBlock.js）。
+/// 字库子页的共用底座：页头右槽（文字按钮）+ 底栏（网页的 .sz-page__foot）+ 三段式。
 /// 三个子页各自直接继承 ShiziScreenViewController（原生屏与 Swift 类一一对应是全 App 的约定），共用的东西放这里、由屏幕持有。
 /// 标题的横向位置随右槽宽度变（网页 .sz-page__title 在两端槽之间居中，右槽比 44 宽时标题跟着左移）。
 final class LibraryScreenKit {
     /// 页头右槽的按钮（没有右槽的屏是 nil）。
     private(set) var trail: ShiziLineButton?
-    /// AX 档右槽按钮的高（网页 components/ax.js 的 min-height；非 AX 档用页头名义高 44）。
+    /// AX 档右槽按钮的高（网页的 min-height；非 AX 档用页头名义高 44）。
     var trailHeight: CGFloat = 44
     /// 页头底（正文区上沿；AX 档页头折成两行，正文从第二行下面开始）。
     /// 正文按它算可用高（网页 .sz-page__body 的高度 = 屏高 − 页头高 − 底栏高）。
@@ -353,7 +353,7 @@ final class LibraryScreenKit {
     }
 
     /// 页头：标题在两端槽之间居中（网页 .sz-page__title 的流：右槽宽 → 标题的可用区间跟着变）+ 右槽按钮的位置。
-    /// AX 档（网页 components/ax.js）：页头折成两行——第一行左槽（返回）与右槽（文字按钮，min-height = max(44, 1.3em + 12)），
+    /// AX 档：页头折成两行——第一行左槽（返回）与右槽（文字按钮，min-height = max(44, 1.3em + 12)），
     /// 第二行是标题（可折行、左对齐、行高 lh17、下内边距 6）。左槽在这行里竖向居中。
     func layoutHeader(trailButtonWidth: CGFloat, trailSlotWidth: CGFloat) {
         guard let screen else { return }
@@ -419,11 +419,11 @@ enum LibraryCommon {
         return Double(scaleK(category)) >= limit
     }
 
-    /// AX 档文字按钮的最小高（网页 components/ax.js：min-height: max(44px, calc(1.3em + 12px))，em = 按钮自己的字号）。
+    /// AX 档文字按钮的最小高（网页：min-height: max(44px, calc(1.3em + 12px))，em = 按钮自己的字号）。
     static func axTextButtonHeight(fontSize: CGFloat) -> CGFloat { max(44, 1.3 * fontSize + 12) }
 
-    /// 网页的 AX 档位（0 = 不是 AX 档；1–5 = AX1–AX5）。网页 platform/text-size.js 给 <html> 写 data-ax，
-    /// tokens.css 按档覆盖 --fsN / --lhN / --btn-h；原生这边同一张表（ShiziKitTokens.json 的 type.categories[*].ax）。
+    /// 网页的 AX 档位（0 = 不是 AX 档；1–5 = AX1–AX5）。网页版给 <html> 写 data-ax，
+    /// 样式表按档覆盖 --fsN / --lhN / --btn-h；原生这边同一张表（ShiziKitTokens.json 的 type.categories[*].ax）。
     static var axLevel: Int {
         let cats = (ShiziTokens.root["type"] as? [String: Any])?["categories"] as? [String: Any]
         let name = ShiziTokens.categoryName(UIApplication.shared.preferredContentSizeCategory)
@@ -649,7 +649,7 @@ enum LibraryText {
 
     /// 按网页量出来的折行点把一段文字接成多行（行之间显式换行）。
     /// 网页的 text-wrap: pretty 段落（WebKit 按整段均衡各行长度）折行点由页面用同一组 CSS 量出
-    /// （src/ui/screens/library/web-metrics.js），原生按这些折行点排：行数与每行的字与网页一致。
+    /// 折行点，原生按这些折行点排：行数与每行的字与网页一致。
     /// 没有折行点（页面外 / 没量到）→ 原样返回，原生按自己的宽度折行。
     static func joined(_ text: String, _ starts: [Int]?) -> String {
         guard let starts, !starts.isEmpty, !text.isEmpty else { return text }

@@ -1,14 +1,14 @@
 import Foundation
 
 // store 的持久化后端（B4.4）：Storage 兼容接口 + 事务后端（原生 SQLite），以及测试 / 差分用的两个「磁盘」替身。
-//   KVBackend            ≡ storage.js 眼里的后端：Web Storage 接口（length / key / getItem / setItem / removeItem），
-//                          有 applyBatch 的是事务后端（src/store/native-backend.js 的 NativeBackend）。
+//   KVBackend            ≡ 原 JS 存储驱动眼里的后端：Web Storage 接口（length / key / getItem / setItem / removeItem），
+//                          有 applyBatch 的是事务后端（原 JS 的 NativeBackend）。
 //   StoreJSError         JS 里抛来抛去的错误对象（name / message / code / kind / key …）；分类、文案与 JS 逐字相同（差分比回包字串）。
-//   NativeMirrorBackend  ≡ native-backend.js NativeBackend：内存镜像 + 原生传输（apply 一个事务，成功后才更新镜像）。
-//   UnavailableBackend   ≡ native-backend.js UnavailableBackend：任何读写都抛错（库打不开 → store 不可用）。
-//   MemoryDisk           ≡ test/store/helpers.mjs MemoryStorage（配额、failWhen、interruptAfterWrites、failReads）。
-//   FakeNativeDisk       ≡ test/store/native-fake.mjs FakeNativeDb（原生 SQLite 的替身：事务、校验和、断电、failOp）。
-//   NativeChecksum       ≡ src/platform/native-store.js checksum / digestRows（UTF-8 字节数 + FNV-1a 32）。
+//   NativeMirrorBackend  ≡ 原 JS 的 NativeBackend：内存镜像 + 原生传输（apply 一个事务，成功后才更新镜像）。
+//   UnavailableBackend   ≡ 原 JS 的 UnavailableBackend：任何读写都抛错（库打不开 → store 不可用）。
+//   MemoryDisk           ≡ 原 JS 测试里的 MemoryStorage（配额、failWhen、interruptAfterWrites、failReads）。
+//   FakeNativeDisk       ≡ 原 JS 测试里的 FakeNativeDb（原生 SQLite 的替身：事务、校验和、断电、failOp）。
+//   NativeChecksum       ≡ 原 JS 的 checksum / digestRows（UTF-8 字节数 + FNV-1a 32）。
 
 // MARK: - 错误
 
@@ -121,7 +121,7 @@ enum UTF16Order {
     static func length(_ s: String) -> Int { s.utf16.count }
 }
 
-// MARK: - 校验和（src/platform/native-store.js）
+// MARK: - 校验和
 
 public enum NativeChecksum {
     public static let offset: UInt32 = 0x811c9dc5
@@ -163,9 +163,9 @@ public enum NativeChecksum {
     }
 }
 
-// MARK: - 原生传输与镜像后端（src/store/native-backend.js）
+// MARK: - 原生传输与镜像后端
 
-/// 原生调用失败（src/platform/native-store.js NativeStoreError）。E_TIMEOUT / E_TRANSPORT = 结果未知。
+/// 原生调用失败（NativeStoreError）。E_TIMEOUT / E_TRANSPORT = 结果未知。
 public struct NativeCallError: Error {
     public let code: String
     public let message: String
@@ -229,7 +229,7 @@ public final class NativeMirrorBackend: KVBackend {
         sortedKeys = nil
     }
 
-    /// native-backend.js toStorageError：E_FULL → QuotaExceededError；其余 NativeStoreError（code 原样）。
+    /// E_FULL → QuotaExceededError；其余 NativeStoreError（code 原样）。
     static func storageError(_ e: NativeCallError, keys: [String]) -> StoreJSError {
         let out = StoreJSError(.plain, name: e.code == "E_FULL" ? "QuotaExceededError" : "NativeStoreError", message: e.message)
         out.code = .string(e.code)
@@ -315,7 +315,7 @@ extension TestDisk {
 
 func jsEntryBytes(_ key: String, _ value: String) -> Double { Double(UTF16Order.length(key) + UTF16Order.length(value)) * 2 }
 
-// MARK: - MemoryDisk（test/store/helpers.mjs MemoryStorage）
+// MARK: - MemoryDisk（MemoryStorage）
 
 public final class MemoryDisk: KVBackend, TestDisk {
     private var keysInOrder: [String] = []
@@ -425,7 +425,7 @@ public final class MemoryDisk: KVBackend, TestDisk {
     public func cloneDisk() -> TestDisk { MemoryDisk(quotaBytes: quotaBytes, initial: snapshot()) }
 }
 
-// MARK: - FakeNativeDisk（test/store/native-fake.mjs FakeNativeDb）
+// MARK: - FakeNativeDisk（FakeNativeDb）
 
 public final class FakeNativeDisk: TestDisk {
     private var map = [JSKey: String]()
@@ -534,7 +534,7 @@ public final class FakeNativeDisk: TestDisk {
         return ops.count
     }
 
-    /// native-fake.mjs handle + 传输的 parseResponse：成功回结果对象，失败抛 NativeCallError（message = `${op}: ${message || code}`）。
+    /// handle + 传输的 parseResponse：成功回结果对象，失败抛 NativeCallError（message = `${op}: ${message || code}`）。
     public func call(_ op: String, _ payload: JSObject) throws -> JSObject {
         calls.append(op)
         do {

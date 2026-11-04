@@ -1,6 +1,6 @@
 import UIKit
 
-// ShiziKit（B3.1）：页头的几何（网页 Page.js .sz-page__head；B2 R9-A 写字页 / B2.7 结果页量出的数值，原来各页各写一份）。
+// ShiziKit（B3.1）：页头的几何（网页 .sz-page__head；B2 R9-A 写字页 / B2.7 结果页量出的数值，原来各页各写一份）。
 // 页头名义高 44；左槽 [页边, 页边 + 44]，图标按钮 44 × 44、图标描边外缘落在页边线上（各图标的偏移不同）；中间在两槽之间、各让 8；
 // 只给读屏的页标题（网页 .sz-page__title--hidden）是页边左 1、页头中线附近的 1 × 1。
 enum ShiziPageHeader {
@@ -11,7 +11,7 @@ enum ShiziPageHeader {
     /// 中间（进度 / 标题）离两槽的距离。
     static let centerGap: CGFloat = 8
 
-    /// 页头图标：按钮框相对页边线的偏移 = 图标描边外缘到按钮框边的距离（网页 icons.js 路径在 44 框里的位置）。
+    /// 页头图标：按钮框相对页边线的偏移 = 图标描边外缘到按钮框边的距离（网页版路径在 44 框里的位置）。
     enum Icon {
         case back, close, share
 

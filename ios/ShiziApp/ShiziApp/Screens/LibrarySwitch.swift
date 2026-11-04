@@ -1,6 +1,6 @@
 import UIKit
 
-// B3.8 原生字库子页 · 换库页（网页 src/ui/screens/library/switch.js，1:1 移植；视图模型 src/session/views/library-switch.js libraryRows，
+// B3.8 原生字库子页 · 换库页（照网页版 1:1 移植；视图模型 libraryRows，
 // App API view.library-switch / library.switch）。
 // 屏名 ⇄ 类：library-switch ⇄ ShiziScreen_library_switch。推入页（「我的 › 设置 › 练习 › 练习范围」推入）。
 //
@@ -114,7 +114,7 @@ final class LibrarySwitchScreen: ShiziScreenViewController {
 
     // MARK: 动作
 
-    /// 点一行：当前库 → 返回；别的库 → 直接换（网页 switch.js 的 pick）。
+    /// 点一行：当前库 → 返回；别的库 → 直接换（网页的 pick）。
     private func pick(_ rv: RowView?) {
         guard let rv else { return }
         guard let idx = rowViews.firstIndex(where: { $0 === rv }), idx < model.count else { return }
@@ -130,7 +130,7 @@ final class LibrarySwitchScreen: ShiziScreenViewController {
         choose(row.id)
     }
 
-    /// 换库（网页 switch.js 的 choose：成功即返回，失败就地三段式）。
+    /// 换库（网页的 choose：成功即返回，失败就地三段式）。
     private func choose(_ id: String) {
         Task { @MainActor [weak self] in
             guard let self, let engine = self.stage?.engine else { return }

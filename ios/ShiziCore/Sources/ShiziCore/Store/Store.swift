@@ -1,6 +1,6 @@
 import Foundation
 
-// src/store/store.js 的 1:1 移植（B4.4）：单例状态 + commit 事务 + 订阅（01-架构设计 §4）。
+// 1:1 移植自原 JS 版（B4.4）：单例状态 + commit 事务 + 订阅（01-架构设计 §4）。
 //
 // commit(label, mutate, reclaim:, replace:) → {ok:true, keys, recovered} | {ok:false, error:{kind, label, …}}，步骤照 JS：
 //   草稿（按域拷贝）→ mutate(&draft, &ctx) → 脏键（序列化后与上次落盘的字串比）→ 形状校验 → 写前估算回收 → storage.writeAll

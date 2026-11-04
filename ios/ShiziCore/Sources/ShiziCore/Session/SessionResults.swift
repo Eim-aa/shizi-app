@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/ops/{line,result,work,detail}.js. Shared correction, distinct guards/labels.
+// Line / result / work / detail ops. Shared correction, distinct guards/labels.
 public enum SessionResults {
     static func locate(_ state: JSObject, _ a: JSObject) -> (session: JSValue, slot: String, ended: Bool)? {
         let slots = JS.truthy(a["slot"]) ? [JS.string(a["slot"])] : ["A", "B"]

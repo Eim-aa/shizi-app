@@ -1,13 +1,13 @@
 import UIKit
 
-// B3.8 原生字库子页 · 清单页（网页 src/ui/screens/library/list.js，1:1 移植；视图模型 src/session/views/library-list.js listModel，
+// B3.8 原生字库子页 · 清单页（照网页版 1:1 移植；视图模型 listModel，
 // App API view.library-list / library.list.start）。
 // 屏名 ⇄ 类：library-list ⇄ ShiziScreen_library_list。推入页（不是 tab 根页）。
 //
-// 版式按网页 CSS 逐项排（.sz-list* / .sz-lrow* / Button.js / EmptyState.js），数值全部取 ShiziTokens：
+// 版式按网页 CSS 逐项排（.sz-list* / .sz-lrow*），数值全部取 ShiziTokens：
 //   页头：标题 + 右槽「全选 / 全不选」；正文：标题（先练这 N 个）+ 一句说明 + 逐行清单（圆圈勾选 / 标准字 / 词语 / 小字 / 笔迹小图 / ›）+ 其余折叠行 + 末尾一句；
 //   底栏：一句提示 + 主按钮（≥2「练这些字」/ 1「练这个字」/ 0「先选一个字」禁用）。
-// 空态：虚框装饰字 + 标题 + 一句（网页 EmptyState.js）。
+// 空态：虚框装饰字 + 标题 + 一句。
 // 写入（开组）一律经 library.list.start op 调网页同一个函数；失败（D07）就地三段式。
 
 /// 一行（网页 .sz-lrow）：圆圈 + 标准字 + 词语 / 小字 + 笔迹小图 + chevron。
@@ -118,7 +118,7 @@ final class LibraryListScreen: ShiziScreenViewController {
         let allSelected: Bool
     }
 
-    /// 网页量出来的值（B3.8）：说明句是 text-wrap: pretty 的段落，折行点由页面用同一组 CSS 量出（见 web-metrics.js）。
+    /// 网页量出来的值（B3.8）：说明句是 text-wrap: pretty 的段落，折行点由页面用同一组 CSS 量出。
     struct WebMetrics: Decodable {
         let top: [Int]?
         let hint: [Int]?
@@ -380,7 +380,7 @@ final class LibraryListScreen: ShiziScreenViewController {
 
     // MARK: 动作
 
-    /// 点圆圈：选上 ↔ 取消（网页 list.js 的 toggle）。
+    /// 点圆圈：选上 ↔ 取消（网页的 toggle）。
     private func toggleSelect(_ rv: LibraryListRowView?) {
         guard let rv, let m = model else { return }
         guard let idx = rowViews.firstIndex(where: { $0 === rv }), idx < m.rows.count else { return }
@@ -431,7 +431,7 @@ final class LibraryListScreen: ShiziScreenViewController {
         }
     }
 
-    /// 开组（网页 list.js 的 start：startPicked(选中的字, {source:{view}})）。
+    /// 开组（网页的 start：startPicked(选中的字, {source:{view}})）。
     private func start() {
         guard let m = model else { return }
         let keys = m.rows.filter { $0.selected }.map { $0.cardKey }
@@ -448,7 +448,7 @@ final class LibraryListScreen: ShiziScreenViewController {
         }
     }
 
-    /// 点行看记录（网页 list.js 的 detailOpener：'detail' 屏）。
+    /// 点行看记录（网页的 detailOpener：'detail' 屏）。
     private func openDetail(_ rv: LibraryListRowView?) {
         guard let rv, let m = model else { return }
         guard let idx = rowViews.firstIndex(where: { $0 === rv }), idx < m.rows.count else { return }

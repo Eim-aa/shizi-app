@@ -1,7 +1,7 @@
 import Foundation
 
-// B4.9a：宿主消息（src/ui/engine.js hostBodies + 各页的消息构造：native-session.js writeOpenBody / writeCloseBody / redoOpenBody / redoCloseBody /
-// resultOpenBody / resultCloseBody、native-stage.js screenOpenMessage / nativeRunBelow）。新旧两个栈 → 给原生的 open / close / result-open …，
+// B4.9a：宿主消息（hostBodies + 各页的消息构造：writeOpenBody / writeCloseBody / redoOpenBody / redoCloseBody /
+// resultOpenBody / resultCloseBody、screenOpenMessage / nativeRunBelow）。新旧两个栈 → 给原生的 open / close / result-open …，
 // 消息格式与原来一字不差（原生两条通道的处理不变）。会话 API 与视图回包、时钟、平台量值由 HostIO 给（测试用桩，App 用 SwiftEngine）。
 
 public protocol HostIO: AnyObject {

@@ -1,6 +1,6 @@
 import Foundation
 
-/// ui/screens/result/native-view.js. Geometry and text only; rendering is the host's job.
+/// Result page native view. Geometry and text only; rendering is the host's job.
 public enum ResultPageView {
     public static func view(_ store: Store, _ a: JSObject, now: Double? = nil, shareAvailable: Bool = false) throws -> JSValue {
         let state = store.state

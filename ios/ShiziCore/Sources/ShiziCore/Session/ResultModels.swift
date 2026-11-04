@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/ops/result.js and result-api.js: base view and cell contract.
+// Result page base view and cell contract.
 public enum ResultModels {
     static func items(_ s: JSValue?, records: [JSValue]) -> [JSValue] {
         guard let s else { return records.map { JS.obj([("cardKey", $0["cardKey"]!), ("recordId", $0["id"]!), ("kind", $0["kind"]!)]) } }

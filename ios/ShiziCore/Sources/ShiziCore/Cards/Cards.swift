@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/cards.js 的 1:1 移植：SEED + 语境覆盖 → cards[]；持久身份 cardKey；四库；题面模型。
+// 1:1 移植自原 JS 版：SEED + 语境覆盖 → cards[]；持久身份 cardKey；四库；题面模型。
 // 卡片是 JSValue 对象（字段与键序同 JS 的 CARDS 构造：内容门禁的 protectedCardDataSha256 对键序敏感）。
 // 题面字串、四库名、缺省值读生成的 card-rules.json（Swift 源码不写汉字）。
 
@@ -201,7 +201,7 @@ public enum Cards {
         return out
     }
 
-    /// 纯字符串题面（与 #175 index.html promptHTML 逐字同形；另对 HTML 特殊字符转义）。
+    /// 纯字符串题面（与 #175 promptHTML 逐字同形；另对 HTML 特殊字符转义）。
     public static func promptHTML(_ card: JSValue, copy: JSObject? = nil) throws -> String {
         guard case .array(let segs)? = try promptModel(card, copy: copy)["segments"] else { return "" }
         return segs.map { seg -> String in
@@ -216,7 +216,7 @@ public enum Cards {
     }
 }
 
-/// 题库运行时访问（src/data/deck.js 的无 DOM 部分）：卡片列表与 cardKey 索引、可练谓词、「换掉这个词语」。
+/// 题库运行时访问（无 DOM 部分）：卡片列表与 cardKey 索引、可练谓词、「换掉这个词语」。
 public final class DeckCards {
     public let cards: [JSValue]
     let index: OMap<JSValue>
@@ -235,7 +235,7 @@ public final class DeckCards {
         index = map
     }
 
-    /// 测试替身（src/data/deck.js setCardResolver 的同一件事：QA 夹具 writeOverflowPrompt 把某张卡换掉）：回 nil 的键照常查题库。
+    /// 测试替身（setCardResolver 的同一件事：QA 夹具 writeOverflowPrompt 把某张卡换掉）：回 nil 的键照常查题库。
     public static var resolverOverride: ((String) -> JSValue?)?
 
     /// cardKey → 卡片（base:<字> 查题库；其余 nil）。

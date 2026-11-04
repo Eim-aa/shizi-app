@@ -1,6 +1,6 @@
 import Foundation
 
-/// src/data/etymology.js: one in-flight read; successful tables cache, failed reads retry.
+/// Etymology table provider: one in-flight read; successful tables cache, failed reads retry.
 public final class EtymologyProvider {
     public var loadRows: (() async throws -> JSValue?)?
     private var table: JSObject?

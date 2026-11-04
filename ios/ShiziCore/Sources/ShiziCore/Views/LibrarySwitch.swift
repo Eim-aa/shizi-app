@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/library-switch.js
 public enum LibrarySwitchView {
     public static func libraryNameRef(_ id: JSValue?) -> JSValue { ViewSupport.ref("R-L06.lib." + JS.string(id) + ".name") }
     public static func libraryDescRef(_ id: JSValue?) -> JSValue { ViewSupport.ref("R-L06.lib." + JS.string(id) + ".desc") }
@@ -14,7 +13,7 @@ public enum LibrarySwitchView {
     public static func libraryRows(_ state: JSValue?, libraries: JSValue? = nil, current: JSValue? = nil) -> JSValue {
         let selected = current ?? DeckIndex.shared.currentLibraryId(state?["settings"])
         let chars = judgedChars(state)
-        // library-switch.js：说明句「来源」的折行点（渲染器量；没注入 = null）
+        // 说明句「来源」的折行点（渲染器量；没注入 = null）
         let sourceStarts = ViewLineStarts.starts("library-switch-source", ViewSupport.ref("R-L06.sourceNote"))
         return .array(DeckIndex.shared.libraries.map { lib in
             let keys: [String]

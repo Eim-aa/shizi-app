@@ -46,9 +46,9 @@ final class SwiftEngineCore {
     let store: Store
     let runtime: SessionRuntime
     let host: EngineHost
-    /// 声音（判断声 j1 三变体轮换：haptics.js COMMIT_FEEDBACK 的声音一列 + sound.js keySound；落款声 s1 见 EngineHost.deps.seal）。
+    /// 声音（判断声 j1 三变体轮换：COMMIT_FEEDBACK 的声音一列 + keySound；落款声 s1 见 EngineHost.deps.seal）。
     var onSound: ((String, Double) -> Void)? { get { host.onSound } set { host.onSound = newValue } }
-    /// 判断声已经放过几次（sound.js keySound 的轮换计数）。
+    /// 判断声已经放过几次（keySound 的轮换计数）。
     var judgeCount = 0
     /// QA 造数据期间（QAOps.swift）：提交不是用户的，不放判断声、不动轮换计数。
     var quiet = false
@@ -71,7 +71,7 @@ final class SwiftEngineCore {
         return function == EngineOps.app && op == "view.mine" ? decorateMine(reply, width: args["width"]?.numberValue) : reply
     }
 
-    /// 「我的」页的折行点（ui/native-stage.js decorateReply → screens/mine/native-view.js decorateMineReply：页面侧在 view.mine 的回包上加 lines）。
+    /// 「我的」页的折行点（decorateReply → decorateMineReply：页面侧在 view.mine 的回包上加 lines）。
     private func decorateMine(_ reply: JSValue, width: Double?) -> JSValue {
         guard reply["ok"] == .bool(true), var view = reply["view"]?.objectValue else { return reply }
         func starts(_ kind: String, _ ref: JSValue?) -> JSValue {
@@ -88,7 +88,7 @@ final class SwiftEngineCore {
         return .object(out)
     }
 
-    /// 页面的 changed 推送（session/api/index.js createChangeFeed 的 Swift 版，同一组脏域规则）；界面状态的（离开撤销条）由宿主推。
+    /// 页面的 changed 推送（createChangeFeed 的 Swift 版，同一组脏域规则）；界面状态的（离开撤销条）由宿主推。
     func changeFeed(_ post: @escaping (JSValue) -> Void) -> () -> Void {
         host.onChanged = post
         let off = runtime.changed { post($0) }

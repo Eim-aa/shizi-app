@@ -5,7 +5,7 @@ import Foundation
 // 参数约定：记录 / 卡片 / 墨迹等都是原样 JSON 值；注入函数（hasInk 之类）用数据描述：{ids: [记录 id…], throwIds?: [抛错的记录 id…]}。
 
 extension CoreEngine {
-    // ---- 参数校验（与 js-ops-b43.mjs 的助手同一规则）----
+    // ---- 参数校验 ----
 
     static func has(_ a: JSObject, _ k: String) -> Bool { a[k] != nil }
 

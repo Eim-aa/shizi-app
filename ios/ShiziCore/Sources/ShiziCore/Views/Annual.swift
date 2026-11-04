@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/annual.js. Maps/Sets are serialized only at the op boundary.
+// Annual view. Maps/Sets are serialized only at the op boundary.
 public enum AnnualView {
     typealias V = ViewSupport
     struct Slice {

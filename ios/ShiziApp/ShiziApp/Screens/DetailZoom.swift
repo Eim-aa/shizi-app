@@ -1,6 +1,6 @@
 import UIKit
 
-// B3.7：字详情记录格的放大弹层（网页 records.js ZoomSheet：标题 = 「M月D日 · 写对 / 写错」、右上「完成」、本人墨一格（没有墨 = 「这一次没有留下笔迹」）、说明、改判主按钮）。
+// B3.7：字详情记录格的放大弹层（网页 ZoomSheet：标题 = 「M月D日 · 写对 / 写错」、右上「完成」、本人墨一格（没有墨 = 「这一次没有留下笔迹」）、说明、改判主按钮）。
 // 与改判弹层（ShiziChangeSheet）同一套呈现与手势：满宽贴底、上两角 24、遮罩 scrim、点遮罩 / 下滑 / 两指 Z 形 = 完成；
 // 呈现与转场用本文件自己的 DetailSheetPresentation / DetailSheetAnimator（NativeSheetPresentation 只认改判弹层来量高度，是共享件，这里不改它）。
 // 改判走 App API detail.correct（commitCorrectRecord：同一条记录只改 judgment；再点一次改回去，没有撤销条）；成功或 stale 关弹层，失败就地三段式（说明换「没改成，还是原来的结果。」+ [先不改 | 再试一次]）。
@@ -382,7 +382,7 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
         return v.y > 0 && v.y > abs(v.x) && scroll.contentOffset.y <= 0
     }
 
-    /// N3-6：左缘只移动最上面的弹层；提交后从松手位置淡出，取消则回弹（同 overlay-gesture.js）。
+    /// N3-6：左缘只移动最上面的弹层；提交后从松手位置淡出，取消则回弹（同）。
     @objc private func edgePanned(_ g: UIScreenEdgePanGestureRecognizer) {
         guard let container = presentationController?.containerView else { return }
         let dx = max(0, g.translation(in: container).x)

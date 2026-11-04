@@ -1,6 +1,6 @@
 import Foundation
 
-/// src/session/ops/judge.js: page lifetime cache, insertion order, eight records.
+/// Judge-op ink memory: page lifetime cache, insertion order, eight records.
 /// Recalling never promotes a record; remembering an existing id promotes it.
 public final class RecentInk {
     public static let page = RecentInk()

@@ -2,7 +2,7 @@ import UIKit
 
 // B3.11：原生图片预览弹层（L3 底部弹层）与失败提示条（L4）。
 //
-// 标准答案是网页的两处：components/image-preview.js（弹层）与 components/Toast.js（提示条）。
+// 标准答案是网页的两处：（弹层）与 （提示条）。
 // 版式逐项照网页（交接 §5.3）：底部弹层（满宽贴底、上两角 24、遮罩）、标题行（宋 22 / 30 + 右上「完成」）、
 //   预览台（比弹层深一档的底，高 340；图是放在上面的一张笺：3:4 → 225 × 300、1:1 → 270 × 270）、
 //   页点（6pt 圆点）、比例分段（3:4 / 1:1，60 × 38；AX 档竖排 56 高）、说明句（15 / 22 ink2）、「也放进来」（写错的字 + 小格，可换行）、
@@ -64,7 +64,7 @@ struct NativeImageRenderReply: Decodable {
     let image: NativeImagePicture
 }
 
-// MARK: - 预览板的尺寸（网页 components/image-preview.js PREVIEW_BOX：图按比例缩小后摆在台上）
+// MARK: - 预览板的尺寸（网页 PREVIEW_BOX：图按比例缩小后摆在台上）
 
 enum NativeImagePreviewBox {
     static func size(_ ratio: String) -> CGSize {
@@ -419,7 +419,7 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
         failRetry.addAction(UIAction { [weak self] _ in self?.onRetry() }, for: .touchUpInside)
         failBox.addSubview(failRetry)
 
-        // 下滑关闭（网页 Sheet.js createSheetDrag）
+        // 下滑关闭
         pan.delegate = self
         pan.addTarget(self, action: #selector(panned(_:)))
         panel.addGestureRecognizer(pan)
@@ -1469,7 +1469,7 @@ final class NativeImageChipButton: UIButton {
     /// 这里不再改 titleRect：按钮的内容内边已经把它推到 46，再改一次会把字挤没。
 }
 
-// MARK: - 失败提示条（L4；网页 components/Toast.js 的 failure 一支）
+// MARK: - 失败提示条（L4；网页的 failure 一支）
 
 /// 提示条（浮起的浅面 + 细边 + 阴影，D71；距底 110 + 安全区，左右页边 20，最小高 48，15 / 22，底边一条 2pt 计时线）。
 final class NativeImageToastView: UIView {

@@ -4,7 +4,7 @@ import UIKit
 
 // B4.9a：导航层在 Swift（缺省 swift 模式；计划 B3B4-原生化架构与计划.md §3.3 段 2、§10.x B3.F / B4.9a）。
 //
-// 原来只在 JS（src/ui/engine.js 引擎模式）的那一半——栈记账（route.save / stage.enter / stage.resync）、冷启动判定（route.plan：planColdStart、
+// 原来只在 JS（引擎模式）的那一半——栈记账（route.save / stage.enter / stage.resync）、冷启动判定（route.plan：planColdStart、
 // RESTORE_GUARDS）、提醒深链（deeplink.reminder：runDeepLink）、宿主消息（hostBodies）、来源记账（planPaper）、网页界面层的 stage.cover / fence /
 // under 与 shiziNativeNav——由 ShiziCore Navigation/ 的同一套规则答（当年 JS 是参考实现，D84 起 JS 对照退役）。
 // 「去哪」的规则（首页主按钮、结果页离开 / 再写一组、深链、开组失败、S02、查字……）由 EngineHost 调 SwiftNavigator 的同名入口：
@@ -42,7 +42,7 @@ final class AppHostIO: HostIO {
         for (k, v) in params?.objectValue?.entries ?? [] { a[k] = v }
         return placeholder(.view(name, a))
     }
-    func viewAsync(_ name: String) -> Bool { name == "detail" } // session/api/detail.js view.detail 是 async
+    func viewAsync(_ name: String) -> Bool { name == "detail" } // view.detail 是 async
     func now() -> Double { Date().timeIntervalSince1970 * 1000 }
     func undo(_ slot: String, _ sessionId: String) -> JSValue { nav.host.takeSkipUndo(slot, sessionId) }
     func leave(_ slot: String, _ sessionId: String) { _ = placeholder(.leave(slot, sessionId)) }
@@ -58,7 +58,7 @@ final class SwiftNavigator {
     private(set) var io: AppHostIO!
     weak var stage: NativeStage?
     private var attached = false
-    /// 宿主消息按序交出（engine.js deliver 的 chain）。
+    /// 宿主消息按序交出（deliver 的 chain）。
     private var chain: Task<Void, Never>?
     private var imageSeq = 0
 
@@ -81,7 +81,7 @@ final class SwiftNavigator {
         #if DEBUG
         router.trace = { SwiftNavigator.noteTrace($0) }
         #endif
-        // 原生发起的导航：订阅者（提示键写入是一次同步落库）推迟到转场之后（engine.js NATIVE_EMIT_DELAY_MS = 推入 + 一个淡化）
+        // 原生发起的导航：订阅者（提示键写入是一次同步落库）推迟到转场之后（NATIVE_EMIT_DELAY_MS = 推入 + 一个淡化）
         router.deferNativeEmit = { fn in
             let m = NativeNavMotion.current
             let ms = m.map { $0.pushMs + $0.phaseMs } ?? 450
@@ -94,7 +94,7 @@ final class SwiftNavigator {
     var router: EngineRouter { host.router }
 
     #if DEBUG
-    /// B4.9c：转场记录（engine.js account 的 traceNav 同一处、同一格式，最近 12 条）。swift 模式里导航不经页面，QA 探针的 webNav 读这里。
+    /// B4.9c：转场记录（account 的 traceNav 同一处、同一格式，最近 12 条）。swift 模式里导航不经页面，QA 探针的 webNav 读这里。
     private(set) static var traceLog: [String] = []
     static func noteTrace(_ s: String) {
         traceLog.append(s)
@@ -102,12 +102,12 @@ final class SwiftNavigator {
     }
     #endif
 
-    /// 视图请求的环境（native-stage.js viewEnv：页面宽与大字号档）。
+    /// 视图请求的环境（viewEnv：页面宽与大字号档）。
     static func viewEnv() -> JSObject {
         JSObject([("width", .number(Double(UIScreen.main.bounds.width))), ("ax", .number(Double(axLevel())))])
     }
 
-    /// 大字号档（text-size.js axLevelOf：AX1…AX5 → 1…5，其余 0）。
+    /// 大字号档（axLevelOf：AX1…AX5 → 1…5，其余 0）。
     static func axLevel() -> Int { NativeAXLayout.level() }
 
     // MARK: 宿主消息
@@ -261,7 +261,7 @@ final class SwiftNavigator {
         }
     }
 
-    /// 提醒深链的开组（reminder.js controller.openTarget；SwiftEngine 接到 ReminderController）。
+    /// 提醒深链的开组（controller.openTarget；SwiftEngine 接到 ReminderController）。
     var openReminder: ((String) -> Void)?
 
     // MARK: 「去哪」的规则（EngineHost 调）
@@ -292,7 +292,7 @@ final class SwiftNavigator {
     func setLive(_ key: String, _ live: JSValue?) { host.paper.setLive(.string(key), live) }
     @discardableResult func openCharDetail(_ char: String) throws -> Bool { try logged("openCharDetail") { try host.openCharDetail(.string(char)) } }
 
-    /// 写字页的导航（native-session.js WRITE_NAVIGATE）。
+    /// 写字页的导航（WRITE_NAVIGATE）。
     func writeBack() { host.writeBack() }
     func writeToResult(_ slot: JSValue, _ sessionId: JSValue, _ undo: JSValue?) throws { try logged("writeToResult") { try host.writeToResult(slot: slot, sessionId: sessionId, undo: undo) } }
     func writeToDetail(_ char: JSValue?) throws -> Bool { try logged("writeToDetail") { try host.writeToDetail(char: char) } }
@@ -304,7 +304,7 @@ final class SwiftNavigator {
     func resultRedo(_ chars: [JSValue]) throws -> Bool { try logged("resultRedo") { try host.resultRedo(chars) } }
     func leaveTo(_ leave: JSValue?) throws { try logged("leaveTo") { try host.leaveTo(leave) } }
 
-    /// 原生图片预览弹层（images-entry.js openNativePreview：结果页「分享」、字详情「做成图片」）。
+    /// 原生图片预览弹层（openNativePreview：结果页「分享」、字详情「做成图片」）。
     func openImagePreview(_ scope: JSObject) {
         imageSeq += 1
         var plain = JSObject([("kind", .string(["day", "month", "glyph", "annual"].contains(scope["kind"]?.stringValue ?? "") ? scope["kind"]!.stringValue! : "session"))])
@@ -322,7 +322,7 @@ final class SwiftNavigator {
         post(msg)
     }
 
-    /// 原生分享 / 外链失败的提示条（share-failed.js postNativeToast：按 kind 取 X-SHARE 文案，未知 kind 用通用句）。
+    /// 原生分享 / 外链失败的提示条（postNativeToast：按 kind 取 X-SHARE 文案，未知 kind 用通用句）。
     private var toastSeq = 0
     func postShareFailed(kind: String) {
         let keys = ["backup": "X-SHARE.backupFailed", "card": "X-SHARE.cardFailed", "link": "X-SHARE.linkFailed"]

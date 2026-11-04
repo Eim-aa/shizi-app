@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/records.js 的 1:1 移植：记录的构造、校验与查询。纯函数，记录一律是 JSValue（store 里的原样对象，透传时逐字节不变）。
+// 1:1 移植自原 JS 版：记录的构造、校验与查询。纯函数，记录一律是 JSValue（store 里的原样对象，透传时逐字节不变）。
 // 口径（01 §3.1 / §3.2）：「最近一次」以 id 序号为准；只有 judged 是有效记录（D18 / D23）；纸上记录（P1-E8）是有效记录但不进作品。
 // 需要日期运算的函数带 `Dates`（时区显式传入）。
 
@@ -241,7 +241,7 @@ public enum Records {
         return out
     }
 
-    /// 折叠月份里「作品」的 byDay（R15，src/core/records.js foldWorkByDay）：
+    /// 折叠月份里「作品」的 byDay（R15，foldWorkByDay）：
     /// 新折叠（带 work）直接用折叠时逐条记下的成员（order 'first' / 'last'；judgedOnly 只算判断记录）；
     /// 旧折叠（没有 work）：byDay 去掉 paperOnly，再去掉 kept 里证得出「那天这个字只写错」的（日, 字）。去掉后没有字的日子不出现。
     public static func foldWorkByDay(_ fold: JSValue?, order: String = "first", judgedOnly: Bool = false) -> JSObject {

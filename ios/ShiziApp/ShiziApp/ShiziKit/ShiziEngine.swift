@@ -3,7 +3,7 @@ import UIKit
 // ShiziKit（B3.2；计划 B3B4-原生化架构与计划.md §3.4）：原生页面与规则 / 数据之间唯一的边界。
 //
 // 原生页面不持有业务状态，只认这里的协议：每个 op 的回包都有 Codable 类型（AboutView …）。实现是 SwiftEngine（ShiziCore 的 SessionRuntime；
-// B3 的 WebEngine 与 WKWebView 已在 B4.9 删除），op 名与回包形状沿用 JS 参考实现（src/session/api/index.js）。
+// B3 的 WebEngine 与 WKWebView 已在 B4.9 删除），op 名与回包形状沿用 JS 参考实现。
 // 订阅：changes（store 每次成功提交后一个 ShiziChangeSet，带脏域）；status：ready / blocked(原因) / reloading（冷启动判定之前）。
 
 /// 引擎状态（§3.4「引擎不可用」）：reloading 时原生页留在屏上、按钮暂不可点；重新 ready 后各页重拉视图。
@@ -91,7 +91,7 @@ enum ShiziDecode {
     }
 }
 
-// MARK: - 文案引用（视图模型给键 + 参数，B3.4；src/config/copy ref / tRef 的原生版）
+// MARK: - 文案引用（视图模型给键 + 参数，B3.4；文案 ref / tRef 的原生版）
 
 /// {copy: 键, params?: {名: 字符串 | 数字 | 引用}} → ShiziCopy 渲染（参数里的引用先展开，同 tRef）。
 struct ShiziCopyRef: Decodable, Equatable {

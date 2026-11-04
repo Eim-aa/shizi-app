@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/ops/hint.js: the source, button and transactional hint step.
+// Hint ops: the source, button and transactional hint step.
 public enum SessionHints {
     static func source(_ a: JSObject) -> JSValue {
         let n = JS.number(a["totalStrokes"])

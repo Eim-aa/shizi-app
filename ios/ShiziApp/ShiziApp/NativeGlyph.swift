@@ -1,7 +1,7 @@
 import UIKit
 
 // 原生练习字字形（B2.0）：与网页同一份数据 data/<字>.json（hanzi-writer 格式，01 §8.7「练习字字形单一来源」），
-// 每笔一条 SVG 路径（1024 单位、y 向上、基线 900）→ CGPath。几何与 src/ui/canvas/glyph.js glyphTransform 同一个仿射：
+// 每笔一条 SVG 路径（1024 单位、y 向上、基线 900）→ CGPath。几何与 glyphTransform 同一个仿射：
 //   pad = size × padRatio，k = (size − 2·pad) / 1024，x' = pad + x·k，y' = pad + (900 − y)·k。
 // 包里的 Web/data 由 sync-web-assets.sh 按壳清单复制，所以原生与网页读的是同一批文件。
 
@@ -77,7 +77,7 @@ struct NativeGlyphData {
         return p
     }
 
-    /// 1024 单位 → 边长 size 的格子（padRatio 与 glyph.js GLYPH_PAD_RATIO 同义；题面字 FACE_FULL 时为 0）。
+    /// 1024 单位 → 边长 size 的格子（padRatio 与 GLYPH_PAD_RATIO 同义；题面字 FACE_FULL 时为 0）。
     static func transform(size: CGFloat, padRatio: CGFloat) -> CGAffineTransform {
         let pad = size * padRatio
         let k = (size - 2 * pad) / units

@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/work-members.js 的 1:1 移植：作品成员规则（D27 Q1 / D31 / D42 / D51 ⑤）。
+// 1:1 移植自原 JS 版：作品成员规则（D27 Q1 / D31 / D42 / D51 ⑤）。
 // 作品 = 写对 ∪ 看后自写；写错的字只在用户手动放进来时进入（added：记录 id 集合）并带朱点；跳过、看过答案没写、纸上记录不进。
 // 每字取某个时间段内的一条记录（D42）。
 
@@ -46,7 +46,7 @@ public enum WorkMembers {
         JSX.stableSort(records.filter { isWorkMember($0, hasInk: hasInk, added: added) }) { Records.compareRecordIds($0["id"], $1["id"]) }
     }
 
-    /// 折叠一个月时按作品成员规则逐条记下的成员字（R15，src/core/work-members.js foldWorkOf）：
+    /// 折叠一个月时按作品成员规则逐条记下的成员字（R15，foldWorkOf）：
     /// work = 每天的成员字（按记录先后、同字可重复）；workJudged = 只算判断记录的成员，这个月没有看后自写成员时为 nil。
     public static func foldWorkOf(_ list: [JSValue], hasInk: InkPick.HasInk? = nil) -> (work: JSObject, workJudged: JSObject?) {
         var work = JSObject()

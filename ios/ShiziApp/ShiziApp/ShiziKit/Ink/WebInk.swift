@@ -2,17 +2,17 @@ import Foundation
 
 // 原生书写面的墨：与网页同一算法（R11-A，D72 ②）。
 //
-// 逐函数移植 src/core/ink-math.js：mergeSameTime → 1€ 滤波（oneEuro）→ 抬笔锁尾 → catmullRom（step 重采样，插值 t / p）
+// 逐函数移植：mergeSameTime → 1€ 滤波（oneEuro）→ 抬笔锁尾 → catmullRom（step 重采样，插值 t / p）
 //   → buildStroke（速度因子 / 压力因子、τ 时间平滑、起笔 6 / 12 单位倍数、点画、收笔 liftSpeed + 收尖段）；
-// 几何照 src/ui/canvas/brush.js paintBrushStroke：起点圆 + 每段「两点间四边形色带 + 末端圆」（半宽 max(0.5, w/2)），
+// 几何照 paintBrushStroke：起点圆 + 每段「两点间四边形色带 + 末端圆」（半宽 max(0.5, w/2)），
 //   同色不混合写入 = 并集（Metal 端见 NativeInkRenderer）。
-// 参数一律由页面随 open 下发（write-api.js writeInk() = inkParams(policy)：policy.ink + INK_SPEC），本文件不写数值；
-// 金标准：ShiziWriteTests/Fixtures/web-ink-golden.json（当年用网页 ink-math.js 生成，D84 起冻结、不再重生成），WebInkTests 逐点比。
-// 不移植：网页的飞白 / 洇墨细节（brush.js detail：α ≤ .2 的虚线擦、α .11 的外晕），属笔锋细节、不改墨区与粗细，见 B2 架构文档 §12 R11-A。
+// 参数一律由页面随 open 下发（writeInk = inkParams(policy)：policy.ink + INK_SPEC），本文件不写数值；
+// 金标准：ShiziWriteTests/Fixtures/web-ink-golden.json（当年用网页版生成，D84 起冻结、不再重生成），WebInkTests 逐点比。
+// 不移植：网页的飞白 / 洇墨细节（detail：α ≤ .2 的虚线擦、α .11 的外晕），属笔锋细节、不改墨区与粗细，见 B2 架构文档 §12 R11-A。
 //
 // ink-model-1.0（InkModel.swift，速度 / 方向宽度剖面）保留作 T2 盲测候选，不在产品路径上（只有 DEBUG 的 NativeInkSpike 还用它）。
 
-/// buildStroke 的参数表（ink-math.js inkParams：INK_TUNABLE_KEYS + INK_SPEC），键名与网页相同。
+/// buildStroke 的参数表（inkParams：INK_TUNABLE_KEYS + INK_SPEC），键名与网页相同。
 struct WebInkParams: Equatable {
     var base: Double
     var lo: Double
@@ -103,7 +103,7 @@ enum WebInk {
         var p: Double?
     }
 
-    /// 同一时间戳的采样合并（留最后的位置）；坏点丢弃。ink-math.js mergeSameTime。
+    /// 同一时间戳的采样合并（留最后的位置）；坏点丢弃。
     static func mergeSameTime(_ raw: [InkRawPoint]) -> [Sample] {
         var out: [Sample] = []
         out.reserveCapacity(raw.count)
@@ -117,7 +117,7 @@ enum WebInk {
         return out
     }
 
-    /// 抬笔前 window ms 的平均速度（单位 / ms）；点数 < 2 返回 nil。ink-math.js liftSpeed。
+    /// 抬笔前 window ms 的平均速度（单位 / ms）；点数 < 2 返回 nil。
     static func liftSpeed(_ m: [Sample], window: Double) -> Double? {
         let n = m.count
         guard n >= 2 else { return nil }
@@ -141,7 +141,7 @@ enum WebInk {
 
     // MARK: 1€ 滤波 / Catmull-Rom
 
-    /// 1€ 滤波（t 为秒）。ink-math.js oneEuro。
+    /// 1€ 滤波（t 为秒）。
     struct OneEuro {
         let minCutoff: Double, beta: Double, dCutoff: Double
         var xp: Double?
@@ -176,7 +176,7 @@ enum WebInk {
         }
     }
 
-    /// Catmull-Rom（均匀，τ = .5），首尾点重复，每段 max(1, ceil(段长 / step)) 个点；t / p 在段内线性插值。ink-math.js catmullRom。
+    /// Catmull-Rom（均匀，τ = .5），首尾点重复，每段 max(1, ceil(段长 / step)) 个点；t / p 在段内线性插值。
     static func catmullRom(_ points: [Sample], step: Double) -> [Sample] {
         guard points.count >= 2 else { return points }
         var out: [Sample] = []
@@ -204,7 +204,7 @@ enum WebInk {
 
     // MARK: 主管线
 
-    /// 原始采样 → 带宽度的点列（ink-math.js buildStroke，逐步同序）。final：已抬笔（锁尾、收笔、点画判定）。
+    /// 原始采样 → 带宽度的点列（buildStroke，逐步同序）。final：已抬笔（锁尾、收笔、点画判定）。
     static func buildStroke(_ raw: [InkRawPoint], final: Bool, params k: WebInkParams) -> WebInkStroke {
         let base = k.base
         let m = mergeSameTime(raw)
@@ -267,7 +267,7 @@ enum WebInk {
         return WebInkStroke(points: out, v30: v30, dot: dot, single: false, endK: out.last!.w / base, pressure: pressure)
     }
 
-    // MARK: 几何（brush.js paintBrushStroke，不含飞白 / 洇墨细节）
+    // MARK: 几何（paintBrushStroke，不含飞白 / 洇墨细节）
 
     /// 圆的分段数：按半径（345 单位）取，屏幕上弦高误差 < 约 0.3pt（书写格 ≤ 约 400pt 时）。
     static func discSegments(_ r: Double) -> Int { r < 2 ? 12 : r < 5 ? 18 : 24 }

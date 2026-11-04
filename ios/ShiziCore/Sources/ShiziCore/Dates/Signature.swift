@@ -1,7 +1,7 @@
 import Foundation
 
-// src/core/dates.js 的落款汉字数字（cnDigits / cnNumber / cnCount / signature*）。
-// 汉字来自生成的 signature.json（src/core/dates.js 的 CN_NUMERALS），Swift 源码里没有汉字字面量。
+// 落款汉字数字（cnDigits / cnNumber / cnCount / signature*）。
+// 汉字来自生成的 signature.json（CN_NUMERALS），Swift 源码里没有汉字字面量。
 
 public struct CNNumerals {
     public let digits: [String]

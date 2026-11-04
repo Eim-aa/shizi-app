@@ -1,19 +1,19 @@
 import Foundation
 
-/// Pure part of ui/images-entry.js and ui/images-annual.js. Rendering stays in B4.6.
+/// Pure part of the image entry and annual image actions. Rendering stays in B4.6.
 public final class ImageRegisteredActions {
     public let store: Store
     public var palette: (() throws -> JSValue)?
     public var saveFile: ((JSValue) async throws -> JSValue)?
     public var post: ((JSValue) throws -> Void)?
-    /// Renderer-drawn chip thumbnail (ui/images-entry.js draws a data URL from the record's ink); absent = "" (no bitmap here).
+    /// Renderer-drawn chip thumbnail (the former JS drew a data URL from the record's ink); absent = "" (no bitmap here).
     public var thumb: ((JSValue) throws -> JSValue)?
     public init(store: Store) { self.store = store }
     public func install(on hooks: SessionActionHooks) {
         for name in ["view", "spec", "add", "closed"] { hooks.set("image." + name) { [self] in try call(name, $0) } }
         hooks.setAsync("image.persist") { [self] in await persist($0) }
     }
-    /// 选字条小图要的墨点（images-entry.js job.chips 的 ink.points：与作品同一份回放点）；没有墨 → null。
+    /// 选字条小图要的墨点（job.chips 的 ink.points：与作品同一份回放点）；没有墨 → null。
     public func inkPoints(_ record: JSValue) -> JSValue { ((try? ink(record)) ?? nil) ?? .null }
     func ink(_ record: JSValue) throws -> JSValue? {
         guard let raw = store.getInk(record), let decoded = try InkMath.decodeInk(raw), !decoded.isEmpty else { return nil }
@@ -106,7 +106,7 @@ public final class ImageRegisteredActions {
         guard let palette else { throw CoreError.error("PALETTE_UNAVAILABLE") }; spec["palette"] = try palette()
         return JS.obj([("ok", .bool(true)), ("spec", .object(spec)), ("name", .string(file)), ("total", .number(Double(total)))])
     }
-    /// images-entry.js imageView failStarts: each failure sentence's line starts (renderer measurement), unmeasured ones dropped.
+    /// imageView failStarts: each failure sentence's line starts (renderer measurement), unmeasured ones dropped.
     static func failStarts(_ texts: JSValue) -> JSValue {
         var out = JSObject()
         for (k, v) in texts.objectValue?.entries ?? [] { let starts = ViewLineStarts.starts("image-fail", v); if !starts.isNull { out[k] = starts } }

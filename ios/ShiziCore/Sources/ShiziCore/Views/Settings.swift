@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/settings.js
 public enum SettingsView {
     public static func parseTime(_ text: JSValue?) -> JSValue {
         guard let s = text?.stringValue?.trimmingCharacters(in: ViewSupport.whitespace) else { return .null }

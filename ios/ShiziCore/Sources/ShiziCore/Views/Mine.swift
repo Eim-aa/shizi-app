@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/mine.js
 extension ViewSupport {
     struct RecordIndex {
         var judged: [JSValue]; var folded: JSObject; var days: KeySet; var ink: JSValue; var afterSeen: [JSValue]; var dates: Dates

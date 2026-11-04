@@ -1,6 +1,6 @@
 import Foundation
 
-// src/config/copy/index.js 的移植：文案表来自生成的 copy.json（不手抄任何文案），这里只有占位符填充与取用规则。
+// 移植自原 JS 版：文案表来自生成的 copy.json（不手抄任何文案），这里只有占位符填充与取用规则。
 // 占位符 {name}（name = [A-Za-z]+）；缺值（没有这个键、值为 null）的占位符原样保留。
 
 public enum Copy {

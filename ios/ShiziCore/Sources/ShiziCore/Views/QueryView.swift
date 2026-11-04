@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/query.js; predicates use the already ported real deck.
+// Query views; predicates use the already ported real deck.
 public enum QueryView {
     public struct Predicates {
         public let inDeck: (String) -> Bool

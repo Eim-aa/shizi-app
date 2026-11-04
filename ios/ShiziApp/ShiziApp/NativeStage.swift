@@ -161,7 +161,7 @@ final class NativeStage: NSObject {
     // （ShiziTabSlot），此刻的原生根页是选中那一格的子控制器、只铺到 Tab 栏上沿。导航真相仍是网页路由：点别的 tab → nav.tab，网页切 tab 后
     // 旧根页 close、新根页 open，这里随之换选中格（无动画、无触觉）；再点当前 tab → 根页滚回顶部（N6）。Tab 栏只在根页看得见时出现：
     // 推入的原生页、写字 / 结果页、弹层都呈现在宿主上面（盖住它）；网页页面 / 网页弹层盖上根页时连同 Tab 栏一起让开（截图连 Tab 栏交给网页）。
-    // 与网页参考（Tabs.js）的外观差异是具名豁免 TAB-01（parity.config.json）。
+    // 与网页参考的外观差异是具名豁免 TAB-01（parity.config.json）。
 
     /// Tab 栏控制器（第一次打开根页时建；之后一直在，没有根页时藏起）。
     private(set) var tabs: ShiziTabController?
@@ -241,7 +241,7 @@ final class NativeStage: NSObject {
     /// 原生 tab 根页（没有 = nil）。
     private(set) var rootScreen: ShiziScreenViewController?
 
-    /// 原生根页的框（所在 tab 格的坐标）：铺到原生 Tab 栏上沿（B3.5d；栏还没排版时按网页 Tabs.js 的 49 + 下安全区）。
+    /// 原生根页的框（所在 tab 格的坐标）：铺到原生 Tab 栏上沿（B3.5d；栏还没排版时按网页的 49 + 下安全区）。
     private var rootFrame: CGRect {
         let b = host.view.bounds
         var barTop = b.height - (49 + host.view.safeAreaInsets.bottom)
@@ -514,7 +514,7 @@ final class NativeStage: NSObject {
     // MARK: 页面栈（B3.F：导航真相在原生；计划 §3.3 段 2）
     //
     // entries = 页面栈（底 → 顶，[{id, n, p}]；第 0 条是 tab 根）。每次栈或参数变了调 route.save（引擎写路由提示键，单一写入者），进后台刷新离开时刻。
-    // 两种来源、同一套改栈语义（push / replace / pop / tab / params，引擎镜像 ui/engine.js 同名）：
+    // 两种来源、同一套改栈语义（push / replace / pop / tab / params，引擎镜像同名）：
     //   - 原生发起（原生页点按推入、‹ / 左缘 / Z 形返回、点 tab、页内参数）：这里先改栈，再 stage.enter 让引擎记账（来源记账、视图回包），
     //     回包里的宿主消息照原来的通道处理（open / close / result-open …）——去处由原生定，不经网页路由；
     //   - JS 发起（「去哪」的规则在 JS：首页主按钮、结果页「再写一组」/ 离开、深链、开组失败……）：页面发 {op:'nav'}，这里照做、存栈，宿主消息紧跟着到。
@@ -1316,7 +1316,7 @@ final class ShiziTabSlot: UIViewController {
 }
 
 /// 系统 Tab 栏（D73 ③：UITabBarController，iOS 26 浮起玻璃样式，颜色取令牌）。三个 tab 的顺序、文案、图标同网页 Tabs（registerScreen order、
-/// X-TABS.*、tab-icons.js 线描 / 实心）；标签 11 / 500 固定不随字号放大（D49，AX 档长按出系统大字预览）；选中 ink1、未选 ink3。
+/// X-TABS.*，线描 / 实心）；标签 11 / 500 固定不随字号放大（D49，AX 档长按出系统大字预览）；选中 ink1、未选 ink3。
 /// 选中格只由 NativeStage 按网页路由设（select）；点按一律不直接切换（shouldSelect 返回 false），交给 onSelect / onReselect。
 final class ShiziTabController: UITabBarController, UITabBarControllerDelegate {
     /// tab 屏名（顺序 = 网页 registerScreen 的 order）与文案键。
@@ -1389,7 +1389,7 @@ final class ShiziTabController: UITabBarController, UITabBarControllerDelegate {
     }
 }
 
-/// Tab 栏图标（网页 components/tab-icons.js 的同一组 24 × 24 路径：未选线描、选中实心；描边 1.5）。模板图，颜色由 Tab 栏的 tint 定。
+/// Tab 栏图标（网页的同一组 24 × 24 路径：未选线描、选中实心；描边 1.5）。模板图，颜色由 Tab 栏的 tint 定。
 enum ShiziTabIcon {
     static func image(_ screen: String, solid: Bool) -> UIImage? {
         let r = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))

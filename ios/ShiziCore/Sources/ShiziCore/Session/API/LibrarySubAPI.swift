@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/api/library-sub.js. Renderer measurements default to null, as in JS.
+// Library sub-page API. Renderer measurements default to null, as in JS.
 extension PageAPI {
     static func librarySub(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         let state = JSValue.object(store.state), today = try store.dates.localDay(.number(store.now()))

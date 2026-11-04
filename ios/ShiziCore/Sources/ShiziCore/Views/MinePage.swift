@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/mine-page.js
 public enum MinePageView {
     typealias V = ViewSupport
     public static func cellLabelRef(_ c: JSValue, dates: Dates) throws -> JSValue { try MineSubView.cellLabelRef(c, dates: dates) }

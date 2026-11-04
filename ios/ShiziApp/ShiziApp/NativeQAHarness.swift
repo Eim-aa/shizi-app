@@ -714,7 +714,7 @@ enum QAClock {
         }
     }
 
-    /// 钉住的起点与读数（prologue.js 的 Date.now = FIX + (pinK += 5)）。
+    /// 钉住的起点与读数（Date.now = FIX + (pinK += 5)）。
     private static var pinned: (base: Double, k: Double)?
 
     private static func realMs() -> Double { Date().timeIntervalSince1970 * 1000 }
@@ -847,7 +847,7 @@ final class QAProbe {
         out["pageReady"] = host.stage.planned // B4.9：没有网页了，「就绪」= 冷启动判定做完（测试按它等）
         out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events
-        // 导航由 SwiftNavigator 记账（同 engine.js account 的 traceNav，字段名沿用 webNav）；冷启动判定 = Swift 的 RouteMemory
+        // 导航由 SwiftNavigator 记账（同 account 的 traceNav，字段名沿用 webNav）；冷启动判定 = Swift 的 RouteMemory
         out["webNav"] = SwiftNavigator.traceLog
         out["coldPlan"] = EngineValue.any(host.stage.engine.nav.host.memory.lastPlan)
         out["feedback"] = QAFeedback.events

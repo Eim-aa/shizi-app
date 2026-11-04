@@ -1,6 +1,6 @@
 import Foundation
 
-/// Transactional port of src/session/ops/{answer,judge,skip,strokes,line,end}.js.
+/// Transactional port of the answer / judge / skip / strokes / line / end ops.
 /// All writes use the B4.4 Store; rules and ink encoders remain shared with B4.2/B4.3.
 public enum SessionWrites {
     static let clean = JS.obj([("ok", .bool(true)), ("keys", .array([])), ("noop", .bool(true))])
@@ -123,7 +123,7 @@ public enum SessionWrites {
             try noteAndSettle(&d, s, key: key, kind: "answer-seen", at: c.now, dates: store.dates, policy: policy)
         }
     }
-    /// src/session/ops/judge.js judgeInDraft：判断的草稿变换（记录 + 墨迹 + D27 回收 + FSRS + 会话推进）。commitJudgment 在 store.commit 里调；
+    /// 判断的草稿变换（记录 + 墨迹 + D27 回收 + FSRS + 会话推进）。commitJudgment 在 store.commit 里调；
     /// App 的 QA 夹具造数据（seedRecords）在自己的草稿上调，时刻 / 记录号由调用方给（夹具里写死，任何一天跑出同一份数据）。
     /// a：slot、cardKey、judgment、hints?、policy?、perRecordInk?；strokes：本人原始笔画。返回 (记录, 是否沿用已有的判断)。
     public static func judgeInDraft(_ d: inout JSObject, _ a: JSObject, strokes: [[InkPoint]], at: Double, nextId: () throws -> String,
@@ -164,7 +164,7 @@ public enum SessionWrites {
         }
         return result["ok"] == .bool(true) && record != nil ? patch(result, [("record", record!), ("reused", .bool(reused))]) : result
     }
-    /// src/session/ops/skip.js skipInDraft：跳过的草稿变换（一条 skipped 记录 + 会话推进）。a：slot、cardKey、hints?、policy?。
+    /// 跳过的草稿变换（一条 skipped 记录 + 会话推进）。a：slot、cardKey、hints?、policy?。
     public static func skipInDraft(_ d: inout JSObject, _ a: JSObject, at: Double, nextId: () throws -> String, dates: Dates) throws -> JSValue {
         let policy = ViewSupport.policy(a["policy"]), scope = JS.string(policy["skipScope"])
         guard ["session", "today"].contains(scope) else { throw CoreError.range("unsupported policy.skipScope: " + scope) }

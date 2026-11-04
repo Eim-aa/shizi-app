@@ -11,8 +11,8 @@ import UserNotifications
 //   · 声音预载（SoundPlayer，首帧之后）。
 // 面向用户的文字都在 ShiziCore 的文案表（原生不弹 alert）。
 
-/// 左缘返回的阈值（R4-G1 / P270 / P272）：原生写字 / 结果页 / 通用原生页的跟手返回共用（与 JS 参考 src/ui/router.js 的 BACK_COMMIT_RATIO /
-/// BACK_COMMIT_VELOCITY / BACK_RETURN_VELOCITY 一致，test/ios-back-gesture.test.mjs 核对）。
+/// 左缘返回的阈值（R4-G1 / P270 / P272）：原生写字 / 结果页 / 通用原生页的跟手返回共用（与 JS 参考的 BACK_COMMIT_RATIO /
+/// BACK_COMMIT_VELOCITY / BACK_RETURN_VELOCITY 一致）。
 enum BackGestureThreshold {
     /// 位移过三分之一个宽（D36 时为 0.5）。
     static let commitRatio: CGFloat = 1.0 / 3.0
@@ -43,7 +43,7 @@ final class RootViewController: UIViewController {
     }
 
     override func loadView() {
-        // 纸色取 Assets 的 Paper 颜色集（浅 #F4F0E7 / 深 #221E1A，scripts/generate-paper-colorset.mjs 从 tokens.css 的 --p 生成），
+        // 纸色取 Assets 的 Paper 颜色集（浅 #F4F0E7 / 深 #221E1A，由 scripts/generate-paper-colorset.mjs 从 --p 生成），
         // 与启动屏 UILaunchScreen.UIColorName 同源，冷启动到首帧没有底色跳变（A7 / G19）。
         let container = UIView(frame: .zero)
         container.backgroundColor = UIColor(named: "Paper") ?? .systemBackground
@@ -88,7 +88,7 @@ final class RootViewController: UIViewController {
         return category == .unspecified ? .large : category
     }
 
-    /// 档位 → 短名（与 JS 参考 src/platform/text-size.js CONTENT_SIZE_CATEGORIES 一致）；未知档位（将来 iOS 新增）原样给 rawValue。
+    /// 档位 → 短名（与 JS 参考 CONTENT_SIZE_CATEGORIES 一致）；未知档位（将来 iOS 新增）原样给 rawValue。
     static func contentSizeName(_ category: UIContentSizeCategory) -> String {
         switch category {
         case .extraSmall: return "xS"
@@ -175,7 +175,7 @@ extension RootViewController {
     static var qaSaveCalls = 0
     #endif
 
-    /// 存相册：完成（主线程）回成功与否；timeout 秒内没结果算失败（image-preview.js NATIVE_SAVE_TIMEOUT_MS）。
+    /// 存相册：完成（主线程）回成功与否；timeout 秒内没结果算失败（NATIVE_SAVE_TIMEOUT_MS）。
     func saveCard(dataURL: String, timeout: TimeInterval? = nil, completion: @escaping (Bool) -> Void) {
         var done = false
         let finish: (Bool) -> Void = { ok in

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Field-exact image geometry from core/images/layout.js and glyph-layout.js.
+/// Field-exact image geometry (ported from the former JS layout and glyph-layout modules).
 /// Coordinates are logical pixels; export applies 4/3 once at the bitmap boundary.
 public enum ImageLayout {
   static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }

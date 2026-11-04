@@ -6,7 +6,7 @@ import UIKit
 // SwiftEngine（B4.5c 建，B4.8 设为缺省，B4.9 起是唯一的引擎；计划 B3B4-原生化架构与计划.md §3.4、§4.2、§10.x B4.9）。
 //
 // 原生页只认 ShiziEngine 协议（ShiziKit/ShiziEngine.swift）；Store 接 App 的 SQLite 库（AppDatabase，一条连接）。全部 op 在这里答：
-//   · 栈往来（route.* / stage.* / deeplink.reminder / shiziNativeNav）由 SwiftNavigator 答（ShiziCore Navigation/，JS 参考 src/ui/engine.js）；
+//   · 栈往来（route.* / stage.* / deeplink.reminder / shiziNativeNav）由 SwiftNavigator 答（ShiziCore Navigation/，原 JS 参考实现）；
 //   · 画图 image.render / image.save 由原生渲染器答（ShiziImageRendering，B4.6）；
 //   · 其余页面 API / 写字会话由 SessionRuntime 答。
 // 订阅 Swift 的 store 做的事：引擎状态、阻断页、坏值提示、窗口外观、提醒同步 / 要权限 / 查权限、首练邀请、存相册、选字条小图、分享失败提示条。
@@ -86,7 +86,7 @@ final class SwiftEngine: ShiziEngine {
     /// 启动核对过一次（之后 store 的变化才发阻断页 / 坏值提示 / 外观）。
     private var started = false
 
-    /// 冷启动判定之前（engine.js mountEngine 的同一时刻）：阻断页 / 坏值提示 / 外观第一次核对。
+    /// 冷启动判定之前（mountEngine 的同一时刻）：阻断页 / 坏值提示 / 外观第一次核对。
     func start() {
         guard !started else { return }
         started = true
@@ -259,7 +259,7 @@ final class SwiftEngine: ShiziEngine {
         core.host.qaUI(action, args)
     }
 
-    /// 测试钩子 reset 的 Swift 版（test-hooks.js reset）：清写入注入、删全部 shizi.* 键、重读库（时钟由 QAClock 另管）。
+    /// 测试钩子 reset 的 Swift 版（reset）：清写入注入、删全部 shizi.* 键、重读库（时钟由 QAClock 另管）。
     func qaReset() {
         let storage = core.store.storage
         storage.clearFaults()
@@ -309,7 +309,7 @@ final class SwiftEngine: ShiziEngine {
         for c in subscribers.values { c.yield(set) }
     }
 
-    // MARK: 订阅 store 做的事（engine.js watchBlock / watchCorrupt、native-stage.js postStatus、appearance.js、reminder.js）
+    // MARK: 订阅 store 做的事（watchBlock / watchCorrupt、postStatus）
 
     private func storeChanged(_ info: JSObject) {
         let type = info["type"]?.stringValue ?? ""
@@ -317,11 +317,11 @@ final class SwiftEngine: ShiziEngine {
         checkBlock()
         checkCorrupt()
         applyAppearance()
-        // reminder.js affectsReminder 的超集：同步只在算出的内容变了时才发（ReminderController.sync 比上次发出的）
+        // affectsReminder 的超集：同步只在算出的内容变了时才发（ReminderController.sync 比上次发出的）
         if type == "load" || type == "commit" || type == "recover" || info["replace"] == .bool(true) { reminder.scheduleSync() }
     }
 
-    /// 阻断页（engine.js watchBlock）：不可用 / 阻断时发原生阻断页的 open，好了收起；同一种（kind|能否导出）不重发。
+    /// 阻断页（watchBlock）：不可用 / 阻断时发原生阻断页的 open，好了收起；同一种（kind|能否导出）不重发。
     private var blockKey: String?
     private var blockId: String?
     private func checkBlock() {
@@ -341,7 +341,7 @@ final class SwiftEngine: ShiziEngine {
                            ("via", .string("restore")), ("run", .array([])), ("payload", .object(JSObject([("ok", .bool(true)), ("view", view)])))]))
     }
 
-    /// 坏值提示（engine.js watchCorrupt）：本次启动隔离了坏值 → 认领（ack）后发一次浮条。
+    /// 坏值提示（watchCorrupt）：本次启动隔离了坏值 → 认领（ack）后发一次浮条。
     private func checkCorrupt() {
         guard started, stage != nil, let notice = core.store.corruptNotice else { return }
         core.store.ackCorruptNotice()
@@ -350,7 +350,7 @@ final class SwiftEngine: ShiziEngine {
                            ("lines", core.host.measure.lineStarts("corrupt-text", text))]))
     }
 
-    /// 窗口外观（platform/appearance.js startAppearance：store 的显示偏好 → 壳的唯一应用点 ShiziTheme）。
+    /// 窗口外观（startAppearance：store 的显示偏好 → 壳的唯一应用点 ShiziTheme）。
     private var appearance: String?
     private func applyAppearance() {
         guard started, let stage else { return }
@@ -382,7 +382,7 @@ final class SwiftEngine: ShiziEngine {
             DispatchQueue.main.asyncAfter(deadline: .now() + ms / 1000, execute: work)
             return { work.cancel() }
         }
-        // 首练结果页的提醒邀请（reminder.js inviteReminder / inviteChangeTime：一次 settings 提交 → 要权限 → 同步）
+        // 首练结果页的提醒邀请（inviteReminder / inviteChangeTime：一次 settings 提交 → 要权限 → 同步）
         let deps = core.host.deps
         deps.reminderInvite = { [weak self] store, a in
             await MainActor.run {
@@ -396,7 +396,7 @@ final class SwiftEngine: ShiziEngine {
                 ReminderInviteHost.changeTime(store, hour: a["hour"] ?? .null, minute: a["minute"] ?? .null, sync: { remind in _ = self?.reminder.sync(remind: remind, force: true) })
             }
         }
-        // 存相册（image-preview.js saveImageFile 的原生分支：savePracticeCard → 成功与否；等 120s）
+        // 存相册（saveImageFile 的原生分支：savePracticeCard → 成功与否；等 120s）
         core.host.images.saveFile = { [weak self] file in
             await withCheckedContinuation { cont in
                 DispatchQueue.main.async {
@@ -407,7 +407,7 @@ final class SwiftEngine: ShiziEngine {
                 }
             }
         }
-        // 选字条小图（images-entry.js chipThumb：32pt 格、--hand、透明底）
+        // 选字条小图（chipThumb：32pt 格、--hand、透明底）
         core.host.images.thumb = { [weak self] e in
             guard let self, let record = e["record"], !record.isNull else { return .string("") }
             return .string(self.chipThumb(record))
@@ -424,7 +424,7 @@ final class SwiftEngine: ShiziEngine {
         return "data:image/png;base64," + png.base64EncodedString()
     }
 
-    /// prefs.js requestReminderPermission：已授权不再要；否则向系统要（回 true = 真的发出了请求）。
+    /// 已授权不再要；否则向系统要（回 true = 真的发出了请求）。
     private func requestPermission(_ remind: JSValue) -> Bool {
         if remind["permission"] == .string("granted") { return false }
         guard let host = stage?.host else { return false }
@@ -441,7 +441,7 @@ final class SwiftEngine: ShiziEngine {
         _ = reminder.receiveStatus(.object(JSObject([("permission", .string(value))])))
     }
 
-    /// 冷启动的栈重建好了：提醒开着就查权限并同步一次（reminder.js startReminder）。
+    /// 冷启动的栈重建好了：提醒开着就查权限并同步一次（startReminder）。
     private func afterPlan() {
         reminder.markReady()
         refreshReminder()
@@ -480,7 +480,7 @@ final class NativeLineMeasure: EngineMeasure {
         let mt = ShiziMetrics()
         let body = UIScreen.main.bounds.width - 2 * mt.gutter
         let width: CGFloat
-        // 版心以外的宽（JS 参考：components/query/layout.js、ui/screens/mine/backup.js · remind.js 量 DOM 时的容器，B4.9c 逐个对过）
+        // 版心以外的宽（原 JS 参考量 DOM 时的容器，B4.9c 逐个对过）
         switch kind {
         case "annual-head": width = body + 8
         case "annual-first-date": width = body + 8 - 132 - 20
@@ -498,7 +498,7 @@ final class NativeLineMeasure: EngineMeasure {
         case .song(let n): a = ShiziPageText.song(text, size: mt.value("fs\(n)"), weight: .medium, color: .label)
         }
         let chars = Array(text)
-        // 按钮文字只在词与词之间折（components/Words.js segmentWords + 正常折行）；其余是 text-wrap: pretty 的段落
+        // 按钮文字只在词与词之间折（segmentWords + 正常折行）；其余是 text-wrap: pretty 的段落
         let lines = kind == "card-action" ? Self.wordLines(a, chars, width: width) : ShiziPageText.wrappedLines(a, chars, width: width)
         // 每一行从第几个字开始（JS Array.from 的码点计；第一行不在数组里）
         var starts: [JSValue] = []
@@ -510,7 +510,7 @@ final class NativeLineMeasure: EngineMeasure {
         return .array(starts)
     }
 
-    /// components/Words.js segmentWords：按词切（系统分词，zh），开括号类并进后一个词、其余标点并进前一个词，空白单独一块（是断点）；
+    /// 按词切（系统分词，zh），开括号类并进后一个词、其余标点并进前一个词，空白单独一块（是断点）；
     /// 然后按块贪心排进宽 w（white-space: normal，块内不断）。返回每行的字下标区间。
     static func wordLines(_ a: NSAttributedString, _ chars: [Character], width w: CGFloat) -> [Range<Int>] {
         let text = String(chars)
@@ -595,14 +595,14 @@ final class NativeLineMeasure: EngineMeasure {
         }
     }
 
-    /// native-session.js themeOf：页面 color-scheme 的计算值（「我的 › 外观」强制的浅 / 深或跟系统）= 窗口此刻的外观。
+    /// 页面 color-scheme 的计算值（「我的 › 外观」强制的浅 / 深或跟系统）= 窗口此刻的外观。
     static func theme() -> JSValue {
         let windows = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
         let style = (windows.first(where: \.isKeyWindow) ?? windows.first)?.traitCollection.userInterfaceStyle ?? UITraitCollection.current.userInterfaceStyle
         return .string(style == .dark ? "dark" : "light")
     }
 
-    /// native-session.js typeBundle 里页面才有的那一半：px 值由 ShiziLook 按系统字号档生成；AX 档位照给，逐元素版式是原生常量
+    /// typeBundle 里页面才有的那一半：px 值由 ShiziLook 按系统字号档生成；AX 档位照给，逐元素版式是原生常量
     /// （D81 ①：ShiziLook 按 NativeAXLayout 填，不再向页面量网页 CSS），这里给空。
     static func type() -> JSValue {
         .object(JSObject([("ax", .number(Double(SwiftNavigator.axLevel()))), ("roles", .object(JSObject()))]))

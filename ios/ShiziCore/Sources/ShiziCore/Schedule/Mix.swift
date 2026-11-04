@@ -1,6 +1,6 @@
 import Foundation
 
-// 练习状态与组内顺序（B4.2 移植自 src/core/mix.js）。D83（调度规则 v2）起配比改由 TodayPlan.compose 按档位比例算，
+// 练习状态与组内顺序（B4.2 移植自原 JS 版）。D83（调度规则 v2）起配比改由 TodayPlan.compose 按档位比例算，
 // 规则 D 的「积压阀 / 新字目标 / 新用户封顶 / 每日复习上限」已删除；这里只留热身字门控（P126）、练习状态与 arrangeGroup（交错、热身字在组首、末位不是新字）。
 
 public struct PracticeStats: Equatable {

@@ -2,14 +2,14 @@ import UIKit
 
 // 我的子页（练习记录 / 月字帖 / 年报）共用的东西（B3.9；计划 §3.2 ShiziKit 组件 + §3.4 视图模型）。
 //
-//   ShiziInkBox / ShiziInkPoint  视图模型里的本人墨（点列；345 单位，与网页 core/ink-math 同一坐标系）。
+//   ShiziInkBox / ShiziInkPoint  视图模型里的本人墨（点列；345 单位，与网页同一坐标系）。
 //   ShiziPointsInkView           画本人墨（点列 → 三角形带 + 圆端；ShiziKit 的 WebInk 画法，与写字页同一套）。
 //   ShiziPaperCell               月字帖 / 年报的一格（本人墨或衬底参考字；格内左上角的日期角标骑在上边线上）。
 //   ShiziDayCell                 练习记录「那天写的字」的一格（本人墨铺满格；没墨画衬底 + 「没有笔迹」）。
 //   ShiziSheetGrid / ShiziSheetPaper  字帖的格几何与纸（格线 + 外框 + 格子 + 落款 + 印）。
 //   ShiziFlex                    网页 flex 排版的几件小工具（基线对齐的一行、行盒的高度、盒子的量法）。
 //
-// 版式数值一律取自网页（core/images/layout.js sheetGrid、components/work.js、components/marks.js），
+// 版式数值一律取自网页（sheetGrid 等），
 // 颜色 / 字号取 ShiziTokens，文案取 ShiziCopy；本文件不写数值与汉字。
 
 // MARK: - 视图模型里的墨
@@ -28,7 +28,7 @@ struct ShiziInkBox: Decodable {
     let points: [[ShiziInkPoint]]
 }
 
-/// 笔宽下限（core/images/layout.js MIN_INK_PT）与默认笔宽（INK_BASE_WIDTH）；格宽 pt。
+/// 笔宽下限（MIN_INK_PT）与默认笔宽（INK_BASE_WIDTH）；格宽 pt。
 enum ShiziInkScale {
     static let grid: Double = 345
     static let base: Double = 11.5
@@ -44,14 +44,14 @@ enum ShiziInkScale {
 
 // MARK: - 画本人墨
 
-/// 一块只读的墨（点列；345 单位 → 视图的方框）。几何与网页 ui/canvas/brush.js paintBrushStroke 一样：
+/// 一块只读的墨（点列；345 单位 → 视图的方框）。几何与网页 paintBrushStroke 一样：
 /// 起点圆 + 每段「两点间四边形色带」；用 ShiziKit 的 WebInk 三角形（同一套算法，与写字页一致）。
 final class ShiziPointsInkView: UIView {
     var points: [[ShiziInkPoint]] = [] { didSet { setNeedsDisplay() } }
     var inkColor: UIColor = .black { didSet { setNeedsDisplay() } }
     /// 线宽倍数（网页 minInkScale 的 widthScale）。
     var widthScale: Double = 1 { didSet { setNeedsDisplay() } }
-    /// 墨在格内的内边比例（网页 core/images/layout.js INK_PAD：作品格 12%、年报月段 9%；0 = 铺满格，练习记录的小卡）。
+    /// 墨在格内的内边比例（网页 INK_PAD：作品格 12%、年报月段 9%；0 = 铺满格，练习记录的小卡）。
     var pad: CGFloat = 0 { didSet { setNeedsDisplay() } }
 
     override init(frame: CGRect) {
@@ -66,7 +66,7 @@ final class ShiziPointsInkView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    // 视口附近才画（网页 ui/components/near.js 的做法：离视口一屏以内的格子挂载当帧就画，更远的等滚到附近再画）。
+    // 视口附近才画（网页的做法：离视口一屏以内的格子挂载当帧就画，更远的等滚到附近再画）。
     // 练习记录一页可有 200 格墨：首屏只画看得见的，其余在 contentOffset 变化时按需补画。
     private static let nearScreens: CGFloat = 1
     private var near = false
@@ -148,7 +148,7 @@ final class ShiziPointsInkView: UIView {
 
 // MARK: - 我的子页的线形图标
 
-/// 网页 ui/components/icons.js 的 prev / next（18 栅格、视觉 18、线宽 1.5、圆端圆角）：
+/// 网页的 prev / next（18 栅格、视觉 18、线宽 1.5、圆端圆角）：
 /// 带杆的日历翻页箭头（不与页头返回的「‹」同形）。
 enum ShiziMineIcon {
     case prev, next
@@ -178,13 +178,13 @@ enum ShiziMineIcon {
 // MARK: - AX 档的页头
 
 extension ShiziScreenViewController {
-    /// AX 档页头第一行的高（网页 components/ax.js：`.sz-btn--text{min-height:max(44px, calc(1.3em + 12px))}`）。
+    /// AX 档页头第一行的高（网页：`.sz-btn--text{min-height:max(44px, calc(1.3em + 12px))}`）。
     /// 尾端有文字按钮的页（年报 / 月字帖的「调整图片 ›」）第一行被那个按钮撑高。
     func axHeaderRowHeight() -> CGFloat {
         max(ShiziPageHeader.height, 1.3 * metrics.value("fs15") + 12)
     }
 
-    /// AX 档：把原生通用页头（只有一行 44）改成网页的两行版式（components/ax.js：页头折行，标题独占第二行）。
+    /// AX 档：把原生通用页头（只有一行 44）改成网页的两行版式（页头折行，标题独占第二行）。
     ///
     /// 网页：页头第一行 = 「‹」+ 尾端文字按钮（行高 = 那个按钮的高），第二行 = 页标题（h1 独占一行）。
     /// 原生通用页头把标题放在第一行中间、页头固定 44，这里按网页重排：返回键在第一行里居中、
@@ -216,7 +216,7 @@ extension ShiziScreenViewController {
 
 /// 网页的折行点（B3.9；同 B2.7 结果页的 webLineStarts 做法）：网页这几个段落是 text-wrap: pretty
 /// （WebKit 按整段平衡折行），原生排版算法不同、自己折出来的行不一样（例：AX3 的图例网页在第 8 字后折行、
-/// 原生在第 10 字后）。网页界面层量出每一行从第几个字开始（src/core/line-starts.js 的登记口 → 视图模型的 lines），
+/// 原生在第 10 字后）。网页界面层量出每一行从第几个字开始（登记口 → 视图模型的 lines），
 /// 原生按这些位置换行（字的样子仍由原生排）。
 enum ShiziMineLines {
     /// 按折行点把一段字断成几行（在断点处插换行）。
@@ -336,7 +336,7 @@ enum ShiziFlex {
 
 // MARK: - 等宽数字
 
-/// 网页 .sz-mcell__tag / .sz-scell__tag 的字号（11px：固定，不随字号放大；网页 components/work.js 的 MONTH_PAPER_TAG_CSS）。
+/// 网页 .sz-mcell__tag / .sz-scell__tag 的字号（11px：固定，不随字号放大；网页的 MONTH_PAPER_TAG_CSS）。
 enum ShiziMineTag {
     static let fontSize: CGFloat = 11
 }
@@ -577,7 +577,7 @@ final class ShiziDayCell: UIButton {
 
 // MARK: - 字帖的纸
 
-/// 字帖格的几何（网页 core/images/layout.js sheetGrid：列数规则 + 格宽）。
+/// 字帖格的几何（网页 sheetGrid：列数规则 + 格宽）。
 struct ShiziSheetGrid {
     let n: Int
     let cols: Int
@@ -672,7 +672,7 @@ final class ShiziLinesGrid: UIView, ShiziDrawnLines {
     }
 }
 
-/// 字帖的纸：一层框 + 格间线 + 格子 + 落款 + 印（网页 components/work.js MonthPaper）。
+/// 字帖的纸：一层框 + 格间线 + 格子 + 落款 + 印。
 /// 格子由页面持有（这里只排位置），纸与格线由本视图画。
 final class ShiziSheetPaper: UIView, ShiziDrawnLines {
     /// 落款行（网页 .sz-month__sign）。
@@ -830,7 +830,7 @@ final class ShiziSheetPaper: UIView, ShiziDrawnLines {
         if g.full {
             box(CGRect(x: half, y: stageTop + half, width: g.W - fw, height: g.H - fw))
         } else {
-            // 末行没满：外框是一条折线（网页 core/images/layout.js outline：M0 0 H W V (rows−1)c H lastW V H H0 Z），
+            // 末行没满：外框是一条折线（网页 outline：M0 0 H W V (rows−1)c H lastW V H H0 Z），
             // 末行上沿只有 lastW 以右那一段是框，lastW 以左是格间线（不画两个框：那样末行上沿整条都成了框色）
             let x0 = half, x1 = g.W - half, xl = g.lastW - half
             let y0 = stageTop + half, ym = stageTop + CGFloat(rows - 1) * cell, yb = stageTop + CGFloat(rows) * cell - half

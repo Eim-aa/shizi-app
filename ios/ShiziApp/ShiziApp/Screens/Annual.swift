@@ -1,6 +1,6 @@
 import UIKit
 
-// 年报（B3.9；网页 ui/screens/mine/annual.js 的原生版）。
+// 年报（B3.9；网页的原生版）。
 //
 // 版式（网页 .sz-ann）：卷首（「二〇二六」宋 34 / 42 → 「这一年，你拾回三十六个字。」17 / 26 → 今年第一个字（132 的格 + 「今年首字」+ 日期））
 //   → 每月一段（上边一条发丝线、月名宋 22 + 右侧「{n} 字」、8 列 45 的格、无格线、墨内边 9%；点一段进那个月的字帖）
@@ -9,7 +9,7 @@ import UIKit
 //
 // 「调整图片 / 保存图片」在原生这边直接开原生图片预览（B3.11：NativeImagePreviewController + image.* op，与结果页同一条路）。
 //
-// 文案与数据来自会话层（src/session/views/mine-sub.js annualView → App API view.annual）；本页不写汉字与数值。
+// 文案与数据来自会话层（annualView → App API view.annual）；本页不写汉字与数值。
 
 @objc(ShiziScreen_annual)
 final class AnnualScreen: ShiziScreenViewController {
@@ -614,7 +614,7 @@ final class AnnualScreen: ShiziScreenViewController {
         return y
     }
 
-    /// 空态（网页 components/EmptyState.js：笺面纸的空格子 + 标题 + 说明）。
+    /// 空态（网页：笺面纸的空格子 + 标题 + 说明）。
     private func layoutEmpty(bx: CGFloat, bw: CGFloat, top: CGFloat) {
         let mt = metrics
         // 网页 .sz-page__body 的下内边距（s8）不算进正文
@@ -653,7 +653,7 @@ final class AnnualScreen: ShiziScreenViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         if axLayout {
-            // AX 档：网页的页头折成两行（components/ax.js）——第一行「‹」+「调整图片 ›」，第二行页标题
+            // AX 档：网页的页头折成两行——第一行「‹」+「调整图片 ›」，第二行页标题
             // （本页的页标题是可见的 h1：盒高 = 一行字 + 下内边距 6，字从盒顶往上溢出一点）
             let row1 = axHeaderRowHeight()
             let row1Bottom = view.safeAreaInsets.top + row1

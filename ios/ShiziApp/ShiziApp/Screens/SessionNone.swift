@@ -1,9 +1,9 @@
 import UIKit
 
-// B3.12 原生「现在没有要写的字」页（网页 src/ui/screens/session/none.js，1:1 移植；视图模型 src/session/views/session.js noneView，App API view.session-none）。
+// B3.12 原生「现在没有要写的字」页（照网页版 1:1 移植；视图模型 noneView，App API view.session-none）。
 // 屏名 ⇄ 类：session-none ⇄ ShiziScreen_session_none。
 //
-// 版式（网页 components/Page.js + components/EmptyState.js S2）：
+// 版式（照网页的页面骨架 + 空态 S2）：
 //   页头「写字」+「‹」（底座 ShiziScreenViewController 画，位置与网页逐 pt 对齐）；
 //   正文 = 全 App 唯一的空状态：空格子（笺面 + 1pt 外框）、标题（宋 22 / 500）、说明（15 墨二）、可选的文字按钮（「待复习 ›」），
 //     竖向居中（格子下外边距 8、按钮上外边距 8、块之间 gap 8）；exhausted 时说明多一段；
@@ -13,7 +13,7 @@ import UIKit
 
 @objc(ShiziScreen_session_none)
 final class SessionNoneScreen: ShiziScreenViewController {
-    /// 视图模型（views/session.js noneView）。
+    /// 视图模型（noneView）。
     struct View: Decodable {
         struct Action: Decodable { let label: ShiziCopyRef; let to: String }
         struct Empty: Decodable {
@@ -24,7 +24,7 @@ final class SessionNoneScreen: ShiziScreenViewController {
             let action: Action?
         }
         struct Btn: Decodable { let label: ShiziCopyRef; let to: String }
-        /// 网页量出来的折行点（每一行从第几个字开始；views/session.js noneView 的 lines）。
+        /// 网页量出来的折行点（每一行从第几个字开始；noneView 的 lines）。
         struct Lines: Decodable { let title: [Int]?; let body: [Int]?; let extra: [Int]? }
         let title: ShiziCopyRef
         let empty: Empty
@@ -176,7 +176,7 @@ final class SessionNoneScreen: ShiziScreenViewController {
         l.accessibilityLabel = text
     }
 
-    // MARK: 按钮样式（网页 components/Button.js 的三种）
+    // MARK: 按钮样式（网页的三种）
 
     /// 文字按钮（.sz-btn--text：黑体 15、ink2；点击区补到 44；AX 档字可折行、左对齐）。
     private func styleTextButton(_ b: NativeTextButton, _ text: String) {

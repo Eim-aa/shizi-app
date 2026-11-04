@@ -1,12 +1,12 @@
 import UIKit
 
 // 原生结果页（B2.7；docs/engineering/v10/B2-原生写字架构.md §11 B2.7 / §20；写字流程确认单 §8；D19 / D20 / D46 ⑥ / D49 / D51 ② / D66 ③ ④ ⑮ / D70）。
-// 只在 DEBUG、原生写字页开关打开时出现（与原生写字页同一开关）。标准答案是网页结果页（src/ui/screens/result/index.js、work.js、first.js）。
+// 只在 DEBUG、原生写字页开关打开时出现（与原生写字页同一开关）。标准答案是原先的网页结果页。
 //
-// 数据：页面的结果条目挂载时（宿主 NativeResultHost）随 result-open 消息推来「视图」（src/ui/screens/result/native-view.js：网页结果页同一批函数算好的作品格、
+// 数据：页面的结果条目挂载时（宿主 NativeResultHost）随 result-open 消息推来「视图」（网页结果页同一批函数算好的作品格、
 //   落款与印、没放进图里的行、复现句、提醒邀请、底栏、交接来的撤销机会、落印要不要演）与外观（resultLook：文案、颜色、字阶、动效时刻）；
 //   之后每次写入（放进图里、改判）的回包带新视图。原生只排版与绘制，不另算规则；文案一律取自页面（本文件没有用户可见的字）。
-// 版式（网页 Page.js + result/index.js + work.js + first.js 逐项）：
+// 版式（逐项照原网页结果页）：
 //   页头：左「×」（44 框，图标外缘落在 20pt 页边线：左移 16.25）、右「分享」（右移 15.25）；页标题只给读屏。
 //   正文（页头下 12 起，左右页边 20，下内边 32；有撤销条时多一个 32 的组间距）：内容不满时在正文区里竖向居中（margin:auto 0），超出时贴顶滚动；
 //     结果区末尾 5vh 内边。从上到下：首练标题（宋 22 / 30）/ 中途结束一行（13 / 20 ink3）→ 24 → 作品（格 c × 列 × 行、居中；笺底、格框 1pt、格间 0.75 guide；
@@ -87,7 +87,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private var undoBar: NativeUndoBarView?
     private var undoLife: NativeUndoLifetime?
     private var stateChangedAt: CFTimeInterval = -.infinity
-    /// 本次进程里已演过落印的组（网页 result/work.js revealed 同义；冷启动后看 sealedAt）。
+    /// 本次进程里已演过落印的组（网页 revealed 同义；冷启动后看 sealedAt）。
     private static var revealed: Set<String> = []
 
     var variant: String { model["variant"] as? String ?? "" }
@@ -352,7 +352,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         b.accessibilityIdentifier = id
     }
 
-    /// 按网页的折行点换行（native-view.js webLineStarts：网页 text-wrap: pretty 折出来的每一行从第几个字开始）。
+    /// 按网页的折行点换行（webLineStarts：网页 text-wrap: pretty 折出来的每一行从第几个字开始）。
     static func broken(_ text: String, _ starts: Any?) -> String {
         guard let starts = (starts as? [NSNumber])?.map({ $0.intValue }), !starts.isEmpty else { return text }
         var out = ""
@@ -421,7 +421,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         let ts = self.ts
         let tt = textType
         [primaryButton, redoButton, againTextButton, failCancel, failRetry].forEach { NativeType.trackTitle($0) } // 中文字距同网页（B2.9b）
-        // AX 档主按钮：min-height --btn-h、上下内边距 6、字按行数长高（网页 components/ax.js）
+        // AX 档主按钮：min-height --btn-h、上下内边距 6、字按行数长高
         let primaryH = tt.axButtonHeight("resultFoot", sub: "r3", title: primaryButton.title(for: .normal), font: primaryButton.titleLabel?.font, width: inner - 48)
             ?? max(ts.buttonHeight, ts.lh17s)
         let primaryY = h - max(24, safe.bottom) - primaryH
@@ -781,7 +781,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
 
     // MARK: 动作
 
-    /// 0.4s 防误点（网页 Button.js：新状态后 pressGuard 内不响应）。
+    /// 0.4s 防误点（网页：新状态后 pressGuard 内不响应）。
     private func press(_ action: (NativeResultViewController) -> Void) {
         let guardS = (motion["pressGuard"] ?? 0) / 1000
         if CACurrentMediaTime() - stateChangedAt < guardS { return }
@@ -1226,7 +1226,7 @@ final class NativeWorkCellButton: UIButton {
     }
 }
 
-/// 印（marks.js <Seal/>：seal 底、直角；白文「拾」= shi.js 小尺寸加粗字形，页面给单位方块内的路径；内缩 7% 一圈 on-seal 细线，透明度 .55）。
+/// 印（<Seal/>：seal 底、直角；白文「拾」= 小尺寸加粗字形，页面给单位方块内的路径；内缩 7% 一圈 on-seal 细线，透明度 .55）。
 final class NativeSealView: UIView {
     private let glyph = CAShapeLayer()
     private let line = CAShapeLayer()
@@ -1324,7 +1324,7 @@ final class NativeResultRowView: UIView {
         setNeedsLayout()
     }
 
-    /// AX 档（网页 work.js :root[data-ax] .sz-exrow）：行可折——主体占满一行（高 = max(52, 行高)），「修改 ›」「放进图里」各自按字号长高、左让出字宽 + 12，
+    /// AX 档（网页 :root[data-ax] .sz-exrow）：行可折——主体占满一行（高 = max(52, 行高)），「修改 ›」「放进图里」各自按字号长高、左让出字宽 + 12，
     /// 一行放不下就折到下一行（行距 / 列距 4），整行上下内边距 6。返回各按钮的框与行高；不在 AX 档 → nil。
     private func axPlan(width: CGFloat) -> (open: CGRect, frames: [(UIButton, CGRect)], height: CGFloat)? {
         guard type.ax, let pad = type.role("exrow", "padTop", sub: "r5") else { return nil }
@@ -1487,7 +1487,7 @@ final class NativeRowOpenButton: UIButton {
     }
 }
 
-// MARK: - 提醒邀请（first.js ReminderInvite）
+// MARK: - 提醒邀请（ReminderInvite）
 
 final class NativeInviteView: UIView {
     struct Look {

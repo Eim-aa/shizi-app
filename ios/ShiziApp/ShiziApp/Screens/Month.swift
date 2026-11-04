@@ -1,6 +1,6 @@
 import UIKit
 
-// 月字帖（B3.9；网页 ui/screens/mine/month.js 的原生版）。
+// 月字帖（B3.9；网页的原生版）。
 //
 // 版式（网页 .sz-monthpage）：标题「{n}月字帖」（宋 28 / 36）→「按第一次写的先后排」（13 / 20）→ 字帖纸（格线 + 外框 + 日期角标）
 //   → 落款（宋 13 / 20，右对齐）+ 印（24pt）→ 说明句（整月有衬底字时才有）。
@@ -8,7 +8,7 @@ import UIKit
 //
 // 「调整图片 / 保存图片」在原生这边直接开原生图片预览（B3.11：NativeImagePreviewController + image.* op，与结果页同一条路）。
 //
-// 文案与数据来自会话层（src/session/views/mine-sub.js monthView → App API view.month）；本页不写汉字与数值。
+// 文案与数据来自会话层（monthView → App API view.month）；本页不写汉字与数值。
 
 @objc(ShiziScreen_month)
 final class MonthScreen: ShiziScreenViewController {
@@ -270,7 +270,7 @@ final class MonthScreen: ShiziScreenViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         if axLayout {
-            // AX 档：网页的页头折成两行（components/ax.js）——第一行「‹」+「调整图片 ›」，第二行页标题。
+            // AX 档：网页的页头折成两行——第一行「‹」+「调整图片 ›」，第二行页标题。
             // 本页的页标题只给读屏（网页 hideTitle）：那个 1 × 1 的 sr-only 盒子在 AX 档变成可见的一行字，
             // 盒子只有下内边距 6、外边距 −1（行高 = 4），字从盒顶往上溢出一点。
             let row1 = axHeaderRowHeight()

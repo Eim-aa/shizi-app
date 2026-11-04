@@ -22,7 +22,7 @@ enum NativeNavKind: String {
     case paper, push, quiet, phase, fade, none
 }
 
-/// 页面给的「这一页怎么进来 / 怎么回去」（paper-transition.js nativePlanShape）：paper 带被点元素的矩形、圆角、字、底色与下层 tab 内容区矩形。
+/// 页面给的「这一页怎么进来 / 怎么回去」（nativePlanShape）：paper 带被点元素的矩形、圆角、字、底色与下层 tab 内容区矩形。
 struct NativeNavPlan {
     struct Source {
         var rect: CGRect
@@ -81,7 +81,7 @@ struct NativeNavEase {
     }
 }
 
-/// 转场参数（open 回包 motion.nav / 结果页 look motion.nav = write-api.js writeNavMotion；src/config/motion.js 与 policy.paperTransition 单一来源，Swift 不写数值）。
+/// 转场参数（open 回包 motion.nav / 结果页 look motion.nav = writeNavMotion； 与 policy.paperTransition 单一来源，Swift 不写数值）。
 struct NativeNavMotion {
     var pushMs = 0.0, pushOutMs = 0.0, pushGestureMinMs = 0.0, pushSnapMs = 0.0, parallax = 0.0
     var pushEase = NativeNavEase(nil)
@@ -533,7 +533,7 @@ final class NativeWriteTransitions: NSObject, UIViewControllerTransitioningDeleg
         v.alpha = 1
     }
 
-    /// 画一帧（s：1 = 整屏，0 = 来源 / 屏外 / 透明；drag = 跟手中）。网页 paper-transition.js createPaper 的 apply 与 root.js 推入 / B3 的同一套几何。
+    /// 画一帧（s：1 = 整屏，0 = 来源 / 屏外 / 透明；drag = 跟手中）。网页 createPaper 的 apply 与 推入 / B3 的同一套几何。
     private func frame(_ sIn: CGFloat, drag: Bool = false) {
         guard let v = page?.view, let m = NativeNavMotion.current else { return }
         let s = min(1, max(0, sIn))

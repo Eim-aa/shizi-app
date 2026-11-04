@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/mine-sub.js. Line starts preserve the injected provider
+// Mine sub-page views. Line starts preserve the injected provider
 // contract; actual text measurement belongs to the renderer.
 public enum MineSubView {
     typealias V = ViewSupport

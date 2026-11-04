@@ -1,7 +1,7 @@
 import UIKit
 import UserNotifications
 
-// B3.10 原生提醒页（网页 src/ui/screens/mine/remind.js；视图模型 src/session/views/settings.js 的 remindView，App API view.remind）。
+// B3.10 原生提醒页（网页；视图模型 remindView，App API view.remind）。
 // 屏名 ⇄ 类：remind ⇄ ShiziScreen_remind。
 // 版式照网页 .sz-remind__* 逐项排（开关行 56 / 时间行 56 / 通知被手机关掉时的说明 / 写入失败的三段式 FailBlock），
 // 数值取 ShiziTokens，文案取视图模型给的引用（ShiziCopyRef）。系统能力原生直接做：
@@ -10,7 +10,7 @@ import UserNotifications
 
 /// 网页量出的折行点（App API 回包里的 lines）：原生按这些位置断行，与网页同一个折行。
 /// 网页的小字是 text-wrap: pretty（.sz-remind__sub），WebKit 的折法不是贪心折行（末行太短时它会把字往上一行挪），
-/// 原生排版是贪心折行，所以断行点得由网页量出来给原生（量法见 src/platform/text-lines.js，与结果页 native-view.js 同一做法）。
+/// 原生排版是贪心折行，所以断行点得由网页量出来给原生。
 private enum ShiziWebLines {
     /// 每一行从第几个字开始（网页量出来的）→ 带换行的字（量不到时原样返回，原生按自己的宽度折行）。
     static func breakText(_ text: String, _ starts: Any?) -> String {

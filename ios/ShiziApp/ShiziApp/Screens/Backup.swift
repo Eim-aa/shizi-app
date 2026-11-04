@@ -1,20 +1,20 @@
 import UIKit
 import UniformTypeIdentifiers
 
-// B3.10 原生备份页（网页 src/ui/screens/mine/backup.js；视图模型 src/core/backup.js 的 backupView / restoreConfirmView / clearSheetView，App API view.backup）。
+// B3.10 原生备份页（网页；视图模型 backupView / restoreConfirmView / clearSheetView，App API view.backup）。
 // 屏名 ⇄ 类：backup ⇄ ShiziScreen_backup。
 // 版式照网页 .sz-bk__* 逐项排（状态块 / 正文首句 / 说明框 / 两行列表 / 底栏主按钮 / 撤销条 / 居中确认框），
 // 数值取 ShiziTokens，文案取视图模型给的引用（ShiziCopyRef）。系统能力原生直接做：
 // UIActivityViewController 分享备份文件、UIDocumentPickerViewController 选文件。
 // 写 store 走会话层同一批函数（App API：backup.export / exportDone / picked / restore / clear / undoRestore / undoClear）。
 //
-// ShiziKit 的 NativeEndDialogView（ShiziConfirm.swift）没有标题槽，网页 Confirm.js 有标题（宋体 22 / 30）；
-// ShiziKit 的 NativeUndoBarView（ShiziUndoBar.swift）只有一行，网页 UndoBar.js 是两行。
-// 所以确认框与撤销条在本文件里自己画（照网页 Confirm.js / UndoBar.js 的规格），转场用 ShiziKit 的 NativeOverlaySpec。
+// ShiziKit 的 NativeEndDialogView（ShiziConfirm.swift）没有标题槽，网页版有标题（宋体 22 / 30）；
+// ShiziKit 的 NativeUndoBarView（ShiziUndoBar.swift）只有一行，网页版是两行。
+// 所以确认框与撤销条在本文件里自己画（照网页版的规格），转场用 ShiziKit 的 NativeOverlaySpec。
 
 /// 网页量出的折行点（App API 回包里的 lines）：原生按这些位置断行，与网页同一个折行。
-/// 网页的段落是 text-wrap: pretty（src/config/base.css），WebKit 的折法不是贪心折行（末行太短时它会把字往上一行挪），
-/// 原生排版是贪心折行，所以断行点得由网页量出来给原生（量法见 src/platform/text-lines.js，与结果页 native-view.js 同一做法）。
+/// 网页的段落是 text-wrap: pretty，WebKit 的折法不是贪心折行（末行太短时它会把字往上一行挪），
+/// 原生排版是贪心折行，所以断行点得由网页量出来给原生。
 private enum ShiziWebLines {
     /// 每一行从第几个字开始（网页量出来的）→ 带换行的字（量不到时原样返回，原生按自己的宽度折行）。
     static func breakText(_ text: String, _ starts: Any?) -> String {
@@ -28,7 +28,7 @@ private enum ShiziWebLines {
     }
 }
 
-/// 居中确认框（网页 components/Confirm.js）：标题（宋 22 / 30）+ 正文（15 / 22）+ 两键（1fr 1fr，gap 12）。
+/// 居中确认框：标题（宋 22 / 30）+ 正文（15 / 22）+ 两键（1fr 1fr，gap 12）。
 /// 规格：左右页边 20、垂直居中、24 圆角、elev 底、内边距 24 / 20 / 20、标题与正文之间 12、正文与两键之间 12、两键上方 4、键高 btn-h。
 final class BackupConfirmView: UIView {
     struct Strings {
@@ -222,7 +222,7 @@ final class BackupConfirmView: UIView {
     }
 }
 
-/// 撤销条（网页 components/UndoBar.js）：两行说明 + 「撤销」文字按钮；浮条（elev 底 + 1pt 线 + 轻阴影、24 圆角）。
+/// 撤销条：两行说明 + 「撤销」文字按钮；浮条（elev 底 + 1pt 线 + 轻阴影、24 圆角）。
 final class BackupUndoBarView: UIView {
     var onUndo: (() -> Void)?
 
@@ -456,13 +456,13 @@ final class BackupScreen: ShiziScreenViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // 冷启动恢复（P32）：保护副本还在 → 撤销条仍在（网页 backup.js 的 mountedByRestore 分支）。
+        // 冷启动恢复（P32）：保护副本还在 → 撤销条仍在（网页的 mountedByRestore 分支）。
         if undoKind == nil { loadUndoState() }
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        // 离开这一页 → 撤销失效、删副本（D24 / 01 §9；网页 backup.js 的 route.subscribe 分支）。
+        // 离开这一页 → 撤销失效、删副本（D24 / 01 §9；网页的 route.subscribe 分支）。
         if isBeingDismissed { stage?.engine.raw("backup.dropSafety", [:]) { _ in } }
     }
 
@@ -812,7 +812,7 @@ final class BackupScreen: ShiziScreenViewController {
         case .success(let text):
             picked(text)
         case .failure(let rejection):
-            // tooLarge / invalid：网页侧同样是 R-B06.notBackup 一张说明框（core/backup.js 的 failureKind）
+            // tooLarge / invalid：网页侧同样是 R-B06.notBackup 一张说明框（failureKind）
             showNote(.notBackup, retry: nil)
             _ = rejection
         }
@@ -998,7 +998,7 @@ extension BackupScreen: UIDocumentPickerDelegate {
 /// 原生只做 64MB 上限（B1 前为 10MB）与 JSON 外壳预检（app=="shizi"、data 是非空对象、键全部 `shizi.` 前缀；v1/v2 都放行），
 /// 通过则把文件文本交给会话层（backup.picked：校验、页内确认、保护副本、替换、撤销），否则备份页显示说明框。
 enum BackupFile {
-    /// 与 JS 参考 src/core/backup.js BACKUP_MAX_BYTES 相同。
+    /// 与 JS 参考 BACKUP_MAX_BYTES 相同。
     static let maxBytes = 64 * 1024 * 1024
 
     enum Rejection: String, Error {

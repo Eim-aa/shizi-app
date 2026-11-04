@@ -1,6 +1,6 @@
 import Foundation
 
-/// core/images/work.js and pick.js. All record objects are preserved, including unknown fields.
+/// Image work and pick selection rules, ported from the former JS modules. All record objects are preserved, including unknown fields.
 public enum ImageSelection {
   public typealias InkOf = (JSValue) throws -> JSValue?
   static func obj(_ p: [(String, JSValue)]) -> JSValue { .object(JSObject(p)) }

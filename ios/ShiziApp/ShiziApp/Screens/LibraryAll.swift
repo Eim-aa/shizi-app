@@ -1,13 +1,13 @@
 import UIKit
 
-// B3.8 原生字库子页 · 全部字页（网页 src/ui/screens/library/all.js，1:1 移植；视图模型 src/session/views/library-all.js allModel，
+// B3.8 原生字库子页 · 全部字页（照网页版 1:1 移植；视图模型 allModel，
 // App API view.library-all / library.all.start）。
 // 屏名 ⇄ 类：library-all ⇄ ShiziScreen_library_all。推入页。
 //
-// 版式按网页 CSS 逐项排（.sz-all* / wall.js 的 Glyph / Legend / Sheet.js），数值全部取 ShiziTokens：
+// 版式按网页 CSS 逐项排（.sz-all* / 墙的 Glyph / Legend / 底部弹层），数值全部取 ShiziTokens：
 //   页头「已练汉字」+ 尾端文字按钮「排序 · 筛选」；正文：查字框（吸顶、命中时右侧「在 {月}」）→ 分组（组名 + 字数 + 墙格；拼音排序每格下标拼音）
 //   → 收起的月份 →「看这些字 ›」；底栏：主按钮「练这些字」。
-// 「排序 · 筛选」是底部弹层（网页 Sheet.js；原生用一个呈现出来的原生控制器）。
+// 「排序 · 筛选」是底部弹层（网页；原生用一个呈现出来的原生控制器）。
 
 @objc(ShiziScreen_library_all)
 final class LibraryAllScreen: ShiziScreenViewController {
@@ -121,7 +121,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     }
 
-    /// 网页量出来的值（B3.8）：组头的高、说明句（pretty）的折行点、页头尾端按钮的宽、弹层排序键的折行点（见 web-metrics.js）。
+    /// 网页量出来的值（B3.8）：组头的高、说明句（pretty）的折行点、页头尾端按钮的宽、弹层排序键的折行点。
     struct WebMetrics: Decodable {
         let headHeights: [Double?]?
         let note: [Int]?
@@ -179,7 +179,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
     /// 右槽槽宽（文字按钮两侧各 −4）。
     var trailSlotWidth: CGFloat { max(44, trailButtonWidth - 8) }
 
-    /// AX 档右槽按钮的高（网页 components/ax.js：文字按钮 min-height = max(44px, calc(1.3em + 12px))）。
+    /// AX 档右槽按钮的高（网页：文字按钮 min-height = max(44px, calc(1.3em + 12px))）。
     var trailHeight: CGFloat { axLayout ? LibraryCommon.axTextButtonHeight(fontSize: metrics.value("fs15")) : 44 }
 
     override func viewDidLoad() {
@@ -380,7 +380,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
                 } else {
                     pyLabel.isHidden = true
                 }
-                // 有本人的笔迹就画墨，没墨才画标准字形（网页 wall.js 的 Glyph：墨迹有就画墨、没有就画字形）
+                // 有本人的笔迹就画墨，没墨才画标准字形（网页的 Glyph：墨迹有就画墨、没有就画字形）
                 let inked = hasInk(cell)
                 var parts: [String] = []
                 if !inked { parts.append(cell.char) }
@@ -406,7 +406,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         }
     }
 
-    /// 多久没写 → 墙色（网页 wall.js 的 TONE_COLOR_VARS：wall1…wall4）。
+    /// 多久没写 → 墙色（网页的 TONE_COLOR_VARS：wall1…wall4）。
     private func wallToken(_ tone: Int) -> String {
         switch tone {
         case 0: return "wall1"
@@ -416,13 +416,13 @@ final class LibraryAllScreen: ShiziScreenViewController {
         }
     }
 
-    /// 这一格有没有本人的笔迹（网页 wall.js 的 Glyph：有墨就画墨、没墨才画标准字形）。
+    /// 这一格有没有本人的笔迹（网页的 Glyph：有墨就画墨、没墨才画标准字形）。
     private func hasInk(_ cell: Cell) -> Bool {
         guard cell.kind == "ink", let rid = cell.record?.id else { return false }
         return !(inkStrokes[rid] ?? []).isEmpty
     }
 
-    /// 格子给读屏的名字（网页 wall.js 的 cellLabel）。
+    /// 格子给读屏的名字（网页的 cellLabel）。
     private func cellLabel(_ cell: Cell) -> String {
         let status: String
         if cell.kind == "hollow" { status = t("R-A02.filterCustomUnwritten") }
@@ -431,7 +431,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         return t("X-LIBHOME.cellAria", ["char": cell.char, "status": status])
     }
 
-    /// 新旧档 → 文案键（网页 wall.js 的 TONE_KEYS）。
+    /// 新旧档 → 文案键（网页的 TONE_KEYS）。
     static func toneKey(_ tone: Int) -> String {
         switch tone {
         case 0: return "X-LIBHOME.tone0"
@@ -473,7 +473,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         reload()
     }
 
-    /// 点格子 → 单字详情（网页 all.js 的 openDetail）。
+    /// 点格子 → 单字详情（网页的 openDetail）。
     private func openCell(_ b: ShiziLineButton?) {
         guard let b else { return }
         var char = ""
@@ -498,7 +498,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         }
     }
 
-    /// 展开 / 收起一个月份（网页 all.js 的 onFold）。
+    /// 展开 / 收起一个月份（网页的 onFold）。
     private func foldGroup(_ gv: GroupView?) {
         guard let gv, let m = model else { return }
         guard let gi = groupViews.firstIndex(where: { $0 === gv }), gi < m.groups.count else { return }
@@ -520,7 +520,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         reload()
     }
 
-    /// 「练这些字」（网页 all.js 的 onGo → startAllGroup）。
+    /// 「练这些字」（网页的 onGo → startAllGroup）。
     private func start() {
         guard let m = model, let go = m.go else { return }
         Task { @MainActor [weak self] in
@@ -777,7 +777,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
     }
 }
 
-/// 「排序 · 筛选」弹层（网页 components/Sheet.js + all.js 的 AllMenuSheet：标题 + 完成 / 排序三键 / 筛选项 / 图例 / 说明句）。
+/// 「排序 · 筛选」弹层（网页版的 AllMenuSheet：标题 + 完成 / 排序三键 / 筛选项 / 图例 / 说明句）。
 /// 原生这边是一个呈现出来的控制器（网页那边是遮罩栈里的一层）；控制器的根视图就是面板。
 final class LibraryAllMenuController: UIViewController, UIViewControllerTransitioningDelegate, NativeSheetSizing {
     var onSort: ((String) -> Void)?
@@ -971,7 +971,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         // 页头：标题（fs17 / lh17s）与「完成」（文字按钮；AX 档最小高 = max(44, 1.3em + 12)）
         let doneH = LibraryCommon.isAX ? LibraryCommon.axTextButtonHeight(fontSize: mt.value("fs15")) : mt.hit
         m.head = max(mt.line("lh17s"), doneH)
-        // 排序三键：键里的字按 WebKit 口径折行（网页 Button.js 的字可折行），三键取最高的那个
+        // 排序三键：键里的字按 WebKit 口径折行（网页的字可折行），三键取最高的那个
         if showSort {
             let bw = (innerW - 6) / CGFloat(max(1, sorts.count))
             var lines = 1
@@ -1053,7 +1053,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                 b.frame = CGRect(x: 3 + CGFloat(i) * bw, y: 3, width: bw - 0.05, height: sortH) // 少 0.05pt：三键首尾相接，取证按 0.1pt 取整会量出 0.1pt 的重叠
                 // 按钮里的字（原生按钮不画字，字放在子视图里）
                 let l = sortLabels[i]
-                // 网页 Button.js 的字按词折行；原生按同样的折行点换行（行数与网页一致）
+                // 网页的字按词折行；原生按同样的折行点换行（行数与网页一致）
                 let lines = LibraryText.webWrap(s.label.text, font: mt.font(15), width: bw)
                 l.numberOfLines = 0
                 NativeType.set(l, lines.joined(separator: "\n"), font: mt.font(15), color: s.active ? color("ink1") : color("ink2"), align: .center, line: mt.line("lh15"))
@@ -1214,7 +1214,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                 l.frame = CGRect(x: cx + item.0 - item.1, y: cy, width: item.1, height: lineH)
                 let sw = legendSwatches[i]
                 if i < 4 {
-                    // 网页 wall.js 的 Swatch：viewBox 40×14 里的一笔横（宽 20 高 7，缩放 0.5）
+                    // 网页的 Swatch：viewBox 40×14 里的一笔横（宽 20 高 7，缩放 0.5）
                     sw.backgroundColor = .clear
                     sw.frame = CGRect(x: cx, y: cy + (lineH - 7) / 2, width: 20, height: 7)
                     let shape: CAShapeLayer
@@ -1251,7 +1251,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         }
     }
 
-    /// 网页 wall.js Swatch 的 path（viewBox 40×14）。
+    /// 网页 Swatch 的 path（viewBox 40×14）。
     static let swatchPath: UIBezierPath = {
         let p = UIBezierPath()
         p.move(to: CGPoint(x: 1.5, y: 7.6))

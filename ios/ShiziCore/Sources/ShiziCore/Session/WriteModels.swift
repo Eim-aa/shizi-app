@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/write-api.js snapshots and src/session/ops/{prompt,line,redo}.js.
+// Write-API snapshots and the prompt / line / redo ops.
 public enum WriteModels {
     static func prompt(_ state: JSObject, key: String, queue: [JSValue], revealed: Bool) throws -> JSValue {
         var card = DeckCards.shared.cardForKey(key)

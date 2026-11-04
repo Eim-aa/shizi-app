@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/detail.js. Recalled ink is an injected session-memory value;
+// Detail view. Recalled ink is an injected session-memory value;
 // with the shipped perRecordInk policy JS recalledInk always returns null.
 public enum DetailView {
     typealias V = ViewSupport

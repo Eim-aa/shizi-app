@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/block.js
 public enum BlockView {
     public static func blockReasonOf(_ status: JSValue?, migration: JSValue? = nil) -> JSValue {
         func reason(_ kind: String, _ detail: JSValue?) -> JSValue {

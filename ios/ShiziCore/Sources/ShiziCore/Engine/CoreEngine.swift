@@ -120,7 +120,7 @@ public final class CoreEngine {
     /// op 名按 JS 默认排序（UTF-16 码元序；op 名全是 ASCII，与 Swift 字符串序相同）。
     public static let opNames: [String] = ops.keys.sorted()
 
-    // ---- 参数校验（与 js-engine.mjs 的 arg 助手同一规则）----
+    // ---- 参数校验 ----
 
     static func required(_ a: JSObject, _ k: String) throws -> JSValue {
         guard let v = a[k] else { throw CoreError.badArgs("missing " + k) }

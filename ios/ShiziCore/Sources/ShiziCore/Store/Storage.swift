@@ -21,6 +21,16 @@ public final class StoreStorage {
     private var failQueue: [(remaining: Int, kind: String, matchKey: String?)] = []
     private var interruptAfter: Int?
     public private(set) var lastRepair: JSObject?
+    /// 最近一次 repair 逐键 parseAndValidate 通过的结果（原文 + 值）。load 里 repair 之后紧接着 readState 又对同一份原文
+    /// 再 parseAndValidate 一遍；parseAndValidate 只取决于 (key, 原文)，原文逐字节相同时结果必然相同，readState 直接取用、省掉第二遍解析与校验。
+    /// 由 takeRepairParsed 取走即清空；每次 repair 开头清空。
+    private var repairParsed = KeyMap<(raw: String, value: JSValue)>()
+
+    /// 取走最近一次 repair 留下的「已解析且校验通过」结果（取后清空）。
+    func takeRepairParsed() -> KeyMap<(raw: String, value: JSValue)> {
+        defer { repairParsed = KeyMap() }
+        return repairParsed
+    }
 
     public init(_ backend: KVBackend, now: @escaping () -> Double = { Date().timeIntervalSince1970 * 1000 }) {
         self.backend = backend
@@ -416,6 +426,7 @@ public final class StoreStorage {
 
     /// 启动修复。报告 {txn, quarantined:[{key, reason}], quarantineFailed, unknown, dropped, blocked}。
     public func repair() throws -> JSObject {
+        repairParsed = KeyMap()
         var txnState = "none"
         var quarantined: [JSValue] = []
         var quarantineFailed: [JSValue] = []
@@ -454,7 +465,11 @@ public final class StoreStorage {
                 continue
             }
             guard let raw = try rawGet(key) else { continue }
-            guard case .failed(let reason) = Schema.parseAndValidate(key: key, raw: .string(raw)) else { continue }
+            let parsed = Schema.parseAndValidate(key: key, raw: .string(raw))
+            guard case .failed(let reason) = parsed else {
+                if case .ok(let value) = parsed { repairParsed[key] = (raw: raw, value: value) }
+                continue
+            }
             if UTF16Order.eq(key, routeKey) {
                 do {
                     try rawRemove(key)

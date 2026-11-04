@@ -120,4 +120,29 @@ final class StoreIncrementalTests: XCTestCase {
             XCTAssertTrue(fast.utf8.elementsEqual(slow.utf8), s)
         }
     }
+
+    /// load 里 readState 复用 repair 已解析校验过的结果：与扔掉复用、逐键重新 parseAndValidate 得到的 state / raws 逐字相同；
+    /// repair 之后原文变了的键不复用（这里改成坏值：照常重新解析 → 校验不过 → 不进 raws）。
+    func testReadStateReusesRepairParseOnlyForIdenticalRaw() throws {
+        for B in TestBackend.allCases {
+            let disk = seeded(B).disk
+            let a = freshStore(B, disk: disk.cloneDisk()).store
+            let storage = StoreStorage(disk.cloneDisk().open(), now: { STORE_NOW })
+            let b = Store(storage: storage, now: { STORE_NOW }, dates: shanghai)
+            _ = try storage.repair()
+            _ = storage.takeRepairParsed()
+            let direct = b.readState()
+            XCTAssertEqual(JSONWriter.stringify(.object(a.state)), JSONWriter.stringify(.object(direct.next)), B.name)
+            XCTAssertEqual(a.lastRaw.keys, direct.raws.keys, B.name)
+            for k in direct.raws.keys { XCTAssertTrue(utf8Equal(a.lastRaw[k] ?? "", direct.raws[k] ?? "-"), B.name + " " + k) }
+        }
+        let disk = seeded(.local).disk
+        let storage = StoreStorage(disk.open(), now: { STORE_NOW })
+        let store = Store(storage: storage, now: { STORE_NOW }, dates: shanghai)
+        _ = try storage.repair()
+        let key = try XCTUnwrap(disk.snapshot().map { $0.0 }.first { Schema.specForKey($0)?.domain != nil && Schema.specForKey($0)?.id != "inkRecord" })
+        disk.rawSet(key, "{bad")
+        let after = store.readState()
+        XCTAssertNil(after.raws[key], "changed raw after repair must be re-parsed, not reused: " + key)
+    }
 }

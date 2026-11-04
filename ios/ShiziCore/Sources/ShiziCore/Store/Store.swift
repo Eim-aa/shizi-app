@@ -321,10 +321,18 @@ public final class Store: ScheduleStore {
         var raws = KeyMap<String>()
         var monthTables = KeyMap<JSValue>()
         var recordTables = KeyMap<JSObject>()
+        // repair 刚对同一份原文 parseAndValidate 过：原文逐字节相同就用它的结果（parseAndValidate 只取决于 key 与原文），不同或没有就照常解析校验。
+        let parsedByRepair = storage.takeRepairParsed()
         let all = (try? storage.readAll(Schema.v2Prefix)) ?? []
         for (key, rawOpt) in all {
             guard let spec = Schema.specForKey(key), let domain = spec.domain, let raw = rawOpt else { continue }
-            guard case .ok(let value) = Schema.parseAndValidate(key: key, raw: .string(raw)) else { continue }
+            let value: JSValue
+            if let hit = parsedByRepair[key], utf8Equal(hit.raw, raw) {
+                value = hit.value
+            } else {
+                guard case .ok(let v) = Schema.parseAndValidate(key: key, raw: .string(raw)) else { continue }
+                value = v
+            }
             raws[key] = raw
             validatedValues[key] = value
             if spec.id == "inkRecord" {

@@ -109,7 +109,7 @@ jobs:
         run: |
           swift test -c release -Xswiftc -enable-testing --package-path ios/ShiziCore \
             --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests' 2>&1 \
-            | grep -E "BENCH|error:|Executed [0-9]+ tests?|failed"
+            | grep -E "BENCH|error:|Executed [0-9]+ tests?|failed" | tee "$RUNNER_TEMP/bench-release.txt"
       - name: ShiziCore build + tests (verify:core)
         run: pnpm run verify:core
       - name: Library governance (needs shizi-core-cli)
@@ -118,6 +118,10 @@ jobs:
         run: pnpm run verify:content
       - name: Unit tests incl. macOS-only cases
         run: pnpm run verify:unit
+      # 日志接口只给一个 job 的最后几千行：Release 量测结果在 job 末尾再打印一次
+      - name: Release benchmarks (repeat at end of log)
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.bench_release }}
+        run: cat "$RUNNER_TEMP/bench-release.txt" || true
 
   ios-app:
     runs-on: macos-26

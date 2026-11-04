@@ -14,6 +14,11 @@ public enum CoreResources {
         return url
     }
 
+    /// 资源原文（不解析、不缓存）。测试用它拿同一份文字比较解析器的新旧写法。
+    static func text(_ name: String) throws -> String {
+        String(decoding: try Data(contentsOf: try url(name)), as: UTF8.self)
+    }
+
     /// 读并解析 Resources/<name>.json（解析结果缓存）。资源缺失或不是合法 JSON 时抛错。
     public static func load(_ name: String) throws -> JSValue {
         lock.lock()

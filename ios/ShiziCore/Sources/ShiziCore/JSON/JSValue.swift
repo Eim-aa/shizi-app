@@ -85,6 +85,12 @@ public struct JSObject: Equatable {
         for (k, v) in pairs { self[k] = v }
     }
 
+    /// 预留 n 个键的空对象（只影响容量，不影响内容与键序）：已知键数时一次分配好，免得逐个写入时反复扩容、重新散列。
+    init(minimumCapacity n: Int) {
+        values = Dictionary(minimumCapacity: n)
+        insertion.reserveCapacity(n)
+    }
+
     public var count: Int { insertion.count }
     public var isEmpty: Bool { insertion.isEmpty }
 
@@ -93,8 +99,8 @@ public struct JSObject: Equatable {
         set {
             let k = JSKey(s: key)
             if let v = newValue {
-                if values[k] == nil { insertion.append(key) }
-                values[k] = v
+                // 一次散列：updateValue 返回旧值，nil 即新键（与先查 values[k] == nil 再写同义）
+                if values.updateValue(v, forKey: k) == nil { insertion.append(key) }
             } else if values.removeValue(forKey: k) != nil {
                 insertion.removeAll { JSKey(s: $0) == k }
             }

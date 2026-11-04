@@ -467,6 +467,9 @@ final class NativeWriteTransitions: NSObject, UIViewControllerTransitioningDeleg
             v.layer.shadowRadius = 12
             v.layer.shadowOffset = CGSize(width: -4, height: 0)
             v.layer.shadowOpacity = 0.12
+            // 页面底色是不透明的纸色、推入只平移不改尺寸：给出矩形 shadowPath，形状与按内容算的一样，
+            // 但省掉每帧把整页离屏渲染一遍来求阴影形状。
+            v.layer.shadowPath = UIBezierPath(rect: v.bounds).cgPath
         case .quiet:
             if let host {
                 let veil = UIView(frame: host.bounds)
@@ -604,6 +607,7 @@ final class NativeWriteTransitions: NSObject, UIViewControllerTransitioningDeleg
             v.alpha = 1
             v.layer.mask = nil
             v.layer.shadowOpacity = 0
+            v.layer.shadowPath = nil
         }
         fx.moved?.transform = .identity
         [fx.veil, fx.panelVeil, fx.back, fx.edge, fx.ink, fx.blank].forEach { $0?.removeFromSuperview() }

@@ -426,7 +426,7 @@ extension ScheduleRules {
     public func selectDaily(sched: JSValue? = nil, records: [JSValue] = [], today: String, newCandidates: [String] = [], warmupCandidates: [String] = [],
                             custom: JSValue? = nil, practicable: (String) -> Bool = ScheduleRules.defaultPracticable, policy: JSValue = Config.policy,
                             isWarm: (String) -> Bool = NewOrder.isWarmupKey, capitalDeferredDay: JSValue? = nil, groupSize: JSValue? = nil,
-                            tier: String? = nil, cap: Int? = nil, handled: [String] = [], extra: Bool = false) throws -> DailyPlan {
+                            tier: String? = nil, cap: Int? = nil, handled: [String] = [], extra: Bool = false, statsMemo: PracticeStatsMemo? = nil) throws -> DailyPlan {
         var excluded = SchedRecords.judgedCardKeysOn(records, today)
         for k in SchedRecords.answerSeenCardKeysOn(records, today) { excluded.insert(k) }
         for k in SchedRecords.skippedCardKeysOn(records, today) { excluded.insert(k) }
@@ -450,7 +450,7 @@ extension ScheduleRules {
         let backlog = Double(due.count)
         let ratio = TodayPlan.ratio(tierId, policy: policy)
         let share = Double(TodayPlan.newShare(size: size, ratio: ratio))
-        let stats = try practiceStats(records, today, policy: policy, isWarm: isWarm)
+        let stats = try practiceStats(records, today, policy: policy, isWarm: isWarm, memo: statsMemo)
 
         // 大写数字特别组（D40）：积压按「一天一组」折算成天数
         if let special = Special.capitalSpecial(records: records, groupsTotal: stats.groupsTotal, pressure: backlog / Double(max(1, size)), practicable: practicable,
@@ -513,11 +513,11 @@ extension ScheduleRules {
     /// 下一次日常组是不是大写数字特别组（首页提示用，不选字）。
     public func specialPlan(sched: JSValue? = nil, records: [JSValue] = [], today: String, practicable: (String) -> Bool = ScheduleRules.defaultPracticable,
                             policy: JSValue = Config.policy, isWarm: (String) -> Bool = NewOrder.isWarmupKey, capitalDeferredDay: JSValue? = nil,
-                            groupSize: JSValue? = nil) throws -> (kind: String, keys: [String])? {
+                            groupSize: JSValue? = nil, statsMemo: PracticeStatsMemo? = nil) throws -> (kind: String, keys: [String])? {
         let cfg = policy["capitalNumerals"]
         if !JS.truthy(cfg) || cfg?["enabled"] == .bool(false) { return nil }
         if JS.strictEquals(capitalDeferredDay, .string(today)) { return nil }
-        let stats = try practiceStats(records, today, policy: policy, isWarm: isWarm)
+        let stats = try practiceStats(records, today, policy: policy, isWarm: isWarm, memo: statsMemo)
         if JS.less(.number(stats.groupsTotal), cfg?["afterGroups"]) { return nil }
         let excluded = SchedRecords.judgedCardKeysOn(records, today)
         var backlog = 0.0

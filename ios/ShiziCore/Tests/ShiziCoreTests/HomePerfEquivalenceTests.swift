@@ -168,6 +168,19 @@ final class HomePerfEquivalenceTests: XCTestCase {
         let a = try HomeView.homeView(state, now: STORE_NOW, policy: Config.policy, deck: .real, ui: nil, dates: shanghai)
         let b = try HomeView.homeView(state, now: STORE_NOW, policy: Config.policy, deck: .real, ui: nil, dates: shanghai)
         XCTAssertEqual(JSONWriter.stringify(a), JSONWriter.stringify(b))
+
+        // 一次首页构建内共用一次 practiceStats（PracticeStatsMemo）：带 memo 的 planDaily / planSpecial / progress / noCharsLeft 与不带的结果逐字相同，
+        // 共用的 memo 里存的就是不带 memo 直接算的 practiceStats。
+        let memo = PracticeStatsMemo()
+        let planM = try rules.planDaily(state, today: today, deck: .real, statsMemo: memo)
+        XCTAssertEqual(JSONWriter.stringify(planM), JSONWriter.stringify(plan))
+        XCTAssertEqual(memo.value, try rules.practiceStats(recs, today, isWarm: NewOrder.isWarmupKey))
+        XCTAssertEqual(JSONWriter.stringify(try rules.planSpecial(state, today: today, deck: .real, statsMemo: memo)),
+                       JSONWriter.stringify(try rules.planSpecial(state, today: today, deck: .real)))
+        XCTAssertEqual(try TodayPlan.progress(state, day: today, rules: rules, deck: .real, statsMemo: memo),
+                       try TodayPlan.progress(state, day: today, rules: rules, deck: .real))
+        XCTAssertEqual(try HomeView.noCharsLeft(state, today: today, deck: .real, policy: Config.policy, dates: shanghai, statsMemo: memo),
+                       try HomeView.noCharsLeft(state, today: today, deck: .real, policy: Config.policy, dates: shanghai))
     }
 }
 

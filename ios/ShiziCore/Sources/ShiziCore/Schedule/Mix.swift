@@ -96,7 +96,22 @@ public enum Mix {
     }
 }
 
+/// 一次首页构建内共用的 practiceStats 结果：selectDaily 与 specialPlan 对同一份 records / today / policy / 缺省 isWarm 各算一次，
+/// 首页构建里只算第一次（懒：谁先要谁算）。只能在「输入全同」的一串调用里共用同一个实例（HomeView.homeModel 一次构建）。
+public final class PracticeStatsMemo {
+    var value: PracticeStats?
+    public init() {}
+}
+
 extension ScheduleRules {
+    /// practiceStats，有 memo 时只算一次。
+    func practiceStats(_ records: [JSValue], _ today: String, policy: JSValue, isWarm: (String) -> Bool, memo: PracticeStatsMemo?) throws -> PracticeStats {
+        if let v = memo?.value { return v }
+        let s = try practiceStats(records, today, policy: policy, isWarm: isWarm)
+        memo?.value = s
+        return s
+    }
+
     /// 练习状态（全部从 records 推出）。
     public func practiceStats(_ records: [JSValue], _ today: String, policy: JSValue = Config.policy, isWarm: (String) -> Bool) throws -> PracticeStats {
         let mix = policy["groupMix"]

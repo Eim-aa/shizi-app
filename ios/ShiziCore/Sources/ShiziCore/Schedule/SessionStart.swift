@@ -264,7 +264,8 @@ extension ScheduleRules {
     }
 
     /// 今天的练习会选出哪些字（不写入）：selectDaily 的结果 + libraryId + libraryExhausted。cap / handled 见 selectDaily。
-    public func planDaily(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy, cap: Int? = nil, handled: [String] = [], extra: Bool = false) throws -> JSValue {
+    public func planDaily(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy, cap: Int? = nil, handled: [String] = [], extra: Bool = false,
+                          statsMemo: PracticeStatsMemo? = nil) throws -> JSValue {
         let settings = state.flatMap { JS.truthy($0) ? $0["settings"] : nil }
         let settingsLib: JSValue? = { if case .string(let s)? = settings?["library"], JS.truthy(settings) { return .string(s) }; return nil }()
         let libraryId: JSValue
@@ -284,7 +285,7 @@ extension ScheduleRules {
         let plan = try selectDaily(sched: sched, records: ScheduleRules.recordsOf(state), today: today, newCandidates: newCandidates,
                                    warmupCandidates: warmupCandidates, custom: custom ?? .null, practicable: deck.practicable, policy: policy,
                                    capitalDeferredDay: ScheduleRules.capitalDeferredDayOf(state), groupSize: GroupSize.of(settings, policy: policy),
-                                   tier: TodayPlan.tierOf(settings, policy: policy), cap: cap, handled: handled, extra: extra)
+                                   tier: TodayPlan.tierOf(settings, policy: policy), cap: cap, handled: handled, extra: extra, statsMemo: statsMemo)
         let schedObj = sched.objectValue
         let exhausted = !newCandidates.contains { deck.practicable($0) && !JS.truthy(schedObj?[$0]) }
         guard case .object(var o) = plan.js else { return plan.js }
@@ -294,13 +295,13 @@ extension ScheduleRules {
     }
 
     /// 下一次「今天的练习」是不是大写数字特别组（首页提示用；不写入）。
-    public func planSpecial(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy) throws -> JSValue {
+    public func planSpecial(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy, statsMemo: PracticeStatsMemo? = nil) throws -> JSValue {
         let records = ScheduleRules.recordsOf(state)
         if !SchedRecords.hasAnyJudged(records) { return .null }
         let settings = state.flatMap { JS.truthy($0) ? $0["settings"] : nil }
         let sp = try specialPlan(sched: state?["sched"].flatMap { JS.truthy($0) ? $0 : nil } ?? .object(JSObject()), records: records, today: today,
                                  practicable: deck.practicable, policy: policy, capitalDeferredDay: ScheduleRules.capitalDeferredDayOf(state),
-                                 groupSize: GroupSize.of(settings, policy: policy))
+                                 groupSize: GroupSize.of(settings, policy: policy), statsMemo: statsMemo)
         return sp.map { JS.obj([("kind", .string($0.kind)), ("keys", .array($0.keys.map { .string($0) }))]) } ?? .null
     }
 

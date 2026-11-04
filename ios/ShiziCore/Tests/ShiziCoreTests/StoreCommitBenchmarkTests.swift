@@ -67,6 +67,17 @@ final class StoreCommitBenchmarkTests: XCTestCase {
         .array(rawStrokes(count, seed: seed).map { s in .array(s.map { p in .array([.number(p.x), .number(p.y), .number(p.t!)]) }) })
     }
 
+    /// 一条复习中的 sched 条目：fsrs 是与 FSRS.serializeCard 同形的 CompactCard（state 2 = Review），due 是到期的本地日。
+    static func schedEntry(lastMs: Double, scheduledDays: Int, reps: Int, stability: Double) throws -> JSValue {
+        let dueMs = lastMs + Double(scheduledDays) * ONE_DAY_MS
+        let fsrs = JSObject([
+            ("due", .string(try JSDate.isoString(dueMs))), ("stability", .number(stability)), ("difficulty", .number(5)),
+            ("elapsed_days", .number(Double(scheduledDays))), ("scheduled_days", .number(Double(scheduledDays))), ("learning_steps", .number(0)),
+            ("reps", .number(Double(reps))), ("lapses", .number(0)), ("state", .number(2)), ("last_review", .string(try JSDate.isoString(lastMs))),
+        ])
+        return .object(JSObject([("fsrs", .object(fsrs)), ("due", .string(try shanghai.localDay(.number(dueMs)))), ("lastJudgedAt", .number(lastMs))]))
+    }
+
     /// 重度用户的 v2 状态。
     static func heavyState() throws -> JSObject {
         let pool = chars(studied)
@@ -100,11 +111,10 @@ final class StoreCommitBenchmarkTests: XCTestCase {
         }
         var sched = JSObject()
         for (i, ch) in pool.enumerated() {
-            sched["base:" + ch] = .object(JSObject([
-                ("fsrs", .object(JSObject([("stability", .number(Double(3 + i % 40))), ("difficulty", .number(Double(4 + i % 5))), ("state", .number(2))]))),
-                ("due", .string(i < 200 ? "2026-10-" + pad2(10 + i % 11) : "2026-11-" + pad2(1 + i % 28))),
-                ("lastJudgedAt", .number(benchNow - Double(1 + i % 200) * ONE_DAY_MS)),
-            ]))
+            // 前 200 个字今天到期（含已过期），其余还没到；fsrs 是完整的 CompactCard（判断时 FSRS 要读 due / last_review）
+            let elapsed = i < 200 ? 10 + i % 30 : 1 + i % 30
+            let scheduled = i < 200 ? elapsed - i % 10 : elapsed + 5 + i % 40
+            sched["base:" + ch] = try schedEntry(lastMs: benchNow - Double(elapsed) * ONE_DAY_MS, scheduledDays: scheduled, reps: 2 + i % 6, stability: Double(scheduled) + 0.5)
         }
         let sessionSerial = 1 + serial / 30 + 1
         let session = JSValue.object(JSObject([
@@ -229,7 +239,7 @@ final class StoreCommitBenchmarkTests: XCTestCase {
                     months["2026-10"] = .array((months["2026-10"]?.arrayValue ?? []) + [rec])
                     d["records"] = .object(months)
                     var sched = d["sched"]!.objectValue!
-                    sched["base:" + ch] = .object(JSObject([("fsrs", .object(JSObject([("stability", .number(9)), ("difficulty", .number(5)), ("state", .number(2))]))), ("due", .string("2026-10-30")), ("lastJudgedAt", .number(c.now))]))
+                    sched["base:" + ch] = try Self.schedEntry(lastMs: c.now, scheduledDays: 9, reps: 3, stability: 9.5)
                     d["sched"] = .object(sched)
                     try Store.setInk(&d, rec, try InkMath.encodeStoredInk(Self.rawStrokes(3 + i % 8, seed: 200 + i), policy: Config.policy.objectValue, format: c.inkFormat), timeZone: shanghaiTZ)
                     var sessions = d["sessions"]!.objectValue!

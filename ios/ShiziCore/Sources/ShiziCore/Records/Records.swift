@@ -12,11 +12,19 @@ public enum Records {
     // ---- id 与序号（§3.1）----
 
     /// `^<lead>([1-9]\d*)$` → 序号（Number(...)）；不匹配 NaN。\d 只认 ASCII。
+    /// 不建数组的写法与 SchedRecords.serial 相同（至多 18 位数字按 UInt64 累加再转 Double，结果与 Double(String) 一致；更长的回到 Double(String)）。
     static func serial(_ v: JSValue?, lead: UInt8) -> Double {
         guard case .string(let s)? = v else { return .nan }
-        let u = Array(s.utf8)
-        guard u.count >= 2, u[0] == lead, u[1] >= 0x31, u[1] <= 0x39, u[1...].allSatisfy({ $0 >= 0x30 && $0 <= 0x39 }) else { return .nan }
-        return Double(String(decoding: u[1...], as: UTF8.self)) ?? .nan
+        var it = s.utf8.makeIterator()
+        guard it.next() == lead, let first = it.next(), first >= 0x31, first <= 0x39 else { return .nan }
+        var value = UInt64(first - 0x30), digits = 1
+        while let c = it.next() {
+            guard c >= 0x30 && c <= 0x39 else { return .nan }
+            if digits < 18 { value = value * 10 + UInt64(c - 0x30) }
+            digits += 1
+        }
+        if digits <= 18 { return Double(value) }
+        return Double(String(decoding: s.utf8.dropFirst(), as: UTF8.self)) ?? .nan
     }
 
     public static func recordSerial(_ id: JSValue?) -> Double { serial(id, lead: 0x72) }
@@ -39,8 +47,14 @@ public enum Records {
         return (sa.isNaN ? -1 : sa) - (sb.isNaN ? -1 : sb)
     }
 
+    /// 比较值只取决于两边的 id 序号：先算一次每条的「序号或 -1」，再用同一个稳定归并、同一个差值排下标（每一步比较结果不变，排列不变）。
     public static func sortById(_ records: [JSValue]) -> [JSValue] {
-        JSX.stableSort(records) { compareRecordIds($0["id"], $1["id"]) }
+        if records.count < 2 { return records }
+        let keys = records.map { r -> Double in
+            let s = recordSerial(r["id"])
+            return s.isNaN ? -1 : s
+        }
+        return JSX.stableSort(Array(records.indices)) { keys[$0] - keys[$1] }.map { records[$0] }
     }
 
     /// 下一个可用序号 = max(records、sessions 中已用序号, meta.serial) + 1。sessions 形如 {A, B, lastEnded:{A?, B?}}。

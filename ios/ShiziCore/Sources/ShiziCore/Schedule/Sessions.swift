@@ -348,6 +348,27 @@ extension ScheduleRules {
         return SchedRecords.skippedCardKeysOn(records, today, from: try dates.addDays(today, -(days - 1)))
     }
 
+    /// overdueDays(entry, today) 在一次选字之内按 due 字串记住结果（逐次调用、不跨调用）。
+    /// 等价：overdueDays 先看 entry 为真、再看 isValidDay(entry.due)，然后是 diffDays(entry.due, today)——
+    /// entry 不为真或 due 不是字串时结果是 nil（不必记）；否则结果只取决于 due 的字节、today 与 dates（值类型，这一次里不变），
+    /// 所以同一个 due 的第二次起直接取上次的结果（含 nil）。抛错时不记、原样抛出（与逐个调用时第一次抛错就中止相同）。
+    /// 省下的是每个调度项三次 isValidDay（各一次本地时间换算）+ 两次 UTC 换算：1500 个调度项通常只有几十个不同的 due。
+    struct OverdueMemo {
+        let today: String
+        private var byDue: [JSKey: Double?] = [:]
+
+        init(today: String) { self.today = today }
+
+        mutating func days(_ entry: JSValue?, _ rules: ScheduleRules) throws -> Double? {
+            guard let e = entry, JS.truthy(e), case .string(let due)? = e["due"] else { return nil }
+            let k = JSKey(s: due)
+            if let hit = byDue[k] { return hit }
+            let v = try rules.overdueDays(e, today)
+            byDue[k] = .some(v)
+            return v
+        }
+    }
+
     /// selectDaily 的结果（调度规则 v2，D83）。
     public struct DailyPlan {
         public var queue: [String]
@@ -379,7 +400,7 @@ extension ScheduleRules {
     public static func defaultPracticable(_ key: String) -> Bool { key.utf8.starts(with: "base:".utf8) }
 
     /// 到期字的先后（D83）：上次写错（或看了答案）的排最前，其余按 FSRS 回忆概率从低到高；同概率逾期久的先、再按键。
-    func dueOrder(_ schedObj: JSObject?, keys: [String], records: [JSValue], today: String) throws -> [String] {
+    func dueOrder(_ schedObj: JSObject?, keys: [String], records: [JSValue], today: String, overdue memo: inout OverdueMemo) throws -> [String] {
         var lastAttempt = KeyMap<JSValue>()
         for r in SchedRecords.sortById(records.filter { SchedRecords.isJudged($0) || JS.isString($0["kind"], "answer-seen") }) { lastAttempt[JS.string(r["cardKey"])] = r }
         let at = JSValue.number(try dates.dayStartMs(.string(today)))
@@ -390,7 +411,7 @@ extension ScheduleRules {
             let last = lastAttempt[key]
             let wrong = last.map { JS.isString($0["kind"], "answer-seen") || JS.isString($0["judgment"], "wrong") } ?? false
             let r = (try? retrievability(entry, now: at)) ?? nil
-            items.append(Item(key: key, wrong: wrong, r: r.map { $0.isFinite ? $0 : 0 } ?? 0, od: (try overdueDays(entry, today)) ?? 0))
+            items.append(Item(key: key, wrong: wrong, r: r.map { $0.isFinite ? $0 : 0 } ?? 0, od: (try memo.days(entry, self)) ?? 0))
         }
         return items.jsSorted { a, b in
             if a.wrong != b.wrong { return a.wrong ? -1 : 1 }
@@ -416,13 +437,14 @@ extension ScheduleRules {
         let tierId = tier ?? TodayPlan.tierOf(nil, policy: policy)
         // 到期字
         var dueKeys0: [String] = []
+        var odMemo = OverdueMemo(today: today)
         for (key, entry) in schedObj?.entries ?? [] {
             if excluded.contains(key) || !practicable(key) { continue }
             if !JS.truthy(entry) || entry["stoppedAt"] != nil { continue }
-            guard let od = try overdueDays(entry, today), od >= 0 else { continue }
+            guard let od = try odMemo.days(entry, self), od >= 0 else { continue }
             dueKeys0.append(key)
         }
-        let due = try dueOrder(schedObj, keys: dueKeys0, records: records, today: today)
+        let due = try dueOrder(schedObj, keys: dueKeys0, records: records, today: today, overdue: &odMemo)
         let full = GroupSize.valid(groupSize, policy: policy)
         let size = Int(JS.number(full))
         let backlog = Double(due.count)
@@ -453,8 +475,9 @@ extension ScheduleRules {
         }
         let poolSet = KeySet(pool)
         var warmNext: String? = nil
+        let dueSet = KeySet(due) // 循环里不变（原来每个候选都重建一次）
         for key in warmupCandidates {
-            if KeySet(due).contains(key) || excluded.contains(key) || deferredNew.contains(key) || !practicable(key) || inSched(key) { continue }
+            if dueSet.contains(key) || excluded.contains(key) || deferredNew.contains(key) || !practicable(key) || inSched(key) { continue }
             warmNext = key
             break
         }
@@ -498,9 +521,10 @@ extension ScheduleRules {
         if JS.less(.number(stats.groupsTotal), cfg?["afterGroups"]) { return nil }
         let excluded = SchedRecords.judgedCardKeysOn(records, today)
         var backlog = 0.0
+        var odMemo = OverdueMemo(today: today)
         for (key, entry) in (sched.flatMap { JS.truthy($0) ? $0 : nil })?.objectValue?.entries ?? [] {
             if excluded.contains(key) || !practicable(key) || !JS.truthy(entry) || entry["stoppedAt"] != nil { continue }
-            if let od = try overdueDays(entry, today), od >= 0 { backlog += 1 }
+            if let od = try odMemo.days(entry, self), od >= 0 { backlog += 1 }
         }
         let size = max(1, JS.number(GroupSize.valid(groupSize, policy: policy)))
         return Special.capitalSpecial(records: records, groupsTotal: stats.groupsTotal, pressure: backlog / size, practicable: practicable, excluded: excluded,

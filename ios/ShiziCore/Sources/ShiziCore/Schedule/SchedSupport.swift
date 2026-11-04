@@ -243,12 +243,21 @@ enum SchedRecords {
     /// 's7' → 7；不合法 NaN。
     static func sessionSerial(_ id: JSValue?) -> Double { serial(id, prefix: 0x73) }
 
+    /// 合法 = 前缀字母 + [1-9] + 若干 ASCII 数字（与旧写法 `Array(s.utf8)` 逐字节检查同一判据），值 = Number(数字部分)。
+    /// 不建数组：至多 18 位数字时按 UInt64 累加再转 Double（< 10^18 < 2^64 不溢出；整数 → Double 与 strtod 都是就近舍入到偶数，结果相同）；
+    /// 更长的才回到 Double(String)。
     private static func serial(_ id: JSValue?, prefix: UInt8) -> Double {
         guard case .string(let s)? = id else { return .nan }
-        let u = Array(s.utf8)
-        guard u.count >= 2, u[0] == prefix, u[1] >= 0x31, u[1] <= 0x39 else { return .nan }
-        for c in u.dropFirst() where c < 0x30 || c > 0x39 { return .nan }
-        return Double(String(decoding: u.dropFirst(), as: UTF8.self)) ?? .nan
+        var it = s.utf8.makeIterator()
+        guard it.next() == prefix, let lead = it.next(), lead >= 0x31, lead <= 0x39 else { return .nan }
+        var v = UInt64(lead - 0x30), digits = 1
+        while let c = it.next() {
+            guard c >= 0x30 && c <= 0x39 else { return .nan }
+            if digits < 18 { v = v * 10 + UInt64(c - 0x30) }
+            digits += 1
+        }
+        if digits <= 18 { return Double(v) }
+        return Double(String(decoding: s.utf8.dropFirst(), as: UTF8.self)) ?? .nan
     }
 
     static func compareRecordIds(_ a: JSValue?, _ b: JSValue?) -> Double {
@@ -256,8 +265,15 @@ enum SchedRecords {
         return (sa.isNaN ? -1 : sa) - (sb.isNaN ? -1 : sb)
     }
 
+    /// 按 id 序号稳定排序。比较值只取决于两边的 id 序号，所以先把每条的「序号或 -1」算一次（n 次解析，而不是每次比较解析两次），
+    /// 再用同一个归并排序、同一个差值（ka - kb）排下标：每一步比较的结果与 `jsSorted { compareRecordIds($0["id"], $1["id"]) }` 相同，排列也就相同。
     static func sortById(_ records: [JSValue]) -> [JSValue] {
-        records.jsSorted { compareRecordIds($0["id"], $1["id"]) }
+        if records.count < 2 { return records }
+        let keys = records.map { r -> Double in
+            let s = recordSerial(r["id"])
+            return s.isNaN ? -1 : s
+        }
+        return Array(records.indices).jsSorted { keys[$0] - keys[$1] }.map { records[$0] }
     }
 
     /// 'base:静' → '静'（/^(base|custom):(.+)$/u 且恰一个码点）；不合法 nil。

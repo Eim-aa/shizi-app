@@ -7,6 +7,5 @@ extension CoreEngine {
             let store = try e.session().store!; e.storeSession?.notices = []
             return PageAPI.call(op, store: store, args: args)
         },
-        "api.domainsOf": { _,a in .array(PageAPI.domainsOf(a["info"]).map(JSValue.string)) },
     ]
 }

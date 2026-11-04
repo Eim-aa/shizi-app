@@ -91,13 +91,6 @@ extension CoreEngine {
         "schema.validateRecord": { _, a in
             nullable(Schema.validateRecord(try required(a, "record"), month: try optionalString(a, "month")))
         },
-        "schema.validateRecordsMonth": { _, a in
-            nullable(Schema.validateRecordsMonth(try required(a, "value"), month: try string(a, "month")))
-        },
-        "schema.validateInk": { _, a in nullable(Schema.validateInk(try required(a, "value"))) },
-        "schema.validateSession": { _, a in
-            nullable(Schema.validateSession(try required(a, "session"), slot: try optionalString(a, "slot")))
-        },
 
         // 形状表通过的值，经模型解码再编码，必须与原值逐字节相同（键序也一样）；JS 一侧是恒等。
         "models.roundtrip": { _, a in

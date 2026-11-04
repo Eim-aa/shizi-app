@@ -3,13 +3,7 @@ import Foundation
 extension CoreEngine {
     // Pure model results (as with images.*), without the App API transport envelope.
     static let viewOps: [String: Op] = [
-        "view.home": { e, a in try HomeView.homeView(a["state"] ?? .null, now: a["now"]?.numberValue ?? e.clock, policy: ViewSupport.policy(a["policy"]), deck: a["deck"] == nil ? nil : deckOf(a), ui: a["ui"], dates: e.dates) },
-        "view.home.model": { e, a in try HomeView.homeModel(a["state"] ?? .null, now: a["now"]?.numberValue ?? e.clock, policy: ViewSupport.policy(a["policy"]), deck: a["deck"] == nil ? nil : deckOf(a), dates: e.dates) },
         "view.home.resume": { e, a in try HomeView.resumeOf(a["state"] ?? .null, now: a["now"]?.numberValue ?? e.clock, policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
-        "view.home.helpers": { e, a in
-            let m = a["model"] ?? .null, l = a["line"]
-            return ViewSupport.obj([("records", .string(HomeView.recordsStateOf(a["state"] ?? .null, today: a["today"]?.stringValue ?? "", policy: ViewSupport.policy(a["policy"])))), ("last", HomeView.lastJudgedDayOf(Query.flattenRecords(a["state"]?["records"]))), ("view", .string(HomeView.homeViewOf(m))), ("count", .number(Double(Records.practicedByChar(Query.flattenRecords(a["state"]?["records"])).count))), ("cta", .string(HomeView.homeCtaKey(m))), ("note", HomeView.homeNoteOf(m)), ("resume", .string(HomeView.resumeKeyOf(a["kind"]))), ("progress", HomeView.progressText(l)), ("text", HomeView.resumeLineText(l)), ("aria", HomeView.resumeLineAria(l)), ("ctaAria", HomeView.ctaAria(m)), ("noChars", .bool(try HomeView.noCharsLeft(a["state"] ?? .null, today: a["today"]?.stringValue ?? "", deck: a["deck"] == nil ? nil : deckOf(a), policy: ViewSupport.policy(a["policy"]), dates: e.dates)))])
-        },
         "view.library-all": { e, a in try LibraryAllView.allModel(a["state"] ?? .null, a, dates: e.dates) },
         "view.library-all.helpers": { e, a in
             var fold = LibraryAllView.normalizeFold(a["fold"]); fold[JS.string(a["month"])] = .bool(!JS.truthy(a["open"]))
@@ -29,17 +23,12 @@ extension CoreEngine {
         "view.month.sheet": { e, a in try measuredView(a) { try MineSubView.monthSheetOf(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) } },
         "view.annual-page": { e, a in try measuredView(a) { try MineSubView.annualView(a["state"] ?? .null, today: string(a, "today"), year: a["year"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) } },
         "view.mine-sub.helpers": { e, a in try ViewSupport.obj([("month", MineSubView.monthHeadRef(a["n"] ?? .number(0))), ("day", MineSubView.dayTextRef(required(a, "day"), dates: e.dates)), ("label", MineSubView.cellLabelRef(required(a, "cell"), dates: e.dates)), ("dayLabel", MineSubView.dayCellLabelRef(required(a, "cell"), dates: e.dates)), ("geometry", MineSubView.sheetGeometry(Int(JS.number(a["n"])), width: JS.number(a["width"])))]) },
-        "view.mine": { e, a in try MinePageView.mineView(a["state"] ?? .null, today: string(a, "today"), a, dates: e.dates) },
         "view.mine.sheet": { e, a in
             let state = a["state"] ?? .null, p = ViewSupport.policy(a["policy"])
             let m = try ViewSupport.mineModel(state, today: string(a, "today"), policy: p, storagePressure: a["storagePressure"], dates: e.dates)
             return try MinePageView.mineSheetView(state, model: m, policy: p, width: JS.number(a["width"]), ax: JS.number(a["ax"]), dates: e.dates)
         },
         "view.mine.cells": { e, a in try MinePageView.monthSheetCells(a["state"] ?? .null, month: string(a, "month"), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
-        "view.mine.helpers": { e, a in
-            let state = a["state"] ?? .null, p = ViewSupport.policy(a["policy"]), m = try ViewSupport.mineModel(state, today: string(a, "today"), policy: p, storagePressure: a["storagePressure"], dates: e.dates)
-            return ViewSupport.obj([("label", try MinePageView.cellLabelRef(required(a, "cell"), dates: e.dates)), ("trim", MinePageView.trimSheetCells(a["cells"]?.arrayValue ?? [], max: Int(JS.number(a["max"])))), ("rows", MinePageView.mineSheetRows(Int(JS.number(a["n"])), ax: JS.number(a["ax"]))), ("backup", try MinePageView.backupValueRef(m, dates: e.dates)), ("choices", MinePageView.mineChoices(SettingsView.settingsView(state["settings"]), policy: p))])
-        },
         "view.mine-model": { e, a in try ViewSupport.mineModel(a["state"] ?? .null, today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), storagePressure: a["storagePressure"], dates: e.dates) },
         "view.records-model": { e, a in try ViewSupport.recordsModel(a["state"] ?? .null, today: string(a, "today"), month: a["month"], day: a["day"], policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
         "view.mine-model.helpers": { e, a in
@@ -48,11 +37,9 @@ extension CoreEngine {
             let works = all.filter { WorkMembers.isWorkMember($0, hasInk: { InkPick.storedInkPresent(state, $0, timeZone: e.dates.timeZone) }, added: .init(added)) }
             return ViewSupport.obj([("index", index.js), ("works", .array(works)), ("has", .bool(index.days.count > 0)), ("first", ViewSupport.firstRecordMonth(index).map(JSValue.string) ?? .null), ("weekday", .number(Double(try ViewSupport.weekdayIndex(day, dates: e.dates)))), ("calendar", .array(try ViewSupport.calendarModel(index, month: month, today: today))), ("days", .array(ViewSupport.recordDaysInMonth(index, month: month).map(JSValue.string))), ("sheet", sheet), ("preview", ViewSupport.sheetPreview(sheet, cols: JS.number(a["cols"]), rows: JS.number(a["rows"]))), ("items", .array(ViewSupport.dayItems(index, day: day))), ("backup", try ViewSupport.lastBackupDay(state["backupMeta"], dates: e.dates)), ("practice", .array(ViewSupport.practiceDaySet(state, index: index).items.map(JSValue.string))), ("streak", .number(Double(try ViewSupport.streakDays(KeySet((a["days"]?.arrayValue ?? []).compactMap(\.stringValue)), today: today, dates: e.dates)))), ("overview", try ViewSupport.overviewModel(state, today: today, index: index)), ("pressure", .bool(ViewSupport.storagePressureNear(a["storagePressure"]))), ("hint", try ViewSupport.backupHint(state, today: today, index: index, storagePressure: a["storagePressure"])), ("clamp", .string(ViewSupport.clampMonth(a["wantedMonth"], index: index, today: today)))])
         },
-        "view.library": { e, a in try LibraryView.libraryPageView(a["state"] ?? .null, now: JS.number(a["now"]), today: string(a, "today"), deck: deckOf(a), policy: ViewSupport.policy(a["policy"]), ui: a["ui"], dates: e.dates) },
         "view.library.model": { e, a in try LibraryView.libraryHomeModel(a["state"] ?? .null, today: string(a, "today"), policy: ViewSupport.policy(a["policy"]), compact: JS.truthy(a["compact"]), width: a["width"], dates: e.dates) },
         "view.library.zones": { e, a in try ViewSupport.memoryZones(a["state"] ?? .null, today: string(a, "today"), knownDays: a["knownDays"]?.numberValue, minSuccesses: a["minSuccesses"]?.numberValue, dates: e.dates) },
         "view.library.skipped": { _, a in ViewSupport.skippedZone(a["state"] ?? .null) },
-        "view.library.plan": { e, a in try LibraryView.todayPlanModel(a["state"] ?? .null, now: JS.number(a["now"]), deck: deckOf(a), policy: ViewSupport.policy(a["policy"]), dates: e.dates) },
         "view.library.helpers": { e, a in
             let state = a["state"] ?? .null, r = a["record"] ?? .null, today = try string(a, "today"), p = ViewSupport.policy(a["policy"]), recs = ViewSupport.libraryRecords(state)
             let zones = try ViewSupport.memoryZones(state, today: today, dates: e.dates), zone = zones["zones"]![JS.string(a["zone"])]!, latest = LibraryView.latestJudgedByChar(recs.records)

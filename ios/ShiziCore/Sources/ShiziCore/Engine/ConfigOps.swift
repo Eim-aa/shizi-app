@@ -19,20 +19,11 @@ extension CoreEngine {
             return v
         },
 
-        "deck.meta": { _, _ in
-            let d = DeckData.shared
-            return obj([
-                ("key", .string(DeckData.key)), ("fingerprint", .string(DeckData.fingerprint)),
-                ("seed", .number(Double(d.seed.count))), ("overrides", .number(Double(d.overrides.count))), ("groups", .number(Double(d.groups.count))),
-            ])
-        },
         "deck.seed": { _, a in
             let i = try int(a, "index", 10_000_000)
             let seed = DeckData.shared.seed
             return i >= 0 && i < seed.count ? seed[i] : .null
         },
-        "deck.override": { _, a in DeckData.shared.overrides[try string(a, "char")] ?? .null },
-        "deck.groups": { _, a in DeckData.shared.groups[try string(a, "char")] ?? .null },
 
         "epigraphs.index": { e, a in .number(try Epigraphs.indexFor(day: try required(a, "day"), dates: e.dates)) },
         "epigraphs.for": { e, a in

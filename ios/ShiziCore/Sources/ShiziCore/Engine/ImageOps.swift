@@ -22,22 +22,5 @@ extension CoreEngine {
                 int(a, "n", 1_000_000), ratio: a["ratio"]?.stringValue ?? "3:4",
                 sheet: a["sheet"]?.boolValue ?? false)
         },
-        "images.sheetGrid": { _, a in
-            try ImageLayout.sheetGrid(
-                int(a, "n", 1_000_000), width: numberArg(a, "width"), unit: a["unit"]?.numberValue ?? 1,
-                maxHeight: a["maxHeight"]?.numberValue ?? .infinity, cols: Int(a["cols"]?.numberValue ?? 0))
-        },
-        "images.glyphLayout": { _, a in
-            try ImageLayout.glyphLayout(
-                a["bounds"] ?? .null, ratio: a["ratio"]?.stringValue ?? "portrait")
-        },
-        "images.inkBounds": { _, a in ImageLayout.inkBounds(a["points"] ?? .array([])) },
-        "images.paginate": { _, a in
-            .array(
-                ImageLayout.paginate(try array(a, "cells"), max: Int(a["max"]?.numberValue ?? 80)).map(
-                    JSValue.array))
-        },
-        "images.withDayTags": { _, a in .array(ImageLayout.withDayTags(try array(a, "cells"))) },
-        "images.sheetTags": { _, a in .array(ImageLayout.sheetTags(try array(a, "cells"))) },
     ]
 }

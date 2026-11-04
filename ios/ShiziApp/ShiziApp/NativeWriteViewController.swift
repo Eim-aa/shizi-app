@@ -132,7 +132,7 @@ final class NativeWriteViewController: UIViewController {
     private var traceMissing: Bool { glyph == nil }
 
     // 跳过撤销 / 结束这组（B2.6）
-    private var skipUndoParams = (ms: 5000.0, pauseWhileHeld: true, keepOpen: true)
+    private var skipUndoParams = NativeSkipUndoParams()
     private var skipBusy = false
     private var undoInfo: (sessionId: String, recordId: String, char: String, strokes: [[InkRawPoint]])?
     private var undoBar: NativeUndoBarView?
@@ -329,11 +329,7 @@ final class NativeWriteViewController: UIViewController {
             traceLayer.hookWidthPt = CGFloat(trace["hookWidthPt"] ?? 0.75)
             traceLayer.hookWidthMoreContrastPt = CGFloat(trace["hookWidthMoreContrastPt"] ?? 1.5)
         }
-        if let u = payload["skipUndo"] as? [String: Any] {
-            skipUndoParams = (ms: (u["ms"] as? NSNumber)?.doubleValue ?? 5000,
-                              pauseWhileHeld: (u["pauseWhileHeld"] as? NSNumber)?.boolValue ?? true,
-                              keepOpen: (u["keepOpenWithAssistiveTech"] as? NSNumber)?.boolValue ?? true)
-        }
+        if let u = payload["skipUndo"] as? [String: Any] { skipUndoParams = NativeSkipUndoParams(u) }
     }
 
     /// 动效时长（s）：减少动态效果时一律 reduce（150ms，D58 ②）。

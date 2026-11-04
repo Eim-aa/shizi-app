@@ -2,6 +2,8 @@ name: Verify
 
 on:
   pull_request:
+  # GitHub 偶尔丢 pull_request 事件（推送时 500），这时可以在 Actions 页对分支手动补跑。
+  workflow_dispatch:
   push:
     branches: [main]
 

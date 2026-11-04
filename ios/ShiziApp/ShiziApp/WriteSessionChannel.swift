@@ -25,6 +25,60 @@ struct NativeWriteReply {
     var done: Bool { (body["done"] as? Bool) == true }
 }
 
+/// 回包里共用的小形状的读法。
+enum NativeWriteWire {
+    /// {from, to} 段（提示的 given / hintRange）→ from..<to：from、to 都是 Int 且 to > from 才算，否则 nil。
+    /// 下界不在这里限制（hint 回包的 given / hintRange 原来就不查 ≥ 0；快照的 hintRange 自己再加 from ≥ 0）。
+    static func range(_ raw: Any?) -> Range<Int>? {
+        guard let r = raw as? [String: Any], let a = r["from"] as? Int, let b = r["to"] as? Int, b > a else { return nil }
+        return a..<b
+    }
+}
+
+/// hint op 回包（action state / give；ShiziCore WriteAPI hint）。
+struct NativeHintReply {
+    /// 提示按钮的样子（body.button）；没有这个键 = nil（沿用原来的按钮）。
+    let button: NativeHintButton?
+    /// 格下提示说明（body.note.text）。
+    let noteText: String?
+    /// give：这次多给的一段。
+    let given: Range<Int>?
+    /// give：合并后已给出的整段。
+    let hintRange: Range<Int>?
+    let used: Int?
+    /// give：整字给完（= 看过答案）。
+    let whole: Bool
+    /// give：读屏播报（给出了哪几笔）。
+    let announce: String?
+
+    init(_ body: [String: Any]) {
+        button = (body["button"] as? [String: Any]).map { NativeHintButton($0) }
+        noteText = (body["note"] as? [String: Any])?["text"] as? String
+        given = NativeWriteWire.range(body["given"])
+        hintRange = NativeWriteWire.range(body["hintRange"])
+        used = body["used"] as? Int
+        whole = (body["whole"] as? Bool) == true
+        announce = body["announce"] as? String
+    }
+}
+
+/// 提示按钮（hint 回包 body.button）：kind = loading / available / exhausted / unavailable…；缺键 = nil，默认值留在用的地方。
+struct NativeHintButton {
+    var kind: String? = nil
+    var text: String? = nil
+    var label: String? = nil
+    var disabled: Bool? = nil
+}
+
+extension NativeHintButton {
+    init(_ raw: [String: Any]) {
+        kind = raw["kind"] as? String
+        text = raw["text"] as? String
+        label = raw["label"] as? String
+        disabled = raw["disabled"] as? Bool
+    }
+}
+
 /// skip 回包里的撤销机会（body.undo）：撤销条 / 交给结果页的 handoff 都用它。
 struct NativeSkipUndo {
     let sessionId: String
@@ -90,11 +144,7 @@ struct NativeWriteSnapshot {
         total = raw["total"] as? Int
         canEnd = raw["canEnd"] as? Bool
         hints = raw["hints"] as? Int
-        if let r = raw["hintRange"] as? [String: Any], let a = r["from"] as? Int, let b = r["to"] as? Int, b > a, a >= 0 {
-            hintRange = a..<b
-        } else {
-            hintRange = nil
-        }
+        hintRange = NativeWriteWire.range(raw["hintRange"]).flatMap { r -> Range<Int>? in r.lowerBound >= 0 ? r : nil }
         answerSeen = raw["answerSeen"] as? Bool
         last = raw["last"] as? Bool
         active = raw["active"] as? Bool

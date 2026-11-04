@@ -117,7 +117,7 @@ final class NativeWriteViewController: UIViewController {
     private var glyph: NativeGlyphData?
     private var medians: [[CGPoint]]?
     private(set) var hint: NativeHintView?
-    private var hintButton: [String: Any] = [:]
+    private var hintButton = NativeHintButton()
     private var hintNoteText: String?
     private var hintBusy = false
     private var hintCleared = false
@@ -829,7 +829,7 @@ final class NativeWriteViewController: UIViewController {
     // MARK: 提示（D64 ①；规则在页面 hint op，这里只有视图）
 
     private var hintActive: Bool {
-        phase == .recall && (!answerSeen || (hintButton["kind"] as? String) == "exhausted")
+        phase == .recall && (!answerSeen || hintButton.kind == "exhausted")
     }
 
     /// 换字：读字形、恢复提示现场（open 时已有 hintRange → 静态显示，按已写笔数推出哪些已收掉），再问页面按钮状态。
@@ -841,7 +841,7 @@ final class NativeWriteViewController: UIViewController {
         hintCleared = false
         hintBusy = false
         answerSeen = session.answerSeen ?? false
-        hintButton = ["kind": "loading", "text": tr("R-W05.hintLabel"), "label": tr("R-W05.hintLabel"), "disabled": true]
+        hintButton = NativeHintButton(kind: "loading", text: tr("R-W05.hintLabel"), label: tr("R-W05.hintLabel"), disabled: true)
         hintNoteText = nil
         renderHint(fadeIn: false)
         requestHintState()
@@ -860,39 +860,39 @@ final class NativeWriteViewController: UIViewController {
         guard !redo, let key = cardKey else { return } // 重写错字页没有提示（网页同）
         bridge.call("hint", hintArgs("state")) { [weak self] reply in
             guard let self, self.cardKey == key, reply.ok else { return }
-            self.applyHintModel(reply.body)
+            self.applyHintModel(NativeHintReply(reply.body))
         }
     }
 
-    private func applyHintModel(_ body: [String: Any]) {
-        if let b = body["button"] as? [String: Any] { hintButton = b }
-        hintNoteText = (body["note"] as? [String: Any])?["text"] as? String
+    private func applyHintModel(_ h: NativeHintReply) {
+        if let b = h.button { hintButton = b }
+        hintNoteText = h.noteText
         refresh()
         view.setNeedsLayout()
     }
 
     @objc private func tapHint() {
-        guard phase == .recall, !submitting, !hintBusy, (hintButton["kind"] as? String) == "available", let key = cardKey else { return }
+        guard phase == .recall, !submitting, !hintBusy, hintButton.kind == "available", let key = cardKey else { return }
         endUndo() // 点提示：跳过的撤销机会结束（G3）
         hintBusy = true
         bridge.call("hint", hintArgs("give")) { [weak self] reply in
             guard let self, self.cardKey == key else { return }
             self.hintBusy = false
             // 写入失败也照常显示（P52）：本地次数保留，下次写入带上
-            guard let given = reply.body["given"] as? [String: Any], let a = given["from"] as? Int, let b = given["to"] as? Int, b > a,
-                  let merged = reply.body["hintRange"] as? [String: Any], let ma = merged["from"] as? Int, let mb = merged["to"] as? Int, mb > ma else {
-                self.applyHintModel(reply.body)
+            let h = NativeHintReply(reply.body)
+            guard let segment = h.given, let merged = h.hintRange else {
+                self.applyHintModel(h)
                 return
             }
             self.settleAnimations()
-            self.hint?.give(segment: a..<b, merged: ma..<mb, used: reply.body["used"] as? Int ?? 0, written: self.strokes.count)
+            self.hint?.give(segment: segment, merged: merged, used: h.used ?? 0, written: self.strokes.count)
             self.hintCleared = false
-            if (reply.body["whole"] as? Bool) == true { self.answerSeen = true }
-            self.applyHintModel(reply.body)
+            if h.whole { self.answerSeen = true }
+            self.applyHintModel(h)
             self.renderHint(fadeIn: true)
             self.selectHaptic.select() // F1 haptic.select：提示显影，与第一帧同帧
             self.checkHintCleared()
-            if let text = reply.body["announce"] as? String, !text.isEmpty { self.say(text) }
+            if let text = h.announce, !text.isEmpty { self.say(text) }
         }
     }
 
@@ -1060,26 +1060,26 @@ final class NativeWriteViewController: UIViewController {
         skipButton.isHidden = redo || !(phase == .recall && !answerSeen && cardKey != nil && flowFail != .skip)
         endButton.isHidden = !(!compare && canEnd && cardKey != nil && flowFail == nil)
         // 求助行：回忆 [提示][看答案]；看过答案后的回忆 [看答案][提示（不可点）]；描一遍 [下一个]；凭记忆写 [再描一遍]；没保存上 [先不保存]
-        let kind = hintButton["kind"] as? String ?? "loading"
+        let kind = hintButton.kind ?? "loading"
         let noFail = flowFail == nil
         let hintShown = !redo && noFail && phase == .recall && !(answerSeen && kind != "exhausted")
         hintButtonView.isHidden = !hintShown
         if kind == "unavailable" {
             // 没有笔顺数据：灰字「暂时没有提示」，不是按钮（M1-2 NoHintLabel）
-            hintButtonView.setTitle(hintButton["label"] as? String ?? "", for: .normal)
+            hintButtonView.setTitle(hintButton.label ?? "", for: .normal)
             hintButtonView.setImage(nil, for: .normal)
             hintButtonView.setImage(nil, for: .disabled)
             hintButtonView.isEnabled = false
             hintButtonView.backgroundColor = .clear
             hintButtonView.accessibilityTraits = [.staticText]
         } else {
-            hintButtonView.setTitle(hintButton["text"] as? String ?? tr("R-W05.hintLabel"), for: .normal)
+            hintButtonView.setTitle(hintButton.text ?? tr("R-W05.hintLabel"), for: .normal)
             if hintButtonView.image(for: .normal) == nil { setIcon(hintButtonView, .hint) }
-            hintButtonView.isEnabled = (hintButton["disabled"] as? Bool) != true && !hintBusy
+            hintButtonView.isEnabled = hintButton.disabled != true && !hintBusy
             hintButtonView.backgroundColor = color("field", .secondarySystemFill)
             hintButtonView.accessibilityTraits = [.button]
         }
-        hintButtonView.accessibilityLabel = hintButton["label"] as? String
+        hintButtonView.accessibilityLabel = hintButton.label
         answerButton.isHidden = redo || !(noFail && phase == .recall)
         redoAnswerButton.isHidden = !(redo && phase == .recall)
         redoAgainButton.isHidden = !(redo && compare)

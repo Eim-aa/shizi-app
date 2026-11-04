@@ -115,13 +115,35 @@ struct NativeResultUndo {
 struct NativeResultReveal {
     /// 这组已落过印（冷启动后看 sealedAt）：只有 true 才算。
     let sealed: Bool
-    /// 显现的时刻编排（ms；stagger / cellMs / kuanDelay …），NSNumber 按键取。
-    let plan: [String: Any]
+    /// 显现的时刻编排（reveal.plan）。
+    let plan: NativeResultRevealPlan
 
     init(_ raw: Any?) {
         let r = raw as? [String: Any]
         sealed = (r?["sealed"] as? Bool) == true
-        plan = r?["plan"] as? [String: Any] ?? [:]
+        plan = NativeResultRevealPlan(r?["plan"])
+    }
+}
+
+/// 显现的时刻编排（view.reveal.plan）：线上是 ms（NSNumber 按键取），这里换成 s；缺键 / plan 整块缺失 = 0。
+struct NativeResultRevealPlan {
+    let stagger: TimeInterval
+    let cellMs: TimeInterval
+    let kuanDelay: TimeInterval
+    let kuanMs: TimeInterval
+    let sealDelay: TimeInterval
+    /// 键名是 contactMs：印落到着纸的时长。
+    let contact: TimeInterval
+
+    init(_ raw: Any?) {
+        let plan = raw as? [String: Any] ?? [:]
+        func p(_ k: String) -> TimeInterval { ((plan[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
+        stagger = p("stagger")
+        cellMs = p("cellMs")
+        kuanDelay = p("kuanDelay")
+        kuanMs = p("kuanMs")
+        sealDelay = p("sealDelay")
+        contact = p("contactMs")
     }
 }
 
@@ -854,9 +876,8 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         revealToken += 1
         let token = revealToken
         let plan = revealModel.plan
-        func p(_ k: String) -> TimeInterval { ((plan[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
-        workView.playReveal(stagger: p("stagger"), cellMs: p("cellMs"), kuanDelay: p("kuanDelay"), kuanMs: p("kuanMs"), sealDelay: p("sealDelay"),
-                            fall: p("contactMs"), rebound: ms("rebound"), sealFrom: CGFloat(rmotion["sealFrom"] ?? 1.25), contact: CGFloat(rmotion["sealContact"] ?? 0.92),
+        workView.playReveal(stagger: plan.stagger, cellMs: plan.cellMs, kuanDelay: plan.kuanDelay, kuanMs: plan.kuanMs, sealDelay: plan.sealDelay,
+                            fall: plan.contact, rebound: ms("rebound"), sealFrom: CGFloat(rmotion["sealFrom"] ?? 1.25), contact: CGFloat(rmotion["sealContact"] ?? 0.92),
                             onContact: { [weak self] in
                                 guard let self, self.revealToken == token else { return }
                                 self.sealMoment()

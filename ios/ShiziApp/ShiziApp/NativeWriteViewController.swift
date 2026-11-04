@@ -715,10 +715,10 @@ final class NativeWriteViewController: UIViewController {
     private func rebuildPrompt() {
         promptCells.forEach { $0.removeFromSuperview() }
         promptCells = []
-        let prompt = session.prompt ?? [:]
-        let cells = prompt["cells"] as? [[String: Any]] ?? []
+        let prompt = session.prompt
+        let cells = prompt.cells
         promptRow.accessibilityLabel = tr("X-PROMPT.groupLabel")
-        let hintText = prompt["hint"] as? String ?? ""
+        let hintText = prompt.hint
         let ts = type
         // 提示行：t15 ink2、行高 lh15、居中（网页 .sz-prompt__hint）
         let para = NSMutableParagraphStyle()
@@ -730,8 +730,8 @@ final class NativeWriteViewController: UIViewController {
         promptHint.attributedText = NSAttributedString(string: hintText, attributes: [.font: axFont("prompt", sub: "r5", else: ts.font(15)), .foregroundColor: color("ink2", .secondaryLabel), .paragraphStyle: para])
         promptHint.isHidden = hintText.isEmpty
         for c in cells {
-            let kind = c["kind"] as? String ?? "text"
-            let text = c["text"] as? String ?? ""
+            let kind = c.kind
+            let text = c.text
             let cell = UIView()
             switch kind {
             case "blank":
@@ -745,7 +745,7 @@ final class NativeWriteViewController: UIViewController {
                 py.tag = 1
                 cell.addSubview(py)
                 // 看答案 · 描一遍：目标字填回空格（网页 REVEAL_PHASES，字面占格 80%；R9-A NP-03）
-                if let fill = c["fill"] as? String, !fill.isEmpty {
+                if let fill = c.fill, !fill.isEmpty {
                     let g = NativeGlyphView()
                     g.char = fill
                     g.padRatio = 0
@@ -754,7 +754,7 @@ final class NativeWriteViewController: UIViewController {
                     cell.addSubview(g)
                 }
                 cell.accessibilityIdentifier = "native-write-blank"
-                if let label = c["label"] as? String, !label.isEmpty {
+                if let label = c.label, !label.isEmpty {
                     cell.isAccessibilityElement = true
                     cell.accessibilityLabel = label // 只有位置与拼音，不含答案字（D16）
                 } else {
@@ -762,7 +762,7 @@ final class NativeWriteViewController: UIViewController {
                     cell.isAccessibilityElement = false
                     let fillView = cell.subviews.first { $0.tag == 3 }
                     fillView?.isAccessibilityElement = true
-                    fillView?.accessibilityLabel = c["fill"] as? String
+                    fillView?.accessibilityLabel = c.fill
                     cell.accessibilityElements = [py, fillView].compactMap { $0 }
                 }
             case "repeatBlank":
@@ -776,7 +776,7 @@ final class NativeWriteViewController: UIViewController {
                 l.tag = 2
                 cell.addSubview(l)
                 cell.isAccessibilityElement = true
-                cell.accessibilityLabel = c["label"] as? String
+                cell.accessibilityLabel = c.label
             default:
                 let g = NativeGlyphView()
                 g.char = text

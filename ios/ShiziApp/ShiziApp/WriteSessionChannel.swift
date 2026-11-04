@@ -147,6 +147,39 @@ struct NativeWriteLine {
     }
 }
 
+/// 题面（snapshot.prompt；ShiziCore WriteModels 拼出）：提示行 + 一排格。
+struct NativeWritePrompt {
+    /// 提示行；缺键 = ""。
+    let hint: String
+    /// 格；缺键或不是对象数组 = []。
+    let cells: [NativeWritePromptCell]
+
+    init(_ raw: Any?) {
+        let p = raw as? [String: Any] ?? [:]
+        hint = p["hint"] as? String ?? ""
+        cells = (p["cells"] as? [[String: Any]] ?? []).map(NativeWritePromptCell.init)
+    }
+}
+
+/// 题面的一格（prompt.cells[i]）：kind = blank（空格 + 拼音）/ repeatBlank（「□」）/ 其余 = 字。
+struct NativeWritePromptCell {
+    /// 缺键 = "text"。
+    let kind: String
+    /// 拼音 / 「□」/ 字；缺键 = ""。
+    let text: String
+    /// 看答案 · 描一遍时填回空格的目标字；缺键 = nil。
+    let fill: String?
+    /// 读屏名称（只有位置与拼音，不含答案字）；缺键 = nil。
+    let label: String?
+
+    init(_ raw: [String: Any]) {
+        kind = raw["kind"] as? String ?? "text"
+        text = raw["text"] as? String ?? ""
+        fill = raw["fill"] as? String
+        label = raw["label"] as? String
+    }
+}
+
 /// 宿主推来的 open 载荷（write-open / redo-open 消息的 body.payload）的信封读法：ok、快照、引擎耗时 ms。
 /// 载荷本身仍原样交给 NativeWriteViewController（它要读外观等其余键）。
 struct NativeWriteOpenPayload {
@@ -186,7 +219,8 @@ struct NativeWriteSnapshot {
     let phase: String?
     let answerPhase: String?
     let firstTip: Bool?
-    let prompt: [String: Any]?
+    /// 题面（snapshot.prompt）；缺键或不是对象 = 空题面（hint ""、没有格），与原来的 `?? [:]` 一致。
+    let prompt: NativeWritePrompt
     let line: NativeWriteLine?
 
     init(_ raw: [String: Any]) {
@@ -205,7 +239,7 @@ struct NativeWriteSnapshot {
         phase = raw["phase"] as? String
         answerPhase = raw["answerPhase"] as? String
         firstTip = raw["firstTip"] as? Bool
-        prompt = raw["prompt"] as? [String: Any]
+        prompt = NativeWritePrompt(raw["prompt"])
         line = (raw["line"] as? [String: Any]).map(NativeWriteLine.init)
     }
 

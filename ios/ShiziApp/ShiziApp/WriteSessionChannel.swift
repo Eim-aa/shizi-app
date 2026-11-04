@@ -130,6 +130,20 @@ struct NativeSkipUndo {
     }
 }
 
+/// 离开时还没用掉的跳过撤销机会（S4）：随 exit 的 undo 参数 / nativeWriteDidFinish 的 undo 交给来源页 / 结果页。
+/// 线上仍是字典（wire）：键与值的类型与原来两处手写的字面量一致（strokes 经 NativeInkWire.wire、remainingMs 是 Double）。
+struct NativeSkipUndoHandoff {
+    let sessionId: String
+    let recordId: String
+    let char: String
+    let strokes: [[InkRawPoint]]
+    let remainingMs: Double
+
+    var wire: [String: Any] {
+        ["sessionId": sessionId, "recordId": recordId, "char": char, "strokes": NativeInkWire.wire(strokes), "remainingMs": remainingMs]
+    }
+}
+
 /// 快照里的「上一个字」结果行（snapshot.line；ShiziCore WriteModels 拼出）。
 struct NativeWriteLine {
     let text: String?
@@ -194,6 +208,24 @@ struct NativeWriteOpenPayload {
         ok = (payload["ok"] as? Bool) == true
         snapshot = (payload["snapshot"] as? [String: Any]).map { NativeWriteSnapshot($0) }
         jsMs = (payload["ms"] as? NSNumber)?.doubleValue ?? 0
+    }
+}
+
+/// 写字页的时刻（open 载荷 timing；单一来源 src/session/write-api.js writeTiming）：线上是 ms，这里换成 s。
+/// 缺键 / 不是数 / timing 整块缺失 = 0（与原来 applyTiming 的写法一致）。
+struct NativeWriteTiming {
+    let penArm: TimeInterval
+    let judgeAppear: TimeInterval
+    let judgeReady: TimeInterval
+    let pressGuard: TimeInterval
+
+    init(_ raw: Any?) {
+        let t = raw as? [String: Any]
+        func s(_ k: String) -> TimeInterval { ((t?[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
+        penArm = s("penArmMs")
+        judgeAppear = s("judgeAppearMs")
+        judgeReady = s("judgeReadyMs")
+        pressGuard = s("pressGuardMs")
     }
 }
 

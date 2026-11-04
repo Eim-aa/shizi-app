@@ -305,12 +305,11 @@ final class NativeWriteViewController: UIViewController {
     }
 
     private func applyTiming(_ payload: [String: Any]) {
-        let raw = payload["timing"] as? [String: Any]
-        let ms = { (k: String) in ((raw?[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
-        penArm = ms("penArmMs")
-        judgeAppear = ms("judgeAppearMs")
-        judgeReady = ms("judgeReadyMs")
-        pressGuard = ms("pressGuardMs")
+        let timing = NativeWriteTiming(payload["timing"])
+        penArm = timing.penArm
+        judgeAppear = timing.judgeAppear
+        judgeReady = timing.judgeReady
+        pressGuard = timing.pressGuard
         if let m = payload["motion"] as? [String: Any] {
             motion = m.compactMapValues { ($0 as? NSNumber)?.doubleValue }
             easeOut = (m["easeOut"] as? [NSNumber])?.map { $0.doubleValue }
@@ -1874,7 +1873,9 @@ final class NativeWriteViewController: UIViewController {
                 if let sid = reply.finishedSessionId {
                     // 最后一字跳过：这组结束，撤销机会随 exit 交给结果页（网页 handoffSkipUndo）
                     var handoff: [String: Any]?
-                    if let info { handoff = ["sessionId": info.sessionId, "recordId": info.recordId, "char": info.char, "strokes": NativeInkWire.wire(held), "remainingMs": self.skipUndoParams.ms] }
+                    if let info {
+                        handoff = NativeSkipUndoHandoff(sessionId: info.sessionId, recordId: info.recordId, char: info.char, strokes: held, remainingMs: self.skipUndoParams.ms).wire
+                    }
                     self.coordinator?.nativeWriteDidFinish(self, sessionId: sid, undo: handoff)
                     return
                 }
@@ -1956,7 +1957,7 @@ final class NativeWriteViewController: UIViewController {
     /// 离开时还没用掉的撤销机会（剩余时长 + 笔画）：交给来源页 / 结果页接着显示（S4）。失败态不交。
     func undoHandoff() -> [String: Any]? {
         guard let u = undoInfo, let life = undoLife, undoBar?.isFailed != true, life.remainingMs > 0 else { return nil }
-        return ["sessionId": u.sessionId, "recordId": u.recordId, "char": u.char, "strokes": NativeInkWire.wire(u.strokes), "remainingMs": life.remainingMs]
+        return NativeSkipUndoHandoff(sessionId: u.sessionId, recordId: u.recordId, char: u.char, strokes: u.strokes, remainingMs: life.remainingMs).wire
     }
 
     var undoBarForTesting: NativeUndoBarView? { undoBar }

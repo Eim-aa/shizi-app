@@ -62,7 +62,7 @@ final class HomePerfEquivalenceTests: XCTestCase {
 
     /// 打乱的记录（重复 id、不合法 id、缺 id、超长序号），每条带唯一的 "i"：排出的顺序（含相等时的先后）必须与参照逐条相同。
     func testSortByIdMatchesReference() {
-        var rng = SplitMix(seed: 20261104)
+        var rng = HomePerfRNG(seed: 20261104)
         for round in 0..<40 {
             let n = [0, 1, 2, 3, 7, 50, 333, 2000][round % 8]
             var recs: [JSValue] = []
@@ -172,7 +172,7 @@ final class HomePerfEquivalenceTests: XCTestCase {
 }
 
 /// 可复现的伪随机数（SplitMix64）。
-private struct SplitMix {
+private struct HomePerfRNG {
     var state: UInt64
     init(seed: UInt64) { state = seed }
     mutating func next() -> UInt64 {

@@ -79,51 +79,60 @@ public enum Cards {
         return parts.map { String(decoding: $0, as: UTF16.self) }
     }
 
+    /// 一张卡的对象：键的写入顺序固定（word / chars / ci / target / py / hint / 题库缺省字段 + promptHint），与 JS 的 CARDS 构造同序。
+    /// meta 已按 JS 键序排好（见 buildCards）；容量一次预留，写入不扩容。
+    private static func cardObject(word: JSValue?, chars: JSValue, ci: Double, target: JSValue?, py: JSValue?, hint: JSValue?,
+                                   meta: [(key: String, value: JSValue)]) -> JSValue {
+        var o = JSObject(minimumCapacity: 6 + meta.count)
+        o["word"] = word
+        o["chars"] = chars
+        o["ci"] = .number(ci)
+        if let t = target { o["target"] = t }
+        o["py"] = py
+        if let h = hint { o["hint"] = h }
+        for (k, v) in meta { o[k] = v }
+        return .object(o)
+    }
+
     /// SEED → cards[]（基础卡；自定义卡由调用方另行追加，带 custom:true）。
+    /// 逐张卡的结果（键、键序、值）与逐行照 JS 写法建 meta 对象再拷进卡片相同（DeckBuildEquivalenceTests 拿改动前的写法逐张比）：
+    ///   · 缺省字段表 CardRules.defaults（static let，不变）的 entries 只取一次，不每行重算键序、重查一遍；
+    ///   · meta 不建中间对象：缺省表的键互不相同、entries 已是 JS 键序，逐键取值得到的数组就是 meta.entries；
+    ///     promptHint 若是缺省表里的键就原位替换，否则排在最后（它不是数组下标形的键）——与 meta["promptHint"] = ph 后再取 entries 同序；
+    ///   · 拼音按空白拆分只有「ci 不是整数、逐字出卡」那一支用得到，挪进那一支。
     public static func buildCards(seed: [JSValue], overrides: JSValue?) throws -> [JSValue] {
         let table = JSValue.object(overrideTable(overrides))
         var cards: [JSValue] = []
+        if seed.isEmpty { return cards }
         cards.reserveCapacity(seed.count)
+        let defaults = CardRules.defaults.entries
+        let promptHintSlot = defaults.firstIndex { JSX.eq($0.key, "promptHint") }
+        var meta: [(key: String, value: JSValue)] = []
+        meta.reserveCapacity(defaults.count + 1)
         for raw in seed {
             let w = try applyContextOverride(raw, table)
             guard case .string(let ans)? = w["ans"] else { throw CoreError.type("buildCards: ans is not iterable") }
             guard case .string(let py)? = w["py"] else { throw CoreError.type("buildCards: py.split is not a function") }
             let chars = ans.unicodeScalars.map { String($0) }
             let charsV = JSValue.array(chars.map { .string($0) })
-            let pys = splitWhitespace(py)
-            var meta = JSObject()
-            for (k, def) in CardRules.defaults.entries {
-                if let v = w[k], JSX.truthy(v) { meta[k] = v } else { meta[k] = def }
+            meta.removeAll(keepingCapacity: true)
+            for (k, def) in defaults {
+                if let v = w[k], JSX.truthy(v) { meta.append((k, v)) } else { meta.append((k, def)) }
             }
-            if let ph = w["promptHint"], JSX.truthy(ph) { meta["promptHint"] = ph }
-            func make(ci: Int, target: JSValue?, py: JSValue) -> JSValue {
-                var o = JSObject()
-                o["word"] = w["ans"]
-                o["chars"] = charsV
-                o["ci"] = .number(Double(ci))
-                if let t = target { o["target"] = t }
-                o["py"] = py
-                if let h = w["hint"] { o["hint"] = h }
-                for (k, v) in meta.entries { o[k] = v }
-                return .object(o)
+            if let ph = w["promptHint"], JSX.truthy(ph) {
+                if let slot = promptHintSlot { meta[slot].value = ph } else { meta.append(("promptHint", ph)) }
             }
+            let word = w["ans"], hint = w["hint"]
             if case .number(let ciD)? = w["ci"], ciD.isFinite, ciD.rounded(.towardZero) == ciD {
                 var target: JSValue? = (ciD >= 0 && ciD < Double(chars.count)) ? .string(chars[Int(ciD)]) : nil
                 if let t = w["target"], JSX.truthy(t) { target = t }
-                var o = JSObject()
-                o["word"] = w["ans"]
-                o["chars"] = charsV
-                o["ci"] = .number(ciD)
-                if let t = target { o["target"] = t }
-                o["py"] = w["py"]
-                if let h = w["hint"] { o["hint"] = h }
-                for (k, v) in meta.entries { o[k] = v }
-                cards.append(.object(o))
+                cards.append(cardObject(word: word, chars: charsV, ci: ciD, target: target, py: w["py"], hint: hint, meta: meta))
                 continue
             }
+            let pys = splitWhitespace(py)
             for (ci, ch) in chars.enumerated() {
                 let p: JSValue = (ci < pys.count && !pys[ci].isEmpty) ? .string(pys[ci]) : (w["py"] ?? .null)
-                cards.append(make(ci: ci, target: .string(ch), py: p))
+                cards.append(cardObject(word: word, chars: charsV, ci: Double(ci), target: .string(ch), py: p, hint: hint, meta: meta))
             }
         }
         return cards

@@ -74,8 +74,8 @@ final class AColdStartBenchmarkTests: XCTestCase {
         func home(_ store: Store) throws -> JSValue {
             try HomeView.homeView(.object(store.state), now: homeNow, policy: Config.policy, deck: .real, ui: nil, dates: store.dates)
         }
-        bench("home.empty.first", { $0.objectValue?.count ?? 0 }) { try home(empty.store) }
-        bench("home.empty.second", { $0.objectValue?.count ?? 0 }) { try home(empty.store) }
+        try bench("home.empty.first", { $0.objectValue?.count ?? 0 }) { try home(empty.store) }
+        try bench("home.empty.second", { $0.objectValue?.count ?? 0 }) { try home(empty.store) }
         // 点「开始」（写字页取卡）才建：buildCards 全部卡 + cardKey 索引
         bench("static.DeckCards.shared", { $0.cards.count }) { DeckCards.shared }
 
@@ -105,8 +105,8 @@ final class AColdStartBenchmarkTests: XCTestCase {
         let storage = StoreStorage(disk.open(), now: { STORE_NOW })
         let store = Store(storage: storage, now: { STORE_NOW }, dates: shanghai)
         bench("store.load.populated", { $0.count }) { store.load() }
-        bench("home.populated.first", { $0.objectValue?.count ?? 0 }) { try home(store) }
-        bench("home.populated.second", { $0.objectValue?.count ?? 0 }) { try home(store) }
+        try bench("home.populated.first", { $0.objectValue?.count ?? 0 }) { try home(store) }
+        try bench("home.populated.second", { $0.objectValue?.count ?? 0 }) { try home(store) }
 
         print("BENCH coldstart-note sink=\(sink)")
     }

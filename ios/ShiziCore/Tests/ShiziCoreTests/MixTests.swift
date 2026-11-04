@@ -174,7 +174,7 @@ final class MixTests: XCTestCase {
         let cands = K(chars(6, 800)) + warmList + K(chars(10, 900)) // 热身字夹在候选里（字频尾部）
         let records = [rec(1, chars(1, 10)[0], "judged", "correct", addDays(TODAY, -1), sessionId: "s1")]
         let r = try selectDaily(sched: .object(JSObject()), records: records, newCandidates: cands, warmupCandidates: warmList,
-                                policy: JS.with(NO_CAPITAL, [("newUserRamp", .null)]))
+                                policy: NO_CAPITAL)
         XCTAssertEqual(r.warmKeys, [warmList[0]])
         XCTAssertEqual(r.queue[0], warmList[0], "warm-up char first")
         XCTAssertEqual(Set(r.queue).count, r.queue.count, "no duplicates")
@@ -297,7 +297,7 @@ final class MixTests: XCTestCase {
     func testSelectDailyKeepsWorkingWithTheLegacyCallShape() throws {
         // 不传 warmupCandidates、不传 isWarm（用默认值）
         let r = try rules.selectDaily(sched: JS.obj([("base:\u{4EA6}", sched("2026-09-20"))]), records: [], today: TODAY, newCandidates: K("\u{9C9C}\u{5883}\u{989D}\u{6162}"),
-                                      policy: JS.with(policy, [("newUserRamp", .null)]), groupSize: .number(5))
+                                      policy: policy, groupSize: .number(5))
         XCTAssertEqual(r.queue.count, 5)
         XCTAssertTrue(r.dueKeys.contains("base:\u{4EA6}"))
         XCTAssertNil(r.special)

@@ -546,29 +546,11 @@
         "perRecordInk": [
           "P31"
         ],
-        "soundscape": [
-          "P07"
-        ],
-        "milestones": [
-          "P08"
-        ],
-        "difficultyFeedback": [
-          "P11"
-        ],
         "nextReviewLine": [
           "P12"
         ],
-        "photoHint": [
-          "P13"
-        ],
-        "imagePickChars": [
-          "P49"
-        ],
         "appearanceSwitch": [
           "P51"
-        ],
-        "devTools": [
-          "P30"
         ]
       }
     },
@@ -627,33 +609,9 @@
       ],
       "keys": {}
     },
-    "undoSnapshot": {
-      "p": [
-        "P32"
-      ],
-      "keys": {}
-    },
-    "undoAfterReload": {
-      "p": [
-        "P32"
-      ],
-      "keys": {}
-    },
-    "replaceConfirmShowsLostRange": {
-      "p": [
-        "P26"
-      ],
-      "keys": {}
-    },
     "monthSheetPick": {
       "p": [
         "P02"
-      ],
-      "keys": {}
-    },
-    "imageMissingInk": {
-      "p": [
-        "P50"
       ],
       "keys": {}
     },
@@ -676,12 +634,6 @@
       ],
       "keys": {}
     },
-    "dailyReviewCap": {
-      "p": [
-        "P03"
-      ],
-      "keys": {}
-    },
     "groupMix": {
       "p": [
         "P125",
@@ -692,25 +644,7 @@
         "baseSize": [
           "P314"
         ],
-        "newMax": [
-          "P125"
-        ],
-        "threeNewBelowDays": [
-          "P125"
-        ],
-        "threeNewMinAccuracy": [
-          "P125"
-        ],
-        "twoNewBelowDays": [
-          "P125"
-        ],
         "valveDays": [
-          "P125"
-        ],
-        "valveReleaseDays": [
-          "P314"
-        ],
-        "reviewsPerGroupForPressure": [
           "P125"
         ],
         "pressureWindowDays": [
@@ -730,45 +664,6 @@
         ],
         "returnAfterDays": [
           "P125"
-        ],
-        "returnGroupSize": [
-          "P184"
-        ],
-        "earlyReviewFill": [
-          "P125"
-        ],
-        "earlyCountsTowardCap": [
-          "P125",
-          "P03"
-        ],
-        "earlyFillWhenExhausted": [
-          "P324"
-        ]
-      }
-    },
-    "newUserRamp": {
-      "p": [
-        "P325"
-      ],
-      "keys": {
-        "days": [
-          "P325"
-        ],
-        "newMax": [
-          "P325"
-        ]
-      }
-    },
-    "wrongFirst": {
-      "p": [
-        "P315"
-      ],
-      "keys": {
-        "enabled": [
-          "P315"
-        ],
-        "reserveShare": [
-          "P315"
         ]
       }
     },
@@ -787,9 +682,6 @@
           "P126"
         ],
         "window": [
-          "P126"
-        ],
-        "perGroupMax": [
           "P126"
         ],
         "easyOnCorrect": [
@@ -852,12 +744,6 @@
         ]
       }
     },
-    "customIntoDaily": {
-      "p": [
-        "P33"
-      ],
-      "keys": {}
-    },
     "ratingWithHint": {
       "p": [
         "P34"
@@ -870,13 +756,6 @@
           "P34"
         ]
       }
-    },
-    "answerSeenScope": {
-      "p": [
-        "P36",
-        "P321"
-      ],
-      "keys": {}
     },
     "answerSeenRating": {
       "p": [
@@ -954,13 +833,6 @@
         ]
       }
     },
-    "dailyCapCountsPicked": {
-      "p": [
-        "P60",
-        "P03"
-      ],
-      "keys": {}
-    },
     "s02EndOld": {
       "p": [
         "P38"
@@ -979,18 +851,6 @@
       ],
       "keys": {}
     },
-    "epigraphRotation": {
-      "p": [
-        "P23"
-      ],
-      "keys": {}
-    },
-    "hintUseGroups": {
-      "p": [
-        "P29"
-      ],
-      "keys": {}
-    },
     "firstTip": {
       "p": [
         "P39"
@@ -1001,17 +861,8 @@
         ],
         "position": [
           "P39"
-        ],
-        "dismissOn": [
-          "P39"
         ]
       }
-    },
-    "strokeSaveFailure": {
-      "p": [
-        "P52"
-      ],
-      "keys": {}
     },
     "keySoundEvents": {
       "p": [
@@ -1075,147 +926,16 @@
         ]
       }
     },
-    "brushDetail": {
-      "p": [
-        "P111"
-      ],
-      "keys": {}
-    },
-    "compactMaxHeight": {
-      "p": [
-        "P69",
-        "P131"
-      ],
-      "keys": {}
-    },
-    "mainButtonLine": {
-      "p": [
-        "P258",
-        "P260",
-        "P298"
-      ],
-      "keys": {
-        "gapAboveEdge": [
-          "P258"
-        ]
-      }
-    },
-    "writeGrid": {
-      "p": [
-        "P118",
-        "P69",
-        "P225"
-      ],
-      "keys": {
-        "min": [
-          "P118"
-        ],
-        "max": [
-          "P118"
-        ],
-        "sideMargin": [
-          "P118"
-        ],
-        "promptGap": [
-          "P118"
-        ],
-        "toolsHeight": [
-          "P118",
-          "P258"
-        ],
-        "toolRowHeight": [
-          "P280"
-        ],
-        "axMin": [
-          "P225"
-        ],
-        "axNoteHeight": [
-          "P225",
-          "P241",
-          "P261"
-        ],
-        "axAux": [
-          "P243",
-          "P225"
-        ],
-        "promptFitMin": [
-          "P299"
-        ],
-        "fitGridMin": [
-          "P299"
-        ],
-        "axPromptScaleMax": [
-          "P225"
-        ],
-        "bottomGap": [
-          "P118"
-        ],
-        "topShare": [
-          "P118"
-        ],
-        "topMin": [
-          "P118"
-        ],
-        "nominalHead": [
-          "P195",
-          "P258"
-        ],
-        "nominalFoot": [
-          "P195",
-          "P260",
-          "P280"
-        ],
-        "footBottomMin": [
-          "P195",
-          "P260",
-          "P298"
-        ],
-        "nominalPrompt": [
-          "P195"
-        ]
-      }
-    },
-    "axShortPrimaryFrom": {
-      "p": [
-        "P259"
-      ],
-      "keys": {}
-    },
     "motion": {
       "p": [
         "P70"
       ],
       "keys": {
-        "answerSpeed": [
-          "P70"
-        ],
-        "answerStrokeGapMs": [
-          "P70"
-        ],
-        "answerFadeMs": [
-          "P70"
-        ],
         "hintStrokeMs": [
           "P70"
         ],
         "hintStagger": [
           "P70"
-        ],
-        "reducedFadeMs": [
-          "P70"
-        ],
-        "persistNoticeMs": [
-          "P70",
-          "P52"
-        ],
-        "hintFadeInMs": [
-          "P210"
-        ],
-        "answerRevealMs": [
-          "P210"
-        ],
-        "stepPlayMaxMs": [
-          "P210"
         ]
       }
     },
@@ -1255,21 +975,6 @@
         "contentFadeFrom": [
           "P282"
         ],
-        "quietOpenMs": [
-          "P283"
-        ],
-        "quietCloseMs": [
-          "P283"
-        ],
-        "quietScaleFrom": [
-          "P283"
-        ],
-        "quietDragPt": [
-          "P283"
-        ],
-        "reducedMs": [
-          "P284"
-        ],
         "veilTo": [
           "P310"
         ],
@@ -1308,33 +1013,15 @@
       ],
       "keys": {}
     },
-    "pinyinSource": {
-      "p": [
-        "P20"
-      ],
-      "keys": {}
-    },
     "legacyPhotoCountsAsRecord": {
       "p": [
         "P10b"
       ],
       "keys": {}
     },
-    "remindMode": {
-      "p": [
-        "P18"
-      ],
-      "keys": {}
-    },
     "remindDefault": {
       "p": [
         "P18"
-      ],
-      "keys": {}
-    },
-    "reminderOpens": {
-      "p": [
-        "P47"
       ],
       "keys": {}
     },
@@ -1403,20 +1090,6 @@
         "P28"
       ],
       "keys": {}
-    },
-    "returnSpread": {
-      "p": [
-        "P323"
-      ],
-      "keys": {
-        "afterDays": [
-          "P323",
-          "P184"
-        ],
-        "perDayShare": [
-          "P323"
-        ]
-      }
     },
     "migration": {
       "p": [
@@ -1516,19 +1189,6 @@
         ]
       }
     },
-    "traceHook": {
-      "p": [
-        "P153"
-      ],
-      "keys": {
-        "widthPt": [
-          "P153"
-        ],
-        "moreContrastPt": [
-          "P153"
-        ]
-      }
-    },
     "skipUndo": {
       "p": [
         "P115"
@@ -1545,18 +1205,6 @@
           "P116"
         ]
       }
-    },
-    "backGesture": {
-      "p": [
-        "P54"
-      ],
-      "keys": {}
-    },
-    "devToolsParam": {
-      "p": [
-        "P30"
-      ],
-      "keys": {}
     }
   }
 }

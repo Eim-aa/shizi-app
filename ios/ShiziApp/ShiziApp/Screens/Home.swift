@@ -336,7 +336,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         let cats = (ShiziTokens.root["type"] as? [String: Any])?["categories"] as? [String: Any]
         let k = ((cats?[ShiziTokens.categoryName(metrics.category)] as? [String: Any])?["k"] as? NSNumber)?.doubleValue ?? 1
         let limit = ((ShiziTokens.root["type"] as? [String: Any])?["compactTextScale"] as? NSNumber)?.doubleValue ?? 1.3
-        return k >= limit || (view.window?.bounds.height ?? UIScreen.main.bounds.height) <= 760 // policy.compactMaxHeight（write/compact.js）
+        return k >= limit || (view.window?.bounds.height ?? UIScreen.main.bounds.height) <= 760 // P69 紧凑屏高度上限（原 policy.compactMaxHeight 没有代码读取，已删）
     }
 
     private func song(_ size: CGFloat) -> UIFont { NativeType.song(size: size, weight: .regular) }
@@ -755,7 +755,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         }
         titleLabel.frame = CGRect(x: gutter - 1, y: top - 1, width: 1, height: 1)
         let mainTop = top + headH
-        // 按钮区（自下而上；底边在 Tab 栏上沿上方 24 = policy.mainButtonLine.gapAboveEdge = s6）
+        // 按钮区（自下而上；底边在 Tab 栏上沿上方 24 = s6，P258 / P298）
         var y = H - mt.space(6)
         let btnH = mt.value("btn-h")
         var ctaW = ax ? innerW : min(ctaWidth, innerW)

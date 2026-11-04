@@ -10,7 +10,6 @@ private let tz = TimeZone(identifier: "Asia/Shanghai")!
 private let rules = ScheduleRules(timeZone: tz)
 private let TODAY = "2026-09-24"
 // D65 #2 / D66 ⑫：本文件的选字用例按 5 字一组、关掉新用户前三天封顶来写（见 JS 文件头注释）。
-private let NO_RAMP = JS.with(Config.policy, [("newUserRamp", .null)])
 
 /// test/core/helpers.mjs at()：本地时间 ms。
 private func at(_ day: String, _ hour: Int = 12, _ minute: Int = 0) -> Double {
@@ -64,7 +63,7 @@ private func adv(_ s: JSValue, _ cardKey: String, _ recordId: String?, _ kind: S
 private func cur(_ s: JSValue, _ patch: [(String, JSValue)]) throws -> JSValue { try SessionRules.withCurrent(s, JS.obj(patch), at: nil) }
 
 private func selectDaily(sched: JSValue? = nil, records: [JSValue] = [], today: String = TODAY, newCandidates: [String] = [], custom: JSValue? = nil,
-                         policy: JSValue = NO_RAMP, isWarm: ((String) -> Bool)? = nil, groupSize: JSValue? = N(5)) throws -> ScheduleRules.DailyPlan {
+                         policy: JSValue = Config.policy, isWarm: ((String) -> Bool)? = nil, groupSize: JSValue? = N(5)) throws -> ScheduleRules.DailyPlan {
     if let w = isWarm {
         return try rules.selectDaily(sched: sched, records: records, today: today, newCandidates: newCandidates, custom: custom, policy: policy, isWarm: w, groupSize: groupSize)
     }
@@ -356,7 +355,7 @@ final class SessionRulesTests: XCTestCase {
         // 不给 groupSize → 按 policy.groupSize
         let noSize = try selectDaily(sched: s, records: [], newCandidates: cands, groupSize: nil)
         XCTAssertEqual(noSize.queue.count, Int(min(Config.policyNumber("groupSize") ?? 0, Double(cands.count))), "no groupSize \u{2192} policy.groupSize")
-        let big = try selectDaily(sched: s, records: [], newCandidates: cands, policy: policyWith([("groupSize", N(7)), ("newUserRamp", .null)]), groupSize: nil)
+        let big = try selectDaily(sched: s, records: [], newCandidates: cands, policy: policyWith([("groupSize", N(7))]), groupSize: nil)
         XCTAssertEqual(big.queue.count, 7)
         XCTAssertFalse(big.queue.contains("base:\u{9759}"))
         XCTAssertEqual(try selectDaily(sched: .object(JSObject()), records: [], newCandidates: []).queue, [], "nothing to write (R-H11)")

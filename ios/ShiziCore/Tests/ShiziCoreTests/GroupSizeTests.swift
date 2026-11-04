@@ -42,11 +42,8 @@ final class GroupSizeTests: XCTestCase {
     // scaledCount: counts written for groups of 5 scale with size (round, at least 1); the daily review cap follows
     func testScaledCountCountsWrittenForGroupsOf5ScaleWithSizeRoundAtLeast1TheDailyReviewCapFollows() throws {
         let sizes: [Double] = [5, 10, 20, 30]
-        let newMax = try XCTUnwrap(mix?["newMax"]?.numberValue)
-        let returnGroupSize = try XCTUnwrap(mix?["returnGroupSize"]?.numberValue)
-        XCTAssertEqual(sizes.map { Mix.scaledCount(newMax, $0, mix: mix) }, [3, 6, 12, 18])
+        XCTAssertEqual(sizes.map { Mix.scaledCount(3, $0, mix: mix) }, [3, 6, 12, 18])
         XCTAssertEqual(sizes.map { Mix.scaledCount(1, $0, mix: mix) }, [1, 2, 4, 6])
-        XCTAssertEqual(sizes.map { Mix.scaledCount(returnGroupSize, $0, mix: mix) }, [3, 6, 12, 18])
         XCTAssertEqual(Mix.scaledCount(0, 20, mix: mix), 0) // D83：每日复习上限删除（GroupSize.dailyReviewCapOf 退役）
     }
 

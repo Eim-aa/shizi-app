@@ -113,7 +113,7 @@ final class ViewScaleEquivalenceTests: XCTestCase {
     }
 
     /// ImageSelection.monthMembers / imagePlan（月报、我的、年报每月、导出图都经它们）：每月 × pick × hasInk 有无 × added。
-    private func compareSelection(_ state: JSValue, months: [String], dates: Dates, label: String, hasInk: InkPick.HasInk) throws {
+    private func compareSelection(_ state: JSValue, months: [String], dates: Dates, label: String, hasInk: @escaping InkPick.HasInk) throws {
         let wrongIds = Query.flattenRecords(state["records"]).filter { $0["judgment"] == .string("wrong") }.compactMap { $0["id"]?.stringValue }
         let added: [[String]?] = [nil, [], Array(wrongIds.prefix(7)), wrongIds.enumerated().filter { $0.offset % 2 == 0 }.map(\.element)]
         let inkOf: ImageSelection.InkOf = { try DetailView.builtInk(state, record: $0, dates: dates) }
@@ -442,6 +442,38 @@ extension ViewScaleEquivalenceTests.RNG: RandomNumberGenerator {}
 enum ViewRef {
     typealias V = ViewSupport
 
+    // ---- Records/WorkMembers.swift（workMemberRecords 原先逐次 compareRecordIds；workMembers 照抄、改调参照的 workMemberRecords）----
+
+    static func workMemberRecords(_ records: [JSValue], hasInk: InkPick.HasInk? = nil, added: WorkMembers.Added = WorkMembers.Added(nil)) -> [JSValue] {
+        JSX.stableSort(records.filter { WorkMembers.isWorkMember($0, hasInk: hasInk, added: added) }) { Records.compareRecordIds($0["id"], $1["id"]) }
+    }
+    static func workMembers(_ records: [JSValue], prefer: JSValue? = nil, order: JSValue? = nil, hasInk: InkPick.HasInk? = nil,
+                            pickInk: WorkMembers.PickInk = .sameAsHasInk, added: WorkMembers.Added = WorkMembers.Added(nil)) -> [WorkMembers.Member] {
+        let sorted = workMemberRecords(records, hasInk: hasInk, added: added)
+        var byChar = OMap<[JSValue]>()
+        for r in sorted {
+            let c = WorkMembers.charOf(r)
+            if var list = byChar[c] { list.append(r); byChar[c] = list } else { byChar[c] = [r] }
+        }
+        var rows = byChar.entries
+        let orderKind = order == nil ? "first" : (JSX.eq(order, "last") ? "last" : "first")
+        if orderKind == "last" {
+            rows = JSX.stableSort(rows) { Records.compareRecordIds($0.value[$0.value.count - 1]["id"], $1.value[$1.value.count - 1]["id"]) }
+        }
+        let picker: InkPick.HasInk?
+        switch pickInk {
+        case .sameAsHasInk: picker = hasInk
+        case .none: picker = nil
+        case .test(let f): picker = f
+        }
+        let preferV: JSValue = JSX.eq(prefer ?? .string("last"), "first") ? .string("first") : .string("last")
+        return rows.map { row in
+            let record = InkPick.pickRecordInPeriod(row.value, prefer: preferV, hasInk: picker).record!
+            return WorkMembers.Member(char: row.key, cardKey: record["cardKey"], record: record, firstDay: row.value[0]["localDay"].flatMap { JSX.truthy($0) ? $0 : nil } ?? .null,
+                                      dot: WorkMembers.isWrongMember(record))
+        }
+    }
+
     // ---- Views/Mine.swift ----
 
     static func works(_ index: V.RecordIndex) -> [JSValue] {
@@ -472,10 +504,10 @@ enum ViewRef {
             let work = Records.foldWorkByDay(fold); var firstDay = JSObject()
             for day in work.keys.sorted() { for c in work[day]?.arrayValue ?? [] where firstDay[JS.string(c)] == nil { firstDay[JS.string(c)] = .string(day) } }
             raw = firstDay.entries.map { c, day in
-                let m = WorkMembers.workMembers(records.filter { $0["char"] == .string(c) }, prefer: .string(pick), hasInk: has).first
+                let m = workMembers(records.filter { $0["char"] == .string(c) }, prefer: .string(pick), hasInk: has).first
                 return V.obj([("char", .string(c)), ("day", day), ("record", m?.record ?? .null), ("dot", .bool(m?.dot ?? false))])
             }
-        } else { raw = WorkMembers.workMembers(records, prefer: .string(pick), order: .string("first"), hasInk: has).map { m in V.obj([("char", .string(m.char)), ("day", m.firstDay), ("record", m.record), ("dot", .bool(m.dot))]) } }
+        } else { raw = workMembers(records, prefer: .string(pick), order: .string("first"), hasInk: has).map { m in V.obj([("char", .string(m.char)), ("day", m.firstDay), ("record", m.record), ("dot", .bool(m.dot))]) } }
         let cells = V.retagRecordCells(raw)
         return V.obj([("month", .string(month)), ("cells", .array(cells)), ("days", .number(Double(days))), ("chars", .number(Double(cells.count))), ("folded", .bool(fold != nil)), ("pick", .string(pick))])
     }
@@ -484,11 +516,11 @@ enum ViewRef {
         let records = works(index).filter { $0["localDay"] == .string(day) }, has: InkPick.HasInk = hasInk ?? { InkPick.storedInkPresent(V.obj([("ink", index.ink)]), $0, timeZone: index.dates.timeZone) }
         if let fold = index.folded[String(day.prefix(7))] {
             return (Records.foldWorkByDay(fold, order: "last")[day]?.arrayValue ?? []).map { c in
-                let m = WorkMembers.workMembers(records.filter { $0["char"] == c }, prefer: .string("last"), hasInk: has).first
+                let m = workMembers(records.filter { $0["char"] == c }, prefer: .string("last"), hasInk: has).first
                 return V.obj([("char", c), ("record", m?.record ?? .null), ("dot", .bool(m?.dot ?? false))])
             }
         }
-        return WorkMembers.workMembers(records, prefer: .string("last"), order: .string("last"), hasInk: has).map { V.obj([("char", .string($0.char)), ("record", $0.record), ("dot", .bool($0.dot))]) }
+        return workMembers(records, prefer: .string("last"), order: .string("last"), hasInk: has).map { V.obj([("char", .string($0.char)), ("record", $0.record), ("dot", .bool($0.dot))]) }
     }
     static func overviewModel(_ state: JSValue, today: String, index: V.RecordIndex) throws -> JSValue {
         let days = KeySet(V.practiceDaySet(state, index: index).items.filter { $0 <= today })
@@ -619,6 +651,42 @@ enum ViewRef {
 
     typealias S = ImageSelection
 
+    static func dayMembers(
+        _ state: JSValue, day: String, hasInk: InkPick.HasInk? = nil, added: [String]? = nil,
+        dates: Dates
+    ) throws -> JSValue {
+        guard dates.isValidDay(.string(day)) else { throw CoreError.badArgs("INVALID_DAY") }
+        let has: InkPick.HasInk =
+            hasInk ?? { InkPick.storedInkPresent(state, $0, timeZone: dates.timeZone) }
+        let inDay = workMemberRecords(
+            S.flattenRecords(state["records"]), hasInk: has, added: .init(added)
+        ).filter { S.str($0["localDay"]) == day }
+        let pick: WorkMembers.PickInk = hasInk.map { .test($0) } ?? .none
+        var members: [JSValue]
+        if let fold = S.folded(state, String(day.prefix(7))) {
+            members = (Records.foldWorkByDay(fold)[day]?.arrayValue ?? []).map { ch in
+                let list = inDay.filter { S.char($0) == S.str(ch) }
+                if let m = workMembers(
+                    list, prefer: .string("last"), hasInk: has, pickInk: pick, added: .init(added)
+                ).first {
+                    var o = m.js.objectValue!
+                    o["firstDay"] = .string(day)
+                    return .object(o)
+                }
+                return S.obj([
+                    ("char", ch), ("cardKey", .string("base:" + S.str(ch))), ("record", .null),
+                    ("firstDay", .string(day)), ("dot", .bool(false)),
+                ])
+            }
+        } else {
+            members = workMembers(
+                inDay, prefer: .string("last"), order: .string("first"), hasInk: has, pickInk: pick,
+                added: .init(added)
+            ).map(\.js)
+        }
+        return S.obj([("members", .array(members)), ("day", .string(day))])
+    }
+
     static func monthMembers(
         _ state: JSValue, month: String, pick: String = "first", hasInk: InkPick.HasInk? = nil,
         added: [String]? = nil, dates: Dates
@@ -626,7 +694,7 @@ enum ViewRef {
         guard dates.isValidMonth(.string(month)) else { throw CoreError.badArgs("INVALID_MONTH") }
         let has: InkPick.HasInk =
             hasInk ?? { InkPick.storedInkPresent(state, $0, timeZone: dates.timeZone) }
-        let records = WorkMembers.workMemberRecords(
+        let records = workMemberRecords(
             S.flattenRecords(state["records"]), hasInk: has, added: .init(added)
         ).filter { S.str($0["localDay"]).hasPrefix(month + "-") }
         let picker: WorkMembers.PickInk = hasInk.map { .test($0) } ?? .none
@@ -642,7 +710,7 @@ enum ViewRef {
                     if seen.contains(ch) { continue }
                     seen.append(ch)
                     let list = records.filter { S.char($0) == S.str(ch) }
-                    let m = WorkMembers.workMembers(
+                    let m = workMembers(
                         list, prefer: prefer, hasInk: has, pickInk: picker, added: .init(added)
                     ).first
                     members.append(
@@ -659,7 +727,7 @@ enum ViewRef {
                 if !days.contains(d) { days.append(d) }
             }
             days.sort()
-            members = WorkMembers.workMembers(
+            members = workMembers(
                 records, prefer: prefer, order: .string("first"), hasInk: has, pickInk: picker,
                 added: .init(added)
             ).map(\.js)
@@ -717,7 +785,7 @@ enum ViewRef {
             day = scope["day"] ?? .null
             key = day
             members =
-                try S.dayMembers(state, day: S.str(day), hasInk: has, dates: dates)["members"]?.arrayValue ?? []
+                try dayMembers(state, day: S.str(day), hasInk: has, dates: dates)["members"]?.arrayValue ?? []
             for m in members {
                 if let c = S.cellOfMember(m, inkOf: inkOf) {
                     cells.append(c)

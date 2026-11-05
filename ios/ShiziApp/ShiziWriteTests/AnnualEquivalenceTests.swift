@@ -203,8 +203,16 @@ final class AnnualInkDecodeTests: XCTestCase {
         checkEngine([[[pt(1, 2, 3)]], [[pt(1, 2, 3)]], [[pt(1, 2, 3)]], [[pt(1, 2, .nan)]]], "NaN w in a cell: undecodable as before")
         checkEngine([[[pt(1, 2, 3, t: .infinity)]]], "infinite t: undecodable as before")
         checkEngine([[[InkPoint(x: 1, y: 2, t: 0, w: 3, order: InkPoint.orderXYTP)]], [[pt(1, 2, 3)]], [[pt(1, 2, 3)]]], "w the legacy shape does not write")
-        checkEngine([[specials.map { pt($0, -$0, $0) }, specials.map { pt(-$0, $0) }], [[pt(1, 2, 3)]], [[pt(1, 2, 3)]]], "specials")
-        checkEngine([[(0..<6000).map { pt(Double($0) / 7, Double($0 % 345), 9 + Double($0 % 5), t: Double($0) * 8) }], [[pt(1, 2, 3)]], [[pt(1, 2, 3)]]], "a huge stroke")
+        let specialsA: [InkPoint] = specials.map { (v: Double) -> InkPoint in pt(v, -v, v) }
+        let specialsB: [InkPoint] = specials.map { (v: Double) -> InkPoint in pt(-v, v) }
+        let one: [[InkPoint]] = [[pt(1, 2, 3)]]
+        checkEngine([[specialsA, specialsB], one, one], "specials")
+        let huge: [InkPoint] = (0..<6000).map { (i: Int) -> InkPoint in
+            let d = Double(i)
+            let w: Double = 9 + Double(i % 5)
+            return pt(d / 7, Double(i % 345), w, t: d * 8)
+        }
+        checkEngine([[huge], one, one], "a huge stroke")
         for round in 0..<150 {
             let badRate: UInt64 = round % 3 == 0 ? 0 : 1 + rng.next() % 400
             let records: [[[InkPoint]]] = (0..<Int(rng.next() % 9)).map { _ in (0..<Int(rng.next() % 4)).map { _ in stroke(badRate) } }

@@ -71,13 +71,16 @@ public enum DetailView {
     }
     static func changeable(_ r: JSValue) -> Bool { Records.isJudged(r) && !JS.truthy(r["legacy"]) && !Records.isPaperRecord(r) }
     public static func detailView(_ state: JSValue, char: String, today: String, etymology: JSValue?, imageAction: Bool, dates: Dates) throws -> JSValue {
-        // hasInk 只问 inkLatest，它随后又是首图那一格：记住最近算过的一格，同一条记录不再解第二次（cellInk 只取决于记录的值与 state）
-        var memo: (record: JSValue, ink: (has: Bool, strokes: JSValue))?
+        // hasInk 只问 inkLatest（screen.last），它随后又是首图里「最近」那一格（只有一格时是「第一次」那格）：把它的结果单独留着，
+        // 首图其余格与下面的各格照常现算（各格已去掉首图的 id，不会再遇到同一条）。cellInk 只取决于记录的值与 state，同值的记录结果相同。
+        var latestInk: (record: JSValue, ink: (has: Bool, strokes: JSValue))?
         func wire(_ r: JSValue) throws -> (has: Bool, strokes: JSValue) {
-            if let hit = memo, hit.record == r { return hit.ink }
-            let w = try cellInk(state, r, dates: dates); memo = (record: r, ink: w); return w
+            if let hit = latestInk, hit.record == r { return hit.ink }
+            return try cellInk(state, r, dates: dates)
         }
-        let m = try detailModel(state, char: char, today: today, policy: Config.policy, hasInk: { try wire($0).has }, dates: dates), hero = detailHero(m)
+        let m = try detailModel(state, char: char, today: today, policy: Config.policy, hasInk: { r in
+            let w = try cellInk(state, r, dates: dates); latestInk = (record: r, ink: w); return w.has
+        }, dates: dates), hero = detailHero(m)
         let heroCells = try hero["cells"]!.arrayValue!.map { c -> JSValue in
             let r = c["record"]!, (has, strokes) = try wire(r), title = cellCopy(r, dates: dates)["title"]!, label = V.ref(c["kind"] == .string("first") ? "X-DETAIL.heroFirst" : "X-DETAIL.heroLatest")
             return V.obj([("kind", c["kind"]!), ("title", title), ("changeable", .bool(changeable(r))), ("recordId", r["id"]!), ("judgment", r["judgment"]!), ("wrong", .bool(r["judgment"] == .string("wrong"))), ("hasInk", .bool(has)), ("strokes", strokes), ("caption", V.ref("X-DETAIL.heroCaption", V.obj([("label", label), ("date", LibraryListView.dateText(r["localDay"], dates: dates))]))), ("aria", V.ref("X-DETAIL.heroCellLabel", V.obj([("label", label), ("text", has ? title : V.ref("X-DETAIL.cellNoInkLabel", V.obj([("text", title)])))])))])

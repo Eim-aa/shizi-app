@@ -469,10 +469,15 @@ final class LibraryAllScreen: ShiziScreenViewController {
     }
 
     // MARK: 动作
+    /// 输入法闸门（与查询页 Query.editingChanged 同）：拼音还在组字（markedTextRange 不为空）时还不是要找的字，不重拉；
+    /// 选定 / 取消组字时会再来一次 editingChanged，那时按定下的文字找。文字没变也不重拉。
     @objc private func findChanged() {
+        let text = findInput.text ?? ""
+        findPlaceholder.isHidden = !text.isEmpty
+        guard findInput.markedTextRange == nil else { return }
+        guard text != find else { return }
         markStateChange()
-        find = findInput.text ?? ""
-        findPlaceholder.isHidden = !(findInput.text ?? "").isEmpty
+        find = text
         reload()
     }
 

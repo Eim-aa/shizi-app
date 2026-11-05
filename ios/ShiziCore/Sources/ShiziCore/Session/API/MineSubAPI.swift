@@ -2,8 +2,9 @@ import Foundation
 
 extension PageAPI {
     static func mineSub(_ op: String, _ store: Store, _ a: JSObject) throws -> JSValue {
+        // 按需取墨迹：不用 today / 索引，先答（不为它算本地日）
+        if op == "view.annual.ink" { return annualInk(.object(store.state), a) }
         let today = try store.dates.localDay(.number(store.now())), state = JSValue.object(store.state)
-        if op == "view.annual.ink" { return annualInk(state, a) }
         let view: JSValue
         if op == "view.records" {
             var args = JSObject(); for key in ["month", "day"] { if let v = a[key]?.stringValue, !v.isEmpty { args[key] = .string(v) } }
@@ -45,7 +46,9 @@ extension PageAPI {
 ///
 /// 一格里只要有一个点不是 faithful（x / y / t / p / w 有不是有限数的：存储校验只要求整数，过大的 v2 坐标在 Catmull-Rom 里会溢出成 ±∞ / NaN；
 /// 或 InkPoint.js 会漏掉 x / y / w：键序 order 里没有它），这一格整格照旧发（每点一个 InkPoint.js），
-/// App 解这份 view 的结果与以前相同（以前这样的 view 解不了，现在也一样）。
+/// 整份回包（不带 lazyInk）时，App 解这份 view 的结果与以前相同（以前这样的 view 解不了，现在也一样）。
+/// 带 lazyInk 时月段的格不在 view 里：view 照常解得出来，这样的一格由 view.annual.ink 单独取回，App 解不了它（AnnualInkDecode.strokes）
+/// 就只这一格不画（墨视图在、没有点）；今年首字 / 卷尾两格仍在 view 里，同整份回包（解不了则整份解不了）。
 public enum AnnualInkWire {
     /// 一格的回放点（resampleForReplay 之后）→ ink.points。legacy = 旧形状（只给测试 / 量测对照）。
     public static func points(_ resampled: [[InkPoint]], legacy: Bool = false) -> JSValue {

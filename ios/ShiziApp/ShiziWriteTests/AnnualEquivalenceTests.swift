@@ -524,9 +524,10 @@ final class AnnualVirtualCellsTests: XCTestCase {
                 let bs = AnnualVirtual.buttons(vc)
                 XCTAssertEqual(bs.count, grid.months.count, "n=\(n)")
                 for (mi, box) in grid.months.enumerated() where mi < bs.count {
-                    XCTAssertEqual(bs[mi].frame, box.frame, "n=\(n) month \(mi)")
-                    XCTAssertEqual(bs[mi].label.frame, box.nameFrame, "n=\(n) month \(mi) name")
-                    XCTAssertEqual(bs[mi].valueLabel.frame, box.countFrame, "n=\(n) month \(mi) count")
+                    // 视图读回的框 vs 模型（设它时用的就是这个框）：原点按末位容差、尺寸逐位（见 assertFrame：frame 经 position / bounds 存取）
+                    assertFrame(bs[mi].frame, box.frame, "n=\(n) month \(mi)")
+                    assertFrame(bs[mi].label.frame, box.nameFrame, "n=\(n) month \(mi) name")
+                    assertFrame(bs[mi].valueLabel.frame, box.countFrame, "n=\(n) month \(mi) count")
                     XCTAssertEqual(bs[mi].label.frame.width, ceil(ShiziMineText.width(bs[mi].label.text ?? "", font: NativeType.song(size: vc.metrics.value("fs22"), weight: .medium))),
                                    "n=\(n) month \(mi): name width = the label's own text")
                 }
@@ -540,7 +541,7 @@ final class AnnualVirtualCellsTests: XCTestCase {
                     let rows = Int(ceil(Double(box.cellCount) / Double(cols)))
                     let gridTop = b.bounds.height - 28 - CGFloat(rows) * side
                     let r = s.cell.frame
-                    XCTAssertEqual(r, grid.cells[i], "n=\(n) cell \(i)")
+                    assertFrame(r, grid.cells[i], "n=\(n) cell \(i)")
                     XCTAssertEqual(r.minX, CGFloat(j % cols) * side, accuracy: 1e-9, "n=\(n) cell \(i) x")
                     XCTAssertEqual(r.minY, gridTop + CGFloat(j / cols) * side, accuracy: 1e-6, "n=\(n) cell \(i) y")
                     XCTAssertEqual(r.width, side)
@@ -549,7 +550,8 @@ final class AnnualVirtualCellsTests: XCTestCase {
                     XCTAssertEqual(inC.minY, grid.cellsInContent[i].minY, accuracy: 1e-6, "n=\(n) cell \(i) content y")
                     XCTAssertEqual(inC.minX, grid.cellsInContent[i].minX, accuracy: 1e-6, "n=\(n) cell \(i) content x")
                     XCTAssertEqual(s.ink.frame, s.cell.bounds)
-                    XCTAssertEqual(s.glyph.frame, s.cell.bounds.insetBy(dx: side * 0.09, dy: side * 0.09))
+                    // 同上：读回的衬底字框 vs 设它时的式子（原点 side × 0.09 经 position 存取）
+                    assertFrame(s.glyph.frame, s.cell.bounds.insetBy(dx: side * 0.09, dy: side * 0.09), "n=\(n) cell \(i) glyph")
                     XCTAssertEqual(s.glyph.char, grid.cellData[i].ch, "n=\(n) cell \(i): the char of this cell")
                 }
                 XCTAssertEqual(AnnualVirtual.hierarchyProblems(vc), [], "n=\(n)")

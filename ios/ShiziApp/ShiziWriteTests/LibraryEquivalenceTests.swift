@@ -17,6 +17,26 @@ func libraryColorKey(_ c: UIColor?) -> String {
     return space + ":" + (cg.components ?? []).map { String(Double($0).bitPattern, radix: 16) }.joined(separator: ",")
 }
 
+/// 视图上读回来的框（UIView.frame）与设它时用的框 / 独立再算一遍的框：原点差在 accuracy（绝对）以内，尺寸逐位相同。
+/// 为什么原点不能逐位比：设 frame 时 UIKit / CALayer 存的是 position = 原点 + 尺寸 × anchorPoint（0.5）与 bounds.size，
+/// 读 frame 时再算 position − 尺寸 × 0.5；position 的量级比原点大，原点在这一来一回里会差末一两位
+/// （CI 上见过 14.333333333333334 → 14.333333333333336、1.7650000000000001 → 1.7650000000000006）。尺寸原样存、原样读，仍逐位比。
+/// 独立再算一遍的框（测试自己从别的视图量回来的数再按式子算，如 marker.bounds.width / 8 × 0.92）本来就只在末位以内相同：
+/// exactSize = false，尺寸也按 accuracy 比。
+/// 两份都是模型（只算数、不经视图，如两页的 grid / wall）照旧逐位比（XCTAssertEqual）。
+func assertFrame(_ view: CGRect, _ want: CGRect, accuracy: CGFloat = 1e-9, exactSize: Bool = true, _ message: String = "",
+                 file: StaticString = #filePath, line: UInt = #line) {
+    XCTAssertEqual(view.minX, want.minX, accuracy: accuracy, "x: \(view) vs \(want) \(message)", file: file, line: line)
+    XCTAssertEqual(view.minY, want.minY, accuracy: accuracy, "y: \(view) vs \(want) \(message)", file: file, line: line)
+    if exactSize {
+        XCTAssertEqual(view.width, want.width, "width: \(view) vs \(want) \(message)", file: file, line: line)
+        XCTAssertEqual(view.height, want.height, "height: \(view) vs \(want) \(message)", file: file, line: line)
+    } else {
+        XCTAssertEqual(view.width, want.width, accuracy: accuracy, "width: \(view) vs \(want) \(message)", file: file, line: line)
+        XCTAssertEqual(view.height, want.height, accuracy: accuracy, "height: \(view) vs \(want) \(message)", file: file, line: line)
+    }
+}
+
 @MainActor
 final class LibraryTokenColorCacheTests: XCTestCase {
     /// 每个颜色令牌（两套主题的并集 + 一个不存在的名字）：缓存给的动态色在浅 / 深下解析出的颜色 = 现解析令牌原文；
@@ -834,11 +854,12 @@ final class LibraryVirtualCellsTests: XCTestCase {
                 XCTAssertEqual(gvs.count, wall.groups.count, "n=\(n)")
                 for (gi, box) in wall.groups.enumerated() where gi < gvs.count {
                     let gv = gvs[gi]
-                    XCTAssertEqual(gv.frame, box.frame, "n=\(n) group \(gi)")
-                    XCTAssertEqual(gv.cellsMarker.frame, CGRect(x: 0, y: box.gridTop, width: box.frame.width, height: box.gridH), "n=\(n) group \(gi) grid")
+                    // 视图读回的框 vs 模型：原点按末位容差、尺寸逐位（见 assertFrame）
+                    assertFrame(gv.frame, box.frame, "n=\(n) group \(gi)")
+                    assertFrame(gv.cellsMarker.frame, CGRect(x: 0, y: box.gridTop, width: box.frame.width, height: box.gridH), "n=\(n) group \(gi) grid")
                     XCTAssertEqual(gv.headButton.frame.height, box.headH)
-                    XCTAssertEqual(gv.nameLabel.frame, box.nameFrame)
-                    XCTAssertEqual(gv.countLabel.frame, box.countFrame)
+                    assertFrame(gv.nameLabel.frame, box.nameFrame, "n=\(n) group \(gi) name")
+                    assertFrame(gv.countLabel.frame, box.countFrame, "n=\(n) group \(gi) count")
                 }
                 for i in vc.cells.liveIndices {
                     guard let s = vc.cells.slot(at: i) else { XCTFail("n=\(n) \(i): no slot"); continue }
@@ -847,7 +868,7 @@ final class LibraryVirtualCellsTests: XCTestCase {
                     let rows = Int(ceil(Double(box.cellCount) / 8))
                     let cw = marker.bounds.width / 8, ch = marker.bounds.height / CGFloat(rows)
                     let r = s.button.frame
-                    XCTAssertEqual(r, wall.cells[i], "n=\(n) cell \(i)")
+                    assertFrame(r, wall.cells[i], "n=\(n) cell \(i)")
                     XCTAssertEqual(r.minX, CGFloat(ci % 8) * cw, accuracy: 1e-9, "n=\(n) cell \(i) x")
                     XCTAssertEqual(r.minY, CGFloat(ci / 8) * ch, accuracy: 1e-6, "n=\(n) cell \(i) y")
                     XCTAssertEqual(r.width, cw, accuracy: 1e-9)
@@ -856,7 +877,8 @@ final class LibraryVirtualCellsTests: XCTestCase {
                     let model = wall.cellsInContent[i]
                     XCTAssertEqual(inC.minY, model.minY, accuracy: 1e-6, "n=\(n) cell \(i) content y")
                     XCTAssertEqual(inC.minX, model.minX, accuracy: 1e-6, "n=\(n) cell \(i) content x")
-                    XCTAssertEqual(s.ink.frame, CGRect(x: r.minX + cw * 0.04, y: r.minY + cw * 0.04, width: cw * 0.92, height: cw * 0.92))
+                    // 独立再算一遍（cw 从格网量回来、原点从读回的按钮框起算）：原点与尺寸都按末位容差
+                    assertFrame(s.ink.frame, CGRect(x: r.minX + cw * 0.04, y: r.minY + cw * 0.04, width: cw * 0.92, height: cw * 0.92), exactSize: false, "n=\(n) cell \(i) ink")
                 }
                 XCTAssertEqual(LibraryVirtual.hierarchyProblems(vc), [], "n=\(n)")
             }

@@ -228,7 +228,7 @@ final class ScaleBenchmarkTests: XCTestCase {
         let policy = Config.policy, rules = ScheduleRules(dates: shanghai), deck = ScheduleDeck.real
         let today = try shanghai.localDay(.number(B.benchNow))
         let recs = Query.flattenRecords(st["records"])
-        XCTAssertEqual(recs.count, shape.records)
+        XCTAssertEqual(recs.count, recordCount) // 折叠过的月只剩 kept，少于 shape.records（上面已断言过折叠确实丢了记录）
 
         report("flatten", name, scale, info, sample(warm: 1, n: scale.reads) { sink &+= Query.flattenRecords(st["records"]).count })
         report("practiceStats", name, scale, info, try sample(warm: 1, n: scale.reads) {
@@ -318,11 +318,17 @@ final class ScaleBenchmarkTests: XCTestCase {
         try run("sqlite", scale, state) { SQLiteTransport.backend(fileURL: url) }
     }
 
+    /// 3x / 10x 只在 CI 手动的 Release 量测步骤里跑（它设 SHIZI_SCALE_BENCH=1）：verify:core 是 Debug、不带过滤，
+    /// 每次都跑 6 万条记录的播种与逐次 fsync 会白白多出好几分钟。1x 照常每次跑（守住量测本身能跑通）。
+    private func requireScaleBench() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["SHIZI_SCALE_BENCH"] == "1", "3x / 10x scale benches run only with SHIZI_SCALE_BENCH=1 (CI release-bench step)")
+    }
+
     func testScale1x() throws { try runFakeAndSQLite(Self.scale1x()) }
-    func testScale3x() throws { try runFakeAndSQLite(Self.scale3x()) }
-    /// 10x 只跑 fake（内存替身）：sqlite 上 6 万条记录 + 5000 条墨迹的播种与每次提交的 fsync 在 Debug 里太慢。
-    func testScale10x() throws { try runFake(Self.scale10x()) }
+    func testScale3x() throws { try requireScaleBench(); try runFakeAndSQLite(Self.scale3x()) }
+    /// 10x 只跑 fake（内存替身）：sqlite 上 6 万条记录 + 5000 条墨迹的播种与每次提交的 fsync 太慢。
+    func testScale10x() throws { try requireScaleBench(); try runFake(Self.scale10x()) }
     /// 真实预算版只跑 fake。
-    func testScale3xFolded() throws { try runFake(Self.scale3xFolded()) }
-    func testScale10xFolded() throws { try runFake(Self.scale10xFolded()) }
+    func testScale3xFolded() throws { try requireScaleBench(); try runFake(Self.scale3xFolded()) }
+    func testScale10xFolded() throws { try requireScaleBench(); try runFake(Self.scale10xFolded()) }
 }

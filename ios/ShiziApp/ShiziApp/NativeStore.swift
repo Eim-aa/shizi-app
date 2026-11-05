@@ -699,3 +699,42 @@ final class NativeStore {
         return String(decoding: UnsafeBufferPointer(start: ptr, count: count), as: UTF8.self)
     }
 }
+
+// MARK: - 设备剩余空间（原生的存储压力口径，P57）
+
+/// App 容器所在卷的剩余空间（`volumeAvailableCapacityForImportantUsage`：用户主动产生的重要数据可用的空间，含系统可清掉的可清除空间），
+/// 交给 ShiziCore Store.deviceAvailableBytes：「我的 › 备份」行的「快存满了」按它判（< 500MiB warn、< 100MiB full），
+/// 不再按估算总量 / 64MiB 的网页时代假上限。量不到（读失败、读数 ≤ 0）= nil = 没有压力；真的写满由 SQLITE_FULL（E_FULL）兜底。
+/// 读数缓存 maxAge 秒：Store 每次提交发布后都要问一次，卷容量的查询不便宜（可清除空间要系统去算）；回到前台时 invalidate。
+final class DeviceFreeSpace {
+    let url: URL
+    let maxAge: TimeInterval
+    /// 单调时钟（秒）；测试替换。
+    var clock: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+    /// 一次真读；测试替换。
+    var read: (URL) -> Double? = { DeviceFreeSpace.volumeAvailableBytes($0) }
+    private var cached: (at: TimeInterval, bytes: Double?)?
+
+    init(url: URL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true), maxAge: TimeInterval = 60) {
+        self.url = url
+        self.maxAge = maxAge
+    }
+
+    /// 剩余字节（缓存未过期就用缓存）。
+    func bytes() -> Double? {
+        let t = clock()
+        if let c = cached, t - c.at >= 0, t - c.at < maxAge { return c.bytes }
+        let b = read(url)
+        cached = (at: t, bytes: b)
+        return b
+    }
+
+    /// 下次 bytes() 重新读（回到前台：用户可能在别处清了空间）。
+    func invalidate() { cached = nil }
+
+    static func volumeAvailableBytes(_ url: URL) -> Double? {
+        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
+              let n = values.volumeAvailableCapacityForImportantUsage, n > 0 else { return nil }
+        return Double(n)
+    }
+}

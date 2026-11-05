@@ -27,6 +27,8 @@ final class SwiftEngine: ShiziEngine {
     /// 冷启动的 route.plan 答过了（之前引擎状态 reloading：启动首帧的主按钮就绪前不可点）。
     private(set) var planned = false
     private var lastStatus: ShiziEngineStatus = .reloading
+    /// 设备剩余空间（P57：原生的「快存满了」按它判，不按估算总量 / 64MiB；NativeStore.swift）。
+    private let freeSpace = DeviceFreeSpace()
     /// B3.F：导航 op（nav.push / replace / back / tab / setParams）不进引擎——原生持有页面栈，由导航者（NativeStage）直接做。
     var navigator: ((String, [String: Any]) -> [String: Any])?
     #if DEBUG
@@ -56,6 +58,16 @@ final class SwiftEngine: ShiziEngine {
             core.store.storage.probeOverride = (false, "security")
         }
         #endif
+        #if DEBUG
+        // 测试宿主（XCUITest / 逐屏取证）不接设备读数：截图与断言不随 CI 机器的剩余空间变；要看「快存满了」用夹具 setUsage
+        let deviceReading = !RootViewController.nativeTestHostEnabled
+        #else
+        let deviceReading = true
+        #endif
+        if deviceReading {
+            let space = freeSpace
+            core.store.deviceAvailableBytes = { space.bytes() }
+        }
         core.load()
         _ = core.store.subscribe { [weak self] _, info in self?.storeChanged(info) }
         feedOff = core.changeFeed { [weak self] packet in self?.emit(packet) }
@@ -447,7 +459,12 @@ final class SwiftEngine: ShiziEngine {
         refreshReminder()
     }
 
-    @objc private func willEnterForeground() { if planned { refreshReminder() } }
+    @objc private func willEnterForeground() {
+        // 在别处清了空间 / 又装了东西：剩余空间重新读，「我的 › 备份」行下次打开就按新读数
+        freeSpace.invalidate()
+        if core.store.deviceAvailableBytes != nil { core.store.refreshUsage() }
+        if planned { refreshReminder() }
+    }
 
     private func refreshReminder() {
         guard Reminder.remindOf(core.store.state["settings"])["enabled"] == .bool(true) else { return }

@@ -20,18 +20,47 @@ import XCTest
 ///   BENCH annual scroll <ink|glyph>[-all] n=… steps=… step=…pt median=…ms max=…ms live=<建出来的格子数> layers=… backing≈…MB
 ///     从顶滚到底，每步半屏（contentOffset → 滚动回调建 / 收格子、墨判要不要画 → layoutIfNeeded → flush：新进来的格子的配置与画墨都在这一步里）
 /// 合成回包：形状同 ShiziCore MineSubView.annualView(inkWire:)（每月一段、每段的格、今年首字、卷尾两格；ink.points 由 AnnualInkWire 拼），经 EngineValue.any 过边界，同引擎真发的；
-/// 每格墨迹 8 笔 × 62 点（≈ resampleForReplay 之后的一字；每点 x / y / t / w，键序同 InkPoint.js），字取包里有字形数据的字，分 12 个月。
+/// 每格墨迹（每点 x / y / t / w，键序同 InkPoint.js）：默认轻的 3 笔 × 8 点，每 50 格（种子 % 50 == 0：第 0 格、今年首字、卷尾第一格等）一格重的
+/// 8 笔 × 62 点（≈ resampleForReplay 之后的一字）；SHIZI_SCALE_BENCH 时每格都是重的（以前的形状）。字取包里有字形数据的字，分 12 个月。
+/// 为什么默认轻：CI 的 Debug 模拟器上一格重墨（≈ 1.1 万个三角形）填充要 ≈ 200ms，画几百格的用例就要几分钟；轻的一格 ≈ 550 个三角形（≈ 10ms）。
+/// 画面对照（eager / lazy、只建一部分 / 全部建出来）两边用的是同一份回包，重的那几格照样画、照样比。解码量测（view-decode / ink-wire）用 full: true（每格重的，不画）。
 @MainActor
 enum AnnualBench {
     static func ref(_ key: String, _ params: [(String, JSValue)] = []) -> JSValue {
         params.isEmpty ? .object(JSObject([("copy", .string(key))])) : .object(JSObject([("copy", .string(key)), ("params", .object(JSObject(params)))]))
     }
 
-    /// 一格的回放点（ShiziCore InkPoint，同 resampleForReplay 的输出：x / y / t / w，键序 x, y, t, p, w）。
-    static func inkPoints(_ seed: Int) -> [[InkPoint]] {
-        (0..<8).map { s in
-            (0..<62).map { j in
-                let u = Double(j) / 61
+    /// 每多少格一格重的墨迹（种子 % heavyEvery == 0）。
+    static let heavyEvery: Int = 50
+
+    /// 这一格是不是重的（8 笔 × 62 点）：full、SHIZI_SCALE_BENCH，或种子是 heavyEvery 的倍数。
+    static func isHeavy(_ seed: Int, full: Bool = false) -> Bool { full || AppScale.enabled || seed % heavyEvery == 0 }
+
+    /// 一格的笔数与每笔点数：重的 8 × 62，轻的 3 × 8。
+    static func shape(_ seed: Int, full: Bool = false) -> (strokes: Int, points: Int) {
+        isHeavy(seed, full: full) ? (strokes: 8, points: 62) : (strokes: 3, points: 8)
+    }
+
+    /// 一格的点数（= 笔数 × 每笔点数）。
+    static func pointCount(_ seed: Int, full: Bool = false) -> Int {
+        let sh = shape(seed, full: full)
+        return sh.strokes * sh.points
+    }
+
+    /// view(n, ink: true) 解出来的总点数：月段 n 格（种子 0..<n）+ 今年首字（种子 0）+ 卷尾两格（种子 0、n + 1）。
+    static func expectedPoints(_ n: Int, full: Bool = false) -> Int {
+        var total: Int = 2 * pointCount(0, full: full) + pointCount(n + 1, full: full)
+        for i in 0..<max(0, n) { total += pointCount(i, full: full) }
+        return total
+    }
+
+    /// 一格的回放点（ShiziCore InkPoint，同 resampleForReplay 的输出：x / y / t / w，键序 x, y, t, p, w）。形状见 shape（重的 = 以前每格的点列，逐位相同）。
+    static func inkPoints(_ seed: Int, full: Bool = false) -> [[InkPoint]] {
+        let sh = shape(seed, full: full)
+        let last: Double = Double(sh.points - 1)
+        return (0..<sh.strokes).map { (s: Int) -> [InkPoint] in
+            (0..<sh.points).map { (j: Int) -> InkPoint in
+                let u = Double(j) / last
                 let a = Double(seed % 17) * 0.37 + Double(s) * 0.8
                 let x = 40 + 230 * u * (0.5 + 0.5 * cos(a)) + Double(s) * 9
                 let y = 40 + 30 * Double(s) + 25 * sin(u * 3 + a)
@@ -42,10 +71,12 @@ enum AnnualBench {
     }
 
     /// 一格的 ink（{points}）：AnnualInkWire.points（legacy = 旧形状，每点一个 InkPoint.js 对象，同改动前的 DetailView.builtInk）。
-    static func box(_ seed: Int, legacy: Bool = false) -> JSValue { .object(JSObject([("points", AnnualInkWire.points(inkPoints(seed), legacy: legacy))])) }
+    static func box(_ seed: Int, legacy: Bool = false, full: Bool = false) -> JSValue {
+        .object(JSObject([("points", AnnualInkWire.points(inkPoints(seed, full: full), legacy: legacy))]))
+    }
 
     /// view.annual 的 view（JSValue，过边界之前）：n 格分 12 个月；ink = 每格都有墨迹，否则都画衬底字（今年首字与卷尾照样有墨迹）。
-    static func view(_ n: Int, ink: Bool, legacy: Bool = false) -> JSValue {
+    static func view(_ n: Int, ink: Bool, legacy: Bool = false, full: Bool = false) -> JSValue {
         let cs = LibraryBench.chars(max(n, 1))
         let per = max(1, (n + 11) / 12)
         var months: [JSValue] = []
@@ -55,7 +86,7 @@ enum AnnualBench {
             let month = String(format: "2026-%02d", months.count + 1)
             let cells: [JSValue] = (start..<end).map { i in
                 .object(JSObject([
-                    ("ch", .string(cs[i])), ("ink", ink ? box(i, legacy: legacy) : .null), ("mode", .string(ink ? "hand" : "under")), ("tag", .string("")), ("day", .string("")),
+                    ("ch", .string(cs[i])), ("ink", ink ? box(i, legacy: legacy, full: full) : .null), ("mode", .string(ink ? "hand" : "under")), ("tag", .string("")), ("day", .string("")),
                     ("recordId", .string("r\(i)")), ("recordDay", .string(month + "-01")),
                     ("label", ink ? ref("X-MINE.cellLabel", [("char", .string(cs[i])), ("date", .string(""))]) : ref("X-WORK.monthCellNoInk", [("char", .string(cs[i]))])),
                 ]))
@@ -70,10 +101,10 @@ enum AnnualBench {
         }
         func date(_ m: Double, _ d: Double) -> JSValue { ref("R-H02.dateFormat", [("month", .number(m)), ("day", .number(d))]) }
         func side(_ seed: Int, _ day: String, _ label: String) -> JSValue {
-            .object(JSObject([("recordId", .string("r\(seed)")), ("day", .string(day)), ("ink", box(seed, legacy: legacy)), ("label", ref(label, [("char", .string(cs[0]))])), ("date", date(1, 1))]))
+            .object(JSObject([("recordId", .string("r\(seed)")), ("day", .string(day)), ("ink", box(seed, legacy: legacy, full: full)), ("label", ref(label, [("char", .string(cs[0]))])), ("date", date(1, 1))]))
         }
         let first = JSValue.object(JSObject([
-            ("char", .string(cs[0])), ("day", .string("2026-01-01")), ("recordId", .string("r0")), ("ink", box(0, legacy: legacy)),
+            ("char", .string(cs[0])), ("day", .string("2026-01-01")), ("recordId", .string("r0")), ("ink", box(0, legacy: legacy, full: full)),
             ("label", ref("X-ANNUAL.firstInk", [("char", .string(cs[0]))])), ("date", ref("R-M06.inkDate", [("date", date(1, 1))])),
         ]))
         let twice = JSValue.object(JSObject([
@@ -90,7 +121,9 @@ enum AnnualBench {
     }
 
     /// view.annual 的回包（{ok, view}；view 经 EngineValue.any 过边界）。
-    static func payload(_ n: Int, ink: Bool, legacy: Bool = false) -> [String: Any] { ["ok": true, "view": EngineValue.any(view(n, ink: ink, legacy: legacy))] }
+    static func payload(_ n: Int, ink: Bool, legacy: Bool = false, full: Bool = false) -> [String: Any] {
+        ["ok": true, "view": EngineValue.any(view(n, ink: ink, legacy: legacy, full: full))]
+    }
 
     /// 年报从顶滚到底（每步半屏）：每步的耗时、滚到底时建出来的格子数与层的统计，打一行 BENCH。
     static func scrollRun(variant: String, n: Int, all: Bool, payload: [String: Any]) {
@@ -133,8 +166,9 @@ final class AnnualBenchTests: XCTestCase {
     func testAnnualViewDecodeCost() throws {
         let sizes: [Int] = AppScale.pick([300, 800], scale: [300, 1200])
         for n in sizes {
-            let raw = try XCTUnwrap(AnnualBench.payload(n, ink: true)["view"])
-            let old = try XCTUnwrap(AnnualBench.payload(n, ink: true, legacy: true)["view"])
+            // 每格都是重的（8 笔 × 62 点）：只解不画，量的仍是以前的形状
+            let raw = try XCTUnwrap(AnnualBench.payload(n, ink: true, full: true)["view"])
+            let old = try XCTUnwrap(AnnualBench.payload(n, ink: true, legacy: true, full: true)["view"])
             var times: [Double] = [], perPoint: [Double] = [], direct: [Double] = []
             var points = 0, perPointPoints = 0, directPoints = 0
             for _ in 0..<3 {
@@ -171,7 +205,7 @@ final class AnnualBenchTests: XCTestCase {
             for _ in 0..<3 {
                 try autoreleasepool {
                     let t0 = LibraryBench.now()
-                    let js = AnnualBench.view(n, ink: true, legacy: legacy)
+                    let js = AnnualBench.view(n, ink: true, legacy: legacy, full: true) // 每格重的：只解不画
                     let t1 = LibraryBench.now()
                     let any = EngineValue.any(js)
                     let t2 = LibraryBench.now()

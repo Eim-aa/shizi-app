@@ -220,16 +220,20 @@ final class AnnualInkDecodeTests: XCTestCase {
         }
     }
 
-    /// 量测的合成回包（每格 8 笔 × 62 点，点都有 w 与 t）：新路解平铺 = 原路解旧形状，且走直接读。
+    /// 量测的合成回包（轻的 3 笔 × 8 点与每 50 格一格重的 8 笔 × 62 点，点都有 w 与 t；另比一份每格都重的）：新路解平铺 = 原路解旧形状，且走直接读。
     func testBenchPayloadsMatch() throws {
-        for n in [0, 1, 37] {
-            let flat = try XCTUnwrap(AnnualBench.payload(n, ink: n > 0)["view"])
-            let legacy = try XCTUnwrap(AnnualBench.payload(n, ink: n > 0, legacy: true)["view"])
+        let cases: [(Int, Bool)] = [(0, false), (1, false), (37, false), (120, false), (37, true)]
+        for (n, full) in cases {
+            let flat = try XCTUnwrap(AnnualBench.payload(n, ink: n > 0, full: full)["view"])
+            let legacy = try XCTUnwrap(AnnualBench.payload(n, ink: n > 0, legacy: true, full: full)["view"])
             let got = try AnnualScreen.decodeView(flat), ref = try XCTUnwrap(Eq.old(legacy))
             XCTAssertEqual(Eq.fingerprint(got, tp: false), Eq.fingerprint(ref, tp: false), "n=\(n)")
             XCTAssertEqual(Eq.vertexBits(got), Eq.vertexBits(ref), "n=\(n)")
             XCTAssertNotNil(AnnualScreen.decodeViewDirect(flat), "n=\(n): direct path")
-            XCTAssertEqual(AnnualBench.points(got), (n + 3) * 8 * 62)
+            XCTAssertEqual(AnnualBench.points(got), AnnualBench.expectedPoints(n, full: full), "n=\(n) full=\(full)")
+            if full { XCTAssertEqual(AnnualBench.points(got), (n + 3) * 8 * 62) }
+            // 默认的轻重：n = 120 时重的是第 0 / 50 / 100 格、今年首字、卷尾第一格（种子 0），轻的是其余 117 格与卷尾第二格（种子 121）
+            if n == 120, !full, !AppScale.enabled { XCTAssertEqual(AnnualBench.points(got), 5 * 8 * 62 + 118 * 3 * 8, "light cells with a few heavy ones") }
         }
     }
 
@@ -324,7 +328,7 @@ enum AnnualVirtual {
         return vc
     }
 
-    /// 回包（AnnualBench.view：n 格分 12 个月）；mixed 时每 5 格有一格没有墨迹（画衬底字）、每 7 格有一格模式不是 hand（有墨也画衬底字）。
+    /// 回包（AnnualBench.view：n 格分 12 个月；墨迹默认轻的、每 50 格一格重的，见 AnnualBench.shape）；mixed 时每 5 格有一格没有墨迹（画衬底字）、每 7 格有一格模式不是 hand（有墨也画衬底字）。
     static func payload(_ n: Int, ink: Bool = true, mixed: Bool = true) -> [String: Any] {
         let p = AnnualBench.payload(n, ink: ink)
         guard mixed else { return p }
@@ -1418,7 +1422,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
     /// 取回的一格墨迹的解法 = 整份回包里这一格经 decodeView 解出来的（平铺 / 旧形状带 t / 混着、空笔、一个点；逐位，t / p 也比）。
     func testFetchedStrokesDecodeLikeTheFullView() throws {
         func pt(_ x: Double, _ y: Double, _ w: Double? = nil) -> InkPoint { InkPoint(x: x, y: y, t: 0, w: w) }
-        let cases: [[[InkPoint]]] = [AnnualBench.inkPoints(3), AnnualBench.inkPoints(11), [[pt(1, 2, 3)], [], [pt(4, 5), pt(6, 7)]], [[pt(-0.0, 0, 1)]], [[pt(1, 2, 3), pt(4, 5)]]]
+        let cases: [[[InkPoint]]] = [AnnualBench.inkPoints(3), AnnualBench.inkPoints(11, full: true), [[pt(1, 2, 3)], [], [pt(4, 5), pt(6, 7)]], [[pt(-0.0, 0, 1)]], [[pt(1, 2, 3), pt(4, 5)]]]
         for legacy in [false, true] {
             let boxes: [JSValue?] = cases.map { AnnualEq.box($0, legacy: legacy) }
             let full = EngineValue.any(AnnualEq.view(first: nil, twice: nil, cells: boxes))
@@ -1443,7 +1447,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         XCTAssertTrue(AnnualInkDecode.strokes(NSNull()).isEmpty)
         XCTAssertTrue(AnnualInkDecode.strokes("nope").isEmpty)
         XCTAssertTrue(AnnualInkDecode.strokes([[2, 1]] as [Any]).isEmpty, "a malformed flat stroke the original way cannot decode either → nothing drawn")
-        let decoded = AnnualInkDecode.decode(["a": EngineValue.any(AnnualInkWire.points(AnnualBench.inkPoints(1))), "b": NSNull()], keys: ["a", "b", "c"])
+        let decoded = AnnualInkDecode.decode(["a": EngineValue.any(AnnualInkWire.points(AnnualBench.inkPoints(1, full: true))), "b": NSNull()], keys: ["a", "b", "c"])
         XCTAssertEqual(decoded["a"]?.count, 8)
         XCTAssertEqual(decoded["b"]?.count, 0)
         XCTAssertEqual(decoded["c"]?.count, 0, "a key missing from the reply → nothing")

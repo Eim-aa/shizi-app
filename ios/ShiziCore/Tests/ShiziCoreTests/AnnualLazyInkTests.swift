@@ -411,10 +411,10 @@ extension AnnualLazyInkTests {
         XCTAssertEqual(lite["ok"], .bool(true), String(str(lite).prefix(300)))
         let liteView = lite["view"] ?? .null
         let keys = Self.inkKeys(liteView)
-        let open = Array(keys.prefix(Self.openKeys))
+        let openSet = Array(keys.prefix(Self.openKeys))
         var opened: JSObject?
         var all: JSObject?
-        let tOpen = Self.sampleUnlessSlow { opened = Self.fetchAll(open, { (k: [String]) -> JSValue in Self.fetch(store, k) }) }
+        let tOpen = Self.sampleUnlessSlow { opened = Self.fetchAll(openSet, { (k: [String]) -> JSValue in Self.fetch(store, k) }) }
         let tAll = Self.sampleUnlessSlow { all = Self.fetchAll(keys, { (k: [String]) -> JSValue in Self.fetch(store, k) }) }
         XCTAssertNotNil(opened)
         let merged = all.map { (ink: JSObject) -> String in str(Self.merge(liteView, ink)) }
@@ -422,7 +422,7 @@ extension AnnualLazyInkTests {
         let cells = (liteView["months"]?.arrayValue ?? []).reduce(0) { (n: Int, m: JSValue) -> Int in n + (m["cells"]?.arrayValue?.count ?? 0) }
         func batches(_ n: Int) -> Int { (n + AnnualInkWire.maxBatch - 1) / AnnualInkWire.maxBatch }
         let openBytes = str(.object(opened ?? JSObject())).utf8.count
-        print("BENCH annual-lazy scale=\(name) cells=\(cells) keys=\(keys.count) full=\(B.fmt(tFull))ms lite=\(B.fmt(tLite))ms open=\(B.fmt(tOpen))ms(\(open.count) keys, \(batches(open.count)) batches) all=\(B.fmt(tAll))ms(\(batches(keys.count)) batches) fullBytes=\(str(full).utf8.count) liteBytes=\(str(lite).utf8.count) openBytes=\(openBytes)")
+        print("BENCH annual-lazy scale=\(name) cells=\(cells) keys=\(keys.count) full=\(B.fmt(tFull))ms lite=\(B.fmt(tLite))ms open=\(B.fmt(tOpen))ms(\(openSet.count) keys, \(batches(openSet.count)) batches) all=\(B.fmt(tAll))ms(\(batches(keys.count)) batches) fullBytes=\(str(full).utf8.count) liteBytes=\(str(lite).utf8.count) openBytes=\(openBytes)")
     }
 
     func testBenchLazyAnnual1x() throws {

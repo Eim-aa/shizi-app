@@ -199,6 +199,48 @@ final class AnnualBenchTests: XCTestCase {
         }
     }
 
+    /// 打开年报（App 一侧）：整份回包（每格带墨迹，以前的做法）vs 带 lazyInk 的回包 + 按建出来的格子取墨迹（现在的做法）。
+    ///   BENCH annual open variant=<full|lazy> n=… payload=…ms（回包 view 从 JSValue 过边界：EngineValue.any，不含引擎侧拼回包——那一半见 ShiziCore 的 BENCH annual-lazy）
+    ///     first=…ms（新页面 apply + 排版 + 提交：画面出来，lazy 时月段的墨还空着）loaded=…ms（到建出来的格子的墨迹都到了、画好；full = first）
+    ///     requests=<view.annual.ink 次数> keys=<取的键数>
+    /// 墨迹表在内存里（假的 view.annual.ink 立刻回，回包同引擎发的形状：AnnualInkWire 平铺、经 EngineValue.any），量的是 App 收包、解、建格子、画的那部分。
+    func testAnnualOpenLazyVsFull() throws {
+        for n in [300, 1200, 3000] {
+            let fullJS = AnnualBench.view(n, ink: true)
+            // 带 lazyInk 的形状（hand 格 ink = null + inkKey）与墨迹表：引擎直接拼的就是这个形状，换的耗时不计
+            let (liteJS, inkJS) = AnnualLazy.splitJS(fullJS)
+            for lazy in [false, true] {
+                var payloads: [Double] = [], firsts: [Double] = [], loads: [Double] = []
+                var requests = 0, keys = 0
+                for _ in 0..<3 {
+                    autoreleasepool {
+                        let t0 = LibraryBench.now()
+                        let payload: [String: Any] = ["ok": true, "view": EngineValue.any(lazy ? liteJS : fullJS)]
+                        let t1 = LibraryBench.now()
+                        let fetcher = AnnualLazy.Fetcher([:])
+                        fetcher.jsTable = inkJS // 取的时候才过边界（EngineValue.any），同引擎回 view.annual.ink
+                        let vc = lazy ? AnnualLazy.make(fetcher) : AnnualScreen(screen: "annual", entryId: "bench", params: [:])
+                        let w = LibraryBench.host(vc)
+                        let t2 = LibraryBench.now()
+                        vc.apply(payload: payload)
+                        LibraryBench.settle(w)
+                        let t3 = LibraryBench.now()
+                        if lazy { XCTAssertTrue(AnnualLazy.waitInk(vc, w, timeout: 30), "n=\(n): ink arrives") }
+                        let t4 = LibraryBench.now()
+                        payloads.append(LibraryBench.ms(t0, t1))
+                        firsts.append(LibraryBench.ms(t2, t3))
+                        loads.append(LibraryBench.ms(t2, t4))
+                        requests = fetcher.calls.count
+                        keys = fetcher.keys.count
+                        LibraryBench.unhost(w)
+                    }
+                }
+                print(String(format: "BENCH annual open variant=\(lazy ? "lazy" : "full") n=%ld payload=%.1fms first=%.1fms loaded=%.1fms requests=%ld keys=%ld",
+                             n, LibraryBench.median(payloads), LibraryBench.median(firsts), LibraryBench.median(loads), requests, keys))
+            }
+        }
+    }
+
     /// 滚动的每一步要多久（新进来的格子在这一步里建 / 配 / 画；全部建出来时 = 以前每格一个 KVO 的做法之外的那部分）。
     func testAnnualScrollCost() throws {
         for n in [300, 1200, 3000] {

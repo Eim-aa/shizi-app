@@ -12,7 +12,7 @@ import UIKit
 // 文案与数据来自会话层（annualView → App API view.annual）；本页不写汉字与数值。
 
 @objc(ShiziScreen_annual)
-final class AnnualScreen: ShiziScreenViewController {
+final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     struct View: Decodable {
         struct Cell: Decodable {
             let ch: String
@@ -106,9 +106,14 @@ final class AnnualScreen: ShiziScreenViewController {
         let cell = UIView()
         let ink = ShiziPointsInkView()
         let glyph = NativeGlyphView()
+        /// 上次按哪一格（grid 的序号）、哪一次渲染的数据（gridGeneration）配的内容；都没变时重排只重摆框。
+        var index = -1
+        var generation = -1
 
         init() {
             cell.isAccessibilityElement = false
+            // 墨到了视口附近才画：由页面的滚动回调统一判（不是每格一个 contentOffset 的 KVO）
+            ink.watchesScroll = false
             cell.addSubview(ink)
             cell.addSubview(glyph)
         }
@@ -165,10 +170,28 @@ final class AnnualScreen: ShiziScreenViewController {
     private let firstInk = ShiziPointsInkView()
     private let firstGlyph = NativeGlyphView()
     private var monthButtons: [ShiziRowButton] = []
-    /// 每段格网里的格子（按段、段里按格的顺序）。
-    private var monthSlots: [[CellSlot]] = []
     /// 最近一次排版算出的全部段 / 格的框。
     private(set) var grid = MonthsLayout()
+    /// 第几次渲染（renderModel 一次加一）：格子的内容按渲染配，框按排版配。
+    private var renderGeneration = 0
+    /// 此刻的 grid（格子的数据与框）是按第几次渲染的模型排出来的：layoutBody 在 setItems 之前设成 renderGeneration。
+    /// 格子内容按它记（不按 renderGeneration）：渲染之后、排版之前建的格子用的还是旧 grid 的数据，不能记成新的一次渲染。
+    private var gridGeneration = -1
+    /// 可见框上下各多建几屏高（且至少几行格子）的格子。2.5 屏：冻结的逐屏基线里最深的月段格子
+    /// （annual-report AX5：格的上沿在内容里 1725.3pt，可视区 534.3pt）要在打开时就建出来（取证连屏外滚得到的墨格一起记），需要 > 2.23 屏
+    /// （2.5 屏 = 1335.8pt，余 144.8pt）；8 行：可视区很矮时也至少多建 8 行。
+    static let overscanViewports: CGFloat = 2.5
+    static let overscanRows: CGFloat = 8
+    /// 月段的格子：只建可见框 ± overscan 里的（ShiziLazyCells）。序号 = grid.cells 的序号。
+    private(set) lazy var cells = ShiziLazyCells<CellSlot>(
+        make: { _ in CellSlot() },
+        attach: { [unowned self] s, i, following in self.attachCell(s, i, following) },
+        detach: { s in s.cell.removeFromSuperview() },
+        configure: { [unowned self] s, i in self.configureCell(s, i) })
+    /// 墨色 / 衬底字色：浅 / 深两套解析出来都没变就一直用同一个对象（color(_:) 每次新建一个动态色；
+    /// 同一个对象 → 墨视图 / 衬底字不必重画）。
+    private var handColor: UIColor?
+    private var underColor: UIColor?
     private var twiceTitle = UILabel()
     private var twiceFirstCell = UIView()
     private var twiceLastCell = UIView()
@@ -205,6 +228,8 @@ final class AnnualScreen: ShiziScreenViewController {
             content.addSubview(v)
         }
         for v in [yearLabel, headLabel, firstLabel, firstDate, emptyTitle, emptyBody] as [UIView] { content.addSubview(v) }
+        // 墨到了视口附近才画：页面的滚动回调统一判（scrollViewDidScroll → refreshInkNear）
+        for v in [firstInk, twiceFirstInk, twiceLastInk] { v.watchesScroll = false }
         firstCell.addSubview(firstInk)
         firstCell.addSubview(firstGlyph)
         firstCell.addSubview(firstCanvas)
@@ -255,6 +280,7 @@ final class AnnualScreen: ShiziScreenViewController {
         wire(nextButton) { page in (page as? AnnualScreen)?.pickYear(1) }
         super.viewDidLoad()
         setTitle(t("X-MINE.annual"))
+        scroll.delegate = self
     }
 
     override var watchedDomains: [String]? { ["records", "ink"] }
@@ -397,6 +423,12 @@ final class AnnualScreen: ShiziScreenViewController {
 
     private func renderModel(_ m: View) {
         let mt = metrics
+        // 格子在排版时按框建 / 配（layoutBody → updateCells）；这一次渲染的内容要重配
+        renderGeneration += 1
+        let hand = Self.keep(handColor, color("hand"))
+        let under = Self.keep(underColor, color("under"))
+        handColor = hand
+        underColor = under
         // 空态
         let isEmpty = m.empty
         bodyMarker.isHidden = false
@@ -446,7 +478,7 @@ final class AnnualScreen: ShiziScreenViewController {
                 firstInk.isHidden = false
                 firstInk.points = ink.points
                 firstInk.pad = 0.12 // 网页 CellCanvas 缺省 INK_PAD
-                firstInk.inkColor = color("hand")
+                firstInk.inkColor = hand
                 firstInk.widthScale = ShiziInkScale.scale(firstSide, 1 - 2 * 0.12)
                 firstGlyph.isHidden = true
             } else {
@@ -468,9 +500,10 @@ final class AnnualScreen: ShiziScreenViewController {
         }
         // 每月一段
         if monthButtons.count != m.months.count {
+            // 格子先收进池子（它们在旧按钮的格网里）；排版时按新的 grid 放进新按钮
+            cells.removeAll()
             monthButtons.forEach { $0.removeFromSuperview() }
             monthButtons = []
-            monthSlots = []
             for _ in m.months {
                 let b = ShiziRowButton(frame: .zero)
                 // 每段上边一条发丝线（网页 .sz-ann__month 的 border-top）：按钮里的子视图不进取证
@@ -480,10 +513,10 @@ final class AnnualScreen: ShiziScreenViewController {
                 b.addSubview(hair)
                 // 格网容器：铺满按钮（格子的框照旧是按钮坐标，一位不差），格子按序号放在里面；不画东西、不进读屏（按钮本身是读屏元素）。
                 // 可交互照旧（同以前格子直接在按钮里：点到格子上由格子往上交给按钮）
-                let grid = UIView()
-                grid.tag = Self.monthGridTag
-                grid.isAccessibilityElement = false
-                b.addSubview(grid)
+                let gridView = UIView()
+                gridView.tag = Self.monthGridTag
+                gridView.isAccessibilityElement = false
+                b.addSubview(gridView)
                 content.addSubview(b)
                 monthButtons.append(b)
                 let key = ObjectIdentifier(b)
@@ -491,7 +524,6 @@ final class AnnualScreen: ShiziScreenViewController {
                     guard let page = page as? AnnualScreen else { return }
                     page.openMonth(page.monthKeys[key] ?? "")
                 }
-                monthSlots.append([])
             }
         }
         for (i, sec) in m.months.enumerated() {
@@ -509,16 +541,7 @@ final class AnnualScreen: ShiziScreenViewController {
             // 按钮自己的字色（网页 .sz-ann__month：color:inherit = ink1）
             b.setTitleColor(color("ink1"), for: .normal)
             b.viewWithTag(Self.monthHairTag)?.backgroundColor = color("line")
-            // 每一段里的格子：内容按渲染配，框与线宽按排版配（configureCellLayout）
-            if monthSlots[i].count != sec.cells.count, let grid = monthGrid(b) {
-                monthSlots[i].forEach { $0.cell.removeFromSuperview() }
-                monthSlots[i] = sec.cells.map { _ in
-                    let s = CellSlot()
-                    grid.addSubview(s.cell)
-                    return s
-                }
-            }
-            for (j, c) in sec.cells.enumerated() where j < monthSlots[i].count { configureCellContent(monthSlots[i][j], c) }
+            // 每一段里的格子：排版时只建 / 配可见框 ± overscan 里的（layoutBody → updateCells；内容按 gridGeneration 记）
         }
         // 卷尾：同一个字，两次
         if let twice = m.twice {
@@ -526,8 +549,8 @@ final class AnnualScreen: ShiziScreenViewController {
             twiceTitle.accessibilityLabel = twice.title.text
             twiceFirstCell.backgroundColor = color("sheet")
             twiceLastCell.backgroundColor = color("sheet")
-            twiceFirstInk.inkColor = color("hand")
-            twiceLastInk.inkColor = color("hand")
+            twiceFirstInk.inkColor = hand
+            twiceLastInk.inkColor = hand
             twiceFirstInk.widthScale = ShiziInkScale.scale(twiceSide, 1 - 2 * 0.12)
             twiceLastInk.widthScale = ShiziInkScale.scale(twiceSide, 1 - 2 * 0.12)
             twiceFirstInk.pad = 0.12
@@ -577,13 +600,78 @@ final class AnnualScreen: ShiziScreenViewController {
     /// 段按钮里的格网容器。
     private func monthGrid(_ b: UIView) -> UIView? { b.viewWithTag(Self.monthGridTag) }
 
+    /// 颜色没变（浅 / 深两套解析出来的都是同一个颜色）就留着原来的对象。ShiziTokens.dynamicColor 的动态色只按 userInterfaceStyle 取两套之一，
+    /// 两套都相同 = 在任何外观下都相同（缺令牌时的 .label 同理：两边都是它）。
+    static func keep(_ old: UIColor?, _ new: UIColor) -> UIColor {
+        guard let old else { return new }
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let t = UITraitCollection(userInterfaceStyle: style)
+            if !old.resolvedColor(with: t).isEqual(new.resolvedColor(with: t)) { return new }
+        }
+        return old
+    }
+
+    /// 第 i 格放进它那一段的格网：插在 following（下一个已建好的格子）前面，同一段里按序号排。已经在这一段的格网里就不动
+    /// （同一段里留下来的格子之间的先后本来就按序号）。
+    private func attachCell(_ s: CellSlot, _ i: Int, _ following: CellSlot?) {
+        guard i < grid.cellMonth.count else { return }
+        let mi = grid.cellMonth[i]
+        guard mi < monthButtons.count, let g = monthGrid(monthButtons[mi]) else { return }
+        if s.cell.superview === g { return }
+        if let f = following, f.cell.superview === g {
+            g.insertSubview(s.cell, belowSubview: f.cell)
+        } else {
+            g.addSubview(s.cell)
+        }
+    }
+
+    /// 按第 i 格配：内容（换了格子或有新的渲染）+ 框（每次排版）。池子里拿出来的格子带着上一格的状态，内容与框里的每一样都重设。
+    private func configureCell(_ s: CellSlot, _ i: Int) {
+        guard i < grid.cellData.count else { return }
+        if s.index != i || s.generation != gridGeneration {
+            // 换了一格用：墨回到「还没到视口附近」（同新建的一格；按新的位置再判，屏外的不提前画）
+            if s.index != i { s.ink.resetNear() }
+            configureCellContent(s, grid.cellData[i])
+            s.index = i
+            s.generation = gridGeneration
+        }
+        configureCellLayout(s, frame: grid.cells[i], side: grid.cellSide)
+    }
+
+    /// 按此刻的滚动位置建 / 收格子（排版后、滚动时），再让墨按此刻的位置判要不要画。外观按本页的。
+    func updateCells() {
+        cells.overscan = max(max(0, scroll.bounds.height) * Self.overscanViewports, Self.overscanRows * grid.cellSide)
+        let visible = scroll.bounds
+        traitCollection.performAsCurrent { cells.update(visible: visible) }
+        refreshInkNear()
+    }
+
+    /// 以前每块墨各自 KVO contentOffset 做的事：到了视口附近就画（建出来的格子 + 今年首字 + 卷尾两格）。
+    private func refreshInkNear() {
+        for i in cells.liveIndices { cells.slot(at: i)?.ink.refreshNear() }
+        firstInk.refreshNear()
+        twiceFirstInk.refreshNear()
+        twiceLastInk.refreshNear()
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView === scroll, isViewLoaded else { return }
+        // 渲染过、还没排版：grid 是旧模型的，等排版（已经标了 setNeedsLayout）按新的 grid 建；墨照旧按位置判
+        guard gridGeneration == renderGeneration else {
+            refreshInkNear()
+            return
+        }
+        updateCells()
+    }
+
     /// 一格的内容：衬底字、有墨迹就画墨（网页 paintCellContent：hand 且有墨 → 墨；否则衬底字）、墨与衬底字的颜色与内边。
-    /// 框与线宽在 configureCellLayout。格子可能是别的格用过的：内容的每一样都重设。
+    /// 框与线宽在 configureCellLayout。格子可能是别的格用过的：内容的每一样都重设（与原来一模一样的值不重画）。
     private func configureCellContent(_ s: CellSlot, _ c: View.Cell) {
+        let hand = handColor ?? color("hand"), under = underColor ?? color("under")
         s.ink.pad = 0.09 // 网页年报月段的 INK_PAD
-        s.ink.inkColor = color("hand")
-        s.glyph.color = color("under")
-        s.glyph.padRatio = 0.06
+        s.ink.inkColor = hand
+        if s.glyph.color !== under { s.glyph.color = under }
+        if s.glyph.padRatio != 0.06 { s.glyph.padRatio = 0.06 }
         s.glyph.char = c.ch
         if let box = c.ink, c.mode == "hand" {
             s.ink.isHidden = false
@@ -655,6 +743,11 @@ final class AnnualScreen: ShiziScreenViewController {
         let bx = x - 4
         let bw = width + 8
         if m.empty {
+            // 空态没有月段：格子都收进池子
+            grid = MonthsLayout()
+            gridGeneration = renderGeneration
+            cells.setItems([])
+            updateCells()
             layoutEmpty(bx: bx, bw: bw, top: top)
             let bodyH = max(0, scroll.bounds.height - top - mt.space(8))
             bodyMarker.frame = CGRect(x: bx, y: top, width: bw, height: bodyH)
@@ -711,11 +804,11 @@ final class AnnualScreen: ShiziScreenViewController {
             // 字数右对齐到版心的右缘（网页 space-between 的右端）：取证按按钮里全部文字的并集，右缘要对齐版心
             b.valueLabel.textAlignment = .right
             b.valueLabel.frame = box.countFrame
-            guard i < monthSlots.count else { continue }
-            for j in 0..<box.cellCount where j < monthSlots[i].count {
-                configureCellLayout(monthSlots[i][j], frame: grid.cells[box.firstCell + j], side: grid.cellSide)
-            }
         }
+        // 格子：只建 / 配可见框 ± overscan 里的（滚动时 scrollViewDidScroll 再补；排版收尾时滚动区定了高再核一次）
+        gridGeneration = renderGeneration
+        cells.setItems(grid.cellsInContent)
+        updateCells()
         y = grid.bottom
         // 卷尾：同一个字，两次
         if m.twice != nil {
@@ -860,6 +953,7 @@ final class AnnualScreen: ShiziScreenViewController {
         }
         layoutHeaderTrail()
         layoutFooter()
+        updateCells() // 滚动区的高到这里才定（底栏让出之后）
     }
 
     private func layoutHeaderTrail() {

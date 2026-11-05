@@ -46,13 +46,43 @@ enum ShiziInkScale {
 
 /// 一块只读的墨（点列；345 单位 → 视图的方框）。几何与网页 paintBrushStroke 一样：
 /// 起点圆 + 每段「两点间四边形色带」；用 ShiziKit 的 WebInk 三角形（同一套算法，与写字页一致）。
+///
+/// 画出来的东西只由 near、points、inkColor、widthScale、pad、bounds 的大小（contentMode = .redraw）与外观决定：
+/// 这几样设成与原来一模一样的值时不重画（点列与数按位比、颜色按同一个对象比，都相同 = 画出来逐像素相同）；外观变了由 UIKit 自己重画。
 final class ShiziPointsInkView: UIView {
-    var points: [[ShiziInkPoint]] = [] { didSet { setNeedsDisplay() } }
-    var inkColor: UIColor = .black { didSet { setNeedsDisplay() } }
+    var points: [[ShiziInkPoint]] = [] { didSet { if !Self.identical(points, oldValue) { setNeedsDisplay() } } }
+    /// 同一个颜色对象才算没变（两个各自新建的动态色即使解析出来一样也重画）。
+    var inkColor: UIColor = .black { didSet { if inkColor !== oldValue { setNeedsDisplay() } } }
     /// 线宽倍数（网页 minInkScale 的 widthScale）。
-    var widthScale: Double = 1 { didSet { setNeedsDisplay() } }
+    var widthScale: Double = 1 { didSet { if widthScale.bitPattern != oldValue.bitPattern { setNeedsDisplay() } } }
     /// 墨在格内的内边比例（网页 INK_PAD：作品格 12%、年报月段 9%；0 = 铺满格，练习记录的小卡）。
-    var pad: CGFloat = 0 { didSet { setNeedsDisplay() } }
+    var pad: CGFloat = 0 { didSet { if Double(pad).bitPattern != Double(oldValue).bitPattern { setNeedsDisplay() } } }
+    /// 自己盯着所在滚动区的 contentOffset（KVO）补画；false = 页面一个滚动回调统一调 refreshNear（年报：格子多，每格一个 KVO 太贵）。
+    var watchesScroll = true {
+        didSet {
+            guard watchesScroll != oldValue else { return }
+            watch()
+        }
+    }
+
+    /// 两份点列逐位相同（x / y / w / t / p 都按位比；NaN 与 ±0 按位型算，宁可多重画一次）。
+    static func identical(_ a: [[ShiziInkPoint]], _ b: [[ShiziInkPoint]]) -> Bool {
+        guard a.count == b.count else { return false }
+        func same(_ x: Double?, _ y: Double?) -> Bool {
+            switch (x, y) {
+            case (nil, nil): return true
+            case let (u?, v?): return u.bitPattern == v.bitPattern
+            default: return false
+            }
+        }
+        for (sa, sb) in zip(a, b) {
+            guard sa.count == sb.count else { return false }
+            for (p, q) in zip(sa, sb) {
+                guard p.x.bitPattern == q.x.bitPattern, p.y.bitPattern == q.y.bitPattern, same(p.w, q.w), same(p.t, q.t), same(p.p, q.p) else { return false }
+            }
+        }
+        return true
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -75,16 +105,21 @@ final class ShiziPointsInkView: UIView {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        watch()
+        refreshNear()
+    }
+
+    /// 在窗口里、watchesScroll 时盯住最近的滚动区祖先的 contentOffset。
+    private func watch() {
         offsetObservation = nil
         watched = nil
-        guard window != nil else { return }
+        guard window != nil, watchesScroll else { return }
         var v: UIView? = superview
         while let cur = v, !(cur is UIScrollView) { v = cur.superview }
         if let scroll = v as? UIScrollView {
             watched = scroll
             offsetObservation = scroll.observe(\.contentOffset, options: [.new]) { [weak self] _, _ in self?.refreshNear() }
         }
-        refreshNear()
     }
 
     override func layoutSubviews() {
@@ -100,11 +135,22 @@ final class ShiziPointsInkView: UIView {
             && r.maxX > -window.bounds.width && r.minX < window.bounds.width * 2
     }
 
-    private func refreshNear() {
+    /// 到了视口附近就画（只翻一次：画过之后滚远了也不收）。watchesScroll = false 时由页面在滚动 / 排版之后调。
+    func refreshNear() {
         guard !near, isNearViewport() else { return }
         near = true
         setNeedsDisplay()
     }
+
+    /// 换成另一格用（复用的格子）：回到「还没到视口附近」，等 refreshNear 按新的位置再判（同新建的一格；屏外的不提前画）。
+    func resetNear() {
+        guard near else { return }
+        near = false
+        setNeedsDisplay()
+    }
+
+    /// 测试用：此刻算不算到了视口附近（画不画墨）。
+    var isNear: Bool { near }
 
     /// 点列 → 三角形顶点（345 单位；draw 再按格缩放）。只用到每点的 x / y / w（t / p 照旧传进 WebInkPoint，WebInk.triangles 不读）。
     static func vertices(_ points: [[ShiziInkPoint]], widthScale: Double) -> [Float] {

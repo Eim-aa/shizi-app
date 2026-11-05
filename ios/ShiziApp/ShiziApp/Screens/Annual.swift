@@ -224,6 +224,18 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     private var gridPayload = -1
     /// 这份回包里取到的墨迹：inkKey → 笔画（[] = 取到了、没有可画的）。整页一直留着（滚走再滚回来不再取），回包换了清空。
     private(set) var inkCache: [String: [[ShiziInkPoint]]] = [:]
+    /// 上一份（及更早还没换掉的）回包取到的墨迹：新回包来了先拿它垫着画（重拉 / changed 推送 / 回到年报时墨不闪成空的），
+    /// 照样按新回包重取（missingInkKeys 不看它、inkPending 照样等重取的到）；建出来的格子的墨都重取到了、或再来一份回包时扔掉。
+    private(set) var provisionalInk: [String: [[ShiziInkPoint]]] = [:]
+    /// 上次按哪一组建出来的格子（序号范围、个数）、哪一版 grid / 回包数过缺的键：没变就不再数（滚动的每一帧）。
+    private struct InkLiveSignature: Equatable {
+        var first: Int
+        var last: Int
+        var count: Int
+        var grid: Int
+        var payload: Int
+    }
+    private var inkCheckedLive: InkLiveSignature?
     /// 在路上的键。
     private var inkInFlight = Set<String>()
     /// 取不到的键（引擎回 ok:false：不可用 / 重载中）：这份回包里不再取（引擎重新就绪、数据变了会整页重拉，换一份回包）。
@@ -740,18 +752,32 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
 
     // MARK: 墨迹按需取
 
-    /// grid 里这个键此刻取到的墨迹（grid 是旧回包排出来的、或还没取到 → 没有点）。
+    /// grid 里这个键此刻该画的墨迹：这份回包取到的；还没取到 → 上一份回包取到的（垫着，重取到了就换上）；都没有 → 没有点。
+    /// grid 还是旧回包排出来的（渲染了、还没排版）→ 只有垫着的那份（旧 grid 的键取的就是旧回包的墨迹）。
     private func fetchedInk(_ key: String) -> [[ShiziInkPoint]] {
-        guard gridPayload == payloadGeneration else { return [] }
-        return inkCache[key] ?? []
+        guard gridPayload == payloadGeneration else { return provisionalInk[key] ?? [] }
+        return inkCache[key] ?? provisionalInk[key] ?? []
     }
 
-    /// 换了一份回包：之前取来的墨迹、在路上的请求都作废（在路上的回来时按回包代丢掉）。
+    /// 换了一份回包：取到的墨迹挪去垫着（provisionalInk，之前垫着还没换掉的照留、被它盖住的以新的为准），在路上的请求作废
+    /// （回来时按回包代丢掉），按新回包重取。
     private func startInkPayload() {
         payloadGeneration += 1
+        if !inkCache.isEmpty { provisionalInk.merge(inkCache) { _, fresh in fresh } }
         inkCache = [:]
         inkInFlight = []
         inkFailed = []
+        inkCheckedLive = nil
+    }
+
+    /// 建出来的格子里用到的墨迹键都按这份回包重取到了：垫着的那份不再用得上，扔掉。
+    private func dropProvisionalIfFresh() {
+        guard !provisionalInk.isEmpty, inkInFlight.isEmpty, gridPayload == payloadGeneration else { return }
+        for i in cells.liveIndices where i < grid.cellData.count {
+            let c = grid.cellData[i]
+            if c.mode == "hand", c.ink == nil, let k = c.inkKey, inkCache[k] == nil { return }
+        }
+        provisionalInk = [:]
     }
 
     /// 建出来的格子里等墨迹的（这份回包的 grid、hand、没有内联墨迹、有 inkKey、还没取到、不在路上、没取失败）的键，
@@ -779,7 +805,12 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     }
 
     /// 有缺墨迹的格子就排一次取（下一轮主线程：同一轮里的几次排版 / 滚动并成一次）。
-    private func requestMissingInk() {
+    /// 建出来的格子（序号范围、个数）与 grid / 回包的版次都没变时不再数（滚动的每一帧大多如此）；force = 墨迹刚到（可能有在路上时新建的格子）。
+    private func requestMissingInk(force: Bool = false) {
+        let live = cells.liveIndices
+        let sig = InkLiveSignature(first: live.first ?? -1, last: live.last ?? -1, count: live.count, grid: gridGeneration, payload: gridPayload == payloadGeneration ? payloadGeneration : -1)
+        if !force, sig == inkCheckedLive { return }
+        inkCheckedLive = sig
         guard !inkFetchQueued, !missingInkKeys().isEmpty else { return }
         inkFetchQueued = true
         DispatchQueue.main.async { [weak self] in self?.fetchMissingInk() }
@@ -835,7 +866,8 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         inkInFlight.subtract(keys)
         for k in keys { inkCache[k] = decoded[k] ?? [] }
         applyArrivedInk(Set(keys))
-        requestMissingInk()
+        requestMissingInk(force: true)
+        dropProvisionalIfFresh()
     }
 
     /// 建出来的格子里用到这几个键的：格子此刻配的还是这一格（序号、grid 的版次都对）、grid 是这份回包的，才换上点列。

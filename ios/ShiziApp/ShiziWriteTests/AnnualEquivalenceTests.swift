@@ -1229,6 +1229,61 @@ final class AnnualLazyInkPageTests: XCTestCase {
     }
 
     /// 缓存：外观切换（同一份回包重新渲染）不重取、不闪；滚走再滚回来不重取；收到新回包（哪怕内容相同）才清空重取。
+    /// 新回包（重拉 / changed 推送 / 回到年报）时墨不闪成空的：重取的回复还没回来时先拿上一份取到的垫着画，
+    /// 墨迹相同 → 收包那一刻的画面 = 重取到之后的画面 = 收包之前的画面；墨迹换了 → 先是旧的，重取到之后 = 新的整份回包的页。
+    /// 垫着的那份不算「到了」（inkPending 照样等重取），全都重取到了就扔掉。
+    func testNewPayloadKeepsInkOnScreenUntilRefetched() throws {
+        let full1 = AnnualVirtual.payload(1200), full2 = AnnualVirtual.changed(full1)
+        let (lite1, table1) = L.split(full1), (lite2, table2) = L.split(full2)
+        let fetcher = L.Fetcher(table1)
+        let lazy = L.make(fetcher), eager = AnnualVirtual.make(all: false)
+        let wl = LibraryBench.host(lazy), we = LibraryBench.host(eager)
+        defer { LibraryBench.unhost(wl); LibraryBench.unhost(we) }
+        lazy.apply(payload: lite1)
+        XCTAssertTrue(L.waitInk(lazy, wl))
+        let loaded = try LibraryEq.stableSnapshot(wl, "annual loaded")
+        // 同样的墨迹：回复扣着，收包那一刻（排版提交后）就截
+        fetcher.hold = true
+        lazy.apply(payload: lite1)
+        LibraryBench.settle(wl)
+        XCTAssertTrue(lazy.inkCache.isEmpty, "the new payload refetches")
+        XCTAssertFalse(lazy.provisionalInk.isEmpty, "the previous ink is kept as a stand-in")
+        XCTAssertTrue(lazy.inkPending, "the stand-in is not fresh: still pending")
+        for i in lazy.cells.liveIndices where lazy.grid.cellData[i].mode == "hand" {
+            if lazy.cells.slot(at: i)?.ink.points.isEmpty ?? true { XCTFail("cell \(i) blanked right after the new payload"); break }
+        }
+        let rightAfter = try LibraryEq.stableSnapshot(wl, "annual right after reapply")
+        XCTAssertTrue(LibraryEq.same(loaded, rightAfter, "annual reapply: no blank frame"), "no blank frame after a reapply")
+        fetcher.hold = false
+        XCTAssertTrue(L.waitInk(lazy, wl))
+        XCTAssertTrue(lazy.provisionalInk.isEmpty, "every built cell refetched: the stand-in is dropped")
+        let refetched = try LibraryEq.stableSnapshot(wl, "annual refetched")
+        XCTAssertTrue(LibraryEq.same(loaded, refetched, "annual reapply: refetched"), "same ink after refetching")
+        // 墨迹换了：先垫着旧的，重取到之后 = 新的整份回包
+        fetcher.hold = true
+        fetcher.table = table2
+        lazy.apply(payload: lite2)
+        LibraryBench.settle(wl)
+        XCTAssertTrue(lazy.inkPending)
+        let traits = lazy.traitCollection
+        var problems = lazy.cells.check(visible: lazy.scroll.bounds) { AnnualVirtual.digest($0, traits) }
+        XCTAssertEqual(Array(problems.prefix(5)), [], "stand-in: \(problems.count) problem(s)")
+        fetcher.hold = false
+        XCTAssertTrue(L.waitInk(lazy, wl))
+        XCTAssertTrue(lazy.provisionalInk.isEmpty)
+        eager.apply(payload: full2)
+        LibraryBench.settle(we)
+        problems = lazy.cells.check(visible: lazy.scroll.bounds) { AnnualVirtual.digest($0, traits) }
+        XCTAssertEqual(Array(problems.prefix(5)), [], "converged: \(problems.count) problem(s)")
+        for i in lazy.cells.liveIndices {
+            guard let s = lazy.cells.slot(at: i), let e = eager.cells.slot(at: i) else { continue }
+            XCTAssertEqual(AnnualVirtual.digest(s, traits), AnnualVirtual.digest(e, eager.traitCollection), "cell \(i) converged to the new ink")
+        }
+        let a = try LibraryEq.stableSnapshot(we, "annual changed eager")
+        let b = try LibraryEq.stableSnapshot(wl, "annual changed lazy (converged)")
+        XCTAssertTrue(LibraryEq.same(a, b, "annual changed ink converges"))
+    }
+
     func testCacheLifetime() throws {
         let full = AnnualVirtual.payload(1200)
         let (lite, table) = L.split(full)
@@ -1280,13 +1335,18 @@ final class AnnualLazyInkPageTests: XCTestCase {
         defer { LibraryBench.unhost(w) }
         lazy.apply(payload: lite)
         XCTAssertTrue(L.waitInk(lazy, w), "a failed fetch is not pending forever")
-        let n = fetcher.calls.count
-        XCTAssertGreaterThan(n, 0)
+        let failed = fetcher.keys
+        XCTAssertFalse(failed.isEmpty)
         XCTAssertTrue(lazy.inkCache.isEmpty)
-        AnnualVirtual.scroll(lazy, w, to: 1)
-        AnnualVirtual.scroll(lazy, w, to: 0)
+        // 同一组格子再排版 / 再走一遍 updateCells（不靠滚动的距离）：失败过的键不再发
+        lazy.view.setNeedsLayout()
+        LibraryBench.settle(w)
+        lazy.updateCells()
         L.spin(w)
-        XCTAssertEqual(fetcher.calls.count, n, "the same keys are not retried within this payload")
+        XCTAssertTrue(L.waitInk(lazy, w))
+        let again = fetcher.keys.dropFirst(failed.count)
+        XCTAssertTrue(Set(again).isDisjoint(with: Set(failed)), "failed keys are not retried within this payload: \(Set(again).intersection(Set(failed)).count)")
+        XCTAssertEqual(Set(fetcher.keys).count, fetcher.keys.count, "no key asked twice")
         fetcher.fail = false
         lazy.apply(payload: lite)
         XCTAssertTrue(L.waitInk(lazy, w))

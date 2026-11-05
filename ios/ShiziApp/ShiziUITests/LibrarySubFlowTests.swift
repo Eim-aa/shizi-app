@@ -116,6 +116,44 @@ final class LibrarySubFlowTests: XCTestCase {
         }
     }
 
+    /// 全部字页的真点按：1500 字的大库滚到底，用 XCUIElement.tap()（真触摸，走 UIKit 命中测试）点最后一格 → 推入那个字的字详情。
+    /// 夹具 steps 与 tapForTesting 走 sendActions(for:)，绕过命中测试：墙格容器（native-library-all-cells）关了点按时格子真点不动，只有这条测得出。
+    func testAllCharsBigWallTapLastCellOpensDetail() {
+        let qa = QA(seed: "all-big")
+        qa.launch()
+        waitScreen(qa, "library-all")
+        XCTAssertEqual(qa.probe["chars"] as? Int, 1500, "夹具造了 1500 个字")
+        let cells = qaQuery(qa, "native-library-all-cell")
+        XCTAssertTrue(cells.element(boundBy: 0).waitForExistence(timeout: 10), "字墙的格子")
+        // 按「多久没写」排：四档全展开（没有折起的月份），最后一格 = 最近写的那个字
+        let n = cells.count
+        XCTAssertEqual(n, 1500, "1500 字全在墙上")
+        let last = cells.element(boundBy: n - 1)
+        // 格子的读屏名 = X-LIBHOME.cellAria「{char}，{status}」
+        let char = last.label.components(separatedBy: "，").first ?? ""
+        XCTAssertEqual(char.count, 1, "最后一格的读屏名带字：\(last.label)")
+        // 滚到底：最后一格可点，且不压在底栏主键下面；再等滚动停稳（还在减速时点一下只会停住滚动，不算点格子）
+        let go = qa.el("native-library-all-go")
+        func clear() -> Bool {
+            guard last.isHittable else { return false }
+            if go.exists, go.isHittable { return last.frame.maxY <= go.frame.minY }
+            return true
+        }
+        var swipes = 0
+        while swipes < 80, !clear() { qa.app.swipeUp(velocity: .fast); swipes += 1 }
+        var frame = CGRect.null
+        qa.waitProbe("wall stopped scrolling", timeout: 10) { _ in
+            let f = last.frame
+            defer { frame = f }
+            return f == frame && clear()
+        }
+        XCTAssertTrue(clear(), "滚到底后最后一格露出来")
+        last.tap()
+        qa.waitRouteTop("detail", timeout: 15)
+        let route = qa.probe["route"] as? [String: Any] ?? [:]
+        XCTAssertEqual(route["char"] as? String, char, "字详情是点的那个字")
+    }
+
     private func qaFirstGroupName(_ qa: QA) -> String { qa.el("native-library-all-group-name").label }
     private func qaHasElement(_ qa: QA, _ id: String) -> Bool { qa.el(id).exists }
     private func qaTextOf(_ qa: QA, _ id: String) -> String { qa.el(id).label }

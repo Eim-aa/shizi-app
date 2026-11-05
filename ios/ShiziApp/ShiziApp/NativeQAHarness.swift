@@ -904,6 +904,7 @@ final class QAProbe {
         route["depth"] = max(0, stack.count - 1)
         route["tab"] = stack.first?["n"]?.stringValue ?? NSNull()
         route["overlay"] = top.map { $0["k"] != .string("s") } ?? false
+        route["char"] = top?["p"]?["char"]?.stringValue ?? NSNull() // 顶层屏的 char 参数（字详情是哪个字）
         var set: [String: Any] = [:]
         set["appearance"] = settings?["appearance"]?.stringValue ?? "auto"
         let group: JSValue? = (settings?["groupSize"]?.isNull ?? true) ? nil : settings?["groupSize"]

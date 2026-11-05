@@ -1,0 +1,41 @@
+{
+  "state": "all-big",
+  "name": "全部字 · 1500 字的大库（按时间远近；流程起点）",
+  "screen": "library-all",
+  "native": true,
+  "parity": false,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "ready": {
+    "web": "all-screen",
+    "native": "id:native-library-all-screen",
+    "timeout": 40
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "lib": {
+        "id": "core3500",
+        "n": 1500,
+        "from": "2025-06-09",
+        "perDay": 3
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "push",
+      "screen": "library-all",
+      "params": {
+        "sort": "age"
+      }
+    }
+  ]
+}

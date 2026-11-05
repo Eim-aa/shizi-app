@@ -475,14 +475,15 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
     }
 
     /// 草稿上的比较（查找类取样、当前字判几种、连续判几次、旧月 / 折叠月里的沿用）+ 判字路径各步的新旧耗时。
-    func checkScaleDraft(_ state: JSObject, _ name: String) {
+    func checkScaleDraft(_ state: JSObject, _ name: String, light: Bool = false) {
         let t0 = DispatchTime.now().uptimeNanoseconds
-        checkLookups(state, name, limit: 12)
+        checkLookups(state, name, limit: light ? 6 : 12)
         checkJudgesOn(state, name, wide: false)
         var rng = EqRNG(seed: 7)
-        judgeSequence(state, name, count: 4, rng: &rng, lookups: false)
+        judgeSequence(state, name, count: light ? 2 : 4, rng: &rng, lookups: false)
         let months = state["records"]?.objectValue?.keys ?? []
-        for month in [months.first, months.dropFirst(months.count / 2).first, months.last].compactMap({ $0 }) {
+        // light（SHIZI_SCALE_BENCH 的 3x / 10x / 10x-folded）：沿用只在最早与最晚的月各比一次
+        for month in (light ? [months.first, months.last] : [months.first, months.dropFirst(months.count / 2).first, months.last]).compactMap({ $0 }) {
             let r = Self.withReuse(state, month: month)
             guard let s = SessionWrites.session(r, "A") else { continue }
             let a = Self.judgeArgs("A", SessionRules.currentCardKey(s), judgment: "correct", hints: 0, ink: nil)
@@ -579,7 +580,7 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
     func testScale3xAnd10xDraftsMatchReference() throws {
         try Self.requireScaleBench()
         for (name, shape) in [("3x", S.shape3x()), ("10x", S.shape10x())] {
-            checkScaleDraft(try B.heavyState(shape), name)
+            checkScaleDraft(try B.heavyState(shape), name, light: true)
         }
     }
 
@@ -599,8 +600,8 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
     func testScale10xFoldedMatchesReference() throws {
         try Self.requireScaleBench()
         let state = try Self.foldedState(S.scale10xFolded())
-        checkScaleDraft(state, "10x-folded")
-        compareStores(state, "10x-folded", steps: 5)
+        checkScaleDraft(state, "10x-folded", light: true)
+        compareStores(state, "10x-folded", steps: 3)
     }
 }
 

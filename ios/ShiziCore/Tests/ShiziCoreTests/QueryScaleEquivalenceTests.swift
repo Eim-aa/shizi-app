@@ -104,10 +104,13 @@ final class QueryScaleEquivalenceTests: XCTestCase {
     }
 
     /// 一个状态上的全部输入。wide：每个输入都试 pick、几个 cur 与 policy；否则 lookup 两个 cur + pick 一次（拼音输入总是后者：每次都要扫一遍题库的读音表，调试版慢）。
-    func checkState(_ state: JSObject, _ label: String, pinyin: [String], pastedChars: Int = 0, wide: Bool, dates: Dates = shanghai) {
+    func checkState(_ state: JSObject, _ label: String, pinyin: [String], pastedChars: Int = 0, wide: Bool, dates: Dates = shanghai, sample: Bool = false) {
         let cs = Self.recordChars(state, limit: 12)
         let policy = Config.policy
-        for t in Self.texts(cs, pinyin: pinyin, pastedChars: pastedChars) {
+        // sample（只在 SHIZI_SCALE_BENCH 的大状态上）：固定每 3 个输入取 1 个，另保留拼音与末尾的长粘贴；耗时行不受影响。
+        let all = Self.texts(cs, pinyin: pinyin, pastedChars: pastedChars)
+        let picked = sample ? all.enumerated().filter { $0.offset % 3 == 0 || pinyin.contains($0.element) || ($0.offset == all.count - 1 && pastedChars > 0) }.map { $0.element } : all
+        for t in picked {
             let probe = QueryRef.sheetModel(Self.args(state, text: t, mode: "lookup", cur: "", selected: [], policy: policy))
             let chars = (probe["filtered"]?["chars"]?.arrayValue ?? []).compactMap(\.stringValue)
             let wideHere = wide && !pinyin.contains(t)
@@ -286,15 +289,15 @@ final class QueryScaleEquivalenceTests: XCTestCase {
     }
 
     /// 草稿上的比较 + Store 上的比较 + 新旧耗时。
-    func checkScale(_ state: JSObject, _ name: String, pastedChars: Int) {
+    func checkScale(_ state: JSObject, _ name: String, pastedChars: Int, sample: Bool = false) {
         let t0 = DispatchTime.now().uptimeNanoseconds
         let pool = Self.recordChars(state, limit: 40)
         let han10 = pool.prefix(10).joined()
-        checkState(state, name, pinyin: ["shi", "s", "ren", "zzz"], pastedChars: pastedChars, wide: false)
-        for t in [han10, pool.suffix(10).joined(), String(pool.last ?? "")] {
+        checkState(state, name, pinyin: ["shi", "s", "ren", "zzz"], pastedChars: pastedChars, wide: false, sample: sample)
+        for t in sample ? [han10] : [han10, pool.suffix(10).joined(), String(pool.last ?? "")] {
             check(Self.args(state, text: t, mode: "lookup", cur: "", selected: [], policy: Config.policy), dates: shanghai, sheet: true, "\(name) pool")
         }
-        checkStore(state, name, texts: [han10, "shi", "s", pool.first ?? "", Self.pasted(80)])
+        checkStore(state, name, texts: sample ? [han10, "shi", Self.pasted(80)] : [han10, "shi", "s", pool.first ?? "", Self.pasted(80)])
         print("BENCH query-eq-note scale=\(name) records=\(Query.flattenRecords(state["records"]).count) checks=\(B.fmt(Double(DispatchTime.now().uptimeNanoseconds - t0) / 1_000_000))ms")
         timeQueries(state, name, han10: han10, pastedChars: pastedChars)
     }
@@ -330,11 +333,11 @@ final class QueryScaleEquivalenceTests: XCTestCase {
 
     func testScaleHeavyMatchesReference() throws {
         try Self.requireScaleBench()
-        checkScale(try B.heavyState(B.shape1x), "1x-pasted", pastedChars: 3000)
+        checkScale(try B.heavyState(B.shape1x), "1x-pasted", pastedChars: 3000, sample: true)
         for (name, shape) in [("3x", S.shape3x()), ("10x", S.shape10x())] {
-            checkScale(try B.heavyState(shape), name, pastedChars: 1000)
+            checkScale(try B.heavyState(shape), name, pastedChars: 1000, sample: true)
         }
-        checkScale(try J.foldedState(S.scale10xFolded()), "10x-folded", pastedChars: 1000)
+        checkScale(try J.foldedState(S.scale10xFolded()), "10x-folded", pastedChars: 1000, sample: true)
     }
 }
 

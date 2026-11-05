@@ -290,29 +290,13 @@ public final class ImageRenderer {
       ctx, value, Self.n(box, "right"), Self.n(box, "top") + Self.n(box, "lineHeight") / 2,
       Self.n(box, "size"), color(pal["ink2"]), align: "right")
   }
-  /// 画好并编成 PNG（存相册 / 分享 / shizi-image-cli）。每一张都是 renderImages 的同一张位图原样编出来（Self.png）。
-  public func render(_ spec: O) throws -> [Data] { try rendered(spec, Self.png) }
-  /// 只画、不编 PNG：画好的位图（sRGB、8 位、premultipliedLast、scale 由 spec 定的像素尺寸）。App 里的预览直接上屏用它，
-  /// 省掉 PNG 编码 + base64 + 再解码的往返；render 的 PNG 就是把这几张原样编出来的，所以两条路的像素逐个相同。
-  public func renderImages(_ spec: O) throws -> [CGImage] { try rendered(spec) { $0 } }
-  /// 与渲染器内部同一个 PNG 编码调用（CGImageDestination、public.png、不带选项）。
-  public static func png(_ image: CGImage) throws -> Data {
-    let data = NSMutableData()
-    guard let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else {
-      throw Failure.bitmap
-    }
-    CGImageDestinationAddImage(dest, image, nil)
-    guard CGImageDestinationFinalize(dest) else { throw Failure.bitmap }
-    return data as Data
-  }
-  /// 画每一张，每张画完（画布还在）就交给 finish：render 当场编 PNG（与原来同一时刻、同一张图），renderImages 原样留下。
-  func rendered<T>(_ spec: O, _ finish: (CGImage) throws -> T) throws -> [T] {
+  public func render(_ spec: O) throws -> [Data] {
     let kind = Self.s(spec, "kind")
     let args = Self.o(spec, "args")
     let pal = Self.o(spec, "palette")
     let scale = Self.n(args, "scale", 4 / 3)
     guard scale > 0, scale <= 4 else { throw Failure.invalidSpec }
-    if kind == "annual-long" { return try annualLong(args, pal, scale, finish) }
+    if kind == "annual-long" { return try annualLong(args, pal, scale) }
     let cells = args["cells"] as? [O] ?? []
     if kind == "work" || kind == "sheet", !cells.isEmpty {
       let signature = Self.s(args, "kuan")
@@ -347,7 +331,7 @@ public final class ImageRenderer {
       throw Failure.invalidSpec
     }
     return [
-      try bitmap(w, h, k, pal, finish) { ctx in
+      try bitmap(w, h, k, pal) { ctx in
         if kind == "glyph" {
           ctx.saveGState()
           ctx.translateBy(x: Self.n(l, "ox"), y: Self.n(l, "oy"))
@@ -398,10 +382,9 @@ public final class ImageRenderer {
     return data as Data
   }
 
-  func bitmap<T>(
-    _ w: Double, _ h: Double, _ scale: Double, _ pal: O, _ finish: (CGImage) throws -> T,
-    draw: (CGContext) throws -> Void
-  ) throws -> T {
+  func bitmap(_ w: Double, _ h: Double, _ scale: Double, _ pal: O, draw: (CGContext) throws -> Void)
+    throws -> Data
+  {
     let pw = Int(floor(w * scale + 0.5))
     let ph = Int(floor(h * scale + 0.5))
     guard pw > 0, ph > 0, pw <= 16384, ph <= 32768, pw * ph <= 64_000_000,
@@ -416,7 +399,13 @@ public final class ImageRenderer {
     ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
     try draw(ctx)
     guard let image = ctx.makeImage() else { throw Failure.bitmap }
-    return try finish(image)
+    let data = NSMutableData()
+    guard let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else {
+      throw Failure.bitmap
+    }
+    CGImageDestinationAddImage(dest, image, nil)
+    guard CGImageDestinationFinalize(dest) else { throw Failure.bitmap }
+    return data as Data
   }
   func work(_ ctx: CGContext, _ args: O, _ pal: O, _ l: O, sheet: Bool) throws {
     let cells = args["cells"] as? [O] ?? []
@@ -525,19 +514,18 @@ public final class ImageRenderer {
     try seal(ctx, ["x": 896, "y": 1240, "size": 64], p)
     try text(ctx, Self.s(a, "kuan"), 860, 1272, 36, color(p["ink2"]), align: "right")
   }
-  /// 年报长图的一段（高、是否与下一段同页、怎么画）。放在类型里而不是 annualLong 里：泛型函数里不能嵌套类型。
-  private struct AnnualLongBlock {
-    let h: Double
-    var keep = false
-    let draw: (CGContext, Double) throws -> Void
-  }
-  func annualLong<T>(_ a: O, _ p: O, _ scale: Double, _ finish: (CGImage) throws -> T) throws -> [T] {
+  func annualLong(_ a: O, _ p: O, _ scale: Double) throws -> [Data] {
+    struct Block {
+      let h: Double
+      var keep = false
+      let draw: (CGContext, Double) throws -> Void
+    }
     let m = 97.0
     let cw = 886.0
     let c = 110.0
-    var blocks: [AnnualLongBlock] = []
+    var blocks: [Block] = []
     blocks.append(
-      AnnualLongBlock(
+      Block(
         h: 718,
         draw: { ctx, y in
           try self.text(ctx, Self.s(a, "yearText"), m, y + 170, 96, self.color(p["ink1"]))
@@ -548,7 +536,7 @@ public final class ImageRenderer {
         }))
     for month in a["months"] as? [O] ?? [] {
       blocks.append(
-        AnnualLongBlock(
+        Block(
           h: 136, keep: true,
           draw: { ctx, y in
             ctx.setFillColor(try self.color(p["line"]))
@@ -563,7 +551,7 @@ public final class ImageRenderer {
       for r in stride(from: 0, to: cells.count, by: 8) {
         let row = Array(cells[r..<min(r + 8, cells.count)])
         blocks.append(
-          AnnualLongBlock(
+          Block(
             h: c + (r + 8 >= cells.count ? 56 : 0),
             draw: { ctx, y in
               for (i, cell) in row.enumerated() {
@@ -574,10 +562,9 @@ public final class ImageRenderer {
     }
     if let t = a["tail"] as? O {
       let tc = floor((cw - 46) / 2)
-      let tailH: Double = 14 + 28 + 72 + 28 + tc + 24 + 50 + 40
       blocks.append(
-        AnnualLongBlock(
-          h: tailH,
+        Block(
+          h: 14 + 28 + 72 + 28 + tc + 24 + 50 + 40,
           draw: { ctx, y in
             ctx.setFillColor(try self.color(p["line"]))
             ctx.fill(CGRect(x: m, y: y + 14, width: cw, height: 2))
@@ -591,7 +578,7 @@ public final class ImageRenderer {
           }))
     }
     blocks.append(
-      AnnualLongBlock(
+      Block(
         h: 164,
         draw: { ctx, y in
           try self.seal(ctx, ["x": m + cw - 64, "y": y + 40, "size": 64], p)
@@ -600,8 +587,8 @@ public final class ImageRenderer {
             align: "right")
         }))
     let maxLogical = floor(Self.n(a, "maxExportHeight", 11650) / scale)
-    var chunks: [[AnnualLongBlock]] = []
-    var cur: [AnnualLongBlock] = []
+    var chunks: [[Block]] = []
+    var cur: [Block] = []
     var h = 0.0
     for (i, b) in blocks.enumerated() {
       let need = b.h + (b.keep && i + 1 < blocks.count ? blocks[i + 1].h : 0)
@@ -615,7 +602,7 @@ public final class ImageRenderer {
     }
     if !cur.isEmpty { chunks.append(cur) }
     return try chunks.map { chunk in
-      try bitmap(1080, chunk.reduce(0) { $0 + $1.h }, scale, p, finish) { ctx in
+      try bitmap(1080, chunk.reduce(0) { $0 + $1.h }, scale, p) { ctx in
         var y = 0.0
         for b in chunk {
           try b.draw(ctx, y)

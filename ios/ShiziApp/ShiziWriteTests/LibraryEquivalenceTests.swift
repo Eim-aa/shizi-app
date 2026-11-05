@@ -491,6 +491,108 @@ final class LibraryInkDecodeTests: XCTestCase {
         check(["a": [[Any](), [pt(3, 4, 5)]]], direct: true, "empty stroke")
     }
 
+    /// 引擎拼的回包（LibraryInkWire）：同一份点，平铺形状过边界（EngineValue.any）后新路解出的 = 旧形状过边界后原路解出的，逐位相同。
+    /// 点：w 全有 / 全无 / 混着、空笔、一个点、没有笔画的记录、x / y / w 里夹 NaN / ±∞（引擎丢掉或当缺省）、±0（EngineValue.any 把 −0 装成整数 0，两种形状同此）、
+    /// 极大极小的有限数、2^53 附近与 9e15 附近的整数、随机位型。
+    func testEngineFlatPayloadsDecodeLikeTheLegacyPayload() {
+        var rng = WebInkTestRNG(state: 20261106)
+        let specials: [Double] = [0, -0.0, 1, -1, 0.5, 0.1, 1.0 / 3, 345, -345, .greatestFiniteMagnitude, -.greatestFiniteMagnitude, .leastNonzeroMagnitude,
+                                  -.leastNonzeroMagnitude, .leastNormalMagnitude, 9e15, -9e15, 8999999999999999, 9007199254740992, -9007199254740992, 9007199254740994, 1e-300]
+        let bad: [Double] = [.nan, .infinity, -.infinity]
+        func finite() -> Double {
+            switch rng.next() % 4 {
+            case 0: return specials[Int(rng.next() % UInt64(specials.count))]
+            case 1: return Double.random(in: 0...345, using: &rng)
+            case 2: return (Double.random(in: 0...3450, using: &rng)).rounded() / 10
+            default:
+                while true {
+                    let d = Double(bitPattern: rng.next())
+                    if d.isFinite { return d }
+                }
+            }
+        }
+        func value(_ badRate: UInt64) -> Double { badRate > 0 && rng.next() % badRate == 0 ? bad[Int(rng.next() % 3)] : finite() }
+        func stroke() -> [InkPoint] {
+            let n = Int(rng.next() % 30), mode = rng.next() % 5, badRate: UInt64 = rng.next() % 3 == 0 ? 0 : 1 + rng.next() % 40
+            return (0..<n).map { _ in
+                let w: Double?
+                switch mode {
+                case 0: w = value(badRate)
+                case 1: w = nil
+                case 2: w = rng.next() % 2 == 0 ? value(badRate) : nil
+                case 3: w = rng.next() % 40 == 0 ? nil : value(badRate)
+                default: w = rng.next() % 40 == 0 ? value(0) : nil
+                }
+                return InkPoint(x: value(badRate), y: value(badRate), w: w)
+            }
+        }
+        func payloads(_ records: [(String, [[InkPoint]])]) -> (flat: [String: Any], legacy: [String: Any]) {
+            var flat = JSObject(), legacy = JSObject()
+            for (id, strokes) in records {
+                if let v = LibraryInkWire.record(strokes) { flat[id] = v }
+                if let v = LibraryInkWire.record(strokes, legacy: true) { legacy[id] = v }
+            }
+            return (EngineValue.any(.object(flat)) as? [String: Any] ?? ["?": "not a dictionary"], EngineValue.any(.object(legacy)) as? [String: Any] ?? ["?": "not a dictionary"])
+        }
+        func checkRecords(_ records: [(String, [[InkPoint]])], _ what: String) {
+            let (flat, legacy) = payloads(records)
+            check(flat, legacy: legacy, direct: true, what)
+            check(legacy, direct: true, "\(what) (legacy)")
+        }
+        checkRecords([], "no records")
+        checkRecords([("a", [])], "a record without strokes")
+        checkRecords([("a", [[]]), ("b", [[], [InkPoint(x: 1, y: 2, w: 3)]])], "empty strokes")
+        checkRecords([("a", [[InkPoint(x: 1, y: 2, w: 3)]]), ("b", [[InkPoint(x: 1, y: 2)]])], "single points")
+        checkRecords([("a", [[InkPoint(x: -0.0, y: 0, w: -0.0), InkPoint(x: 0, y: -0.0, w: 0)], [InkPoint(x: -0.0, y: -0.0)]])], "signed zeros")
+        checkRecords([("a", [[InkPoint(x: 1, y: 2, w: 3), InkPoint(x: 4, y: 5)], [InkPoint(x: 1, y: 2, w: .nan), InkPoint(x: 4, y: 5, w: 6)]])], "mixed w")
+        checkRecords([("a", [[InkPoint(x: .nan, y: 2, w: 3), InkPoint(x: 4, y: .infinity)], [InkPoint(x: .nan, y: 2), InkPoint(x: 4, y: 5, w: 6)]])], "dropped points")
+        checkRecords([("a", [specials.map { InkPoint(x: $0, y: -$0, w: $0) }, specials.map { InkPoint(x: -$0, y: $0) }])], "specials")
+        for round in 0..<120 {
+            let records: [(String, [[InkPoint]])] = (0..<Int(rng.next() % 6)).map { r in ("rec-\(round)-\(r)", (0..<Int(rng.next() % 5)).map { _ in stroke() }) }
+            checkRecords(records, "random #\(round)")
+        }
+    }
+
+    /// 不是引擎拼出来的平铺（App 里别的来源、−0 的 NSNumber、形状不对）：新路解 = 把它手工展开成旧形状后原路解；展开不了的 = 原路解原样（解不了 = 空）。
+    func testFlatEdgeShapesDecodeLikeTheirLegacyExpansion() {
+        let negZero = NSNumber(value: -0.0)
+        func expands(_ what: String, _ flat: [String: Any], _ legacy: [String: Any], direct: Bool) {
+            check(flat, legacy: legacy, direct: direct, what)
+            XCTAssertEqual(bits(LibraryInkView.decodeInk(flat)), bits(LibraryInkView.decodeInk(legacy)), "\(what): new path on both shapes")
+        }
+        expands("xyw", ["a": [[3, 1.5, 2, 3.25, 4, 5, 6] as [Any]]], ["a": [[pt(1.5, 2, 3.25), pt(4, 5, 6)]]], direct: true)
+        expands("xy", ["a": [[2, 1.5, 2, 4, 5] as [Any]]], ["a": [[pt(1.5, 2), pt(4, 5)]]], direct: true)
+        expands("header only", ["a": [[3] as [Any], [2] as [Any]]], ["a": [[Any](), [Any]()]], direct: true)
+        expands("flat and legacy strokes in one record", ["a": [[2, 1, 2] as [Any], [pt(3, 4, 5)]] as [Any]], ["a": [[pt(1, 2)], [pt(3, 4, 5)]]], direct: true)
+        let big = NSNumber(value: Int64(1) << 53)
+        expands("Int64 / Int32 / Int16 numbers", ["a": [[NSNumber(value: Int64(3)), NSNumber(value: Int32(7)), big, NSNumber(value: Int16(-2))] as [Any]]],
+                ["a": [[pt(NSNumber(value: Int32(7)), big, NSNumber(value: Int16(-2)))]]], direct: true)
+        expands("negative zero x", ["a": [[3, negZero, 2, 3] as [Any]]], ["a": [[pt(negZero, 2, 3)]]], direct: false)
+        expands("negative zero w", ["a": [[3, 1, 2, negZero] as [Any]], "b": [[2, 1, 2] as [Any]]], ["a": [[pt(1, 2, negZero)]], "b": [[pt(1, 2)]]], direct: false)
+        let float = NSNumber(value: Float(0.1))
+        expands("float w", ["a": [[3, 1, 2, float] as [Any]]], ["a": [[pt(1, 2, float)]]], direct: false)
+        expands("null w", ["a": [[3, 1, 2, NSNull()] as [Any]]], ["a": [[pt(1, 2, NSNull())]]], direct: false)
+        expands("bool x", ["a": [[2, true, 2] as [Any]]], ["a": [[pt(true, 2)]]], direct: false)
+        let past = NSNumber(value: (Int64(1) << 53) + 1)
+        expands("2^53 + 1", ["a": [[2, past, 2] as [Any]]], ["a": [[pt(past, 2)]]], direct: false)
+        // 不是平铺、也不是旧形状：展开不动，与原路解原样一样（解不了 → 空）
+        func broken(_ what: String, _ ink: [String: Any]) {
+            XCTAssertNil(LibraryInkView.decodeInkDirect(ink), "\(what): direct path not taken")
+            XCTAssertEqual(bits(LibraryInkView.decodeInk(ink)), bits(old(ink)), what)
+        }
+        broken("header 4", ["a": [[4, 1, 2, 3, 4] as [Any]]])
+        broken("header 3, count not a multiple", ["a": [[3, 1, 2] as [Any]]])
+        broken("header 2, count not a multiple", ["a": [[2, 1, 2, 3] as [Any]]])
+        broken("header 2.5", ["a": [[2.5, 1, 2] as [Any]]])
+        broken("header bool", ["a": [[true, 1, 2] as [Any]]])
+        broken("header string", ["a": [["3", 1, 2, 3] as [Any]]])
+        broken("header null", ["a": [[NSNull(), 1, 2] as [Any]]])
+        broken("header -0", ["a": [[negZero, 1, 2] as [Any]]])
+        broken("string inside", ["a": [[2, "1", 2] as [Any]]])
+        broken("one good record, one broken", ["a": [[2, 1, 2] as [Any]], "b": [[3, 1] as [Any]]])
+        XCTAssertTrue(LibraryInkView.decodeInk(["a": [[2, 1, 2] as [Any]], "b": [[3, 1] as [Any]]]).isEmpty, "one broken record empties the whole map, as before")
+    }
+
     /// 直接读不认得的形状：交回原路（结果当然与原路相同；这里也确认确实没走直接读）。
     func testUnrecognisedShapesFallBack() {
         let cases: [(String, [String: Any])] = [

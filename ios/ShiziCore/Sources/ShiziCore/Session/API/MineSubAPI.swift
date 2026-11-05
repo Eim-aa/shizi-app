@@ -15,7 +15,8 @@ extension PageAPI {
             // 一个 recordIndex 给缺省年份、年份列表与这一年的切片共用（原先缺省年份与年报模型各算一遍年份列表，每个候选年份各建一次索引）
             let index = ViewSupport.recordIndex(state, dates: store.dates)
             let year: JSValue? = SessionWrites.integer(a["year"]) ? a["year"] : ViewSupport.annualDefaultYear(state, today: today, index: index)
-            view = try MineSubView.annualView(state, today: today, year: year, policy: Config.policy, inkWire: true, dates: store.dates, index: index)
+            // lazyInk: true（App 年报页）：月段的格不带墨迹、只带 inkKey，页面按需用 view.annual.ink 取；不带 = 整份（每格都带墨迹）
+            view = try MineSubView.annualView(state, today: today, year: year, policy: Config.policy, inkWire: true, lazyInk: a["lazyInk"] == .bool(true), dates: store.dates, index: index)
         }; return JS.obj([("ok", .bool(true)), ("view", view)])
     }
 
@@ -75,6 +76,9 @@ public enum AnnualInkWire {
     }
 
     // MARK: 按需取（view.annual 带 lazyInk + view.annual.ink）
+
+    /// lazyInk 的月段格在 monthCells 里记的「有墨迹」占位（一笔一个点：ImageSelection.points 认它非空；值不进回包）。
+    static let presentMark: JSValue = .array([.array([.number(0)])])
 
     /// 一次 view.annual.ink 最多取几个键（App 一次排版 / 滚动按这个数分批）。
     public static let maxBatch = 256

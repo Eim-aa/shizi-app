@@ -83,11 +83,14 @@ public enum MineSubView {
     }
     /// inkWire = App 回包（view.annual）：每格 ink.points 按 AnnualInkWire 发（平铺；x / y / w 与 DetailView.builtInk 逐位相同）。
     /// 缺省（false）= 原样（ViewOps 的 view.annual-page 与网页对照的回包不变）。
-    public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, dates: Dates) throws -> JSValue {
-        try annualView(state, today: today, year: year, policy: policy, inkWire: inkWire, dates: dates, index: V.recordIndex(state, dates: dates))
+    /// lazyInk（只与 inkWire 一起有效；App 年报页 view.annual 带 lazyInk: true）：月段的格不带墨迹——ink 是 null，有墨迹的格多一个 inkKey
+    /// （AnnualInkWire.key：「月|id」），页面按需用 view.annual.ink 取。别的一概不变：mode（hand / under）、label、格的顺序与个数、今年首字与卷尾两格的墨迹。
+    /// 把每格的 ink 换成 {points: view.annual.ink 取回的}（null → null）、去掉 inkKey，就是不带 lazyInk 的那份，逐字节相同（AnnualLazyInkTests）。
+    public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, lazyInk: Bool = false, dates: Dates) throws -> JSValue {
+        try annualView(state, today: today, year: year, policy: policy, inkWire: inkWire, lazyInk: lazyInk, dates: dates, index: V.recordIndex(state, dates: dates))
     }
     /// index：调用方已用同一 state / dates 建好的 recordIndex（MineSubAPI 挑缺省年份时建的那个）。
-    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, dates: Dates, index: ViewSupport.RecordIndex) throws -> JSValue {
+    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, lazyInk: Bool = false, dates: Dates, index: ViewSupport.RecordIndex) throws -> JSValue {
         // 年报每月的成员要算两遍（模型里数成员、这里取格），全量平铺一次给它们共用
         let rows = ImageSelection.monthRows(state)
         let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: index, rows: rows)
@@ -95,15 +98,29 @@ public enum MineSubView {
         // inkWire：记的是 AnnualInkWire.built（平铺的 ink.points）。它与 DetailView.builtInk 同样只取决于 state.ink[月][id]、
         // 同时为 nil、同处抛同一个错，所以 monthCells 里 imagePlan 判有无墨迹（只看是不是 nil）的结果不变；月段的格只取 ch / record 与格数，墨迹在下面 cell 里另取。
         let ink = inkWire ? RecordInkMemo(timeZone: dates.timeZone, { (r: JSValue?) throws -> JSValue? in try AnnualInkWire.built(state, record: r, dates: dates) }) : RecordInkMemo.builtInk(state, dates: dates)
+        // lazyInk：月段的格只问「AnnualInkWire.built 会不会非 nil」（DetailView.builtInkPresent：解码、不重采样、不建点；同真假、同处抛同一个错），
+        // 记的是 present（非 nil 的占位 = 一笔一个点的数组：monthCells 里 imagePlan 判有无墨迹只看它是不是有非空一笔的数组，月段的格不读它的值）。
+        let present: RecordInkMemo? = inkWire && lazyInk ? RecordInkMemo(timeZone: dates.timeZone, { (r: JSValue?) throws -> JSValue? in try DetailView.builtInkPresent(state, record: r, dates: dates) ? AnnualInkWire.presentMark : nil }) : nil
         func points(_ r: JSValue?) throws -> JSValue { try ink.get(r).map { V.obj([("points", $0)]) } ?? .null }
-        func cell(_ ch: JSValue, _ r: JSValue?) throws -> JSValue { let p = try points(r); var c = try cellModel(ch, record: r, mode: .string(JS.truthy(p) ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates); c["ink"] = p; return .object(c) }
+        func cell(_ ch: JSValue, _ r: JSValue?) throws -> JSValue {
+            if let present {
+                let has = try present.get(r) != nil
+                var c = try cellModel(ch, record: r, mode: .string(has ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates)
+                // ink 留着 cellModel 给的 null（键序不变）；有墨迹的格给墨迹键。有墨迹就一定有墨迹位置（built 非 nil ⇒ state.ink[月][id] 在）；万一没有，照旧带上墨迹
+                if has {
+                    if let key = AnnualInkWire.key(r, timeZone: dates.timeZone) { c["inkKey"] = .string(key) } else { c["ink"] = try points(r) }
+                }
+                return .object(c)
+            }
+            let p = try points(r); var c = try cellModel(ch, record: r, mode: .string(JS.truthy(p) ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates); c["ink"] = p; return .object(c)
+        }
         var first: JSValue = .null
         if let f = m["first"], JS.truthy(f) {
             let p = try points(f["record"]), ch = f["char"]!, date = try dayTextRef(f["day"]!, dates: dates)
             first = V.obj([("char", ch), ("day", f["day"]!), ("recordId", f["record"]?["id"] ?? .string("")), ("ink", p), ("label", V.ref(JS.truthy(p) ? "X-ANNUAL.firstInk" : "X-ANNUAL.firstNoInk", V.obj([("char", ch)]))), ("date", JS.truthy(p) ? V.ref("R-M06.inkDate", V.obj([("date", date)])) : date)])
         }
         let months = try m["months"]!.arrayValue!.map { month -> JSValue in
-            let r = try monthCells(state, month: JS.string(month["month"]), policy: policy, dates: dates, ink: ink, rows: rows), raw = r["cells"]?.arrayValue ?? [], n = JSValue.number(Double(raw.count)), mn = month["monthNum"]!
+            let r = try monthCells(state, month: JS.string(month["month"]), policy: policy, dates: dates, ink: present ?? ink, rows: rows), raw = r["cells"]?.arrayValue ?? [], n = JSValue.number(Double(raw.count)), mn = month["monthNum"]!
             return V.obj([("month", month["month"]!), ("monthNum", mn), ("n", n), ("name", V.ref("X-WORK.annualMonthName", V.obj([("month", mn)]))), ("count", V.ref("X-WORK.annualMonthCount", V.obj([("n", n)]))), ("aria", V.ref("X-WORK.annualMonthAria", V.obj([("month", mn), ("n", n)]))), ("cells", .array(try raw.map { try cell($0["ch"]!, $0["record"]) }))])
         }
         var twice: JSValue = .null

@@ -26,10 +26,10 @@ final class LibraryListRowView: UIView {
     let caption = UILabel()
     /// 行尾的 ›（网页 Chevron：8 × 13，在行本体里最后一个）。
     let chevron = UIImageView()
-    private let dot = UIView()
-    private let check = UIImageView()
+    let dot = UIView()
+    let check = UIImageView()
     /// 行底的分隔线（网页 .sz-lrow 的 border-bottom：1px line）。
-    private let separator = CALayer()
+    let separator = CALayer()
     /// 圆点填色（选中 = ink1；网页 .sz-lrow__dot[aria-checked="true"] 的 background）。
     var dotInk: UIColor = .label
 
@@ -151,6 +151,8 @@ final class LibraryListScreen: ShiziScreenViewController {
     /// 行首标准字的字形图（每次重拉都要给每行一张；输入没变就用上次那张）。
     private let glyphCache = LibraryGlyphCache()
     private var rowViews: [LibraryListRowView] = []
+    /// 最近一次排版算出的全部行的框。
+    private(set) var list = RowsLayout()
     /// 勾选（nil = 默认「最该练的前 N 个」；数组 = 用户自己选的）。
     private var sel: [String]?
     /// 「其余 N 个字」展开。
@@ -324,61 +326,68 @@ final class LibraryListScreen: ShiziScreenViewController {
             wire(rv.select) { [weak rv] page in (page as? LibraryListScreen)?.toggleSelect(rv) }
             wire(rv.open) { [weak rv] page in (page as? LibraryListScreen)?.openDetail(rv) }
         }
-        let mt = metrics
-        let check = LibraryIcon.check(color("paper"))
-        let charSide = 44 * LibraryCommon.scaleK()
-        let chevron = ShiziChevron.image(color("ink4"), size: CGSize(width: 8, height: 13))
-        for (i, row) in shown.enumerated() {
-            let rv = rowViews[i]
-            rv.select.composed = ""
-            rv.select.lineFont = mt.font(15)
-            rv.select.setTitleColor(color("ink1"), for: .normal)
-            rv.select.accessibilityLabel = t(row.selected ? "X-QUERY.unselectAria" : "X-QUERY.selectAria", ["char": row.char])
-            rv.select.isEnabled = row.selectable
-            rv.select.alpha = row.selectable ? 1 : 0
-            rv.dotInk = color("ink1")
-            rv.layoutDot(selected: row.selected, line: color("ink4"))
-            rv.thumb.backgroundColor = color("sheet")
-            rv.thumb.layer.borderWidth = mt.value("frame-w")
-            rv.thumb.layer.borderColor = color("frame").resolvedColor(with: traitCollection).cgColor
-            // 勾（网页 .sz-lrow__dot 里的对勾：14 × 14，在 44 × 44 的圆点钮里居中）
-            rv.select.iconSize = CGSize(width: 14, height: 14)
-            rv.select.iconCentered = true
-            rv.select.setImage(row.selected ? check : nil, for: .normal)
-            rv.layoutDot(selected: row.selected, line: color("ink4"))
-            rv.chevron.image = chevron
-            let w = row.word
-            let wordText = w.has ? w.pre + w.tg + w.post : ""
-            rv.word.numberOfLines = 0
-            NativeType.set(rv.word, wordText, font: ShiziFonts.kai(size: mt.value("fs22")), color: color("ink2"), line: mt.line("lh22"))
-            ShiziFonts.untrack(rv.word)
-            rv.meta.numberOfLines = 0
-            // 网页 .sz-lrow__meta 有 font-variant-numeric:tabular-nums（数字等宽；大字号下影响折行）
-            NativeType.set(rv.meta, row.meta.text, font: mt.fontTabular(15), color: color("ink2"), line: mt.line("lh15"))
-            rv.noInk.numberOfLines = 2
-            NativeType.set(rv.noInk, t("R-D07.noInkLabel"), font: mt.font(11), color: color("ink3"), align: .center, line: mt.line("lh11"))
-            rv.caption.numberOfLines = 1
-            NativeType.set(rv.caption, row.thumbCaption.text, font: mt.font(11), color: color("ink3"), line: mt.line("lh11"))
-            let strokes = inkStrokes[row.recordId] ?? []
-            rv.inkView.strokes = strokes
-            rv.inkView.ink = color("hand")
-            rv.noInk.isHidden = !strokes.isEmpty
-            rv.inkView.isHidden = strokes.isEmpty
-            rv.caption.isHidden = row.noThumb || row.thumbCaption.text.isEmpty
-            // 整行的文字（读屏名 / 取证的文案）：字 · 词语 · 小字 · 「写错那次」
-            var parts = [row.char]
-            if w.has { parts.append(wordText) }
-            parts.append(row.meta.text)
-            if !row.thumbCaption.text.isEmpty { parts.append(row.thumbCaption.text) }
-            rv.open.composed = parts.joined(separator: " ")
-            rv.open.lineFont = mt.font(15)
-            rv.open.setTitleColor(color("ink1"), for: .normal)
-            // 标准字（网页 .sz-lrow__char 的字形 svg；按钮的图标就是它）
-            rv.open.iconSize = CGSize(width: charSide, height: charSide)
-            rv.open.iconAtLeading = true
-            rv.open.setImage(glyphCache.image(row.char, size: charSide, face: 0.7, color: color("ink1")), for: .normal)
-        }
+        rowCheckImage = LibraryIcon.check(color("paper"))
+        rowChevronImage = ShiziChevron.image(color("ink4"), size: CGSize(width: 8, height: 13))
+        for (i, row) in shown.enumerated() { configureRowContent(rowViews[i], row) }
         glyphCache.endPass()
+    }
+
+    /// 行里的勾（选中时圆点里的纸色对勾）与行尾的 ›：每次渲染画一张，各行共用（按此刻的外观）。
+    private var rowCheckImage: UIImage?
+    private var rowChevronImage: UIImage?
+
+    /// 一行的内容：勾选（圆点 / 勾 / 读屏名）、笔迹小图的框色与笔画、词语 / 小字 / 说明的字、整行的文字、标准字的字形图。
+    /// 框在 configureRowLayout。行可能是别的行用过的：这里配的每一样都重设（不留上一行的状态）。
+    private func configureRowContent(_ rv: LibraryListRowView, _ row: View.Row) {
+        let mt = metrics
+        let charSide = 44 * LibraryCommon.scaleK()
+        rv.select.composed = ""
+        rv.select.lineFont = mt.font(15)
+        rv.select.setTitleColor(color("ink1"), for: .normal)
+        rv.select.accessibilityLabel = t(row.selected ? "X-QUERY.unselectAria" : "X-QUERY.selectAria", ["char": row.char])
+        rv.select.isEnabled = row.selectable
+        rv.select.alpha = row.selectable ? 1 : 0
+        rv.dotInk = color("ink1")
+        rv.layoutDot(selected: row.selected, line: color("ink4"))
+        rv.thumb.backgroundColor = color("sheet")
+        rv.thumb.layer.borderWidth = mt.value("frame-w")
+        rv.thumb.layer.borderColor = color("frame").resolvedColor(with: traitCollection).cgColor
+        // 勾（网页 .sz-lrow__dot 里的对勾：14 × 14，在 44 × 44 的圆点钮里居中）
+        rv.select.iconSize = CGSize(width: 14, height: 14)
+        rv.select.iconCentered = true
+        rv.select.setImage(row.selected ? rowCheckImage : nil, for: .normal)
+        rv.layoutDot(selected: row.selected, line: color("ink4"))
+        rv.chevron.image = rowChevronImage
+        let w = row.word
+        let wordText = w.has ? w.pre + w.tg + w.post : ""
+        rv.word.numberOfLines = 0
+        NativeType.set(rv.word, wordText, font: ShiziFonts.kai(size: mt.value("fs22")), color: color("ink2"), line: mt.line("lh22"))
+        ShiziFonts.untrack(rv.word)
+        rv.meta.numberOfLines = 0
+        // 网页 .sz-lrow__meta 有 font-variant-numeric:tabular-nums（数字等宽；大字号下影响折行）
+        NativeType.set(rv.meta, row.meta.text, font: mt.fontTabular(15), color: color("ink2"), line: mt.line("lh15"))
+        rv.noInk.numberOfLines = 2
+        NativeType.set(rv.noInk, t("R-D07.noInkLabel"), font: mt.font(11), color: color("ink3"), align: .center, line: mt.line("lh11"))
+        rv.caption.numberOfLines = 1
+        NativeType.set(rv.caption, row.thumbCaption.text, font: mt.font(11), color: color("ink3"), line: mt.line("lh11"))
+        let strokes = inkStrokes[row.recordId] ?? []
+        rv.inkView.strokes = strokes
+        rv.inkView.ink = color("hand")
+        rv.noInk.isHidden = !strokes.isEmpty
+        rv.inkView.isHidden = strokes.isEmpty
+        rv.caption.isHidden = row.noThumb || row.thumbCaption.text.isEmpty
+        // 整行的文字（读屏名 / 取证的文案）：字 · 词语 · 小字 · 「写错那次」
+        var parts = [row.char]
+        if w.has { parts.append(wordText) }
+        parts.append(row.meta.text)
+        if !row.thumbCaption.text.isEmpty { parts.append(row.thumbCaption.text) }
+        rv.open.composed = parts.joined(separator: " ")
+        rv.open.lineFont = mt.font(15)
+        rv.open.setTitleColor(color("ink1"), for: .normal)
+        // 标准字（网页 .sz-lrow__char 的字形 svg；按钮的图标就是它）
+        rv.open.iconSize = CGSize(width: charSide, height: charSide)
+        rv.open.iconAtLeading = true
+        rv.open.setImage(glyphCache.image(row.char, size: charSide, face: 0.7, color: color("ink1")), for: .normal)
     }
 
     // MARK: 动作
@@ -465,7 +474,7 @@ final class LibraryListScreen: ShiziScreenViewController {
     // MARK: 排版
 
     /// 一行的排版（网页 .sz-lrow 的流：勾选钮 → 行本体 → 标准字 → 词语 / 小字 → 笔迹小图 → ›）。
-    private struct RowBox {
+    struct RowBox: Equatable {
         var rowHeight: CGFloat      // 行高（行本体的高 + 行底 1px 分隔线）
         var openHeight: CGFloat      // 行本体（按钮）的高
         var mainWidth: CGFloat
@@ -478,9 +487,41 @@ final class LibraryListScreen: ShiziScreenViewController {
         var hasThumb: Bool
     }
 
+    /// 清单的排版结果：每行的框（纯几何，排版时一次算完全部行；视图按它摆）。
+    struct RowsLayout {
+        /// 清单（网页 .sz-list__rows）在 content 里的上沿（= 顶边 1px 分隔线的上沿）与高（含顶线）。
+        var top: CGFloat = 0
+        var height: CGFloat = 0
+        /// 每行在 content 里的框（行本体 + 行底 1px 分隔线），按行的顺序；第一行从顶线下面开始。
+        var frames: [CGRect] = []
+        /// 每行行内的排版。
+        var boxes: [RowBox] = []
+        /// 每行的数据（排这一版时显示的行：「其余」折叠时只有「先练这些」）。
+        var data: [View.Row] = []
+
+        /// 行的平均高。
+        var averageRowHeight: CGFloat { frames.isEmpty ? 0 : (height - 1) / CGFloat(frames.count) }
+    }
+
+    /// 全部行的框：只算数，不碰视图。top = 清单顶线的上沿（content 坐标），x / width = 页边与正文宽。
+    func rowsLayout(_ shown: [View.Row], width: CGFloat, x: CGFloat, top: CGFloat) -> RowsLayout {
+        var out = RowsLayout()
+        out.top = top
+        out.data = shown
+        out.boxes = shown.map { rowBox($0, width: width) }
+        out.height = out.boxes.reduce(0) { $0 + $1.rowHeight } + 1
+        out.frames.reserveCapacity(out.boxes.count)
+        var y = top + 1
+        for box in out.boxes {
+            out.frames.append(CGRect(x: x, y: y, width: width, height: box.rowHeight))
+            y += box.rowHeight
+        }
+        return out
+    }
+
     /// 网页 .sz-lrow 的高度：行本体的内容（标准字 / 词语 + 小字 / 笔迹小图）取最高的那个，加上下内边距 20；行本体最小 84。
     /// 大字号时词语与小字折行（网页同），行随内容长高。
-    private func rowBox(_ row: View.Row, width: CGFloat) -> RowBox {
+    func rowBox(_ row: View.Row, width: CGFloat) -> RowBox {
         let mt = metrics
         let charSide = 44 * LibraryCommon.scaleK()
         let captionW = row.noThumb ? 0 : LibraryCommon.textWidth(row.thumbCaption.text, mt.font(11))
@@ -527,15 +568,19 @@ final class LibraryListScreen: ShiziScreenViewController {
         y += topH
         y += mt.space(6) // .sz-list 的 gap s6
         // .sz-list__rows（顶边 1px 分隔线）
+        // 先把全部行的框算好（纯几何），再按框摆
         let shown = restOpen ? m.rows : m.rows.filter { $0.group == "top" }
         let rowsTop = y
-        let boxes = shown.map { rowBox($0, width: width) }
-        let rowsH = boxes.reduce(0) { $0 + $1.rowHeight } + 1
+        let list = rowsLayout(shown, width: width, x: x, top: rowsTop)
+        self.list = list
+        let rowsH = list.height
         rowsMarker.frame = CGRect(x: x, y: rowsTop, width: width, height: rowsH)
         rowsTopLine.isHidden = false
         rowsTopLine.backgroundColor = color("line")
         rowsTopLine.frame = CGRect(x: x, y: rowsTop, width: width, height: 1)
-        layoutRows(width: width, x: x, rowsTop: rowsTop + 1, boxes: boxes)
+        for (i, rv) in rowViews.enumerated() where i < list.frames.count {
+            configureRowLayout(rv, list.boxes[i], frame: list.frames[i])
+        }
         y = rowsTop + rowsH
         if m.restCount > 0 {
             y += mt.space(6) // .sz-list 的 gap s6（「其余 N 个字」前）
@@ -555,50 +600,47 @@ final class LibraryListScreen: ShiziScreenViewController {
         return y
     }
 
-    /// 行内排版（网页 .sz-lrow 的流：勾选钮 → 行本体 → 标准字 → 词语 / 小字 → 笔迹小图 → ›）。
-    private func layoutRows(width: CGFloat, x: CGFloat, rowsTop: CGFloat, boxes: [RowBox]) {
+    /// 一行的框（网页 .sz-lrow 的流：勾选钮 → 行本体 → 标准字 → 词语 / 小字 → 笔迹小图 → ›）与按折行点排好的小字。
+    /// frame = 这一行在 content 里的框（RowsLayout.frames）。要在 configureRowContent 之后（说明句的宽按它配的字量）。
+    private func configureRowLayout(_ rv: LibraryListRowView, _ box: RowBox, frame: CGRect) {
         let mt = metrics
         let charSide = 44 * LibraryCommon.scaleK()
-        var y = rowsTop
-        for (i, rv) in rowViews.enumerated() {
-            guard i < boxes.count else { break }
-            let box = boxes[i]
-            rv.frame = CGRect(x: x, y: y, width: width, height: box.rowHeight)
-            rv.select.frame = CGRect(x: -9, y: (box.openHeight - 44) / 2, width: 44, height: 44)
-            rv.open.frame = CGRect(x: 39, y: 0, width: width - 39, height: box.openHeight)
-            rv.layoutSeparator(height: 1, color: color("line"))
-            let contentH = box.openHeight - 20
-            // 词语 / 小字（网页 .sz-lrow__main：竖排两段 + s1 间隔，垂直居中）
-            let mainX = charSide + 12
-            let mainY = 10 + (contentH - box.mainHeight) / 2
-            rv.word.frame = CGRect(x: mainX, y: mainY, width: box.mainWidth, height: box.wordHeight)
-            // 小字：按网页的折行点换行（TextKit 会把「10」这样的数字串拆开，网页 WebKit 不拆）
-            let metaText = box.metaLines.joined(separator: "\n")
-            rv.meta.numberOfLines = 0
-            NativeType.set(rv.meta, metaText, font: mt.fontTabular(15), color: color("ink2"), line: mt.line("lh15"))
-            let metaW = max(box.mainWidth, box.metaLines.map { LibraryCommon.textWidth($0, mt.fontTabular(15)) }.max() ?? 0)
-            rv.meta.frame = CGRect(x: mainX, y: mainY + box.wordHeight + (box.wordHeight > 0 ? mt.space(1) : 0), width: metaW, height: box.metaHeight)
-            // 笔迹小图（网页 .sz-lrow__thumbcol：方图 + 说明句，竖排）
-            if box.hasThumb {
-                let columnX = mainX + box.mainWidth + 12
-                let columnY = 10 + (contentH - box.columnHeight) / 2
-                let thumbX = columnX + (box.columnWidth - 44) / 2
-                rv.thumb.isHidden = false
-                rv.thumb.frame = CGRect(x: thumbX, y: columnY, width: 44, height: 44)
-                rv.inkView.frame = CGRect(x: thumbX, y: columnY, width: 44, height: 44)
-                rv.noInk.frame = CGRect(x: thumbX + (44 - 26.4) / 2, y: columnY, width: 26.4, height: 44)
-                rv.caption.frame = CGRect(x: columnX + (box.columnWidth - rv.caption.intrinsicContentSize.width) / 2, y: columnY + 44 + 2,
-                                         width: rv.caption.intrinsicContentSize.width, height: mt.line("lh11"))
-            } else {
-                rv.thumb.isHidden = true
-                rv.inkView.frame = .zero
-                rv.noInk.frame = .zero
-                rv.caption.frame = .zero
-            }
-            // 行尾的 ›（网页 Chevron：8 × 13，垂直居中）
-            rv.chevron.frame = CGRect(x: width - 39 - 8, y: 10 + (contentH - 13) / 2, width: 8, height: 13)
-            y += box.rowHeight
+        let width = frame.width
+        rv.frame = frame
+        rv.select.frame = CGRect(x: -9, y: (box.openHeight - 44) / 2, width: 44, height: 44)
+        rv.open.frame = CGRect(x: 39, y: 0, width: width - 39, height: box.openHeight)
+        rv.layoutSeparator(height: 1, color: color("line"))
+        let contentH = box.openHeight - 20
+        // 词语 / 小字（网页 .sz-lrow__main：竖排两段 + s1 间隔，垂直居中）
+        let mainX = charSide + 12
+        let mainY = 10 + (contentH - box.mainHeight) / 2
+        rv.word.frame = CGRect(x: mainX, y: mainY, width: box.mainWidth, height: box.wordHeight)
+        // 小字：按网页的折行点换行（TextKit 会把「10」这样的数字串拆开，网页 WebKit 不拆）
+        let metaText = box.metaLines.joined(separator: "\n")
+        rv.meta.numberOfLines = 0
+        NativeType.set(rv.meta, metaText, font: mt.fontTabular(15), color: color("ink2"), line: mt.line("lh15"))
+        let metaW = max(box.mainWidth, box.metaLines.map { LibraryCommon.textWidth($0, mt.fontTabular(15)) }.max() ?? 0)
+        rv.meta.frame = CGRect(x: mainX, y: mainY + box.wordHeight + (box.wordHeight > 0 ? mt.space(1) : 0), width: metaW, height: box.metaHeight)
+        // 笔迹小图（网页 .sz-lrow__thumbcol：方图 + 说明句，竖排）
+        if box.hasThumb {
+            let columnX = mainX + box.mainWidth + 12
+            let columnY = 10 + (contentH - box.columnHeight) / 2
+            let thumbX = columnX + (box.columnWidth - 44) / 2
+            rv.thumb.isHidden = false
+            rv.thumb.frame = CGRect(x: thumbX, y: columnY, width: 44, height: 44)
+            rv.inkView.frame = CGRect(x: thumbX, y: columnY, width: 44, height: 44)
+            rv.noInk.frame = CGRect(x: thumbX + (44 - 26.4) / 2, y: columnY, width: 26.4, height: 44)
+            rv.caption.frame = CGRect(x: columnX + (box.columnWidth - rv.caption.intrinsicContentSize.width) / 2, y: columnY + 44 + 2,
+                                     width: rv.caption.intrinsicContentSize.width, height: mt.line("lh11"))
+        } else {
+            rv.thumb.isHidden = true
+            rv.thumb.frame = .zero // 藏着（不画）；清掉上一行的框，用过的行与新建的行状态相同
+            rv.inkView.frame = .zero
+            rv.noInk.frame = .zero
+            rv.caption.frame = .zero
         }
+        // 行尾的 ›（网页 Chevron：8 × 13，垂直居中）
+        rv.chevron.frame = CGRect(x: width - 39 - 8, y: 10 + (contentH - 13) / 2, width: 8, height: 13)
     }
 
     /// 系统字号档的连续倍率（网页 --k；AX 档的 --fsN 不乘 --k，但格边长乘）。

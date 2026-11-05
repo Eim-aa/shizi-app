@@ -40,12 +40,45 @@ enum ShiziTokens {
         ((root["colors"] as? [String: Any])?[theme.rawValue] as? [String: String]) ?? [:]
     }
 
-    static func color(_ name: String, _ theme: Theme) -> UIColor? { NativeInkWire.uiColor(colorStrings(theme)[name]) }
+    static func color(_ name: String, _ theme: Theme) -> UIColor? {
+        colorLock.lock()
+        defer { colorLock.unlock() }
+        return parsedColor(name, theme)
+    }
 
     /// 随浅 / 深自动切换的颜色（B3 页面用；B2 页面按页面主题取定值）。
+    /// 令牌表（root）是包里的只读资源，同名同主题的解析结果永远相同 → 每个名字只解析一次、同一个对象反复给
+    /// （以前每次调用都把 33 项的颜色表桥接成 Swift 字典再解析两遍十六进制；字库页每格 6 次左右）。
     static func dynamicColor(_ name: String) -> UIColor? {
-        guard let light = color(name, .light), let dark = color(name, .dark) else { return nil }
-        return UIColor { $0.userInterfaceStyle == .dark ? dark : light }
+        colorLock.lock()
+        defer { colorLock.unlock() }
+        if let hit = dynamicColors[name] { return hit }
+        var made: UIColor?
+        if let light = parsedColor(name, .light), let dark = parsedColor(name, .dark) {
+            made = UIColor { $0.userInterfaceStyle == .dark ? dark : light }
+        }
+        dynamicColors.updateValue(made, forKey: name) // 没有的名字也记下（nil）
+        return made
+    }
+
+    /// 解析过的颜色（名字 → 颜色；没有这个令牌 / 解析不了 = nil，也记下）。读写都在 colorLock 里。
+    private static let colorLock = NSLock()
+    private static var lightColors: [String: UIColor?] = [:]
+    private static var darkColors: [String: UIColor?] = [:]
+    private static var dynamicColors: [String: UIColor?] = [:]
+
+    /// 调用方已持有 colorLock。
+    private static func parsedColor(_ name: String, _ theme: Theme) -> UIColor? {
+        switch theme {
+        case .light: if let hit = lightColors[name] { return hit }
+        case .dark: if let hit = darkColors[name] { return hit }
+        }
+        let made = NativeInkWire.uiColor(colorStrings(theme)[name])
+        switch theme {
+        case .light: lightColors.updateValue(made, forKey: name)
+        case .dark: darkColors.updateValue(made, forKey: name)
+        }
+        return made
     }
 
     // MARK: 字阶

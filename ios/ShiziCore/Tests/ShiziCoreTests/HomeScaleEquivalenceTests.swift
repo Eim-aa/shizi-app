@@ -319,6 +319,14 @@ final class HomeScaleEquivalenceTests: XCTestCase {
         same(l + " remind.recordsOf", { .array(Reminder.recordsOf(st)) }, { .array(Ref.recordsOf(st)) })
     }
 
+    /// DetailView.cellInk（每格墨迹只解一次）= 原来的 (hasInkPoints(inkOf(…)), has ? sheetStrokes(…) : [])，逐条记录比。
+    private func checkCellInk(_ st: JSValue, dates: Dates, label: String) {
+        for (i, r) in Query.flattenRecords(st["records"]).enumerated() {
+            same(label + " detail.cellInk #\(i)", { let w = try DetailView.cellInk(st, r, dates: dates); return .array([.bool(w.has), w.strokes]) },
+                 { let has = DetailView.hasInkPoints(try DetailView.inkOf(st, record: r, dates: dates)); return .array([.bool(has), has ? try QueryView.sheetStrokes(st, r, dates: dates) : .array([])]) })
+        }
+    }
+
     // MARK: - 时刻
 
     /// day 当天 0 点（dates 的时区）；day 不合法返回 nil。
@@ -529,6 +537,7 @@ final class HomeScaleEquivalenceTests: XCTestCase {
             let fold = months.count > 2 ? (round / 2) % 3 : 0
             let gen = try Self.randomState(g, months: months, perMonth: [6, 25, 60][round % 3], pool: pool, fold: fold, adversarial: adversarial)
             let dates = Self.zones[round % Self.zones.count]
+            checkCellInk(gen.state, dates: dates, label: "random#\(round)")
             for now in Self.moments(gen.days, dates, g, pick: 3) {
                 checkAll(gen.state, dates: dates, now: now, chars: gen.chars, label: "random#\(round) adversarial=\(adversarial) fold=\(fold)", reminds: Self.remindVariants(g))
             }
@@ -566,6 +575,7 @@ final class HomeScaleEquivalenceTests: XCTestCase {
                     for now in Self.moments(days, dates, g, pick: 2) {
                         checkAll(st, dates: dates, now: now, chars: chars, label: "\(name) tz=\(dates.timeZone.identifier) state#\(i)", reminds: Self.remindVariants(g))
                     }
+                    checkCellInk(st, dates: dates, label: "\(name) tz=\(dates.timeZone.identifier) state#\(i)")
                     states += 1
                 }
             }

@@ -39,7 +39,7 @@ public enum DetailView {
     }
     public static func detailModel(_ state: JSValue, char: String, today: String, policy: JSValue, hasInk: InkPick.HasInk = { _ in false }, dates: Dates) throws -> JSValue {
         let key = "base:"+char, base = DeckCards.shared.cardForKey(key), off = state["wordOff"]?[key] != nil, card = DeckCards.withWordOff(base, state["wordOff"])
-        let all = Query.flattenRecords(state["records"]), judged = recordsOfChar(state, char: char).filter(Records.isJudged), latest = judged.last
+        let all = Query.flattenRecords(state["records"]), judged = Records.sortById(all.filter { $0["char"] == .string(char) }).filter(Records.isJudged), latest = judged.last // = recordsOfChar(state, char:)，只平铺一次
         let screen = judged.filter { !Records.isPaperRecord($0) }, paper = judged.filter(Records.isPaperRecord), inkLatest = screen.last, entry = state["sched"]?[key]
         let due = !judged.isEmpty && JS.truthy(policy["features"]?["nextReviewLine"]) && entry?["due"]?.stringValue != nil ? entry!["due"]! : .null
         let added = state["custom"]?["added"]?.arrayValue ?? [], ci = added.firstIndex { $0["char"] == .string(char) }
@@ -58,10 +58,26 @@ public enum DetailView {
         var cells = [V.obj([("kind", .string("first")), ("record", first)])]
         if first["id"] != last["id"] { cells.append(V.obj([("kind", .string("latest")), ("record", last)])) }; return V.obj([("kind", .string("ink")), ("cells", .array(cells))])
     }
+    /// 一格的墨迹：(有没有可画的点, 有就是 QueryView.sheetStrokes 的笔画，没有是 [])。墨迹只解一次、不做回放重采样。
+    /// = (hasInkPoints(inkOf(state, record: r)), has ? QueryView.sheetStrokes(state, r) : [])：inkOf（没有 recalled）里 points 非空 ⇔ decodeInk 的结果非空
+    /// （resampleForReplay 逐笔映射、笔数不变），strokes 恒为 null；sheetStrokes 取 decodeInkRaw ?? decodeInk ?? []，同一份墨迹 decodeInk 结果相同，直接用这次解出的。
+    /// 抛错与原来同处（decodeInk）。笔画的写法与 sheetStrokes 同（测试里逐格比对）。
+    static func cellInk(_ state: JSValue, _ r: JSValue, dates: Dates) throws -> (has: Bool, strokes: JSValue) {
+        guard JS.truthy(r) else { return (false, JSValue.array([])) }
+        let ink = QueryView.inkOf(state, r, dates: dates)
+        guard let decoded = try InkMath.decodeInk(ink), !decoded.isEmpty else { return (false, JSValue.array([])) }
+        let points = InkMath.decodeInkRaw(ink) ?? decoded
+        return (true, JSValue.array(points.map { .array($0.map { .array([.number($0.x), .number($0.y), .number($0.t ?? 0)] + ($0.p.map { [.number($0)] } ?? [])) }) }))
+    }
     static func changeable(_ r: JSValue) -> Bool { Records.isJudged(r) && !JS.truthy(r["legacy"]) && !Records.isPaperRecord(r) }
     public static func detailView(_ state: JSValue, char: String, today: String, etymology: JSValue?, imageAction: Bool, dates: Dates) throws -> JSValue {
-        let m = try detailModel(state, char: char, today: today, policy: Config.policy, hasInk: { hasInkPoints(try inkOf(state, record: $0, dates: dates)) }, dates: dates), hero = detailHero(m)
-        func wire(_ r: JSValue) throws -> (Bool, JSValue) { let has = hasInkPoints(try inkOf(state, record: r, dates: dates)); return (has, has ? try QueryView.sheetStrokes(state, r, dates: dates) : .array([])) }
+        // hasInk 只问 inkLatest，它随后又是首图那一格：记住最近算过的一格，同一条记录不再解第二次（cellInk 只取决于记录的值与 state）
+        var memo: (record: JSValue, ink: (has: Bool, strokes: JSValue))?
+        func wire(_ r: JSValue) throws -> (has: Bool, strokes: JSValue) {
+            if let hit = memo, hit.record == r { return hit.ink }
+            let w = try cellInk(state, r, dates: dates); memo = (record: r, ink: w); return w
+        }
+        let m = try detailModel(state, char: char, today: today, policy: Config.policy, hasInk: { try wire($0).has }, dates: dates), hero = detailHero(m)
         let heroCells = try hero["cells"]!.arrayValue!.map { c -> JSValue in
             let r = c["record"]!, (has, strokes) = try wire(r), title = cellCopy(r, dates: dates)["title"]!, label = V.ref(c["kind"] == .string("first") ? "X-DETAIL.heroFirst" : "X-DETAIL.heroLatest")
             return V.obj([("kind", c["kind"]!), ("title", title), ("changeable", .bool(changeable(r))), ("recordId", r["id"]!), ("judgment", r["judgment"]!), ("wrong", .bool(r["judgment"] == .string("wrong"))), ("hasInk", .bool(has)), ("strokes", strokes), ("caption", V.ref("X-DETAIL.heroCaption", V.obj([("label", label), ("date", LibraryListView.dateText(r["localDay"], dates: dates))]))), ("aria", V.ref("X-DETAIL.heroCellLabel", V.obj([("label", label), ("text", has ? title : V.ref("X-DETAIL.cellNoInkLabel", V.obj([("text", title)])))])))])

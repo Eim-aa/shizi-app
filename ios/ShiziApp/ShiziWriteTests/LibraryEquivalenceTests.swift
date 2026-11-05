@@ -20,7 +20,7 @@ func libraryColorKey(_ c: UIColor?) -> String {
 @MainActor
 final class LibraryTokenColorCacheTests: XCTestCase {
     /// 每个颜色令牌（两套主题的并集 + 一个不存在的名字）：缓存给的动态色在浅 / 深下解析出的颜色 = 现解析令牌原文；
-    /// 同一个名字反复取是同一个对象（墨迹小图按对象同一判断墨色没变）。
+    /// 同一个名字反复取仍是各自新建的对象（同改动前：UIKit 颜色属性收到新对象才当场重新解析）。
     func testDynamicColorCacheMatchesFreshParse() throws {
         let lightRaw = ShiziTokens.colorStrings(.light), darkRaw = ShiziTokens.colorStrings(.dark)
         let names = Set(lightRaw.keys).union(darkRaw.keys).sorted() + ["no-such-token"]
@@ -41,7 +41,7 @@ final class LibraryTokenColorCacheTests: XCTestCase {
                 XCTAssertEqual(libraryColorKey(dyn.resolvedColor(with: dark)), libraryColorKey(freshDark), "\(name) dynamic dark #\(round)")
             }
             if let a = ShiziTokens.dynamicColor(name) {
-                XCTAssertTrue(a === ShiziTokens.dynamicColor(name), name)
+                XCTAssertFalse(a === ShiziTokens.dynamicColor(name), name)
             }
         }
     }
@@ -51,8 +51,18 @@ final class LibraryTokenColorCacheTests: XCTestCase {
 
 @MainActor
 enum LibraryEq {
+    /// 一张整窗截图：原始像素 + 截图时各层的状态（对不上时打印哪里不同）。
+    struct Shot {
+        let data: Data
+        let width: Int
+        let height: Int
+        let bytesPerRow: Int
+        let scale: CGFloat
+        let layers: [(path: String, line: String, frame: CGRect)]
+    }
+
     /// 整窗截图（drawHierarchy afterScreenUpdates：真的经过一次渲染，看到的是各层此刻的内容）的原始像素。
-    static func snapshot(_ w: UIWindow, file: StaticString = #filePath, line: UInt = #line) throws -> Data {
+    static func snapshot(_ w: UIWindow, file: StaticString = #filePath, line: UInt = #line) throws -> Shot {
         let fmt = UIGraphicsImageRendererFormat.preferred()
         fmt.opaque = true
         var drawn = false
@@ -62,7 +72,81 @@ enum LibraryEq {
         XCTAssertTrue(drawn, "drawHierarchy", file: file, line: line)
         let cg = try XCTUnwrap(img.cgImage, file: file, line: line)
         let data = try XCTUnwrap(cg.dataProvider?.data as Data?, file: file, line: line)
-        return data
+        return Shot(data: data, width: cg.width, height: cg.height, bytesPerRow: cg.bytesPerRow, scale: img.scale, layers: layerDump(w))
+    }
+
+    private static func cgKey(_ c: CGColor?) -> String {
+        guard let c else { return "-" }
+        return libraryColorKey(UIColor(cgColor: c))
+    }
+
+    /// 窗口下每个看得见的层：路径、所属视图（类 / 标识）、窗口坐标、底色、描边、不透明度、内容对象；标签另记字色与视图外观。
+    static func layerDump(_ w: UIWindow) -> [(path: String, line: String, frame: CGRect)] {
+        var out: [(path: String, line: String, frame: CGRect)] = []
+        func walk(_ l: CALayer, _ path: String) {
+            guard !l.isHidden, l.opacity > 0 else { return }
+            let view = l.delegate as? UIView
+            var name = view.map { String(describing: type(of: $0)) } ?? String(describing: type(of: l))
+            if let id = view?.accessibilityIdentifier, !id.isEmpty { name += "#" + id }
+            let frame = l.convert(l.bounds, to: w.layer)
+            var desc = "\(name) frame=\(frame.integral) bg=\(cgKey(l.backgroundColor)) border=\(l.borderWidth)/\(cgKey(l.borderColor)) op=\(l.opacity)"
+            if let c = l.contents {
+                let obj = c as AnyObject
+                desc += " contents=\(String(describing: type(of: obj)))@\(UInt(bitPattern: ObjectIdentifier(obj).hashValue))"
+            }
+            if let v = view { desc += " style=\(v.traitCollection.userInterfaceStyle.rawValue)" }
+            if let lab = view as? UILabel {
+                desc += " text=\(lab.text ?? "") color=\(libraryColorKey(lab.textColor?.resolvedColor(with: lab.traitCollection)))"
+            }
+            out.append((path, desc, frame))
+            for (i, sub) in (l.sublayers ?? []).enumerated() { walk(sub, path + "." + String(i)) }
+        }
+        walk(w.layer, "0")
+        return out
+    }
+
+    /// 两张截图逐字节比；不同就打印差异像素的外框（pt）与前几处状态不同的层（状态全同时打印落在外框里的层）。
+    static func same(_ a: Shot, _ b: Shot, _ label: String) -> Bool {
+        if a.data == b.data { return true }
+        print("[library-eq] MISMATCH \(label)")
+        guard a.width == b.width, a.height == b.height, a.bytesPerRow == b.bytesPerRow, a.data.count == b.data.count else {
+            print("[library-eq]   size differs \(a.width)x\(a.height) vs \(b.width)x\(b.height)")
+            return false
+        }
+        var minX = Int.max, minY = Int.max, maxX = -1, maxY = -1, count = 0
+        a.data.withUnsafeBytes { (pa: UnsafeRawBufferPointer) in
+            b.data.withUnsafeBytes { (pb: UnsafeRawBufferPointer) in
+                for y in 0..<a.height {
+                    let row = y * a.bytesPerRow
+                    for x in 0..<a.width {
+                        let o = row + x * 4
+                        if o + 3 < pa.count, pa[o] != pb[o] || pa[o + 1] != pb[o + 1] || pa[o + 2] != pb[o + 2] || pa[o + 3] != pb[o + 3] {
+                            count += 1
+                            minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+                        }
+                    }
+                }
+            }
+        }
+        let k = max(1, a.scale)
+        let box = maxX < 0 ? CGRect.null : CGRect(x: CGFloat(minX) / k, y: CGFloat(minY) / k, width: CGFloat(maxX - minX + 1) / k, height: CGFloat(maxY - minY + 1) / k)
+        print("[library-eq]   \(count) px differ, box(pt)=\(box)")
+        let before = Dictionary(a.layers.map { ($0.path, $0.line) }, uniquingKeysWith: { x, _ in x })
+        let after = Dictionary(b.layers.map { ($0.path, $0.line) }, uniquingKeysWith: { x, _ in x })
+        var shown = 0
+        for e in b.layers where before[e.path] != e.line && shown < 12 {
+            print("[library-eq]   layer \(e.path)\n      was: \(before[e.path] ?? "(absent)")\n      now: \(e.line)")
+            shown += 1
+        }
+        for e in a.layers where after[e.path] == nil && shown < 12 {
+            print("[library-eq]   layer \(e.path) gone: \(e.line)")
+            shown += 1
+        }
+        if shown == 0, !box.isNull {
+            print("[library-eq]   layer state identical; layers over the box (innermost last):")
+            for e in a.layers.filter({ $0.frame.intersects(box) }).suffix(10) { print("[library-eq]     \(e.path) \(e.line)") }
+        }
+        return false
     }
 
     static func inkViews(_ v: UIView) -> [LibraryInkView] {
@@ -99,7 +183,7 @@ enum LibraryEq {
     static func checkNoStaleInk(_ make: () -> ShiziScreenViewController, steps: [[String: Any]], requireInk: Bool = true,
                                 file: StaticString = #filePath, line: UInt = #line) throws {
         let styles: [UIUserInterfaceStyle] = [.light, .dark]
-        var shots: [Data] = []
+        var shots: [Shot] = []
         do {
             let vc = make()
             let w = LibraryBench.host(vc)
@@ -119,7 +203,8 @@ enum LibraryEq {
                 for v in inkViews(w) { v.setNeedsDisplay() }
                 LibraryBench.settle(w)
                 let forced = try snapshot(w, file: file, line: line)
-                XCTAssertTrue(seq == forced, "\(style.rawValue): sequence vs forced redraw", file: file, line: line)
+                let ok = same(seq, forced, "\(style.rawValue): sequence vs forced redraw")
+                XCTAssertTrue(ok, "\(style.rawValue): sequence vs forced redraw", file: file, line: line)
                 shots.append(seq)
             }
         }
@@ -133,7 +218,8 @@ enum LibraryEq {
             w2.overrideUserInterfaceStyle = style
             LibraryBench.settle(w2)
             let fresh = try snapshot(w2, file: file, line: line)
-            XCTAssertTrue(i < shots.count && shots[i] == fresh, "\(style.rawValue): sequence vs fresh page", file: file, line: line)
+            let ok = i < shots.count && same(shots[i], fresh, "\(style.rawValue): sequence vs fresh page")
+            XCTAssertTrue(ok, "\(style.rawValue): sequence vs fresh page", file: file, line: line)
         }
     }
 }
@@ -144,7 +230,7 @@ final class LibraryInkRedrawGuardTests: XCTestCase {
         (0..<3).map { s in (0..<20).map { j in LibraryInkView.Point(x: Double(j * 7 + s), y: Double(seed + j), w: j % 5 == 0 ? nil : 8.5) } }
     }
 
-    /// 同一份笔画 / 同一个墨色再设一次不标重画；笔画（哪怕一个点、一个 w）或墨色对象变了照旧标重画。
+    /// 同一份笔画 / 同一墨色再设一次不标重画；笔画（哪怕一个点、一个 w）或墨色（按本视图外观解析）变了照旧标重画。
     func testSameStrokesDoNotMarkForRedisplay() {
         let v = LibraryInkView(frame: CGRect(x: 0, y: 0, width: 50, height: 50))
         let ink = UIColor.red
@@ -166,7 +252,16 @@ final class LibraryInkRedrawGuardTests: XCTestCase {
         v.strokes = noW
         XCTAssertTrue(v.layer.needsDisplay())
         v.layer.displayIfNeeded()
-        v.ink = UIColor(red: 1, green: 0, blue: 0, alpha: 1) // 颜色一样、对象不同 → 保守地重画
+        v.ink = UIColor(red: 0, green: 0, blue: 1, alpha: 1) // 颜色变了 → 重画
+        XCTAssertTrue(v.layer.needsDisplay())
+        v.layer.displayIfNeeded()
+        let wall = ShiziTokens.dynamicColor("wall1")
+        v.ink = wall ?? .label
+        XCTAssertTrue(v.layer.needsDisplay())
+        v.layer.displayIfNeeded()
+        v.ink = ShiziTokens.dynamicColor("wall1") ?? .label // 另一个对象、按本视图外观解析出同一颜色 → 不重画
+        XCTAssertFalse(v.layer.needsDisplay())
+        v.ink = ShiziTokens.dynamicColor("wall4") ?? .label
         XCTAssertTrue(v.layer.needsDisplay())
         v.layer.displayIfNeeded()
         v.strokes = []

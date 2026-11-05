@@ -195,8 +195,14 @@ final class LibraryInkView: UIView {
     /// 笔画或墨色真的变了才重画（draw 只读 strokes / ink / bounds；bounds 变由 contentMode = .redraw 重画，浅 / 深切换见 traitCollectionDidChange）。
     /// 同一份笔画再设一次（重拉视图、查字框打一个字）不再把每格墨迹整张重画；点的 == 按 Double 逐字段比（NaN 不等 → 照旧重画）。
     var strokes: [[Point]] = [] { didSet { if strokes != oldValue { setNeedsDisplay() } } }
-    /// 墨色按对象同一比（动态色的 isEqual 不保证同一个提供者；同一个对象画出来必定相同）。
-    var ink: UIColor = .label { didSet { if ink !== oldValue { setNeedsDisplay() } } }
+    /// 墨色：draw 里 ink.cgColor 按本视图此刻的外观解析。新旧两色按本视图的 traitCollection 解析出的 CGColor 相同（CFEqual）
+    /// → 画出来相同，不标重画；外观之后再变由 traitCollectionDidChange 重画（这里的动态色只随浅 / 深、对比度等颜色外观变）。
+    var ink: UIColor = .label {
+        didSet {
+            guard ink !== oldValue else { return }
+            if !CFEqual(ink.resolvedColor(with: traitCollection).cgColor, oldValue.resolvedColor(with: traitCollection).cgColor) { setNeedsDisplay() }
+        }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)

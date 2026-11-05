@@ -47,25 +47,21 @@ enum ShiziTokens {
     }
 
     /// 随浅 / 深自动切换的颜色（B3 页面用；B2 页面按页面主题取定值）。
-    /// 令牌表（root）是包里的只读资源，同名同主题的解析结果永远相同 → 每个名字只解析一次、同一个对象反复给
+    /// 令牌表（root）是包里的只读资源，同名同主题的解析结果永远相同 → 浅 / 深两色每个名字只解析一次
     /// （以前每次调用都把 33 项的颜色表桥接成 Swift 字典再解析两遍十六进制；字库页每格 6 次左右）。
+    /// 动态色本身仍每次新建一个（同以前）：UIKit 的颜色属性收到 isEqual 的同一个对象时可能什么都不做，
+    /// 而以前每次给新对象、属性当场按当前外观重新解析——给同一个对象会改变外观切换时颜色落地的时机。
     static func dynamicColor(_ name: String) -> UIColor? {
         colorLock.lock()
         defer { colorLock.unlock() }
-        if let hit = dynamicColors[name] { return hit }
-        var made: UIColor?
-        if let light = parsedColor(name, .light), let dark = parsedColor(name, .dark) {
-            made = UIColor { $0.userInterfaceStyle == .dark ? dark : light }
-        }
-        dynamicColors.updateValue(made, forKey: name) // 没有的名字也记下（nil）
-        return made
+        guard let light = parsedColor(name, .light), let dark = parsedColor(name, .dark) else { return nil }
+        return UIColor { $0.userInterfaceStyle == .dark ? dark : light }
     }
 
     /// 解析过的颜色（名字 → 颜色；没有这个令牌 / 解析不了 = nil，也记下）。读写都在 colorLock 里。
     private static let colorLock = NSLock()
     private static var lightColors: [String: UIColor?] = [:]
     private static var darkColors: [String: UIColor?] = [:]
-    private static var dynamicColors: [String: UIColor?] = [:]
 
     /// 调用方已持有 colorLock。
     private static func parsedColor(_ name: String, _ theme: Theme) -> UIColor? {

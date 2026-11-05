@@ -89,6 +89,8 @@ final class ConfigDataTests: XCTestCase {
         "nativeStorage.recordsBudgetBytes": "number",
         "nativeStorage.quotaBytes": "number",
         "nativeStorage.inkBudgetBytes": "number",
+        "nativeStorage.freeSpaceWarnBytes": "number",
+        "nativeStorage.freeSpaceFullBytes": "number",
         "features.perRecordInk": "bool",
     ]
 

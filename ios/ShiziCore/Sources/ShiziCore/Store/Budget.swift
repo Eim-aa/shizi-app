@@ -62,6 +62,36 @@ public struct Budgets: Equatable {
     public var js: JSObject { JSObject(Budgets.names.map { ($0, JSValue.number(self[$0])) }) }
 }
 
+/// 原生（App）的存储压力口径（P57）：看设备真实剩余空间，不看估算总量 / quotaBytes——SQLite 没有 64 MiB 上限，
+/// 按估算总量 / 64 MiB 报「快存满了」是网页时代留下的假上限（重度用户攒到几千字就会被吓到）。
+/// 网页 / JS 金样口径（Budget.estimateUsage 的 ratio / level）不变；这条规则只在 Store 挂了 deviceAvailableBytes 时用。
+public struct DeviceSpaceRule: Equatable {
+    /// 剩余空间低于这个值：warn（「我的 › 备份」行建议导出备份）。
+    public var warnBelowBytes: Double
+    /// 剩余空间低于这个值：full。
+    public var fullBelowBytes: Double
+
+    public init(warnBelowBytes: Double, fullBelowBytes: Double) {
+        self.warnBelowBytes = warnBelowBytes
+        self.fullBelowBytes = fullBelowBytes
+    }
+
+    /// policy.nativeStorage.freeSpaceWarnBytes / freeSpaceFullBytes（P57）。
+    public static let policy = DeviceSpaceRule(
+        warnBelowBytes: Config.policyNumber("nativeStorage.freeSpaceWarnBytes")!,
+        fullBelowBytes: Config.policyNumber("nativeStorage.freeSpaceFullBytes")!)
+
+    /// writeFull（最近一次真的写盘撞满，原生 = SQLITE_FULL，之后还没写成功过）= full；
+    /// 否则按剩余空间：nil（量不到 / 没注入）、非有限、≤ 0（量不出来的读数）= 没有压力（ok）。
+    public func level(availableBytes: Double?, writeFull: Bool) -> String {
+        if writeFull { return "full" }
+        guard let a = availableBytes, a.isFinite, a > 0 else { return "ok" }
+        if a < fullBelowBytes { return "full" }
+        if a < warnBelowBytes { return "warn" }
+        return "ok"
+    }
+}
+
 public enum Budget {
     static let dayMs = 86_400_000.0
 
@@ -113,6 +143,25 @@ public enum Budget {
         let ratio = budgets.quotaBytes > 0 ? total / budgets.quotaBytes : 1
         let level = ratio >= 1 ? "full" : ratio > budgets.warnRatio ? "warn" : "ok"
         return JSObject([("total", .number(total)), ("byBucket", .object(byBucket)), ("ratio", .number(ratio)), ("level", .string(level))])
+    }
+
+    /// 原生口径的占用：total / byBucket 照估算（同一把尺，回收与基准仍读 total），level 换成 DeviceSpaceRule 的判定，
+    /// ratio = 估算总量 / (估算总量 + 剩余空间)（量不到剩余空间时：撞满 1，否则 0），另带 availableBytes（null = 量不到）与 source 'device'。
+    public static func deviceUsage(_ estimate: JSObject, availableBytes: Double?, writeFull: Bool, rule: DeviceSpaceRule = .policy) -> JSObject {
+        let total = estimate["total"]?.numberValue ?? 0
+        let known: Double? = availableBytes.flatMap { (a: Double) -> Double? in a.isFinite && a > 0 ? a : nil }
+        let ratio: Double
+        if let a = known {
+            ratio = total + a > 0 ? total / (total + a) : 0
+        } else {
+            ratio = writeFull ? 1 : 0
+        }
+        let level = rule.level(availableBytes: known, writeFull: writeFull)
+        let available: JSValue = known.map { JSValue.number($0) } ?? .null
+        return JSObject([
+            ("total", .number(total)), ("byBucket", estimate["byBucket"] ?? .object(JSObject())), ("ratio", .number(ratio)), ("level", .string(level)),
+            ("availableBytes", available), ("source", .string("device")),
+        ])
     }
 
     /// null | {level, ratio（三位小数）}。

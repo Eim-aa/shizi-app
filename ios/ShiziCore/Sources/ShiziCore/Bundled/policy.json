@@ -156,7 +156,9 @@
     "totalTargetBytes": 50331648,
     "recordsBudgetBytes": 16777216,
     "inkBudgetBytes": 33554432,
-    "inkFormat": "raw"
+    "inkFormat": "raw",
+    "freeSpaceWarnBytes": 524288000,
+    "freeSpaceFullBytes": 104857600
   },
   "paperTransition": {
     "openMs": 420,

@@ -1082,6 +1082,12 @@
         ],
         "inkFormat": [
           "P05"
+        ],
+        "freeSpaceWarnBytes": [
+          "P57"
+        ],
+        "freeSpaceFullBytes": [
+          "P57"
         ]
       }
     },

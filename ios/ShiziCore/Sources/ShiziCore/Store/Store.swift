@@ -33,6 +33,14 @@ public final class Store: ScheduleStore {
     public private(set) var blocked: JSObject?
     public private(set) var corruptNotice: JSObject?
     public private(set) var usage: JSObject?
+    /// 原生（App 注入）：设备剩余空间的读数（字节；量不到 = nil）。挂上之后 usage.level 按 DeviceSpaceRule 判
+    /// （真实剩余空间 + 真写盘撞满），不再按估算总量 / quotaBytes；没挂（nil，缺省）= 网页 / JS 金样口径，与原来逐字节相同。
+    /// 每次 refreshUsage（每次提交发布后）都会读一次：App 一侧自己缓存（NativeStore.swift DeviceFreeSpace）。
+    public var deviceAvailableBytes: (() -> Double?)?
+    /// 原生口径的阈值（缺省 policy.nativeStorage，P57）。
+    public var deviceSpaceRule: DeviceSpaceRule = .policy
+    /// 最近一次写盘撞满（write 失败、kind 'quota'；原生 = SQLITE_FULL → E_FULL）且之后还没有提交写成功过。只有原生口径读它。
+    public private(set) var writeFull = false
     public private(set) var lastRepair: JSObject?
     public let backendInfo: JSObject
     public private(set) var inkSchema: JSObject?
@@ -304,7 +312,13 @@ public final class Store: ScheduleStore {
 
     @discardableResult
     public func refreshUsage() -> JSObject? {
-        usage = try? storage.estimateUsage(budgets)
+        let estimate = try? storage.estimateUsage(budgets)
+        // QA 夹具 setUsage（usageOverride）照原样报：界面取证要能造出 warn / full
+        if let read = deviceAvailableBytes, storage.usageOverride == nil {
+            usage = Budget.deviceUsage(estimate ?? JSObject([("total", .number(0)), ("byBucket", .object(JSObject()))]), availableBytes: read(), writeFull: writeFull, rule: deviceSpaceRule)
+        } else {
+            usage = estimate
+        }
         return usage
     }
 
@@ -730,6 +744,7 @@ public final class Store: ScheduleStore {
                 notify(JSObject([("type", .string("status"))]))
                 return JSObject([("kind", .string("blocked")), ("key", .null), ("reason", .string(e.message))])
             }
+            if e.kind == "quota" { writeFull = true }
             return JSObject([("kind", .string(e.kind ?? "unknown")), ("key", Store.opt(e.key)), ("reason", .string(e.messageOrString))])
         }
     }
@@ -802,6 +817,7 @@ public final class Store: ScheduleStore {
             return Store.errorResult(f["kind"]!.stringValue!, label, [("key", f["key"] ?? .null), ("reason", f["reason"] ?? .null), ("recoveredAttempted", .bool(!recovered.isEmpty))])
         }
         let keys: [JSValue] = p.entries.map { .string($0.0) }
+        writeFull = false // 这次真的写进去了（空提交不算：没写过盘，证明不了有空间）
         publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array(keys)), ("recovered", .array(recovered))] + tag), entries: p.next)
         return .object(JSObject([("ok", .bool(true)), ("keys", .array(keys)), ("recovered", .array(recovered))]))
     }

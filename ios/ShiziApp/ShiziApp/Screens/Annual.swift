@@ -98,7 +98,7 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     private static let insetFrameTag = 9931
     private static let twiceHairTag = 9932
     private static let monthHairTag = 9933
-    private static let monthGridTag = 9934
+    static let monthGridTag = 9934
 
     /// 月段格网里的一格：格（容器，不进读屏）+ 本人墨（有墨迹时）+ 衬底字（没有墨迹时，画在墨的内框里）。
     @MainActor

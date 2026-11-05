@@ -14,7 +14,10 @@ import XCTest
 ///     build = 引擎侧拼整份 view 的 JSValue；convert = EngineValue.any（App 收回包时走的那一步）；decode = AnnualScreen.decodeView
 ///     flat = 现在发的（ink.points 由 AnnualInkWire 拼），points = 旧形状（每点一个 InkPoint.js 对象）对照
 ///   BENCH annual <ink|glyph> n=… first=… relayout=… reapply=… layers=… images=… backing≈…（同 LibraryBench.run：新页面 apply + 排版 + 提交，
-///     再排一次版，同一份回包再 apply 一次；年报的格子一次全建出来，没有按视口建）
+///     再排一次版，同一份回包再 apply 一次）。月段的格子只建可见框 ± overscan 的（ShiziLazyCells，2.5 屏与 8 行取大的）；
+///     variant 带 -all 的（ink-all / glyph-all）= 测试开关 materializeAll（全部格子都建出来 = 以前的做法）对照，n = 300 / 1200 / 3000
+///   BENCH annual scroll <ink|glyph>[-all] n=… steps=… step=…pt median=…ms max=…ms live=<建出来的格子数> layers=… backing≈…MB
+///     从顶滚到底，每步半屏（contentOffset → 滚动回调建 / 收格子、墨判要不要画 → layoutIfNeeded → flush：新进来的格子的配置与画墨都在这一步里）
 /// 合成回包：形状同 ShiziCore MineSubView.annualView(inkWire:)（每月一段、每段的格、今年首字、卷尾两格；ink.points 由 AnnualInkWire 拼），经 EngineValue.any 过边界，同引擎真发的；
 /// 每格墨迹 8 笔 × 62 点（≈ resampleForReplay 之后的一字；每点 x / y / t / w，键序同 InkPoint.js），字取包里有字形数据的字，分 12 个月。
 @MainActor
@@ -88,6 +91,32 @@ enum AnnualBench {
     /// view.annual 的回包（{ok, view}；view 经 EngineValue.any 过边界）。
     static func payload(_ n: Int, ink: Bool, legacy: Bool = false) -> [String: Any] { ["ok": true, "view": EngineValue.any(view(n, ink: ink, legacy: legacy))] }
 
+    /// 年报从顶滚到底（每步半屏）：每步的耗时、滚到底时建出来的格子数与层的统计，打一行 BENCH。
+    static func scrollRun(variant: String, n: Int, all: Bool, payload: [String: Any]) {
+        autoreleasepool {
+            let vc = AnnualScreen(screen: "annual", entryId: "bench", params: [:])
+            vc.cells.materializeAll = all
+            let w = LibraryBench.host(vc)
+            vc.apply(payload: payload)
+            LibraryBench.settle(w)
+            let h = vc.scroll.bounds.height
+            let bottom = max(0, vc.scroll.contentSize.height - h)
+            var times: [Double] = []
+            var y: CGFloat = 0
+            while y < bottom {
+                y = min(bottom, y + h / 2)
+                let t = LibraryBench.now()
+                vc.scroll.contentOffset = CGPoint(x: 0, y: y)
+                LibraryBench.settle(w)
+                times.append(LibraryBench.ms(t, LibraryBench.now()))
+            }
+            let st = LibraryBench.layerStats(w.layer)
+            print(String(format: "BENCH annual scroll \(variant)\(all ? "-all" : "") n=%ld steps=%ld step=%.0fpt median=%.1fms max=%.1fms live=%ld layers=%ld backing≈%.1fMB",
+                         n, times.count, Double(h / 2), LibraryBench.median(times), times.max() ?? 0, vc.cells.liveIndices.count, st.layers, Double(st.backingBytes) / 1e6))
+            LibraryBench.unhost(w)
+        }
+    }
+
     /// 解出来的视图里墨迹的点数（今年首字 + 每格 + 卷尾两格）。
     static func points(_ m: AnnualScreen.View) -> Int {
         func count(_ b: ShiziInkBox?) -> Int { b?.points.reduce(0) { $0 + $1.count } ?? 0 }
@@ -154,12 +183,29 @@ final class AnnualBenchTests: XCTestCase {
         }
     }
 
-    /// 整页：新页面收回包、再排一次版、同一份回包再 apply 一次（每格都有墨迹 / 都是衬底字）。
+    /// 整页：新页面收回包、再排一次版、同一份回包再 apply 一次（每格都有墨迹 / 都是衬底字）；只建看得见的格子（产品）与全部建出来对照。
     func testAnnualReloadCost() throws {
-        for n in [300, 1200] {
+        for n in [300, 1200, 3000] {
             for ink in [true, false] {
+                let payload = AnnualBench.payload(n, ink: ink)
                 LibraryBench.run("annual", variant: ink ? "ink" : "glyph", n: n,
-                                 make: { AnnualScreen(screen: "annual", entryId: "bench", params: [:]) }, payload: AnnualBench.payload(n, ink: ink))
+                                 make: { AnnualScreen(screen: "annual", entryId: "bench", params: [:]) }, payload: payload)
+                LibraryBench.run("annual", variant: ink ? "ink-all" : "glyph-all", n: n, make: {
+                    let vc = AnnualScreen(screen: "annual", entryId: "bench", params: [:])
+                    vc.cells.materializeAll = true
+                    return vc
+                }, payload: payload)
+            }
+        }
+    }
+
+    /// 滚动的每一步要多久（新进来的格子在这一步里建 / 配 / 画；全部建出来时 = 以前每格一个 KVO 的做法之外的那部分）。
+    func testAnnualScrollCost() throws {
+        for n in [300, 1200, 3000] {
+            for ink in [true, false] {
+                let payload = AnnualBench.payload(n, ink: ink)
+                AnnualBench.scrollRun(variant: ink ? "ink" : "glyph", n: n, all: false, payload: payload)
+                if n == 1200 { AnnualBench.scrollRun(variant: ink ? "ink" : "glyph", n: n, all: true, payload: payload) }
             }
         }
     }

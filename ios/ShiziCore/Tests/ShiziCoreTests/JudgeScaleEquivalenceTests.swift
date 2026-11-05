@@ -11,7 +11,8 @@ import XCTest
 //     看过答案、重复 / 不合法的 id、相同的时刻、本组旧月里已有的判断（沿用分支）、月界上的「今天」、比记录早 / 晚的「今天」、不同时区，连续判几次；
 //   · ScaleBenchmarkTests 的状态（只用它的静态生成器）：1x / 3x / 10x（未折叠）直接在草稿上比；3x-folded / 10x-folded 先像 App 一样折叠，再在两个 Store 上各走一串
 //     judge（新 = WriteAPI.call，旧 = 参照的 commitJudgment + 同样拼回包）。3x / 10x（未折叠）与 10x-folded 只在 SHIZI_SCALE_BENCH=1 时跑。
-// 写字页快照（WriteModels.line）里的 SessionWrites.find 两边都是新的；find 本身另由 checkLookups 逐个比。
+// 写字页快照（WriteModels.line）里的 SessionWrites.find 两边都是新的；所以每一步之后另用新旧 find 比各槽 lastLine.recordId 与新写的记录号
+// （checkFind），checkLookups 的 id 也总带上它们与每个月末尾几条（刚写进、索引刚重建的当月记录）。
 // 另打印判字路径各步新旧的耗时（BENCH judge-path …；只打印，不断言耗时）。
 final class JudgeScaleEquivalenceTests: XCTestCase {
     typealias B = StoreCommitBenchmarkTests
@@ -75,11 +76,30 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
         return out
     }
 
+    /// 各槽（含 lastEnded）的 lastLine.recordId：写字页快照（WriteModels.line）就是拿它 SessionWrites.find。
+    static func lastLineIds(_ state: JSObject) -> [JSValue?] { sessions(state).map { $0.session["lastLine"]?["recordId"] } }
+
+    /// 每个月列表（展开取的那份）末尾几条的 id：刚写进当月、当月索引刚重建过的记录，均匀取样常常取不到它们。
+    static func newestIds(_ state: JSObject, perMonth: Int = 3) -> [JSValue?] {
+        var out: [JSValue?] = []
+        for (_, v) in state["records"]?.objectValue?.entries ?? [] {
+            if let list = RecordLookup.flatList(v) { out += list.suffix(perMonth).map { $0["id"] } }
+        }
+        return out
+    }
+
+    /// 快照里那次 find（与新写的记录号）：新旧逐个比。
+    func checkFind(_ state: JSObject, _ ids: [JSValue?], _ label: String) {
+        for id in Self.lastLineIds(state) + ids {
+            same(Self.text(JudgeRef.find(state, id)), Self.text(SessionWrites.find(state, id)), "\(label) find \(Self.text(id))")
+        }
+    }
+
     /// find / seen / judgedCount / pruneInkOfCards（mine 与整次回收）/ TodayPlan.summary / ResultModels.cells / model：新旧逐个比。limit：每类取样个数。
     func checkLookups(_ state: JSObject, _ label: String, limit: Int = 200, dates: Dates = shanghai) {
         let all = JudgeRef.all(state)
         let odd: [JSValue?] = [nil, .null, .number(1), .bool(true), .string(""), .string("r999999999"), .string("base:\u{00E9}"), .string("base:e\u{0301}"), .string("s1")]
-        let ids = Self.sample(all.map { $0["id"] }, limit: limit) + odd
+        let ids = Self.sample(all.map { $0["id"] }, limit: limit) + odd + Self.lastLineIds(state) + Self.newestIds(state)
         let keys = Self.sample(all.map { $0["cardKey"] }, limit: limit) + odd
         let sids = Self.sample(all.map { $0["sessionId"] }, limit: limit) + odd
         for id in ids {
@@ -179,6 +199,9 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
             let a = Self.judgeArgs("A", key, judgment: rng.next() % 3 == 0 ? "wrong" : "correct", hints: Int(rng.next() % 4), ink: rng.next() % 2 == 0)
             guard let next = checkJudge(state, a, at: at, dates: dates, "\(label) seq \(i)") else { return }
             state = next
+            // 新写的记录号是 r9000…（checkJudge 的 nextId），各槽 lastLine 指向它或沿用的那条
+            let written: [JSValue?] = [JSValue.string("r90001"), JSValue.string("r90002")]
+            checkFind(state, written + Self.newestIds(state, perMonth: 1), "\(label) seq \(i)")
             if lookups { checkLookups(state, "\(label) seq \(i)", limit: 40, dates: dates) }
         }
     }
@@ -392,6 +415,17 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
         XCTAssertEqual(RecordLookup.records(state, .card, .string("base:\u{00E9}")).count, 1)
         XCTAssertNil(SessionWrites.seen(state, sessionJS(1), .string("base:\u{00E9}")))
         XCTAssertNotNil(SessionWrites.seen(state, sessionJS(1), .string("base:e\u{0301}")))
+        // 重复的记录号：全部下标、按列表顺序（第一个记在 firstById，出现第二次起进 dupeIds）
+        let dup = srec(2, cTian, day: "2026-10-05")
+        state["records"] = .object(JSObject([("2026-10", .array([b, a, dup, c, dup]))]))
+        XCTAssertEqual(RecordLookup.records(state, .id, .string("r2")).map { $0["char"]! }, [.string(cKou), .string(cTian), .string(cTian)])
+        XCTAssertEqual(RecordLookup.records(state, .id, .string("r1")).map { $0["char"]! }, [.string(cRen)])
+        // 月变成 null（旧索引清掉）再变回数组：照新列表查
+        state["records"] = .object(JSObject([("2026-10", .null)]))
+        XCTAssertEqual(RecordLookup.records(state, .id, .string("r2")).count, 0)
+        state["records"] = .object(JSObject([("2026-10", .array([c]))]))
+        XCTAssertEqual(RecordLookup.records(state, .id, .string("r3")).count, 1)
+        XCTAssertEqual(RecordLookup.records(state, .id, .string("r2")).count, 0)
     }
 
     // MARK: ScaleBenchmarkTests 的状态
@@ -519,6 +553,9 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
             same(Self.text(rOld), Self.text(rNew), "\(name) step \(i) reply")
             same(Self.text(.object(sOld.state)), Self.text(.object(sNew.state)), "\(name) step \(i) state")
             XCTAssertEqual(sOld.serial, sNew.serial, "\(name) step \(i) serial")
+            // 回包快照里的 find 两边都是新的：这里拿新旧 find 对 lastLine.recordId 与这次写的记录号再比一遍
+            let written: [JSValue?] = [rNew["recordId"], rOld["recordId"]]
+            checkFind(sNew.state, written + Self.newestIds(sNew.state, perMonth: 1), "\(name) step \(i)")
             let a = dOld.snapshot(), b = dNew.snapshot()
             XCTAssertEqual(a.count, b.count, "\(name) step \(i) disk keys")
             for (x, y) in zip(a, b) where x.0 != y.0 || !x.1.utf8.elementsEqual(y.1.utf8) {

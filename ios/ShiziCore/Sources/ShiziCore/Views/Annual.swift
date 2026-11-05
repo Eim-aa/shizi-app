@@ -88,14 +88,16 @@ public enum AnnualView {
     public static func annualPlan(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {
         let model = try annualModel(state, today: today, year: year, policy: policy, dates: dates)
         if JS.truthy(model["empty"]) || !JS.truthy(model["first"]) { return V.obj([("status", .string("empty")), ("model", model), ("cover", .null), ("months", .array([])), ("tail", .null), ("pages", .array([]))]) }
+        // 每月的格（imagePlan 的 hasInk 与取点）、首字、两次对比共用一份 inkPointsOf 记忆（RecordInkMemo：只取决于 state.ink[月][id]），每条记录只解一次
+        let points = RecordInkMemo(timeZone: dates.timeZone) { (r: JSValue?) throws -> JSValue? in try QueryView.inkPointsOf(V.obj([("latest", r ?? .null)]), state: state, dates: dates) }
         func cell(_ c: JSValue, _ r: JSValue?) throws -> JSValue {
-            let ink = try QueryView.inkPointsOf(V.obj([("latest", r ?? .null)]), state: state, dates: dates)
+            let ink = try points.get(r) ?? .null
             return V.obj([("ch", c), ("ink", ink), ("mode", .string(JS.truthy(ink) ? "hand" : "under")), ("dot", .bool(false)), ("tag", .string("")), ("record", r ?? .null)])
         }
         var months: [JSValue] = [], pages = [V.obj([("type", .string("cover"))])]
         for m in model["months"]!.arrayValue! {
             let month = JS.string(m["month"])
-            let plan = try ImageSelection.imagePlan(state, scope: V.obj([("kind", .string("month")), ("month", .string(month))]), inkOf: { r in try QueryView.inkPointsOf(V.obj([("latest", r)]), state: state, dates: dates) }, maxChars: Int(JS.number(policy["imageMaxChars"])), monthPick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)
+            let plan = try ImageSelection.imagePlan(state, scope: V.obj([("kind", .string("month")), ("month", .string(month))]), inkOf: { r in try points.get(r) }, maxChars: Int(JS.number(policy["imageMaxChars"])), monthPick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)
             let cells = plan["cells"]?.arrayValue ?? []
             let parts = ImageLayout.paginate(cells, max: Int(JS.number(policy["imageMaxChars"]))).map(ImageLayout.withDayTags)
             months.append(V.obj([("month", .string(month)), ("monthNum", m["monthNum"]!), ("cells", .array(cells)), ("pages", .array(parts.map(JSValue.array)))]))

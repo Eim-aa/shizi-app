@@ -27,6 +27,18 @@ final class StoreCommitBenchmarkTests: XCTestCase {
     static let inkRecords = 500
     static let queueSize = 60
 
+    /// 一档数据量：月份（升序、止于 2026-10）、每月记录数、sched 条数（学过的字）、带墨迹的记录数（取最后这么多条）。
+    /// 缺省 = 上面的单档（8 个月 × 750 条、2000 字、500 条墨迹），StoreCommitBenchmarkTests 的输出只用它；ScaleBenchmarkTests 传别的档。
+    struct Shape {
+        var months: [String]
+        var recordsPerMonth: Int
+        var studied: Int
+        var inkRecords: Int
+        var records: Int { months.count * recordsPerMonth }
+    }
+
+    static let shape1x = Shape(months: months, recordsPerMonth: recordsPerMonth, studied: studied, inkRecords: inkRecords)
+
     final class Clock {
         var t: Double
         init(_ t: Double) { self.t = t }
@@ -34,16 +46,24 @@ final class StoreCommitBenchmarkTests: XCTestCase {
 
     static func pad2(_ n: Int) -> String { n < 10 ? "0" + String(n) : String(n) }
 
-    /// 题库里前 n 个可练的单字（不够时用 U+4E00 起的字补足）。
-    static func chars(_ n: Int) -> [String] {
+    /// 题库里前 n 个可练的单字（不补足；题库里不够 n 个就返回全部）。
+    static func practicableChars(_ n: Int) -> [String] {
         var out: [String] = []
         var seen = Set<String>()
         for card in DeckData.shared.seed {
+            if out.count >= n { break }
             guard let ch = card["target"]?.stringValue, ch.unicodeScalars.count == 1, !seen.contains(ch), DeckCards.shared.isPracticable("base:" + ch) else { continue }
             seen.insert(ch)
             out.append(ch)
-            if out.count == n { return out }
         }
+        return out
+    }
+
+    /// 题库里前 n 个可练的单字（不够时用 U+4E00 起的字补足）。
+    static func chars(_ n: Int) -> [String] {
+        var out = practicableChars(n)
+        if out.count == n { return out }
+        var seen = Set(out)
         var u: UInt32 = 0x4E00
         while out.count < n {
             let ch = String(Character(Unicode.Scalar(u)!))
@@ -79,7 +99,8 @@ final class StoreCommitBenchmarkTests: XCTestCase {
     }
 
     /// 重度用户的 v2 状态。
-    static func heavyState() throws -> JSObject {
+    static func heavyState(_ shape: Shape = StoreCommitBenchmarkTests.shape1x) throws -> JSObject {
+        let months = shape.months, recordsPerMonth = shape.recordsPerMonth, studied = shape.studied, inkRecords = shape.inkRecords
         let pool = chars(studied)
         let help = JSValue.object(JSObject([("hints", .number(0)), ("answerSeen", .bool(false)), ("traced", .bool(false))]))
         var serial = 0
@@ -124,7 +145,7 @@ final class StoreCommitBenchmarkTests: XCTestCase {
             ("lastLine", .null), ("startedAt", .number(benchNow - 60_000)), ("startedDay", .string("2026-10-21")), ("updatedAt", .number(benchNow - 60_000)),
         ]))
         return JSObject([
-            ("meta", .object(JSObject([("schema", .number(2)), ("serial", .number(Double(serial))), ("createdAt", .number(dayMs("2026-03-01", 8))), ("months", .array(months.map { .string($0) }))]))),
+            ("meta", .object(JSObject([("schema", .number(2)), ("serial", .number(Double(serial))), ("createdAt", .number(dayMs(months[0] + "-01", 8))), ("months", .array(months.map { .string($0) }))]))),
             ("records", .object(records)),
             ("sched", .object(sched)),
             ("ink", .object(ink)),
@@ -136,6 +157,30 @@ final class StoreCommitBenchmarkTests: XCTestCase {
             ("sessions", .object(JSObject([("A", session), ("B", .null), ("lastEnded", .object(JSObject()))]))),
             ("funnel", .null), ("safety", .null),
         ])
+    }
+
+    /// 与判断同形的一次 store.commit（追加一条本月记录 + 改一条 sched + 写一条墨迹 + 改会话），不经会话规则。要求状态里有 2026-10 月和开着的 A 槽。
+    static func commitJudgeShape(_ store: Store, ch: String, i: Int) -> JSValue {
+        return store.commit("bench:judge-shape") { d, c in
+            let id = try c.nextId("r")
+            let rec = JSValue.object(JSObject([
+                ("id", .string(id)), ("cardKey", .string("base:" + ch)), ("char", .string(ch)), ("sessionId", d["sessions"]!["A"]!["id"]!),
+                ("kind", .string("judged")), ("at", .number(c.now)), ("localDay", .string("2026-10-21")),
+                ("help", .object(JSObject([("hints", .number(0)), ("answerSeen", .bool(false)), ("traced", .bool(false))]))), ("judgment", .string("correct")),
+            ]))
+            var months = d["records"]!.objectValue!
+            months["2026-10"] = .array((months["2026-10"]?.arrayValue ?? []) + [rec])
+            d["records"] = .object(months)
+            var sched = d["sched"]!.objectValue!
+            sched["base:" + ch] = try Self.schedEntry(lastMs: c.now, scheduledDays: 9, reps: 3, stability: 9.5)
+            d["sched"] = .object(sched)
+            try Store.setInk(&d, rec, try InkMath.encodeStoredInk(Self.rawStrokes(3 + i % 8, seed: 200 + i), policy: Config.policy.objectValue, format: c.inkFormat), timeZone: shanghaiTZ)
+            var sessions = d["sessions"]!.objectValue!
+            var A = sessions["A"]!.objectValue!
+            A["updatedAt"] = .number(c.now)
+            sessions["A"] = .object(A)
+            d["sessions"] = .object(sessions)
+        }
     }
 
     static func median(_ s: [Double]) -> Double { s.count % 2 == 1 ? s[s.count / 2] : (s[s.count / 2 - 1] + s[s.count / 2]) / 2 }
@@ -227,28 +272,7 @@ final class StoreCommitBenchmarkTests: XCTestCase {
             clock.t += 1000
             let ch = pool[Self.queueSize + 100 + i]
             var r: JSValue = .null
-            let ms = Self.time {
-                r = store.commit("bench:judge-shape") { d, c in
-                    let id = try c.nextId("r")
-                    let rec = JSValue.object(JSObject([
-                        ("id", .string(id)), ("cardKey", .string("base:" + ch)), ("char", .string(ch)), ("sessionId", d["sessions"]!["A"]!["id"]!),
-                        ("kind", .string("judged")), ("at", .number(c.now)), ("localDay", .string("2026-10-21")),
-                        ("help", .object(JSObject([("hints", .number(0)), ("answerSeen", .bool(false)), ("traced", .bool(false))]))), ("judgment", .string("correct")),
-                    ]))
-                    var months = d["records"]!.objectValue!
-                    months["2026-10"] = .array((months["2026-10"]?.arrayValue ?? []) + [rec])
-                    d["records"] = .object(months)
-                    var sched = d["sched"]!.objectValue!
-                    sched["base:" + ch] = try Self.schedEntry(lastMs: c.now, scheduledDays: 9, reps: 3, stability: 9.5)
-                    d["sched"] = .object(sched)
-                    try Store.setInk(&d, rec, try InkMath.encodeStoredInk(Self.rawStrokes(3 + i % 8, seed: 200 + i), policy: Config.policy.objectValue, format: c.inkFormat), timeZone: shanghaiTZ)
-                    var sessions = d["sessions"]!.objectValue!
-                    var A = sessions["A"]!.objectValue!
-                    A["updatedAt"] = .number(c.now)
-                    sessions["A"] = .object(A)
-                    d["sessions"] = .object(sessions)
-                }
-            }
+            let ms = Self.time { r = Self.commitJudgeShape(store, ch: ch, i: i) }
             XCTAssertEqual(r["ok"], .bool(true), str(r))
             XCTAssertEqual(r["keys"]?.arrayValue?.count, 5, str(r)) // inkRecord + records.2026-10 + sched + meta + sessions
             if i >= 2 { commits.append(ms) }

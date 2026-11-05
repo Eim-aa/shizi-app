@@ -68,15 +68,16 @@ final class LibraryInkPayloadTests: XCTestCase {
             }
             walk(.object(ink))
             if op == "view.library-all" {
-                // 合法墨迹：与直接解码 + 重采样逐值一致，每点 {x, y, w}
+                // 合法墨迹：与直接解码 + 重采样逐值一致；每点都有 w → 每笔平铺成 [3, x0, y0, w0, x1, …]（LibraryInkWire）
                 let expected = InkMath.resampleForReplay(try XCTUnwrap(try InkMath.decodeInk(good)))
                 guard case .array(let got)? = ink["r2"] else { return XCTFail("r2 ink missing: \(str(.object(ink)))") }
                 XCTAssertEqual(got.count, expected.count)
                 for (gs, es) in zip(got, expected) {
-                    let pts = gs.arrayValue ?? []
-                    XCTAssertEqual(pts.count, es.count)
-                    for (g, e) in zip(pts, es) {
-                        XCTAssertEqual(g["x"], .number(e.x)); XCTAssertEqual(g["y"], .number(e.y)); XCTAssertEqual(g["w"], .number(e.w!))
+                    let flat = gs.arrayValue ?? []
+                    XCTAssertEqual(flat.first, .number(3))
+                    XCTAssertEqual(flat.count, 1 + 3 * es.count)
+                    for (k, e) in es.enumerated() where 3 + 3 * k < flat.count {
+                        XCTAssertEqual(flat[1 + 3 * k], .number(e.x)); XCTAssertEqual(flat[2 + 3 * k], .number(e.y)); XCTAssertEqual(flat[3 + 3 * k], .number(e.w!))
                     }
                 }
                 XCTAssertGreaterThan(numbers, 0)

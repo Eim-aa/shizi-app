@@ -413,8 +413,9 @@ final class LibraryInkDecodeTests: XCTestCase {
         return d.mapValues { strokes in strokes.map { stroke in stroke.map(one) } }
     }
 
-    private func check(_ ink: [String: Any], direct expectDirect: Bool, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
-        let ref = old(ink)
+    /// legacy = 同一份墨迹的旧形状（每点一个对象；缺省 = ink 本身就是旧形状）：新路解 ink = 原路解 legacy，逐位相同。
+    private func check(_ ink: [String: Any], legacy: [String: Any]? = nil, direct expectDirect: Bool, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        let ref = old(legacy ?? ink)
         XCTAssertEqual(LibraryInkView.decodeInkDirect(ink) != nil, expectDirect, "\(what): direct path taken", file: file, line: line)
         XCTAssertEqual(bits(LibraryInkView.decodeInk(ink)), bits(ref), what, file: file, line: line)
     }
@@ -425,11 +426,14 @@ final class LibraryInkDecodeTests: XCTestCase {
         return o
     }
 
-    /// 合成回包（同量测：EngineValue.any 装箱）。
+    /// 合成回包（同量测：LibraryInkWire 拼、EngineValue.any 过边界）：平铺形状 = 旧形状经原路，旧形状直接读 = 原路。
     func testSyntheticPayloadsMatch() throws {
         for n in [0, 1, 37] {
             let ink = try XCTUnwrap(LibraryBench.allPayload(max(n, 1), ink: n > 0)["ink"] as? [String: Any])
-            check(ink, direct: true, "bench n=\(n)")
+            let legacy = try XCTUnwrap(LibraryBench.allPayload(max(n, 1), ink: n > 0, legacy: true)["ink"] as? [String: Any])
+            check(ink, legacy: legacy, direct: true, "bench n=\(n)")
+            check(legacy, direct: true, "bench legacy n=\(n)")
+            if n > 0 { XCTAssertEqual(bits(old(legacy)).count, n) }
         }
     }
 

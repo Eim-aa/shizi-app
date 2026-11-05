@@ -11,9 +11,10 @@ import XCTest
 ///     relayout = 同一份内容再排一次版（setNeedsLayout → layoutIfNeeded → flush）
 ///     reapply  = 同一份回包再 apply 一次（= 查字框里打一个字：重拉 view.library-all，内容多半没变）
 ///     layers   = 窗口下全部 CALayer 个数；images = 层上 CGImage 的字节（同一张图只算一次）；backing ≈ 自己画的层（标签 / 墨迹小图）的后备存储估算
-///   BENCH library-all ink-decode n=<字数> points=<点数> json=…ms direct=…ms（回包 ink → [记录 id: [[点]]]：ShiziDecode.value 的 JSON 往返 / 直接读）
+///   BENCH library-all ink-decode n=<字数> points=<点数> json=…ms perpoint=…ms direct=…ms（回包 ink → [记录 id: [[点]]]：
+///     json = 旧形状（每点一个对象）经 ShiziDecode.value 的 JSON 往返；perpoint = 旧形状直接读；direct = 现在的平铺形状直接读（产品走的路））
 ///   BENCH library-list <ink|glyph> n=<行数> first=… relayout=… reapply=… layers=… images=… backing≈…
-/// 合成回包：形状同 ShiziCore LibrarySubAPI（{ok, view, ink}），数字按 EngineValue.any 的口径装箱（整数 → Int64、其余 → Double）；
+/// 合成回包：形状同 ShiziCore LibrarySubAPI（{ok, view, ink}；ink 由 LibraryInkWire 拼、经 EngineValue.any 过边界，同引擎真发的）；
 /// 字取包里有字形数据的字（Web/data/<字>.json）；每个墨迹 8 笔 × 62 点（≈ 网页 resampleForReplay 之后的一字）。页面挂在 393 × 852 的窗口里。
 /// n = 300 时 relayout / reapply 各量 3 次取中位数，n = 1500 时各 1 次（控制总时长）。
 @MainActor
@@ -43,25 +44,12 @@ enum LibraryBench {
         return (0..<n).map { names[$0 % names.count] }
     }
 
-    /// 一个字的墨迹（345 单位格；8 笔 × 62 点，{x, y, w}）。
-    static func strokes(_ seed: Int) -> [Any] {
-        var out: [Any] = []
-        for s in 0..<8 {
-            var pts: [Any] = []
-            for j in 0..<62 {
-                let u = Double(j) / 61
-                let a = Double(seed % 17) * 0.37 + Double(s) * 0.8
-                let x = 40 + 230 * u * (0.5 + 0.5 * cos(a)) + Double(s) * 9
-                let y = 40 + 30 * Double(s) + 25 * sin(u * 3 + a)
-                let w = 9 + 4 * sin(u * 5 + Double(s))
-                pts.append(["x": num(x), "y": num(y), "w": num(w)] as [String: Any])
-            }
-            out.append(pts)
-        }
-        return out
+    /// 一个字的墨迹过了边界的样子（345 单位格；8 笔 × 62 点，点都有 w）：LibraryInkWire 拼 → EngineValue.any。legacy = 旧形状（每点一个 {x, y, w}）。
+    static func strokes(_ seed: Int, legacy: Bool = false) -> [Any] {
+        EngineValue.any(LibraryInkWire.record(inkPoints(seed), legacy: legacy) ?? .array([])) as? [Any] ?? []
     }
 
-    /// 同 strokes(seed) 的点，作引擎侧的回放点（ShiziCore InkPoint；w 都在）。
+    /// 一个字的回放点（ShiziCore InkPoint；w 都在）。
     static func inkPoints(_ seed: Int) -> [[InkPoint]] {
         (0..<8).map { s in
             (0..<62).map { j in
@@ -75,23 +63,17 @@ enum LibraryBench {
         }
     }
 
-    /// 引擎回包里的 ink（JSValue，过边界之前）：n 条记录 r0…，形状同 ShiziCore LibrarySubAPI 现在发的（每点一个 {x, y, w?} 对象，只发有限数）。
-    static func engineInkPerPoint(_ n: Int) -> JSValue {
+    /// 引擎回包里的 ink（JSValue，过边界之前）：n 条记录 r0…，同 ShiziCore LibrarySubAPI 的拼法（LibraryInkWire.record；legacy = 旧形状）。
+    static func engineInk(_ n: Int, legacy: Bool = false) -> JSValue {
         var ink = JSObject()
         for i in 0..<n {
-            let strokes = inkPoints(i).map { points in JSValue.array(points.compactMap { q -> JSValue? in
-                guard q.x.isFinite, q.y.isFinite else { return nil }
-                var o = JSObject([("x", .number(q.x)), ("y", .number(q.y))])
-                if let w = q.w, w.isFinite { o["w"] = .number(w) }
-                return .object(o)
-            }) }
-            if !strokes.isEmpty { ink["r\(i)"] = .array(strokes) }
+            if let strokes = LibraryInkWire.record(inkPoints(i), legacy: legacy) { ink["r\(i)"] = strokes }
         }
         return .object(ink)
     }
 
     /// view.library-all 的回包：n 个字，每 40 个一组（按月排、组头可点）；ink = 每格都有墨迹，否则都画标准字形。
-    static func allPayload(_ n: Int, ink: Bool) -> [String: Any] {
+    static func allPayload(_ n: Int, ink: Bool, legacy: Bool = false) -> [String: Any] {
         let cs = chars(n)
         var groups: [Any] = []
         var inkMap: [String: Any] = [:]
@@ -101,7 +83,7 @@ enum LibraryBench {
             var cells: [Any] = []
             for i in start..<end {
                 let rid = "r\(i)"
-                if ink { inkMap[rid] = strokes(i) }
+                if ink { inkMap[rid] = strokes(i, legacy: legacy) }
                 cells.append(["char": cs[i], "kind": "ink", "tone": num(Double(i % 4)), "record": ["id": rid] as [String: Any],
                               "py": NSNull(), "hit": false] as [String: Any])
             }
@@ -122,13 +104,13 @@ enum LibraryBench {
     static func ref(_ key: String) -> [String: Any] { ["copy": key] }
 
     /// view.library-list 的回包：n 行（都在「先练这些」里、都展开）；ink = 每行都有笔迹小图。
-    static func listPayload(_ n: Int, ink: Bool) -> [String: Any] {
+    static func listPayload(_ n: Int, ink: Bool, legacy: Bool = false) -> [String: Any] {
         let cs = chars(n)
         var rows: [Any] = []
         var inkMap: [String: Any] = [:]
         for i in 0..<n {
             let rid = "r\(i)"
-            if ink { inkMap[rid] = strokes(i) }
+            if ink { inkMap[rid] = strokes(i, legacy: legacy) }
             rows.append([
                 "char": cs[i], "cardKey": "base:\(cs[i])", "recordId": rid,
                 "word": ["pre": "", "tg": cs[i], "post": "字", "has": true] as [String: Any],
@@ -246,34 +228,43 @@ final class LibraryBenchTests: XCTestCase {
     func testLibraryAllInkDecodeCost() throws {
         for n in [300, 1500] {
             let ink = try XCTUnwrap(LibraryBench.allPayload(n, ink: true)["ink"] as? [String: Any])
-            var times: [Double] = [], direct: [Double] = []
-            var points = 0, directPoints = 0
+            let old = try XCTUnwrap(LibraryBench.allPayload(n, ink: true, legacy: true)["ink"] as? [String: Any])
+            var times: [Double] = [], perPoint: [Double] = [], direct: [Double] = []
+            var points = 0, perPointPoints = 0, directPoints = 0
+            func count(_ d: [String: [[LibraryInkView.Point]]]) -> Int { d.values.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } } }
             for _ in 0..<3 {
                 let t0 = LibraryBench.now()
-                let decoded = (try? ShiziDecode.value(ink, as: [String: [[LibraryInkView.Point]]].self)) ?? [:]
+                let decoded = (try? ShiziDecode.value(old, as: [String: [[LibraryInkView.Point]]].self)) ?? [:]
                 times.append(LibraryBench.ms(t0, LibraryBench.now()))
-                points = decoded.values.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
+                points = count(decoded)
                 let t1 = LibraryBench.now()
-                let fast = LibraryInkView.decodeInk(ink) // 产品现在走的路（直接读）
-                direct.append(LibraryBench.ms(t1, LibraryBench.now()))
-                directPoints = fast.values.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
+                let slow = LibraryInkView.decodeInk(old) // 旧形状直接读
+                perPoint.append(LibraryBench.ms(t1, LibraryBench.now()))
+                perPointPoints = count(slow)
+                let t2 = LibraryBench.now()
+                let fast = LibraryInkView.decodeInk(ink) // 产品现在走的路（平铺、直接读）
+                direct.append(LibraryBench.ms(t2, LibraryBench.now()))
+                directPoints = count(fast)
             }
-            print(String(format: "BENCH library-all ink-decode n=%ld points=%ld json=%.1fms direct=%.1fms", n, points, LibraryBench.median(times), LibraryBench.median(direct)))
+            print(String(format: "BENCH library-all ink-decode n=%ld points=%ld json=%.1fms perpoint=%.1fms direct=%.1fms",
+                         n, points, LibraryBench.median(times), LibraryBench.median(perPoint), LibraryBench.median(direct)))
             XCTAssertEqual(points, n * 8 * 62)
+            XCTAssertEqual(perPointPoints, points)
             XCTAssertEqual(directPoints, points)
         }
     }
 
     /// 引擎边界到笔画：回包 ink 的 JSValue → [String: Any]（EngineValue.any，App 收回包时走的那一步）→ decodeInk。
-    ///   BENCH library-all ink-wire format=<points> n=… points=… build=…ms convert=…ms decode=…ms（build = 引擎侧拼 JSValue，量的是同形的拼法）
+    ///   BENCH library-all ink-wire format=<flat|points> n=… points=… build=…ms convert=…ms decode=…ms
+    ///     build = 引擎侧拼 JSValue（LibraryInkWire.record）；flat = 现在发的平铺形状，points = 旧形状（每点一个 {x, y, w}）对照
     func testLibraryInkWireCost() throws {
-        for n in [300, 1500] {
+        for (n, legacy) in [(300, false), (300, true), (1500, false), (1500, true)] {
             var builds: [Double] = [], converts: [Double] = [], decodes: [Double] = []
             var points = 0
             for _ in 0..<3 {
                 try autoreleasepool {
                     let t0 = LibraryBench.now()
-                    let js = LibraryBench.engineInkPerPoint(n)
+                    let js = LibraryBench.engineInk(n, legacy: legacy)
                     let t1 = LibraryBench.now()
                     let any = try XCTUnwrap(EngineValue.any(js) as? [String: Any])
                     let t2 = LibraryBench.now()
@@ -284,7 +275,7 @@ final class LibraryBenchTests: XCTestCase {
                     XCTAssertNotNil(LibraryInkView.decodeInkDirect(any), "direct path")
                 }
             }
-            print(String(format: "BENCH library-all ink-wire format=points n=%ld points=%ld build=%.1fms convert=%.1fms decode=%.1fms",
+            print(String(format: "BENCH library-all ink-wire format=\(legacy ? "points" : "flat") n=%ld points=%ld build=%.1fms convert=%.1fms decode=%.1fms",
                          n, points, LibraryBench.median(builds), LibraryBench.median(converts), LibraryBench.median(decodes)))
             XCTAssertEqual(points, n * 8 * 62)
         }

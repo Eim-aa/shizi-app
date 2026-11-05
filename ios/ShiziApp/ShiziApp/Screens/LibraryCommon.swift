@@ -216,17 +216,20 @@ final class LibraryInkView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    /// 回包 ink（{记录 id: [[{x, y, w}]]}）→ 笔画；解不了 = 空（同以前 try? ShiziDecode.value … ?? [:]）。
-    /// 先直接从字典读（decodeInkDirect，不经 JSON 往返）；它不认得的形状一律交回原路（ShiziDecode.value），结果与原路逐位相同。
+    /// 回包 ink（{记录 id: [笔, …]}）→ 笔画；解不了 = 空（同以前 try? ShiziDecode.value … ?? [:]）。
+    /// 一笔有两种形状（ShiziCore LibraryInkWire）：平铺 [步长, x, y, (w), …]（步长 3 = 每点有 w，2 = 每点都没有 w），
+    /// 或旧的每点一个 {x, y, w?}。平铺的一笔解出来 = 把它展开成旧形状（expandFlat）再解，逐位相同。
+    /// 先直接从字典 / 数组读（decodeInkDirect，不经 JSON 往返）；它不认得的形状一律展开平铺后交回原路（ShiziDecode.value），结果与原路逐位相同。
     static func decodeInk(_ ink: [String: Any]) -> [String: [[Point]]] {
         if let direct = decodeInkDirect(ink) { return direct }
-        return (try? ShiziDecode.value(ink, as: [String: [[Point]]].self)) ?? [:]
+        return (try? ShiziDecode.value(expandFlat(ink), as: [String: [[Point]]].self)) ?? [:]
     }
 
     /// 直接读：只收 JSON 往返（JSONSerialization 写 → JSONDecoder 读成 Double）结果确定、且与直接取值逐位相同的形状——
-    /// 值是 [记录 id: [[点]]]，点是字典，x / y 是数，w 缺省 / null（→ nil）或是数；多余的键不管（同 Decodable）。
+    /// 值是 [记录 id: [笔]]；笔是平铺数组（头一个数是 2 或 3、其后的数个数是它的整数倍），或点的数组：点是字典，x / y 是数，
+    /// w 缺省 / null（→ nil）或是数，多余的键不管（同 Decodable）。
     /// 「数」只认 NSNumber 里的有限 Double（不含 −0）与 |n| ≤ 2^53 的有符号整数（EngineValue.any 装出来的就是这两种）。
-    /// 其余（布尔、NaN / ±∞、−0、更大的整数、Float / 无符号等别的数、字串、null 的 x / y、形状不对）→ nil，调用方走原路。
+    /// 其余（布尔、NaN / ±∞、−0、更大的整数、Float / 无符号等别的数、字串、null 的 x / y、平铺里的 null、形状不对）→ nil，调用方走原路。
     static func decodeInkDirect(_ ink: [String: Any]) -> [String: [[Point]]]? {
         var out: [String: [[Point]]] = [:]
         out.reserveCapacity(ink.count)
@@ -237,6 +240,23 @@ final class LibraryInkView: UIView {
             for sRaw in strokes {
                 guard let pts = sRaw as? [Any] else { return nil }
                 var ps: [Point] = []
+                if pts.first is NSNumber {
+                    guard let stride = flatStride(pts) else { return nil }
+                    ps.reserveCapacity((pts.count - 1) / stride)
+                    var i = 1
+                    while i < pts.count {
+                        guard let x = jsonNumber(pts[i]), let y = jsonNumber(pts[i + 1]) else { return nil }
+                        var w: Double?
+                        if stride == 3 {
+                            guard let n = jsonNumber(pts[i + 2]) else { return nil }
+                            w = n
+                        }
+                        ps.append(Point(x: x, y: y, w: w))
+                        i += stride
+                    }
+                    ss.append(ps)
+                    continue
+                }
                 ps.reserveCapacity(pts.count)
                 for pRaw in pts {
                     guard let o = pRaw as? [String: Any], let x = jsonNumber(o["x"]), let y = jsonNumber(o["y"]) else { return nil }
@@ -252,6 +272,44 @@ final class LibraryInkView: UIView {
             out[id] = ss
         }
         guard out.count == ink.count else { return nil } // 键在 Swift 字串比较下撞了（不同码位、标准等价）→ 原路
+        return out
+    }
+
+    /// 平铺的一笔的步长：头一个是数 2 或 3、其后的个数是它的整数倍 → 步长；否则 nil（不是平铺）。
+    static func flatStride(_ a: [Any]) -> Int? {
+        guard let first = a.first, let head = jsonNumber(first), head == 2 || head == 3 else { return nil }
+        let stride = head == 3 ? 3 : 2
+        return (a.count - 1) % stride == 0 ? stride : nil
+    }
+
+    /// 平铺的笔展开成旧形状（每点一个 ["x": …, "y": …, "w": …]，w 只在步长 3 时有；值原样搬，不转换）；别的原样留着。
+    /// 原路（ShiziDecode.value）只认旧形状：平铺的一笔按此展开后再解，与引擎发旧形状时解出的逐位相同。
+    static func expandFlat(_ ink: [String: Any]) -> [String: Any] {
+        var out = ink
+        for (id, raw) in ink {
+            guard let strokes = raw as? [Any] else { continue }
+            var changed = false
+            var mapped: [Any] = []
+            mapped.reserveCapacity(strokes.count)
+            for s in strokes {
+                guard let a = s as? [Any], let stride = flatStride(a) else {
+                    mapped.append(s)
+                    continue
+                }
+                changed = true
+                var pts: [Any] = []
+                pts.reserveCapacity((a.count - 1) / stride)
+                var i = 1
+                while i < a.count {
+                    var o: [String: Any] = ["x": a[i], "y": a[i + 1]]
+                    if stride == 3 { o["w"] = a[i + 2] }
+                    pts.append(o)
+                    i += stride
+                }
+                mapped.append(pts)
+            }
+            if changed { out[id] = mapped }
+        }
         return out
     }
 

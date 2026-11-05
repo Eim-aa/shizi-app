@@ -8,11 +8,12 @@ import XCTest
 // 清单页是「写错过」（每字一行）。两页都把 1500 条墨迹放进回包。
 //
 // 输出：
-//   BENCH library-ink engine op=<all|list> records=… points=… total=…ms view=…ms read=…ms build=…ms
+//   BENCH library-ink engine op=<all|list> records=… points=… total=…ms view=…ms read=…ms build=…ms build-points=…ms
 //     total = PageAPI.call 整个 op（视图 + 墨迹 + 回包对象）
 //     view  = 只算视图模型（LibraryAllView.allModel / LibraryListView.listModel，同 op 传的参数）
 //     read  = 墨迹：store.getInk + InkMath.decodeInk + resampleForReplay（每条记录）
-//     build = 墨迹：重采样后的点 → 回包里的 JSValue（每点一个 {x, y, w} 对象，同 LibrarySubAPI）
+//     build = 墨迹：重采样后的点 → 回包里的 JSValue（LibrarySubAPI 现在发的平铺形状，LibraryInkWire.record）
+//     build-points = 同上，改用旧形状（每点一个 {x, y, w} 对象）对照
 // 每个量跑 3 次取中位数（先空跑一次）。
 
 final class LibraryInkBenchTests: XCTestCase {
@@ -86,17 +87,11 @@ final class LibraryInkBenchTests: XCTestCase {
         }
     }
 
-    /// 现在 LibrarySubAPI 发的形状：每点一个 {x, y, w?} 对象（只发有限数）。
-    static func buildPerPoint(_ replayed: [(String, [[InkPoint]])]) -> JSObject {
+    /// 回包里的 ink（LibraryInkWire：平铺；legacy = 旧形状，每点一个 {x, y, w?} 对象）。
+    static func build(_ replayed: [(String, [[InkPoint]])], legacy: Bool) -> JSObject {
         var ink = JSObject()
         for (id, resampled) in replayed {
-            let strokes = resampled.map { points in JSValue.array(points.compactMap { q -> JSValue? in
-                guard q.x.isFinite, q.y.isFinite else { return nil }
-                var o = JSObject([("x", .number(q.x)), ("y", .number(q.y))])
-                if let w = q.w, w.isFinite { o["w"] = .number(w) }
-                return .object(o)
-            }) }
-            if !strokes.isEmpty { ink[id] = .array(strokes) }
+            if let strokes = LibraryInkWire.record(resampled, legacy: legacy) { ink[id] = strokes }
         }
         return ink
     }
@@ -105,7 +100,7 @@ final class LibraryInkBenchTests: XCTestCase {
         let store = try Self.inkedStore()
         for (op, name) in [("view.library-all", "all"), ("view.library-list", "list")] {
             let args: JSObject = op == "view.library-all" ? JSObject([("sort", .string("age"))]) : JSObject()
-            var total: [Double] = [], views: [Double] = [], reads: [Double] = [], builds: [Double] = []
+            var total: [Double] = [], views: [Double] = [], reads: [Double] = [], builds: [Double] = [], legacyBuilds: [Double] = []
             var records = 0, points = 0, inkKeys = 0
             for rep in 0..<4 {
                 var reply: JSValue = .null
@@ -117,17 +112,20 @@ final class LibraryInkBenchTests: XCTestCase {
                 let recs = Self.inkRecords(op, v)
                 var replayed: [(String, [[InkPoint]])] = []
                 let tr = Self.time { replayed = Self.replay(store, recs) }
-                var built = JSObject()
-                let tb = Self.time { built = Self.buildPerPoint(replayed) }
-                XCTAssertEqual(built.count, inkKeys, "\(op): the replica builds the same ink map as the op")
+                var built = JSObject(), legacy = JSObject()
+                let tb = Self.time { built = Self.build(replayed, legacy: false) }
+                let tl = Self.time { legacy = Self.build(replayed, legacy: true) }
+                XCTAssertEqual(built.count, inkKeys, "\(op): builds the same ink map as the op")
+                XCTAssertEqual(legacy.count, inkKeys, op)
+                if rep == 0 { XCTAssertEqual(JSValue.object(built), reply["ink"], "\(op): same payload as the op") }
                 records = recs.count
                 points = replayed.reduce(0) { $0 + $1.1.reduce(0) { $0 + $1.count } }
-                if rep > 0 { total.append(t); views.append(tv); reads.append(tr); builds.append(tb) }
+                if rep > 0 { total.append(t); views.append(tv); reads.append(tr); builds.append(tb); legacyBuilds.append(tl) }
             }
             XCTAssertEqual(records, Self.count, op)
             XCTAssertEqual(inkKeys, Self.count, op)
-            print(String(format: "BENCH library-ink engine op=\(name) records=%ld points=%ld total=%.1fms view=%.1fms read=%.1fms build=%.1fms",
-                         records, points, Self.median(total), Self.median(views), Self.median(reads), Self.median(builds)))
+            print(String(format: "BENCH library-ink engine op=\(name) records=%ld points=%ld total=%.1fms view=%.1fms read=%.1fms build=%.1fms build-points=%.1fms",
+                         records, points, Self.median(total), Self.median(views), Self.median(reads), Self.median(builds), Self.median(legacyBuilds)))
         }
     }
 }

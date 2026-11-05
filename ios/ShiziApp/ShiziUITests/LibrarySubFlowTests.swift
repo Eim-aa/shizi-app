@@ -135,7 +135,8 @@ final class LibrarySubFlowTests: XCTestCase {
         }
     }
 
-    /// 全部字页 1500 个字（只建看得见的格子）：打开时只建了一部分；一路滑到底，顶上那几格收掉了、最后一组的格子建出来了、都在屏上。
+    /// 全部字页 1500 个字（只建看得见的格子）：打开时只建了一部分；一路滑到底，顶上那几格收掉了、最后一格在屏上；
+    /// 真手指点最后一格 → 推入这个字的详情（探针 route.char = 详情页的字，在这一格的读屏名里）。
     func testAllCharsBigLibraryScrollsToTheEnd() {
         let qa = QA(seed: "all-big")
         qa.launch()
@@ -145,23 +146,27 @@ final class LibrarySubFlowTests: XCTestCase {
         let first = cells.element(boundBy: 0).label
         XCTAssertFalse(first.isEmpty, "格子有读屏名")
         XCTAssertLessThan(cells.count, 1500, "只建了一部分格子")
-        let groups = qaQuery(qa, "native-library-all-group")
-        let lastGroup = groups.element(boundBy: groups.count - 1)
-        let scrollView = qa.app.scrollViews.firstMatch
-        var last = ""
-        for _ in 0..<40 {
-            scrollView.swipeUp(velocity: .fast)
-            Thread.sleep(forTimeInterval: 0.4)
-            let now = cells.element(boundBy: cells.count - 1).label
-            if now == last { break } // 滑不动了 = 到底
-            last = now
-        }
-        XCTAssertEqual(cells.matching(NSPredicate(format: "label == %@", first)).count, 0, "滑走的格子收掉了")
-        XCTAssertGreaterThan(cells.count, 0)
         let window = qa.app.windows.firstMatch.frame
+        // 建出来的最后一格比屏幕下沿还低约 2.5 屏（overscan）：滑到它进了屏、且两次读到的框不变（惯性停了）为止
+        var lastFrame = CGRect.null
+        var reached = false
+        for _ in 0..<60 {
+            qa.app.swipeUp(velocity: .fast)
+            Thread.sleep(forTimeInterval: 0.8)
+            let f = cells.element(boundBy: cells.count - 1).frame
+            if window.intersects(f), f == lastFrame { reached = true; break }
+            lastFrame = f
+        }
+        XCTAssertTrue(reached, "滑到了底：最后一格在屏上且不再动（\(lastFrame)）")
+        XCTAssertEqual(cells.matching(NSPredicate(format: "label == %@", first)).count, 0, "滑走的格子收掉了")
         let tail = cells.element(boundBy: cells.count - 1)
-        XCTAssertTrue(window.intersects(tail.frame), "最后建出来的那一格在屏上：\(tail.frame)")
-        XCTAssertTrue(window.intersects(lastGroup.frame), "最后一组在屏上")
+        let tailLabel = tail.label
+        XCTAssertFalse(tailLabel.isEmpty)
+        tail.tap() // 真的点（不走 qa.tap 的 sendActions）
+        qa.waitRouteTop("detail", timeout: 15)
+        let char = ((qa.probe["route"] as? [String: Any])?["char"] as? String) ?? ""
+        XCTAssertFalse(char.isEmpty, "详情页的字")
+        XCTAssertTrue(tailLabel.contains(char), "点的那一格（\(tailLabel)）= 详情页的字（\(char)）")
     }
 
     private func qaFirstGroupName(_ qa: QA) -> String { qa.el("native-library-all-group-name").label }

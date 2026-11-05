@@ -54,7 +54,7 @@ public enum MineSubView {
         return V.obj([("n", .number(Double(n))), ("cols", .number(Double(cols))), ("rows", .number(Double(rows))), ("c", .number(c)), ("W", .number(Double(cols)*c)), ("H", .number(Double(rows)*c)), ("lastW", .number(Double(last)*c)), ("full", .bool(last == cols)), ("cells", .array((0..<n).map { i in V.obj([("x", .number(Double(i%cols)*c)), ("y", .number(Double(i/cols)*c)), ("col", .number(Double(i%cols))), ("row", .number(Double(i/cols)))]) }))])
     }
     public static func recordsView(_ state: JSValue, today: String, _ a: JSObject, dates: Dates) throws -> JSValue {
-        let policy = V.policy(a["policy"]), m = try V.recordsModel(state, today: today, month: a["month"], day: a["day"], policy: policy, dates: dates)
+        let policy = V.policy(a["policy"]), m = try V.recordsModel(state, today: today, month: a["month"], day: a["day"], policy: policy, dates: dates, withSheet: false) // m["sheet"] 这里不读
         let calendar = m["calendar"]!.arrayValue!.map { c -> JSValue in
             let b = JS.truthy(c["blank"])
             return V.obj([("key", c["key"]!), ("blank", .bool(b)), ("day", b ? .string("") : c["day"]!), ("n", b ? .number(0) : c["n"]!), ("has", .bool(!b && JS.truthy(c["has"]))), ("today", .bool(!b && JS.truthy(c["today"]))), ("future", .bool(!b && JS.truthy(c["future"])))])

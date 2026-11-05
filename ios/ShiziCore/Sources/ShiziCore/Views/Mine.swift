@@ -171,7 +171,8 @@ extension ViewSupport {
         let current = String(today.prefix(7)), first = firstRecordMonth(index) ?? current, lo = min(first, current)
         guard let m = month?.stringValue, index.dates.isValidMonth(.string(m)) else { return current }; return min(current, max(lo, m))
     }
-    package static func recordsModel(_ state: JSValue, today: String, month: JSValue?, day: JSValue?, policy: JSValue, hasInk: InkPick.HasInk? = nil, dates: Dates) throws -> JSValue {
+    /// withSheet：false 时 sheet 记 null、不算 monthSheet——记录页（MineSubView.recordsView）不读它，月报块另由 monthSheetOf 出。
+    package static func recordsModel(_ state: JSValue, today: String, month: JSValue?, day: JSValue?, policy: JSValue, hasInk: InkPick.HasInk? = nil, dates: Dates, withSheet: Bool = true) throws -> JSValue {
         let index = recordIndex(state, dates: dates), current = String(today.prefix(7)), m = clampMonth(month, index: index, today: today), first = firstRecordMonth(index), days = recordDaysInMonth(index, month: m)
         // 每天的条目：works 按天分桶一次（原先 dayList 每天、选中日、今天各从全部 works 里筛一遍），同一天只算一次（dayItems 只依赖 index / day / hasInk）
         let byDay = worksByDay(index)
@@ -187,6 +188,6 @@ extension ViewSupport {
         let todayItems = index.days.contains(today) ? items(today) : []
         var dayList: [JSValue] = []
         for d in days { dayList.append(obj([("day", .string(d)), ("n", .number(Double(items(d).count))), ("today", .bool(d == today))])) }
-        return try obj([("today", .string(today)), ("month", .string(m)), ("year", .number(Double(Int(m.prefix(4))!))), ("monthNum", .number(Double(Int(m.suffix(2))!))), ("current", .bool(m == current)), ("prev", first != nil && m > first! ? .string(dates.addMonths(.string(m), -1)) : .null), ("next", m < current ? .string(dates.addMonths(.string(m), 1)) : .null), ("calendar", .array(calendarModel(index, month: m, today: today))), ("recordDays", .number(Double(days.count))), ("dayList", .array(dayList)), ("sheet", monthSheet(index, month: m, policy: policy, hasInk: hasInk)), ("selected", selected), ("todayRow", m == current && !todayItems.isEmpty ? obj([("day", .string(today)), ("n", .number(Double(todayItems.count))), ("items", .array(todayItems))]) : .null), ("empty", .bool(index.days.count == 0))])
+        return try obj([("today", .string(today)), ("month", .string(m)), ("year", .number(Double(Int(m.prefix(4))!))), ("monthNum", .number(Double(Int(m.suffix(2))!))), ("current", .bool(m == current)), ("prev", first != nil && m > first! ? .string(dates.addMonths(.string(m), -1)) : .null), ("next", m < current ? .string(dates.addMonths(.string(m), 1)) : .null), ("calendar", .array(calendarModel(index, month: m, today: today))), ("recordDays", .number(Double(days.count))), ("dayList", .array(dayList)), ("sheet", withSheet ? monthSheet(index, month: m, policy: policy, hasInk: hasInk) : .null), ("selected", selected), ("todayRow", m == current && !todayItems.isEmpty ? obj([("day", .string(today)), ("n", .number(Double(todayItems.count))), ("items", .array(todayItems))]) : .null), ("empty", .bool(index.days.count == 0))])
     }
 }

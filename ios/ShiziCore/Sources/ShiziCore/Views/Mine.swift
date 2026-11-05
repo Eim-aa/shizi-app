@@ -58,8 +58,11 @@ extension ViewSupport {
         if let fold {
             let work = Records.foldWorkByDay(fold); var firstDay = JSObject()
             for day in work.keys.sorted() { for c in work[day]?.arrayValue ?? [] where firstDay[JS.string(c)] == nil { firstDay[JS.string(c)] = .string(day) } }
+            // 每字的记录：按 char（逐码点，与 `$0["char"] == .string(c)` 同一判等）分桶一次，桶内保持 records 的先后
+            var byChar: [JSKey: [JSValue]] = [:]
+            for r in records { if case .string(let ch)? = r["char"] { byChar[JSKey(s: ch), default: []].append(r) } }
             raw = firstDay.entries.map { c, day in
-                let m = WorkMembers.workMembers(records.filter { $0["char"] == .string(c) }, prefer: .string(pick), hasInk: has).first
+                let m = WorkMembers.workMembers(byChar[JSKey(s: c)] ?? [], prefer: .string(pick), hasInk: has).first
                 return obj([("char", .string(c)), ("day", day), ("record", m?.record ?? .null), ("dot", .bool(m?.dot ?? false))])
             }
         } else { raw = WorkMembers.workMembers(records, prefer: .string(pick), order: .string("first"), hasInk: has).map { m in obj([("char", .string(m.char)), ("day", m.firstDay), ("record", m.record), ("dot", .bool(m.dot))]) } }
@@ -71,9 +74,16 @@ extension ViewSupport {
         let start = totalRows <= rows ? 0 : Int((totalRows-rows)*cols), shown = start > 0 ? retagRecordCells(Array(cells.dropFirst(start))) : cells
         return obj([("cells", .array(shown)), ("truncated", .bool(start > 0)), ("hidden", .number(Double(start))), ("total", .number(Double(total)))])
     }
-    package static func dayItems(_ index: RecordIndex, day: String, hasInk: InkPick.HasInk? = nil) -> [JSValue] {
+    /// index.works 按 localDay 分桶（逐码点判等，与 `$0["localDay"] == .string(day)` 相同；不是字串的 localDay 不进任何桶），桶内保持 works 的先后。
+    static func worksByDay(_ index: RecordIndex) -> [JSKey: [JSValue]] {
+        var out: [JSKey: [JSValue]] = [:]
+        for r in index.works { if case .string(let d)? = r["localDay"] { out[JSKey(s: d), default: []].append(r) } }
+        return out
+    }
+    /// dayWorks：调用方已分好的这一天的 works（worksByDay 的桶）；缺省从全部 works 里筛。两者筛出的记录与先后相同。
+    package static func dayItems(_ index: RecordIndex, day: String, hasInk: InkPick.HasInk? = nil, dayWorks: [JSValue]? = nil) -> [JSValue] {
         guard index.dates.isValidDay(.string(day)) else { return [] }
-        let records = index.works.filter { $0["localDay"] == .string(day) }, has: InkPick.HasInk = hasInk ?? { InkPick.storedInkPresent(obj([("ink", index.ink)]), $0, timeZone: index.dates.timeZone) }
+        let records = (dayWorks ?? index.works).filter { $0["localDay"] == .string(day) }, has: InkPick.HasInk = hasInk ?? { InkPick.storedInkPresent(obj([("ink", index.ink)]), $0, timeZone: index.dates.timeZone) }
         if let fold = index.folded[String(day.prefix(7))] {
             return (Records.foldWorkByDay(fold, order: "last")[day]?.arrayValue ?? []).map { c in
                 let m = WorkMembers.workMembers(records.filter { $0["char"] == c }, prefer: .string("last"), hasInk: has).first
@@ -119,9 +129,20 @@ extension ViewSupport {
     }
     package static func recordsModel(_ state: JSValue, today: String, month: JSValue?, day: JSValue?, policy: JSValue, hasInk: InkPick.HasInk? = nil, dates: Dates) throws -> JSValue {
         let index = recordIndex(state, dates: dates), current = String(today.prefix(7)), m = clampMonth(month, index: index, today: today), first = firstRecordMonth(index), days = recordDaysInMonth(index, month: m)
+        // 每天的条目：works 按天分桶一次（原先 dayList 每天、选中日、今天各从全部 works 里筛一遍），同一天只算一次（dayItems 只依赖 index / day / hasInk）
+        let byDay = worksByDay(index)
+        var memo: [JSKey: [JSValue]] = [:]
+        func items(_ d: String) -> [JSValue] {
+            let k = JSKey(s: d)
+            if let hit = memo[k] { return hit }
+            let v = dayItems(index, day: d, hasInk: hasInk, dayWorks: byDay[k] ?? [])
+            memo[k] = v; return v
+        }
         var selected: JSValue = .null
-        if let day = day?.stringValue, dates.isValidDay(.string(day)), day.hasPrefix(m+"-"), index.days.contains(day) { selected = obj([("day", .string(day)), ("items", .array(dayItems(index, day: day, hasInk: hasInk)))]) }
-        let todayItems = index.days.contains(today) ? dayItems(index, day: today, hasInk: hasInk) : []
-        return try obj([("today", .string(today)), ("month", .string(m)), ("year", .number(Double(Int(m.prefix(4))!))), ("monthNum", .number(Double(Int(m.suffix(2))!))), ("current", .bool(m == current)), ("prev", first != nil && m > first! ? .string(dates.addMonths(.string(m), -1)) : .null), ("next", m < current ? .string(dates.addMonths(.string(m), 1)) : .null), ("calendar", .array(calendarModel(index, month: m, today: today))), ("recordDays", .number(Double(days.count))), ("dayList", .array(days.map { d in obj([("day", .string(d)), ("n", .number(Double(dayItems(index, day: d, hasInk: hasInk).count))), ("today", .bool(d == today))]) })), ("sheet", monthSheet(index, month: m, policy: policy, hasInk: hasInk)), ("selected", selected), ("todayRow", m == current && !todayItems.isEmpty ? obj([("day", .string(today)), ("n", .number(Double(todayItems.count))), ("items", .array(todayItems))]) : .null), ("empty", .bool(index.days.count == 0))])
+        if let day = day?.stringValue, dates.isValidDay(.string(day)), day.hasPrefix(m+"-"), index.days.contains(day) { selected = obj([("day", .string(day)), ("items", .array(items(day)))]) }
+        let todayItems = index.days.contains(today) ? items(today) : []
+        var dayList: [JSValue] = []
+        for d in days { dayList.append(obj([("day", .string(d)), ("n", .number(Double(items(d).count))), ("today", .bool(d == today))])) }
+        return try obj([("today", .string(today)), ("month", .string(m)), ("year", .number(Double(Int(m.prefix(4))!))), ("monthNum", .number(Double(Int(m.suffix(2))!))), ("current", .bool(m == current)), ("prev", first != nil && m > first! ? .string(dates.addMonths(.string(m), -1)) : .null), ("next", m < current ? .string(dates.addMonths(.string(m), 1)) : .null), ("calendar", .array(calendarModel(index, month: m, today: today))), ("recordDays", .number(Double(days.count))), ("dayList", .array(dayList)), ("sheet", monthSheet(index, month: m, policy: policy, hasInk: hasInk)), ("selected", selected), ("todayRow", m == current && !todayItems.isEmpty ? obj([("day", .string(today)), ("n", .number(Double(todayItems.count))), ("items", .array(todayItems))]) : .null), ("empty", .bool(index.days.count == 0))])
     }
 }

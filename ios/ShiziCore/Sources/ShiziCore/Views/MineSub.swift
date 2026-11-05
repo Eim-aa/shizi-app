@@ -35,7 +35,8 @@ public enum MineSubView {
         var out = JSObject([("month", .string(month)), ("monthNum", .number(mn)), ("cells", .array(cells)), ("n", .number(Double(n))), ("days", r["days"] ?? .number(0)), ("under", .bool(cells.contains { $0["mode"] == .string("under") }))])
         out["kuan"] = n > 0 ? try Copy.tRef(KuanView.kuanRef(JSObject([("month", .string(month)), ("n", .number(Double(n)))]), now: 0, dates: dates)) : .string("")
         out["cols"] = .number(Double(ImageLayout.sheetColumns(n)))
-        if block { out["folded"] = .bool(V.recordIndex(state, dates: dates).folded[month] != nil); out["title"] = V.ref("R-P02.sheetTitle", V.obj([("month", .number(mn))])) }
+        // = recordIndex(state).folded[month] != nil：索引只收 records 里 folded === true 的月（键逐码点，与直接取这个月相同），不必为一个布尔值重建整个索引
+        if block { out["folded"] = .bool(state["records"]?[month]?["folded"] == .bool(true)); out["title"] = V.ref("R-P02.sheetTitle", V.obj([("month", .number(mn))])) }
         out["seal"] = try CoreResources.load("view-seal")
         if !block { out["lines"] = V.obj([("sub", ViewLineStarts.starts("month-sub", V.ref("X-MINE.sheetOrder")))]) }; return .object(out)
     }

@@ -9,7 +9,7 @@ import XCTest
 //   · 夹具：views-basic / views-pages 里出现过的每个 state（两个时区各一份），在夹具的 today、记录里最后一天、跨年等几个时刻上；
 //   · 随机的多月历史：判断 / 看过答案 / 跳过、纸上记录（含事后补录到旧月的）、同一时刻的记录、跨月 / 跨年 / 闰二月、折叠月（Budget.foldMonth）、
 //     墨迹（raw / v3）、sched（停练、到期日无效）、自选字、换词、提醒开 / 关与各种时刻；「刁钻」的一半还有重复 id、localDay 不在所在月、
-//     月份对象的插入序打乱、custom: 卡、坏墨迹——不是 Store 能存下的状态，也照样要逐字节相同；时刻取午夜前后一毫秒（上海 / 纽约 / 豪勋爵岛）；
+//     月份对象的插入序打乱、custom: 卡、坏墨迹（只走「解不出」那一支，见 addInk 的注释）——不是 Store 能存下的状态，也照样要逐字节相同；时刻取午夜前后一毫秒（上海 / 纽约 / 豪勋爵岛）；
 //   · 经 Store 的：小号的 heavyState（旧月份真折叠过）在 PageAPI.call 同一入口上的回答（首页 / 字库 / 详情）与 ReminderController.sync 的消息体，
 //     有会话 / 无会话、提醒关 / 开、午夜前后、跨月、跨年。1x 与 3x-folded（ScaleBenchmarkTests 同一份数据）只在 SHIZI_SCALE_BENCH=1 时跑。
 final class HomeScaleEquivalenceTests: XCTestCase {
@@ -327,6 +327,20 @@ final class HomeScaleEquivalenceTests: XCTestCase {
         }
     }
 
+    /// 随机历史里的坏墨迹（{"v":4}、{}、非对象）在缺省选项下 decodeInk 回 nil、不抛：cellInk 与原写法在这里都走「没有墨迹」，抛错那一支只能读代码核对。
+    func testBadInkDecodesToNilWithoutThrowing() throws {
+        let bad: [JSValue] = [.object(JSObject([("v", .number(4))])), .object(JSObject()), .string("x"), .null, .array([])]
+        for ink in bad {
+            XCTAssertNil(try InkMath.decodeInk(ink), str(ink))
+            let st = JSValue.object(JSObject([("ink", .object(JSObject([("2026-10", .object(JSObject([("r1", ink)])))])))]))
+            let r = makeRecord(1, "\u{4EBA}", day: "2026-10-20")
+            let w = try DetailView.cellInk(st, r, dates: shanghai)
+            XCTAssertFalse(w.has, str(ink))
+            XCTAssertEqual(w.strokes, .array([]), str(ink))
+            XCTAssertFalse(DetailView.hasInkPoints(try DetailView.inkOf(st, record: r, dates: shanghai)), str(ink))
+        }
+    }
+
     // MARK: - 时刻
 
     /// day 当天 0 点（dates 的时区）；day 不合法返回 nil。
@@ -396,6 +410,10 @@ final class HomeScaleEquivalenceTests: XCTestCase {
             guard rec["source"] != .string("paper"), rec["kind"] != .string("skipped"), g.chance(0.5) else { return }
             let month = String(rec["localDay"]!.stringValue!.prefix(7)), id = rec["id"]!.stringValue!
             var table = ink[month]?.objectValue ?? JSObject()
+            // 坏墨迹只覆盖「解不出 → 没有墨迹」那一支：详情页用缺省 InkOptions（policy nil、笔锋参数取 InkParams.standard），
+            // decodeInk 里会抛的只有读 policy 笔锋参数那几处（InkParams(policy:) / options.params()），墨迹数据本身怎么坏都不抛——
+            // 形状不合法回 nil，形状合法但内容坏的 v3 / v2（base64 解不开、行长不对）是强制解包 / 越界陷入，不是抛错，测不了也不该造。
+            // 所以 cellInk「抛错与原来同处」只能靠读代码（两边都只在同一个 decodeInk 调用上 try），见 testBadInkDecodesToNilWithoutThrowing。
             if adversarial && g.chance(0.05) {
                 table[id] = g.chance(0.5) ? JSValue.object(JSObject([("v", .number(4))])) : JSValue.object(JSObject())
             } else {

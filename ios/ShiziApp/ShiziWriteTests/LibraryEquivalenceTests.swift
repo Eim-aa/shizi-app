@@ -105,7 +105,6 @@ enum LibraryEq {
         return out
     }
 
-    /// 两张截图逐字节比；不同就打印差异像素的外框（pt）与前几处状态不同的层（状态全同时打印落在外框里的层）。
     /// 切换浅 / 深之后，drawHierarchy 的头一两张可能还停在系统重绘的中间（6c21128d 的 CI：两张之间 App 什么都没做、各层状态逐项相同，
     /// 像素仍差 2 万多个）。截到连续两张逐字节相同为止（每次之间跑一小段 run loop、再排版提交），最多 12 次；用了几次打印出来。
     /// 不放宽对照：内容若真的过期且没人安排重画，它会稳定地停在过期的样子上，之后与强制重画 / 新页面的对照照样不等。
@@ -125,6 +124,7 @@ enum LibraryEq {
         return last
     }
 
+    /// 两张截图逐字节比；不同就打印差异像素的外框（pt）与前几处状态不同的层（状态全同时打印落在外框里的层）。
     static func same(_ a: Shot, _ b: Shot, _ label: String) -> Bool {
         if a.data == b.data { return true }
         print("[library-eq] MISMATCH \(label)")

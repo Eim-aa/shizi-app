@@ -744,7 +744,7 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         let bw = width + 8
         if m.empty {
             // 空态没有月段：格子都收进池子
-            grid = MonthsLayout()
+            self.grid = MonthsLayout()
             gridGeneration = renderGeneration
             cells.setItems([])
             updateCells()
@@ -792,9 +792,9 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         // 每月一段：先把全部段 / 格的框算好，再按框摆
         let cols = axLayout ? 6 : 8
         let cellSide: CGFloat = axLayout ? floor((view.bounds.width - 40) / 6) : min(45, floor((view.bounds.width - 40) / 8))
-        let grid = monthsLayout(m, bx: bx, bw: bw, top: y, cols: cols, cellSide: cellSide)
-        self.grid = grid
-        for (i, box) in grid.months.enumerated() where i < monthButtons.count {
+        let layout = monthsLayout(m, bx: bx, bw: bw, top: y, cols: cols, cellSide: cellSide)
+        self.grid = layout
+        for (i, box) in layout.months.enumerated() where i < monthButtons.count {
             let b = monthButtons[i]
             b.frame = box.frame
             b.viewWithTag(Self.monthHairTag)?.frame = CGRect(x: 0, y: 0, width: bw, height: hairline)
@@ -807,9 +807,9 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         }
         // 格子：只建 / 配可见框 ± overscan 里的（滚动时 scrollViewDidScroll 再补；排版收尾时滚动区定了高再核一次）
         gridGeneration = renderGeneration
-        cells.setItems(grid.cellsInContent)
+        cells.setItems(layout.cellsInContent)
         updateCells()
-        y = grid.bottom
+        y = layout.bottom
         // 卷尾：同一个字，两次
         if m.twice != nil {
             content.viewWithTag(Self.twiceHairTag)?.frame = CGRect(x: bx, y: y, width: bw, height: hairline)

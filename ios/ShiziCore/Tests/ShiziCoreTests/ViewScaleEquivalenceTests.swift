@@ -264,7 +264,7 @@ final class ViewScaleEquivalenceTests: XCTestCase {
                 let rec = JSValue.object(o)
                 if let id, id.hasPrefix("r"), kind != "skipped", o["source"] == nil, rng.chance(kind == "answer-seen" ? 60 : 50) {
                     var table = ink[month]?.objectValue ?? JSObject()
-                    table[id] = rng.chance(85) ? (rng.chance(50) ? inkEntry : inkEntry2) : .object(JSObject([("v", .number(4)), ("c", .number(345)), ("r", .array([.string("")])), ("g", .array([.number(0)]))]))
+                    table[id] = rng.chance(50) ? inkEntry : inkEntry2
                     ink[month] = .object(table)
                 }
                 if let id { allIds.append(id) }

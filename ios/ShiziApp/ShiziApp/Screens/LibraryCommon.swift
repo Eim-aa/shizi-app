@@ -522,10 +522,37 @@ enum LibraryCommon {
 
     static func textWidth(_ text: String, _ font: UIFont) -> CGFloat {
         guard !text.isEmpty else { return 0 }
+        let key = WidthKey(text: text, descriptor: font.fontDescriptor, name: font.fontName, size: font.pointSize,
+                           bold: UIAccessibility.isBoldTextEnabled, traits: UITraitCollection.current)
+        if let hit = widthCache[key] { return hit }
+        let w = measureTextWidth(text, font)
+        if widthCache.count >= 4096 { widthCache.removeAll(keepingCapacity: true) }
+        widthCache[key] = w
+        return w
+    }
+
+    /// 实际量（以前 textWidth 的全部做法：一个新标签按 NativeType.set 设好字，量自然宽）。
+    static func measureTextWidth(_ text: String, _ font: UIFont) -> CGFloat {
+        guard !text.isEmpty else { return 0 }
         let l = UILabel()
         NativeType.set(l, text, font: font, color: .label)
         return NativeType.width(l)
     }
+
+    /// textWidth 的记忆：清单页每行量 8–15 次、每次新建一个 UILabel。量出的宽只取决于字、字体与系统状态：
+    /// 字体按描述符（UIFontDescriptor.isEqual = 全部属性相同：名字、字号、字重、cascade、等宽数字特性 …）+ 名字 + 字号；
+    /// 系统状态按粗体文字开关 + 此刻的外观（UITraitCollection.isEqual：显示倍率、字号档、字重档 …）。任一项不同就重新量。
+    /// 键只比相等（不靠 hash 判相等），表满 4096 项整份清空（只影响命中，不影响结果）。只在主线程用（同 UILabel）。
+    private struct WidthKey: Hashable {
+        let text: String
+        let descriptor: UIFontDescriptor
+        let name: String
+        let size: CGFloat
+        let bold: Bool
+        let traits: UITraitCollection
+    }
+
+    private static var widthCache: [WidthKey: CGFloat] = [:]
 
     /// 系统字号档的连续倍率（网页 --k；AX 档的字阶不乘 --k，但格边长乘 —— 网页 .sz-lrow__char 的 calc(44px * var(--k))）。
     static func scaleK(_ category: UIContentSizeCategory = UIApplication.shared.preferredContentSizeCategory) -> CGFloat {

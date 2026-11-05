@@ -8,6 +8,7 @@ import XCTest
 //   墨迹小图「没变不重画」：连续 apply 几份回包之后的整窗截图 = 每格强制重画后的截图 = 新页面直接 apply 最后一份的截图（浅 / 深）；
 //   字形图缓存：缓存给的图与现画的逐字节相同（字 / 边长 / 字面比例 / 双钩 / 颜色 / 浅深）；整页同上截图对照；
 //   墨迹直接读 = ShiziDecode.value 的 JSON 往返（逐位；合成 / 随机位型 / 边界整数 / 缺 w / null w / 空笔画；不认得的形状交回原路）；
+//   textWidth 的记忆 = 每次新建标签量（逐位；字体每次新建、等宽 / 比例数字交替、各字号档、浅 / 深）。
 
 /// 颜色的可比形式：色彩空间名 + 各分量的位（不按容差比）。
 func libraryColorKey(_ c: UIColor?) -> String {
@@ -389,5 +390,62 @@ final class LibraryInkDecodeTests: XCTestCase {
             ("record not array", ["a": "x"]),
         ]
         for (what, ink) in cases { check(ink, direct: false, what) }
+    }
+}
+
+// MARK: - textWidth 的记忆
+
+@MainActor
+final class LibraryTextWidthMemoTests: XCTestCase {
+    private let texts = ["", "全选", "全不选", "1111", "0000", "写过 3 次 ·", "上次 10 天前", "排序 · 筛选", "Abc 123", "「修改」", "，。",
+                         "看这些字 ›", "写错那次", "2026年10月", "40 个字", "🙂 x"]
+
+    /// 字体每次现做（同页面每次调 metrics.font）：系统字 11 / 13 / 15 / 17 / 17 中、等宽数字 15、宋 22 中、楷 22；默认档与两个大字号档。
+    private func fonts() -> [(String, () -> UIFont)] {
+        var out: [(String, () -> UIFont)] = []
+        for cat in [UIContentSizeCategory.large, .extraExtraExtraLarge, .accessibilityExtraExtraLarge] {
+            let mt = ShiziMetrics(cat)
+            let c = cat.rawValue
+            out.append(("\(c) fs11", { mt.font(11) }))
+            out.append(("\(c) fs13", { mt.font(13) }))
+            out.append(("\(c) fs15", { mt.font(15) }))
+            out.append(("\(c) fs17", { mt.font(17) }))
+            out.append(("\(c) fs17m", { mt.font(17, .medium) }))
+            out.append(("\(c) tab15", { mt.fontTabular(15) }))
+            out.append(("\(c) song22", { NativeType.song(size: mt.value("fs22"), weight: .medium) }))
+            out.append(("\(c) kai22", { ShiziFonts.kai(size: mt.value("fs22")) }))
+        }
+        return out
+    }
+
+    func testMemoisedWidthsMatchFreshMeasurement() {
+        let fs = fonts()
+        var hits = 0
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            UITraitCollection(userInterfaceStyle: style).performAsCurrent {
+                for round in 0..<2 { // 第一次填，第二次命中（字体对象是新的）
+                    for (name, make) in fs {
+                        for text in texts {
+                            let memo = LibraryCommon.textWidth(text, make())
+                            let fresh = LibraryCommon.measureTextWidth(text, make())
+                            XCTAssertEqual(memo.bitPattern, fresh.bitPattern, "\(name) \(text) \(style.rawValue) #\(round)")
+                            if round == 1 { hits += 1 }
+                        }
+                    }
+                }
+            }
+        }
+        XCTAssertGreaterThan(hits, 0)
+    }
+
+    /// 只差等宽数字特性的两个字体各量各的（键分得开）：交替取，结果始终 = 各自现量。
+    func testTabularAndProportionalDigitsStayApart() {
+        let mt = ShiziMetrics(.large)
+        for _ in 0..<3 {
+            for text in ["1111", "1010 · 11", "上次 11 天前"] {
+                XCTAssertEqual(LibraryCommon.textWidth(text, mt.font(15)).bitPattern, LibraryCommon.measureTextWidth(text, mt.font(15)).bitPattern, text)
+                XCTAssertEqual(LibraryCommon.textWidth(text, mt.fontTabular(15)).bitPattern, LibraryCommon.measureTextWidth(text, mt.fontTabular(15)).bitPattern, text)
+            }
+        }
     }
 }

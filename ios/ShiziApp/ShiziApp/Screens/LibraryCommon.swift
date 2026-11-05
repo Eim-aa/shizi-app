@@ -210,6 +210,62 @@ final class LibraryInkView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    /// 回包 ink（{记录 id: [[{x, y, w}]]}）→ 笔画；解不了 = 空（同以前 try? ShiziDecode.value … ?? [:]）。
+    /// 先直接从字典读（decodeInkDirect，不经 JSON 往返）；它不认得的形状一律交回原路（ShiziDecode.value），结果与原路逐位相同。
+    static func decodeInk(_ ink: [String: Any]) -> [String: [[Point]]] {
+        if let direct = decodeInkDirect(ink) { return direct }
+        return (try? ShiziDecode.value(ink, as: [String: [[Point]]].self)) ?? [:]
+    }
+
+    /// 直接读：只收 JSON 往返（JSONSerialization 写 → JSONDecoder 读成 Double）结果确定、且与直接取值逐位相同的形状——
+    /// 值是 [记录 id: [[点]]]，点是字典，x / y 是数，w 缺省 / null（→ nil）或是数；多余的键不管（同 Decodable）。
+    /// 「数」只认 NSNumber 里的有限 Double（不含 −0）与 |n| ≤ 2^53 的有符号整数（EngineValue.any 装出来的就是这两种）。
+    /// 其余（布尔、NaN / ±∞、−0、更大的整数、Float / 无符号等别的数、字串、null 的 x / y、形状不对）→ nil，调用方走原路。
+    static func decodeInkDirect(_ ink: [String: Any]) -> [String: [[Point]]]? {
+        var out: [String: [[Point]]] = [:]
+        out.reserveCapacity(ink.count)
+        for (id, raw) in ink {
+            guard let strokes = raw as? [Any] else { return nil }
+            var ss: [[Point]] = []
+            ss.reserveCapacity(strokes.count)
+            for sRaw in strokes {
+                guard let pts = sRaw as? [Any] else { return nil }
+                var ps: [Point] = []
+                ps.reserveCapacity(pts.count)
+                for pRaw in pts {
+                    guard let o = pRaw as? [String: Any], let x = jsonNumber(o["x"]), let y = jsonNumber(o["y"]) else { return nil }
+                    var w: Double?
+                    if let wRaw = o["w"], !(wRaw is NSNull) {
+                        guard let n = jsonNumber(wRaw) else { return nil }
+                        w = n
+                    }
+                    ps.append(Point(x: x, y: y, w: w))
+                }
+                ss.append(ps)
+            }
+            out[id] = ss
+        }
+        guard out.count == ink.count else { return nil } // 键在 Swift 字串比较下撞了（不同码位、标准等价）→ 原路
+        return out
+    }
+
+    /// 见 decodeInkDirect：JSON 往返逐位不变的数 → Double；其余 nil。
+    private static func jsonNumber(_ v: Any?) -> Double? {
+        guard let n = v as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() else { return nil }
+        switch UInt8(bitPattern: n.objCType.pointee) {
+        case UInt8(ascii: "d"):
+            let d = n.doubleValue
+            guard d.isFinite, !(d == 0 && d.sign == .minus) else { return nil }
+            return d
+        case UInt8(ascii: "q"), UInt8(ascii: "l"), UInt8(ascii: "i"), UInt8(ascii: "s"):
+            let i = n.int64Value
+            guard i.magnitude <= (1 as UInt64) << 53 else { return nil }
+            return Double(i)
+        default:
+            return nil
+        }
+    }
+
     /// 浅 / 深等颜色外观变了：墨色（动态色）要按新外观重新解析。以前页面在外观变化时重设 strokes 就会重画；
     /// strokes 没变不再重画之后，这里自己补上（UIKit 本身也会给实现了 draw 的视图重画，多标一次无妨）。
     override func traitCollectionDidChange(_ previous: UITraitCollection?) {

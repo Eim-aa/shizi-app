@@ -7,6 +7,7 @@ import XCTest
 //   令牌颜色缓存 = 每次现解析；
 //   墨迹小图「没变不重画」：连续 apply 几份回包之后的整窗截图 = 每格强制重画后的截图 = 新页面直接 apply 最后一份的截图（浅 / 深）；
 //   字形图缓存：缓存给的图与现画的逐字节相同（字 / 边长 / 字面比例 / 双钩 / 颜色 / 浅深）；整页同上截图对照；
+//   墨迹直接读 = ShiziDecode.value 的 JSON 往返（逐位；合成 / 随机位型 / 边界整数 / 缺 w / null w / 空笔画；不认得的形状交回原路）；
 
 /// 颜色的可比形式：色彩空间名 + 各分量的位（不按容差比）。
 func libraryColorKey(_ c: UIColor?) -> String {
@@ -275,5 +276,118 @@ final class LibraryGlyphCacheTests: XCTestCase {
     func testLibraryListGlyphPixelsMatchFreshPage() throws {
         let l1 = LibraryBench.listPayload(12, ink: false)
         try LibraryEq.checkNoStaleInk({ LibraryListScreen(screen: "library-list", entryId: "eq", params: ["kind": "due"]) }, steps: [l1, l1], requireInk: false)
+    }
+}
+
+// MARK: - 墨迹直接读（不经 JSON 往返）
+
+@MainActor
+final class LibraryInkDecodeTests: XCTestCase {
+    typealias Strokes = [String: [[LibraryInkView.Point]]]
+
+    /// 改动前的路（render 里原来的那一行）。
+    private func old(_ ink: [String: Any]) -> Strokes { (try? ShiziDecode.value(ink, as: Strokes.self)) ?? [:] }
+
+    /// 逐位的可比形式（w：nil → [0]，有 → [1, 位]）。
+    private func bits(_ d: Strokes) -> [String: [[[UInt64]]]] {
+        func one(_ p: LibraryInkView.Point) -> [UInt64] {
+            var out: [UInt64] = [p.x.bitPattern, p.y.bitPattern]
+            if let w = p.w { out += [1, w.bitPattern] } else { out.append(0) }
+            return out
+        }
+        return d.mapValues { strokes in strokes.map { stroke in stroke.map(one) } }
+    }
+
+    private func check(_ ink: [String: Any], direct expectDirect: Bool, _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        let ref = old(ink)
+        XCTAssertEqual(LibraryInkView.decodeInkDirect(ink) != nil, expectDirect, "\(what): direct path taken", file: file, line: line)
+        XCTAssertEqual(bits(LibraryInkView.decodeInk(ink)), bits(ref), what, file: file, line: line)
+    }
+
+    private func pt(_ x: Any, _ y: Any, _ w: Any? = nil) -> [String: Any] {
+        var o: [String: Any] = ["x": x, "y": y]
+        if let w { o["w"] = w }
+        return o
+    }
+
+    /// 合成回包（同量测：EngineValue.any 装箱）。
+    func testSyntheticPayloadsMatch() throws {
+        for n in [0, 1, 37] {
+            let ink = try XCTUnwrap(LibraryBench.allPayload(max(n, 1), ink: n > 0)["ink"] as? [String: Any])
+            check(ink, direct: true, "bench n=\(n)")
+        }
+    }
+
+    /// 随机位型的有限 Double、0…345 的常见值、±2^53 以内的整数（NSNumber Int64 / Int32 / Int16、Swift 原生 Int / Double）、
+    /// 缺 w / null w / w 为整数、空笔画、一个点的笔画、没有笔画的记录、多余的键。
+    func testRandomAndEdgePayloadsMatch() {
+        var rng = WebInkTestRNG(state: 20261105)
+        func finite() -> Double {
+            while true {
+                let d = Double(bitPattern: rng.next())
+                if d.isFinite, !(d == 0 && d.sign == .minus) { return d }
+            }
+        }
+        func value(_ k: Int) -> Any {
+            switch k % 9 {
+            case 0: return NSNumber(value: finite())
+            case 1: return EngineValue.any(.number(Double.random(in: 0...345, using: &rng)))
+            case 2: return EngineValue.any(.number((Double.random(in: 0...3450, using: &rng)).rounded() / 10))
+            case 3: return NSNumber(value: Int64.random(in: -(1 << 53)...(1 << 53), using: &rng))
+            case 4: return NSNumber(value: Int32.random(in: Int32.min...Int32.max, using: &rng))
+            case 5: return NSNumber(value: Int16.random(in: Int16.min...Int16.max, using: &rng))
+            case 6: return Double.random(in: -1e6...1e6, using: &rng) // Swift 原生 Double
+            case 7: return Int.random(in: -1000...1000, using: &rng) // Swift 原生 Int
+            default: return NSNumber(value: [Double.leastNonzeroMagnitude, -Double.leastNonzeroMagnitude, Double.greatestFiniteMagnitude,
+                                            -Double.greatestFiniteMagnitude, Double.leastNormalMagnitude, 0.1, 1.0 / 3, 0][Int.random(in: 0..<8, using: &rng)])
+            }
+        }
+        for round in 0..<40 {
+            var ink: [String: Any] = [:]
+            for r in 0..<Int.random(in: 0...6, using: &rng) {
+                var strokes: [Any] = []
+                for _ in 0..<Int.random(in: 0...4, using: &rng) {
+                    var pts: [Any] = []
+                    for _ in 0..<Int.random(in: 0...30, using: &rng) {
+                        let k = Int.random(in: 0..<1000, using: &rng)
+                        var o: [String: Any] = ["x": value(k), "y": value(k / 9)]
+                        switch k % 4 {
+                        case 0: break // 缺 w
+                        case 1: o["w"] = NSNull()
+                        default: o["w"] = value(k / 81)
+                        }
+                        if k % 13 == 0 { o["t"] = NSNumber(value: 12.5) } // 多余的键
+                        pts.append(o)
+                    }
+                    strokes.append(pts)
+                }
+                ink["rec-\(round)-\(r)"] = strokes
+            }
+            check(ink, direct: true, "random #\(round)")
+        }
+        let limit = Int64(1) << 53
+        check(["a": [[pt(NSNumber(value: limit), NSNumber(value: -limit), NSNumber(value: limit - 1))]]], direct: true, "±2^53")
+        check(["a": [[pt(NSNumber(value: 0.0), NSNumber(value: Int64(0)), NSNumber(value: 0))]]], direct: true, "zeros")
+        check(["a": [[Any]](), "b": [[pt(1.5, 2.5)]]], direct: true, "record without strokes")
+        check(["a": [[Any](), [pt(3, 4, 5)]]], direct: true, "empty stroke")
+    }
+
+    /// 直接读不认得的形状：交回原路（结果当然与原路相同；这里也确认确实没走直接读）。
+    func testUnrecognisedShapesFallBack() {
+        let cases: [(String, [String: Any])] = [
+            ("bool x", ["a": [[pt(true, 2)]]]),
+            ("bool w", ["a": [[pt(1, 2, false)]]]),
+            ("string w", ["a": [[pt(1, 2, "3")]]]),
+            ("null x", ["a": [[pt(NSNull(), 2)]]]),
+            ("missing y", ["a": [[["x": 1] as [String: Any]]]]),
+            ("float w", ["a": [[pt(1, 2, NSNumber(value: Float(0.1)))]]]),
+            ("negative zero", ["a": [[pt(NSNumber(value: -0.0), 2)]]]),
+            ("2^53 + 1", ["a": [[pt(NSNumber(value: (Int64(1) << 53) + 1), 2)]]]),
+            ("unsigned", ["a": [[pt(NSNumber(value: UInt64.max), 2)]]]),
+            ("point not object", ["a": [[NSNumber(value: 1)]]]),
+            ("stroke not array", ["a": [pt(1, 2)]]),
+            ("record not array", ["a": "x"]),
+        ]
+        for (what, ink) in cases { check(ink, direct: false, what) }
     }
 }

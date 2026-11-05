@@ -228,7 +228,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m
         if let payload = lastPayload, let ink = payload["ink"] as? [String: Any] {
-            inkStrokes = (try? ShiziDecode.value(ink, as: [String: [[LibraryInkView.Point]]].self)) ?? [:]
+            inkStrokes = LibraryInkView.decodeInk(ink)
         }
         if let payload = lastPayload, let met = payload["metrics"] {
             webMetrics = try? ShiziDecode.value(met, as: WebMetrics.self)

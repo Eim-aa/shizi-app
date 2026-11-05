@@ -11,7 +11,7 @@ import XCTest
 ///     relayout = 同一份内容再排一次版（setNeedsLayout → layoutIfNeeded → flush）
 ///     reapply  = 同一份回包再 apply 一次（= 查字框里打一个字：重拉 view.library-all，内容多半没变）
 ///     layers   = 窗口下全部 CALayer 个数；images = 层上 CGImage 的字节（同一张图只算一次）；backing ≈ 自己画的层（标签 / 墨迹小图）的后备存储估算
-///   BENCH library-all ink-decode n=<字数> points=<点数> json=…ms（回包 ink → [记录 id: [[点]]]，ShiziDecode.value 的 JSON 往返）
+///   BENCH library-all ink-decode n=<字数> points=<点数> json=…ms direct=…ms（回包 ink → [记录 id: [[点]]]：ShiziDecode.value 的 JSON 往返 / 直接读）
 ///   BENCH library-list <ink|glyph> n=<行数> first=… relayout=… reapply=… layers=… images=… backing≈…
 /// 合成回包：形状同 ShiziCore LibrarySubAPI（{ok, view, ink}），数字按 EngineValue.any 的口径装箱（整数 → Int64、其余 → Double）；
 /// 字取包里有字形数据的字（Web/data/<字>.json）；每个墨迹 8 笔 × 62 点（≈ 网页 resampleForReplay 之后的一字）。页面挂在 393 × 852 的窗口里。
@@ -217,16 +217,21 @@ final class LibraryBenchTests: XCTestCase {
     func testLibraryAllInkDecodeCost() throws {
         for n in [300, 1500] {
             let ink = try XCTUnwrap(LibraryBench.allPayload(n, ink: true)["ink"] as? [String: Any])
-            var times: [Double] = []
-            var points = 0
+            var times: [Double] = [], direct: [Double] = []
+            var points = 0, directPoints = 0
             for _ in 0..<3 {
                 let t0 = LibraryBench.now()
                 let decoded = (try? ShiziDecode.value(ink, as: [String: [[LibraryInkView.Point]]].self)) ?? [:]
                 times.append(LibraryBench.ms(t0, LibraryBench.now()))
                 points = decoded.values.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
+                let t1 = LibraryBench.now()
+                let fast = LibraryInkView.decodeInk(ink) // 产品现在走的路（直接读）
+                direct.append(LibraryBench.ms(t1, LibraryBench.now()))
+                directPoints = fast.values.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
             }
-            print(String(format: "BENCH library-all ink-decode n=%ld points=%ld json=%.1fms", n, points, LibraryBench.median(times)))
+            print(String(format: "BENCH library-all ink-decode n=%ld points=%ld json=%.1fms direct=%.1fms", n, points, LibraryBench.median(times), LibraryBench.median(direct)))
             XCTAssertEqual(points, n * 8 * 62)
+            XCTAssertEqual(directPoints, points)
         }
     }
 

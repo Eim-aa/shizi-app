@@ -195,7 +195,9 @@ enum WebInk {
     /// Catmull-Rom 的一段（b → c，a / d 为前后邻点）：max(1, ceil(段长 / step)) 个点，不含 c。
     @inline(__always) static func catmullSegment(_ a: Sample, _ b: Sample, _ c: Sample, _ d: Sample, step: Double, into out: inout [Sample]) {
         @inline(__always) func lerp(_ a: Double, _ b: Double, _ u: Double) -> Double { a + (b - a) * u }
-        let n = max(1, Int((hypot(c.x - b.x, c.y - b.y) / step).rounded(.up)))
+        let nd = (hypot(c.x - b.x, c.y - b.y) / step).rounded(.up)
+        guard nd.isFinite else { return } // 段长溢出成 ∞ / NaN：不铺这一段（原先 Int(_:) 会崩；同 ShiziCore catmullRom 对 ∞ / NaN 一点不铺）
+        let n = max(1, Int(nd))
         let hasP = hasPressure(b.p) || hasPressure(c.p)
         for j in 0..<n {
             let u = Double(j) / Double(n)

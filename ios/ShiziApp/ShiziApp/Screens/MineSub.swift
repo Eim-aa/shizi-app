@@ -161,6 +161,7 @@ final class ShiziPointsInkView: UIView {
     var isNear: Bool { near }
 
     /// 点列 → 三角形顶点（345 单位；draw 再按格缩放）。只用到每点的 x / y / w（t / p 照旧传进 WebInkPoint，WebInk.triangles 不读）。
+    /// 现在只作参照（测试拿它核 forEachTriangle 逐位相同）；draw 走 forEachTriangle。
     static func vertices(_ points: [[ShiziInkPoint]], widthScale: Double) -> [Float] {
         var verts: [Float] = []
         for stroke in points {
@@ -175,31 +176,109 @@ final class ShiziPointsInkView: UIView {
         return verts
     }
 
-    override func draw(_ rect: CGRect) {
-        guard near, !points.isEmpty, bounds.width > 0 else { return }
+    /// 三角形一个一个交给 body（三个顶点，345 单位、Float）：依次 = vertices(points, widthScale:) 的每 6 个 Float，逐位相同、同序。
+    ///
+    /// 为什么不直接用 vertices：一格几百个点 → 上万个三角形，draw 每次都要走一遍；vertices 先经 WebInk.triangles 拼成 [Float]、draw 再逐个下标拆开，
+    /// 在不优化的 Debug 版里每个 append / 下标 / ClosedRange 的一步都是一次泛型调用（CI 的 Debug 模拟器上年报一格墨 100–270ms，整页打开 30 多秒）。
+    /// 这里逐式照抄 WebInk.triangles → appendDisc / appendJoint / halfWidth（同样的运算、同样的先后、同一个 cos / sin / hypot），
+    /// 前面的 compactMap（x / y 不是有限数的点丢掉，w = (w ?? 基准) × widthScale）也照抄；只是点用指针读、循环用 while、顶点不进数组。
+    nonisolated static func forEachTriangle(_ points: [[ShiziInkPoint]], widthScale: Double,
+                                            _ body: (Float, Float, Float, Float, Float, Float) -> Void) {
+        for stroke in points {
+            stroke.withUnsafeBufferPointer { (buf: UnsafeBufferPointer<ShiziInkPoint>) -> Void in
+                guard let base = buf.baseAddress else { return }
+                let count = buf.count
+                var started = false
+                // 上一个（留下来的）点：x / y / 半宽
+                var ax = 0.0, ay = 0.0, ar = 0.0
+                var i = 0
+                while i < count {
+                    let p = base + i
+                    i += 1
+                    let x: Double = p.pointee.x
+                    let y: Double = p.pointee.y
+                    guard x.isFinite, y.isFinite else { continue }
+                    let w: Double = (p.pointee.w ?? ShiziInkScale.base) * widthScale
+                    let r = Self.halfWidth(w)
+                    if started {
+                        Self.joint(ax, ay, ar, x, y, r, body)
+                    } else {
+                        // 一笔的起点圆（WebInk.triangles 里的 appendDisc(first)）
+                        Self.disc(x, y, r, body)
+                        started = true
+                    }
+                    ax = x
+                    ay = y
+                    ar = r
+                }
+            }
+        }
+    }
+
+    /// = WebInk.halfWidth：max(0.5, w/2)（w 不是正的有限数时按 0）。
+    private nonisolated static func halfWidth(_ w: Double) -> Double { max(0.5, (w.isFinite && w > 0 ? w : 0) / 2) }
+
+    /// = WebInk.appendDisc：圆心与相邻两个圆周点一个三角形，分段数按半径（WebInk.discSegments）。
+    private nonisolated static func disc(_ x: Double, _ y: Double, _ r: Double, _ body: (Float, Float, Float, Float, Float, Float) -> Void) {
+        let n = WebInk.discSegments(r)
+        var px = x + r, py = y
+        var i = 1
+        while i <= n {
+            let a = Double(i) / Double(n) * 2 * Double.pi
+            let nx = x + r * cos(a), ny = y + r * sin(a)
+            body(Float(x), Float(y), Float(px), Float(py), Float(nx), Float(ny))
+            px = nx
+            py = ny
+            i += 1
+        }
+    }
+
+    /// = WebInk.appendJoint：a → b 的四边形色带（两个三角形）+ b 处的圆；两点重合时什么都不画。
+    private nonisolated static func joint(_ ax: Double, _ ay: Double, _ ra: Double, _ bx: Double, _ by: Double, _ rb: Double,
+                                          _ body: (Float, Float, Float, Float, Float, Float) -> Void) {
+        let dx = bx - ax, dy = by - ay
+        let length = hypot(dx, dy)
+        if length == 0 { return }
+        let nx = -dy / length, ny = dx / length
+        let q0 = Float(ax + nx * ra), q1 = Float(ay + ny * ra), q2 = Float(bx + nx * rb), q3 = Float(by + ny * rb)
+        let q4 = Float(bx - nx * rb), q5 = Float(by - ny * rb), q6 = Float(ax - nx * ra), q7 = Float(ay - ny * ra)
+        body(q0, q1, q2, q3, q4, q5)
+        body(q0, q1, q4, q5, q6, q7)
+        Self.disc(bx, by, rb, body)
+    }
+
+    /// 墨的路径（视图坐标，方框宽 width、内边 pad）：每个三角形一段子路径（起点、两条边、闭合）。
+    /// 与改动前 draw 里拼的路径逐元素、逐位相同：顶点同 vertices（forEachTriangle），换算照原式 ox + CGFloat(v) × k，同序加进 CGMutablePath。
+    /// nil = 不画（内框不是正的、或一个三角形也没有）。
+    nonisolated static func inkPath(_ points: [[ShiziInkPoint]], widthScale: Double, pad: CGFloat, width: CGFloat) -> CGPath? {
         // 网页 cellInkBox：墨在格里左、上各留 pad（两个方向同一个内边）
-        let ox = bounds.width * pad
-        let oy = bounds.width * pad
-        let inner = bounds.width * (1 - 2 * pad)
-        guard inner > 0 else { return }
+        let ox = width * pad
+        let oy = width * pad
+        let inner = width * (1 - 2 * pad)
+        guard inner > 0 else { return nil }
         let k = Double(inner) / ShiziInkScale.grid
-        let verts = Self.vertices(points, widthScale: widthScale)
-        guard verts.count >= 6, let ctx = UIGraphicsGetCurrentContext() else { return }
         let path = CGMutablePath()
-        var i = 0
-        while i + 5 < verts.count {
-            let x0 = ox + CGFloat(verts[i]) * k
-            let y0 = oy + CGFloat(verts[i + 1]) * k
-            let x1 = ox + CGFloat(verts[i + 2]) * k
-            let y1 = oy + CGFloat(verts[i + 3]) * k
-            let x2 = ox + CGFloat(verts[i + 4]) * k
-            let y2 = oy + CGFloat(verts[i + 5]) * k
+        var triangles = 0
+        Self.forEachTriangle(points, widthScale: widthScale) { (v0: Float, v1: Float, v2: Float, v3: Float, v4: Float, v5: Float) -> Void in
+            let x0: CGFloat = ox + CGFloat(v0) * k
+            let y0: CGFloat = oy + CGFloat(v1) * k
+            let x1: CGFloat = ox + CGFloat(v2) * k
+            let y1: CGFloat = oy + CGFloat(v3) * k
+            let x2: CGFloat = ox + CGFloat(v4) * k
+            let y2: CGFloat = oy + CGFloat(v5) * k
             path.move(to: CGPoint(x: x0, y: y0))
             path.addLine(to: CGPoint(x: x1, y: y1))
             path.addLine(to: CGPoint(x: x2, y: y2))
             path.closeSubpath()
-            i += 6
+            triangles += 1
         }
+        return triangles > 0 ? path : nil
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard near, !points.isEmpty, bounds.width > 0 else { return }
+        guard let path = Self.inkPath(points, widthScale: widthScale, pad: pad, width: bounds.width),
+              let ctx = UIGraphicsGetCurrentContext() else { return }
         ctx.addPath(path)
         inkColor.setFill()
         ctx.fillPath()

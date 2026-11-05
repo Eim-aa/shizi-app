@@ -7,7 +7,7 @@ import XCTest
 
 /// 原路 = 改动前 render 里那一行（ShiziDecode.value(raw, as: View.self)），保留在这里只作参照。
 /// 比的是页面用到的全部：非墨迹字段（字、模式、日期、文案引用、年份……）与每格墨迹每点 x / y / w 的位型；
-/// 画出来的三角形顶点（ShiziPointsInkView.vertices，draw 里用的就是它）逐位相同。
+/// 画出来的三角形顶点（ShiziPointsInkView.vertices；draw 走的 forEachTriangle 与它逐位相同，见 ShiziPointsInkGeometryTests）逐位相同。
 /// 引擎不再发 t / p（画墨用不到）：新路解出的 t / p 是 nil；而「新路 = 把它展开成旧形状后原路解」连 t / p 一起逐位相同。
 @MainActor
 enum AnnualEq {
@@ -930,6 +930,314 @@ final class ShiziPointsInkRedrawTests: XCTestCase {
         driven.watchesScroll = true
         sv.contentOffset = CGPoint(x: 0, y: far.minY - 100)
         XCTAssertTrue(driven.isNear, "watching again")
+    }
+}
+
+// MARK: - 本人墨的画法：forEachTriangle / inkPath = 改动前（vertices → [Float] → 逐 6 个拼路径），逐位、逐像素
+
+/// 改动前的画法，逐字留在这里只作参照（产品的 draw 改走 ShiziPointsInkView.inkPath）。
+@MainActor
+enum PointsInkFormer {
+    /// 改动前 draw 里拼的路径（先 vertices，再每 6 个 Float 一个三角形）；nil = 改动前在这里就 return（不画）。
+    static func path(_ points: [[ShiziInkPoint]], widthScale: Double, pad: CGFloat, width: CGFloat) -> CGPath? {
+        let ox = width * pad
+        let oy = width * pad
+        let inner = width * (1 - 2 * pad)
+        guard inner > 0 else { return nil }
+        let k = Double(inner) / ShiziInkScale.grid
+        let verts = ShiziPointsInkView.vertices(points, widthScale: widthScale)
+        guard verts.count >= 6 else { return nil }
+        let path = CGMutablePath()
+        var i = 0
+        while i + 5 < verts.count {
+            let x0 = ox + CGFloat(verts[i]) * k
+            let y0 = oy + CGFloat(verts[i + 1]) * k
+            let x1 = ox + CGFloat(verts[i + 2]) * k
+            let y1 = oy + CGFloat(verts[i + 3]) * k
+            let x2 = ox + CGFloat(verts[i + 4]) * k
+            let y2 = oy + CGFloat(verts[i + 5]) * k
+            path.move(to: CGPoint(x: x0, y: y0))
+            path.addLine(to: CGPoint(x: x1, y: y1))
+            path.addLine(to: CGPoint(x: x2, y: y2))
+            path.closeSubpath()
+            i += 6
+        }
+        return path
+    }
+
+    /// 路径的可比形式：每个元素的类型 + 各点 x / y 的位型（nil 路径 = [UInt64.max]）。
+    static func elements(_ p: CGPath?) -> [UInt64] {
+        guard let p else { return [UInt64.max] }
+        var out: [UInt64] = []
+        p.applyWithBlock { (e: UnsafePointer<CGPathElement>) -> Void in
+            let el = e.pointee
+            out.append(UInt64(el.type.rawValue))
+            let n: Int
+            switch el.type {
+            case .moveToPoint, .addLineToPoint: n = 1
+            case .addQuadCurveToPoint: n = 2
+            case .addCurveToPoint: n = 3
+            case .closeSubpath: n = 0
+            @unknown default: n = 0
+            }
+            var j = 0
+            while j < n {
+                let pt: CGPoint = el.points[j]
+                out.append(Double(pt.x).bitPattern)
+                out.append(Double(pt.y).bitPattern)
+                j += 1
+            }
+        }
+        return out
+    }
+
+    /// 一个方框（边长 side pt、scale 3）里填这条路径（同 draw：addPath → 墨色 setFill → fillPath）的像素。
+    static func pixels(_ path: CGPath?, side: CGFloat, color: UIColor) -> Data {
+        let fmt = UIGraphicsImageRendererFormat()
+        fmt.scale = 3
+        fmt.opaque = false
+        fmt.preferredRange = .standard
+        let img = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: fmt).image { (rc: UIGraphicsImageRendererContext) -> Void in
+            guard let path else { return }
+            let ctx = rc.cgContext
+            ctx.addPath(path)
+            color.setFill()
+            ctx.fillPath()
+        }
+        guard let cg = img.cgImage, let data = cg.dataProvider?.data as Data? else { return Data() }
+        return data
+    }
+
+    /// 一格的点列（同 AnnualBench.inkPoints：8 笔 × 62 点，x / y / w；年报月段格的典型墨迹）。
+    static func benchPoints(_ seed: Int) -> [[ShiziInkPoint]] {
+        (0..<8).map { (s: Int) -> [ShiziInkPoint] in
+            (0..<62).map { (j: Int) -> ShiziInkPoint in
+                let u = Double(j) / 61
+                let a = Double(seed % 17) * 0.37 + Double(s) * 0.8
+                let x: Double = 40 + 230 * u * (0.5 + 0.5 * cos(a)) + Double(s) * 9
+                let y: Double = 40 + 30 * Double(s) + 25 * sin(u * 3 + a)
+                let w: Double = 9 + 4 * sin(u * 5 + Double(s))
+                return ShiziInkPoint(x: x, y: y, w: w, t: Double(1000 * s) + 8.25 * Double(j), p: nil)
+            }
+        }
+    }
+
+    /// 随机的点列（固定种子）：笔数 / 点数、坐标、笔宽各种取法，混进边界情形。
+    static func randomPoints(_ rng: inout WebInkTestRNG) -> [[ShiziInkPoint]] {
+        let strokes = Int.random(in: 0...5, using: &rng)
+        var out: [[ShiziInkPoint]] = []
+        for _ in 0..<strokes {
+            let n = Int.random(in: 0...40, using: &rng)
+            var s: [ShiziInkPoint] = []
+            var x = Double.random(in: -20...365, using: &rng), y = Double.random(in: -20...365, using: &rng)
+            for _ in 0..<n {
+                let roll = Int.random(in: 0..<100, using: &rng)
+                // 多数是一步一步走的点；偶尔原地不动（零长的段）、跳一大步、坐标 / 笔宽取边界值
+                if roll >= 8 {
+                    x += Double.random(in: -9...9, using: &rng)
+                    y += Double.random(in: -9...9, using: &rng)
+                } else if roll >= 4 {
+                    x += Double.random(in: -300...300, using: &rng)
+                }
+                var px = x, py = y
+                if roll == 0 { px = .nan }
+                if roll == 1 { py = .infinity }
+                if roll == 2 { px = -0.0 }
+                var w: Double? = Double.random(in: 0...30, using: &rng)
+                let wr = Int.random(in: 0..<20, using: &rng)
+                if wr == 0 { w = nil }
+                if wr == 1 { w = 0 }
+                if wr == 2 { w = -3 }
+                if wr == 3 { w = .nan }
+                if wr == 4 { w = .infinity }
+                if wr == 5 { w = 3.999999999 } // 半宽在 discSegments 的分段界（2 / 5）上下
+                if wr == 6 { w = 10 }
+                if wr == 7 { w = 4 }
+                let t: Double? = Int.random(in: 0..<2, using: &rng) == 0 ? nil : Double.random(in: 0...5000, using: &rng)
+                let p: Double? = Int.random(in: 0..<3, using: &rng) == 0 ? Double.random(in: 0...1, using: &rng) : nil
+                s.append(ShiziInkPoint(x: px, y: py, w: w, t: t, p: p))
+            }
+            out.append(s)
+        }
+        return out
+    }
+}
+
+@MainActor
+final class ShiziPointsInkGeometryTests: XCTestCase {
+    typealias F = PointsInkFormer
+
+    /// 手写的边界情形：空、空笔、一个点、重合的点、x / y 不是有限数（丢掉的点在笔头 / 中间 / 全部）、各种 w、很大的坐标（Float 溢出成 ∞）。
+    static let handMade: [[[ShiziInkPoint]]] = {
+        func q(_ x: Double, _ y: Double, _ w: Double? = nil) -> ShiziInkPoint { ShiziInkPoint(x: x, y: y, w: w, t: nil, p: nil) }
+        var cases: [[[ShiziInkPoint]]] = []
+        cases.append([])
+        cases.append([[]])
+        cases.append([[], []])
+        cases.append([[q(10, 10)]])
+        cases.append([[q(10, 10, 3)], [q(20, 20, 0.2)]])
+        cases.append([[q(5, 5, 8), q(5, 5, 12), q(5, 5, 2)]])
+        cases.append([[q(Double.nan, 1, 4), q(10, 10, 4), q(20, 12, 6)]])
+        let inf = Double.infinity
+        cases.append([[q(10, 10, 4), q(inf, 10, 4), q(20, 12, 6), q(30, -inf, 2), q(40, 14, 9)]])
+        cases.append([[q(Double.nan, Double.nan), q(inf, 1)]])
+        cases.append([[q(0, 0, -1), q(-0.0, 0, Double.nan), q(3, 4, inf), q(6, 8, 0)]])
+        // 下标 10、11：极大的坐标（Float 溢出成 ∞、hypot 溢出）——只比顶点与路径，不填像素
+        cases.append([[q(1e30, 1e30, 8), q(-1e30, 2e30, 8)]])
+        cases.append([[q(1e300, 0, 8), q(-1e300, 0, 8)]])
+        cases.append([[q(100, 100, 3.9999999999), q(110, 100, 4), q(120, 100, 9.9999999), q(130, 100, 10), q(140, 100, 1e6)]])
+        return cases
+    }()
+
+    /// handMade 里只比顶点与路径、不填像素的（极大的坐标）。
+    static let noPixels: Set<Int> = [10, 11]
+
+    static let widthScales: [Double] = [1, ShiziInkScale.scale(45, 1 - 2 * 0.09), ShiziInkScale.scale(20, 1), 0, -1, .nan, .infinity]
+
+    /// forEachTriangle 交出来的顶点 = vertices（WebInk.triangles）逐位、同序：手写的边界情形 + 200 份随机点列 + 量测用的一格，各种 widthScale。
+    func testTrianglesMatchWebInkBitForBit() {
+        var rng = WebInkTestRNG(state: 20261109)
+        var all = Self.handMade
+        for _ in 0..<200 { all.append(F.randomPoints(&rng)) }
+        all.append(F.benchPoints(3))
+        var compared = 0
+        for (ci, pts) in all.enumerated() {
+            for ws in Self.widthScales {
+                let want = ShiziPointsInkView.vertices(pts, widthScale: ws).map(\.bitPattern)
+                var got: [UInt32] = []
+                got.reserveCapacity(want.count)
+                ShiziPointsInkView.forEachTriangle(pts, widthScale: ws) { (a: Float, b: Float, c: Float, d: Float, e: Float, f: Float) -> Void in
+                    got.append(a.bitPattern); got.append(b.bitPattern); got.append(c.bitPattern)
+                    got.append(d.bitPattern); got.append(e.bitPattern); got.append(f.bitPattern)
+                }
+                if got != want {
+                    XCTFail("case \(ci) widthScale \(ws): \(got.count / 6) triangles vs former \(want.count / 6)")
+                    return
+                }
+                compared += want.count / 6
+            }
+        }
+        XCTAssertGreaterThan(compared, 10_000, "compared a good number of triangles")
+    }
+
+    /// inkPath = 改动前 draw 拼的路径（逐元素、各点逐位；不画的情形两边都不画），格宽 / 内边各几种（含小数格宽、内边把内框压没）；
+    /// 填出来的像素逐字节相同（浅 / 深两种墨色，3x）。
+    func testPathAndPixelsMatchTheFormerDraw() {
+        var rng = WebInkTestRNG(state: 20261110)
+        var all = Self.handMade
+        for _ in 0..<60 { all.append(F.randomPoints(&rng)) }
+        all.append(F.benchPoints(5))
+        let boxes: [(CGFloat, CGFloat)] = [(45, 0.09), (44, 0.09), (132, 0.12), (140, 0.12), (37.5, 0), (58.333333333333336, 0.09), (45, 0.5), (45, 0.6)]
+        let colors: [UIColor] = [UIColor(red: 0.12, green: 0.1, blue: 0.08, alpha: 1), UIColor(red: 0.9, green: 0.88, blue: 0.84, alpha: 0.9)]
+        for (ci, pts) in all.enumerated() {
+            for (bi, box) in boxes.enumerated() {
+                let ws = Self.widthScales[(ci + bi) % 3]
+                let former = F.path(pts, widthScale: ws, pad: box.1, width: box.0)
+                let now = ShiziPointsInkView.inkPath(pts, widthScale: ws, pad: box.1, width: box.0)
+                XCTAssertEqual(former == nil, now == nil, "case \(ci) box \(box): drawn or not")
+                if F.elements(former) != F.elements(now) {
+                    XCTFail("case \(ci) box \(box): path elements differ")
+                    continue
+                }
+                // 像素：极大的坐标不填（CoreGraphics 只报错）；随机的点列只填前四种格（量测用的那一格每种都填）
+                guard !Self.noPixels.contains(ci), bi < 4 || ci == all.count - 1 else { continue }
+                let color = colors[ci % 2]
+                XCTAssertEqual(F.pixels(former, side: box.0, color: color), F.pixels(now, side: box.0, color: color), "case \(ci) box \(box): pixels")
+            }
+        }
+    }
+
+    /// 画在页面上的墨（视图自己的 draw）= 改动前的画法：一格墨视图挂进窗口（到了视口附近才画），整窗截图 = 同一个窗口里换成参照视图（draw 照改动前的写法）的截图。
+    func testViewDrawsLikeTheFormerDraw() throws {
+        let host = UIViewController()
+        let w = LibraryBench.host(host)
+        defer { LibraryBench.unhost(w) }
+        w.overrideUserInterfaceStyle = .light
+        let frames: [CGRect] = [CGRect(x: 20, y: 120, width: 45, height: 45), CGRect(x: 80.5, y: 120.25, width: 132, height: 132), CGRect(x: 20, y: 300, width: 58.333333333333336, height: 58.333333333333336)]
+        let pads: [CGFloat] = [0.09, 0.12, 0]
+        let color = UIColor { (t: UITraitCollection) -> UIColor in t.userInterfaceStyle == .dark ? .white : UIColor(red: 0.1, green: 0.09, blue: 0.08, alpha: 1) }
+        var views: [ShiziPointsInkView] = []
+        for (i, f) in frames.enumerated() {
+            let v = ShiziPointsInkView(frame: f)
+            v.watchesScroll = false
+            v.points = F.benchPoints(i + 2)
+            v.pad = pads[i]
+            v.widthScale = ShiziInkScale.scale(f.width, 1 - 2 * pads[i])
+            v.inkColor = color
+            host.view.addSubview(v)
+            v.refreshNear()
+            XCTAssertTrue(v.isNear)
+            views.append(v)
+        }
+        LibraryBench.settle(w)
+        let now = try LibraryEq.stableSnapshot(w, "points ink view")
+        for v in views { v.isHidden = true }
+        var refs: [PointsInkFormerView] = []
+        for v in views {
+            let r = PointsInkFormerView(frame: v.frame)
+            r.points = v.points
+            r.pad = v.pad
+            r.widthScale = v.widthScale
+            r.inkColor = v.inkColor
+            host.view.addSubview(r)
+            refs.append(r)
+        }
+        LibraryBench.settle(w)
+        let former = try LibraryEq.stableSnapshot(w, "points ink former")
+        XCTAssertTrue(LibraryEq.same(now, former, "points ink view vs former draw"))
+        for r in refs { r.removeFromSuperview() }
+    }
+
+    /// 量测：一格墨（8 笔 × 62 点、45pt、3x）的路径与填充，改动前 vs 现在（CI 日志 grep BENCH points-ink）。
+    ///   BENCH points-ink cell triangles=… former-path=…ms path=…ms fill=…ms（former-path = vertices + 逐 6 个拼路径；path = inkPath；fill = 3x 位图里 addPath + fillPath）
+    func testDrawCost() {
+        let pts = F.benchPoints(7)
+        let ws = ShiziInkScale.scale(44, 1 - 2 * 0.09)
+        var formerT: [Double] = [], nowT: [Double] = [], fillT: [Double] = []
+        let triangles = ShiziPointsInkView.vertices(pts, widthScale: ws).count / 6
+        for _ in 0..<5 {
+            let t0 = LibraryBench.now()
+            let a = F.path(pts, widthScale: ws, pad: 0.09, width: 44)
+            let t1 = LibraryBench.now()
+            let b = ShiziPointsInkView.inkPath(pts, widthScale: ws, pad: 0.09, width: 44)
+            let t2 = LibraryBench.now()
+            _ = F.pixels(b, side: 44, color: .black)
+            let t3 = LibraryBench.now()
+            formerT.append(LibraryBench.ms(t0, t1))
+            nowT.append(LibraryBench.ms(t1, t2))
+            fillT.append(LibraryBench.ms(t2, t3))
+            XCTAssertEqual(F.elements(a), F.elements(b))
+        }
+        print(String(format: "BENCH points-ink cell triangles=%ld former-path=%.2fms path=%.2fms fill=%.2fms",
+                     triangles, LibraryBench.median(formerT), LibraryBench.median(nowT), LibraryBench.median(fillT)))
+    }
+}
+
+/// 参照视图：draw 照改动前的写法（PointsInkFormer.path → addPath → 墨色 setFill → fillPath），其余同 ShiziPointsInkView 的画法（不透明 = 否、清底、按框重画）。
+final class PointsInkFormerView: UIView {
+    var points: [[ShiziInkPoint]] = []
+    var inkColor: UIColor = .black
+    var widthScale: Double = 1
+    var pad: CGFloat = 0
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isOpaque = false
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+        contentMode = .redraw
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func draw(_ rect: CGRect) {
+        guard !points.isEmpty, bounds.width > 0 else { return }
+        guard let path = PointsInkFormer.path(points, widthScale: widthScale, pad: pad, width: bounds.width),
+              let ctx = UIGraphicsGetCurrentContext() else { return }
+        ctx.addPath(path)
+        inkColor.setFill()
+        ctx.fillPath()
     }
 }
 

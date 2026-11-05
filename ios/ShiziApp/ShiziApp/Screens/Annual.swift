@@ -700,9 +700,14 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     }
 
     /// 按此刻的滚动位置建 / 收格子（排版后、滚动时），再让墨按此刻的位置判要不要画。外观按本页的。
+    /// 可见框按底栏让出之后的滚动区算（settledScrollHeight）：基类排版时先把滚动区设成整高、再调 layoutBody，
+    /// 本页的 viewDidLayoutSubviews 才让出底栏（layoutFooter）。以前 layoutBody 里这一次按那一刻的整高建，每次排版都多建几行、
+    /// 紧接着又收掉，那几格的墨迹键还排了一次取（到时按收掉之后的格子数，什么也不取），inkPending 因此在每次排版之后白白为真一轮
+    /// （例：切外观的那次排版之后）。排完版、滚动时两者相同；画面不变（多建的那几格在提交之前就收掉了）。
     func updateCells() {
-        cells.overscan = max(max(0, scroll.bounds.height) * Self.overscanViewports, Self.overscanRows * grid.cellSide)
-        let visible = scroll.bounds
+        var visible = scroll.bounds
+        visible.size.height = settledScrollHeight()
+        cells.overscan = max(max(0, visible.height) * Self.overscanViewports, Self.overscanRows * grid.cellSide)
         traitCollection.performAsCurrent { cells.update(visible: visible) }
         refreshInkNear()
         requestMissingInk()
@@ -1185,12 +1190,30 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         }
     }
 
+    /// 底栏的高（layoutFooter 与 settledScrollHeight 同一个算法）。
+    private func footerHeight() -> CGFloat {
+        let mt = metrics
+        let safeBottom = max(mt.space(6), view.safeAreaInsets.bottom)
+        let btnH = max(mt.value("btn-h"), mt.hit)
+        return mt.space(3) + btnH + safeBottom
+    }
+
+    /// 底栏让出之后滚动区的高（= layoutFooter 设的：底栏顶 − 滚动区的上沿）。上沿：一般由基类排版先定好；
+    /// AX 档由 viewDidLayoutSubviews 里的 applyAxHeader 挪到页头底（safeTop + 第一行 + 标题行，同那里的算法），这里先按它算。
+    private func settledScrollHeight() -> CGFloat {
+        var top = scroll.frame.minY
+        if axLayout {
+            let titleRow = titleLabel.frame.height + 6
+            top = view.safeAreaInsets.top + axHeaderRowHeight() + titleRow
+        }
+        return max(0, view.bounds.height - footerHeight() - top)
+    }
+
     private func layoutFooter() {
         let mt = metrics
         let w = view.bounds.width
-        let safeBottom = max(mt.space(6), view.safeAreaInsets.bottom)
         let btnH = max(mt.value("btn-h"), mt.hit)
-        let footerH = mt.space(3) + btnH + safeBottom
+        let footerH = footerHeight()
         let footerTop = view.bounds.height - footerH
         footerView.frame = CGRect(x: 0, y: footerTop, width: w, height: footerH)
         footerView.backgroundColor = color("paper")

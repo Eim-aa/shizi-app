@@ -1343,27 +1343,38 @@ enum AnnualLazy {
         return vc
     }
 
-    /// 排版、跑主线程，直到墨迹都到了（inkPending 为假）再排版提交一次；超时 → false。
+    /// 至少跑这么多轮主线程，才看时间（spin / waitInk）。排着的取墨要两轮主线程才发得出去（main.async 里建 Task，Task 再排一轮），
+    /// 而 CFRunLoop 处理过一次主队列，下一轮会先过 beforeWaiting（Core Animation 在这里提交、排版、画墨）再处理主队列：
+    /// 那一次提交慢（例：同时开着的另一个窗口在画一屏墨）就把时限整个用掉，请求一次也没发出去（以前 spin 之后 calls 为空就是这样）。
+    static let minPasses = 6
+
+    /// 排版、跑主线程，直到墨迹都到了（inkPending 为假）再排版提交一次；超时（且至少跑过 minPasses 轮）→ false。
     /// 假的 view.annual.ink 立刻回，正常几十毫秒内就到：默认只等 3 秒（等不到多半是卡住了，早点失败）。
     @discardableResult
     static func waitInk(_ vc: AnnualScreen, _ w: UIWindow, timeout: TimeInterval = 3) -> Bool {
         let end = Date().addingTimeInterval(timeout)
-        while Date() < end {
+        var passes = 0
+        while passes < minPasses || Date() < end {
             LibraryBench.settle(w)
             if !vc.inkPending {
                 LibraryBench.settle(w)
                 return true
             }
             RunLoop.current.run(until: Date().addingTimeInterval(0.003))
+            passes += 1
         }
         return false
     }
 
-    /// 只跑主线程一会儿（让排着的请求发出去、在路上的回来），不等墨迹到。
+    /// 只跑主线程一会儿（让排着的请求发出去、在路上的回来），不等墨迹到。至少 minPasses 轮（见上）。
     static func spin(_ w: UIWindow, _ seconds: TimeInterval = 0.05) {
         LibraryBench.settle(w)
         let end = Date().addingTimeInterval(seconds)
-        while Date() < end { RunLoop.current.run(until: Date().addingTimeInterval(0.003)) }
+        var passes = 0
+        while passes < minPasses || Date() < end {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.003))
+            passes += 1
+        }
         LibraryBench.settle(w)
     }
 

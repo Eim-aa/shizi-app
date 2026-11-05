@@ -58,6 +58,7 @@
 		1A0000000000000000B51104 /* LibraryEquivalenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B51103 /* LibraryEquivalenceTests.swift */; };
 		1A0000000000000000B51102 /* LibraryBenchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B51101 /* LibraryBenchTests.swift */; };
 		1A0000000000000000B61102 /* ImagePreviewBenchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B61101 /* ImagePreviewBenchTests.swift */; };
+		1A0000000000000000B52102 /* AnnualBenchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B52101 /* AnnualBenchTests.swift */; };
 		1A000000000000000000B25B /* NativeJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B25A /* NativeJudge.swift */; };
 		1A000000000000000000B2A3 /* NativeWriteLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A2 /* NativeWriteLayout.swift */; };
 		1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A0 /* NativeInkWire.swift */; };
@@ -192,6 +193,7 @@
 		1A0000000000000000B51103 /* LibraryEquivalenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryEquivalenceTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B51101 /* LibraryBenchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryBenchTests.swift; sourceTree = "<group>"; };
 		1A0000000000000000B61101 /* ImagePreviewBenchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreviewBenchTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B52101 /* AnnualBenchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnualBenchTests.swift; sourceTree = "<group>"; };
 		1A000000000000000000B25A /* NativeJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeJudge.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A2 /* NativeWriteLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteLayout.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A0 /* NativeInkWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkWire.swift; sourceTree = "<group>"; };
@@ -315,6 +317,7 @@
 				1A0000000000000000B51103 /* LibraryEquivalenceTests.swift */,
 				1A0000000000000000B51101 /* LibraryBenchTests.swift */,
 				1A0000000000000000B61101 /* ImagePreviewBenchTests.swift */,
+				1A0000000000000000B52101 /* AnnualBenchTests.swift */,
 				1A000000000000000000B25C /* NativeJudgeTests.swift */,
 				1A0000000000000000B24605 /* NativeTraceTests.swift */,
 				1A0000000000000000B24607 /* NativeAnswerSkipTests.swift */,
@@ -766,6 +769,7 @@
 				1A0000000000000000B51104 /* LibraryEquivalenceTests.swift in Sources */,
 				1A0000000000000000B51102 /* LibraryBenchTests.swift in Sources */,
 				1A0000000000000000B61102 /* ImagePreviewBenchTests.swift in Sources */,
+				1A0000000000000000B52102 /* AnnualBenchTests.swift in Sources */,
 				1A000000000000000000B25D /* NativeJudgeTests.swift in Sources */,
 				1A0000000000000000B24606 /* NativeTraceTests.swift in Sources */,
 				1A0000000000000000B24608 /* NativeAnswerSkipTests.swift in Sources */,

@@ -68,10 +68,12 @@ public enum AnnualView {
         }
         return best
     }
-    package static func yearMonths(_ state: JSValue, _ s: Slice, policy: JSValue, dates: Dates) throws -> [JSValue] {
+    /// rows：ImageSelection.monthRows(state)，缺省平铺一次给每个月共用（原先每月的 monthMembers 各平铺一遍全部记录）。
+    package static func yearMonths(_ state: JSValue, _ s: Slice, policy: JSValue, dates: Dates, rows prebuilt: [JSValue]? = nil) throws -> [JSValue] {
         let months = Set(s.works.map { String(JS.string($0["localDay"]).prefix(7)) } + s.folded.keys)
+        let rows = prebuilt ?? ImageSelection.monthRows(state)
         return try months.sorted().compactMap { m in
-            let n = try ImageSelection.monthMembers(state, month: m, pick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)["members"]!.arrayValue!.count
+            let n = try ImageSelection.monthMembers(state, month: m, pick: policy["monthSheetPick"]?.stringValue ?? "first", hasInk: nil, added: nil, rows: rows, dates: dates)["members"]!.arrayValue!.count
             return n > 0 ? V.obj([("month", .string(m)), ("monthNum", .number(Double(Int(m.suffix(2))!))), ("n", .number(Double(n)))]) : nil
         }
     }
@@ -79,14 +81,16 @@ public enum AnnualView {
     public static func annualModel(_ state: JSValue, today: String, year: JSValue? = nil, policy: JSValue = Config.policy, hasInk: InkPick.HasInk? = nil, dates: Dates) throws -> JSValue {
         try annualModel(state, today: today, year: year, policy: policy, hasInk: hasInk, dates: dates, index: V.recordIndex(state, dates: dates))
     }
-    package static func annualModel(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, hasInk: InkPick.HasInk?, dates: Dates, index: V.RecordIndex) throws -> JSValue {
+    /// rows：同一次回答里共用的 ImageSelection.monthRows(state)（年报页每月的格也用它），nil 时 yearMonths 现平铺。
+    package static func annualModel(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, hasInk: InkPick.HasInk?, dates: Dates, index: V.RecordIndex, rows: [JSValue]? = nil) throws -> JSValue {
         let wanted = year?.numberValue.flatMap { $0.isFinite && $0.rounded(.towardZero) == $0 ? Int($0) : nil } ?? yearOfDay(today, dates: dates)
         let y = wanted ?? 0
         let years = V.annualYears(state, index: index), at = years.firstIndex(of: y), s = yearSlice(state, year: y, index: index, dates: dates), empty = s.days.isEmpty && s.chars.isEmpty
-        return V.obj([("today", .string(today)), ("year", wanted.map { .number(Double($0)) } ?? .null), ("years", .array(years.map { .number(Double($0)) })), ("prevYear", at != nil && at! > 0 ? .number(Double(years[at!-1])) : .null), ("nextYear", at != nil && at! < years.count-1 ? .number(Double(years[at!+1])) : .null), ("empty", .bool(empty)), ("count", .number(Double(s.chars.count))), ("chars", .array(s.chars.map(JSValue.string))), ("days", .number(Double(s.days.count))), ("first", empty ? .null : firstOfYear(s, hasInk: hasInk, dates: dates)), ("months", .array(empty ? [] : try yearMonths(state, s, policy: policy, dates: dates))), ("twice", empty ? .null : try twiceOfYear(s, hasInk: hasInk, dates: dates))])
+        return V.obj([("today", .string(today)), ("year", wanted.map { .number(Double($0)) } ?? .null), ("years", .array(years.map { .number(Double($0)) })), ("prevYear", at != nil && at! > 0 ? .number(Double(years[at!-1])) : .null), ("nextYear", at != nil && at! < years.count-1 ? .number(Double(years[at!+1])) : .null), ("empty", .bool(empty)), ("count", .number(Double(s.chars.count))), ("chars", .array(s.chars.map(JSValue.string))), ("days", .number(Double(s.days.count))), ("first", empty ? .null : firstOfYear(s, hasInk: hasInk, dates: dates)), ("months", .array(empty ? [] : try yearMonths(state, s, policy: policy, dates: dates, rows: rows))), ("twice", empty ? .null : try twiceOfYear(s, hasInk: hasInk, dates: dates))])
     }
     public static func annualPlan(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {
-        let model = try annualModel(state, today: today, year: year, policy: policy, dates: dates)
+        let rows = ImageSelection.monthRows(state)
+        let model = try annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: V.recordIndex(state, dates: dates), rows: rows)
         if JS.truthy(model["empty"]) || !JS.truthy(model["first"]) { return V.obj([("status", .string("empty")), ("model", model), ("cover", .null), ("months", .array([])), ("tail", .null), ("pages", .array([]))]) }
         // 每月的格（imagePlan 的 hasInk 与取点）、首字、两次对比共用一份 inkPointsOf 记忆（RecordInkMemo：只取决于 state.ink[月][id]），每条记录只解一次
         let points = RecordInkMemo(timeZone: dates.timeZone) { (r: JSValue?) throws -> JSValue? in try QueryView.inkPointsOf(V.obj([("latest", r ?? .null)]), state: state, dates: dates) }
@@ -97,8 +101,8 @@ public enum AnnualView {
         var months: [JSValue] = [], pages = [V.obj([("type", .string("cover"))])]
         for m in model["months"]!.arrayValue! {
             let month = JS.string(m["month"])
-            let plan = try ImageSelection.imagePlan(state, scope: V.obj([("kind", .string("month")), ("month", .string(month))]), inkOf: { r in try points.get(r) }, maxChars: Int(JS.number(policy["imageMaxChars"])), monthPick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)
-            let cells = plan["cells"]?.arrayValue ?? []
+            // 只用到整份 imagePlan(month) 的 cells（monthPlanCells：同一串，不为它分页、拼 drawn）
+            let cells = try ImageSelection.monthPlanCells(state, month: month, inkOf: { r in try points.get(r) }, monthPick: policy["monthSheetPick"]?.stringValue ?? "first", rows: rows, dates: dates).cells
             let parts = ImageLayout.paginate(cells, max: Int(JS.number(policy["imageMaxChars"]))).map(ImageLayout.withDayTags)
             months.append(V.obj([("month", .string(month)), ("monthNum", m["monthNum"]!), ("cells", .array(cells)), ("pages", .array(parts.map(JSValue.array)))]))
             for (i, p) in parts.enumerated() { pages.append(V.obj([("type", .string("month")), ("month", .string(month)), ("cells", .array(p)), ("part", .number(Double(i+1))), ("of", .number(Double(parts.count)))])) }

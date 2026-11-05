@@ -20,9 +20,12 @@ public enum MineSubView {
         var c = out; c["record"] = r ?? .null; out["label"] = try cellLabelRef(.object(c), dates: dates); return out
     }
     /// ink：这次回答共用的 builtInk 记忆（RecordInkMemo.builtInk(state, dates:)），缺省现建一个；imagePlan 的 hasInk（挑有墨迹的那一次）与取点共用它，每条记录只解一次。
-    static func monthCells(_ state: JSValue, month: String, policy: JSValue, dates: Dates, ink memo: RecordInkMemo? = nil) throws -> JSValue {
+    /// 回 {cells, days}：= imagePlan(month)（inkOf = builtInk）的这两项（ImageSelection.monthPlanCells；这里只读这两项，不再为整份计划分页、拼 drawn）。
+    /// rows：同一次回答里共用的 ImageSelection.monthRows(state)（年报每月），缺省现平铺。
+    static func monthCells(_ state: JSValue, month: String, policy: JSValue, dates: Dates, ink memo: RecordInkMemo? = nil, rows: [JSValue]? = nil) throws -> JSValue {
         let ink = memo ?? RecordInkMemo.builtInk(state, dates: dates)
-        return try ImageSelection.imagePlan(state, scope: V.obj([("kind", .string("month")), ("month", .string(month))]), inkOf: { try ink.get($0) }, maxChars: Int(JS.number(policy["imageMaxChars"])), monthPick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)
+        let r = try ImageSelection.monthPlanCells(state, month: month, inkOf: { try ink.get($0) }, monthPick: policy["monthSheetPick"]?.stringValue ?? "first", rows: rows, dates: dates)
+        return V.obj([("cells", .array(r.cells)), ("days", r.days)])
     }
     static func displayMonth(_ state: JSValue, month: String, policy: JSValue, block: Bool, dates: Dates, ink: RecordInkMemo? = nil) throws -> JSValue {
         let r = try monthCells(state, month: month, policy: policy, dates: dates, ink: ink), raw = r["cells"]?.arrayValue ?? []
@@ -83,7 +86,9 @@ public enum MineSubView {
     }
     /// index：调用方已用同一 state / dates 建好的 recordIndex（MineSubAPI 挑缺省年份时建的那个）。
     package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates, index: V.RecordIndex) throws -> JSValue {
-        let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: index)
+        // 年报每月的成员要算两遍（模型里数成员、这里取格），全量平铺一次给它们共用
+        let rows = ImageSelection.monthRows(state)
+        let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: index, rows: rows)
         // 首字、每月的格（含 monthCells 里挑墨迹与取点）、两次对比共用一份 builtInk 记忆：每条记录的墨迹只解一次
         let ink = RecordInkMemo.builtInk(state, dates: dates)
         func points(_ r: JSValue?) throws -> JSValue { try ink.get(r).map { V.obj([("points", $0)]) } ?? .null }
@@ -94,7 +99,7 @@ public enum MineSubView {
             first = V.obj([("char", ch), ("day", f["day"]!), ("recordId", f["record"]?["id"] ?? .string("")), ("ink", p), ("label", V.ref(JS.truthy(p) ? "X-ANNUAL.firstInk" : "X-ANNUAL.firstNoInk", V.obj([("char", ch)]))), ("date", JS.truthy(p) ? V.ref("R-M06.inkDate", V.obj([("date", date)])) : date)])
         }
         let months = try m["months"]!.arrayValue!.map { month -> JSValue in
-            let r = try monthCells(state, month: JS.string(month["month"]), policy: policy, dates: dates, ink: ink), raw = r["cells"]?.arrayValue ?? [], n = JSValue.number(Double(raw.count)), mn = month["monthNum"]!
+            let r = try monthCells(state, month: JS.string(month["month"]), policy: policy, dates: dates, ink: ink, rows: rows), raw = r["cells"]?.arrayValue ?? [], n = JSValue.number(Double(raw.count)), mn = month["monthNum"]!
             return V.obj([("month", month["month"]!), ("monthNum", mn), ("n", n), ("name", V.ref("X-WORK.annualMonthName", V.obj([("month", mn)]))), ("count", V.ref("X-WORK.annualMonthCount", V.obj([("n", n)]))), ("aria", V.ref("X-WORK.annualMonthAria", V.obj([("month", mn), ("n", n)]))), ("cells", .array(try raw.map { try cell($0["ch"]!, $0["record"]) }))])
         }
         var twice: JSValue = .null

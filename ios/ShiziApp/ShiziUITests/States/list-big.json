@@ -1,6 +1,6 @@
 {
   "state": "list-big",
-  "name": "区详情 · 待复习 · 1500 个字（只建看得见的行；流程用，不录逐屏基线）",
+  "name": "区详情 · 待复习 · 300 个字（都只写过一次、早就到期；只建看得见的行；流程用，不录逐屏基线）",
   "screen": "library-list",
   "native": true,
   "parity": false,
@@ -13,7 +13,7 @@
       "op": "seedRecords",
       "lib": {
         "id": "core3500",
-        "n": 1500,
+        "n": 300,
         "from": "2025-11-01",
         "perDay": 5
       }

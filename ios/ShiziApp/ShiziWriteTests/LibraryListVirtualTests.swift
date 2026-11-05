@@ -241,7 +241,7 @@ final class LibraryListVirtualTests: XCTestCase {
         }
     }
 
-    /// 一步一步滚过整个清单（每步 0.37 屏往下，再每步 2.3 屏往上）：每一步之后建出来的行 = 逐个判断与可见框 ± overscan 相交的那些，
+    /// 一步一步滚过整个清单（300 行：每步 0.37 屏往下、2.3 屏往上；1500 行：每步 1.3 屏往下、3.1 屏往上，控制步数）：每一步之后建出来的行 = 逐个判断与可见框 ± overscan 相交的那些，
     /// 没有一行用在两处，每行的状态 = 新建一行按同一序号配出来的；视图树按序号。
     /// 中途重收同一份回包、收一份序号重叠的另一份（字 / 小字 / 勾选都换了）、收一份小的（先显式滚回顶：不靠滚动区自己夹回）也一样。
     func testScrollStress() throws {
@@ -260,9 +260,10 @@ final class LibraryListVirtualTests: XCTestCase {
             }
             verify("n=\(n) open")
             let h = vc.scroll.bounds.height, bottom = V.bottomOffset(vc)
+            let down: CGFloat = n >= 1500 ? 1.3 : 0.37, up: CGFloat = n >= 1500 ? 3.1 : 2.3
             var y: CGFloat = 0, steps = 0
             while y < bottom {
-                y = min(bottom, y + h * 0.37)
+                y = min(bottom, y + h * down)
                 V.scroll(vc, w, to: y)
                 steps += 1
                 verify("n=\(n) down y=\(y)")
@@ -273,7 +274,7 @@ final class LibraryListVirtualTests: XCTestCase {
             LibraryBench.settle(w)
             verify("n=\(n) reapply at bottom")
             while y > 0 {
-                y = max(0, y - h * 2.3)
+                y = max(0, y - h * up)
                 V.scroll(vc, w, to: y)
                 verify("n=\(n) up y=\(y)")
                 if y < bottom / 2, y > 0, steps > 0 { // 中途换一份序号重叠的回包
@@ -322,24 +323,26 @@ final class LibraryListVirtualTests: XCTestCase {
         }
     }
 
-    /// 勾着的行（第 3 行、第 40 行）滚走（行收进池子、给别的行用）再滚回来：仍是勾着的；拿去用的行按它自己的勾选画。
-    /// 底栏提示的字数（选了 2 个字）与主按钮不看建了几行：滚到哪里都一样，勾着的行一行都没建出来时也一样。
+    /// 勾着的行（第 3、12 行在打开时建出来的那段里；第 40 行不在，要滚过去才建）滚走（行收进池子、给别的行用）再滚回来：仍是勾着的；
+    /// 拿去用的行按它自己的勾选画。底栏提示的字数（选了 3 个字）与主按钮不看建了几行：滚到哪里都一样，勾着的行一行都没建出来时也一样。
     func testSelectionSurvivesRowReuse() throws {
         let vc = V.make(all: false)
         let w = LibraryBench.host(vc)
         defer { LibraryBench.unhost(w) }
-        vc.apply(payload: V.payload(1500, ink: true, selected: [3, 40]))
+        vc.apply(payload: V.payload(1500, ink: true, selected: [3, 12, 40]))
         LibraryBench.settle(w)
         let hint = V.text(V.find(vc.view, "native-library-list-hint"))
         let go = V.text(V.find(vc.view, "native-library-list-go"))
-        XCTAssertTrue(hint.contains("2"), "hint counts the model's selection: \(hint)")
+        XCTAssertTrue(hint.contains("3"), "hint counts the model's selection: \(hint)")
+        XCTAssertFalse(vc.rows.liveIndices.contains(40), "row 40 is below the built range at open")
         let row3 = try XCTUnwrap(vc.rows.slot(at: 3))
-        let row4 = try XCTUnwrap(vc.rows.slot(at: 4))
+        let row4 = try XCTUnwrap(vc.rows.slot(at: 4)), row12 = try XCTUnwrap(vc.rows.slot(at: 12))
         XCTAssertTrue(V.isChecked(row3, char: vc.list.data[3].char))
+        XCTAssertTrue(V.isChecked(row12, char: vc.list.data[12].char))
         XCTAssertFalse(V.isChecked(row4, char: vc.list.data[4].char))
         V.scroll(vc, w, to: vc.list.frames[700].minY)
         XCTAssertNil(vc.rows.slot(at: 3), "row 3 scrolled away")
-        XCTAssertFalse(vc.rows.liveIndices.contains(40))
+        XCTAssertNil(vc.rows.slot(at: 12), "row 12 scrolled away")
         if let j = vc.rows.liveIndices.first(where: { vc.rows.slot(at: $0) === row3 }) {
             XCTAssertEqual(V.isChecked(row3, char: vc.list.data[j].char), vc.list.data[j].selected, "reused for row \(j)")
         }
@@ -350,16 +353,20 @@ final class LibraryListVirtualTests: XCTestCase {
         XCTAssertEqual(V.text(V.find(vc.view, "native-library-list-hint")), hint, "hint with neither checked row built")
         XCTAssertEqual(V.text(V.find(vc.view, "native-library-list-go")), go)
         V.scroll(vc, w, to: 0)
-        let back3 = try XCTUnwrap(vc.rows.slot(at: 3)), back40 = try XCTUnwrap(vc.rows.slot(at: 40)), back4 = try XCTUnwrap(vc.rows.slot(at: 4))
+        let back3 = try XCTUnwrap(vc.rows.slot(at: 3)), back12 = try XCTUnwrap(vc.rows.slot(at: 12)), back4 = try XCTUnwrap(vc.rows.slot(at: 4))
         XCTAssertTrue(V.isChecked(back3, char: vc.list.data[3].char), "row 3 still checked")
-        XCTAssertTrue(V.isChecked(back40, char: vc.list.data[40].char), "row 40 still checked")
+        XCTAssertTrue(V.isChecked(back12, char: vc.list.data[12].char), "row 12 still checked")
         XCTAssertFalse(V.isChecked(back4, char: vc.list.data[4].char))
         XCTAssertEqual(V.text(V.find(vc.view, "native-library-list-hint")), hint)
-        // 勾着的两行都在很后面（打开时没建出来）：提示照样是 2 个字
+        V.scroll(vc, w, to: vc.list.frames[40].minY) // 第 40 行要滚过去才建出来
+        let back40 = try XCTUnwrap(vc.rows.slot(at: 40))
+        XCTAssertTrue(V.isChecked(back40, char: vc.list.data[40].char), "row 40 checked once built")
+        XCTAssertEqual(V.text(V.find(vc.view, "native-library-list-hint")), hint)
+        // 勾着的三行都在很后面（打开时没建出来）：提示照样是 3 个字
         let far = V.make(all: false)
         let wf = LibraryBench.host(far)
         defer { LibraryBench.unhost(wf) }
-        far.apply(payload: V.payload(1500, ink: true, selected: [1400, 1450]))
+        far.apply(payload: V.payload(1500, ink: true, selected: [1400, 1450, 1499]))
         LibraryBench.settle(wf)
         XCTAssertFalse(far.rows.liveIndices.contains(1400))
         XCTAssertEqual(V.text(V.find(far.view, "native-library-list-hint")), hint)

@@ -124,6 +124,7 @@ final class AColdStartBenchmarkTests: XCTestCase {
         let storage = store.storage
         bench("store.sub.probe", { $0.ok ? 1 : 0 }) { storage.probe() }
         try bench("store.sub.repair", { $0.count }) { try storage.repair() }
+        try repairHalves(storage)
         let (next, raws, legacy) = bench("store.sub.readState", { $0.raws.count }) { store.readState() }
         store.legacyInk = legacy
         store.lastRaw = raws
@@ -133,6 +134,33 @@ final class AColdStartBenchmarkTests: XCTestCase {
         bench("store.sub.inkSchemaReport", { $0.count }) { store.inkSchemaReport(schema: 2, legacyMonths: legacy.count) }
         bench("store.sub.refreshUsage", { $0?.count ?? 0 }) { store.refreshUsage() }
         sink &+= entries.keys.count
+    }
+
+    /// repair 里逐键 parseAndValidate 的两半，在同一份盘、同一批键与原文上分开量：`store.sub.repair.read`（列键 + 读原文，
+    /// 跳过 txn / probe / 未知键，同 repair）、`.parse`（只做 JSON 解析）、`.validate`（只对解析结果做 Schema.validateValue，
+    /// 即 parseAndValidate 解析之后的那一步，含 specForKey）。三项之和约等于 store.sub.repair（repair 另有 txn / probe 的处理）。
+    private func repairHalves(_ storage: StoreStorage) throws {
+        let txnKey = Schema.keyNamed("txn")!, probeKey = Schema.keyNamed("probe")!
+        let raws = try bench("store.sub.repair.read", { $0.count }) { () throws -> [(key: String, raw: String)] in
+            var out: [(key: String, raw: String)] = []
+            for key in try storage.listKeys(Schema.v2Prefix) {
+                if UTF16Order.eq(key, txnKey) || UTF16Order.eq(key, probeKey) || Schema.specForKey(key) == nil { continue }
+                if let raw = try storage.read(key) { out.append((key: key, raw: raw)) }
+            }
+            return out
+        }
+        let values = try bench("store.sub.repair.parse", { $0.count }) { () throws -> [(key: String, value: JSValue)] in
+            var out: [(key: String, value: JSValue)] = []
+            out.reserveCapacity(raws.count)
+            for e in raws { out.append((key: e.key, value: try JSONParser.parse(e.raw))) }
+            return out
+        }
+        bench("store.sub.repair.validate", { $0 }) { () -> Int in
+            var passed = 0
+            for e in values where Schema.validateValue(key: e.key, value: e.value) == nil { passed += 1 }
+            return passed
+        }
+        print("BENCH coldstart-note repair keys=\(raws.count) bytes=\(raws.reduce(0) { $0 + $1.raw.utf8.count })")
     }
 
     /// 首页构建（HomeView.homeModel / homeView）的分项，各自单独跑一次（懒加载此时都已就绪）：`BENCH coldstart home.sub.<name> <ms>`。

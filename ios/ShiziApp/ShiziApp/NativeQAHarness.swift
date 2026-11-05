@@ -102,6 +102,7 @@ extension RootViewController {
         try? fm.createDirectory(at: outDir, withIntermediateDirectories: true)
         for (i, st) in states.enumerated() {
             let err = await qaPrepare(st)
+            await qaWaitContent() // 页面按需取的内容（年报月段格的墨迹）都到了，再等它们画好（下一行的落定）
             await qaSettleNative() // QA-H4：等推入转场 / 动画落定再取（准备好的信号可能发在转场进行中）
             var dump: [String: Any] = ["state": st, "ui": ui, "tag": tag, "ok": err == nil]
             if let err { dump["error"] = err }
@@ -123,6 +124,22 @@ extension RootViewController {
             _ = await qaWait(90) { fm.fileExists(atPath: ack.path) }
         }
         try? "done".write(to: Self.qaDir.appendingPathComponent("done"), atomically: true, encoding: .utf8)
+    }
+
+    /// 窗口里的原生页（通用原生栈 + tab 根页）有没有还在路上的内容（ShiziScreenViewController.pendingContent：年报建出来的格子的墨迹还没全到）。
+    func qaContentPending() -> Bool {
+        var pages = stage.screens
+        if let root = stage.rootScreen { pages.append(root) }
+        return pages.contains { $0.isViewLoaded && $0.view.window != nil && $0.pendingContent }
+    }
+
+    /// 等页面按需取的内容都到了（最多 timeout 秒；到不了照样往下取证，取证结果会与基线不同而暴露出来）。
+    /// 到了之后的重画（setNeedsDisplay）由随后的 qaSettleNative / 夹具的 settle 等到画完。
+    func qaWaitContent(_ timeout: Double = 15) async {
+        guard qaContentPending() else { return }
+        let t0 = Date()
+        let ok = await qaWait(timeout) { !self.qaContentPending() }
+        ShiziProbe.log("qa: page content \(ok ? "arrived" : "still pending") after \(Int(Date().timeIntervalSince(t0) * 1000))ms")
     }
 
     /// QA-H4：等原生界面落定再取证——没有进行中的转场（任一视图控制器的 transitionCoordinator / isBeingPresented 等）、

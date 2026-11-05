@@ -324,6 +324,9 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         return a
     }
 
+    /// QA 取证：建出来的格子的墨迹都到了才算好（NativeQAHarness.qaWaitContent；到了之后的重画由取证前的落定等）。
+    override var pendingContent: Bool { inkPending }
+
     // MARK: 视图
 
     override func apply(payload: [String: Any]) {

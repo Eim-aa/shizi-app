@@ -218,6 +218,9 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     /// 重拉 view.<屏名> 的参数：缺省 = params；页面要多带的（年报的 lazyInk）在这里加。
     var reloadArgs: [String: Any] { params }
 
+    /// 页面里还有内容在路上（年报按需取的墨迹）：QA 取证等它为假再取（NativeQAHarness.qaWaitContent）。缺省没有。
+    var pendingContent: Bool { false }
+
     /// 重拉 view.<屏名>（changed 推送、引擎重新就绪）。
     func reload() {
         guard let engine = stage?.engine else { return }

@@ -101,6 +101,8 @@ extension RootViewController {
         try? await Task.sleep(nanoseconds: fx.ms("settleBefore"))
         // 4. 界面上的操作（与真人同一个按钮动作）
         if let err = await qaRunSteps(fx.array("steps")) { return err }
+        // 4½. 页面按需取的内容（年报月段格的墨迹：打开 / 滚动时建出来的格子各自去取）都到了，下面的落定再等它们画好
+        await qaWaitContent()
         // 5. 落定：提示淡入 / 弹层 / 撤销条 / 笔顺快放
         try? await Task.sleep(nanoseconds: fx.ms("settle"))
         return nil

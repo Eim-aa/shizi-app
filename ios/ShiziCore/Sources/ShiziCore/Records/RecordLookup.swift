@@ -15,36 +15,48 @@ import Foundation
 /// 是同一块存储（sameRepresentation：位模式相同 = 同一个缓冲区引用）。记住的列表自己持有那块缓冲区的引用：缓冲区活着，它的地址就不会被别的数组复用；
 /// Swift 数组写时复制，被两处引用的缓冲区不会被原地改写。所以任何写法——提交、播种、恢复备份、清空、折叠 / 回收、迁移、撤销、App 的夹具造数据——
 /// 只要改了这个月，读到的就是另一块存储，于是不命中、按新列表重建；没改就是同一块存储，内容逐条相同，下标表仍然对。
-/// 每个月只记一份（按月键），这一轮读到的月以外的旧项会被清掉，最多多留一份记录列表的引用。
+/// 每个月只记一份（按月键）；这一轮状态里没有的月、或这一轮没有可索引列表的月，旧项都会被清掉，最多多留一份记录列表的引用。
 enum RecordLookup {
     enum Field { case card, session, id }
 
     /// 一个月的记录列表上的下标表：字段的字串值 → 下标（升序）。只收对象里是字串的值。
+    /// 记录号几乎都不重复：firstById 只记一个下标（不为每条记录建一个数组）；同一个记录号（规范等价）出现两次起，
+    /// dupeIds 里按升序记下它的全部下标（含第一个），查的时候先看 dupeIds。
     final class MonthIndex {
         let list: [JSValue]
         let byCard: [String: [Int]]
         let bySession: [String: [Int]]
-        let byId: [String: [Int]]
+        let firstById: [String: Int]
+        let dupeIds: [String: [Int]]
 
         init(_ list: [JSValue]) {
             self.list = list
-            var card: [String: [Int]] = [:], session: [String: [Int]] = [:], id: [String: [Int]] = [:]
+            var card: [String: [Int]] = [:], session: [String: [Int]] = [:], first: [String: Int] = [:], dupes: [String: [Int]] = [:]
             for (n, r) in list.enumerated() {
                 guard case .object(let o) = r else { continue }
                 if case .string(let v)? = o["cardKey"] { card[v, default: []].append(n) }
                 if case .string(let v)? = o["sessionId"] { session[v, default: []].append(n) }
-                if case .string(let v)? = o["id"] { id[v, default: []].append(n) }
+                if case .string(let v)? = o["id"] {
+                    if let f = first[v] {
+                        if dupes[v] == nil { dupes[v] = [f, n] } else { dupes[v]!.append(n) }
+                    } else {
+                        first[v] = n
+                    }
+                }
             }
             byCard = card
             bySession = session
-            byId = id
+            firstById = first
+            dupeIds = dupes
         }
 
         func hits(_ field: Field, _ value: String) -> [Int]? {
             switch field {
             case .card: return byCard[value]
             case .session: return bySession[value]
-            case .id: return byId[value]
+            case .id:
+                if let all = dupeIds[value] { return all }
+                return firstById[value].map { [$0] }
             }
         }
     }
@@ -65,13 +77,19 @@ enum RecordLookup {
         return built
     }
 
-    /// 清掉这一轮没读到的月（换了状态 / 删了月之后不再白留旧列表）。
+    /// 这个月这一轮没有可索引的列表（null、空、折叠了又没有 kept……）：不再白留它的旧索引。
+    private static func forget(_ month: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        cache[month] = nil
+    }
+
+    /// 清掉这一轮状态里没有的月（换了状态 / 删了月之后不再白留旧列表）。不看条数：另一份状态留下的月键只要不在这一轮里就清。
     private static func trim(_ months: [String]) {
         lock.lock()
         defer { lock.unlock() }
-        guard cache.count > months.count else { return }
         let live = Set(months)
-        cache = cache.filter { live.contains($0.key) }
+        if cache.keys.contains(where: { !live.contains($0) }) { cache = cache.filter { live.contains($0.key) } }
     }
 
     /// Query.flattenRecords 对一个月取的列表：数组本身；否则 kept 是数组（且值为真）就取 kept；都不是 nil。
@@ -87,7 +105,10 @@ enum RecordLookup {
         guard case .object(let months)? = domain, !wants.isEmpty else { return out }
         let keys = months.keys
         for month in keys {
-            guard let value = months[month], let list = pick(value), !list.isEmpty else { continue }
+            guard let value = months[month], let list = pick(value), !list.isEmpty else {
+                forget(month)
+                continue
+            }
             let idx = index(month, list)
             if wants.count == 1 {
                 for n in idx.hits(wants[0].0, wants[0].1) ?? [] { out.append(list[n]) }

@@ -9,18 +9,20 @@ import XCTest
 
 /// 图片预览弹层（NativeImagePreviewController）每一页图从引擎到屏上的耗时（CI 日志里 grep BENCH）。只打印、不断言时间。
 ///   BENCH image-preview page <板> ratio=<比例> page=<第几页>/<页数> px=<宽>x<高> png=…KB
-///         spec=…ms render+png=…ms png≈…ms draw≈…ms b64enc=…ms b64dec=…ms decode=…ms op=…ms
+///         spec=…ms render+png=…ms draw=…ms png=…ms b64enc=…ms b64dec=…ms decode=…ms show=…ms op=…ms op-display=…ms
 ///     spec       = image.spec（选字 / 落款 / 版式参数，SessionRuntime）
-///     render+png = ImageRenderer.render(spec)：Core Graphics 画 + 编 PNG（产品 image.render 里的那一步）
-///     png        = 同一张位图（同一格式：sRGB、8 位、premultipliedLast）单独编一次 PNG（CGImageDestination，与渲染器同一个调用）
-///     draw       = render+png − png（只画的估算）
-///     b64enc     = PNG → "data:image/png;base64,…"（引擎回包里的 dataURL）
-///     b64dec     = dataURL → Data（预览页 image(from:)）
-///     decode     = UIImage(data:) + preparingForDisplay()（PNG 解码成能上屏的位图；UIImageView 上屏时在主线程做的那一步）
-///     op         = 整个 engine.raw("image.render") 一页的墙钟（spec + 画 + PNG + 读图头 + base64）
+///     render+png = ImageRenderer.render(spec)：Core Graphics 画 + 编 PNG（分享 / 保存仍走这一步）
+///     draw       = ImageRenderer.renderImages(spec)：只画（预览现在只走这一步）
+///     png        = 把 draw 画好的那张位图编 PNG（ImageRenderer.png，与 render 同一个编码调用）
+///     b64enc     = PNG → "data:image/png;base64,…"（原来引擎回包里的 dataURL）
+///     b64dec     = dataURL → Data（原来预览页 image(from:)）
+///     decode     = UIImage(data:) + preparingForDisplay()（原来：PNG 解码成能上屏的位图；UIImageView 上屏时在主线程做的那一步）
+///     show       = UIImage(cgImage:) + preparingForDisplay()（现在：画好的位图直接上屏前的同一步）
+///     op         = 整个 engine.raw("image.render") 一页的墙钟，不带 display（spec + 画 + PNG + 读图头 + base64；分享走的路，也是原来预览走的路）
+///     op-display = 同上带 display: true（spec + 画；预览现在走的路）
 ///   BENCH image-preview open <板> pages=<页数> prepare=…ms open=…ms switch-1:1=…ms switch-3:4=…ms
 ///     prepare    = vc.prepare()（image.view：视图模型）
-///     open       = 弹层呈现（无动画）→ 每一页的图都放进 UIImageView 并提交一次（CATransaction.flush：图在提交里解码上屏）
+///     open       = 弹层呈现（无动画）→ 每一页的图都放进 UIImageView 并提交一次（CATransaction.flush：图在提交里上屏）（产品当前的路）
 ///     switch-x   = 点比例分段 → 新比例的每一页都换上并提交一次（预览页 renderAll：逐页串行、都在主线程）
 /// 板：月字帖（2026-08，core3500 的前 n 个字，每天 perDay 个；夹具 seedRecords + seed，与 UI 夹具 preview-paged 同一批入口）。
 ///   month-90  = 2 页、scale 4/3（每页 1440 × 1920 / 1440 × 1440 像素）
@@ -50,16 +52,7 @@ enum ImagePreviewBench {
         return await QAFixtureRunner(host: host.root).run(setup, pin: "2026-10-22T09:00:00", clock: "", reset: true)
     }
 
-    /// 渲染器画好的位图的同一格式（sRGB、8 位、premultipliedLast、紧排）：把一张图原样画进去再取出来。
-    static func bitmapCopy(_ image: CGImage) -> CGImage? {
-        guard let cs = CGColorSpace(name: CGColorSpace.sRGB),
-              let ctx = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: image.width * 4, space: cs,
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
-        return ctx.makeImage()
-    }
-
-    /// 与 ImageRenderer 同一个 PNG 编码调用。
+    /// 原来 ImageRenderer.bitmap 里的 PNG 编码（改动前的那几行原样抄来，作「保存 / 分享的 PNG 字节不变」的参照）。
     static func encodePNG(_ image: CGImage) -> Data? {
         let data = NSMutableData()
         guard let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else { return nil }
@@ -103,7 +96,7 @@ enum ImagePreviewBench {
 
     /// 一页的分段耗时（ms）、像素、PNG 字节。
     struct Stages {
-        var spec = 0.0, renderPNG = 0.0, png = 0.0, b64enc = 0.0, b64dec = 0.0, decode = 0.0, op = 0.0
+        var spec = 0.0, renderPNG = 0.0, draw = 0.0, png = 0.0, b64enc = 0.0, b64dec = 0.0, decode = 0.0, show = 0.0, op = 0.0, opDisplay = 0.0
         var width = 0, height = 0, bytes = 0
     }
 
@@ -118,11 +111,13 @@ enum ImagePreviewBench {
         let png = try XCTUnwrap(try renderer.render(spec).first, "render page \(page)")
         s.renderPNG = ms(t1, now())
         s.bytes = png.count
-        let bitmap = try XCTUnwrap(decodePNG(png).flatMap(bitmapCopy), "bitmap page \(page)")
+        let t1d = now()
+        let bitmap = try XCTUnwrap(try renderer.renderImages(spec).first, "renderImages page \(page)")
+        s.draw = ms(t1d, now())
         s.width = bitmap.width
         s.height = bitmap.height
         let t2 = now()
-        _ = try XCTUnwrap(encodePNG(bitmap))
+        _ = try ImageRenderer.png(bitmap)
         s.png = ms(t2, now())
         let t3 = now()
         let url = "data:image/png;base64," + png.base64EncodedString()
@@ -135,16 +130,25 @@ enum ImagePreviewBench {
         let img = try XCTUnwrap(UIImage(data: data))
         _ = try XCTUnwrap(img.preparingForDisplay())
         s.decode = ms(t5, now())
+        let t5s = now()
+        _ = try XCTUnwrap(UIImage(cgImage: bitmap, scale: 1, orientation: .up).preparingForDisplay())
+        s.show = ms(t5s, now())
         let t6 = now()
         let reply = await engine.raw("image.render", args)
         s.op = ms(t6, now())
         XCTAssertEqual(reply["ok"] as? Bool, true, "image.render page \(page)")
+        var displayArgs = args
+        displayArgs["display"] = true
+        let t7 = now()
+        let shown = await engine.raw("image.render", displayArgs)
+        s.opDisplay = ms(t7, now())
+        XCTAssertNotNil(shown[SwiftEngine.pictureKey] as? UIImage, "image.render display page \(page)")
         return s
     }
 
     static func report(_ board: String, ratio: String, page: Int, of n: Int, _ s: Stages) {
-        print(String(format: "BENCH image-preview page \(board) ratio=\(ratio) page=%ld/%ld px=%ldx%ld png=%.0fKB spec=%.1fms render+png=%.1fms png≈%.1fms draw≈%.1fms b64enc=%.1fms b64dec=%.1fms decode=%.1fms op=%.1fms",
-                     page + 1, n, s.width, s.height, Double(s.bytes) / 1024, s.spec, s.renderPNG, s.png, max(0, s.renderPNG - s.png), s.b64enc, s.b64dec, s.decode, s.op))
+        print(String(format: "BENCH image-preview page \(board) ratio=\(ratio) page=%ld/%ld px=%ldx%ld png=%.0fKB spec=%.1fms render+png=%.1fms draw=%.1fms png=%.1fms b64enc=%.1fms b64dec=%.1fms decode=%.1fms show=%.1fms op=%.1fms op-display=%.1fms",
+                     page + 1, n, s.width, s.height, Double(s.bytes) / 1024, s.spec, s.renderPNG, s.draw, s.png, s.b64enc, s.b64dec, s.decode, s.show, s.op, s.opDisplay))
     }
 
     /// 弹层开出来（无动画）到每一页的图都上屏；再点两次比例分段。返回 (prepare, open, switch-1:1, switch-3:4) ms。

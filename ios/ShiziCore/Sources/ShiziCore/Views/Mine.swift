@@ -148,6 +148,12 @@ extension ViewSupport {
     /// 或有以「年-」开头的折叠月、其 foldWorkByDay 非空。合法日子是 10 个 ASCII 字节「dddd-dd-dd」：String(年) + "-" 是它的前缀
     /// ⟺ String(年) 等于它的前 4 个字符（年份串只有数字、负数以 '-' 开头而日子以数字开头），所以 works 那半按前 4 个字符查集合；折叠月照原样比前缀。
     package static func annualDefaultYear(_ state: JSValue, today: String, index: RecordIndex) -> JSValue {
+        let years = annualYears(state, index: index), dates = index.dates
+        guard let cur = AnnualView.yearOfDay(today, dates: dates) else { return years.first.map { .number(Double($0)) } ?? .null }
+        return .number(Double(years.isEmpty || years.contains(cur) ? cur : years.filter { $0 <= cur }.last ?? years[0]))
+    }
+    /// = AnnualView.annualYears(state, dates: index.dates)（推法见上面 annualDefaultYear 的注释），只用这一个 index：原写法每个候选年份各建一次 recordIndex。
+    package static func annualYears(_ state: JSValue, index: RecordIndex) -> [Int] {
         let dates = index.dates
         var candidates = Set<Int>()
         for r in index.judged { if let y = AnnualView.yearOfDay(JS.string(r["localDay"]), dates: dates) { candidates.insert(y) } }
@@ -156,12 +162,10 @@ extension ViewSupport {
         var workYears = Set<String>()
         for r in index.works where dates.isValidDay(r["localDay"] ?? .null) { workYears.insert(String(JS.string(r["localDay"]).prefix(4))) }
         let foldedWithWork = index.folded.keys.filter { !Records.foldWorkByDay(state["records"]?[$0] ?? .null).isEmpty }
-        let years = candidates.filter { y in
+        return candidates.filter { y in
             let s = String(y)
             return workYears.contains(s) || foldedWithWork.contains { $0.hasPrefix(s + "-") }
         }.sorted()
-        guard let cur = AnnualView.yearOfDay(today, dates: dates) else { return years.first.map { .number(Double($0)) } ?? .null }
-        return .number(Double(years.isEmpty || years.contains(cur) ? cur : years.filter { $0 <= cur }.last ?? years[0]))
     }
     package static func clampMonth(_ month: JSValue?, index: RecordIndex, today: String) -> String {
         let current = String(today.prefix(7)), first = firstRecordMonth(index) ?? current, lo = min(first, current)

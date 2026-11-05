@@ -74,7 +74,11 @@ public enum MineSubView {
         return .object(out)
     }
     public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {
-        let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, dates: dates)
+        try annualView(state, today: today, year: year, policy: policy, dates: dates, index: V.recordIndex(state, dates: dates))
+    }
+    /// index：调用方已用同一 state / dates 建好的 recordIndex（MineSubAPI 挑缺省年份时建的那个）。
+    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates, index: V.RecordIndex) throws -> JSValue {
+        let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: index)
         func points(_ r: JSValue?) throws -> JSValue { try DetailView.builtInk(state, record: r, dates: dates).map { V.obj([("points", $0)]) } ?? .null }
         func cell(_ ch: JSValue, _ r: JSValue?) throws -> JSValue { let p = try points(r); var c = try cellModel(ch, record: r, mode: .string(JS.truthy(p) ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates); c["ink"] = p; return .object(c) }
         var first: JSValue = .null

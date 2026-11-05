@@ -8,8 +8,10 @@ public enum AnnualView {
         package var js: JSValue { V.obj([("year", .number(Double(year))), ("judged", .array(judged)), ("works", .array(works)), ("days", .array(days.map(JSValue.string))), ("chars", .array(chars.map(JSValue.string))), ("firstSeen", .array(firstSeen.entries.map { .array([.string($0.key), $0.value]) })), ("folded", .object(folded)), ("ink", state["ink"] ?? .null)]) }
     }
     static func yearOfDay(_ day: String, dates: Dates) -> Int? { dates.isValidDay(.string(day)) ? Int(day.prefix(4)) : nil }
-    package static func yearSlice(_ state: JSValue, year: Int, dates: Dates) -> Slice {
-        let index = V.recordIndex(state, dates: dates), prefix = String(year) + "-"
+    package static func yearSlice(_ state: JSValue, year: Int, dates: Dates) -> Slice { yearSlice(state, year: year, index: V.recordIndex(state, dates: dates), dates: dates) }
+    /// index：调用方已用同一 state / dates 建好的 recordIndex（年报一次回答里年份列表、缺省年份、切片共用一个）。
+    package static func yearSlice(_ state: JSValue, year: Int, index: V.RecordIndex, dates: Dates) -> Slice {
+        let prefix = String(year) + "-"
         let judged = index.judged.filter { WorkMembers.isWorkMember($0) && JS.string($0["localDay"]).hasPrefix(prefix) && dates.isValidDay($0["localDay"] ?? .null) }
         let works = index.works.filter { JS.string($0["localDay"]).hasPrefix(prefix) && dates.isValidDay($0["localDay"] ?? .null) }
         var folded = JSObject(), days = KeySet(works.map { JS.string($0["localDay"]) })
@@ -28,18 +30,10 @@ public enum AnnualView {
         for (day, char, _) in events where firstSeen[char] == nil { firstSeen[char] = .string(day) }
         return Slice(year: year, judged: judged, works: works, days: days.items.sorted(), chars: firstSeen.keys, folded: folded, firstSeen: firstSeen, state: state)
     }
-    public static func annualYears(_ state: JSValue, dates: Dates) -> [Int] {
-        let index = V.recordIndex(state, dates: dates)
-        var years = Set<Int>()
-        for r in index.judged + index.works { if let y = yearOfDay(JS.string(r["localDay"]), dates: dates) { years.insert(y) } }
-        for m in index.folded.keys { if let y = Int(m.prefix(4)) { years.insert(y) } }
-        return years.filter { let s = yearSlice(state, year: $0, dates: dates); return !s.days.isEmpty || !s.chars.isEmpty }.sorted()
-    }
-    public static func annualDefaultYear(_ state: JSValue, today: String, dates: Dates) -> JSValue {
-        guard let cur = yearOfDay(today, dates: dates) else { return annualYears(state, dates: dates).first.map { .number(Double($0)) } ?? .null }
-        let years = annualYears(state, dates: dates)
-        return .number(Double(years.isEmpty || years.contains(cur) ? cur : years.filter { $0 <= cur }.last ?? years[0]))
-    }
+    /// 有日子或字的年份（升序）。原写法为判断每个候选年份各建一次 recordIndex（年数 + 1 次全量平铺、排序、过滤）；
+    /// ViewSupport.annualYears 用一个 index 推出同一串（推法见 ViewSupport.annualDefaultYear 的注释）。
+    public static func annualYears(_ state: JSValue, dates: Dates) -> [Int] { V.annualYears(state, index: V.recordIndex(state, dates: dates)) }
+    public static func annualDefaultYear(_ state: JSValue, today: String, dates: Dates) -> JSValue { V.annualDefaultYear(state, today: today, index: V.recordIndex(state, dates: dates)) }
     package static func firstOfYear(_ s: Slice, hasInk: InkPick.HasInk?, dates: Dates) -> JSValue {
         let r0 = s.judged.first
         var fold: (day: String, char: JSValue)?
@@ -81,10 +75,14 @@ public enum AnnualView {
             return n > 0 ? V.obj([("month", .string(m)), ("monthNum", .number(Double(Int(m.suffix(2))!))), ("n", .number(Double(n)))]) : nil
         }
     }
+    /// index：调用方已用同一 state / dates 建好的 recordIndex（年报页与它的缺省年份共用一个），缺省现建。
     public static func annualModel(_ state: JSValue, today: String, year: JSValue? = nil, policy: JSValue = Config.policy, hasInk: InkPick.HasInk? = nil, dates: Dates) throws -> JSValue {
+        try annualModel(state, today: today, year: year, policy: policy, hasInk: hasInk, dates: dates, index: V.recordIndex(state, dates: dates))
+    }
+    package static func annualModel(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, hasInk: InkPick.HasInk?, dates: Dates, index: V.RecordIndex) throws -> JSValue {
         let wanted = year?.numberValue.flatMap { $0.isFinite && $0.rounded(.towardZero) == $0 ? Int($0) : nil } ?? yearOfDay(today, dates: dates)
         let y = wanted ?? 0
-        let years = annualYears(state, dates: dates), at = years.firstIndex(of: y), s = yearSlice(state, year: y, dates: dates), empty = s.days.isEmpty && s.chars.isEmpty
+        let years = V.annualYears(state, index: index), at = years.firstIndex(of: y), s = yearSlice(state, year: y, index: index, dates: dates), empty = s.days.isEmpty && s.chars.isEmpty
         return V.obj([("today", .string(today)), ("year", wanted.map { .number(Double($0)) } ?? .null), ("years", .array(years.map { .number(Double($0)) })), ("prevYear", at != nil && at! > 0 ? .number(Double(years[at!-1])) : .null), ("nextYear", at != nil && at! < years.count-1 ? .number(Double(years[at!+1])) : .null), ("empty", .bool(empty)), ("count", .number(Double(s.chars.count))), ("chars", .array(s.chars.map(JSValue.string))), ("days", .number(Double(s.days.count))), ("first", empty ? .null : firstOfYear(s, hasInk: hasInk, dates: dates)), ("months", .array(empty ? [] : try yearMonths(state, s, policy: policy, dates: dates))), ("twice", empty ? .null : try twiceOfYear(s, hasInk: hasInk, dates: dates))])
     }
     public static func annualPlan(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {

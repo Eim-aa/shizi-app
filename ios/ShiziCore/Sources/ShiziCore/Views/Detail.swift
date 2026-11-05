@@ -67,6 +67,8 @@ public enum DetailView {
         let ink = QueryView.inkOf(state, r, dates: dates)
         guard let decoded = try InkMath.decodeInk(ink), !decoded.isEmpty else { return (false, JSValue.array([])) }
         let points = InkMath.decodeInkRaw(ink) ?? decoded
+        // App 回放时铺出的点会超过上限（手工做的巨大坐标）：笔画为空，同 sheetStrokes（has 仍按 decodeInk，上面的等式不变）
+        guard InkMath.replayBoundFits(points) else { return (true, JSValue.array([])) }
         return (true, JSValue.array(points.map { .array($0.map { .array([.number($0.x), .number($0.y), .number($0.t ?? 0)] + ($0.p.map { [.number($0)] } ?? [])) }) }))
     }
     static func changeable(_ r: JSValue) -> Bool { Records.isJudged(r) && !JS.truthy(r["legacy"]) && !Records.isPaperRecord(r) }

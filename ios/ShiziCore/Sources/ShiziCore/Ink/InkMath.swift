@@ -205,6 +205,41 @@ public enum InkMath {
         return total
     }
 
+    /// 一笔原始点交给 App 回放（WebInk.buildStroke：坏点丢弃 → 同时刻合并 → 1€ 滤波 → 锁尾 → Catmull-Rom）时铺出点数的上界，不铺点：
+    /// 2 × 有限点数 + (Σ|Δx| + Σ|Δy|) / step × (1 + 1e-6)，相邻差只在有限点之间取。为什么够大：
+    ///   · 合并 / 丢坏点后是原序列的子序列，子序列的逐轴全变差不超过原序列的；
+    ///   · 1€ 滤波每步输出 a·x + (1 − a)·前一输出，a ∈ (0, 1]（minCutoff > 0、beta ≥ 0、dt > 0；dt ≤ 0 时原样留前一输出），
+    ///     落在前一输出与当前输入之间，所以逐轴全变差不超过输入的（势函数：已走的变差 + 当前滞后 |x − x̂| 每步至多涨 |Δx|）；
+    ///     锁尾把末点换回原始末点，同一论证仍成立；
+    ///   · Catmull-Rom 铺 Σ max(1, ceil(段长 / step)) + 1 ≤ 段数 + 1 + Σ段长 / step，段长 ≤ |Δx| + |Δy|；
+    ///   · 多出的一倍点数与 1e-6 吸收每段 ceil 与浮点舍入。
+    /// step 不是正的有限数、或变差溢出时回 ∞。
+    public static func replayBound(_ points: [InkPoint], step: Double) -> Double {
+        guard step > 0, step.isFinite else { return .infinity }
+        var n = 0.0
+        var tv = 0.0
+        var last: InkPoint?
+        for q in points where q.x.isFinite && q.y.isFinite {
+            if let l = last { tv += abs(q.x - l.x) + abs(q.y - l.y) }
+            n += 1
+            last = q
+        }
+        return 2 * n + tv / step * (1 + 1e-6)
+    }
+
+    /// 要交给 App 按原始点回放的笔画（会话现场、结果页 / 查询 / 详情 / 作品的墨迹格）：每笔 replayBound 不超过 maxReplayPointsPerStroke、
+    /// 合计不超过 maxReplayPointsPerInk。step 用 App 回放的 step（页面下发的 ink 表 = inkParams(policy)，即 InkParams.standard.step）。
+    public static func replayBoundFits(_ strokes: [[InkPoint]], step: Double = InkParams.standard.step) -> Bool {
+        var total = 0.0
+        for s in strokes {
+            let b = replayBound(s, step: step)
+            guard b.isFinite, b <= Double(maxReplayPointsPerStroke) else { return false }
+            total += b
+            if total > Double(maxReplayPointsPerInk) { return false }
+        }
+        return true
+    }
+
     /// 每笔都不超过 maxReplayPointsPerStroke、合计不超过 maxReplayPointsPerInk（逐笔 replayPointCount）。
     public static func replayFits(_ strokes: [[InkPoint]], step: Double) -> Bool {
         var budget = maxReplayPointsPerInk

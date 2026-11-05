@@ -589,3 +589,225 @@ final class InkCapTests: XCTestCase {
         XCTAssertNil(try InkMath.decodeInk(v4Ink([row150k, row150k, row150k, row150k])))
     }
 }
+
+// MARK: - 交给 App 按原始点回放的笔画（WriteModels.sheet / stored、QueryView.sheetStrokes、DetailView.cellInk）
+
+/// 改动前的写法（逐字照抄；sheet 拆出了「已取出的墨迹」这一参数）。
+enum InkSheetRefOld {
+    static func sheetStrokes(_ state: JSValue?, _ record: JSValue?, dates: Dates) throws -> JSValue {
+        let ink = QueryView.inkOf(state, record, dates: dates)
+        let points = try InkMath.decodeInkRaw(ink) ?? InkMath.decodeInk(ink) ?? []
+        return .array(points.map { .array($0.map { .array([.number($0.x), .number($0.y), .number($0.t ?? 0)] + ($0.p.map { [.number($0)] } ?? [])) }) })
+    }
+
+    static func cellInk(_ state: JSValue, _ r: JSValue, dates: Dates) throws -> (has: Bool, strokes: JSValue) {
+        guard JS.truthy(r) else { return (false, JSValue.array([])) }
+        let ink = QueryView.inkOf(state, r, dates: dates)
+        guard let decoded = try InkMath.decodeInk(ink), !decoded.isEmpty else { return (false, JSValue.array([])) }
+        let points = InkMath.decodeInkRaw(ink) ?? decoded
+        return (true, JSValue.array(points.map { .array($0.map { .array([.number($0.x), .number($0.y), .number($0.t ?? 0)] + ($0.p.map { [.number($0)] } ?? [])) }) }))
+    }
+
+    static func sheet(ink: JSValue?, _ r: JSValue, policy: JSValue? = Config.policy) throws -> JSValue {
+        if let ink {
+            if let raw = InkMath.decodeInkRaw(ink) { return WriteModels.wire(raw) }
+            if let decoded = try InkMath.decodeInk(ink) { return WriteModels.wire(decoded) }
+        }
+        return .array((RecentInk.page.recalledInk(r["id"], policy: policy).arrayValue ?? []).map { stroke in .array((stroke.arrayValue ?? []).map { p in
+            .array([p["x"] ?? .null, p["y"] ?? .null, p["t"] ?? .null] + (p["p"]?.numberValue?.isFinite == true ? [p["p"]!] : []))
+        }) })
+    }
+
+    static func stored(_ s: JSValue) -> [[InkPoint]] { InkMath.decodeRawStrokes((s["current"]?["strokes"]?.arrayValue ?? []).map { ($0.arrayValue ?? []).map { JS.number($0) } }) }
+}
+
+final class InkSheetCapTests: XCTestCase {
+    let dates = Dates(timeZone: TimeZone(identifier: "Asia/Shanghai")!)
+    let record = JSValue.object(JSObject([("id", .string("r1")), ("localDay", .string("2026-03-05"))]))
+
+    func ri(_ r: inout InkRng, _ n: Int) -> Int { n <= 0 ? 0 : Swift.min(n - 1, Int(r.next() * Double(n))) }
+    func pt(_ x: Double, _ y: Double, _ t: Double?, _ p: Double? = nil) -> InkPoint { InkPoint(x: x, y: y, t: t, p: p, order: InkPoint.orderXYTP) }
+
+    func stateWith(_ ink: JSValue) -> JSValue {
+        .object(JSObject([("ink", .object(JSObject([("2026-03", .object(JSObject([("r1", ink)])))])))]))
+    }
+
+    /// 会话现场：{current: {strokes: encodeRawStrokes 的行}}（WriteModels.stored 只读这一处）。
+    func session(_ rows: [[Double]]) -> JSValue {
+        let strokes: [JSValue] = rows.map { row in JSValue.array(row.map { JSValue.number($0) }) }
+        return .object(JSObject([("current", .object(JSObject([("strokes", .array(strokes))])))]))
+    }
+
+    /// 三条墨迹路径与改动前逐字节相同。
+    func assertSheetsSame(_ ink: JSValue, _ label: String, file: StaticString = #filePath, line: UInt = #line) throws {
+        let st = stateWith(ink)
+        XCTAssertEqual(str(try QueryView.sheetStrokes(st, record, dates: dates)), str(try InkSheetRefOld.sheetStrokes(st, record, dates: dates)), "\(label) sheetStrokes", file: file, line: line)
+        let a = try DetailView.cellInk(st, record, dates: dates)
+        let b = try InkSheetRefOld.cellInk(st, record, dates: dates)
+        XCTAssertEqual(a.has, b.has, "\(label) cellInk.has", file: file, line: line)
+        XCTAssertEqual(str(a.strokes), str(b.strokes), "\(label) cellInk.strokes", file: file, line: line)
+        XCTAssertEqual(str(try WriteModels.sheet(ink: ink, record)), str(try InkSheetRefOld.sheet(ink: ink, record)), "\(label) WriteModels.sheet", file: file, line: line)
+    }
+
+    /// 真实的笔（随机 + 240 Hz 满格长笔 + 快笔 + 格边 / 压力极端值）。
+    func realisticStrokeSets(_ r: inout InkRng, count: Int) -> [[[InkPoint]]] {
+        var sets: [[[InkPoint]]] = []
+        for _ in 0..<count {
+            var strokes: [[InkPoint]] = []
+            var t0 = r.next() * 1e6
+            for _ in 0..<(1 + ri(&r, 6)) {
+                let s = randomStroke43(&r, pen: r.next() < 0.4, t0: t0)
+                t0 = (s.last?.t ?? t0) + r.next() * 800
+                strokes.append(s)
+            }
+            sets.append(strokes)
+        }
+        var long: [InkPoint] = []
+        var lt = 0.0
+        while lt < 20_000 {
+            long.append(pt(172.5 + 172.5 * sin(lt / 41), 172.5 + 160 * sin(lt / 97 + 1), 1000 + lt, 0.2 + 0.7 * abs(sin(lt / 300))))
+            lt += 1000.0 / 240
+        }
+        sets.append([long])
+        var fast: [InkPoint] = []
+        for k in 0..<300 {
+            let c = k % 2 == 0 ? -50.0 : 395.0
+            fast.append(pt(c, k % 4 < 2 ? c : 345 - c, Double(k) * 4))
+        }
+        sets.append([fast])
+        sets.append([
+            [pt(0, 0, 0), pt(345, 0, 8), pt(345, 345, 16), pt(0, 345, 24), pt(0, 0, 32)],
+            [pt(-345, -345, 40), pt(690, 690, 44)],
+            [pt(100, 100, 50)],
+            [pt(5, 5, 60), pt(5, 5, 70)],
+            [pt(10, 10, 80, 1e-9), pt(20, 12, 88, 1), pt(30, 15, 96, 7), pt(40, 15, 104, 0), pt(345, 345, 112, 0.0005), pt(0, 345, 120, 0.9999)],
+        ])
+        return sets
+    }
+
+    // replayBound 不小于回放实际铺出的点数（App 的 WebInk.buildStroke 与 InkMath.buildStroke 同一算法、同一参数表；滤波前后都核）
+    func testReplayBoundIsAtLeastTheReplayCount() throws {
+        var r = InkRng(20261108)
+        var sets = realisticStrokeSets(&r, count: 150)
+        // 再加大跳（偶尔一步 ±3000 单位）、同时刻、可带压力的笔
+        for _ in 0..<40 {
+            var s: [InkPoint] = []
+            var x = 0.0, y = 0.0, t = 0.0
+            for _ in 0..<(2 + ri(&r, 40)) {
+                x += (r.next() - 0.5) * (r.next() < 0.2 ? 6000 : 20)
+                y += (r.next() - 0.5) * (r.next() < 0.2 ? 6000 : 20)
+                t += r.next() < 0.1 ? 0 : r.next() * 20
+                let p: Double? = r.next() < 0.3 ? r.next() : nil
+                s.append(pt(x, y, t, p))
+            }
+            sets.append([s])
+        }
+        let step = InkParams.standard.step
+        for (i, strokes) in sets.enumerated() {
+            // v4 解出来交给 App 的原始点也一样核
+            var inputs = strokes
+            if let raw = InkMath.decodeInkRaw(InkMath.encodeInkRaw(strokes, maxStrokes: 1e6)) { inputs += raw }
+            for s in inputs {
+                let bound = InkMath.replayBound(s, step: step)
+                for final in [true, false] {
+                    let n = try InkMath.buildStroke(s, options: InkOptions(final: final)).points.count
+                    XCTAssertGreaterThanOrEqual(bound, Double(n), "set #\(i) final=\(final)")
+                }
+                XCTAssertGreaterThanOrEqual(bound, Double(InkMath.catmullRom(InkMath.mergeSameTime(s), step: step).count), "set #\(i) unfiltered")
+            }
+        }
+        XCTAssertEqual(InkMath.replayBound([], step: 3), 0)
+        XCTAssertEqual(InkMath.replayBound([pt(1, 1, 0)], step: 3), 2)
+        XCTAssertEqual(InkMath.replayBound([pt(0, 0, 0), pt(.nan, 5, 1), pt(3, 4, 2)], step: 3), 4 + 7.0 / 3 * (1 + 1e-6))
+        XCTAssertEqual(InkMath.replayBound([pt(0, 0, 0), pt(1, 0, 1)], step: 0), .infinity)
+        XCTAssertFalse(InkMath.replayBoundFits([[pt(-1.7e308, 0, 0), pt(1.7e308, 0, 1)]]))
+    }
+
+    // 编码器产出的墨迹（v4 / v3 / 旧 v2）与会话现场：各路径与改动前逐字节相同，且都没碰上限
+    func testRealisticInkThroughTheSheetPathsIsUnchanged() throws {
+        var r = InkRng(20261109)
+        let sets = realisticStrokeSets(&r, count: 60)
+        for (i, strokes) in sets.enumerated() {
+            let v4 = InkMath.encodeInkRaw(strokes, maxStrokes: 1e6)
+            try assertSheetsSame(v4, "v4 #\(i)")
+            var built: [[InkPoint]] = []
+            for s in strokes { built.append(try InkMath.buildStroke(s, options: InkOptions(final: true)).points) }
+            let v3 = try InkMath.encodeInk(built)
+            try assertSheetsSame(v3, "v3 #\(i)")
+            XCTAssertTrue(InkMath.replayBoundFits(try XCTUnwrap(InkMath.decodeInkRaw(v4))), "v4 #\(i) fits")
+            XCTAssertTrue(InkMath.replayBoundFits(try XCTUnwrap(try InkMath.decodeInk(v3))), "v3 #\(i) fits")
+            let s = session(InkMath.encodeRawStrokes(strokes))
+            XCTAssertEqual(inkBits(WriteModels.stored(s)), inkBits(InkSheetRefOld.stored(s)), "session #\(i)")
+        }
+        // 旧 v2（0–1000 网格）
+        for i in 0..<40 {
+            var rows: [JSValue] = []
+            for _ in 0..<(1 + ri(&r, 5)) {
+                var row: [JSValue] = []
+                for _ in 0..<(1 + ri(&r, 30)) {
+                    row.append(.number(Double(ri(&r, 1001))))
+                    row.append(.number(Double(ri(&r, 1001))))
+                    row.append(.number(Double(ri(&r, 256))))
+                }
+                rows.append(.array(row))
+            }
+            try assertSheetsSame(.object(JSObject([("v", .number(2)), ("c", .number(345)), ("s", .array(rows))])), "v2 #\(i)")
+        }
+        // 没有墨迹 / 坏墨迹：同样逐字节相同
+        try assertSheetsSame(.null, "null")
+        try assertSheetsSame(.object(JSObject([("v", .number(4))])), "bad v4")
+        // 编码器产出的 v3 最坏情形（36 笔 × 24 点，每段整格对角线）：bound 合计约 19.8 万，仍在一份的上限内
+        var corners: [[InkPoint]] = []
+        for s in 0..<36 {
+            var st: [InkPoint] = []
+            for k in 0..<24 {
+                let c = k % 2 == 0 ? 0.0 : 400.0
+                st.append(InkPoint(x: c, y: c, t: Double(s * 1000 + k * 16), w: 11.5, order: InkPoint.orderXYWTP))
+            }
+            corners.append(st)
+        }
+        let worstV3 = try InkMath.encodeInk(corners, options: InkMath.EncodeOptions(maxPoints: 24, maxStrokes: 36, tolerance: .none))
+        let worst = try XCTUnwrap(try InkMath.decodeInk(worstV3))
+        var total = 0.0
+        for s in worst { total += InkMath.replayBound(s, step: InkParams.standard.step) }
+        XCTAssertLessThan(total, Double(InkMath.maxReplayPointsPerInk))
+        XCTAssertTrue(InkMath.replayBoundFits(worst))
+        try assertSheetsSame(worstV3, "v3 worst case")
+    }
+
+    // 手工做的放大：各路径都很快给出空笔画（[]），不把巨大坐标交给 App
+    func testCraftedInkGivesEmptySheetStrokesQuickly() throws {
+        func v4Ink(_ rows: [[Double]], c: Double = 345) -> JSValue {
+            let r: [JSValue] = rows.map { row in InkMath.rawRowToPacked(row).map { JSValue.string($0) } ?? JSValue.null }
+            let g: [JSValue] = rows.map { _ in JSValue.number(0) }
+            return .object(JSObject([("v", .number(4)), ("c", .number(c)), ("r", .array(r)), ("g", .array(g))]))
+        }
+        var tiny = try XCTUnwrap(InkMath.encodeInkRaw([inkLine43(), inkLine43(y: 100)], maxStrokes: 36).objectValue)
+        tiny["c"] = .number(1e-4)
+        let hugeRow: [JSValue] = [0, 0, 100, 1e15, 0, 100, 0, 1e15, 100].map { JSValue.number($0) }
+        // 标签、墨迹、decodeInk 是否仍有结果（决定 cellInk.has：v4 解不开 → false；v2 解得开、只是回放放大 → true）
+        let crafted: [(String, JSValue, Bool)] = [
+            ("v4 big varint", v4Ink([[3, 0, 0, 0, 2e9, 0, 8, 0, 2e9, 8]]), false),
+            ("v4 tiny c", JSValue.object(tiny), false),
+            ("v2 huge coords", JSValue.object(JSObject([("v", .number(2)), ("c", .number(345)), ("s", .array([.array(hugeRow)]))])), true),
+        ]
+        for (label, ink, decodes) in crafted {
+            let st = stateWith(ink)
+            let t0 = Date()
+            XCTAssertEqual(str(try QueryView.sheetStrokes(st, record, dates: dates)), "[]", label)
+            XCTAssertEqual(str(try WriteModels.sheet(ink: ink, record)), "[]", label)
+            let cell = try DetailView.cellInk(st, record, dates: dates)
+            XCTAssertEqual(cell.has, decodes, label)
+            XCTAssertEqual(str(cell.strokes), "[]", label)
+            let ms = Date().timeIntervalSince(t0) * 1000
+            XCTAssertLessThan(ms, 50, "\(label) took \(ms) ms")
+        }
+        // 会话现场：落盘的行只校验「每笔是数组」；一笔放大就整份当没有笔画
+        let t1 = Date()
+        let rows: [[Double]] = [[3, 10, 20, 0], [3, 0, 0, 0, 2e9, 0, 8, 0, 2e9, 8]]
+        XCTAssertTrue(WriteModels.stored(session(rows)).isEmpty)
+        XCTAssertEqual(WriteModels.stored(session([[3, 10, 20, 0]])).count, 1)
+        let ms1 = Date().timeIntervalSince(t1) * 1000
+        XCTAssertLessThan(ms1, 50, "session took \(ms1) ms")
+    }
+}

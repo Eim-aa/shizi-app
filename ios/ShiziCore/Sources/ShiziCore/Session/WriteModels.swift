@@ -50,7 +50,11 @@ public enum WriteModels {
             }; return points.isEmpty ? nil : points
         }
     }
-    static func stored(_ s: JSValue) -> [[InkPoint]] { InkMath.decodeRawStrokes((s["current"]?["strokes"]?.arrayValue ?? []).map { ($0.arrayValue ?? []).map { JS.number($0) } }) }
+    /// 会话现场落盘的原始笔画（只校验「每笔是数组」）；App 回放时铺出的点会超过上限（InkMath.replayBoundFits 不过：手工做的巨大坐标）时当没有笔画。
+    static func stored(_ s: JSValue) -> [[InkPoint]] {
+        let strokes = InkMath.decodeRawStrokes((s["current"]?["strokes"]?.arrayValue ?? []).map { ($0.arrayValue ?? []).map { JS.number($0) } })
+        return InkMath.replayBoundFits(strokes) ? strokes : []
+    }
     public static func snapshot(_ state: JSObject, slot: String) throws -> JSValue {
         guard let s = SessionWrites.session(state, slot) else { return JS.obj([("slot", .string(slot)), ("active", .bool(false))]) }
         var out = JSObject([("slot", .string(slot)), ("active", .bool(true)), ("sessionId", s["id"] ?? .null), ("kind", s["kind"] ?? .null), ("cursor", s["cursor"] ?? .null), ("total", .number(Double(s["queue"]?.arrayValue?.count ?? 0))), ("done", .bool(SessionRules.isComplete(s)))])
@@ -64,10 +68,12 @@ public enum WriteModels {
         out["firstTip"] = .bool(s["kind"] == .string("first") && s["cursor"] == .number(0) && raw != .string("compare") && answer == nil && state["settings"]?["firstTipSeen"] != .bool(true))
         out["lastLine"] = s["lastLine"] ?? .null; out["line"] = try line(s, state); return .object(out)
     }
-    static func sheet(_ store: Store, _ r: JSValue, policy: JSValue? = Config.policy) throws -> JSValue {
-        if let ink = store.getInk(r) {
-            if let raw = InkMath.decodeInkRaw(ink) { return wire(raw) }
-            if let decoded = try InkMath.decodeInk(ink) { return wire(decoded) }
+    static func sheet(_ store: Store, _ r: JSValue, policy: JSValue? = Config.policy) throws -> JSValue { try sheet(ink: store.getInk(r), r, policy: policy) }
+    /// 一条记录交给 App 按原始点回放的笔画。App 回放时铺出的点会超过上限（InkMath.replayBoundFits 不过）时当没有笔画：[]。
+    static func sheet(ink: JSValue?, _ r: JSValue, policy: JSValue? = Config.policy) throws -> JSValue {
+        if let ink {
+            if let raw = InkMath.decodeInkRaw(ink) { return InkMath.replayBoundFits(raw) ? wire(raw) : .array([]) }
+            if let decoded = try InkMath.decodeInk(ink) { return InkMath.replayBoundFits(decoded) ? wire(decoded) : .array([]) }
         }
         return .array((RecentInk.page.recalledInk(r["id"], policy: policy).arrayValue ?? []).map { stroke in .array((stroke.arrayValue ?? []).map { p in
             .array([p["x"] ?? .null, p["y"] ?? .null, p["t"] ?? .null] + (p["p"]?.numberValue?.isFinite == true ? [p["p"]!] : []))

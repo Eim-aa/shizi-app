@@ -86,6 +86,8 @@ public enum QueryView {
     static func sheetStrokes(_ state: JSValue?, _ record: JSValue?, dates: Dates) throws -> JSValue {
         let ink = inkOf(state, record, dates: dates)
         let points = try InkMath.decodeInkRaw(ink) ?? InkMath.decodeInk(ink) ?? []
+        // App 回放时铺出的点会超过上限（手工做的巨大坐标）：当没有笔画
+        guard InkMath.replayBoundFits(points) else { return .array([]) }
         return .array(points.map { .array($0.map { .array([.number($0.x), .number($0.y), .number($0.t ?? 0)] + ($0.p.map { [.number($0)] } ?? [])) }) })
     }
     public static func querySheetModel(_ a: JSObject, predicates: Predicates? = nil, dates: Dates) throws -> JSValue {

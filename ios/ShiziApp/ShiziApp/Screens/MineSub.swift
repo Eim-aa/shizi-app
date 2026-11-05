@@ -106,14 +106,8 @@ final class ShiziPointsInkView: UIView {
         setNeedsDisplay()
     }
 
-    override func draw(_ rect: CGRect) {
-        guard near, !points.isEmpty, bounds.width > 0 else { return }
-        // 网页 cellInkBox：墨在格里左、上各留 pad（两个方向同一个内边）
-        let ox = bounds.width * pad
-        let oy = bounds.width * pad
-        let inner = bounds.width * (1 - 2 * pad)
-        guard inner > 0 else { return }
-        let k = Double(inner) / ShiziInkScale.grid
+    /// 点列 → 三角形顶点（345 单位；draw 再按格缩放）。只用到每点的 x / y / w（t / p 照旧传进 WebInkPoint，WebInk.triangles 不读）。
+    static func vertices(_ points: [[ShiziInkPoint]], widthScale: Double) -> [Float] {
         var verts: [Float] = []
         for stroke in points {
             let wp = stroke.compactMap { p -> WebInkPoint? in
@@ -124,6 +118,18 @@ final class ShiziPointsInkView: UIView {
             guard !wp.isEmpty else { continue }
             WebInk.triangles(wp, into: &verts)
         }
+        return verts
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard near, !points.isEmpty, bounds.width > 0 else { return }
+        // 网页 cellInkBox：墨在格里左、上各留 pad（两个方向同一个内边）
+        let ox = bounds.width * pad
+        let oy = bounds.width * pad
+        let inner = bounds.width * (1 - 2 * pad)
+        guard inner > 0 else { return }
+        let k = Double(inner) / ShiziInkScale.grid
+        let verts = Self.vertices(points, widthScale: widthScale)
         guard verts.count >= 6, let ctx = UIGraphicsGetCurrentContext() else { return }
         let path = CGMutablePath()
         var i = 0

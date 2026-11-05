@@ -6,6 +6,7 @@ import Foundation
 ///   · DetailView.builtInk：inkOf(state, record:) 先看 JS.truthy(record)——有墨迹位置的记录是对象，恒为真——再解 QueryView.inkOf
 ///     （= state.ink[月][id]，月与 id 正是这里的键）、回放重采样；recalled 为 nil，不看记录的别的字段；
 ///   · QueryView.inkPointsOf({latest: record})：同样只解 state.ink[月][id]（policy 用缺省的 Config.policy）。
+///   · AnnualInkWire.built：同 builtInk，只解 QueryView.inkOf（= state.ink[月][id]），点列换成平铺的形状（年报 view.annual 回包）。
 /// 所以同一位置的两条记录结果相同，记下来与每次现算的相同。键按逐码点比（JSKey，与 JSObject 取 state.ink[月][id] 时的判等相同）。
 /// 抛错不记：下次照样现算、照样抛同一个错（与原来每次都抛相同）。没有墨迹位置的记录（nil / 非对象 / 缺合法 id）不记，直接现算。
 ///

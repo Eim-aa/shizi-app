@@ -9,12 +9,14 @@ import XCTest
 // 所以回包里有 1200 格墨迹 + 今年首字 1 格 + 卷尾 2 格。
 //
 // 输出：
-//   BENCH annual-ink engine slots=<带墨迹的格数> cells=<月段里的格数> points=<回放点数> total=…ms view=…ms read=…ms build=…ms
+//   BENCH annual-ink engine slots=<带墨迹的格数> cells=<月段里的格数> points=<回放点数> total=…ms view=…ms view-points=…ms read=…ms build=…ms build-points=…ms
 //     total = PageAPI.call("view.annual") 整个 op
-//     view  = 只算视图（MineSubView.annualView，同 op 传的参数）
+//     view  = 只算视图（MineSubView.annualView，同 op 传的参数：inkWire，平铺、每条墨迹只解一次）
+//     view-points = 同上，inkWire: false（改动前的路：每点一个 InkPoint.js 对象，每条墨迹解好几遍）对照
 //     read  = 每个带墨迹的格各一次：store.getInk + InkMath.decodeInk + resampleForReplay
-//     build = 每个带墨迹的格各一次：回放点 → 回包里的 ink.points（每点一个 InkPoint.js 对象，同 DetailView.builtInk）
-//   view ≫ read + build：视图里每条墨迹要解几遍（月段的 imagePlan 判有无墨迹、拼格各一遍，annualView 再拼一遍）。
+//     build = 每个带墨迹的格各一次：回放点 → 回包里的 ink.points（AnnualInkWire.points，平铺）
+//     build-points = 同上，旧形状（每点一个 InkPoint.js 对象，同 DetailView.builtInk）对照
+//   view-points ≫ read + build-points：改动前视图里每条墨迹要解几遍（月段的 imagePlan 判有无墨迹、拼格各一遍，annualView 再拼一遍）。
 // 每个量跑 3 次取中位数（先空跑一次）。
 
 final class AnnualInkBenchTests: XCTestCase {
@@ -69,9 +71,9 @@ final class AnnualInkBenchTests: XCTestCase {
 
     static var args: JSObject { JSObject([("year", .number(Double(year)))]) }
 
-    /// 只算视图（同 MineSubAPI 给 annualView 的参数）。
-    static func view(_ store: Store) throws -> JSValue {
-        try MineSubView.annualView(.object(store.state), today: try store.dates.localDay(.number(store.now())), year: .number(Double(year)), policy: Config.policy, dates: store.dates)
+    /// 只算视图（同 MineSubAPI 给 annualView 的参数；inkWire: false = 改动前的路）。
+    static func view(_ store: Store, inkWire: Bool = true) throws -> JSValue {
+        try MineSubView.annualView(.object(store.state), today: try store.dates.localDay(.number(store.now())), year: .number(Double(year)), policy: Config.policy, inkWire: inkWire, dates: store.dates)
     }
 
     /// 视图里带墨迹的格（今年首字、每月一段的格、卷尾两格）对应的记录 id。
@@ -102,7 +104,7 @@ final class AnnualInkBenchTests: XCTestCase {
 
     func testAnnualInkEngineCost() throws {
         let store = try Self.annualStore()
-        var total: [Double] = [], views: [Double] = [], reads: [Double] = [], builds: [Double] = []
+        var total: [Double] = [], views: [Double] = [], legacyViews: [Double] = [], reads: [Double] = [], builds: [Double] = [], legacyBuilds: [Double] = []
         var slots = 0, cells = 0, points = 0
         for rep in 0..<4 {
             var reply: JSValue = .null
@@ -110,20 +112,26 @@ final class AnnualInkBenchTests: XCTestCase {
             XCTAssertEqual(reply["ok"], .bool(true), str(reply["error"] ?? .null))
             var v: JSValue = .null
             let tv = try Self.time { v = try Self.view(store) }
+            if rep == 0 { XCTAssertEqual(v, reply["view"], "the op sends annualView(inkWire: true)") }
+            var legacyView: JSValue = .null
+            let tl = try Self.time { legacyView = try Self.view(store, inkWire: false) }
+            XCTAssertEqual(Self.inkedIds(legacyView), Self.inkedIds(v))
             let ids = Self.inkedIds(v)
             var replayed: [[[InkPoint]]] = []
             let tr = Self.time { replayed = Self.replay(store, ids) }
-            var built: [JSValue] = []
-            let tb = Self.time { built = replayed.map(Self.perPointPoints) }
+            var built: [JSValue] = [], legacy: [JSValue] = []
+            let tb = Self.time { built = replayed.map { AnnualInkWire.points($0) } }
+            let tlb = Self.time { legacy = replayed.map(Self.perPointPoints) }
             XCTAssertEqual(built.count, ids.count)
+            if rep == 0 { XCTAssertEqual(legacy, replayed.map { AnnualInkWire.points($0, legacy: true) }, "the legacy replica is AnnualInkWire's legacy shape") }
             slots = ids.count
             cells = Self.cellCount(v)
             points = replayed.reduce(0) { $0 + $1.reduce(0) { $0 + $1.count } }
-            if rep > 0 { total.append(t); views.append(tv); reads.append(tr); builds.append(tb) }
+            if rep > 0 { total.append(t); views.append(tv); legacyViews.append(tl); reads.append(tr); builds.append(tb); legacyBuilds.append(tlb) }
         }
         XCTAssertEqual(cells, Self.count + 1, "every char of the year is a month cell (the first char twice: January and September)")
         XCTAssertEqual(slots, cells + 3, "every cell, the first char and both twice halves carry ink")
-        print(String(format: "BENCH annual-ink engine slots=%ld cells=%ld points=%ld total=%.1fms view=%.1fms read=%.1fms build=%.1fms",
-                     slots, cells, points, Self.median(total), Self.median(views), Self.median(reads), Self.median(builds)))
+        print(String(format: "BENCH annual-ink engine slots=%ld cells=%ld points=%ld total=%.1fms view=%.1fms view-points=%.1fms read=%.1fms build=%.1fms build-points=%.1fms",
+                     slots, cells, points, Self.median(total), Self.median(views), Self.median(legacyViews), Self.median(reads), Self.median(builds), Self.median(legacyBuilds)))
     }
 }

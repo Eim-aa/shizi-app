@@ -16,7 +16,7 @@ final class AnnualScreen: ShiziScreenViewController {
     struct View: Decodable {
         struct Cell: Decodable {
             let ch: String
-            let ink: ShiziInkBox?
+            var ink: ShiziInkBox?
             let mode: String
             let tag: String
             let day: String
@@ -27,7 +27,7 @@ final class AnnualScreen: ShiziScreenViewController {
             let char: String
             let day: String
             let recordId: String
-            let ink: ShiziInkBox?
+            var ink: ShiziInkBox?
             let label: ShiziCopyRef
             let date: ShiziCopyRef
         }
@@ -38,20 +38,20 @@ final class AnnualScreen: ShiziScreenViewController {
             let name: ShiziCopyRef
             let count: ShiziCopyRef
             let aria: ShiziCopyRef
-            let cells: [Cell]
+            var cells: [Cell]
         }
         struct Side: Decodable {
             let recordId: String
             let day: String
-            let ink: ShiziInkBox?
+            var ink: ShiziInkBox?
             let label: ShiziCopyRef
             let date: ShiziCopyRef
         }
         struct Twice: Decodable {
             let char: String
             let title: ShiziCopyRef
-            let first: Side
-            let last: Side
+            var first: Side
+            var last: Side
         }
         let today: String
         let year: Int
@@ -63,9 +63,9 @@ final class AnnualScreen: ShiziScreenViewController {
         let days: Int
         let coverYear: String
         let coverLine: ShiziCopyRef
-        let first: First?
-        let months: [Month]
-        let twice: Twice?
+        var first: First?
+        var months: [Month]
+        var twice: Twice?
         let emptyTitle: ShiziCopyRef
         let emptyBody: ShiziCopyRef
         let emptyGlyph: ShiziCopyRef
@@ -216,10 +216,118 @@ final class AnnualScreen: ShiziScreenViewController {
     // MARK: 视图
 
     override func render(view raw: Any) throws {
-        let m = try ShiziDecode.value(raw, as: View.self)
+        let m = try Self.decodeView(raw)
         model = m
         if let s = (raw as? [String: Any])?["seal"] as? [[Any]] { sealPath = s }
         renderModel(m)
+    }
+
+    // MARK: 回包 view → View
+
+    /// 回包 view → View；解不了就 throw（同以前的 ShiziDecode.value(raw, as: View.self)）。
+    /// 每格墨迹 ink = {points: [笔, …]}，一笔有两种形状（ShiziCore AnnualInkWire，同字库页 LibraryInkWire）：平铺 [步长, x, y, (w), …]，
+    /// 或每点一个 {x, y, w?}。任何输入解出来都 = 把平铺展开成旧形状（expandInk）再整份经 ShiziDecode.value 解出来的，逐位相同。
+    /// 先走 decodeViewDirect：墨迹直接从字典 / 数组读（LibraryInkView.decodeInkDirect，不经 JSON 往返），只有去掉墨迹的 view 经 ShiziDecode.value；
+    /// 它不认得的一律交回原路。
+    static func decodeView(_ raw: Any) throws -> View {
+        if let direct = decodeViewDirect(raw) { return direct }
+        return try ShiziDecode.value(expandInk(raw), as: View.self)
+    }
+
+    /// 墨迹所在的格：今年首字 first.ink、每月一段 months[i].cells[j].ink、卷尾 twice.first / last.ink（键是本函数自己起的名）。
+    /// 每格的 ink 只收 null / 缺省，或只有 points 一个键的字典、points 是数组、其中旧形状的点只有 x / y / w 三个键
+    /// （ShiziInkPoint 的 t / p 由原路解；引擎现在不发），笔画交 LibraryInkView.decodeInkDirect；去掉墨迹的 view 经 ShiziDecode.value 解，
+    /// 再把笔画放回各格（t / p = nil，同原路解没有 t / p 的点）。哪一步不行 → nil（调用方走原路）。
+    static func decodeViewDirect(_ raw: Any) -> View? {
+        guard var root = raw as? [String: Any] else { return nil }
+        var ink: [String: Any] = [:]
+        var ok = true
+        /// 一格（含 ink 键的字典）：收下它的笔画、ink 换成 null。
+        func take(_ holder: Any, _ key: String) -> Any {
+            guard ok, var h = holder as? [String: Any] else { return holder }
+            guard let box = h["ink"], !(box is NSNull) else { return holder }
+            guard let o = box as? [String: Any], o.count == 1, let strokes = o["points"] as? [Any], onlyXYW(strokes) else {
+                ok = false
+                return holder
+            }
+            ink[key] = strokes
+            h["ink"] = NSNull()
+            return h
+        }
+        if let f = root["first"] { root["first"] = take(f, "f") }
+        if let ms = root["months"] as? [Any] {
+            var outMonths: [Any] = []
+            outMonths.reserveCapacity(ms.count)
+            for (i, mRaw) in ms.enumerated() {
+                guard var mo = mRaw as? [String: Any], let cells = mo["cells"] as? [Any] else {
+                    outMonths.append(mRaw)
+                    continue
+                }
+                var outCells: [Any] = []
+                outCells.reserveCapacity(cells.count)
+                for (j, c) in cells.enumerated() { outCells.append(take(c, "m\(i).\(j)")) }
+                mo["cells"] = outCells
+                outMonths.append(mo)
+            }
+            root["months"] = outMonths
+        }
+        if var t = root["twice"] as? [String: Any] {
+            if let s = t["first"] { t["first"] = take(s, "tf") }
+            if let s = t["last"] { t["last"] = take(s, "tl") }
+            root["twice"] = t
+        }
+        guard ok, let strokes = LibraryInkView.decodeInkDirect(ink), var m = try? ShiziDecode.value(root, as: View.self) else { return nil }
+        func box(_ key: String) -> ShiziInkBox? {
+            guard let ss = strokes[key] else { return nil }
+            return ShiziInkBox(points: ss.map { s in s.map { ShiziInkPoint(x: $0.x, y: $0.y, w: $0.w, t: nil, p: nil) } })
+        }
+        if m.first != nil { m.first?.ink = box("f") }
+        for i in m.months.indices {
+            for j in m.months[i].cells.indices { m.months[i].cells[j].ink = box("m\(i).\(j)") }
+        }
+        if m.twice != nil {
+            m.twice?.first.ink = box("tf")
+            m.twice?.last.ink = box("tl")
+        }
+        return m
+    }
+
+    /// 旧形状的点（字典）只有 x / y / w 键；平铺的笔（头一个是数）不看（由 decodeInkDirect 认）。
+    private static func onlyXYW(_ strokes: [Any]) -> Bool {
+        for s in strokes {
+            guard let a = s as? [Any], !(a.first is NSNumber) else { continue }
+            for p in a {
+                guard let o = p as? [String: Any] else { continue }
+                for k in o.keys where k != "x" && k != "y" && k != "w" { return false }
+            }
+        }
+        return true
+    }
+
+    /// 原路（ShiziDecode.value）只认旧形状：每格 ink.points 里平铺的笔展开成每点一个 {x, y, w?}（LibraryInkView.expandFlat，值原样搬）；别的原样留着。
+    static func expandInk(_ raw: Any) -> Any {
+        guard var root = raw as? [String: Any] else { return raw }
+        if let f = root["first"] { root["first"] = expandSlot(f) }
+        if let ms = root["months"] as? [Any] {
+            root["months"] = ms.map { mRaw -> Any in
+                guard var mo = mRaw as? [String: Any], let cells = mo["cells"] as? [Any] else { return mRaw }
+                mo["cells"] = cells.map { expandSlot($0) }
+                return mo
+            }
+        }
+        if var t = root["twice"] as? [String: Any] {
+            if let s = t["first"] { t["first"] = expandSlot(s) }
+            if let s = t["last"] { t["last"] = expandSlot(s) }
+            root["twice"] = t
+        }
+        return root
+    }
+
+    private static func expandSlot(_ holder: Any) -> Any {
+        guard var h = holder as? [String: Any], var box = h["ink"] as? [String: Any], let pts = box["points"] else { return holder }
+        box["points"] = LibraryInkView.expandFlat(["p": pts])["p"] ?? pts
+        h["ink"] = box
+        return h
     }
 
     private func setSong(_ l: UILabel, _ text: String, size: CGFloat, weight: UIFont.Weight = .regular, color c: UIColor, line: CGFloat? = nil) {

@@ -81,16 +81,20 @@ public enum MineSubView {
         out["seal"] = try CoreResources.load("view-seal"); out["lines"] = V.obj([("title", ViewLineStarts.starts("records-title", title)), ("legend", ViewLineStarts.starts("records-legend", legend)), ("dayRows", .array(dayList.map { ViewLineStarts.starts("records-axrow", $0["label"]!) })), ("paperday", JS.truthy(selected) ? ViewLineStarts.starts("records-paperday", selected["paperNote"]!) : .null), ("daylistTitle", JS.truthy(selected) ? ViewLineStarts.starts("records-daylist-title", selected["title"]!) : .null), ("sheetNote", JS.number(sheet["n"]) > 0 && JS.truthy(sheet["under"]) ? ViewLineStarts.starts("records-sheet-note", V.ref("X-WORK.monthUnderNote")) : .null)])
         return .object(out)
     }
-    public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {
-        try annualView(state, today: today, year: year, policy: policy, dates: dates, index: V.recordIndex(state, dates: dates))
+    /// inkWire = App 回包（view.annual）：每格 ink.points 按 AnnualInkWire 发（平铺；x / y / w 与 DetailView.builtInk 逐位相同）。
+    /// 缺省（false）= 原样（ViewOps 的 view.annual-page 与网页对照的回包不变）。
+    public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, dates: Dates) throws -> JSValue {
+        try annualView(state, today: today, year: year, policy: policy, inkWire: inkWire, dates: dates, index: V.recordIndex(state, dates: dates))
     }
     /// index：调用方已用同一 state / dates 建好的 recordIndex（MineSubAPI 挑缺省年份时建的那个）。
-    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates, index: ViewSupport.RecordIndex) throws -> JSValue {
+    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, dates: Dates, index: ViewSupport.RecordIndex) throws -> JSValue {
         // 年报每月的成员要算两遍（模型里数成员、这里取格），全量平铺一次给它们共用
         let rows = ImageSelection.monthRows(state)
         let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: index, rows: rows)
-        // 首字、每月的格（含 monthCells 里挑墨迹与取点）、两次对比共用一份 builtInk 记忆：每条记录的墨迹只解一次
-        let ink = RecordInkMemo.builtInk(state, dates: dates)
+        // 首字、每月的格（含 monthCells 里挑墨迹与取点）、两次对比共用一份墨迹记忆：每条记录的墨迹只解一次。
+        // inkWire：记的是 AnnualInkWire.built（平铺的 ink.points）。它与 DetailView.builtInk 同样只取决于 state.ink[月][id]、
+        // 同时为 nil、同处抛同一个错，所以 monthCells 里 imagePlan 判有无墨迹（只看是不是 nil）的结果不变；月段的格只取 ch / record 与格数，墨迹在下面 cell 里另取。
+        let ink = inkWire ? RecordInkMemo(timeZone: dates.timeZone, { (r: JSValue?) throws -> JSValue? in try AnnualInkWire.built(state, record: r, dates: dates) }) : RecordInkMemo.builtInk(state, dates: dates)
         func points(_ r: JSValue?) throws -> JSValue { try ink.get(r).map { V.obj([("points", $0)]) } ?? .null }
         func cell(_ ch: JSValue, _ r: JSValue?) throws -> JSValue { let p = try points(r); var c = try cellModel(ch, record: r, mode: .string(JS.truthy(p) ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates); c["ink"] = p; return .object(c) }
         var first: JSValue = .null

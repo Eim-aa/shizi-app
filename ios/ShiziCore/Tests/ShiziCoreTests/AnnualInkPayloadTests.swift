@@ -145,8 +145,16 @@ final class AnnualInkPayloadTests: XCTestCase {
         check([[InkPoint(x: 1, y: 2, t: 0, w: 3, order: InkPoint.orderXYTP)]], "w the legacy shape does not write")
         check([[InkPoint(x: 1, y: 2, t: 0, order: InkPoint.orderXYTP), InkPoint(x: 3, y: 4, t: 8, order: InkPoint.orderXYTP)]], "orderXYTP without w")
         check([[InkPoint(x: 1, y: 2, t: 0, w: 3, order: ["y", "w"])]], "x the legacy shape does not write")
-        check([specials.map { InkPoint(x: $0, y: -$0, t: $0, w: $0) }, specials.map { InkPoint(x: -$0, y: $0, t: 1) }], "specials")
-        check([(0..<5000).map { InkPoint(x: Double($0) / 7, y: Double($0 % 345), t: Double($0) * 8, w: 9 + Double($0 % 5)) }], "a huge stroke")
+        let specialsA: [InkPoint] = specials.map { (v: Double) -> InkPoint in InkPoint(x: v, y: -v, t: v, w: v) }
+        let specialsB: [InkPoint] = specials.map { (v: Double) -> InkPoint in InkPoint(x: -v, y: v, t: 1) }
+        check([specialsA, specialsB], "specials")
+        let huge: [InkPoint] = (0..<5000).map { (i: Int) -> InkPoint in
+            let d = Double(i)
+            let y = Double(i % 345)
+            let w: Double = 9 + Double(i % 5)
+            return InkPoint(x: d / 7, y: y, t: d * 8, w: w)
+        }
+        check([huge], "a huge stroke")
         for round in 0..<2000 {
             let badRate: UInt64 = round % 3 == 0 ? 0 : 1 + rng.next() % 200
             let r: [[InkPoint]] = (0..<Int(rng.next() % 5)).map { _ in stroke(badRate) }

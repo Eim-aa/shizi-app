@@ -35,6 +35,7 @@
 		1A0000000000000000B39C12 /* Annual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39C11 /* Annual.swift */; };
 		1A0000000000000000B39D12 /* Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39D11 /* Records.swift */; };
 		1A0000000000000000B32004 /* ShiziScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32003 /* ShiziScreen.swift */; };
+		1A0000000000000000B3C002 /* ShiziLazyCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3C001 /* ShiziLazyCells.swift */; };
 		1A0000000000000000B32002 /* ShiziEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32001 /* ShiziEngine.swift */; };
 		1A00000000000000000A1112 /* QAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1111 /* QAApp.swift */; };
 		1A00000000000000000A1114 /* EntryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1113 /* EntryFlowTests.swift */; };
@@ -167,6 +168,7 @@
 		1A0000000000000000B39C11 /* Annual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annual.swift; sourceTree = "<group>"; };
 		1A0000000000000000B39D11 /* Records.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Records.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32003 /* ShiziScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziScreen.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3C001 /* ShiziLazyCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziLazyCells.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32001 /* ShiziEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziEngine.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1111 /* QAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAApp.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1113 /* EntryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryFlowTests.swift; sourceTree = "<group>"; };
@@ -447,6 +449,7 @@
 				1A0000000000000000B3100F /* ShiziProbe.swift */,
 				1A0000000000000000B31011 /* ShiziTokens.swift */,
 				1A0000000000000000B31013 /* ShiziTransitions.swift */,
+				1A0000000000000000B3C001 /* ShiziLazyCells.swift */,
 				1A0000000000000000B31015 /* ShiziUndoBar.swift */,
 			);
 			path = ShiziKit;
@@ -708,6 +711,7 @@
 				1A0000000000000000B39C12 /* Annual.swift in Sources */,
 				1A0000000000000000B39D12 /* Records.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
+				1A0000000000000000B3C002 /* ShiziLazyCells.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* RootViewController.swift in Sources */,
 				1A00000000000000000000D1 /* InkModel.swift in Sources */,

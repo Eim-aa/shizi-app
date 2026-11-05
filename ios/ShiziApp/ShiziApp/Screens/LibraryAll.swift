@@ -10,7 +10,7 @@ import UIKit
 // 「排序 · 筛选」是底部弹层（网页；原生用一个呈现出来的原生控制器）。
 
 @objc(ShiziScreen_library_all)
-final class LibraryAllScreen: ShiziScreenViewController {
+final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
     struct Cell: Decodable {
         struct Rec: Decodable { let id: String }
         let char: String
@@ -103,6 +103,9 @@ final class LibraryAllScreen: ShiziScreenViewController {
         let button = ShiziLineButton(type: .custom)
         let ink = LibraryInkView()
         let py = UILabel()
+        /// 上次按哪一格（墙上的序号）、哪一次渲染（renderGeneration）配的内容；都没变时重排只重摆框。
+        var index = -1
+        var generation = -1
     }
 
     /// 一个分组（网页 .sz-all__group：组名 + 字数 + 墙格）。
@@ -111,7 +114,6 @@ final class LibraryAllScreen: ShiziScreenViewController {
         let nameLabel = UILabel()
         let countLabel = UILabel()
         let cellsMarker = UIView()
-        var cells: [CellSlot] = []
 
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -186,7 +188,23 @@ final class LibraryAllScreen: ShiziScreenViewController {
     private var webMetrics: WebMetrics?
     /// 每组的格子（点格子看详情时按同一个序号找那个字）。
     private var groupCells: [[Cell]] = []
-    private var inkStrokes: [String: [[LibraryInkView.Point]]] = [:]
+    /// 回包 ink（按需解码：只解建出来的格子的记录）。
+    private let inkStore = LibraryInkStore()
+    /// 第几次渲染（render 一次加一）：格子的内容（拼音 / 读屏名 / 墨迹）按渲染配，框按排版配。
+    private var renderGeneration = 0
+    /// 可见框上下各多建几屏高的格子。2.5 屏：冻结的逐屏基线里最深的格子（all-pinyin XXXL：内容里 2357.5pt，可视区 768pt）
+    /// 要在打开时就建出来（取证连屏外滚得到的元素一起记），需要 ≥ 2.07 屏。
+    static let overscanViewports: CGFloat = 2.5
+    /// 墙上的格子：只建可见框 ± overscan 里的（ShiziLazyCells）。序号 = wall.cells 的序号。
+    private(set) lazy var cells = ShiziLazyCells<CellSlot>(
+        make: { [unowned self] _ in self.makeCell() },
+        attach: { [unowned self] s, i, following in self.attachCell(s, i, following) },
+        detach: { s in
+            s.button.isHighlighted = false
+            s.button.removeFromSuperview()
+            s.ink.removeFromSuperview()
+        },
+        configure: { [unowned self] s, i in self.configureCell(s, i) })
     /// 最近一次排版算出的全部组 / 格的框。
     private(set) var wall = WallLayout()
     /// 墙格的字形图（每次排版都要给每格一张；输入没变就用上次那张）。
@@ -252,6 +270,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         wire(listButton) { page in (page as? LibraryAllScreen)?.openList() }
         wire(goButton) { page in (page as? LibraryAllScreen)?.start() }
         findInput.addTarget(self, action: #selector(findChanged), for: .editingChanged)
+        scroll.delegate = self
     }
 
     // MARK: 视图
@@ -267,7 +286,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m
         if let payload = lastPayload, let ink = payload["ink"] as? [String: Any] {
-            inkStrokes = LibraryInkView.decodeInk(ink)
+            inkStore.load(ink)
         }
         if let payload = lastPayload, let met = payload["metrics"] {
             webMetrics = try? ShiziDecode.value(met, as: WebMetrics.self)
@@ -391,20 +410,51 @@ final class LibraryAllScreen: ShiziScreenViewController {
             gv.headButton.composed = [group.name.text, group.count.text].joined(separator: " ")
             gv.headButton.lineFont = mt.font(15)
             gv.headButton.setTitleColor(color("ink1"), for: .normal)
-            // 格子
-            while gv.cells.count < group.cells.count {
-                let s = makeCell()
-                gv.cellsMarker.addSubview(s.button)
-                gv.cellsMarker.addSubview(s.ink)
-                gv.cells.append(s)
-            }
-            while gv.cells.count > group.cells.count {
-                let s = gv.cells.removeLast()
-                s.button.removeFromSuperview()
-                s.ink.removeFromSuperview()
-            }
-            for (ci, cell) in group.cells.enumerated() { configureCellContent(gv.cells[ci], cell) }
         }
+        // 格子在排版时按框建 / 配（layoutBody → updateCells）；这一次渲染的内容要重配
+        renderGeneration += 1
+    }
+
+    /// 第 i 格放进它那一组的墙格：插在 following（下一个已建好的格子）前面，同一组里按序号排（按钮、墨迹小图紧挨着）。
+    /// 已经在这一组的墙格里就不动（同一组里留下来的格子之间的先后本来就按序号）。
+    private func attachCell(_ s: CellSlot, _ i: Int, _ following: CellSlot?) {
+        guard i < wall.cellGroup.count else { return }
+        let gi = wall.cellGroup[i]
+        guard gi < groupViews.count else { return }
+        let marker = groupViews[gi].cellsMarker
+        if s.button.superview === marker, s.ink.superview === marker { return }
+        if let f = following, f.button.superview === marker {
+            marker.insertSubview(s.button, belowSubview: f.button)
+        } else {
+            marker.addSubview(s.button)
+        }
+        marker.insertSubview(s.ink, aboveSubview: s.button)
+    }
+
+    /// 按第 i 格配：内容（换了格子或有新的渲染）+ 框（每次排版）。池子里拿出来的格子带着上一格的状态，内容与框里的每一样都重设。
+    private func configureCell(_ s: CellSlot, _ i: Int) {
+        guard i < wall.cellData.count else { return }
+        let cell = wall.cellData[i]
+        if s.index != i || s.generation != renderGeneration {
+            configureCellContent(s, cell)
+            s.index = i
+            s.generation = renderGeneration
+        }
+        configureCellLayout(s, cell, frame: wall.cells[i], cellW: wall.cellW)
+    }
+
+    /// 按此刻的滚动位置建 / 收格子（排版后、滚动时）。外观按本页的（滚动回调里 UITraitCollection.current 不一定是本页的）。
+    func updateCells() {
+        cells.overscan = max(0, scroll.bounds.height) * Self.overscanViewports
+        let visible = scroll.bounds
+        traitCollection.performAsCurrent { cells.update(visible: visible) }
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView === scroll, isViewLoaded else { return }
+        updateCells()
+        // 滚动时新建的格子的字形图也进了缓存：缓存里多出的（已经不在格子上的）超过 128 张就收一轮（下一轮只留最近用到的）
+        if glyphCache.count > cells.liveIndices.count + 128 { glyphCache.endPass() }
     }
 
     /// 新建一格（按钮里放拼音标签；点按 → 这一格的字的详情）。
@@ -506,8 +556,8 @@ final class LibraryAllScreen: ShiziScreenViewController {
 
     /// 这一格的记录的笔画（回包 ink 里没有这条记录 = nil）。
     private func inkOf(_ cell: Cell) -> [[LibraryInkView.Point]]? {
-        guard let rid = cell.record?.id else { return nil }
-        return inkStrokes[rid]
+        guard let rid = cell.record?.id, inkStore.has(rid) else { return nil }
+        return inkStore.strokes(rid)
     }
 
     /// 格子给读屏的名字（网页的 cellLabel）。
@@ -570,10 +620,13 @@ final class LibraryAllScreen: ShiziScreenViewController {
     private func openCell(_ b: ShiziLineButton?) {
         guard let b else { return }
         var char = ""
-        for (gi, gv) in groupViews.enumerated() {
-            guard let idx = gv.cells.firstIndex(where: { $0.button === b }), gi < groupCells.count else { continue }
-            let cells = groupCells[gi]
-            if idx < cells.count { char = cells[idx].char }
+        // 建出来的格子里找这个按钮是第几格（格子按序号配，序号 → 组 / 组里第几格同排版时的模型）
+        if let i = cells.index(where: { $0.button === b }), i < wall.cellGroup.count {
+            let gi = wall.cellGroup[i]
+            if gi < groupCells.count, gi < wall.groups.count {
+                let ci = i - wall.groups[gi].firstCell
+                if ci >= 0, ci < groupCells[gi].count { char = groupCells[gi][ci].char }
+            }
         }
         guard !char.isEmpty else { return }
         Task { @MainActor [weak self] in
@@ -699,11 +752,10 @@ final class LibraryAllScreen: ShiziScreenViewController {
             gv.nameLabel.frame = box.nameFrame
             gv.countLabel.frame = box.countFrame
             gv.cellsMarker.frame = CGRect(x: 0, y: box.gridTop, width: width, height: box.gridH)
-            for ci in 0..<box.cellCount where ci < gv.cells.count {
-                let i = box.firstCell + ci
-                configureCellLayout(gv.cells[ci], wall.cellData[i], frame: wall.cells[i], cellW: wall.cellW)
-            }
         }
+        // 格子：只建 / 配可见框 ± overscan 里的（滚动时 scrollViewDidScroll 再补；排版收尾时滚动区定了高再核一次）
+        cells.setItems(wall.cellsInContent)
+        updateCells()
         y = wall.bottom
         glyphCache.endPass()
         // 收起的月份（网页 .sz-all__closed：上外边距 s2、顶边 0.5 分隔线）
@@ -851,6 +903,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         // 基类按自己的页头高度重设了滚动区 → 再摆回网页的口径
         kit.layoutHeader(trailButtonWidth: trailButtonWidth, trailSlotWidth: trailSlotWidth)
         kit.adjustScroll(hasFooter: hasFooter)
+        updateCells() // 滚动区的高到这里才定（底栏让出之后）
     }
 
     /// 系统字号档的连续倍率（网页 --k）。

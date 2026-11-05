@@ -180,6 +180,9 @@ final class LibraryGlyphCache {
         return made
     }
 
+    /// 这一轮到此为止用到的张数。
+    var count: Int { current.count }
+
     /// 一轮结束：这一轮用到的留给下一轮，其余丢掉。
     func endPass() {
         previous = current
@@ -234,45 +237,74 @@ final class LibraryInkView: UIView {
         var out: [String: [[Point]]] = [:]
         out.reserveCapacity(ink.count)
         for (id, raw) in ink {
-            guard let strokes = raw as? [Any] else { return nil }
-            var ss: [[Point]] = []
-            ss.reserveCapacity(strokes.count)
-            for sRaw in strokes {
-                guard let pts = sRaw as? [Any] else { return nil }
-                var ps: [Point] = []
-                if pts.first is NSNumber {
-                    guard let stride = flatStride(pts) else { return nil }
-                    ps.reserveCapacity((pts.count - 1) / stride)
-                    var i = 1
-                    while i < pts.count {
-                        guard let x = jsonNumber(pts[i]), let y = jsonNumber(pts[i + 1]) else { return nil }
-                        var w: Double?
-                        if stride == 3 {
-                            guard let n = jsonNumber(pts[i + 2]) else { return nil }
-                            w = n
-                        }
-                        ps.append(Point(x: x, y: y, w: w))
-                        i += stride
-                    }
-                    ss.append(ps)
-                    continue
-                }
-                ps.reserveCapacity(pts.count)
-                for pRaw in pts {
-                    guard let o = pRaw as? [String: Any], let x = jsonNumber(o["x"]), let y = jsonNumber(o["y"]) else { return nil }
-                    var w: Double?
-                    if let wRaw = o["w"], !(wRaw is NSNull) {
-                        guard let n = jsonNumber(wRaw) else { return nil }
-                        w = n
-                    }
-                    ps.append(Point(x: x, y: y, w: w))
-                }
-                ss.append(ps)
-            }
+            guard let ss = decodeRecordDirect(raw) else { return nil }
             out[id] = ss
         }
         guard out.count == ink.count else { return nil } // 键在 Swift 字串比较下撞了（不同码位、标准等价）→ 原路
         return out
+    }
+
+    /// decodeInkDirect 里的一条记录（[笔]）：逐条独立，整份直接读 = 每条各自直接读。不认得 → nil。
+    static func decodeRecordDirect(_ raw: Any) -> [[Point]]? {
+        guard let strokes = raw as? [Any] else { return nil }
+        var ss: [[Point]] = []
+        ss.reserveCapacity(strokes.count)
+        for sRaw in strokes {
+            guard let pts = sRaw as? [Any] else { return nil }
+            var ps: [Point] = []
+            if pts.first is NSNumber {
+                guard let stride = flatStride(pts) else { return nil }
+                ps.reserveCapacity((pts.count - 1) / stride)
+                var i = 1
+                while i < pts.count {
+                    guard let x = jsonNumber(pts[i]), let y = jsonNumber(pts[i + 1]) else { return nil }
+                    var w: Double?
+                    if stride == 3 {
+                        guard let n = jsonNumber(pts[i + 2]) else { return nil }
+                        w = n
+                    }
+                    ps.append(Point(x: x, y: y, w: w))
+                    i += stride
+                }
+                ss.append(ps)
+                continue
+            }
+            ps.reserveCapacity(pts.count)
+            for pRaw in pts {
+                guard let o = pRaw as? [String: Any], let x = jsonNumber(o["x"]), let y = jsonNumber(o["y"]) else { return nil }
+                var w: Double?
+                if let wRaw = o["w"], !(wRaw is NSNull) {
+                    guard let n = jsonNumber(wRaw) else { return nil }
+                    w = n
+                }
+                ps.append(Point(x: x, y: y, w: w))
+            }
+            ss.append(ps)
+        }
+        return ss
+    }
+
+    /// decodeRecordDirect(raw) != nil，但不建点（只查形状与数；与 decodeRecordDirect 一条条同样的判断）。
+    static func isRecordDirect(_ raw: Any) -> Bool {
+        guard let strokes = raw as? [Any] else { return false }
+        for sRaw in strokes {
+            guard let pts = sRaw as? [Any] else { return false }
+            if pts.first is NSNumber {
+                guard let stride = flatStride(pts) else { return false }
+                var i = 1
+                while i < pts.count {
+                    guard jsonNumber(pts[i]) != nil, jsonNumber(pts[i + 1]) != nil else { return false }
+                    if stride == 3, jsonNumber(pts[i + 2]) == nil { return false }
+                    i += stride
+                }
+                continue
+            }
+            for pRaw in pts {
+                guard let o = pRaw as? [String: Any], jsonNumber(o["x"]) != nil, jsonNumber(o["y"]) != nil else { return false }
+                if let wRaw = o["w"], !(wRaw is NSNull), jsonNumber(wRaw) == nil { return false }
+            }
+        }
+        return true
     }
 
     /// 平铺的一笔的步长：头一个是数 2 或 3、其后的个数是它的整数倍 → 步长；否则 nil（不是平铺）。
@@ -353,6 +385,53 @@ final class LibraryInkView: UIView {
             }
             ctx.strokePath()
         }
+    }
+}
+
+/// 回包 ink 的按需解码（「全部字」墙只解建出来的那几格的记录）：strokes(id) = LibraryInkView.decodeInk(整份)[id] ?? []，逐位相同。
+///   整份都走得了直接读（每条 isRecordDirect、键在 Swift 字串比较下不撞）时，decodeInk 走的就是 decodeInkDirect，
+///   而直接读逐条独立 → 一条一条按需 decodeRecordDirect 与整份一次解完逐条相同；解过的按 id 留着，换一份回包（load）就清掉。
+///   否则（有一条形状不认得、键撞了）整份在 load 里照旧一次 decodeInk 解完（原路，结果与以前一样）。
+/// 「走得了直接读」在 load 里先扫一遍（只查形状与数，不建点）：比整份解完便宜，但仍按点数线性。
+final class LibraryInkStore {
+    private var raw: [String: Any] = [:]
+    private var decoded: [String: [[LibraryInkView.Point]]] = [:]
+    /// 走原路时整份解完的结果（nil = 按需直接读）。
+    private var all: [String: [[LibraryInkView.Point]]]?
+
+    /// 换一份回包的 ink（{记录 id: [笔, …]}）。
+    func load(_ ink: [String: Any]) {
+        decoded = [:]
+        all = nil
+        var copy: [String: Any] = [:]
+        copy.reserveCapacity(ink.count)
+        var direct = true
+        for (id, r) in ink {
+            if direct, !LibraryInkView.isRecordDirect(r) { direct = false }
+            copy[id] = r
+        }
+        if direct, copy.count == ink.count {
+            raw = copy
+        } else {
+            raw = [:]
+            all = LibraryInkView.decodeInk(ink)
+        }
+    }
+
+    /// 这条记录的笔画（回包里没有 = 空）。
+    func strokes(_ id: String) -> [[LibraryInkView.Point]] {
+        if let all { return all[id] ?? [] }
+        if let hit = decoded[id] { return hit }
+        guard let r = raw[id] else { return [] }
+        let s = LibraryInkView.decodeRecordDirect(r) ?? []
+        decoded[id] = s
+        return s
+    }
+
+    /// 回包里有没有这条记录（有 = decodeInk 的结果里有这个键）。
+    func has(_ id: String) -> Bool {
+        if let all { return all[id] != nil }
+        return raw[id] != nil
     }
 }
 

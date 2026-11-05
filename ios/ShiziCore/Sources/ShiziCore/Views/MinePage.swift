@@ -54,7 +54,8 @@ public enum MinePageView {
         return V.obj([("appearance", appearance), ("groupSize", group), ("mixTier", mix)])
     }
     public static func mineView(_ state: JSValue, today: String, _ a: JSObject, dates: Dates) throws -> JSValue {
-        let policy = V.policy(a["policy"]), m = try V.mineModel(state, today: today, policy: policy, hasInk: { DetailView.recordHasInk(state, record: $0, dates: dates) }, storagePressure: a["storagePressure"], dates: dates), view = SettingsView.settingsView(state["settings"]), year = AnnualView.annualDefaultYear(state, today: today, dates: dates)
+        // 一个 recordIndex 给本页模型与「年报」链接的缺省年份共用（AnnualView.annualDefaultYear 每个候选年份各建一次）
+        let policy = V.policy(a["policy"]), index = V.recordIndex(state, dates: dates), m = try V.mineModel(state, today: today, policy: policy, hasInk: { DetailView.recordHasInk(state, record: $0, dates: dates) }, storagePressure: a["storagePressure"], dates: dates, index: index), view = SettingsView.settingsView(state["settings"]), year = V.annualDefaultYear(state, today: today, index: index)
         func stat(_ id: String, _ key: String, _ label: String, _ unit: String) -> JSValue { V.obj([("id", .string(id)), ("n", m["overview"]![key]!), ("label", V.ref(label)), ("unit", V.ref(unit))]) }
         var out = JSObject()
         out["title"] = V.ref("X-TABS.mine"); out["today"] = .string(today); out["month"] = m["month"]; out["empty"] = m["empty"]

@@ -119,9 +119,31 @@ extension ViewSupport {
         guard let since, index.dates.isValidDay(.string(today)) else { return .null }; let days = try index.dates.diffDays(.string(since), .string(today))
         return days >= 30 ? obj([("kind", .string("stale")), ("days", .number(days))]) : .null
     }
-    package static func mineModel(_ state: JSValue, today: String, policy: JSValue, hasInk: InkPick.HasInk? = nil, storagePressure: JSValue?, dates: Dates) throws -> JSValue {
-        let index = recordIndex(state, dates: dates), empty = index.days.count == 0, month = String(today.prefix(7)), sheet = monthSheet(index, month: month, policy: policy, hasInk: hasInk)
+    /// prebuilt：调用方已用同一 state / dates 建好的索引（我的页与缺省年报年份共用一个），缺省现建。
+    package static func mineModel(_ state: JSValue, today: String, policy: JSValue, hasInk: InkPick.HasInk? = nil, storagePressure: JSValue?, dates: Dates, index prebuilt: RecordIndex? = nil) throws -> JSValue {
+        let index = prebuilt ?? recordIndex(state, dates: dates), empty = index.days.count == 0, month = String(today.prefix(7)), sheet = monthSheet(index, month: month, policy: policy, hasInk: hasInk)
         return try obj([("today", .string(today)), ("empty", .bool(empty)), ("overview", overviewModel(state, today: today, index: index)), ("month", .string(month)), ("sheet", sheet), ("preview", sheetPreview(sheet)), ("sheetOn", .bool(!empty && !(sheet["cells"]?.arrayValue ?? []).isEmpty)), ("lastBackup", lastBackupDay(state["backupMeta"], dates: dates)), ("backupHint", backupHint(state, today: today, index: index, storagePressure: storagePressure)), ("year", .number(Double(Int(today.prefix(4))!)))])
+    }
+    /// 与 AnnualView.annualDefaultYear(state, today:, dates: index.dates) 相同，但用已建好的 index：annualYears 为判断每个候选年份
+    /// 「有没有日子 / 字」各建一次 recordIndex（年数 + 1 次全量平铺、排序），我的页只为挑「年报」链接的年份。
+    /// 候选年份照抄 annualYears。某年留下 ⟺ yearSlice 的 days 非空（chars 非空必有 days）⟺ 有 localDay 合法且以「年-」开头的 works，
+    /// 或有以「年-」开头的折叠月、其 foldWorkByDay 非空。合法日子是 10 个 ASCII 字节「dddd-dd-dd」：String(年) + "-" 是它的前缀
+    /// ⟺ String(年) 等于它的前 4 个字符（年份串只有数字、负数以 '-' 开头而日子以数字开头），所以 works 那半按前 4 个字符查集合；折叠月照原样比前缀。
+    package static func annualDefaultYear(_ state: JSValue, today: String, index: RecordIndex) -> JSValue {
+        let dates = index.dates
+        var candidates = Set<Int>()
+        for r in index.judged { if let y = AnnualView.yearOfDay(JS.string(r["localDay"]), dates: dates) { candidates.insert(y) } }
+        for r in index.works { if let y = AnnualView.yearOfDay(JS.string(r["localDay"]), dates: dates) { candidates.insert(y) } }
+        for m in index.folded.keys { if let y = Int(m.prefix(4)) { candidates.insert(y) } }
+        var workYears = Set<String>()
+        for r in index.works where dates.isValidDay(r["localDay"] ?? .null) { workYears.insert(String(JS.string(r["localDay"]).prefix(4))) }
+        let foldedWithWork = index.folded.keys.filter { !Records.foldWorkByDay(state["records"]?[$0] ?? .null).isEmpty }
+        let years = candidates.filter { y in
+            let s = String(y)
+            return workYears.contains(s) || foldedWithWork.contains { $0.hasPrefix(s + "-") }
+        }.sorted()
+        guard let cur = AnnualView.yearOfDay(today, dates: dates) else { return years.first.map { .number(Double($0)) } ?? .null }
+        return .number(Double(years.isEmpty || years.contains(cur) ? cur : years.filter { $0 <= cur }.last ?? years[0]))
     }
     package static func clampMonth(_ month: JSValue?, index: RecordIndex, today: String) -> String {
         let current = String(today.prefix(7)), first = firstRecordMonth(index) ?? current, lo = min(first, current)

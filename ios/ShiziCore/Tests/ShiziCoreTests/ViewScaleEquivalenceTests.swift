@@ -73,6 +73,11 @@ final class ViewScaleEquivalenceTests: XCTestCase {
         }
         same("\(label) index", { newIndex.js }, { refIndex.js })
         same("\(label) works", { .array(newIndex.works) }, { .array(ViewRef.works(refIndex)) })
+        // 我的页「年报」链接的缺省年份：共用索引的推法 vs 年报自己的 annualDefaultYear（今天、跨年前后、记录之前很早 / 之后很晚、不合法的 today）
+        let y = Int(today.prefix(4)) ?? 2026
+        for t in [today, "\(y)-01-01", "\(y - 1)-12-31", "\(y + 1)-01-01", "\(y + 3)-06-15", "2000-01-01", "2026-02-30", "x"] {
+            same("\(label) annualDefaultYear \(t)", { V.annualDefaultYear(state, today: t, index: newIndex) }, { AnnualView.annualDefaultYear(state, today: t, dates: dates) })
+        }
         for d in refIndex.days.items + [today, "2026-13-01"] {
             same("\(label) dayItems \(d)", { .array(V.dayItems(newIndex, day: d)) }, { .array(ViewRef.dayItems(refIndex, day: d)) })
         }
@@ -410,6 +415,9 @@ final class ViewScaleEquivalenceTests: XCTestCase {
             }
         }
         same("\(label) works", { .array(V.recordIndex(state, dates: dates).works) }, { .array(ViewRef.works(index)) })
+        for t in [today, "2026-01-01", "2025-12-31", "2027-01-03", "2020-05-05"] {
+            same("\(label) annualDefaultYear \(t)", { V.annualDefaultYear(state, today: t, index: V.recordIndex(state, dates: dates)) }, { AnnualView.annualDefaultYear(state, today: t, dates: dates) })
+        }
         print("VIEWEQ \(label) months=\(months.count) compared=\(compared)")
     }
 

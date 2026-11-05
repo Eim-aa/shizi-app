@@ -3,6 +3,7 @@ import Foundation
 extension PageAPI {
     static func mineSub(_ op: String, _ store: Store, _ a: JSObject) throws -> JSValue {
         let today = try store.dates.localDay(.number(store.now())), state = JSValue.object(store.state)
+        if op == "view.annual.ink" { return annualInk(state, a) }
         let view: JSValue
         if op == "view.records" {
             var args = JSObject(); for key in ["month", "day"] { if let v = a[key]?.stringValue, !v.isEmpty { args[key] = .string(v) } }
@@ -16,6 +17,22 @@ extension PageAPI {
             let year: JSValue? = SessionWrites.integer(a["year"]) ? a["year"] : ViewSupport.annualDefaultYear(state, today: today, index: index)
             view = try MineSubView.annualView(state, today: today, year: year, policy: Config.policy, inkWire: true, dates: store.dates, index: index)
         }; return JS.obj([("ok", .bool(true)), ("view", view)])
+    }
+
+    /// view.annual.ink {keys: [墨迹键, …]}：年报页按需取的月段格墨迹（view.annual 带 lazyInk 时月段的格只给 inkKey）。
+    /// 回 {ok, ink: {键: ink.points | null}}；每个键的值 = 不带 lazyInk 的 view.annual 里同一格的 ink.points（AnnualInkWire.built，逐位相同）。
+    /// keys 不是字串数组、或多于 AnnualInkWire.maxBatch 个 → invalid；认不得的键（格式不对、state.ink 里没有、解不出可画的笔）→ null；重复的键只算一次。
+    static func annualInk(_ state: JSValue, _ a: JSObject) -> JSValue {
+        guard let keys = a["keys"]?.arrayValue, keys.count <= AnnualInkWire.maxBatch else { return SessionWrites.failure("invalid") }
+        var out = JSObject()
+        for k in keys {
+            guard case .string(let key) = k else { return SessionWrites.failure("invalid") }
+            if out[key] != nil { continue }
+            // 抛错（存的墨迹坏到 decodeInk 抛）→ null：不带 lazyInk 的 view.annual 在同一格整份抛错，带 lazyInk 的元数据回包也一样抛，所以这样的键不会被发出来
+            let points: JSValue? = (try? AnnualInkWire.built(state, key: key)) ?? nil
+            out[key] = points ?? .null
+        }
+        return JS.obj([("ok", .bool(true)), ("ink", .object(out))])
     }
 }
 
@@ -46,8 +63,36 @@ public enum AnnualInkWire {
 
     /// 一条记录的 ink.points；没有墨迹 → nil。有没有、什么时候 throw 都同 DetailView.builtInk（inkOf 不带 recalled）。
     static func built(_ state: JSValue, record: JSValue?, dates: Dates) throws -> JSValue? {
-        guard let record, JS.truthy(record), let decoded = try InkMath.decodeInk(QueryView.inkOf(state, record, dates: dates)), !decoded.isEmpty else { return nil }
+        guard let record, JS.truthy(record) else { return nil }
+        return try built(stored: QueryView.inkOf(state, record, dates: dates))
+    }
+
+    /// 一份存着的墨迹（state.ink[月][id]）→ ink.points；没有可画的笔 → nil。
+    static func built(stored: JSValue?) throws -> JSValue? {
+        guard let decoded = try InkMath.decodeInk(stored), !decoded.isEmpty else { return nil }
         let resampled = InkMath.resampleForReplay(decoded)
         return resampled.contains { !$0.isEmpty } ? points(resampled) : nil
+    }
+
+    // MARK: 按需取（view.annual 带 lazyInk + view.annual.ink）
+
+    /// 一次 view.annual.ink 最多取几个键（App 一次排版 / 滚动按这个数分批）。
+    public static let maxBatch = 256
+
+    /// 墨迹键：「月|id」（= state.ink[月][id]，Schema.inkMonthOf + Schema.inkIdOf，RecordInkMemo 的键）。
+    /// 月是 YYYY-MM（或 at 推出来的 年-月 / NaN-NaN），id 是 r + 数字：都没有「|」，按第一个「|」拆回去不会错。
+    public static func key(month: String, id: String) -> String { month + "|" + id }
+
+    /// 一条记录的墨迹键；记录没有墨迹位置（不是对象、缺合法 id、没有日子与时间）→ nil。
+    static func key(_ record: JSValue?, timeZone: TimeZone) -> String? {
+        guard let r = record, let month = Schema.inkMonthOf(r, timeZone: timeZone), let id = Schema.inkIdOf(r) else { return nil }
+        return key(month: month, id: id)
+    }
+
+    /// 墨迹键 → ink.points（= built(state, record:) 对任何墨迹键是它的记录：built 只读 state.ink[月][id]）。键里没有「|」→ nil。
+    static func built(_ state: JSValue, key: String) throws -> JSValue? {
+        guard let bar = key.firstIndex(of: "|") else { return nil }
+        let month = String(key[..<bar]), id = String(key[key.index(after: bar)...])
+        return try built(stored: state["ink"]?[month]?[id])
     }
 }

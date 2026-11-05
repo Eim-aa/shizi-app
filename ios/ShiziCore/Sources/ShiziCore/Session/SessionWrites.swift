@@ -13,9 +13,10 @@ public enum SessionWrites {
         var out = base?.objectValue ?? JSObject(); for (k,v) in pairs { out[k] = v }; return .object(out)
     }
     static func allRecords(_ state: JSObject) -> [JSValue] { Query.flattenRecords(state["records"]) }
-    static func find(_ state: JSObject, _ id: JSValue?) -> JSValue? { allRecords(state).first { $0["id"] == id } }
+    // find / seen / 判字的「沿用」/ 判字的 FSRS 输入 / judgedCount：只看可能命中的记录（RecordLookup：展开顺序的子序列，原条件再筛一遍，结果逐条相同）。
+    static func find(_ state: JSObject, _ id: JSValue?) -> JSValue? { RecordLookup.records(state, .id, id).first { $0["id"] == id } }
     static func seen(_ state: JSObject, _ session: JSValue, _ key: JSValue?) -> JSValue? {
-        allRecords(state).last { $0["kind"] == .string("answer-seen") && $0["sessionId"] == session["id"] && $0["cardKey"] == key }
+        RecordLookup.records(state, .card, key).last { $0["kind"] == .string("answer-seen") && $0["sessionId"] == session["id"] && $0["cardKey"] == key }
     }
     static func append(_ draft: inout JSObject, _ record: JSValue) throws {
         guard let day = record["localDay"]?.stringValue else { throw CoreError.error("appendRecord: record has no localDay") }
@@ -141,15 +142,16 @@ public enum SessionWrites {
             try TodayPlan.settle(&d, day: try dates.localDay(.number(at)), rules: ScheduleRules(dates: dates), policy: policy)
             return (.null, false)
         }
-        if let r = allRecords(d).last(where: { Records.isJudged($0) && $0["sessionId"] == s["id"] && $0["cardKey"] == key }) {
+        if let r = RecordLookup.records(d, .card, key).last(where: { Records.isJudged($0) && $0["sessionId"] == s["id"] && $0["cardKey"] == key }) {
             set(&d, slot, try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: nil, at: .number(at)))
             return (r, true)
         }
         let r = try Records.makeRecord(JSObject([("id", .string(try nextId())), ("cardKey", key), ("sessionId", s["id"]!), ("kind", .string("judged")), ("judgment", a["judgment"]!), ("at", .number(at)), ("help", JS.obj([("hints", .number(min(Schema.hintsShapeMax, max(0, hints(s, a["hints"]).rounded(.towardZero))))), ("answerSeen", .bool(false)), ("traced", .bool(false))]))]), dates: dates)
         try append(&d, r)
         if a["perRecordInk"]?.boolValue ?? (policy["features"]?["perRecordInk"] == .bool(true)) { _ = try Store.setInk(&d, r, InkMath.encodeStoredInk(strokes, policy: policy.objectValue, format: inkFormat), timeZone: dates.timeZone) }
-        _ = Budget.pruneInkOfCards(&d, [k], dates: dates)
-        let next = try ScheduleRules(dates: dates).applyJudgment(d["sched"]?[k], r, policy: policy, records: allRecords(d))
+        _ = Budget.pruneInkOfCards(&d, [k], dates: dates) { recs, want in RecordLookup.recordsOfCards(recs, want) }
+        // applyJudgment 只拿 records 判断「这条之前这个字有没有看过答案」（cardKey === r.cardKey 的 answer-seen），这个字的记录就够
+        let next = try ScheduleRules(dates: dates).applyJudgment(d["sched"]?[k], r, policy: policy, records: RecordLookup.records(d, .card, r["cardKey"]))
         d["sched"] = patch(d["sched"], [(k, next.entry)])
         let advanced = try SessionRules.advance(s, cardKey: key, recordId: r["id"], kind: .string("judged"), fsrsBefore: next.fsrsBefore, at: .number(at))
         set(&d, slot, JS.isString(a["judgment"], "wrong") ? TodayPlan.afterFirstWrong(advanced, key: key, policy: policy) : advanced)
@@ -205,7 +207,7 @@ public enum SessionWrites {
         return store.commit("write:skip-undo") { d,c in try undo(&d, a, at: c.now, dates: store.dates) }
     }
     static func canEnd(_ s: JSValue?) -> Bool { s != nil && ["picked", "daily"].contains(JS.string(s?["kind"])) && !SessionRules.isComplete(s) }
-    static func judgedCount(_ state: JSObject, _ id: JSValue?) -> Int { Set(allRecords(state).filter { Records.isJudged($0) && $0["sessionId"] == id }.map { JS.string($0["cardKey"]) }).count }
+    static func judgedCount(_ state: JSObject, _ id: JSValue?) -> Int { Set(RecordLookup.records(state, .session, id).filter { Records.isJudged($0) && $0["sessionId"] == id }.map { JS.string($0["cardKey"]) }).count }
     public static func commitEndGroup(_ store: Store, _ a: JSObject) -> JSValue {
         let slot = JS.string(a["slot"])
         guard let s = session(store.state, slot), s["id"] == a["sessionId"], ["daily", "picked"].contains(JS.string(s["kind"])) else { return failure("stale") }

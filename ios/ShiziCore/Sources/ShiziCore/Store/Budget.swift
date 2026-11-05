@@ -371,15 +371,25 @@ public enum Budget {
     /// D27 写入新判断时的回收（只看 cardKeys 这些字）；返回被回收的 [{id, month, recordId}]。
     @discardableResult
     public static func pruneInkOfCards(_ draft: inout JSObject, _ cardKeys: [String], dates: Dates) -> [JSValue] {
+        pruneInkOfCards(&draft, cardKeys, dates: dates) { recs, want in
+            var mine: [JSValue] = []
+            for (_, v) in recs.objectValue?.entries ?? [] {
+                for rec in Budget.monthRecords(v) {
+                    if case .object = rec, let ck = Budget.cardKey(rec), want.contains(ck) { mine.append(rec) }
+                }
+            }
+            return mine
+        }
+    }
+
+    /// 同上；collect(records 域, want) 给出 mine（records 域里按月键序、月内按列表序，cardKey 在 want 里的对象记录）。
+    /// 判字传 RecordLookup.recordsOfCards（只看这个字的记录，结果与上面的逐条扫描逐条相同）。
+    @discardableResult
+    static func pruneInkOfCards(_ draft: inout JSObject, _ cardKeys: [String], dates: Dates, collect: (JSValue, KeySet) -> [JSValue]) -> [JSValue] {
         guard case .object(var ink)? = draft["ink"], let recs = draft["records"], JSX.truthy(recs) else { return [] }
         let want = KeySet(cardKeys)
         if want.isEmpty { return [] }
-        var mine: [JSValue] = []
-        for (_, v) in recs.objectValue?.entries ?? [] {
-            for rec in monthRecords(v) {
-                if case .object = rec, let ck = cardKey(rec), want.contains(ck) { mine.append(rec) }
-            }
-        }
+        let mine = collect(recs, want)
         let index = indexRecords(JSObject([("all", .array(mine))]), sessions: draft["sessions"])
         var keep = index.retained
         func slot(_ rec: JSValue) -> (month: String, id: String)? {

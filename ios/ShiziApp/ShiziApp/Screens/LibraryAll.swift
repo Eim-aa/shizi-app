@@ -391,16 +391,17 @@ final class LibraryAllScreen: ShiziScreenViewController {
                 b.accessibilityLabel = cellLabel(cell)
                 b.iconSize = .zero
                 b.setImage(nil, for: .normal)
-                inkView.isHidden = true
-                inkView.strokes = []
+                // 墨迹只设一次（以前先清空再设回同一份，墨迹小图每次重拉都整张重画）
+                var cellStrokes: [[LibraryInkView.Point]] = []
+                if inked, let rid = cell.record?.id, let strokes = inkStrokes[rid], !strokes.isEmpty { cellStrokes = strokes }
+                inkView.strokes = cellStrokes
+                inkView.isHidden = cellStrokes.isEmpty
                 if !inked {
                     let tone = cell.tone ?? 3
                     let glyphColor = cell.kind == "hollow" ? color("ink4") : color(wallToken(tone))
                     b.setImage(LibraryGlyph.image(cell.char, size: 0, face: 0.8, color: glyphColor, hollow: cell.kind == "hollow"), for: .normal)
-                } else if let rid = cell.record?.id, let strokes = inkStrokes[rid], !strokes.isEmpty {
-                    inkView.strokes = strokes
+                } else if !cellStrokes.isEmpty {
                     inkView.ink = color(wallToken(cell.tone ?? 3))
-                    inkView.isHidden = false
                 }
             }
         }

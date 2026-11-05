@@ -134,10 +134,13 @@ enum LibraryGlyph {
 /// 本人笔迹小图（网页的 InkMini：把本人的笔画画在一张方卡里）。
 /// 点是书写格 345 单位空间里的 {x, y, w}（API 给的墨迹），按卡宽等比缩放。
 final class LibraryInkView: UIView {
-    struct Point: Decodable { let x: Double; let y: Double; let w: Double? }
+    struct Point: Decodable, Equatable { let x: Double; let y: Double; let w: Double? }
 
-    var strokes: [[Point]] = [] { didSet { setNeedsDisplay() } }
-    var ink: UIColor = .label { didSet { setNeedsDisplay() } }
+    /// 笔画或墨色真的变了才重画（draw 只读 strokes / ink / bounds；bounds 变由 contentMode = .redraw 重画，浅 / 深切换见 traitCollectionDidChange）。
+    /// 同一份笔画再设一次（重拉视图、查字框打一个字）不再把每格墨迹整张重画；点的 == 按 Double 逐字段比（NaN 不等 → 照旧重画）。
+    var strokes: [[Point]] = [] { didSet { if strokes != oldValue { setNeedsDisplay() } } }
+    /// 墨色按对象同一比（动态色的 isEqual 不保证同一个提供者；同一个对象画出来必定相同）。
+    var ink: UIColor = .label { didSet { if ink !== oldValue { setNeedsDisplay() } } }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -150,6 +153,13 @@ final class LibraryInkView: UIView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// 浅 / 深等颜色外观变了：墨色（动态色）要按新外观重新解析。以前页面在外观变化时重设 strokes 就会重画；
+    /// strokes 没变不再重画之后，这里自己补上（UIKit 本身也会给实现了 draw 的视图重画，多标一次无妨）。
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        super.traitCollectionDidChange(previous)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) { setNeedsDisplay() }
+    }
 
     override func draw(_ rect: CGRect) {
         guard !strokes.isEmpty, let ctx = UIGraphicsGetCurrentContext() else { return }

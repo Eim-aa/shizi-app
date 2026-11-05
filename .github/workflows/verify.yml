@@ -103,13 +103,6 @@ jobs:
           corepack prepare pnpm@11.16.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Release benchmarks (manual only)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bench_release }}
-        shell: bash
-        run: |
-          SHIZI_SCALE_BENCH=1 swift test -c release -Xswiftc -enable-testing --package-path ios/ShiziCore \
-            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests|LibraryInkBenchTests|ScaleBenchmarkTests|JudgeScaleEquivalenceTests|QueryScaleEquivalenceTests|ViewScaleEquivalenceTests' 2>&1 \
-            | grep -E "BENCH|VIEWEQ|error:|Executed [0-9]+ tests?|failed" | tee "$RUNNER_TEMP/bench-release.txt"
       - name: ShiziCore build + tests (verify:core)
         run: pnpm run verify:core
       - name: Library governance (needs shizi-core-cli)
@@ -118,9 +111,28 @@ jobs:
         run: pnpm run verify:content
       - name: Unit tests incl. macOS-only cases
         run: pnpm run verify:unit
-      # 日志接口只给一个 job 的最后几千行：Release 量测结果在 job 末尾再打印一次
+
+  # Release 量测单独一个 job（只在手动、勾了 bench_release 时跑）：量测本身约 40 分钟，
+  # 与 swift-core 的 Debug 全量测试同在一个 job 里会撞 45 分钟上限，把正常测试也一起取消掉。
+  bench-release:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.bench_release }}
+    runs-on: macos-26
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Release benchmarks
+        shell: bash
+        run: |
+          SHIZI_SCALE_BENCH=1 swift test -c release -Xswiftc -enable-testing --package-path ios/ShiziCore \
+            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests|LibraryInkBenchTests|ScaleBenchmarkTests|JudgeScaleEquivalenceTests|QueryScaleEquivalenceTests|ViewScaleEquivalenceTests' 2>&1 \
+            | grep -E "BENCH|VIEWEQ|error:|Executed [0-9]+ tests?|failed" | tee "$RUNNER_TEMP/bench-release.txt"
+      # 日志接口只给一个 job 的最后几千行：结果在 job 末尾再打印一次
       - name: Release benchmarks (repeat at end of log)
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.bench_release }}
+        if: always()
         run: cat "$RUNNER_TEMP/bench-release.txt" || true
 
   ios-app:

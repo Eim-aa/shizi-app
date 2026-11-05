@@ -148,6 +148,8 @@ final class LibraryListScreen: ShiziScreenViewController {
     /// 网页量出来的折行点（pretty 段落：说明句 / 提示句）。
     private var webMetrics: WebMetrics?
     private var inkStrokes: [String: [[LibraryInkView.Point]]] = [:]
+    /// 行首标准字的字形图（每次重拉都要给每行一张；输入没变就用上次那张）。
+    private let glyphCache = LibraryGlyphCache()
     private var rowViews: [LibraryListRowView] = []
     /// 勾选（nil = 默认「最该练的前 N 个」；数组 = 用户自己选的）。
     private var sel: [String]?
@@ -374,8 +376,9 @@ final class LibraryListScreen: ShiziScreenViewController {
             // 标准字（网页 .sz-lrow__char 的字形 svg；按钮的图标就是它）
             rv.open.iconSize = CGSize(width: charSide, height: charSide)
             rv.open.iconAtLeading = true
-            rv.open.setImage(LibraryGlyph.image(row.char, size: charSide, face: 0.7, color: color("ink1")), for: .normal)
+            rv.open.setImage(glyphCache.image(row.char, size: charSide, face: 0.7, color: color("ink1")), for: .normal)
         }
+        glyphCache.endPass()
     }
 
     // MARK: 动作

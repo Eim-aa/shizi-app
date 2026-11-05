@@ -131,6 +131,62 @@ enum LibraryGlyph {
     }
 }
 
+/// 一页的字形图缓存（「全部字」墙每次排版、清单页每次重拉都给每格重画一张字形位图）。
+/// 键 = 决定像素的全部输入：字（字形数据是包里的只读资源）、边长、字面比例、双钩、此刻解析出的颜色（色彩空间 + 分量；
+/// 动态色按当前外观解析，同 image 里的 color.cgColor）、渲染格式（preferred() 的 scale / range）。键相同 → 交出上次 image 画出的那张图。
+/// 每轮（一次排版 / 一次重拉）用到的留到下一轮，没用到的丢掉：图都在格子上显示着，缓存不多占内存。
+final class LibraryGlyphCache {
+    private struct Key: Hashable {
+        let char: String
+        let size: CGFloat
+        let face: CGFloat
+        let hollow: Bool
+        let color: CGColor
+        let scale: CGFloat
+        let range: Int
+
+        // 颜色按 CFEqual（= CGColorEqualToColor：色彩空间与各分量都相同）比；hash 取分量（相等的必定同 hash）。
+        static func == (a: Key, b: Key) -> Bool {
+            a.char == b.char && a.size == b.size && a.face == b.face && a.hollow == b.hollow && a.scale == b.scale && a.range == b.range
+                && CFEqual(a.color, b.color)
+        }
+
+        func hash(into h: inout Hasher) {
+            h.combine(char)
+            h.combine(size)
+            h.combine(face)
+            h.combine(hollow)
+            h.combine(scale)
+            h.combine(range)
+            for c in color.components ?? [] { h.combine(c) }
+        }
+    }
+
+    private var current: [Key: UIImage?] = [:]
+    private var previous: [Key: UIImage?] = [:]
+
+    /// 同 LibraryGlyph.image（同样的参数、同样的结果）。
+    func image(_ char: String, size: CGFloat, face: CGFloat, color: UIColor, hollow: Bool = false) -> UIImage? {
+        guard size > 0 else { return nil } // 同 LibraryGlyph.image
+        let fmt = UIGraphicsImageRendererFormat.preferred()
+        let key = Key(char: char, size: size, face: face, hollow: hollow, color: color.cgColor, scale: fmt.scale, range: fmt.preferredRange.rawValue)
+        if let hit = current[key] { return hit }
+        if let hit = previous[key] {
+            current.updateValue(hit, forKey: key)
+            return hit
+        }
+        let made = LibraryGlyph.image(char, size: size, face: face, color: color, hollow: hollow)
+        current.updateValue(made, forKey: key)
+        return made
+    }
+
+    /// 一轮结束：这一轮用到的留给下一轮，其余丢掉。
+    func endPass() {
+        previous = current
+        current = [:]
+    }
+}
+
 /// 本人笔迹小图（网页的 InkMini：把本人的笔画画在一张方卡里）。
 /// 点是书写格 345 单位空间里的 {x, y, w}（API 给的墨迹），按卡宽等比缩放。
 final class LibraryInkView: UIView {

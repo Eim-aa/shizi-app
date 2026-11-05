@@ -150,6 +150,8 @@ final class LibraryAllScreen: ShiziScreenViewController {
     /// 每组的格子（点格子看详情时按同一个序号找那个字）。
     private var groupCells: [[Cell]] = []
     private var inkStrokes: [String: [[LibraryInkView.Point]]] = [:]
+    /// 墙格的字形图（每次排版都要给每格一张；输入没变就用上次那张）。
+    private let glyphCache = LibraryGlyphCache()
     private var sort: String?
     private var filter: String?
     private var fold: [String: Bool]?
@@ -641,7 +643,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
                     b.iconCentered = false
                     let tone = cell.tone ?? 3
                     let glyphColor = cell.kind == "hollow" ? color("ink4") : color(wallToken(tone))
-                    b.setImage(LibraryGlyph.image(cell.char, size: cellW, face: 0.8, color: glyphColor, hollow: cell.kind == "hollow"), for: .normal)
+                    b.setImage(glyphCache.image(cell.char, size: cellW, face: 0.8, color: glyphColor, hollow: cell.kind == "hollow"), for: .normal)
                 } else {
                     b.iconSize = .zero
                     b.iconAtTop = false
@@ -665,6 +667,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
             }
             y = groupTop + gridTop + gridH
         }
+        glyphCache.endPass()
         // 收起的月份（网页 .sz-all__closed：上外边距 s2、顶边 0.5 分隔线）
         if !m.closed.isEmpty {
             let monthH = max(52, mt.line("lh15") + LibraryCommon.hair)

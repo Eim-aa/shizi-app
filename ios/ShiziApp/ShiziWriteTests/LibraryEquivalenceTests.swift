@@ -6,6 +6,7 @@ import XCTest
 // 字库子页的性能改动与改动前逐项相同（只换做法、不换结果）：
 //   令牌颜色缓存 = 每次现解析；
 //   墨迹小图「没变不重画」：连续 apply 几份回包之后的整窗截图 = 每格强制重画后的截图 = 新页面直接 apply 最后一份的截图（浅 / 深）；
+//   字形图缓存：缓存给的图与现画的逐字节相同（字 / 边长 / 字面比例 / 双钩 / 颜色 / 浅深）；整页同上截图对照；
 
 /// 颜色的可比形式：色彩空间名 + 各分量的位（不按容差比）。
 func libraryColorKey(_ c: UIColor?) -> String {
@@ -90,36 +91,48 @@ enum LibraryEq {
         return payload
     }
 
-    /// 一页连续收几份回包（每份之后排版 + 提交），截图；再把每格墨迹强制重画（= 改动前每次都重画）后截一次；
-    /// 再浅 / 深切换一次重复；最后新页面直接 apply 最后一份截图。三者逐字节相同。
-    static func checkNoStaleInk(_ make: () -> ShiziScreenViewController, steps: [[String: Any]], file: StaticString = #filePath, line: UInt = #line) throws {
-        let vc = make()
-        let w = LibraryBench.host(vc)
-        defer { LibraryBench.unhost(w) }
-        for p in steps {
-            vc.apply(payload: p)
+    /// 一页连续收几份回包（每份之后排版 + 提交）、再排一次版，浅色下截图；把每格墨迹强制重画（= 改动前每次都重画）后再截；
+    /// 切到深色重复一遍。另开一个新页面只收最后一份，同样先浅后深各截一次（两页的外观切换经历相同，只差回包的先后）。
+    /// 同一外观下：连收几份 = 强制重画 = 新页面，逐字节相同。
+    static func checkNoStaleInk(_ make: () -> ShiziScreenViewController, steps: [[String: Any]], requireInk: Bool = true,
+                                file: StaticString = #filePath, line: UInt = #line) throws {
+        let styles: [UIUserInterfaceStyle] = [.light, .dark]
+        var shots: [Data] = []
+        do {
+            let vc = make()
+            let w = LibraryBench.host(vc)
+            defer { LibraryBench.unhost(w) }
+            w.overrideUserInterfaceStyle = .light
+            for p in steps {
+                vc.apply(payload: p)
+                LibraryBench.settle(w)
+            }
+            vc.view.setNeedsLayout() // 再排一次版（内容不变）
             LibraryBench.settle(w)
-        }
-        XCTAssertFalse(inkViews(w).isEmpty, file: file, line: line)
-        var shots: [String: Data] = [:]
-        for style in [UIUserInterfaceStyle.light, .dark] {
-            w.overrideUserInterfaceStyle = style
-            LibraryBench.settle(w)
-            let seq = try snapshot(w, file: file, line: line)
-            for v in inkViews(w) { v.setNeedsDisplay() }
-            LibraryBench.settle(w)
-            let forced = try snapshot(w, file: file, line: line)
-            XCTAssertTrue(seq == forced, "\(style.rawValue): sequence vs forced redraw", file: file, line: line)
-            shots["\(style.rawValue)"] = seq
+            if requireInk { XCTAssertFalse(inkViews(w).filter { !$0.isHidden }.isEmpty, file: file, line: line) }
+            for style in styles {
+                w.overrideUserInterfaceStyle = style
+                LibraryBench.settle(w)
+                let seq = try snapshot(w, file: file, line: line)
+                for v in inkViews(w) { v.setNeedsDisplay() }
+                LibraryBench.settle(w)
+                let forced = try snapshot(w, file: file, line: line)
+                XCTAssertTrue(seq == forced, "\(style.rawValue): sequence vs forced redraw", file: file, line: line)
+                shots.append(seq)
+            }
         }
         let vc2 = make()
         let w2 = LibraryBench.host(vc2)
         defer { LibraryBench.unhost(w2) }
-        w2.overrideUserInterfaceStyle = .dark
+        w2.overrideUserInterfaceStyle = .light
         vc2.apply(payload: steps[steps.count - 1])
         LibraryBench.settle(w2)
-        let fresh = try snapshot(w2, file: file, line: line)
-        XCTAssertTrue(shots["\(UIUserInterfaceStyle.dark.rawValue)"] == fresh, "sequence vs fresh page", file: file, line: line)
+        for (i, style) in styles.enumerated() {
+            w2.overrideUserInterfaceStyle = style
+            LibraryBench.settle(w2)
+            let fresh = try snapshot(w2, file: file, line: line)
+            XCTAssertTrue(i < shots.count && shots[i] == fresh, "\(style.rawValue): sequence vs fresh page", file: file, line: line)
+        }
     }
 }
 
@@ -188,5 +201,79 @@ final class LibraryInkRedrawGuardTests: XCTestCase {
         ink["r2"] = nil
         p2["ink"] = ink
         try LibraryEq.checkNoStaleInk({ LibraryListScreen(screen: "library-list", entryId: "eq", params: ["kind": "due"]) }, steps: [p1, p1, p2, p2])
+    }
+}
+
+// MARK: - 字形图缓存
+
+@MainActor
+final class LibraryGlyphCacheTests: XCTestCase {
+    private func bytes(_ img: UIImage?) -> Data? {
+        guard let img, let cg = img.cgImage else { return nil }
+        var d = Data("\(cg.width)x\(cg.height)@\(img.scale) \(cg.bitsPerPixel) \(cg.bytesPerRow) \(cg.bitmapInfo.rawValue)|".utf8)
+        d.append((cg.dataProvider?.data as Data?) ?? Data())
+        return d
+    }
+
+    /// 缓存的键用「画之前」按当前外观解析的颜色；字形图里 color.cgColor 在渲染闭包里解析——两处的当前外观必须相同。
+    func testImageRendererKeepsTheCurrentTraits() {
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            UITraitCollection(userInterfaceStyle: style).performAsCurrent {
+                var inside = UIUserInterfaceStyle.unspecified
+                let fmt = UIGraphicsImageRendererFormat.preferred()
+                _ = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2), format: fmt).image { _ in
+                    inside = UITraitCollection.current.userInterfaceStyle
+                }
+                XCTAssertEqual(inside, style)
+            }
+        }
+    }
+
+    /// 字 × 边长 × 字面比例 × 双钩 × 颜色 × 浅 / 深：缓存给的图 = 现画的图（逐字节）；第二次取是同一张；跨轮（endPass）仍相同。
+    func testCachedGlyphsMatchFreshRenders() throws {
+        let cache = LibraryGlyphCache()
+        let chars = LibraryBench.chars(4) + ["永", "\u{E000}"] // 最后一个包里没有字形数据 → 两边都是 nil
+        let colors = try ["wall1", "wall4", "ink4", "ink1"].map { try XCTUnwrap(ShiziTokens.dynamicColor($0), $0) } + [UIColor.label]
+        var compared = 0
+        for round in 0..<2 {
+            for style in [UIUserInterfaceStyle.light, .dark] {
+                UITraitCollection(userInterfaceStyle: style).performAsCurrent {
+                    for ch in chars {
+                        for size in [CGFloat(44.875), 45.125, 0] {
+                            for face in [CGFloat(0.8), 0.7] {
+                                for hollow in [false, true] {
+                                    for color in colors {
+                                        let a = cache.image(ch, size: size, face: face, color: color, hollow: hollow)
+                                        let b = LibraryGlyph.image(ch, size: size, face: face, color: color, hollow: hollow)
+                                        XCTAssertEqual(a == nil, b == nil, "\(ch) \(size) \(face) \(hollow) \(style.rawValue)")
+                                        XCTAssertTrue(bytes(a) == bytes(b), "\(ch) \(size) \(face) \(hollow) \(style.rawValue) #\(round)")
+                                        let again = cache.image(ch, size: size, face: face, color: color, hollow: hollow)
+                                        XCTAssertTrue(again === a, "\(ch) \(size) hit")
+                                        if a != nil { compared += 1 }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                cache.endPass()
+            }
+        }
+        XCTAssertGreaterThan(compared, 100)
+    }
+
+    /// 全部字页（全字形）：同一份回包两次、改几格的新旧档（颜色）与空心 / 换字、再排一次版之后的整窗截图 = 新页面直接收最后一份（浅 / 深）。
+    func testLibraryAllGlyphPixelsMatchFreshPage() throws {
+        let g1 = LibraryBench.allPayload(48, ink: false)
+        var g2 = LibraryEq.editCell(g1, 2) { c in c["tone"] = LibraryBench.num(0) }
+        g2 = LibraryEq.editCell(g2, 9) { c in c["kind"] = "hollow" }
+        g2 = LibraryEq.editCell(g2, 11) { c in c["char"] = "永" }
+        try LibraryEq.checkNoStaleInk({ LibraryAllScreen(screen: "library-all", entryId: "eq", params: [:]) }, steps: [g1, g1, g2, g2], requireInk: false)
+    }
+
+    /// 清单页（无墨迹）：同上。
+    func testLibraryListGlyphPixelsMatchFreshPage() throws {
+        let l1 = LibraryBench.listPayload(12, ink: false)
+        try LibraryEq.checkNoStaleInk({ LibraryListScreen(screen: "library-list", entryId: "eq", params: ["kind": "due"]) }, steps: [l1, l1], requireInk: false)
     }
 }

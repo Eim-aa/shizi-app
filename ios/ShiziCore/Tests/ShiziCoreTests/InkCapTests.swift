@@ -326,9 +326,9 @@ final class InkCapTests: XCTestCase {
     }
 
     /// body 跑完在 50 ms 内。
-    func timed(_ label: String, file: StaticString = #filePath, line: UInt = #line, _ body: () -> Void) {
+    func timed(_ label: String, file: StaticString = #filePath, line: UInt = #line, _ body: () throws -> Void) {
         let t0 = Date()
-        body()
+        do { try body() } catch { XCTFail("\(label) threw \(error)", file: file, line: line) }
         let ms = Date().timeIntervalSince(t0) * 1000
         XCTAssertLessThan(ms, 50, "\(label) took \(ms) ms", file: file, line: line)
     }

@@ -31,7 +31,10 @@ import XCTest
 //       api.view.*（只在 fake 上）：各页的 App 回答，PageAPI.call 同一入口——home（A 槽有开着的会话）、mine、month（当月 / .old = 最早的月，折叠档里是折叠月）、
 //       records（当月 + 选中 10-20）、detail（最近写的字）、query.han10（10 个汉字）/ query.pinyin（"shi"）、annual（缺省年 / .2025）、library、backup、remind。
 //       part.*：页内反复用到的块——recordIndex（我的 / 记录 / 年报）、flattenSorted（ImageSelection 的全量排序平铺）、monthMembers（月报 / 我的 / 年报每月）、
-//       annualYears（我的、年报：每年各建一次 recordIndex）、memoryZones（我的 / 字库）、recordsSignature（我的的备份提示）、reminderPayload（提醒开着时每次提交后的同步）。
+//       annualYears（我的、年报：每年各建一次 recordIndex）、memoryZones（我的 / 字库）、recordsSignature（我的的备份提示）、reminderPayload（提醒开着时每次提交后的同步）、
+//       yearSlice / annualModel（年报的切片与模型，不含每格墨迹）、monthCells（月报 / 记录 / 年报每月的格，含每格墨迹）、monthSheetCells（我的页的月报格）、
+//       builtInk.month（当月每个成员各解一次回放墨迹；scale-note 行给每格单价）。
+//   api.* 与较重的 part.*：第一次就超过 1 s 时只量这一次（n=1），免得 10x 的手动量测步骤超出作业时限。
 //   bytes = Store.usage 的 total（UTF-16 口径，与预算同口径）。
 //   另有 testFoldPolicyBytes 打印 BENCH fold-policy 行（每条记录 / 墨迹 / sched 的字节、折叠一个月前后、按每天写多少字推到碰预算的天数），见该方法的注释。
 // 读法：同一 op 的 1x → 3x → 10x，records 依次约 ×3、×3.3；median 也约 ×3、×3.3 即线性（O(总记录数)）；基本不变即与总量无关
@@ -312,10 +315,21 @@ final class ScaleBenchmarkTests: XCTestCase {
         print("BENCH scale-note sink=\(sink)")
     }
 
-    /// 一个页的 App 回答：PageAPI.call(op) 量 scale.reads 次（不预热：页面打开本来就是冷的一次；看 median），最后一次的回包必须 ok。
+    /// 量 n 次（不预热）；第一次就超过 slowMs 时只留这一次（n=1）：10x 上单次几秒到几十秒的页，多量几次只是让 CI 的手动量测步骤超时。
+    static let slowMs = 1000.0
+    private func sampleUnlessSlow(n: Int, _ body: () throws -> Void) rethrows -> [Double] {
+        var out: [Double] = []
+        for _ in 0..<max(1, n) {
+            out.append(try timed(body))
+            if out.count == 1 && out[0] > Self.slowMs { break }
+        }
+        return out
+    }
+
+    /// 一个页的 App 回答：PageAPI.call(op) 量 scale.reads 次（不预热：页面打开本来就是冷的一次；看 median；第一次超过 1 s 只量一次），最后一次的回包必须 ok。
     private func api(_ label: String, _ op: String, _ args: JSObject, _ store: Store, _ name: String, _ scale: Scale, _ info: Info) -> JSValue {
         var last: JSValue = .null
-        let samples = sample(warm: 0, n: scale.reads) { last = PageAPI.call(op, store: store, args: args) }
+        let samples = sampleUnlessSlow(n: scale.reads) { last = PageAPI.call(op, store: store, args: args) }
         XCTAssertEqual(last["ok"], .bool(true), label + ": " + String(str(last).prefix(300)))
         report(label, name, scale, info, samples)
         return last
@@ -355,9 +369,33 @@ final class ScaleBenchmarkTests: XCTestCase {
         report("part.monthMembers", name, scale, info, try sample(warm: 0, n: scale.reads) {
             sink &+= try ImageSelection.monthMembers(stv, month: month, dates: dates)["members"]?.arrayValue?.count ?? 0
         })
-        report("part.annualYears", name, scale, info, sample(warm: 0, n: scale.reads) {
+        report("part.annualYears", name, scale, info, sampleUnlessSlow(n: scale.reads) {
             sink &+= AnnualView.annualYears(stv, dates: dates).count
         })
+        // 年报 / 月报 / 我的拆开：缺省年的切片与模型（不含每格墨迹）、当月的月报格（MineSubView.monthCells：成员 + 每格墨迹）、
+        // 我的页的月报格（MinePageView.monthSheetCells：只要有没有墨迹）、当月每个成员各解一次回放墨迹（DetailView.builtInk，看每格的单价）
+        let year = Int(today.prefix(4))!
+        report("part.yearSlice", name, scale, info, sampleUnlessSlow(n: scale.reads) {
+            sink &+= AnnualView.yearSlice(stv, year: year, dates: dates).chars.count
+        })
+        report("part.annualModel", name, scale, info, try sampleUnlessSlow(n: scale.reads) {
+            sink &+= try AnnualView.annualModel(stv, today: today, year: .number(Double(year)), dates: dates)["months"]?.arrayValue?.count ?? 0
+        })
+        report("part.monthCells", name, scale, info, try sampleUnlessSlow(n: scale.reads) {
+            sink &+= try MineSubView.monthCells(stv, month: month, policy: Config.policy, dates: dates)["cells"]?.arrayValue?.count ?? 0
+        })
+        report("part.monthSheetCells", name, scale, info, try sampleUnlessSlow(n: scale.reads) {
+            sink &+= try MinePageView.monthSheetCells(stv, month: month, policy: Config.policy, dates: dates)["n"]?.numberValue.map { Int($0) } ?? 0
+        })
+        let memberRecords: [JSValue] = (try ImageSelection.monthMembers(stv, month: month, dates: dates)["members"]?.arrayValue ?? []).compactMap { (m: JSValue) -> JSValue? in
+            guard let r = m["record"], !r.isNull else { return nil }
+            return r
+        }
+        let inkMs = try sampleUnlessSlow(n: scale.reads) {
+            for r in memberRecords { if try DetailView.builtInk(stv, record: r, dates: dates) != nil { sink &+= 1 } }
+        }
+        report("part.builtInk.month", name, scale, info, inkMs)
+        print("BENCH scale-note scale=\(scale.name) backend=\(name) builtInk.month cells=\(memberRecords.count) perCell=\(B.fmt(B.median(inkMs.sorted()) / Double(max(1, memberRecords.count))))ms")
         report("part.memoryZones", name, scale, info, try sample(warm: 0, n: scale.reads) {
             sink &+= Int(try ViewSupport.memoryZones(stv, today: today, dates: dates)["recorded"]?.numberValue ?? 0)
         })

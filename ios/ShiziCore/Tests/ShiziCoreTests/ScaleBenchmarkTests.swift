@@ -173,7 +173,7 @@ final class ScaleBenchmarkTests: XCTestCase {
             var be: KVBackend? = nil
             openSamples.append(timed { be = backend() })
             let fresh = makeStore(be!, clock, scale.factor)
-            var loaded: JSValue = .null
+            var loaded = JSObject()
             loadSamples.append(timed { loaded = fresh.load() })
             XCTAssertEqual(loaded["available"], .bool(true))
             kept = fresh

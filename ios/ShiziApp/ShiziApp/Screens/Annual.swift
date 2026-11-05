@@ -22,6 +22,8 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
             let day: String
             let recordId: String
             let label: ShiziCopyRef
+            /// 墨迹键（view.annual 带 lazyInk 时有墨迹的格才有；这时 ink 是 null，墨迹按需用 view.annual.ink 取）。
+            let inkKey: String?
         }
         struct First: Decodable {
             let char: String
@@ -208,6 +210,32 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     /// 每一段对应哪个月份（按钮按下时按对象取）。
     private var monthKeys: [ObjectIdentifier: String] = [:]
 
+    // 月段格的墨迹按需取（view.annual 带 lazyInk：月段的格只带 inkKey，墨迹由 view.annual.ink 分批取）。
+    // 每次排版 / 滚动（updateCells）之后，建出来的格子里缺墨迹的键并成一次请求（同一轮主线程里的几次 updateCells 只发一次，
+    // 一次至多 AnnualInkDecode.batch 个键，离可见框近的先取）；取回的在后台队列上解，回到主线程记进 inkCache 并配给还是那一格的格子。
+    // 墨迹到之前，格子与「墨还没到视口附近」一模一样：墨视图在、没有点（什么也不画）、衬底字藏着；到了之后与整份回包逐像素相同。
+
+    /// 第几份回包（render 解出一份新收到的回包时加一）：取来的墨迹、在路上的请求都按它记，回包换了就作废、清空。
+    private(set) var payloadGeneration = 0
+    /// apply 收到了一份新的回包、还没在 render 里解出来（外观切换的重新渲染用的是同一份回包，不算新的）。
+    private var freshPayload = false
+    /// 此刻的 model 是第几份回包的（render 设）；此刻的 grid 是第几份回包的（layoutBody 与 gridGeneration 一起设）。
+    private var renderPayload = -1
+    private var gridPayload = -1
+    /// 这份回包里取到的墨迹：inkKey → 笔画（[] = 取到了、没有可画的）。整页一直留着（滚走再滚回来不再取），回包换了清空。
+    private(set) var inkCache: [String: [[ShiziInkPoint]]] = [:]
+    /// 在路上的键。
+    private var inkInFlight = Set<String>()
+    /// 取不到的键（引擎回 ok:false：不可用 / 重载中）：这份回包里不再取（引擎重新就绪、数据变了会整页重拉，换一份回包）。
+    private var inkFailed = Set<String>()
+    /// 这一轮主线程里已经排了一次取。
+    private var inkFetchQueued = false
+    /// 取墨迹的通道（测试注入）；nil = 经 stage 的引擎发 view.annual.ink。
+    var inkFetcher: (@MainActor ([String]) async -> [String: Any])?
+    /// 发出去的请求（每次的键；只留最近 64 次，测试 / 诊断用）与次数。
+    private(set) var inkRequestLog: [[String]] = []
+    private(set) var inkRequestCount = 0
+
     override func viewDidLoad() {
         bodyMarker.accessibilityIdentifier = "native-annual-body"
         yearLabel.accessibilityIdentifier = "native-annual-year"
@@ -289,10 +317,28 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
 
     override var watchedDomains: [String]? { ["records", "ink"] }
 
+    /// 重拉 view.annual 时带上 lazyInk（打开时由 AppHostIO.view 带）：月段的格只要 inkKey，墨迹按需取。
+    override var reloadArgs: [String: Any] {
+        var a = params
+        a[AnnualInkDecode.viewFlag] = true
+        return a
+    }
+
     // MARK: 视图
+
+    override func apply(payload: [String: Any]) {
+        // 一份新的回包（外观切换的重新渲染不经这里）：取来的墨迹等它在 render 里解出来再作废
+        if (payload["ok"] as? Bool) == true, payload["view"] != nil { freshPayload = true }
+        super.apply(payload: payload)
+    }
 
     override func render(view raw: Any) throws {
         let m = try Self.decodeView(raw)
+        if freshPayload {
+            freshPayload = false
+            startInkPayload()
+        }
+        renderPayload = payloadGeneration
         model = m
         if let s = (raw as? [String: Any])?["seal"] as? [[Any]] { sealPath = s }
         renderModel(m)
@@ -369,16 +415,7 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     }
 
     /// 旧形状的点（字典）只有 x / y / w 键；平铺的笔（头一个是数）不看（由 decodeInkDirect 认）。
-    private static func onlyXYW(_ strokes: [Any]) -> Bool {
-        for s in strokes {
-            guard let a = s as? [Any], !(a.first is NSNumber) else { continue }
-            for p in a {
-                guard let o = p as? [String: Any] else { continue }
-                for k in o.keys where k != "x" && k != "y" && k != "w" { return false }
-            }
-        }
-        return true
-    }
+    private static func onlyXYW(_ strokes: [Any]) -> Bool { AnnualInkDecode.onlyXYW(strokes) }
 
     /// 原路（ShiziDecode.value）只认旧形状：每格 ink.points 里平铺的笔展开成每点一个 {x, y, w?}（LibraryInkView.expandFlat，值原样搬）；别的原样留着。
     static func expandInk(_ raw: Any) -> Any {
@@ -653,6 +690,7 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         let visible = scroll.bounds
         traitCollection.performAsCurrent { cells.update(visible: visible) }
         refreshInkNear()
+        requestMissingInk()
     }
 
     /// 以前每块墨各自 KVO contentOffset 做的事：到了视口附近就画（建出来的格子 + 今年首字 + 卷尾两格）。
@@ -686,9 +724,125 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
             s.ink.isHidden = false
             s.ink.points = box.points
             s.glyph.isHidden = true
+        } else if c.mode == "hand", let key = c.inkKey {
+            // 墨迹按需取：到之前墨视图在、没有点（与「墨还没到视口附近」一样什么也不画）；到了由 applyArrivedInk 补上点列
+            s.ink.isHidden = false
+            s.ink.points = fetchedInk(key)
+            s.glyph.isHidden = true
         } else {
             s.ink.isHidden = true
             s.glyph.isHidden = false
+        }
+    }
+
+    // MARK: 墨迹按需取
+
+    /// grid 里这个键此刻取到的墨迹（grid 是旧回包排出来的、或还没取到 → 没有点）。
+    private func fetchedInk(_ key: String) -> [[ShiziInkPoint]] {
+        guard gridPayload == payloadGeneration else { return [] }
+        return inkCache[key] ?? []
+    }
+
+    /// 换了一份回包：之前取来的墨迹、在路上的请求都作废（在路上的回来时按回包代丢掉）。
+    private func startInkPayload() {
+        payloadGeneration += 1
+        inkCache = [:]
+        inkInFlight = []
+        inkFailed = []
+    }
+
+    /// 建出来的格子里等墨迹的（这份回包的 grid、hand、没有内联墨迹、有 inkKey、还没取到、不在路上、没取失败）的键，
+    /// 按格离可见框中线由近到远排（先取看得见的），同一个键只算一次。
+    func missingInkKeys() -> [String] {
+        guard gridPayload == payloadGeneration else { return [] }
+        let mid = scroll.bounds.midY
+        var picked: [(distance: CGFloat, key: String)] = []
+        var seen = Set<String>()
+        for i in cells.liveIndices where i < grid.cellData.count {
+            let c = grid.cellData[i]
+            guard c.mode == "hand", c.ink == nil, let k = c.inkKey, inkCache[k] == nil, !inkInFlight.contains(k), !inkFailed.contains(k), seen.insert(k).inserted else { continue }
+            let f = i < grid.cellsInContent.count ? grid.cellsInContent[i] : CGRect.zero
+            picked.append((distance: abs(f.midY - mid), key: k))
+        }
+        picked.sort { $0.distance < $1.distance }
+        return picked.map { $0.key }
+    }
+
+    /// 建出来的格子里墨迹还没全到（请求排着 / 在路上、渲染了还没排版、或有该取还没取的）。QA 取证等它为假再取。
+    var inkPending: Bool {
+        if inkFetchQueued || !inkInFlight.isEmpty { return true }
+        if model != nil, renderPayload != gridPayload { return true }
+        return !missingInkKeys().isEmpty
+    }
+
+    /// 有缺墨迹的格子就排一次取（下一轮主线程：同一轮里的几次排版 / 滚动并成一次）。
+    private func requestMissingInk() {
+        guard !inkFetchQueued, !missingInkKeys().isEmpty else { return }
+        inkFetchQueued = true
+        DispatchQueue.main.async { [weak self] in self?.fetchMissingInk() }
+    }
+
+    /// 此刻缺的键（按此刻建出来的格子重新数）分批发出去。
+    private func fetchMissingInk() {
+        inkFetchQueued = false
+        let keys = missingInkKeys()
+        guard !keys.isEmpty else { return }
+        let gen = payloadGeneration
+        var start = 0
+        while start < keys.count {
+            let chunk = Array(keys[start..<min(keys.count, start + AnnualInkDecode.batch)])
+            start += AnnualInkDecode.batch
+            inkInFlight.formUnion(chunk)
+            inkRequestCount += 1
+            inkRequestLog.append(chunk)
+            if inkRequestLog.count > 64 { inkRequestLog.removeFirst(inkRequestLog.count - 64) }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let reply = await self.fetchInk(chunk)
+                self.inkReplied(reply, keys: chunk, generation: gen)
+            }
+        }
+    }
+
+    private func fetchInk(_ keys: [String]) async -> [String: Any] {
+        if let f = inkFetcher { return await f(keys) }
+        guard let engine = stage?.engine else { return ["ok": false, "error": ["kind": "unavailable"]] }
+        return await engine.raw("view.annual.ink", ["keys": keys])
+    }
+
+    /// 回包到了：回包代不对（这页已经换了一份回包）→ 丢掉；失败 → 这几个键这份回包里不再取；成功 → 在后台队列上解，解完回主线程记下。
+    private func inkReplied(_ reply: [String: Any], keys: [String], generation gen: Int) {
+        guard gen == payloadGeneration else { return }
+        guard (reply["ok"] as? Bool) == true, let ink = reply["ink"] as? [String: Any] else {
+            inkInFlight.subtract(keys)
+            inkFailed.formUnion(keys)
+            ShiziProbe.log("annual: view.annual.ink failed (\((reply["error"] as? [String: Any])?["kind"] ?? "?")) for \(keys.count) keys")
+            return
+        }
+        let done: ([String: [[ShiziInkPoint]]]) -> Void = { [weak self] decoded in self?.inkDecoded(decoded, keys: keys, generation: gen) }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let decoded = AnnualInkDecode.decode(ink, keys: keys)
+            DispatchQueue.main.async { done(decoded) }
+        }
+    }
+
+    /// 解好的墨迹（主线程）：回包代还对就记进缓存、配给此刻还是那一格的格子，再看有没有在路上时新建出来、还缺墨迹的格子。
+    private func inkDecoded(_ decoded: [String: [[ShiziInkPoint]]], keys: [String], generation gen: Int) {
+        guard gen == payloadGeneration else { return }
+        inkInFlight.subtract(keys)
+        for k in keys { inkCache[k] = decoded[k] ?? [] }
+        applyArrivedInk(Set(keys))
+        requestMissingInk()
+    }
+
+    /// 建出来的格子里用到这几个键的：格子此刻配的还是这一格（序号、grid 的版次都对）、grid 是这份回包的，才换上点列。
+    private func applyArrivedInk(_ keys: Set<String>) {
+        guard gridPayload == payloadGeneration else { return }
+        for i in cells.liveIndices where i < grid.cellData.count {
+            guard let s = cells.slot(at: i), s.index == i, s.generation == gridGeneration else { continue }
+            let c = grid.cellData[i]
+            guard c.mode == "hand", c.ink == nil, let k = c.inkKey, keys.contains(k), let pts = inkCache[k] else { continue }
+            s.ink.points = pts
         }
     }
 
@@ -755,6 +909,7 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
             // 空态没有月段：格子都收进池子
             self.grid = MonthsLayout()
             gridGeneration = renderGeneration
+            gridPayload = renderPayload
             cells.setItems([])
             updateCells()
             layoutEmpty(bx: bx, bw: bw, top: top)
@@ -816,6 +971,7 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         }
         // 格子：只建 / 配可见框 ± overscan 里的（滚动时 scrollViewDidScroll 再补；排版收尾时滚动区定了高再核一次）
         gridGeneration = renderGeneration
+        gridPayload = renderPayload
         cells.setItems(layout.cellsInContent)
         updateCells()
         y = layout.bottom
@@ -1006,5 +1162,48 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         scroll.frame = CGRect(x: scroll.frame.minX, y: scroll.frame.minY, width: w, height: max(0, footerTop - scroll.frame.minY))
         saveButton.frame = CGRect(x: mt.gutter, y: mt.space(3), width: w - 2 * mt.gutter, height: btnH)
         saveLive.frame = CGRect(x: 19, y: mt.space(3), width: 1, height: 1)
+    }
+}
+
+/// 年报月段格的墨迹按需取里与页面无关的那一半：参数名、一批几个键、取回的墨迹怎么解（不属于主线程：解码在后台队列上做）。
+enum AnnualInkDecode {
+    /// view.annual 的参数：带上它，月段的格只给 inkKey（ShiziCore MineSubView.annualView(lazyInk:)）。
+    static let viewFlag = "lazyInk"
+    /// 年报的屏名（AppHostIO.view 打开年报时带上 viewFlag）。
+    static let screen = "annual"
+    /// 一次 view.annual.ink 取几个键：不超过引擎的上限 AnnualInkWire.maxBatch（256；测试核对）。
+    static let batch = 200
+
+    /// 旧形状的点（字典）只有 x / y / w 键；平铺的笔（头一个是数）不看（由 LibraryInkView.decodeRecordDirect 认）。
+    static func onlyXYW(_ strokes: [Any]) -> Bool {
+        for s in strokes {
+            guard let a = s as? [Any], !(a.first is NSNumber) else { continue }
+            for p in a {
+                guard let o = p as? [String: Any] else { continue }
+                for k in o.keys where k != "x" && k != "y" && k != "w" { return false }
+            }
+        }
+        return true
+    }
+
+    /// view.annual.ink 的回包 ink（{键: ink.points | null}）里 keys 这几个 → 笔画（回包里没有的键 = 空）。
+    static func decode(_ ink: [String: Any], keys: [String]) -> [String: [[ShiziInkPoint]]] {
+        var out: [String: [[ShiziInkPoint]]] = [:]
+        out.reserveCapacity(keys.count)
+        for k in keys { out[k] = strokes(ink[k] ?? NSNull()) }
+        return out
+    }
+
+    /// 一格的 ink.points → 笔画，= 整份回包里这一格经 AnnualScreen.decodeView 解出来的（逐位）：
+    /// 能直接读（只有 x / y / w 的点、平铺的笔，同 decodeViewDirect 的那一格）→ 直接读，t / p = nil；
+    /// 否则展开平铺后经 ShiziDecode.value（原路）。null → 空；原路也解不了（数不是有限数等）→ 空
+    /// （不画：以前这样的格让整份回包解不了、整页不出来，现在只这一格空着）。
+    static func strokes(_ raw: Any) -> [[ShiziInkPoint]] {
+        if raw is NSNull { return [] }
+        if let a = raw as? [Any], onlyXYW(a), let ss = LibraryInkView.decodeRecordDirect(a) {
+            return ss.map { s in s.map { ShiziInkPoint(x: $0.x, y: $0.y, w: $0.w, t: nil, p: nil) } }
+        }
+        let expanded: Any = LibraryInkView.expandFlat(["p": raw])["p"] ?? raw
+        return (try? ShiziDecode.value(expanded, as: [[ShiziInkPoint]].self)) ?? []
     }
 }

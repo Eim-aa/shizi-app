@@ -233,7 +233,7 @@ final class LibraryInkView: UIView {
     /// w 缺省 / null（→ nil）或是数，多余的键不管（同 Decodable）。
     /// 「数」只认 NSNumber 里的有限 Double（不含 −0）与 |n| ≤ 2^53 的有符号整数（EngineValue.any 装出来的就是这两种）。
     /// 其余（布尔、NaN / ±∞、−0、更大的整数、Float / 无符号等别的数、字串、null 的 x / y、平铺里的 null、形状不对）→ nil，调用方走原路。
-    static func decodeInkDirect(_ ink: [String: Any]) -> [String: [[Point]]]? {
+    nonisolated static func decodeInkDirect(_ ink: [String: Any]) -> [String: [[Point]]]? {
         var out: [String: [[Point]]] = [:]
         out.reserveCapacity(ink.count)
         for (id, raw) in ink {
@@ -245,7 +245,7 @@ final class LibraryInkView: UIView {
     }
 
     /// decodeInkDirect 里的一条记录（[笔]）：逐条独立，整份直接读 = 每条各自直接读。不认得 → nil。
-    static func decodeRecordDirect(_ raw: Any) -> [[Point]]? {
+    nonisolated static func decodeRecordDirect(_ raw: Any) -> [[Point]]? {
         guard let strokes = raw as? [Any] else { return nil }
         var ss: [[Point]] = []
         ss.reserveCapacity(strokes.count)
@@ -285,7 +285,7 @@ final class LibraryInkView: UIView {
     }
 
     /// decodeRecordDirect(raw) != nil，但不建点（只查形状与数；与 decodeRecordDirect 一条条同样的判断）。
-    static func isRecordDirect(_ raw: Any) -> Bool {
+    nonisolated static func isRecordDirect(_ raw: Any) -> Bool {
         guard let strokes = raw as? [Any] else { return false }
         for sRaw in strokes {
             guard let pts = sRaw as? [Any] else { return false }
@@ -308,7 +308,7 @@ final class LibraryInkView: UIView {
     }
 
     /// 平铺的一笔的步长：头一个是数 2 或 3、其后的个数是它的整数倍 → 步长；否则 nil（不是平铺）。
-    static func flatStride(_ a: [Any]) -> Int? {
+    nonisolated static func flatStride(_ a: [Any]) -> Int? {
         guard let first = a.first, let head = jsonNumber(first), head == 2 || head == 3 else { return nil }
         let stride = head == 3 ? 3 : 2
         return (a.count - 1) % stride == 0 ? stride : nil
@@ -316,7 +316,7 @@ final class LibraryInkView: UIView {
 
     /// 平铺的笔展开成旧形状（每点一个 ["x": …, "y": …, "w": …]，w 只在步长 3 时有；值原样搬，不转换）；别的原样留着。
     /// 原路（ShiziDecode.value）只认旧形状：平铺的一笔按此展开后再解，与引擎发旧形状时解出的逐位相同。
-    static func expandFlat(_ ink: [String: Any]) -> [String: Any] {
+    nonisolated static func expandFlat(_ ink: [String: Any]) -> [String: Any] {
         var out = ink
         for (id, raw) in ink {
             guard let strokes = raw as? [Any] else { continue }
@@ -346,7 +346,7 @@ final class LibraryInkView: UIView {
     }
 
     /// 见 decodeInkDirect：JSON 往返逐位不变的数 → Double；其余 nil。
-    private static func jsonNumber(_ v: Any?) -> Double? {
+    private nonisolated static func jsonNumber(_ v: Any?) -> Double? {
         guard let n = v as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() else { return nil }
         switch UInt8(bitPattern: n.objCType.pointee) {
         case UInt8(ascii: "d"):

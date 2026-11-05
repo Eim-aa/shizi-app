@@ -215,10 +215,13 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
         view.setNeedsLayout()
     }
 
+    /// 重拉 view.<屏名> 的参数：缺省 = params；页面要多带的（年报的 lazyInk）在这里加。
+    var reloadArgs: [String: Any] { params }
+
     /// 重拉 view.<屏名>（changed 推送、引擎重新就绪）。
     func reload() {
         guard let engine = stage?.engine else { return }
-        let screen = self.screen, params = self.params
+        let screen = self.screen, params = self.reloadArgs
         Task { @MainActor [weak self] in
             let body = await engine.raw("view.\(screen)", params)
             self?.apply(payload: body)

@@ -40,6 +40,8 @@ final class AppHostIO: HostIO {
     func view(_ name: String, _ params: JSValue?) -> JSValue {
         var a = SwiftNavigator.viewEnv()
         for (k, v) in params?.objectValue?.entries ?? [] { a[k] = v }
+        // 年报：月段的格只要墨迹键，墨迹由页面按需取（AnnualScreen：view.annual.ink）；页面重拉时同样带（AnnualScreen.reloadArgs）
+        if name == AnnualInkDecode.screen { a[AnnualInkDecode.viewFlag] = .bool(true) }
         return placeholder(.view(name, a))
     }
     func viewAsync(_ name: String) -> Bool { name == "detail" } // view.detail 是 async

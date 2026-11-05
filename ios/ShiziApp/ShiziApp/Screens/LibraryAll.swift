@@ -453,8 +453,9 @@ final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === scroll, isViewLoaded else { return }
         updateCells()
-        // 滚动时新建的格子的字形图也进了缓存：缓存里多出的（已经不在格子上的）超过 128 张就收一轮（下一轮只留最近用到的）
-        if glyphCache.count > cells.liveIndices.count + 128 { glyphCache.endPass() }
+        // 滚动时新建的格子的字形图也进了缓存（一轮 = 一次排版，滚动不排版）：这一轮攒到 256 张就收一轮，缓存最多多占两轮的图；
+        // 收掉的图还在格子上显示着，只是下一次排版重配时要重画（与现画的逐字节相同）
+        if glyphCache.count > 256 { glyphCache.endPass() }
     }
 
     /// 新建一格（按钮里放拼音标签；点按 → 这一格的字的详情）。

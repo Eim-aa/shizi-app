@@ -71,6 +71,22 @@ final class NativeStageTests: XCTestCase {
         XCTAssertEqual(ShiziCopyRef(copy: "X-ABOUT.motto").lines.count, 2)
     }
 
+    /// 非有限数 / 非 JSON 值：ShiziDecode.value 抛可接的 decode 错误，不把它交给 JSONSerialization（那里抛 ObjC 异常，进程直接崩）。
+    func testDecodeRejectsNonFiniteNumbersInsteadOfCrashing() {
+        struct P: Decodable { let x: Double; let y: Double; let w: Double? }
+        for bad in [Double.nan, .infinity, -.infinity] {
+            let ink: [String: Any] = ["r1": [[["x": 1.0, "y": 2.0, "w": NSNumber(value: bad)]]]]
+            XCTAssertFalse(JSONSerialization.isValidJSONObject(ink))
+            XCTAssertThrowsError(try ShiziDecode.value(ink, as: [String: [[P]]].self)) { e in
+                guard case .decode? = e as? ShiziEngineError else { return XCTFail("\(e)") }
+            }
+        }
+        XCTAssertThrowsError(try ShiziDecode.value(["at": Date()], as: [String: Double].self))
+        // 合法的照旧（w 缺省 → nil）
+        let ok = try? ShiziDecode.value(["r1": [[["x": 1.0, "y": 2.0, "w": 3.5], ["x": 4, "y": 5]]]], as: [String: [[P]]].self)
+        XCTAssertEqual(ok?["r1"]?.first?.map(\.w), [3.5, nil])
+    }
+
     func testB32_licenseTextWrapsWhereWebKitDoes() {
         // 「/」后不折、空格后与字母数字间的连字符后可折、一个词比一行长时任意处折
         XCTAssertEqual(ShiziMonoWrap.wrap("aaaa chanind/hanzi-writer", perLine: 12), "aaaa \nchanind/hanz\ni-writer")

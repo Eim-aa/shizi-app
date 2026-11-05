@@ -25,7 +25,7 @@ let package = Package(
         .executableTarget(name: "shizi-core-cli", dependencies: ["ShiziCore", "ShiziCoreEngine"], path: "Sources/shizi-core-cli"),
         .testTarget(
             name: "ShiziCoreTests",
-            dependencies: ["ShiziCore", "ShiziCoreEngine"],
+            dependencies: ["ShiziCore", "ShiziCoreEngine", "ShiziImageRendering"],
             path: "Tests/ShiziCoreTests",
             resources: [.copy("Fixtures")],
             swiftSettings: [.unsafeFlags(["-O"], .when(configuration: .debug))]

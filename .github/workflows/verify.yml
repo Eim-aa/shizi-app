@@ -128,7 +128,7 @@ jobs:
         shell: bash
         run: |
           SHIZI_SCALE_BENCH=1 swift test -c release -Xswiftc -enable-testing --package-path ios/ShiziCore \
-            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests|LibraryInkBenchTests|ScaleBenchmarkTests|JudgeScaleEquivalenceTests|QueryScaleEquivalenceTests|ViewScaleEquivalenceTests|AnnualInkBenchTests' 2>&1 \
+            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests|LibraryInkBenchTests|ScaleBenchmarkTests|JudgeScaleEquivalenceTests|QueryScaleEquivalenceTests|ViewScaleEquivalenceTests|AnnualInkBenchTests|ImageReleaseBenchTests' 2>&1 \
             | grep -E "BENCH|VIEWEQ|error:|Executed [0-9]+ tests?|failed" | tee "$RUNNER_TEMP/bench-release.txt"
       # 日志接口只给一个 job 的最后几千行：结果在 job 末尾再打印一次
       - name: Release benchmarks (repeat at end of log)

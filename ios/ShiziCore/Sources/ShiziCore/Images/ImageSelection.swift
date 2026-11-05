@@ -264,6 +264,17 @@ public enum ImageSelection {
     let cells = ImageLayout.withDayTags(members.compactMap { cellOfMember($0, inkOf: inkOf, under: true) })
     return (cells, r["days"] ?? .null)
   }
+  /// = cellOfMember(m, inkOf:, under: true)，只是 ink 记 .null：给只读 ch / mode / dot / tag / day / record 的调用方（我的页的月报格），
+  /// 免得为一个 mode 把每格墨迹解成回放点。hasPoints 须等于 points(m["record"], inkOf) != nil。
+  static func cellOfMemberWithoutInk(_ m: JSValue, hasPoints: Bool) -> JSValue {
+    let day = truth(m["firstDay"]) ? m["firstDay"]! : m["record"]?["localDay"] ?? .null
+    return obj([
+      ("ch", m["char"] ?? .null), ("ink", .null),
+      ("mode", .string(hasPoints ? "hand" : "under")),
+      ("dot", .bool(hasPoints && truth(m["dot"]))), ("tag", .string("")), ("day", day),
+      ("record", m["record"] ?? .null),
+    ])
+  }
   public static func imagePlan(
     _ state: JSValue, scope: JSValue, inkOf: @escaping InkOf, hasInk: InkPick.HasInk? = nil,
     maxChars: Int = 80, monthPick: String = "first", dates: Dates

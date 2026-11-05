@@ -37,6 +37,15 @@ public enum DetailView {
         let ink = try inkOf(state, record: record, dates: dates), pts = ink["points"]?.arrayValue ?? []
         return pts.contains { !($0.arrayValue ?? []).isEmpty } ? .array(pts) : nil
     }
+    /// = builtInk(state, record:, dates:) != nil，不做回放重采样、不建点对象（我的页的月报格只要「有没有可画的墨迹」）。
+    /// builtInk 非 nil ⟺ inkOf 的 points 里有非空的一笔 ⟺ decodeInk 非 nil、非空，且 resampleForReplay 后有非空的一笔（没有 recalled，strokes 恒为 null）。
+    /// resampleForReplay：replayFits 不过时每笔都空；过时逐笔 catmullRom——少于两点原样返回（空进空出、一点进一点出），两点以上至少留末点。
+    /// 所以 ⟺ replayFits(decoded, step: 同一个缺省 step) 且 decoded 里有非空的一笔。抛错与 builtInk 同处（decodeInk）、同一个错。
+    static func builtInkPresent(_ state: JSValue, record: JSValue?, dates: Dates) throws -> Bool {
+        guard let record, JS.truthy(record) else { return false }
+        guard let decoded = try InkMath.decodeInk(QueryView.inkOf(state, record, dates: dates)), !decoded.isEmpty else { return false }
+        return decoded.contains { !$0.isEmpty } && InkMath.replayFits(decoded, step: InkParams.standard.step)
+    }
     public static func detailModel(_ state: JSValue, char: String, today: String, policy: JSValue, hasInk: InkPick.HasInk = { _ in false }, dates: Dates) throws -> JSValue {
         let key = "base:"+char, base = DeckCards.shared.cardForKey(key), off = state["wordOff"]?[key] != nil, card = DeckCards.withWordOff(base, state["wordOff"])
         let all = Query.flattenRecords(state["records"]), judged = Records.sortById(all.filter { $0["char"] == .string(char) }).filter(Records.isJudged), latest = judged.last // = recordsOfChar(state, char:)，只平铺一次

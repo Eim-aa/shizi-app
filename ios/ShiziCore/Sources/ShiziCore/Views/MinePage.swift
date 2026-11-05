@@ -3,9 +3,19 @@ import Foundation
 public enum MinePageView {
     typealias V = ViewSupport
     public static func cellLabelRef(_ c: JSValue, dates: Dates) throws -> JSValue { try MineSubView.cellLabelRef(c, dates: dates) }
+    /// 原写法取 imagePlan(month, inkOf: builtInk, hasInk: recordHasInk) 的 cells / days，而这里只读每格的 ch / mode / tag / day / record：
+    /// 每格的回放点（解码 + 两轮 Catmull-Rom + 每点一个 JS 对象，10x 当月约 1200 格）建了就丢。现在照那一支取成员（同一个 monthMembers、同一个 hasInk），
+    /// 每格只问「builtInk 会不会非 nil」（DetailView.builtInkPresent，与 imagePlan 里 points(record, builtInk) != nil 同真假：
+    /// 那边 try? 吞错、record 为 null 回 nil，这边同样当没有），其余字段同 cellOfMember(under: true)，tag 同 withDayTags。
     public static func monthSheetCells(_ state: JSValue, month: String, policy: JSValue, dates: Dates) throws -> JSValue {
-        let r = try ImageSelection.imagePlan(state, scope: V.obj([("kind", .string("month")), ("month", .string(month))]), inkOf: { try DetailView.builtInk(state, record: $0, dates: dates) }, hasInk: { DetailView.recordHasInk(state, record: $0, dates: dates) }, maxChars: Int(JS.number(policy["imageMaxChars"])), monthPick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)
-        let cells = try (r["cells"]?.arrayValue ?? []).enumerated().map { i,c -> JSValue in
+        let has: InkPick.HasInk = { DetailView.recordHasInk(state, record: $0, dates: dates) }
+        let r = try ImageSelection.monthMembers(state, month: month, pick: policy["monthSheetPick"]?.stringValue ?? "first", hasInk: has, dates: dates)
+        func hasPoints(_ m: JSValue) -> Bool {
+            guard let rec = m["record"], !rec.isNull else { return false }
+            return (try? DetailView.builtInkPresent(state, record: rec, dates: dates)) ?? false
+        }
+        let raw = ImageLayout.withDayTags((r["members"]?.arrayValue ?? []).map { (m: JSValue) -> JSValue in ImageSelection.cellOfMemberWithoutInk(m, hasPoints: hasPoints(m)) })
+        let cells = try raw.enumerated().map { i,c -> JSValue in
             V.obj([("key", .string(JS.string(c["ch"])+"-"+String(i))), ("ch", c["ch"]!), ("mode", c["mode"]!), ("tag", c["tag"]!), ("day", JS.truthy(c["day"]) ? c["day"]! : .string("")), ("record", c["record"]?["id"] ?? .string("")), ("rec", c["record"] ?? .null), ("label", try cellLabelRef(c, dates: dates))])
         }
         return V.obj([("month", .string(month)), ("monthNum", .number(Double(month.suffix(2))!)), ("cells", .array(cells)), ("n", .number(Double(cells.count))), ("days", r["days"] ?? .number(0)), ("under", .bool(cells.contains { $0["mode"] == .string("under") })), ("kuan", cells.isEmpty ? .null : try KuanView.kuanRef(JSObject([("month", .string(month)), ("n", .number(Double(cells.count)))]), now: 0, dates: dates))])

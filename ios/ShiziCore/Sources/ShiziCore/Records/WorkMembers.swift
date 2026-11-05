@@ -42,8 +42,9 @@ public enum WorkMembers {
     }
 
     /// 从一批记录里筛出作品成员记录（id 升序）。
+    /// 排序用 Records.sortById：序号每条先算一次，同一个稳定归并、同一个差值（与逐次 compareRecordIds 的排列相同），不再每次比较都解析两边的 id。
     public static func workMemberRecords(_ records: [JSValue], hasInk: InkPick.HasInk? = nil, added: Added = Added(nil)) -> [JSValue] {
-        JSX.stableSort(records.filter { isWorkMember($0, hasInk: hasInk, added: added) }) { Records.compareRecordIds($0["id"], $1["id"]) }
+        Records.sortById(records.filter { isWorkMember($0, hasInk: hasInk, added: added) })
     }
 
     /// 折叠一个月时按作品成员规则逐条记下的成员字（R15，foldWorkOf）：

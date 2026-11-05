@@ -417,7 +417,7 @@ enum AnnualVirtual {
                       glyphColor: libraryColorKey(g.color.resolvedColor(with: traits)), glyphPad: g.padRatio)
     }
 
-    /// 视图树：每段的格网容器铺满按钮、可交互（点到格子上要交给按钮），里面正好是这一段建出来的格子（按序号），没有多余的。
+    /// 视图树：每段的格网容器铺满按钮、它与格子都不吃点按（按钮本身是命中的视图），里面正好是这一段建出来的格子（按序号），没有多余的。
     static func hierarchyProblems(_ vc: AnnualScreen) -> [String] {
         let bs = buttons(vc)
         var want: [ObjectIdentifier: [UIView]] = [:]
@@ -436,7 +436,10 @@ enum AnnualVirtual {
                 out.append("month \(mi): \(have.count) cells in the grid, expected \(expected.count) in index order")
             }
             if g.frame != b.bounds { out.append("month \(mi): grid \(g.frame) != button bounds \(b.bounds)") }
-            if !g.isUserInteractionEnabled { out.append("month \(mi): grid does not take touches") }
+            if g.isUserInteractionEnabled { out.append("month \(mi): grid takes touches (the button must be the hit view)") }
+            for c in g.subviews where c.isUserInteractionEnabled { out.append("month \(mi): a cell takes touches"); break }
+            let mid = CGPoint(x: b.bounds.midX, y: b.bounds.maxY - 40)
+            if b.window != nil, !b.isHidden, b.hitTest(mid, with: nil) !== b { out.append("month \(mi): hit view in the grid is not the button") }
             if g.isAccessibilityElement { out.append("month \(mi): grid is an accessibility element") }
         }
         return out

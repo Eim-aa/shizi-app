@@ -112,6 +112,8 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
 
         init() {
             cell.isAccessibilityElement = false
+            // 不吃点按：点到格子上时命中的就是段按钮本身（交给按钮的 touchUpInside，不靠普通子视图往上传）
+            cell.isUserInteractionEnabled = false
             // 墨到了视口附近才画：由页面的滚动回调统一判（不是每格一个 contentOffset 的 KVO）
             ink.watchesScroll = false
             cell.addSubview(ink)
@@ -512,10 +514,11 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
                 hair.isUserInteractionEnabled = false
                 b.addSubview(hair)
                 // 格网容器：铺满按钮（格子的框照旧是按钮坐标，一位不差），格子按序号放在里面；不画东西、不进读屏（按钮本身是读屏元素）。
-                // 可交互照旧（同以前格子直接在按钮里：点到格子上由格子往上交给按钮）
+                // 不吃点按（连同里面的格子）：段按钮上哪里都是按钮自己命中，点按直接走按钮的 touchUpInside
                 let gridView = UIView()
                 gridView.tag = Self.monthGridTag
                 gridView.isAccessibilityElement = false
+                gridView.isUserInteractionEnabled = false
                 b.addSubview(gridView)
                 content.addSubview(b)
                 monthButtons.append(b)

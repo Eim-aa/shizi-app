@@ -7,7 +7,7 @@ import UIKit
 //   预览台（比弹层深一档的底，高 340；图是放在上面的一张笺：3:4 → 225 × 300、1:1 → 270 × 270）、
 //   页点（6pt 圆点）、比例分段（3:4 / 1:1，60 × 38；AX 档竖排 56 高）、说明句（15 / 22 ink2）、「也放进来」（写错的字 + 小格，可换行）、
 //   「分享」（次）/「保存图片」（主）、年报的「存成长图」、失败三段式（说明 → [先不保存 | 再试一次]）。
-// 图由页面用**同一批函数**画好（image.render op，PNG），原生只显示；文案取 ShiziCopy，颜色 / 字号 / 间距取 ShiziTokens。
+// 图由页面用**同一批函数**画好（image.render op；预览带 display: true 直接取画好的位图，分享取 PNG），原生只显示；文案取 ShiziCopy，颜色 / 字号 / 间距取 ShiziTokens。
 // 本文件不写汉字字面量。
 
 // MARK: - 回包形状（image.view / image.render）
@@ -1151,13 +1151,15 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
             guard let self else { return }
             var images: [UIImage?] = []
             for p in 0..<n {
-                let body = await engine.raw("image.render", ["scope": scope, "ratio": r, "page": p])
+                // display：引擎直接给画好的图（不经 PNG / base64 往返；像素与 PNG 解回来的逐个相同）；分享 / 保存仍取 PNG
+                var body = await engine.raw("image.render", ["scope": scope, "ratio": r, "page": p, "display": true])
                 guard my == token else { return }
+                let picture = body.removeValue(forKey: SwiftEngine.pictureKey) as? UIImage // 不是 JSON 值：解码之前取走
                 guard (body["ok"] as? Bool) == true, let reply = try? ShiziDecode.reply(body, as: NativeImageRenderReply.self) else {
                     images.append(nil)
                     continue
                 }
-                images.append(reply.image.status == "ready" ? Self.image(from: reply.image.dataURL) : nil)
+                images.append(reply.image.status == "ready" ? (picture ?? Self.image(from: reply.image.dataURL)) : nil)
             }
             guard my == token else { return }
             stopLoad()

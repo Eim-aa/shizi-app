@@ -290,13 +290,29 @@ public final class ImageRenderer {
       ctx, value, Self.n(box, "right"), Self.n(box, "top") + Self.n(box, "lineHeight") / 2,
       Self.n(box, "size"), color(pal["ink2"]), align: "right")
   }
-  public func render(_ spec: O) throws -> [Data] {
+  /// 画好并编成 PNG（存相册 / 分享 / shizi-image-cli）。每一张都是 renderImages 的同一张位图原样编出来（Self.png）。
+  public func render(_ spec: O) throws -> [Data] { try rendered(spec, Self.png) }
+  /// 只画、不编 PNG：画好的位图（sRGB、8 位、premultipliedLast、scale 由 spec 定的像素尺寸）。App 里的预览直接上屏用它，
+  /// 省掉 PNG 编码 + base64 + 再解码的往返；render 的 PNG 就是把这几张原样编出来的，所以两条路的像素逐个相同。
+  public func renderImages(_ spec: O) throws -> [CGImage] { try rendered(spec) { $0 } }
+  /// 与渲染器内部同一个 PNG 编码调用（CGImageDestination、public.png、不带选项）。
+  public static func png(_ image: CGImage) throws -> Data {
+    let data = NSMutableData()
+    guard let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else {
+      throw Failure.bitmap
+    }
+    CGImageDestinationAddImage(dest, image, nil)
+    guard CGImageDestinationFinalize(dest) else { throw Failure.bitmap }
+    return data as Data
+  }
+  /// 画每一张，每张画完（画布还在）就交给 finish：render 当场编 PNG（与原来同一时刻、同一张图），renderImages 原样留下。
+  func rendered<T>(_ spec: O, _ finish: (CGImage) throws -> T) throws -> [T] {
     let kind = Self.s(spec, "kind")
     let args = Self.o(spec, "args")
     let pal = Self.o(spec, "palette")
     let scale = Self.n(args, "scale", 4 / 3)
     guard scale > 0, scale <= 4 else { throw Failure.invalidSpec }
-    if kind == "annual-long" { return try annualLong(args, pal, scale) }
+    if kind == "annual-long" { return try annualLong(args, pal, scale, finish) }
     let cells = args["cells"] as? [O] ?? []
     if kind == "work" || kind == "sheet", !cells.isEmpty {
       let signature = Self.s(args, "kuan")
@@ -331,7 +347,7 @@ public final class ImageRenderer {
       throw Failure.invalidSpec
     }
     return [
-      try bitmap(w, h, k, pal) { ctx in
+      try bitmap(w, h, k, pal, finish) { ctx in
         if kind == "glyph" {
           ctx.saveGState()
           ctx.translateBy(x: Self.n(l, "ox"), y: Self.n(l, "oy"))
@@ -382,9 +398,10 @@ public final class ImageRenderer {
     return data as Data
   }
 
-  func bitmap(_ w: Double, _ h: Double, _ scale: Double, _ pal: O, draw: (CGContext) throws -> Void)
-    throws -> Data
-  {
+  func bitmap<T>(
+    _ w: Double, _ h: Double, _ scale: Double, _ pal: O, _ finish: (CGImage) throws -> T,
+    draw: (CGContext) throws -> Void
+  ) throws -> T {
     let pw = Int(floor(w * scale + 0.5))
     let ph = Int(floor(h * scale + 0.5))
     guard pw > 0, ph > 0, pw <= 16384, ph <= 32768, pw * ph <= 64_000_000,
@@ -399,13 +416,7 @@ public final class ImageRenderer {
     ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
     try draw(ctx)
     guard let image = ctx.makeImage() else { throw Failure.bitmap }
-    let data = NSMutableData()
-    guard let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else {
-      throw Failure.bitmap
-    }
-    CGImageDestinationAddImage(dest, image, nil)
-    guard CGImageDestinationFinalize(dest) else { throw Failure.bitmap }
-    return data as Data
+    return try finish(image)
   }
   func work(_ ctx: CGContext, _ args: O, _ pal: O, _ l: O, sheet: Bool) throws {
     let cells = args["cells"] as? [O] ?? []
@@ -514,7 +525,7 @@ public final class ImageRenderer {
     try seal(ctx, ["x": 896, "y": 1240, "size": 64], p)
     try text(ctx, Self.s(a, "kuan"), 860, 1272, 36, color(p["ink2"]), align: "right")
   }
-  func annualLong(_ a: O, _ p: O, _ scale: Double) throws -> [Data] {
+  func annualLong<T>(_ a: O, _ p: O, _ scale: Double, _ finish: (CGImage) throws -> T) throws -> [T] {
     struct Block {
       let h: Double
       var keep = false
@@ -602,7 +613,7 @@ public final class ImageRenderer {
     }
     if !cur.isEmpty { chunks.append(cur) }
     return try chunks.map { chunk in
-      try bitmap(1080, chunk.reduce(0) { $0 + $1.h }, scale, p) { ctx in
+      try bitmap(1080, chunk.reduce(0) { $0 + $1.h }, scale, p, finish) { ctx in
         var y = 0.0
         for b in chunk {
           try b.draw(ctx, y)

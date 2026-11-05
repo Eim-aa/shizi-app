@@ -191,6 +191,8 @@ final class SwiftEngine: ShiziEngine {
     // MARK: 画图（B4.6：原生渲染器；规格 image.spec 与存相册 image.persist 的记账由 SessionRuntime 答）
 
     private var imageRenderer: ImageRenderer?
+    /// image.render 回包里预览直接上屏的图（display: true 时；不是 JSON 值，ShiziDecode 之前由调用方取走）。
+    static let pictureKey = "picture"
 
     @MainActor private func nativeImage(_ op: String, _ args: [String: Any]) async -> [String: Any] {
         let failed: [String: Any] = ["ok": false, "error": ["kind": "render"]]
@@ -200,6 +202,10 @@ final class SwiftEngine: ShiziEngine {
             EngineValue.dict(await core.answer(function: EngineOps.app, op: "image.spec", args: EngineValue.object(request)))
         }
         var request = args
+        // 预览弹层（display: true）：不要 PNG / base64，直接给画好的位图（像素与 PNG 解回来的逐个相同：同一张图，PNG 无损）。
+        // 分享 / 存相册不带它，照旧给 PNG（字节不变）。spec 的输入不带这个键（与原来同一份）。
+        let display = op == "image.render" && args["display"] as? Bool == true
+        request.removeValue(forKey: "display")
         if op == "image.save", args["mode"] as? String != "long" { request["mode"] = "export" }
         let first = await spec(request)
         guard first["ok"] as? Bool == true, let s = first["spec"] as? [String: Any] else { return failed }
@@ -207,6 +213,12 @@ final class SwiftEngine: ShiziEngine {
         if status != "ready", op == "image.save" { return failed }
         if status != "ready" { return ["ok": true, "image": ["status": status, "dataURL": "", "width": 0, "height": 0, "name": ""]] }
         do {
+            if display {
+                guard let image = try imageRenderer!.renderImages(s).first else { return failed }
+                // width / height = 原来 UIImage(data: png).size（PNG 解回来 scale 1 → 点 = 像素）
+                return ["ok": true, "image": ["status": "ready", "dataURL": "", "width": image.width, "height": image.height, "name": first["name"] as? String ?? ""],
+                        Self.pictureKey: UIImage(cgImage: image, scale: 1, orientation: .up)]
+            }
             let data = try imageRenderer!.render(s)
             if op == "image.render" {
                 guard let png = data.first, let image = UIImage(data: png) else { return failed }

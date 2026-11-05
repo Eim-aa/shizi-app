@@ -85,7 +85,7 @@ public enum MineSubView {
         try annualView(state, today: today, year: year, policy: policy, dates: dates, index: V.recordIndex(state, dates: dates))
     }
     /// index：调用方已用同一 state / dates 建好的 recordIndex（MineSubAPI 挑缺省年份时建的那个）。
-    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates, index: V.RecordIndex) throws -> JSValue {
+    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates, index: ViewSupport.RecordIndex) throws -> JSValue {
         // 年报每月的成员要算两遍（模型里数成员、这里取格），全量平铺一次给它们共用
         let rows = ImageSelection.monthRows(state)
         let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: index, rows: rows)

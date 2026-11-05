@@ -10,7 +10,7 @@ public enum AnnualView {
     static func yearOfDay(_ day: String, dates: Dates) -> Int? { dates.isValidDay(.string(day)) ? Int(day.prefix(4)) : nil }
     package static func yearSlice(_ state: JSValue, year: Int, dates: Dates) -> Slice { yearSlice(state, year: year, index: V.recordIndex(state, dates: dates), dates: dates) }
     /// index：调用方已用同一 state / dates 建好的 recordIndex（年报一次回答里年份列表、缺省年份、切片共用一个）。
-    package static func yearSlice(_ state: JSValue, year: Int, index: V.RecordIndex, dates: Dates) -> Slice {
+    package static func yearSlice(_ state: JSValue, year: Int, index: ViewSupport.RecordIndex, dates: Dates) -> Slice {
         let prefix = String(year) + "-"
         let judged = index.judged.filter { WorkMembers.isWorkMember($0) && JS.string($0["localDay"]).hasPrefix(prefix) && dates.isValidDay($0["localDay"] ?? .null) }
         let works = index.works.filter { JS.string($0["localDay"]).hasPrefix(prefix) && dates.isValidDay($0["localDay"] ?? .null) }
@@ -82,7 +82,7 @@ public enum AnnualView {
         try annualModel(state, today: today, year: year, policy: policy, hasInk: hasInk, dates: dates, index: V.recordIndex(state, dates: dates))
     }
     /// rows：同一次回答里共用的 ImageSelection.monthRows(state)（年报页每月的格也用它），nil 时 yearMonths 现平铺。
-    package static func annualModel(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, hasInk: InkPick.HasInk?, dates: Dates, index: V.RecordIndex, rows: [JSValue]? = nil) throws -> JSValue {
+    package static func annualModel(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, hasInk: InkPick.HasInk?, dates: Dates, index: ViewSupport.RecordIndex, rows: [JSValue]? = nil) throws -> JSValue {
         let wanted = year?.numberValue.flatMap { $0.isFinite && $0.rounded(.towardZero) == $0 ? Int($0) : nil } ?? yearOfDay(today, dates: dates)
         let y = wanted ?? 0
         let years = V.annualYears(state, index: index), at = years.firstIndex(of: y), s = yearSlice(state, year: y, index: index, dates: dates), empty = s.days.isEmpty && s.chars.isEmpty

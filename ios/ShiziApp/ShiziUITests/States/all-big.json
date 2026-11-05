@@ -3,7 +3,7 @@
   "name": "全部字 · 1500 个有墨迹的字（按拼音；只建看得见的格子）",
   "screen": "library-all",
   "native": true,
-  "parity": true,
+  "parity": false,
   "template": "page",
   "clock": {
     "pin": "2026-10-22T09:00:00"

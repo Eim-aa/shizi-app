@@ -522,7 +522,8 @@ final class HomeScaleEquivalenceTests: XCTestCase {
         if let last = months.last { days.append(last + "-" + B.pad2(daysIn(last))) }
         days += ["2026-01-01", "2025-12-31", "2026-03-01", "2024-02-29"]
         var chars: [String] = []
-        for c in [usedChars.last, usedChars.first, paperChar, skippedChar, unwritten] { if let c, !chars.contains(c) { chars.append(c) } }
+        let candidates: [String?] = [usedChars.last, usedChars.first, paperChar, skippedChar, unwritten]
+        for case let c? in candidates where !chars.contains(c) { chars.append(c) }
         return Generated(state: state, days: days, chars: chars)
     }
 

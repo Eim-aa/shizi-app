@@ -525,18 +525,19 @@ public final class ImageRenderer {
     try seal(ctx, ["x": 896, "y": 1240, "size": 64], p)
     try text(ctx, Self.s(a, "kuan"), 860, 1272, 36, color(p["ink2"]), align: "right")
   }
+  /// 年报长图的一段（高、是否与下一段同页、怎么画）。放在类型里而不是 annualLong 里：泛型函数里不能嵌套类型。
+  private struct AnnualLongBlock {
+    let h: Double
+    var keep = false
+    let draw: (CGContext, Double) throws -> Void
+  }
   func annualLong<T>(_ a: O, _ p: O, _ scale: Double, _ finish: (CGImage) throws -> T) throws -> [T] {
-    struct Block {
-      let h: Double
-      var keep = false
-      let draw: (CGContext, Double) throws -> Void
-    }
     let m = 97.0
     let cw = 886.0
     let c = 110.0
-    var blocks: [Block] = []
+    var blocks: [AnnualLongBlock] = []
     blocks.append(
-      Block(
+      AnnualLongBlock(
         h: 718,
         draw: { ctx, y in
           try self.text(ctx, Self.s(a, "yearText"), m, y + 170, 96, self.color(p["ink1"]))
@@ -547,7 +548,7 @@ public final class ImageRenderer {
         }))
     for month in a["months"] as? [O] ?? [] {
       blocks.append(
-        Block(
+        AnnualLongBlock(
           h: 136, keep: true,
           draw: { ctx, y in
             ctx.setFillColor(try self.color(p["line"]))
@@ -562,7 +563,7 @@ public final class ImageRenderer {
       for r in stride(from: 0, to: cells.count, by: 8) {
         let row = Array(cells[r..<min(r + 8, cells.count)])
         blocks.append(
-          Block(
+          AnnualLongBlock(
             h: c + (r + 8 >= cells.count ? 56 : 0),
             draw: { ctx, y in
               for (i, cell) in row.enumerated() {
@@ -573,9 +574,10 @@ public final class ImageRenderer {
     }
     if let t = a["tail"] as? O {
       let tc = floor((cw - 46) / 2)
+      let tailH: Double = 14 + 28 + 72 + 28 + tc + 24 + 50 + 40
       blocks.append(
-        Block(
-          h: 14 + 28 + 72 + 28 + tc + 24 + 50 + 40,
+        AnnualLongBlock(
+          h: tailH,
           draw: { ctx, y in
             ctx.setFillColor(try self.color(p["line"]))
             ctx.fill(CGRect(x: m, y: y + 14, width: cw, height: 2))
@@ -589,7 +591,7 @@ public final class ImageRenderer {
           }))
     }
     blocks.append(
-      Block(
+      AnnualLongBlock(
         h: 164,
         draw: { ctx, y in
           try self.seal(ctx, ["x": m + cw - 64, "y": y + 40, "size": 64], p)
@@ -598,8 +600,8 @@ public final class ImageRenderer {
             align: "right")
         }))
     let maxLogical = floor(Self.n(a, "maxExportHeight", 11650) / scale)
-    var chunks: [[Block]] = []
-    var cur: [Block] = []
+    var chunks: [[AnnualLongBlock]] = []
+    var cur: [AnnualLongBlock] = []
     var h = 0.0
     for (i, b) in blocks.enumerated() {
       let need = b.h + (b.keep && i + 1 < blocks.count ? blocks[i + 1].h : 0)

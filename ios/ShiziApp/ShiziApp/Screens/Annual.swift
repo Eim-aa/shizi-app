@@ -190,10 +190,12 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         attach: { [unowned self] s, i, following in self.attachCell(s, i, following) },
         detach: { s in s.cell.removeFromSuperview() },
         configure: { [unowned self] s, i in self.configureCell(s, i) })
-    /// 墨色 / 衬底字色：浅 / 深两套解析出来都没变就一直用同一个对象（color(_:) 每次新建一个动态色；
-    /// 同一个对象 → 墨视图 / 衬底字不必重画）。
+    /// 墨色 / 衬底字色：外观（浅 / 深）没变、且浅 / 深两套解析出来都没变时一直用同一个对象（color(_:) 每次新建一个动态色；
+    /// 同一个对象 → 墨视图 / 衬底字不必重画）。外观一变就换新的对象：建出来的格子随这次渲染重配、全部重画，池子里的格子下次配时重画。
     private var handColor: UIColor?
     private var underColor: UIColor?
+    /// 上面两个颜色对象是在哪个外观下定的。
+    private var colorStyle: UIUserInterfaceStyle?
     private var twiceTitle = UILabel()
     private var twiceFirstCell = UIView()
     private var twiceLastCell = UIView()
@@ -427,10 +429,14 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
         let mt = metrics
         // 格子在排版时按框建 / 配（layoutBody → updateCells）；这一次渲染的内容要重配
         renderGeneration += 1
-        let hand = Self.keep(handColor, color("hand"))
-        let under = Self.keep(underColor, color("under"))
+        // 外观切换（基类 traitCollectionDidChange → 重新渲染）时不沿用旧的颜色对象：不单靠 UIKit 自己重画
+        let style = traitCollection.userInterfaceStyle
+        let sameStyle = style == colorStyle
+        let hand = sameStyle ? Self.keep(handColor, color("hand")) : color("hand")
+        let under = sameStyle ? Self.keep(underColor, color("under")) : color("under")
         handColor = hand
         underColor = under
+        colorStyle = style
         // 空态
         let isEmpty = m.empty
         bodyMarker.isHidden = false

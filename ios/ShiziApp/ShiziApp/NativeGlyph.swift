@@ -110,6 +110,12 @@ final class NativeGlyphView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    /// 浅 / 深等颜色外观变了：字色（动态色）要按新外观重新解析（同 LibraryInkView；页面给的颜色对象没变时也重画，只是多画一次）。
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        super.traitCollectionDidChange(previous)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) { setNeedsDisplay() }
+    }
+
     override func draw(_ rect: CGRect) {
         guard !char.isEmpty, let ctx = UIGraphicsGetCurrentContext() else { return }
         let side = min(bounds.width, bounds.height)

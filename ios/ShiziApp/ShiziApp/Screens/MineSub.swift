@@ -48,7 +48,9 @@ enum ShiziInkScale {
 /// 起点圆 + 每段「两点间四边形色带」；用 ShiziKit 的 WebInk 三角形（同一套算法，与写字页一致）。
 ///
 /// 画出来的东西只由 near、points、inkColor、widthScale、pad、bounds 的大小（contentMode = .redraw）与外观决定：
-/// 这几样设成与原来一模一样的值时不重画（点列与数按位比、颜色按同一个对象比，都相同 = 画出来逐像素相同）；外观变了由 UIKit 自己重画。
+/// 这几样设成与原来一模一样的值时不重画（点列与数按位比、颜色按同一个对象比，都相同 = 画出来逐像素相同）；
+/// 颜色外观（浅 / 深等）变了自己标重画（traitCollectionDidChange；UIKit 本身也会给实现了 draw 的视图重画，多标一次无妨），
+/// 用它的页面在外观切换时也换新的颜色对象。
 final class ShiziPointsInkView: UIView {
     var points: [[ShiziInkPoint]] = [] { didSet { if !Self.identical(points, oldValue) { setNeedsDisplay() } } }
     /// 同一个颜色对象才算没变（两个各自新建的动态色即使解析出来一样也重画）。
@@ -125,6 +127,12 @@ final class ShiziPointsInkView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         refreshNear()
+    }
+
+    /// 浅 / 深等颜色外观变了：墨色（动态色）要按新外观重新解析（同 LibraryInkView）。
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        super.traitCollectionDidChange(previous)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) { setNeedsDisplay() }
     }
 
     private func isNearViewport() -> Bool {

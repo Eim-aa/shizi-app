@@ -599,7 +599,7 @@ final class AnnualVirtualCellsTests: XCTestCase {
     }
 
     /// 墨与衬底字「没变不重画」：连收几份回包（同一份两次、每格都换了、再换回来）、再排一次版之后的截图 = 把墨与衬底字都强制重画后的截图
-    /// = 新页面只收最后一份的截图；浅、深各一次（切外观后由 UIKit 重画，不靠页面给新的颜色对象）。停在顶上与中间各比一次。
+    /// = 新页面只收最后一份的截图；浅、深各一次（切外观后页面换新的颜色对象，墨与衬底字自己也标重画）。停在顶上与中间各比一次。
     func testNoStaleDrawingAfterReapplyAndStyleSwitch() throws {
         let p1 = AnnualVirtual.payload(600)
         let steps = [p1, p1, AnnualVirtual.changed(p1), p1]
@@ -643,6 +643,68 @@ final class AnnualVirtualCellsTests: XCTestCase {
                 let ok = i < shots.count && LibraryEq.same(shots[i], fresh, "annual \(at) \(style.rawValue): sequence vs fresh page")
                 XCTAssertTrue(ok, "at \(at) \(style.rawValue): sequence vs fresh page")
             }
+        }
+    }
+
+    /// 外观切换时池子里的格子：浅色下打开，(a) 格子全收进池子再切到深色（排版时从池子里拿回来重配）、
+    /// (b) 滚远（顶上的格子进池子、别处复用）再切到深色、滚回顶。之后的截图 = 墨与衬底字都强制重画 = 新页面（同样先浅后深）；
+    /// 每格的摘要 = 新配的；最后再全收进池子、一次 update 让每格正好回到原来的序号（内容不重配），画面仍 = 新页面。
+    func testStyleSwitchWithPooledCells() throws {
+        let payload = AnnualVirtual.payload(1200)
+        let fresh = AnnualVirtual.make(all: false)
+        let wf = LibraryBench.host(fresh)
+        defer { LibraryBench.unhost(wf) }
+        wf.overrideUserInterfaceStyle = .light
+        fresh.apply(payload: payload)
+        LibraryBench.settle(wf)
+        wf.overrideUserInterfaceStyle = .dark
+        LibraryBench.settle(wf)
+        let ref = try LibraryEq.stableSnapshot(wf, "annual style fresh dark")
+        for away in [false, true] {
+            let vc = AnnualVirtual.make(all: false)
+            let w = LibraryBench.host(vc)
+            defer { LibraryBench.unhost(w) }
+            w.overrideUserInterfaceStyle = .light
+            vc.apply(payload: payload)
+            LibraryBench.settle(w)
+            let before = Dictionary(uniqueKeysWithValues: vc.cells.liveIndices.compactMap { i in vc.cells.slot(at: i).map { (i, ObjectIdentifier($0)) } })
+            XCTAssertFalse(before.isEmpty)
+            if away {
+                AnnualVirtual.scroll(vc, w, to: vc.scroll.bounds.height * 6)
+                XCTAssertFalse(vc.cells.liveIndices.contains(0), "the top cells went to the pool")
+            } else {
+                vc.cells.removeAll() // 格子全收进池子（离开窗口），切外观之后的排版按同一组序号拿回来
+            }
+            w.overrideUserInterfaceStyle = .dark
+            LibraryBench.settle(w)
+            if away { AnnualVirtual.scroll(vc, w, to: 0) }
+            let what = away ? "scrolled away and back" : "all pooled"
+            XCTAssertFalse(vc.cells.liveIndices.isEmpty, what)
+            // 池子里的格子拿回来用了（同一个序号的另算出来打印：排版里先按未让出底栏的高建一次，序号不一定对得上）
+            let pooled = Set(before.values)
+            let reused = vc.cells.liveIndices.filter { i in vc.cells.slot(at: i).map { pooled.contains(ObjectIdentifier($0)) } ?? false }
+            let sameIndex = reused.filter { i in vc.cells.slot(at: i).map { before[i] == ObjectIdentifier($0) } ?? false }
+            print("[annual-style] \(what): live=\(vc.cells.liveIndices.count) reused=\(reused.count) sameIndex=\(sameIndex.count)")
+            XCTAssertFalse(reused.isEmpty, "\(what): cells came back from the pool")
+            let traits = vc.traitCollection
+            XCTAssertEqual(traits.userInterfaceStyle, .dark)
+            let problems = vc.cells.check(visible: vc.scroll.bounds) { AnnualVirtual.digest($0, traits) }
+            XCTAssertEqual(Array(problems.prefix(5)), [], "\(what): \(problems.count) problem(s)")
+            let seq = try LibraryEq.stableSnapshot(w, "annual style \(what)")
+            for v in AnnualVirtual.drawnViews(vc.view) { v.setNeedsDisplay() }
+            LibraryBench.settle(w)
+            let forced = try LibraryEq.stableSnapshot(w, "annual style \(what) forced")
+            XCTAssertTrue(LibraryEq.same(seq, forced, "annual style \(what): vs forced redraw"), "\(what): vs forced redraw")
+            XCTAssertTrue(LibraryEq.same(seq, ref, "annual style \(what): vs fresh page"), "\(what): vs fresh page")
+            // 再全收进池子、按此刻的滚动位置直接重建一次（一次 update：每格正好回到原来的序号，内容不重配）：画面不变
+            let now = Dictionary(uniqueKeysWithValues: vc.cells.liveIndices.compactMap { i in vc.cells.slot(at: i).map { (i, ObjectIdentifier($0)) } })
+            vc.cells.removeAll()
+            vc.updateCells()
+            LibraryBench.settle(w)
+            let back = vc.cells.liveIndices.filter { i in vc.cells.slot(at: i).map { now[i] == ObjectIdentifier($0) } ?? false }
+            XCTAssertEqual(back.count, now.count, "\(what): every cell came back from the pool at its own index")
+            let again = try LibraryEq.stableSnapshot(w, "annual style \(what) pooled at the same index")
+            XCTAssertTrue(LibraryEq.same(again, ref, "annual style \(what): pooled at the same index vs fresh page"), "\(what): pooled at the same index vs fresh page")
         }
     }
 

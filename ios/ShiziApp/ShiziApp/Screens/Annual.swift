@@ -94,10 +94,53 @@ final class AnnualScreen: ShiziScreenViewController {
     private let hairline: CGFloat = 1.0 / 3.0
     private let textBtnPad: CGFloat = 4
 
-    /// 不进取证的装饰视图（格的内框、发丝线）按 tag 找，不存成员（成员名会被取证当元素）。
+    /// 不进取证的装饰视图（格的内框、发丝线）与月段的格网容器按 tag 找，不存成员（成员名会被取证当元素）。
     private static let insetFrameTag = 9931
     private static let twiceHairTag = 9932
     private static let monthHairTag = 9933
+    private static let monthGridTag = 9934
+
+    /// 月段格网里的一格：格（容器，不进读屏）+ 本人墨（有墨迹时）+ 衬底字（没有墨迹时，画在墨的内框里）。
+    @MainActor
+    final class CellSlot {
+        let cell = UIView()
+        let ink = ShiziPointsInkView()
+        let glyph = NativeGlyphView()
+
+        init() {
+            cell.isAccessibilityElement = false
+            cell.addSubview(ink)
+            cell.addSubview(glyph)
+        }
+    }
+
+    /// 每月一段的排版结果：每段、每格的框（纯几何，排版时一次算完全部；视图按它摆）。
+    struct MonthsLayout {
+        struct MonthBox {
+            /// 段按钮在 content 里的框（上边一条发丝线 + 上内边距 + 月名一行 + 间距 + 格网 + 下边距）。
+            var frame: CGRect
+            /// 月名 / 字数在按钮里的框（基线对齐的一行）。
+            var nameFrame: CGRect
+            var countFrame: CGRect
+            /// 这一段第一格在 cells 里的序号、格数。
+            var firstCell: Int
+            var cellCount: Int
+        }
+        var months: [MonthBox] = []
+        /// 列数（AX 档 6，其余 8）与格边长（整页一样）。
+        var cols = 8
+        var cellSide: CGFloat = 0
+        /// 每格在所在段的格网容器里的框（格网容器铺满段按钮，坐标同按钮）；按段、段里按格的顺序排平。
+        var cells: [CGRect] = []
+        /// 每格在 content 里的框（= 段的原点 + 格在按钮里的框）。
+        var cellsInContent: [CGRect] = []
+        /// 每格属于第几段。
+        var cellMonth: [Int] = []
+        /// 每格的数据（排这一版时的模型）。
+        var cellData: [View.Cell] = []
+        /// 最后一段的下沿（content 坐标）。
+        var bottom: CGFloat = 0
+    }
 
     // 视图（成员名 / accessibilityIdentifier 是 QA 取证的语义键：keys/annual.mjs）
     let bodyMarker = UIView()
@@ -122,7 +165,10 @@ final class AnnualScreen: ShiziScreenViewController {
     private let firstInk = ShiziPointsInkView()
     private let firstGlyph = NativeGlyphView()
     private var monthButtons: [ShiziRowButton] = []
-    private var monthCells: [[UIView]] = []
+    /// 每段格网里的格子（按段、段里按格的顺序）。
+    private var monthSlots: [[CellSlot]] = []
+    /// 最近一次排版算出的全部段 / 格的框。
+    private(set) var grid = MonthsLayout()
     private var twiceTitle = UILabel()
     private var twiceFirstCell = UIView()
     private var twiceLastCell = UIView()
@@ -424,7 +470,7 @@ final class AnnualScreen: ShiziScreenViewController {
         if monthButtons.count != m.months.count {
             monthButtons.forEach { $0.removeFromSuperview() }
             monthButtons = []
-            monthCells = []
+            monthSlots = []
             for _ in m.months {
                 let b = ShiziRowButton(frame: .zero)
                 // 每段上边一条发丝线（网页 .sz-ann__month 的 border-top）：按钮里的子视图不进取证
@@ -432,6 +478,12 @@ final class AnnualScreen: ShiziScreenViewController {
                 hair.tag = Self.monthHairTag
                 hair.isUserInteractionEnabled = false
                 b.addSubview(hair)
+                // 格网容器：铺满按钮（格子的框照旧是按钮坐标，一位不差），格子按序号放在里面；不画东西、不进读屏（按钮本身是读屏元素）。
+                // 可交互照旧（同以前格子直接在按钮里：点到格子上由格子往上交给按钮）
+                let grid = UIView()
+                grid.tag = Self.monthGridTag
+                grid.isAccessibilityElement = false
+                b.addSubview(grid)
                 content.addSubview(b)
                 monthButtons.append(b)
                 let key = ObjectIdentifier(b)
@@ -439,7 +491,7 @@ final class AnnualScreen: ShiziScreenViewController {
                     guard let page = page as? AnnualScreen else { return }
                     page.openMonth(page.monthKeys[key] ?? "")
                 }
-                monthCells.append([])
+                monthSlots.append([])
             }
         }
         for (i, sec) in m.months.enumerated() {
@@ -457,42 +509,16 @@ final class AnnualScreen: ShiziScreenViewController {
             // 按钮自己的字色（网页 .sz-ann__month：color:inherit = ink1）
             b.setTitleColor(color("ink1"), for: .normal)
             b.viewWithTag(Self.monthHairTag)?.backgroundColor = color("line")
-            // 每一段里的格子
-            let cols = axLayout ? 6 : 8
-            let cellSide: CGFloat = axLayout ? floor((view.bounds.width - 40) / 6) : min(45, floor((view.bounds.width - 40) / 8))
-            if monthCells[i].count != sec.cells.count {
-                monthCells[i].forEach { $0.removeFromSuperview() }
-                monthCells[i] = sec.cells.map { c in
-                    let cell = UIView()
-                    cell.isAccessibilityElement = false
-                    let ink = ShiziPointsInkView()
-                    ink.pad = 0.09
-                    ink.inkColor = color("hand")
-                    cell.addSubview(ink)
-                    let g = NativeGlyphView()
-                    g.char = c.ch
-                    g.color = color("under")
-                    g.padRatio = 0.06
-                    cell.addSubview(g)
-                    b.addSubview(cell)
-                    return cell
+            // 每一段里的格子：内容按渲染配，框与线宽按排版配（configureCellLayout）
+            if monthSlots[i].count != sec.cells.count, let grid = monthGrid(b) {
+                monthSlots[i].forEach { $0.cell.removeFromSuperview() }
+                monthSlots[i] = sec.cells.map { _ in
+                    let s = CellSlot()
+                    grid.addSubview(s.cell)
+                    return s
                 }
             }
-            for (j, c) in sec.cells.enumerated() {
-                let cell = monthCells[i][j]
-                let ink = cell.subviews.first as? ShiziPointsInkView
-                let glyph = cell.subviews.last as? NativeGlyphView
-                glyph?.char = c.ch
-                if let box = c.ink, c.mode == "hand" {
-                    ink?.isHidden = false
-                    ink?.points = box.points
-                    ink?.widthScale = ShiziInkScale.scale(cellSide, 1 - 2 * 0.09)
-                    glyph?.isHidden = true
-                } else {
-                    ink?.isHidden = true
-                    glyph?.isHidden = false
-                }
-            }
+            for (j, c) in sec.cells.enumerated() where j < monthSlots[i].count { configureCellContent(monthSlots[i][j], c) }
         }
         // 卷尾：同一个字，两次
         if let twice = m.twice {
@@ -546,6 +572,36 @@ final class AnnualScreen: ShiziScreenViewController {
         b.titleLabel?.font = NativeType.compose(size: metrics.value("fs15"), weight: .regular)
         b.backgroundColor = .clear
         b.setImage(icon.image(color(enabled ? "ink2" : "ink4"), size: 18), for: .normal)
+    }
+
+    /// 段按钮里的格网容器。
+    private func monthGrid(_ b: UIView) -> UIView? { b.viewWithTag(Self.monthGridTag) }
+
+    /// 一格的内容：衬底字、有墨迹就画墨（网页 paintCellContent：hand 且有墨 → 墨；否则衬底字）、墨与衬底字的颜色与内边。
+    /// 框与线宽在 configureCellLayout。格子可能是别的格用过的：内容的每一样都重设。
+    private func configureCellContent(_ s: CellSlot, _ c: View.Cell) {
+        s.ink.pad = 0.09 // 网页年报月段的 INK_PAD
+        s.ink.inkColor = color("hand")
+        s.glyph.color = color("under")
+        s.glyph.padRatio = 0.06
+        s.glyph.char = c.ch
+        if let box = c.ink, c.mode == "hand" {
+            s.ink.isHidden = false
+            s.ink.points = box.points
+            s.glyph.isHidden = true
+        } else {
+            s.ink.isHidden = true
+            s.glyph.isHidden = false
+        }
+    }
+
+    /// 一格的框（格网坐标 = 按钮坐标）、墨铺满格（ShiziPointsInkView 自己留 9% 内边）、衬底字画在同一个内框里
+    /// （网页 paintCellContent：cellInkBox 再 paintOutline）、线宽按格边长。
+    private func configureCellLayout(_ s: CellSlot, frame: CGRect, side: CGFloat) {
+        s.cell.frame = frame
+        s.ink.frame = s.cell.bounds
+        s.glyph.frame = s.cell.bounds.insetBy(dx: side * 0.09, dy: side * 0.09)
+        s.ink.widthScale = ShiziInkScale.scale(side, 1 - 2 * 0.09)
     }
 
     // MARK: 动作
@@ -640,47 +696,27 @@ final class AnnualScreen: ShiziScreenViewController {
             firstLabel.frame = CGRect(x: sideX, y: sideBottom - dateH - 4 - labelH, width: sideW, height: labelH)
             y += blockH + firstBottom
         }
-        // 每月一段
+        // 每月一段：先把全部段 / 格的框算好，再按框摆
         let cols = axLayout ? 6 : 8
         let cellSide: CGFloat = axLayout ? floor((view.bounds.width - 40) / 6) : min(45, floor((view.bounds.width - 40) / 8))
-        for (i, sec) in m.months.enumerated() {
+        let grid = monthsLayout(m, bx: bx, bw: bw, top: y, cols: cols, cellSide: cellSide)
+        self.grid = grid
+        for (i, box) in grid.months.enumerated() where i < monthButtons.count {
             let b = monthButtons[i]
-            // 上边一条发丝线 + 上内边距 14
-            let top0 = y + hairline + monthPadTop
-            // 月名与字数（基线对齐的一行）
-            let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
-            // WebKit 的 flex 行把小数行盒向上包整（XXXL 的 40.5 → 41），否则每月累计少 1pt。
-            let nameLine = ceil(mt.value("lh22"))
-            let countFont = NativeType.compose(size: mt.value("fs13"), weight: .regular)
-            let countLine = mt.line("lh13")
-            let na = ShiziFlex.text(nameFont, line: nameLine)
-            let ca = ShiziFlex.text(countFont, line: countLine)
-            let row = ShiziFlex.baselineRow([(box: nameLine, ascent: na.ascent), (box: countLine, ascent: ca.ascent)])
-            let nameW = ceil(ShiziMineText.width(b.label.text ?? "", font: nameFont))
-            let headHeight = row.height
-            // 格网
-            let gridTop = top0 + headHeight + monthHeadGap
-            let rows = Int(ceil(Double(sec.cells.count) / Double(cols)))
-            for (j, cell) in monthCells[i].enumerated() {
-                let col = j % cols
-                let row = j / cols
-                // 格子在段按钮里（按钮的坐标：按钮从 (bx, y) 起）
-                cell.frame = CGRect(x: CGFloat(col) * cellSide, y: gridTop - y + CGFloat(row) * cellSide, width: cellSide, height: cellSide)
-                // 墨铺满格（ShiziPointsInkView 自己留 9% 内边）；衬底字画在同一个内框里（网页 paintCellContent：cellInkBox 再 paintOutline）
-                cell.subviews.forEach { $0.frame = cell.bounds }
-                cell.subviews.last?.frame = cell.bounds.insetBy(dx: cellSide * 0.09, dy: cellSide * 0.09)
-            }
-            let gridH = CGFloat(rows) * cellSide
-            let h = hairline + monthPadTop + headHeight + monthHeadGap + gridH + monthGridGap
-            b.frame = CGRect(x: bx, y: y, width: bw, height: h)
+            b.frame = box.frame
             b.viewWithTag(Self.monthHairTag)?.frame = CGRect(x: 0, y: 0, width: bw, height: hairline)
+            monthGrid(b)?.frame = b.bounds
             // 按钮里的两段字：月名在左、字数在右，基线对齐（网页 .sz-ann__mhead：space-between + baseline）
-            b.label.frame = CGRect(x: 0, y: hairline + monthPadTop + row.tops[0], width: nameW, height: nameLine)
+            b.label.frame = box.nameFrame
             // 字数右对齐到版心的右缘（网页 space-between 的右端）：取证按按钮里全部文字的并集，右缘要对齐版心
             b.valueLabel.textAlignment = .right
-            b.valueLabel.frame = CGRect(x: 0, y: hairline + monthPadTop + row.tops[1], width: bw, height: countLine)
-            y += h
+            b.valueLabel.frame = box.countFrame
+            guard i < monthSlots.count else { continue }
+            for j in 0..<box.cellCount where j < monthSlots[i].count {
+                configureCellLayout(monthSlots[i][j], frame: grid.cells[box.firstCell + j], side: grid.cellSide)
+            }
         }
+        y = grid.bottom
         // 卷尾：同一个字，两次
         if m.twice != nil {
             content.viewWithTag(Self.twiceHairTag)?.frame = CGRect(x: bx, y: y, width: bw, height: hairline)
@@ -720,6 +756,60 @@ final class AnnualScreen: ShiziScreenViewController {
         }
         bodyMarker.frame = CGRect(x: bx, y: top, width: bw, height: y - top)
         return y
+    }
+
+    /// 全部段 / 格的框（网页 .sz-ann__month：上边一条发丝线 + 上内边距 14、月名与字数基线对齐的一行、间距 10、cols 列的格网、下边距 28）。
+    /// 只算数，不碰视图；top = 第一段的上沿（content 坐标），bx / bw = 正文的左缘与宽。
+    func monthsLayout(_ m: View, bx: CGFloat, bw: CGFloat, top: CGFloat, cols: Int, cellSide: CGFloat) -> MonthsLayout {
+        let mt = metrics
+        var out = MonthsLayout()
+        out.cols = cols
+        out.cellSide = cellSide
+        let total = m.months.reduce(0) { $0 + $1.cells.count }
+        out.cells.reserveCapacity(total)
+        out.cellsInContent.reserveCapacity(total)
+        out.cellMonth.reserveCapacity(total)
+        out.cellData.reserveCapacity(total)
+        // 月名（宋 22 / 500）与字数（黑 13）基线对齐的一行：各段一样，先算好
+        let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
+        // WebKit 的 flex 行把小数行盒向上包整（XXXL 的 40.5 → 41），否则每月累计少 1pt。
+        let nameLine = ceil(mt.value("lh22"))
+        let countFont = NativeType.compose(size: mt.value("fs13"), weight: .regular)
+        let countLine = mt.line("lh13")
+        let na = ShiziFlex.text(nameFont, line: nameLine)
+        let ca = ShiziFlex.text(countFont, line: countLine)
+        let row = ShiziFlex.baselineRow([(box: nameLine, ascent: na.ascent), (box: countLine, ascent: ca.ascent)])
+        let headHeight = row.height
+        var y = top
+        for (i, sec) in m.months.enumerated() {
+            // 上边一条发丝线 + 上内边距 14
+            let top0 = y + hairline + monthPadTop
+            // 月名的宽（按钮里的月名标签就是这段字：renderModel 按 sec.name 设）
+            let nameW = ceil(ShiziMineText.width(sec.name.text, font: nameFont))
+            // 格网
+            let gridTop = top0 + headHeight + monthHeadGap
+            let rows = Int(ceil(Double(sec.cells.count) / Double(cols)))
+            let gridH = CGFloat(rows) * cellSide
+            let h = hairline + monthPadTop + headHeight + monthHeadGap + gridH + monthGridGap
+            out.months.append(MonthsLayout.MonthBox(
+                frame: CGRect(x: bx, y: y, width: bw, height: h),
+                nameFrame: CGRect(x: 0, y: hairline + monthPadTop + row.tops[0], width: nameW, height: nameLine),
+                countFrame: CGRect(x: 0, y: hairline + monthPadTop + row.tops[1], width: bw, height: countLine),
+                firstCell: out.cells.count, cellCount: sec.cells.count))
+            for (j, c) in sec.cells.enumerated() {
+                let col = j % cols
+                let r = j / cols
+                // 格子在段按钮里（按钮的坐标：按钮从 (bx, y) 起）
+                let f = CGRect(x: CGFloat(col) * cellSide, y: gridTop - y + CGFloat(r) * cellSide, width: cellSide, height: cellSide)
+                out.cells.append(f)
+                out.cellsInContent.append(f.offsetBy(dx: bx, dy: y))
+                out.cellMonth.append(i)
+                out.cellData.append(c)
+            }
+            y += h
+        }
+        out.bottom = y
+        return out
     }
 
     /// 空态（网页：笺面纸的空格子 + 标题 + 说明）。

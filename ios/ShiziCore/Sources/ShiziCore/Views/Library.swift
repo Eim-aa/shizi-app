@@ -54,7 +54,9 @@ public enum LibraryView {
         return (wire.arrayValue ?? []).contains { !($0.arrayValue ?? []).isEmpty } ? wire : .null
     }
     public static func libraryPageView(_ state: JSValue, now: Double, today: String, deck: ScheduleDeck, policy: JSValue, ui: JSValue?, dates: Dates) throws -> JSValue {
-        let mem = try V.memoryZones(state, today: today, dates: dates), skipped = V.skippedZone(state), plan = try todayPlanModel(state, now: now, deck: deck, policy: policy, dates: dates), refs = todayRefs(plan), id = DeckIndex.shared.currentLibraryId(state["settings"])
+        // 记忆三区与跳过区共用一份 libraryRecords 与它的 practicedByChar（原来各算一遍）
+        let lib = V.libraryRecords(state).records, judged = Records.practicedByChar(lib)
+        let mem = try V.memoryZones(state, latest: judged, today: today, dates: dates), skipped = V.skippedZone(records: lib, judged: judged), plan = try todayPlanModel(state, now: now, deck: deck, policy: policy, dates: dates), refs = todayRefs(plan), id = DeckIndex.shared.currentLibraryId(state["settings"])
         func zoneView(_ z: JSValue) throws -> JSValue {
             let kind = JS.string(z["kind"])
             return V.obj([("kind", .string(kind)), ("name", V.ref("X-LIBFOUR.zone."+kind)), ("n", z["n"]!), ("to", JS.truthy(z["n"]) ? V.obj([("screen", .string("library-list")), ("params", V.obj([("kind", .string(kind))]))]) : .null), ("samples", .array(try zoneSamples(z).map { c in V.obj([("char", c["char"]!), ("tone", c["tone"]!), ("strokes", try sampleStrokes(state, record: c["record"], policy: policy, dates: dates))]) }))])
@@ -90,7 +92,10 @@ extension ViewSupport {
         return stability >= knownDays && successesOf(entry) >= minSuccesses ? "known" : "shaky"
     }
     package static func memoryZones(_ state: JSValue, today: String, knownDays: Double? = nil, minSuccesses: Double? = nil, dates: Dates) throws -> JSValue {
-        let latest = Records.practicedByChar(libraryRecords(state).records)
+        try memoryZones(state, latest: Records.practicedByChar(libraryRecords(state).records), today: today, knownDays: knownDays, minSuccesses: minSuccesses, dates: dates)
+    }
+    /// latest = Records.practicedByChar(libraryRecords(state).records)（调用方已算好时传进来，免得再平铺一遍）。
+    package static func memoryZones(_ state: JSValue, latest: OMap<JSValue>, today: String, knownDays: Double? = nil, minSuccesses: Double? = nil, dates: Dates) throws -> JSValue {
         var buckets: [String: [JSValue]] = ["due": [], "shaky": [], "known": []]
         for (_, r) in latest.entries {
             let entry = state["sched"]?[JS.string(r["cardKey"])]
@@ -112,7 +117,11 @@ extension ViewSupport {
         return obj([("recorded", .number(Double(latest.count))), ("zones", .object(zones))])
     }
     package static func skippedZone(_ state: JSValue) -> JSValue {
-        let records = libraryRecords(state).records, judged = Records.practicedByChar(records)
+        let records = libraryRecords(state).records
+        return skippedZone(records: records, judged: Records.practicedByChar(records))
+    }
+    /// records = libraryRecords(state).records，judged = Records.practicedByChar(records)。
+    package static func skippedZone(records: [JSValue], judged: OMap<JSValue>) -> JSValue {
         var latest = OMap<JSValue>()
         for r in records where r["kind"] == .string("skipped") {
             guard let c = r["char"]?.stringValue, !judged.has(c) else { continue }

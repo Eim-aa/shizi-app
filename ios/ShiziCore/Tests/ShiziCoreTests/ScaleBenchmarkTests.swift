@@ -19,6 +19,10 @@ import XCTest
 // 一旦超出，seed / commit 会触发预算回收，把旧月份折叠、丢旧墨迹，量到的就不是这个数据量了；所以 3x / 10x 把各项预算按倍数放大、折叠天数放到 36500，
 // 只为「在这个数据量上量」——这不是 App 的真实行为（真实 App 会折叠）。造完后断言条数没变（没被回收）。
 //
+// 3x-folded / 10x-folded：同样的历史，先放大预算播种，再用 App 的原生预算（recordsFoldAfterDays 400、records 16MB、墨迹 32MB）做一次真提交，
+// 让 Budget.recover 像在设备上那样折叠旧月份、淘汰墨迹；再在折叠后的状态上量同样的操作。note 行打印剩下什么（未折叠月数 / 记录数、折叠月的 kept 数、墨迹数、bytes），
+// 并给每档一行 backupBytes（Backup.buildBackupV2 + serializeBackup 的完整导出文件大小）。
+//
 // 输出（每行一个 (op, backend, scale)）：
 //   BENCH scale op=<op> backend=<fake|sqlite> scale=<1x|3x|10x> records=… chars=… ink=… bytes=… n=… median=…ms max=…ms
 //   op：disk.open（建后端 / 读入镜像）、store.load（冷：新 Store 读全库并校验）、usage（refreshUsage）、
@@ -32,12 +36,15 @@ final class ScaleBenchmarkTests: XCTestCase {
 
     struct Scale {
         let name: String
+        /// 播种用的预算倍数（1 = App 原生预算）；factor 是量测时 Store 用的预算倍数。两者不同 = 先按 seedFactor 播种，再用 factor 的预算让真实的回收折叠一遍（见 folded）。
+        let seedFactor: Double
         let factor: Double
         let shape: B.Shape
         /// 写操作（strokes / judge / commit-judge）与读操作（home 等）的样本数；store.load 的次数。
         let writes: Int
         let reads: Int
         let loads: Int
+        var folded: Bool { seedFactor != factor }
     }
 
     struct Info {
@@ -60,22 +67,27 @@ final class ScaleBenchmarkTests: XCTestCase {
     /// 可练的单字数封顶（题库里约 7200 个）。
     static func studied(_ want: Int) -> Int { min(want, B.practicableChars(want).count) }
 
-    static func scale1x() -> Scale { Scale(name: "1x", factor: 1, shape: B.shape1x, writes: 15, reads: 9, loads: 5) }
+    static func scale1x() -> Scale { Scale(name: "1x", seedFactor: 1, factor: 1, shape: B.shape1x, writes: 15, reads: 9, loads: 5) }
     static func scale3x() -> Scale {
-        Scale(name: "3x", factor: 3, shape: B.Shape(months: monthsEndingOct2026(20), recordsPerMonth: 900, studied: studied(4500), inkRecords: 1500), writes: 9, reads: 5, loads: 3)
+        Scale(name: "3x", seedFactor: 3, factor: 3, shape: shape3x(), writes: 9, reads: 5, loads: 3)
     }
+    static func shape3x() -> B.Shape { B.Shape(months: monthsEndingOct2026(20), recordsPerMonth: 900, studied: studied(4500), inkRecords: 1500) }
+    static func shape10x() -> B.Shape { B.Shape(months: monthsEndingOct2026(40), recordsPerMonth: 1500, studied: studied(7000), inkRecords: 5000) }
+    /// 真实预算版：同样的历史，播种时放大预算（不折叠），再用 App 的原生预算让回收折叠（400 天前的月份、超预算的记录 / 墨迹）。
+    static func scale3xFolded() -> Scale { Scale(name: "3x-folded", seedFactor: 3, factor: 1, shape: shape3x(), writes: 9, reads: 5, loads: 3) }
+    static func scale10xFolded() -> Scale { Scale(name: "10x-folded", seedFactor: 10, factor: 1, shape: shape10x(), writes: 5, reads: 3, loads: 3) }
     static func scale10x() -> Scale {
-        Scale(name: "10x", factor: 10, shape: B.Shape(months: monthsEndingOct2026(40), recordsPerMonth: 1500, studied: studied(7000), inkRecords: 5000), writes: 5, reads: 3, loads: 3)
+        Scale(name: "10x", seedFactor: 10, factor: 10, shape: shape10x(), writes: 5, reads: 3, loads: 3)
     }
 
     /// 1x = App 的原生预算；更大的档把各项预算按倍数放大并取消折叠（见文件头）。
-    static func budgets(_ scale: Scale) -> JSObject {
+    static func budgets(_ factor: Double) -> JSObject {
         var b = Budgets.native
-        if scale.factor > 1 {
-            b.quotaBytes *= scale.factor
-            b.totalTargetBytes *= scale.factor
-            b.recordsBudgetBytes *= scale.factor
-            b.inkBudgetBytes *= scale.factor
+        if factor > 1 {
+            b.quotaBytes *= factor
+            b.totalTargetBytes *= factor
+            b.recordsBudgetBytes *= factor
+            b.inkBudgetBytes *= factor
             b.recordsFoldAfterDays = 36500
         }
         return b.js
@@ -110,9 +122,9 @@ final class ScaleBenchmarkTests: XCTestCase {
         return state
     }
 
-    private func makeStore(_ backend: KVBackend, _ clock: B.Clock, _ scale: Scale) -> Store {
+    private func makeStore(_ backend: KVBackend, _ clock: B.Clock, _ factor: Double) -> Store {
         let storage = StoreStorage(backend, now: { clock.t })
-        return Store(storage: storage, now: { clock.t }, budgets: Self.budgets(scale), dates: shanghai)
+        return Store(storage: storage, now: { clock.t }, budgets: Self.budgets(factor), dates: shanghai)
     }
 
     private func run(_ name: String, _ scale: Scale, _ state: JSObject, _ backend: () -> KVBackend) throws {
@@ -122,13 +134,35 @@ final class ScaleBenchmarkTests: XCTestCase {
 
         // 播种（计时只作说明）：seed 必须 ok，否则生成器有错，宁可在这里失败也不打印假数字
         do {
-            let seeding = makeStore(backend(), clock, scale)
+            let seeding = makeStore(backend(), clock, scale.seedFactor)
             XCTAssertEqual(seeding.load()["available"], .bool(true))
             var r: JSValue = .null
             let ms = timed { r = seeding.seed(.object(state), label: "scale-seed") }
             XCTAssertEqual(r["ok"], .bool(true), str(r))
             print("BENCH scale-note scale=\(scale.name) backend=\(name) seed=\(B.fmt(ms))ms")
             guard ok(r) else { return }
+        }
+
+        // 真实预算版：用 App 的原生预算开一个 Store，做一次真提交——persist 里 needsRecovery 命中（400 天前的月份）就跑 Budget.recover（foldMonth / 墨迹淘汰），与 App 在设备上相同
+        if scale.folded {
+            let folding = makeStore(backend(), clock, scale.factor)
+            XCTAssertEqual(folding.load()["available"], .bool(true))
+            var r: JSValue = .null
+            clock.t += 1000
+            let ms = timed {
+                r = folding.commit("bench:fold-trigger") { d, c in
+                    var sessions = d["sessions"]!.objectValue!
+                    var A = sessions["A"]!.objectValue!
+                    A["updatedAt"] = .number(c.now)
+                    sessions["A"] = .object(A)
+                    d["sessions"] = .object(sessions)
+                }
+            }
+            XCTAssertEqual(r["ok"], .bool(true), str(r))
+            let actions = r["recovered"]?.arrayValue ?? []
+            func count(_ type: String) -> Int { actions.filter { $0["type"] == .string(type) }.count }
+            XCTAssertGreaterThan(count("fold"), 0, "real budgets must fold the aged months")
+            print("BENCH scale-note scale=\(scale.name) foldTime=\(B.fmt(ms))ms actions=\(actions.count) fold=\(count("fold")) dropFoldedInk=\(count("dropFoldedInk")) evictInk=\(count("evictInk"))")
         }
 
         // store.load：每次都是新 Store 从库里冷读（后端也重新打开）；最后一次的 store 留给后面的操作
@@ -138,7 +172,7 @@ final class ScaleBenchmarkTests: XCTestCase {
             kept = nil
             var be: KVBackend? = nil
             openSamples.append(timed { be = backend() })
-            let fresh = makeStore(be!, clock, scale)
+            let fresh = makeStore(be!, clock, scale.factor)
             var loaded: JSValue = .null
             loadSamples.append(timed { loaded = fresh.load() })
             XCTAssertEqual(loaded["available"], .bool(true))
@@ -149,10 +183,31 @@ final class ScaleBenchmarkTests: XCTestCase {
         let schedCount = store.state["sched"]?.objectValue?.count ?? 0
         let recordCount = SessionWrites.allRecords(store.state).count
         let inkCount = flatInk(store.state["ink"]).count
-        XCTAssertEqual(schedCount, shape.studied, "sched must survive seed + load (no budget recovery)")
-        XCTAssertEqual(recordCount, shape.records, "records must survive seed + load (no budget recovery / folding)")
-        XCTAssertEqual(inkCount, shape.inkRecords, "ink must survive seed + load (no budget recovery)")
+        XCTAssertEqual(schedCount, shape.studied, "sched must survive seed + load")
         XCTAssertEqual(store.state["records"]?.objectValue?.count, shape.months.count)
+        if scale.folded {
+            XCTAssertLessThan(recordCount, shape.records, "folding must have dropped records")
+            XCTAssertLessThanOrEqual(inkCount, shape.inkRecords)
+        } else {
+            XCTAssertEqual(recordCount, shape.records, "records must survive seed + load (no budget recovery / folding)")
+            XCTAssertEqual(inkCount, shape.inkRecords, "ink must survive seed + load (no budget recovery)")
+        }
+        var unfoldedMonths = 0, unfoldedRecords = 0, foldedMonths = 0, keptRecords = 0
+        for (_, value) in store.state["records"]?.objectValue?.entries ?? [] {
+            if let list = value.arrayValue {
+                unfoldedMonths += 1
+                unfoldedRecords += list.count
+            } else if value["folded"] == .bool(true) {
+                foldedMonths += 1
+                keptRecords += value["kept"]?.arrayValue?.count ?? 0
+            }
+        }
+        XCTAssertEqual(unfoldedRecords + keptRecords, recordCount)
+        if scale.folded {
+            XCTAssertGreaterThan(unfoldedMonths, 0)
+            XCTAssertGreaterThan(foldedMonths, 0)
+        }
+        print("BENCH scale-note scale=\(scale.name) backend=\(name) unfoldedMonths=\(unfoldedMonths) unfoldedRecords=\(unfoldedRecords) foldedMonths=\(foldedMonths) keptRecords=\(keptRecords) ink=\(inkCount) chars=\(schedCount) bytes=\(Int(store.usage?["total"]?.numberValue ?? 0))")
         let info = Info(records: recordCount, chars: schedCount, ink: inkCount, bytes: Int(store.usage?["total"]?.numberValue ?? 0))
         report("disk.open", name, scale, info, openSamples)
         report("store.load", name, scale, info, loadSamples)
@@ -187,6 +242,14 @@ final class ScaleBenchmarkTests: XCTestCase {
         report("home", name, scale, info, try sample(warm: 0, n: scale.reads) {
             sink &+= try HomeView.homeView(st, now: B.benchNow, policy: policy, deck: .real, ui: nil, dates: shanghai).objectValue?.count ?? 0
         })
+
+        // 备份：App 导出的完整文件（Backup.buildBackupV2 + serializeBackup，即 JSON.stringify(obj, null, 1)）的大小与耗时；只在 fake 上量一次
+        if name == "fake" {
+            var text = ""
+            let ms = try timed { text = Backup.serializeBackup(.object(try Backup.buildBackupV2(store.state, now: B.benchNow, serial: store.serial))) }
+            print("BENCH scale-note scale=\(scale.name) backend=\(name) backupBytes=\(text.utf8.count) usageBytes=\(info.bytes)")
+            report("backup.export", name, scale, info, [ms])
+        }
 
         // ---- 写路径（与 StoreCommitBenchmarkTests 同形；之后状态会变，所以放在读路径之后）----
         let opened = WriteAPI.call("open", store, JSObject([("slot", .string("A"))]))
@@ -230,7 +293,8 @@ final class ScaleBenchmarkTests: XCTestCase {
             var r: JSValue = .null
             let ms = B.time { r = B.commitJudgeShape(store, ch: ch, i: i) }
             XCTAssertEqual(r["ok"], .bool(true), str(r))
-            XCTAssertEqual(r["keys"]?.arrayValue?.count, 5, str(r)) // inkRecord + records.2026-10 + sched + meta + sessions
+            // inkRecord + records.2026-10 + sched + meta + sessions（折叠版里回收可能再动别的键，只断言 ok）
+            if !scale.folded { XCTAssertEqual(r["keys"]?.arrayValue?.count, 5, str(r)) }
             if i >= warm { commits.append(ms) }
         }
         report("commit-judge", name, scale, info, commits)
@@ -258,4 +322,7 @@ final class ScaleBenchmarkTests: XCTestCase {
     func testScale3x() throws { try runFakeAndSQLite(Self.scale3x()) }
     /// 10x 只跑 fake（内存替身）：sqlite 上 6 万条记录 + 5000 条墨迹的播种与每次提交的 fsync 在 Debug 里太慢。
     func testScale10x() throws { try runFake(Self.scale10x()) }
+    /// 真实预算版只跑 fake。
+    func testScale3xFolded() throws { try runFake(Self.scale3xFolded()) }
+    func testScale10xFolded() throws { try runFake(Self.scale10xFolded()) }
 }

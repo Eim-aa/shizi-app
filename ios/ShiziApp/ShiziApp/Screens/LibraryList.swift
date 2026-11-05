@@ -64,10 +64,11 @@ final class LibraryListRowView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     /// 圆点与勾的位置（圆点在按钮里居中，勾在圆点里居中）；选中时圆点填墨色、描边去掉。
-    func layoutDot(selected: Bool, line: UIColor) {
+    /// traits = 描边色按哪个外观解析（页面的外观：行可能还没挂进窗口，比如测试里对照用的新建行）。
+    func layoutDot(selected: Bool, line: UIColor, traits: UITraitCollection) {
         // 勾是按钮自己的图（取证按按钮的图标比），要画在圆点上面
         if let iv = select.imageView { select.bringSubviewToFront(iv) }
-        dot.layer.borderColor = line.resolvedColor(with: traitCollection).cgColor
+        dot.layer.borderColor = line.resolvedColor(with: traits).cgColor
         dot.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
         check.frame = CGRect(x: 9, y: 9, width: 26, height: 26)
         dot.layer.borderWidth = selected ? 0 : 1.5
@@ -423,7 +424,7 @@ final class LibraryListScreen: ShiziScreenViewController, UIScrollViewDelegate {
         rv.select.isEnabled = row.selectable
         rv.select.alpha = row.selectable ? 1 : 0
         rv.dotInk = color("ink1")
-        rv.layoutDot(selected: row.selected, line: color("ink4"))
+        rv.layoutDot(selected: row.selected, line: color("ink4"), traits: traitCollection)
         rv.thumb.backgroundColor = color("sheet")
         rv.thumb.layer.borderWidth = mt.value("frame-w")
         rv.thumb.layer.borderColor = color("frame").resolvedColor(with: traitCollection).cgColor
@@ -431,7 +432,7 @@ final class LibraryListScreen: ShiziScreenViewController, UIScrollViewDelegate {
         rv.select.iconSize = CGSize(width: 14, height: 14)
         rv.select.iconCentered = true
         rv.select.setImage(row.selected ? rowCheckImage : nil, for: .normal)
-        rv.layoutDot(selected: row.selected, line: color("ink4"))
+        rv.layoutDot(selected: row.selected, line: color("ink4"), traits: traitCollection)
         rv.chevron.image = rowChevronImage
         let w = row.word
         let wordText = w.has ? w.pre + w.tg + w.post : ""
@@ -603,17 +604,19 @@ final class LibraryListScreen: ShiziScreenViewController, UIScrollViewDelegate {
         let noThumb: Bool
     }
 
-    /// rowBox 的输入里随页面变的那几样：栏宽、系统字号档、粗体文字、此刻的外观（量字宽的缓存也按它分开）。任何一样变了整份记忆作废。
+    /// rowBox 的输入里随页面变的那几样：栏宽、字号档（rowBox 读的 metrics 的档，与 scaleK 读的系统档）、粗体文字、
+    /// 此刻的外观（量字宽的缓存也按它分开）。任何一样变了整份记忆作废。
     struct RowBoxEnv: Equatable {
         let width: CGFloat
         let category: UIContentSizeCategory
+        let appCategory: UIContentSizeCategory
         let bold: Bool
         let traits: UITraitCollection
     }
 
     /// 同 rowBox（逐项相同）：同一份输入算过就用上次的结果。几千行时每次排版（每勾一下都要重拉、重排）不再逐行量字。
     func cachedRowBox(_ row: View.Row, width: CGFloat) -> RowBox {
-        let env = RowBoxEnv(width: width, category: UIApplication.shared.preferredContentSizeCategory,
+        let env = RowBoxEnv(width: width, category: metrics.category, appCategory: UIApplication.shared.preferredContentSizeCategory,
                             bold: UIAccessibility.isBoldTextEnabled, traits: UITraitCollection.current)
         if rowBoxMemoEnv != env || rowBoxMemo.count >= 20_000 {
             rowBoxMemo.removeAll(keepingCapacity: true)
@@ -665,7 +668,7 @@ final class LibraryListScreen: ShiziScreenViewController, UIScrollViewDelegate {
         if m.empty {
             rowsTopLine.isHidden = true
             // 空态没有行：建出来的都收掉
-            list = RowsLayout()
+            self.list = RowsLayout()
             rows.setItems([])
             updateRows()
             return layoutEmpty(m, width: width, x: x, top: top)
@@ -683,9 +686,9 @@ final class LibraryListScreen: ShiziScreenViewController, UIScrollViewDelegate {
         // 先把全部行的框算好（纯几何），再按框摆
         let shown = restOpen ? m.rows : m.rows.filter { $0.group == "top" }
         let rowsTop = y
-        let list = rowsLayout(shown, width: width, x: x, top: rowsTop)
-        self.list = list
-        let rowsH = list.height
+        let layout = rowsLayout(shown, width: width, x: x, top: rowsTop)
+        self.list = layout
+        let rowsH = layout.height
         rowsMarker.frame = CGRect(x: x, y: rowsTop, width: width, height: rowsH)
         rowsTopLine.isHidden = false
         rowsTopLine.backgroundColor = color("line")
@@ -695,7 +698,7 @@ final class LibraryListScreen: ShiziScreenViewController, UIScrollViewDelegate {
         // 这次排版照样重配（版次若在渲染时就换，那几行会带着新版次、旧内容被跳过）。
         let newContent = contentGeneration != renderGeneration
         contentGeneration = renderGeneration
-        rows.setItems(list.frames)
+        rows.setItems(layout.frames)
         updateRows()
         // 字形图缓存一次渲染收一轮（渲染后的这次排版把建出来的行都按新内容配过了）
         if newContent { glyphCache.endPass() }

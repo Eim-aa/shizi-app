@@ -122,6 +122,25 @@ enum RecordLookup {
         return out
     }
 
+    /// 对 values 的每一项分别给出 candidates(domain, [(field, values[i])]) 的那些记录：body(i, 记录)，对同一个 i 按展开顺序调用
+    /// （不同的 i 之间按月交错，调用方只按 i 各自累计）。每个月只取一次下标表，代价 O(月数 × values 个数 + 命中的条数)。
+    static func eachCandidate(_ domain: JSValue?, _ field: Field, _ values: [String], _ body: (Int, JSValue) -> Void) {
+        guard case .object(let months)? = domain, !values.isEmpty else { return }
+        let keys = months.keys
+        for month in keys {
+            guard let value = months[month], let list = flatList(value), !list.isEmpty else {
+                forget(month)
+                continue
+            }
+            let idx = index(month, list)
+            for (i, v) in values.enumerated() {
+                guard let hits = idx.hits(field, v) else { continue }
+                for n in hits { body(i, list[n]) }
+            }
+        }
+        trim(keys)
+    }
+
     /// 全部记录里 field 可能等于 value 的那些（见类型说明）；value 不是字串时 = 全部记录（Query.flattenRecords）。
     static func records(_ state: JSObject, _ field: Field, _ value: JSValue?) -> [JSValue] {
         guard case .string(let v)? = value else { return Query.flattenRecords(state["records"]) }

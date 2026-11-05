@@ -65,6 +65,14 @@ public enum Query {
 
     /// 拼音匹配的字：先找读音完全相同的，没有再找以它开头的；本人写过的在前，再按 entries 顺序。
     public static func pinyinMatches(_ query: String, _ entries: [JSValue], written: [String]? = nil, max: JSValue? = nil) -> [String] {
+        let chars = pinyinCandidates(query, entries)
+        var w = OSet()
+        for c in written ?? [] { w.insert(c) }
+        return pinyinOrder(chars.map { w.contains($0) }, max: max).map { chars[$0] }
+    }
+
+    /// pinyinMatches 的前半：命中的字（读音完全相同的，没有再找以它开头的），按 entries 顺序、逐码点去重。
+    static func pinyinCandidates(_ query: String, _ entries: [JSValue]) -> [String] {
         if query.isEmpty { return [] }
         let list = entries.filter { e in JSX.truthy(e) && JSX.truthy(e["char"]) && JSX.truthy(e["key"]) }
         func key(_ e: JSValue) -> String { Copy.jsString(e["key"]!) }
@@ -72,10 +80,13 @@ public enum Query {
         if hits.isEmpty { hits = list.filter { key($0).utf8.starts(with: query.utf8) } }
         var seen = OSet()
         let uniq = hits.filter { e in seen.insert(Copy.jsString(e["char"]!)) }
-        var w = OSet()
-        for c in written ?? [] { w.insert(c) }
-        let chars = uniq.map { Copy.jsString($0["char"]!) }
-        let out = chars.filter { w.contains($0) } + chars.filter { !w.contains($0) }
+        return uniq.map { Copy.jsString($0["char"]!) }
+    }
+
+    /// pinyinMatches 的后半：written[i] = 第 i 个候选字本人写过。给出排好、截好的候选下标（写过的在前，各自保持原顺序）。
+    static func pinyinOrder(_ written: [Bool], max: JSValue? = nil) -> [Int] {
+        let all = Array(written.indices)
+        let out = all.filter { written[$0] } + all.filter { !written[$0] }
         let cap: Double
         if let m = max { if case .number(let d) = m { cap = d } else { cap = -1 } } else { cap = Double(pinyinMax) }
         if cap.isFinite, cap.rounded(.towardZero) == cap, cap > 0 { return Array(out.prefix(cap > Double(out.count) ? out.count : Int(cap))) }
@@ -167,7 +178,9 @@ public enum Query {
             notes.append(.object(JSObject([("key", .string("R-Q03.removed")), ("vars", .object(JSObject([("n", .number(Double(f.removed)))])))])))
         }
         if !f.duplicates.isEmpty, let v = view, JSX.eq(v, "rows") {
-            let listed = f.duplicates.filter { ch in f.chars.contains { JSX.eq($0, ch) } }
+            var shown = OSet()
+            for c in f.chars { shown.insert(c) }
+            let listed = f.duplicates.filter { shown.contains($0) }
             if listed.count == 1 {
                 notes.append(.object(JSObject([("key", .string("R-Q03.duplicate")), ("vars", .object(JSObject([("char", .string(listed[0]))])))])))
             } else if listed.count > 1 {
@@ -211,6 +224,13 @@ public enum Query {
 
     public static func isCustom(_ custom: JSValue?, _ char: String) -> Bool { customChars(custom).contains { JSX.eq($0, char) } }
 
+    /// customChars 的集合（逐码点）：contains(c) 与 isCustom(custom, c) 相同，查一个字 O(1)。
+    static func customSet(_ custom: JSValue?) -> OSet {
+        var out = OSet()
+        for c in customChars(custom) { out.insert(c) }
+        return out
+    }
+
     /// custom 域加一个字（D21）。已在里面返回 nil；不合法抛 TypeError。
     public static func withCustomAdded(_ custom: JSValue?, _ char: JSValue, _ at: JSValue) throws -> JSValue? {
         guard isHan(char), case .string(let c) = char else { throw CoreError.type("withCustomAdded: char must be a single Han character") }
@@ -229,6 +249,35 @@ public enum Query {
         let cardKey = baseKey(char)
         let count = Records.judgedCountOfCard(records, cardKey)
         let latest = count > 0 ? Records.latestJudged(records, cardKey) : nil
+        return charSummary(char, count: count, latest: latest, sched: sched, customFlag: isCustom(custom, char), practicable: practicable)
+    }
+
+    /// 一个字的判断次数与最近一次判断：count = Records.judgedCountOfCard(全部记录, base:字)，
+    /// latest = 有判断时的 Records.latestJudged(全部记录, base:字)（id 序号最大的第一条），否则 nil。
+    struct CardTally {
+        var count = 0
+        var latest: JSValue? = nil
+    }
+
+    /// chars 每个字的 CardTally（与 chars 对齐；重复的字各算各的），不展开全部记录：只看 RecordLookup 给的「cardKey 与 base:字 规范等价」的记录。
+    /// 等价：judgedCountOfCard / latestJudged 只认 isJudged 且 cardKey 是字串、与 base:字 逐字节相同的记录——逐字节相同 ⇒ 规范等价，所以它们全在候选里，
+    /// 且候选是展开顺序的子序列；候选上用同一个条件筛、按同样的顺序累计（latestJudgedByCard 的「严格更大才换」），次数与那一条都相同。
+    /// 代价 O(月数 × 字数 + 这些字的记录数)；各月下标表按存储记住（状态不变时连续打字不重建）。
+    static func cardTallies(_ domain: JSValue?, _ chars: [String]) -> [CardTally] {
+        let keys = chars.map(baseKey)
+        var out = [CardTally](repeating: CardTally(), count: keys.count)
+        RecordLookup.eachCandidate(domain, .card, keys) { i, r in
+            guard Records.isJudged(r), JSX.eq(r["cardKey"], keys[i]) else { return }
+            out[i].count += 1
+            if let prev = out[i].latest, !(Records.compareRecordIds(prev["id"], r["id"]) < 0) { return }
+            out[i].latest = r
+        }
+        return out
+    }
+
+    /// 摘要本体：次数、最近一次判断（nil = 没有）与 custom 标志已算好。
+    static func charSummary(_ char: String, count: Int, latest: JSValue?, sched: JSValue?, customFlag: Bool, practicable: Bool) -> JSValue {
+        let cardKey = baseKey(char)
         var due: JSValue = .null
         if let s = sched, case .object = s, let entry = s[cardKey], JSX.truthy(entry), case .string(let d)? = entry["due"] { due = .string(d) }
         var latestDay: JSValue = .null
@@ -237,7 +286,7 @@ public enum Query {
             ("char", .string(char)),
             ("cardKey", .string(cardKey)),
             ("practicable", .bool(practicable)),
-            ("custom", .bool(isCustom(custom, char))),
+            ("custom", .bool(customFlag)),
             ("count", .number(Double(count))),
             ("latest", (latest.map { Records.isJudged($0) ? $0 : .null }) ?? .null),
             ("latestDay", latestDay),

@@ -34,17 +34,26 @@ public enum QueryView {
         let pred = predicates ?? deckPredicates(a["state"]?["settings"])
         func practicable(_ c: String) -> Bool { Query.isPracticable(.string(c), inDeck: pred.inDeck, inLibrary: pred.inLibrary) }
         let state = a["state"], policy = ViewSupport.policy(a["policy"])
-        let records = Query.flattenRecords(state?["records"])
+        // 不展开全部记录：每个字的次数 / 最近一次判断（与拼音的「写过」= 次数 > 0）只看这个字的记录（Query.cardTallies，与原来的全量扫描逐个相同）
+        let domain = state?["records"]
         var filtered = Query.filterInput(a["text"], max: policy["queryInputMax"])
         let py = filtered.hanCount == 0 ? Query.parsePinyinInput(a["text"]) : nil
         var pinyin: JSValue? = nil
+        let tallies: [Query.CardTally]
         if let py {
-            let chars = Query.pinyinMatches(JS.string(py["query"]), pred.pinyinEntries(), written: Query.writtenChars(records))
+            let candidates = Query.pinyinCandidates(JS.string(py["query"]), pred.pinyinEntries())
+            let all = Query.cardTallies(domain, candidates)
+            let order = Query.pinyinOrder(all.map { $0.count > 0 })
+            let chars = order.map { candidates[$0] }
+            tallies = order.map { all[$0] }
             pinyin = ViewSupport.obj([("raw", py["raw"]!), ("count", .number(Double(chars.count)))])
             filtered = Query.Filtered(chars: chars, removed: 0, duplicates: [], hanCount: 0, overLimit: 0, total: filtered.total)
+        } else {
+            tallies = Query.cardTallies(domain, filtered.chars)
         }
         let v = Query.queryView(chars: filtered.chars, cur: a["cur"]?.stringValue ?? "", practicable: practicable)
-        let summaries = filtered.chars.map { Query.charSummary($0, records: records, sched: state?["sched"], custom: state?["custom"], practicable: practicable($0)) }
+        let sched = state?["sched"], custom = Query.customSet(state?["custom"])
+        let summaries = filtered.chars.enumerated().map { i, c in Query.charSummary(c, count: tallies[i].count, latest: tallies[i].latest, sched: sched, customFlag: custom.contains(c), practicable: practicable(c)) }
         let chosen = a["mode"] == .string("pick") ? Query.selectedChars(filtered.chars, (a["selected"]?.arrayValue ?? []).compactMap(\.stringValue), practicable: practicable) : []
         let notes: [JSValue]
         if let pinyin { notes = JS.number(pinyin["count"]) > 0 ? [] : [entry("X-QUERY.pinyinNone", ViewSupport.obj([("char", pinyin["raw"]!)]))] }
@@ -84,9 +93,15 @@ public enum QueryView {
         let m = sheetModel(a, predicates: pred), mode = a["mode"] ?? .null, view = JS.string(m["view"]), cur = m["cur"]!
         var rows: [JSValue] = [], card: JSValue = .null, bad: JSValue = .null
         if view == "rows" {
+            // chosen 是字串列表：逐码点的集合与原来的 [JSValue].contains（字串逐码点比）同真假，查一行 O(1)
+            let chosenSet: OSet = {
+                var o = OSet()
+                for c in m["chosen"]!.arrayValue! { if case .string(let x) = c { o.insert(x) } }
+                return o
+            }()
             rows = (m["summaries"]?.arrayValue ?? []).map { s in
                 let c = pred.card(JS.string(s["char"]))
-                return ViewSupport.obj([("char", s["char"]!), ("pinyin", c?["py"] ?? .string("")), ("word", c?["word"] ?? .string("")), ("status", normalized(Query.rowStatus(s))), ("selectable", .bool(mode == .string("pick") && JS.truthy(s["practicable"]))), ("selected", .bool(m["chosen"]!.arrayValue!.contains(s["char"]!))), ("practicable", .bool(JS.truthy(s["practicable"]))), ("custom", .bool(JS.truthy(s["custom"]))), ("count", s["count"]!)])
+                return ViewSupport.obj([("char", s["char"]!), ("pinyin", c?["py"] ?? .string("")), ("word", c?["word"] ?? .string("")), ("status", normalized(Query.rowStatus(s))), ("selectable", .bool(mode == .string("pick") && JS.truthy(s["practicable"]))), ("selected", .bool(s["char"]!.stringValue.map { chosenSet.contains($0) } ?? m["chosen"]!.arrayValue!.contains(s["char"]!))), ("practicable", .bool(JS.truthy(s["practicable"]))), ("custom", .bool(JS.truthy(s["custom"]))), ("count", s["count"]!)])
             }
         }
         if ["card", "bad"].contains(view), let s = m["summary"], JS.truthy(s) {

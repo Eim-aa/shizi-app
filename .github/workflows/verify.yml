@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: |
           SHIZI_SCALE_BENCH=1 swift test -c release -Xswiftc -enable-testing --package-path ios/ShiziCore \
-            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests|LibraryInkBenchTests|ScaleBenchmarkTests|JudgeScaleEquivalenceTests' 2>&1 \
+            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests|LibraryInkBenchTests|ScaleBenchmarkTests|JudgeScaleEquivalenceTests|QueryScaleEquivalenceTests' 2>&1 \
             | grep -E "BENCH|error:|Executed [0-9]+ tests?|failed" | tee "$RUNNER_TEMP/bench-release.txt"
       - name: ShiziCore build + tests (verify:core)
         run: pnpm run verify:core

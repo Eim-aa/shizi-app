@@ -12,11 +12,11 @@ import XCTest
 //   BENCH annual-ink engine slots=<带墨迹的格数> cells=<月段里的格数> points=<回放点数> total=…ms view=…ms view-points=…ms read=…ms build=…ms build-points=…ms
 //     total = PageAPI.call("view.annual") 整个 op
 //     view  = 只算视图（MineSubView.annualView，同 op 传的参数：inkWire，平铺、每条墨迹只解一次）
-//     view-points = 同上，inkWire: false（改动前的路：每点一个 InkPoint.js 对象，每条墨迹解好几遍）对照
+//     view-points = 同上，inkWire: false（view.annual-page 的路：每点一个 InkPoint.js 对象；墨迹同样经 RecordInkMemo 每条只解一次）对照
 //     read  = 每个带墨迹的格各一次：store.getInk + InkMath.decodeInk + resampleForReplay
 //     build = 每个带墨迹的格各一次：回放点 → 回包里的 ink.points（AnnualInkWire.points，平铺）
 //     build-points = 同上，旧形状（每点一个 InkPoint.js 对象，同 DetailView.builtInk）对照
-//   view-points ≫ read + build-points：改动前视图里每条墨迹要解几遍（月段的 imagePlan 判有无墨迹、拼格各一遍，annualView 再拼一遍）。
+//   view − view-points ≈ build − build-points：两条路都每条墨迹只解一次，差在每点一个对象还是每笔一个平铺数组。
 // 每个量跑 3 次取中位数（先空跑一次）。
 
 final class AnnualInkBenchTests: XCTestCase {
@@ -71,7 +71,7 @@ final class AnnualInkBenchTests: XCTestCase {
 
     static var args: JSObject { JSObject([("year", .number(Double(year)))]) }
 
-    /// 只算视图（同 MineSubAPI 给 annualView 的参数；inkWire: false = 改动前的路）。
+    /// 只算视图（同 MineSubAPI 给 annualView 的参数；inkWire: false = 旧形状，view.annual-page 的路）。
     static func view(_ store: Store, inkWire: Bool = true) throws -> JSValue {
         try MineSubView.annualView(.object(store.state), today: try store.dates.localDay(.number(store.now())), year: .number(Double(year)), policy: Config.policy, inkWire: inkWire, dates: store.dates)
     }

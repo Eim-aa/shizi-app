@@ -147,9 +147,20 @@ public enum ImageSelection {
     guard dates.isValidMonth(.string(month)) else { throw CoreError.badArgs("INVALID_MONTH") }
     let has: InkPick.HasInk =
       hasInk ?? { InkPick.storedInkPresent(state, $0, timeZone: dates.timeZone) }
-    let records = WorkMembers.workMemberRecords(
-      flattenRecords(state["records"]), hasInk: has, added: .init(added)
-    ).filter { str($0["localDay"]).hasPrefix(month + "-") }
+    // 原写法：flattenRecords（全部记录按 id 稳定排序）→ workMemberRecords（过成员规则、再稳定排序）→ 筛这个月。
+    // 比较只看 id 序号（不合法 -1；两个 +∞ 比较得 NaN 当相等），是一个严格弱序，所以稳定排序的结果唯一：按序号升序、序号相同的保持
+    // 平铺时的先后。筛选只按每条自己的字段（谓词无副作用），筛前排与筛后排得到的是同一串；排过的再排也不变。
+    // 于是先把这个月的成员记录筛出来、再按 id 稳定排一次（sortById：同一个归并、同一个差值），与原来逐条相同，排序只在一个月的记录上做。
+    let prefix = month + "-", ids = WorkMembers.Added(added)
+    let rows = (state["records"]?.objectValue?.keys ?? []).flatMap { key -> [JSValue] in
+      let v = state["records"]?[key]
+      return v?.arrayValue ?? v?["kept"]?.arrayValue ?? []
+    }
+    let records = Records.sortById(
+      rows.filter {
+        $0["id"]?.stringValue != nil && str($0["localDay"]).hasPrefix(prefix)
+          && WorkMembers.isWorkMember($0, hasInk: has, added: ids)
+      })
     let picker: WorkMembers.PickInk = hasInk.map { .test($0) } ?? .none
     let prefer: JSValue = .string(pick == "first" ? "first" : "last")
     var days: [String] = []
@@ -157,12 +168,21 @@ public enum ImageSelection {
     if let fold = folded(state, month) {
       let byDay = Records.foldWorkByDay(fold)
       days = byDay.keys.filter { $0.hasPrefix(month + "-") }.sorted()
-      var seen: [JSValue] = []
+      // 每字的记录：按 char(r) 分桶一次（Swift String 的字典，判等与原来的 `char($0) == str(ch)` 同为 String ==），桶内保持 records 的先后
+      var byChar: [String: [JSValue]] = [:]
+      for r in records { byChar[char(r), default: []].append(r) }
+      // 见过的字：字串按逐码点（JSKey，与 JSValue 的 == 相同）放进集合；非字串（旧版折叠里可能有）仍按 == 线性比，字串与非字串从不相等
+      var seenStrings = Set<JSKey>()
+      var seenOther: [JSValue] = []
       for d in days {
         for ch in byDay[d]?.arrayValue ?? [] {
-          if seen.contains(ch) { continue }
-          seen.append(ch)
-          let list = records.filter { char($0) == str(ch) }
+          if case .string(let s) = ch {
+            if !seenStrings.insert(JSKey(s: s)).inserted { continue }
+          } else {
+            if seenOther.contains(ch) { continue }
+            seenOther.append(ch)
+          }
+          let list = byChar[str(ch)] ?? []
           let m = WorkMembers.workMembers(
             list, prefer: prefer, hasInk: has, pickInk: picker, added: .init(added)
           ).first
@@ -175,9 +195,10 @@ public enum ImageSelection {
         }
       }
     } else {
+      var seenDays = Set<String>()  // 与原来的 days.contains（String ==）同一判等
       for r in records {
         let d = str(r["localDay"])
-        if !days.contains(d) { days.append(d) }
+        if seenDays.insert(d).inserted { days.append(d) }
       }
       days.sort()
       members = WorkMembers.workMembers(

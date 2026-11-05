@@ -112,9 +112,15 @@ public enum ImageSelection {
     guard dates.isValidDay(.string(day)) else { throw CoreError.badArgs("INVALID_DAY") }
     let has: InkPick.HasInk =
       hasInk ?? { InkPick.storedInkPresent(state, $0, timeZone: dates.timeZone) }
-    let inDay = WorkMembers.workMemberRecords(
-      flattenRecords(state["records"]), hasInk: has, added: .init(added)
-    ).filter { str($0["localDay"]) == day }
+    // 原写法：flattenRecords（全部记录按 id 稳定排序）→ workMemberRecords（过成员规则、再按 id 稳定排序）→ 筛这一天。
+    // 与 monthMembers 同一推法（见那里的注释）：按 id 序号的比较是严格弱序，稳定排序的结果唯一；筛选只看每条自己的字段，筛前排与筛后排是同一串。
+    // 于是先筛出这一天的成员记录、再按 id 稳定排一次（sortById），排序与 hasInk（看后自写要问墨迹）只落在这一天的记录上，不再是全部历史。
+    let ids = WorkMembers.Added(added)
+    let inDay = Records.sortById(
+      monthRows(state).filter {
+        $0["id"]?.stringValue != nil && str($0["localDay"]) == day
+          && WorkMembers.isWorkMember($0, hasInk: has, added: ids)
+      })
     let pick: WorkMembers.PickInk = hasInk.map { .test($0) } ?? .none
     var members: [JSValue]
     if let fold = folded(state, String(day.prefix(7))) {

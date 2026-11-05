@@ -905,10 +905,66 @@ final class LibraryVirtualCellsTests: XCTestCase {
             }
             XCTAssertTrue(vc.cells.liveIndices.contains(0))
             LibraryVirtual.scroll(vc, w, to: bottom)
-            vc.apply(payload: LibraryVirtual.payload(48, ink: ink)) // 内容变短：滚动位置被夹回，格子按新的框重建
+            vc.apply(payload: LibraryVirtual.payload(48, ink: ink)) // 内容变短：格子按新的框重建（滚动位置不靠 UIScrollView 自己夹回，明确滚回顶）
             LibraryBench.settle(w)
+            verify("n=\(n) to 48, still at the old offset")
+            LibraryVirtual.scroll(vc, w, to: 0)
             verify("n=\(n) to 48")
             XCTAssertEqual(vc.cells.liveIndices, Array(0..<48))
+        }
+    }
+
+    /// 每格都换了内容（字 / 新旧档 / 双钩 / 拼音）的另一份回包，格子序号与原来重叠。
+    static func changed(_ p: [String: Any]) -> [String: Any] {
+        guard var view = p["view"] as? [String: Any], var groups = view["groups"] as? [Any] else { return p }
+        let chars = LibraryBench.chars(97)
+        var k = 0
+        for gi in groups.indices {
+            guard var g = groups[gi] as? [String: Any], let cells = g["cells"] as? [Any] else { continue }
+            g["cells"] = cells.map { raw -> Any in
+                guard var c = raw as? [String: Any] else { return raw }
+                c["char"] = chars[(k * 7 + 3) % chars.count]
+                c["tone"] = LibraryBench.num(Double((k + 1) % 4))
+                if k % 3 == 0 { c["kind"] = "hollow"; c["record"] = NSNull() }
+                c["py"] = "p\(k % 5)"
+                k += 1
+                return c
+            }
+            groups[gi] = g
+        }
+        view["groups"] = groups
+        var out = p
+        out["view"] = view
+        return out
+    }
+
+    /// 渲染了一份新回包、还没排版时来了滚动（惯性滚动中重拉、底部时排版前的滚动位置变化）：建出来的格子不能留着旧的内容。
+    /// 两条路：滚动回调（排版前不建格子）、直接 updateCells（用旧 wall 建的格子按旧 wall 记，排版后按新 wall 重配内容）。之后每格的摘要 = 新配的。
+    func testScrollBetweenRenderAndLayoutKeepsNoStaleContent() throws {
+        for direct in [false, true] {
+            for ink in [true, false] {
+                let vc = LibraryVirtual.make(all: false)
+                let w = LibraryBench.host(vc)
+                defer { LibraryBench.unhost(w) }
+                let p1 = LibraryVirtual.payload(1500, ink: ink)
+                vc.apply(payload: p1)
+                LibraryBench.settle(w)
+                let h = vc.scroll.bounds.height
+                LibraryVirtual.scroll(vc, w, to: h * 4)
+                vc.apply(payload: Self.changed(p1)) // 渲染了，排版还没来（apply 只标 setNeedsLayout）
+                vc.scroll.contentOffset = CGPoint(x: 0, y: h * 7.3) // 滚过 overscan：新的格子要进来
+                if direct { vc.updateCells() }
+                LibraryBench.settle(w)
+                let traits = vc.traitCollection
+                let what = "\(direct ? "updateCells" : "scroll callback") \(ink ? "ink" : "glyph")"
+                let problems = vc.cells.check(visible: vc.scroll.bounds) { LibraryVirtual.digest($0, traits) }
+                XCTAssertEqual(Array(problems.prefix(5)), [], "\(what): \(problems.count) problem(s)")
+                XCTAssertEqual(LibraryVirtual.hierarchyProblems(vc), [], what)
+                // 再滚一段（排版之后的滚动照常建格子）
+                LibraryVirtual.scroll(vc, w, to: h * 9.1)
+                let after = vc.cells.check(visible: vc.scroll.bounds) { LibraryVirtual.digest($0, traits) }
+                XCTAssertEqual(Array(after.prefix(5)), [], "\(what) then scroll: \(after.count) problem(s)")
+            }
         }
     }
 }

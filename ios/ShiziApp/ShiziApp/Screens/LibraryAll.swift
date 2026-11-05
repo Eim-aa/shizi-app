@@ -186,12 +186,13 @@ final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
     private var model: View?
     /// 网页量出来的值（组头的高 / 折行点 / 按钮宽）。
     private var webMetrics: WebMetrics?
-    /// 每组的格子（点格子看详情时按同一个序号找那个字）。
-    private var groupCells: [[Cell]] = []
     /// 回包 ink（按需解码：只解建出来的格子的记录）。
     private let inkStore = LibraryInkStore()
     /// 第几次渲染（render 一次加一）：格子的内容（拼音 / 读屏名 / 墨迹）按渲染配，框按排版配。
     private var renderGeneration = 0
+    /// 此刻的 wall（格子的数据与框）是按第几次渲染的模型排出来的：layoutBody 在 setItems 之前设成 renderGeneration。
+    /// 格子内容按它记（不按 renderGeneration）：渲染之后、排版之前来的滚动建格子用的还是旧 wall 的数据，不能记成新的一次渲染。
+    private var wallGeneration = -1
     /// 可见框上下各多建几屏高的格子。2.5 屏：冻结的逐屏基线里最深的格子（all-pinyin XXXL：内容里 2357.5pt，可视区 768pt）
     /// 要在打开时就建出来（取证连屏外滚得到的元素一起记），需要 ≥ 2.07 屏。
     static let overscanViewports: CGFloat = 2.5
@@ -351,7 +352,6 @@ final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
         NativeType.set(findMiss, m.find.miss.text, font: mt.font(13), color: color("ink3"), line: mt.line("lh13"))
         findMiss.isHidden = m.find.miss.text.isEmpty
         // 分组
-        groupCells = m.groups.map { $0.cells }
         syncGroups(m)
         // 收起的月份
         syncClosed(m)
@@ -435,10 +435,10 @@ final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
     private func configureCell(_ s: CellSlot, _ i: Int) {
         guard i < wall.cellData.count else { return }
         let cell = wall.cellData[i]
-        if s.index != i || s.generation != renderGeneration {
+        if s.index != i || s.generation != wallGeneration {
             configureCellContent(s, cell)
             s.index = i
-            s.generation = renderGeneration
+            s.generation = wallGeneration
         }
         configureCellLayout(s, cell, frame: wall.cells[i], cellW: wall.cellW)
     }
@@ -452,10 +452,12 @@ final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === scroll, isViewLoaded else { return }
+        // 渲染过、还没排版：wall 是旧模型的，等排版（已经标了 setNeedsLayout）按新的 wall 建
+        guard wallGeneration == renderGeneration else { return }
         updateCells()
-        // 滚动时新建的格子的字形图也进了缓存（一轮 = 一次排版，滚动不排版）：这一轮攒到 256 张就收一轮，缓存最多多占两轮的图；
-        // 收掉的图还在格子上显示着，只是下一次排版重配时要重画（与现画的逐字节相同）
-        if glyphCache.count > 256 { glyphCache.endPass() }
+        // 滚动时新建的格子的字形图也进了缓存（一轮 = 一次排版，滚动不排版）：这一轮攒到建出来的格子数的两倍（至少 256 张）就收一轮；
+        // 收掉的图还在格子上显示着，只是下一次排版重配时要重画（与现画的逐字节相同）。留两倍：滚过一屏多之后再排版（查字框打字）多半还命中
+        if glyphCache.count > max(256, 2 * cells.liveIndices.count) { glyphCache.endPass() }
     }
 
     /// 新建一格（按钮里放拼音标签；点按 → 这一格的字的详情）。
@@ -621,14 +623,8 @@ final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
     private func openCell(_ b: ShiziLineButton?) {
         guard let b else { return }
         var char = ""
-        // 建出来的格子里找这个按钮是第几格（格子按序号配，序号 → 组 / 组里第几格同排版时的模型）
-        if let i = cells.index(where: { $0.button === b }), i < wall.cellGroup.count {
-            let gi = wall.cellGroup[i]
-            if gi < groupCells.count, gi < wall.groups.count {
-                let ci = i - wall.groups[gi].firstCell
-                if ci >= 0, ci < groupCells[gi].count { char = groupCells[gi][ci].char }
-            }
-        }
+        // 建出来的格子里找这个按钮是第几格，字取这一格配的数据（同一份 wall）
+        if let i = cells.index(where: { $0.button === b }), i < wall.cellData.count { char = wall.cellData[i].char }
         guard !char.isEmpty else { return }
         Task { @MainActor [weak self] in
             guard let engine = self?.stage?.engine else { return }
@@ -755,6 +751,7 @@ final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
             gv.cellsMarker.frame = CGRect(x: 0, y: box.gridTop, width: width, height: box.gridH)
         }
         // 格子：只建 / 配可见框 ± overscan 里的（滚动时 scrollViewDidScroll 再补；排版收尾时滚动区定了高再核一次）
+        wallGeneration = renderGeneration
         cells.setItems(wall.cellsInContent)
         updateCells()
         y = wall.bottom

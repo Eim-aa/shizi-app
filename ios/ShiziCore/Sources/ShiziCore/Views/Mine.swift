@@ -2,10 +2,14 @@ import Foundation
 
 extension ViewSupport {
     package struct RecordIndex {
-        package var judged: [JSValue]; var folded: JSObject; package var days: KeySet; var ink: JSValue; package var afterSeen: [JSValue]; var dates: Dates
-        var works: [JSValue] {
+        package let judged: [JSValue]; let folded: JSObject; package let days: KeySet; let ink: JSValue; package let afterSeen: [JSValue]; let dates: Dates
+        /// 作品成员记录（judged ∪ 看后自写，id 升序）。建索引时算一次：原先是计算属性，每读一次就重新合并、排序、过滤一遍
+        /// （记录页每个有记录的日子各读一次）。字段都是 let，算出来的与每次现算的相同。
+        let works: [JSValue]
+        init(judged: [JSValue], folded: JSObject, days: KeySet, ink: JSValue, afterSeen: [JSValue], dates: Dates) {
+            self.judged = judged; self.folded = folded; self.days = days; self.ink = ink; self.afterSeen = afterSeen; self.dates = dates
             let all = afterSeen.isEmpty ? judged : Records.sortById(judged + afterSeen)
-            return all.filter { WorkMembers.isWorkMember($0, hasInk: { InkPick.storedInkPresent(.object(JSObject([("ink", ink)])), $0, timeZone: dates.timeZone) }) }
+            works = all.filter { WorkMembers.isWorkMember($0, hasInk: { InkPick.storedInkPresent(.object(JSObject([("ink", ink)])), $0, timeZone: dates.timeZone) }) }
         }
         package var js: JSValue { ViewSupport.obj([("judged", .array(judged)), ("folded", .object(folded)), ("days", .array(days.items.map(JSValue.string))), ("ink", ink), ("afterSeen", .array(afterSeen))]) }
     }

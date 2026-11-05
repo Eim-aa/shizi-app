@@ -861,8 +861,10 @@ public enum InkMath {
         var out: [[InkPoint]] = []
         for row in rows {
             guard row.allSatisfy({ $0.isFinite && $0.rounded(.towardZero) == $0 }), let first = row.first else { continue }
+            // 先认 stride 再转 Int：首项是 ≥ 2^63 的整数（会话现场 current.strokes 落盘只校验「每笔是数组」）时 Int(first) 会直接崩
+            if first != 3 && first != 4 { continue }
             let stride = Int(first)
-            if (first != 3 && first != 4) || (row.count - 1) % stride != 0 || row.count < 1 + stride { continue }
+            if (row.count - 1) % stride != 0 || row.count < 1 + stride { continue }
             var pts: [InkPoint] = []
             var t = 0.0
             var j = 1
@@ -894,9 +896,9 @@ public enum InkMath {
 
     /// encodeRawStrokes 的一行是否合法（stride 3 / 4、整数、至少一个点）。
     public static func isRawStrokeRow(_ row: [Double]) -> Bool {
-        guard row.count >= 4, row.allSatisfy({ $0.isFinite && $0.rounded(.towardZero) == $0 }) else { return false }
-        let stride = Int(row[0])
-        return (row[0] == 3 || row[0] == 4) && row.count >= 1 + stride && (row.count - 1) % stride == 0
+        guard row.count >= 4, row.allSatisfy({ $0.isFinite && $0.rounded(.towardZero) == $0 }), row[0] == 3 || row[0] == 4 else { return false }
+        let stride = Int(row[0]) // 已是 3 / 4：不会因首项过大而 Int(_:) 崩
+        return row.count >= 1 + stride && (row.count - 1) % stride == 0
     }
 
     /// encodeRawStrokes 的一行 → 打包串；行不合法返回 nil。
@@ -907,13 +909,18 @@ public enum InkMath {
         var px = 0.0, py = 0.0, pp = 0.0
         var j = 1
         while j < row.count {
-            pushVarint(&bytes, zz(row[j] - px))
-            pushVarint(&bytes, zz(row[j + 1] - py))
+            // 相邻差溢出成 ±∞（两点都接近 ±Double.greatestFiniteMagnitude）时 pushVarint 会 Int(NaN) 崩：当坏行，返回 nil
+            let ux = zz(row[j] - px), uy = zz(row[j + 1] - py)
+            guard ux.isFinite, uy.isFinite else { return nil }
+            pushVarint(&bytes, ux)
+            pushVarint(&bytes, uy)
             pushVarint(&bytes, JSMath.max(0, row[j + 2]))
             px = row[j]
             py = row[j + 1]
             if stride == 4 {
-                pushVarint(&bytes, zz(row[j + 3] - pp))
+                let up = zz(row[j + 3] - pp)
+                guard up.isFinite else { return nil }
+                pushVarint(&bytes, up)
                 pp = row[j + 3]
             }
             j += stride

@@ -20,7 +20,22 @@ import XCTest
 ///     从顶滚到底，每步半屏（contentOffset → layoutIfNeeded → flush：新建 / 重配进来的格子、画墨都在这一步里）
 /// 合成回包：形状同 ShiziCore LibrarySubAPI（{ok, view, ink}；ink 由 LibraryInkWire 拼、经 EngineValue.any 过边界，同引擎真发的）；
 /// 字取包里有字形数据的字（Web/data/<字>.json）；每个墨迹 8 笔 × 62 点（≈ 网页 resampleForReplay 之后的一字）。页面挂在 393 × 852 的窗口里。
-/// n = 300 时 relayout / reapply 各量 3 次取中位数，n = 1500 时各 1 次（控制总时长）。
+/// n ≤ 300 时 relayout / reapply 各量 3 次取中位数，更大的各 1 次（控制总时长）。
+/// 规模：默认 300 / 900（CI 的 Debug 模拟器）；SHIZI_SCALE_BENCH 时 300 / 1500 / 5000（见 AppScale）。
+/// 大规模的量测 / 对照开关：默认（CI 的 Debug 模拟器）只跑中等规模（仍大于 overscan、格子照样被裁掉 / 复用）；
+/// 设了 SHIZI_SCALE_BENCH（xcodebuild 下用 TEST_RUNNER_SHIZI_SCALE_BENCH=1 传进测试进程）才跑 1500 / 3000 / 5000 与它们的全部建出来对照。
+enum AppScale {
+    static let enabled: Bool = !(ProcessInfo.processInfo.environment["SHIZI_SCALE_BENCH"] ?? "").isEmpty
+
+    /// 默认用 normal，开了大规模用 scale。
+    static func pick<T>(_ normal: T, scale: T) -> T { enabled ? scale : normal }
+
+    /// stdout 改成行缓冲（只做一次）：BENCH / [library-eq] 行随跑随出，不攒到进程退出（CI 被取消时也看得到跑到了哪一条）。
+    private static let lineBuffered: Int32 = setvbuf(stdout, nil, _IOLBF, 0)
+
+    static func streamOutput() { _ = lineBuffered }
+}
+
 @MainActor
 enum LibraryBench {
     static let windowSize = CGSize(width: 393, height: 852)
@@ -29,7 +44,10 @@ enum LibraryBench {
 
     static func ms(_ from: UInt64, _ to: UInt64) -> Double { Double(to - from) / 1e6 }
 
-    static func now() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
+    static func now() -> UInt64 {
+        AppScale.streamOutput()
+        return DispatchTime.now().uptimeNanoseconds
+    }
 
     static func median(_ xs: [Double]) -> Double {
         guard !xs.isEmpty else { return 0 }
@@ -134,6 +152,7 @@ enum LibraryBench {
 
     /// 页面挂进一个 393 × 852 的窗口（显示出来：墨迹小图 / 标签要真的画）。
     static func host(_ vc: UIViewController) -> UIWindow {
+        AppScale.streamOutput()
         let frame = CGRect(origin: .zero, size: windowSize)
         let w: UIWindow
         if let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first {
@@ -245,12 +264,15 @@ enum LibraryBench {
 @MainActor
 final class LibraryBenchTests: XCTestCase {
     func testLibraryAllReloadCost() throws {
-        for n in [300, 1500, 5000] {
+        // 默认 300 / 900（全部建出来的对照在 300）；SHIZI_SCALE_BENCH 时 300 / 1500 / 5000（对照在 1500）
+        let sizes: [Int] = AppScale.pick([300, 900], scale: [300, 1500, 5000])
+        let compareAt: Int = AppScale.pick(300, scale: 1500)
+        for n in sizes {
             for ink in [true, false] {
                 let payload = LibraryBench.allPayload(n, ink: ink)
                 LibraryBench.run("library-all", variant: ink ? "ink" : "glyph", n: n,
                                  make: { LibraryAllScreen(screen: "library-all", entryId: "bench", params: [:]) }, payload: payload)
-                if n == 1500 { // 对照：全部格子都建出来（以前的做法）
+                if n == compareAt { // 对照：全部格子都建出来（以前的做法）
                     LibraryBench.run("library-all", variant: ink ? "ink-all" : "glyph-all", n: n, make: {
                         let vc = LibraryAllScreen(screen: "library-all", entryId: "bench", params: [:])
                         vc.cells.materializeAll = true
@@ -263,7 +285,8 @@ final class LibraryBenchTests: XCTestCase {
 
     /// 只建看得见的格子之后，滚动的每一步要多久（新进来的格子在这一步里建 / 配 / 画）。
     func testLibraryAllScrollCost() throws {
-        for n in [1500, 5000] {
+        let sizes: [Int] = AppScale.pick([900], scale: [1500, 5000])
+        for n in sizes {
             for ink in [true, false] {
                 LibraryBench.scrollRun(variant: ink ? "ink" : "glyph", n: n, payload: LibraryBench.allPayload(n, ink: ink))
             }
@@ -271,7 +294,8 @@ final class LibraryBenchTests: XCTestCase {
     }
 
     func testLibraryAllInkDecodeCost() throws {
-        for n in [300, 1500] {
+        let sizes: [Int] = AppScale.pick([300, 900], scale: [300, 1500])
+        for n in sizes {
             let ink = try XCTUnwrap(LibraryBench.allPayload(n, ink: true)["ink"] as? [String: Any])
             let old = try XCTUnwrap(LibraryBench.allPayload(n, ink: true, legacy: true)["ink"] as? [String: Any])
             var times: [Double] = [], perPoint: [Double] = [], direct: [Double] = []
@@ -303,7 +327,9 @@ final class LibraryBenchTests: XCTestCase {
     ///   BENCH library-all ink-wire format=<flat|points> n=… points=… build=…ms convert=…ms decode=…ms
     ///     build = 引擎侧拼 JSValue（LibraryInkWire.record）；flat = 现在发的平铺形状，points = 旧形状（每点一个 {x, y, w}）对照
     func testLibraryInkWireCost() throws {
-        for (n, legacy) in [(300, false), (300, true), (1500, false), (1500, true)] {
+        let big: Int = AppScale.pick(900, scale: 1500)
+        let cases: [(Int, Bool)] = [(300, false), (300, true), (big, false), (big, true)]
+        for (n, legacy) in cases {
             var builds: [Double] = [], converts: [Double] = [], decodes: [Double] = []
             var points = 0
             for _ in 0..<3 {

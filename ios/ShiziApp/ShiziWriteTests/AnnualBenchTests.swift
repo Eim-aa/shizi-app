@@ -15,7 +15,8 @@ import XCTest
 ///     flat = 现在发的（ink.points 由 AnnualInkWire 拼），points = 旧形状（每点一个 InkPoint.js 对象）对照
 ///   BENCH annual <ink|glyph> n=… first=… relayout=… reapply=… layers=… images=… backing≈…（同 LibraryBench.run：新页面 apply + 排版 + 提交，
 ///     再排一次版，同一份回包再 apply 一次）。月段的格子只建可见框 ± overscan 的（ShiziLazyCells，2.5 屏与 8 行取大的）；
-///     variant 带 -all 的（ink-all / glyph-all）= 测试开关 materializeAll（全部格子都建出来 = 以前的做法）对照，n = 300 / 1200 / 3000
+///     variant 带 -all 的（ink-all / glyph-all）= 测试开关 materializeAll（全部格子都建出来 = 以前的做法）对照，n = 300（SHIZI_SCALE_BENCH：300 / 1200 / 3000）
+/// 规模：默认 300 / 800（CI 的 Debug 模拟器）；SHIZI_SCALE_BENCH 时 300 / 1200 / 3000（见 AppScale）。
 ///   BENCH annual scroll <ink|glyph>[-all] n=… steps=… step=…pt median=…ms max=…ms live=<建出来的格子数> layers=… backing≈…MB
 ///     从顶滚到底，每步半屏（contentOffset → 滚动回调建 / 收格子、墨判要不要画 → layoutIfNeeded → flush：新进来的格子的配置与画墨都在这一步里）
 /// 合成回包：形状同 ShiziCore MineSubView.annualView(inkWire:)（每月一段、每段的格、今年首字、卷尾两格；ink.points 由 AnnualInkWire 拼），经 EngineValue.any 过边界，同引擎真发的；
@@ -130,7 +131,8 @@ enum AnnualBench {
 final class AnnualBenchTests: XCTestCase {
     /// 回包 view → AnnualScreen.View：改动前（旧形状 + ShiziDecode.value）/ 旧形状经 decodeView / 现在（平铺 + decodeView）。
     func testAnnualViewDecodeCost() throws {
-        for n in [300, 1200] {
+        let sizes: [Int] = AppScale.pick([300, 800], scale: [300, 1200])
+        for n in sizes {
             let raw = try XCTUnwrap(AnnualBench.payload(n, ink: true)["view"])
             let old = try XCTUnwrap(AnnualBench.payload(n, ink: true, legacy: true)["view"])
             var times: [Double] = [], perPoint: [Double] = [], direct: [Double] = []
@@ -161,7 +163,9 @@ final class AnnualBenchTests: XCTestCase {
 
     /// 引擎边界到视图：view 的 JSValue → [String: Any]（EngineValue.any）→ AnnualScreen.View。
     func testAnnualInkWireCost() throws {
-        for (n, legacy) in [(300, false), (300, true), (1200, false), (1200, true)] {
+        let big: Int = AppScale.pick(800, scale: 1200)
+        let cases: [(Int, Bool)] = [(300, false), (300, true), (big, false), (big, true)]
+        for (n, legacy) in cases {
             var builds: [Double] = [], converts: [Double] = [], decodes: [Double] = []
             var points = 0
             for _ in 0..<3 {
@@ -185,11 +189,14 @@ final class AnnualBenchTests: XCTestCase {
 
     /// 整页：新页面收回包、再排一次版、同一份回包再 apply 一次（每格都有墨迹 / 都是衬底字）；只建看得见的格子（产品）与全部建出来对照。
     func testAnnualReloadCost() throws {
-        for n in [300, 1200, 3000] {
+        // 默认 300 / 800（全部建出来的对照只在 300）；SHIZI_SCALE_BENCH 时 300 / 1200 / 3000、每个都对照
+        let sizes: [Int] = AppScale.pick([300, 800], scale: [300, 1200, 3000])
+        for n in sizes {
             for ink in [true, false] {
                 let payload = AnnualBench.payload(n, ink: ink)
                 LibraryBench.run("annual", variant: ink ? "ink" : "glyph", n: n,
                                  make: { AnnualScreen(screen: "annual", entryId: "bench", params: [:]) }, payload: payload)
+                guard AppScale.enabled || n <= 300 else { continue }
                 LibraryBench.run("annual", variant: ink ? "ink-all" : "glyph-all", n: n, make: {
                     let vc = AnnualScreen(screen: "annual", entryId: "bench", params: [:])
                     vc.cells.materializeAll = true
@@ -205,7 +212,8 @@ final class AnnualBenchTests: XCTestCase {
     ///     requests=<view.annual.ink 次数> keys=<取的键数>
     /// 墨迹表在内存里（假的 view.annual.ink 立刻回，回包同引擎发的形状：AnnualInkWire 平铺、经 EngineValue.any），量的是 App 收包、解、建格子、画的那部分。
     func testAnnualOpenLazyVsFull() throws {
-        for n in [300, 1200, 3000] {
+        let sizes: [Int] = AppScale.pick([300, 800], scale: [300, 1200, 3000])
+        for n in sizes {
             let fullJS = AnnualBench.view(n, ink: true)
             // 带 lazyInk 的形状（hand 格 ink = null + inkKey）与墨迹表：引擎直接拼的就是这个形状，换的耗时不计
             let (liteJS, inkJS) = AnnualLazy.splitJS(fullJS)
@@ -225,7 +233,7 @@ final class AnnualBenchTests: XCTestCase {
                         vc.apply(payload: payload)
                         LibraryBench.settle(w)
                         let t3 = LibraryBench.now()
-                        if lazy { XCTAssertTrue(AnnualLazy.waitInk(vc, w, timeout: 30), "n=\(n): ink arrives") }
+                        if lazy { XCTAssertTrue(AnnualLazy.waitInk(vc, w, timeout: AppScale.enabled ? 30 : 10), "n=\(n): ink arrives") }
                         let t4 = LibraryBench.now()
                         payloads.append(LibraryBench.ms(t0, t1))
                         firsts.append(LibraryBench.ms(t2, t3))
@@ -243,11 +251,13 @@ final class AnnualBenchTests: XCTestCase {
 
     /// 滚动的每一步要多久（新进来的格子在这一步里建 / 配 / 画；全部建出来时 = 以前每格一个 KVO 的做法之外的那部分）。
     func testAnnualScrollCost() throws {
-        for n in [300, 1200, 3000] {
+        let sizes: [Int] = AppScale.pick([300, 800], scale: [300, 1200, 3000])
+        let compareAt: Int = AppScale.pick(300, scale: 1200)
+        for n in sizes {
             for ink in [true, false] {
                 let payload = AnnualBench.payload(n, ink: ink)
                 AnnualBench.scrollRun(variant: ink ? "ink" : "glyph", n: n, all: false, payload: payload)
-                if n == 1200 { AnnualBench.scrollRun(variant: ink ? "ink" : "glyph", n: n, all: true, payload: payload) }
+                if n == compareAt { AnnualBench.scrollRun(variant: ink ? "ink" : "glyph", n: n, all: true, payload: payload) }
             }
         }
     }

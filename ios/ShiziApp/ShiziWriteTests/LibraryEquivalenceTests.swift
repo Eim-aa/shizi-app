@@ -51,14 +51,22 @@ final class LibraryTokenColorCacheTests: XCTestCase {
 
 @MainActor
 enum LibraryEq {
-    /// 一张整窗截图：原始像素 + 截图时各层的状态（对不上时打印哪里不同）。
+    /// 一层的状态（layerDump 的一行）。
+    typealias Layer = (path: String, line: String, frame: CGRect)
+
+    /// 设了 SHIZI_EQ_LAYERS 时每张截图当场记下各层的状态（全部建出来的页有上万层，每张都记很慢；默认只在两张对不上时才量）。
+    static let eagerLayers: Bool = ProcessInfo.processInfo.environment["SHIZI_EQ_LAYERS"] != nil
+
+    /// 一张整窗截图：原始像素 + 截的是哪个窗口（对不上时量各层的状态、打印哪里不同）。
     struct Shot {
         let data: Data
         let width: Int
         let height: Int
         let bytesPerRow: Int
         let scale: CGFloat
-        let layers: [(path: String, line: String, frame: CGRect)]
+        /// 截图那一刻各层的状态：只在 eagerLayers 时有；否则 nil，对不上时从 window 量此刻的。
+        let layers: [Layer]?
+        weak var window: UIWindow?
     }
 
     /// 整窗截图（drawHierarchy afterScreenUpdates：真的经过一次渲染，看到的是各层此刻的内容）的原始像素。
@@ -72,7 +80,8 @@ enum LibraryEq {
         XCTAssertTrue(drawn, "drawHierarchy", file: file, line: line)
         let cg = try XCTUnwrap(img.cgImage, file: file, line: line)
         let data = try XCTUnwrap(cg.dataProvider?.data as Data?, file: file, line: line)
-        return Shot(data: data, width: cg.width, height: cg.height, bytesPerRow: cg.bytesPerRow, scale: img.scale, layers: layerDump(w))
+        let layers: [Layer]? = eagerLayers ? layerDump(w) : nil
+        return Shot(data: data, width: cg.width, height: cg.height, bytesPerRow: cg.bytesPerRow, scale: img.scale, layers: layers, window: w)
     }
 
     private static func cgKey(_ c: CGColor?) -> String {
@@ -81,8 +90,8 @@ enum LibraryEq {
     }
 
     /// 窗口下每个看得见的层：路径、所属视图（类 / 标识）、窗口坐标、底色、描边、不透明度、内容对象；标签另记字色与视图外观。
-    static func layerDump(_ w: UIWindow) -> [(path: String, line: String, frame: CGRect)] {
-        var out: [(path: String, line: String, frame: CGRect)] = []
+    static func layerDump(_ w: UIWindow) -> [Layer] {
+        var out: [Layer] = []
         func walk(_ l: CALayer, _ path: String) {
             guard !l.isHidden, l.opacity > 0 else { return }
             let view = l.delegate as? UIView
@@ -150,22 +159,40 @@ enum LibraryEq {
         let k = max(1, a.scale)
         let box = maxX < 0 ? CGRect.null : CGRect(x: CGFloat(minX) / k, y: CGFloat(minY) / k, width: CGFloat(maxX - minX + 1) / k, height: CGFloat(maxY - minY + 1) / k)
         print("[library-eq]   \(count) px differ, box(pt)=\(box)")
-        let before = Dictionary(a.layers.map { ($0.path, $0.line) }, uniquingKeysWith: { x, _ in x })
-        let after = Dictionary(b.layers.map { ($0.path, $0.line) }, uniquingKeysWith: { x, _ in x })
+        // 各层的状态：截图时记下的（eagerLayers），否则此刻从窗口量（两张出自同一个窗口、之间改过状态时，量到的是此刻的）
+        let aLayers: [Layer] = layers(of: a), bLayers: [Layer] = layers(of: b)
+        if a.layers == nil || b.layers == nil {
+            let sameWindow = a.window != nil && a.window === b.window
+            print("[library-eq]   layer state measured now, not at capture\(sameWindow ? " (both shots from one window)" : "") — SHIZI_EQ_LAYERS=1 records it at capture")
+        }
+        if aLayers.isEmpty || bLayers.isEmpty { // 有一张的窗口已经关了：只列另一张落在外框里的层
+            print("[library-eq]   one window is gone; layers over the box (innermost last):")
+            for e in (aLayers.isEmpty ? bLayers : aLayers).filter({ $0.frame.intersects(box) }).suffix(10) { print("[library-eq]     \(e.path) \(e.line)") }
+            return false
+        }
+        let before = Dictionary(aLayers.map { ($0.path, $0.line) }, uniquingKeysWith: { x, _ in x })
+        let after = Dictionary(bLayers.map { ($0.path, $0.line) }, uniquingKeysWith: { x, _ in x })
         var shown = 0
-        for e in b.layers where before[e.path] != e.line && shown < 12 {
+        for e in bLayers where before[e.path] != e.line && shown < 12 {
             print("[library-eq]   layer \(e.path)\n      was: \(before[e.path] ?? "(absent)")\n      now: \(e.line)")
             shown += 1
         }
-        for e in a.layers where after[e.path] == nil && shown < 12 {
+        for e in aLayers where after[e.path] == nil && shown < 12 {
             print("[library-eq]   layer \(e.path) gone: \(e.line)")
             shown += 1
         }
         if shown == 0, !box.isNull {
             print("[library-eq]   layer state identical; layers over the box (innermost last):")
-            for e in a.layers.filter({ $0.frame.intersects(box) }).suffix(10) { print("[library-eq]     \(e.path) \(e.line)") }
+            for e in aLayers.filter({ $0.frame.intersects(box) }).suffix(10) { print("[library-eq]     \(e.path) \(e.line)") }
         }
         return false
+    }
+
+    /// 一张截图的各层状态：截图时记下的，否则此刻从它的窗口量（窗口已经关了 → 空）。
+    static func layers(of s: Shot) -> [Layer] {
+        if let l = s.layers { return l }
+        if let w = s.window { return layerDump(w) }
+        return []
     }
 
     static func inkViews(_ v: UIView) -> [LibraryInkView] {
@@ -775,6 +802,10 @@ enum LibraryVirtual {
     }
 
     static func bottomOffset(_ vc: LibraryAllScreen) -> CGFloat { max(0, vc.scroll.contentSize.height - vc.scroll.bounds.height) }
+
+    /// 墙的大格数：默认 900（≈ 113 行 × 44pt + 23 个组头 ≈ 6000pt，比可见框 ± 2.5 屏（≤ 6 × 852pt）高：中间时上下两头都裁掉）；
+    /// SHIZI_SCALE_BENCH 时 1500（以前的规模）。
+    static let bigN: Int = AppScale.pick(900, scale: 1500)
 }
 
 @MainActor
@@ -782,7 +813,8 @@ final class LibraryVirtualCellsTests: XCTestCase {
     /// 排版的框（wall）= 视图上的框：组 / 组头 / 墙格；全部建出来时每一格的按钮 / 墨迹小图的框 = 以前逐格排的算法（列 × 格宽、行 × 格高，
     /// 格宽 = 墙宽 / 列数、格高 = 墙高 / 行数，独立地从视图量回来），content 坐标 = 框 + 墙格原点；只建一部分时，建出来的格子同样。
     func testFrameModelMatchesTheViews() throws {
-        for n in [48, 300, 1500] {
+        let sizes: [Int] = [48, 300, LibraryVirtual.bigN]
+        for n in sizes {
             let payload = LibraryVirtual.payload(n, ink: true)
             let all = LibraryVirtual.make(all: true), virt = LibraryVirtual.make(all: false)
             let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
@@ -796,7 +828,7 @@ final class LibraryVirtualCellsTests: XCTestCase {
             XCTAssertEqual(all.cells.liveIndices, Array(0..<n), "n=\(n): materialize-all builds every cell")
             XCTAssertEqual(virt.wall.cells, wall.cells, "n=\(n): same frame model on both pages")
             XCTAssertEqual(virt.wall.cellsInContent, wall.cellsInContent)
-            if n >= 1500 { XCTAssertLessThan(virt.cells.liveIndices.count, n, "n=\(n): only part of the wall is built") }
+            if n >= LibraryVirtual.bigN { XCTAssertLessThan(virt.cells.liveIndices.count, n, "n=\(n): only part of the wall is built") }
             for vc in [all, virt] {
                 let gvs = LibraryVirtual.groups(vc)
                 XCTAssertEqual(gvs.count, wall.groups.count, "n=\(n)")
@@ -834,7 +866,8 @@ final class LibraryVirtualCellsTests: XCTestCase {
     /// 整窗截图逐字节相同：只建一部分 vs 全部建出来，滚到顶 / 中间 / 底 / 一个月份组头被上沿切开的位置，浅 / 深。
     /// 两页同时开着（各一个窗口），每个位置各截一张就比（不攒截图）。
     func testVirtualizedPixelsMatchMaterializeAll() throws {
-        for (n, ink) in [(1500, true), (300, false)] {
+        let cases: [(Int, Bool)] = [(LibraryVirtual.bigN, true), (300, false)]
+        for (n, ink) in cases {
             let payload = LibraryVirtual.payload(n, ink: ink)
             let all = LibraryVirtual.make(all: true), virt = LibraryVirtual.make(all: false)
             let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
@@ -862,27 +895,41 @@ final class LibraryVirtualCellsTests: XCTestCase {
                     let b = try LibraryEq.stableSnapshot(wv, "\(label) virtual")
                     XCTAssertTrue(LibraryEq.same(a, b, label), label)
                     XCTAssertEqual(LibraryVirtual.hierarchyProblems(virt), [], label)
+                    if n == LibraryVirtual.bigN, name == "middle" {
+                        let live = virt.cells.liveIndices
+                        XCTAssertFalse(live.contains(0) || live.contains(n - 1), "\(label): cells culled at both ends")
+                    }
                 }
             }
         }
     }
 
     /// 一步一步滚过整面墙（每步 0.37 屏往下，再每步 2.3 屏往上跳回顶）：每一步之后建出来的格子 = 逐个判断与可见框 ± overscan 相交的那些，
-    /// 没有一个格子用在两处，每格的状态摘要 = 新建一格按同一序号配出来的；视图树按序号。
-    /// 中途重收同一份回包（停在底部）、收一份小的回包（滚动位置被夹回）也一样。
+    /// 没有一个格子用在两处；视图树按序号。每格的状态摘要 = 新建一格按同一序号配出来的：顶、底、每次收回包之后与每 4 步核一次（每格新建探针、
+    /// 取字形图的像素，很慢），其余各步只核建了哪些（checkLive）。中途重收同一份回包（停在底部）、收一份小的回包（滚动位置被夹回）也一样。
+    /// 中间某一步上下两头都裁掉了（格子真的被收走、复用）。
     func testScrollStress() throws {
-        for (n, ink) in [(1500, true), (300, false)] {
+        let cases: [(Int, Bool)] = [(LibraryVirtual.bigN, true), (300, false)]
+        for (n, ink) in cases {
             let vc = LibraryVirtual.make(all: false)
             let w = LibraryBench.host(vc)
             defer { LibraryBench.unhost(w) }
             vc.apply(payload: LibraryVirtual.payload(n, ink: ink))
             LibraryBench.settle(w)
             let traits = vc.traitCollection
-            func verify(_ what: String) {
+            var culledBoth = false
+            func verify(_ what: String, deep: Bool = true) {
                 XCTAssertEqual(vc.cells.overscan, vc.scroll.bounds.height * LibraryAllScreen.overscanViewports, what)
-                let problems = vc.cells.check(visible: vc.scroll.bounds) { LibraryVirtual.digest($0, traits) }
+                let problems: [String]
+                if deep {
+                    problems = vc.cells.check(visible: vc.scroll.bounds) { (s: LibraryAllScreen.CellSlot) -> LibraryVirtual.Digest in LibraryVirtual.digest(s, traits) }
+                } else {
+                    problems = vc.cells.checkLive(visible: vc.scroll.bounds)
+                }
                 XCTAssertEqual(Array(problems.prefix(5)), [], "\(what): \(problems.count) problem(s)")
                 XCTAssertEqual(LibraryVirtual.hierarchyProblems(vc), [], what)
+                let live = vc.cells.liveIndices
+                if let first = live.first, let last = live.last, first > 0, last < n - 1 { culledBoth = true }
             }
             verify("n=\(n) open")
             let h = vc.scroll.bounds.height, bottom = LibraryVirtual.bottomOffset(vc)
@@ -891,17 +938,23 @@ final class LibraryVirtualCellsTests: XCTestCase {
                 y = min(bottom, y + h * 0.37)
                 LibraryVirtual.scroll(vc, w, to: y)
                 steps += 1
-                verify("n=\(n) down y=\(y)")
+                verify("n=\(n) down y=\(y)", deep: steps % 4 == 0 || y >= bottom)
             }
             XCTAssertGreaterThan(steps, 5)
             XCTAssertTrue(vc.cells.liveIndices.contains(n - 1), "n=\(n): the last cell is built at the bottom")
+            if n == LibraryVirtual.bigN {
+                XCTAssertTrue(culledBoth, "n=\(n): somewhere in the middle both ends of the wall were culled")
+                XCTAssertFalse(vc.cells.liveIndices.contains(0), "n=\(n): the first cells are gone at the bottom")
+            }
             vc.apply(payload: LibraryVirtual.payload(n, ink: ink)) // 同一份再收一次（= 查字框里打一个字），停在底部
             LibraryBench.settle(w)
             verify("n=\(n) reapply at bottom")
+            var upSteps = 0
             while y > 0 {
                 y = max(0, y - h * 2.3)
                 LibraryVirtual.scroll(vc, w, to: y)
-                verify("n=\(n) up y=\(y)")
+                upSteps += 1
+                verify("n=\(n) up y=\(y)", deep: upSteps % 4 == 0 || y <= 0)
             }
             XCTAssertTrue(vc.cells.liveIndices.contains(0))
             LibraryVirtual.scroll(vc, w, to: bottom)

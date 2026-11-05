@@ -7,7 +7,7 @@ import XCTest
 //   框的模型 = 视图上的框（行首尾相接、清单框的高）；行内排版的记忆 = 每次现算；
 //   整窗截图逐字节相同（顶 / 中 / 底，浅 / 深）；一步步滚过整个清单，每步建出来的行 = 逐个判断相交的那些、状态 = 新建一行配出来的；
 //   渲染之后、排版之前先滚一下（那时建的行按旧数据配）也一样；勾着的行滚走再滚回来仍是勾着的；底栏提示的字数不看建了几行。
-// 量测：BENCH library-list <ink|glyph|ink-all|glyph-all> n=300/1500/5000 …；BENCH library-list scroll …（同 LibraryBenchTests 的口径）。
+// 量测：BENCH library-list <ink|glyph|ink-all|glyph-all> n=300/600（SHIZI_SCALE_BENCH：300/1500/5000）…；BENCH library-list scroll …（同 LibraryBenchTests 的口径）。
 
 @MainActor
 enum LibraryListVirtual {
@@ -150,6 +150,12 @@ enum LibraryListVirtual {
         return problems
     }
 
+    /// 只核对建了哪些（便宜：不新建探针、不比摘要）。
+    static func checkLive(_ vc: LibraryListScreen) -> [String] { vc.rows.checkLive(visible: vc.scroll.bounds) }
+
+    /// 大的行数：默认 600（行高 ≥ 60pt → ≥ 36000pt，远大于可见框 ± overscan）；SHIZI_SCALE_BENCH 时 1500（以前的规模）。
+    static let bigN: Int = AppScale.pick(600, scale: 1500)
+
     /// 这一行看起来是勾着的：勾的图、读屏名「取消选择」、圆点实心。
     static func isChecked(_ rv: LibraryListRowView, char: String) -> Bool {
         rv.select.image(for: .normal) != nil && rv.select.accessibilityLabel == ShiziCopy.t("X-QUERY.unselectAria", ["char": char])
@@ -164,7 +170,8 @@ final class LibraryListVirtualTests: XCTestCase {
     /// 排版的框（list）= 视图上的框：行首尾相接（第一行在顶线下面）、清单框的高 = 行高之和 + 1；两种建法同一份框；
     /// 行内排版的记忆 = 现算；建出来的行的框 = 它那一行的框；底栏提示 / 主按钮 / 标题两种建法相同。
     func testFrameModelMatchesTheViews() throws {
-        for n in [12, 300, 1500] {
+        let sizes: [Int] = [12, 300, V.bigN]
+        for n in sizes {
             let payload = V.payload(n, ink: true)
             let all = V.make(all: true), virt = V.make(all: false)
             let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
@@ -209,7 +216,8 @@ final class LibraryListVirtualTests: XCTestCase {
 
     /// 整窗截图逐字节相同：只建一部分 vs 全部建出来，滚到顶 / 中间 / 底，浅 / 深。两页同时开着，每个位置各截一张就比。
     func testVirtualizedPixelsMatchMaterializeAll() throws {
-        for (n, ink) in [(1500, true), (300, false)] {
+        let cases: [(Int, Bool)] = [(V.bigN, true), (300, false)]
+        for (n, ink) in cases {
             let payload = V.payload(n, ink: ink)
             let all = V.make(all: true), virt = V.make(all: false)
             let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
@@ -236,52 +244,66 @@ final class LibraryListVirtualTests: XCTestCase {
                     let b = try LibraryEq.stableSnapshot(wv, "\(label) virtual")
                     XCTAssertTrue(LibraryEq.same(a, b, label), label)
                     XCTAssertEqual(V.hierarchyProblems(virt), [], label)
+                    if n == V.bigN, name == "middle" {
+                        let live = virt.rows.liveIndices
+                        XCTAssertFalse(live.contains(0) || live.contains(n - 1), "\(label): rows culled at both ends")
+                    }
                 }
             }
         }
     }
 
-    /// 一步一步滚过整个清单（300 行：每步 0.37 屏往下、2.3 屏往上；1500 行：每步 1.3 屏往下、3.1 屏往上，控制步数）：每一步之后建出来的行 = 逐个判断与可见框 ± overscan 相交的那些，
-    /// 没有一行用在两处，每行的状态 = 新建一行按同一序号配出来的；视图树按序号。
+    /// 一步一步滚过整个清单（300 行：每步 0.37 屏往下、2.3 屏往上；大的（V.bigN 行）：每步 1.3 屏往下、3.1 屏往上，控制步数）：每一步之后建出来的行 = 逐个判断与可见框 ± overscan 相交的那些，
+    /// 没有一行用在两处；视图树按序号。每行的状态 = 新建一行按同一序号配出来的：顶、底、每次收回包之后与每 4 步核一次，其余各步只核建了哪些（checkLive）。
     /// 中途重收同一份回包、收一份序号重叠的另一份（字 / 小字 / 勾选都换了）、收一份小的（先显式滚回顶：不靠滚动区自己夹回）也一样。
+    /// 中间某一步上下两头都裁掉了（行真的被收走、复用）。
     func testScrollStress() throws {
-        for (n, ink) in [(1500, true), (300, false)] {
+        let cases: [(Int, Bool)] = [(V.bigN, true), (300, false)]
+        for (n, ink) in cases {
             let vc = V.make(all: false)
             let w = LibraryBench.host(vc)
             defer { LibraryBench.unhost(w) }
             vc.apply(payload: V.payload(n, ink: ink))
             LibraryBench.settle(w)
-            func verify(_ what: String) {
+            var culledBoth = false
+            func verify(_ what: String, deep: Bool = true) {
                 let h = vc.scroll.bounds.height
                 XCTAssertEqual(vc.rows.overscan, max(h * LibraryListScreen.overscanViewports, LibraryListScreen.overscanRows * vc.list.averageRowHeight), what)
-                let problems = V.check(vc)
+                let problems: [String] = deep ? V.check(vc) : V.checkLive(vc)
                 XCTAssertEqual(Array(problems.prefix(5)), [], "\(what): \(problems.count) problem(s)")
                 XCTAssertEqual(V.hierarchyProblems(vc), [], what)
+                let live = vc.rows.liveIndices
+                if let first = live.first, let last = live.last, first > 0, last < vc.list.frames.count - 1 { culledBoth = true }
             }
             verify("n=\(n) open")
             let h = vc.scroll.bounds.height, bottom = V.bottomOffset(vc)
-            let down: CGFloat = n >= 1500 ? 1.3 : 0.37, up: CGFloat = n >= 1500 ? 3.1 : 2.3
+            let big = n >= V.bigN
+            let down: CGFloat = big ? 1.3 : 0.37, up: CGFloat = big ? 3.1 : 2.3
             var y: CGFloat = 0, steps = 0
             while y < bottom {
                 y = min(bottom, y + h * down)
                 V.scroll(vc, w, to: y)
                 steps += 1
-                verify("n=\(n) down y=\(y)")
+                verify("n=\(n) down y=\(y)", deep: steps % 4 == 0 || y >= bottom)
             }
             XCTAssertGreaterThan(steps, 5)
             XCTAssertTrue(vc.rows.liveIndices.contains(n - 1), "n=\(n): the last row is built at the bottom")
+            XCTAssertFalse(vc.rows.liveIndices.contains(0), "n=\(n): the first rows are gone at the bottom")
+            XCTAssertTrue(culledBoth, "n=\(n): somewhere in the middle both ends of the list were culled")
             vc.apply(payload: V.payload(n, ink: ink)) // 同一份再收一次（= 勾一下之后重拉），停在底部
             LibraryBench.settle(w)
             verify("n=\(n) reapply at bottom")
+            var upSteps = 0, swapped = false
             while y > 0 {
                 y = max(0, y - h * up)
                 V.scroll(vc, w, to: y)
-                verify("n=\(n) up y=\(y)")
-                if y < bottom / 2, y > 0, steps > 0 { // 中途换一份序号重叠的回包
+                upSteps += 1
+                verify("n=\(n) up y=\(y)", deep: upSteps % 4 == 0 || y <= 0)
+                if y < bottom / 2, y > 0, !swapped { // 中途换一份序号重叠的回包
                     vc.apply(payload: V.payload(n, ink: ink, alt: true))
                     LibraryBench.settle(w)
                     verify("n=\(n) alt payload y=\(y)")
-                    steps = 0
+                    swapped = true
                 }
             }
             XCTAssertTrue(vc.rows.liveIndices.contains(0))
@@ -377,13 +399,15 @@ final class LibraryListVirtualTests: XCTestCase {
 
 @MainActor
 final class LibraryListBenchTests: XCTestCase {
-    /// BENCH library-list <ink|glyph> n=300/1500/5000（产品：只建看得见的行）；n = 1500 另量 ink-all / glyph-all（全部行都建出来 = 以前的做法）。
+    /// BENCH library-list <ink|glyph> n=300/600（SHIZI_SCALE_BENCH：300/1500/5000）（产品：只建看得见的行）；n = 300（SHIZI_SCALE_BENCH：1500）另量 ink-all / glyph-all（全部行都建出来 = 以前的做法）。
     func testLibraryListVirtualReloadCost() throws {
-        for n in [300, 1500, 5000] {
+        let sizes: [Int] = AppScale.pick([300, 600], scale: [300, 1500, 5000])
+        let compareAt: Int = AppScale.pick(300, scale: 1500)
+        for n in sizes {
             for ink in [true, false] {
                 let payload = LibraryBench.listPayload(n, ink: ink)
                 LibraryBench.run("library-list", variant: ink ? "ink" : "glyph", n: n, make: { LibraryListVirtual.make(all: false) }, payload: payload)
-                if n == 1500 {
+                if n == compareAt {
                     LibraryBench.run("library-list", variant: ink ? "ink-all" : "glyph-all", n: n, make: { LibraryListVirtual.make(all: true) }, payload: payload)
                 }
             }
@@ -393,7 +417,8 @@ final class LibraryListBenchTests: XCTestCase {
     /// BENCH library-list scroll <ink|glyph> n=… steps=… step=…pt median=…ms max=…ms live=<建出来的行数> layers=… backing≈…MB
     /// 从顶滚到底，每步半屏（contentOffset → layoutIfNeeded → flush：新进来的行在这一步里建 / 配 / 画）。
     func testLibraryListScrollCost() throws {
-        for n in [1500, 5000] {
+        let sizes: [Int] = AppScale.pick([600], scale: [1500, 5000])
+        for n in sizes {
             for ink in [true, false] {
                 autoreleasepool {
                     let vc = LibraryListVirtual.make(all: false)

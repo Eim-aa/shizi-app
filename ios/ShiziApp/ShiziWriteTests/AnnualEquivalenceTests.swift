@@ -483,6 +483,10 @@ enum AnnualVirtual {
 
     static func bottomOffset(_ vc: AnnualScreen) -> CGFloat { max(0, vc.scroll.contentSize.height - vc.scroll.bounds.height) }
 
+    /// 大的格数：默认 800（每月 67 格 = 9 行 × 44pt + 段头 / 下边距 ≈ 480pt，12 段 ≈ 5700pt，比可见框 ± overscan（≤ 6 × 852pt）高：
+    /// 滚到中间时上下两头都裁掉）；SHIZI_SCALE_BENCH 时 1200（以前的规模）。
+    static let bigN: Int = AppScale.pick(800, scale: 1200)
+
     /// 页面里自己画的视图（墨、衬底字）。
     static func drawnViews(_ v: UIView) -> [UIView] {
         var out: [UIView] = []
@@ -497,7 +501,8 @@ final class AnnualVirtualCellsTests: XCTestCase {
     /// 排版的框（grid）= 视图上的框：段按钮 / 月名 / 字数；全部建出来时每一格的框 = 以前逐格排的算法（列 × 格边、格网上沿 + 行 × 格边，
     /// 格网上沿 = 按钮高 − 下边距 28 − 行数 × 格边，独立地从视图量回来），content 坐标 = 框 + 按钮原点；只建一部分时，建出来的格子同样。
     func testFrameModelMatchesTheViews() throws {
-        for n in [40, 300, 1200] {
+        let sizes: [Int] = [40, 300, AnnualVirtual.bigN]
+        for n in sizes {
             let payload = AnnualVirtual.payload(n)
             let all = AnnualVirtual.make(all: true), virt = AnnualVirtual.make(all: false)
             let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
@@ -514,7 +519,7 @@ final class AnnualVirtualCellsTests: XCTestCase {
             XCTAssertEqual(virt.grid.cells, grid.cells, "n=\(n): same frame model on both pages")
             XCTAssertEqual(virt.grid.cellsInContent, grid.cellsInContent)
             if grid.cols == 8 { XCTAssertEqual(grid.cellSide, min(45, floor((LibraryBench.windowSize.width - 40) / 8)), "n=\(n)") }
-            if n >= 1200 { XCTAssertLessThan(virt.cells.liveIndices.count, n, "n=\(n): only part of the months is built") }
+            if n >= AnnualVirtual.bigN { XCTAssertLessThan(virt.cells.liveIndices.count, n, "n=\(n): only part of the months is built") }
             for vc in [all, virt] {
                 let bs = AnnualVirtual.buttons(vc)
                 XCTAssertEqual(bs.count, grid.months.count, "n=\(n)")
@@ -571,7 +576,8 @@ final class AnnualVirtualCellsTests: XCTestCase {
     /// 整窗截图逐字节相同：只建一部分 vs 全部建出来，滚到顶 / 中间 / 底 / 一段的月名行被上沿切开的位置，浅 / 深。
     /// 两页同时开着（各一个窗口），每个位置各截一张就比（不攒截图）。
     func testVirtualizedPixelsMatchMaterializeAll() throws {
-        for (n, ink) in [(1200, true), (300, false)] {
+        let cases: [(Int, Bool)] = [(AnnualVirtual.bigN, true), (300, false)]
+        for (n, ink) in cases {
             let payload = AnnualVirtual.payload(n, ink: ink)
             let all = AnnualVirtual.make(all: true), virt = AnnualVirtual.make(all: false)
             let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
@@ -601,6 +607,10 @@ final class AnnualVirtualCellsTests: XCTestCase {
                     XCTAssertEqual(AnnualVirtual.hierarchyProblems(virt), [], label)
                     XCTAssertEqual(AnnualVirtual.inkProblems(virt, wv), [], label)
                     XCTAssertEqual(AnnualVirtual.inkProblems(all, wa), [], label)
+                    if n == AnnualVirtual.bigN, name == "middle" {
+                        let live = virt.cells.liveIndices
+                        XCTAssertFalse(live.contains(0) || live.contains(n - 1), "\(label): cells culled at both ends")
+                    }
                 }
             }
         }
@@ -717,22 +727,32 @@ final class AnnualVirtualCellsTests: XCTestCase {
     }
 
     /// 一步一步滚过整个年报（每步 0.37 屏往下，再每步 2.3 屏往上跳回顶）：每一步之后建出来的格子 = 逐个判断与可见框 ± overscan 相交的那些，
-    /// 没有一个格子用在两处，每格的状态摘要 = 新建一格按同一序号配出来的；视图树按序号；屏上的墨都画了。
-    /// 中途重收同一份回包（停在底部）、收一份小的回包（滚动位置不靠 UIScrollView 自己夹回，明确滚回顶）也一样。
+    /// 没有一个格子用在两处；视图树按序号；屏上的墨都画了。每格的状态摘要 = 新建一格按同一序号配出来的：顶、底、每次收回包之后与每 4 步核一次，
+    /// 其余各步只核建了哪些（checkLive）。中途重收同一份回包（停在底部）、收一份小的回包（滚动位置不靠 UIScrollView 自己夹回，明确滚回顶）也一样。
+    /// 中间某一步上下两头都裁掉了（格子真的被收走、复用）。
     func testScrollStress() throws {
-        for (n, ink) in [(1200, true), (300, false)] {
+        let cases: [(Int, Bool)] = [(AnnualVirtual.bigN, true), (300, false)]
+        for (n, ink) in cases {
             let vc = AnnualVirtual.make(all: false)
             let w = LibraryBench.host(vc)
             defer { LibraryBench.unhost(w) }
             vc.apply(payload: AnnualVirtual.payload(n, ink: ink))
             LibraryBench.settle(w)
             let traits = vc.traitCollection
-            func verify(_ what: String) {
+            var culledBoth = false
+            func verify(_ what: String, deep: Bool = true) {
                 XCTAssertEqual(vc.cells.overscan, max(vc.scroll.bounds.height * AnnualScreen.overscanViewports, AnnualScreen.overscanRows * vc.grid.cellSide), what)
-                let problems = vc.cells.check(visible: vc.scroll.bounds) { AnnualVirtual.digest($0, traits) }
+                let problems: [String]
+                if deep {
+                    problems = vc.cells.check(visible: vc.scroll.bounds) { (s: AnnualScreen.CellSlot) -> AnnualVirtual.Digest in AnnualVirtual.digest(s, traits) }
+                } else {
+                    problems = vc.cells.checkLive(visible: vc.scroll.bounds)
+                }
                 XCTAssertEqual(Array(problems.prefix(5)), [], "\(what): \(problems.count) problem(s)")
                 XCTAssertEqual(AnnualVirtual.hierarchyProblems(vc), [], what)
                 XCTAssertEqual(AnnualVirtual.inkProblems(vc, w), [], what)
+                let live = vc.cells.liveIndices
+                if let first = live.first, let last = live.last, first > 0, last < vc.grid.cells.count - 1 { culledBoth = true }
             }
             verify("n=\(n) open")
             let h = vc.scroll.bounds.height, bottom = AnnualVirtual.bottomOffset(vc)
@@ -741,18 +761,23 @@ final class AnnualVirtualCellsTests: XCTestCase {
                 y = min(bottom, y + h * 0.37)
                 AnnualVirtual.scroll(vc, w, to: y)
                 steps += 1
-                verify("n=\(n) down y=\(y)")
+                verify("n=\(n) down y=\(y)", deep: steps % 4 == 0 || y >= bottom)
             }
             XCTAssertGreaterThan(steps, 5)
             XCTAssertTrue(vc.cells.liveIndices.contains(n - 1), "n=\(n): the last cell is built at the bottom")
-            if n >= 1200 { XCTAssertFalse(vc.cells.liveIndices.contains(0), "n=\(n): the first cells are gone at the bottom") }
+            if n >= AnnualVirtual.bigN {
+                XCTAssertFalse(vc.cells.liveIndices.contains(0), "n=\(n): the first cells are gone at the bottom")
+                XCTAssertTrue(culledBoth, "n=\(n): somewhere in the middle both ends were culled")
+            }
             vc.apply(payload: AnnualVirtual.payload(n, ink: ink)) // 同一份再收一次（records / ink 变了的重拉），停在底部
             LibraryBench.settle(w)
             verify("n=\(n) reapply at bottom")
+            var upSteps = 0
             while y > 0 {
                 y = max(0, y - h * 2.3)
                 AnnualVirtual.scroll(vc, w, to: y)
-                verify("n=\(n) up y=\(y)")
+                upSteps += 1
+                verify("n=\(n) up y=\(y)", deep: upSteps % 4 == 0 || y <= 0)
             }
             XCTAssertTrue(vc.cells.liveIndices.contains(0))
             AnnualVirtual.scroll(vc, w, to: bottom)
@@ -967,7 +992,8 @@ enum AnnualLazy {
         }
     }
 
-    /// 假的 view.annual.ink：从表里取（表里没有 → null），记下每次的键；hold 时先不回（release 之后才回）；fail 时回 ok:false。
+    /// 假的 view.annual.ink：从表里取（表里没有 → null），记下每次的键；hold 时先不回（release 之后才回；最多扣 20 秒、任务被取消就不再等，
+    /// 不会在主线程上一直转）；fail 时回 ok:false。用 hold 的测试在退出时（defer）把它放开。
     @MainActor
     final class Fetcher {
         var table: [String: Any]
@@ -982,7 +1008,10 @@ enum AnnualLazy {
             calls.append(keys)
             // 发请求这一刻的表（hold 期间换了表 = 引擎那边的数据换了；页面这时也会收到新回包）
             let snapshot = table, js = jsTable
-            while hold { try? await Task.sleep(nanoseconds: 2_000_000) }
+            let deadline = Date().addingTimeInterval(20)
+            while hold, !Task.isCancelled, Date() < deadline {
+                do { try await Task.sleep(nanoseconds: 2_000_000) } catch { break }
+            }
             if fail { return ["ok": false, "error": ["kind": "unavailable"]] }
             var out: [String: Any] = [:]
             for k in keys {
@@ -1007,8 +1036,9 @@ enum AnnualLazy {
     }
 
     /// 排版、跑主线程，直到墨迹都到了（inkPending 为假）再排版提交一次；超时 → false。
+    /// 假的 view.annual.ink 立刻回，正常几十毫秒内就到：默认只等 3 秒（等不到多半是卡住了，早点失败）。
     @discardableResult
-    static func waitInk(_ vc: AnnualScreen, _ w: UIWindow, timeout: TimeInterval = 10) -> Bool {
+    static func waitInk(_ vc: AnnualScreen, _ w: UIWindow, timeout: TimeInterval = 3) -> Bool {
         let end = Date().addingTimeInterval(timeout)
         while Date() < end {
             LibraryBench.settle(w)
@@ -1029,11 +1059,25 @@ enum AnnualLazy {
         LibraryBench.settle(w)
     }
 
-    /// 滚到 y 并等墨迹到。
-    static func scroll(_ vc: AnnualScreen, _ w: UIWindow, to y: CGFloat) {
-        AnnualVirtual.scroll(vc, w, to: y)
-        XCTAssertTrue(waitInk(vc, w), "ink arrives at y=\(y)")
+    /// 等墨迹到；等不到就记一条失败并抛出，整条用例就此停下（不再一步一步各等一回超时）。
+    /// timeout：滚一步只取新进来的几十格，默认 3 秒；打开 / 新回包要取整个建出来的范围，调用处给得长一些。
+    static func awaitInk(_ vc: AnnualScreen, _ w: UIWindow, _ what: String, timeout: TimeInterval = 3,
+                         file: StaticString = #filePath, line: UInt = #line) throws {
+        if waitInk(vc, w, timeout: timeout) { return }
+        XCTFail("ink never arrived (\(timeout)s): \(what)", file: file, line: line)
+        throw AnnualInkTimeout(what: what)
     }
+
+    /// 滚到 y 并等墨迹到（等不到 → 失败并抛出）。
+    static func scroll(_ vc: AnnualScreen, _ w: UIWindow, to y: CGFloat, file: StaticString = #filePath, line: UInt = #line) throws {
+        AnnualVirtual.scroll(vc, w, to: y)
+        try awaitInk(vc, w, "ink arrives at y=\(y)", file: file, line: line)
+    }
+}
+
+/// AnnualLazy.awaitInk 等不到墨迹时抛的（让用例在第一次超时就停下）。
+struct AnnualInkTimeout: Error {
+    let what: String
 }
 
 @MainActor
@@ -1086,7 +1130,8 @@ final class AnnualLazyInkPageTests: XCTestCase {
 
     /// 墨迹到了之后逐像素相同：按需取的页 vs 整份回包的页（都只建看得见的），顶 / 中 / 底 / 月名行被切开，浅 / 深；建出来的每格摘要 = 新配的。
     func testLazyPixelsMatchEagerAfterLoad() throws {
-        for (n, ink) in [(1200, true), (300, false), (300, true)] {
+        let cases: [(Int, Bool)] = [(AnnualVirtual.bigN, true), (300, false), (300, true)]
+        for (n, ink) in cases {
             let full = AnnualVirtual.payload(n, ink: ink)
             let (lite, table) = L.split(full)
             let fetcher = L.Fetcher(table)
@@ -1097,7 +1142,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
             eager.apply(payload: full)
             lazy.apply(payload: lite)
             LibraryBench.settle(we)
-            XCTAssertTrue(L.waitInk(lazy, wl), "n=\(n): ink arrives at open")
+            try L.awaitInk(lazy, wl, "n=\(n): ink arrives at open", timeout: 10)
             if ink { XCTAssertFalse(fetcher.calls.isEmpty, "n=\(n): fetched at open") } else { XCTAssertTrue(fetcher.calls.isEmpty, "n=\(n): no ink, nothing to fetch") }
             for c in fetcher.calls { XCTAssertLessThanOrEqual(c.count, AnnualInkDecode.batch) }
             let bottom = AnnualVirtual.bottomOffset(lazy)
@@ -1110,7 +1155,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
                 }
                 for (name, y) in offsets {
                     AnnualVirtual.scroll(eager, we, to: y)
-                    L.scroll(lazy, wl, to: y)
+                    try L.scroll(lazy, wl, to: y)
                     let label = "annual lazy n=\(n) \(ink ? "ink" : "glyph") \(style == .dark ? "dark" : "light") \(name)"
                     let a = try LibraryEq.stableSnapshot(we, "\(label) eager")
                     let b = try LibraryEq.stableSnapshot(wl, "\(label) lazy")
@@ -1137,6 +1182,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         let (lite, table) = L.split(full)
         let fetcher = L.Fetcher(table)
         fetcher.hold = true
+        defer { fetcher.hold = false } // 用例怎么退出都放开（不留一个在主线程上等着的取墨任务）
         let lazy = L.make(fetcher), blank = AnnualVirtual.make(all: false)
         let wl = LibraryBench.host(lazy), wb = LibraryBench.host(blank)
         defer { LibraryBench.unhost(wl); LibraryBench.unhost(wb) }
@@ -1159,7 +1205,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         let b = try LibraryEq.stableSnapshot(wb, "annual empty ink")
         XCTAssertTrue(LibraryEq.same(a, b, "annual pending vs empty ink"), "pending = ink not drawn yet")
         fetcher.hold = false
-        XCTAssertTrue(L.waitInk(lazy, wl))
+        try L.awaitInk(lazy, wl, "ink arrives", timeout: 10)
         XCTAssertFalse(lazy.inkCache.isEmpty)
     }
 
@@ -1169,6 +1215,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         let (lite, table) = L.split(full)
         let fetcher = L.Fetcher(table)
         fetcher.hold = true
+        defer { fetcher.hold = false } // 用例怎么退出都放开（不留一个在主线程上等着的取墨任务）
         let lazy = L.make(fetcher), eager = AnnualVirtual.make(all: false)
         let wl = LibraryBench.host(lazy), we = LibraryBench.host(eager)
         defer { LibraryBench.unhost(wl); LibraryBench.unhost(we) }
@@ -1184,7 +1231,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         XCTAssertFalse(lazy.cells.liveIndices.contains(0))
         let traits = lazy.traitCollection
         fetcher.hold = false
-        XCTAssertTrue(L.waitInk(lazy, wl))
+        try L.awaitInk(lazy, wl, "ink arrives", timeout: 10)
         XCTAssertTrue(openKeys.isSubset(of: Set(lazy.inkCache.keys)), "replies for cells scrolled away are kept")
         var problems = lazy.cells.check(visible: lazy.scroll.bounds) { AnnualVirtual.digest($0, traits) }
         XCTAssertEqual(Array(problems.prefix(5)), [], "away: \(problems.count) problem(s)")
@@ -1208,6 +1255,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         XCTAssertFalse(Set(table1.keys).isDisjoint(with: Set(table2.keys)), "the two payloads share key names")
         let fetcher = L.Fetcher(table1)
         fetcher.hold = true
+        defer { fetcher.hold = false } // 用例怎么退出都放开（不留一个在主线程上等着的取墨任务）
         let lazy = L.make(fetcher), eager = AnnualVirtual.make(all: false)
         let wl = LibraryBench.host(lazy), we = LibraryBench.host(eager)
         defer { LibraryBench.unhost(wl); LibraryBench.unhost(we) }
@@ -1220,7 +1268,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         lazy.apply(payload: lite2)
         XCTAssertEqual(lazy.payloadGeneration, gen + 1)
         fetcher.hold = false
-        XCTAssertTrue(L.waitInk(lazy, wl))
+        try L.awaitInk(lazy, wl, "ink arrives", timeout: 10)
         XCTAssertGreaterThan(fetcher.calls.count, first, "refetched for the new payload")
         eager.apply(payload: full2)
         LibraryBench.settle(we)
@@ -1248,10 +1296,11 @@ final class AnnualLazyInkPageTests: XCTestCase {
         let wl = LibraryBench.host(lazy), we = LibraryBench.host(eager)
         defer { LibraryBench.unhost(wl); LibraryBench.unhost(we) }
         lazy.apply(payload: lite1)
-        XCTAssertTrue(L.waitInk(lazy, wl))
+        try L.awaitInk(lazy, wl, "ink arrives", timeout: 10)
         let loaded = try LibraryEq.stableSnapshot(wl, "annual loaded")
         // 同样的墨迹：回复扣着，收包那一刻（排版提交后）就截
         fetcher.hold = true
+        defer { fetcher.hold = false } // 用例怎么退出都放开（不留一个在主线程上等着的取墨任务）
         lazy.apply(payload: lite1)
         LibraryBench.settle(wl)
         XCTAssertTrue(lazy.inkCache.isEmpty, "the new payload refetches")
@@ -1263,7 +1312,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         let rightAfter = try LibraryEq.stableSnapshot(wl, "annual right after reapply")
         XCTAssertTrue(LibraryEq.same(loaded, rightAfter, "annual reapply: no blank frame"), "no blank frame after a reapply")
         fetcher.hold = false
-        XCTAssertTrue(L.waitInk(lazy, wl))
+        try L.awaitInk(lazy, wl, "ink arrives", timeout: 10)
         XCTAssertTrue(lazy.provisionalInk.isEmpty, "every built cell refetched: the stand-in is dropped")
         let refetched = try LibraryEq.stableSnapshot(wl, "annual refetched")
         XCTAssertTrue(LibraryEq.same(loaded, refetched, "annual reapply: refetched"), "same ink after refetching")
@@ -1277,7 +1326,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         var problems = lazy.cells.check(visible: lazy.scroll.bounds) { AnnualVirtual.digest($0, traits) }
         XCTAssertEqual(Array(problems.prefix(5)), [], "stand-in: \(problems.count) problem(s)")
         fetcher.hold = false
-        XCTAssertTrue(L.waitInk(lazy, wl))
+        try L.awaitInk(lazy, wl, "ink arrives", timeout: 10)
         XCTAssertTrue(lazy.provisionalInk.isEmpty)
         eager.apply(payload: full2)
         LibraryBench.settle(we)
@@ -1301,7 +1350,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         defer { LibraryBench.unhost(w) }
         w.overrideUserInterfaceStyle = .light
         lazy.apply(payload: lite)
-        XCTAssertTrue(L.waitInk(lazy, w))
+        try L.awaitInk(lazy, w, "ink arrives", timeout: 10)
         let opened = fetcher.calls.count, cached = lazy.inkCache.count, gen = lazy.payloadGeneration
         XCTAssertGreaterThan(cached, 0)
         w.overrideUserInterfaceStyle = .dark
@@ -1317,15 +1366,15 @@ final class AnnualLazyInkPageTests: XCTestCase {
             XCTAssertFalse(lazy.cells.slot(at: i)?.ink.points.isEmpty ?? true, "cell \(i): still drawn after the style switch")
         }
         let h = lazy.scroll.bounds.height
-        L.scroll(lazy, w, to: h * 6)
+        try L.scroll(lazy, w, to: h * 6)
         let far = fetcher.calls.count
         XCTAssertGreaterThan(far, opened, "new cells further down fetch their ink")
-        L.scroll(lazy, w, to: 0)
+        try L.scroll(lazy, w, to: 0)
         L.spin(w)
         XCTAssertEqual(fetcher.calls.count, far, "back at the top: cached")
         lazy.apply(payload: lite) // 同一份内容的新回包（records / ink 变了的重拉）
         XCTAssertEqual(lazy.payloadGeneration, gen + 1)
-        XCTAssertTrue(L.waitInk(lazy, w))
+        try L.awaitInk(lazy, w, "ink arrives", timeout: 10)
         XCTAssertGreaterThan(fetcher.calls.count, far, "a new payload refetches")
         let since = Set(fetcher.calls[far...].flatMap { $0 })
         XCTAssertEqual(Set(lazy.inkCache.keys), since, "the old cache was dropped: only what the new payload fetched is cached")
@@ -1342,7 +1391,7 @@ final class AnnualLazyInkPageTests: XCTestCase {
         let w = LibraryBench.host(lazy)
         defer { LibraryBench.unhost(w) }
         lazy.apply(payload: lite)
-        XCTAssertTrue(L.waitInk(lazy, w), "a failed fetch is not pending forever")
+        try L.awaitInk(lazy, w, "a failed fetch is not pending forever", timeout: 10)
         let failed = fetcher.keys
         XCTAssertFalse(failed.isEmpty)
         XCTAssertTrue(lazy.inkCache.isEmpty)
@@ -1351,30 +1400,37 @@ final class AnnualLazyInkPageTests: XCTestCase {
         LibraryBench.settle(w)
         lazy.updateCells()
         L.spin(w)
-        XCTAssertTrue(L.waitInk(lazy, w))
+        try L.awaitInk(lazy, w, "ink arrives", timeout: 10)
         let again = fetcher.keys.dropFirst(failed.count)
         XCTAssertTrue(Set(again).isDisjoint(with: Set(failed)), "failed keys are not retried within this payload: \(Set(again).intersection(Set(failed)).count)")
         XCTAssertEqual(Set(fetcher.keys).count, fetcher.keys.count, "no key asked twice")
         fetcher.fail = false
         lazy.apply(payload: lite)
-        XCTAssertTrue(L.waitInk(lazy, w))
+        try L.awaitInk(lazy, w, "ink arrives", timeout: 10)
         XCTAssertFalse(lazy.inkCache.isEmpty, "the next payload fetches again")
     }
 
     /// 一步一步滚过整个年报（每步 0.37 屏往下，再每步 2.3 屏往上），每步等墨迹到再核对：建出来的格子 = 逐个判断相交的、每格摘要 = 新配的、
     /// 视图树按序号、屏上的墨都画了、一份回包里每个键只取一次；中途重收一份（新回包重取）、变短再变长也一样。
+    /// 每格摘要（新建探针）在顶、底、每次收回包之后与每 4 步核一次，其余各步只核建了哪些（checkLive）；墨等不到就整条停下。
     func testLazyScrollStress() throws {
-        let full = AnnualVirtual.payload(1200)
+        let n = AnnualVirtual.bigN
+        let full = AnnualVirtual.payload(n)
         let (lite, table) = L.split(full)
         let fetcher = L.Fetcher(table)
         let vc = L.make(fetcher)
         let w = LibraryBench.host(vc)
         defer { LibraryBench.unhost(w) }
         vc.apply(payload: lite)
-        XCTAssertTrue(L.waitInk(vc, w))
+        try L.awaitInk(vc, w, "ink arrives at open", timeout: 10)
         let traits = vc.traitCollection
-        func verify(_ what: String) {
-            let problems = vc.cells.check(visible: vc.scroll.bounds) { AnnualVirtual.digest($0, traits) }
+        func verify(_ what: String, deep: Bool = true) {
+            let problems: [String]
+            if deep {
+                problems = vc.cells.check(visible: vc.scroll.bounds) { (s: AnnualScreen.CellSlot) -> AnnualVirtual.Digest in AnnualVirtual.digest(s, traits) }
+            } else {
+                problems = vc.cells.checkLive(visible: vc.scroll.bounds)
+            }
             XCTAssertEqual(Array(problems.prefix(5)), [], "\(what): \(problems.count) problem(s)")
             XCTAssertEqual(AnnualVirtual.hierarchyProblems(vc), [], what)
             XCTAssertEqual(AnnualVirtual.inkProblems(vc, w), [], what)
@@ -1384,35 +1440,39 @@ final class AnnualLazyInkPageTests: XCTestCase {
         }
         verify("open")
         let h = vc.scroll.bounds.height, bottom = AnnualVirtual.bottomOffset(vc)
-        var y: CGFloat = 0
+        var y: CGFloat = 0, steps = 0
         while y < bottom {
             y = min(bottom, y + h * 0.37)
-            L.scroll(vc, w, to: y)
-            verify("down y=\(y)")
+            try L.scroll(vc, w, to: y)
+            steps += 1
+            verify("down y=\(y)", deep: steps % 4 == 0 || y >= bottom)
         }
+        XCTAssertFalse(vc.cells.liveIndices.contains(0), "n=\(n): the first cells are gone at the bottom")
         XCTAssertEqual(Set(fetcher.keys).count, fetcher.keys.count, "each key fetched once per payload")
         XCTAssertEqual(Set(fetcher.keys), Set(table.keys), "scrolled through everything: every key fetched")
         let firstRound = fetcher.calls.count
         vc.apply(payload: lite) // 新回包，停在底部
-        XCTAssertTrue(L.waitInk(vc, w))
+        try L.awaitInk(vc, w, "ink arrives after the reapply", timeout: 10)
         verify("reapply at bottom")
         XCTAssertGreaterThan(fetcher.calls.count, firstRound)
+        var upSteps = 0
         while y > 0 {
             y = max(0, y - h * 2.3)
-            L.scroll(vc, w, to: y)
-            verify("up y=\(y)")
+            try L.scroll(vc, w, to: y)
+            upSteps += 1
+            verify("up y=\(y)", deep: upSteps % 4 == 0 || y <= 0)
         }
         let (short, shortTable) = L.split(AnnualVirtual.payload(40))
         fetcher.table = shortTable
         vc.apply(payload: short)
-        XCTAssertTrue(L.waitInk(vc, w))
-        L.scroll(vc, w, to: 0)
+        try L.awaitInk(vc, w, "ink arrives", timeout: 10)
+        try L.scroll(vc, w, to: 0)
         verify("to 40")
         fetcher.table = table
         vc.apply(payload: lite)
-        XCTAssertTrue(L.waitInk(vc, w))
-        L.scroll(vc, w, to: h * 3)
-        verify("back to 1200")
+        try L.awaitInk(vc, w, "ink arrives", timeout: 10)
+        try L.scroll(vc, w, to: h * 3)
+        verify("back to \(n)")
     }
 
     /// 回包里格子带内联墨迹（不带 lazyInk 的调用方）：一个请求也不发，照旧直接画。
@@ -1422,8 +1482,8 @@ final class AnnualLazyInkPageTests: XCTestCase {
         let w = LibraryBench.host(vc)
         defer { LibraryBench.unhost(w) }
         vc.apply(payload: AnnualVirtual.payload(1200))
-        XCTAssertTrue(L.waitInk(vc, w))
-        L.scroll(vc, w, to: vc.scroll.bounds.height * 5)
+        try L.awaitInk(vc, w, "ink arrives", timeout: 10)
+        try L.scroll(vc, w, to: vc.scroll.bounds.height * 5)
         L.spin(w)
         XCTAssertTrue(fetcher.calls.isEmpty)
         XCTAssertEqual(vc.inkRequestCount, 0)

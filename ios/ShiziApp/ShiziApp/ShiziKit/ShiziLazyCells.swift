@@ -152,9 +152,9 @@ final class ShiziLazyCells<Slot: AnyObject> {
 
     // MARK: 测试
 
-    /// 对照检查（测试用）：已建好的格子 = 逐个判断相交得出的那些（不靠二分）、没有一个格子用在两处、
-    /// 每格的状态摘要 = 新建一格按同一序号配出来的摘要。返回问题（空 = 都对）。
-    func check<D: Equatable>(visible: CGRect, digest: (Slot) -> D) -> [String] {
+    /// 只核对建了哪些（测试用，便宜：不新建探针、不比摘要）：已建好的格子 = 逐个判断相交得出的那些（不靠二分）、每个都在、
+    /// 没有一个格子用在两处。返回问题（空 = 都对）。
+    func checkLive(visible: CGRect) -> [String] {
         var problems: [String] = []
         let top = visible.minY - overscan, bottom = visible.maxY + overscan
         let expected = materializeAll ? Array(0..<frames.count) : (0..<frames.count).filter { frames[$0].maxY > top && frames[$0].minY < bottom }
@@ -165,6 +165,15 @@ final class ShiziLazyCells<Slot: AnyObject> {
         for i in liveSorted {
             guard let e = live[i] else { problems.append("\(i): missing"); continue }
             if !seen.insert(ObjectIdentifier(e.slot)).inserted { problems.append("\(i): slot used twice") }
+        }
+        return problems
+    }
+
+    /// 对照检查（测试用）：checkLive 的全部，再加每格的状态摘要 = 新建一格按同一序号配出来的摘要。返回问题（空 = 都对）。
+    func check<D: Equatable>(visible: CGRect, digest: (Slot) -> D) -> [String] {
+        var problems = checkLive(visible: visible)
+        for i in liveSorted {
+            guard let e = live[i] else { continue }
             let probe = make(e.kind)
             configure(probe, i)
             let a = digest(e.slot), b = digest(probe)

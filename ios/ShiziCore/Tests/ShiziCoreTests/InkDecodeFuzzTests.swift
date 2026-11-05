@@ -388,7 +388,7 @@ final class InkDecodeFuzzTests: XCTestCase {
 
     // 变异过的 v4 / v3 / v2：一律不崩；v4 与参照逐位相同；v3 / v2 只在形状合法时有结果且点数对得上
     func testMutatedInkNeverTrapsAndMatchesTheReferenceWhereDefined() throws {
-        var r = InkRng(77_20261105)
+        var r = InkRng(2_026_110_577)
         let bases = 40 * scale, perBase = 25
         var decodedV4 = 0, decodedV3 = 0, decodedV2 = 0, total = 0
         for b in 0..<bases {

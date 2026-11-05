@@ -105,7 +105,25 @@ extension ViewSupport {
     }
     package static func overviewModel(_ state: JSValue, today: String, index: RecordIndex) throws -> JSValue {
         let days = KeySet(practiceDaySet(state, index: index).items.filter { $0 <= today })
-        return try obj([("streak", .number(Double(streakDays(days, today: today, dates: index.dates)))), ("total", .number(Double(days.count))), ("chars", memoryZones(state, today: today, dates: index.dates)["recorded"]!)])
+        return try obj([("streak", .number(Double(streakDays(days, today: today, dates: index.dates)))), ("total", .number(Double(days.count))), ("chars", recordedChars(state, today: today, dates: index.dates))])
+    }
+    /// = memoryZones(state, today:)["recorded"]：练过的字数（= practicedByChar 的个数）。memoryZones 还要给每个字分区
+    /// （查 sched、算到期、三区各排一次序），概览只用这个数。分区只有两处会改变结果：today 不是合法日子时 diffDays 抛错，
+    /// 练过的记录缺 cardKey 时强制解包会崩——这两种情形照旧走 memoryZones（结果、抛错都不变）；其余情形分区不抛，个数就是 latest.count。
+    package static func recordedChars(_ state: JSValue, today: String, dates: Dates) throws -> JSValue {
+        let latest = Records.practicedByChar(libraryRecords(state).records)
+        guard dates.isValidDay(.string(today)), !latest.entries.contains(where: { $0.value["cardKey"] == nil }) else { return try memoryZones(state, today: today, dates: dates)["recorded"]! }
+        return .number(Double(latest.count))
+    }
+    /// Backup.recordsSignature 形如「judged 条数:散列」。条数对不上就不可能相同（备份后又练过——最常见的情形），不必逐条散列。
+    /// 条数与 recordsSignature 同一口径：每月 Budget.monthRecords 里是对象且 kind === 'judged' 的。签名只含 ASCII 数字、':'、小写十六进制，
+    /// 这些字符没有别的规范等价写法，与它 Swift == 的只有逐字节相同的串，所以按字节比前缀即可。
+    static func signatureCountMatches(_ saved: String, _ records: JSValue?) -> Bool {
+        var count = 0
+        for (_, value) in records?.objectValue?.entries ?? [] {
+            for r in Budget.monthRecords(value) { if case .object = r, r["kind"] == .string("judged") { count += 1 } }
+        }
+        return saved.utf8.starts(with: (String(count) + ":").utf8)
     }
     package static func storagePressureNear(_ v: JSValue?) -> Bool {
         if v == .bool(true) { return true }; if let n = v?.numberValue { return n.isFinite && n >= 0.8 }; if let s = v?.stringValue { return ["near", "high", "warn", "full"].contains(s) }
@@ -114,7 +132,7 @@ extension ViewSupport {
     package static func backupHint(_ state: JSValue, today: String, index: RecordIndex, storagePressure: JSValue?) throws -> JSValue {
         guard !index.days.items.isEmpty else { return .null }; if storagePressureNear(storagePressure ?? state["storagePressure"]) { return obj([("kind", .string("pressure"))]) }
         let meta = state["backupMeta"], last = try lastBackupDay(meta, dates: index.dates)
-        if JS.truthy(last), meta?["lastExportSig"]?.stringValue == Backup.recordsSignature(state["records"]) { return .null }
+        if JS.truthy(last), let saved = meta?["lastExportSig"]?.stringValue, signatureCountMatches(saved, state["records"]), saved == Backup.recordsSignature(state["records"]) { return .null }
         let since = JS.truthy(last) ? last.stringValue : index.days.items.min()
         guard let since, index.dates.isValidDay(.string(today)) else { return .null }; let days = try index.dates.diffDays(.string(since), .string(today))
         return days >= 30 ? obj([("kind", .string("stale")), ("days", .number(days))]) : .null

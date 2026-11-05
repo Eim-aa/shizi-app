@@ -224,7 +224,11 @@ final class JudgeScaleEquivalenceTests: XCTestCase {
                 break
             }
         }
-        for name in fixtureNames { walk(.object(try loadFixture(name))) }
+        // 有的夹具顶层是数组（images-selection），loadFixture 只收对象：这里直接解成 JSValue 再走
+        for name in fixtureNames {
+            guard let url = Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures") else { throw XCTSkip("missing fixture " + name) }
+            walk(try JSONParser.parse(try String(contentsOf: url, encoding: .utf8)))
+        }
         return out
     }
 

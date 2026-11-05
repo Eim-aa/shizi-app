@@ -14,6 +14,10 @@ import XCTest
 ///   BENCH library-all ink-decode n=<字数> points=<点数> json=…ms perpoint=…ms direct=…ms（回包 ink → [记录 id: [[点]]]：
 ///     json = 旧形状（每点一个对象）经 ShiziDecode.value 的 JSON 往返；perpoint = 旧形状直接读；direct = 现在的平铺形状直接读（产品走的路））
 ///   BENCH library-list <ink|glyph> n=<行数> first=… relayout=… reapply=… layers=… images=… backing≈…
+/// 全部字页只建看得见的格子（ShiziLazyCells，可见框上下各 2.5 屏）之后，上面 library-all 那一行量的是产品的做法；
+///   variant 带 -all 的（ink-all / glyph-all）= 测试开关 materializeAll（全部格子都建出来 = 以前的做法）对照。
+///   BENCH library-all scroll <ink|glyph> n=… steps=… step=…pt median=…ms max=…ms live=<建出来的格子数> layers=… backing≈…MB
+///     从顶滚到底，每步半屏（contentOffset → layoutIfNeeded → flush：新建 / 重配进来的格子、画墨都在这一步里）
 /// 合成回包：形状同 ShiziCore LibrarySubAPI（{ok, view, ink}；ink 由 LibraryInkWire 拼、经 EngineValue.any 过边界，同引擎真发的）；
 /// 字取包里有字形数据的字（Web/data/<字>.json）；每个墨迹 8 笔 × 62 点（≈ 网页 resampleForReplay 之后的一字）。页面挂在 393 × 852 的窗口里。
 /// n = 300 时 relayout / reapply 各量 3 次取中位数，n = 1500 时各 1 次（控制总时长）。
@@ -211,16 +215,57 @@ enum LibraryBench {
             unhost(w)
         }
     }
+
+    /// 全部字页从顶滚到底（每步半屏）：每步的耗时、滚到底时建出来的格子数与层的统计，打一行 BENCH。
+    static func scrollRun(variant: String, n: Int, payload: [String: Any]) {
+        autoreleasepool {
+            let vc = LibraryAllScreen(screen: "library-all", entryId: "bench", params: [:])
+            let w = host(vc)
+            vc.apply(payload: payload)
+            settle(w)
+            let h = vc.scroll.bounds.height
+            let bottom = max(0, vc.scroll.contentSize.height - h)
+            var times: [Double] = []
+            var y: CGFloat = 0
+            while y < bottom {
+                y = min(bottom, y + h / 2)
+                let t = now()
+                vc.scroll.contentOffset = CGPoint(x: 0, y: y)
+                settle(w)
+                times.append(ms(t, now()))
+            }
+            let st = layerStats(w.layer)
+            print(String(format: "BENCH library-all scroll \(variant) n=%ld steps=%ld step=%.0fpt median=%.1fms max=%.1fms live=%ld layers=%ld backing≈%.1fMB",
+                         n, times.count, Double(h / 2), median(times), times.max() ?? 0, vc.cells.liveIndices.count, st.layers, Double(st.backingBytes) / 1e6))
+            unhost(w)
+        }
+    }
 }
 
 @MainActor
 final class LibraryBenchTests: XCTestCase {
     func testLibraryAllReloadCost() throws {
-        for n in [300, 1500] {
+        for n in [300, 1500, 5000] {
             for ink in [true, false] {
                 let payload = LibraryBench.allPayload(n, ink: ink)
                 LibraryBench.run("library-all", variant: ink ? "ink" : "glyph", n: n,
                                  make: { LibraryAllScreen(screen: "library-all", entryId: "bench", params: [:]) }, payload: payload)
+                if n == 1500 { // 对照：全部格子都建出来（以前的做法）
+                    LibraryBench.run("library-all", variant: ink ? "ink-all" : "glyph-all", n: n, make: {
+                        let vc = LibraryAllScreen(screen: "library-all", entryId: "bench", params: [:])
+                        vc.cells.materializeAll = true
+                        return vc
+                    }, payload: payload)
+                }
+            }
+        }
+    }
+
+    /// 只建看得见的格子之后，滚动的每一步要多久（新进来的格子在这一步里建 / 配 / 画）。
+    func testLibraryAllScrollCost() throws {
+        for n in [1500, 5000] {
+            for ink in [true, false] {
+                LibraryBench.scrollRun(variant: ink ? "ink" : "glyph", n: n, payload: LibraryBench.allPayload(n, ink: ink))
             }
         }
     }

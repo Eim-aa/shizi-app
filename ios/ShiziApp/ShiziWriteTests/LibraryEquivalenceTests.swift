@@ -418,6 +418,24 @@ final class LibraryInkDecodeTests: XCTestCase {
         let ref = old(legacy ?? ink)
         XCTAssertEqual(LibraryInkView.decodeInkDirect(ink) != nil, expectDirect, "\(what): direct path taken", file: file, line: line)
         XCTAssertEqual(bits(LibraryInkView.decodeInk(ink)), bits(ref), what, file: file, line: line)
+        checkStore(ink, what, file: file, line: line)
+    }
+
+    /// 按需解码（LibraryInkStore，全部字页用的）= 整份 decodeInk 的那一条（逐位；回包里没有的记录 = 空、has = false）；
+    /// isRecordDirect = decodeRecordDirect 解得出来。
+    private func checkStore(_ ink: [String: Any], _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        let whole = LibraryInkView.decodeInk(ink)
+        let store = LibraryInkStore()
+        store.load(ink)
+        for id in Array(ink.keys) + ["no-such-record"] {
+            for round in 0..<2 { // 第一次解，第二次命中留着的
+                XCTAssertEqual(bits([id: store.strokes(id)]), bits([id: whole[id] ?? []]), "\(what): store \(id) #\(round)", file: file, line: line)
+                XCTAssertEqual(store.has(id), whole[id] != nil, "\(what): has \(id)", file: file, line: line)
+            }
+            if let raw = ink[id] {
+                XCTAssertEqual(LibraryInkView.isRecordDirect(raw), LibraryInkView.decodeRecordDirect(raw) != nil, "\(what): isRecordDirect \(id)", file: file, line: line)
+            }
+        }
     }
 
     private func pt(_ x: Any, _ y: Any, _ w: Any? = nil) -> [String: Any] {
@@ -579,6 +597,7 @@ final class LibraryInkDecodeTests: XCTestCase {
         func broken(_ what: String, _ ink: [String: Any]) {
             XCTAssertNil(LibraryInkView.decodeInkDirect(ink), "\(what): direct path not taken")
             XCTAssertEqual(bits(LibraryInkView.decodeInk(ink)), bits(old(ink)), what)
+            checkStore(ink, what) // 一条坏的整份清空：按需解码的那一条也是空（不是只把坏的那条当空）
         }
         broken("header 4", ["a": [[4, 1, 2, 3, 4] as [Any]]])
         broken("header 3, count not a multiple", ["a": [[3, 1, 2] as [Any]]])
@@ -666,6 +685,230 @@ final class LibraryTextWidthMemoTests: XCTestCase {
                 XCTAssertEqual(LibraryCommon.textWidth(text, mt.font(15)).bitPattern, LibraryCommon.measureTextWidth(text, mt.font(15)).bitPattern, text)
                 XCTAssertEqual(LibraryCommon.textWidth(text, mt.fontTabular(15)).bitPattern, LibraryCommon.measureTextWidth(text, mt.fontTabular(15)).bitPattern, text)
             }
+        }
+    }
+}
+
+// MARK: - 全部字页只建看得见的格子（ShiziLazyCells）
+
+/// 全部字页的两种建法：只建可见框 ± overscan 的（产品）与全部建出来（materializeAll = 以前一次建完的做法，同一套配置代码）。
+@MainActor
+enum LibraryVirtual {
+    static func make(all: Bool) -> LibraryAllScreen {
+        let vc = LibraryAllScreen(screen: "library-all", entryId: all ? "eq-all" : "eq-virtual", params: [:])
+        vc.cells.materializeAll = all
+        return vc
+    }
+
+    /// 回包：n 格（每 40 格一组、按月排）；每 9 格有一格写错过（朱点、画字形）、每 13 格有一格查找命中（命中圈）。
+    static func payload(_ n: Int, ink: Bool) -> [String: Any] {
+        var p = LibraryBench.allPayload(n, ink: ink)
+        for i in stride(from: 4, to: n, by: 9) { p = LibraryEq.editCell(p, i) { $0["kind"] = "wrong" } }
+        for i in stride(from: 6, to: n, by: 13) { p = LibraryEq.editCell(p, i) { $0["hit"] = true } }
+        return p
+    }
+
+    /// 页面里的分组视图（content 里按顺序加进去的，= 页面的 groupViews）。
+    static func groups(_ vc: LibraryAllScreen) -> [LibraryAllScreen.GroupView] {
+        vc.content.subviews.compactMap { $0 as? LibraryAllScreen.GroupView }
+    }
+
+    /// 一格的状态摘要：框、读屏名、标识、图标框、字形图的像素、拼音、墨迹（框 / 笔画 / 看得见时的墨色）、朱点、命中圈。
+    struct Digest: Equatable, CustomStringConvertible {
+        var frame: CGRect
+        var composed: String
+        var label: String?
+        var id: String?
+        var icon: CGSize
+        var image: Data?
+        var pyHidden: Bool
+        var pyText: String?
+        var pyFrame: CGRect
+        var inkHidden: Bool
+        var inkFrame: CGRect
+        var strokes: [[LibraryInkView.Point]]
+        var inkColor: String
+        var markHidden: Bool?
+        var ringHidden: Bool?
+        var ringBorder: String
+
+        var description: String {
+            "frame=\(frame) label=\(label ?? "-") image=\(image?.count ?? -1)B py=\(pyHidden)/\(pyText ?? "") ink=\(inkHidden)/\(strokes.count)/\(inkColor) mark=\(String(describing: markHidden)) ring=\(String(describing: ringHidden))"
+        }
+    }
+
+    static func digest(_ s: LibraryAllScreen.CellSlot, _ traits: UITraitCollection) -> Digest {
+        let b = s.button
+        let ring = b.viewWithTag(9002)
+        return Digest(frame: b.frame, composed: b.composed, label: b.accessibilityLabel, id: b.accessibilityIdentifier, icon: b.iconSize,
+                      image: b.image(for: .normal)?.cgImage?.dataProvider?.data as Data?,
+                      pyHidden: s.py.isHidden, pyText: s.py.attributedText?.string ?? s.py.text, pyFrame: s.py.frame,
+                      inkHidden: s.ink.isHidden, inkFrame: s.ink.frame, strokes: s.ink.strokes,
+                      inkColor: s.ink.isHidden ? "-" : libraryColorKey(s.ink.ink.resolvedColor(with: traits)),
+                      markHidden: b.viewWithTag(9001)?.isHidden, ringHidden: ring?.isHidden,
+                      ringBorder: ring?.layer.borderColor.map { libraryColorKey(UIColor(cgColor: $0)) } ?? "-")
+    }
+
+    /// 视图树：每组的墙格里正好是这一组建出来的格子（按序号，按钮后面紧跟它的墨迹小图），没有多余的。
+    static func hierarchyProblems(_ vc: LibraryAllScreen) -> [String] {
+        let gvs = groups(vc)
+        var want: [ObjectIdentifier: [UIView]] = [:]
+        var out: [String] = []
+        for i in vc.cells.liveIndices {
+            guard let s = vc.cells.slot(at: i), i < vc.wall.cellGroup.count, vc.wall.cellGroup[i] < gvs.count else { out.append("\(i): no slot / group"); continue }
+            want[ObjectIdentifier(gvs[vc.wall.cellGroup[i]].cellsMarker), default: []] += [s.button, s.ink]
+        }
+        for (gi, gv) in gvs.enumerated() {
+            let expected = want[ObjectIdentifier(gv.cellsMarker)] ?? []
+            let have = gv.cellsMarker.subviews
+            if have.count != expected.count || zip(have, expected).contains(where: { $0 !== $1 }) {
+                out.append("group \(gi): \(have.count) subviews, expected \(expected.count) in index order")
+            }
+        }
+        return out
+    }
+
+    /// 滚到 y（夹在内容范围里），排版提交。
+    static func scroll(_ vc: LibraryAllScreen, _ w: UIWindow, to y: CGFloat) {
+        vc.scroll.contentOffset = CGPoint(x: 0, y: min(max(0, y), bottomOffset(vc)))
+        LibraryBench.settle(w)
+    }
+
+    static func bottomOffset(_ vc: LibraryAllScreen) -> CGFloat { max(0, vc.scroll.contentSize.height - vc.scroll.bounds.height) }
+}
+
+@MainActor
+final class LibraryVirtualCellsTests: XCTestCase {
+    /// 排版的框（wall）= 视图上的框：组 / 组头 / 墙格；全部建出来时每一格的按钮 / 墨迹小图的框 = 以前逐格排的算法（列 × 格宽、行 × 格高，
+    /// 格宽 = 墙宽 / 列数、格高 = 墙高 / 行数，独立地从视图量回来），content 坐标 = 框 + 墙格原点；只建一部分时，建出来的格子同样。
+    func testFrameModelMatchesTheViews() throws {
+        for n in [48, 300, 1500] {
+            let payload = LibraryVirtual.payload(n, ink: true)
+            let all = LibraryVirtual.make(all: true), virt = LibraryVirtual.make(all: false)
+            let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
+            defer { LibraryBench.unhost(wa); LibraryBench.unhost(wv) }
+            all.apply(payload: payload)
+            virt.apply(payload: payload)
+            LibraryBench.settle(wa)
+            LibraryBench.settle(wv)
+            let wall = all.wall
+            XCTAssertEqual(wall.cells.count, n, "n=\(n)")
+            XCTAssertEqual(all.cells.liveIndices, Array(0..<n), "n=\(n): materialize-all builds every cell")
+            XCTAssertEqual(virt.wall.cells, wall.cells, "n=\(n): same frame model on both pages")
+            XCTAssertEqual(virt.wall.cellsInContent, wall.cellsInContent)
+            if n >= 1500 { XCTAssertLessThan(virt.cells.liveIndices.count, n, "n=\(n): only part of the wall is built") }
+            for vc in [all, virt] {
+                let gvs = LibraryVirtual.groups(vc)
+                XCTAssertEqual(gvs.count, wall.groups.count, "n=\(n)")
+                for (gi, box) in wall.groups.enumerated() where gi < gvs.count {
+                    let gv = gvs[gi]
+                    XCTAssertEqual(gv.frame, box.frame, "n=\(n) group \(gi)")
+                    XCTAssertEqual(gv.cellsMarker.frame, CGRect(x: 0, y: box.gridTop, width: box.frame.width, height: box.gridH), "n=\(n) group \(gi) grid")
+                    XCTAssertEqual(gv.headButton.frame.height, box.headH)
+                    XCTAssertEqual(gv.nameLabel.frame, box.nameFrame)
+                    XCTAssertEqual(gv.countLabel.frame, box.countFrame)
+                }
+                for i in vc.cells.liveIndices {
+                    guard let s = vc.cells.slot(at: i) else { XCTFail("n=\(n) \(i): no slot"); continue }
+                    let gi = wall.cellGroup[i], box = wall.groups[gi], ci = i - box.firstCell
+                    let marker = gvs[gi].cellsMarker
+                    let rows = Int(ceil(Double(box.cellCount) / 8))
+                    let cw = marker.bounds.width / 8, ch = marker.bounds.height / CGFloat(rows)
+                    let r = s.button.frame
+                    XCTAssertEqual(r, wall.cells[i], "n=\(n) cell \(i)")
+                    XCTAssertEqual(r.minX, CGFloat(ci % 8) * cw, accuracy: 1e-9, "n=\(n) cell \(i) x")
+                    XCTAssertEqual(r.minY, CGFloat(ci / 8) * ch, accuracy: 1e-6, "n=\(n) cell \(i) y")
+                    XCTAssertEqual(r.width, cw, accuracy: 1e-9)
+                    XCTAssertEqual(r.height, ch, accuracy: 1e-6)
+                    let inC = s.button.convert(s.button.bounds, to: vc.content)
+                    let model = wall.cellsInContent[i]
+                    XCTAssertEqual(inC.minY, model.minY, accuracy: 1e-6, "n=\(n) cell \(i) content y")
+                    XCTAssertEqual(inC.minX, model.minX, accuracy: 1e-6, "n=\(n) cell \(i) content x")
+                    XCTAssertEqual(s.ink.frame, CGRect(x: r.minX + cw * 0.04, y: r.minY + cw * 0.04, width: cw * 0.92, height: cw * 0.92))
+                }
+                XCTAssertEqual(LibraryVirtual.hierarchyProblems(vc), [], "n=\(n)")
+            }
+        }
+    }
+
+    /// 整窗截图逐字节相同：只建一部分 vs 全部建出来，滚到顶 / 中间 / 底 / 一个月份组头被上沿切开的位置，浅 / 深。
+    /// 两页同时开着（各一个窗口），每个位置各截一张就比（不攒截图）。
+    func testVirtualizedPixelsMatchMaterializeAll() throws {
+        for (n, ink) in [(1500, true), (300, false)] {
+            let payload = LibraryVirtual.payload(n, ink: ink)
+            let all = LibraryVirtual.make(all: true), virt = LibraryVirtual.make(all: false)
+            let wa = LibraryBench.host(all), wv = LibraryBench.host(virt)
+            defer { LibraryBench.unhost(wa); LibraryBench.unhost(wv) }
+            for w in [wa, wv] { w.overrideUserInterfaceStyle = .light }
+            all.apply(payload: payload)
+            virt.apply(payload: payload)
+            LibraryBench.settle(wa)
+            LibraryBench.settle(wv)
+            let bottom = LibraryVirtual.bottomOffset(virt)
+            XCTAssertGreaterThan(bottom, virt.scroll.bounds.height, "n=\(n): content is taller than a screen")
+            let mid = virt.wall.groups[virt.wall.groups.count / 2]
+            let offsets: [(String, CGFloat)] = [("top", 0), ("middle", (bottom / 2).rounded()), ("bottom", bottom), ("cut head", mid.frame.minY + mid.headH / 2)]
+            for style in [UIUserInterfaceStyle.light, .dark] {
+                for w in [wa, wv] {
+                    w.overrideUserInterfaceStyle = style
+                    LibraryBench.settle(w)
+                }
+                for (name, y) in offsets {
+                    LibraryVirtual.scroll(all, wa, to: y)
+                    LibraryVirtual.scroll(virt, wv, to: y)
+                    XCTAssertEqual(all.scroll.contentOffset, virt.scroll.contentOffset)
+                    let label = "n=\(n) \(ink ? "ink" : "glyph") \(style == .dark ? "dark" : "light") \(name)"
+                    let a = try LibraryEq.stableSnapshot(wa, "\(label) all")
+                    let b = try LibraryEq.stableSnapshot(wv, "\(label) virtual")
+                    XCTAssertTrue(LibraryEq.same(a, b, label), label)
+                    XCTAssertEqual(LibraryVirtual.hierarchyProblems(virt), [], label)
+                }
+            }
+        }
+    }
+
+    /// 一步一步滚过整面墙（每步 0.37 屏往下，再每步 2.3 屏往上跳回顶）：每一步之后建出来的格子 = 逐个判断与可见框 ± overscan 相交的那些，
+    /// 没有一个格子用在两处，每格的状态摘要 = 新建一格按同一序号配出来的；视图树按序号。
+    /// 中途重收同一份回包（停在底部）、收一份小的回包（滚动位置被夹回）也一样。
+    func testScrollStress() throws {
+        for (n, ink) in [(1500, true), (300, false)] {
+            let vc = LibraryVirtual.make(all: false)
+            let w = LibraryBench.host(vc)
+            defer { LibraryBench.unhost(w) }
+            vc.apply(payload: LibraryVirtual.payload(n, ink: ink))
+            LibraryBench.settle(w)
+            let traits = vc.traitCollection
+            func verify(_ what: String) {
+                XCTAssertEqual(vc.cells.overscan, vc.scroll.bounds.height * LibraryAllScreen.overscanViewports, what)
+                let problems = vc.cells.check(visible: vc.scroll.bounds) { LibraryVirtual.digest($0, traits) }
+                XCTAssertEqual(Array(problems.prefix(5)), [], "\(what): \(problems.count) problem(s)")
+                XCTAssertEqual(LibraryVirtual.hierarchyProblems(vc), [], what)
+            }
+            verify("n=\(n) open")
+            let h = vc.scroll.bounds.height, bottom = LibraryVirtual.bottomOffset(vc)
+            var y: CGFloat = 0, steps = 0
+            while y < bottom {
+                y = min(bottom, y + h * 0.37)
+                LibraryVirtual.scroll(vc, w, to: y)
+                steps += 1
+                verify("n=\(n) down y=\(y)")
+            }
+            XCTAssertGreaterThan(steps, 5)
+            XCTAssertTrue(vc.cells.liveIndices.contains(n - 1), "n=\(n): the last cell is built at the bottom")
+            vc.apply(payload: LibraryVirtual.payload(n, ink: ink)) // 同一份再收一次（= 查字框里打一个字），停在底部
+            LibraryBench.settle(w)
+            verify("n=\(n) reapply at bottom")
+            while y > 0 {
+                y = max(0, y - h * 2.3)
+                LibraryVirtual.scroll(vc, w, to: y)
+                verify("n=\(n) up y=\(y)")
+            }
+            XCTAssertTrue(vc.cells.liveIndices.contains(0))
+            LibraryVirtual.scroll(vc, w, to: bottom)
+            vc.apply(payload: LibraryVirtual.payload(48, ink: ink)) // 内容变短：滚动位置被夹回，格子按新的框重建
+            LibraryBench.settle(w)
+            verify("n=\(n) to 48")
+            XCTAssertEqual(vc.cells.liveIndices, Array(0..<48))
         }
     }
 }

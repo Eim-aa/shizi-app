@@ -320,7 +320,8 @@ final class LibraryAllScreen: ShiziScreenViewController {
             gv.nameLabel.accessibilityIdentifier = "native-library-all-group-name"
             gv.countLabel.accessibilityIdentifier = "native-library-all-group-count"
             gv.cellsMarker.accessibilityIdentifier = "native-library-all-cells"
-            gv.cellsMarker.isUserInteractionEnabled = false
+            // 墙格容器要接点按：格子按钮是它的子视图，关掉它的 isUserInteractionEnabled 会让命中测试整片跳过（真手指点格子没反应）。
+            // 墨格 / 拼音各自关了点按，点按落到下面的格子按钮上。
             groupViews.append(gv)
             content.addSubview(gv)
             wire(gv.headButton) { [weak gv] page in (page as? LibraryAllScreen)?.foldGroup(gv) }

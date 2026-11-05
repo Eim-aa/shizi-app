@@ -71,6 +71,25 @@ final class LibrarySubFlowTests: XCTestCase {
         qa.waitProbe("folded again", timeout: 10) { _ in closed.count == n }
     }
 
+    /// 全部字页：手指点一个字格 → 推入这个字的详情页。
+    /// 用真点按（XCUIElement.tap 合成触摸，走命中测试），不走 sendActions：格子的父视图曾经关掉了 isUserInteractionEnabled，
+    /// 读屏激活与 sendActions 都能打开，手指点却什么都不发生——这条用例守住它。
+    func testAllCharsCellTapOpensDetail() {
+        let qa = QA(seed: "all-pinyin")
+        qa.launch()
+        waitScreen(qa, "library-all")
+        let cell = qa.el("native-library-all-cell")
+        XCTAssertTrue(cell.waitForExistence(timeout: 8), "字墙的格子")
+        // 格子的读屏名 = X-LIBHOME.cellAria「{char}，{status}」
+        let char = cell.label.components(separatedBy: "，").first ?? ""
+        XCTAssertEqual(char.count, 1, "格子的读屏名带字：\(cell.label)")
+        // 直接 tap()，不用 qa.tap：它没效果会再点一次，可能掩盖回归
+        cell.tap()
+        qa.waitRouteTop("detail", timeout: 15)
+        let route = qa.probe["route"] as? [String: Any] ?? [:]
+        XCTAssertEqual(route["char"] as? String, char, "字详情是点的那个字")
+    }
+
     /// 全部字页：排序 / 筛选 / 查找。
     func testAllCharsSortFilterFind() {
         let qa = QA(seed: "all-pinyin")

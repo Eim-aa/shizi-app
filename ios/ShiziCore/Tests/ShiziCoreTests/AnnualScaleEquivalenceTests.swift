@@ -43,6 +43,19 @@ final class AnnualScaleEquivalenceTests: XCTestCase {
         }
     }
 
+    /// 墨迹平铺的回答 vs 参照（旧形状）：AnnualInkPayloadTests.diff——墨迹格按 sameInk 比，其余逐值比（数比位型）。
+    private func sameWire(_ label: @autoclosure () -> String, _ wire: JSValue, _ ref: () throws -> JSValue, file: StaticString = #filePath, line: UInt = #line) {
+        compared += 1
+        let legacy: JSValue
+        do { legacy = try ref() } catch {
+            XCTFail(label() + " new succeeds, ref throws \(error)", file: file, line: line)
+            return
+        }
+        var out: [String] = [], slots: [String: Int] = [:]
+        AnnualInkPayloadTests.diff(wire, legacy, "reply", &out, &slots)
+        if !out.isEmpty { XCTFail(label() + " differs: \(out.prefix(5))", file: file, line: line) }
+    }
+
     private static func numbers(_ years: [Int]) -> JSValue { .array(years.map { (y: Int) -> JSValue in .number(Double(y)) }) }
 
     /// 年报要看的年份参数：缺省、每个有记录的年、前后各一个空年、很早的空年、不是整数的。
@@ -253,7 +266,10 @@ final class AnnualScaleEquivalenceTests: XCTestCase {
         for a in annualArgs {
             let got = PageAPI.call("view.annual", store: store, args: a)
             XCTAssertEqual(got["ok"], .bool(true), label + " annual: " + String(JSONWriter.stringify(got).prefix(300)))
-            same("\(label) api view.annual \(JSONWriter.stringify(.object(a)))", { got }, { try AnnualRef.mineSubReply("view.annual", store, a) })
+            // view.annual 发墨迹平铺的那份（annualView(inkWire: true)）；参照是改动前的写法（每点一个 InkPoint.js）：
+            // 墨迹格按 AnnualInkPayloadTests.sameInk（平铺展开 = 旧形状去掉 t / p，或整格就是旧形状），其余逐值相同。
+            // 不平铺的那份（inkWire: false，view.annual-page）上面 compareAnnual 里与参照逐字节比。
+            sameWire("\(label) api view.annual \(JSONWriter.stringify(.object(a)))", got, { try AnnualRef.mineSubReply("view.annual", store, a) })
         }
         let index = V.recordIndex(state, dates: dates)
         let months = try Self.monthsToCheck(state, today: today, dates: dates)

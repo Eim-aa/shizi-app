@@ -33,7 +33,7 @@ import XCTest
 //       part.*：页内反复用到的块——recordIndex（我的 / 记录 / 年报）、flattenSorted（ImageSelection 的全量排序平铺）、monthMembers（月报 / 我的 / 年报每月）、
 //       annualYears（我的、年报：每年各建一次 recordIndex）、memoryZones（我的 / 字库）、recordsSignature（我的的备份提示）、reminderPayload（提醒开着时每次提交后的同步）、
 //       yearSlice / annualModel（年报的切片与模型，不含每格墨迹）、monthCells（月报 / 记录 / 年报每月的格，含每格墨迹）、monthSheetCells（我的页的月报格）、
-//       builtInk.month（当月每个成员各解一次回放墨迹；scale-note 行给每格单价）。
+//       builtInk.month（当月每个成员各解一次回放墨迹；scale-note 行给每格单价）、builtInkPresent.month（同样的格只问有没有：解码、不重采样）。
 //   api.* 与较重的 part.*：第一次就超过 1 s 时只量这一次（n=1），免得 10x 的手动量测步骤超出作业时限。
 //   bytes = Store.usage 的 total（UTF-16 口径，与预算同口径）。
 //   另有 testFoldPolicyBytes 打印 BENCH fold-policy 行（每条记录 / 墨迹 / sched 的字节、折叠一个月前后、按每天写多少字推到碰预算的天数），见该方法的注释。
@@ -395,6 +395,10 @@ final class ScaleBenchmarkTests: XCTestCase {
             for r in memberRecords { if try DetailView.builtInk(stv, record: r, dates: dates) != nil { sink &+= 1 } }
         }
         report("part.builtInk.month", name, scale, info, inkMs)
+        // 只问有没有（我的页的月报格）：解码、不重采样、不建点对象
+        report("part.builtInkPresent.month", name, scale, info, try sampleUnlessSlow(n: scale.reads) {
+            for r in memberRecords { if try DetailView.builtInkPresent(stv, record: r, dates: dates) { sink &+= 1 } }
+        })
         print("BENCH scale-note scale=\(scale.name) backend=\(name) builtInk.month cells=\(memberRecords.count) perCell=\(B.fmt(B.median(inkMs.sorted()) / Double(max(1, memberRecords.count))))ms")
         report("part.memoryZones", name, scale, info, try sample(warm: 0, n: scale.reads) {
             sink &+= Int(try ViewSupport.memoryZones(stv, today: today, dates: dates)["recorded"]?.numberValue ?? 0)

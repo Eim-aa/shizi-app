@@ -1,0 +1,41 @@
+{
+  "state": "all-big",
+  "name": "全部字 · 1500 个有墨迹的字（按拼音；只建看得见的格子）",
+  "screen": "library-all",
+  "native": true,
+  "parity": true,
+  "template": "page",
+  "clock": {
+    "pin": "2026-10-22T09:00:00"
+  },
+  "setup": [
+    {
+      "op": "seedRecords",
+      "lib": {
+        "id": "core3500",
+        "n": 1500,
+        "from": "2025-11-01",
+        "perDay": 5
+      }
+    },
+    {
+      "op": "seed"
+    },
+    {
+      "op": "switchTab",
+      "tab": "library"
+    },
+    {
+      "op": "push",
+      "screen": "library-all",
+      "params": {
+        "sort": "py"
+      }
+    }
+  ],
+  "ready": {
+    "web": "all-screen",
+    "native": "id:native-library-all-screen",
+    "timeout": 60
+  }
+}

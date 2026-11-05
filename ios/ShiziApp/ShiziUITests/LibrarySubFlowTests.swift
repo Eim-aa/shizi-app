@@ -135,6 +135,35 @@ final class LibrarySubFlowTests: XCTestCase {
         }
     }
 
+    /// 全部字页 1500 个字（只建看得见的格子）：打开时只建了一部分；一路滑到底，顶上那几格收掉了、最后一组的格子建出来了、都在屏上。
+    func testAllCharsBigLibraryScrollsToTheEnd() {
+        let qa = QA(seed: "all-big")
+        qa.launch()
+        waitScreen(qa, "library-all")
+        let cells = qaQuery(qa, "native-library-all-cell")
+        XCTAssertTrue(cells.element(boundBy: 0).waitForExistence(timeout: 30), "字墙的格子")
+        let first = cells.element(boundBy: 0).label
+        XCTAssertFalse(first.isEmpty, "格子有读屏名")
+        XCTAssertLessThan(cells.count, 1500, "只建了一部分格子")
+        let groups = qaQuery(qa, "native-library-all-group")
+        let lastGroup = groups.element(boundBy: groups.count - 1)
+        let scrollView = qa.app.scrollViews.firstMatch
+        var last = ""
+        for _ in 0..<40 {
+            scrollView.swipeUp(velocity: .fast)
+            Thread.sleep(forTimeInterval: 0.4)
+            let now = cells.element(boundBy: cells.count - 1).label
+            if now == last { break } // 滑不动了 = 到底
+            last = now
+        }
+        XCTAssertEqual(cells.matching(NSPredicate(format: "label == %@", first)).count, 0, "滑走的格子收掉了")
+        XCTAssertGreaterThan(cells.count, 0)
+        let window = qa.app.windows.firstMatch.frame
+        let tail = cells.element(boundBy: cells.count - 1)
+        XCTAssertTrue(window.intersects(tail.frame), "最后建出来的那一格在屏上：\(tail.frame)")
+        XCTAssertTrue(window.intersects(lastGroup.frame), "最后一组在屏上")
+    }
+
     private func qaFirstGroupName(_ qa: QA) -> String { qa.el("native-library-all-group-name").label }
     private func qaHasElement(_ qa: QA, _ id: String) -> Bool { qa.el(id).exists }
     private func qaTextOf(_ qa: QA, _ id: String) -> String { qa.el(id).label }

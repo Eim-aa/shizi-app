@@ -1,4 +1,4 @@
-// library-all 的语义键（B3.8 原生化后填；状态：all-filter、all-find、all-month、all-pinyin）。
+// library-all 的语义键（B3.8 原生化后填；状态：all-filter、all-find、all-month、all-pinyin、all-big）。
 // key = 语义键；native = 原生成员名 / accessibilityIdentifier（prop: / id:）。
 // 同名元素多个（行、格）时 id:xxx#N 取第 N 个（从 0 起）；不写 #N 则按文档顺序配对。
 export const KEYS = [

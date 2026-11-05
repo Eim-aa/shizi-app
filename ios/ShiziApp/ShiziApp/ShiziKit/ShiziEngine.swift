@@ -73,7 +73,9 @@ enum ShiziDecode {
     }
 
     static func value<R: Decodable>(_ any: Any, as: R.Type) throws -> R {
-        guard JSONSerialization.isValidJSONObject(any) || any is [Any] || any is [String: Any] else { throw ShiziEngineError.decode("not JSON") }
+        // 只认 isValidJSONObject：NaN / ±∞ 或别的非 JSON 值若放进 data(withJSONObject:)，Apple 平台抛 Objective-C 异常（NSInvalidArgumentException），
+        // do/catch 与调用方的 try? 都接不住，App 直接崩。这里先挡下，变成可接的 ShiziEngineError。
+        guard JSONSerialization.isValidJSONObject(any) else { throw ShiziEngineError.decode("not JSON") }
         do {
             let data = try JSONSerialization.data(withJSONObject: any, options: [.fragmentsAllowed])
             return try JSONDecoder().decode(R.self, from: data)

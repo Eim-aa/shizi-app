@@ -174,7 +174,13 @@ jobs:
       - name: ShiziWriteTests
         run: |
           set -o pipefail
+          # 单个用例超过 10 分钟即判失败并报出名字（卡住的用例不再拖到整个 job 超时、日志里还看不出是谁）
           xcodebuild -project "$PROJECT" -scheme ShiziWriteTests -destination "id=$SIM" -derivedDataPath "$DD" \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 600 -maximum-test-execution-time-allowance 900 \
             CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "$RUNNER_TEMP/ShiziWriteTests.log" \
-            | grep -E "Executed [0-9]+ tests?|error:|BENCH|\[library-eq\]|\*\* TEST (SUCCEEDED|FAILED)" | grep -v "^Test Case .* passed" || true
+            | grep -E "Executed [0-9]+ tests?|error:|BENCH|\[library-eq\]|Test Case .*(passed|failed) \(|exceeded|\*\* TEST (SUCCEEDED|FAILED)" || true
           grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/ShiziWriteTests.log"
+      # 被取消 / 失败时把最后一段原始输出打出来（上面的过滤会吞掉「正在跑哪一条」）
+      - name: ShiziWriteTests raw tail
+        if: ${{ !success() }}
+        run: tail -n 300 "$RUNNER_TEMP/ShiziWriteTests.log" || true

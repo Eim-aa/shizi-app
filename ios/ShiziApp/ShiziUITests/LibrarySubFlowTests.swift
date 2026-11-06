@@ -20,6 +20,14 @@ final class LibrarySubFlowTests: XCTestCase {
         qa.app.descendants(matching: .any).matching(identifier: id)
     }
 
+    /// 在正文滚动区左侧合成拖动，避开字格按钮和页头；应用级 swipe 没有明确的起落点。
+    private func scrollList(_ qa: QA, up: Bool) {
+        let scroll = qa.app.scrollViews.firstMatch
+        let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: up ? 0.8 : 0.2))
+        let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: up ? 0.2 : 0.8))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: 600, thenHoldForDuration: 0.05)
+    }
+
     /// 原生子页出来了（探针 stage.screens = 打开中的原生屏名）。
     private func waitScreen(_ qa: QA, _ name: String, file: StaticString = #filePath, line: UInt = #line) {
         qa.waitProbe("native screen \(name)", timeout: 30, file: file, line: line) { p in
@@ -151,7 +159,7 @@ final class LibrarySubFlowTests: XCTestCase {
         var lastFrame = CGRect.null
         var reached = false
         for _ in 0..<60 {
-            qa.app.swipeUp(velocity: .fast)
+            scrollList(qa, up: true)
             Thread.sleep(forTimeInterval: 0.8)
             let f = cells.element(boundBy: cells.count - 1).frame
             if window.intersects(f), f == lastFrame { reached = true; break }
@@ -200,7 +208,7 @@ final class LibrarySubFlowTests: XCTestCase {
         func swipe(up: Bool, until target: () -> XCUIElement) -> Bool {
             var lastFrame = CGRect.null
             for _ in 0..<80 {
-                if up { qa.app.swipeUp(velocity: .fast) } else { qa.app.swipeDown(velocity: .fast) }
+                scrollList(qa, up: up)
                 Thread.sleep(forTimeInterval: 0.8)
                 let f = target().frame
                 if window.intersects(f), f == lastFrame { return true }

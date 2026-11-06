@@ -1,0 +1,50 @@
+Base commit: 7e2cea749aac5d501fb99b897d4d09996f6b1e16
+Working changes: LibrarySubFlowTests.swift + MineFlowTests.swift included in this commit
+
+Test Suite 'Selected tests' started at 2026-11-06 02:01:48.181.
+Test Suite 'ShiziUITests.xctest' started at 2026-11-06 02:01:48.182.
+Test Suite 'LibrarySubFlowTests' started at 2026-11-06 02:01:48.182.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsBigLibraryScrollsToTheEnd]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsBigLibraryScrollsToTheEnd]' passed (163.305 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsCellTapOpensDetail]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsCellTapOpensDetail]' passed (17.792 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsMonthOpensAndFolds]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsMonthOpensAndFolds]' passed (19.125 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsParamsColdRestore]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsParamsColdRestore]' passed (24.199 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsSortFilterFind]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testAllCharsSortFilterFind]' passed (46.673 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testBigListRowsStayTappableAndKeepSelection]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testBigListRowsStayTappableAndKeepSelection]' passed (366.424 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testSwitchLibraryFailureThreeStage]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testSwitchLibraryFailureThreeStage]' passed (24.871 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testSwitchLibrarySuccessReturnsAtOnce]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testSwitchLibrarySuccessReturnsAtOnce]' passed (27.801 seconds).
+Test Case '-[ShiziUITests.LibrarySubFlowTests testTierToListToPickedSession]' started.
+Test Case '-[ShiziUITests.LibrarySubFlowTests testTierToListToPickedSession]' passed (29.023 seconds).
+Test Suite 'LibrarySubFlowTests' passed at 2026-11-06 02:13:47.400.
+Test Suite 'MineFlowTests' started at 2026-11-06 02:13:47.401.
+Test Case '-[ShiziUITests.MineFlowTests testAppearanceSegmentsApplyAtOnce]' started.
+Test Case '-[ShiziUITests.MineFlowTests testAppearanceSegmentsApplyAtOnce]' passed (40.805 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testAx5AppearanceSheetOpenSelectClose]' started.
+Test Case '-[ShiziUITests.MineFlowTests testAx5AppearanceSheetOpenSelectClose]' passed (46.134 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testAx5ChoiceFailureAnnouncesOnlyAfterFailure]' started.
+Test Case '-[ShiziUITests.MineFlowTests testAx5ChoiceFailureAnnouncesOnlyAfterFailure]' passed (40.756 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testAx5ChoiceSheet]' started.
+Test Case '-[ShiziUITests.MineFlowTests testAx5ChoiceSheet]' passed (31.309 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testAx5ChoiceSheetEdgeClosesOnlySheet]' started.
+Test Case '-[ShiziUITests.MineFlowTests testAx5ChoiceSheetEdgeClosesOnlySheet]' passed (33.322 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testEachRowOpensItsPageAndComesBack]' started.
+Test Case '-[ShiziUITests.MineFlowTests testEachRowOpensItsPageAndComesBack]' passed (82.071 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testGroupSizeSyncsHomeAndLibrary]' started.
+Test Case '-[ShiziUITests.MineFlowTests testGroupSizeSyncsHomeAndLibrary]' passed (88.098 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testRemindSwitchTimeDenied]' started.
+Test Case '-[ShiziUITests.MineFlowTests testRemindSwitchTimeDenied]' skipped (0.065 seconds).
+Test Case '-[ShiziUITests.MineFlowTests testYieldToWebAndBack]' started.
+Test Case '-[ShiziUITests.MineFlowTests testYieldToWebAndBack]' passed (48.759 seconds).
+Test Suite 'MineFlowTests' passed at 2026-11-06 02:20:38.731.
+Test Suite 'ShiziUITests.xctest' passed at 2026-11-06 02:20:38.732.
+	 Executed 18 tests, with 1 test skipped and 0 failures (0 unexpected) in 1130.533 (1130.550) seconds
+Test Suite 'Selected tests' passed at 2026-11-06 02:20:38.733.
+	 Executed 18 tests, with 1 test skipped and 0 failures (0 unexpected) in 1130.533 (1130.551) seconds
+** TEST SUCCEEDED **

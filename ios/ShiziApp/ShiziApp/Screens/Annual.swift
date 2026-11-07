@@ -190,7 +190,11 @@ final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     private(set) lazy var cells = ShiziLazyCells<CellSlot>(
         make: { _ in CellSlot() },
         attach: { [unowned self] s, i, following in self.attachCell(s, i, following) },
-        detach: { s in s.cell.removeFromSuperview() },
+        detach: { s in
+            s.cell.removeFromSuperview()
+            // 回池的格子：下次配时（哪怕还是同一格）一定重配内容——在池里的时候到的墨迹才会显出来
+            s.index = -1
+        },
         configure: { [unowned self] s, i in self.configureCell(s, i) })
     /// 墨色 / 衬底字色：外观（浅 / 深）没变、且浅 / 深两套解析出来都没变时一直用同一个对象（color(_:) 每次新建一个动态色；
     /// 同一个对象 → 墨视图 / 衬底字不必重画）。外观一变就换新的对象：建出来的格子随这次渲染重配、全部重画，池子里的格子下次配时重画。

@@ -120,6 +120,27 @@ class ShiziScreenView: UIView {
     }
 }
 
+/// 全 app 的滚动区统一用它（字帖格 / 日按钮 / 开关这类 UIControl 铺满的页面也要能从控件上起手拖动）。
+/// UIScrollView 默认：delaysContentTouches = false 时，从 UIControl 上起手的拖动不会变成滚动（touchesShouldCancel 对 UIControl 回 false）。
+/// 这里：点按立刻有按下态（delaysContentTouches = false），但一开始拖动就取消控件上的触摸、交给滚动（canCancelContentTouches = true）。
+/// 滑块这类自己要拖的控件除外。
+class ShiziScrollView: UIScrollView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        delaysContentTouches = false
+        canCancelContentTouches = true
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func touchesShouldCancel(in view: UIView) -> Bool {
+        if view is UISlider { return false }
+        if view is UIControl { return true }
+        return super.touchesShouldCancel(in: view)
+    }
+}
+
 /// B3 原生页的基类。子类实现 render(view:)（解自己的 Codable 视图）与 layoutBody(width:x:top:)（排正文、返回正文底）。
 class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestureRecognizerDelegate {
     let screen: String
@@ -136,7 +157,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     // 页面骨架（成员名是 QA 取证的语义键：backButton ↔ 网页 page-back）
     let backButton = UIButton(type: .custom)
     let titleLabel = UILabel()
-    let scroll = UIScrollView()
+    let scroll = ShiziScrollView()
     let content = UIView()
     /// 整页的框（网页 Page 根元素 <屏名>-screen；透明、不接触摸，只给 QA 取证按语义键比位置）。
     let screenMarker = UIView()
@@ -148,6 +169,8 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     private var changesTask: Task<Void, Never>?
     /// 看不见时来的变化（changed 推送、首页定时刷新）先记着，露出来时补拉一次（revealIfNeeded）。
     private var needsReload = false
+    /// 外观 / 字号变了的时候这一页看不见：露出来之前补一次 styleChrome + renderNow。
+    private var needsRestyle = false
     /// 同一轮主线程里来的几次变化并成一次重拉。
     private var reloadQueued = false
     /// 等补拉的视图画好的（NativeStage.revealUnder：返回转场等它再放）。
@@ -263,6 +286,13 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     /// 返回是否开始补拉；开始了，done 在回包画好（排过版）后调（回包失败也调）。
     @discardableResult
     func revealIfNeeded(ignoring leaving: UIViewController? = nil, force: Bool = false, done: (() -> Void)? = nil) -> Bool {
+        if needsRestyle, force || isShown(ignoring: leaving) {
+            needsRestyle = false
+            if isViewLoaded {
+                styleChrome()
+                renderNow()
+            }
+        }
         guard needsReload, force || isShown(ignoring: leaving) else { return false }
         needsReload = false
         if let done { revealWaiters.append(done) }
@@ -345,6 +375,8 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
         let sizeChanged = previous?.preferredContentSizeCategory != traitCollection.preferredContentSizeCategory
         if sizeChanged { metrics = ShiziMetrics(UIApplication.shared.preferredContentSizeCategory) }
         if sizeChanged || previous?.userInterfaceStyle != traitCollection.userInterfaceStyle {
+            // 看不见的页（原生栈里被盖住的、别的 tab 的）不在此刻重排重画：记着，露出来之前（revealIfNeeded）补一次
+            guard isViewLoaded, isShown() else { needsRestyle = true; return }
             styleChrome()
             renderNow()
         }

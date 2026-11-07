@@ -176,9 +176,16 @@ enum LibraryBench {
     }
 
     /// 排版 + 提交（画墨 / 标签在提交里画）。
+    /// 墨的位图在后台画（ShiziInkRaster）：也等它们画完、显示出来（最多 20 秒）。
     static func settle(_ w: UIWindow) {
         w.layoutIfNeeded()
         CATransaction.flush()
+        if ShiziInkRaster.isBusy {
+            let end = Date().addingTimeInterval(20)
+            while ShiziInkRaster.isBusy, Date() < end { RunLoop.current.run(until: Date().addingTimeInterval(0.002)) }
+            w.layoutIfNeeded()
+            CATransaction.flush()
+        }
     }
 
     /// 窗口下的层数、层上 CGImage 的字节（同一张图只算一次）、自己画的层的后备存储估算（宽 × 高 × scale² × 4）。

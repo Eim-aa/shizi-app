@@ -47,18 +47,27 @@ enum ShiziInkScale {
 /// 一块只读的墨（点列；345 单位 → 视图的方框）。几何与网页 paintBrushStroke 一样：
 /// 起点圆 + 每段「两点间四边形色带」；用 ShiziKit 的 WebInk 三角形（同一套算法，与写字页一致）。
 ///
-/// 画出来的东西只由 near、points、inkColor、widthScale、pad、bounds 的大小（contentMode = .redraw）与外观决定：
-/// 这几样设成与原来一模一样的值时不重画（点列与数按位比、颜色按同一个对象比，都相同 = 画出来逐像素相同）；
-/// 颜色外观（浅 / 深等）变了自己标重画（traitCollectionDidChange；UIKit 本身也会给实现了 draw 的视图重画，多标一次无妨），
-/// 用它的页面在外观切换时也换新的颜色对象。
+/// 画法（INK-PERF）：墨不在主线程上画。点列 → 三角形路径 → 一张只有透明度的位图（ShiziInkRaster，后台队列上画一次，
+/// 同一份墨 + 同一个像素尺寸 + 线宽 / 内边 / 屏幕倍数 = 同一个缓存项），视图用模板图按当前墨色着色显示。
+/// 墨色（浅 / 深外观）变了只重新着色，不重画位图；位图没到之前，视图什么也不显示（与以前墨还没到视口附近时一样）。
+///
+/// 位图只由 near、points、widthScale、pad、bounds 的大小与屏幕倍数决定：这几样设成与原来一模一样的值时不再排新的活
+/// （点列与数按位比；颜色换了只改着色）。
 final class ShiziPointsInkView: UIView {
-    var points: [[ShiziInkPoint]] = [] { didSet { if !Self.identical(points, oldValue) { setNeedsDisplay() } } }
-    /// 同一个颜色对象才算没变（两个各自新建的动态色即使解析出来一样也重画）。
-    var inkColor: UIColor = .black { didSet { if inkColor !== oldValue { setNeedsDisplay() } } }
+    var points: [[ShiziInkPoint]] = [] {
+        didSet {
+            if !Self.identical(points, oldValue) {
+                fingerprint = ShiziInkRaster.fingerprint(points)
+                remask()
+            }
+        }
+    }
+    /// 墨色。换了只改着色（动态色随外观自己解析），不重画位图。
+    var inkColor: UIColor = .black { didSet { if inkColor !== oldValue { tint() } } }
     /// 线宽倍数（网页 minInkScale 的 widthScale）。
-    var widthScale: Double = 1 { didSet { if widthScale.bitPattern != oldValue.bitPattern { setNeedsDisplay() } } }
+    var widthScale: Double = 1 { didSet { if widthScale.bitPattern != oldValue.bitPattern { remask() } } }
     /// 墨在格内的内边比例（网页 INK_PAD：作品格 12%、年报月段 9%；0 = 铺满格，练习记录的小卡）。
-    var pad: CGFloat = 0 { didSet { if Double(pad).bitPattern != Double(oldValue).bitPattern { setNeedsDisplay() } } }
+    var pad: CGFloat = 0 { didSet { if Double(pad).bitPattern != Double(oldValue).bitPattern { remask() } } }
     /// 自己盯着所在滚动区的 contentOffset（KVO）补画；false = 页面一个滚动回调统一调 refreshNear（年报：格子多，每格一个 KVO 太贵）。
     var watchesScroll = true {
         didSet {
@@ -92,11 +101,25 @@ final class ShiziPointsInkView: UIView {
         backgroundColor = .clear
         isUserInteractionEnabled = false
         isAccessibilityElement = false
-        contentMode = .redraw
+        imageView.isUserInteractionEnabled = false
+        imageView.isAccessibilityElement = false
+        imageView.contentMode = .topLeft
+        imageView.tintColor = inkColor
+        addSubview(imageView)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    deinit { job?.release(self) }
+
+    /// 显示位图的模板图视图（铺满自己；图的像素尺寸 = 自己的像素尺寸，不缩放）。
+    private let imageView = UIImageView()
+    /// 点列的指纹（points 变了时算；位图缓存键的一部分）。
+    private var fingerprint = ShiziInkRaster.fingerprint([])
+    /// 此刻显示的 / 排着的位图的键；nil = 什么也不显示。
+    private var maskParams: ShiziInkRaster.Params?
+    private var job: ShiziInkRaster.Job?
 
     // 视口附近才画（网页的做法：离视口一屏以内的格子挂载当帧就画，更远的等滚到附近再画）。
     // 练习记录一页可有 200 格墨：首屏只画看得见的，其余在 contentOffset 变化时按需补画。
@@ -109,6 +132,7 @@ final class ShiziPointsInkView: UIView {
         super.didMoveToWindow()
         watch()
         refreshNear()
+        remask()
     }
 
     /// 在窗口里、watchesScroll 时盯住最近的滚动区祖先的 contentOffset。
@@ -126,13 +150,70 @@ final class ShiziPointsInkView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        imageView.frame = bounds
         refreshNear()
+        remask()
     }
 
-    /// 浅 / 深等颜色外观变了：墨色（动态色）要按新外观重新解析（同 LibraryInkView）。
+    /// 浅 / 深等颜色外观变了：只把墨色（动态色）按新外观重新解析、重新着色；位图不动。
     override func traitCollectionDidChange(_ previous: UITraitCollection?) {
         super.traitCollectionDidChange(previous)
-        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) { setNeedsDisplay() }
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) { tint() }
+    }
+
+    /// 测试用：此刻显示的 / 排着的位图的键（nil = 什么也不显示）与有没有图。
+    var maskParamsForTests: ShiziInkRaster.Params? { maskParams }
+    var hasMaskImage: Bool { imageView.image != nil }
+
+    private func tint() {
+        imageView.tintColor = inkColor.resolvedColor(with: traitCollection)
+    }
+
+    private var pixelScale: CGFloat {
+        if let s = window?.screen.scale, s > 0 { return s }
+        return max(1, traitCollection.displayScale)
+    }
+
+    /// 按此刻的点列 / 线宽 / 内边 / 框 / 倍数配位图：缓存里有就直接显示；没有就在后台画（画好之前什么也不显示）。
+    /// 与已显示 / 已排着的是同一个键就什么也不做。
+    private func remask() {
+        guard near, window != nil, !points.isEmpty, bounds.width > 0, bounds.height > 0 else {
+            clearMask()
+            return
+        }
+        let want = ShiziInkRaster.Params(fingerprint: fingerprint, widthScale: widthScale.bitPattern, pad: Double(pad).bitPattern,
+                                         width: Double(bounds.width).bitPattern, height: Double(bounds.height).bitPattern,
+                                         scale: Double(pixelScale).bitPattern)
+        if want == maskParams { return }
+        job?.release(self)
+        job = nil
+        maskParams = want
+        if let hit = ShiziInkRaster.cached(want) {
+            show(hit)
+        } else {
+            imageView.image = nil
+            job = ShiziInkRaster.request(want, points: points, widthScale: widthScale, pad: pad, size: bounds.size, scale: pixelScale, owner: self)
+        }
+    }
+
+    private func clearMask() {
+        guard maskParams != nil || imageView.image != nil else { return }
+        job?.release(self)
+        job = nil
+        maskParams = nil
+        imageView.image = nil
+    }
+
+    private func show(_ image: CGImage) {
+        imageView.image = UIImage(cgImage: image, scale: pixelScale, orientation: .up).withRenderingMode(.alwaysTemplate)
+        tint()
+    }
+
+    /// 后台画好了（主线程）；只有键还对得上才显示。
+    fileprivate func maskArrived(_ params: ShiziInkRaster.Params, _ image: CGImage?) {
+        guard params == maskParams else { return }
+        job = nil
+        if let image { show(image) } else { imageView.image = nil }
     }
 
     private func isNearViewport() -> Bool {
@@ -147,14 +228,14 @@ final class ShiziPointsInkView: UIView {
     func refreshNear() {
         guard !near, isNearViewport() else { return }
         near = true
-        setNeedsDisplay()
+        remask()
     }
 
     /// 换成另一格用（复用的格子）：回到「还没到视口附近」，等 refreshNear 按新的位置再判（同新建的一格；屏外的不提前画）。
     func resetNear() {
         guard near else { return }
         near = false
-        setNeedsDisplay()
+        remask()
     }
 
     /// 测试用：此刻算不算到了视口附近（画不画墨）。
@@ -274,14 +355,181 @@ final class ShiziPointsInkView: UIView {
         }
         return triangles > 0 ? path : nil
     }
+}
 
-    override func draw(_ rect: CGRect) {
-        guard near, !points.isEmpty, bounds.width > 0 else { return }
-        guard let path = Self.inkPath(points, widthScale: widthScale, pad: pad, width: bounds.width),
-              let ctx = UIGraphicsGetCurrentContext() else { return }
+// MARK: - 墨的位图（后台画一次，按墨 + 像素尺寸缓存）
+
+/// 本人墨的光栅化：点列 → inkPath → 一张只有透明度的位图（RGBA 预乘、黑色；模板图着色只看透明度）。
+/// 全部在后台队列上画（主线程只查缓存、排活、收结果）；同一个键（点列指纹 + 线宽 + 内边 + 框 + 倍数）同时只画一次，画好进有上限的 NSCache（按字节计），
+/// 滚回来 / 换外观 / 换回上个月都直接用。排着的活后来的先画（视口附近的格子是最近才排的），没人要了的（格子复用了、页面走了）不画。
+/// 画好之前格子什么也不显示；QA 截图等 isBusy 为假再取。
+@MainActor
+enum ShiziInkRaster {
+    /// 位图的键（都是位型，按位比）。
+    struct Params: Hashable {
+        let fingerprint: UInt64
+        let widthScale: UInt64
+        let pad: UInt64
+        let width: UInt64
+        let height: UInt64
+        let scale: UInt64
+        var cacheKey: NSString { "\(fingerprint)/\(widthScale)/\(pad)/\(width)/\(height)/\(scale)" as NSString }
+    }
+
+    /// 缓存上限（字节）。
+    static let cacheLimit = 48 * 1024 * 1024
+    private static let cache: NSCache<NSString, CGImage> = {
+        let c = NSCache<NSString, CGImage>()
+        c.totalCostLimit = cacheLimit
+        return c
+    }()
+    /// 排着 / 在画的活（键 → 活）。空 = 闲。
+    private static var inFlight: [Params: Job] = [:]
+    /// 画位图的并发（后台；留一个核给主线程）。
+    private static let queue: OperationQueue = {
+        let q = OperationQueue()
+        q.name = "shizi.ink.raster"
+        q.qualityOfService = .userInitiated
+        q.maxConcurrentOperationCount = max(1, min(3, ProcessInfo.processInfo.activeProcessorCount - 1))
+        return q
+    }()
+    private static let stack = Stack()
+
+    /// 有位图还在排着 / 在画。
+    static var isBusy: Bool { !inFlight.isEmpty }
+    /// 测试 / 诊断：画过几张（不含缓存命中）、查缓存命中几次。
+    private(set) static var renderedCount = 0
+    private(set) static var cacheHits = 0
+    /// 排过几次新的活（缓存没有、也没有同键的在画）。
+    private(set) static var requestCount = 0
+
+    /// 点列的指纹（FNV-1a 64 位风格：笔画数、每笔点数、每点的 x / y / w 的位型与 w 有没有）。画出来的只由这几样决定。
+    static func fingerprint(_ points: [[ShiziInkPoint]]) -> UInt64 {
+        var h: UInt64 = 0xcbf29ce484222325
+        func mix(_ v: UInt64) {
+            h = (h ^ v) &* 0x100000001b3
+            h ^= h >> 29
+        }
+        mix(UInt64(points.count))
+        for stroke in points {
+            mix(UInt64(stroke.count) | 1 << 40)
+            for p in stroke {
+                mix(p.x.bitPattern)
+                mix(p.y.bitPattern)
+                mix(p.w.map { $0.bitPattern } ?? 0x7ff8_dead_beef_0001)
+            }
+        }
+        return h
+    }
+
+    static func cached(_ params: Params) -> CGImage? {
+        let hit = cache.object(forKey: params.cacheKey)
+        if hit != nil { cacheHits += 1 }
+        return hit
+    }
+
+    /// 排一张位图（已在画 / 排着的同键共用一个活）；画好（主线程）通知 owner。
+    static func request(_ params: Params, points: [[ShiziInkPoint]], widthScale: Double, pad: CGFloat, size: CGSize, scale: CGFloat,
+                        owner: ShiziPointsInkView) -> Job {
+        if let job = inFlight[params] {
+            job.add(owner)
+            return job
+        }
+        requestCount += 1
+        let job = Job(params)
+        job.add(owner)
+        inFlight[params] = job
+        stack.push { [job] in
+            guard !job.isCancelled else {
+                Task { @MainActor in ShiziInkRaster.finish(job, nil) }
+                return
+            }
+            let image = ShiziInkRaster.rasterize(points, widthScale: widthScale, pad: pad, size: size, scale: scale)
+            Task { @MainActor in ShiziInkRaster.finish(job, image) }
+        }
+        queue.addOperation { stack.runNewest() }
+        return job
+    }
+
+    private static func finish(_ job: Job, _ image: CGImage?) {
+        if inFlight[job.params] === job { inFlight[job.params] = nil }
+        if let image {
+            renderedCount += 1
+            cache.setObject(image, forKey: job.params.cacheKey, cost: image.bytesPerRow * image.height)
+        }
+        job.complete(image)
+    }
+
+    /// 没人要了：从排着的里拿掉（后台那边开始前会看到 isCancelled 就不画）。
+    fileprivate static func cancel(_ job: Job) {
+        job.cancel()
+        if inFlight[job.params] === job { inFlight[job.params] = nil }
+    }
+
+    /// 同步画（后台队列用；测试对照也用，不进缓存）。
+    nonisolated static func rasterize(_ points: [[ShiziInkPoint]], widthScale: Double, pad: CGFloat, size: CGSize, scale: CGFloat) -> CGImage? {
+        let pxW = Int((size.width * scale).rounded(.up)), pxH = Int((size.height * scale).rounded(.up))
+        guard pxW > 0, pxH > 0, let path = ShiziPointsInkView.inkPath(points, widthScale: widthScale, pad: pad, width: size.width),
+              let ctx = CGContext(data: nil, width: pxW, height: pxH, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        // 视图坐标（点、左上角为原点）→ 位图像素
+        ctx.translateBy(x: 0, y: CGFloat(pxH))
+        ctx.scaleBy(x: scale, y: -scale)
         ctx.addPath(path)
-        inkColor.setFill()
+        ctx.setFillColor(red: 0, green: 0, blue: 0, alpha: 1)
         ctx.fillPath()
+        return ctx.makeImage()
+    }
+
+    /// 一张位图的活：要它的视图（弱引用）、有没有取消。
+    final class Job: @unchecked Sendable {
+        let params: Params
+        private let lock = NSLock()
+        private var owners: [WeakOwner] = []
+        private var cancelled = false
+
+        fileprivate init(_ params: Params) { self.params = params }
+
+        private struct WeakOwner { weak var view: ShiziPointsInkView? }
+
+        nonisolated var isCancelled: Bool { lock.lock(); defer { lock.unlock() }; return cancelled }
+
+        nonisolated fileprivate func cancel() { lock.lock(); cancelled = true; lock.unlock() }
+
+        fileprivate func add(_ v: ShiziPointsInkView) {
+            lock.lock(); defer { lock.unlock() }
+            if !owners.contains(where: { $0.view === v }) { owners.append(WeakOwner(view: v)) }
+        }
+
+        /// 这个视图不要了；没人要时整个活取消。
+        nonisolated func release(_ v: ShiziPointsInkView) {
+            lock.lock()
+            owners.removeAll { $0.view == nil || $0.view === v }
+            let none = owners.isEmpty
+            if none { cancelled = true }
+            lock.unlock()
+            if none { Task { @MainActor in ShiziInkRaster.cancel(self) } }
+        }
+
+        fileprivate func complete(_ image: CGImage?) {
+            lock.lock()
+            let views = owners.compactMap { $0.view }
+            lock.unlock()
+            for v in views { v.maskArrived(params, image) }
+        }
+    }
+
+    /// 排着的活，后来的先画。
+    private final class Stack: @unchecked Sendable {
+        private let lock = NSLock()
+        private var items: [@Sendable () -> Void] = []
+        nonisolated func push(_ f: @escaping @Sendable () -> Void) { lock.lock(); items.append(f); lock.unlock() }
+        nonisolated func runNewest() {
+            lock.lock()
+            let f = items.popLast()
+            lock.unlock()
+            f?()
+        }
     }
 }
 

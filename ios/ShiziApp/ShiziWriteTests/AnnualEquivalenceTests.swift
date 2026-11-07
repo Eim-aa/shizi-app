@@ -849,60 +849,92 @@ final class AnnualVirtualCellsTests: XCTestCase {
     }
 }
 
+/// 位图 + 着色与直接填充路径允许的像素差（0..255 级；按最近一次实测定，见 testMaskEqualsDirectFill 的日志）。
+enum ShiziInkMaskTolerance {
+    static let maxLevel = 0
+}
+
 @MainActor
 final class ShiziPointsInkRedrawTests: XCTestCase {
     private func pts(_ seed: Int) -> [[ShiziInkPoint]] {
         (0..<3).map { s in (0..<20).map { j in ShiziInkPoint(x: Double(j * 7 + s), y: Double(seed + j), w: j % 5 == 0 ? nil : 8.5, t: nil, p: nil) } }
     }
 
-    /// 同一份点列（另一份按位相同的拷贝）、同一个颜色对象、按位相同的线宽 / 内边再设一次不标重画；
-    /// 一个点、一个 w、±0、一个新的颜色对象（哪怕分量一样）、线宽 / 内边变了照旧标重画。
-    func testSameValuesDoNotMarkForRedisplay() {
-        let v = ShiziPointsInkView(frame: CGRect(x: 0, y: 0, width: 45, height: 45))
+    /// 同一份点列（另一份按位相同的拷贝）、按位相同的线宽 / 内边再设一次不排新的位图；一个点、一个 w、±0、线宽 / 内边变了照旧换新的键（查缓存或排新的活）；
+    /// 墨色（哪怕是新的颜色对象）不碰位图，只重新着色。
+    func testSameValuesDoNotRequestAnotherMask() {
+        let host = UIViewController()
+        let w = LibraryBench.host(host)
+        defer { LibraryBench.unhost(w) }
+        let v = ShiziPointsInkView(frame: CGRect(x: 0, y: 100, width: 45, height: 45))
+        v.watchesScroll = false
+        host.view.addSubview(v)
         let color = UIColor.red
         v.points = pts(1)
         v.inkColor = color
         v.widthScale = 1.5
         v.pad = 0.09
-        XCTAssertTrue(v.layer.needsDisplay())
-        v.layer.displayIfNeeded()
-        XCTAssertFalse(v.layer.needsDisplay())
+        v.refreshNear()
+        XCTAssertTrue(v.isNear)
+        LibraryBench.settle(w)
+        XCTAssertNotNil(v.maskParamsForTests)
+        XCTAssertTrue(v.hasMaskImage)
+        func lookups() -> Int { ShiziInkRaster.requestCount + ShiziInkRaster.cacheHits }
+        var base = lookups()
         v.points = pts(1)
         v.inkColor = color
         v.widthScale = 1.5
         v.pad = 0.09
-        XCTAssertFalse(v.layer.needsDisplay(), "identical values: no redraw")
-        func expectRedraw(_ what: String, _ change: () -> Void) {
+        XCTAssertEqual(lookups(), base, "identical values: no new mask")
+        func expectNewMask(_ what: String, _ change: () -> Void) {
+            base = lookups()
+            let before = v.maskParamsForTests
             change()
-            XCTAssertTrue(v.layer.needsDisplay(), what)
-            v.layer.displayIfNeeded()
+            XCTAssertGreaterThan(lookups(), base, what)
+            XCTAssertNotEqual(v.maskParamsForTests, before, what)
+            LibraryBench.settle(w)
         }
         var moved = pts(1)
         moved[1][3] = ShiziInkPoint(x: moved[1][3].x, y: moved[1][3].y.nextUp, w: moved[1][3].w, t: nil, p: nil)
-        expectRedraw("one y one ulp up") { v.points = moved }
+        expectNewMask("one y one ulp up") { v.points = moved }
         var noW = moved
         noW[2][7] = ShiziInkPoint(x: noW[2][7].x, y: noW[2][7].y, w: nil, t: nil, p: nil)
-        expectRedraw("one w gone") { v.points = noW }
+        expectNewMask("one w gone") { v.points = noW }
         var withT = noW
         withT[0][0] = ShiziInkPoint(x: withT[0][0].x, y: withT[0][0].y, w: withT[0][0].w, t: 3, p: nil)
-        expectRedraw("one t added") { v.points = withT }
+        base = lookups()
+        v.points = withT // t 不进画法（WebInk.triangles 不读）：逐位同一张图——指纹不含 t，键不变
+        XCTAssertEqual(lookups(), base, "t does not change the picture")
         var zero = withT
         zero[0][1] = ShiziInkPoint(x: 0, y: 0, w: nil, t: nil, p: nil)
         v.points = zero
-        v.layer.displayIfNeeded()
+        LibraryBench.settle(w)
         var negZero = zero
         negZero[0][1] = ShiziInkPoint(x: -0.0, y: 0, w: nil, t: nil, p: nil)
-        expectRedraw("+0 → -0") { v.points = negZero }
-        expectRedraw("one stroke fewer") { v.points = Array(negZero.dropLast()) }
-        expectRedraw("same components, new color object") { v.inkColor = UIColor(red: 1, green: 0, blue: 0, alpha: 1) }
-        expectRedraw("width scale") { v.widthScale = Double(1.5).nextUp }
-        expectRedraw("pad") { v.pad = 0.12 }
-        v.layer.displayIfNeeded()
+        expectNewMask("+0 → -0") { v.points = negZero }
+        expectNewMask("one stroke fewer") { v.points = Array(negZero.dropLast()) }
+        base = lookups()
+        v.inkColor = UIColor(red: 1, green: 0, blue: 0, alpha: 1)
+        XCTAssertEqual(lookups(), base, "a new color object only re-tints")
+        expectNewMask("width scale") { v.widthScale = Double(1.5).nextUp }
+        expectNewMask("pad") { v.pad = 0.12 }
+        // 换回去：缓存命中，不再画
+        let rendered = ShiziInkRaster.renderedCount
+        v.pad = 0.09
+        v.widthScale = 1.5
+        v.points = pts(1)
+        LibraryBench.settle(w)
+        v.points = moved
+        LibraryBench.settle(w)
+        v.points = pts(1)
+        LibraryBench.settle(w)
+        XCTAssertEqual(ShiziInkRaster.renderedCount, rendered, "going back to a former ink: bitmap from the cache")
         let nan = [[ShiziInkPoint(x: .nan, y: 1, w: nil, t: nil, p: nil)]]
         v.points = nan
-        v.layer.displayIfNeeded()
+        LibraryBench.settle(w)
+        base = lookups()
         v.points = [[ShiziInkPoint(x: .nan, y: 1, w: nil, t: nil, p: nil)]]
-        XCTAssertFalse(v.layer.needsDisplay(), "the same NaN bits: same drawing")
+        XCTAssertEqual(lookups(), base, "the same NaN bits: same drawing")
     }
 
     /// watchesScroll = false：不自己 KVO contentOffset，等页面调 refreshNear；resetNear 回到没画。缺省（true）照旧自己盯着。
@@ -924,12 +956,15 @@ final class ShiziPointsInkRedrawTests: XCTestCase {
         sv.contentOffset = CGPoint(x: 0, y: far.minY - 100)
         XCTAssertTrue(watching.isNear, "KVO: drawn once it scrolls near")
         XCTAssertFalse(driven.isNear, "no KVO: left to the page")
+        driven.points = pts(3)
         driven.refreshNear()
         XCTAssertTrue(driven.isNear)
-        driven.layer.displayIfNeeded()
+        LibraryBench.settle(w)
+        XCTAssertTrue(driven.hasMaskImage)
         driven.resetNear()
         XCTAssertFalse(driven.isNear)
-        XCTAssertTrue(driven.layer.needsDisplay(), "reset clears what was drawn")
+        XCTAssertFalse(driven.hasMaskImage, "reset clears what was drawn")
+        XCTAssertNil(driven.maskParamsForTests)
         sv.contentOffset = .zero
         driven.refreshNear()
         XCTAssertFalse(driven.isNear, "far away again: not drawn")
@@ -1190,8 +1225,73 @@ final class ShiziPointsInkGeometryTests: XCTestCase {
         }
         LibraryBench.settle(w)
         let former = try LibraryEq.stableSnapshot(w, "points ink former")
-        XCTAssertTrue(LibraryEq.same(now, former, "points ink view vs former draw"))
+        // 位图 + 着色 与 直接填充：逐像素的差不超过 tol（0 = 逐位相同；数一数多少像素不同、最大差几级）
+        XCTAssertEqual(now.data.count, former.data.count)
+        var worst = 0, differing = 0
+        now.data.withUnsafeBytes { (a: UnsafeRawBufferPointer) in
+            former.data.withUnsafeBytes { (b: UnsafeRawBufferPointer) in
+                for i in 0..<min(a.count, b.count) {
+                    let d = abs(Int(a[i]) - Int(b[i]))
+                    if d > 0 { differing += 1 }
+                    worst = max(worst, d)
+                }
+            }
+        }
+        print("[ink-mask] window vs former draw: differing bytes=\(differing) worst=\(worst)")
+        XCTAssertLessThanOrEqual(worst, ShiziInkMaskTolerance.maxLevel, "mask + tint vs direct fill")
         for r in refs { r.removeFromSuperview() }
+    }
+
+    /// 位图（后台那套 rasterize）的透明度 = 直接填路径（改动前的画法）的透明度：几份墨、几种格宽 / 内边 / 倍数。
+    func testMaskEqualsDirectFill() {
+        typealias F = PointsInkFormer
+        let widths: [CGFloat] = [44, 58.333333333333336, 132, 140.5]
+        let pads: [CGFloat] = [0.09, 0.12, 0]
+        var rng = WebInkTestRNG(state: 20261110)
+        var worst = 0, differing = 0, total = 0
+        for (i, width) in widths.enumerated() {
+            for scale in [CGFloat(2), 3] {
+                for k in 0..<3 {
+                    let pts = k == 2 ? F.randomPoints(&rng) : F.benchPoints(i * 3 + k)
+                    let pad = pads[k]
+                    let ws = ShiziInkScale.scale(width, 1 - 2 * pad)
+                    let size = CGSize(width: width, height: width)
+                    guard let path = ShiziPointsInkView.inkPath(pts, widthScale: ws, pad: pad, width: width) else {
+                        XCTAssertNil(ShiziInkRaster.rasterize(pts, widthScale: ws, pad: pad, size: size, scale: scale))
+                        continue
+                    }
+                    guard let img = ShiziInkRaster.rasterize(pts, widthScale: ws, pad: pad, size: size, scale: scale),
+                          let mask = img.dataProvider?.data as Data? else { XCTFail("no mask"); continue }
+                    let fmt = UIGraphicsImageRendererFormat()
+                    fmt.scale = scale
+                    fmt.opaque = false
+                    fmt.preferredRange = .standard
+                    let direct = UIGraphicsImageRenderer(size: size, format: fmt).image { (rc: UIGraphicsImageRendererContext) -> Void in
+                        rc.cgContext.addPath(path)
+                        UIColor.black.setFill()
+                        rc.cgContext.fillPath()
+                    }
+                    guard let dcg = direct.cgImage, let dd = dcg.dataProvider?.data as Data? else { XCTFail("no direct"); continue }
+                    XCTAssertEqual(img.width, dcg.width)
+                    XCTAssertEqual(img.height, dcg.height)
+                    XCTAssertEqual(img.bytesPerRow, dcg.bytesPerRow)
+                    // 只比透明度（每 4 字节的最后 / 第一个字节按像素格式；黑色填充时颜色分量全 0，所以逐字节比整块也行）
+                    let n = min(mask.count, dd.count)
+                    mask.withUnsafeBytes { (a: UnsafeRawBufferPointer) in
+                        dd.withUnsafeBytes { (b: UnsafeRawBufferPointer) in
+                            for j in 0..<n {
+                                let d = abs(Int(a[j]) - Int(b[j]))
+                                if d > 0 { differing += 1 }
+                                worst = max(worst, d)
+                            }
+                        }
+                    }
+                    total += n
+                }
+            }
+        }
+        print("[ink-mask] mask vs direct fill: differing bytes=\(differing) of \(total) worst=\(worst)")
+        XCTAssertLessThanOrEqual(worst, ShiziInkMaskTolerance.maxLevel)
     }
 
     /// 量测：一格墨（8 笔 × 62 点、45pt、3x）的路径与填充，改动前 vs 现在（CI 日志 grep BENCH points-ink）。

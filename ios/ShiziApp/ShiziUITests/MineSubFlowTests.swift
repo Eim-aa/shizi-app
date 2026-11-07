@@ -122,6 +122,25 @@ final class MineSubFlowTests: XCTestCase {
         XCTAssertFalse(day.isSelected, "tapping the open day again closes it")
     }
 
+    /// 滚动手势按规则对所有页面（ShiziScrollView）：从一个按钮（日按钮）上起手的拖动也能滚页面，不被控件吃掉。
+    func testDragStartingOnADayButtonScrollsThePage() {
+        let qa = QA(seed: "records-month")
+        qa.launch()
+        qa.waitRouteTop("records", timeout: 25)
+        let month = qa.el("native-records-month")
+        XCTAssertTrue(month.waitForExistence(timeout: 10), "the native records page is on screen")
+        let day = qa.app.buttons.matching(identifier: "native-records-day").firstMatch
+        XCTAssertTrue(day.waitForExistence(timeout: 8), "days with records are buttons")
+        let before = month.frame.minY
+        let start = day.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = start.withOffset(CGVector(dx: 0, dy: -260))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: 500, thenHoldForDuration: 0.05)
+        Thread.sleep(forTimeInterval: 0.6)
+        let after = month.exists ? month.frame.minY : -10_000
+        XCTAssertLessThan(after, before - 40, "the page scrolled under a drag that began on a day button (\(before) → \(after))")
+        XCTAssertFalse(qa.el("native-records-daylist").exists, "the drag did not count as a tap on the day")
+    }
+
     /// 练习记录：展开那天的一个字 → 单字详情（原生页推在练习记录上）→「‹」返回，练习记录还在、那一天还开着。
     func testRecordsDayCellIntoDetailAndBack() {
         let qa = QA(seed: "records-day")

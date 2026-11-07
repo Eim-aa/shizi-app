@@ -367,7 +367,7 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
     private let spec = NativeOverlaySpec(motion: ShiziTokens.pageMotion(.write))
     private let titleLabel = UILabel()
     private let doneButton = NativeTextButton(type: .system)
-    private let scroll = UIScrollView()
+    private let scroll = ShiziScrollView()
     private let topLine = UIView()
     private var optionButtons: [MineOptionButton] = []
     private var optionLines: [UIView] = []

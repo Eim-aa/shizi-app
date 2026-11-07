@@ -210,7 +210,7 @@ final class NativeImagePreviewController: UIViewController, UIViewControllerTran
 
     // 视图
     let panel = UIView()
-    private let scroll = UIScrollView()
+    private let scroll = ShiziScrollView()
     private let content = UIView()
     private let titleLabel = UILabel()
     private let doneButton = NativeTextButton(type: .system)

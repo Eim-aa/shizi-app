@@ -14,6 +14,11 @@ public enum CoreResources {
         return url
     }
 
+    /// 资源原文（不解析、不缓存）。测试用它拿同一份文字比较解析器的新旧写法。
+    static func text(_ name: String) throws -> String {
+        String(decoding: try Data(contentsOf: try url(name)), as: UTF8.self)
+    }
+
     /// 读并解析 Resources/<name>.json（解析结果缓存）。资源缺失或不是合法 JSON 时抛错。
     public static func load(_ name: String) throws -> JSValue {
         lock.lock()
@@ -23,11 +28,6 @@ public enum CoreResources {
         let value = try JSONParser.parse(text)
         cache[name] = value
         return value
-    }
-
-    /// 资源原文（核对用）。
-    public static func rawText(_ name: String) throws -> String {
-        String(decoding: try Data(contentsOf: try url(name)), as: UTF8.self)
     }
 }
 
@@ -45,7 +45,7 @@ public enum Config {
     public static let credits: JSValue = get("credits")
     public static let deckMeta: JSValue = get("deck-meta")
     public static let signature: JSValue = get("signature")
-    /// FSRS 参数（src/core/fsrs.js FSRS_CONFIG；B4.2）。
+    /// FSRS 参数（FSRS_CONFIG；B4.2）。
     public static let fsrsConfig: JSValue = get("fsrs-config")
     /// 选字用的题库索引（全部卡键、四个字库的成员、缺省字库；B4.2）。
     public static let deckLibraries: JSValue = get("deck-libraries")

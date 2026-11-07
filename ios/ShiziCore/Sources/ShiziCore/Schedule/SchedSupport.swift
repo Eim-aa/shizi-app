@@ -1,16 +1,16 @@
 import Foundation
 
 // 调度规则（B4.2）共用的小工具：JS 取值语义（Number(x) / 真值 / Number.isInteger）、按码点判等的有序集合、稳定排序、
-// 记录查询（src/core/records.js 里选字与 FSRS 用到的那几个，逐行同语义）。
+// 记录查询（原 JS 里选字与 FSRS 用到的那几个，逐行同语义）。
 //
-// 记录（records.js）整体由 B4.3 移植；这里只放调度规则依赖的纯查询，名字带 Sched 前缀以免与 B4.3 的 `Records` 冲突，
+// 记录整体由 B4.3 移植；这里只放调度规则依赖的纯查询，名字带 Sched 前缀以免与 B4.3 的 `Records` 冲突，
 // 合并后可改为调用 B4.3 的同名函数（行为相同，转写单测两边都有）。
 
 // MARK: - JS 取值
 
-enum JS {
+package enum JS {
     /// `Number(v)`（v 为 nil = undefined → NaN）。
-    static func number(_ v: JSValue?) -> Double {
+    package static func number(_ v: JSValue?) -> Double {
         guard let v = v else { return .nan }
         switch v {
         case .null: return 0
@@ -44,7 +44,7 @@ enum JS {
     }
 
     /// `String(v)`（v 为 nil = undefined）。
-    static func string(_ v: JSValue?) -> String {
+    package static func string(_ v: JSValue?) -> String {
         guard let v = v else { return "undefined" }
         if case .null = v { return "null" }
         return toPrimitiveString(v)
@@ -96,7 +96,7 @@ enum JS {
     }
 
     /// JS 真值。
-    static func truthy(_ v: JSValue?) -> Bool {
+    package static func truthy(_ v: JSValue?) -> Bool {
         guard let v = v else { return false }
         switch v {
         case .null: return false
@@ -117,7 +117,7 @@ enum JS {
     static func str(_ v: JSValue?) -> String? { v?.stringValue }
 
     /// `v === s`（v 是字符串且逐码点相等）。
-    static func isString(_ v: JSValue?, _ s: String) -> Bool {
+    package static func isString(_ v: JSValue?, _ s: String) -> Bool {
         guard case .string(let x)? = v else { return false }
         return jsEq(x, s)
     }
@@ -160,7 +160,7 @@ enum JS {
         return x <= y
     }
 
-    static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
+    package static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
 }
 
 // MARK: - 按码点判等的有序集合（JS Set<string>）
@@ -235,7 +235,7 @@ extension Array {
     }
 }
 
-// MARK: - 记录查询（records.js 子集）
+// MARK: - 记录查询（子集）
 
 enum SchedRecords {
     /// 'r12' → 12；不合法 NaN。
@@ -243,12 +243,21 @@ enum SchedRecords {
     /// 's7' → 7；不合法 NaN。
     static func sessionSerial(_ id: JSValue?) -> Double { serial(id, prefix: 0x73) }
 
+    /// 合法 = 前缀字母 + [1-9] + 若干 ASCII 数字（与旧写法 `Array(s.utf8)` 逐字节检查同一判据），值 = Number(数字部分)。
+    /// 不建数组：至多 18 位数字时按 UInt64 累加再转 Double（< 10^18 < 2^64 不溢出；整数 → Double 与 strtod 都是就近舍入到偶数，结果相同）；
+    /// 更长的才回到 Double(String)。
     private static func serial(_ id: JSValue?, prefix: UInt8) -> Double {
         guard case .string(let s)? = id else { return .nan }
-        let u = Array(s.utf8)
-        guard u.count >= 2, u[0] == prefix, u[1] >= 0x31, u[1] <= 0x39 else { return .nan }
-        for c in u.dropFirst() where c < 0x30 || c > 0x39 { return .nan }
-        return Double(String(decoding: u.dropFirst(), as: UTF8.self)) ?? .nan
+        var it = s.utf8.makeIterator()
+        guard it.next() == prefix, let lead = it.next(), lead >= 0x31, lead <= 0x39 else { return .nan }
+        var v = UInt64(lead - 0x30), digits = 1
+        while let c = it.next() {
+            guard c >= 0x30 && c <= 0x39 else { return .nan }
+            if digits < 18 { v = v * 10 + UInt64(c - 0x30) }
+            digits += 1
+        }
+        if digits <= 18 { return Double(v) }
+        return Double(String(decoding: s.utf8.dropFirst(), as: UTF8.self)) ?? .nan
     }
 
     static func compareRecordIds(_ a: JSValue?, _ b: JSValue?) -> Double {
@@ -256,8 +265,15 @@ enum SchedRecords {
         return (sa.isNaN ? -1 : sa) - (sb.isNaN ? -1 : sb)
     }
 
+    /// 按 id 序号稳定排序。比较值只取决于两边的 id 序号，所以先把每条的「序号或 -1」算一次（n 次解析，而不是每次比较解析两次），
+    /// 再用同一个归并排序、同一个差值（ka - kb）排下标：每一步比较的结果与 `jsSorted { compareRecordIds($0["id"], $1["id"]) }` 相同，排列也就相同。
     static func sortById(_ records: [JSValue]) -> [JSValue] {
-        records.jsSorted { compareRecordIds($0["id"], $1["id"]) }
+        if records.count < 2 { return records }
+        let keys = records.map { r -> Double in
+            let s = recordSerial(r["id"])
+            return s.isNaN ? -1 : s
+        }
+        return Array(records.indices).jsSorted { keys[$0] - keys[$1] }.map { records[$0] }
     }
 
     /// 'base:静' → '静'（/^(base|custom):(.+)$/u 且恰一个码点）；不合法 nil。

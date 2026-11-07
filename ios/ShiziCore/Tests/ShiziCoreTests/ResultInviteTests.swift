@@ -2,7 +2,7 @@ import XCTest
 @testable import ShiziCore
 
 final class ResultInviteTests: XCTestCase {
-    // test/ui/native-write.test.mjs — B2.7 resultInvite: shown / no / yes (denied, failed) / time = the web useReminderInvite commits
+    // B2.7 resultInvite: shown / no / yes (denied, failed) / time = the web useReminderInvite commits
     func testInviteWaitsForPermissionReport() async {
         let core = SessionPageContractTests().runtime()
         core.writeDependencies.reminderInvite = { store,_ in
@@ -17,7 +17,7 @@ final class ResultInviteTests: XCTestCase {
         XCTAssertEqual(r["phase"], .string("denied"))
         XCTAssertEqual(core.store.state["settings"]?["remind"]?["permission"], .string("denied"))
     }
-    // test/ui/native-write.test.mjs — permission wait times out with current settings; a host rejection is failed
+    // permission wait times out with current settings; a host rejection is failed
     func testInviteTimeoutAndFailure() async {
         let core = SessionPageContractTests().runtime()
         core.writeDependencies.reminderWaitMs = 0

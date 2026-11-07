@@ -5,7 +5,7 @@ import UIKit
 
 /// 「结束这组」居中确认框（S04）：正文 + 两键 [结束这组（普通） | 接着写（主按钮）]，不预选；点遮罩 = 接着写。
 /// 写入失败留在框里（R-G04 三段式）：正文换「没保存上，你写的字还在。」、按钮换 [先不保存（文字按钮）| 再试一次（主按钮）]（网页 FailBlock dialog）。
-/// 视觉照网页 Confirm.js（R9-B）：左右页边 20、垂直居中、24 圆角、elev 底、内边距 24 / 20 / 20、正文 15 / 22 ink2、两键上方 12 + 4、键高 btn-h；
+/// 视觉照网页（R9-B）：左右页边 20、垂直居中、24 圆角、elev 底、内边距 24 / 20 / 20、正文 15 / 22 ink2、两键上方 12 + 4、键高 btn-h；
 /// 转场 T-confirm：进场由 0.96 放大淡入（confirmIn，ease.out），退场淡出（confirmOut，ease.in）；遮罩 scrimIn / scrimOut；减少动态效果 reduce 淡化。
 final class NativeEndDialogView: UIView {
     struct Strings {
@@ -136,7 +136,7 @@ final class NativeEndDialogView: UIView {
         let bodyH = NativeType.height(bodyLabel, width: innerW, line: type.line("lh15"))
         let lineH = ceil(type.font("fs17").lineHeight)
         let half = (innerW - 12) / 2
-        // AX 档（B2.9b）：两键按网页 components/ax.js 排——min-height --btn-h、上下内边距 6、字按行数长高（两键一行同高，取高的）
+        // AX 档（B2.9b）：两键按网页版排——min-height --btn-h、上下内边距 6、字按行数长高（两键一行同高，取高的）
         let axH = [(leftButton, "r"), (rightButton, "r2")].compactMap { b, sub in
             type.axButtonHeight("confirm", sub: sub == "r" ? nil : sub, title: b.title(for: .normal), font: b.titleLabel?.font, width: half - 48)
         }.max()

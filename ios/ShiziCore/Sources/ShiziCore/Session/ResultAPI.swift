@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/result-api.js. Base contract, using the same Store and schedule rules.
+// Result API. Base contract, using the same Store and schedule rules.
 public enum ResultAPI {
     static func invite(_ store: Store, _ a: JSObject) -> JSValue {
         let settings = store.state["settings"], next = a["action"] == .string("shown") ? FirstResult.inviteShownUpdate(settings: settings, sessionId: a["sessionId"] ?? .null) : try? FirstResult.inviteAnswerUpdate(settings: settings, answer: a["action"] ?? .null)

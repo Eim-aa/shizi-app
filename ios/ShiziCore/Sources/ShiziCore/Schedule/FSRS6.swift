@@ -1,6 +1,6 @@
 import Foundation
 
-// ts-fsrs 5.2.0（FSRS-6.0，vendor/fsrs6.min.js）的 Swift 移植（B4.2）。只移植拾字用到的那条路径，但逐行同序：
+// ts-fsrs 5.2.0（FSRS-6.0）的 Swift 移植（B4.2）。只移植拾字用到的那条路径，但逐行同序：
 //   · 参数：generatorParameters({request_retention, maximum_interval, enable_fuzz, enable_short_term: true, learning_steps: [], relearning_steps: []})
 //     → w = clipParameters(default_w, 0)；调度器 = BasicLearningStepsScheduler（enable_short_term）；
 //   · next(card, now, grade)：init（elapsed_days、reps+1、种子）→ New / Learning / Relearning / Review 各自的状态转移；

@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/api/detail.js and src/session/ops/detail.js.
 extension PageAPI {
     static func detail(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         let char = a["char"]?.stringValue ?? ""

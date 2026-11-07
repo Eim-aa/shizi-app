@@ -240,6 +240,43 @@ final class MineSubFlowTests: XCTestCase {
         qa.waitProbe("back on annual", timeout: 20) { self.top($0) == "annual" && Self.stack($0).last == "annual" && ($0["navRunning"] as? Int) == 0 }
     }
 
+    /// 月段的格子只建看得见的（格子放在段按钮里铺满按钮的格网容器里）之后，真手指点照旧落在段按钮上：
+    /// 点第一段的月名那一行 → 推入那个月的字帖 →「‹」回来；滑到最后一段整段进了屏、两次读到的框不变（惯性停了）为止，
+    /// 真手指点它格网里的一格（第一列、最后一行）→ 同样推入字帖。
+    func testAnnualMonthSectionsTakeARealTap() {
+        let qa = QA(seed: "annual-report")
+        qa.launch()
+        qa.waitRouteTop("annual", timeout: 25)
+        let months = qa.app.buttons.matching(identifier: "native-annual-month")
+        XCTAssertTrue(months.firstMatch.waitForExistence(timeout: 10), "a section per month")
+        months.element(boundBy: 0).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap() // 真的点（不走 qa.tap 的 sendActions）
+        qa.waitProbe("month pushed (tap on the month name row)", timeout: 20) { self.top($0) == "month" && Self.stack($0).suffix(2) == ["annual", "month"] && ($0["navRunning"] as? Int) == 0 }
+        Thread.sleep(forTimeInterval: 0.6)
+        tapPageBack(qa)
+        qa.waitProbe("back on annual", timeout: 20) { self.top($0) == "annual" && Self.stack($0).last == "annual" && ($0["navRunning"] as? Int) == 0 }
+        let count = months.count
+        XCTAssertGreaterThan(count, 1, "several months")
+        let last = months.element(boundBy: count - 1)
+        let window = qa.app.windows.firstMatch.frame
+        let footerTop = qa.el("native-annual-save").frame.minY - 12 // 底栏（保存图片）的上沿：滚动区到这里为止
+        // 格网里第一列、最后一行那一格的中心：按钮下沿 − 下边距 28 − 半格（格边 ≤ 45）
+        func target(_ f: CGRect) -> CGPoint { CGPoint(x: f.minX + 20, y: f.maxY - 28 - 20) }
+        var lastFrame = CGRect.null
+        var reached = false
+        for _ in 0..<20 {
+            let f = last.frame
+            let p = target(f)
+            if window.contains(p), p.y < footerTop, f.minY > window.minY, f == lastFrame { reached = true; break }
+            lastFrame = f
+            scrollDown(qa)
+        }
+        XCTAssertTrue(reached, "the last month section is on screen and still (\(lastFrame))")
+        let f = last.frame
+        last.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: target(f).x - f.minX, dy: target(f).y - f.minY)).tap()
+        qa.waitProbe("month pushed (tap on a cell of the last month)", timeout: 20) { self.top($0) == "month" && Self.stack($0).suffix(2) == ["annual", "month"] && ($0["navRunning"] as? Int) == 0 }
+        XCTAssertTrue(qa.el("native-month-title").waitForExistence(timeout: 10), "the native copybook page is on screen")
+    }
+
     /// 年报卷尾「同一个字，两次」：两格墨迹与各自的日期都在（读屏名是格的说明）。
     func testAnnualTwiceAtTheEnd() {
         let qa = QA(seed: "annual-report")

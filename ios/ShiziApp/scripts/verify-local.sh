@@ -51,7 +51,6 @@ run_logged "Verify content corpus" "${LOG_DIR}/verify-content-corpus.log" \
   node "${REPO_ROOT}/scripts/verify_content_corpus.cjs"
 run_logged "Verify static assets" "${LOG_DIR}/verify-assets.log" \
   node "${REPO_ROOT}/scripts/verify_assets.mjs"
-# D84：网页版（service worker / PWA 升级门禁）已删除，这里不再有对应步骤。
 
 if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   git -C "$REPO_ROOT" diff --check
@@ -87,11 +86,5 @@ run_logged "Archive Release iPhoneOS without signing" "${LOG_DIR}/archive-releas
   archive
 
 "${SCRIPT_DIR}/verify-archive.sh" "$ARCHIVE_PATH"
-
-if [ "${RUN_SMOKE:-0}" = "1" ] || [ "${RUN_DEV_SMOKE:-0}" = "1" ]; then
-  # B4.9：网页冒烟（smoke-simulator.sh / NativeSmoke.swift）随 WKWebView 退役；模拟器上的检查是 verify-native-ui.sh（XCUITest 流程 + 逐屏对比）。
-  echo "RUN_SMOKE is retired (B4.9); run ios/ShiziApp/scripts/verify-native-ui.sh instead" >&2
-  exit 64
-fi
 
 echo "Local iOS verification OK"

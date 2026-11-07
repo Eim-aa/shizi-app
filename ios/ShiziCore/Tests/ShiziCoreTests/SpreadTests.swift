@@ -25,7 +25,7 @@ private func rec(_ serial: Int, _ char: String, _ judgment: String, _ day: Strin
 }
 
 final class SpreadTests: XCTestCase {
-    // test/core/spread.test.mjs: spreadDue: overdue first, then lower stability; at most perDay a day including what was already due there; never earlier; stopped / not-due untouched
+    // spreadDue: overdue first, then lower stability; at most perDay a day including what was already due there; never earlier; stopped / not-due untouched
     func testSpreadDueOverdueFirstThenLowerStabilityAtMostPerDayADayIncludingWhatWasAlreadyDueThereNeverEarlierStoppedNotDueUntouched() throws {
         let sched = JS.obj([
             ("base:\u{7532}", e("2026-09-01", 9)), ("base:\u{4E59}", e("2026-09-01", 2)), ("base:\u{4E19}", e("2026-09-10")), ("base:\u{4E01}", e(TODAY)),

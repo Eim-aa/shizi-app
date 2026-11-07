@@ -1,10 +1,10 @@
 import UIKit
 
-// B3.5c「我的」（tab 根）：网页 src/ui/screens/mine/index.js 的 1:1 原生版（视图模型 src/session/views/mine-page.js，App API view.mine / mine.appearance / mine.groupSize）。
+// B3.5c「我的」（tab 根）：网页的 1:1 原生版（视图模型，App API view.mine / mine.appearance / mine.groupSize）。
 // 屏名 ⇄ 类：mine ⇄ ShiziScreen_mine。tab 根页：没有页头与「‹」、没有左缘返回、不播转场；挂在原生 Tab 栏控制器（B3.5d）里它那一格下面、只铺到 Tab 栏上沿。
-// 版式按网页 CSS 逐项排（index.js .sz-mine__* / Rows.js .sz-rrow / choice.js .sz-seg / Sheet.js .sz-sheet / work.js MonthPaper），数值取 ShiziTokens，文案取视图模型的引用。
+// 版式按网页 CSS 逐项排（.sz-mine__* / .sz-rrow / .sz-seg / .sz-sheet / MonthPaper），数值取 ShiziTokens，文案取视图模型的引用。
 // 外观 / 每组字数：标准字号行内分段（点一下即写，失败行下就地三段式，D07）；AX 档「名称 …… 当前值 ›」点开底部选择弹层（MineParts.swift）。
-// 外观由 platform/appearance.js 的唯一订阅同步到 NativeStage / ShiziTheme，窗口统一跟随；零件在 MineParts.swift。
+// 外观由 唯一订阅同步到 NativeStage / ShiziTheme，窗口统一跟随；零件在 MineParts.swift。
 
 // MARK: - 视图模型
 

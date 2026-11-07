@@ -2,11 +2,11 @@ import UIKit
 
 // 原生写字页的跳过撤销条与「结束这组」确认框（B2.6；确认单 6、7；D68 ③ ④、D36 / P115、D66 ⑥；S1 / S04）。
 //
-// 规则在页面：skip / undoSkip / end 由写字会话 API 提交（src/session/ops/skip.js、end.js，与网页同一批函数）；撤销条的寿命参数（5 秒、按住暂停、
-// 读屏不自动收起）来自 open 回包 skipUndo（policy.skipUndo）。这里只有视图那一半与寿命计时（NativeUndoLifetime = write/skip.js createUndoLifetime 的移植，
+// 规则在页面：skip / undoSkip / end 由写字会话 API 提交（与网页同一批函数）；撤销条的寿命参数（5 秒、按住暂停、
+// 读屏不自动收起）来自 open 回包 skipUndo（policy.skipUndo）。这里只有视图那一半与寿命计时（NativeUndoLifetime = createUndoLifetime 的移植，
 // 时钟与定时器可注入，XCTest 用假时钟逐条对照）。文案全部来自页面（open 回包的 copy 字典），本文件不写用户可见的字。
 
-/// 撤销条的自动收起计时（write/skip.js createUndoLifetime 的移植）：
+/// 撤销条的自动收起计时（createUndoLifetime 的移植）：
 ///   start：从现在起算 ms；hold / release：手指按在撤销条上时暂停、松开后用剩下的时间继续（pauseWhileHeld = false 时忽略）；
 ///   到点时若读屏 / 切换控制在运行（assistive()）则不收起、改为「钉住」，assistiveChanged(false) 后重新给一整段 ms；stop：取消（用户已经往下操作 / 离开）。
 /// 到期只调一次 onExpire。
@@ -117,7 +117,7 @@ final class NativeUndoLifetime {
 }
 
 /// 底部轻提示：「已跳过「X」· 撤销」；撤销写失败时换成「没保存上，你写的字还在。」+ [先不保存 / 再试一次]（不自动消失）。
-/// 视觉照网页 UndoBar.js / skip.js（R9-B，NP-19）：最小高 48、上下内边距 8、左 16 右 8；字 15 / 22；
+/// 视觉照网页（R9-B，NP-19）：最小高 48、上下内边距 8、左 16 右 8；字 15 / 22；
 /// 「撤销」是 15 / 500 的文字按钮（盒子 = 字宽 + 8、44 高，点击区仍 ≥ 44）；条贴在底栏上方 8（写字页排）。
 /// 外观是 L4 浮条（R10-B，D71 ③）：浮起的浅面 toast-bg（= elev）+ 1pt toast-line 细边 + toast-shadow 轻阴影、r-box 圆角（24，单行即胶囊），
 /// 正文 toast-fg、操作 toast-act——全部取页面令牌（NativeToastStyle），不写死；实心深色只给主按钮。
@@ -247,7 +247,7 @@ final class NativeUndoBarView: UIView, UIGestureRecognizerDelegate {
     /// 细边宽（网页 border:1px，border-box：边在盒内、内边距之外）。
     private var edge: CGFloat { layer.borderWidth }
 
-    /// 「撤销」等文字按钮的高：44；AX 档按字号长高（网页 components/ax.js .sz-btn--text min-height max(44, 1.3em + 12)，量到的值）。
+    /// 「撤销」等文字按钮的高：44；AX 档按字号长高（网页 .sz-btn--text min-height max(44, 1.3em + 12)，量到的值）。
     private var buttonH: CGFloat { max(44, type.role("undoBar", "minH") ?? 44) }
     /// 字与按钮之间 / 折行后两行之间的间距（网页 gap s3）。
     private var colGap: CGFloat { type.role("undoBar", "colGap", sub: "r2") ?? 12 }

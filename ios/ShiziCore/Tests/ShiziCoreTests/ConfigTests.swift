@@ -13,7 +13,7 @@ private func assertPolicy(_ path: String, _ json: String, _ message: String = ""
 }
 
 final class ConfigEpigraphTests: XCTestCase {
-    // test/core/epigraphs.test.mjs: epigraphs: verbatim from the prototype home shell L141 QUOTES
+    // epigraphs: verbatim from the prototype home shell L141 QUOTES
     func testEpigraphsVerbatimFromThePrototypeHomeShellL141QUOTES() throws {
         let text = try readRepoFile("docs/design/v10/extracted/\u{9996}\u{9875}\u{58F3}-v3-\u{7B2C}\u{5341}\u{7A3F}\u{4EA4}\u{63A5}\u{7248}.dc.html")
         let line = text.split(separator: "\n", omittingEmptySubsequences: false)[140]
@@ -36,7 +36,7 @@ final class ConfigEpigraphTests: XCTestCase {
         }
     }
 
-    // test/core/epigraphs.test.mjs: epigraphs: each couplet has two halves of equal length
+    // epigraphs: each couplet has two halves of equal length
     // （原用例另断言导出对象被 Object.freeze；Swift 的 let / 值类型已保证只读，不再断言）
     func testEpigraphsEachCoupletHasTwoHalvesOfEqualLength() {
         for e in Epigraphs.all {
@@ -45,7 +45,7 @@ final class ConfigEpigraphTests: XCTestCase {
         }
     }
 
-    // test/core/epigraphs.test.mjs: epigraphs: rotate by day of year mod 3 (P23; 9月24日 = 267 → first)
+    // epigraphs: rotate by day of year mod 3 (P23; 9月24日 = 267 → first)
     func testEpigraphsRotateByDayOfYearMod3() throws {
         func index(_ day: String) throws -> Double { try Epigraphs.indexFor(day: .string(day), dates: dates) }
         func epigraph(_ day: String) throws -> Epigraph { try Epigraphs.epigraph(for: .string(day), dates: dates) }
@@ -64,36 +64,31 @@ final class ConfigEpigraphTests: XCTestCase {
 }
 
 final class ConfigPolicyTests: XCTestCase {
-    // test/core/policy-mix.test.mjs: policy D41: groupMix (P125) matches the recommendation in 复习新字配比-研究与推荐.md §6.1
+    // policy D41: groupMix (P125) matches the recommendation in 复习新字配比-研究与推荐.md §6.1
     func testPolicyD41GroupMixP125MatchesTheRecommendation() {
-        assertPolicy("groupMix", #"""
-        {"baseSize":5,"newMax":3,"threeNewBelowDays":0.5,"threeNewMinAccuracy":0.6,"twoNewBelowDays":1.5,"valveDays":4,"valveReleaseDays":2,"reviewsPerGroupForPressure":4,
-         "pressureWindowDays":7,"recentNewWindow":10,"newAccuracyPrior":0.5,"allAccuracyPrior":0.7,"accuracyPriorWeight":2,"returnAfterDays":7,"returnGroupSize":3,
-         "earlyReviewFill":true,"earlyCountsTowardCap":false,"earlyFillWhenExhausted":false}
-        """#)
+        assertPolicy("groupMix", #"{"baseSize":5,"valveDays":4,"pressureWindowDays":7,"recentNewWindow":10,"newAccuracyPrior":0.5,"allAccuracyPrior":0.7,"accuracyPriorWeight":2,"returnAfterDays":7}"#)
         XCTAssertEqual(Config.policyNumber("groupMix.baseSize"), 5, "the counts are written for groups of 5 and scaled by size / 5 (D65 #2)")
         XCTAssertEqual(Config.policyNumber("groupSize"), 15, "D83: default per-group size 15")
         assertPolicy("groupSizeOptions", "[5,10,15,20,30]")
-        XCTAssertEqual(Config.policyNumber("dailyReviewCap"), 30, "P03 stays as a safety net")
     }
 
-    // test/core/policy-mix.test.mjs: policy D41: warmup gate (P126) and first-correct rating (P127)
+    // policy D41: warmup gate (P126) and first-correct rating (P127)
     func testPolicyD41WarmupGateP126AndFirstCorrectRatingP127() {
-        assertPolicy("warmup", #"{"mode":"gated","firstDays":7,"accuracyBelow":0.6,"window":10,"perGroupMax":1,"easyOnCorrect":true}"#)
+        assertPolicy("warmup", #"{"mode":"gated","firstDays":7,"accuracyBelow":0.6,"window":10,"easyOnCorrect":true}"#)
         XCTAssertEqual(Config.policyString("ratingFirstCorrect"), "Easy")
         assertPolicy("ratingWithHint.first", #"["Good","Hard","Again"]"#, "P34 D65 #4 / D66 ②")
         assertPolicy("ratingWithHint.review", #"["Hard","Again","Again"]"#, "P34 D65 #4 / D66 ②")
         XCTAssertEqual(Config.policyString("answerSeenRating"), "Again", "P321 D66 ①")
     }
 
-    // test/core/policy.test.mjs: policy: `node -e "import('./src/config/policy.js')"` loads
+    // policy: `node -e "import('./src/config/policy.js')"` loads
     // （Swift 对应：生成的 policy.json 能读出来，且有 groupSize）
     func testPolicyLoads() {
         XCTAssertFalse((Config.policy.objectValue ?? JSObject()).isEmpty)
         XCTAssertNotNil(Config.policyNumber("groupSize"))
     }
 
-    // test/core/policy.test.mjs: policy: 03 registers P01–P61 (incl. P10b); the table only grows
+    // policy: 03 registers P01–P61 (incl. P10b); the table only grows
     // （原用例另测 registeredPNumbers 解析函数本身——它是 verify_copy.mjs 里读 03 表的 JS 函数，没有 Swift 对应物，留在 node）
     func testPolicy03RegistersP01P61InclP10bTheTableOnlyGrows() {
         let registered = PolicyCoverage.registered
@@ -102,7 +97,7 @@ final class ConfigPolicyTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(registered.count, 62, "P01–P61 + P10b at least")
     }
 
-    // test/core/policy.test.mjs: policy: every export and every nested key carries a registered P number
+    // policy: every export and every nested key carries a registered P number
     func testPolicyEveryExportAndEveryNestedKeyCarriesARegisteredPNumber() {
         let registered = PolicyCoverage.registered
         XCTAssertEqual(PolicyCoverage.errors(pMap: PolicyCoverage.pMap, registered: registered), [])
@@ -116,57 +111,53 @@ final class ConfigPolicyTests: XCTestCase {
         }
     }
 
-    // test/core/policy.test.mjs: policy: the check catches an export without a P number
+    // policy: the check catches an export without a P number
     func testPolicyTheCheckCatchesAnExportWithoutAPNumber() {
         var map = PolicyCoverage.pMap
-        guard case .object(var entry)? = map["hintUseGroups"] else { return XCTFail("hintUseGroups missing") }
+        guard case .object(var entry)? = map["forgetRule"] else { return XCTFail("forgetRule missing") }
         entry["p"] = .array([])
-        map["hintUseGroups"] = .object(entry)
+        map["forgetRule"] = .object(entry)
         let errors = PolicyCoverage.errors(pMap: map, registered: PolicyCoverage.registered)
-        XCTAssertTrue(errors.contains { $0.hasPrefix("policy.hintUseGroups") }, errors.joined(separator: "\n"))
+        XCTAssertTrue(errors.contains { $0.hasPrefix("policy.forgetRule") }, errors.joined(separator: "\n"))
     }
 
-    // test/core/policy.test.mjs: policy: the check catches a nested key without a P number and an unregistered P
+    // policy: the check catches a nested key without a P number and an unregistered P
     func testPolicyTheCheckCatchesANestedKeyWithoutAPNumberAndAnUnregisteredP() {
         let registered = PolicyCoverage.registered
         var map = PolicyCoverage.pMap
         guard case .object(var features)? = map["features"], case .object(var keys)? = features["keys"] else { return XCTFail("features missing") }
-        keys["milestones"] = .array([])
+        keys["nextReviewLine"] = .array([])
         features["keys"] = .object(keys)
         map["features"] = .object(features)
-        XCTAssertTrue(PolicyCoverage.errors(pMap: map, registered: registered).contains { $0.contains("features.milestones") })
+        XCTAssertTrue(PolicyCoverage.errors(pMap: map, registered: registered).contains { $0.contains("features.nextReviewLine") })
         // 哨兵编号取 03 里还没登记的
         var n = 99
         while registered.contains("P\(n)") { n += 1 }
         let sentinel = "P\(n)"
         var map2 = PolicyCoverage.pMap
-        guard case .object(var entry)? = map2["hintUseGroups"] else { return XCTFail("hintUseGroups missing") }
+        guard case .object(var entry)? = map2["forgetRule"] else { return XCTFail("forgetRule missing") }
         entry["p"] = .array([.string(sentinel)])
-        map2["hintUseGroups"] = .object(entry)
+        map2["forgetRule"] = .object(entry)
         XCTAssertTrue(PolicyCoverage.errors(pMap: map2, registered: registered).contains { $0.contains(sentinel) }, sentinel)
     }
 
-    // test/core/policy.test.mjs: policy: every P in 03 is covered by policy.js, a copy decision or a non-runtime note
+    // policy: every P in 03 is covered by policy.js, a copy decision or a non-runtime note
     func testPolicyEveryPIn03IsCoveredByPolicyACopyDecisionOrANonRuntimeNote() {
         let uncovered = PolicyCoverage.registered.subtracting(PolicyCoverage.covered)
         XCTAssertTrue(uncovered.isEmpty, "registered in 03 but not covered: \(uncovered.sorted())")
     }
 
-    // test/core/policy.test.mjs: policy: transitional defaults match 03 / the M0-6 card
+    // policy: transitional defaults match 03 / the M0-6 card
     func testPolicyTransitionalDefaultsMatch03AndTheM06Card() {
         let policy = Config.policy
         XCTAssertEqual(Config.policyNumber("groupSize"), 15) // D83（原 D65 #2 的 20）
         assertPolicy("groupSizeOptions", "[5,10,15,20,30]") // P314 / D83
-        XCTAssertEqual(Config.policyNumber("dailyReviewCap"), 30)
         assertPolicy("firstQueue", #"["\u5c34","\u8d62","\u62fe"]"#, "P09 decided D38: first queue is 3 chars")
         XCTAssertNil(policy["hintMax"], "P17 decided D64: no hint cap")
         XCTAssertEqual(["base", "lo", "hi", "pressureLo", "pressureGain", "pressureHi"].map { Config.policyNumber("ink." + $0) }, [11.5, 0.25, 0.9, 0.58, 0.94, 1.52], "P65 ink hand-feel constants")
         XCTAssertNil(policy["hintStartRule"], "P01 decided D64")
-        XCTAssertEqual(Config.policyBool("hintUseGroups"), false)
         XCTAssertEqual(Config.policyString("forgetRule"), "due")
         XCTAssertEqual(Config.policyNumber("forgetCap"), 12)
-        XCTAssertEqual(Config.policyString("customIntoDaily"), "none")
-        XCTAssertEqual(Config.policyString("answerSeenScope"), "today") // D65 #5
         assertPolicy("ratingWithHint.review", #"["Hard","Again","Again"]"#) // D66 ②
         XCTAssertEqual(Config.policyString("answerSeenRating"), "Again") // D66 ①
         XCTAssertEqual(Config.policyNumber("dayStartHour"), 4) // D66 ⑦
@@ -179,9 +170,7 @@ final class ConfigPolicyTests: XCTestCase {
         XCTAssertEqual(Config.policyNumber("recordsBudgetBytes"), 1.5 * 1024 * 1024)
         XCTAssertEqual(Config.policyString("migration.legacyHintedAs"), "none")
         XCTAssertEqual(Config.policyBool("features.perRecordInk"), true, "P31 decided D27")
-        XCTAssertEqual(Config.policyBool("features.soundscape"), false)
         XCTAssertEqual(Config.policyString("defaultLibrary"), "core3500", "P73 default library")
-        XCTAssertEqual(Config.policyBool("features.difficultyFeedback"), false)
         XCTAssertEqual(Config.policyBool("features.nextReviewLine"), false) // D83 ⑦ 不显示「下次见」
         // M0 验收修复 F4：P56–P61
         assertPolicy("inkToneDays", "[7,30,90]", "P56")
@@ -194,21 +183,11 @@ final class ConfigPolicyTests: XCTestCase {
         XCTAssertNil(policy["largeTextScale"], "P59 decided D29")
         assertPolicy("contentSizeScale", #"{"xS":0.82,"S":0.88,"M":0.94,"L":1,"XL":1.12,"XXL":1.24,"XXXL":1.35,"AX1":1.6,"AX2":1.8,"AX3":2,"AX4":2.2,"AX5":2.4}"#, "P130 Dynamic Type mapping (D29)")
         XCTAssertEqual(Config.policyNumber("compactTextScale"), 1.3, "P131")
-        XCTAssertEqual(Config.policyBool("dailyCapCountsPicked"), true, "P60")
         assertPolicy("sessionExpiry", #"{"first":"never","picked":"never"}"#, "P61")
-        // M2-H：P69 / P70 迁入 policy（值不变）
-        XCTAssertEqual(Config.policyNumber("compactMaxHeight"), 760, "P69")
-        assertPolicy("mainButtonLine", #"{"gapAboveEdge":24}"#, "P258")
-        XCTAssertEqual(Config.policyNumber("writeGrid.footBottomMin"), 24, "P298 / audit P1-15")
-        assertPolicy("writeGrid", #"""
-        {"min":258,"max":400,"sideMargin":20,"promptGap":16,"toolsHeight":40,"toolRowHeight":48,"axMin":220,"axNoteHeight":56,
-         "axAux":{"pinyin":[22,28],"note":[17,22],"progress":[17,22],"title":[17,22],"links":[17,22],"paper":[22,28]},
-         "promptFitMin":0.6,"fitGridMin":180,"axPromptScaleMax":1.6,"bottomGap":16,"topShare":0.4,"topMin":12,"nominalHead":44,"nominalFoot":134,"footBottomMin":24,"nominalPrompt":80}
-        """#, "P118 D36 / D49")
-        assertPolicy("motion", #"{"answerSpeed":1.6,"answerStrokeGapMs":180,"answerFadeMs":220,"hintStrokeMs":220,"hintStagger":0.7,"reducedFadeMs":150,"persistNoticeMs":5000,"hintFadeInMs":150,"answerRevealMs":400,"stepPlayMaxMs":1600}"#, "P70 + P210")
+        assertPolicy("motion", #"{"hintStrokeMs":220,"hintStagger":0.7}"#, "P70")
     }
 
-    // test/core/policy.test.mjs: policy: --k defaults to 1 = contentSizeScale.L (P130); the P58 lamp token is gone (D43)
+    // policy: --k defaults to 1 = contentSizeScale.L (P130); the P58 lamp token is gone (D43)
     // （D84：网页 tokens.css 不再是来源，改读 ShiziKitTokens.json）
     func testPolicyKDefaultsTo1EqualsContentSizeScaleLTheP58LampTokenIsGone() throws {
         // D84：网页的 tokens.css 不再是来源，改读手改的 ShiziKitTokens.json：L 档（系统默认字号）的 k = 1，颜色里没有 lamp（P58 已撤）。
@@ -224,7 +203,7 @@ final class ConfigPolicyTests: XCTestCase {
         XCTAssertEqual(Config.policyNumber("contentSizeScale.L"), 1, "system default size maps to the same 1")
     }
 
-    // test/core/policy.test.mjs: policy: exported objects and arrays are frozen
+    // policy: exported objects and arrays are frozen
     // （JS 的 Object.freeze 在 Swift 里由 let + 值类型保证；这里核对「改一份副本不影响全局配置」）
     func testPolicyExportedObjectsAndArraysAreFrozen() {
         guard case .object(var copy)? = Config.policy["features"] else { return XCTFail("features missing") }
@@ -232,7 +211,7 @@ final class ConfigPolicyTests: XCTestCase {
         XCTAssertEqual(Config.policyBool("features.perRecordInk"), true, "mutating a copy never changes the shared policy")
     }
 
-    // test/core/policy.test.mjs: policy: core modules do not hard-code transitional values that live in policy.js
+    // policy: core modules do not hard-code transitional values that live in policy.js
     // （Swift 对应：ShiziCore 的 Swift 源码里没有「尴」字面量，也没有重新声明 policy 数字）
     func testPolicyCoreModulesDoNotHardCodeTransitionalValuesThatLiveInPolicy() throws {
         let dir = repoRoot.appendingPathComponent("ios/ShiziCore/Sources/ShiziCore")
@@ -249,20 +228,10 @@ final class ConfigPolicyTests: XCTestCase {
         }
     }
 
-    // test/core/policy.test.mjs: policy: P69 / P70 modules read their defaults from policy.js (M2-H)
-    // （原用例导入 UI 模块核对它们取 policy 的值——UI 模块是 JS 专属，留在 node；这里转写其数据部分：被取用的 policy 值）
-    func testPolicyP69P70ModulesReadTheirDefaultsFromPolicy() {
-        XCTAssertEqual(Config.policyNumber("compactMaxHeight"), 760)
-        XCTAssertEqual("(max-height: \(Int(Config.policyNumber("compactMaxHeight")!))px)", "(max-height: 760px)")
-        XCTAssertEqual(Config.policyNumber("writeGrid.min"), 258)
-        XCTAssertEqual(Config.policyNumber("writeGrid.max"), 400)
-        XCTAssertEqual(Config.policyNumber("motion.answerSpeed"), 1.6)
-        XCTAssertEqual(Config.policyNumber("motion.answerStrokeGapMs"), 180)
-        XCTAssertEqual(Config.policyNumber("motion.answerFadeMs"), 220)
+    // policy: the hint stroke timing the session code reads (P70)
+    func testPolicyHintStrokeMotion() {
         XCTAssertEqual(Config.policyNumber("motion.hintStrokeMs"), 220)
         XCTAssertEqual(Config.policyNumber("motion.hintStagger"), 0.7)
-        XCTAssertEqual(Config.policyNumber("motion.reducedFadeMs"), 150)
-        XCTAssertEqual(Config.policyNumber("motion.persistNoticeMs"), 5000)
     }
 }
 
@@ -274,7 +243,7 @@ final class ConfigDatesTests: XCTestCase {
     /// 把「数字串」按位翻成汉字（0–9 → digits）。
     private func digits(_ s: String) -> String { s.unicodeScalars.map { N.digits[Int($0.value) - 0x30] }.joined() }
 
-    // test/core/dates.test.mjs: dates: period words and date line come from copy (R-H02)
+    // dates: period words and date line come from copy (R-H02)
     func testDatesPeriodWordsAndDateLineComeFromCopy() throws {
         let words = try Dates.periods.map { try Copy.text("R-H02.period." + $0) }
         XCTAssertEqual(words, ["\u{65E9}\u{4E0A}", "\u{4E2D}\u{5348}", "\u{508D}\u{665A}", "\u{665A}\u{4E0A}"])
@@ -285,7 +254,7 @@ final class ConfigDatesTests: XCTestCase {
         XCTAssertEqual(try Copy.text("R-H02.line", JSObject([("date", .string(date)), ("period", .string(period))])), "9\u{6708}24\u{65E5} \u{B7} \u{665A}\u{4E0A}")
     }
 
-    // test/core/dates.test.mjs: dates: cnNumber counts in Chinese numerals (signature only)
+    // dates: cnNumber counts in Chinese numerals (signature only)
     func testDatesCnNumberCountsInChineseNumeralsSignatureOnly() throws {
         let d = N.digits, zero = N.zero
         let cases: [(Double, String)] = [
@@ -298,7 +267,7 @@ final class ConfigDatesTests: XCTestCase {
         XCTAssertThrowsError(try Dates.cnNumber(1.5)) { XCTAssertEqual(($0 as? CoreError)?.code, "range") }
     }
 
-    // test/core/dates.test.mjs: dates: cnCount reads 2 as 两 for quantities (D36), other numbers as cnNumber
+    // dates: cnCount reads 2 as 两 for quantities (D36), other numbers as cnNumber
     func testDatesCnCountReads2AsLiangForQuantitiesOtherNumbersAsCnNumber() throws {
         let d = N.digits, zero = N.zero, two = N.two
         let cases: [(Double, String)] = [
@@ -314,7 +283,7 @@ final class ConfigDatesTests: XCTestCase {
                        "\u{4E8C}\u{3007}\u{4E8C}\u{516D}\u{5E74}\u{4E5D}\u{6708}\u{4E8C}\u{5341}\u{56DB}\u{65E5}\u{3000}\u{4E24}\u{5B57}")
     }
 
-    // test/core/dates.test.mjs: dates: signature parts produce the paper-seal date with copy templates
+    // dates: signature parts produce the paper-seal date with copy templates
     func testDatesSignaturePartsProduceThePaperSealDateWithCopyTemplates() throws {
         XCTAssertEqual(try Dates.cnDigits(2026), digits("2026"))
         XCTAssertEqual(try dates.signatureDateParts(.string("2026-09-24")),

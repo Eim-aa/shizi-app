@@ -1,12 +1,12 @@
 import UIKit
 
 // 原生结果页（B2.7；docs/engineering/v10/B2-原生写字架构.md §11 B2.7 / §20；写字流程确认单 §8；D19 / D20 / D46 ⑥ / D49 / D51 ② / D66 ③ ④ ⑮ / D70）。
-// 只在 DEBUG、原生写字页开关打开时出现（与原生写字页同一开关）。标准答案是网页结果页（src/ui/screens/result/index.js、work.js、first.js）。
+// 只在 DEBUG、原生写字页开关打开时出现（与原生写字页同一开关）。标准答案是原先的网页结果页。
 //
-// 数据：页面的结果条目挂载时（宿主 NativeResultHost）随 result-open 消息推来「视图」（src/ui/screens/result/native-view.js：网页结果页同一批函数算好的作品格、
+// 数据：页面的结果条目挂载时（宿主 NativeResultHost）随 result-open 消息推来「视图」（网页结果页同一批函数算好的作品格、
 //   落款与印、没放进图里的行、复现句、提醒邀请、底栏、交接来的撤销机会、落印要不要演）与外观（resultLook：文案、颜色、字阶、动效时刻）；
 //   之后每次写入（放进图里、改判）的回包带新视图。原生只排版与绘制，不另算规则；文案一律取自页面（本文件没有用户可见的字）。
-// 版式（网页 Page.js + result/index.js + work.js + first.js 逐项）：
+// 版式（逐项照原网页结果页）：
 //   页头：左「×」（44 框，图标外缘落在 20pt 页边线：左移 16.25）、右「分享」（右移 15.25）；页标题只给读屏。
 //   正文（页头下 12 起，左右页边 20，下内边 32；有撤销条时多一个 32 的组间距）：内容不满时在正文区里竖向居中（margin:auto 0），超出时贴顶滚动；
 //     结果区末尾 5vh 内边。从上到下：首练标题（宋 22 / 30）/ 中途结束一行（13 / 20 ink3）→ 24 → 作品（格 c × 列 × 行、居中；笺底、格框 1pt、格间 0.75 guide；
@@ -28,6 +28,277 @@ protocol NativeResultCoordinating: AnyObject {
     func nativeResultLeave(_ vc: NativeResultViewController)
 }
 
+// MARK: - 结果页视图模型里多处读的几块（resultView 回包的 view 对象；其余键仍按字典读）
+// cast 与默认值与原来逐处写的一致；整块缺失或不是对象 = 各字段取默认。
+
+/// 底栏（view.footer）。
+struct NativeResultFooter {
+    /// first（完成）/ again（再写一组）/ 其余 = 离开（按钮字取 leave）；缺键 = "again"。
+    let kind: String
+    /// 显示「重写错字」：只有 true 才算。
+    let redo: Bool
+    /// 离开按钮的字；缺键 = ""。
+    let leave: String
+
+    init(_ raw: Any?) {
+        let f = raw as? [String: Any] ?? [:]
+        kind = f["kind"] as? String ?? "again"
+        redo = (f["redo"] as? Bool) == true
+        leave = f["leave"] as? String ?? ""
+    }
+}
+
+/// 提醒邀请（view.invite）。
+struct NativeResultInvite {
+    /// 这次要问：只有 true 才算。
+    let show: Bool
+    let title: String
+    let titleEvening: String
+    /// 正文（带时刻的几段）。
+    let body: NativeInviteBody
+
+    init(_ raw: Any?) {
+        let i = raw as? [String: Any] ?? [:]
+        show = (i["show"] as? Bool) == true
+        title = i["title"] as? String ?? ""
+        titleEvening = i["titleEvening"] as? String ?? ""
+        body = NativeInviteBody(i["body"])
+    }
+}
+
+/// 邀请正文（view.invite.body）：整句 plain，或 pre + word（逐字，blanks[i] 为真的那一位画成空框）+ post。
+/// 整块缺失或不是对象 = 各字段取默认（与原来 `?? [:]` 一致）。
+struct NativeInviteBody {
+    /// 有它就整句照排（不画空框）；缺键 = nil。
+    let plain: String?
+    /// 缺键 = ""。
+    let pre: String
+    let post: String
+    /// 缺键或不是字符串数组 = []。
+    let word: [String]
+    /// 缺键或不是 Bool 数组 = []。
+    let blanks: [Bool]
+
+    init(_ raw: Any?) {
+        let b = raw as? [String: Any] ?? [:]
+        plain = b["plain"] as? String
+        pre = b["pre"] as? String ?? ""
+        post = b["post"] as? String ?? ""
+        word = b["word"] as? [String] ?? []
+        blanks = b["blanks"] as? [Bool] ?? []
+    }
+}
+
+/// 写字页交过来的跳过撤销机会（view.undo；写字页 NativeSkipUndoHandoff.wire 经引擎带回）。
+/// recordId 是字符串、remainingMs 是数且 > 0 才算，否则 nil（与原来 render 里的条件一致）。
+struct NativeResultUndo {
+    /// 缺键 = nil（用的地方回退到本页的 sessionId）。
+    let sessionId: String?
+    let recordId: String
+    /// 缺键 = ""。
+    let char: String
+    /// 原值（撤销时原样带回 resultUndoSkip）。
+    let strokes: Any?
+    let remainingMs: Double
+
+    init?(_ raw: Any?) {
+        guard let u = raw as? [String: Any], let rid = u["recordId"] as? String, let remaining = (u["remainingMs"] as? NSNumber)?.doubleValue, remaining > 0 else { return nil }
+        sessionId = u["sessionId"] as? String
+        recordId = rid
+        char = u["char"] as? String ?? ""
+        strokes = u["strokes"]
+        remainingMs = remaining
+    }
+}
+
+/// 显现与落印（view.reveal）。
+struct NativeResultReveal {
+    /// 这组已落过印（冷启动后看 sealedAt）：只有 true 才算。
+    let sealed: Bool
+    /// 显现的时刻编排（reveal.plan）。
+    let plan: NativeResultRevealPlan
+
+    init(_ raw: Any?) {
+        let r = raw as? [String: Any]
+        sealed = (r?["sealed"] as? Bool) == true
+        plan = NativeResultRevealPlan(r?["plan"])
+    }
+}
+
+/// 显现的时刻编排（view.reveal.plan）：线上是 ms（NSNumber 按键取），这里换成 s；缺键 / plan 整块缺失 = 0。
+struct NativeResultRevealPlan {
+    let stagger: TimeInterval
+    let cellMs: TimeInterval
+    let kuanDelay: TimeInterval
+    let kuanMs: TimeInterval
+    let sealDelay: TimeInterval
+    /// 键名是 contactMs：印落到着纸的时长。
+    let contact: TimeInterval
+
+    init(_ raw: Any?) {
+        let plan = raw as? [String: Any] ?? [:]
+        func p(_ k: String) -> TimeInterval { ((plan[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
+        stagger = p("stagger")
+        cellMs = p("cellMs")
+        kuanDelay = p("kuanDelay")
+        kuanMs = p("kuanMs")
+        sealDelay = p("sealDelay")
+        contact = p("contactMs")
+    }
+}
+
+// MARK: - 作品与没放进图里的行（view.work / view.rows；NativeWorkView、NativeResultRowView 读）
+// 每个字段的 cast 与默认值与原来逐处写的一致；strokes 仍是原值，由 NativeInkWire.rawStrokes 在用的地方读（与原来同一时机）。
+
+/// 朱点（作品格 / 行的 dot）：相对字格的中心 cx / cy、直径 d；各键按 NSNumber 取，缺键 = 0。
+struct NativeResultDot {
+    let cx: CGFloat
+    let cy: CGFloat
+    let d: CGFloat
+
+    init(_ raw: [String: Any]) {
+        func v(_ k: String) -> CGFloat { CGFloat((raw[k] as? NSNumber)?.doubleValue ?? 0) }
+        cx = v("cx")
+        cy = v("cy")
+        d = v("d")
+    }
+}
+
+/// 作品里的一格（view.work.cells[i]）。
+struct NativeResultCell {
+    /// 点开对照弹层时原样带给 resultCell（缺键 = nil = 不带这个参数）。
+    let recordId: String?
+    let kind: String?
+    let char: String?
+    let label: String?
+    /// 空作品格下的状态；缺键 = ""。
+    let status: String
+    /// 格内底边小注（「看后写的」）。
+    let cap: String?
+    /// 写错放进来的字带朱点；没有 dot 对象 = nil。
+    let dot: NativeResultDot?
+    let strokes: Any?
+
+    init(_ raw: [String: Any]) {
+        recordId = raw["recordId"] as? String
+        kind = raw["kind"] as? String
+        char = raw["char"] as? String
+        label = raw["label"] as? String
+        status = raw["status"] as? String ?? ""
+        cap = raw["cap"] as? String
+        dot = (raw["dot"] as? [String: Any]).map(NativeResultDot.init)
+        strokes = raw["strokes"]
+    }
+}
+
+/// 落款旁的印（view.work.seal）：整块缺失或不是对象 = 各字段取默认。
+struct NativeResultSeal {
+    /// 印在落款右边（末字在最右列）：只有 true 才算。
+    let below: Bool
+    /// 缺键 = 24。
+    let size: CGFloat
+    /// 不在下面时相对作品左缘的位置；缺键 = 0。
+    let x: CGFloat
+    let y: CGFloat
+
+    init(_ raw: Any?) {
+        let s = raw as? [String: Any] ?? [:]
+        below = (s["below"] as? Bool) == true
+        size = CGFloat((s["size"] as? NSNumber)?.doubleValue ?? 24)
+        x = CGFloat((s["x"] as? NSNumber)?.doubleValue ?? 0)
+        y = CGFloat((s["y"] as? NSNumber)?.doubleValue ?? 0)
+    }
+}
+
+/// 作品（view.work）。
+struct NativeResultWork {
+    /// 空作品（一格墨都没有）：只有 true 才算。
+    let empty: Bool
+    /// 格边长；缺键 = 0。
+    let c: CGFloat
+    /// 缺键或不是 Int = 1。
+    let cols: Int
+    let rows: Int
+    /// 缺键或不是对象数组 = []。
+    let cells: [NativeResultCell]
+    let label: String?
+    /// 笺（x / y / w / h，NSNumber 取，缺键 = 0）；缺键或不是对象数组 = []。
+    let frames: [CGRect]
+    /// 格内边比；缺键 = 0.12。
+    let pad: CGFloat
+    /// 墨宽倍数；缺键 = 1。
+    let widthScale: Double
+    /// 印文路径（页面给的单位方块内的段）；缺键 = []。
+    let sealPath: [[Any]]
+    /// 落款文字。
+    let kuan: String?
+    let seal: NativeResultSeal
+
+    init(_ raw: [String: Any]) {
+        empty = (raw["empty"] as? Bool) == true
+        c = CGFloat((raw["c"] as? NSNumber)?.doubleValue ?? 0)
+        cols = (raw["cols"] as? Int) ?? 1
+        rows = (raw["rows"] as? Int) ?? 1
+        cells = (raw["cells"] as? [[String: Any]] ?? []).map(NativeResultCell.init)
+        label = raw["label"] as? String
+        frames = (raw["frames"] as? [[String: Any]] ?? []).map(NativeResultWork.frame)
+        pad = CGFloat((raw["pad"] as? NSNumber)?.doubleValue ?? 0.12)
+        widthScale = (raw["widthScale"] as? NSNumber)?.doubleValue ?? 1
+        sealPath = raw["sealPath"] as? [[Any]] ?? []
+        kuan = raw["kuan"] as? String
+        seal = NativeResultSeal(raw["seal"])
+    }
+
+    private static func frame(_ f: [String: Any]) -> CGRect {
+        func v(_ k: String) -> CGFloat { CGFloat((f[k] as? NSNumber)?.doubleValue ?? 0) }
+        return CGRect(x: v("x"), y: v("y"), width: v("w"), height: v("h"))
+    }
+}
+
+/// 没放进图里的一行（view.rows[i]）。
+struct NativeResultRow {
+    /// 点开对照弹层时原样带给 resultCell；「放进图里」要有它才发。
+    let recordId: String?
+    let kind: String?
+    let char: String?
+    /// 显示「修改 ›」/「放进图里」：只有 true 才算。
+    let change: Bool
+    let add: Bool
+    /// 「修改 ›」的字；缺键 = ""。
+    let changeLabel: String
+    let changeAria: String?
+    let addAria: String?
+    let label: String?
+    /// 状态；缺键 = ""。
+    let text: String
+    /// 状态后的小字（「· 纸上」）；缺键 = ""。
+    let tag: String
+    /// hand = 画本人墨，其余画衬底参考字。
+    let mode: String?
+    let strokes: Any?
+    /// 墨宽倍数；缺键 = 1。
+    let widthScale: Double
+    let dot: NativeResultDot?
+
+    init(_ raw: [String: Any]) {
+        recordId = raw["recordId"] as? String
+        kind = raw["kind"] as? String
+        char = raw["char"] as? String
+        change = (raw["change"] as? Bool) == true
+        add = (raw["add"] as? Bool) == true
+        changeLabel = raw["changeLabel"] as? String ?? ""
+        changeAria = raw["changeAria"] as? String
+        addAria = raw["addAria"] as? String
+        label = raw["label"] as? String
+        text = raw["text"] as? String ?? ""
+        tag = raw["tag"] as? String ?? ""
+        mode = raw["mode"] as? String
+        strokes = raw["strokes"]
+        widthScale = (raw["widthScale"] as? NSNumber)?.doubleValue ?? 1
+        dot = (raw["dot"] as? [String: Any]).map(NativeResultDot.init)
+    }
+}
+
 final class NativeResultViewController: UIViewController, UIGestureRecognizerDelegate, UIScrollViewDelegate {
     let slot: String
     let sessionId: String
@@ -46,7 +317,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private var motion: [String: Double] = [:]
     private var rmotion: [String: Double] = [:]
     private var easeOut: [Double]?
-    private var skipUndoParams = (ms: 5000.0, pauseWhileHeld: true, keepOpen: true)
+    private var skipUndoParams = NativeSkipUndoParams()
     private(set) var model: [String: Any] = [:]
 
     // 页头
@@ -87,15 +358,24 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private var undoBar: NativeUndoBarView?
     private var undoLife: NativeUndoLifetime?
     private var stateChangedAt: CFTimeInterval = -.infinity
-    /// 本次进程里已演过落印的组（网页 result/work.js revealed 同义；冷启动后看 sealedAt）。
+    /// 本次进程里已演过落印的组（网页 revealed 同义；冷启动后看 sealedAt）。
     private static var revealed: Set<String> = []
 
     var variant: String { model["variant"] as? String ?? "" }
-    var workCellCount: Int { (work?["cells"] as? [[String: Any]])?.count ?? 0 }
+    var workCellCount: Int { work?.cells.count ?? 0 }
     var rowCount: Int { rows.count }
     var undoBarForTesting: NativeUndoBarView? { undoBar }
-    private var work: [String: Any]? { model["work"] as? [String: Any] }
-    private var rows: [[String: Any]] { model["rows"] as? [[String: Any]] ?? [] }
+    /// view.work 是对象才有。
+    private var work: NativeResultWork? { (model["work"] as? [String: Any]).map(NativeResultWork.init) }
+    /// 有作品且不是空作品（work.empty 不是 true）：要显现 / 落印。
+    private var hasWork: Bool {
+        guard let work else { return false }
+        return !work.empty
+    }
+    private var footerModel: NativeResultFooter { NativeResultFooter(model["footer"]) }
+    private var inviteModel: NativeResultInvite { NativeResultInvite(model["invite"]) }
+    private var revealModel: NativeResultReveal { NativeResultReveal(model["reveal"]) }
+    private var rows: [NativeResultRow] { (model["rows"] as? [[String: Any]] ?? []).map(NativeResultRow.init) }
     private var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
     private var ts: NativeTypeScale { NativeTypeScale(type: textType, ax: traitCollection.preferredContentSizeCategory.isAccessibilityCategory) }
 
@@ -137,11 +417,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             easeOut = (m["easeOut"] as? [NSNumber])?.map { $0.doubleValue }
             overlaySpec = NativeOverlaySpec(motion: m)
         }
-        if let u = look["skipUndo"] as? [String: Any] {
-            skipUndoParams = (ms: (u["ms"] as? NSNumber)?.doubleValue ?? 5000,
-                              pauseWhileHeld: (u["pauseWhileHeld"] as? NSNumber)?.boolValue ?? true,
-                              keepOpen: (u["keepOpenWithAssistiveTech"] as? NSNumber)?.boolValue ?? true)
-        }
+        if let u = look["skipUndo"] as? [String: Any] { skipUndoParams = NativeSkipUndoParams(u) }
     }
 
     private func color(_ name: String, _ fallback: UIColor) -> UIColor { colors[name] ?? fallback }
@@ -308,21 +584,21 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         previewLabel.isHidden = preview.isEmpty
         NativeType.set(previewLabel, preview, font: ts.font(15), color: ink2, line: ts.lineHeight(15))
         // 邀请
-        let inv = model["invite"] as? [String: Any] ?? [:]
+        let inv = inviteModel
         inviteView.look = .init(ink1: ink1, ink2: ink2, ink3: ink3, ink4: color("ink4", .tertiaryLabel), line: color("line", .separator), frame: color("frame", .separator), field: color("field", .secondarySystemFill), type: ts)
         inviteView.bodyBreaks = (lines["inviteBody"] as? [NSNumber])?.map { $0.intValue } ?? []
-        inviteView.strings = .init(title: inv["title"] as? String ?? "", titleEvening: inv["titleEvening"] as? String ?? "", body: inv["body"] as? [String: Any] ?? [:],
+        inviteView.strings = .init(title: inv.title, titleEvening: inv.titleEvening, body: inv.body,
                                    yes: tr("X-INVITE.yes"), no: tr("X-INVITE.no"), changeTime: tr("X-INVITE.changeTime"), blank: tr("X-INVITE.blankLabel"),
                                    saveFailed: tr("X-SETTINGS.saveFailed"), cancel: tr("X-SETTINGS.cancel"), retry: tr("R-W16.retry"))
         // 底栏
-        let foot = model["footer"] as? [String: Any] ?? [:]
-        let kind = foot["kind"] as? String ?? "again"
-        redoButton.isHidden = (foot["redo"] as? Bool) != true
+        let foot = footerModel
+        let kind = foot.kind
+        redoButton.isHidden = !foot.redo
         againTextButton.isHidden = kind != "first"
-        primaryButton.setTitle(kind == "first" ? tr("X-RESULT.done") : kind == "again" ? tr("X-RESULT.again") : foot["leave"] as? String ?? "", for: .normal)
+        primaryButton.setTitle(kind == "first" ? tr("X-RESULT.done") : kind == "again" ? tr("X-RESULT.again") : foot.leave, for: .normal)
         if fresh {
-            if let u = model["undo"] as? [String: Any], let rid = u["recordId"] as? String, let remaining = (u["remainingMs"] as? NSNumber)?.doubleValue, remaining > 0 {
-                beginUndo(sessionId: u["sessionId"] as? String ?? sessionId, recordId: rid, char: u["char"] as? String ?? "", strokes: u["strokes"], remainingMs: remaining)
+            if let u = NativeResultUndo(model["undo"]) {
+                beginUndo(sessionId: u.sessionId ?? sessionId, recordId: u.recordId, char: u.char, strokes: u.strokes, remainingMs: u.remainingMs)
             }
             prepareReveal()
         }
@@ -352,7 +628,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         b.accessibilityIdentifier = id
     }
 
-    /// 按网页的折行点换行（native-view.js webLineStarts：网页 text-wrap: pretty 折出来的每一行从第几个字开始）。
+    /// 按网页的折行点换行（webLineStarts：网页 text-wrap: pretty 折出来的每一行从第几个字开始）。
     static func broken(_ text: String, _ starts: Any?) -> String {
         guard let starts = (starts as? [NSNumber])?.map({ $0.intValue }), !starts.isEmpty else { return text }
         var out = ""
@@ -421,7 +697,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         let ts = self.ts
         let tt = textType
         [primaryButton, redoButton, againTextButton, failCancel, failRetry].forEach { NativeType.trackTitle($0) } // 中文字距同网页（B2.9b）
-        // AX 档主按钮：min-height --btn-h、上下内边距 6、字按行数长高（网页 components/ax.js）
+        // AX 档主按钮：min-height --btn-h、上下内边距 6、字按行数长高
         let primaryH = tt.axButtonHeight("resultFoot", sub: "r3", title: primaryButton.title(for: .normal), font: primaryButton.titleLabel?.font, width: inner - 48)
             ?? max(ts.buttonHeight, ts.lh17s)
         let primaryY = h - max(24, safe.bottom) - primaryH
@@ -570,15 +846,15 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private var sealKey: String { "\(slot):\(sessionId)" }
 
     private func shouldReveal() -> Bool {
-        guard let work, (work["empty"] as? Bool) != true else { return false }
-        let sealed = ((model["reveal"] as? [String: Any])?["sealed"] as? Bool) == true
+        guard hasWork else { return false }
+        let sealed = revealModel.sealed
         return !sealed && !Self.revealed.contains(sealKey) && !reduceMotion
     }
 
     /// 打开时：要演就先只显示作品（其余隐藏、底栏隐藏），否则直接终态（没落过印的组照样发一次触觉与盖章声、记 sealedAt）。
     private func prepareReveal() {
-        let hasSeal = work != nil && (work?["empty"] as? Bool) != true
-        let sealed = ((model["reveal"] as? [String: Any])?["sealed"] as? Bool) == true
+        let hasSeal = hasWork
+        let sealed = revealModel.sealed
         sealedForTesting = sealed
         if shouldReveal() {
             landed = false
@@ -599,10 +875,9 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         guard revealing else { return }
         revealToken += 1
         let token = revealToken
-        let plan = (model["reveal"] as? [String: Any])?["plan"] as? [String: Any] ?? [:]
-        func p(_ k: String) -> TimeInterval { ((plan[k] as? NSNumber)?.doubleValue ?? 0) / 1000 }
-        workView.playReveal(stagger: p("stagger"), cellMs: p("cellMs"), kuanDelay: p("kuanDelay"), kuanMs: p("kuanMs"), sealDelay: p("sealDelay"),
-                            fall: p("contactMs"), rebound: ms("rebound"), sealFrom: CGFloat(rmotion["sealFrom"] ?? 1.25), contact: CGFloat(rmotion["sealContact"] ?? 0.92),
+        let plan = revealModel.plan
+        workView.playReveal(stagger: plan.stagger, cellMs: plan.cellMs, kuanDelay: plan.kuanDelay, kuanMs: plan.kuanMs, sealDelay: plan.sealDelay,
+                            fall: plan.contact, rebound: ms("rebound"), sealFrom: CGFloat(rmotion["sealFrom"] ?? 1.25), contact: CGFloat(rmotion["sealContact"] ?? 0.92),
                             onContact: { [weak self] in
                                 guard let self, self.revealToken == token else { return }
                                 self.sealMoment()
@@ -651,13 +926,12 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     // MARK: 提醒邀请（D35 / D46 ③；网页 useReminderInvite）
 
     private func scheduleInvite() {
-        let inv = model["invite"] as? [String: Any] ?? [:]
-        guard (inv["show"] as? Bool) == true, invitePhase == "wait" else { return }
+        guard inviteModel.show, invitePhase == "wait" else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + ms("inviteDelay")) { [weak self] in
             guard let self, self.invitePhase == "wait" else { return }
             self.bridge.call("resultInvite", ["slot": self.slot, "sessionId": self.sessionId, "action": "shown"]) { [weak self] reply in
                 guard let self, reply.ok, self.invitePhase == "wait" else { return } // 写不进去就不问（不让「问了几次」失真）
-                self.inviteView.evening = (reply.body["evening"] as? Bool) == true
+                self.inviteView.evening = NativeInviteReply(reply.body).evening
                 self.invitePhase = "invite"
                 self.inviteView.phase = .invite
                 self.layoutAll()
@@ -685,18 +959,18 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         inviteView.phase = .pending
         bridge.call("resultInvite", ["slot": slot, "sessionId": sessionId, "action": "yes"]) { [weak self] reply in
             guard let self else { return }
-            let phase = reply.body["phase"] as? String
-            if !reply.ok || phase == "failed" {
+            let r = NativeInviteReply(reply.body)
+            if !reply.ok || r.phase == "failed" {
                 self.invitePhase = "invite"
                 self.inviteView.phase = .invite
                 self.inviteView.failed = true
                 NativeA11y.announce(self.tr("X-SETTINGS.saveFailed"))
-            } else if phase == "denied" {
+            } else if r.phase == "denied" {
                 self.invitePhase = "denied"
-                self.inviteView.phase = .line(reply.body["text"] as? String ?? self.tr("X-INVITE.denied"), time: nil)
+                self.inviteView.phase = .line(r.text ?? self.tr("X-INVITE.denied"), time: nil)
             } else {
                 self.invitePhase = "accepted"
-                self.inviteView.phase = .line(reply.body["text"] as? String ?? "", time: ((reply.body["hour"] as? Int) ?? 20, (reply.body["minute"] as? Int) ?? 30))
+                self.inviteView.phase = .line(r.text ?? "", time: (r.hour ?? 20, r.minute ?? 30))
             }
             self.layoutAll()
         }
@@ -713,7 +987,8 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private func inviteTime(hour: Int, minute: Int) {
         bridge.call("resultInvite", ["slot": slot, "sessionId": sessionId, "action": "time", "hour": hour, "minute": minute]) { [weak self] reply in
             guard let self else { return }
-            self.inviteView.phase = .line(reply.body["text"] as? String ?? "", time: ((reply.body["hour"] as? Int) ?? hour, (reply.body["minute"] as? Int) ?? minute))
+            let r = NativeInviteReply(reply.body)
+            self.inviteView.phase = .line(r.text ?? "", time: (r.hour ?? hour, r.minute ?? minute))
             self.inviteView.timeFailed = !reply.ok
             self.layoutAll()
         }
@@ -781,7 +1056,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
 
     // MARK: 动作
 
-    /// 0.4s 防误点（网页 Button.js：新状态后 pressGuard 内不响应）。
+    /// 0.4s 防误点（网页：新状态后 pressGuard 内不响应）。
     private func press(_ action: (NativeResultViewController) -> Void) {
         let guardS = (motion["pressGuard"] ?? 0) / 1000
         if CACurrentMediaTime() - stateChangedAt < guardS { return }
@@ -793,8 +1068,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     }
 
     private func tapPrimary() {
-        let kind = (model["footer"] as? [String: Any])?["kind"] as? String ?? "again"
-        if kind == "again" { again() } else { tapLeave() }
+        if footerModel.kind == "again" { again() } else { tapLeave() }
     }
 
     @objc private func tapLeave() {
@@ -871,13 +1145,13 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
 
     // MARK: 对照与改判弹层（与写字页改判弹层同一组件，R9-B）
 
-    private func openCell(_ cell: [String: Any]) {
+    private func openCell(_ cell: NativeResultCell) {
         guard !revealing else { return }
-        openSheet(recordId: cell["recordId"] as? String, kind: cell["kind"] as? String, char: cell["char"] as? String)
+        openSheet(recordId: cell.recordId, kind: cell.kind, char: cell.char)
     }
 
-    private func openRow(_ row: [String: Any]) {
-        openSheet(recordId: row["recordId"] as? String, kind: row["kind"] as? String, char: row["char"] as? String)
+    private func openRow(_ row: NativeResultRow) {
+        openSheet(recordId: row.recordId, kind: row.kind, char: row.char)
     }
 
     private func openSheet(recordId: String?, kind: String?, char: String?) {
@@ -906,8 +1180,8 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
         }
     }
 
-    private func addRow(_ row: [String: Any]) {
-        guard let rid = row["recordId"] as? String, !busy else { return }
+    private func addRow(_ row: NativeResultRow) {
+        guard let rid = row.recordId, !busy else { return }
         dismissUndoForAction()
         busy = true
         bridge.call("resultAdd", ["slot": slot, "sessionId": sessionId, "recordId": rid, "width": view.bounds.width, "ax": ts.ax]) { [weak self] reply in
@@ -942,12 +1216,6 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
             transitions.drag(g, page: self)
         }
     }
-
-    // MARK: 测试
-
-    func tapCellForTesting(_ i: Int) { workView.tapForTesting(i) }
-    func tapRowChangeForTesting(_ i: Int) { if i < rowViews.count { openRow(rows[i]) } }
-    func skipRevealForTesting() { skipReveal() }
 }
 
 // MARK: - 作品（WorkPaper / PlainRow 的原生版）
@@ -958,20 +1226,20 @@ final class NativeWorkView: UIView {
         var ink1: UIColor, ink2: UIColor, ink3: UIColor, field: UIColor, type: NativeTypeScale
     }
 
-    var onOpen: (([String: Any]) -> Void)?
-    private var work: [String: Any] = [:]
+    var onOpen: ((NativeResultCell) -> Void)?
+    private var work = NativeResultWork([:])
     private var look: Look?
-    private var cells: [[String: Any]] = []
+    private var cells: [NativeResultCell] = []
     private var sheets: [UIView] = []
     private var cellButtons: [NativeWorkCellButton] = []
     private var statusLabels: [UILabel] = []
     private let framesLayer = CAShapeLayer()
     private let seal = NativeSealView()
     private let kuanLabel = UILabel()
-    private var empty: Bool { (work["empty"] as? Bool) == true }
-    private var c: CGFloat { CGFloat((work["c"] as? NSNumber)?.doubleValue ?? 0) }
-    private var cols: Int { (work["cols"] as? Int) ?? 1 }
-    private var rows: Int { (work["rows"] as? Int) ?? 1 }
+    private var empty: Bool { work.empty }
+    private var c: CGFloat { work.c }
+    private var cols: Int { work.cols }
+    private var rows: Int { work.rows }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -987,10 +1255,10 @@ final class NativeWorkView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(work w: [String: Any]?, look l: Look) {
-        work = w ?? [:]
+    func configure(work w: NativeResultWork?, look l: Look) {
+        work = w ?? NativeResultWork([:])
         look = l
-        cells = work["cells"] as? [[String: Any]] ?? []
+        cells = work.cells
         subviews.forEach { $0.removeFromSuperview() }
         sheets = []
         cellButtons = []
@@ -998,7 +1266,7 @@ final class NativeWorkView: UIView {
         framesLayer.removeFromSuperlayer()
         guard w != nil else { isHidden = true; return }
         isHidden = false
-        accessibilityLabel = work["label"] as? String
+        accessibilityLabel = work.label
         if empty {
             for cell in cells {
                 let box = UIView()
@@ -1012,14 +1280,14 @@ final class NativeWorkView: UIView {
                 addSubview(b)
                 cellButtons.append(b)
                 let s = UILabel()
-                NativeType.set(s, cell["status"] as? String ?? "", font: l.type.font(13), color: l.ink3, align: .center, line: l.type.lineHeight(13))
-                s.isHidden = (cell["status"] as? String ?? "").isEmpty
+                NativeType.set(s, cell.status, font: l.type.font(13), color: l.ink3, align: .center, line: l.type.lineHeight(13))
+                s.isHidden = cell.status.isEmpty
                 addSubview(s)
                 statusLabels.append(s)
             }
             return
         }
-        for _ in (work["frames"] as? [[String: Any]] ?? []) {
+        for _ in work.frames {
             let s = UIView()
             s.backgroundColor = l.sheet
             s.isUserInteractionEnabled = false
@@ -1027,8 +1295,7 @@ final class NativeWorkView: UIView {
             sheets.append(s)
         }
         for (i, cell) in cells.enumerated() {
-            let b = NativeWorkCellButton(cell: cell, side: c, mode: "hand", look: l, pad: CGFloat((work["pad"] as? NSNumber)?.doubleValue ?? 0.12),
-                                         inkScale: (work["widthScale"] as? NSNumber)?.doubleValue ?? 1)
+            let b = NativeWorkCellButton(cell: cell, side: c, mode: "hand", look: l, pad: work.pad, inkScale: work.widthScale)
             b.lastCol = (i + 1) % cols == 0 || i == cells.count - 1
             b.lastRow = i + cols >= cells.count
             b.addAction(UIAction { [weak self] _ in self?.onOpen?(cell) }, for: .touchUpInside)
@@ -1037,17 +1304,17 @@ final class NativeWorkView: UIView {
         }
         framesLayer.strokeColor = l.frame.cgColor
         layer.addSublayer(framesLayer)
-        seal.configure(path: work["sealPath"] as? [[Any]] ?? [], fill: l.seal, glyph: l.onSeal)
+        seal.configure(path: work.sealPath, fill: l.seal, glyph: l.onSeal)
         addSubview(seal)
         // 落款是图形：宋 13 / 20 固定，不随系统字号（D49）
         let kfont = NativeType.song(size: 13, weight: .regular)
         kuanLabel.font = kfont
         kuanLabel.textColor = l.ink2
-        kuanLabel.text = work["kuan"] as? String
+        kuanLabel.text = work.kuan
         addSubview(kuanLabel)
     }
 
-    private var sealBelow: Bool { ((work["seal"] as? [String: Any])?["below"] as? Bool) == true }
+    private var sealBelow: Bool { work.seal.below }
 
     func height(for width: CGFloat) -> CGFloat {
         guard !cells.isEmpty || !empty else { return 0 }
@@ -1080,33 +1347,28 @@ final class NativeWorkView: UIView {
         }
         let gw = CGFloat(cols) * c
         let sx = (W - gw) / 2
-        for (i, f) in (work["frames"] as? [[String: Any]] ?? []).enumerated() where i < sheets.count {
-            sheets[i].frame = rect(f).offsetBy(dx: sx, dy: 0)
+        for (i, f) in work.frames.enumerated() where i < sheets.count {
+            sheets[i].frame = f.offsetBy(dx: sx, dy: 0)
         }
         for (i, b) in cellButtons.enumerated() {
             b.frame = CGRect(x: sx + CGFloat(i % cols) * c, y: CGFloat(i / cols) * c, width: c, height: c)
         }
         let path = UIBezierPath()
-        for f in (work["frames"] as? [[String: Any]] ?? []) { path.append(UIBezierPath(rect: rect(f).offsetBy(dx: sx, dy: 0).insetBy(dx: 0.5, dy: 0.5))) }
+        for f in work.frames { path.append(UIBezierPath(rect: f.offsetBy(dx: sx, dy: 0).insetBy(dx: 0.5, dy: 0.5))) }
         framesLayer.frame = bounds
         framesLayer.path = path.cgPath
         let gridH = CGFloat(rows) * c
         let signY = gridH + 14
         let kw = ceil(kuanLabel.sizeThatFits(CGSize(width: W, height: 20)).width)
-        let s = (work["seal"] as? [String: Any]) ?? [:]
-        let sealSize = CGFloat((s["size"] as? NSNumber)?.doubleValue ?? 24)
+        let s = work.seal
+        let sealSize = s.size
         if sealBelow {
             seal.frame = CGRect(x: sx + gw - sealSize, y: signY, width: sealSize, height: sealSize)
             kuanLabel.frame = CGRect(x: sx + gw - sealSize - 8 - kw, y: signY + 2, width: kw, height: 20)
         } else {
-            seal.frame = CGRect(x: sx + CGFloat((s["x"] as? NSNumber)?.doubleValue ?? 0), y: CGFloat((s["y"] as? NSNumber)?.doubleValue ?? 0), width: sealSize, height: sealSize)
+            seal.frame = CGRect(x: sx + s.x, y: s.y, width: sealSize, height: sealSize)
             kuanLabel.frame = CGRect(x: sx + gw - kw, y: signY, width: kw, height: 20)
         }
-    }
-
-    private func rect(_ f: [String: Any]) -> CGRect {
-        func v(_ k: String) -> CGFloat { CGFloat((f[k] as? NSNumber)?.doubleValue ?? 0) }
-        return CGRect(x: v("x"), y: v("y"), width: v("w"), height: v("h"))
     }
 
     // 显现
@@ -1148,8 +1410,6 @@ final class NativeWorkView: UIView {
             v.transform = .identity
         }
     }
-
-    func tapForTesting(_ i: Int) { if i < cellButtons.count { cellButtons[i].sendActions(for: .touchUpInside) } }
 }
 
 /// 作品里的一格（按钮：点开对照弹层）：本人墨（画墨接口）或衬底参考字、写错放进来的朱点、格内底边小注；格间 0.75 guide 线画在右 / 下边（末列 / 末行不画）。
@@ -1162,16 +1422,16 @@ final class NativeWorkCellButton: UIButton {
     private let glyph = NativeGlyphView()
     private let dot = UIView()
     private let cap = UILabel()
-    private let cell: [String: Any]
+    private let cell: NativeResultCell
     private let pad: CGFloat
     private let mode: String
 
-    init(cell: [String: Any], side: CGFloat, mode: String, look: NativeWorkView.Look, pad: CGFloat, inkScale: Double = 1) {
+    init(cell: NativeResultCell, side: CGFloat, mode: String, look: NativeWorkView.Look, pad: CGFloat, inkScale: Double = 1) {
         self.cell = cell
         self.pad = pad
         self.mode = mode
         super.init(frame: .zero)
-        accessibilityLabel = cell["label"] as? String
+        accessibilityLabel = cell.label
         accessibilityIdentifier = "native-result-cell"
         setTitleColor(look.ink1, for: .normal)
         titleLabel?.font = look.type.font(15)
@@ -1181,25 +1441,24 @@ final class NativeWorkCellButton: UIButton {
             addSubview(g)
         }
         let inner = side * (1 - 2 * pad)
-        let strokes = NativeInkWire.rawStrokes(cell["strokes"])
+        let strokes = NativeInkWire.rawStrokes(cell.strokes)
         if mode == "hand", let v = NativeInkPaint.view(strokes: strokes, side: inner, color: look.hand, widthScale: inkScale) {
             ink = v
             addSubview(v)
         } else {
-            glyph.char = cell["char"] as? String ?? ""
+            glyph.char = cell.char ?? ""
             glyph.color = look.under
             glyph.isUserInteractionEnabled = false
             addSubview(glyph)
         }
-        if let d = cell["dot"] as? [String: Any] {
-            func v(_ k: String) -> CGFloat { CGFloat((d[k] as? NSNumber)?.doubleValue ?? 0) }
-            dot.frame = CGRect(x: v("cx") - v("d") / 2, y: v("cy") - v("d") / 2, width: v("d"), height: v("d"))
-            dot.layer.cornerRadius = v("d") / 2
+        if let d = cell.dot {
+            dot.frame = CGRect(x: d.cx - d.d / 2, y: d.cy - d.d / 2, width: d.d, height: d.d)
+            dot.layer.cornerRadius = d.d / 2
             dot.backgroundColor = look.zhu
             dot.isUserInteractionEnabled = false
             addSubview(dot)
         }
-        if let t = cell["cap"] as? String, !t.isEmpty {
+        if let t = cell.cap, !t.isEmpty {
             // 「看后写的」：黑体 11 / 16、500、ink3，格内底边上 4（图形文字，不随字号）
             cap.font = UIFont.systemFont(ofSize: 11, weight: .medium)
             cap.textColor = look.ink3
@@ -1234,7 +1493,7 @@ final class NativeWorkCellButton: UIButton {
     }
 }
 
-/// 印（marks.js <Seal/>：seal 底、直角；白文「拾」= shi.js 小尺寸加粗字形，页面给单位方块内的路径；内缩 7% 一圈 on-seal 细线，透明度 .55）。
+/// 印（<Seal/>：seal 底、直角；白文「拾」= 小尺寸加粗字形，页面给单位方块内的路径；内缩 7% 一圈 on-seal 细线，透明度 .55）。
 final class NativeSealView: UIView {
     private let glyph = CAShapeLayer()
     private let line = CAShapeLayer()
@@ -1284,10 +1543,10 @@ final class NativeResultRowView: UIView {
         var ink1: UIColor, ink2: UIColor, ink3: UIColor, under: UIColor, zhu: UIColor, hand: SIMD4<Float>?, field: UIColor, type: NativeTypeScale, addIn: String
     }
 
-    var onOpen: (([String: Any]) -> Void)?
-    var onChange: (([String: Any]) -> Void)?
-    var onAdd: (([String: Any]) -> Void)?
-    private(set) var row: [String: Any] = [:]
+    var onOpen: ((NativeResultRow) -> Void)?
+    var onChange: ((NativeResultRow) -> Void)?
+    var onAdd: ((NativeResultRow) -> Void)?
+    private(set) var row = NativeResultRow([:])
     private let openButton = NativeRowOpenButton(type: .custom)
     private let changeButton = NativeTextButton(type: .system)
     private let addButton = NativeTextButton(type: .system)
@@ -1309,30 +1568,30 @@ final class NativeResultRowView: UIView {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func configure(row r: [String: Any], glyph: CGFloat, pad: CGFloat, look: Look) {
+    func configure(row r: NativeResultRow, glyph: CGFloat, pad: CGFloat, look: Look) {
         row = r
         type = look.type.type
         glyphSide = glyph
         openButton.configure(row: r, glyph: glyph, pad: pad, look: look)
-        changeButton.isHidden = (r["change"] as? Bool) != true
-        addButton.isHidden = (r["add"] as? Bool) != true
+        changeButton.isHidden = !r.change
+        addButton.isHidden = !r.add
         // 「修改 ›」：写字页结果行同一个组件（R9-B：13 ink1，盒 = 字宽 + 8，至少 44）
-        changeButton.setTitle(r["changeLabel"] as? String ?? "", for: .normal)
+        changeButton.setTitle(r.changeLabel, for: .normal)
         changeButton.titleLabel?.font = look.type.font(13)
         changeButton.setTitleColor(look.ink1, for: .normal)
         changeButton.contentHorizontalAlignment = .left
         changeButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
-        changeButton.accessibilityLabel = r["changeAria"] as? String
+        changeButton.accessibilityLabel = r.changeAria
         addButton.setTitle(look.addIn, for: .normal)
         addButton.titleLabel?.font = look.type.font(15)
         addButton.setTitleColor(look.ink2, for: .normal)
         addButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
         addButton.contentHorizontalAlignment = .left
-        addButton.accessibilityLabel = r["addAria"] as? String
+        addButton.accessibilityLabel = r.addAria
         setNeedsLayout()
     }
 
-    /// AX 档（网页 work.js :root[data-ax] .sz-exrow）：行可折——主体占满一行（高 = max(52, 行高)），「修改 ›」「放进图里」各自按字号长高、左让出字宽 + 12，
+    /// AX 档（网页 :root[data-ax] .sz-exrow）：行可折——主体占满一行（高 = max(52, 行高)），「修改 ›」「放进图里」各自按字号长高、左让出字宽 + 12，
     /// 一行放不下就折到下一行（行距 / 列距 4），整行上下内边距 6。返回各按钮的框与行高；不在 AX 档 → nil。
     private func axPlan(width: CGFloat) -> (open: CGRect, frames: [(UIButton, CGRect)], height: CGFloat)? {
         guard type.ax, let pad = type.role("exrow", "padTop", sub: "r5") else { return nil }
@@ -1415,15 +1674,15 @@ final class NativeRowOpenButton: UIButton {
     private var lineH: CGFloat = 22
     private var pressColor: UIColor = .clear
 
-    func configure(row r: [String: Any], glyph side: CGFloat, pad p: CGFloat, look: NativeResultRowView.Look) {
+    func configure(row r: NativeResultRow, glyph side: CGFloat, pad p: CGFloat, look: NativeResultRowView.Look) {
         glyphSide = side
         pad = p
         lineH = look.type.lh17s
-        accessibilityLabel = r["label"] as? String
+        accessibilityLabel = r.label
         ink?.removeFromSuperview()
         ink = nil
-        let text = r["text"] as? String ?? ""
-        let tag = r["tag"] as? String ?? ""
+        let text = r.text
+        let tag = r.tag
         let f = look.type.font(17)
         let s = NSMutableAttributedString(string: text, attributes: [.font: f, .foregroundColor: look.ink2, .kern: 0])
         if !tag.isEmpty { s.append(NSAttributedString(string: " " + tag, attributes: [.font: f, .foregroundColor: look.ink3, .kern: 0])) }
@@ -1443,23 +1702,22 @@ final class NativeRowOpenButton: UIButton {
         titleLabel?.lineBreakMode = .byTruncatingTail
         contentHorizontalAlignment = .left
         let inner = side * (1 - 2 * p)
-        if (r["mode"] as? String) == "hand", let v = NativeInkPaint.view(strokes: NativeInkWire.rawStrokes(r["strokes"]), side: inner, color: look.hand, widthScale: (r["widthScale"] as? NSNumber)?.doubleValue ?? 1) {
+        if r.mode == "hand", let v = NativeInkPaint.view(strokes: NativeInkWire.rawStrokes(r.strokes), side: inner, color: look.hand, widthScale: r.widthScale) {
             v.isUserInteractionEnabled = false
             ink = v
             addSubview(v)
             glyph.isHidden = true
         } else {
             glyph.isHidden = false
-            glyph.char = r["char"] as? String ?? ""
+            glyph.char = r.char ?? ""
             glyph.color = look.under
             glyph.isUserInteractionEnabled = false
             if glyph.superview == nil { addSubview(glyph) }
         }
-        if let d = r["dot"] as? [String: Any] {
-            func v(_ k: String) -> CGFloat { CGFloat((d[k] as? NSNumber)?.doubleValue ?? 0) }
-            dotSpec = (v("cx"), v("cy"), v("d"))
-            dot.frame = CGRect(x: v("cx") - v("d") / 2, y: (52 - side) / 2 + v("cy") - v("d") / 2, width: v("d"), height: v("d"))
-            dot.layer.cornerRadius = v("d") / 2
+        if let d = r.dot {
+            dotSpec = (d.cx, d.cy, d.d)
+            dot.frame = CGRect(x: d.cx - d.d / 2, y: (52 - side) / 2 + d.cy - d.d / 2, width: d.d, height: d.d)
+            dot.layer.cornerRadius = d.d / 2
             dot.backgroundColor = look.zhu
             dot.isUserInteractionEnabled = false
             dot.isHidden = false
@@ -1495,14 +1753,14 @@ final class NativeRowOpenButton: UIButton {
     }
 }
 
-// MARK: - 提醒邀请（first.js ReminderInvite）
+// MARK: - 提醒邀请（ReminderInvite）
 
 final class NativeInviteView: UIView {
     struct Look {
         var ink1: UIColor, ink2: UIColor, ink3: UIColor, ink4: UIColor, line: UIColor, frame: UIColor, field: UIColor, type: NativeTypeScale
     }
     struct Strings {
-        var title = "", titleEvening = "", body: [String: Any] = [:], yes = "", no = "", changeTime = "", blank = "", saveFailed = "", cancel = "", retry = ""
+        var title = "", titleEvening = "", body = NativeInviteBody(nil), yes = "", no = "", changeTime = "", blank = "", saveFailed = "", cancel = "", retry = ""
     }
     enum Phase: Equatable {
         case wait, invite, pending, gone
@@ -1746,8 +2004,8 @@ final class NativeAttachmentLabel: UILabel, ShiziDrawnLines {
         set { super.text = newValue; plain = newValue ?? "" }
     }
 
-    func setBody(_ body: [String: Any], font: UIFont, color: UIColor, line: CGFloat, box: UIColor, blankLabel: String, breaks: [Int] = []) {
-        let f = NativeType.hasCJKPunctuation((body["pre"] as? String ?? "") + (body["plain"] as? String ?? "")) ? NativeType.cjkFont(size: font.pointSize, weight: .regular) : font
+    func setBody(_ body: NativeInviteBody, font: UIFont, color: UIColor, line: CGFloat, box: UIColor, blankLabel: String, breaks: [Int] = []) {
+        let f = NativeType.hasCJKPunctuation(body.pre + (body.plain ?? "")) ? NativeType.cjkFont(size: font.pointSize, weight: .regular) : font
         let p = NSMutableParagraphStyle()
         p.lineSpacing = max(0, line - f.lineHeight)
         // 网页行高比字体自然行高小（AX 档苹方）：行盒钉成网页行高，字在行盒里竖向居中（同 NativeType.set）
@@ -1761,7 +2019,7 @@ final class NativeAttachmentLabel: UILabel, ShiziDrawnLines {
         // 字距同 NativeType.set：先铺显式 0；含全角标点时拉丁 / 数字按 SF 字宽排，中文字补 trak 差（网页是 SF + 苹方 UI）
         var attrs: [NSAttributedString.Key: Any] = [.font: f, .foregroundColor: color, .paragraphStyle: p, .kern: 0]
         if boxShift != 0 { attrs[.baselineOffset] = boxShift }
-        let allText = (body["plain"] as? String) ?? ((body["pre"] as? String ?? "") + ((body["word"] as? [String]) ?? []).joined() + (body["post"] as? String ?? ""))
+        let allText = body.plain ?? (body.pre + body.word.joined() + body.post)
         let punct = NativeType.hasCJKPunctuation(allText)
         let track = NativeType.hasCJK(allText) ? NativeType.cjkTrack(size: font.pointSize, weight: NativeType.weight(of: font)) : 0
         let sf = UIFont.systemFont(ofSize: font.pointSize, weight: NativeType.weight(of: font))
@@ -1788,13 +2046,13 @@ final class NativeAttachmentLabel: UILabel, ShiziDrawnLines {
                 unit += 1
             }
         }
-        if let plainText = body["plain"] as? String {
+        if let plainText = body.plain {
             addText(plainText)
             spoken = plainText
         } else {
-            let pre = body["pre"] as? String ?? "", post = body["post"] as? String ?? ""
-            let word = body["word"] as? [String] ?? []
-            let blanks = body["blanks"] as? [Bool] ?? []
+            let pre = body.pre, post = body.post
+            let word = body.word
+            let blanks = body.blanks
             addText(pre)
             spoken += pre
             for (i, ch) in word.enumerated() {

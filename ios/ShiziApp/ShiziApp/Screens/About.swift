@@ -1,18 +1,18 @@
 import UIKit
 
-// B3.2 试点页：关于拾字 + 三个子页（网页 src/ui/screens/mine/about.js，1:1 移植；视图模型 src/session/views/about.js，App API view.about*）。
+// B3.2 试点页：关于拾字 + 三个子页（照网页版 1:1 移植；视图模型，App API view.about*）。
 // 屏名 ⇄ 类：about ⇄ ShiziScreen_about、about-privacy ⇄ ShiziScreen_about_privacy、about-credits ⇄ ShiziScreen_about_credits、about-letter ⇄ ShiziScreen_about_letter。
 // 只读页：不写 store；版本行点按展开完整构建号、开源致谢每项「许可全文」展开 / 收起是页内状态（网页同样不进 params）。
-// 版式按网页 CSS 逐项排（about.js 的 .sz-about__* 与 Page.js），数值全部取 ShiziTokens（s* / gutter / group-gap / fs* / lh* / r-*），文案取视图模型给的引用。
+// 版式按网页 CSS 逐项排（.sz-about__*），数值全部取 ShiziTokens（s* / gutter / group-gap / fs* / lh* / r-*），文案取视图模型给的引用。
 
-/// 行尾的「 ›」只是视觉箭头：行标签 / 读屏名里去掉（views/about.js stripArrow 同一规则）。
+/// 行尾的「 ›」只是视觉箭头：行标签 / 读屏名里去掉（stripArrow 同一规则）。
 private func stripArrow(_ s: String) -> String {
     var t = s
     while let last = t.last, last == " " || last == "\u{203A}" { t.removeLast() }
     return t
 }
 
-/// 读屏名里两段的连接（网页 about.js 的中文逗号）。
+/// 读屏名里两段的连接（网页的中文逗号）。
 private let ariaJoin = "\u{FF0C}"
 
 // MARK: - 关于拾字
@@ -72,6 +72,9 @@ final class AboutScreen: ShiziScreenViewController {
         if let m = model { renderModel(m) }
         view.setNeedsLayout()
     }
+
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about：只读构建版本号）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
 
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)
@@ -308,6 +311,9 @@ final class AboutPrivacyScreen: ShiziScreenViewController {
 
     private(set) var paragraphLabels: [UILabel] = []
 
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about-privacy：只看 hooks.native）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
+
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)
         setTitle(m.title.text)
@@ -337,7 +343,7 @@ final class AboutPrivacyScreen: ShiziScreenViewController {
     }
 }
 
-/// 段落（网页 p，行高钉成网页行高）：排好返回高。about.js 的这几段 WebKit 实测按贪心折行（text-wrap:pretty 没有改动这几段），原生同样贪心折行。
+/// 段落（网页 p，行高钉成网页行高）：排好返回高。这几段 WebKit 实测按贪心折行（text-wrap:pretty 没有改动这几段），原生同样贪心折行。
 /// 没有中文的字（名称、许可名、网址）不走 NativeType.set（它为中文字距显式写 kern 0，会关掉 SF 的默认字距，拉丁字比网页宽 2–4pt）。
 enum ShiziParagraph {
     @discardableResult
@@ -533,6 +539,9 @@ final class AboutCreditsScreen: ShiziScreenViewController {
         content.addSubview(introLabel)
         super.viewDidLoad()
     }
+
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about-credits：包里的致谢）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
 
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)
@@ -736,6 +745,9 @@ final class AboutLetterScreen: ShiziScreenViewController {
         content.addSubview(addressLabel)
         super.viewDidLoad()
     }
+
+    /// 视图回包不读 store（ShiziCore AboutAPI view.about-letter：定文）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
 
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: View.self)

@@ -288,12 +288,12 @@ public enum TodayPlan {
     }
 
     /// 今天的练习还要排的字（不写入）：这一份定下之前按每组字数算、减去今天已经写过的；定下之后按这一份剩下的。
-    public static func remainingQueue(_ state: JSValue, day: String, rules: ScheduleRules, deck: ScheduleDeck, policy: JSValue = Config.policy) throws -> [String] {
+    public static func remainingQueue(_ state: JSValue, day: String, rules: ScheduleRules, deck: ScheduleDeck, policy: JSValue = Config.policy, statsMemo: PracticeStatsMemo? = nil) throws -> [String] {
         let t = today(state, day: day)
         let size = Int(JS.number(GroupSize.of(state["settings"], policy: policy)))
         let cap = (t.target ?? size) - t.handled.count
         if cap <= 0 { return [] }
-        let plan = try rules.planDaily(state, today: day, deck: deck, policy: policy, cap: cap, handled: t.handled)
+        let plan = try rules.planDaily(state, today: day, deck: deck, policy: policy, cap: cap, handled: t.handled, statsMemo: statsMemo)
         return (plan["queue"]?.arrayValue ?? []).compactMap { $0.stringValue }
     }
 
@@ -306,7 +306,7 @@ public enum TodayPlan {
     }
 
     /// 首页用的今天进度。
-    public static func progress(_ state: JSValue, day: String, rules: ScheduleRules, deck: ScheduleDeck?, policy: JSValue = Config.policy) throws -> Progress {
+    public static func progress(_ state: JSValue, day: String, rules: ScheduleRules, deck: ScheduleDeck?, policy: JSValue = Config.policy, statsMemo: PracticeStatsMemo? = nil) throws -> Progress {
         let t = today(state, day: day)
         let active = activeSession(state, "A").map(isPlan) ?? false
         let n = t.handled.count
@@ -315,7 +315,7 @@ public enum TodayPlan {
         // 正在写的今天的练习还没定份数（旧数据 / 夹具造的组）：按这一组还没写第一次的字算
         if active, let a = activeSession(state, "A") { return Progress(n: n, total: n + pendingFirsts(a).count, done: false, active: true) }
         guard let deck else { return Progress(n: n, total: n, done: false, active: active) }
-        let rest = try remainingQueue(state, day: day, rules: rules, deck: deck, policy: policy)
+        let rest = try remainingQueue(state, day: day, rules: rules, deck: deck, policy: policy, statsMemo: statsMemo)
         // 今天这一份没有可排的字（例如「只复习」档今天没有到期字）：今天的练习就是 0 个字，算完成（之后「再来一组」）
         return Progress(n: n, total: n + rest.count, done: !active && rest.isEmpty, active: active)
     }

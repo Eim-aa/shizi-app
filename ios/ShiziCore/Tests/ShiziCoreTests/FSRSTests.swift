@@ -66,7 +66,7 @@ private func applied(_ entry: JSValue?, _ record: JSValue, policy: JSValue = Con
 }
 
 final class FSRSTests: XCTestCase {
-    // test/core/fsrs.test.mjs: fsrs: vendored library is ts-fsrs 5.2.0 / FSRS-6 and is read from globalThis
+    // fsrs: vendored library is ts-fsrs 5.2.0 / FSRS-6 and is read from globalThis
     // （「从 globalThis 读 / 无库时抛 FSRS library unavailable」是 JS 加载机制；Swift 里库是编进去的 FSRS6，参数读生成的 fsrs-config.json）
     func testFsrsVendoredLibraryIsTsFsrs520Fsrs6AndIsReadFromGlobalThis() {
         let version = Config.fsrsConfig["schedulerVersion"]?.stringValue ?? ""
@@ -78,7 +78,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(ScheduleRules.fsrsLibrary.maximumInterval, 365)
     }
 
-    // test/core/fsrs.test.mjs: fsrs: rating mapping — correct → Good, wrong → Again, hinted correct reads policy (P34)
+    // fsrs: rating mapping — correct → Good, wrong → Again, hinted correct reads policy (P34)
     func testFsrsRatingMappingCorrectGoodWrongAgainHintedCorrectReadsPolicyP34() throws {
         func rating(_ j: String, _ hints: Double, policy: JSValue = Config.policy, first: Bool = false) throws -> String {
             try ScheduleRules.ratingFor(.string(j), JS.obj([("hints", .number(hints))]), policy: policy, first: first)
@@ -100,7 +100,7 @@ final class FSRSTests: XCTestCase {
         assertThrowsMessage(try ScheduleRules.ratingFor(.string("unsure"), J("{}")), "judgment")
     }
 
-    // test/core/fsrs.test.mjs: fsrs: Good and Again on a new card are both due tomorrow or later
+    // fsrs: Good and Again on a new card are both due tomorrow or later
     func testFsrsGoodAndAgainOnANewCardAreBothDueTomorrowOrLater() throws {
         for judgment in ["correct", "wrong"] {
             for hour in [0, 9, 23] {
@@ -114,7 +114,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(try rules.reviewCard(nil, review("wrong", at(TODAY, 20))).due, addDays(TODAY, 1), "Again -> next day, no pendingLearning limbo")
     }
 
-    // test/core/fsrs.test.mjs: fsrs: due stays within [tomorrow, today + 365] over long random histories
+    // fsrs: due stays within [tomorrow, today + 365] over long random histories
     func testFsrsDueStaysWithinTomorrowTodayPlus365OverLongRandomHistories() throws {
         // 与 JS 同一个线性同余发生器：JS 用 Number（双精度）运算，这里也用 Double，位级相同
         var seed = 11.0
@@ -139,7 +139,7 @@ final class FSRSTests: XCTestCase {
         }
     }
 
-    // test/core/fsrs.test.mjs: fsrs: replay is deterministic — same records → same card and due
+    // fsrs: replay is deterministic — same records → same card and due
     func testFsrsReplayIsDeterministicSameRecordsSameCardAndDue() throws {
         let records = [
             rec(1, jing, "judged", "correct", "2026-09-01", at: at("2026-09-01", 20)),
@@ -158,7 +158,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(entry?["lastJudgedAt"], records[3]["at"])
     }
 
-    // test/core/fsrs.test.mjs: fsrs: correction replays from fsrsBefore, adds no record and gives a deterministic due (D19)
+    // fsrs: correction replays from fsrsBefore, adds no record and gives a deterministic due (D19)
     func testFsrsCorrectionReplaysFromFsrsBeforeAddsNoRecordAndGivesADeterministicDueD19() throws {
         let prior = rec(1, jing, "judged", "correct", "2026-09-10", at: at("2026-09-10", 20))
         let afterPrior = try rules.applyJudgment(nil, prior).entry
@@ -177,7 +177,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(try rules.replay(fsrsBefore, [correctRecord(corrected, "wrong", 1)]), afterWrong)
     }
 
-    // test/core/fsrs.test.mjs: fsrs: ratingWithHint changes scheduling while help facts stay on the record
+    // fsrs: ratingWithHint changes scheduling while help facts stay on the record
     func testFsrsRatingWithHintChangesSchedulingWhileHelpFactsStayOnTheRecord() throws {
         let r = rec(1, jing, "judged", "correct", TODAY, at: at(TODAY, 20), hints: 1)
         let prior = try rules.applyJudgment(nil, rec(1, jing, "judged", "correct", "2026-09-01", at: at("2026-09-01", 20))).entry
@@ -187,7 +187,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(r["help"]?["hints"], .number(1))
     }
 
-    // test/core/fsrs.test.mjs: fsrs: applyJudgment keeps stoppedAt and rejects non-judged records
+    // fsrs: applyJudgment keeps stoppedAt and rejects non-judged records
     func testFsrsApplyJudgmentKeepsStoppedAtAndRejectsNonJudgedRecords() throws {
         let prior = JS.with(try rules.applyJudgment(nil, rec(1, jing, "judged", "correct", "2026-09-01")).entry, [("stoppedAt", .number(5))])
         let (entry, fsrsBefore) = try rules.applyJudgment(prior, rec(2, jing, "judged", "correct", TODAY))
@@ -202,7 +202,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertNil(try rules.replay(prior["fsrs"], [rec(5, jing, "skipped", nil, TODAY)]), "nothing to replay -> null")
     }
 
-    // test/core/fsrs.test.mjs: fsrs: serialized cards are plain JSON and round-trip through the library
+    // fsrs: serialized cards are plain JSON and round-trip through the library
     func testFsrsSerializedCardsArePlainJSONAndRoundTripThroughTheLibrary() throws {
         let card = try rules.emptyCard(.number(at(TODAY)))
         XCTAssertTrue(rules.isCompactCard(card))
@@ -215,7 +215,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertFalse(rules.isCompactCard(JS.with(card, [("due", .string("nope"))])))
     }
 
-    // test/core/fsrs.test.mjs: fsrs: a library injected from another realm gives identical results
+    // fsrs: a library injected from another realm gives identical results
     // （跨 realm 注入是 JS 机制。Swift 里对应的含义：与具体实例无关——两个独立的 ScheduleRules 实例（各自的 TimeZone 对象）结果完全相同；
     //   库是进程内唯一的静态 FSRS6，用同一组参数另建一个 FSRS6 实例逐步算出的卡与 reviewCard 的卡相同。）
     func testFsrsALibraryInjectedFromAnotherRealmGivesIdenticalResults() throws {
@@ -234,7 +234,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(viaFresh, viaShared)
     }
 
-    // test/core/fsrs.test.mjs: fsrs: overdueDays / isDue / retrievability
+    // fsrs: overdueDays / isDue / retrievability
     func testFsrsOverdueDaysIsDueRetrievability() throws {
         XCTAssertEqual(try rules.overdueDays(J(#"{"due":"2026-09-20"}"#), TODAY), 4)
         XCTAssertEqual(try rules.overdueDays(J(#"{"due":"2026-09-30"}"#), TODAY), -6)
@@ -250,7 +250,7 @@ final class FSRSTests: XCTestCase {
 
     // MARK: 阶段 1 P1-E4：D41 首见写对 / 热身字写对记 Easy（P126 / P127），带提示仍按 P34
 
-    // test/core/fsrs.test.mjs: fsrs D41: a new char judged correct on its first judgment is rated Easy; hinted correct still follows P34
+    // fsrs D41: a new char judged correct on its first judgment is rated Easy; hinted correct still follows P34
     func testFsrsD41ANewCharJudgedCorrectOnItsFirstJudgmentIsRatedEasyHintedCorrectStillFollowsP34() throws {
         let key = "base:" + yi
         let first = try rules.reviewCard(nil, review("correct", at(TODAY, 20), cardKey: key))
@@ -272,7 +272,7 @@ final class FSRSTests: XCTestCase {
         assertThrowsMessage(try ScheduleRules.ratingFor(.string("correct"), J(#"{"hints":0}"#), policy: bad, first: true), "ratingFirstCorrect")
     }
 
-    // test/core/fsrs.test.mjs: fsrs D41: first-time-wrong then later correct is Good (the first judgment was the wrong one); a correction replays the Easy rule
+    // fsrs D41: first-time-wrong then later correct is Good (the first judgment was the wrong one); a correction replays the Easy rule
     func testFsrsD41FirstTimeWrongThenLaterCorrectIsGoodACorrectionReplaysTheEasyRule() throws {
         let r1 = rec(1, yi, "judged", "wrong", "2026-09-01", at: at("2026-09-01", 20))
         let r2 = rec(2, yi, "judged", "correct", "2026-09-03", at: at("2026-09-03", 20))
@@ -286,7 +286,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(try rules.reviewCard(e1.fsrsBefore, corrected).rating, "Easy")
     }
 
-    // test/core/fsrs.test.mjs: fsrs D41: warm-up characters are rated Easy when correct without a hint (P126), on first and later reviews; hints fall back to P34
+    // fsrs D41: warm-up characters are rated Easy when correct without a hint (P126), on first and later reviews; hints fall back to P34
     func testFsrsD41WarmUpCharactersAreRatedEasyWhenCorrectWithoutAHintP126OnFirstAndLaterReviewsHintsFallBackToP34() throws {
         // 春：热身字（char-order warmup）；亦：普通字
         let warmFirst = try rules.applyJudgment(nil, rec(1, chun, "judged", "correct", "2026-09-01", at: at("2026-09-01", 20)))
@@ -313,7 +313,7 @@ final class FSRSTests: XCTestCase {
         return (d0, try rules.applyJudgment(e0, rec(2, jing, "judged", "correct", d10, at: at(d10, 20))).entry)
     }
 
-    // test/core/fsrs.test.mjs: fsrs D66 ①: a review char whose answer was seen gets one Again that day (not a judged record); a new char gets no schedule
+    // fsrs D66 ①: a review char whose answer was seen gets one Again that day (not a judged record); a new char gets no schedule
     func testFsrsD66OneAReviewCharWhoseAnswerWasSeenGetsOneAgainThatDayANewCharGetsNoSchedule() throws {
         let (_, entry) = try matureCard()
         let day = due(entry)
@@ -341,7 +341,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertFalse(try applied(entry, seen, policy: policyWith([("answerSeenRating", .string("none"))])).applied)
     }
 
-    // test/core/fsrs.test.mjs: fsrs D66 ① (P2-01 experiment): due day seen the answer, next day correct → back in days, not 7 months
+    // fsrs D66 ① (P2-01 experiment): due day seen the answer, next day correct → back in days, not 7 months
     func testFsrsD66OneP201ExperimentDueDaySeenTheAnswerNextDayCorrectBackInDaysNot7Months() throws {
         let (_, entry) = try matureCard()
         let day = due(entry)
@@ -359,7 +359,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertNil(after["seenAgainDay"], "the mark is cleared by the next real judgment")
     }
 
-    // test/core/fsrs.test.mjs: fsrs D66 ①: a judgment written the same day after the answer was seen is not rated again (no second Again); corrections replay it
+    // fsrs D66 ①: a judgment written the same day after the answer was seen is not rated again (no second Again); corrections replay it
     func testFsrsD66OneAJudgmentWrittenTheSameDayAfterTheAnswerWasSeenIsNotRatedAgainNoSecondAgainCorrectionsReplayIt() throws {
         let (_, entry) = try matureCard()
         let day = due(entry)
@@ -388,7 +388,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertNotEqual(tomorrow["fsrs"], live["fsrs"])
     }
 
-    // test/core/fsrs.test.mjs: fsrs D66 ①: a new char whose answer was seen before its first judgment is not rated Easy (review mapping)
+    // fsrs D66 ①: a new char whose answer was seen before its first judgment is not rated Easy (review mapping)
     func testFsrsD66OneANewCharWhoseAnswerWasSeenBeforeItsFirstJudgmentIsNotRatedEasyReviewMapping() throws {
         let day = TODAY
         let next = addDays(day, 1)
@@ -412,7 +412,7 @@ final class FSRSTests: XCTestCase {
         XCTAssertEqual(try rules.applyJudgment(nil, judged, records: [judged, later]).entry, clean.entry)
     }
 
-    // test/core/fsrs.test.mjs: fsrs D66 ② (P2-02 experiment): on a mature char, 2 hints now give the same short interval as a wrong answer
+    // fsrs D66 ② (P2-02 experiment): on a mature char, 2 hints now give the same short interval as a wrong answer
     func testFsrsD66TwoP202ExperimentOnAMatureChar2HintsNowGiveTheSameShortIntervalAsAWrongAnswer() throws {
         let (_, entry) = try matureCard()
         let day = due(entry)

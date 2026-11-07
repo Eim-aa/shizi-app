@@ -4,8 +4,8 @@ import UIKit
 
 // MARK: 字阶（R9-B）
 
-/// 网页字阶的此刻计算值（open 回包 type，pt：fs13 / lh13 / fs15 / lh15 / fs17 / lh17s / fs22 / lh22 / btn-h；页面 native-session.js typeBundle）。
-/// 原生按它排字，与网页同字号同行高（系统字号连续倍率 --k 与 AX 档取值表只在 tokens.css 一处）。行高按 WebKit 的做法取整到整 pt。
+/// 网页字阶的此刻计算值（open 回包 type，pt：fs13 / lh13 / fs15 / lh15 / fs17 / lh17s / fs22 / lh22 / btn-h；页面 typeBundle）。
+/// 原生按它排字，与网页同字号同行高（系统字号连续倍率 --k 与 AX 档取值表只在 一处）。行高按 WebKit 的做法取整到整 pt。
 /// 缺项（旧页面 / 单测）或原生页开着时系统字号变了：回包值作废，按 UIFontMetrics 近似（下一次 open 再对齐）。
 /// 字体：系统字体（SF，中文落到系统的苹方 UI）——与网页 -apple-system 同一套字形与度量。例外：含全角标点（「」。，等）的句子，
 /// 系统字体排版会把标点挤成半宽，网页（WebKit）不挤；这类句子直接用系统给中文的那一款（CTFontCreateForString 取到的苹方 UI），字宽与网页一致（NP-14）。
@@ -15,7 +15,7 @@ struct NativeType {
     private let category: UIContentSizeCategory
 
     /// B2.9b：网页 AX 档位（0 = 不是 AX 档；页面 typeBundle 的 ax）与逐元素取值（roles：角色 → 量到的 fs / lh / minH / padTop …，
-    /// 附属元素在 r2…r5 下；native-session.js NATIVE_AX_ROLES 同一组探针）。
+    /// 附属元素在 r2…r5 下；NATIVE_AX_ROLES 同一组探针）。
     let axLevel: Int
     private let roles: [String: [String: Any]]
 
@@ -52,7 +52,7 @@ struct NativeType {
     /// 角色的行高（取整到整 pt，同 line）。
     func roleLine(_ name: String, sub: String? = nil) -> CGFloat? { role(name, "lh", sub: sub).map { floor($0) } }
 
-    /// AX 档主按钮的高（网页 components/ax.js：min-height var(--btn-h)、height auto、上下内边距 6，字可折行）：max(最小高, 行数 × 行高 + 上下内边距)。
+    /// AX 档主按钮的高（网页：min-height var(--btn-h)、height auto、上下内边距 6，字可折行）：max(最小高, 行数 × 行高 + 上下内边距)。
     /// role / sub 指向量到的那颗按钮（minH / lh / padTop）；不在 AX 档 → nil。
     func axButtonHeight(_ role: String, sub: String? = nil, title: String?, font: UIFont?, width: CGFloat) -> CGFloat? {
         guard ax, let minH = self.role(role, "minH", sub: sub) else { return nil }
@@ -323,7 +323,7 @@ struct NativeType {
         return lines * line
     }
 
-    /// 网页段落 `text-wrap: pretty`（base.css p）的近似：两行的段落按贪心折行时末行太短（不到一行的 1/3），
+    /// 网页段落 `text-wrap: pretty` 的近似：两行的段落按贪心折行时末行太短（不到一行的 1/3），
     /// 改在第一行里最后一个句读（。，；！？）之后折行——与 WebKit 的结果相同（例：「……不写了。」/「判断过的 1 个字已经记下。」）。
     /// 返回要显示的字（可能多一个换行；读屏与比对都把空白去掉，不影响文案）。
     static func pretty(_ text: String, font: UIFont, width: CGFloat) -> String {
@@ -392,12 +392,12 @@ extension UIButton {
 // MARK: AX 档版式常量（D81 ①，B4.9c）
 
 /// 写字页 / 判断页 / 结果页 / 弹层在辅助功能大字号 AX1–AX5 下的逐元素版式常量（pt）：角色 → fs / lh / minH / padTop / gap / colGap / marginLeft，
-/// 附属元素在 r2…r5 下（角色与附属元素的含义见 native-session.js NATIVE_AX_ROLES 的注释）。
+/// 附属元素在 r2…r5 下（角色与附属元素的含义见 NATIVE_AX_ROLES 的注释）。
 /// **原生为准**（D81 ①，同 D80 ①）：B4.9a 以前这些值在运行时向页面量网页 CSS（axRoleBundle）；B4.9c 起是原生自己的常量，不再借页面量，
 /// 以后改 AX 版式改这里（AX 档参考图随之按原生重拍）。初值 = 2026-11-01 网页 CSS 的计算结果，只留与屏宽无关的量
 /// （375 / 402 / 440 三档相同；随屏宽变的几个盒宽 w——格下 / 底栏 / 结果行 / 确认框的整行宽——原生不读，去掉）。
 enum NativeAXLayout {
-    /// 系统字号 → AX 档位（AX1…AX5 → 1…5，其余 0；text-size.js axLevelOf 同一口径）。
+    /// 系统字号 → AX 档位（AX1…AX5 → 1…5，其余 0；axLevelOf 同一口径）。
     static func level(_ category: UIContentSizeCategory = UIApplication.shared.preferredContentSizeCategory) -> Int {
         switch category {
         case .accessibilityMedium: return 1

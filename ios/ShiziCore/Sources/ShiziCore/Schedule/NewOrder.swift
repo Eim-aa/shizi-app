@@ -1,7 +1,7 @@
 import Foundation
 
-// src/core/new-order.js（新字顺序 D28 / D39 / D40 / D45 / D50）、src/core/special.js（大写数字特别组 D40 / D46 ④）、
-// src/core/group-size.js（每组字数 D65 #2 / P314）的 1:1 移植（B4.2）。数据 = 生成的 char-order.json（可传别的表，测试「换表」用）。
+// 新字顺序（D28 / D39 / D40 / D45 / D50）、大写数字特别组（D40 / D46 ④）、
+// 每组字数（D65 #2 / P314）的 1:1 移植（B4.2）。数据 = 生成的 char-order.json（可传别的表，测试「换表」用）。
 
 public enum NewOrder {
     struct Index {
@@ -81,7 +81,7 @@ public enum NewOrder {
     }
 }
 
-// MARK: - 特别组（special.js）
+// MARK: - 特别组
 
 public enum Special {
     static func charsWithAnyRecord(_ records: [JSValue]) -> KeySet {
@@ -140,7 +140,7 @@ public enum Special {
     }
 }
 
-// MARK: - 每组字数（group-size.js）
+// MARK: - 每组字数
 
 public enum GroupSize {
     /// 一个值是不是可选的组大小（`indexOf(value) >= 0`，严格相等）。

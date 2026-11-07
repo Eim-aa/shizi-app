@@ -1,11 +1,11 @@
 import ShiziCore
 import UIKit
 
-// B3.5a 原生首页（网页 src/ui/screens/home/index.js + copybook.js，1:1 移植；视图模型 src/session/views/home.js homeView，App API view.home / home.*）。
+// B3.5a 原生首页（照网页版 1:1 移植；视图模型 homeView，App API view.home / home.*）。
 // 屏名 ⇄ 类：home ⇄ ShiziScreen_home。tab 根页：NativeStage 把它挂在原生 Tab 栏控制器（B3.5d，UITabBarController）里它那一格下面、
 // 只铺到 Tab 栏上沿。
 //
-// 版式按网页 CSS 逐项排（.sz-home__* / .sz-first__* / Button.js / ax.js），数值取 ShiziTokens（fs* / lh* / btn-h / hit / s* / gutter），文案取视图模型给的引用：
+// 版式按网页 CSS 逐项排（.sz-home__* / .sz-first__*），数值取 ShiziTokens（fs* / lh* / btn-h / hit / s* / gutter），文案取视图模型给的引用：
 //   日常五态：左上日期时段；「拾」（128）+ 竖排题记（右起两句 + 作者）一组，在页头与按钮区之间居中、组底留 8%（屏宽）；离开一周 / 特别组那天组下多一句；
 //   按钮区（底边在 Tab 栏上沿上方 24）：失败三段式 / 首练说明 / 「今天的字 · 接着写」行 / 「自己选字」（+「写平常字」）/ 主按钮。
 //   首次打开：框中「拾」+ 竖排题跋三列 + 一枚印，品牌时刻 ≤ 1.2s（逐字淡入 → 印落下；点任意处静帧；减少动态效果 / 测试宿主静帧）。
@@ -132,7 +132,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         }
     }
 
-    // MARK: 网页 CSS 里的定值（home/index.js、copybook.js；不随字号的版式常量）
+    // MARK: 网页 CSS 里的定值（不随字号的版式常量）
 
     /// 日常态「拾」边长（SHI_SIZE）、AX 档下限（SHI_MIN / SHI_FLOOR）、「拾」与题记的间距、组底留白（屏宽 8%）、题记列宽与列距、主按钮宽。
     private let shiSize: CGFloat = 128, shiMin: CGFloat = 64, shiFloor: CGFloat = 44
@@ -246,7 +246,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         expire()
         clock = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             self?.expire()
-            self?.reload()
+            self?.reloadWhenShown() // 看不见时（写字页盖着、切到别的 tab）只记着，露出来时补拉；跨天过期照查
         }
         foreground = NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
             self?.expire()
@@ -336,7 +336,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         let cats = (ShiziTokens.root["type"] as? [String: Any])?["categories"] as? [String: Any]
         let k = ((cats?[ShiziTokens.categoryName(metrics.category)] as? [String: Any])?["k"] as? NSNumber)?.doubleValue ?? 1
         let limit = ((ShiziTokens.root["type"] as? [String: Any])?["compactTextScale"] as? NSNumber)?.doubleValue ?? 1.3
-        return k >= limit || (view.window?.bounds.height ?? UIScreen.main.bounds.height) <= 760 // policy.compactMaxHeight（write/compact.js）
+        return k >= limit || (view.window?.bounds.height ?? UIScreen.main.bounds.height) <= 760 // P69 紧凑屏高度上限（原 policy.compactMaxHeight 没有代码读取，已删）
     }
 
     private func song(_ size: CGFloat) -> UIFont { NativeType.song(size: size, weight: .regular) }
@@ -573,7 +573,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         }
         var out = make(label, progress, line)
         var full = out.string
-        // 字可折行：AX 档（ax.js white-space:normal，满宽）；非 AX 档 240 宽的主按钮在大字号下字也会折（XXXL「继续写自选字 · 2 / 5」，B3.6 在 S02 下面的首页上看到）——
+        // 字可折行：AX 档（white-space:normal，满宽）；非 AX 档 240 宽的主按钮在大字号下字也会折（XXXL「继续写自选字 · 2 / 5」，B3.6 在 S02 下面的首页上看到）——
         // 网页按钮行高 lh17s、min-height btn-h。按 WebKit 的折行机会（空格后、中文字之间）贪心折，TextKit 的按词折会把「2 / 5」整个挪下去
         ctaBreakWidth = (axLayout ? view.bounds.width - 2 * mt.gutter : min(ctaWidth, view.bounds.width - 2 * mt.gutter)) - 48
         if !axLayout, ctaBreakWidth > 0, out.size().width > ctaBreakWidth + 0.5 {
@@ -646,19 +646,6 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
 
     /// 文字在宽 w 内的行数 × 行高（NativeType.height）。
     private func textHeight(_ l: UILabel, width: CGFloat, line: CGFloat) -> CGFloat { NativeType.height(l, width: width, line: line) }
-
-    /// 各行的宽（TextKit 在宽 w 里折行）。
-    private func lineWidths(_ a: NSAttributedString, width w: CGFloat) -> [CGFloat] {
-        let storage = NSTextStorage(attributedString: a)
-        let lm = NSLayoutManager()
-        let tc = NSTextContainer(size: CGSize(width: w, height: .greatestFiniteMagnitude))
-        tc.lineFragmentPadding = 0
-        lm.addTextContainer(tc)
-        storage.addLayoutManager(lm)
-        var out: [CGFloat] = []
-        lm.enumerateLineFragments(forGlyphRange: lm.glyphRange(for: tc)) { _, used, _, _, _ in out.append(used.width) }
-        return out
-    }
 
     private static let noBreakBefore: Set<Character> = ["\u{FF0C}", "\u{3002}", "\u{3001}", "\u{FF01}", "\u{FF1F}", "\u{FF1B}", "\u{FF1A}", "\u{300D}", "\u{300F}", "\u{FF09}", " "]
     private static let noBreakAfter: Set<Character> = ["\u{300C}", "\u{300E}", "\u{FF08}"]
@@ -768,7 +755,7 @@ final class HomeScreen: ShiziScreenViewController, ShiziRootProbing {
         }
         titleLabel.frame = CGRect(x: gutter - 1, y: top - 1, width: 1, height: 1)
         let mainTop = top + headH
-        // 按钮区（自下而上；底边在 Tab 栏上沿上方 24 = policy.mainButtonLine.gapAboveEdge = s6）
+        // 按钮区（自下而上；底边在 Tab 栏上沿上方 24 = s6，P258 / P298）
         var y = H - mt.space(6)
         let btnH = mt.value("btn-h")
         var ctaW = ax ? innerW : min(ctaWidth, innerW)

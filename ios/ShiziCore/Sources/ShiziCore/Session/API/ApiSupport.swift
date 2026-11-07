@@ -14,7 +14,8 @@ public enum PageAPI {
         catch { return SessionWrites.failure("exception") }
     }
     /// 只有原生有的 op（D82 起规则不必与网页一致；session-ui.json 的 apiOps 由网页的 api 生成，不含它们）。
-    public static let nativeOnlyOps: Set<String> = ["mine.mixTier"]
+    /// view.annual.ink：年报页按需取月段格的墨迹（MineSubAPI.annualInk）。
+    public static let nativeOnlyOps: Set<String> = ["mine.mixTier", "view.annual.ink"]
     public static func call(_ op: String, store: Store, args: JSObject = JSObject(), hooks: SessionActionHooks? = nil) -> JSValue {
         guard (SessionResources.ui["apiOps"]?.arrayValue ?? []).contains(.string(op)) || nativeOnlyOps.contains(op) else {
             return JS.obj([("ok", .bool(false)), ("error", JS.obj([("kind", .string("unknown-op")), ("op", .string(op))]))])
@@ -47,7 +48,7 @@ public enum PageAPI {
         if op.hasPrefix("library.") || op == "view.library" { return try library(op, store, args, hooks: hooks) }
         if ["view.library-list", "view.library-all", "view.library-switch", "library.list.start", "library.all.start", "library.switch"].contains(op) { return try librarySub(op, store, args, hooks: hooks) }
         if op.hasPrefix("mine.") || op == "view.mine" { return try mine(op, store, args, hooks: hooks) }
-        if ["view.records", "view.month", "view.annual"].contains(op) { return try mineSub(op, store, args) }
+        if ["view.records", "view.month", "view.annual", "view.annual.ink"].contains(op) { return try mineSub(op, store, args) }
         if op.hasPrefix("remind.") || op.hasPrefix("reminder.") || op == "view.remind" { return try settings(op, store, args) }
         if op.hasPrefix("backup.") || op == "view.backup" { return try backup(op, store, args) }
         if op.hasPrefix("block.") || op == "view.block" { return try block(op, store, args, hooks: hooks) }

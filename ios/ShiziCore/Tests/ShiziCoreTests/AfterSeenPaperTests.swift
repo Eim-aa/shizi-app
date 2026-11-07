@@ -18,7 +18,7 @@ final class AfterSeenWorksTests: XCTestCase {
         return stateOf43(records, inked: ["r1", "r2", "r6"])
     }
 
-    // test/core/after-seen-works.test.mjs: Q1 pick: the day image takes after-seen chars with ink; seen-without-ink / skipped stay out
+    // Q1 pick: the day image takes after-seen chars with ink; seen-without-ink / skipped stay out
     func testQ1PickTheDayImageTakesAfterSeenCharsWithInkSeenWithoutInkSkippedStayOut() {
         let st = fixture()
         let has = hasInkOfState43(st)
@@ -30,7 +30,7 @@ final class AfterSeenWorksTests: XCTestCase {
         XCTAssertFalse(WorkMembers.isWorkMember(allRecords43(st).first { $0["id"] == s43("r4") }, hasInk: has))
     }
 
-    // test/core/after-seen-works.test.mjs: Q1 pick: the month sheet takes after-seen chars; D42 picks the record with ink inside the month (an after-seen one counts)
+    // Q1 pick: the month sheet takes after-seen chars; D42 picks the record with ink inside the month (an after-seen one counts)
     func testQ1PickTheMonthSheetTakesAfterSeenCharsD42PicksTheRecordWithInkInsideTheMonthAnAfterSeenOneCounts() {
         let st = fixture()
         let has = hasInkOfState43(st)
@@ -41,7 +41,7 @@ final class AfterSeenWorksTests: XCTestCase {
         XCTAssertEqual(monthMembers43(st, "2026-10").count, 3)
     }
 
-    // test/core/after-seen-works.test.mjs: Q1 pick: the session image keeps the after-seen member with its ink (作品「看后写的」)
+    // Q1 pick: the session image keeps the after-seen member with its ink (作品「看后写的」)
     func testQ1PickTheSessionImageKeepsTheAfterSeenMemberWithItsInk() {
         let st = fixture()
         let has = hasInkOfState43(st)
@@ -55,7 +55,7 @@ final class AfterSeenWorksTests: XCTestCase {
         XCTAssertEqual(rows.map { [$0["char"]!.stringValue!, $0["kind"]!.stringValue!] }, [[chun43, "answer-seen"], [da43, "skipped"]], "chun seen, da skipped stay out")
     }
 
-    // test/core/after-seen-works.test.mjs: Q1 mine: 月字帖 and the chars of a day include after-seen chars with ink
+    // Q1 mine: 月字帖 and the chars of a day include after-seen chars with ink
     func testQ1MineMonthSheetAndTheCharsOfADayIncludeAfterSeenCharsWithInk() {
         let st = fixture()
         let has = hasInkOfState43(st)
@@ -69,7 +69,7 @@ final class AfterSeenWorksTests: XCTestCase {
         XCTAssertEqual(judgedDays.sorted(), ["2026-10-02", "2026-10-05"])
     }
 
-    // test/core/after-seen-works.test.mjs: Q1 annual: 年字数 and month sections count after-seen chars with ink; the first char of the year is still the first judged one
+    // Q1 annual: 年字数 and month sections count after-seen chars with ink; the first char of the year is still the first judged one
     func testQ1AnnualYearCharCountAndMonthSectionsCountAfterSeenCharsWithInkTheFirstCharOfTheYearIsStillTheFirstJudgedOne() {
         let st = stateOf43([rec43(1, zhong43, "answer-seen", nil, "2026-01-03"), rec43(2, yong43, "judged", "correct", "2026-01-05"), rec43(3, chun43, "answer-seen", nil, "2026-02-01")], inked: ["r1", "r2"])
         let has = hasInkOfState43(st)
@@ -101,7 +101,7 @@ final class PaperWorksTests: XCTestCase {
         ]
     }
 
-    // test/core/paper-works.test.mjs: isWorkRecord / withoutPaper: judged and not on paper
+    // isWorkRecord / withoutPaper: judged and not on paper
     func testIsWorkRecordWithoutPaperJudgedAndNotOnPaper() {
         XCTAssertTrue(Records.isWorkRecord(rec43(1, yong43, "judged", "correct", "2026-09-02")))
         XCTAssertFalse(Records.isWorkRecord(paper43(rec43(1, yong43, "judged", "correct", "2026-09-02"))))
@@ -111,7 +111,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(ids43(Records.withoutPaper([rec43(1, yong43, "judged", "correct", "2026-09-02"), paper43(rec43(2, he43, "judged", "correct", "2026-09-02"))])), ["r1"])
     }
 
-    // test/core/paper-works.test.mjs: pick: a char written only on paper is not a member of day / month / glyph; with a screen record too, the screen record is the member (D42 fallback must not pick the paper one)
+    // pick: a char written only on paper is not a member of day / month / glyph; with a screen record too, the screen record is the member (D42 fallback must not pick the paper one)
     func testPickACharWrittenOnlyOnPaperIsNotAMemberOfDayMonthGlyphWithAScreenRecordTooTheScreenRecordIsTheMember() {
         let recs = [
             rec43(1, yong43, "judged", "correct", "2026-09-02"), paper43(rec43(2, zhi43, "judged", "correct", "2026-09-02")),
@@ -134,7 +134,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(glyph(he43)?.firstDay, s43("2026-09-03"))
     }
 
-    // test/core/paper-works.test.mjs: pick: image plans — day / month / glyph exclude paper; the glyph of a paper-only char is empty
+    // pick: image plans — day / month / glyph exclude paper; the glyph of a paper-only char is empty
     func testPickImagePlansDayMonthGlyphExcludePaperTheGlyphOfAPaperOnlyCharIsEmpty() {
         let st = stateOf43([rec43(1, yong43, "judged", "correct", "2026-09-02"), paper43(rec43(2, zhi43, "judged", "correct", "2026-09-02")), paper43(rec43(3, yong43, "judged", "wrong", "2026-09-05"))])
         let ink: InkPick.HasInk = { r in !Records.isPaperRecord(r) } // inkOf：纸上的没有墨
@@ -149,7 +149,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(g.first?.record["id"], s43("r1"), "the glyph image uses the latest screen record, not the later paper one")
     }
 
-    // test/core/paper-works.test.mjs: pick: session work — the paper char is not in the work, shows as a paper row with no 「放进去」; all on paper → the no-ink variant
+    // pick: session work — the paper char is not in the work, shows as a paper row with no 「放进去」; all on paper → the no-ink variant
     func testPickSessionWorkThePaperCharIsNotInTheWorkShowsAsAPaperRowWithNoPutItInAllOnPaperTheNoInkVariant() {
         let rs = [rec43(1, "\u{7586}", "judged", "correct", "2026-10-05", sessionId: "s9"), paper43(rec43(2, "\u{9171}", "judged", "wrong", "2026-10-05", sessionId: "s9")),
                   paper43(rec43(3, "\u{75D2}", "judged", "correct", "2026-10-05", sessionId: "s9"))]
@@ -166,7 +166,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(WorkMembers.workMembers(rs.map(paper43), hasInk: yes, added: added).count, 0, "all on paper -> the no-ink variant")
     }
 
-    // test/core/paper-works.test.mjs: annual: year count, first char of the year and each month's 「{n} 字」 skip paper-only chars (D47)
+    // annual: year count, first char of the year and each month's 「{n} 字」 skip paper-only chars (D47)
     func testAnnualYearCountFirstCharOfTheYearAndEachMonthsNCharsSkipPaperOnlyCharsD47() {
         let st = stateOf43(mixedYear())
         let works = WorkMembers.workMemberRecords(allRecords43(st), hasInk: { _ in true })
@@ -188,7 +188,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(w2.count, 1)
     }
 
-    // test/core/paper-works.test.mjs: mine sheet / day list / month count: monthSheet and dayItems skip paper; the signature days and the calendar do not (a paper day still counts as written)
+    // mine sheet / day list / month count: monthSheet and dayItems skip paper; the signature days and the calendar do not (a paper day still counts as written)
     func testMineSheetDayListMonthCountMonthSheetAndDayItemsSkipPaperTheSignatureDaysAndTheCalendarDoNot() {
         let st = stateOf43(mixedYear())
         let has: InkPick.HasInk = { _ in true }
@@ -214,7 +214,7 @@ final class PaperWorksTests: XCTestCase {
         J("{\"folded\":true,\"month\":\"2026-03\",\"byDay\":{\"2026-03-02\":[\"\(yong43)\",\"\(he43)\"],\"2026-03-03\":[\"\(zhi43)\"],\"2026-03-04\":[\"\(he43)\"]},\"chars\":[\"\(yong43)\",\"\(he43)\",\"\(zhi43)\"],\"kept\":[],\"paperOnly\":{\"2026-03-03\":[\"\(zhi43)\"],\"2026-03-04\":[\"\(he43)\"]}}")
     }
 
-    // test/core/paper-works.test.mjs: fold: foldMonth records paperOnly — (day, char) pairs written only on paper — and nothing when there are none; the shape validates
+    // fold: foldMonth records paperOnly — (day, char) pairs written only on paper — and nothing when there are none; the shape validates
     func testFoldFoldMonthRecordsPaperOnlyDayCharPairsWrittenOnlyOnPaperAndNothingWhenThereAreNoneTheShapeValidates() {
         // 折叠本身（budget.recover → foldMonth）在 B4.4；这里核对折叠产物的形状与读取规则
         let march = foldMarch()
@@ -226,7 +226,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(Records.foldWorkByDay(.null).count, 0)
     }
 
-    // test/core/paper-works.test.mjs: fold: a folded month — annual year count / month count / month members skip paper-only chars; the calendar days keep them
+    // fold: a folded month — annual year count / month count / month members skip paper-only chars; the calendar days keep them
     func testFoldAFoldedMonthAnnualYearCountMonthCountMonthMembersSkipPaperOnlyCharsTheCalendarDaysKeepThem() {
         let march = foldMarch()
         let work = Records.foldWorkByDay(march)
@@ -242,7 +242,7 @@ final class PaperWorksTests: XCTestCase {
         XCTAssertEqual(march["byDay"]?.objectValue?.keys, ["2026-03-02", "2026-03-03", "2026-03-04"])
     }
 
-    // test/core/paper-works.test.mjs: fold: a month folded with paper-only chars only gives no month section and no count
+    // fold: a month folded with paper-only chars only gives no month section and no count
     func testFoldAMonthFoldedWithPaperOnlyCharsOnlyGivesNoMonthSectionAndNoCount() {
         let fold = J("{\"folded\":true,\"month\":\"2026-03\",\"byDay\":{\"2026-03-03\":[\"\(zhi43)\"]},\"chars\":[\"\(zhi43)\"],\"kept\":[],\"paperOnly\":{\"2026-03-03\":[\"\(zhi43)\"]}}")
         XCTAssertNil(Schema.validateRecordsMonth(fold, month: "2026-03"))

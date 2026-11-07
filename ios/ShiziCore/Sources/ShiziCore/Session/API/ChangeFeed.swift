@@ -1,7 +1,7 @@
 import Foundation
 
 extension PageAPI {
-    /// src/session/api/index.js createChangeFeed. No dirty domains means no message.
+    /// createChangeFeed. No dirty domains means no message.
     /// An observer exception cannot affect the transaction or other subscribers.
     public static func createChangeFeed(store: Store?, post: ((JSValue) throws -> Void)?) -> () -> Void {
         guard let store, let post else { return {} }

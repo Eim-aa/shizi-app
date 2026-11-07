@@ -1,6 +1,6 @@
 import Foundation
 
-// 设置 / 照片 / 旧数据 / 备份元信息 / 会话 / 保护副本 / 事务日志 / 漏斗 / 路由提示的模型（形状见 src/core/schema.js）。
+// 设置 / 照片 / 旧数据 / 备份元信息 / 会话 / 保护副本 / 事务日志 / 漏斗 / 路由提示的模型（形状见 Schema.swift）。
 
 public struct Remind: JSCodable, Equatable {
     public var enabled: Bool?

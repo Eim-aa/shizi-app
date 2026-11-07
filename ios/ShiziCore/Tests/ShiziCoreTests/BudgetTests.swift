@@ -39,14 +39,14 @@ private func keysSorted(_ o: JSObject) -> [String] { UTF16Order.sorted(o.keys) }
 final class BudgetTests: XCTestCase {
     private func budgets(_ pairs: [(String, Double)]) -> Budgets { Budgets.resolve(JSObject(pairs.map { ($0.0, JSValue.number($0.1)) })) }
 
-    // test/store/budget.test.mjs: entryBytes is UTF-16: (key + value) × 2
+    // entryBytes is UTF-16: (key + value) × 2
     func testEntryBytesIsUTF16KeyPlusValueTimes2() {
         XCTAssertEqual(Budget.entryBytes("ab", "cde"), 10)
         XCTAssertEqual(Budget.entryBytes("k", nil), 0)
         XCTAssertEqual(Budget.entryBytes("k", "\u{5B57}"), 4)
     }
 
-    // test/store/budget.test.mjs: estimateUsage buckets and warn threshold (> 80% of assumed quota)
+    // estimateUsage buckets and warn threshold (> 80% of assumed quota)
     func testEstimateUsageBucketsAndWarnThreshold() {
         let b = budgets([("quotaBytes", 1000)])
         func mk(_ total: Int) -> [(String, String)] { [("x", String(repeating: "y", count: total / 2 - 1))] }
@@ -72,7 +72,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(Budget.bucketOfKey(SK("txn")), "txn")
     }
 
-    // test/store/budget.test.mjs: ink tiers follow 01 §9 as amended by D27: orphan < other-month rest < this-month rest < monthly first/last < first + latest per char (never)
+    // ink tiers follow 01 §9 as amended by D27: orphan < other-month rest < this-month rest < monthly first/last < first + latest per char (never)
     func testInkTiersFollow01Section9AsAmendedByD27() {
         let index = tiersIndex(tierFixture()["records"]!.objectValue!)
         func tier(_ id: String) -> Double { Budget.inkTier(id, index, "2026-10") }
@@ -86,7 +86,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(tier("r6"), .infinity, "latest (and only) judged")
     }
 
-    // test/store/budget.test.mjs: recover (ink over budget): evicts lowest tier first, oldest first within a tier, stops once under budget
+    // recover (ink over budget): evicts lowest tier first, oldest first within a tier, stops once under budget
     func testRecoverInkOverBudgetEvictsLowestTierFirstOldestFirstWithinATierStopsOnceUnderBudget() {
         var draft = tierFixture()
         let one = Budget.entryBytes(Schema.inkRecordKey("2026-10", "r1"), str(inkEntry(20, 4)))
@@ -105,7 +105,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(draft["records"]!["2026-07"]!.arrayValue!.count, 3, "records untouched when under records budget")
     }
 
-    // test/store/budget.test.mjs: recover (force, quota): evicts down to but never including first / latest per char (D27)
+    // recover (force, quota): evicts down to but never including first / latest per char (D27)
     func testRecoverForceQuotaEvictsDownToButNeverIncludingFirstLatestPerChar() {
         var draft = tierFixture()
         let r = Budget.recover(&draft, now: NOW, budgets: .defaults, force: true, needBytes: 10 * MiB, limit: Budget.Limit(inkMonths: ["2026-07", "2026-08", "2026-10"], months: []), dates: shanghai)
@@ -123,7 +123,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(keysSorted(flatInk(onlyJuly["ink"])), ["r1", "r4", "r5", "r6", "r7", "r99"], "limit.inkMonths restricts eviction")
     }
 
-    // test/store/budget.test.mjs: recover (records over budget): folds oldest month first, keeps first + latest per char (D27), drops folded ink; current month never folded
+    // recover (records over budget): folds oldest month first, keeps first + latest per char (D27), drops folded ink; current month never folded
     func testRecoverRecordsOverBudgetFoldsOldestMonthFirstKeepsFirstAndLatestPerCharDropsFoldedInk() {
         var draft = tierFixture()
         let r = Budget.recover(&draft, now: NOW, budgets: budgets([("recordsBudgetBytes", 10)]), dates: shanghai)
@@ -174,7 +174,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertNil(draft["records"]!["2025-01"]!["workJudged"])
     }
 
-    // test/store/budget.test.mjs: needsRecovery: aged months (> 400 days) trigger even under budget
+    // needsRecovery: aged months (> 400 days) trigger even under budget
     func testNeedsRecoveryAgedMonthsTriggerEvenUnderBudget() {
         let state = JSObject([("records", .object(recs([("2025-06", [srec(1, cRen, day: "2025-06-01")]), ("2026-10", [srec(2, cKou, day: "2026-10-01")])]))), ("ink", .object(JSObject()))])
         let n = Budget.needsRecovery(state, now: NOW, budgets: .defaults, dates: shanghai)
@@ -185,7 +185,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(fresh["any"], .bool(false))
     }
 
-    // test/store/budget.test.mjs: D27 retention: pruneInkOfCards keeps first + latest judged ink of each card, recycles the middle ones
+    // D27 retention: pruneInkOfCards keeps first + latest judged ink of each card, recycles the middle ones
     func testD27RetentionPruneInkOfCardsKeepsFirstAndLatestJudgedInkOfEachCard() {
         var draft = tierFixture()
         let before = draft["ink"]!
@@ -201,7 +201,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(Budget.pruneInkOfCards(&draft, ["base:" + cRen], dates: shanghai), [], "idempotent")
     }
 
-    // test/store/budget.test.mjs: D27 retention: first === latest (only one judgment) keeps one copy; history without first ink stays without (no borrowing)
+    // D27 retention: first === latest (only one judgment) keeps one copy; history without first ink stays without (no borrowing)
     func testD27RetentionFirstEqualsLatestKeepsOneCopyHistoryWithoutFirstInkStaysWithout() {
         var one = JSObject([("records", .object(recs([("2026-08", [srec(6, cKou, day: "2026-08-01")])]))), ("ink", .object(JSObject([("2026-08", .object(JSObject([("r6", inkEntry(8, 2))])))])))])
         XCTAssertEqual(Budget.pruneInkOfCards(&one, ["base:" + cKou], dates: shanghai), [])
@@ -214,7 +214,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(flatInk(hist["ink"]).keys, ["r3"], "first (r1) stays inkless; nothing is moved onto it")
     }
 
-    // test/store/budget.test.mjs: D27 retention: answer-seen / skipped are not judgments — they never become first or latest
+    // D27 retention: answer-seen / skipped are not judgments — they never become first or latest
     func testD27RetentionAnswerSeenSkippedAreNotJudgments() {
         var draft = JSObject([
             ("records", .object(recs([("2026-10", [srec(1, cYong, kind: "answer-seen", day: "2026-10-01"), srec(2, cYong, day: "2026-10-01"), srec(3, cYong, day: "2026-10-02"), srec(4, cYong, kind: "skipped", day: "2026-10-02")])]))),
@@ -224,7 +224,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(keysSorted(flatInk(draft["ink"])), ["r2", "r3"])
     }
 
-    // test/store/budget.test.mjs: D27 retention: under quota pressure, middle ink goes first; first and latest of each card are never recycled
+    // D27 retention: under quota pressure, middle ink goes first; first and latest of each card are never recycled
     func testD27RetentionUnderQuotaPressureMiddleInkGoesFirstFirstAndLatestNeverRecycled() {
         let index = tiersIndex(tierFixture()["records"]!.objectValue!)
         XCTAssertEqual(Budget.inkTier("r1", index, "2026-10"), .infinity)
@@ -239,7 +239,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertTrue(flatInk(order["ink"])["r1"] != nil && flatInk(order["ink"])["r5"] != nil)
     }
 
-    // test/store/budget.test.mjs: D27 retention: folding an old month keeps the first-ever judgment too (with its ink), not only the latest
+    // D27 retention: folding an old month keeps the first-ever judgment too (with its ink), not only the latest
     func testD27RetentionFoldingAnOldMonthKeepsTheFirstEverJudgmentToo() {
         var draft = tierFixture()
         Budget.recover(&draft, now: NOW, budgets: budgets([("recordsBudgetBytes", 10)]), dates: shanghai)
@@ -269,7 +269,7 @@ final class BudgetTests: XCTestCase {
         return JSObject([("records", .object(records)), ("ink", .object(ink)), ("sessions", sessions)])
     }
 
-    // test/store/budget.test.mjs: Q1 tiers: after-seen ink is never recycled while its group is open; otherwise it ranks after every judged tier (expired 4, fresh 5)
+    // Q1 tiers: after-seen ink is never recycled while its group is open; otherwise it ranks after every judged tier (expired 4, fresh 5)
     func testQ1TiersAfterSeenInkNeverRecycledWhileItsGroupIsOpenOtherwiseRanksAfterEveryJudgedTier() {
         let f = afterSeenFixture()
         let index = tiersIndex(f["records"]!.objectValue!, sessions: f["sessions"], now: NOW, keepDays: 30)
@@ -286,7 +286,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(Budget.inkTier("r9", byPolicy, "2026-10"), 93 > Config.policyNumber("afterSeenInkKeepDays")! ? 4 : 5)
     }
 
-    // test/store/budget.test.mjs: Q1 recover: judged middle ink goes first, then expired after-seen, then fresh after-seen; open-group after-seen and D27 first / latest never
+    // Q1 recover: judged middle ink goes first, then expired after-seen, then fresh after-seen; open-group after-seen and D27 first / latest never
     func testQ1RecoverJudgedMiddleInkGoesFirstThenExpiredAfterSeenThenFreshAfterSeen() {
         var draft = afterSeenFixture()
         let r = Budget.recover(&draft, now: NOW, budgets: .defaults, force: true, needBytes: 10 * MiB, limit: Budget.Limit(inkMonths: ["2026-07", "2026-08", "2026-10"], months: []), dates: shanghai)
@@ -295,7 +295,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(keysSorted(flatInk(draft["ink"])), ["r1", "r11", "r3", "r6", "r8"])
     }
 
-    // test/store/budget.test.mjs: Q1 pruneInkOfCards: keeps after-seen ink newer than the latest judgment (only the latest one per card); drops it once a judgment follows, unless its group is open
+    // Q1 pruneInkOfCards: keeps after-seen ink newer than the latest judgment (only the latest one per card); drops it once a judgment follows, unless its group is open
     func testQ1PruneInkOfCardsKeepsAfterSeenInkNewerThanTheLatestJudgment() {
         var draft = afterSeenFixture()
         let dropped = UTF16Order.sorted(Budget.pruneInkOfCards(&draft, ["base:" + cRen, "base:" + cKou, "base:" + cZhong, "base:" + cDa], dates: shanghai).map { $0["id"]!.stringValue! })
@@ -315,7 +315,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertEqual(Budget.pruneInkOfCards(&open, ["base:" + cYong], dates: shanghai), [])
     }
 
-    // test/store/budget.test.mjs: Q1 fold: an old month keeps after-seen records of an open group (with ink); other after-seen records fold away with their ink
+    // Q1 fold: an old month keeps after-seen records of an open group (with ink); other after-seen records fold away with their ink
     func testQ1FoldAnOldMonthKeepsAfterSeenRecordsOfAnOpenGroup() {
         var draft = afterSeenFixture()
         draft["sessions"] = J(#"{"A":null,"B":null,"lastEnded":{"A":{"id":"s9","items":[]}}}"#)
@@ -328,7 +328,7 @@ final class BudgetTests: XCTestCase {
         XCTAssertNil(flatInk(closed["ink"])["r9"])
     }
 
-    // test/store/budget.test.mjs: D66 ⑭ (P326): the ink budget follows 每组字数; storagePressureOf only speaks near the limit
+    // D66 ⑭ (P326): the ink budget follows 每组字数; storagePressureOf only speaks near the limit
     func testD66InkBudgetFollowsGroupSizeStoragePressureOfOnlySpeaksNearTheLimit() {
         XCTAssertEqual(Budget.inkBudgetOf(.null), 2 * MiB, "never chosen → 20 → 2MiB")
         XCTAssertEqual(Budget.inkBudgetOf(J(#"{"groupSize":5}"#)), 1.5 * MiB)

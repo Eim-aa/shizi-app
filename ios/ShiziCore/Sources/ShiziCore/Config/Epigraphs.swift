@@ -1,11 +1,17 @@
 import Foundation
 
-// src/config/epigraphs.js 的移植：首页题记（上句、下句、出处），数据来自生成的 epigraphs.json；
+// 移植自原 JS 版：首页题记（上句、下句、出处），数据来自生成的 epigraphs.json；
 // 轮换按日「一年中第几天 mod 条数」（P23）。
 
 public struct Epigraph: Equatable {
     public let lines: [String]
     public let source: String
+
+    /// 与原来的逐成员构造器同签名；标 package 让 ShiziCoreEngine 的 epigraphs.author op 也能构造。
+    package init(lines: [String], source: String) {
+        self.lines = lines
+        self.source = source
+    }
 }
 
 public enum Epigraphs {

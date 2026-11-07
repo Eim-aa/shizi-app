@@ -1,6 +1,6 @@
 import Foundation
 
-/// core/images/work.js and pick.js. All record objects are preserved, including unknown fields.
+/// Image work and pick selection rules, ported from the former JS modules. All record objects are preserved, including unknown fields.
 public enum ImageSelection {
   public typealias InkOf = (JSValue) throws -> JSValue?
   static func obj(_ p: [(String, JSValue)]) -> JSValue { .object(JSObject(p)) }
@@ -112,9 +112,15 @@ public enum ImageSelection {
     guard dates.isValidDay(.string(day)) else { throw CoreError.badArgs("INVALID_DAY") }
     let has: InkPick.HasInk =
       hasInk ?? { InkPick.storedInkPresent(state, $0, timeZone: dates.timeZone) }
-    let inDay = WorkMembers.workMemberRecords(
-      flattenRecords(state["records"]), hasInk: has, added: .init(added)
-    ).filter { str($0["localDay"]) == day }
+    // 原写法：flattenRecords（全部记录按 id 稳定排序）→ workMemberRecords（过成员规则、再按 id 稳定排序）→ 筛这一天。
+    // 与 monthMembers 同一推法（见那里的注释）：按 id 序号的比较是严格弱序，稳定排序的结果唯一；筛选只看每条自己的字段，筛前排与筛后排是同一串。
+    // 于是先筛出这一天的成员记录、再按 id 稳定排一次（sortById），排序与 hasInk（看后自写要问墨迹）只落在这一天的记录上，不再是全部历史。
+    let ids = WorkMembers.Added(added)
+    let inDay = Records.sortById(
+      monthRows(state).filter {
+        $0["id"]?.stringValue != nil && str($0["localDay"]) == day
+          && WorkMembers.isWorkMember($0, hasInk: has, added: ids)
+      })
     let pick: WorkMembers.PickInk = hasInk.map { .test($0) } ?? .none
     var members: [JSValue]
     if let fold = folded(state, String(day.prefix(7))) {
@@ -140,16 +146,39 @@ public enum ImageSelection {
     }
     return obj([("members", .array(members)), ("day", .string(day))])
   }
+  /// monthMembers 开头的那一步：state.records 每个月键下的记录（数组月本身 / 折叠月的 kept），按键序平铺，不排序、不过滤。
+  /// 只取决于 state，所以同一次回答里多次 monthMembers（年报每月数成员、每月的格）可以共用一份（rows 参数），结果与各自现平铺相同。
+  package static func monthRows(_ state: JSValue) -> [JSValue] {
+    (state["records"]?.objectValue?.keys ?? []).flatMap { key -> [JSValue] in
+      let v = state["records"]?[key]
+      return v?.arrayValue ?? v?["kept"]?.arrayValue ?? []
+    }
+  }
   public static func monthMembers(
     _ state: JSValue, month: String, pick: String = "first", hasInk: InkPick.HasInk? = nil,
     added: [String]? = nil, dates: Dates
   ) throws -> JSValue {
+    try monthMembers(state, month: month, pick: pick, hasInk: hasInk, added: added, rows: nil, dates: dates)
+  }
+  /// rows：调用方已用同一 state 算好的 monthRows(state)，nil 时现平铺。
+  package static func monthMembers(
+    _ state: JSValue, month: String, pick: String, hasInk: InkPick.HasInk?,
+    added: [String]?, rows prebuilt: [JSValue]?, dates: Dates
+  ) throws -> JSValue {
     guard dates.isValidMonth(.string(month)) else { throw CoreError.badArgs("INVALID_MONTH") }
     let has: InkPick.HasInk =
       hasInk ?? { InkPick.storedInkPresent(state, $0, timeZone: dates.timeZone) }
-    let records = WorkMembers.workMemberRecords(
-      flattenRecords(state["records"]), hasInk: has, added: .init(added)
-    ).filter { str($0["localDay"]).hasPrefix(month + "-") }
+    // 原写法：flattenRecords（全部记录按 id 稳定排序）→ workMemberRecords（过成员规则、再稳定排序）→ 筛这个月。
+    // 比较只看 id 序号（不合法 -1；两个 +∞ 比较得 NaN 当相等），是一个严格弱序，所以稳定排序的结果唯一：按序号升序、序号相同的保持
+    // 平铺时的先后。筛选只按每条自己的字段（谓词无副作用），筛前排与筛后排得到的是同一串；排过的再排也不变。
+    // 于是先把这个月的成员记录筛出来、再按 id 稳定排一次（sortById：同一个归并、同一个差值），与原来逐条相同，排序只在一个月的记录上做。
+    let prefix = month + "-", ids = WorkMembers.Added(added)
+    let rows = prebuilt ?? monthRows(state)
+    let records = Records.sortById(
+      rows.filter {
+        $0["id"]?.stringValue != nil && str($0["localDay"]).hasPrefix(prefix)
+          && WorkMembers.isWorkMember($0, hasInk: has, added: ids)
+      })
     let picker: WorkMembers.PickInk = hasInk.map { .test($0) } ?? .none
     let prefer: JSValue = .string(pick == "first" ? "first" : "last")
     var days: [String] = []
@@ -157,12 +186,21 @@ public enum ImageSelection {
     if let fold = folded(state, month) {
       let byDay = Records.foldWorkByDay(fold)
       days = byDay.keys.filter { $0.hasPrefix(month + "-") }.sorted()
-      var seen: [JSValue] = []
+      // 每字的记录：按 char(r) 分桶一次（Swift String 的字典，判等与原来的 `char($0) == str(ch)` 同为 String ==），桶内保持 records 的先后
+      var byChar: [String: [JSValue]] = [:]
+      for r in records { byChar[char(r), default: []].append(r) }
+      // 见过的字：字串按逐码点（JSKey，与 JSValue 的 == 相同）放进集合；非字串（旧版折叠里可能有）仍按 == 线性比，字串与非字串从不相等
+      var seenStrings = Set<JSKey>()
+      var seenOther: [JSValue] = []
       for d in days {
         for ch in byDay[d]?.arrayValue ?? [] {
-          if seen.contains(ch) { continue }
-          seen.append(ch)
-          let list = records.filter { char($0) == str(ch) }
+          if case .string(let s) = ch {
+            if !seenStrings.insert(JSKey(s: s)).inserted { continue }
+          } else {
+            if seenOther.contains(ch) { continue }
+            seenOther.append(ch)
+          }
+          let list = byChar[str(ch)] ?? []
           let m = WorkMembers.workMembers(
             list, prefer: prefer, hasInk: has, pickInk: picker, added: .init(added)
           ).first
@@ -175,9 +213,10 @@ public enum ImageSelection {
         }
       }
     } else {
+      var seenDays = Set<String>()  // 与原来的 days.contains（String ==）同一判等
       for r in records {
         let d = str(r["localDay"])
-        if !days.contains(d) { days.append(d) }
+        if seenDays.insert(d).inserted { days.append(d) }
       }
       days.sort()
       members = WorkMembers.workMembers(
@@ -215,6 +254,30 @@ public enum ImageSelection {
       ("ch", m["char"] ?? .null), ("ink", ink ?? .null),
       ("mode", .string(ink == nil ? "under" : "hand")),
       ("dot", .bool(ink != nil && truth(m["dot"]))), ("tag", .string("")), ("day", day),
+      ("record", m["record"] ?? .null),
+    ])
+  }
+  /// = imagePlan(state, scope: {kind: "month", month}, inkOf:, hasInk:, monthPick:) 的 cells 与 days（与 maxChars 无关），
+  /// 不分页、不拼 drawn / recordIds / members：月报 / 记录 / 年报的页与年报导出图只读这两项。抛错与 imagePlan 的月报一支相同
+  /// （那一支只有 monthMembers 会抛：不合法的月）。rows 见 monthRows。
+  package static func monthPlanCells(
+    _ state: JSValue, month: String, inkOf: @escaping InkOf, hasInk: InkPick.HasInk? = nil,
+    monthPick: String = "first", rows: [JSValue]? = nil, dates: Dates
+  ) throws -> (cells: [JSValue], days: JSValue) {
+    let has: InkPick.HasInk = hasInk ?? { points($0, inkOf) != nil }
+    let r = try monthMembers(state, month: month, pick: monthPick, hasInk: has, added: nil, rows: rows, dates: dates)
+    let members = r["members"]?.arrayValue ?? []
+    let cells = ImageLayout.withDayTags(members.compactMap { cellOfMember($0, inkOf: inkOf, under: true) })
+    return (cells, r["days"] ?? .null)
+  }
+  /// = cellOfMember(m, inkOf:, under: true)，只是 ink 记 .null：给只读 ch / mode / dot / tag / day / record 的调用方（我的页的月报格），
+  /// 免得为一个 mode 把每格墨迹解成回放点。hasPoints 须等于 points(m["record"], inkOf) != nil。
+  static func cellOfMemberWithoutInk(_ m: JSValue, hasPoints: Bool) -> JSValue {
+    let day = truth(m["firstDay"]) ? m["firstDay"]! : m["record"]?["localDay"] ?? .null
+    return obj([
+      ("ch", m["char"] ?? .null), ("ink", .null),
+      ("mode", .string(hasPoints ? "hand" : "under")),
+      ("dot", .bool(hasPoints && truth(m["dot"]))), ("tag", .string("")), ("day", day),
       ("record", m["record"] ?? .null),
     ])
   }

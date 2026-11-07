@@ -56,10 +56,6 @@ fi
 
 mkdir -p "$BUILD_DIR"
 
-# NATIVE_INK=1：Debug 包的 Info.plist 加 CADisableMinimumFrameDurationOnPhone（ProMotion 机上原生书写层可请求 120Hz；sync-web-assets.sh）
-EXTRA_BUILD_SETTINGS=()
-if [ "${NATIVE_INK:-0}" = "1" ]; then EXTRA_BUILD_SETTINGS+=(SHIZI_NATIVE_INK_120HZ=YES); fi
-
 echo "Building ${SCHEME} for device (${DESTINATION})"
 if [ -n "${BUNDLE_ID:-}" ]; then
   run_xcodebuild \
@@ -72,7 +68,6 @@ if [ -n "${BUNDLE_ID:-}" ]; then
     PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
     -allowProvisioningUpdates \
     -allowProvisioningDeviceRegistration \
-    ${EXTRA_BUILD_SETTINGS[@]+"${EXTRA_BUILD_SETTINGS[@]}"} \
     build
 else
   run_xcodebuild \
@@ -84,7 +79,6 @@ else
     DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
     -allowProvisioningUpdates \
     -allowProvisioningDeviceRegistration \
-    ${EXTRA_BUILD_SETTINGS[@]+"${EXTRA_BUILD_SETTINGS[@]}"} \
     build
 fi
 
@@ -104,11 +98,6 @@ fi
 echo "Launching ${APP_ID}"
 LAUNCH_ARGS=()
 if [ "${DEV_MODE:-0}" = "1" ]; then LAUNCH_ARGS+=(-shizi-dev); fi
-# B4.9：SMOKE_MODE（网页冒烟）与 NATIVE_INK / INK_SELFCHECK（网页上的原生书写层 spike）随 WKWebView 退役。
-if [ "${SMOKE_MODE:-0}" = "1" ] || [ -n "${NATIVE_INK_PRESET:-}" ] || [ "${INK_SELFCHECK:-0}" = "1" ]; then
-  echo "SMOKE_MODE / NATIVE_INK_PRESET / INK_SELFCHECK are retired (B4.9)" >&2
-  exit 64
-fi
 xcrun devicectl device process launch --device "$DEVICE_ID" --terminate-existing "$APP_ID" ${LAUNCH_ARGS[@]+"${LAUNCH_ARGS[@]}"}
 
 echo "Done. Continue manual iPhone handwriting and keyboard/safe-area checks on the device."

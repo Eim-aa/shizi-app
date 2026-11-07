@@ -1,10 +1,10 @@
 import Foundation
 
-// B4.9a：导航层的「去哪」规则（JS 参考：src/ui/route-memory.js createRouteMemory、src/ui/screens/session/index.js openWrite、
-// detail/open.js openCharDetail、result/index.js leaveTo / openResult / handoffSkipUndo / takeSkipUndo、write/native-session.js 的
+// B4.9a：导航层的「去哪」规则（JS 参考：createRouteMemory、openWrite、
+// openCharDetail、leaveTo / openResult / handoffSkipUndo / takeSkipUndo、
 // 写字页导航（back / toResult / toDetail / redoBack）与结果页 RESULT_DEPS（again / toWrite / redo / detail）、
-// session/none.js openNonePage、session/s02.js openS02 / closeNativeS02、components/query/index.js openQuery / closeNativeQuery、
-// library/switch.js openLibrarySwitch）。都只改镜像栈（router.request → 原生照做）与来源记账，不写 store（commitLeave 在 HostBodies 的 io.leave）。
+// openNonePage、openS02 / closeNativeS02、openQuery / closeNativeQuery、
+// openLibrarySwitch）。都只改镜像栈（router.request → 原生照做）与来源记账，不写 store（commitLeave 在 HostBodies 的 io.leave）。
 
 /// 路由提示键的读写与冷启动恢复后的「动过没有」（createRouteMemory）。
 public final class RouteMemory {
@@ -169,7 +169,7 @@ public final class NavHost {
         return .object(o)
     }
 
-    // MARK: 写字页的导航（native-session.js createWriteSessionApi 的 navigate；撤销条交接在宿主）
+    // MARK: 写字页的导航（createWriteSessionApi 的 navigate；撤销条交接在宿主）
 
     public func writeBack() { router.back(cause: "native") }
 
@@ -199,7 +199,7 @@ public final class NavHost {
 
     public func resultToWrite(_ slot: JSValue) throws { try router.replace("write", Self.p([("slot", slot)]), animate: true) }
 
-    /// write/redo.js openRedo：只收单字、去重、题库里能练的字。
+    /// 只收单字、去重、题库里能练的字。
     public static func redoCharsOf(_ chars: [JSValue]) -> [JSValue] {
         var seen = Set<String>(), out: [JSValue] = []
         for c in chars {
@@ -238,7 +238,7 @@ public final class NavHost {
 
     public func openLibrarySwitch() throws { try router.push("library-switch", .object(JSObject())) }
 
-    /// stage.enter 的意图（engine.js enter：entry 的 id / n 转成字串，p 只收普通对象）。
+    /// stage.enter 的意图（enter：entry 的 id / n 转成字串，p 只收普通对象）。
     public static func enterIntent(_ a: JSValue) -> JSObject {
         var intent = JSObject()
         intent["kind"] = a["kind"] ?? .null

@@ -1,6 +1,6 @@
 import Foundation
 
-// src/store/budget.js 的 1:1 移植（B4.4）：占用估算（UTF-16 口径）、预算回收（墨迹按层级淘汰、旧月份折叠）、
+// 1:1 移植自原 JS 版（B4.4）：占用估算（UTF-16 口径）、预算回收（墨迹按层级淘汰、旧月份折叠）、
 // D27「每字第一次 + 最近一次」留存、Q1 看后自写的层级。只改传入的草稿（JSObject），不碰存储。
 // 回收结果（actions、折叠月的形状、草稿里月表的键序）与 JS 逐字段相同。
 
@@ -62,6 +62,36 @@ public struct Budgets: Equatable {
     public var js: JSObject { JSObject(Budgets.names.map { ($0, JSValue.number(self[$0])) }) }
 }
 
+/// 原生（App）的存储压力口径（P57）：看设备真实剩余空间，不看估算总量 / quotaBytes——SQLite 没有 64 MiB 上限，
+/// 按估算总量 / 64 MiB 报「快存满了」是网页时代留下的假上限（重度用户攒到几千字就会被吓到）。
+/// 网页 / JS 金样口径（Budget.estimateUsage 的 ratio / level）不变；这条规则只在 Store 挂了 deviceAvailableBytes 时用。
+public struct DeviceSpaceRule: Equatable {
+    /// 剩余空间低于这个值：warn（「我的 › 备份」行建议导出备份）。
+    public var warnBelowBytes: Double
+    /// 剩余空间低于这个值：full。
+    public var fullBelowBytes: Double
+
+    public init(warnBelowBytes: Double, fullBelowBytes: Double) {
+        self.warnBelowBytes = warnBelowBytes
+        self.fullBelowBytes = fullBelowBytes
+    }
+
+    /// policy.nativeStorage.freeSpaceWarnBytes / freeSpaceFullBytes（P57）。
+    public static let policy = DeviceSpaceRule(
+        warnBelowBytes: Config.policyNumber("nativeStorage.freeSpaceWarnBytes")!,
+        fullBelowBytes: Config.policyNumber("nativeStorage.freeSpaceFullBytes")!)
+
+    /// writeFull（最近一次真的写盘撞满，原生 = SQLITE_FULL，之后还没写成功过）= full；
+    /// 否则按剩余空间：nil（量不到 / 没注入）、非有限、≤ 0（量不出来的读数）= 没有压力（ok）。
+    public func level(availableBytes: Double?, writeFull: Bool) -> String {
+        if writeFull { return "full" }
+        guard let a = availableBytes, a.isFinite, a > 0 else { return "ok" }
+        if a < fullBelowBytes { return "full" }
+        if a < warnBelowBytes { return "warn" }
+        return "ok"
+    }
+}
+
 public enum Budget {
     static let dayMs = 86_400_000.0
 
@@ -81,17 +111,57 @@ public enum Budget {
 
     /// {total, byBucket, ratio, level}。
     public static func estimateUsage(_ pairs: [(String, String)], _ budgets: Budgets = .defaults) -> JSObject {
-        var byBucket = JSObject()
+        estimateUsage(pairs, budgets, bucketOf: bucketOfKey)
+    }
+
+    /// bucketOf ≡ bucketOfKey（调用方可以记住结果）。桶按第一次出现的次序、各桶按出现次序累加：与逐条改 byBucket 同序同值
+    /// （第一笔 0 + bytes == bytes：bytes 是非负的 Double(整数)）。
+    static func estimateUsage(_ pairs: [(String, String)], _ budgets: Budgets, bucketOf: (String) -> String) -> JSObject {
+        var names: [String] = []
+        var sums: [Double] = []
+        var slots = [JSKey: Int]()
+        var prev = -1
         var total = 0.0
         for (k, v) in pairs {
             let bytes = entryBytes(k, v)
             total += bytes
-            let bucket = bucketOfKey(k)
-            byBucket[bucket] = .number((byBucket[bucket]?.numberValue ?? 0) + bytes)
+            let bucket = bucketOf(k)
+            if prev >= 0 && UTF16Order.eq(names[prev], bucket) {
+                sums[prev] += bytes
+            } else if let i = slots[JSKey(s: bucket)] {
+                sums[i] += bytes
+                prev = i
+            } else {
+                prev = names.count
+                slots[JSKey(s: bucket)] = prev
+                names.append(bucket)
+                sums.append(bytes)
+            }
         }
+        var byBucket = JSObject()
+        for i in names.indices { byBucket[names[i]] = .number(sums[i]) }
         let ratio = budgets.quotaBytes > 0 ? total / budgets.quotaBytes : 1
         let level = ratio >= 1 ? "full" : ratio > budgets.warnRatio ? "warn" : "ok"
         return JSObject([("total", .number(total)), ("byBucket", .object(byBucket)), ("ratio", .number(ratio)), ("level", .string(level))])
+    }
+
+    /// 原生口径的占用：total / byBucket 照估算（同一把尺，回收与基准仍读 total），level 换成 DeviceSpaceRule 的判定，
+    /// ratio = 估算总量 / (估算总量 + 剩余空间)（量不到剩余空间时：撞满 1，否则 0），另带 availableBytes（null = 量不到）与 source 'device'。
+    public static func deviceUsage(_ estimate: JSObject, availableBytes: Double?, writeFull: Bool, rule: DeviceSpaceRule = .policy) -> JSObject {
+        let total = estimate["total"]?.numberValue ?? 0
+        let known: Double? = availableBytes.flatMap { (a: Double) -> Double? in a.isFinite && a > 0 ? a : nil }
+        let ratio: Double
+        if let a = known {
+            ratio = total + a > 0 ? total / (total + a) : 0
+        } else {
+            ratio = writeFull ? 1 : 0
+        }
+        let level = rule.level(availableBytes: known, writeFull: writeFull)
+        let available: JSValue = known.map { JSValue.number($0) } ?? .null
+        return JSObject([
+            ("total", .number(total)), ("byBucket", estimate["byBucket"] ?? .object(JSObject())), ("ratio", .number(ratio)), ("level", .string(level)),
+            ("availableBytes", available), ("source", .string("device")),
+        ])
     }
 
     /// null | {level, ratio（三位小数）}。
@@ -350,15 +420,25 @@ public enum Budget {
     /// D27 写入新判断时的回收（只看 cardKeys 这些字）；返回被回收的 [{id, month, recordId}]。
     @discardableResult
     public static func pruneInkOfCards(_ draft: inout JSObject, _ cardKeys: [String], dates: Dates) -> [JSValue] {
+        pruneInkOfCards(&draft, cardKeys, dates: dates) { recs, want in
+            var mine: [JSValue] = []
+            for (_, v) in recs.objectValue?.entries ?? [] {
+                for rec in Budget.monthRecords(v) {
+                    if case .object = rec, let ck = Budget.cardKey(rec), want.contains(ck) { mine.append(rec) }
+                }
+            }
+            return mine
+        }
+    }
+
+    /// 同上；collect(records 域, want) 给出 mine（records 域里按月键序、月内按列表序，cardKey 在 want 里的对象记录）。
+    /// 判字传 RecordLookup.recordsOfCards（只看这个字的记录，结果与上面的逐条扫描逐条相同）。
+    @discardableResult
+    static func pruneInkOfCards(_ draft: inout JSObject, _ cardKeys: [String], dates: Dates, collect: (JSValue, KeySet) -> [JSValue]) -> [JSValue] {
         guard case .object(var ink)? = draft["ink"], let recs = draft["records"], JSX.truthy(recs) else { return [] }
         let want = KeySet(cardKeys)
         if want.isEmpty { return [] }
-        var mine: [JSValue] = []
-        for (_, v) in recs.objectValue?.entries ?? [] {
-            for rec in monthRecords(v) {
-                if case .object = rec, let ck = cardKey(rec), want.contains(ck) { mine.append(rec) }
-            }
-        }
+        let mine = collect(recs, want)
         let index = indexRecords(JSObject([("all", .array(mine))]), sessions: draft["sessions"])
         var keep = index.retained
         func slot(_ rec: JSValue) -> (month: String, id: String)? {

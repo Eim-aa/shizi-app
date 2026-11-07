@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/first-result.js 的 1:1 移植：首练结果页专属的纯函数（P1-E5；D28 / D35 / D41 / D46 ③ / D48）。
+// 1:1 移植自原 JS 版：首练结果页专属的纯函数（P1-E5；D28 / D35 / D41 / D46 ③ / D48）。
 //   复现预告（reviewPreview / previewText）、每字「N 天后再见」（reviewDays / daysLaterText / daysLaterLine）、提醒邀请（inviteOf / inviteDecision / inviteTime）。
 // commitInviteShown / commitInviteAnswer 是对 store 的写入（经 store.commit）：这里只有它们的规则部分（给出新的 settings 或「跳过」），
 // 提交、校验、发布由 B4.4 的 store 与 B4.5 的会话 ops 接。

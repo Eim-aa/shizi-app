@@ -2,22 +2,32 @@ name: Verify
 
 on:
   pull_request:
+  # GitHub 偶尔丢 pull_request 事件（推送时 500），这时可以在 Actions 页对分支手动补跑。
+  workflow_dispatch:
+    inputs:
+      bench_release:
+        description: '另在 Release（-O）下跑一遍 ShiziCore 的性能量测（BENCH 行）；verify:core 的 swift test 是 Debug，量出的毫秒数偏大。ios-app 的 ShiziWriteTests 同时跑大规模（SHIZI_SCALE_BENCH）'
+        type: boolean
+        default: false
   push:
     branches: [main]
 
 permissions:
   contents: read
 
+# 每个提交各跑一次、互不取消：多批改动连续合入时，每批都有自己完整的结果（公开仓库，托管 runner 不计费）。
 concurrency:
-  group: verify-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: verify-${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
 
-# D84：网页版（web job、API floor、sw-unit、PWA 门禁）已随网页一起删除。剩两个互相独立的 job：
-#   data       — 脚本语法检查 + 不需要 Swift 的数据门禁（vector440、assets、order）
-#   unit-copy  — verify:unit (node:test) + verify:copy + verify:tokens
-# verify:governance 与 verify:content 要用 `swift build` 出的 shizi-core-cli（cards-dump）展开题库，ubuntu 上没有 Swift，
-# 且决定不加 macOS runner：这两项只在本机跑（pnpm run verify:data / bash ios/ShiziApp/scripts/verify-local.sh）。
-# verify:unit 里同样要展开题库的用例（content-blocklist、font-loader 覆盖）在非 macOS 上自动跳过（test/core/helpers.mjs NEEDS_SWIFT）。
+# 四个互相独立的 job：
+#   data       （ubuntu）脚本语法检查 + 不需要 Swift 的数据门禁（vector440、assets、order）
+#   unit-copy  （ubuntu）verify:unit (node:test) + verify:copy + verify:tokens
+#   swift-core （macOS）verify:core（ShiziCore 编译 + swift test）、要 shizi-core-cli 的 verify:governance /
+#               verify:content，以及 verify:unit 里只在 macOS 跑的用例（test/core/helpers.mjs NEEDS_SWIFT）
+#   ios-app    （macOS）App 模拟器构建 + 包内资源核对、三个测试 target 编译、ShiziStoreTests / ShiziWriteTests 在模拟器上跑
+# 不在 CI 里的：逐屏对比与 XCUITest 流程（pnpm run verify:native-ui，约 1 小时、要固定的模拟器机型与运行时）、
+# Release archive 与签名（ios/ShiziApp/scripts/verify-local.sh、真机），都在本机跑。
 
 jobs:
   data:
@@ -74,3 +84,120 @@ jobs:
         run: pnpm run verify:copy
       - name: Token check
         run: pnpm run verify:tokens
+
+  swift-core:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.16.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: ShiziCore build + tests (verify:core)
+        run: pnpm run verify:core
+      - name: Library governance (needs shizi-core-cli)
+        run: pnpm run verify:governance
+      - name: Content corpus (needs shizi-core-cli)
+        run: pnpm run verify:content
+      - name: Unit tests incl. macOS-only cases
+        run: pnpm run verify:unit
+
+  # Release 量测单独一个 job（只在手动、勾了 bench_release 时跑）：量测本身约 40 分钟，
+  # 与 swift-core 的 Debug 全量测试同在一个 job 里会撞 45 分钟上限，把正常测试也一起取消掉。
+  bench-release:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.bench_release }}
+    runs-on: macos-26
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Release benchmarks
+        shell: bash
+        run: |
+          SHIZI_SCALE_BENCH=1 swift test -c release -Xswiftc -enable-testing --package-path ios/ShiziCore \
+            --filter 'AColdStartBenchmarkTests|DeckBuildEquivalenceTests|StoreCommitBenchmarkTests|LibraryInkBenchTests|ScaleBenchmarkTests|JudgeScaleEquivalenceTests|QueryScaleEquivalenceTests|ViewScaleEquivalenceTests|AnnualInkBenchTests|ImageReleaseBenchTests|InkStoreBenchmarkTests|AnnualLazyInkTests' 2>&1 \
+            | grep -E "BENCH|VIEWEQ|ANNUAL-LAZY|error:|Executed [0-9]+ tests?|failed" | tee "$RUNNER_TEMP/bench-release.txt"
+      # 日志接口只给一个 job 的最后几千行：结果在 job 末尾再打印一次
+      - name: Release benchmarks (repeat at end of log)
+        if: always()
+        run: cat "$RUNNER_TEMP/bench-release.txt" || true
+
+  ios-app:
+    runs-on: macos-26
+    # 勾了 bench_release 时 ShiziWriteTests 另跑大规模（见下面的 SCALE），放宽到 120 分钟
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && inputs.bench_release && 120 || 60 }}
+    env:
+      PROJECT: ios/ShiziApp/ShiziApp.xcodeproj
+      DD: ios/ShiziApp/build/ci-dd
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: xcodebuild -version
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build app (Debug, simulator)
+        run: |
+          set -o pipefail
+          xcodebuild -project "$PROJECT" -scheme Shizi -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$DD" CODE_SIGNING_ALLOWED=NO build -quiet
+      - name: Bundle assets
+        run: bash ios/ShiziApp/scripts/verify-bundle-assets.sh "$DD/Build/Products/Debug-iphonesimulator/Shizi.app"
+      - name: Pick a simulator
+        run: |
+          UDID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          echo "Simulator: $UDID"
+          echo "SIM=$UDID" >> "$GITHUB_ENV"
+      - name: Compile UI test target (ShiziUITests; not run in CI)
+        run: |
+          xcodebuild -project "$PROJECT" -scheme ShiziUITests -destination "id=$SIM" -derivedDataPath "$DD" \
+            CODE_SIGNING_ALLOWED=NO build-for-testing -quiet
+      - name: ShiziStoreTests
+        run: |
+          set -o pipefail
+          xcodebuild -project "$PROJECT" -scheme ShiziStoreTests -destination "id=$SIM" -derivedDataPath "$DD" \
+            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "$RUNNER_TEMP/ShiziStoreTests.log" \
+            | grep -E "Executed [0-9]+ tests?|error:|BENCH|\*\* TEST (SUCCEEDED|FAILED)" | grep -v "^Test Case .* passed" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/ShiziStoreTests.log"
+      - name: ShiziWriteTests
+        env:
+          # 手动勾了 bench_release 时另跑大规模（AppScale：1500 / 3000 / 5000 与全部建出来的对照）；平时只跑中等规模
+          SCALE: ${{ github.event_name == 'workflow_dispatch' && inputs.bench_release && '1' || '' }}
+        run: |
+          set -o pipefail
+          # 单个用例超过 3 分钟即判失败并报出名字（默认规模下最慢的一条约 1 分钟；卡住的用例不再拖到整个 job 超时、日志里还看不出是谁）。
+          # 大规模（SCALE）时每条放宽到 10 / 15 分钟。
+          ALLOW=180; MAX_ALLOW=300
+          if [ -n "$SCALE" ]; then export TEST_RUNNER_SHIZI_SCALE_BENCH=1; ALLOW=600; MAX_ALLOW=900; fi
+          # NSUnbufferedIO：xcodebuild 写进管道时默认整块缓存，被取消时日志里看不到正在跑哪一条（上一轮就是这样）
+          NSUnbufferedIO=YES xcodebuild -project "$PROJECT" -scheme ShiziWriteTests -destination "id=$SIM" -derivedDataPath "$DD" \
+            -parallel-testing-enabled NO -resultBundlePath "$RUNNER_TEMP/ShiziWriteTests.xcresult" \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance "$ALLOW" -maximum-test-execution-time-allowance "$MAX_ALLOW" \
+            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "$RUNNER_TEMP/ShiziWriteTests.log" \
+            | grep --line-buffered -E "Executed [0-9]+ tests?|error:|BENCH|\[library-eq\]|Test Case .*(started|passed|failed)|exceeded|\*\* TEST (SUCCEEDED|FAILED)" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/ShiziWriteTests.log"
+      # 被取消 / 失败时把最后一段原始输出打出来（上面的过滤会吞掉「正在跑哪一条」）
+      - name: ShiziWriteTests raw tail
+        if: ${{ !success() }}
+        run: tail -n 300 "$RUNNER_TEMP/ShiziWriteTests.log" || true
+      - name: ShiziWriteTests result bundle
+        if: ${{ !success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShiziWriteTests-xcresult
+          path: ${{ runner.temp }}/ShiziWriteTests.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

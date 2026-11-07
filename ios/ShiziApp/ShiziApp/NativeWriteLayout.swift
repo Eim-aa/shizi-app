@@ -1,7 +1,7 @@
 import UIKit
 
 // 原生写字页的版式（B2.2；01 §6.1、A7 / D57、P118 / P195 / P257 / P299）。与网页 src/ui/screens/write/layout.js 同一组公式（纯函数，逐条对照），
-// 常量由页面随 open 回包给出（src/session/write-api.js writeLayoutConstants，单一来源 policy.writeGrid），原生不另存数值。
+// 常量由写字会话 open 回包给出（ShiziCore WriteAPI.look 的 layout，来源 Session/SessionBundled/session-ui.json），原生不另存数值。
 //
 //   名义主区高 H = 页面高 − (名义页头 44 + 上安全区) − (名义按钮行 134 + max(24, 下安全区))     与系统字号无关（D29 / D36 / P195）
 //   书写格 g   = clamp(258, min(屏宽 − 40, 400, H − 80 − 16 − 88 − 16), 400)；名义版式里 258 仍放不下 → 取剩下的高度，最小 180（P299）

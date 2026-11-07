@@ -1,6 +1,6 @@
 import Foundation
 
-/// Store part of ui/screens/home, session and library action registrations.
+/// Store part of the home, session and library action registrations.
 /// The host owns navigation and paper source geometry; no router is recreated here.
 public final class PageRegisteredActions {
     private weak var hooks: SessionActionHooks?
@@ -45,7 +45,7 @@ public final class PageRegisteredActions {
             hooks.s02Registered = true
             hooks.s02Cancel = nil
             hooks.s02Close = { [self] in try open?("s02-close",.null) }
-            // s02：开写字页的是确认框上的哪个键（宿主按它记来源：继续 = 弹层里的点按，见 session/s02.js overlayTapped）
+            // s02：开写字页的是确认框上的哪个键（宿主按它记来源：继续 = 弹层里的点按，见 overlayTapped）
             hooks.s02Continue = { [self] in try open?("write",JS.obj([("slot",.string("B")),("s02",.string("continue"))])) }
             hooks.s02EndStart = { [self] in try ScheduleRules(dates:store.dates).endOldAndStartPicked(store,keys:queue,source:source,deck:.real) }
             hooks.s02Started = { [self] _ in try open?("write",JS.obj([("slot",.string("B")),("s02",.string("started"))])) }

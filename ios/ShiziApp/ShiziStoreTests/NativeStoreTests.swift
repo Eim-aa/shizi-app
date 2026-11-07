@@ -301,4 +301,53 @@ final class NativeStoreTests: XCTestCase {
         for i in 0..<30 { try store.appendDiag(["i": i]) }
         XCTAssertEqual(try store.diagEntries().count, NativeStore.diagLimit)
     }
+
+    // MARK: 存储压力（P57）：真写满 = E_FULL；设备剩余空间的读数
+
+    /// 库写满（max_page_count 钉在当前页数 → SQLITE_FULL）报 E_FULL（ShiziCore 当作配额错误：先回收再重试，仍失败 Store.writeFull → 「快存满了」），
+    /// 整笔回滚、之前的值不变。
+    func testDiskFullIsEFullAndRollsBack() throws {
+        let store = try makeStore()
+        try store.apply([op("shizi.v2.settings", #"{"sound":true}"#)])
+        try store.exec("PRAGMA max_page_count = 1")
+        let big = String(repeating: "x", count: 2_000_000)
+        XCTAssertThrowsError(try store.apply([op("shizi.v2.settings", #"{"sound":false}"#), op("shizi.v2.records.2026-09", big)])) { error in
+            XCTAssertEqual((error as? NativeStoreError)?.code, "E_FULL")
+        }
+        XCTAssertEqual(try store.value(for: "shizi.v2.settings"), #"{"sound":true}"#)
+        XCTAssertNil(try store.value(for: "shizi.v2.records.2026-09"))
+    }
+
+    func testDeviceFreeSpaceReadsTheAppContainerVolume() {
+        let b = DeviceFreeSpace.volumeAvailableBytes(URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true))
+        if let b { XCTAssertGreaterThan(b, 0) } // 量不到时是 nil（= 没有压力），不是 0
+        XCTAssertNil(DeviceFreeSpace.volumeAvailableBytes(dir.appendingPathComponent("no-such-dir/x", isDirectory: false)))
+    }
+
+    func testDeviceFreeSpaceCachesUntilMaxAgeOrInvalidate() {
+        let space = DeviceFreeSpace(url: dir, maxAge: 60)
+        var t: TimeInterval = 1000
+        var reads = 0
+        var value: Double? = 1_000_000_000
+        space.clock = { t }
+        space.read = { _ in
+            reads += 1
+            return value
+        }
+        XCTAssertEqual(space.bytes(), 1_000_000_000)
+        value = 50_000_000
+        t += 59
+        XCTAssertEqual(space.bytes(), 1_000_000_000, "cached within maxAge")
+        XCTAssertEqual(reads, 1)
+        t += 1
+        XCTAssertEqual(space.bytes(), 50_000_000, "re-read at maxAge")
+        XCTAssertEqual(reads, 2)
+        value = nil
+        space.invalidate()
+        XCTAssertNil(space.bytes(), "invalidate re-reads; unreadable = nil")
+        XCTAssertEqual(reads, 3)
+        t -= 500 // 时钟倒退（不该发生）：重新读
+        XCTAssertNil(space.bytes())
+        XCTAssertEqual(reads, 4)
+    }
 }

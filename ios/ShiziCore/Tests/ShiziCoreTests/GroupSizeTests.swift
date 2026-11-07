@@ -27,7 +27,7 @@ private func rec(_ serial: Int, _ char: String, _ judgment: String, _ day: Strin
 
 
 final class GroupSizeTests: XCTestCase {
-    // test/core/group-size.test.mjs: groupSizeOf: 5 / 10 / 20 / 30 kept, anything else (missing, old users, junk) → 20
+    // groupSizeOf: 5 / 10 / 20 / 30 kept, anything else (missing, old users, junk) → 20
     // （D83 起选项是 5 / 10 / 15 / 20 / 30、缺省 15）
     func testGroupSizeOf5102030KeptAnythingElseMissingOldUsersJunk20() {
         for n in [5.0, 10, 15, 20, 30] { XCTAssertEqual(GroupSize.of(JS.obj([("groupSize", .number(n))])), .number(n)) }
@@ -39,18 +39,15 @@ final class GroupSizeTests: XCTestCase {
         XCTAssertEqual(GroupSize.valid(.null), Config.policy["groupSize"])
     }
 
-    // test/core/group-size.test.mjs: scaledCount: counts written for groups of 5 scale with size (round, at least 1); the daily review cap follows
+    // scaledCount: counts written for groups of 5 scale with size (round, at least 1); the daily review cap follows
     func testScaledCountCountsWrittenForGroupsOf5ScaleWithSizeRoundAtLeast1TheDailyReviewCapFollows() throws {
         let sizes: [Double] = [5, 10, 20, 30]
-        let newMax = try XCTUnwrap(mix?["newMax"]?.numberValue)
-        let returnGroupSize = try XCTUnwrap(mix?["returnGroupSize"]?.numberValue)
-        XCTAssertEqual(sizes.map { Mix.scaledCount(newMax, $0, mix: mix) }, [3, 6, 12, 18])
+        XCTAssertEqual(sizes.map { Mix.scaledCount(3, $0, mix: mix) }, [3, 6, 12, 18])
         XCTAssertEqual(sizes.map { Mix.scaledCount(1, $0, mix: mix) }, [1, 2, 4, 6])
-        XCTAssertEqual(sizes.map { Mix.scaledCount(returnGroupSize, $0, mix: mix) }, [3, 6, 12, 18])
         XCTAssertEqual(Mix.scaledCount(0, 20, mix: mix), 0) // D83：每日复习上限删除（GroupSize.dailyReviewCapOf 退役）
     }
 
-    // test/core/group-size.test.mjs: settings.groupSize: schema accepts the four options only; it rides along in backups
+    // settings.groupSize: schema accepts the four options only; it rides along in backups
     // （buildBackupV2 是 B4.3 的备份模块、JS 里才有；这里按 JS 备份文件的形状手工构造 settings 域的条目，再用 Swift 的 parseBackupV2 校验——
     //   「设置里的 groupSize 随备份走」的整包导出部分只能在 B4.3 转写 backup.test 时覆盖。）
     func testSettingsGroupSizeSchemaAcceptsTheFourOptionsOnlyItRidesAlongInBackups() throws {

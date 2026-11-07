@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/records.js 的 1:1 移植：记录的构造、校验与查询。纯函数，记录一律是 JSValue（store 里的原样对象，透传时逐字节不变）。
+// 1:1 移植自原 JS 版：记录的构造、校验与查询。纯函数，记录一律是 JSValue（store 里的原样对象，透传时逐字节不变）。
 // 口径（01 §3.1 / §3.2）：「最近一次」以 id 序号为准；只有 judged 是有效记录（D18 / D23）；纸上记录（P1-E8）是有效记录但不进作品。
 // 需要日期运算的函数带 `Dates`（时区显式传入）。
 
@@ -12,11 +12,19 @@ public enum Records {
     // ---- id 与序号（§3.1）----
 
     /// `^<lead>([1-9]\d*)$` → 序号（Number(...)）；不匹配 NaN。\d 只认 ASCII。
+    /// 不建数组的写法与 SchedRecords.serial 相同（至多 18 位数字按 UInt64 累加再转 Double，结果与 Double(String) 一致；更长的回到 Double(String)）。
     static func serial(_ v: JSValue?, lead: UInt8) -> Double {
         guard case .string(let s)? = v else { return .nan }
-        let u = Array(s.utf8)
-        guard u.count >= 2, u[0] == lead, u[1] >= 0x31, u[1] <= 0x39, u[1...].allSatisfy({ $0 >= 0x30 && $0 <= 0x39 }) else { return .nan }
-        return Double(String(decoding: u[1...], as: UTF8.self)) ?? .nan
+        var it = s.utf8.makeIterator()
+        guard it.next() == lead, let first = it.next(), first >= 0x31, first <= 0x39 else { return .nan }
+        var value = UInt64(first - 0x30), digits = 1
+        while let c = it.next() {
+            guard c >= 0x30 && c <= 0x39 else { return .nan }
+            if digits < 18 { value = value * 10 + UInt64(c - 0x30) }
+            digits += 1
+        }
+        if digits <= 18 { return Double(value) }
+        return Double(String(decoding: s.utf8.dropFirst(), as: UTF8.self)) ?? .nan
     }
 
     public static func recordSerial(_ id: JSValue?) -> Double { serial(id, lead: 0x72) }
@@ -39,8 +47,14 @@ public enum Records {
         return (sa.isNaN ? -1 : sa) - (sb.isNaN ? -1 : sb)
     }
 
+    /// 比较值只取决于两边的 id 序号：先算一次每条的「序号或 -1」，再用同一个稳定归并、同一个差值排下标（每一步比较结果不变，排列不变）。
     public static func sortById(_ records: [JSValue]) -> [JSValue] {
-        JSX.stableSort(records) { compareRecordIds($0["id"], $1["id"]) }
+        if records.count < 2 { return records }
+        let keys = records.map { r -> Double in
+            let s = recordSerial(r["id"])
+            return s.isNaN ? -1 : s
+        }
+        return JSX.stableSort(Array(records.indices)) { keys[$0] - keys[$1] }.map { records[$0] }
     }
 
     /// 下一个可用序号 = max(records、sessions 中已用序号, meta.serial) + 1。sessions 形如 {A, B, lastEnded:{A?, B?}}。
@@ -241,7 +255,7 @@ public enum Records {
         return out
     }
 
-    /// 折叠月份里「作品」的 byDay（R15，src/core/records.js foldWorkByDay）：
+    /// 折叠月份里「作品」的 byDay（R15，foldWorkByDay）：
     /// 新折叠（带 work）直接用折叠时逐条记下的成员（order 'first' / 'last'；judgedOnly 只算判断记录）；
     /// 旧折叠（没有 work）：byDay 去掉 paperOnly，再去掉 kept 里证得出「那天这个字只写错」的（日, 字）。去掉后没有字的日子不出现。
     public static func foldWorkByDay(_ fold: JSValue?, order: String = "first", judgedOnly: Bool = false) -> JSObject {

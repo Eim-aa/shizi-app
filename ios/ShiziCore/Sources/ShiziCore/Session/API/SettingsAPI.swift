@@ -1,9 +1,9 @@
 import Foundation
 
-// src/session/api/settings.js. System permission UI and scheduling execution are host-owned.
+// Settings API. System permission UI and scheduling execution are host-owned.
 extension PageAPI {
     static func reminderPlan(_ store: Store) throws -> JSValue {
-        // api/settings.js supplies deckAdapter, which has no cardFor. Preserve the JS exception.
+        // The settings API supplies deckAdapter, which has no cardFor. Preserve the JS exception.
         if Reminder.remindOf(store.state["settings"])["enabled"] == .bool(true), (store.state["sched"]?.objectValue?.entries ?? []).contains(where: { k,v in JS.truthy(v) && v["stoppedAt"] == nil && store.dates.isValidDay(v["due"] ?? .null) && DeckIndex.shared.isPracticable(k) }) {
             throw CoreError.type("deck.cardFor is not a function")
         }

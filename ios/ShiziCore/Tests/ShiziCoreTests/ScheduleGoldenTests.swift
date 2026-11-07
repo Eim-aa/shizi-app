@@ -13,7 +13,7 @@ final class ScheduleGoldenTests: XCTestCase {
 
     func testScheduleGolden() throws {
         let n = try runOpGolden("schedule")
-        XCTAssertGreaterThan(n, 30) // D83：配比 / 选字 / 开组的条目退役（d83RetiredGoldenOps），剩 FSRS 评级、到期、热身字、特别组、会话形状等
+        XCTAssertGreaterThan(n, 30) // D83：配比 / 选字 / 开组的条目已从夹具删掉，剩 FSRS 评级、到期、热身字、特别组、会话形状等
     }
 
     /// V8 的 Math.exp / Math.log（fdlibm，arm64 上带 FMA 收缩）与 JSMath 逐位相同的抽样；完整的 120 万组对照见 B4.2 实施记录。

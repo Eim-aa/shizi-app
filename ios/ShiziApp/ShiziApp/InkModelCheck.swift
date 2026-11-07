@@ -8,9 +8,7 @@ import Foundation
 //   B. 与参考实现逐值比较：docs/engineering/v10/phase1/ink-model/out/reference-dump.json（dump-reference.mjs 生成）
 //      final 与 live（前 60% 点、final=false）两条路径：弧长、样本数、u=0…1 每 0.01 的宽度、面积、端帽、钩、折角、v30、洇墨、多边形数。
 // 入口：
-//   App 内：DEBUG 启动参数 -shizi-ink-selfcheck（NativeInkSpike.swift）——读包内 InkModel/vectors.json 与 reference-dump.json，
-//           结果写 Documents/shizi-ink-selfcheck.json 并打到 console；
-//   XCTest：ShiziWriteTests InkSurfaceTests（App 作宿主，读同一份包内文件；B2.1）；
+//   XCTest：ShiziWriteTests InkSurfaceTests（App 作宿主，读 Debug 包内的 InkModel/vectors.json 与 reference-dump.json）；
 //   macOS：swiftc -D DEBUG InkModel.swift InkModelCheck.swift <main> 直接跑（见 ios/ShiziApp/scripts/ink-model-check.sh）。
 
 struct InkModelCheckReport {

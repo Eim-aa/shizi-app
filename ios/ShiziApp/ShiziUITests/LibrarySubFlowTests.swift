@@ -20,6 +20,14 @@ final class LibrarySubFlowTests: XCTestCase {
         qa.app.descendants(matching: .any).matching(identifier: id)
     }
 
+    /// 在正文滚动区左侧合成拖动，避开字格按钮和页头；应用级 swipe 没有明确的起落点。
+    private func scrollList(_ qa: QA, up: Bool) {
+        let scroll = qa.app.scrollViews.firstMatch
+        let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: up ? 0.8 : 0.2))
+        let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.03, dy: up ? 0.2 : 0.8))
+        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: 600, thenHoldForDuration: 0.05)
+    }
+
     /// 原生子页出来了（探针 stage.screens = 打开中的原生屏名）。
     private func waitScreen(_ qa: QA, _ name: String, file: StaticString = #filePath, line: UInt = #line) {
         qa.waitProbe("native screen \(name)", timeout: 30, file: file, line: line) { p in
@@ -71,6 +79,25 @@ final class LibrarySubFlowTests: XCTestCase {
         qa.waitProbe("folded again", timeout: 10) { _ in closed.count == n }
     }
 
+    /// 全部字页：手指点一个字格 → 推入这个字的详情页。
+    /// 用真点按（XCUIElement.tap 合成触摸，走命中测试），不走 sendActions：格子的父视图曾经关掉了 isUserInteractionEnabled，
+    /// 读屏激活与 sendActions 都能打开，手指点却什么都不发生——这条用例守住它。
+    func testAllCharsCellTapOpensDetail() {
+        let qa = QA(seed: "all-pinyin")
+        qa.launch()
+        waitScreen(qa, "library-all")
+        let cell = qa.el("native-library-all-cell")
+        XCTAssertTrue(cell.waitForExistence(timeout: 8), "字墙的格子")
+        // 格子的读屏名 = X-LIBHOME.cellAria「{char}，{status}」
+        let char = cell.label.components(separatedBy: "，").first ?? ""
+        XCTAssertEqual(char.count, 1, "格子的读屏名带字：\(cell.label)")
+        // 直接 tap()，不用 qa.tap：它没效果会再点一次，可能掩盖回归
+        cell.tap()
+        qa.waitRouteTop("detail", timeout: 15)
+        let route = qa.probe["route"] as? [String: Any] ?? [:]
+        XCTAssertEqual(route["char"] as? String, char, "字详情是点的那个字")
+    }
+
     /// 全部字页：排序 / 筛选 / 查找。
     func testAllCharsSortFilterFind() {
         let qa = QA(seed: "all-pinyin")
@@ -114,6 +141,109 @@ final class LibrarySubFlowTests: XCTestCase {
         qa.waitProbe("find applied", timeout: 10) { _ in
             (self.qaTextOf(qa, "native-library-all-find-where").isEmpty == false)
         }
+    }
+
+    /// 全部字页 1500 个字（只建看得见的格子）：打开时只建了一部分；一路滑到底，顶上那几格收掉了、最后一格在屏上；
+    /// 真手指点最后一格 → 推入这个字的详情（探针 route.char = 详情页的字，在这一格的读屏名里）。
+    func testAllCharsBigLibraryScrollsToTheEnd() {
+        let qa = QA(seed: "all-big")
+        qa.launch()
+        waitScreen(qa, "library-all")
+        let cells = qaQuery(qa, "native-library-all-cell")
+        XCTAssertTrue(cells.element(boundBy: 0).waitForExistence(timeout: 30), "字墙的格子")
+        let first = cells.element(boundBy: 0).label
+        XCTAssertFalse(first.isEmpty, "格子有读屏名")
+        XCTAssertLessThan(cells.count, 1500, "只建了一部分格子")
+        let window = qa.app.windows.firstMatch.frame
+        // 建出来的最后一格比屏幕下沿还低约 2.5 屏（overscan）：滑到它进了屏、且两次读到的框不变（惯性停了）为止
+        var lastFrame = CGRect.null
+        var reached = false
+        for _ in 0..<60 {
+            scrollList(qa, up: true)
+            Thread.sleep(forTimeInterval: 0.8)
+            let f = cells.element(boundBy: cells.count - 1).frame
+            if window.intersects(f), f == lastFrame { reached = true; break }
+            lastFrame = f
+        }
+        XCTAssertTrue(reached, "滑到了底：最后一格在屏上且不再动（\(lastFrame)）")
+        XCTAssertEqual(cells.matching(NSPredicate(format: "label == %@", first)).count, 0, "滑走的格子收掉了")
+        let tail = cells.element(boundBy: cells.count - 1)
+        let tailLabel = tail.label
+        XCTAssertFalse(tailLabel.isEmpty)
+        tail.tap() // 真的点（不走 qa.tap 的 sendActions）
+        qa.waitRouteTop("detail", timeout: 15)
+        let char = ((qa.probe["route"] as? [String: Any])?["char"] as? String) ?? ""
+        XCTAssertFalse(char.isEmpty, "详情页的字")
+        XCTAssertTrue(tailLabel.contains(char), "点的那一格（\(tailLabel)）= 详情页的字（\(char)）")
+    }
+
+    /// 清单页 300 个待复习的字（只建看得见的行；滑过去的行收进池子、给后面的行再用）：全选（展开其余）→ 只建了一部分行；
+    /// 勾掉第一行 → 提示少一个字；一路滑到底（最后一行进屏且停稳），真手指点屏中间那一行的圆圈 → 提示又少一个；
+    /// 滑回顶（第一行进屏且停稳），第一行仍是勾掉的；提示不随滑动变。
+    func testBigListRowsStayTappableAndKeepSelection() {
+        let qa = QA(seed: "list-big")
+        qa.launch()
+        waitScreen(qa, "library-list")
+        let selects = qaQuery(qa, "native-library-list-row-select")
+        XCTAssertTrue(selects.element(boundBy: 0).waitForExistence(timeout: 30), "清单页的行")
+        let toggle = qa.el("native-library-list-toggle-all")
+        let hint0 = qaHintLabel(qa)
+        qa.tap(toggle, "select all", verify: false)
+        qa.waitProbe("all selected", timeout: 20) { _ in self.qaHintLabel(qa) != hint0 }
+        let total = qaNumber(qaHintLabel(qa))
+        XCTAssertGreaterThan(total, 200, "大清单：\(qaHintLabel(qa))")
+        XCTAssertLessThan(selects.count, total, "只建了一部分行")
+        // 勾掉第一行
+        let first = selects.element(boundBy: 0)
+        let checkedLabel = first.label
+        let hintAll = qaHintLabel(qa)
+        qa.tap(first, "uncheck the first row", verify: false)
+        qa.waitProbe("first row unchecked", timeout: 10) { _ in self.qaHintLabel(qa) != hintAll }
+        XCTAssertEqual(qaNumber(qaHintLabel(qa)), total - 1, qaHintLabel(qa))
+        let uncheckedLabel = selects.element(boundBy: 0).label
+        XCTAssertNotEqual(uncheckedLabel, checkedLabel, "第一行的圆圈读屏名跟着变")
+        let window = qa.app.windows.firstMatch.frame
+        // 滑到 target() 进了屏、且隔 0.8 秒两次读到的框不变（惯性停了）为止。
+        // 建出来的最后（最前）一行只在滑到底（顶）时才进屏：别处它在屏外约 2.5 屏（overscan）。
+        func swipe(up: Bool, until target: () -> XCUIElement) -> Bool {
+            var lastFrame = CGRect.null
+            for _ in 0..<80 {
+                scrollList(qa, up: up)
+                Thread.sleep(forTimeInterval: 0.8)
+                let f = target().frame
+                if window.intersects(f), f == lastFrame { return true }
+                lastFrame = f
+            }
+            return false
+        }
+        XCTAssertTrue(swipe(up: true) { selects.element(boundBy: selects.count - 1) }, "滑到了底：最后一行在屏上且不再动")
+        XCTAssertNotEqual(selects.element(boundBy: 0).label, uncheckedLabel, "顶上的行收掉了（最前建出来的不再是第一行）")
+        let hintBottom = qaHintLabel(qa)
+        XCTAssertEqual(qaNumber(hintBottom), total - 1, "提示不随滑动变：\(hintBottom)")
+        // 屏中间那一行（真的点，按屏上的位置；已停稳）
+        var mid: XCUIElement?
+        for i in 0..<selects.count {
+            let e = selects.element(boundBy: i)
+            let f = e.frame
+            if f.minY > window.height * 0.35, f.maxY < window.height * 0.65 { mid = e; break }
+        }
+        guard let mid else { XCTFail("no row in the middle of the screen"); return }
+        let midFrame = mid.frame
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertEqual(mid.frame, midFrame, "点之前已停稳")
+        mid.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        qa.waitProbe("a reused row's circle reacts to a real touch", timeout: 10) { _ in self.qaHintLabel(qa) != hintBottom }
+        XCTAssertEqual(qaNumber(qaHintLabel(qa)), total - 2, qaHintLabel(qa))
+        // 滑回顶
+        XCTAssertTrue(swipe(up: false) { selects.element(boundBy: 0) }, "滑回了顶：第一行在屏上且不再动")
+        XCTAssertEqual(selects.element(boundBy: 0).label, uncheckedLabel, "第一行滑走再滑回来仍是勾掉的")
+        XCTAssertEqual(qaNumber(qaHintLabel(qa)), total - 2)
+    }
+
+    /// 提示句里的第一个数（「选了 N 个字」的 N）。
+    private func qaNumber(_ s: String) -> Int {
+        let digits = s.drop(while: { !$0.isNumber }).prefix(while: { $0.isNumber })
+        return Int(digits) ?? -1
     }
 
     private func qaFirstGroupName(_ qa: QA) -> String { qa.el("native-library-all-group-name").label }

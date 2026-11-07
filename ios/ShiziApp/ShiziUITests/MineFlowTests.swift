@@ -33,7 +33,9 @@ final class MineFlowTests: XCTestCase {
     @discardableResult
     private func tapUntil(_ qa: QA, _ e: XCUIElement, _ what: String, _ effect: ([String: Any]) -> Bool) -> Bool {
         for attempt in 0..<3 {
-            guard e.exists else { XCTFail("\(what): the control is gone"); return false }
+            // 推入页面后来源控件会从无障碍树消失：等目的页就绪，不能当成点按失败。
+            if effect(qa.probe) { return true }
+            guard e.exists else { return effect(qa.waitProbe(what, timeout: 20, effect)) }
             e.tap()
             Thread.sleep(forTimeInterval: 0.7)
             let end = Date().addingTimeInterval(2.5)

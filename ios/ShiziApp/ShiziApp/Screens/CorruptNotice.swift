@@ -1,13 +1,13 @@
 import UIKit
 
-// B3.13 原生坏值提示浮条（L4 顶部浮条；网页 src/ui/components/corrupt-notice.js，1:1 移植；样式按 D71 ③）。
+// B3.13 原生坏值提示浮条（L4 顶部浮条；照网页版 1:1 移植；样式按 D71 ③）。
 //
 // 启动逐键形状校验时隔离了坏值 → 顶部浮出一次：一句说明 + 右上角的关闭键；点掉就没了（不写入任何数据）。
 // 原生壳里由原生画这一条（网页那边只发「显示 / 收起」消息）：浮条挂在当前原生根页上（原生根页在网页之上，浮条又在根页之上）。
 //
 // 版式（网页 .sz-corrupt）：绝对定位在顶部（left / right = 页边、top = 8 + 安全区）、圆角 r-box、1px toast-line 细边、
 // 浅面 toast-bg、字 toast-fg、toast-shadow 投影；内边距 10 6 10 16；说明（15 / lh15，padding-top 2）与关闭键之间 gap 8；
-// 关闭键 44 × 44、图标 18（网页 icons.js 的 close）。
+// 关闭键 44 × 44、图标 18（网页的 close）。
 
 /// 坏值提示浮条（原生层上的一个视图；由 NativeStage 挂起）。
 final class ShiziCorruptNoticeView: UIView {

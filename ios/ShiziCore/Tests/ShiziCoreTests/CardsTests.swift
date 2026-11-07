@@ -34,7 +34,7 @@ final class CardsTests: XCTestCase {
     func card(_ t: String, raw: Bool = false) -> JSValue { (raw ? Self.withoutOverrides : Self.withOverrides)[t]! }
     func seedRow(_ t: String) -> JSValue { Self.seed.first { $0["target"]?.stringValue == t }! }
 
-    // test/core/cards.test.mjs: cards.js is a pure module (no browser globals, storage or network)
+    // cards.js is a pure module (no browser globals, storage or network)
     func testCardsJsIsAPureModuleNoBrowserGlobalsStorageOrNetwork() throws {
         // Swift 对应：卡片规则源码只依赖 Foundation，不碰 UI / 存储 / 网络框架
         for rel in ["Cards/Cards.swift", "Query/Query.swift", "Records/Records.swift", "Records/WorkMembers.swift", "Records/InkPick.swift", "Records/FirstResult.swift", "Records/Reminder.swift",
@@ -48,7 +48,7 @@ final class CardsTests: XCTestCase {
         }
     }
 
-    // test/core/cards.test.mjs: buildCards yields one card per SEED row: 7218 unique targets
+    // buildCards yields one card per SEED row: 7218 unique targets
     func testBuildCardsYieldsOneCardPerSEEDRow7218UniqueTargets() {
         XCTAssertEqual(Self.seed.count, 7218)
         XCTAssertEqual(Self.cards.count, 7218)
@@ -57,7 +57,7 @@ final class CardsTests: XCTestCase {
         XCTAssertEqual(Self.rawCards.count, 7218)
     }
 
-    // test/core/cards.test.mjs: card fields and key order match the legacy CARDS construction
+    // card fields and key order match the legacy CARDS construction
     func testCardFieldsAndKeyOrderMatchTheLegacyCARDSConstruction() throws {
         let legacy = ["word", "chars", "ci", "target", "py", "hint", "rank", "strokes", "parts", "topic", "d", "band", "edu", "common", "norm", "std", "ctx"]
         for c in Self.cards {
@@ -81,7 +81,7 @@ final class CardsTests: XCTestCase {
         XCTAssertEqual([plain["rank"], plain["strokes"], plain["parts"], plain["d"], plain["common"], plain["std"]], [n43(440), n43(12), n43(3), n43(58), n43(5), n43(2514)])
     }
 
-    // test/core/cards.test.mjs: LIBRARIES: legacy ids, v10 labels, counts 3500/2974/744/2500
+    // LIBRARIES: legacy ids, v10 labels, counts 3500/2974/744/2500
     func testLIBRARIESLegacyIdsV10LabelsCounts3500297474425() {
         XCTAssertEqual(Cards.libraries.map { $0.id }, ["core3500", "adv3000", "rare", "curriculum2500"])
         XCTAssertEqual(Cards.libraries.map { $0.label }, ["\u{5E38}\u{7528}\u{5B57}", "\u{6B21}\u{5E38}\u{7528}\u{5B57}", "\u{5C11}\u{89C1}\u{5B57}", "\u{8BFE}\u{672C}\u{5B57}"])
@@ -93,14 +93,14 @@ final class CardsTests: XCTestCase {
         XCTAssertEqual(Cards.libraryIdsFor(card(ta)), ["core3500", "curriculum2500"])
     }
 
-    // test/core/cards.test.mjs: cardKey is base:<字> / custom:<字>
+    // cardKey is base:<字> / custom:<字>
     func testCardKeyIsBaseCustom() {
         XCTAssertEqual(Cards.cardKey(card(yue)), "base:" + yue)
         XCTAssertEqual(Cards.cardKey(obj43([("target", s43("\u{20BB7}")), ("custom", .bool(true))])), "custom:\u{20BB7}")
         XCTAssertEqual(Set(Self.cards.map(Cards.cardKey)).count, 7218)
     }
 
-    // test/core/cards.test.mjs: promptModel masks every occurrence of a repeated target (越来越, raw SEED)
+    // promptModel masks every occurrence of a repeated target (越来越, raw SEED)
     func testPromptModelMasksEveryOccurrenceOfARepeatedTargetRawSEED() throws {
         let c = card(yue, raw: true)
         let model = try Cards.promptModel(c)
@@ -118,7 +118,7 @@ final class CardsTests: XCTestCase {
                        "<span class=\"blank\">\(py.stringValue!)</span><span class=\"given\">\(lai)</span><span class=\"blank repeatBlank\" role=\"img\" aria-label=\"\(label)\">\u{25A1}</span>")
     }
 
-    // test/core/cards.test.mjs: promptModel for 慢慢 (raw SEED): only the original position carries pinyin
+    // promptModel for 慢慢 (raw SEED): only the original position carries pinyin
     func testPromptModelForManManRawSEEDOnlyTheOriginalPositionCarriesPinyin() throws {
         let model = try Cards.promptModel(card(manC, raw: true))
         let segs = model["segments"]!.arrayValue!
@@ -127,7 +127,7 @@ final class CardsTests: XCTestCase {
         XCTAssertTrue(segs.allSatisfy { $0["text"] != s43(manC) && $0["label"] != s43(manC) })
     }
 
-    // test/core/cards.test.mjs: #175 overrides replace 越来越/慢慢 and keep masking other repeated words (忠心耿耿)
+    // #175 overrides replace 越来越/慢慢 and keep masking other repeated words (忠心耿耿)
     func testOverrides175ReplaceYueLaiYueManManAndKeepMaskingOtherRepeatedWords() throws {
         XCTAssertEqual(card(yue)["word"], s43(yue + "\u{91CE}")) // 越野
         XCTAssertEqual(card(manC)["word"], s43("\u{7F13}" + manC)) // 缓慢
@@ -137,7 +137,7 @@ final class CardsTests: XCTestCase {
         XCTAssertTrue((model["visibleHint"]?.stringValue ?? "").hasSuffix(copy["repeatInstruction"]!.stringValue!))
     }
 
-    // test/core/cards.test.mjs: no prompt or visible hint leaks the target; exactly one pinyin blank per card
+    // no prompt or visible hint leaks the target; exactly one pinyin blank per card
     func testNoPromptOrVisibleHintLeaksTheTargetExactlyOnePinyinBlankPerCard() throws {
         for c in Self.cards {
             let target = c["target"]!.stringValue!
@@ -152,7 +152,7 @@ final class CardsTests: XCTestCase {
         }
     }
 
-    // test/core/cards.test.mjs: visible hint: gloss, promptHint, fallback, custom
+    // visible hint: gloss, promptHint, fallback, custom
     func testVisibleHintGlossPromptHintFallbackCustom() throws {
         // gloss / promptHint 的内容来自题库覆盖：取出来对账（不手抄汉字）
         let o = DeckData.shared.overrides
@@ -164,7 +164,7 @@ final class CardsTests: XCTestCase {
         XCTAssertEqual(try Cards.visibleHint(obj43([("custom", .bool(true)), ("chars", arrayOf43([zi])), ("ci", n43(0)), ("target", s43(zi)), ("py", s43("z\u{EC}"))])), s43(""))
     }
 
-    // test/core/cards.test.mjs: promptHTML escapes markup and falls back to ？ without pinyin
+    // promptHTML escapes markup and falls back to ？ without pinyin
     func testPromptHTMLEscapesMarkupAndFallsBackToFullwidthQuestionMarkWithoutPinyin() throws {
         let c = obj43([("chars", arrayOf43(["<", zi, "&"])), ("ci", n43(1)), ("target", s43(zi)), ("py", s43(""))])
         XCTAssertEqual(try Cards.promptHTML(c), "<span class=\"given\">&lt;</span><span class=\"blank\">\(huan)</span><span class=\"given\">&amp;</span>")
@@ -173,7 +173,7 @@ final class CardsTests: XCTestCase {
         XCTAssertEqual(try Cards.promptModel(obj43([("chars", arrayOf43(["a", "a"])), ("ci", n43(0)), ("target", s43("a")), ("py", s43("p"))]), copy: cp)["instruction"], s43("X"))
     }
 
-    // test/core/cards.test.mjs: applyContextOverride: invalid w is ignored, gloss/preserveCommon/py/promptHint semantics
+    // applyContextOverride: invalid w is ignored, gloss/preserveCommon/py/promptHint semantics
     func testApplyContextOverrideInvalidWIsIgnoredGlossPreserveCommonPyPromptHintSemantics() throws {
         let row = seedRow(yue)
         func tbl(_ pairs: [(String, JSValue)]) -> JSValue { obj43([(yue, obj43(pairs))]) }

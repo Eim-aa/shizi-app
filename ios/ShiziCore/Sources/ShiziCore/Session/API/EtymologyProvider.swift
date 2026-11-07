@@ -1,6 +1,6 @@
 import Foundation
 
-/// src/data/etymology.js: one in-flight read; successful tables cache, failed reads retry.
+/// Etymology table provider: one in-flight read; successful tables cache, failed reads retry.
 public final class EtymologyProvider {
     public var loadRows: (() async throws -> JSValue?)?
     private var table: JSObject?
@@ -8,10 +8,6 @@ public final class EtymologyProvider {
     public init(loadRows: (() async throws -> JSValue?)? = nil) { self.loadRows = loadRows }
     public func etymologyOf(_ char: String) -> JSValue? { table?[char] }
     public var ready: Bool { table != nil }
-    public func setRows(_ rows: JSValue?) {
-        pending = nil; table = nil
-        if let rows = rows?.arrayValue { var map = JSObject(); for r in rows { if let c = r["char"]?.stringValue { var o = JSObject();o["gloss"] = r["gloss"];o["source"] = JS.truthy(r["source"]) ? r["source"] : .string("");map[c] = .object(o) } };table = map }
-    }
     public func load() async -> JSValue? {
         if let table { return .object(table) }
         if let pending { return await pending.value }

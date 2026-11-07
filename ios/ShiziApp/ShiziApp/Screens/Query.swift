@@ -3,23 +3,23 @@ import UIKit
 // B3.6 native query sheet + native S02 confirm box.
 //
 // The web standard answer (copy item by item, the native side is a 1:1 port):
-//   src/ui/components/query/QuerySheet.js  the sheet (the panel, the head row, the sticky footer bar, the three-part failure)
-//   src/ui/components/query/CharRow.js     one row (the pick checkbox + the char / pinyin / word + the record status + the chevron)
-//   src/ui/components/query/CharCard.js     the char card (the two cells, the char / pinyin / word / record lines, the buttons)
-//   src/ui/components/query/input.js        the input field, the keyboard avoidance, the IME composition gate
-//   src/ui/components/query/index.js        openQuery (the native screen is a route entry)
-//   src/ui/components/Sheet.js              the sheet skeleton (the rounded corners, the shadow, "Done", the drag-to-close)
-//   src/ui/components/Button.js             the button variants (primary / secondary / text)
-//   src/ui/components/FailBlock.js          the three-part failure (a note + [let it go | try again])
-//   src/ui/components/Confirm.js            the centered confirm box
-//   src/ui/screens/session/s02.js           S02
+//   the sheet (the panel, the head row, the sticky footer bar, the three-part failure)
+//   one row (the pick checkbox + the char / pinyin / word + the record status + the chevron)
+//   the char card (the two cells, the char / pinyin / word / record lines, the buttons)
+//   the input field, the keyboard avoidance, the IME composition gate
+//   openQuery (the native screen is a route entry)
+//   the sheet skeleton (the rounded corners, the shadow, "Done", the drag-to-close)
+//   the button variants (primary / secondary / text)
+//   the three-part failure (a note + [let it go | try again])
+//   the centered confirm box
+//   S02
 //
 // The model / the ops (never write another model; the field names are copied from the model):
-//   src/session/views/query.js  querySheetModel(...)  -> the view.query reply
-//   src/session/api/query.js    view.query / query.add / query.pick / query.detail / view.s02 / s02.decide
+//   querySheetModel(...) -> the view.query reply
+//   view.query / query.add / query.pick / query.detail / view.s02 / s02.decide
 //
 // The native screen is a full-screen transparent layer that draws the sheet itself (the layer below is the web page).
-// This file has no Chinese literals (the gate test/ios-native-write.test.mjs scans every native file): every user-visible
+// This file has no Chinese literals (the gate scans every native file): every user-visible
 // string comes from the model's copy key + parameters and is rendered with ShiziCopy.
 
 // MARK: - The type helpers (the web's font rules)
@@ -111,7 +111,7 @@ func brokenAt(_ text: String, _ starts: [Int]) -> String {
 
 // MARK: - The copy reference in the model ({key, vars})
 
-/// The copy reference the query / S02 models give: a copy key + the parameters (session/views/query.js, session/api/query.js).
+/// The copy reference the query / S02 models give: a copy key + the parameters .
 struct QueryCopyRef: Decodable, Equatable {
     let key: String
     let vars: [String: Value]?
@@ -145,7 +145,7 @@ struct QueryCopyRef: Decodable, Equatable {
         return ShiziCopy.t(key, filled)
     }
 
-    /// localDay ("YYYY-MM-DD") -> the date sentence (R-H02.dateFormat; the web's core/dates.js monthDayParts).
+    /// localDay ("YYYY-MM-DD") -> the date sentence (R-H02.dateFormat; the web's monthDayParts).
     static func formatDay(_ day: String) -> String {
         let parts = day.split(separator: "-")
         guard parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) else { return day }
@@ -155,7 +155,7 @@ struct QueryCopyRef: Decodable, Equatable {
 
 // MARK: - The overlay timing (T-sheet / T-confirm) from the generated motion tokens
 
-/// The sheet / confirm box timing: the generated motion tokens (config/motion.js M.role / M.easing / M.gesture).
+/// The sheet / confirm box timing: the generated motion tokens (M.role / M.easing / M.gesture).
 enum QueryOverlay {
     static var spec: NativeOverlaySpec {
         let motion = ShiziTokens.motion
@@ -357,7 +357,7 @@ enum QueryCheck {
     }
 }
 
-// MARK: - One row of characters (the web's CharRow.js)
+// MARK: - One row of characters
 
 /// The row's open button (the web's .sz-qrow__open): the texts are drawn by the labels, the title is only the accessible name.
 final class QueryRowButton: UIButton {
@@ -506,11 +506,11 @@ extension Array {
     subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil }
 }
 
-// MARK: - The query sheet (the web's QuerySheet.js)
+// MARK: - The query sheet
 
 @objc(ShiziScreen_query)
 final class QueryScreen: ShiziScreenViewController {
-    // MARK: The model (the field names are copied from session/views/query.js)
+    // MARK: The model (the field names are copied from )
 
     struct Model: Decodable {
         struct Row: Decodable {
@@ -833,7 +833,7 @@ final class QueryScreen: ShiziScreenViewController {
                                                name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardChanged(_:)),
                                                name: UIResponder.keyboardWillHideNotification, object: nil)
-        // Drag to close (the web's Sheet.js createSheetDrag): follow the finger, commit or snap back.
+        // Drag to close: follow the finger, commit or snap back.
         sheetPan.delegate = self
         sheetPan.addTarget(self, action: #selector(sheetPanned(_:)))
         sheet.addGestureRecognizer(sheetPan)
@@ -1168,13 +1168,13 @@ final class QueryScreen: ShiziScreenViewController {
         trackTitle(detailButton)
     }
 
-    /// The web's disabled secondary button (Button.js: .sz-btn--secondary[disabled]): the field background, no border.
+    /// The web's disabled secondary button (: .sz-btn--secondary[disabled]): the field background, no border.
     private func updateSecondaryState(_ b: UIButton) {
         b.backgroundColor = b.isEnabled ? .clear : color("field")
         b.layer.borderWidth = b.isEnabled ? 1 : 0
     }
 
-    /// The web's disabled primary button (Button.js: .sz-btn--primary[disabled]): the field background.
+    /// The web's disabled primary button (: .sz-btn--primary[disabled]): the field background.
     private func updatePrimaryState(_ b: UIButton) {
         b.backgroundColor = b.isEnabled ? color("btn-bg") : color("field")
     }
@@ -1319,7 +1319,7 @@ final class QueryScreen: ShiziScreenViewController {
         applySheetShadow()
 
         // The head: the title on the left, the "done" button on the right (the full-height sheet puts the head at the top right).
-        // The AX full sheet caps the "done" button's font size at 22 (the web's Sheet.js AX rule).
+        // The AX full sheet caps the "done" button's font size at 22 (the web's AX rule).
         let doneText = t("X-COMMON.done")
         doneButton.setTitle(doneText, for: .normal)
         doneButton.setTitleColor(color("ink2"), for: .normal)
@@ -1668,7 +1668,7 @@ final class QueryScreen: ShiziScreenViewController {
     }
 
     /// The text button's height (the web's .sz-btn--text): the min hit height; in the AX tiers the web's rule is
-    /// min-height: max(44px, 1.3em + 12px) (components/ax.js).
+    /// min-height: max(44px, 1.3em + 12px).
     private var textButtonHeight: CGFloat {
         axLayout ? max(metrics.hit, 1.3 * metrics.value("fs15") + 12) : metrics.hit
     }
@@ -1681,7 +1681,7 @@ final class QueryScreen: ShiziScreenViewController {
     /// The primary button's height (the web's --btn-h).
     private var buttonHeight: CGFloat { max(metrics.value("btn-h"), 44) }
 
-    /// The AX rule for the primary / secondary buttons (the web's components/ax.js): the height grows with the
+    /// The AX rule for the primary / secondary buttons: the height grows with the
     /// wrapped title (the padding 6 above and below); 0 outside the AX tiers.
     private func axButtonHeight(_ b: UIButton, width: CGFloat, inset: CGFloat) -> CGFloat {
         guard axLayout else { return 0 }
@@ -1699,7 +1699,7 @@ final class QueryScreen: ShiziScreenViewController {
         ShiziElev.apply(sheet, dark: dark) // --elev-shadow：模糊影子 + 上沿发丝线（ShiziKit ShiziElev）
     }
 
-    // MARK: The buttons' styles (the web's Button.js)
+    // MARK: The buttons' styles
 
     private func stylePrimary(_ b: UIButton, id: String) {
         b.titleLabel?.font = metrics.font(17, .medium)
@@ -1744,7 +1744,7 @@ final class QueryScreen: ShiziScreenViewController {
         inputField.keyboardType = .default
         // The sheet rides on the keyboard (D75: no gap for WebKit's form bar).
         inputField.returnKeyType = .done
-        // The web's field keeps autocorrect / spellcheck off (input.js: autocorrect="off" spellcheck="false"); the native
+        // The web's field keeps autocorrect / spellcheck off (: autocorrect="off" spellcheck="false"); the native
         // keeps the system defaults so the user's own keyboard (and its Chinese input) is never switched away.
         inputField.autocapitalizationType = .none
         inputField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
@@ -1999,7 +1999,7 @@ final class QueryScreen: ShiziScreenViewController {
         view.setNeedsLayout()
     }
 
-    // MARK: The drag to close (the web's Sheet.js createSheetDrag)
+    // MARK: The drag to close
 
     override func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
         if g === edgePan { return true }
@@ -2077,7 +2077,7 @@ extension QueryScreen.Model {
     }
 }
 
-// MARK: - The S02 confirm box (the web's src/ui/screens/session/s02.js)
+// MARK: - The S02 confirm box
 
 @objc(ShiziScreen_s02)
 final class S02Screen: ShiziScreenViewController {
@@ -2199,7 +2199,7 @@ final class S02Screen: ShiziScreenViewController {
         super.dismiss(animated: flag, completion: completion)
     }
 
-    /// T-confirm (once the layer is up): the scrim fades in, the box scales up from 0.96 (the web's Confirm.js).
+    /// T-confirm (once the layer is up): the scrim fades in, the box scales up from 0.96.
     private func enter() {
         let spec = QueryOverlay.spec
         if NativeWriteTransitions.reduceMotion {
@@ -2224,6 +2224,9 @@ final class S02Screen: ShiziScreenViewController {
         super.viewDidLayoutSubviews()
         layoutDialog()
     }
+
+    /// 视图回包不读 store（ShiziCore QueryAPI view.s02：只读参数 chars）：changed 推送不重拉。
+    override var watchedDomains: [String]? { [] }
 
     override func render(view raw: Any) throws {
         let m = try ShiziDecode.value(raw, as: Model.self)
@@ -2297,7 +2300,7 @@ final class S02Screen: ShiziScreenViewController {
         let bodyH = NativeType.height(bodyLabel, width: inner, line: metrics.line("lh15"))
         let gap = metrics.space(3)
         let btnH = max(metrics.value("btn-h"), 44)
-        // The text button's height: the web's AX rule (components/ax.js) is min-height: max(44px, 1.3em + 12px).
+        // The text button's height: the web's AX rule is min-height: max(44px, 1.3em + 12px).
         let textH = axLayout ? max(metrics.hit, 1.3 * metrics.value("fs15") + 12) : metrics.hit
         // The ask state: the body, then the three buttons (the primary, the secondary, the text button).
         // The failed state: the body, then the three-part block (one row of two buttons).
@@ -2392,7 +2395,7 @@ final class S02Screen: ShiziScreenViewController {
         requestBack()
     }
 
-    // MARK: The buttons' styles (the web's Button.js / Confirm.js)
+    // MARK: The buttons' styles (the web's / )
 
     private func stylePrimary(_ b: UIButton, id: String) {
         b.titleLabel?.font = metrics.font(17, .medium)

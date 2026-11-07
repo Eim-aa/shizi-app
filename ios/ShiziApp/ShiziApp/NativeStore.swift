@@ -3,7 +3,7 @@ import SQLite3
 
 // B1 原生数据层（D26 / D67；01-架构设计 §4.1）：拾字的全部持久数据存在 App 自己的 SQLite 库里（系统自带 libsqlite3，不引第三方库）。
 //
-// 这一层只认「键 → JSON 字串」：键与 JS 侧 store 的 v2 键一一对应（src/core/schema.js），值是 store 序列化好的原始字串，
+// 这一层只认「键 → JSON 字串」：键与 JS 侧 store 的 v2 键一一对应，值是 store 序列化好的原始字串，
 // 原样存、原样取，原生不解析业务形状（规则在 JS，B4 前不在 Swift 重写）。键按数据形状分表：
 //   records(month)   shizi.v2.records.<YYYY-MM>    每月一行（当月 Record[] 或折叠对象）
 //   ink_records(month, id)  shizi.v2.ink.<YYYY-MM>.<recordId>  每条墨迹一行（schema 2，B2.3：一次判断只写它自己那一行）
@@ -19,7 +19,7 @@ import SQLite3
 // 每个值带 JS 算的校验和（UTF-8 字节数 + FNV-1a 32，见 checksum）：入库前核对收到的字串、写后在同一事务里读回逐字节比对，
 // 任一不符整笔回滚（E_VERIFY）。这就是 localStorage 时代「逐键读回比对」在原生侧的等价物，且是原子的。
 //
-// 错误码（桥返回给 JS，src/platform/native-store.js 映射）：
+// 错误码（桥返回给 JS 的映射）：
 //   E_FULL 磁盘满（JS 当作配额错误，走预算回收）  E_IO 读写失败  E_BUSY 库被占用  E_CORRUPT 库损坏  E_SQLITE 其他 SQLite 错误
 //   E_VERIFY 校验不符（已回滚）  E_BAD_REQUEST 请求格式错  E_BAD_KEY 键不是 shizi.*  E_SCHEMA 库版本比 App 新
 //   E_MIGRATION 迁移状态不允许这一步（例如已完成后再导入）  E_UNAVAILABLE 库打不开
@@ -263,7 +263,7 @@ final class NativeStore {
     /// 逐级升级：每一级一个事务（改表 + 把 user_version 改成这一级），做完一级才进下一级——中途被杀，下次从停下的那一级接着做（可重入）。
     ///   v0 → v1 建表（B1）。
     ///   v1 → v2 墨迹每条一行（B2.3）：建 ink_records(month, id, body)。只改结构：把旧 ink 月行拆成单条行由 JS store 做
-    ///          （store.js migrateInkSchema：逐条形状校验、逐月一个 apply 事务、失败回滚并记诊断、下次启动再迁）——
+    ///          （migrateInkSchema：逐条形状校验、逐月一个 apply 事务、失败回滚并记诊断、下次启动再迁）——
     ///          值的形状只在 JS 里（D69 / B4 前不在 Swift 重写），原生仍不解析业务 JSON；拆完之前旧月行照常可读可写。
     private func migrateSchema() throws {
         let version = userVersion
@@ -542,7 +542,7 @@ final class NativeStore {
         try run("INSERT INTO store_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", binds: [.text(key), .text(value)])
     }
 
-    // MARK: - 校验和（与 src/platform/native-store.js checksum 同口径）
+    // MARK: - 校验和（与 checksum 同口径）
 
     static let fnvOffset: UInt32 = 0x811c9dc5
     static let fnvPrime: UInt32 = 0x01000193
@@ -697,5 +697,44 @@ final class NativeStore {
         let count = Int(sqlite3_column_bytes(stmt, column))
         guard count > 0, let ptr = sqlite3_column_text(stmt, column) else { return "" }
         return String(decoding: UnsafeBufferPointer(start: ptr, count: count), as: UTF8.self)
+    }
+}
+
+// MARK: - 设备剩余空间（原生的存储压力口径，P57）
+
+/// App 容器所在卷的剩余空间（`volumeAvailableCapacityForImportantUsage`：用户主动产生的重要数据可用的空间，含系统可清掉的可清除空间），
+/// 交给 ShiziCore Store.deviceAvailableBytes：「我的 › 备份」行的「快存满了」按它判（< 500MiB warn、< 100MiB full），
+/// 不再按估算总量 / 64MiB 的网页时代假上限。量不到（读失败、读数 ≤ 0）= nil = 没有压力；真的写满由 SQLITE_FULL（E_FULL）兜底。
+/// 读数缓存 maxAge 秒：Store 每次提交发布后都要问一次，卷容量的查询不便宜（可清除空间要系统去算）；回到前台时 invalidate。
+final class DeviceFreeSpace {
+    let url: URL
+    let maxAge: TimeInterval
+    /// 单调时钟（秒）；测试替换。
+    var clock: () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+    /// 一次真读；测试替换。
+    var read: (URL) -> Double? = { DeviceFreeSpace.volumeAvailableBytes($0) }
+    private var cached: (at: TimeInterval, bytes: Double?)?
+
+    init(url: URL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true), maxAge: TimeInterval = 60) {
+        self.url = url
+        self.maxAge = maxAge
+    }
+
+    /// 剩余字节（缓存未过期就用缓存）。
+    func bytes() -> Double? {
+        let t = clock()
+        if let c = cached, t - c.at >= 0, t - c.at < maxAge { return c.bytes }
+        let b = read(url)
+        cached = (at: t, bytes: b)
+        return b
+    }
+
+    /// 下次 bytes() 重新读（回到前台：用户可能在别处清了空间）。
+    func invalidate() { cached = nil }
+
+    static func volumeAvailableBytes(_ url: URL) -> Double? {
+        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]),
+              let n = values.volumeAvailableCapacityForImportantUsage, n > 0 else { return nil }
+        return Double(n)
     }
 }

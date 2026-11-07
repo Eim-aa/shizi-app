@@ -1,7 +1,7 @@
 import UIKit
 
 // 原生练习字字形（B2.0）：与网页同一份数据 data/<字>.json（hanzi-writer 格式，01 §8.7「练习字字形单一来源」），
-// 每笔一条 SVG 路径（1024 单位、y 向上、基线 900）→ CGPath。几何与 src/ui/canvas/glyph.js glyphTransform 同一个仿射：
+// 每笔一条 SVG 路径（1024 单位、y 向上、基线 900）→ CGPath。几何与 glyphTransform 同一个仿射：
 //   pad = size × padRatio，k = (size − 2·pad) / 1024，x' = pad + x·k，y' = pad + (900 − y)·k。
 // 包里的 Web/data 由 sync-web-assets.sh 按壳清单复制，所以原生与网页读的是同一批文件。
 
@@ -12,7 +12,17 @@ struct NativeGlyphData {
     static let units: CGFloat = 1024
     static let baseline: CGFloat = 900
 
-    private static var cache: [String: NativeGlyphData] = [:]
+    /// 字形缓存。原来是字典、满 256 个就整份清空：「已练汉字」等页有上千个字时，每次排版都会把字形从磁盘重读、重新解析。
+    /// 改用 NSCache：容量 1500 个、按需逐出（不再整份清空），内存吃紧时由系统回收。
+    private final class Entry {
+        let glyph: NativeGlyphData
+        init(_ glyph: NativeGlyphData) { self.glyph = glyph }
+    }
+    private static let cache: NSCache<NSString, Entry> = {
+        let c = NSCache<NSString, Entry>()
+        c.countLimit = 1500
+        return c
+    }()
     private static var missing: Set<String> = []
 
     static var dataDirectory: URL? {
@@ -21,7 +31,7 @@ struct NativeGlyphData {
 
     /// 取一个字的字形（主线程用；缓存成功与「确无数据」）。
     static func load(_ char: String) -> NativeGlyphData? {
-        if let hit = cache[char] { return hit }
+        if let hit = cache.object(forKey: char as NSString) { return hit.glyph }
         if missing.contains(char) { return nil }
         guard let dir = dataDirectory,
               let data = try? Data(contentsOf: dir.appendingPathComponent("\(char).json")),
@@ -29,8 +39,7 @@ struct NativeGlyphData {
             missing.insert(char)
             return nil
         }
-        if cache.count > 256 { cache.removeAll() }
-        cache[char] = glyph
+        cache.setObject(Entry(glyph), forKey: char as NSString)
         return glyph
     }
 
@@ -77,7 +86,7 @@ struct NativeGlyphData {
         return p
     }
 
-    /// 1024 单位 → 边长 size 的格子（padRatio 与 glyph.js GLYPH_PAD_RATIO 同义；题面字 FACE_FULL 时为 0）。
+    /// 1024 单位 → 边长 size 的格子（padRatio 与 GLYPH_PAD_RATIO 同义；题面字 FACE_FULL 时为 0）。
     static func transform(size: CGFloat, padRatio: CGFloat) -> CGAffineTransform {
         let pad = size * padRatio
         let k = (size - 2 * pad) / units
@@ -100,6 +109,12 @@ final class NativeGlyphView: UIView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// 浅 / 深等颜色外观变了：字色（动态色）要按新外观重新解析（同 LibraryInkView；页面给的颜色对象没变时也重画，只是多画一次）。
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        super.traitCollectionDidChange(previous)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) { setNeedsDisplay() }
+    }
 
     override func draw(_ rect: CGRect) {
         guard !char.isEmpty, let ctx = UIGraphicsGetCurrentContext() else { return }

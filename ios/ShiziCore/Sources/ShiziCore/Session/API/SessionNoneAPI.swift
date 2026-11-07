@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/api/session.js.
 extension PageAPI {
     static func none(_ op: String, _ a: JSObject, hooks: SessionActionHooks?) throws -> JSValue {
         if op == "view.session-none" {

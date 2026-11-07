@@ -42,8 +42,6 @@ extension RootViewController {
         return docs.appendingPathComponent("qa", isDirectory: true)
     }
 
-    /// 固定数据：这次选的字（B 槽，「跳过」「结束这组」都在），5 个字。
-    static let qaChars = ["\u{6C38}", "\u{548C}", "\u{6625}", "\u{65E5}", "\u{6708}"] // 永 和 春 日 月
     /// 时钟不固定（用真实时间）：冷启动恢复按「离开多久」判断，固定时钟会让重开时现场显得「很久以前」而不恢复；
     /// 写字页上没有随时间变的内容，对比不受影响。传 -shizi-qa-clock <ISO> 可另行固定。
     static var qaClock: String { qaArg("-shizi-qa-clock") ?? "" }
@@ -104,6 +102,7 @@ extension RootViewController {
         try? fm.createDirectory(at: outDir, withIntermediateDirectories: true)
         for (i, st) in states.enumerated() {
             let err = await qaPrepare(st)
+            await qaWaitContent() // 页面按需取的内容（年报月段格的墨迹）都到了，再等它们画好（下一行的落定）
             await qaSettleNative() // QA-H4：等推入转场 / 动画落定再取（准备好的信号可能发在转场进行中）
             var dump: [String: Any] = ["state": st, "ui": ui, "tag": tag, "ok": err == nil]
             if let err { dump["error"] = err }
@@ -125,6 +124,22 @@ extension RootViewController {
             _ = await qaWait(90) { fm.fileExists(atPath: ack.path) }
         }
         try? "done".write(to: Self.qaDir.appendingPathComponent("done"), atomically: true, encoding: .utf8)
+    }
+
+    /// 窗口里的原生页（通用原生栈 + tab 根页）有没有还在路上的内容（ShiziScreenViewController.pendingContent：年报建出来的格子的墨迹还没全到）。
+    func qaContentPending() -> Bool {
+        var pages = stage.screens
+        if let root = stage.rootScreen { pages.append(root) }
+        return pages.contains { $0.isViewLoaded && $0.view.window != nil && $0.pendingContent }
+    }
+
+    /// 等页面按需取的内容都到了（最多 timeout 秒；到不了照样往下取证，取证结果会与基线不同而暴露出来）。
+    /// 到了之后的重画（setNeedsDisplay）由随后的 qaSettleNative / 夹具的 settle 等到画完。
+    func qaWaitContent(_ timeout: Double = 15) async {
+        guard qaContentPending() else { return }
+        let t0 = Date()
+        let ok = await qaWait(timeout) { !self.qaContentPending() }
+        ShiziProbe.log("qa: page content \(ok ? "arrived" : "still pending") after \(Int(Date().timeIntervalSince(t0) * 1000))ms")
     }
 
     /// QA-H4：等原生界面落定再取证——没有进行中的转场（任一视图控制器的 transitionCoordinator / isBeingPresented 等）、
@@ -179,9 +194,7 @@ extension RootViewController {
     /// 原生元素清单：窗口里的全部可见视图（原生写字页、弹层、撤销条、确认框），控件与文字一项一条。
     /// 每条带：属性名（Mirror 取原生页上的成员名，作稳定的语义键）、accessibilityIdentifier / Label / Frame、
     /// 窗口坐标 frame（pt）、文字、文字色 / 底色 / 边框色（按当前外观解析成 #RRGGBBAA）、字号与字重、是否可点。
-    func qaNativeElements() -> [[String: Any]] { qaNativeDump().0 }
-
-    /// 元素清单 + QA-H2 屏外一份（滚动区里滚得到、此刻在屏外的元素，同一形状、带 off: true）。
+    /// 返回元素清单 + QA-H2 屏外一份（滚动区里滚得到、此刻在屏外的元素，同一形状、带 off: true）。
     func qaNativeDump() -> ([[String: Any]], [[String: Any]]) {
         guard let window = view.window else { return ([], []) }
         let names = qaNames()
@@ -718,7 +731,7 @@ enum QAClock {
         }
     }
 
-    /// 钉住的起点与读数（prologue.js 的 Date.now = FIX + (pinK += 5)）。
+    /// 钉住的起点与读数（Date.now = FIX + (pinK += 5)）。
     private static var pinned: (base: Double, k: Double)?
 
     private static func realMs() -> Double { Date().timeIntervalSince1970 * 1000 }
@@ -839,7 +852,7 @@ final class QAProbe {
             out["result"] = ["shown": false]
         }
         // B3.2 NativeStage：通用原生栈（底 → 顶的屏名）、引擎状态、点按 → 转场第一帧（ms，最近 64 次）
-        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies, "bootMs": NativeStage.bootFrameMs ?? -1, "bootFromLaunchMs": NativeStage.bootFromLaunchMs ?? -1, "bootKind": host.stage.bootKind, "entries": host.stage.entries.map { $0["n"] as? String ?? "" }]
+        var stageOut: [String: Any] = ["screens": host.stage.screens.map(\.screen), "engine": host.stage.engine.status.probeName, "latency": NativeStage.latencies, "bootMs": NativeStage.bootFrameMs ?? -1, "bootFromLaunchMs": NativeStage.bootFromLaunchMs ?? -1, "bootKind": host.stage.bootKind, "entries": host.stage.entries.map { $0.n ?? "" }]
         if let root = host.stage.rootProbe { stageOut["root"] = root } // B3.5a：原生 tab 根页
         if let tabs = host.stage.tabsProbe { stageOut["tabs"] = tabs } // B3.5d：原生 Tab 栏（看得见、选中的 tab）
         // R14：宿主往上的呈现链（类名，底 → 顶；写字 / 结果 / 原生页 / 弹层都在里面）——测试工具判断「左缘返回有没有发生任何事」用
@@ -851,7 +864,7 @@ final class QAProbe {
         out["pageReady"] = host.stage.planned // B4.9：没有网页了，「就绪」= 冷启动判定做完（测试按它等）
         out["theme"] = ["override": host.view.window?.overrideUserInterfaceStyle.rawValue ?? -1, "bootOverride": ShiziTheme.bootOverride] // B3.5c：窗口外观与引擎就绪前的启动外观（0 跟随系统 / 1 浅 / 2 深）
         out["transitions"] = QATrace.events
-        // 导航由 SwiftNavigator 记账（同 engine.js account 的 traceNav，字段名沿用 webNav）；冷启动判定 = Swift 的 RouteMemory
+        // 导航由 SwiftNavigator 记账（同 account 的 traceNav，字段名沿用 webNav）；冷启动判定 = Swift 的 RouteMemory
         out["webNav"] = SwiftNavigator.traceLog
         out["coldPlan"] = EngineValue.any(host.stage.engine.nav.host.memory.lastPlan)
         out["feedback"] = QAFeedback.events
@@ -904,6 +917,7 @@ final class QAProbe {
         route["depth"] = max(0, stack.count - 1)
         route["tab"] = stack.first?["n"]?.stringValue ?? NSNull()
         route["overlay"] = top.map { $0["k"] != .string("s") } ?? false
+        route["char"] = top?["p"]?["char"]?.stringValue ?? NSNull() // 顶层屏的 char 参数（字详情是哪个字）
         var set: [String: Any] = [:]
         set["appearance"] = settings?["appearance"]?.stringValue ?? "auto"
         let group: JSValue? = (settings?["groupSize"]?.isNull ?? true) ? nil : settings?["groupSize"]

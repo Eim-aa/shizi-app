@@ -1,7 +1,7 @@
 import UIKit
 
 // B3.5c：「我的」页的零件——行内分段（外观 / 每组字数）、选择行、失败三段式、字帖的一格、AX 档的选择弹层。
-// 网页对应：components/Rows.js（RowShell）、mine/choice.js（ChoiceSeg / ChoiceSheetView）、components/FailBlock.js、components/work.js MonthPaper、components/Sheet.js。
+// 网页版对应的组件：RowShell、ChoiceSeg / ChoiceSheetView、FailBlock、MonthPaper、Sheet。
 
 /// 像素对齐的发丝线宽（网页 border 0.5px 在 3 倍屏取整成 1 个设备像素）。
 func shiziHairline(_ token: CGFloat) -> CGFloat {
@@ -628,7 +628,7 @@ final class MineChoiceSheetViewController: UIViewController, UIViewControllerTra
         dismiss(animated: true)
     }
 
-    // MARK: 下滑关闭（网页 Sheet.js createSheetDrag：内容在顶部、向下为主才接管）
+    // MARK: 下滑关闭（网页 createSheetDrag：内容在顶部、向下为主才接管）
 
     func gestureRecognizerShouldBegin(_ g: UIGestureRecognizer) -> Bool {
         guard g === pan else { return true }

@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/api/block.js.
 extension PageAPI {
     static func block(_ op: String, _ store: Store, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         let reason = BlockView.blockReasonOf(.object(store.status), migration: a["migration"])

@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/library-list.js
 public enum LibraryListView {
     typealias V = ViewSupport
     public static func normalizeKind(_ kind: JSValue?) -> String {

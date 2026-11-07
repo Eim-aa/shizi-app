@@ -2,9 +2,9 @@ import CoreText
 import UIKit
 
 // B3.8 字库子页（原生）的共用件。
-// 网页标准答案：src/ui/screens/library/{list,all,switch}.js + src/session/views/library-*.js。
+// 标准答案是原先的网页字库子页。
 //
-// 取证口径（scripts/native-ui/elements.mjs + App 内 NativeQAHarness）：
+// 取证口径（App 内 NativeQAHarness）：
 //   网页的行 / 格子是 <button>，取证脚本跳过按钮的子节点；原生这边同样把字放在按钮的子视图里（不单独成可取证元素），
 //   按钮自己给「整块文字」（currentTitle）、颜色、字号、可点状态与图标框。
 //   原生按钮不画文字（titleLabel 留空），所以原生没有文字框 → 对比按按钮外框比（网页那一侧有文字框时也落到按钮外框）。
@@ -96,7 +96,7 @@ final class ShiziPrimaryButton: ShiziLineButton {
     }
 }
 
-/// 练习字字形（网页 components/PracticeGlyph.js：hanzi-writer 轮廓，每笔一条路径，1024 单位、基线 900）。
+/// 练习字字形（网页：hanzi-writer 轮廓，每笔一条路径，1024 单位、基线 900）。
 /// face = 字面占格比例（墙 0.8 / 清单行 0.7 / 占满 1/1.1）；hollow = 双钩（描边不填，自选未写）。
 /// 几何与网页同一个仿射：1024 方框占格 face × 1.1，居中。
 enum LibraryGlyph {
@@ -131,13 +131,81 @@ enum LibraryGlyph {
     }
 }
 
-/// 本人笔迹小图（网页 write/compare.js 的 InkMini：把本人的笔画画在一张方卡里）。
+/// 一页的字形图缓存（「全部字」墙每次排版、清单页每次重拉都给每格重画一张字形位图）。
+/// 键 = 决定像素的全部输入：字（字形数据是包里的只读资源）、边长、字面比例、双钩、此刻解析出的颜色（色彩空间 + 分量；
+/// 动态色按当前外观解析，同 image 里的 color.cgColor）、渲染格式（preferred() 的 scale / range）。键相同 → 交出上次 image 画出的那张图。
+/// 每轮（一次排版 / 一次重拉）用到的留到下一轮，没用到的丢掉：图都在格子上显示着，缓存不多占内存。
+final class LibraryGlyphCache {
+    private struct Key: Hashable {
+        let char: String
+        let size: CGFloat
+        let face: CGFloat
+        let hollow: Bool
+        let color: CGColor
+        let scale: CGFloat
+        let range: Int
+
+        // 颜色按 CFEqual（= CGColorEqualToColor：色彩空间与各分量都相同）比；hash 取分量（相等的必定同 hash）。
+        static func == (a: Key, b: Key) -> Bool {
+            a.char == b.char && a.size == b.size && a.face == b.face && a.hollow == b.hollow && a.scale == b.scale && a.range == b.range
+                && CFEqual(a.color, b.color)
+        }
+
+        func hash(into h: inout Hasher) {
+            h.combine(char)
+            h.combine(size)
+            h.combine(face)
+            h.combine(hollow)
+            h.combine(scale)
+            h.combine(range)
+            for c in color.components ?? [] { h.combine(c) }
+        }
+    }
+
+    private var current: [Key: UIImage?] = [:]
+    private var previous: [Key: UIImage?] = [:]
+
+    /// 同 LibraryGlyph.image（同样的参数、同样的结果）。
+    func image(_ char: String, size: CGFloat, face: CGFloat, color: UIColor, hollow: Bool = false) -> UIImage? {
+        guard size > 0 else { return nil } // 同 LibraryGlyph.image
+        let fmt = UIGraphicsImageRendererFormat.preferred()
+        let key = Key(char: char, size: size, face: face, hollow: hollow, color: color.cgColor, scale: fmt.scale, range: fmt.preferredRange.rawValue)
+        if let hit = current[key] { return hit }
+        if let hit = previous[key] {
+            current.updateValue(hit, forKey: key)
+            return hit
+        }
+        let made = LibraryGlyph.image(char, size: size, face: face, color: color, hollow: hollow)
+        current.updateValue(made, forKey: key)
+        return made
+    }
+
+    /// 这一轮到此为止用到的张数。
+    var count: Int { current.count }
+
+    /// 一轮结束：这一轮用到的留给下一轮，其余丢掉。
+    func endPass() {
+        previous = current
+        current = [:]
+    }
+}
+
+/// 本人笔迹小图（网页的 InkMini：把本人的笔画画在一张方卡里）。
 /// 点是书写格 345 单位空间里的 {x, y, w}（API 给的墨迹），按卡宽等比缩放。
 final class LibraryInkView: UIView {
-    struct Point: Decodable { let x: Double; let y: Double; let w: Double? }
+    struct Point: Decodable, Equatable { let x: Double; let y: Double; let w: Double? }
 
-    var strokes: [[Point]] = [] { didSet { setNeedsDisplay() } }
-    var ink: UIColor = .label { didSet { setNeedsDisplay() } }
+    /// 笔画或墨色真的变了才重画（draw 只读 strokes / ink / bounds；bounds 变由 contentMode = .redraw 重画，浅 / 深切换见 traitCollectionDidChange）。
+    /// 同一份笔画再设一次（重拉视图、查字框打一个字）不再把每格墨迹整张重画；点的 == 按 Double 逐字段比（NaN 不等 → 照旧重画）。
+    var strokes: [[Point]] = [] { didSet { if strokes != oldValue { setNeedsDisplay() } } }
+    /// 墨色：draw 里 ink.cgColor 按本视图此刻的外观解析。新旧两色按本视图的 traitCollection 解析出的 CGColor 相同（CFEqual）
+    /// → 画出来相同，不标重画；外观之后再变由 traitCollectionDidChange 重画（这里的动态色只随浅 / 深、对比度等颜色外观变）。
+    var ink: UIColor = .label {
+        didSet {
+            guard ink !== oldValue else { return }
+            if !CFEqual(ink.resolvedColor(with: traitCollection).cgColor, oldValue.resolvedColor(with: traitCollection).cgColor) { setNeedsDisplay() }
+        }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -150,6 +218,156 @@ final class LibraryInkView: UIView {
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    /// 回包 ink（{记录 id: [笔, …]}）→ 笔画；解不了 = 空（同以前 try? ShiziDecode.value … ?? [:]）。
+    /// 一笔有两种形状（ShiziCore LibraryInkWire）：平铺 [步长, x, y, (w), …]（步长 3 = 每点有 w，2 = 每点都没有 w），
+    /// 或旧的每点一个 {x, y, w?}。平铺的一笔解出来 = 把它展开成旧形状（expandFlat）再解，逐位相同。
+    /// 先直接从字典 / 数组读（decodeInkDirect，不经 JSON 往返）；它不认得的形状一律展开平铺后交回原路（ShiziDecode.value），结果与原路逐位相同。
+    static func decodeInk(_ ink: [String: Any]) -> [String: [[Point]]] {
+        if let direct = decodeInkDirect(ink) { return direct }
+        return (try? ShiziDecode.value(expandFlat(ink), as: [String: [[Point]]].self)) ?? [:]
+    }
+
+    /// 直接读：只收 JSON 往返（JSONSerialization 写 → JSONDecoder 读成 Double）结果确定、且与直接取值逐位相同的形状——
+    /// 值是 [记录 id: [笔]]；笔是平铺数组（头一个数是 2 或 3、其后的数个数是它的整数倍），或点的数组：点是字典，x / y 是数，
+    /// w 缺省 / null（→ nil）或是数，多余的键不管（同 Decodable）。
+    /// 「数」只认 NSNumber 里的有限 Double（不含 −0）与 |n| ≤ 2^53 的有符号整数（EngineValue.any 装出来的就是这两种）。
+    /// 其余（布尔、NaN / ±∞、−0、更大的整数、Float / 无符号等别的数、字串、null 的 x / y、平铺里的 null、形状不对）→ nil，调用方走原路。
+    nonisolated static func decodeInkDirect(_ ink: [String: Any]) -> [String: [[Point]]]? {
+        var out: [String: [[Point]]] = [:]
+        out.reserveCapacity(ink.count)
+        for (id, raw) in ink {
+            guard let ss = decodeRecordDirect(raw) else { return nil }
+            out[id] = ss
+        }
+        guard out.count == ink.count else { return nil } // 键在 Swift 字串比较下撞了（不同码位、标准等价）→ 原路
+        return out
+    }
+
+    /// decodeInkDirect 里的一条记录（[笔]）：逐条独立，整份直接读 = 每条各自直接读。不认得 → nil。
+    nonisolated static func decodeRecordDirect(_ raw: Any) -> [[Point]]? {
+        guard let strokes = raw as? [Any] else { return nil }
+        var ss: [[Point]] = []
+        ss.reserveCapacity(strokes.count)
+        for sRaw in strokes {
+            guard let pts = sRaw as? [Any] else { return nil }
+            var ps: [Point] = []
+            if pts.first is NSNumber {
+                guard let stride = flatStride(pts) else { return nil }
+                ps.reserveCapacity((pts.count - 1) / stride)
+                var i = 1
+                while i < pts.count {
+                    guard let x = jsonNumber(pts[i]), let y = jsonNumber(pts[i + 1]) else { return nil }
+                    var w: Double?
+                    if stride == 3 {
+                        guard let n = jsonNumber(pts[i + 2]) else { return nil }
+                        w = n
+                    }
+                    ps.append(Point(x: x, y: y, w: w))
+                    i += stride
+                }
+                ss.append(ps)
+                continue
+            }
+            ps.reserveCapacity(pts.count)
+            for pRaw in pts {
+                guard let o = pRaw as? [String: Any], let x = jsonNumber(o["x"]), let y = jsonNumber(o["y"]) else { return nil }
+                var w: Double?
+                if let wRaw = o["w"], !(wRaw is NSNull) {
+                    guard let n = jsonNumber(wRaw) else { return nil }
+                    w = n
+                }
+                ps.append(Point(x: x, y: y, w: w))
+            }
+            ss.append(ps)
+        }
+        return ss
+    }
+
+    /// decodeRecordDirect(raw) != nil，但不建点（只查形状与数；与 decodeRecordDirect 一条条同样的判断）。
+    nonisolated static func isRecordDirect(_ raw: Any) -> Bool {
+        guard let strokes = raw as? [Any] else { return false }
+        for sRaw in strokes {
+            guard let pts = sRaw as? [Any] else { return false }
+            if pts.first is NSNumber {
+                guard let stride = flatStride(pts) else { return false }
+                var i = 1
+                while i < pts.count {
+                    guard jsonNumber(pts[i]) != nil, jsonNumber(pts[i + 1]) != nil else { return false }
+                    if stride == 3, jsonNumber(pts[i + 2]) == nil { return false }
+                    i += stride
+                }
+                continue
+            }
+            for pRaw in pts {
+                guard let o = pRaw as? [String: Any], jsonNumber(o["x"]) != nil, jsonNumber(o["y"]) != nil else { return false }
+                if let wRaw = o["w"], !(wRaw is NSNull), jsonNumber(wRaw) == nil { return false }
+            }
+        }
+        return true
+    }
+
+    /// 平铺的一笔的步长：头一个是数 2 或 3、其后的个数是它的整数倍 → 步长；否则 nil（不是平铺）。
+    nonisolated static func flatStride(_ a: [Any]) -> Int? {
+        guard let first = a.first, let head = jsonNumber(first), head == 2 || head == 3 else { return nil }
+        let stride = head == 3 ? 3 : 2
+        return (a.count - 1) % stride == 0 ? stride : nil
+    }
+
+    /// 平铺的笔展开成旧形状（每点一个 ["x": …, "y": …, "w": …]，w 只在步长 3 时有；值原样搬，不转换）；别的原样留着。
+    /// 原路（ShiziDecode.value）只认旧形状：平铺的一笔按此展开后再解，与引擎发旧形状时解出的逐位相同。
+    nonisolated static func expandFlat(_ ink: [String: Any]) -> [String: Any] {
+        var out = ink
+        for (id, raw) in ink {
+            guard let strokes = raw as? [Any] else { continue }
+            var changed = false
+            var mapped: [Any] = []
+            mapped.reserveCapacity(strokes.count)
+            for s in strokes {
+                guard let a = s as? [Any], let stride = flatStride(a) else {
+                    mapped.append(s)
+                    continue
+                }
+                changed = true
+                var pts: [Any] = []
+                pts.reserveCapacity((a.count - 1) / stride)
+                var i = 1
+                while i < a.count {
+                    var o: [String: Any] = ["x": a[i], "y": a[i + 1]]
+                    if stride == 3 { o["w"] = a[i + 2] }
+                    pts.append(o)
+                    i += stride
+                }
+                mapped.append(pts)
+            }
+            if changed { out[id] = mapped }
+        }
+        return out
+    }
+
+    /// 见 decodeInkDirect：JSON 往返逐位不变的数 → Double；其余 nil。
+    private nonisolated static func jsonNumber(_ v: Any?) -> Double? {
+        guard let n = v as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() else { return nil }
+        switch UInt8(bitPattern: n.objCType.pointee) {
+        case UInt8(ascii: "d"):
+            let d = n.doubleValue
+            guard d.isFinite, !(d == 0 && d.sign == .minus) else { return nil }
+            return d
+        case UInt8(ascii: "q"), UInt8(ascii: "l"), UInt8(ascii: "i"), UInt8(ascii: "s"):
+            let i = n.int64Value
+            guard i.magnitude <= (1 as UInt64) << 53 else { return nil }
+            return Double(i)
+        default:
+            return nil
+        }
+    }
+
+    /// 浅 / 深等颜色外观变了：墨色（动态色）要按新外观重新解析。以前页面在外观变化时重设 strokes 就会重画；
+    /// strokes 没变不再重画之后，这里自己补上（UIKit 本身也会给实现了 draw 的视图重画，多标一次无妨）。
+    override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+        super.traitCollectionDidChange(previous)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previous) { setNeedsDisplay() }
+    }
 
     override func draw(_ rect: CGRect) {
         guard !strokes.isEmpty, let ctx = UIGraphicsGetCurrentContext() else { return }
@@ -170,7 +388,54 @@ final class LibraryInkView: UIView {
     }
 }
 
-/// 网页 icons.js 的线形图标（线宽 1.5、圆端圆角；本卡只用到勾与查找）。
+/// 回包 ink 的按需解码（「全部字」墙只解建出来的那几格的记录）：strokes(id) = LibraryInkView.decodeInk(整份)[id] ?? []，逐位相同。
+///   整份都走得了直接读（每条 isRecordDirect、键在 Swift 字串比较下不撞）时，decodeInk 走的就是 decodeInkDirect，
+///   而直接读逐条独立 → 一条一条按需 decodeRecordDirect 与整份一次解完逐条相同；解过的按 id 留着，换一份回包（load）就清掉。
+///   否则（有一条形状不认得、键撞了）整份在 load 里照旧一次 decodeInk 解完（原路，结果与以前一样）。
+/// 「走得了直接读」在 load 里先扫一遍（只查形状与数，不建点）：比整份解完便宜，但仍按点数线性。
+final class LibraryInkStore {
+    private var raw: [String: Any] = [:]
+    private var decoded: [String: [[LibraryInkView.Point]]] = [:]
+    /// 走原路时整份解完的结果（nil = 按需直接读）。
+    private var all: [String: [[LibraryInkView.Point]]]?
+
+    /// 换一份回包的 ink（{记录 id: [笔, …]}）。
+    func load(_ ink: [String: Any]) {
+        decoded = [:]
+        all = nil
+        var copy: [String: Any] = [:]
+        copy.reserveCapacity(ink.count)
+        var direct = true
+        for (id, r) in ink {
+            if direct, !LibraryInkView.isRecordDirect(r) { direct = false }
+            copy[id] = r
+        }
+        if direct, copy.count == ink.count {
+            raw = copy
+        } else {
+            raw = [:]
+            all = LibraryInkView.decodeInk(ink)
+        }
+    }
+
+    /// 这条记录的笔画（回包里没有 = 空）。
+    func strokes(_ id: String) -> [[LibraryInkView.Point]] {
+        if let all { return all[id] ?? [] }
+        if let hit = decoded[id] { return hit }
+        guard let r = raw[id] else { return [] }
+        let s = LibraryInkView.decodeRecordDirect(r) ?? []
+        decoded[id] = s
+        return s
+    }
+
+    /// 回包里有没有这条记录（有 = decodeInk 的结果里有这个键）。
+    func has(_ id: String) -> Bool {
+        if let all { return all[id] != nil }
+        return raw[id] != nil
+    }
+}
+
+/// 网页的线形图标（线宽 1.5、圆端圆角；本卡只用到勾与查找）。
 enum LibraryIcon {
     /// 勾（14 栅格；清单选中圆里，纸色）。
     static func check(_ color: UIColor, size: CGFloat = 14) -> UIImage {
@@ -181,7 +446,7 @@ enum LibraryIcon {
         }
     }
 
-    /// 查找（22 栅格，视觉 18；网页 icons.js search）。
+    /// 查找（22 栅格，视觉 18；网页 search）。
     static func search(_ color: UIColor, size: CGFloat = 18) -> UIImage {
         let fmt = UIGraphicsImageRendererFormat.preferred()
         fmt.opaque = false
@@ -239,13 +504,13 @@ final class LibraryPlaceholderView: UIView {
     }
 }
 
-/// 字库子页的共用底座：页头右槽（文字按钮）+ 底栏（网页 Page.js 的 .sz-page__foot）+ 三段式（网页 FailBlock.js）。
+/// 字库子页的共用底座：页头右槽（文字按钮）+ 底栏（网页的 .sz-page__foot）+ 三段式。
 /// 三个子页各自直接继承 ShiziScreenViewController（原生屏与 Swift 类一一对应是全 App 的约定），共用的东西放这里、由屏幕持有。
 /// 标题的横向位置随右槽宽度变（网页 .sz-page__title 在两端槽之间居中，右槽比 44 宽时标题跟着左移）。
 final class LibraryScreenKit {
     /// 页头右槽的按钮（没有右槽的屏是 nil）。
     private(set) var trail: ShiziLineButton?
-    /// AX 档右槽按钮的高（网页 components/ax.js 的 min-height；非 AX 档用页头名义高 44）。
+    /// AX 档右槽按钮的高（网页的 min-height；非 AX 档用页头名义高 44）。
     var trailHeight: CGFloat = 44
     /// 页头底（正文区上沿；AX 档页头折成两行，正文从第二行下面开始）。
     /// 正文按它算可用高（网页 .sz-page__body 的高度 = 屏高 − 页头高 − 底栏高）。
@@ -353,7 +618,7 @@ final class LibraryScreenKit {
     }
 
     /// 页头：标题在两端槽之间居中（网页 .sz-page__title 的流：右槽宽 → 标题的可用区间跟着变）+ 右槽按钮的位置。
-    /// AX 档（网页 components/ax.js）：页头折成两行——第一行左槽（返回）与右槽（文字按钮，min-height = max(44, 1.3em + 12)），
+    /// AX 档：页头折成两行——第一行左槽（返回）与右槽（文字按钮，min-height = max(44, 1.3em + 12)），
     /// 第二行是标题（可折行、左对齐、行高 lh17、下内边距 6）。左槽在这行里竖向居中。
     func layoutHeader(trailButtonWidth: CGFloat, trailSlotWidth: CGFloat) {
         guard let screen else { return }
@@ -400,10 +665,37 @@ enum LibraryCommon {
 
     static func textWidth(_ text: String, _ font: UIFont) -> CGFloat {
         guard !text.isEmpty else { return 0 }
+        let key = WidthKey(text: text, descriptor: font.fontDescriptor, name: font.fontName, size: font.pointSize,
+                           bold: UIAccessibility.isBoldTextEnabled, traits: UITraitCollection.current)
+        if let hit = widthCache[key] { return hit }
+        let w = measureTextWidth(text, font)
+        if widthCache.count >= 4096 { widthCache.removeAll(keepingCapacity: true) }
+        widthCache[key] = w
+        return w
+    }
+
+    /// 实际量（以前 textWidth 的全部做法：一个新标签按 NativeType.set 设好字，量自然宽）。
+    static func measureTextWidth(_ text: String, _ font: UIFont) -> CGFloat {
+        guard !text.isEmpty else { return 0 }
         let l = UILabel()
         NativeType.set(l, text, font: font, color: .label)
         return NativeType.width(l)
     }
+
+    /// textWidth 的记忆：清单页每行量 8–15 次、每次新建一个 UILabel。量出的宽只取决于字、字体与系统状态：
+    /// 字体按描述符（UIFontDescriptor.isEqual = 全部属性相同：名字、字号、字重、cascade、等宽数字特性 …）+ 名字 + 字号；
+    /// 系统状态按粗体文字开关 + 此刻的外观（UITraitCollection.isEqual：显示倍率、字号档、字重档 …）。任一项不同就重新量。
+    /// 键只比相等（不靠 hash 判相等），表满 4096 项整份清空（只影响命中，不影响结果）。只在主线程用（同 UILabel）。
+    private struct WidthKey: Hashable {
+        let text: String
+        let descriptor: UIFontDescriptor
+        let name: String
+        let size: CGFloat
+        let bold: Bool
+        let traits: UITraitCollection
+    }
+
+    private static var widthCache: [WidthKey: CGFloat] = [:]
 
     /// 系统字号档的连续倍率（网页 --k；AX 档的字阶不乘 --k，但格边长乘 —— 网页 .sz-lrow__char 的 calc(44px * var(--k))）。
     static func scaleK(_ category: UIContentSizeCategory = UIApplication.shared.preferredContentSizeCategory) -> CGFloat {
@@ -419,11 +711,11 @@ enum LibraryCommon {
         return Double(scaleK(category)) >= limit
     }
 
-    /// AX 档文字按钮的最小高（网页 components/ax.js：min-height: max(44px, calc(1.3em + 12px))，em = 按钮自己的字号）。
+    /// AX 档文字按钮的最小高（网页：min-height: max(44px, calc(1.3em + 12px))，em = 按钮自己的字号）。
     static func axTextButtonHeight(fontSize: CGFloat) -> CGFloat { max(44, 1.3 * fontSize + 12) }
 
-    /// 网页的 AX 档位（0 = 不是 AX 档；1–5 = AX1–AX5）。网页 platform/text-size.js 给 <html> 写 data-ax，
-    /// tokens.css 按档覆盖 --fsN / --lhN / --btn-h；原生这边同一张表（ShiziKitTokens.json 的 type.categories[*].ax）。
+    /// 网页的 AX 档位（0 = 不是 AX 档；1–5 = AX1–AX5）。网页版给 <html> 写 data-ax，
+    /// 样式表按档覆盖 --fsN / --lhN / --btn-h；原生这边同一张表（ShiziKitTokens.json 的 type.categories[*].ax）。
     static var axLevel: Int {
         let cats = (ShiziTokens.root["type"] as? [String: Any])?["categories"] as? [String: Any]
         let name = ShiziTokens.categoryName(UIApplication.shared.preferredContentSizeCategory)
@@ -498,32 +790,6 @@ enum LibraryText {
     /// 网页 white-space:nowrap 的整段排法的行数（nowrapSegments 的行数）。
     static func nowrapSegmentLines(_ segments: [String], separator: String, font: UIFont, width: CGFloat) -> Int {
         nowrapSegments(segments, separator: separator, font: font, width: width).count
-    }
-
-    /// 网页 .sz-lrow__meta 的排法：每段是 inline-block（max-width:100%）——段本身在栏宽内折行，段与段之间一个空格，放不下就整段换行。
-    static func inlineBlockLines(_ parts: [String], separator: String, font: UIFont, width: CGFloat, line: CGFloat) -> Int {
-        guard !parts.isEmpty, width > 0 else { return 0 }
-        var total = 0
-        var cur = 0
-        var x: CGFloat = 0
-        for (i, part) in parts.enumerated() {
-            let maxContent = LibraryCommon.textWidth(part, font)
-            let partW = min(maxContent, width)
-            let partLines = partW < maxContent ? lines(part, font: font, width: partW, line: line) : 1
-            if i > 0 {
-                let sepW = LibraryCommon.textWidth(separator, font)
-                if x + sepW + partW > width {
-                    total += cur
-                    cur = 0
-                    x = 0
-                } else {
-                    x += sepW
-                }
-            }
-            x += partW
-            cur = max(cur, partLines)
-        }
-        return total + cur
     }
 
     // MARK: WebKit 口径的折行（UAX #14）
@@ -675,7 +941,7 @@ enum LibraryText {
 
     /// 按网页量出来的折行点把一段文字接成多行（行之间显式换行）。
     /// 网页的 text-wrap: pretty 段落（WebKit 按整段均衡各行长度）折行点由页面用同一组 CSS 量出
-    /// （src/ui/screens/library/web-metrics.js），原生按这些折行点排：行数与每行的字与网页一致。
+    /// 折行点，原生按这些折行点排：行数与每行的字与网页一致。
     /// 没有折行点（页面外 / 没量到）→ 原样返回，原生按自己的宽度折行。
     static func joined(_ text: String, _ starts: [Int]?) -> String {
         guard let starts, !starts.isEmpty, !text.isEmpty else { return text }

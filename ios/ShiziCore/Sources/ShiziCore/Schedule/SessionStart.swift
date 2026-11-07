@@ -1,9 +1,9 @@
 import Foundation
 
-// src/core/session-start.js（开组的 store.commit 包装：首练 / 今天的练习 / 自选 / S02 / 跨天过期 / 特别组顺延）的移植（B4.2）。
+// 开组的 store.commit 包装（首练 / 今天的练习 / 自选 / S02 / 跨天过期 / 特别组顺延）的移植（B4.2）。
 // D83（调度规则 v2）起：今天的练习一天一份（TodayPlan），写完以后再开的是「再来一组」（extra）；离开很久回来的摊开（D66 ⑨）删除。
 //
-// store 是协议 ScheduleStore（state + commit(label, mutate)）：commit 语义照 src/store/store.js——草稿 = 当前状态的浅拷贝，
+// store 是协议 ScheduleStore（state + commit(label, mutate)）：commit 语义照原 JS 的 store——草稿 = 当前状态的浅拷贝，
 // mutate 抛错 → {ok:false, error:{kind:'mutator', label, reason}}，成功才发布；ctx.nextId('r'|'s') 分配共用序号。
 // 真正的持久化 store 在 B4.4；这里给一个内存实现 MemoryScheduleStore（差分 op 与转写单测用，也可注入写失败）。
 
@@ -11,7 +11,7 @@ public struct CommitContext {
     public let now: Double
     public let label: String
     public internal(set) var serial: Double
-    /// 判断墨迹的存储编码（store.js ctx.inkFormat，policy P05）：原生 'raw'，localStorage 'v3'（B4.4 的 Store 按后端给）。
+    /// 判断墨迹的存储编码（ctx.inkFormat，policy P05）：原生 'raw'，localStorage 'v3'（B4.4 的 Store 按后端给）。
     public internal(set) var inkFormat: String = "v3"
 
     public init(now: Double, label: String, serial: Double) {
@@ -110,7 +110,7 @@ public struct ScheduleDeck {
         self.currentLibraryId = currentLibraryId
     }
 
-    /// data/deck.js 的 deckAdapter：新字 = 当前练习范围（易忘度顺序），热身字，可练 = 题库里的 base: 卡。
+    /// deckAdapter：新字 = 当前练习范围（易忘度顺序），热身字，可练 = 题库里的 base: 卡。
     public static let real: ScheduleDeck = {
         let idx = DeckIndex.shared
         return ScheduleDeck(
@@ -121,7 +121,7 @@ public struct ScheduleDeck {
     }()
 }
 
-/// 题库索引（生成的 deck-libraries.json：全部卡键与四个字库的成员；data/deck.js 的 libraryOf / newOrderOf / warmupOf / isPracticable）。
+/// 题库索引（生成的 deck-libraries.json：全部卡键与四个字库的成员；libraryOf / newOrderOf / warmupOf / isPracticable）。
 public final class DeckIndex {
     public let defaultLibraryId: String
     public let keys: [String]
@@ -174,7 +174,7 @@ public final class DeckIndex {
     }
 }
 
-// MARK: - spread.js（D83 起只给 v1 迁移的摊开用，Migrate.spreadLegacyDue）
+// MARK: - spread（D83 起只给 v1 迁移的摊开用，Migrate.spreadLegacyDue）
 
 extension ScheduleRules {
     /// 把 due ≤ today 的调度项摊到 today 起的之后几天（只往后挪）。
@@ -212,7 +212,7 @@ extension ScheduleRules {
     }
 }
 
-// MARK: - session-start.js
+// MARK: - session-start
 
 extension ScheduleRules {
     public static let labels = (
@@ -264,7 +264,8 @@ extension ScheduleRules {
     }
 
     /// 今天的练习会选出哪些字（不写入）：selectDaily 的结果 + libraryId + libraryExhausted。cap / handled 见 selectDaily。
-    public func planDaily(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy, cap: Int? = nil, handled: [String] = [], extra: Bool = false) throws -> JSValue {
+    public func planDaily(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy, cap: Int? = nil, handled: [String] = [], extra: Bool = false,
+                          statsMemo: PracticeStatsMemo? = nil) throws -> JSValue {
         let settings = state.flatMap { JS.truthy($0) ? $0["settings"] : nil }
         let settingsLib: JSValue? = { if case .string(let s)? = settings?["library"], JS.truthy(settings) { return .string(s) }; return nil }()
         let libraryId: JSValue
@@ -284,7 +285,7 @@ extension ScheduleRules {
         let plan = try selectDaily(sched: sched, records: ScheduleRules.recordsOf(state), today: today, newCandidates: newCandidates,
                                    warmupCandidates: warmupCandidates, custom: custom ?? .null, practicable: deck.practicable, policy: policy,
                                    capitalDeferredDay: ScheduleRules.capitalDeferredDayOf(state), groupSize: GroupSize.of(settings, policy: policy),
-                                   tier: TodayPlan.tierOf(settings, policy: policy), cap: cap, handled: handled, extra: extra)
+                                   tier: TodayPlan.tierOf(settings, policy: policy), cap: cap, handled: handled, extra: extra, statsMemo: statsMemo)
         let schedObj = sched.objectValue
         let exhausted = !newCandidates.contains { deck.practicable($0) && !JS.truthy(schedObj?[$0]) }
         guard case .object(var o) = plan.js else { return plan.js }
@@ -294,13 +295,13 @@ extension ScheduleRules {
     }
 
     /// 下一次「今天的练习」是不是大写数字特别组（首页提示用；不写入）。
-    public func planSpecial(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy) throws -> JSValue {
+    public func planSpecial(_ state: JSValue?, today: String, deck: ScheduleDeck, policy: JSValue = Config.policy, statsMemo: PracticeStatsMemo? = nil) throws -> JSValue {
         let records = ScheduleRules.recordsOf(state)
         if !SchedRecords.hasAnyJudged(records) { return .null }
         let settings = state.flatMap { JS.truthy($0) ? $0["settings"] : nil }
         let sp = try specialPlan(sched: state?["sched"].flatMap { JS.truthy($0) ? $0 : nil } ?? .object(JSObject()), records: records, today: today,
                                  practicable: deck.practicable, policy: policy, capitalDeferredDay: ScheduleRules.capitalDeferredDayOf(state),
-                                 groupSize: GroupSize.of(settings, policy: policy))
+                                 groupSize: GroupSize.of(settings, policy: policy), statsMemo: statsMemo)
         return sp.map { JS.obj([("kind", .string($0.kind)), ("keys", .array($0.keys.map { .string($0) }))]) } ?? .null
     }
 

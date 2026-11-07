@@ -5,9 +5,9 @@ import Foundation
 // 逐函数对照 docs/engineering/v10/phase1/ink-model/reference.mjs（JS 参考实现，阶段 2 的契约）：
 //   prepare → oneEuro → resample → analyze → geometry → unionArea，参数表 InkParams 与 PARAMS 一一对应。
 // 纯函数、只依赖 Foundation：App 内（NativeInkView 每帧调用）与 macOS 命令行（swiftc 直接编译，见 InkModelCheck.swift）同一份源码。
-// 金标准自检 InkModelCheck.swift 只在 DEBUG（XCTest ShiziWriteTests 与 -shizi-ink-selfcheck 用）。
+// 金标准自检 InkModelCheck.swift 只在 DEBUG（XCTest ShiziWriteTests 与 scripts/ink-model-check.sh 用）。
 //
-// R11-A（D72 ②）：产品书写面不再用本模型画墨（改用 WebInk.swift = 网页 ink-math.js buildStroke 同一算法）。本文件保留作 T2 盲测候选：
+// R11-A（D72 ②）：产品书写面不再用本模型画墨（改用 WebInk.swift = 网页 buildStroke 同一算法）。本文件保留作 T2 盲测候选：
 // 只有 DEBUG 的 NativeInkSpike 经 NativeInkView.inkModel 打开；InkRawPoint / InkStoredInk（原始点与 v4 解码）仍是产品共用的类型。
 
 enum InkModel {
@@ -975,10 +975,10 @@ extension InkModel {
 
 // MARK: - 存下的墨迹（Ink v4 原始点，B2.3）→ 原始点，供原生回放
 
-/// Ink v4（src/core/ink-math.js encodeInkRaw）：{v:4, c:345, r:["<base64>"…], g:[ms…]}。
+/// Ink v4（encodeInkRaw）：{v:4, c:345, r:["<base64>"…], g:[ms…]}。
 /// r 每笔一个打包串：首字节 stride（3 | 4），之后每点 zz(Δx)、zz(Δy)、dt、（stride 4）zz(Δp)，LEB128 变长整数；x / y 以 0.1 单位、
 /// dt 以 ms、p 以 0.001 为单位（= encodeRawStrokes 那一行）。g = 每笔起笔距上一笔最后一点的 ms。
-/// 与 JS decodeInkRaw 逐点相同（同一夹具 InkModel/ink-v4-fixture.json：XCTest InkSurfaceTests 与 node test/core/ink-v4.test.mjs 各核一遍）；
+/// 与 JS decodeInkRaw 逐点相同（同一夹具 InkModel/ink-v4-fixture.json：XCTest InkSurfaceTests 核一遍）；
 /// 解出的原始点交给 NativeInkStrokeMesh.build / InkModel，与书写时同一管线（规格 §6.4）。
 enum InkStoredInk {
     /// 一个打包串 → encodeRawStrokes 的一行（[stride, x, y, dt, (p), …]）；坏串返回 nil。

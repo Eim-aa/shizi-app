@@ -1,7 +1,7 @@
 import Foundation
 
-// src/config/char-order.js（CHAR_ORDER，由 scripts/build_char_order.mjs 生成）的类型化读取；数据来自生成的 char-order.json。
-// 排序与特别组的规则（core/new-order.js）在 B4.2 用这里的数据。
+// （CHAR_ORDER，由 scripts/build_char_order.mjs 生成）的类型化读取；数据来自生成的 char-order.json。
+// 排序与特别组的规则在 B4.2 用这里的数据。
 
 public struct CapitalContext: Equatable {
     public let word: String

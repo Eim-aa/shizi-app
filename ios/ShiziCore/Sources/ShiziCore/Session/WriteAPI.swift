@@ -1,6 +1,6 @@
 import Foundation
 
-/// src/session/write-api.js. Platform callbacks and elapsed `ms` belong to the host.
+/// Write-session API. Platform callbacks and elapsed `ms` belong to the host.
 public enum WriteAPI {
     static func plain(_ r: JSValue) -> JSValue {
         var error = JSObject([("kind", r["error"]?["kind"]?.stringValue.map(JSValue.string) ?? .string("generic"))])
@@ -37,7 +37,7 @@ public enum WriteAPI {
             let r = try SessionWrites.commitRecover(store, a); let out = try look(dependencies: dependencies)
             var ordered = JSObject([("ok", .bool(true)), ("recovered", .bool(r["ok"] == .bool(true) && r["noop"] != .bool(true))), ("snapshot", try snapshot())])
             for (k,v) in out.entries where k != "ok" { ordered[k] = v }; return .object(ordered)
-        case "strokes", "phase", "judge", "answerPhase", "answerNext": args["strokes"] = CoreEngine.strokesJS(WriteModels.fromWire(a["strokes"]))
+        case "strokes", "phase", "judge", "answerPhase", "answerNext": args["strokes"] = WriteWire.strokesJS(WriteModels.fromWire(a["strokes"]))
         default: break
         }
         switch op {

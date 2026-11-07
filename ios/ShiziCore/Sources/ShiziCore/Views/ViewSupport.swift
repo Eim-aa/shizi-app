@@ -1,12 +1,12 @@
 import Foundation
 
 // Shared JS-shaped construction; copy remains a reference, never rendered text.
-enum ViewSupport {
+package enum ViewSupport {
     static func ordered(_ value: JSValue, _ keys: String) -> JSValue {
         var out = JSObject()
         for k in keys.split(separator: " ").map(String.init) { out[k] = value[k] }; return .object(out)
     }
-    static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
+    package static func obj(_ pairs: [(String, JSValue)]) -> JSValue { .object(JSObject(pairs)) }
     static func ref(_ key: String, _ params: JSValue? = nil) -> JSValue {
         var out = JSObject([("copy", .string(key))])
         if let params { out["params"] = params }
@@ -16,7 +16,7 @@ enum ViewSupport {
         let p = try InkParams(policy: policy.objectValue)
         return obj(InkParams.tunableKeys.map { ($0, .number(p[$0]!)) } + InkParams.spec.map { ($0.0, .number($0.1)) })
     }
-    static func policy(_ override: JSValue?) -> JSValue {
+    package static func policy(_ override: JSValue?) -> JSValue {
         var out = Config.policy.objectValue!
         for (k, v) in override?.objectValue?.entries ?? [] { out[k] = v }
         return .object(out)

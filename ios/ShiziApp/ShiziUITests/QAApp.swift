@@ -8,16 +8,7 @@ import XCTest
 //   · 原生页面元素经 accessibilityIdentifier（native-*）找，或经无障碍名称（文案）找；
 //   · 数据经探针：读屏元素「qa-probe」的 value 是 store 摘要 JSON（记录条数与种类、判断写对 / 写错数、会话 cursor / 阶段 / 笔数、
 //     路由顶层、原生页阶段与字、最近的原生转场），见 NativeQAHarness.swift QAProbe。
-// 已知问题（两份 AI 测试报告 NP-* / NF-*）在 KnownIssueTests 里，用 XCTExpectFailure 标「预期失败 · 待修」，修好后会显示「意外通过」。
-
-enum QAIssue {
-    /// 预期失败（待修）：issue 写进失败说明，修复卡转绿后删掉这一层包装。
-    static func expectFail(_ id: String, _ title: String, _ body: () throws -> Void) rethrows {
-        let options = XCTExpectedFailure.Options()
-        options.isStrict = true // 修好后报「预期失败没有发生」= 意外通过，提醒把包装去掉
-        try XCTExpectFailure("\(id) 待修：\(title)", options: options, failingBlock: body)
-    }
-}
+// 两份 AI 测试报告（NP-* / NF-*）里要真实点按的条目在 KnownIssueTests 里。
 
 enum QAPending {
     /// 流程测试骨架（B3B4 §5.2）：还没填的用例，报「跳过」并写明由哪张卡填（flows-summary 记为待办，不算失败）。

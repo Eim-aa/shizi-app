@@ -6,8 +6,8 @@ import UIKit
 // NativeStage 用 NSClassFromString 找类（不设共享登记表）：页面卡只新增自己的 Swift 文件，并在自己的 JS 屏文件里给 registerScreen 加 native:true。
 // 页面不持有业务状态：open 回包（view.<屏名>，宿主挂载时随消息带来，首帧不等桥）、changed 推送或引擎重新就绪时重拉同一个 view op。
 //
-// 页面骨架 = 网页 components/Page.js：44 页头（左「‹」图标按钮外缘对页边线、中间标题 17 / 500、右槽）+ 竖向滚动的正文（上 s4、左右页边、下 s8）。
-// 颜色 / 字号 / 间距 / 时长一律取 ShiziTokens（构建期从 tokens.json / tokens.css 生成），文案取 ShiziCopy；本文件不写数值与汉字。
+// 页面骨架 = 网页：44 页头（左「‹」图标按钮外缘对页边线、中间标题 17 / 500、右槽）+ 竖向滚动的正文（上 s4、左右页边、下 s8）。
+// 颜色 / 字号 / 间距 / 时长一律取 ShiziTokens（构建期从 tokens.json / 生成），文案取 ShiziCopy；本文件不写数值与汉字。
 
 /// 当前系统字号档位的长度令牌（pt；= 网页 --名 在该档位的计算值）与字体（系统字体，中文接苹方 UI 正文款 = NativeType.compose）。
 struct ShiziMetrics {
@@ -87,7 +87,7 @@ final class ShiziRowButton: UIButton {
     var composedText: String { [label.text, valueLabel.isHidden ? nil : valueLabel.text].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ") }
 }
 
-/// 网页 Chevron.js（icons.js chevron：8 × 13 的线形箭头，线宽 1.5、圆端圆角）。
+/// 网页（chevron：8 × 13 的线形箭头，线宽 1.5、圆端圆角）。
 enum ShiziChevron {
     static func image(_ color: UIColor, size: CGSize) -> UIImage {
         let fmt = UIGraphicsImageRendererFormat.preferred()
@@ -146,6 +146,12 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     private var lastPress: [ObjectIdentifier: CFTimeInterval] = [:]
     private var statusOff: (() -> Void)?
     private var changesTask: Task<Void, Never>?
+    /// 看不见时来的变化（changed 推送、首页定时刷新）先记着，露出来时补拉一次（revealIfNeeded）。
+    private var needsReload = false
+    /// 同一轮主线程里来的几次变化并成一次重拉。
+    private var reloadQueued = false
+    /// 等补拉的视图画好的（NativeStage.revealUnder：返回转场等它再放）。
+    private var revealWaiters: [() -> Void] = []
     /// 最近一次视图回包（重拉失败时保留旧的）。
     private(set) var lastView: Any?
 
@@ -186,6 +192,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
 
     /// open 回包（{ok, view}）。回包失败时保留现状（页面重载后认领、changed 重拉失败都一样）。
     func apply(payload: [String: Any]) {
+        defer { finishReveal() }
         guard (payload["ok"] as? Bool) == true, let v = payload["view"] else {
             ShiziProbe.log("native screen \(screen): open without a view (\((payload["error"] as? [String: Any])?["kind"] ?? "?"))")
             return
@@ -208,14 +215,68 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
         view.setNeedsLayout()
     }
 
+    /// 重拉 view.<屏名> 的参数：缺省 = params；页面要多带的（年报的 lazyInk）在这里加。
+    var reloadArgs: [String: Any] { params }
+
+    /// 页面里还有内容在路上（年报按需取的墨迹）：QA 取证等它为假再取（NativeQAHarness.qaWaitContent）。缺省没有。
+    var pendingContent: Bool { false }
+
     /// 重拉 view.<屏名>（changed 推送、引擎重新就绪）。
     func reload() {
         guard let engine = stage?.engine else { return }
-        let screen = self.screen, params = self.params
+        let screen = self.screen, params = self.reloadArgs
         Task { @MainActor [weak self] in
             let body = await engine.raw("view.\(screen)", params)
             self?.apply(payload: body)
         }
+    }
+
+    // MARK: 看得见才重拉
+
+    /// 这一页此刻看得见：视图在窗口里、它和上层视图都没藏起、上面没有盖住它的不透明呈现层（NativeStage.isObscured；leaving = 正要收起的那一层，连同它上面的不算）。
+    /// 别的 tab 格里留着的根页不在窗口里（UITabBarController 只把选中格的视图放进去）；原生页、写字 / 结果页都是 .overFullScreen 呈现，下面的页不收 viewWillAppear / viewDidAppear。
+    func isShown(ignoring leaving: UIViewController? = nil) -> Bool {
+        guard isViewLoaded, view.window != nil else { return false }
+        var v: UIView? = view
+        while let cur = v {
+            if cur.isHidden { return false }
+            v = cur.superview
+        }
+        return stage?.isObscured(self, ignoring: leaving) != true
+    }
+
+    /// changed 推送 / 定时刷新：看得见就重拉（同一轮里的几次并成一次），看不见先记着，露出来时补拉。
+    func reloadWhenShown() {
+        guard isShown() else { needsReload = true; return }
+        guard !reloadQueued else { return }
+        reloadQueued = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.reloadQueued = false
+            guard self.isShown() else { self.needsReload = true; return }
+            self.needsReload = false
+            self.reload()
+        }
+    }
+
+    /// 要露出来了（切回这个 tab、上面那层要收起）：看不见时攒着的变化补拉一次。force = 不看此刻是否看得见（viewWillAppear：视图还没进窗口）。
+    /// 返回是否开始补拉；开始了，done 在回包画好（排过版）后调（回包失败也调）。
+    @discardableResult
+    func revealIfNeeded(ignoring leaving: UIViewController? = nil, force: Bool = false, done: (() -> Void)? = nil) -> Bool {
+        guard needsReload, force || isShown(ignoring: leaving) else { return false }
+        needsReload = false
+        if let done { revealWaiters.append(done) }
+        reload()
+        return true
+    }
+
+    /// 回包到了：等着的先排版（首页排版时把主按钮此刻的位置报给页面，纸缩回落在这里），再告诉它们。
+    private func finishReveal() {
+        guard !revealWaiters.isEmpty else { return }
+        if isViewLoaded { view.layoutIfNeeded() }
+        let waiters = revealWaiters
+        revealWaiters.removeAll()
+        waiters.forEach { $0() }
     }
 
     // MARK: 生命周期
@@ -261,7 +322,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
                 for await set in stream {
                     guard let self else { return }
                     if let watched = self.watchedDomains, !set.touches(watched) { continue }
-                    self.reload()
+                    self.reloadWhenShown()
                 }
             }
         }
@@ -289,15 +350,22 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
         }
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        revealIfNeeded(force: true) // 切回这个 tab：视图进窗口之前补拉
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         markStateChange()
         NativeA11y.screenChanged(titleLabel)
+        revealIfNeeded()
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         guard isBeingDismissed || presentingViewController == nil else { return }
+        stage?.revealUnder(nil) // 兜底：这一页收起后露出来的页（返回起手时已补拉过的不再拉）
         if !exitHandled {
             exitHandled = true
             stage?.screenDidLeave(self)
@@ -315,7 +383,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     func setTitle(_ text: String) {
         titleText = text
         if axLayout {
-            // AX 档（components/ax.js）：标题单独占页头第二行，左对齐、可折行、行高 lh17
+            // AX 档：标题单独占页头第二行，左对齐、可折行、行高 lh17
             titleLabel.numberOfLines = 0
             NativeType.set(titleLabel, text, font: metrics.font(17, .medium), color: color("ink1"), line: metrics.line("lh17"))
         } else {
@@ -326,7 +394,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
     }
 
     private var titleText = ""
-    /// 系统字号在 AX1–AX5（网页 :root[data-ax] 的版式：components/ax.js）。
+    /// 系统字号在 AX1–AX5（网页 :root[data-ax] 的版式）。
     var axLayout: Bool { metrics.category.isAccessibilityCategory }
 
     override func viewDidLayoutSubviews() {
@@ -357,7 +425,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
         scroll.contentSize = CGSize(width: w, height: contentH)
     }
 
-    // MARK: 按钮与防误点（网页 Button.js createPressGuard：新状态后 pressGuard 内不响应；同一按钮两次按下也隔 pressGuard）
+    // MARK: 按钮与防误点（网页 createPressGuard：新状态后 pressGuard 内不响应；同一按钮两次按下也隔 pressGuard）
 
     private var pressGuard: CFTimeInterval {
         CFTimeInterval(((ShiziTokens.motion["timing"] as? [String: Any])?["pressGuard"] as? NSNumber)?.doubleValue ?? 0) / 1000
@@ -399,6 +467,7 @@ class ShiziScreenViewController: UIViewController, NativeTransitionPage, UIGestu
 
     @objc private func handleEdgeBack(_ g: UIScreenEdgePanGestureRecognizer) {
         guard let stage, stage.isTop(self) else { return }
+        if g.state == .began { stage.revealUnder(self) } // 跟手起手就露出下面的页：先补拉
         transitions.drag(g, page: self)
     }
 

@@ -2,7 +2,7 @@ import XCTest
 @testable import ShiziCore
 
 final class ReminderControllerTests: XCTestCase {
-    // test/platform/reminder.test.mjs — payload shape = WebViewController.syncReminder fields; user time; practicedToday from today's judged records
+    // payload shape = WebViewController.syncReminder fields; user time; practicedToday from today's judged records
     func testPayloadShape() throws {
         let core = SessionPageContractTests().runtime()
         _ = ReminderInviteHost.invite(core.store,hour:.number(21),minute:.number(5))
@@ -10,7 +10,7 @@ final class ReminderControllerTests: XCTestCase {
         XCTAssertEqual(p.objectValue!.keys,["enabled","hour","minute","practicedToday","questions"])
         XCTAssertEqual(p["hour"],.number(21));XCTAssertEqual(p["minute"],.number(5));XCTAssertEqual(p["practicedToday"],.bool(false))
     }
-    // test/platform/reminder.test.mjs — controller: sync posts {type:syncReminder,…}; identical content is not re-sent unless forced; nothing outside the shell
+    // controller: sync posts {type:syncReminder,…}; identical content is not re-sent unless forced; nothing outside the shell
     func testControllerSyncDedupForceDebounceAndOutsideShell() {
         let core = SessionPageContractTests().runtime(), c = ReminderController(store:SessionPageContractTests().runtime().store)
         _ = ReminderInviteHost.invite(c.store,hour:.number(21),minute:.number(5))
@@ -23,7 +23,7 @@ final class ReminderControllerTests: XCTestCase {
         let off = ReminderController(store:core.store);off.post = { _,_ in XCTFail("never sent + off");return true };XCTAssertNil(off.sync())
         c.post = { _,_ in false };XCTAssertNil(c.sync(force:true))
     }
-    // test/platform/reminder.test.mjs — cold-start deep link: queued before ready, replayed once (last cardKey only) after markReady → startPicked as B (P47)
+    // cold-start deep link: queued before ready, replayed once (last cardKey only) after markReady → startPicked as B (P47)
     func testColdStartTargetQueue() {
         let c = ReminderController(store:SessionPageContractTests().runtime().store);var opened: [JSValue] = []
         c.startPicked = { keys,source in opened.append(JS.obj([("keys",.array(keys)),("source",source)]));return JS.obj([("ok",.bool(true))]) }
@@ -32,14 +32,14 @@ final class ReminderControllerTests: XCTestCase {
         XCTAssertEqual(opened[0]["source"]?["source"]?["view"],.string("reminder"))
         XCTAssertEqual(c.openTarget(.string("base:学习"))["ok"],.bool(false))
     }
-    // test/platform/reminder.test.mjs — permission report is handed to the settings page (applyReminderStatus) with the live store
+    // permission report is handed to the settings page (applyReminderStatus) with the live store
     func testPermissionReportAndQueryStatus() {
         let core = SessionPageContractTests().runtime(), c = ReminderController(store:SessionPageContractTests().runtime().store);var got = 0
         c.applyStatus = { store,p in XCTAssertTrue(store === c.store);got += 1;return PageAPI.call("reminder.status",store:store,args:p.objectValue!) }
         c.receiveStatusBeforeReady(JS.obj([("permission",.string("denied"))]));XCTAssertEqual(got,0);c.markReady();XCTAssertEqual(got,1)
         c.post = { name,p in XCTAssertEqual(name,"queryReminderStatus");XCTAssertEqual(p,.object(JSObject()));return true };XCTAssertTrue(c.queryStatus());XCTAssertNotNil(core.store)
     }
-    // test/platform/reminder.test.mjs — inviteReminder (点「好」): one settings commit turns the reminder on at the invited time and syncs; inviteChangeTime writes the time and re-syncs (the permission message itself is covered by e2e 72)
+    // inviteReminder (点「好」): one settings commit turns the reminder on at the invited time and syncs; inviteChangeTime writes the time and re-syncs (the permission message itself is covered by e2e 72)
     func testPlatformInviteAndTimeUseSingleCommitThenSync() {
         let store = SessionPageContractTests().runtime().store;var labels: [String] = [], syncs: [JSValue] = [], requested = 0
         let off = store.subscribe { _,info in if info["type"] == .string("commit") { labels.append(JS.string(info["label"])) } };defer { off() }

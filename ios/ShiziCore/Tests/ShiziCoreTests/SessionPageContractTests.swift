@@ -8,7 +8,7 @@ final class SessionPageContractTests: XCTestCase {
         _ = store.load()
         return SessionRuntime(store: store, mathFlavor: .v8)
     }
-    // test/ui/native-block.test.mjs — B3.12 session.pick / session.libSwitch / session.wrongList call the very function the web registered
+    // B3.12 session.pick / session.libSwitch / session.wrongList call the very function the web registered
     func testSessionActionsCallRegisteredFunctionsWithoutWriting() {
         let core = runtime(), before = core.store.state
         var calls: [String] = []
@@ -21,7 +21,7 @@ final class SessionPageContractTests: XCTestCase {
         XCTAssertEqual(core.store.state, before)
         XCTAssertEqual(core.call("view.session-none")["view"], SessionView.noneView(JSObject([("exhausted", .bool(false)), ("pick", .bool(true)), ("wrongList", .bool(true)), ("libSwitch", .bool(true))])))
     }
-    // test/ui/native-detail.test.mjs — detail custom removal/restore preserves original position/time and records.
+    // detail custom removal/restore preserves original position/time and records.
     func testCustomRemoveRestoreAndFailure() {
         let core = runtime(), a = JSObject([("char", .string(cYong))])
         XCTAssertEqual(core.call("detail.addCustom", a)["ok"], .bool(true))
@@ -34,7 +34,7 @@ final class SessionPageContractTests: XCTestCase {
         XCTAssertEqual(core.store.state["custom"], before["custom"])
         XCTAssertEqual(core.store.state["records"], before["records"])
     }
-    // test/ui/native-query.test.mjs — S02 closes before continuing; failure keeps the decision open.
+    // S02 closes before continuing; failure keeps the decision open.
     func testS02CallbackOrderAndFailure() {
         let core = runtime(); var calls: [String] = []
         XCTAssertEqual(core.call("s02.decide", JSObject([("action", .string("cancel"))]))["error"]?["kind"], .string("unavailable"))
@@ -56,7 +56,7 @@ final class SessionPageContractTests: XCTestCase {
         lines.register(key) { _,_ in throw CoreError.error("measurement") }
         XCTAssertEqual(lines.starts(key, text: .string("abc")), .null)
     }
-    // test/platform/reminder.test.mjs — permission report is handed to the settings page (applyReminderStatus) with the live store
+    // permission report is handed to the settings page (applyReminderStatus) with the live store
     func testPermissionReportUsesLiveStore() {
         let core = runtime()
         XCTAssertEqual(core.call("reminder.status", JSObject([("permission", .string("denied"))]))["ok"], .bool(true))

@@ -1,10 +1,10 @@
 import Foundation
 
-// B4.9a：导航层的纯规则（src/ui/route-memory.js 的纯函数部分 + src/ui/engine.js validPrefix；当年 JS 是参考实现并逐条核对过，D84 起 JS 已退役）。
+// B4.9a：导航层的纯规则（纯函数部分 + validPrefix；当年 JS 是参考实现并逐条核对过，D84 起 JS 已退役）。
 //   routeStackOf / encodeRoute / parseRoute / routeFresh / RESTORE_GUARDS / planColdStart / validPrefix
 // 屏名表（getScreen 的 tab 与否）见 NavScreens。
 
-/// 已登记的屏（src/ui/router.js registerScreen 的那一份；App 引擎模式里全部登记）。test/ui/nav-screens.test.mjs 守住与 src 同步。
+/// 已登记的屏（registerScreen 的那一份；App 引擎模式里全部登记）。
 public struct NavScreens {
     public let tabs: [String]
     public let subs: [String]
@@ -101,9 +101,6 @@ public enum RouteRules {
         return JS.truthy(v)
     }
 
-    /// RESTORE_GUARDS 的屏名。
-    public static let guardNames = ["write", "result", "detail", "detail-photo", "session-none", "redo"]
-
     /// 逐页有效性（RESTORE_GUARDS[name](p, ctx)；guard 抛错算不合格）。nil = 这一页没有 guard（恒可恢复）。
     public static func restoreGuard(_ name: String, _ p: JSValue?, state: JSValue?, now: Double, policy: JSValue = Config.policy, dates: Dates,
                                     lookup: (String) -> JSValue? = { DeckCards.shared.cardForKey($0) }) -> Bool? {
@@ -163,7 +160,7 @@ public enum RouteRules {
         return plan(.array(stack.map { .object(JSObject([("n", prop($0, "n") ?? .null), ("p", prop($0, "p") ?? .null)])) }), "ok")
     }
 
-    /// engine.js validPrefix：栈里从底往上第一页不合格之前的那一段（一页都不剩时留 tab 根）。
+    /// 栈里从底往上第一页不合格之前的那一段（一页都不剩时留 tab 根）。
     public static func validPrefix(_ stack: [JSValue], state: JSValue?, now: Double, policy: JSValue = Config.policy, dates: Dates,
                                    lookup: (String) -> JSValue? = { DeckCards.shared.cardForKey($0) }) -> [JSValue] {
         var out: [JSValue] = []

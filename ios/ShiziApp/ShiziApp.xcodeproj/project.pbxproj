@@ -35,6 +35,7 @@
 		1A0000000000000000B39C12 /* Annual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39C11 /* Annual.swift */; };
 		1A0000000000000000B39D12 /* Records.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B39D11 /* Records.swift */; };
 		1A0000000000000000B32004 /* ShiziScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32003 /* ShiziScreen.swift */; };
+		1A0000000000000000B3C002 /* ShiziLazyCells.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B3C001 /* ShiziLazyCells.swift */; };
 		1A0000000000000000B32002 /* ShiziEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B32001 /* ShiziEngine.swift */; };
 		1A00000000000000000A1112 /* QAApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1111 /* QAApp.swift */; };
 		1A00000000000000000A1114 /* EntryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000A1113 /* EntryFlowTests.swift */; };
@@ -54,6 +55,12 @@
 		1A000000000000000000B2A5 /* NativeHint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A4 /* NativeHint.swift */; };
 		1A00000000000000000B11A2 /* WebInk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B11A1 /* WebInk.swift */; };
 		1A00000000000000000B11A4 /* WebInkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000B11A3 /* WebInkTests.swift */; };
+		1A0000000000000000B51104 /* LibraryEquivalenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B51103 /* LibraryEquivalenceTests.swift */; };
+		1A0000000000000000B51102 /* LibraryBenchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B51101 /* LibraryBenchTests.swift */; };
+		1A0000000000000000B61102 /* ImagePreviewBenchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B61101 /* ImagePreviewBenchTests.swift */; };
+		1A0000000000000000B52102 /* AnnualBenchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B52101 /* AnnualBenchTests.swift */; };
+		1A0000000000000000B52104 /* AnnualEquivalenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B52103 /* AnnualEquivalenceTests.swift */; };
+		1A0000000000000000B51C12 /* LibraryListVirtualTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000B51C11 /* LibraryListVirtualTests.swift */; };
 		1A000000000000000000B25B /* NativeJudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B25A /* NativeJudge.swift */; };
 		1A000000000000000000B2A3 /* NativeWriteLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A2 /* NativeWriteLayout.swift */; };
 		1A000000000000000000B2A1 /* NativeInkWire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000B2A0 /* NativeInkWire.swift */; };
@@ -164,6 +171,7 @@
 		1A0000000000000000B39C11 /* Annual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annual.swift; sourceTree = "<group>"; };
 		1A0000000000000000B39D11 /* Records.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Records.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32003 /* ShiziScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziScreen.swift; sourceTree = "<group>"; };
+		1A0000000000000000B3C001 /* ShiziLazyCells.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziLazyCells.swift; sourceTree = "<group>"; };
 		1A0000000000000000B32001 /* ShiziEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShiziEngine.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1111 /* QAApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QAApp.swift; sourceTree = "<group>"; };
 		1A00000000000000000A1113 /* EntryFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntryFlowTests.swift; sourceTree = "<group>"; };
@@ -184,6 +192,12 @@
 		1A000000000000000000B2A4 /* NativeHint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeHint.swift; sourceTree = "<group>"; };
 		1A00000000000000000B11A1 /* WebInk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebInk.swift; sourceTree = "<group>"; };
 		1A00000000000000000B11A3 /* WebInkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebInkTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B51103 /* LibraryEquivalenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryEquivalenceTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B51101 /* LibraryBenchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryBenchTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B61101 /* ImagePreviewBenchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreviewBenchTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B52101 /* AnnualBenchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnualBenchTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B52103 /* AnnualEquivalenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnualEquivalenceTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000B51C11 /* LibraryListVirtualTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryListVirtualTests.swift; sourceTree = "<group>"; };
 		1A000000000000000000B25A /* NativeJudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeJudge.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A2 /* NativeWriteLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWriteLayout.swift; sourceTree = "<group>"; };
 		1A000000000000000000B2A0 /* NativeInkWire.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInkWire.swift; sourceTree = "<group>"; };
@@ -304,6 +318,12 @@
 				1A0000000000000000000C21 /* InkSurfaceTests.swift */,
 				1A000000000000000000B2A6 /* NativeHintTests.swift */,
 				1A00000000000000000B11A3 /* WebInkTests.swift */,
+				1A0000000000000000B51103 /* LibraryEquivalenceTests.swift */,
+				1A0000000000000000B51101 /* LibraryBenchTests.swift */,
+				1A0000000000000000B61101 /* ImagePreviewBenchTests.swift */,
+				1A0000000000000000B52101 /* AnnualBenchTests.swift */,
+				1A0000000000000000B52103 /* AnnualEquivalenceTests.swift */,
+				1A0000000000000000B51C11 /* LibraryListVirtualTests.swift */,
 				1A000000000000000000B25C /* NativeJudgeTests.swift */,
 				1A0000000000000000B24605 /* NativeTraceTests.swift */,
 				1A0000000000000000B24607 /* NativeAnswerSkipTests.swift */,
@@ -438,6 +458,7 @@
 				1A0000000000000000B3100F /* ShiziProbe.swift */,
 				1A0000000000000000B31011 /* ShiziTokens.swift */,
 				1A0000000000000000B31013 /* ShiziTransitions.swift */,
+				1A0000000000000000B3C001 /* ShiziLazyCells.swift */,
 				1A0000000000000000B31015 /* ShiziUndoBar.swift */,
 			);
 			path = ShiziKit;
@@ -699,6 +720,7 @@
 				1A0000000000000000B39C12 /* Annual.swift in Sources */,
 				1A0000000000000000B39D12 /* Records.swift in Sources */,
 				1A0000000000000000B32004 /* ShiziScreen.swift in Sources */,
+				1A0000000000000000B3C002 /* ShiziLazyCells.swift in Sources */,
 				1A0000000000000000B32002 /* ShiziEngine.swift in Sources */,
 				1A0000000000000000000023 /* RootViewController.swift in Sources */,
 				1A00000000000000000000D1 /* InkModel.swift in Sources */,
@@ -750,6 +772,12 @@
 				1A0000000000000000000C22 /* InkSurfaceTests.swift in Sources */,
 				1A000000000000000000B2A7 /* NativeHintTests.swift in Sources */,
 				1A00000000000000000B11A4 /* WebInkTests.swift in Sources */,
+				1A0000000000000000B51104 /* LibraryEquivalenceTests.swift in Sources */,
+				1A0000000000000000B51102 /* LibraryBenchTests.swift in Sources */,
+				1A0000000000000000B61102 /* ImagePreviewBenchTests.swift in Sources */,
+				1A0000000000000000B52102 /* AnnualBenchTests.swift in Sources */,
+				1A0000000000000000B52104 /* AnnualEquivalenceTests.swift in Sources */,
+				1A0000000000000000B51C12 /* LibraryListVirtualTests.swift in Sources */,
 				1A000000000000000000B25D /* NativeJudgeTests.swift in Sources */,
 				1A0000000000000000B24606 /* NativeTraceTests.swift in Sources */,
 				1A0000000000000000B24608 /* NativeAnswerSkipTests.swift in Sources */,

@@ -1,11 +1,11 @@
 import Foundation
 
-// JS Date 的本地时间语义（B4.0；ECMA-262 §21.4.1），供 Dates 1:1 移植 src/core/dates.js：
+// JS Date 的本地时间语义（B4.0；ECMA-262 §21.4.1），供 Dates 的 1:1 移植用：
 //   · 时间值 = 自 1970-01-01T00:00Z 的毫秒（Double）；TimeClip：|t| > 8.64e15 为无效（nil），非整数向零截断；
 //   · 历法 = 前推格里历、天文纪年（有 0 年与负年），不用 Foundation 的 Calendar（它在 1582 年前换儒略历、年份按纪元）；
 //   · 本地 ↔ UTC 按时区偏移；本地时刻不存在（夏令时跳过的那段）时取跳变前的偏移（结果落在跳变之后），
 //     本地时刻重复时取较早的那个时刻——与 V8 / Temporal 的「compatible」消歧一致；
-//   · `new Date(y, m, d, …)` / `Date.UTC(y, …)` 的两位年怪癖：0 ≤ y ≤ 99 当作 1900 + y（dates.js 的行为依赖它，照搬）。
+//   · `new Date(y, m, d, …)` / `Date.UTC(y, …)` 的两位年怪癖：0 ≤ y ≤ 99 当作 1900 + y（行为依赖它，照搬）。
 
 public enum JSDate {
     public static let msPerDay: Double = 86_400_000

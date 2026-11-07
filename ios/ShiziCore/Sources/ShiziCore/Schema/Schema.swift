@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/schema.js 的 1:1 移植（B4.1）：v2 键的形状表与校验。校验函数返回 nil = 通过，否则「路径: 原因」字串，
+// 1:1 移植自原 JS 版（B4.1）：v2 键的形状表与校验。校验函数返回 nil = 通过，否则「路径: 原因」字串，
 // 字串逐字与 JS 相同（差分按回包字节比对）。字符串判断一律走 UTF-8 字节（JS 正则只认 ASCII，Swift String 的前缀 / 相等按
 // Unicode 规范等价会与 JS 不同，见 B4.0 踩坑）。
 
@@ -13,8 +13,6 @@ public enum Schema {
     public static let recordsPrefix = "shizi.v2.records."
     public static let inkPrefix = "shizi.v2.ink."
     public static let corruptPrefix = "shizi.corrupt."
-    public static let nativeSmokeKey = "shizi.nativeSmoke.v1"
-    public static let nativeStoreMarkerKey = "shizi.nativeStore.v1"
 
     /// KEYS（键名 → 键），声明顺序同 JS。
     public static let keys: [(name: String, key: String)] = [

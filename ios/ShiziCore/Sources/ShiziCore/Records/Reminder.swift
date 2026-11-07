@@ -1,6 +1,6 @@
 import Foundation
 
-// src/platform/reminder.js 的规则部分（B4.0 暂记 B4.5，B4.3 认领）：提醒的题目选取。
+// 规则部分（B4.0 暂记 B4.5，B4.3 认领）：提醒的题目选取。
 // 页面只管算内容：时间（settings.remind，缺省 policy.remindDefault）、题目（从今天起 8 天，每天取「到那天为止已到期」的字，
 // 按 P48 写错过优先、其次到期最久，已被前几天用过的字尽量不重复）、practicedToday（今天有没有 judged 记录，「今天」按提醒时刻归到的那一天，D66 ⑦）。
 // 不移植：createReminder / startReminder / inviteReminder（桥与设置页的运行时，仅网页；原生壳的提醒调度在 B4.5 之后另算）。
@@ -10,7 +10,7 @@ public enum Reminder {
     public static let reminderDays = 8
     public static let permissions = ["granted", "denied", "unknown"]
 
-    static func policyObject(_ overrides: JSObject?) -> JSObject {
+    package static func policyObject(_ overrides: JSObject?) -> JSObject {
         var pol = Config.policy.objectValue ?? JSObject()
         if let o = overrides { for (k, v) in o.entries { pol[k] = v } }
         return pol
@@ -101,13 +101,38 @@ public enum Reminder {
     /// store 状态 → 全部记录（records 按月分组，折叠月份取 kept；月份键按字符串序）。
     public static func recordsOf(_ state: JSValue?) -> [JSValue] {
         var out: [JSValue] = []
-        guard let state = state, JSX.truthy(state), let months = state["records"], JSX.truthy(months), case .object(let m) = months else { return out }
+        for seg in monthLists(state) { out += seg.records }
+        return out
+    }
+
+    /// recordsOf 的各段（同一顺序：月份键按 JSX.cmp 排序，数组月整段、折叠月取 kept）；按顺序逐段走一遍就是 recordsOf，不必先拼成一个数组。
+    static func monthLists(_ state: JSValue?) -> [(month: String, records: [JSValue])] {
+        guard let state = state, JSX.truthy(state), let months = state["records"], JSX.truthy(months), case .object(let m) = months else { return [] }
         let keys = m.keys.sorted { JSX.cmp($0, $1) < 0 }
+        var out: [(month: String, records: [JSValue])] = []
         for k in keys {
             let v = m[k]!
-            if case .array(let l) = v { out += l } else if JSX.truthy(v), case .array(let kept)? = v["kept"] { out += kept }
+            if case .array(let l) = v { out.append((month: k, records: l)) } else if JSX.truthy(v), case .array(let kept)? = v["kept"] { out.append((month: k, records: kept)) }
         }
         return out
+    }
+
+    /// = Records.todayCount(recordsOf(state), day) > 0：有没有一条 judged、localDay == day、cardKey 是字串的记录（judgedCardKeysOn 只收字串 cardKey）。
+    /// 「有没有」与先后无关，所以先查 day 所在月份键（day 的前 7 个字符）那一段——提交后同步时今天多半已经写过，查完这一段就有答案；
+    /// 没有再查其余各段。对任意状态都与原来相同（不依赖「记录都存在自己的月里」这条 Store 约束）；只有今天确实没写时才走完全部记录。
+    static func practicedOn(_ state: JSValue?, _ day: String) -> Bool {
+        func hit(_ r: JSValue) -> Bool { Records.isJudged(r) && JSX.eq(r["localDay"], day) && r["cardKey"]?.stringValue != nil }
+        // 先查哪一段只影响快慢、不影响结论，所以月份键怎么取都对
+        let lists = monthLists(state), month = String(day.prefix(7))
+        var first: Int?
+        if let i = lists.firstIndex(where: { JSX.eq($0.month, month) }) {
+            first = i
+            if lists[i].records.contains(where: hit) { return true }
+        }
+        for (i, seg) in lists.enumerated() where i != first {
+            if seg.records.contains(where: hit) { return true }
+        }
+        return false
     }
 
     /// 能进提醒的字（与日子无关的部分），按 P48 排好：写错过在前 → due 早的在前 → 最近一次记录早的在前 → cardKey。
@@ -121,10 +146,12 @@ public enum Reminder {
         var wordOff: JSValue?
         if let s = state, JSX.truthy(s), let w = s["wordOff"], JSX.truthy(w) { wordOff = w }
         var latest = OMap<JSValue>()
-        for r in recordsOf(state) where Records.isJudged(r) {
-            guard case .string(let k)? = r["cardKey"] else { continue }
-            if let prev = latest[k], !(Records.compareRecordIds(prev["id"], r["id"]) < 0) { continue }
-            latest[k] = r
+        for seg in monthLists(state) { // 与逐条走 recordsOf(state) 同序（相等 id 时留先出现的那条），只是不先拼出全部记录
+            for r in seg.records where Records.isJudged(r) {
+                guard case .string(let k)? = r["cardKey"] else { continue }
+                if let prev = latest[k], !(Records.compareRecordIds(prev["id"], r["id"]) < 0) { continue }
+                latest[k] = r
+            }
         }
         var out: [Candidate] = []
         let keys: [String] = { if case .object(let o) = sched { return o.keys }; return [] }()
@@ -199,7 +226,7 @@ public enum Reminder {
         let r = (remind.map { JSX.truthy($0) } ?? false) ? remind! : remindOf(settings, policy: policy)
         let enabled = r["enabled"] == .bool(true)
         let fireDay = try fireDayOf(now, r, today, policy: policy, dates: dates)
-        let practiced = Records.todayCount(recordsOf(state), fireDay.stringValue ?? "") > 0
+        let practiced = practicedOn(state, fireDay.stringValue ?? "")
         let questions: [JSValue] = enabled ? try reminderQuestions(state, today: today, deck: deck, policy: policy, dates: dates) : []
         return .object(JSObject([
             ("enabled", .bool(enabled)),

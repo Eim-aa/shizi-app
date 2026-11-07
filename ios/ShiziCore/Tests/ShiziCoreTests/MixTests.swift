@@ -15,12 +15,9 @@ final class MixTests: XCTestCase {
     let policy = Config.policy
 
     var mix: JSValue? { policy["groupMix"] }
-    /// 与参考实现（D41 规则 D）对照时用旧阀（valveReleaseDays null）；D65 的回滞阀另有用例。
-    var mixD41: JSValue { JS.with(policy["groupMix"], [("valveReleaseDays", .null)]) }
     /// 这些场景历史很长（累计组数 ≥ 10）：关掉 D40 特别组（另有 special.test.mjs），只看日常配比。
     var NO_CAPITAL: JSValue { JS.with(policy, [("capitalNumerals", JS.with(policy["capitalNumerals"], [("enabled", .bool(false))]))]) }
 
-    func isWarmChar(_ c: String) -> Bool { NewOrder.isWarmupChar(c) }
     func isWarmKey(_ k: String) -> Bool { NewOrder.isWarmupKey(k) }
 
     func at(_ day: String, _ hour: Int = 12, _ minute: Int = 0) -> Double {
@@ -133,7 +130,7 @@ final class MixTests: XCTestCase {
 
     // MARK: 热身字门控
 
-    // test/core/mix.test.mjs: warm-up gate (P126): only within 7 days of the first practice or when recent accuracy < 0.6; at most 1, at the head
+    // warm-up gate (P126): only within 7 days of the first practice or when recent accuracy < 0.6; at most 1, at the head
     func testWarmUpGateP126OnlyWithin7DaysOfTheFirstPracticeOrWhenRecentAccuracyBelow06() throws {
         let warmList = K(warmupList(0, 4))
         let cands = K(plainChars(20, 300))
@@ -171,13 +168,13 @@ final class MixTests: XCTestCase {
         }
     }
 
-    // test/core/mix.test.mjs: warm-up chars also sit in the frequency-ordered new-char tail (real deck): the warm-up slot still works and the char is never in the group twice
+    // warm-up chars also sit in the frequency-ordered new-char tail (real deck): the warm-up slot still works and the char is never in the group twice
     func testWarmUpCharsAlsoSitInTheFrequencyOrderedNewCharTailTheWarmUpSlotStillWorks() throws {
         let warmList = K(warmupList(0, 3))
         let cands = K(chars(6, 800)) + warmList + K(chars(10, 900)) // 热身字夹在候选里（字频尾部）
         let records = [rec(1, chars(1, 10)[0], "judged", "correct", addDays(TODAY, -1), sessionId: "s1")]
         let r = try selectDaily(sched: .object(JSObject()), records: records, newCandidates: cands, warmupCandidates: warmList,
-                                policy: JS.with(NO_CAPITAL, [("newUserRamp", .null)]))
+                                policy: NO_CAPITAL)
         XCTAssertEqual(r.warmKeys, [warmList[0]])
         XCTAssertEqual(r.queue[0], warmList[0], "warm-up char first")
         XCTAssertEqual(Set(r.queue).count, r.queue.count, "no duplicates")
@@ -189,7 +186,7 @@ final class MixTests: XCTestCase {
         XCTAssertFalse(calm.queue.contains { warmList.contains($0) }, "the warm-up chars stay at the tail of the order")
     }
 
-    // test/core/mix.test.mjs: warm-up: a due warm-up review replaces the new warm-up char (one warm-up char per group) and goes first; at most one warm-up review per group
+    // warm-up: a due warm-up review replaces the new warm-up char (one warm-up char per group) and goes first; at most one warm-up review per group
     func testWarmUpADueWarmUpReviewReplacesTheNewWarmUpCharAndGoesFirst() throws {
         let warmDue = K(warmupList(0, 3))
         var schedTable = JSObject()
@@ -204,7 +201,7 @@ final class MixTests: XCTestCase {
 
     // MARK: 输入都从 records 推出
 
-    // test/core/mix.test.mjs: practiceStats: groups per day over the 7 days before today (today excluded, min 1), group total counts sessions
+    // practiceStats: groups per day over the 7 days before today (today excluded, min 1), group total counts sessions
     func testPracticeStatsGroupsPerDayOverThe7DaysBeforeToday() throws {
         var rs: [JSValue] = []
         var n = 1
@@ -233,7 +230,7 @@ final class MixTests: XCTestCase {
         XCTAssertTrue(st.hadToday)
     }
 
-    // test/core/mix.test.mjs: practiceStats: legacy records (no session) count as one group per day; recent-new accuracy uses first judgments of non-warm chars only
+    // practiceStats: legacy records (no session) count as one group per day; recent-new accuracy uses first judgments of non-warm chars only
     func testPracticeStatsLegacyRecordsCountAsOneGroupPerDayRecentNewAccuracyUsesFirstJudgmentsOfNonWarmCharsOnly() throws {
         func legacy(_ serial: Int, _ ch: String, _ judgment: String, _ day: String) -> JSValue {
             JS.with(rec(serial, ch, "judged", judgment, day), [("sessionId", nil), ("legacy", .bool(true))])
@@ -254,7 +251,7 @@ final class MixTests: XCTestCase {
         XCTAssertEqual(try stats(many).newAccuracy, (10.0 + 1) / 12, "the 4 old wrong ones fell out of the 10-window")
     }
 
-    // test/core/mix.test.mjs: practiceStats: lastHadNew looks at the most recent group; ≥ 7 days away flips it to false for the first group back
+    // practiceStats: lastHadNew looks at the most recent group; ≥ 7 days away flips it to false for the first group back
     func testPracticeStatsLastHadNewLooksAtTheMostRecentGroup7DaysAwayFlipsItToFalse() throws {
         let rs = [
             rec(1, "\u{7532}", "judged", "correct", addDays(TODAY, -2), sessionId: "s1"),
@@ -275,7 +272,7 @@ final class MixTests: XCTestCase {
 
     // MARK: 组内顺序
 
-    // test/core/mix.test.mjs: group order: warm-up first, then review/new interleaved, early reviews last; a new char is never last when a review can take its place
+    // group order: warm-up first, then review/new interleaved, early reviews last; a new char is never last when a review can take its place
     func testGroupOrderWarmUpFirstThenReviewNewInterleavedEarlyReviewsLast() throws {
         func isW(_ k: String) -> Bool { k == "W" || k == "w1" }
         XCTAssertEqual(Mix.arrangeGroup(warmNew: "W", revKeys: ["r1", "r2"], earlyKeys: [], newKeys: ["n1", "n2"], isWarm: isW), ["W", "r1", "n1", "n2", "r2"],
@@ -296,11 +293,11 @@ final class MixTests: XCTestCase {
         XCTAssertTrue(r.dueKeys.contains(r.queue[r.queue.count - 1]), "the group ends on a review char")
     }
 
-    // test/core/mix.test.mjs: selectDaily keeps working with the legacy call shape (no warm-up list, no isWarm): reviews and new chars fill the group
+    // selectDaily keeps working with the legacy call shape (no warm-up list, no isWarm): reviews and new chars fill the group
     func testSelectDailyKeepsWorkingWithTheLegacyCallShape() throws {
         // 不传 warmupCandidates、不传 isWarm（用默认值）
         let r = try rules.selectDaily(sched: JS.obj([("base:\u{4EA6}", sched("2026-09-20"))]), records: [], today: TODAY, newCandidates: K("\u{9C9C}\u{5883}\u{989D}\u{6162}"),
-                                      policy: JS.with(policy, [("newUserRamp", .null)]), groupSize: .number(5))
+                                      policy: policy, groupSize: .number(5))
         XCTAssertEqual(r.queue.count, 5)
         XCTAssertTrue(r.dueKeys.contains("base:\u{4EA6}"))
         XCTAssertNil(r.special)

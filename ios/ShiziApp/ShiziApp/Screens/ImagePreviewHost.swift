@@ -95,7 +95,7 @@ final class ShiziScreen_image_toast: ShiziScreenViewController {
         view.addSubview(v)
         toast = v
         view.setNeedsLayout()
-        // 显示时长与退场（网页 Toast.js：timing.toast；退场 T-fade）
+        // 显示时长与退场（网页：timing.toast；退场 T-fade）
         let ms = ((ShiziTokens.motion["timing"] as? [String: Any])?["toast"] as? NSNumber)?.doubleValue ?? 3200
         v.runTimer(ms / 1000)
         let work = DispatchWorkItem { [weak self] in self?.dismissToast() }

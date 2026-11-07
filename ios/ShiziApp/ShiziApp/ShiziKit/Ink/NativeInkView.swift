@@ -7,7 +7,7 @@ import UIKit
 // 管线（输入沿规格 §7；墨的几何见下）：UITouch（合并点 coalescedTouches + 预测点 predictedTouches；Pencil 时 force / altitude）
 //   → 原始点（345 单位格、ms = UITouch.timestamp × 1000、p 仅 Pencil；时间戳不单调时夹到前一点，规格 §2.1）
 //   → CADisplayLink（preferredFrameRateRange 最高 120）每帧：WebInk.buildStroke(原始点 + 预测点, final: false) → 三角形
-//      （R11-A，D72 ②：墨与网页同一算法 ink-math.js buildStroke + brush.js 画法，参数由页面随 open 下发；ink-model-1.0 / InkModel
+//      （R11-A，D72 ②：墨与网页同一算法 buildStroke + 画法，参数由页面随 open 下发；ink-model-1.0 / InkModel
 //       只留作 T2 盲测候选，见 inkModel）
 //   → Metal：CAMetalLayer 直接呈现，4×MSAA；墨的三角形同一墨色、不混合地写入 = 规格 §4.2 的「并集」（重叠处颜色相同，非零规则自然成立），
 //      MSAA resolve 得到预乘 alpha 的抗锯齿边。悬停预览点另一条混合管线叠在最上面（半透明，不落墨）。
@@ -19,7 +19,7 @@ import UIKit
 //     在笔尖下方画落笔预览点（直径 0.9 × B × F_p(0.35)，不落墨、不存）；双击（UIPencilInteraction）按系统偏好映射成「清空 / 撤销」交给代理。
 //   - 手指与 Pencil 同时出现（写字时手掌误触）：见 NativeInkInputPolicy——Pencil 优先、Pencil 刚用过时手指不落墨、大接触面积 / 静止的手指判为手掌。
 //   - 换字落笔门限（P227，acceptFrom）：门限之前落下的笔先「持住」——照常记点，但不画、不通知；到点补开始并接着实时画，抬笔早于门限时整笔
-//     等到门限再交出——这一笔不丢（与网页 ink-canvas.js 同语义）。门限 = .infinity 表示「等下一个字」（判断回包前落下的笔）。
+//     等到门限再交出——这一笔不丢（与网页版同语义）。门限 = .infinity 表示「等下一个字」（判断回包前落下的笔）。
 //   - 书写中书写面移动 / 改尺寸（换阶段、换字的版式变化）：已记的点按屏幕位置换算到新格，笔不断、不丢（T0 规则 3：这次输入照常生效）。
 // 测量（T1，只在 DEBUG）：每个合并点记 touch 时间戳 → 首次包含它的那一帧的 targetTimestamp / presentedTime（NativeInkLatency）。
 
@@ -147,13 +147,13 @@ final class NativeInkStrokeMesh {
         }
     }
 
-    /// 一笔抬笔后的几何（R11-A，D72 ②）：网页同一算法 WebInk.buildStroke(final: true) → brush.js 同一画法的三角形。
-    /// params 为 nil（页面还没下发 ink 表）时没有几何——书写面只在写字页 open 之后存在，open 一定带 ink（契约 test/ui/native-write.test.mjs）。
+    /// 一笔抬笔后的几何（R11-A，D72 ②）：网页同一算法 WebInk.buildStroke(final: true) → 同一画法的三角形。
+    /// params 为 nil（页面还没下发 ink 表）时没有几何——书写面只在写字页 open 之后存在，open 一定带 ink（契约）。
     static func build(raw: [InkRawPoint], params: WebInkParams?, widthScale: Double = 1) -> NativeInkStrokeMesh {
         var v: [Float] = []
         if let params {
             var pts = WebInk.buildStroke(raw, final: true, params: params).points
-            // B2.7：小方框里的只读墨（结果页作品格 / 行）按网页 paintHand 的 widthScale 抬到最小物理线宽（core/images/layout.js inkWidthScale）
+            // B2.7：小方框里的只读墨（结果页作品格 / 行）按网页 paintHand 的 widthScale 抬到最小物理线宽（inkWidthScale）
             if widthScale != 1 { pts = pts.map { var q = $0; q.w *= widthScale; return q } }
             WebInk.triangles(pts, into: &v)
         }
@@ -169,6 +169,7 @@ final class NativeInkStrokeMesh {
     }
 
     /// 书写中的一笔（final = false）：已记的原始点 + 这一帧的预测点（只做临时尾巴，下一帧丢弃；时间夹成单调）。
+    /// 整笔重算的参照写法：书写面每帧用的是增量的 WebInk.LiveStroke（逐位相同，WebInkTests 逐帧比），这里留给测试与量测对照。
     static func live(raw: [InkRawPoint], predicted: [InkRawPoint], params: WebInkParams, into out: inout [Float]) {
         var pts = raw
         for q in predicted { NativeInkView.append(q, to: &pts) }
@@ -193,6 +194,8 @@ final class NativeInkStrokeMesh {
 // MARK: - 渲染
 
 /// Metal 渲染器：4×MSAA，画进 CAMetalLayer 的 drawable。两条管线：墨（不混合 = 并集）与叠加（预乘 alpha 混合：悬停预览点）。
+/// 不可变的 GPU 对象（设备、命令队列、着色器库、两条管线）全进程共用一份（NativeInkRenderer.GPU.shared，第一次用到时建）；
+/// 每个渲染器自己只有随 drawable 尺寸变的 MSAA 纹理。
 final class NativeInkRenderer {
     let device: MTLDevice
     private let queue: MTLCommandQueue
@@ -232,30 +235,53 @@ final class NativeInkRenderer {
     fragment float4 ink_fs(VOut in [[stage_in]], constant U &u [[buffer(1)]]) { return u.color; }
     """
 
+    /// 共用的 GPU 对象不可用（没有 Metal / 着色器或管线建不起来）时 nil。
     init?() {
-        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { return nil }
-        self.device = device
-        self.queue = queue
-        do {
-            // 着色器随源码编译（两个函数、几十字节；工程里不加 .metal 构建规则，构建机不需要单独的 Metal 工具链）
-            let library = try device.makeLibrary(source: Self.shaderSource, options: nil)
-            let desc = MTLRenderPipelineDescriptor()
-            desc.vertexFunction = library.makeFunction(name: "ink_vs")
-            desc.fragmentFunction = library.makeFunction(name: "ink_fs")
-            desc.colorAttachments[0].pixelFormat = .bgra8Unorm
-            desc.colorAttachments[0].isBlendingEnabled = false // 并集：同色覆盖即可，不混合
-            desc.rasterSampleCount = Self.sampleCount
-            pipeline = try device.makeRenderPipelineState(descriptor: desc)
-            let att = desc.colorAttachments[0]!
-            att.isBlendingEnabled = true // 叠加：预乘 alpha 的 source-over
-            att.sourceRGBBlendFactor = .one
-            att.sourceAlphaBlendFactor = .one
-            att.destinationRGBBlendFactor = .oneMinusSourceAlpha
-            att.destinationAlphaBlendFactor = .oneMinusSourceAlpha
-            blendPipeline = try device.makeRenderPipelineState(descriptor: desc)
-        } catch {
-            NSLog("[shizi] ink surface: Metal pipeline failed: %@", error.localizedDescription)
-            return nil
+        guard let gpu = GPU.shared else { return nil }
+        device = gpu.device
+        queue = gpu.queue
+        pipeline = gpu.pipeline
+        blendPipeline = gpu.blendPipeline
+    }
+
+    /// 不可变的 GPU 对象，全进程一份：设备、命令队列、着色器库（运行时编译）与两条管线状态。
+    /// 结果页每格、字帖每格都是一个只读书写面，原先每个各编一次着色器、各建一套管线（QA：结果页一屏十几份）。
+    final class GPU {
+        let device: MTLDevice
+        let queue: MTLCommandQueue
+        let library: MTLLibrary
+        let pipeline: MTLRenderPipelineState
+        let blendPipeline: MTLRenderPipelineState
+
+        /// 第一次用到时建（static let：惰性、只建一次、线程安全）；建不起来就一直是 nil（与原先每次新建都失败同语义）。
+        static let shared: GPU? = GPU()
+
+        private init?() {
+            guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { return nil }
+            self.device = device
+            self.queue = queue
+            do {
+                // 着色器随源码编译（两个函数、几十字节；工程里不加 .metal 构建规则，构建机不需要单独的 Metal 工具链）
+                let library = try device.makeLibrary(source: NativeInkRenderer.shaderSource, options: nil)
+                self.library = library
+                let desc = MTLRenderPipelineDescriptor()
+                desc.vertexFunction = library.makeFunction(name: "ink_vs")
+                desc.fragmentFunction = library.makeFunction(name: "ink_fs")
+                desc.colorAttachments[0].pixelFormat = .bgra8Unorm
+                desc.colorAttachments[0].isBlendingEnabled = false // 并集：同色覆盖即可，不混合
+                desc.rasterSampleCount = NativeInkRenderer.sampleCount
+                pipeline = try device.makeRenderPipelineState(descriptor: desc)
+                let att = desc.colorAttachments[0]!
+                att.isBlendingEnabled = true // 叠加：预乘 alpha 的 source-over
+                att.sourceRGBBlendFactor = .one
+                att.sourceAlphaBlendFactor = .one
+                att.destinationRGBBlendFactor = .oneMinusSourceAlpha
+                att.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+                blendPipeline = try device.makeRenderPipelineState(descriptor: desc)
+            } catch {
+                NSLog("[shizi] ink surface: Metal pipeline failed: %@", error.localizedDescription)
+                return nil
+            }
         }
     }
 
@@ -272,9 +298,10 @@ final class NativeInkRenderer {
         return vertices.withUnsafeBytes { device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared) }
     }
 
-    /// 画一帧并呈现。presented 在 drawable 真正上屏时回调（模拟器上拿不到）。
+    /// 画一帧并呈现。presented 在 drawable 真正上屏时回调（模拟器上拿不到）；completed 在 GPU 画完这一帧时回调（Metal 的线程上；
+    /// 只在提交了的帧上回调——返回 false 时没有提交，调用方自己收尾）。
     @discardableResult
-    func render(layer: CAMetalLayer, batches: [Batch], presented: ((CFTimeInterval) -> Void)?) -> Bool {
+    func render(layer: CAMetalLayer, batches: [Batch], presented: ((CFTimeInterval) -> Void)?, completed: (() -> Void)? = nil) -> Bool {
         guard let drawable = layer.nextDrawable() else { return false }
         let tex = drawable.texture
         if msaa == nil || msaa!.width != tex.width || msaa!.height != tex.height {
@@ -323,9 +350,110 @@ final class NativeInkRenderer {
             drawable.addPresentedHandler { d in presented(d.presentedTime) }
         }
         #endif
+        if let completed { cb.addCompletedHandler { _ in completed() } }
         cb.present(drawable)
         cb.commit()
         return true
+    }
+}
+
+/// 书写中那一笔的顶点缓冲：几块轮换（默认 3 块，都在 GPU 上时再加一块）、按需长大，不再每帧 makeBuffer。
+/// 同一代（LiveStroke.generation）里稳定前缀只追加不改：每块记着自己已经与 stableVertices 相同的前缀，这一帧只写新增的稳定部分与尾巴。
+/// 一块在 GPU 画完之前（inFlight > 0）不写（completed handler 在 Metal 的线程上减，故用锁）。
+final class NativeInkLiveBuffers {
+    private final class Slot {
+        var buffer: MTLBuffer?
+        var generation = -1 // 前缀属于哪一代；-1 = 没有可复用的前缀
+        var stable = 0 // 这块里与 stableVertices[0 ..< stable] 相同的 Float 数
+        var inFlight = 0 // 用到这块、GPU 还没画完的帧数（受 lock 保护）
+    }
+
+    private var slots = [Slot(), Slot(), Slot()]
+    private var next = 0
+    private let lock = NSLock()
+    /// 最近写好的一块（nil = 没有可画的）与它的顶点数。
+    private var current: Slot?
+    private(set) var vertexCount = 0
+
+    var buffer: MTLBuffer? { current?.buffer }
+
+    func clear() {
+        current = nil
+        vertexCount = 0
+    }
+
+    /// 写这一帧的顶点：stable 的前 stableUsed 个 Float（generation 为它的代；-1 表示不复用）+ tail。建不起缓冲时返回 false、没有可画的。
+    @discardableResult
+    func write(stable: [Float], stableUsed: Int, generation: Int, tail: [Float], device: MTLDevice) -> Bool {
+        let total = stableUsed + tail.count
+        guard total > 0 else {
+            clear()
+            return true
+        }
+        let slot = freeSlot()
+        let bytes = total * MemoryLayout<Float>.stride
+        if slot.buffer.map({ $0.length < bytes }) ?? true {
+            // 按 1.5 倍长大（至少 64KB），长一次够写很多帧
+            let cap = max(64 * 1024, bytes + bytes / 2)
+            slot.buffer = device.makeBuffer(length: cap, options: .storageModeShared)
+            slot.generation = -1
+            slot.stable = 0
+        }
+        guard let buf = slot.buffer else {
+            clear()
+            return false
+        }
+        let dst = buf.contents()
+        let size = MemoryLayout<Float>.stride
+        let from = generation >= 0 && slot.generation == generation ? min(slot.stable, stableUsed) : 0
+        if stableUsed > from {
+            stable.withUnsafeBytes { src in
+                // swiftlint:disable:next force_unwrapping
+                (dst + from * size).copyMemory(from: src.baseAddress! + from * size, byteCount: (stableUsed - from) * size)
+            }
+        }
+        if !tail.isEmpty {
+            tail.withUnsafeBytes { src in
+                // swiftlint:disable:next force_unwrapping
+                (dst + stableUsed * size).copyMemory(from: src.baseAddress!, byteCount: tail.count * size)
+            }
+        }
+        slot.generation = generation
+        slot.stable = generation >= 0 ? stableUsed : 0
+        current = slot
+        vertexCount = total / 2
+        return true
+    }
+
+    /// 这一帧要画最近写好的那块：记上「GPU 在用」，返回画完时调的收尾（render 没提交时调用方自己马上调）。
+    func use() -> () -> Void {
+        guard let slot = current else { return {} }
+        let lock = self.lock
+        lock.lock()
+        slot.inFlight += 1
+        lock.unlock()
+        return {
+            lock.lock()
+            slot.inFlight -= 1
+            lock.unlock()
+        }
+    }
+
+    /// 下一块 GPU 不在用的（轮换）；都在用时加一块。
+    private func freeSlot() -> Slot {
+        lock.lock()
+        defer { lock.unlock() }
+        for k in 0..<slots.count {
+            let i = (next + k) % slots.count
+            if slots[i].inFlight == 0 {
+                next = (i + 1) % slots.count
+                return slots[i]
+            }
+        }
+        let slot = Slot()
+        slots.append(slot)
+        next = 0
+        return slot
     }
 }
 
@@ -333,7 +461,7 @@ final class NativeInkRenderer {
 
 @objc(ShiziNativeInkView)
 final class NativeInkView: UIView {
-    /// 墨的算法与参数（R11-A，D72 ②）：与网页同一算法 WebInk（= ink-math.js buildStroke），参数是页面随 open 下发的 ink 表
+    /// 墨的算法与参数（R11-A，D72 ②）：与网页同一算法 WebInk（= buildStroke），参数是页面随 open 下发的 ink 表
     /// （policy.ink + INK_SPEC，WebInkParams.current），不在原生写数值。取代 D71 ① 的 ink-model-1.0 参数（base 13 / vMin 0.62 / dirH 0.72）。
 
     override class var layerClass: AnyClass { CAMetalLayer.self }
@@ -365,6 +493,8 @@ final class NativeInkView: UIView {
                 cancelStroke(reason: "reset", notify: true)
                 heldDone = []
                 hideHover()
+            } else {
+                wakeFrameLoop() // 可写的书写面不暂停（见 frameLoopIdle）
             }
         }
     }
@@ -384,9 +514,12 @@ final class NativeInkView: UIView {
     private var heldStartedAt: TimeInterval = 0
     private var heldDone: [[InkRawPoint]] = [] // 门限之前已经抬笔的笔，到点整笔交出
     private var palm = (start: CGPoint.zero, maxRadius: CGFloat(0), moved: CGFloat(0), startedAt: TimeInterval(0))
-    private var liveVertices: [Float] = []
-    private var liveDirty = false
-    private(set) var needsRender = true
+    /// 书写中那一笔的几何：增量计算（WebInk.LiveStroke，与整笔重算逐位相同）与轮换的顶点缓冲。
+    private var liveStroke = WebInk.LiveStroke()
+    private let liveBuffers = NativeInkLiveBuffers()
+    private var liveDirty = false { didSet { if liveDirty { wakeFrameLoop() } } }
+    private(set) var needsRender = true { didSet { if needsRender { wakeFrameLoop() } } }
+    /// 每帧回调；没东西可动时暂停（frameLoopIdle），任何要画的变化都经 needsRender / liveDirty / overlayFrame / drawable 唤醒（wakeFrameLoop）。
     private var link: CADisplayLink?
     var lastFrameCpuMs = 0.0
 
@@ -396,13 +529,16 @@ final class NativeInkView: UIView {
     private var pencilInteraction: UIPencilInteraction?
 
     /// 外部动画每帧追加的绘制（返回 nil 表示动画结束）：判断落定 M23（NativeSettle，B2.5 起是产品功能，B3.1 进 Release）与 spike 叠层的落定原型。
-    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)?
+    var overlayFrame: ((CFTimeInterval) -> [NativeInkRenderer.Batch]?)? {
+        didSet { if overlayFrame != nil { wakeFrameLoop() } }
+    }
     /// 每帧画完后的钩子（判断落定在「第一帧」同帧发触觉，F1）。
-    var afterFrame: ((CFTimeInterval) -> Void)?
+    var afterFrame: ((CFTimeInterval) -> Void)? {
+        didSet { if afterFrame != nil { wakeFrameLoop() } }
+    }
     #if DEBUG
     /// T1 测量（DEBUG）：触点 → 帧预计上屏 / 真正上屏。
     var latency = NativeInkLatency()
-    private var fade: (start: CFTimeInterval, ms: Double, from: Float)?
     /// 每一笔的结局（DEBUG，R10-A：笔画「写完消失」排查）：began / ended / held / cancel:<原因> / refused:<原因>，最近 64 条。
     /// 探针（QAProbe native.inkLog）与控制台（[shizi] ink …）都看得到。
     private(set) var strokeLog: [String] = []
@@ -601,6 +737,7 @@ final class NativeInkView: UIView {
     private func remapStrokeInProgress(from a: CGRect, to b: CGRect) {
         guard current != nil || !heldDone.isEmpty, a.width > 0, b.width > 0 else { return }
         raw = raw.map { Self.remap($0, from: a, to: b) }
+        liveStroke.clear() // 原始点整笔换了：增量状态从头来
         predicted = predicted.map { Self.remap($0, from: a, to: b) }
         heldDone = heldDone.map { s in s.map { Self.remap($0, from: a, to: b) } }
         liveDirty = !held
@@ -771,6 +908,7 @@ final class NativeInkView: UIView {
         current = id
         currentKind = s.kind
         raw = [gridPoint(s)]
+        liveStroke.clear()
         predicted = []
         palm = (s.location, s.majorRadius, 0, s.timestamp)
         held = s.timestamp < acceptFrom
@@ -823,10 +961,16 @@ final class NativeInkView: UIView {
         if currentKind == .pencil { inputPolicy.notePencil(at: last.timestamp) }
         let stroke = raw
         let wasHeld = held
+        // 抬笔后的几何：书写中的增量状态接着算 final（与 mesh(stroke) 逐位相同）；持住的笔、线宽倍数 ≠ 1 或 ink-model 时照旧整笔算
+        var lifted: NativeInkStrokeMesh?
+        if !wasHeld, inkModel == nil, widthScale == 1, let params {
+            liveStroke.update(raw: stroke, predicted: [], params: params, final: true)
+            lifted = NativeInkStrokeMesh(raw: stroke, vertices: liveStroke.vertices)
+        }
         current = nil
         raw = []
         predicted = []
-        liveVertices = []
+        clearLive()
         held = false
         if wasHeld, CACurrentMediaTime() < acceptFrom {
             heldDone.append(stroke) // P227：这一笔不丢，到点整笔交出
@@ -837,11 +981,11 @@ final class NativeInkView: UIView {
             return
         }
         if wasHeld { delegate?.nativeInkDidBeginStroke(self, at: heldStartedAt) }
-        finish(stroke)
+        finish(stroke, mesh: lifted)
     }
 
-    private func finish(_ stroke: [InkRawPoint]) {
-        pendingStrokes.append(mesh(stroke))
+    private func finish(_ stroke: [InkRawPoint], mesh built: NativeInkStrokeMesh? = nil) {
+        pendingStrokes.append(built ?? mesh(stroke))
         pendingSince = CACurrentMediaTime()
         #if DEBUG
         latency.strokes += 1
@@ -858,7 +1002,7 @@ final class NativeInkView: UIView {
         current = nil
         raw = []
         predicted = []
-        liveVertices = []
+        clearLive()
         held = false
         #if DEBUG
         latency.dropPending()
@@ -895,8 +1039,6 @@ final class NativeInkView: UIView {
     var isWriting: Bool { current != nil }
     /// 有持住的笔（正在写或已抬笔，等门限）。
     var hasHeldInput: Bool { held || !heldDone.isEmpty }
-    /// 正在写的这一笔的原始点（测试与诊断用）。
-    var strokeInProgress: [InkRawPoint] { raw }
 
     /// 门限到了：持住的笔补开始（正在写的接着实时画；已抬笔的整笔交出）。每帧调用；测试可直接调。
     func releaseHeldIfDue(_ now: CFTimeInterval) {
@@ -950,9 +1092,10 @@ final class NativeInkView: UIView {
     // MARK: 每帧
 
     fileprivate func tick(_ link: CADisplayLink) {
+        // 每条返回路径（含隐藏时提前返回）都在最后看一次：没东西可动就暂停，省掉空转的 120Hz 回调
+        defer { if frameLoopIdle { link.isPaused = true } }
         #if DEBUG
         latency.tick(duration: link.targetTimestamp - link.timestamp)
-        stepFade(link.targetTimestamp)
         #endif
         releaseHeldIfDue(CACurrentMediaTime())
         if isHidden { return }
@@ -962,26 +1105,35 @@ final class NativeInkView: UIView {
         guard needsRender || liveDirty || hasExtra else { return }
         let callback = CACurrentMediaTime()
         if liveDirty, !raw.isEmpty, !held {
-            var v: [Float] = []
-            v.reserveCapacity(liveVertices.count + 64)
             if let k = inkModel {
+                var v: [Float] = []
                 NativeInkStrokeMesh.triangles(InkModel.geometry(InkModel.analyze(raw, final: false, predicted: predicted, params: k)), into: &v)
+                liveBuffers.write(stable: [], stableUsed: 0, generation: -1, tail: v, device: renderer.device)
             } else if let params {
-                NativeInkStrokeMesh.live(raw: raw, predicted: predicted, params: params, into: &v)
+                // 增量：只重算新点影响得到的尾巴（WebInk.LiveStroke）；缓冲只写新增的稳定部分与尾巴
+                liveStroke.update(raw: raw, predicted: predicted, params: params)
+                liveBuffers.write(stable: liveStroke.stableVertices, stableUsed: liveStroke.stableUsed, generation: liveStroke.generation,
+                                  tail: liveStroke.tailVertices, device: renderer.device)
+            } else {
+                liveBuffers.clear()
             }
-            liveVertices = v
         }
         liveDirty = false
         let a = inkOpacity
         let color = SIMD4<Float>(inkColor.x * a, inkColor.y * a, inkColor.z * a, a)
         let u = NativeInkRenderer.uniforms(color: color)
         var batches: [NativeInkRenderer.Batch] = []
-        for m in pageStrokes + pendingStrokes {
+        batches.reserveCapacity(pageStrokes.count + pendingStrokes.count + 3)
+        func strokeBatch(_ m: NativeInkStrokeMesh) {
             if m.buffer == nil { m.buffer = renderer.makeBuffer(m.vertices) }
             batches.append(.init(vertices: nil, buffer: m.buffer, count: m.vertexCount, uniforms: u))
         }
-        if !liveVertices.isEmpty, !held {
-            batches.append(.init(vertices: liveVertices, buffer: nil, count: liveVertices.count / 2, uniforms: u))
+        for m in pageStrokes { strokeBatch(m) }
+        for m in pendingStrokes { strokeBatch(m) }
+        var liveDone: (() -> Void)?
+        if let buf = liveBuffers.buffer, liveBuffers.vertexCount > 0, !held {
+            batches.append(.init(vertices: nil, buffer: buf, count: liveBuffers.vertexCount, uniforms: u))
+            liveDone = liveBuffers.use()
         }
         if let h = hoverPoint {
             // 落笔预览点：墨色 40%，叠在最上面（混合管线），不落墨
@@ -998,12 +1150,13 @@ final class NativeInkView: UIView {
         #if DEBUG
         let frameId = latency.frame(callback: callback, target: link.targetTimestamp, cpuMs: cpu)
         let lat = latency
-        let ok = renderer.render(layer: metalLayer, batches: batches) { t in
+        let ok = renderer.render(layer: metalLayer, batches: batches, presented: { t in
             DispatchQueue.main.async { lat.presented(frame: frameId, at: t) }
-        }
+        }, completed: liveDone)
         #else
-        let ok = renderer.render(layer: metalLayer, batches: batches, presented: nil)
+        let ok = renderer.render(layer: metalLayer, batches: batches, presented: nil, completed: liveDone)
         #endif
+        if !ok { liveDone?() } // 没提交：缓冲没交给 GPU
         needsRender = !ok
         afterFrame?(link.targetTimestamp)
         // 代理迟迟没同步回来（例如这一笔被丢弃）：2s 后不再显示待确认的笔
@@ -1018,34 +1171,23 @@ final class NativeInkView: UIView {
 
     func requestRender() { needsRender = true }
 
-    #if DEBUG
-    // MARK: spike 叠层的卸载淡出（DEBUG：网页阶段交叉淡化 150ms 时网页快照里没有墨，由原生层同步淡出）
-
-    func fadeOutAndHide(ms: Double) {
-        isUserInteractionEnabled = false
-        fade = (0, ms, inkOpacity)
-        needsRender = true
+    /// 不再画书写中的那一笔（抬笔 / 取消）：增量状态与缓冲都放下（保留容量给下一笔）。
+    private func clearLive() {
+        liveStroke.clear()
+        liveBuffers.clear()
     }
 
-    func cancelFade() {
-        guard let f = fade else { return }
-        fade = nil
-        inkOpacity = f.from
-        isUserInteractionEnabled = drawable
+    /// 每帧回调可以暂停：不用画（needsRender / liveDirty 都没有）、没有外部动画（overlayFrame）、没有在写或持住的笔
+    /// （releaseHeldIfDue 靠每帧到点交出）、没有待确认的笔（2s 过期靠每帧检查），且不可写（可写的书写面一直跑，落笔第一帧不等唤醒）。
+    /// 只读墨（结果页、字帖、弹层小卡）画完一帧就停；判断落定的叠层播完就停。
+    var frameLoopIdle: Bool {
+        !needsRender && !liveDirty && overlayFrame == nil && current == nil && !held && heldDone.isEmpty && pendingStrokes.isEmpty && !drawable
     }
 
-    fileprivate func stepFade(_ target: CFTimeInterval) {
-        guard var f = fade else { return }
-        if f.start == 0 { f.start = target; fade = f }
-        let u = min(1, (target - f.start) * 1000 / max(1, f.ms))
-        inkOpacity = f.from * Float(1 - u)
-        if u >= 1 {
-            fade = nil
-            isHidden = true
-            inkOpacity = f.from
-        }
+    /// 暂停中的每帧回调恢复（下一次刷新就会 tick）。没有 link（不在窗口里）时不用管：进窗口时新建的 link 本来就在跑。
+    private func wakeFrameLoop() {
+        if let link, link.isPaused { link.isPaused = false }
     }
-    #endif
 }
 
 extension NativeInkView: UIPencilInteractionDelegate {
@@ -1075,7 +1217,6 @@ final class NativeInkLatency {
     struct Sample {
         var touch: CFTimeInterval // UITouch.timestamp（s，与 CACurrentMediaTime 同一时基）
         var delivered: CFTimeInterval // 主线程拿到这个事件的时刻
-        var predictedUsed: Bool = false
         var frame: Int = -1
     }
 
@@ -1153,15 +1294,6 @@ final class NativeInkLatency {
             "samples": samples.count,
             "frames": frames.count,
         ]
-    }
-
-    /// 原始记录（最多最近 3000 个样本）：[touch, delivered, frameCallback, frameTarget, framePresented]（s，CACurrentMediaTime 时基）。
-    var rawRecords: [[Double]] {
-        samples.suffix(3000).compactMap { smp in
-            guard smp.frame >= 0 else { return nil }
-            let f = frames[smp.frame]
-            return [smp.touch, smp.delivered, f.callback, f.target, f.presented]
-        }
     }
 }
 #endif

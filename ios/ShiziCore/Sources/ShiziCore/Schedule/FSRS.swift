@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/fsrs.js 的 1:1 移植（B4.2）：评级（D41 / D65 #4 / P34 / P126 / P127）、reviewCard（至少次日、时钟回拨夹到上次复习 D65 #3）、
+// 1:1 移植自原 JS 版（B4.2）：评级（D41 / D65 #4 / P34 / P126 / P127）、reviewCard（至少次日、时钟回拨夹到上次复习 D65 #3）、
 // 看过答案记一次 Again（D66 ①，P321）、判断落定、更正重放（D19）、逾期 / 到期 / 可提取率。
 // 输入输出都是 JS 形状的 JSValue（卡 = CompactCard、调度项 = {fsrs, due, lastJudgedAt, seenAgainDay?, stoppedAt?}），
 // 键序、缺省 / null / undefined 的区别与 JS 一致，所以写出的 JSON 与 JS 逐字节相同。

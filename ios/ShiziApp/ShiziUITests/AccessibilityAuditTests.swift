@@ -102,10 +102,4 @@ final class AccessibilityAuditTests: XCTestCase {
     func testPerformAccessibilityAuditPushedPages() throws { try run(Self.pages, ax5: false) }
     /// 主要推入页 / 弹层，AX5。
     func testPerformAccessibilityAuditPushedPagesAX5() throws { try run(Self.pages, ax5: true) }
-
-    /// VoiceOver 名称表（A2：返回 / 关闭 / 接着写…）逐屏断言 label —— 由 AccessibilityFlowTests.test1001 / test1002（名称与顺序对冻结的网页参考）覆盖
-    func testVoiceOverNameTable() throws { try QAPending.skip("B3.Z", "VoiceOver 名称表（A2：返回 / 关闭 / 接着写…）逐屏断言 label") }
-
-    /// 焦点落点：推入后在标题、返回后回原控件、弹层焦点落弹层 —— 弹层盖住下层的读屏隐藏由 QueryFlowTests.testSheetHidesTheRootFromVoiceOver 覆盖，其余待真机 VoiceOver
-    func testVoiceOverFocusLanding() throws { try QAPending.skip("B3.Z", "焦点落点：推入后在标题、返回后回原控件、弹层焦点落弹层") }
 }

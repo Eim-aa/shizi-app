@@ -241,7 +241,4 @@ final class NativeHintLayerView: UIView {
     func settle() {
         group.layer.removeAnimation(forKey: "in")
     }
-
-    /// 测试与诊断：此刻画出的提示笔。
-    var shownStrokes: [Int] { shown.sorted() }
 }

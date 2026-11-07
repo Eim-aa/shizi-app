@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/home.js；D83（调度规则 v2）起首页显示今天的进度：没写完「今天的练习 n / N」，写完「今天完成了 ✓」+「再来一组」。
+// 首页视图模型。D83（调度规则 v2）起首页显示今天的进度：没写完「今天的练习 n / N」，写完「今天完成了 ✓」+「再来一组」。
 public enum HomeView {
     typealias V = ViewSupport
     static func lineOf(_ s: JSValue, slot: String, plan: TodayPlan.Progress? = nil) -> JSValue {
@@ -18,13 +18,23 @@ public enum HomeView {
         return V.obj([("resume", .string(hasA && hasB ? "A+B" : hasB ? "B" : hasA ? "A" : "none")), ("primary", hasB ? lb : la), ("other", hasA && hasB ? la : .null), ("daily", la)])
     }
     public static func recordsStateOf(_ state: JSValue, today: String, policy: JSValue) -> String {
-        let records = Query.flattenRecords(state["records"])
+        recordsStateOf(state, records: Query.flattenRecords(state["records"]), today: today, policy: policy)
+    }
+    /// records = Query.flattenRecords(state["records"])（首页一次构建只平铺一次，与 homeModel 共用）。
+    static func recordsStateOf(_ state: JSValue, records: [JSValue], today: String, policy: JSValue) -> String {
         if Records.todayCount(records, today) > 0 { return "record" }
         if Records.hasAnyJudged(records) { return "empty" }
         return ScheduleRules.aStartInfo(state, policy: policy).firstVisit ? "first" : "empty"
     }
+    /// 判断过的记录里最大的 localDay（字串）。= filter(isJudged).compactMap(localDay).max()：同一个 `<`，只在严格更大时替换（与 Sequence.max 相同），不建中间数组。
     public static func lastJudgedDayOf(_ records: [JSValue]) -> JSValue {
-        let days = records.filter(Records.isJudged).compactMap { $0["localDay"]?.stringValue }; return days.max().map(JSValue.string) ?? .null
+        var best: String?
+        for r in records where Records.isJudged(r) {
+            guard let d = r["localDay"]?.stringValue else { continue }
+            if let b = best, !(b < d) { continue }
+            best = d
+        }
+        return best.map(JSValue.string) ?? .null
     }
     /// progress（有没写完的组）> first > special（大写数字）> today（今天的练习写完了）> back（离开一周、今天还没写）> fresh。
     public static func homeViewOf(_ m: JSValue) -> String {
@@ -32,22 +42,23 @@ public enum HomeView {
         if JS.truthy(m["capital"]) { return "special" }; if m["plan"]?["done"] == .bool(true) { return "today" }
         if m["gapDays"] != .null && JS.number(m["gapDays"]) >= 7 && JS.number(m["plan"]?["n"]) == 0 { return "back" }; return "fresh"
     }
-    public static func noCharsLeft(_ state: JSValue, today: String, deck: ScheduleDeck?, policy: JSValue, dates: Dates) throws -> Bool {
+    public static func noCharsLeft(_ state: JSValue, today: String, deck: ScheduleDeck?, policy: JSValue, dates: Dates, statsMemo: PracticeStatsMemo? = nil) throws -> Bool {
         guard let deck else { return false }
         let id = deck.currentLibraryId?(state["settings"]) ?? state["settings"]?["library"] ?? policy["defaultLibrary"] ?? .null
         if deck.newCandidates(id).contains(where: { deck.practicable($0) && !JS.truthy(state["sched"]?[$0]) }) { return false }
-        let plan = try ScheduleRules(dates: dates).planDaily(state, today: today, deck: deck, policy: policy)
+        let plan = try ScheduleRules(dates: dates).planDaily(state, today: today, deck: deck, policy: policy, statsMemo: statsMemo)
         return JS.truthy(plan["libraryExhausted"]) && (plan["queue"]?.arrayValue ?? []).isEmpty
     }
     public static func homeModel(_ state: JSValue, now: Double, policy: JSValue, deck: ScheduleDeck?, dates: Dates) throws -> JSValue {
-        let today = try dates.localDay(.number(now)), records = Query.flattenRecords(state["records"]), rs = recordsStateOf(state, today: today, policy: policy)
-        let plan = rs == "first" ? TodayPlan.Progress(n: 0, total: 0, done: false, active: false) : try TodayPlan.progress(state, day: today, rules: ScheduleRules(dates: dates), deck: deck, policy: policy)
+        let today = try dates.localDay(.number(now)), records = Query.flattenRecords(state["records"]), rs = recordsStateOf(state, records: records, today: today, policy: policy)
+        let statsMemo = PracticeStatsMemo() // 进度 / 特别组 / noCharsLeft 里的 selectDaily、specialPlan 共用一次 practiceStats
+        let plan = rs == "first" ? TodayPlan.Progress(n: 0, total: 0, done: false, active: false) : try TodayPlan.progress(state, day: today, rules: ScheduleRules(dates: dates), deck: deck, policy: policy, statsMemo: statsMemo)
         let resume = try resumeOf(state, now: now, policy: policy, dates: dates, plan: plan), on = resume["resume"] != .string("none")
-        let special = deck != nil && !on && rs != "first" ? try ScheduleRules(dates: dates).planSpecial(state, today: today, deck: deck!, policy: policy) : .null
+        let special = deck != nil && !on && rs != "first" ? try ScheduleRules(dates: dates).planSpecial(state, today: today, deck: deck!, policy: policy, statsMemo: statsMemo) : .null
         let capital = special["kind"] ?? .null, last = lastJudgedDayOf(records), gap: JSValue = last == .null ? .null : .number(try dates.diffDays(last, .string(today)))
         let ep = try Epigraphs.epigraph(for: .string(today), dates: dates)
         var m = JSObject()
-        m["switchLibrary"] = .bool(try deck != nil && !on && rs != "first" && !JS.truthy(capital) && (try noCharsLeft(state, today: today, deck: deck, policy: policy, dates: dates)))
+        m["switchLibrary"] = .bool(try deck != nil && !on && rs != "first" && !JS.truthy(capital) && (try noCharsLeft(state, today: today, deck: deck, policy: policy, dates: dates, statsMemo: statsMemo)))
         m["today"] = .string(today); m["period"] = .string(try dates.periodOf(.number(now))); m["dateParts"] = try dates.monthDayParts(.string(dates.calendarDay(.number(now))))
         m["epigraph"] = V.obj([("lines", .array(ep.lines.map(JSValue.string))), ("source", .string(ep.source))]); m["records"] = .string(rs)
         for k in ["resume", "primary", "other", "daily"] { m[k] = resume[k] }

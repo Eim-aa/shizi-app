@@ -1,7 +1,7 @@
 import XCTest
 
 // QA-H1：两份 AI 测试报告里要真实点按才能查的条目（逐屏对比能查的 NP-* 在 scripts/native-ui/parity-checks.mjs）。
-//   QAIssue.expectFail = 预期失败（待修）：现在失败不算回归；修好后 XCTest 报「意外通过」，修复卡把包装去掉转成普通断言。
+//   条目修好后都已转成普通断言；新的已知问题可用 XCTExpectFailure(options.isStrict = true) 标「预期失败（待修）」。
 // 报告：qa-flow/报告.md（NF-01…NF-05 + 已验证正常的路径 1–13）、qa-parity/报告.md（NP-01…NP-21）。
 // 负责人决定 D70：NF-02 返回回首页（普通断言，EntryFlowTests.test106）；NF-05 凭记忆写的笔迹不存（R9-C 修好，普通断言）。
 //

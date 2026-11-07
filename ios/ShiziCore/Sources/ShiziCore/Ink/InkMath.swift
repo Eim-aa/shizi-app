@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/ink-math.js 的 1:1 移植（B4.3）：笔迹管线（01 §6.2；D09 / D10）+ 存储编码 / 解码 / 抽点（01 §3.5）。
+// 1:1 移植自原 JS 版（B4.3）：笔迹管线（01 §6.2；D09 / D10）+ 存储编码 / 解码 / 抽点（01 §3.5）。
 //   buildStroke（原始采样 → 带宽度的点列）、simplifyStroke / thinStroke（存储前抽点）、
 //   Ink v3 打包编码 / 解码（encodeInk，P78）、旧 v2 读取、Ink v4 原始点编码 / 解码（encodeInkRaw，B2.3 / DQ2-C）、会话现场的原始笔画行。
 // 与 App 里已有的 WebInk（书写面实时用）与 InkStoredInk（v4 解包）同一算法；ShiziCore 这份是规则层的字节级等价版（JS 为准）：
@@ -62,7 +62,7 @@ public struct BuiltStroke {
     public var pressure: Bool
 }
 
-/// 笔迹参数表（ink-math.js inkParams：policy.ink 的 14 个键 + 已定规格 INK_SPEC），键名与网页相同。
+/// 笔迹参数表（inkParams：policy.ink 的 14 个键 + 已定规格 INK_SPEC），键名与网页相同。
 public struct InkParams: Equatable {
     public var base: Double, lo: Double, hi: Double
     public var pressureLo: Double, pressureGain: Double, pressureHi: Double
@@ -101,7 +101,7 @@ public struct InkParams: Equatable {
         self.init(values: v)
     }
 
-    subscript(key: String) -> Double? {
+    package subscript(key: String) -> Double? {
         switch key {
         case "base": return base
         case "lo": return lo
@@ -160,7 +160,7 @@ public struct InkOptions {
         for k in InkParams.tunableKeys { if case .number(let d)? = a[k], d.isFinite { overrides[k] = d } }
     }
 
-    /// ink-math.js params(opts)：policy 注入 → 其 ink 表；同名有限数值且不等于表值的键覆盖。
+    /// policy 注入 → 其 ink 表；同名有限数值且不等于表值的键覆盖。
     func params() throws -> InkParams {
         var table = policy != nil ? try InkParams(policy: policy) : InkParams.standard
         for k in InkParams.tunableKeys {
@@ -177,6 +177,78 @@ public enum InkMath {
     public static let dtLevels: [Double] = [0, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 512, 1024, 2048]
     static let replayFactor = 3.0
     static let varintMaxBytes = 5
+
+    // MARK: 回放重采样的点数上限
+    //
+    // Catmull-Rom 每段铺 max(1, ceil(段长 / step)) 个点：点数随坐标大小、不随输入长度涨。备份导入只校验墨迹形状，
+    // 一份手工做的墨迹（v4 的大变长整数 / 极小的 c、v2 的巨大整数坐标）几十个字节就能让一段铺出上亿个点、把内存吃光。
+    // 上限远高于真实笔迹（估算见 InkCapTests：编码器产出的 v3 一笔至多 3 842 点、36 笔至多约 13.9 万点；v4 一笔常见几百点），
+    // 只拦手工做的放大：超出时那份墨迹按「解不开」处理（decodeInk 回 nil；resampleForReplay 每笔回空），不截断。
+
+    /// 一笔重采样后的点数上限。
+    public static let maxReplayPointsPerStroke = 200_000
+    /// 一份墨迹各笔重采样后的点数合计上限。
+    public static let maxReplayPointsPerInk = 500_000
+
+    /// catmullRom(points, step:) 会产出的点数（逐段同一算式，不铺点）；超过 limit、或某段点数不是有限数（坐标溢出 / NaN / step 不是正数）时回 nil。
+    /// 不回 nil 时与 catmullRom(points, step:).count 相等（此时每段都 < 1e8，catmullRom 的守卫不起作用）。
+    public static func replayPointCount(_ points: [InkPoint], step: Double, limit: Int) -> Int? {
+        if points.count < 2 { return points.count <= limit ? points.count : nil }
+        var total = 1 // 末点
+        if total > limit { return nil }
+        for i in 1..<points.count {
+            let b = points[i - 1], c = points[i]
+            let nd = JSMath.max(1, (hypot(c.x - b.x, c.y - b.y) / step).rounded(.up))
+            guard nd.isFinite, nd <= Double(limit - total) else { return nil }
+            total += Int(nd)
+        }
+        return total
+    }
+
+    /// 一笔原始点交给 App 回放（WebInk.buildStroke：坏点丢弃 → 同时刻合并 → 1€ 滤波 → 锁尾 → Catmull-Rom）时铺出点数的上界，不铺点：
+    /// 2 × 有限点数 + (Σ|Δx| + Σ|Δy|) / step × (1 + 1e-6)，相邻差只在有限点之间取。为什么够大：
+    ///   · 合并 / 丢坏点后是原序列的子序列，子序列的逐轴全变差不超过原序列的；
+    ///   · 1€ 滤波每步输出 a·x + (1 − a)·前一输出，a ∈ (0, 1]（minCutoff > 0、beta ≥ 0、dt > 0；dt ≤ 0 时原样留前一输出），
+    ///     落在前一输出与当前输入之间，所以逐轴全变差不超过输入的（势函数：已走的变差 + 当前滞后 |x − x̂| 每步至多涨 |Δx|）；
+    ///     锁尾把末点换回原始末点，同一论证仍成立；
+    ///   · Catmull-Rom 铺 Σ max(1, ceil(段长 / step)) + 1 ≤ 段数 + 1 + Σ段长 / step，段长 ≤ |Δx| + |Δy|；
+    ///   · 多出的一倍点数与 1e-6 吸收每段 ceil 与浮点舍入。
+    /// step 不是正的有限数、或变差溢出时回 ∞。
+    public static func replayBound(_ points: [InkPoint], step: Double) -> Double {
+        guard step > 0, step.isFinite else { return .infinity }
+        var n = 0.0
+        var tv = 0.0
+        var last: InkPoint?
+        for q in points where q.x.isFinite && q.y.isFinite {
+            if let l = last { tv += abs(q.x - l.x) + abs(q.y - l.y) }
+            n += 1
+            last = q
+        }
+        return 2 * n + tv / step * (1 + 1e-6)
+    }
+
+    /// 要交给 App 按原始点回放的笔画（会话现场、结果页 / 查询 / 详情 / 作品的墨迹格）：每笔 replayBound 不超过 maxReplayPointsPerStroke、
+    /// 合计不超过 maxReplayPointsPerInk。step 用 App 回放的 step（页面下发的 ink 表 = inkParams(policy)，即 InkParams.standard.step）。
+    public static func replayBoundFits(_ strokes: [[InkPoint]], step: Double = InkParams.standard.step) -> Bool {
+        var total = 0.0
+        for s in strokes {
+            let b = replayBound(s, step: step)
+            guard b.isFinite, b <= Double(maxReplayPointsPerStroke) else { return false }
+            total += b
+            if total > Double(maxReplayPointsPerInk) { return false }
+        }
+        return true
+    }
+
+    /// 每笔都不超过 maxReplayPointsPerStroke、合计不超过 maxReplayPointsPerInk（逐笔 replayPointCount）。
+    public static func replayFits(_ strokes: [[InkPoint]], step: Double) -> Bool {
+        var budget = maxReplayPointsPerInk
+        for s in strokes {
+            guard let n = replayPointCount(s, step: step, limit: Swift.min(maxReplayPointsPerStroke, budget)) else { return false }
+            budget -= n
+        }
+        return true
+    }
 
     // MARK: 小工具
 
@@ -301,6 +373,15 @@ public enum InkMath {
 
     /// 原始采样 → 带宽度的点列（01 §6.2）。
     public static func buildStroke(_ raw: [InkPoint], options: InkOptions = InkOptions()) throws -> BuiltStroke {
+        // maxPoints 为 nil 时 buildStrokeBounded 不回 nil
+        guard let built = try buildStrokeBounded(raw, options: options, maxPoints: nil) else {
+            return BuiltStroke(points: [], v30: nil, dot: false, single: false, endK: 0, pressure: false)
+        }
+        return built
+    }
+
+    /// buildStroke；maxPoints 不为 nil 时先数 Catmull-Rom 会铺多少点（replayPointCount），超过就回 nil、不铺。不超过时结果与 buildStroke 逐位相同。
+    static func buildStrokeBounded(_ raw: [InkPoint], options: InkOptions, maxPoints: Int?) throws -> BuiltStroke? {
         let k = try options.params()
         let base = k.base
         let final = options.final
@@ -315,6 +396,7 @@ public enum InkMath {
             return q
         }
         if final && m.count > 1 { f[f.count - 1] = m[m.count - 1] } // 抬笔锁尾到原始末点
+        if let limit = maxPoints, replayPointCount(f, step: k.step, limit: limit) == nil { return nil }
         let p = catmullRom(f, step: k.step)
         let n = p.count
         var L = [Double](repeating: 0, count: n)
@@ -521,7 +603,11 @@ public enum InkMath {
             let B = pts[g.a]
             let C = pts[g.b]
             let D = pts[j + 1 < segs.count ? segs[j + 1].b : g.b]
-            let m = Int(JSMath.max(1, (hypot(C.x - B.x, C.y - B.y) / step).rounded(.up)))
+            // 段长大到一段要铺的点超过一笔的上限（或不是有限数：坐标溢出）：不逐点量，当这段误差无穷大（有内部点就先拆它）。
+            // 以前 Int(_:) 遇 ∞ / NaN 会崩、遇巨大有限值会空转上亿次；真实笔迹一段至多几千单位，到不了上限。
+            let md = JSMath.max(1, (hypot(C.x - B.x, C.y - B.y) / step).rounded(.up))
+            guard md.isFinite, md <= Double(maxReplayPointsPerStroke) else { return .infinity }
+            let m = Int(md)
             var err = 0.0
             var k = 1
             while k < m {
@@ -735,7 +821,7 @@ public enum InkMath {
         return a.map { $0.numberValue! }
     }
 
-    /// 旧 InkV2（JSON 数字编码）形状是否合法（与 core/schema.js 同口径，再加行长度一致）。
+    /// 旧 InkV2（JSON 数字编码）形状是否合法（与 Schema 同口径，再加行长度一致）。
     public static func isInkV2(_ ink: JSValue?) -> Bool {
         guard let ink = ink, case .object = ink, case .number(let v)? = ink["v"], v == 2, case .number(let c)? = ink["c"], c.isFinite, c > 0 else { return false }
         guard case .array(let s)? = ink["s"] else { return false }
@@ -831,8 +917,10 @@ public enum InkMath {
     }
 
     /// 解码后的每笔再过一次 Catmull-Rom（w / t / p 线性插值），得到可直接交给笔锋渲染的点列。
+    /// 铺出的点会超过上限（replayFits 不过：手工做的巨大坐标）时整份墨迹当画不出：笔数不变、每笔为空，先数后铺、不分配大数组。
     public static func resampleForReplay(_ decoded: [[InkPoint]], step: Double = InkParams.standard.step) -> [[InkPoint]] {
-        decoded.map { catmullRom($0, step: step) }
+        guard replayFits(decoded, step: step) else { return decoded.map { _ in [] } }
+        return decoded.map { catmullRom($0, step: step) }
     }
 
     // MARK: 会话现场的原始笔画编码
@@ -861,8 +949,10 @@ public enum InkMath {
         var out: [[InkPoint]] = []
         for row in rows {
             guard row.allSatisfy({ $0.isFinite && $0.rounded(.towardZero) == $0 }), let first = row.first else { continue }
+            // 先认 stride 再转 Int：首项是 ≥ 2^63 的整数（会话现场 current.strokes 落盘只校验「每笔是数组」）时 Int(first) 会直接崩
+            if first != 3 && first != 4 { continue }
             let stride = Int(first)
-            if (first != 3 && first != 4) || (row.count - 1) % stride != 0 || row.count < 1 + stride { continue }
+            if (row.count - 1) % stride != 0 || row.count < 1 + stride { continue }
             var pts: [InkPoint] = []
             var t = 0.0
             var j = 1
@@ -894,9 +984,9 @@ public enum InkMath {
 
     /// encodeRawStrokes 的一行是否合法（stride 3 / 4、整数、至少一个点）。
     public static func isRawStrokeRow(_ row: [Double]) -> Bool {
-        guard row.count >= 4, row.allSatisfy({ $0.isFinite && $0.rounded(.towardZero) == $0 }) else { return false }
-        let stride = Int(row[0])
-        return (row[0] == 3 || row[0] == 4) && row.count >= 1 + stride && (row.count - 1) % stride == 0
+        guard row.count >= 4, row.allSatisfy({ $0.isFinite && $0.rounded(.towardZero) == $0 }), row[0] == 3 || row[0] == 4 else { return false }
+        let stride = Int(row[0]) // 已是 3 / 4：不会因首项过大而 Int(_:) 崩
+        return row.count >= 1 + stride && (row.count - 1) % stride == 0
     }
 
     /// encodeRawStrokes 的一行 → 打包串；行不合法返回 nil。
@@ -907,13 +997,18 @@ public enum InkMath {
         var px = 0.0, py = 0.0, pp = 0.0
         var j = 1
         while j < row.count {
-            pushVarint(&bytes, zz(row[j] - px))
-            pushVarint(&bytes, zz(row[j + 1] - py))
+            // 相邻差溢出成 ±∞（两点都接近 ±Double.greatestFiniteMagnitude）时 pushVarint 会 Int(NaN) 崩：当坏行，返回 nil
+            let ux = zz(row[j] - px), uy = zz(row[j + 1] - py)
+            guard ux.isFinite, uy.isFinite else { return nil }
+            pushVarint(&bytes, ux)
+            pushVarint(&bytes, uy)
             pushVarint(&bytes, JSMath.max(0, row[j + 2]))
             px = row[j]
             py = row[j + 1]
             if stride == 4 {
-                pushVarint(&bytes, zz(row[j + 3] - pp))
+                let up = zz(row[j + 3] - pp)
+                guard up.isFinite else { return nil }
+                pushVarint(&bytes, up)
                 pp = row[j + 3]
             }
             j += stride
@@ -1016,16 +1111,25 @@ public enum InkMath {
     }
 
     /// v4 解码成与 v3 相同的点列 {x, y, w, t, p?}：原始点 → buildStroke(final) 按当前笔锋参数算宽度。
-    static func decodeInkV4(_ ink: JSValue, _ o: InkOptions) throws -> [[InkPoint]] {
+    /// 某笔 Catmull-Rom 要铺的点超过 maxReplayPointsPerStroke、或各笔合计超过 maxReplayPointsPerInk 时回 nil（当解不开；先数后铺）。
+    static func decodeInkV4(_ ink: JSValue, _ o: InkOptions) throws -> [[InkPoint]]? {
         var opts = o
         opts.final = true
-        return try (decodeInkRaw(ink) ?? []).map { s in
-            try buildStroke(s, options: opts).points.map { q in
+        // 调用方已确认是 v4（decodeInkRaw 不为 nil）；为 nil 时与原先的「?? []」同样没有笔
+        let raw = decodeInkRaw(ink) ?? []
+        var budget = maxReplayPointsPerInk
+        var strokes: [[InkPoint]] = []
+        strokes.reserveCapacity(raw.count)
+        for s in raw {
+            guard let built = try buildStrokeBounded(s, options: opts, maxPoints: Swift.min(maxReplayPointsPerStroke, budget)) else { return nil }
+            budget -= built.points.count
+            strokes.append(built.points.map { q in
                 var out = InkPoint(x: q.x, y: q.y, t: q.t, w: q.w, order: InkPoint.orderXYWTP)
                 if let p = q.p { out.p = p }
                 return out
-            }
+            })
         }
+        return strokes
     }
 
     /// 判断 / 看后自写存墨用的编码入口：format "raw"（缺省）→ Ink v4；"v3" → buildStroke(final) + encodeInk。

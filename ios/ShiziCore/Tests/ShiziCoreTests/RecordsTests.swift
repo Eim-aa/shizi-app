@@ -15,7 +15,7 @@ final class RecordsTests: XCTestCase {
         try Records.makeRecord(JSObject(pairs), dates: shanghai43)
     }
 
-    // test/core/records.test.mjs: records: makeRecord builds a §3.2 record with localDay from at
+    // records: makeRecord builds a §3.2 record with localDay from at
     func testRecordsMakeRecordBuildsA32RecordWithLocalDayFromAt() throws {
         let t = at43(today, 23, 59)
         let r = try make([("id", s43("r3")), ("cardKey", s43("base:" + jing43)), ("sessionId", s43("s1")), ("kind", s43("judged")), ("judgment", s43("correct")), ("at", n43(t)),
@@ -30,7 +30,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertNil(seen["judgment"])
     }
 
-    // test/core/records.test.mjs: records: makeRecord rejects malformed records
+    // records: makeRecord rejects malformed records
     func testRecordsMakeRecordRejectsMalformedRecords() {
         let base: [(String, JSValue)] = [("id", s43("r1")), ("cardKey", s43("base:" + jing43)), ("sessionId", s43("s1")), ("at", n43(at43(today)))]
         func with(_ extra: [(String, JSValue)]) -> [(String, JSValue)] {
@@ -47,7 +47,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertThrowsCore("range", containing: "kind") { _ = try make(with([("kind", s43("uncertain"))])) }
     }
 
-    // test/core/records.test.mjs: records: validateRecord reports char/cardKey mismatch and bad help
+    // records: validateRecord reports char/cardKey mismatch and bad help
     func testRecordsValidateRecordReportsCharCardKeyMismatchAndBadHelp() {
         let r = rec43(1, jing43, "judged", "correct", today)
         func v(_ x: JSValue) -> [String] { Records.validateRecord(x, dates: shanghai43) }
@@ -62,7 +62,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(Records.validateRecord(.null, dates: shanghai43), ["record must be an object"])
     }
 
-    // test/core/records.test.mjs: records: ids, serials and card keys
+    // records: ids, serials and card keys
     func testRecordsIdsSerialsAndCardKeys() {
         XCTAssertEqual(Records.recordSerial(s43("r12")), 12)
         XCTAssertTrue(Records.recordSerial(s43("r0")).isNaN)
@@ -75,7 +75,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertNil(Records.charOfCardKey(s43("legacy:3")))
     }
 
-    // test/core/records.test.mjs: records: nextSerial = max(records, sessions, meta.serial) + 1, holes allowed
+    // records: nextSerial = max(records, sessions, meta.serial) + 1, holes allowed
     func testRecordsNextSerialMaxRecordsSessionsMetaSerialPlus1HolesAllowed() {
         let records = [rec43(3, jing43, "judged", "correct", today), rec43(9, yi43, "skipped", nil, today)]
         XCTAssertEqual(Records.nextSerial(records: records), 10)
@@ -86,7 +86,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(Records.nextSerial(), 1)
     }
 
-    // test/core/records.test.mjs: records: latest judged is decided by id serial, not by clock (setClock-safe)
+    // records: latest judged is decided by id serial, not by clock (setClock-safe)
     func testRecordsLatestJudgedIsDecidedByIdSerialNotByClockSetClockSafe() {
         let records = [
             rec43(5, jing43, "judged", "wrong", today, at: at43(today, 20)),
@@ -96,7 +96,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertFalse(Records.isInWrongList(records, "base:" + jing43))
     }
 
-    // test/core/records.test.mjs: records: answer-seen and skipped are not valid records (D23)
+    // records: answer-seen and skipped are not valid records (D23)
     func testRecordsAnswerSeenAndSkippedAreNotValidRecordsD23() {
         let records = [rec43(1, jing43, "judged", "wrong", "2026-09-20"), rec43(2, jing43, "answer-seen", nil, today), rec43(3, jing43, "skipped", nil, today)]
         XCTAssertEqual(Records.latestJudgedByCard(records)["base:" + jing43]?["id"], s43("r1"))
@@ -105,7 +105,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(Records.writtenCardKeys(records), ["base:" + jing43])
     }
 
-    // test/core/records.test.mjs: records: wrong list = latest judged wrong, newest first; writing it right removes it
+    // records: wrong list = latest judged wrong, newest first; writing it right removes it
     func testRecordsWrongListLatestJudgedWrongNewestFirstWritingItRightRemovesIt() {
         let records = [
             rec43(1, jing43, "judged", "wrong", "2026-09-20"), rec43(2, yi43, "judged", "wrong", "2026-09-21"), rec43(3, man43, "judged", "correct", "2026-09-21"),
@@ -114,7 +114,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(chars43(Records.wrongList(records)), [e143, yi43])
     }
 
-    // test/core/records.test.mjs: records: correcting to correct leaves the wrong list without adding a record (I02/D19)
+    // records: correcting to correct leaves the wrong list without adding a record (I02/D19)
     func testRecordsCorrectingToCorrectLeavesTheWrongListWithoutAddingARecordI02D19() throws {
         let r1 = rec43(1, jing43, "judged", "wrong", today)
         let before = [r1]
@@ -128,7 +128,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(Records.wrongCountOfCard(after, "base:" + jing43), 0)
     }
 
-    // test/core/records.test.mjs: records: correctRecord changes only judgment and appends corrections
+    // records: correctRecord changes only judgment and appends corrections
     func testRecordsCorrectRecordChangesOnlyJudgmentAndAppendsCorrections() throws {
         let r1 = rec43(7, jing43, "judged", "correct", today, hints: 2)
         let c1 = try Records.correctRecord(r1, s43("wrong"), at: n43(111))
@@ -144,7 +144,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertThrowsCore("range", containing: "legacy") { _ = try Records.correctRecord(setting(r1, "legacy", .bool(true)), s43("wrong"), at: n43(1)) }
     }
 
-    // test/core/records.test.mjs: records: forget list = latest judged correct and FSRS due (P04)
+    // records: forget list = latest judged correct and FSRS due (P04)
     func testRecordsForgetListLatestJudgedCorrectAndFSRSDueP04() throws {
         let records = [rec43(1, jing43, "judged", "correct", "2026-06-01"), rec43(2, yi43, "judged", "correct", "2026-09-20"), rec43(3, man43, "judged", "wrong", "2026-06-01")]
         let s0 = obj43([("base:" + jing43, sched("2026-09-10")), ("base:" + yi43, sched("2026-10-01")), ("base:" + man43, sched("2026-09-01"))])
@@ -154,7 +154,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(r.total, 1)
     }
 
-    // test/core/records.test.mjs: records: wrong list and forget list never overlap (K16)
+    // records: wrong list and forget list never overlap (K16)
     func testRecordsWrongListAndForgetListNeverOverlapK16() throws {
         // 伪随机序列：多字、多次判断、到期状态混合，断言两单交集为空且并集只含有 judged 的字。
         var seed = 7.0
@@ -183,7 +183,7 @@ final class RecordsTests: XCTestCase {
         }
     }
 
-    // test/core/records.test.mjs: records: forget list orders by overdue desc then stability, caps at forgetCap
+    // records: forget list orders by overdue desc then stability, caps at forgetCap
     func testRecordsForgetListOrdersByOverdueDescThenStabilityCapsAtForgetCap() throws {
         var records: [JSValue] = []
         var sch = JSObject()
@@ -204,14 +204,14 @@ final class RecordsTests: XCTestCase {
         }
     }
 
-    // test/core/records.test.mjs: records: stopped cards never enter the forget list
+    // records: stopped cards never enter the forget list
     func testRecordsStoppedCardsNeverEnterTheForgetList() throws {
         let records = [rec43(1, jing43, "judged", "correct", "2026-06-01")]
         let s0 = obj43([("base:" + jing43, setting(sched("2026-09-01"), "stoppedAt", n43(1)))])
         XCTAssertEqual(try Records.forgetList(records: records, sched: s0, today: s43(today), dates: shanghai43).total, 0)
     }
 
-    // test/core/records.test.mjs: records: today N counts distinct chars judged today only
+    // records: today N counts distinct chars judged today only
     func testRecordsTodayNCountsDistinctCharsJudgedTodayOnly() {
         let records = [
             rec43(1, jing43, "judged", "wrong", today), rec43(2, jing43, "judged", "correct", today), rec43(3, yi43, "answer-seen", nil, today),
@@ -222,7 +222,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(Records.todayCount([], today), 0)
     }
 
-    // test/core/records.test.mjs: records: counts, first record and monthly index
+    // records: counts, first record and monthly index
     func testRecordsCountsFirstRecordAndMonthlyIndex() throws {
         let r1 = rec43(1, jing43, "judged", "wrong", "2026-08-30")
         let records = [rec43(4, jing43, "judged", "correct", "2026-09-02"), r1, rec43(3, jing43, "answer-seen", nil, "2026-09-01"), rec43(5, yi43, "judged", "wrong", "2026-09-02")]
@@ -235,7 +235,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertEqual(Records.judgedDaysInMonth(records, "2026-09"), ["2026-09-02"])
     }
 
-    // test/core/records.test.mjs: records: replaceRecord / removeRecord keep order and reject unknown ids
+    // records: replaceRecord / removeRecord keep order and reject unknown ids
     func testRecordsReplaceRecordRemoveRecordKeepOrderAndRejectUnknownIds() throws {
         let records = [rec43(1, jing43, "judged", "wrong", today), rec43(2, yi43, "skipped", nil, today)]
         XCTAssertEqual(ids43(try Records.removeRecord(records, s43("r2"))), ["r1"])
@@ -243,7 +243,7 @@ final class RecordsTests: XCTestCase {
         XCTAssertThrowsCore("range", containing: "not found") { _ = try Records.replaceRecord(records, obj43([("id", s43("r9"))])) }
     }
 
-    // test/core/records.test.mjs: records: reviewsDoneOn counts only cards first judged before that day
+    // records: reviewsDoneOn counts only cards first judged before that day
     func testRecordsReviewsDoneOnCountsOnlyCardsFirstJudgedBeforeThatDay() {
         let records = [
             rec43(1, jing43, "judged", "correct", "2026-09-20"), rec43(2, jing43, "judged", "correct", today),

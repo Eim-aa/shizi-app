@@ -74,7 +74,7 @@ private func capitalPolicy(_ overrides: [(String, JSValue)]) -> JSValue {
 }
 
 final class SpecialTests: XCTestCase {
-    // test/core/special.test.mjs: special group: not before 10 groups; from the 10th group on (and p < 1.5) the daily group becomes 壹贰叁肆伍
+    // special group: not before 10 groups; from the 10th group on (and p < 1.5) the daily group becomes 壹贰叁肆伍
     func testSpecialGroupNotBefore10GroupsFromThe10thGroupOnAndPLessThan1Point5TheDailyGroupBecomes() throws {
         XCTAssertNil(try runSp(try history(9)).special)
         XCTAssertFalse(try runSp(try history(9)).queue.contains { inChars("\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}", $0) })
@@ -87,7 +87,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertNil(try rules.specialPlan(sched: .object(JSObject()), records: try history(9), today: TODAY))
     }
 
-    // test/core/special.test.mjs: special group is a full group of 5 even as the first group after ≥ 7 days away (D48 ⑧ shortens only ordinary groups, P184)
+    // special group is a full group of 5 even as the first group after ≥ 7 days away (D48 ⑧ shortens only ordinary groups, P184)
     func testSpecialGroupIsAFullGroupOf5EvenAsTheFirstGroupAfter7DaysAwayD48N8ShortensOnlyOrdinaryGroupsP184() throws {
         let away = try history(10).map { r in JS.with(r, [("localDay", S(try addDays(r["localDay"]?.stringValue ?? "", -10)))]) }
         let r = try runSp(away)
@@ -95,7 +95,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertEqual(r.queue, K("\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}"), "the capital-numeral set is never cut to 3")
     }
 
-    // test/core/special.test.mjs: special group: only when p < 1.5; a heavy backlog postpones it
+    // special group: only when p < 1.5; a heavy backlog postpones it
     // （D83 起 p 按「一天一组」折算：到期数 / 每组字数）
     func testSpecialGroupOnlyWhenPLessThan1Point5AHeavyBacklogPostponesIt() throws {
         let records = try history(10)
@@ -109,7 +109,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertEqual(try rules.specialPlan(sched: table(seven), records: records, today: TODAY, groupSize: .number(5))?.kind, "capital1")
     }
 
-    // test/core/special.test.mjs: special group: group 2 (陆柒捌玖拾) follows once group 1 has appeared; both appear once only; 拾 does not count as a marker
+    // special group: group 2 (陆柒捌玖拾) follows once group 1 has appeared; both appear once only; 拾 does not count as a marker
     func testSpecialGroupGroup2FollowsOnceGroup1HasAppearedBothAppearOnceOnlyShiDoesNotCountAsAMarker() throws {
         let g1 = try history(10)
         // 第 1 组写完（壹贰叁肆伍有了记录）
@@ -133,7 +133,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertEqual(Special.capitalProgress(skipped, policy: policy).map { $0.done }, [false, true])
     }
 
-    // test/core/special.test.mjs: special group: chars written today are left out; a group with nothing left falls through to the next / the daily mix
+    // special group: chars written today are left out; a group with nothing left falls through to the next / the daily mix
     func testSpecialGroupCharsWrittenTodayAreLeftOutAGroupWithNothingLeftFallsThroughToTheNextTheDailyMix() throws {
         let g1 = try history(10)
         let partial = try runSp(g1 + [rec(400, "\u{58F9}", "judged", "correct", TODAY, sessionId: "s11")])
@@ -146,7 +146,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertTrue(none.queue.count > 0)
     }
 
-    // test/core/special.test.mjs: special group can be switched off (policy.capitalNumerals.enabled) and its thresholds come from policy (P128)
+    // special group can be switched off (policy.capitalNumerals.enabled) and its thresholds come from policy (P128)
     func testSpecialGroupCanBeSwitchedOffPolicyCapitalNumeralsEnabledAndItsThresholdsComeFromPolicyP128() throws {
         let off = capitalPolicy([("enabled", .bool(false))])
         XCTAssertNil(try runSp(try history(12), policy: off).special)
@@ -158,7 +158,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertNil(try runSp(try history(12), sched: JS.obj([("base:\u{5B50}", sched(try addDays(TODAY, -1)))]), policy: strictP).special)
     }
 
-    // test/core/special.test.mjs: 佰 仟 are not in the two groups: after both groups appeared they lead the ordinary new-char queue, once
+    // 佰 仟 are not in the two groups: after both groups appeared they lead the ordinary new-char queue, once
     func testBaiQianAreNotInTheTwoGroupsAfterBothGroupsAppearedTheyLeadTheOrdinaryNewCharQueueOnce() throws {
         let g1 = try history(10)
         XCTAssertEqual(Special.capitalAfterKeysFor(g1, policy: policy), [], "before the groups: nothing")
@@ -177,7 +177,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertNil(Special.capitalSpecial(records: both, groupsTotal: 99, pressure: 0, practicable: { _ in true }, excluded: KeySet(), policy: policy))
     }
 
-    // test/core/special.test.mjs: planDaily / planSpecial expose the special group to the session start and the home page
+    // planDaily / planSpecial expose the special group to the session start and the home page
     func testPlanDailyPlanSpecialExposeTheSpecialGroupToTheSessionStartAndTheHomePage() throws {
         let state = JS.obj([
             ("records", JS.obj([("2026-09", .array(try history(10)))])), ("sched", .object(JSObject())),
@@ -195,7 +195,7 @@ final class SpecialTests: XCTestCase {
         XCTAssertEqual(try rules.planSpecial(state, today: TODAY, deck: deck(practicable: { $0.hasPrefix("base:") && !inChars("\u{58F9}\u{8D30}\u{53C1}\u{8086}\u{4F0D}\u{9646}\u{67D2}\u{634C}\u{7396}\u{62FE}", $0) })), .null)
     }
 
-    // test/core/special.test.mjs: policy D40: capitalNumerals (P128) = 10 groups, p < 1.5, switchable
+    // policy D40: capitalNumerals (P128) = 10 groups, p < 1.5, switchable
     func testPolicyD40CapitalNumeralsP128Is10GroupsPLessThan1Point5Switchable() throws {
         // JS 里还断言 Object.isFrozen（Swift 的 JSValue 是值类型，没有冻结的概念）；这里只核对值（字面量是 JS 测试自己钉的）。
         XCTAssertEqual(policy["capitalNumerals"], J(#"{"enabled":true,"afterGroups":10,"belowDays":1.5}"#))

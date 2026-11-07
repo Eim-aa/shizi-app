@@ -1,8 +1,8 @@
 import Foundation
 
-// src/store/storage.js 的 1:1 移植（B4.4）：存储驱动——事务写（txn 日志 + 固定顺序 + 逐键读回 + 逆序回滚；事务后端 = 一个原生事务）、
+// 1:1 移植自原 JS 版（B4.4）：存储驱动——事务写（txn 日志 + 固定顺序 + 逐键读回 + 逆序回滚；事务后端 = 一个原生事务）、
 // 单键缩小写 writeOne、路由提示 writeRoute、启动修复 repair、探测 probe、故障注入（failNextWrite / interruptAfterWrite）。
-// 语义、失败分类与错误文案逐字照 JS（文件头的说明见 storage.js）。
+// 语义、失败分类与错误文案逐字照 JS。
 
 public final class StoreStorage {
     public let backend: KVBackend
@@ -21,6 +21,16 @@ public final class StoreStorage {
     private var failQueue: [(remaining: Int, kind: String, matchKey: String?)] = []
     private var interruptAfter: Int?
     public private(set) var lastRepair: JSObject?
+    /// 最近一次 repair 逐键 parseAndValidate 通过的结果（原文 + 值）。load 里 repair 之后紧接着 readState 又对同一份原文
+    /// 再 parseAndValidate 一遍；parseAndValidate 只取决于 (key, 原文)，原文逐字节相同时结果必然相同，readState 直接取用、省掉第二遍解析与校验。
+    /// 由 takeRepairParsed 取走即清空；每次 repair 开头清空。
+    private var repairParsed = KeyMap<(raw: String, value: JSValue)>()
+
+    /// 取走最近一次 repair 留下的「已解析且校验通过」结果（取后清空）。
+    func takeRepairParsed() -> KeyMap<(raw: String, value: JSValue)> {
+        defer { repairParsed = KeyMap() }
+        return repairParsed
+    }
 
     public init(_ backend: KVBackend, now: @escaping () -> Double = { Date().timeIntervalSince1970 * 1000 }) {
         self.backend = backend
@@ -416,6 +426,7 @@ public final class StoreStorage {
 
     /// 启动修复。报告 {txn, quarantined:[{key, reason}], quarantineFailed, unknown, dropped, blocked}。
     public func repair() throws -> JSObject {
+        repairParsed = KeyMap()
         var txnState = "none"
         var quarantined: [JSValue] = []
         var quarantineFailed: [JSValue] = []
@@ -454,7 +465,11 @@ public final class StoreStorage {
                 continue
             }
             guard let raw = try rawGet(key) else { continue }
-            guard case .failed(let reason) = Schema.parseAndValidate(key: key, raw: .string(raw)) else { continue }
+            let parsed = Schema.parseAndValidate(key: key, raw: .string(raw))
+            guard case .failed(let reason) = parsed else {
+                if case .ok(let value) = parsed { repairParsed[key] = (raw: raw, value: value) }
+                continue
+            }
             if UTF16Order.eq(key, routeKey) {
                 do {
                     try rawRemove(key)
@@ -516,10 +531,21 @@ public final class StoreStorage {
         return removed
     }
 
+    /// bucketOfKey 的结果按键记住：它只看键本身（纯函数），而每次提交后的占用估算都要对全部键各算一遍。
+    private var bucketMemo = [JSKey: String]()
+
     /// 占用估算（同源全部键）。
     public func estimateUsage(_ budgets: Budgets) throws -> JSObject {
         if let usageOverride { return usageOverride }
-        return Budget.estimateUsage(try readAll("").compactMap { k, v in v.map { (k, $0) } }, budgets)
+        let pairs = try readAll("").compactMap { k, v in v.map { (k, $0) } }
+        if bucketMemo.count > 2 * pairs.count + 1024 { bucketMemo = [:] }
+        return Budget.estimateUsage(pairs, budgets) { key in
+            let k = JSKey(s: key)
+            if let b = bucketMemo[k] { return b }
+            let b = Budget.bucketOfKey(key)
+            bucketMemo[k] = b
+            return b
+        }
     }
 
     // MARK: 故障注入（测试 / 差分）
@@ -559,7 +585,7 @@ func mergeSortStable<T>(_ items: [T], _ less: (T, T) -> Bool) -> [T] {
 func rawEq(_ a: String?, _ b: String?) -> Bool {
     switch (a, b) {
     case (nil, nil): return true
-    case (let x?, let y?): return x.utf8.elementsEqual(y.utf8)
+    case (let x?, let y?): return utf8Equal(x, y)
     default: return false
     }
 }

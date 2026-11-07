@@ -125,7 +125,7 @@ ios/ShiziApp/scripts/run-device.sh
 
 不想用 xcconfig 时，也可以继续用环境变量传 `DEVELOPMENT_TEAM` 和 `BUNDLE_ID`。调试开发入口时加 `DEV_MODE=1`，脚本会用 `-shizi-dev` 启动参数打开等价 `?dev=1` 的版本。
 
-真机人工检查按 `ios/ShiziApp/DEVICE_QA.md`（第十稿 M7 版：书写与 Pencil、边缘返回与跟手、查字框键盘、字体、切后台与进程被杀、迁移、通知 / 分享 / 相册、VoiceOver、iOS 15.x 低端机）。TestFlight 前复制一份，填上设备型号、iOS 版本、App 版本、被测 SHA 和结果。
+真机人工检查按 `ios/ShiziApp/DEVICE_QA.md`（只留自动检查覆盖不到的：书写与 Pencil 手感、边缘返回、键盘与系统字号、字体、切后台与进程被杀、数据升级、通知 / 分享 / 相册、听感、VoiceOver、iOS 15.x 低端机）。TestFlight 前复制一份，填上设备型号、iOS 版本、App 版本、被测 SHA 和结果。
 
 ## 开发工具入口
 

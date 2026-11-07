@@ -29,7 +29,7 @@ final class FirstResultTests: XCTestCase {
         try FirstResult.daysLaterLine(chars: chars, sched: obj43(sched), today: s43(TODAY), dates: shanghai43)
     }
 
-    // test/core/first-result.test.mjs: tierOfDue: ≤1 day = 明天, 2–3 = 过两天, ≥4 = 过几天 (already due counts as 明天)
+    // tierOfDue: ≤1 day = 明天, 2–3 = 过两天, ≥4 = 过几天 (already due counts as 明天)
     func testTierOfDueLE1DayTomorrow23SoonGE4LaterAlreadyDueCountsAsTomorrow() throws {
         func tier(_ d: Int) throws -> String { try FirstResult.tierOfDue(s43(day(d)), s43(TODAY), dates: shanghai43) }
         XCTAssertEqual(try tier(-2), "tomorrow")
@@ -41,7 +41,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try tier(30), "later")
     }
 
-    // test/core/first-result.test.mjs: reviewDays: per-char days until the real FSRS due day (same source as the preview sentence); already due counts as 1; no schedule → not listed
+    // reviewDays: per-char days until the real FSRS due day (same source as the preview sentence); already due counts as 1; no schedule → not listed
     func testReviewDaysPerCharDaysUntilTheRealFSRSDueDayAlreadyDueCountsAs1NoScheduleNotListed() throws {
         let out = try FirstResult.reviewDays(chars: [item(gan), item(yingC), item(shi), item(tiao), item(gan)],
                                              sched: obj43([("base:" + gan, sched(day(8))), ("base:" + yingC, sched(day(1))), ("base:" + shi, sched(day(-2)))]),
@@ -57,7 +57,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try FirstResult.reviewDays(chars: [item(jia)], sched: obj43([("base:" + jia, sched(day(5), [("stoppedAt", n43(1))]))]), today: s43(TODAY), dates: shanghai43).count, 0, "stopped chars never come back")
     }
 
-    // test/core/first-result.test.mjs: daysLaterText: 「N 天后再见」, and 「明天再见」 for 1 day (copy slots X-FIRST.daysLater / daysLaterTomorrow, P185)
+    // daysLaterText: 「N 天后再见」, and 「明天再见」 for 1 day (copy slots X-FIRST.daysLater / daysLaterTomorrow, P185)
     func testDaysLaterTextNDaysLaterAndTomorrowForOneDay() throws {
         let tomorrow = "\u{660E}\u{5929}\u{518D}\u{89C1}"
         XCTAssertEqual(try FirstResult.daysLaterText(n43(1)), tomorrow)
@@ -67,7 +67,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try Copy.text("X-FIRST.daysLater", JSObject([("n", n43(12))])), "12 \u{5929}\u{540E}\u{518D}\u{89C1}")
     }
 
-    // test/core/first-result.test.mjs: reviewPreview + previewText: tiers merge by due (near → far); the design-sheet sentences
+    // reviewPreview + previewText: tiers merge by due (near → far); the design-sheet sentences
     func testReviewPreviewPreviewTextTiersMergeByDueNearToFarTheDesignSheetSentences() throws {
         func sc(_ a: Int, _ b: Int, _ c: Int) -> [(String, JSValue)] { [("base:" + gan, sched(day(a))), ("base:" + yingC, sched(day(b))), ("base:" + shi, sched(day(c)))] }
         let three = [item(gan), item(yingC), item(shi)]
@@ -89,7 +89,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try FirstResult.previewText(one), "\u{300C}\u{8D62}\u{300D}\u{660E}\u{5929}\u{518D}\u{6765}\u{3002}")
     }
 
-    // test/core/first-result.test.mjs: daysLaterLine (E9c, D48): the result-page 复现句 — chars with the same days merge (near → far), all same days → one bare clause, unscheduled chars are left out
+    // daysLaterLine (E9c, D48): the result-page 复现句 — chars with the same days merge (near → far), all same days → one bare clause, unscheduled chars are left out
     func testDaysLaterLineE9cD48TheResultPageSentenceCharsWithTheSameDaysMergeNearToFarAllSameDaysOneBareClauseUnscheduledCharsAreLeftOut() throws {
         let chars = [item(gan), item(yingC), item(shi)]
         func sc(_ a: Int, _ b: Int, _ c: Int) -> [(String, JSValue)] { [("base:" + gan, sched(day(a))), ("base:" + yingC, sched(day(b))), ("base:" + shi, sched(day(c)))] }
@@ -105,7 +105,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try line([item(gan)], [("base:" + gan, sched(day(3), [("stoppedAt", n43(5))]))]), "", "stopped cards never come back")
     }
 
-    // test/core/first-result.test.mjs: reviewPreview: chars without a schedule (skipped / answer-seen, D18) are left out; none at all → no sentence
+    // reviewPreview: chars without a schedule (skipped / answer-seen, D18) are left out; none at all → no sentence
     func testReviewPreviewCharsWithoutAScheduleAreLeftOutNoneAtAllNoSentence() throws {
         let p = try preview([item(gan), item(yingC), item(shi)], [("base:" + shi, sched(day(3)))])
         XCTAssertEqual(p.js["groups"], J("[{\"tier\":\"soon\",\"chars\":[\"\(shi)\"]}]"))
@@ -119,7 +119,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(dup.js["groups"], J("[{\"tier\":\"tomorrow\",\"chars\":[\"\(gan)\"]}]"))
     }
 
-    // test/core/first-result.test.mjs: inviteTime: now floored to the half hour; outside 7:00–22:00 → 20:30 (evening title)
+    // inviteTime: now floored to the half hour; outside 7:00–22:00 → 20:30 (evening title)
     func testInviteTimeNowFlooredToTheHalfHourOutside7To22Gives2030() throws {
         func t(_ h: Int, _ m: Int) -> JSValue { FirstResult.inviteTime(at43("2026-09-24", h, m), dates: shanghai43) }
         func want(_ h: Int, _ m: Int, _ e: Bool) -> JSValue { J("{\"hour\":\(h),\"minute\":\(m),\"evening\":\(e)}") }
@@ -136,7 +136,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(try Copy.text("X-INVITE.accepted", JSObject([("time", s43(FirstResult.inviteTimeText(n43(9), n43(30))))])), "\u{597D}\u{FF0C}\u{660E}\u{5929} 9:30 \u{7ED9}\u{4F60}\u{4E00}\u{4E2A}\u{8BCD}\u{3002}")
     }
 
-    // test/core/first-result.test.mjs: inviteDecision: asked at most twice — first result page once, then the next daily result page once; never after an answer
+    // inviteDecision: asked at most twice — first result page once, then the next daily result page once; never after an answer
     func testInviteDecisionAskedAtMostTwiceFirstResultPageOnceThenTheNextDailyResultPageOnceNeverAfterAnAnswer() {
         func S(_ remindInvite: [(String, JSValue)]?, _ remind: [(String, JSValue)]? = nil) -> JSValue {
             var o = JSObject()
@@ -167,7 +167,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertEqual(d(S(nil, [("enabled", .bool(false))]), "first", "s1"), "show")
     }
 
-    // test/core/first-result.test.mjs: commitInviteShown / commitInviteAnswer: counted once per session, capped at 2, answers stick; all through store.commit
+    // commitInviteShown / commitInviteAnswer: counted once per session, capped at 2, answers stick; all through store.commit
     func testCommitInviteShownCommitInviteAnswerCountedOncePerSessionCappedAt2AnswersStickAllThroughStoreCommit() throws {
         var settings: JSValue = .null // 新库没有 settings
         var commits: [String] = []
@@ -205,7 +205,7 @@ final class FirstResultTests: XCTestCase {
         XCTAssertNil(Schema.validateValue(key: Schema.keyNamed("settings")!, value: settings))
     }
 
-    // test/core/first-result.test.mjs: special deferral (D46 ④): only the deferred day skips the special group; the next day it is back if the conditions hold
+    // special deferral (D46 ④): only the deferred day skips the special group; the next day it is back if the conditions hold
     func testSpecialDeferralD46OnlyTheDeferredDaySkipsTheSpecialGroupTheNextDayItIsBackIfTheConditionsHold() throws {
         let rules = ScheduleRules(dates: shanghai43)
         let records = try deferralHistory(10)
@@ -251,7 +251,7 @@ final class FirstResultTests: XCTestCase {
         return out
     }
 
-    // test/core/first-result.test.mjs: deferSpecial writes settings.capitalDeferredDay once through store.commit; planDaily / planSpecial read it
+    // deferSpecial writes settings.capitalDeferredDay once through store.commit; planDaily / planSpecial read it
     func testDeferSpecialWritesSettingsCapitalDeferredDayOnceThroughStoreCommitPlanDailyPlanSpecialReadIt() throws {
         // store.commit 由 B4.4 的真 store 承担；这里用 B4.2 的 MemoryScheduleStore（同一套 commit 语义）
         let rules = ScheduleRules(dates: shanghai43)

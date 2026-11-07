@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/views/about.js
 public enum AboutView {
     static let kinds = ["code", "data", "font"]
     public static func buildDay(_ build: JSValue?) -> String {

@@ -1,7 +1,7 @@
 import UIKit
 
 // 原生写字页与页面之间的数据格式工具（B2.2；Release 组件）。原在 DEBUG spike NativeInkSpike 里（parseColor / rawStrokes），
-// 原生写字页不该依赖 spike：挪到这里，spike 与写字页都调用它。格式与 src/session/write-api.js 一致：
+// 原生写字页不该依赖 spike：挪到这里，spike 与写字页都调用它。格式与 WriteAPI.swift 一致：
 //   笔画：每笔 [[x, y, t, p?]…]（345 单位，t 毫秒，p 只在 Pencil 且 > 0）；
 //   颜色：页面令牌的计算值（"#RRGGBB" / "#RGB" / "rgb(r, g, b)" / "rgba(…)"）。
 

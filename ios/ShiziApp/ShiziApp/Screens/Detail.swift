@@ -1,11 +1,11 @@
 import UIKit
 
-// B3.7：单字详情（网页 src/ui/screens/detail/index.js + records.js + actions.js，1:1 移植；视图模型 src/session/views/detail.js，App API view.detail / detail.*）。
+// B3.7：单字详情（照网页版 1:1 移植；视图模型见 App API view.detail / detail.*）。
 // 屏名 ⇄ 类：detail ⇄ ShiziScreen_detail（旧记录页 detail-photo ⇄ DetailPhoto.swift；放大弹层 DetailZoom.swift）。
 // 页面不持有业务状态：视图（open 回包 / changed 重拉）给文案引用 + 笔画；页内临时状态（撤销条、换词横幅、三段式失败）是本页自己的，
 // 寿命到离开这一页（网页 useLeave：本页不再是最上层页面即失效；放大弹层不算离开）。
 // 写入全部经 App API 的 detail.* op（现有提交函数的薄包装，D07：失败回 {ok:false, error:{kind}}，就地三段式）。
-// 版式按网页 CSS 逐项排（records.js / index.js / actions.js 的 .sz-d*），数值全部取 ShiziTokens，文案取视图模型给的引用。
+// 版式按网页 CSS 逐项排（.sz-d*），数值全部取 ShiziTokens，文案取视图模型给的引用。
 
 // MARK: - 视图（Codable）
 
@@ -64,7 +64,7 @@ func detailRawStrokes(_ s: [[[Double]]]) -> [[InkRawPoint]] {
     }
 }
 
-/// 网页 layout.js minInkScale：小卡的墨抬到最小物理线宽 1.2pt（345 单位格、默认笔宽 11.5）。
+/// 网页 minInkScale：小卡的墨抬到最小物理线宽 1.2pt（345 单位格、默认笔宽 11.5）。
 func detailInkScale(_ side: CGFloat) -> Double {
     guard side > 0 else { return 1 }
     let physical = 11.5 * Double(side) / 345
@@ -136,7 +136,7 @@ final class DetailDot: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 }
 
-/// 页内撤销条（网页 UndoBar.js：两行说明 + 「撤销」；撤销后「已撤销」收起）。L4 浮条外观取令牌 toast-*。
+/// 页内撤销条（网页：两行说明 + 「撤销」；撤销后「已撤销」收起）。L4 浮条外观取令牌 toast-*。
 final class DetailUndoBar: UIView {
     let line1 = UILabel()
     let line2 = UILabel()
@@ -899,7 +899,7 @@ final class DetailScreen: ShiziScreenViewController {
         let gap = mt.groupGap
         let ax = isAX
         let hair = detailHair(mt.value("hair"))
-        var y = top + (ax ? 4 : 0) // AX 档网页页头里不显示的标题也占一行（components/ax.js 把它放回文档流）
+        var y = top + (ax ? 4 : 0) // AX 档网页页头里不显示的标题也占一行（把它放回文档流）
         // ---- 头部（.sz-dhead：竖排 gap s4）
         let cardTop = y
         if m.hero.kind == "ink" {

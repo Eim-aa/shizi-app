@@ -1,13 +1,13 @@
 import UIKit
 
-// 练习记录（B3.9；网页 ui/screens/mine/records.js 的原生版）。
+// 练习记录（B3.9；网页的原生版）。
 //
 // 版式照网页 .sz-rec 那一列（自上而下）：月份行（「{月}月」+ 年份；右「‹ ›」）→ 标题 + 图例 → 月历（周一开头；有记录的日子画墨点、可点）
 //   → 展开的那一天写的字（5 列）→「{月}月字帖」（月字帖纸 + 落款 + 印）→ 「{今天}写的字 / 本次的图片」。
 //
 // AX 档（A2-03）：月历换成「有记录的每一天一行」的列表，点一行展开那天写的字；字帖格的日期角标不画。
 //
-// 文案与数据来自会话层（src/session/views/mine-sub.js recordsView → App API view.records）；本页不写汉字与数值。
+// 文案与数据来自会话层（recordsView → App API view.records）；本页不写汉字与数值。
 
 @objc(ShiziScreen_records)
 final class RecordsScreen: ShiziScreenViewController {
@@ -96,7 +96,6 @@ final class RecordsScreen: ShiziScreenViewController {
     private let arrowBgSide: CGFloat = 34
     private let arrowIconSide: CGFloat = 18
     private let numSide: CGFloat = 30
-    private let dotSide: CGFloat = 5
     private let dayMinHeight: CGFloat = 44
     private let weekdayHeight: CGFloat = 26
     private let calPadTop: CGFloat = 8
@@ -725,7 +724,7 @@ final class RecordsScreen: ShiziScreenViewController {
             let openLine = mt.line("lh22")
             let saveLine = mt.line("lh15")
             // 两个按钮的盒高：网页 .sz-rec__open min-height 44（字大了被行高 lh22 撑高）；
-            // 存字钮 .sz-btn--text 在 AX 档 min-height:max(44px, 1.3em + 12px)（components/ax.js）
+            // 存字钮 .sz-btn--text 在 AX 档 min-height:max(44px, 1.3em + 12px)
             let openBox = max(44, openLine)
             let saveBox = axLayout ? max(44, 1.3 * mt.value("fs15") + 12) : 44
             let openAscent = (openBox - openLine) / 2 + ShiziFlex.text(openFont, line: openLine).ascent
@@ -939,7 +938,7 @@ final class RecordsScreen: ShiziScreenViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         guard axLayout else { return }
-        // AX 档：网页的页头折成两行（components/ax.js）——第一行只有「‹」，第二行是页标题。
+        // AX 档：网页的页头折成两行——第一行只有「‹」，第二行是页标题。
         // 本页的页标题是可见的 h1（盒高 = 一行字 + 下内边距 6，字从盒顶往上溢出一点）。
         let row1 = ShiziPageHeader.height
         let row1Bottom = view.safeAreaInsets.top + row1

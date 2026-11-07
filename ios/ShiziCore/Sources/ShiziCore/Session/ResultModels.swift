@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/ops/result.js and result-api.js: base view and cell contract.
+// Result page base view and cell contract.
 public enum ResultModels {
     static func items(_ s: JSValue?, records: [JSValue]) -> [JSValue] {
         guard let s else { return records.map { JS.obj([("cardKey", $0["cardKey"]!), ("recordId", $0["id"]!), ("kind", $0["kind"]!)]) } }
@@ -10,7 +10,7 @@ public enum ResultModels {
         }; return items
     }
     static func cells(_ state: JSObject, _ a: JSObject) throws -> [JSValue] {
-        let s = SessionResults.locate(state, a)?.session, records = Records.sortById(SessionWrites.allRecords(state).filter { $0["sessionId"] == a["sessionId"] })
+        let s = SessionResults.locate(state, a)?.session, records = Records.sortById(RecordLookup.records(state, .session, a["sessionId"]).filter { $0["sessionId"] == a["sessionId"] })
         return try items(s, records: records).enumerated().map { i,it in
             let record = records.first { $0["id"] == it["recordId"] }, kind = record?["kind"] ?? it["kind"] ?? .null
             let judgment = kind == .string("judged") ? record?["judgment"] ?? .null : .null
@@ -26,7 +26,7 @@ public enum ResultModels {
     }
     public static func model(_ state: JSObject, _ a: JSObject, dates: Dates, hasInk: InkPick.HasInk? = nil) throws -> JSValue {
         let found = SessionResults.locate(state, a), s = found?.session
-        let records = Records.sortById(SessionWrites.allRecords(state).filter { $0["sessionId"] == a["sessionId"] })
+        let records = Records.sortById(RecordLookup.records(state, .session, a["sessionId"]).filter { $0["sessionId"] == a["sessionId"] })
         let cells = try cells(state, a), variant = s.map { $0["kind"] == .string("picked") ? "picked" : $0["kind"] == .string("first") ? "first" : "daily" } ?? (a["slot"] == .string("B") ? "picked" : "daily")
         let early = JS.truthy(s?["endedEarly"])
         // 还没写的字（D83：只算还没写过第一次的字，待重考的不算）
@@ -46,7 +46,7 @@ public enum ResultModels {
         // D83 完成画面：写对 / 重考过关 / 明天再来 / 新学；今天的练习那一组写完时标题「今天完成了」
         let complete = s.map { SessionRules.isComplete($0) && !early } ?? false
         if variant != "first", complete, let s {
-            let sum = TodayPlan.summary(s, records: SessionWrites.allRecords(state))
+            let sum = TodayPlan.summary(s, records: RecordLookup.forSummary(state, s))
             sub.append(try Copy.t("X-TODAY.summary", JSObject([("correct", .number(Double(sum.correct))), ("passed", .number(Double(sum.passed))), ("again", .number(Double(sum.again))), ("fresh", .number(Double(sum.fresh)))])))
         }
         let doneTitle: JSValue = variant == "daily" && complete && TodayPlan.isPlan(s) ? try Copy.t("X-TODAY.doneTitle") : .null

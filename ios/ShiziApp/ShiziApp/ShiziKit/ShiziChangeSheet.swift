@@ -13,7 +13,7 @@ struct NativeJudgeStyle {
     var overlay = NativeOverlaySpec()
 }
 
-/// 改判弹层（决定型弹层：没有默认项、焦点落在弹层标题，D03；右上「取消」、点遮罩、下滑、两指 Z 形都是关）。网页 result-row.js ChangeSheet 的原生版，
+/// 改判弹层（决定型弹层：没有默认项、焦点落在弹层标题，D03；右上「取消」、点遮罩、下滑、两指 Z 形都是关）。网页 ChangeSheet 的原生版，
 /// 排法逐项照网页（R9-B）：满宽贴底、上两角 24、elev 底；内边距 24 / 20 / max(32, 下安全区)、段间 16：
 ///   标题（22 / 30，500）+ 右上「取消」（15，ink2，距顶 18、44 高）→ 两张小卡（1fr 1fr、间 12，笺底 + 格框、方角）各带下方 12 处的旁注（13，ink3）
 ///   → 说明（13 / 20，ink3，居中）→「看这个字 ›」（15，ink2，文字按钮，左对齐页边）→ 主按钮（btn-h，墨底）。
@@ -237,7 +237,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
 
         [titleLabel, cancelButton, mineCard, refCard, mineLabel, refLabel, noteLabel, detailButton, flipButton, failCancel, failRetry].forEach { scroll.addSubview($0) }
 
-        // 下滑关闭（网页 Sheet.js createSheetDrag：内容在顶部、向下为主才接管；跟手，松手按阈值关或回弹）
+        // 下滑关闭（网页 createSheetDrag：内容在顶部、向下为主才接管；跟手，松手按阈值关或回弹）
         pan.delegate = self
         pan.addTarget(self, action: #selector(panned(_:)))
         view.addGestureRecognizer(pan)
@@ -291,7 +291,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
         let titleW = min(inner - 64, w - 8 - cancelW - 8 - gutter)
         let titleH = NativeType.height(titleLabel, width: titleW, line: lh22)
         let headH = max(lh22, titleH)
-        // AX 档文字按钮按字号长高（网页 components/ax.js .sz-btn--text：min-height max(44, 1.3em + 12)，量到的值）
+        // AX 档文字按钮按字号长高（网页 .sz-btn--text：min-height max(44, 1.3em + 12)，量到的值）
         let cancelH = max(44, type.role("change", "minH") ?? 44)
         if layout {
             titleLabel.frame = CGRect(x: gutter, y: y, width: titleW, height: titleH)
@@ -369,8 +369,6 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     var noteTextForTesting: String? { noteLabel.text }
     var flipTitleForTesting: String? { flipButton.title(for: .normal) }
     var hasInkForTesting: Bool { inkView != nil }
-    var emptyTextForTesting: String? { mineEmpty.isHidden ? nil : mineEmpty.text }
-    var detailTitleForTesting: String? { detailButton.isHidden ? nil : detailButton.title(for: .normal) }
 
     // MARK: 下滑关闭
 

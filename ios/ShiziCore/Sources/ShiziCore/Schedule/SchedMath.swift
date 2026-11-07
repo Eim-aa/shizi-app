@@ -17,7 +17,7 @@ extension JSMath {
     public enum Flavor { case v8, darwin }
     public static var flavor: Flavor = .v8
 
-    /// FSRS 用的 Math.exp（.v8 = B4.3 的 `JSMath.exp`，与本文件的 `v8Exp` 同一算法）。
+    /// FSRS 用的 Math.exp（.v8 = B4.3 的 `JSMath.exp`）。
     @inline(__always) public static func schedExp(_ x: Double) -> Double { flavor == .v8 ? exp(x) : Foundation.exp(x) }
     @inline(__always) public static func log(_ x: Double) -> Double { flavor == .v8 ? v8Log(x) : Foundation.log(x) }
 
@@ -29,77 +29,6 @@ extension JSMath {
         Double(bitPattern: (UInt64(UInt32(bitPattern: h)) << 32) | UInt64(l))
     }
     @inline(__always) static func setHi(_ x: Double, _ h: Int32) -> Double { words(h, lo(x)) }
-
-    /// V8 `Math.exp`（ieee754::exp，fdlibm e_exp.c 的 FreeBSD 版；乘加按 clang -ffp-contract=on 在 arm64 上的收缩写成 fma）。
-    public static func v8Exp(_ x0: Double) -> Double {
-        let one = 1.0
-        let halF: [Double] = [0.5, -0.5]
-        let oThreshold = 7.09782712893383973096e+02
-        let uThreshold = -7.45133219101941108420e+02
-        let ln2HI: [Double] = [6.93147180369123816490e-01, -6.93147180369123816490e-01]
-        let ln2LO: [Double] = [1.90821492927058770002e-10, -1.90821492927058770002e-10]
-        let invln2 = 1.44269504088896338700e+00
-        let P1 = 1.66666666666666019037e-01
-        let P2 = -2.77777777770155933842e-03
-        let P3 = 6.61375632143793436117e-05
-        let P4 = -1.65339022054652515390e-06
-        let P5 = 4.13813679705723846039e-08
-        let E = 2.718281828459045
-        let huge = 1.0e+300
-        let twom1000 = 9.33263618503218878990e-302
-        let two1023 = 8.988465674311579539e307
-
-        var x = x0
-        var hi = 0.0, lo = 0.0
-        var k: Int32 = 0
-        var hx = UInt32(bitPattern: JSMath.hi(x))
-        let xsb = Int((hx >> 31) & 1)
-        hx &= 0x7fff_ffff
-
-        if hx >= 0x4086_2E42 { // |x| >= 709.78...
-            if hx >= 0x7ff0_0000 {
-                if ((hx & 0xfffff) | JSMath.lo(x)) != 0 { return x + x } // NaN
-                return xsb == 0 ? x : 0.0
-            }
-            if x > oThreshold { return huge * huge }
-            if x < uThreshold { return twom1000 * twom1000 }
-        }
-
-        if hx > 0x3FD6_2E42 { // |x| > 0.5 ln2
-            if hx < 0x3FF0_A2B2 { // and |x| < 1.5 ln2
-                if x == 1.0 { return E }
-                hi = x - ln2HI[xsb]
-                lo = ln2LO[xsb]
-                k = Int32(1 - xsb - xsb)
-            } else {
-                k = Int32((fma(invln2, x, halF[xsb])).rounded(.towardZero))
-                let t = Double(k)
-                hi = fma(-t, ln2HI[0], x)
-                lo = t * ln2LO[0]
-            }
-            x = hi - lo
-        } else if hx < 0x3E30_0000 { // |x| < 2**-28
-            if huge + x > one { return one + x }
-        } else {
-            k = 0
-        }
-
-        let t = x * x
-        let twopk: Double
-        if k >= -1021 {
-            twopk = words(0x3FF0_0000 &+ (k << 20), 0)
-        } else {
-            twopk = words(0x3FF0_0000 &+ ((k + 1000) << 20), 0)
-        }
-        let c = fma(-t, fma(t, fma(t, fma(t, fma(t, P5, P4), P3), P2), P1), x)
-        if k == 0 { return one - ((x * c) / (c - 2.0) - x) }
-        let y = one - ((lo - (x * c) / (2.0 - c)) - hi)
-        if k >= -1021 {
-            if k == 1024 { return y * 2.0 * two1023 }
-            return y * twopk
-        }
-        return y * twopk * twom1000
-    }
 
     /// V8 `Math.log`（ieee754::log，fdlibm e_log.c 的 FreeBSD 版；同上，fma 照 V8 arm64 的机器码）。
     public static func v8Log(_ x0: Double) -> Double {

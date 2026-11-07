@@ -3,14 +3,13 @@ import QuartzCore
 import ShiziCore
 import UIKit
 
-// QA-H1 夹具的造数据 op（B4.9：从 States/_ops/*.js + _runtime/prologue.js 搬到 Swift；App 里没有 JS 了）。
+// QA-H1 夹具的造数据 op（B4.9：从 JS 搬到 Swift；App 里没有 JS 了）。
 //
-// 夹具 JSON（ShiziUITests/States/<状态>.json）仍是唯一来源：setup = [{op, …}]，op 名与参数同原来的 _ops/<op>.js（那些 JS 文件留在仓库里，
-// 只给网页参考的开发工具 scripts/native-ui/fixture-dev.mjs 用）。规则一条：每个 op 调 ShiziCore 里与 JS 同名的那一个函数
+// 夹具 JSON（ShiziUITests/States/<状态>.json）仍是唯一来源：setup = [{op, …}]，op 名与参数同原来的 JS 实现。规则一条：每个 op 调 ShiziCore 里与 JS 同名的那一个函数
 // （judgeInDraft / createSession / skipInDraft / startPicked / startNextA / seed / markExported / buildBackupV2 / recover …），
 // 写字会话 op 走 SessionRuntime 的 write.*（与原生写字页同一批提交函数），导航走 SwiftNavigator（与「去哪」的规则同一个入口）。
 //
-// 时钟：clock.pin 期间应用时钟（store / 导航的「现在」）每次读数 +5ms、从固定时刻起（QAClock.pin，= prologue.js 的 Date.now 钉住），
+// 时钟：clock.pin 期间应用时钟（store / 导航的「现在」）每次读数 +5ms、从固定时刻起（QAClock.pin，= 原 JS 夹具里钉住的 Date.now），
 // 造完放开（unpinClock 或 setup 结束），全 App 的钟从那一刻起平移；judge 的 tick 把读数拨到第 tick 次（R16）。
 // 造数据期间不放判断声（不是用户的提交；判断声轮换计数不动）。
 
@@ -40,7 +39,7 @@ final class QAFixtureRunner {
         self.host = host
     }
 
-    // MARK: 前导 + 逐条执行 + 收尾（prologue.js / epilogue.js）
+    // MARK: 前导 + 逐条执行 + 收尾
 
     /// 执行一段 setup。返回 nil = 成功，否则是错误说明。reset：顶层夹具清空数据、回首页；base 链里后一个夹具接着前一个的现场 = false。
     func run(_ setup: [[String: Any]], pin: String, clock: String, reset: Bool) async -> String? {
@@ -176,7 +175,7 @@ final class QAFixtureRunner {
 
     // MARK: 造数据（seedRecords / patch / seed / foldNow / exhaustLibrary）
 
-    /// 笔画三种（seedRecords.js VARIANTS）。
+    /// 笔画三种（VARIANTS）。
     private static let variants: [[[InkPoint]]] = [
         [[(60, 170, 0), (170, 168, 60), (290, 172, 120)]],
         [[(60, 120, 0), (170, 118, 60), (290, 122, 120)], [(172, 50, 300), (170, 170, 360), (174, 300, 420)]],
@@ -199,7 +198,7 @@ final class QAFixtureRunner {
                                        queue: .array(queue.map { .string("base:" + $0) }), at: .number(at), dates: store.dates)
     }
 
-    /// seedRecords.js：每条经 judgeInDraft（与真人判断同一个函数），时间戳全部来自夹具里写死的 at / day。累积进 draft，之后由 seed 提交。
+    /// 每条经 judgeInDraft（与真人判断同一个函数），时间戳全部来自夹具里写死的 at / day。累积进 draft，之后由 seed 提交。
     private func seedRecords(_ a: JSObject) throws {
         var d = draft ?? newDraft()
         var n = 0
@@ -268,7 +267,7 @@ final class QAFixtureRunner {
 
     private static func isPlainObject(_ v: JSValue?) -> Bool { if case .object? = v { return true }; return false }
 
-    /// patch.js：改某个数据域（对象与同一域里先前 patch 的合并），由 seed 提交。
+    /// 改某个数据域（对象与同一域里先前 patch 的合并），由 seed 提交。
     private func patchDomain(_ a: JSObject) {
         var p = patch ?? JSObject()
         let domain = QAJS.string(a["domain"]), value = a["value"] ?? .null
@@ -281,7 +280,7 @@ final class QAFixtureRunner {
         patch = p
     }
 
-    /// seed.js：在当前数据上叠草稿与各域（对象域与现有的合并，草稿里有的域不合并），经 store.seed 整体替换（走形状校验）。
+    /// 在当前数据上叠草稿与各域（对象域与现有的合并，草稿里有的域不合并），经 store.seed 整体替换（走形状校验）。
     private func seed(_ a: JSObject) async throws -> String? {
         let base = store.state
         var next = base
@@ -302,7 +301,7 @@ final class QAFixtureRunner {
         return nil
     }
 
-    /// foldNow.js：先提交造好的数据，再在一次提交里做 store 在下一次提交时才做的预算回收（旧月份折叠 / 墨迹淘汰）。
+    /// 先提交造好的数据，再在一次提交里做 store 在下一次提交时才做的预算回收（旧月份折叠 / 墨迹淘汰）。
     private func foldNow(_ a: JSObject) async throws -> String? {
         if draft != nil || patch != nil {
             var next = store.state
@@ -320,7 +319,7 @@ final class QAFixtureRunner {
         return nil
     }
 
-    /// exhaustLibrary.js：练习范围切到最小的库（缺省 rare），再给这个库里每个可练的字（含大写数字特别组）一条写对的判断记录（不留墨）。要提交请接着调 seed。
+    /// 练习范围切到最小的库（缺省 rare），再给这个库里每个可练的字（含大写数字特别组）一条写对的判断记录（不留墨）。要提交请接着调 seed。
     private func exhaustLibrary(_ a: JSObject) throws {
         let lib = a["library"]?.stringValue ?? "rare"
         var seen = Set<String>(), chars: [String] = []
@@ -351,7 +350,7 @@ final class QAFixtureRunner {
         } catch { return "startNextA \(error)" }
     }
 
-    /// judge.js：经写字会话 API 连判几个字。a: {slot, judgments:[…循环取], n:数字|'all', strokes:'one'|'two', tick:数字, retry:'correct'|'wrong'}
+    /// 经写字会话 API 连判几个字。a: {slot, judgments:[…循环取], n:数字|'all', strokes:'one'|'two', tick:数字, retry:'correct'|'wrong'}
     /// D83（S2）：n 数的是「第一次」——judgments 只给每个字的第一次；中途轮到的重考按 retry（缺省 correct）判；
     /// 判完 n 个第一次之后，紧接着的重考也判完（这样「写完一组」的夹具在有写错时照样写完）；'all' = 写到这一组结束。
     private func judge(_ a: JSObject) -> String? {
@@ -394,7 +393,7 @@ final class QAFixtureRunner {
         return r["ok"] == .bool(true) ? nil : "today \(JSONWriter.stringify(r))"
     }
 
-    /// call.js：调一次写字会话 API（当前字）。a: {slot, name, args:{…}}；args.strokes 可写 'one' | 'two' | 数组。结果记在 vars.last。
+    /// 调一次写字会话 API（当前字）。a: {slot, name, args:{…}}；args.strokes 可写 'one' | 'two' | 数组。结果记在 vars.last。
     private func call(_ a: JSObject) -> String? {
         let slot = a["slot"]?.stringValue ?? "B"
         var args = subst(a["args"] ?? .object(JSObject())).objectValue ?? JSObject()
@@ -415,7 +414,7 @@ final class QAFixtureRunner {
         if let total = a["total"]?.stringValue { vars[total] = snap["total"] ?? .null }
     }
 
-    /// handoffSkipUndo.js：最后一字跳过 → 写字页把撤销机会交给结果页（取证时撤销条留够久）。需要先 call skip。
+    /// 最后一字跳过 → 写字页把撤销机会交给结果页（取证时撤销条留够久）。需要先 call skip。
     private func handoffSkipUndo(_ a: JSObject) {
         var undo = vars["last"]?["undo"]?.objectValue ?? JSObject()
         undo["slot"] = a["slot"] ?? .string("B")
@@ -426,7 +425,7 @@ final class QAFixtureRunner {
 
     // MARK: 导航
 
-    /// switchTab.js：切 tab 根页。remount: true = 先切到别的 tab 再切回（根页重新挂载）；登记还原：下一个顶层夹具清空前再切走一次。
+    /// 切 tab 根页。remount: true = 先切到别的 tab 再切回（根页重新挂载）；登记还原：下一个顶层夹具清空前再切走一次。
     private func switchTab(_ a: JSObject) async {
         let tab = a["tab"]?.stringValue ?? "home"
         guard QAJS.truthy(a["remount"]) else { try? engine.nav.router.switchTab(tab); return }
@@ -440,7 +439,7 @@ final class QAFixtureRunner {
         Self.cleanups.append { [weak engine] in try? engine?.nav.router.switchTab(other) }
     }
 
-    /// openImage.js：原生页的图片按钮 = 按夹具写的 scope 直接开原生图片预览（与原生页的图片按钮同一个入口）。前一步推的页先等它推上来、取完视图。
+    /// 原生页的图片按钮 = 按夹具写的 scope 直接开原生图片预览（与原生页的图片按钮同一个入口）。前一步推的页先等它推上来、取完视图。
     private func openImage(_ a: JSObject) async -> String? {
         guard let scope = a["scope"]?.objectValue else { return "openImage: no scope (the web button is gone; give the fixture a scope)" }
         await sleep(a["wait"]?.numberValue ?? 2500)
@@ -451,7 +450,7 @@ final class QAFixtureRunner {
 
     // MARK: 存储替身 / 平台桩
 
-    /// blockMode.js：unavailable = 存储探测不过；blocked = 写失败且回滚也失败；migration = 迁移失败（D81 ② 起只有夹具造得出）。
+    /// unavailable = 存储探测不过；blocked = 写失败且回滚也失败；migration = 迁移失败（D81 ② 起只有夹具造得出）。
     private func blockMode(_ a: JSObject) async -> String? {
         switch a["kind"]?.stringValue {
         case "unavailable":
@@ -470,7 +469,7 @@ final class QAFixtureRunner {
         return nil
     }
 
-    /// corruptNotice.js：启动修复的报告换成「隔离了某个键」，重读后坏值浮条出现；还原时收起浮条。
+    /// 启动修复的报告换成「隔离了某个键」，重读后坏值浮条出现；还原时收起浮条。
     private func corruptNotice(_ a: JSObject) async {
         engine.qaOverrideStorage(probe: nil, blocked: nil, quarantined: [a["key"]?.stringValue ?? "shizi.v2.settings"])
         Self.cleanups.append { [weak engine] in
@@ -480,7 +479,7 @@ final class QAFixtureRunner {
         await sleep(300)
     }
 
-    /// setUsage.js：存储占用估算换成预警值（界面只读 store.status.usage）。a: {level: 'warn'|'full', ratio}
+    /// 存储占用估算换成预警值（界面只读 store.status.usage）。a: {level: 'warn'|'full', ratio}
     private func setUsage(_ a: JSObject) {
         let ratio = a["ratio"]?.numberValue ?? 0.86
         store.storage.usageOverride = JSObject([("level", a["level"] ?? .string("warn")), ("ratio", .number(ratio)), ("total", .number((ratio * 64 * 1024 * 1024).rounded())), ("byBucket", .object(JSObject()))])
@@ -488,19 +487,19 @@ final class QAFixtureRunner {
         _ = store.refreshUsage()
     }
 
-    /// markExported.js：把备份记成「已导出」（core/backup.markExported，与真人导出完成同一个写入）。a: {at, same: false = 导出后记录又有改动}
+    /// 把备份记成「已导出」（markExported，与真人导出完成同一个写入）。a: {at, same: false = 导出后记录又有改动}
     private func markExported(_ a: JSObject) -> String? {
         let r = Backup.markExported(store, at: Self.localMs(QAJS.string(a["at"])) ?? 0, sig: a["same"] == .bool(false) ? "sig-before-changes" : nil)
         return r["ok"] == .bool(true) ? nil : "markExported \(JSONWriter.stringify(r))"
     }
 
-    /// stubSave.js / stubNative.js：存相册的桩（取证时不能弹相册权限框）。reply = false：不回包（保存中一直等着）。
+    /// 存相册的桩（取证时不能弹相册权限框）。reply = false：不回包（保存中一直等着）。
     private func stubSave(success: Bool, reply: Bool) {
         RootViewController.qaSaveStub = (success, reply)
         Self.cleanups.append { RootViewController.qaSaveStub = nil }
     }
 
-    /// writeOverflowPrompt.js（只给流程用的极端题面）：把「姥」的提示换成现有最长提示的四倍。产品文案与版式常量不动。
+    /// 只给流程用的极端题面：把「姥」的提示换成现有最长提示的四倍。产品文案与版式常量不动。
     private func writeOverflowPrompt() throws -> String? {
         guard let card = DeckCards.shared.cardForKey("base:\u{59E5}") else { return "missing card" }
         guard let hint = try Cards.visibleHint(card).stringValue, !hint.isEmpty else { return "missing existing hint" }

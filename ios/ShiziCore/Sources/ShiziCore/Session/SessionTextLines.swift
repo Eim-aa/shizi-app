@@ -1,6 +1,6 @@
 import Foundation
 
-/// src/session/text-lines.js. Renderer measurements are injected; absent/invalid/throwing
+/// Session text lines. Renderer measurements are injected; absent/invalid/throwing
 /// providers return null. No attempt is made to guess DOM/font line breaks.
 public final class SessionTextLines {
     public static let shared = SessionTextLines()

@@ -1,6 +1,5 @@
 import Foundation
 
-// src/session/api/about.js.
 extension PageAPI {
     static func about(_ op: String, _ a: JSObject, hooks: SessionActionHooks? = nil) throws -> JSValue {
         let view: JSValue

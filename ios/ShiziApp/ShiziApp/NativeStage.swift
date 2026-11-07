@@ -70,6 +70,205 @@ enum ShiziScreenRegistry {
     }()
 }
 
+// MARK: - 导航的类型化读法（页面栈条目、改栈意图、宿主消息）
+//
+// 边界上仍是字典：引擎回包 / 发来的消息是 JSON 形状的值，交给屏的 params / payload、交给 B2 页的 payload / look / plan 也原样是字典。
+// 这里只把 NativeStage 自己读的字段收成一处、在入口（handleScreenMessage / handleWriteMessage / engineNav / dispatch / route.plan 回包）读一次；
+// 每个字段的转换与原来逐处写的 `as?` 一字不差（缺键或类型不对 = nil，缺省值写在字段注释里），存栈 / 记账交回引擎时拼回同样的键。
+
+/// 页面栈的一条（{id, n, p}；第 0 条是 tab 根）。
+struct NativeStageEntry {
+    /// 条目 id（as? String）。
+    let id: String?
+    /// 屏名（as? String）。
+    let n: String?
+    /// 屏参数（as? [String: Any]；改参数时缺的按 [:] 起）。
+    var p: [String: Any]?
+
+    init(id: String, n: String, p: [String: Any]) {
+        self.id = id
+        self.n = n
+        self.p = p
+    }
+
+    init(_ raw: [String: Any]) {
+        id = raw["id"] as? String
+        n = raw["n"] as? String
+        p = raw["p"] as? [String: Any]
+    }
+
+    /// 回包里的栈（reply.stack；不是字典数组 = 空栈）。
+    static func list(_ raw: Any?) -> [NativeStageEntry] { (raw as? [[String: Any]] ?? []).map { NativeStageEntry($0) } }
+
+    /// 交回引擎的形状（route.save 的 stack、stage.enter 的 entry）：{id, n, p}。读不出的键不写——引擎那头（EngineRouter.entriesOf）
+    /// 对缺键与类型不对一视同仁（id 不是非空字串 = 新开、n 不是字串 = 截断、p 不是对象 = {}）；stage.enter 的 entry 一律是 newEntry 拼的，三个键都在。
+    var wire: [String: Any] {
+        var out: [String: Any] = [:]
+        if let id { out["id"] = id }
+        if let n { out["n"] = n }
+        if let p { out["p"] = p }
+        return out
+    }
+}
+
+/// 改栈的五种意图（引擎镜像同名：EngineRouter.apply 的 kind）。
+enum NativeStageEdit: String {
+    case push, replace, pop, tab, params
+}
+
+/// 引擎发来的导航（{op:'nav', kind, seq?, entry?, patch?}；EngineRouter.request 的 wire），engineNav 读一次。
+struct NativeNavIntent {
+    /// 缺键 = ""（不是五种之一的不改栈）。
+    let kind: String
+    /// 引擎的意图序号（as? NSNumber → Int）。
+    let seq: Int?
+    /// entry 是字典才有。
+    let entry: NativeStageEntry?
+    /// 参数补丁（原样并进栈顶的 p；不是字典 = nil）。
+    let patch: [String: Any]?
+
+    init(_ raw: Any?) {
+        let b = raw as? [String: Any] ?? [:]
+        kind = b["kind"] as? String ?? ""
+        seq = (b["seq"] as? NSNumber)?.intValue
+        entry = (b["entry"] as? [String: Any]).map { NativeStageEntry($0) }
+        patch = b["patch"] as? [String: Any]
+    }
+}
+
+/// 宿主消息一条（{type, body}：type "nativeWrite" → B2 通道，其余 → 通用原生屏）。
+struct NativeHostMessage {
+    let type: String?
+    /// 消息体原值（dispatch 只处理字典）。
+    let body: Any?
+
+    init(type: String?, body: Any?) {
+        self.type = type
+        self.body = body
+    }
+
+    /// 回包里的 bodies（不是字典数组 = 没有）。
+    static func list(_ raw: Any?) -> [NativeHostMessage] {
+        (raw as? [[String: Any]] ?? []).map { NativeHostMessage(type: $0["type"] as? String, body: $0["body"]) }
+    }
+
+    /// 交回引擎的形状（stage.enter / route.plan / stage.resync 回包的 bodies 里的一条）：{type, body}。
+    var wire: [String: Any] {
+        var out: [String: Any] = [:]
+        if let type { out["type"] = type }
+        if let body { out["body"] = body }
+        return out
+    }
+}
+
+/// open 消息 run 里的一条（{entryId, screen, params, payload?}：这一条下面连续的原生宿主条目）。
+struct NativeScreenRunItem {
+    let entryId: String?
+    let screen: String?
+    /// 重建时缺的按 [:]。
+    let params: [String: Any]?
+    /// 视图回包（重建要它；没有的跳过）。
+    let payload: [String: Any]?
+}
+
+extension NativeScreenRunItem {
+    init(_ raw: [String: Any]) {
+        entryId = raw["entryId"] as? String
+        screen = raw["screen"] as? String
+        params = raw["params"] as? [String: Any]
+        payload = raw["payload"] as? [String: Any]
+    }
+}
+
+/// 通用原生屏的 open（{screen, entryId, root?, params, payload, via, plan, run}）。
+struct NativeScreenOpen {
+    /// tab 根页：只有 true 才算。
+    let root: Bool
+    let screen: String?
+    let entryId: String?
+    /// 打不开时日志里的屏名（原值照印；缺键 = "?"）。
+    let screenLabel: String
+    /// 缺键 = [:]。
+    let params: [String: Any]
+    /// 缺键 = [:]。
+    let payload: [String: Any]
+    /// 缺省各处不同：根页日志 "?"，原生屏 "push"。
+    let via: String?
+    /// plan.mode（"quiet" = 安静淡入）。
+    let planMode: String?
+    /// 缺键 = []（不是字典数组也是 []）。
+    let run: [NativeScreenRunItem]
+}
+
+extension NativeScreenOpen {
+    init(_ body: [String: Any]) {
+        root = (body["root"] as? Bool) == true
+        screen = body["screen"] as? String
+        entryId = body["entryId"] as? String
+        screenLabel = "\(body["screen"] ?? "?")"
+        params = body["params"] as? [String: Any] ?? [:]
+        payload = body["payload"] as? [String: Any] ?? [:]
+        via = body["via"] as? String
+        planMode = (body["plan"] as? [String: Any])?["mode"] as? String
+        run = (body["run"] as? [[String: Any]] ?? []).map { NativeScreenRunItem($0) }
+    }
+}
+
+/// 通用原生屏通道的消息（type 'native'），handleScreenMessage 读一次。
+enum NativeScreenMessage {
+    case openPage(NativeScreenOpen)
+    /// close {entryId}。
+    case closePage(entryId: String?)
+    /// corrupt {show, lines}：show 只有 true 才算；lines 是数字数组才有（各行起点）。
+    case corruptNotice(show: Bool, lines: [Int]?)
+    case unknown
+
+    init(_ body: [String: Any]) {
+        switch body["op"] as? String ?? "" {
+        case "open": self = .openPage(NativeScreenOpen(body))
+        case "close": self = .closePage(entryId: body["entryId"] as? String)
+        case "corrupt": self = .corruptNotice(show: (body["show"] as? Bool) == true, lines: (body["lines"] as? [NSNumber])?.map { $0.intValue })
+        default: self = .unknown
+        }
+    }
+}
+
+/// B2 通道的消息（type 'nativeWrite'：open / close / result-open / result-close / redo-open / redo-close），handleWriteMessage 读一次。
+struct NativeWriteMessage {
+    /// 缺键 = ""。
+    let op: String
+    /// "B" 才是 B，其余 = "A"。
+    let slot: String
+    /// 缺键 = [:]（原样交给写字 / 重写错字页；结果页读 ok / view）。
+    let payload: [String: Any]
+    /// 缺键 = ""。
+    let via: String
+    /// 缺键 = true。
+    let animate: Bool
+    /// 引擎发出的时刻（Unix ms；as? NSNumber）。
+    let sentAt: Double?
+    /// 进场计划（原样交给 NativeNavPlan）。
+    let plan: [String: Any]?
+    let sessionId: String?
+    /// 结果页外观（缺键 = [:]）。
+    let look: [String: Any]
+    /// result-close 是让开：只有 true 才算。
+    let away: Bool
+
+    init(_ body: [String: Any]) {
+        op = body["op"] as? String ?? ""
+        slot = body["slot"] as? String == "B" ? "B" : "A"
+        payload = body["payload"] as? [String: Any] ?? [:]
+        via = body["via"] as? String ?? ""
+        animate = body["animate"] as? Bool ?? true
+        sentAt = (body["sentAt"] as? NSNumber)?.doubleValue
+        plan = body["plan"] as? [String: Any]
+        sessionId = body["sessionId"] as? String
+        look = body["look"] as? [String: Any] ?? [:]
+        away = (body["away"] as? Bool) == true
+    }
+}
+
 final class NativeStage: NSObject {
     unowned let host: RootViewController
     let engine: SwiftEngine
@@ -100,18 +299,18 @@ final class NativeStage: NSObject {
     // MARK: 宿主消息（type 'native'，SwiftNavigator / SwiftEngine 发来）
 
     func handleScreenMessage(_ body: [String: Any]) {
-        switch body["op"] as? String ?? "" {
-        case "open" where (body["root"] as? Bool) == true:
-            enqueue { [weak self] done in self?.openRoot(body, done: done) ?? done() }
-        case "open":
-            enqueue { [weak self] done in self?.openScreen(body, done: done) ?? done() }
-        case "close" where rootScreen != nil && (body["entryId"] as? String) == rootScreen?.entryId:
+        switch NativeScreenMessage(body) {
+        case .openPage(let o) where o.root:
+            enqueue { [weak self] done in self?.openRoot(o, done: done) ?? done() }
+        case .openPage(let o):
+            enqueue { [weak self] done in self?.openScreen(o, done: done) ?? done() }
+        case .closePage(let entryId) where rootScreen != nil && entryId == rootScreen?.entryId:
             enqueue { [weak self] done in self?.closeRoot(done: done) ?? done() }
-        case "close":
-            enqueue { [weak self] done in self?.closeScreen(body, done: done) ?? done() }
-        case "corrupt":
-            enqueue { [weak self] done in self?.setCorruptNotice(body, done: done) ?? done() }
-        default:
+        case .closePage(let entryId):
+            enqueue { [weak self] done in self?.closeScreen(entryId, done: done) ?? done() }
+        case .corruptNotice(let show, let lines):
+            enqueue { [weak self] done in self?.setCorruptNotice(show: show, lines: lines, done: done) ?? done() }
+        case .unknown:
             break
         }
     }
@@ -161,7 +360,7 @@ final class NativeStage: NSObject {
     // （ShiziTabSlot），此刻的原生根页是选中那一格的子控制器、只铺到 Tab 栏上沿。导航真相仍是网页路由：点别的 tab → nav.tab，网页切 tab 后
     // 旧根页 close、新根页 open，这里随之换选中格（无动画、无触觉）；再点当前 tab → 根页滚回顶部（N6）。Tab 栏只在根页看得见时出现：
     // 推入的原生页、写字 / 结果页、弹层都呈现在宿主上面（盖住它）；网页页面 / 网页弹层盖上根页时连同 Tab 栏一起让开（截图连 Tab 栏交给网页）。
-    // 与网页参考（Tabs.js）的外观差异是具名豁免 TAB-01（parity.config.json）。
+    // 与网页参考的外观差异是具名豁免 TAB-01（parity.config.json）。
 
     /// Tab 栏控制器（第一次打开根页时建；之后一直在，没有根页时藏起）。
     private(set) var tabs: ShiziTabController?
@@ -223,15 +422,6 @@ final class NativeStage: NSObject {
         return nil
     }
 
-    /// 让给网页时交给宿主层的「样子」：根页连同 Tab 栏（网页那边截图铺满整个 tab 图层，B3.5d 起网页不画自己的 Tab 栏），其余原生页是它自己。
-    func coverView(of page: ShiziScreenViewController) -> UIView {
-        if page === rootScreen, let hostView = tabHost, !hostView.isHidden { return hostView }
-        return page.view
-    }
-
-    /// 原生根页（连同 Tab 栏）此刻看得见（网页内容在它下面，对读屏藏起：RootViewController）。
-    var rootShown: Bool { tabHost.map { !$0.isHidden } ?? false }
-
     /// 探针：Tab 栏（看得见、选中的 tab、栏的框）。
     var tabsProbe: [String: Any]? {
         guard let t = tabs, let hostView = tabHost else { return nil }
@@ -250,7 +440,7 @@ final class NativeStage: NSObject {
     /// 原生 tab 根页（没有 = nil）。
     private(set) var rootScreen: ShiziScreenViewController?
 
-    /// 原生根页的框（所在 tab 格的坐标）：铺到原生 Tab 栏上沿（B3.5d；栏还没排版时按网页 Tabs.js 的 49 + 下安全区）。
+    /// 原生根页的框（所在 tab 格的坐标）：铺到原生 Tab 栏上沿（B3.5d；栏还没排版时按网页的 49 + 下安全区）。
     private var rootFrame: CGRect {
         let b = host.view.bounds
         var barTop = b.height - (49 + host.view.safeAreaInsets.bottom)
@@ -267,13 +457,13 @@ final class NativeStage: NSObject {
     /// 各 tab 的根页（B3.F：切 tab 不拆——三格各留着自己的根页，回来时页内状态还在；UITabBarController 只显示选中那一格）。
     private var roots: [String: ShiziScreenViewController] = [:]
 
-    private func openRoot(_ body: [String: Any], done: @escaping () -> Void) {
-        guard let name = body["screen"] as? String, let entryId = body["entryId"] as? String,
+    private func openRoot(_ msg: NativeScreenOpen, done: @escaping () -> Void) {
+        guard let name = msg.screen, let entryId = msg.entryId,
               let cls = ShiziScreenRegistry.screenClass(name) else { done(); return }
         NativeNavMotion.ensure()
-        let payload = body["payload"] as? [String: Any] ?? [:]
-        let params = body["params"] as? [String: Any] ?? [:]
-        ShiziProbe.note("root:open \(name) via=\(body["via"] as? String ?? "?")")
+        let payload = msg.payload
+        let params = msg.params
+        ShiziProbe.note("root:open \(name) via=\(msg.via ?? "?")")
         let t = ensureTabs()
         let slot = t.select(name)
         if let r = roots[name], r.parent != nil {
@@ -319,17 +509,6 @@ final class NativeStage: NSObject {
             r.removeFromParent()
             roots[name] = nil
         }
-    }
-
-    private func removeRoot() {
-        guard let r = rootScreen else { return }
-        rootScreen = nil
-        roots[r.screen] = nil
-        r.exitHandled = true
-        r.willMove(toParent: nil)
-        r.view.removeFromSuperview()
-        r.removeFromParent()
-        syncTabHost()
     }
 
     /// 探针：原生根页（屏名、是否藏着、页面自己的摘要）。
@@ -378,6 +557,48 @@ final class NativeStage: NSObject {
         return Self.coveredByPresented(page)
     }
 
+    /// 这一页看不见（ShiziScreenViewController.isShown：看不见时不重拉，露出来时补拉）：isCovered 的同一条不透明口径，
+    /// 只是 leaving 这一层（连同它上面的）与正在收起的层不算——返回起手时，收起后露出来的页就算看得见；也只算原生页 / 写字 / 结果页
+    /// （它们收起都经过这里或 ShiziScreenViewController.viewDidDisappear，补拉有着落），页面自己弹的选择弹层、图片弹层等不算盖住。
+    func isObscured(_ page: ShiziScreenViewController, ignoring leaving: UIViewController?) -> Bool {
+        if page === rootScreen { return Self.obscuredByPresented(host, ignoring: leaving) }
+        guard screens.contains(where: { $0 === page }) else { return false }
+        return Self.obscuredByPresented(page, ignoring: leaving)
+    }
+
+    static func obscuredByPresented(_ vc: UIViewController, ignoring leaving: UIViewController?) -> Bool {
+        var cur = vc.presentedViewController
+        while let c = cur, c !== leaving {
+            if !c.isBeingDismissed, c is NativeTransitionPage, coversBelow(c) { return true }
+            cur = c.presentedViewController
+        }
+        return false
+    }
+
+    /// leaving 这一层要收起（nil = 按此刻的栈）：收起后看得见的页把看不见时攒着的变化补拉一次。
+    /// then = 补拉的视图都画好了（没有要补的：立即；最多等 planWait）——返回转场等它再放，露出来的第一帧就是新的。
+    func revealUnder(_ leaving: UIViewController?, then: (() -> Void)? = nil) {
+        var waiting = 0
+        var finished = false
+        let finish: () -> Void = {
+            guard !finished else { return }
+            finished = true
+            then?()
+        }
+        for page in Array(roots.values) + screens {
+            let started = page.revealIfNeeded(ignoring: leaving, done: {
+                waiting -= 1
+                if waiting == 0 { finish() }
+            })
+            if started { waiting += 1 }
+        }
+        if waiting == 0 {
+            finish()
+        } else if then != nil {
+            DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.planWait) { finish() }
+        }
+    }
+
     /// 从 vc 往上有没有任何一层呈现着的模态层（R16，读屏一支）：透明的弹层屏（查字 / S02）、选择弹层、底部弹层、图片弹层都算——
     /// 弹层下面的内容读屏摸不到、划不到（主控 R16 决定）。正在收起的那一层不算；查字 / S02 自己的绘制层（QueryOverlayLayer）是这一页本身，不算盖住它。
     static func modalAbove(_ vc: UIViewController) -> Bool {
@@ -410,25 +631,26 @@ final class NativeStage: NSObject {
     /// open {screen, entryId, params, via, plan, underId, run:[{entryId, screen, params, payload?}], payload}：
     /// run = 这一条下面连续的原生宿主条目（底 → 顶）。按 run + 这一条对齐原生栈：对得上的留着（页面重载期间按屏名认领），对不上的收起，
     /// 缺的（从网页页面回来时下面的原生页已让开）不带转场重建，最后呈现这一条（push / quiet 播转场；restore / return 直接盖上）。
-    private func openScreen(_ body: [String: Any], done: @escaping () -> Void) {
-        guard let name = body["screen"] as? String, let entryId = body["entryId"] as? String,
+    private func openScreen(_ msg: NativeScreenOpen, done: @escaping () -> Void) {
+        guard let name = msg.screen, let entryId = msg.entryId,
               let cls = ShiziScreenRegistry.screenClass(name) else {
-            ShiziProbe.log("native stage: open without a native class (\(body["screen"] ?? "?"))")
+            ShiziProbe.log("native stage: open without a native class (\(msg.screenLabel))")
             done()
             return
         }
         NativeNavMotion.ensure()
-        let payload = body["payload"] as? [String: Any] ?? [:]
-        let params = body["params"] as? [String: Any] ?? [:]
-        let via = body["via"] as? String ?? "push"
-        let run = (body["run"] as? [[String: Any]] ?? []) + [["entryId": entryId, "screen": name, "params": params, "payload": payload]]
+        let payload = msg.payload
+        let params = msg.params
+        let via = msg.via ?? "push"
+        let planMode = msg.planMode
+        let run = msg.run + [NativeScreenRunItem(entryId: entryId, screen: name, params: params, payload: payload)]
         // 1. 对齐：从底往上，条目 id 相同的留着（B3.F：run 由引擎按原生的栈算）
         var keep = 0
         while keep < screens.count, keep < run.count {
             let want = run[keep]
             let page = screens[keep]
-            guard !page.exitHandled, page.entryId == want["entryId"] as? String else { break }
-            if let id = want["entryId"] as? String { page.entryId = id }
+            guard !page.exitHandled, page.entryId == want.entryId else { break }
+            if let id = want.entryId { page.entryId = id }
             keep += 1
         }
         if keep == run.count {
@@ -442,7 +664,7 @@ final class NativeStage: NSObject {
         let finishOpen = { [weak self] in
             guard let self else { done(); return }
             self.rebuild(run, from: keep) {
-                self.present(cls, name: name, entryId: entryId, params: params, payload: payload, via: via, plan: body["plan"] as? [String: Any], done: done)
+                self.present(cls, name: name, entryId: entryId, params: params, payload: payload, via: via, planMode: planMode, done: done)
             }
         }
         if keep < screens.count {
@@ -454,28 +676,29 @@ final class NativeStage: NSObject {
     }
 
     /// 重建 run[from ..< 最后一条] 里还不在原生栈上的原生页（从网页页面回来：它们让开时一起收起了）。没有视图回包的跳过。
-    private func rebuild(_ run: [[String: Any]], from start: Int, then: @escaping () -> Void) {
+    private func rebuild(_ run: [NativeScreenRunItem], from start: Int, then: @escaping () -> Void) {
         var i = start
         func next() {
             guard i < run.count - 1 else { then(); return }
             let item = run[i]
             i += 1
-            guard let name = item["screen"] as? String, let id = item["entryId"] as? String, let cls = ShiziScreenRegistry.screenClass(name),
-                  let payload = item["payload"] as? [String: Any] else { next(); return }
-            present(cls, name: name, entryId: id, params: item["params"] as? [String: Any] ?? [:], payload: payload, via: "return", plan: nil) { next() }
+            guard let name = item.screen, let id = item.entryId, let cls = ShiziScreenRegistry.screenClass(name),
+                  let payload = item.payload else { next(); return }
+            present(cls, name: name, entryId: id, params: item.params ?? [:], payload: payload, via: "return", planMode: nil) { next() }
         }
         next()
     }
 
+    /// planMode = open 的 plan.mode（"quiet" = 安静淡入；重建的页没有）。
     private func present(_ cls: ShiziScreenViewController.Type, name: String, entryId: String, params: [String: Any], payload: [String: Any], via: String,
-                         plan: [String: Any]?, done: @escaping () -> Void) {
+                         planMode: String?, done: @escaping () -> Void) {
         let presenterNow = screens.last ?? topPresented()
         if let leaving = presenterNow.presentedViewController {
             // 上面还有一张正在收起 / 没交出的页（被别处卸掉的旧页）：等它收起再呈现（UIKit 呈现进行中再呈现会被丢掉）
             (leaving as? ShiziScreenViewController)?.exitHandled = true
             NativeStage.dismissWhenSettled(leaving) { [weak self] in
                 guard let self else { done(); return }
-                self.present(cls, name: name, entryId: entryId, params: params, payload: payload, via: via, plan: plan, done: done)
+                self.present(cls, name: name, entryId: entryId, params: params, payload: payload, via: via, planMode: planMode, done: done)
             }
             return
         }
@@ -483,7 +706,7 @@ final class NativeStage: NSObject {
         vc.stage = self
         vc.apply(payload: payload)
         // 冷启动恢复与从网页页面回来不带转场（网页已播完返回，露出的就是这一页的样子）；安静入口（通知 / 无来源）淡入；其余点按入口推入
-        let kind: NativeNavKind = via == "restore" || via == "return" ? .none : (via == "quiet" || (plan?["mode"] as? String) == "quiet") ? .quiet : .push
+        let kind: NativeNavKind = via == "restore" || via == "return" ? .none : (via == "quiet" || planMode == "quiet") ? .quiet : .push
         vc.enteredKind = kind == .none ? .push : kind
         let under = screens.last
         vc.transitions.plan = NativeNavPlan(kind: vc.enteredKind)
@@ -503,8 +726,8 @@ final class NativeStage: NSObject {
     }
 
     /// close {entryId}：宿主被别处卸掉（切 tab、深链、阻断、整体替换）——这一页与它上面的原生页收起（样子留着，没人接手时淡出），不发 nav.back。
-    private func closeScreen(_ body: [String: Any], done: @escaping () -> Void) {
-        guard let id = body["entryId"] as? String, let i = screens.firstIndex(where: { $0.entryId == id }), !screens[i].exitHandled else { done(); return }
+    private func closeScreen(_ entryId: String?, done: @escaping () -> Void) {
+        guard let id = entryId, let i = screens.firstIndex(where: { $0.entryId == id }), !screens[i].exitHandled else { done(); return }
         ShiziProbe.note("screen:close \(screens[i].screen)")
         release(from: i, fade: true, then: done)
     }
@@ -517,8 +740,10 @@ final class NativeStage: NSObject {
         ShiziProbe.note("screen:release \(gone.map(\.screen).joined(separator: ","))")
         gone.forEach { $0.exitHandled = true; $0.transitions.finishNow() }
         if let top = gone.last { NativeResultCover.cover(top.view, in: host.view) }
+        revealUnder(gone[0])
         NativeStage.dismissWhenSettled(gone[0]) { [weak self] in
             guard let self else { then(); return }
+            self.revealUnder(nil)
             if fade { NativeResultCover.fadeLater(bridge: WriteSessionChannel()) }
             then()
         }
@@ -534,23 +759,23 @@ final class NativeStage: NSObject {
     // MARK: 页面栈（B3.F：导航真相在原生；计划 §3.3 段 2）
     //
     // entries = 页面栈（底 → 顶，[{id, n, p}]；第 0 条是 tab 根）。每次栈或参数变了调 route.save（引擎写路由提示键，单一写入者），进后台刷新离开时刻。
-    // 两种来源、同一套改栈语义（push / replace / pop / tab / params，引擎镜像 ui/engine.js 同名）：
+    // 两种来源、同一套改栈语义（push / replace / pop / tab / params，引擎镜像同名）：
     //   - 原生发起（原生页点按推入、‹ / 左缘 / Z 形返回、点 tab、页内参数）：这里先改栈，再 stage.enter 让引擎记账（来源记账、视图回包），
     //     回包里的宿主消息照原来的通道处理（open / close / result-open …）——去处由原生定，不经网页路由；
     //   - JS 发起（「去哪」的规则在 JS：首页主按钮、结果页「再写一组」/ 离开、深链、开组失败……）：页面发 {op:'nav'}，这里照做、存栈，宿主消息紧跟着到。
     // 冷启动：首帧之后 route.plan（守卫 / 过期 / 深链 / 坏值 / 阻断优先，RouteRules.planColdStart），按回包无转场重建。
 
     /// 页面栈（底 → 顶）。
-    private(set) var entries: [[String: Any]] = []
+    private(set) var entries: [NativeStageEntry] = []
     private var nativeIds = 0
     /// 冷启动的 route.plan 做完了。
     private(set) var planned = false
     /// route.plan 之后要做的事（提醒深链等栈重建好再派发）。
     private var afterPlan: [() -> Void] = []
 
-    private func newEntry(_ screen: String, _ params: [String: Any]) -> [String: Any] {
+    private func newEntry(_ screen: String, _ params: [String: Any]) -> NativeStageEntry {
         nativeIds += 1
-        return ["id": "n\(nativeIds)", "n": screen, "p": params]
+        return NativeStageEntry(id: "n\(nativeIds)", n: screen, p: params)
     }
 
     /// 栈变了：存（引擎写提示键）。flush = 进后台刷新离开时刻（立即）；其余合并到转场之后（写提示键是一次同步落库，不放在点按到转场第一帧的路上）。
@@ -560,8 +785,8 @@ final class NativeStage: NSObject {
         let mine = saveToken
         let go = { [weak self] in
             guard let self, flush || mine == self.saveToken else { return }
-            Self.rememberBootTab(self.entries.first?["n"] as? String) // 与 route.save 同时机（含进后台 flush）
-            self.engine.raw("route.save", ["stack": self.entries, "flush": flush, "seq": self.jsSeq]) { reply in
+            Self.rememberBootTab(self.entries.first?.n) // 与 route.save 同时机（含进后台 flush）
+            self.engine.raw("route.save", ["stack": self.entries.map(\.wire), "flush": flush, "seq": self.jsSeq]) { reply in
                 if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: route.save failed \(reply)") }
             }
         }
@@ -579,65 +804,68 @@ final class NativeStage: NSObject {
 
     /// 按意图改栈（JS 发来的 nav 与原生自己发起的同一套语义）。返回是否改了。
     @discardableResult
-    private func mutate(_ kind: String, entry: [String: Any]? = nil, patch: [String: Any]? = nil) -> Bool {
+    private func mutate(_ kind: NativeStageEdit, entry: NativeStageEntry? = nil, patch: [String: Any]? = nil) -> Bool {
         switch kind {
-        case "push":
+        case .push:
             guard let entry else { return false }
             entries.append(entry)
-        case "replace":
+        case .replace:
             guard let entry, entries.count >= 2 else { return false }
             entries[entries.count - 1] = entry
-        case "pop":
+        case .pop:
             guard entries.count >= 2 else { return false }
             entries.removeLast()
-        case "tab":
+        case .tab:
             guard let entry else { return false }
-            if entries.count == 1, entries[0]["n"] as? String == entry["n"] as? String { return false }
+            if entries.count == 1, entries[0].n == entry.n { return false }
             entries = [entry]
-        case "params":
+        case .params:
             guard var top = entries.last else { return false }
-            var p = top["p"] as? [String: Any] ?? [:]
+            var p = top.p ?? [:]
             for (k, v) in patch ?? [:] { p[k] = v }
-            top["p"] = p
+            top.p = p
             entries[entries.count - 1] = top
-        default:
-            return false
         }
         return true
     }
 
     /// B4.9a：引擎（缺省 = Swift 的 SwiftNavigator）里「去哪」的规则发起的导航（与原来页面发的 {op:'nav'} 同一条消息）。
-    func engineNav(_ wire: [String: Any]) { applyIntent(wire) }
+    /// wire = EngineRouter.request 的 {op:'nav', …}（EngineValue.any 转过的原值；不是字典 = 什么都没有）。
+    func engineNav(_ wire: Any) { applyIntent(NativeNavIntent(wire)) }
 
     /// JS 发起的导航（页面消息 {op:'nav', kind, entry?, patch?}）：原生照做、存栈。
-    private func applyIntent(_ body: [String: Any]) {
-        let kind = body["kind"] as? String ?? ""
-        if let seq = (body["seq"] as? NSNumber)?.intValue { jsSeq = max(jsSeq, seq) }
-        ShiziProbe.note("nav:\(kind) \((body["entry"] as? [String: Any])?["n"] as? String ?? "")")
-        if mutate(kind, entry: body["entry"] as? [String: Any], patch: body["patch"] as? [String: Any]) { saveRoute() }
+    private func applyIntent(_ intent: NativeNavIntent) {
+        if let seq = intent.seq { jsSeq = max(jsSeq, seq) }
+        ShiziProbe.note("nav:\(intent.kind) \(intent.entry?.n ?? "")")
+        // 不是五种之一的 kind 不改栈（原来 mutate 的 default）
+        if let kind = NativeStageEdit(rawValue: intent.kind), mutate(kind, entry: intent.entry, patch: intent.patch) { saveRoute() }
     }
 
     /// 原生发起：改栈 → stage.enter（引擎记账）→ 回包里的宿主消息按原来的通道处理 → 存栈。
-    private func enter(_ kind: String, entry: [String: Any]? = nil, patch: [String: Any]? = nil, extra: [String: Any] = [:], then: (() -> Void)? = nil) {
+    /// animate / cause = stage.enter 另带的键（replace 的 animate、原生出栈的 cause）；nil = 不带。
+    private func enter(_ kind: NativeStageEdit, entry: NativeStageEntry? = nil, patch: [String: Any]? = nil, animate: Bool? = nil, cause: String? = nil,
+                       then: (() -> Void)? = nil) {
         guard mutate(kind, entry: entry, patch: patch) else { then?(); return }
-        var args = extra
-        args["kind"] = kind
-        if let entry { args["entry"] = entry }
+        var args: [String: Any] = [:]
+        if let animate { args["animate"] = animate }
+        if let cause { args["cause"] = cause }
+        args["kind"] = kind.rawValue
+        if let entry { args["entry"] = entry.wire }
         if let patch { args["patch"] = patch }
         engine.raw("stage.enter", args) { [weak self] reply in
             guard let self else { return }
-            if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: stage.enter \(kind) failed \(reply)") }
-            self.dispatch(reply["bodies"] as? [[String: Any]] ?? [])
+            if (reply["ok"] as? Bool) != true { ShiziProbe.log("native stage: stage.enter \(kind.rawValue) failed \(reply)") }
+            self.dispatch(NativeHostMessage.list(reply["bodies"]))
             self.saveRoute()
             then?()
         }
     }
 
     /// 宿主消息（引擎按栈的变化算出的 open / close / result-open …）交给原来的处理。
-    func dispatch(_ bodies: [[String: Any]]) {
+    func dispatch(_ bodies: [NativeHostMessage]) {
         for b in bodies {
-            guard let body = b["body"] as? [String: Any] else { continue }
-            if b["type"] as? String == "nativeWrite" { handleWriteMessage(body) } else { handleScreenMessage(body) }
+            guard let body = b.body as? [String: Any] else { continue }
+            if b.type == "nativeWrite" { handleWriteMessage(body) } else { handleScreenMessage(body) }
         }
     }
 
@@ -646,8 +874,8 @@ final class NativeStage: NSObject {
     func replanForTesting(deepLink: Bool = false, done: @escaping () -> Void) {
         engine.raw("route.plan", ["deepLink": deepLink]) { [weak self] reply in
             guard let self else { return }
-            self.entries = reply["stack"] as? [[String: Any]] ?? []
-            self.dispatch(reply["bodies"] as? [[String: Any]] ?? [])
+            self.entries = NativeStageEntry.list(reply["stack"])
+            self.dispatch(NativeHostMessage.list(reply["bodies"]))
             self.saveRoute()
             done()
         }
@@ -667,10 +895,10 @@ final class NativeStage: NSObject {
             guard let name = args["name"] as? String, !name.isEmpty else { return ["ok": false, "error": ["kind": "invalid"]] }
             switchTab(name)
         case "nav.setParams":
-            enter("params", patch: args["patch"] as? [String: Any] ?? [:])
+            enter(.params, patch: args["patch"] as? [String: Any] ?? [:])
         case "nav.replace":
             guard let screen = args["screen"] as? String, !screen.isEmpty else { return ["ok": false, "error": ["kind": "invalid"]] }
-            enter("replace", entry: newEntry(screen, args["params"] as? [String: Any] ?? [:]), extra: ["animate": args["animate"] as? Bool ?? false])
+            enter(.replace, entry: newEntry(screen, args["params"] as? [String: Any] ?? [:]), animate: args["animate"] as? Bool ?? false)
         default:
             return ["ok": false, "error": ["kind": "unknown-op"]]
         }
@@ -681,13 +909,13 @@ final class NativeStage: NSObject {
     func push(_ screen: String, params: [String: Any] = [:]) {
         if ShiziTabController.tabs.contains(where: { $0.screen == screen }) { switchTab(screen); return }
         tapAt = CACurrentMediaTime()
-        enter("push", entry: newEntry(screen, params))
+        enter(.push, entry: newEntry(screen, params))
     }
 
     /// 切到某个 tab：栈回到那个 tab 的根（上面的页一并收起）。
     func switchTab(_ name: String) {
-        if entries.count == 1, entries[0]["n"] as? String == name { return }
-        enter("tab", entry: newEntry(name, [:]))
+        if entries.count == 1, entries[0].n == name { return }
+        enter(.tab, entry: newEntry(name, [:]))
     }
 
     /// 推入 screen（原生页里点按；B3.2 起的入口名照旧）。
@@ -717,7 +945,11 @@ final class NativeStage: NSObject {
     func back(_ page: ShiziScreenViewController) {
         guard isTop(page), !page.transitions.isLeaving, page.presentingViewController != nil else { return }
         page.transitions.plan = NativeNavPlan(kind: page.enteredKind)
-        page.transitions.leave(page)
+        page.transitions.isLeaving = true // 等下面的页补拉期间不再接受第二次返回（leave 自己也会设）
+        revealUnder(page) { [weak page] in
+            guard let page, page.presentingViewController != nil else { return }
+            page.transitions.leave(page)
+        }
     }
 
     /// 原生页收起了（点按返回或左缘跟手完成）：出栈（原生改栈、引擎记账；下面那页若是让开过的结果页 / 写字页，回包里带它的 return）。
@@ -725,11 +957,11 @@ final class NativeStage: NSObject {
         guard let i = screens.firstIndex(where: { $0 === page }) else { return }
         screens.remove(at: i)
         ShiziProbe.note("screen:back \(page.screen)")
-        guard entries.last?["id"] as? String == page.entryId else {
+        guard entries.last?.id == page.entryId else {
             ShiziProbe.log("native stage: back from \(page.screen) not on top of the stack")
             return
         }
-        enter("pop", extra: ["cause": "native"])
+        enter(.pop, cause: "native")
     }
 
     // MARK: 冷启动
@@ -742,11 +974,11 @@ final class NativeStage: NSObject {
         let t0 = CACurrentMediaTime()
         engine.raw("route.plan", ["deepLink": host.pendingReminderCardKey != nil]) { [weak self] reply in
             guard let self else { return }
-            self.entries = reply["stack"] as? [[String: Any]] ?? []
+            self.entries = NativeStageEntry.list(reply["stack"])
             self.planned = true
             ShiziProbe.note("route:plan \(reply["reason"] as? String ?? "?") restored=\((reply["restored"] as? Bool) == true) depth=\(self.entries.count)")
             ShiziProbe.log(String(format: "native stage: route.plan %.1f ms", (CACurrentMediaTime() - t0) * 1000))
-            self.dispatch(reply["bodies"] as? [[String: Any]] ?? [])
+            self.dispatch(NativeHostMessage.list(reply["bodies"]))
             self.saveRoute()
             let later = self.afterPlan
             self.afterPlan.removeAll()
@@ -784,7 +1016,8 @@ final class NativeStage: NSObject {
         }
         bootKind = "home"
         let t0 = Date().timeIntervalSince1970
-        openRoot(["screen": "home", "entryId": "boot", "params": [String: Any](), "via": "boot", "payload": HomeScreen.bootPayload()]) {}
+        openRoot(NativeScreenOpen(root: false, screen: "home", entryId: "boot", screenLabel: "home", params: [:], payload: HomeScreen.bootPayload(), via: "boot",
+                                  planMode: nil, run: [])) {}
         ShiziProbe.log(String(format: "native stage: boot segs launch→bootFrame %.1f, openRoot %.1f", (t0 - (Self.launchedAt ?? t0)) * 1000, (Date().timeIntervalSince1970 - t0) * 1000))
         let link = CADisplayLink(target: BootFrameProbe.shared, selector: #selector(BootFrameProbe.tick(_:)))
         BootFrameProbe.shared.link = link
@@ -830,8 +1063,7 @@ final class NativeStage: NSObject {
     /// 坏值提示浮条（原生层上的一个视图；挂在当前原生根页上——根页在网页之上，浮条又在根页之上；没有根页时挂宿主视图）。
     private var corruptNoticeView: ShiziCorruptNoticeView?
 
-    private func setCorruptNotice(_ body: [String: Any], done: @escaping () -> Void) {
-        let show = (body["show"] as? Bool) == true
+    private func setCorruptNotice(show: Bool, lines starts: [Int]?, done: @escaping () -> Void) {
         guard show else {
             corruptNoticeView?.removeFromSuperview()
             corruptNoticeView = nil
@@ -853,7 +1085,6 @@ final class NativeStage: NSObject {
             corruptNoticeView.map { container.addSubview($0) }
         }
         let m = ShiziMetrics()
-        let starts = (body["lines"] as? [NSNumber])?.map { $0.intValue }
         corruptNoticeView?.configure(text: ShiziCopy.t("X-SYS.corruptNotice"), lines: starts, metrics: m)
         corruptNoticeView?.layout(in: container.bounds.width, safeTop: container.safeAreaInsets.top, metrics: m)
         if let v = corruptNoticeView { container.bringSubviewToFront(v) }
@@ -889,6 +1120,7 @@ final class NativeStage: NSObject {
             await withCheckedContinuation { cont in DispatchQueue.main.async { NativeStage.dismissWhenSettled(first) { cont.resume() } } }
         }
         NativeResultCover.clear()
+        revealUnder(nil)
     }
     #endif
 
@@ -899,17 +1131,17 @@ final class NativeStage: NSObject {
     var nativeResultTop: NativeResultViewController? { host.presentedViewController as? NativeResultViewController }
 
     func handleWriteMessage(_ body: [String: Any]) {
-        let op = body["op"] as? String ?? ""
-        let slot = body["slot"] as? String == "B" ? "B" : "A"
-        switch op {
+        let msg = NativeWriteMessage(body)
+        let slot = msg.slot
+        switch msg.op {
         case "open":
-            handleWriteOpen(body, slot: slot)
+            handleWriteOpen(msg, slot: slot)
         case "result-open":
-            handleResultOpen(body)
+            handleResultOpen(msg)
         case "result-close":
-            handleResultClose(body, slot: slot)
+            handleResultClose(msg, slot: slot)
         case "redo-open", "redo-close":
-            handleRedoMessage(op, body)
+            handleRedoMessage(msg.op, msg)
         case "close":
             // 宿主条目被别处卸掉（深链换组、跨天作废、阻断页、store 整体替换）：原生页跟着离开，不再发 exit。
             // 样子留在原处：紧接着有新的原生页（深链换组）就压在它上面推入 / 淡入，否则等页面画好再淡出（不闪、不留残影）。
@@ -922,11 +1154,12 @@ final class NativeStage: NSObject {
         }
     }
 
-    private func handleWriteOpen(_ body: [String: Any], slot: String) {
+    private func handleWriteOpen(_ msg: NativeWriteMessage, slot: String) {
         let receivedAt = CACurrentMediaTime()
         let receivedEpochMs = Date().timeIntervalSince1970 * 1000
-        let payload = body["payload"] as? [String: Any] ?? [:]
-        guard (payload["ok"] as? Bool) == true, let snap = payload["snapshot"] as? [String: Any], (snap["active"] as? Bool) == true else {
+        let payload = msg.payload
+        let envelope = NativeWriteOpenPayload(payload)
+        guard envelope.ok, envelope.snapshot?.active == true else {
             ShiziProbe.log("native-write open without an active session (slot \(slot))")
             // 宿主还在、组已经没了（重载后恢复出的写字条目，组已作废）：盖着的同槽原生页收起，不留一张写不了的页
             if let top = nativeWriteTop, top.slot == slot, !top.exitHandled, !top.redo {
@@ -938,21 +1171,21 @@ final class NativeStage: NSObject {
         }
         NativeNavMotion.update(payload: payload)
         #if DEBUG
-        NativeWriteMetrics.shared.recordJs("open", ms: (payload["ms"] as? NSNumber)?.doubleValue ?? 0)
+        NativeWriteMetrics.shared.recordJs("open", ms: envelope.jsMs)
         #endif
-        let via = body["via"] as? String ?? ""
+        let via = msg.via
         if let top = nativeWriteTop, top.slot == slot, !top.exitHandled, !top.redo {
             top.resync(payload: payload)
             return
         }
         let vc = NativeWriteViewController(slot: slot, payload: payload, bridge: WriteSessionChannel())
         vc.coordinator = self
-        vc.openTiming = ((body["sentAt"] as? NSNumber)?.doubleValue ?? receivedEpochMs, receivedAt, receivedEpochMs)
+        vc.openTiming = (msg.sentAt ?? receivedEpochMs, receivedAt, receivedEpochMs)
         vc.modalPresentationStyle = .overFullScreen
         vc.transitioningDelegate = vc.transitions
-        let animate = body["animate"] as? Bool ?? true
+        let animate = msg.animate
         ShiziProbe.note("open via=\(via) animate=\(animate)") // QA-H1 测试钩子：转场核对（NF-01）
-        let plan = NativeNavPlan(body["plan"] as? [String: Any])
+        let plan = NativeNavPlan(msg.plan)
         // D62：首页入口纸展开（home）、无来源入口安静淡入（quiet）、其他点按入口推入（push / again：结果页「再写一组」/ 撤销跳过）；
         // 冷启动恢复（restore）与从字详情回来（return：网页已播完字详情滑出，露出的就是这一页的样子）不带转场。
         let kind: NativeNavKind = !animate || via == "restore" || via == "return" ? .none
@@ -981,8 +1214,16 @@ final class NativeStage: NSObject {
         t.plan = plan
         t.host = host.view
         let bridge = WriteSessionChannel()
-        t.planProvider = { done in
-            bridge.callNav("back") { reply in done(reply.ok ? NativeNavPlan(reply.body["plan"] as? [String: Any]) : nil) }
+        t.planProvider = { [weak self, weak t] done in
+            let ask: () -> Void = {
+                bridge.callNav("back") { reply in done(reply.ok ? NativeNavPlan(reply.body["plan"] as? [String: Any]) : nil) }
+            }
+            // 跟手起手 / 返回前问路：收起后露出来的页先补拉、排好版再问（纸缩回的落点是首页主按钮此刻的位置）；present 完成后的那次问路不算
+            if let self, let t, t.isRunning || t.isLeaving, let top = self.host.presentedViewController, (top as? NativeTransitionPage)?.transitions === t {
+                self.revealUnder(top, then: ask)
+            } else {
+                ask()
+            }
         }
     }
 
@@ -990,8 +1231,10 @@ final class NativeStage: NSObject {
     private func stepAsideLeavingCover(_ page: UIViewController) {
         (page as? NativeTransitionPage)?.transitions.finishNow()
         NativeResultCover.cover(page.view, in: host.view)
+        revealUnder(page)
         Self.dismissWhenSettled(page) { [weak self] in
             guard let self else { return }
+            self.revealUnder(nil)
             NativeResultCover.fadeLater(bridge: WriteSessionChannel())
         }
     }
@@ -1011,7 +1254,8 @@ final class NativeStage: NSObject {
                 return
             }
             (page as? NativeTransitionPage)?.transitions.finishNow()
-            Self.dismissWhenSettled(page)
+            self?.revealUnder(page)
+            Self.dismissWhenSettled(page) { self?.revealUnder(nil) }
         }
     }
 
@@ -1020,17 +1264,20 @@ final class NativeStage: NSObject {
         guard page.presentingViewController != nil, !t.isLeaving else { return }
         t.isLeaving = true
         var done = false
-        let go: (NativeNavPlan?) -> Void = { [weak page, weak t] plan in
+        let go: (NativeNavPlan?) -> Void = { [weak self, weak page, weak t] plan in
             guard !done, let page, let t else { return }
             done = true
             if let plan { t.plan = plan }
-            t.leave(page)
+            t.leave(page) { self?.revealUnder(nil) }
         }
-        if let ask = t.planProvider {
-            ask { plan in go(plan) }
-            DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.planWait) { go(nil) }
-        } else {
-            go(nil)
+        // 收起后露出来的页（首页 / 字库）先把看不见时攒着的变化补拉、排好版（首页排版时报主按钮此刻的位置与字），再问回去的路：纸缩回落在新的主按钮上
+        revealUnder(page) { [weak t] in
+            if let ask = t?.planProvider {
+                ask { plan in go(plan) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + NativeNavState.planWait) { go(nil) }
+            } else {
+                go(nil)
+            }
         }
     }
 
@@ -1048,17 +1295,17 @@ final class NativeStage: NSObject {
         dismissChain()
     }
 
-    private func handleResultOpen(_ body: [String: Any]) {
-        let slot = body["slot"] as? String == "B" ? "B" : "A"
-        let sid = body["sessionId"] as? String ?? ""
-        let payload = body["payload"] as? [String: Any] ?? [:]
-        let look = body["look"] as? [String: Any] ?? [:]
+    private func handleResultOpen(_ msg: NativeWriteMessage) {
+        let slot = msg.slot
+        let sid = msg.sessionId ?? ""
+        let payload = msg.payload
+        let look = msg.look
         guard (payload["ok"] as? Bool) == true, let v = payload["view"] as? [String: Any], (v["found"] as? Bool) == true else {
             ShiziProbe.log("native-result open without a group (slot \(slot))")
             return
         }
         NativeNavMotion.update(payload: look)
-        let via = body["via"] as? String ?? ""
+        let via = msg.via
         if let top = nativeResultTop, top.slot == slot, top.sessionId == sid, !top.exitHandled {
             top.apply(view: v)
             return
@@ -1067,7 +1314,7 @@ final class NativeStage: NSObject {
         vc.coordinator = self
         vc.modalPresentationStyle = .overFullScreen
         vc.transitioningDelegate = vc.transitions
-        let animate = (body["animate"] as? Bool) ?? true
+        let animate = msg.animate
         ShiziProbe.note("result:open via=\(via) animate=\(animate)")
         // 结果页回去的路由页面定（写字页从首页纸展开进来的：纸缩回；推入进来的：右滑出；安静淡入进来的：安静淡出），返回前再问
         prepareTransitions(vc.transitions, plan: NativeNavPlan(kind: .push))
@@ -1101,10 +1348,10 @@ final class NativeStage: NSObject {
     }
 
     /// 结果条目被移出页面栈（离开 / 再写一组 / 撤销跳过 / 跨天作废等），或为重写错字 / 字详情 / 网页分享弹层让开（away）。
-    private func handleResultClose(_ body: [String: Any], slot: String) {
+    private func handleResultClose(_ msg: NativeWriteMessage, slot: String) {
         guard let top = nativeResultTop, top.slot == slot, !top.transitions.isLeaving else { return }
-        if let sid = body["sessionId"] as? String, sid != top.sessionId { return }
-        let away = (body["away"] as? Bool) == true
+        if let sid = msg.sessionId, sid != top.sessionId { return }
+        let away = msg.away
         ShiziProbe.note("result:close away=\(away)")
         top.exitHandled = true
         if away {
@@ -1120,7 +1367,7 @@ final class NativeStage: NSObject {
     /// 回去（「完成」/「‹」/ 左缘右滑）= 同一个对象 T-push 倒放（露出网页结果页本身），收起后发 redoExit → 页面 nav.back，
     /// 结果条目等网页空闲后 result-open via 'return' 不带转场换回原生——只有一段转场。
     /// redo-close = 条目被别处卸掉（深链 / store 整体替换）：原生页的样子留在原处、原生页收起，不发 redoExit，等页面画好淡出。
-    private func handleRedoMessage(_ op: String, _ body: [String: Any]) {
+    private func handleRedoMessage(_ op: String, _ msg: NativeWriteMessage) {
         if op == "redo-close" {
             if let top = nativeRedoTop, !top.exitHandled, !top.transitions.isLeaving {
                 top.exitHandled = true
@@ -1129,8 +1376,9 @@ final class NativeStage: NSObject {
             }
             return
         }
-        let payload = body["payload"] as? [String: Any] ?? [:]
-        guard (payload["ok"] as? Bool) == true, payload["snapshot"] is [String: Any] else {
+        let payload = msg.payload
+        let envelope = NativeWriteOpenPayload(payload)
+        guard envelope.ok, envelope.snapshot != nil else {
             ShiziProbe.log("native-redo open without chars")
             return
         }
@@ -1143,8 +1391,8 @@ final class NativeStage: NSObject {
         vc.coordinator = self
         vc.modalPresentationStyle = .overFullScreen
         vc.transitioningDelegate = vc.transitions
-        let animate = body["animate"] as? Bool ?? true
-        let via = body["via"] as? String ?? ""
+        let animate = msg.animate
+        let via = msg.via
         ShiziProbe.note("redo:open via=\(via) animate=\(animate)")
         let kind: NativeNavKind = !animate || via == "restore" ? .none : .push
         prepareTransitions(vc.transitions, plan: NativeNavPlan(kind: .push))
@@ -1336,7 +1584,7 @@ final class ShiziTabSlot: UIViewController {
 }
 
 /// 系统 Tab 栏（D73 ③：UITabBarController，iOS 26 浮起玻璃样式，颜色取令牌）。三个 tab 的顺序、文案、图标同网页 Tabs（registerScreen order、
-/// X-TABS.*、tab-icons.js 线描 / 实心）；标签 11 / 500 固定不随字号放大（D49，AX 档长按出系统大字预览）；选中 ink1、未选 ink3。
+/// X-TABS.*，线描 / 实心）；标签 11 / 500 固定不随字号放大（D49，AX 档长按出系统大字预览）；选中 ink1、未选 ink3。
 /// 选中格只由 NativeStage 按网页路由设（select）；点按一律不直接切换（shouldSelect 返回 false），交给 onSelect / onReselect。
 final class ShiziTabController: UITabBarController, UITabBarControllerDelegate {
     /// tab 屏名（顺序 = 网页 registerScreen 的 order）与文案键。
@@ -1409,7 +1657,7 @@ final class ShiziTabController: UITabBarController, UITabBarControllerDelegate {
     }
 }
 
-/// Tab 栏图标（网页 components/tab-icons.js 的同一组 24 × 24 路径：未选线描、选中实心；描边 1.5）。模板图，颜色由 Tab 栏的 tint 定。
+/// Tab 栏图标（网页的同一组 24 × 24 路径：未选线描、选中实心；描边 1.5）。模板图，颜色由 Tab 栏的 tint 定。
 enum ShiziTabIcon {
     static func image(_ screen: String, solid: Bool) -> UIImage? {
         let r = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))

@@ -1,6 +1,6 @@
 import Foundation
 
-// src/core/hints.js（提示量，D25 方案① / D64 ①；R-W05 / R-W06 / R-W08）与 src/core/correct.js（事后改判的调度重算，D66 ④）的 1:1 移植（B4.2）。
+// 提示量（D25 方案① / D64 ①；R-W05 / R-W06 / R-W08）与事后改判的调度重算（D66 ④）的 1:1 移植（B4.2）。
 // 提示的输入是 JS 形状的对象 {totalStrokes, used, hasStrokeData?, hasGroups?}；缺省值只在键为 undefined 时生效（与解构默认值同）。
 
 public enum Hints {
@@ -87,7 +87,7 @@ public enum Hints {
     }
 }
 
-// MARK: - correct.js
+// MARK: - correct
 
 extension ScheduleRules {
     /// 在 A / B 两个槽和各自的 lastEnded 里找这条记录判断前的卡；找不到 nil（undefined）。

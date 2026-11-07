@@ -2,7 +2,7 @@ import UIKit
 
 // B3.7：字详情的小部件——三段式失败（行下方）与列表行。
 
-// MARK: - 三段式失败（网页 FailBlock.js page 版式：说明 → 先不 X（文字按钮，左对齐）→ 再试一次（满宽主按钮））
+// MARK: - 三段式失败（网页 page 版式：说明 → 先不 X（文字按钮，左对齐）→ 再试一次（满宽主按钮））
 
 final class DetailFailBlock {
     let note = UILabel()
@@ -64,7 +64,7 @@ final class DetailFailBlock {
     }
 }
 
-// MARK: - 列表行（网页 actions.js Row：名称 + 说明，可带「›」/ 朱点；有去处的是按钮，其余是文字块）
+// MARK: - 列表行（网页 Row：名称 + 说明，可带「›」/ 朱点；有去处的是按钮，其余是文字块）
 
 final class DetailRowItem {
     let key: String

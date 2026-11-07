@@ -2,7 +2,7 @@ import XCTest
 @testable import ShiziCore
 
 final class ImageRegisteredActionTests: XCTestCase {
-    // test/ui/native-image.test.mjs — image.persist writes files in order, stops at failure and preserves the failure reason.
+    // image.persist writes files in order, stops at failure and preserves the failure reason.
     func testPersistenceConvertsPNGAndStopsAtFirstFailure() async {
         let image = ImageRegisteredActions(store: SessionPageContractTests().runtime().store)
         var names: [String] = []
@@ -14,7 +14,7 @@ final class ImageRegisteredActionTests: XCTestCase {
         let r = await image.persist(JSObject([("images", .array(files))]))
         XCTAssertEqual(r, SessionWrites.failure("denied")); XCTAssertEqual(names, ["a.png", "b.png"])
     }
-    // test/ui/native-image.test.mjs — closeNativePreview closes the right native entry and never navigates back.
+    // closeNativePreview closes the right native entry and never navigates back.
     func testClosedBookkeeping() throws {
         let image = ImageRegisteredActions(store: SessionPageContractTests().runtime().store); var messages: [JSValue] = []
         image.post = { messages.append($0) }

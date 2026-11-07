@@ -4,5 +4,5 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-// 需要 shizi-core-cli（swift build，链接系统 SQLite3）展开题库的用例只在 macOS 上跑；CI 的 ubuntu 跳过（D84：不加 macOS runner）。
+// 需要 shizi-core-cli（swift build，链接系统 SQLite3）展开题库的用例只在 macOS 上跑：CI 的 ubuntu 跳过，macOS 的 swift-core job 会跑。
 export const NEEDS_SWIFT = process.platform === 'darwin' ? {} : { skip: 'needs shizi-core-cli (Swift on macOS); run locally (D84)' };

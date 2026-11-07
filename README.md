@@ -24,7 +24,7 @@ licenses/               随包许可全文
 data/                   单字笔顺 JSON（7294 字）、字源 etymology.json、data/LICENSE.md
 assets/                 图标源 SVG（branding）、音效源
 generated/、sources/、audit/   题库生成结果、原始字表与词典、笔顺补充数据与合规审计证据
-scripts/                数据管线与门禁（Node / Python）、字体工具（scripts/fonts/）、笔顺 pack（stroke-pack/）、冻结夹具（fixtures/、image-parity/）
+scripts/                数据管线与门禁（Node / Python）、字体工具（scripts/fonts/）、笔顺 pack（stroke-pack/）、冻结夹具（fixtures/）
 test/                   node:test：原生工具与数据门禁的单测（native-ui-*、ios-*、core/ 下的合规与配置核对）
 docs/                   handoff/（接手）、product/、design/v10/（设计交付快照）、engineering/v10/（工程规划与验收）、adr/
 ```
@@ -64,7 +64,7 @@ pnpm exec playwright install chromium
 | `pnpm run verify:tokens` | `tokens.json` 的动效时长 / 曲线与 `ShiziKitTokens.json` 逐值一致 |
 | `pnpm run verify:core` | `swift build -c release` + `swift test`（`ios/ShiziCore`） |
 
-CI（`.github/workflows/verify.yml`）只有 ubuntu 上的 `data`（语法检查 + 不需要 Swift 的 `verify:vector440` / `verify:assets` / `verify:order`）和 `unit-copy`（`verify:unit` + `verify:copy` + `verify:tokens`）两个 job；没有 macOS runner，所以 `verify:governance`、`verify:content`、`verify:core` 和模拟器检查只在本机跑。
+CI（`.github/workflows/verify.yml`）四个 job：ubuntu 上的 `data`（语法检查 + `verify:vector440` / `verify:assets` / `verify:order`）与 `unit-copy`（`verify:unit` + `verify:copy` + `verify:tokens`）；macOS 上的 `swift-core`（`verify:core` + `verify:governance` + `verify:content` + 只在 macOS 跑的单测）与 `ios-app`（App 模拟器构建、包内资源核对、`ShiziStoreTests` / `ShiziWriteTests`）。逐屏对比与 XCUITest 流程（`verify:native-ui`，约 1 小时）、Release archive 与签名只在本机跑。
 
 iOS 的模拟器检查：`pnpm run verify:native-ui`（XCUITest 流程 + 逐屏对比原生基线，见 [ios/ShiziApp/README.md](ios/ShiziApp/README.md)）。工程 / 构建 / 包内资源：`bash ios/ShiziApp/scripts/verify-local.sh`。
 

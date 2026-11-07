@@ -20,6 +20,10 @@ public enum JSONError: Error, Equatable, CustomStringConvertible {
 public struct JSONParser {
     private let b: [UInt8]
     private var i = 0
+    // 正在解析的各层对象的键值对 / 数组的元素，栈式复用（内层建完即出栈，外层接着收）：
+    // 收齐之后按原顺序一次建成定长的 JSObject / 数组，免得逐个追加时散列表与数组反复扩容、重新散列。
+    private var pairStack: [(String, JSValue)] = []
+    private var itemStack: [JSValue] = []
 
     public static func parse(_ text: String) throws -> JSValue {
         var p = JSONParser(bytes: Array(text.utf8))
@@ -39,8 +43,8 @@ public struct JSONParser {
     private func fail(_ m: String) -> JSONError { .syntax(m, offset: i) }
 
     private mutating func literal(_ s: String, _ v: JSValue) throws -> JSValue {
-        let u = Array(s.utf8)
-        guard i + u.count <= b.count, Array(b[i..<(i + u.count)]) == u else { throw fail("bad literal") }
+        let u = s.utf8
+        guard i + u.count <= b.count, b[i..<(i + u.count)].elementsEqual(u) else { throw fail("bad literal") }
         i += u.count
         return v
     }
@@ -60,9 +64,9 @@ public struct JSONParser {
 
     private mutating func object() throws -> JSValue {
         i += 1
-        var o = JSObject()
         ws()
-        if i < b.count, b[i] == 0x7D { i += 1; return .object(o) }
+        if i < b.count, b[i] == 0x7D { i += 1; return .object(JSObject()) }
+        let base = pairStack.count
         while true {
             ws()
             guard i < b.count, b[i] == 0x22 else { throw fail("expected key") }
@@ -71,27 +75,42 @@ public struct JSONParser {
             guard i < b.count, b[i] == 0x3A else { throw fail("expected ':'") }
             i += 1
             ws()
-            o[k] = try value()
+            let v = try value()
+            pairStack.append((k, v))
             ws()
             guard i < b.count else { throw fail("unexpected end") }
             if b[i] == 0x2C { i += 1; continue }
-            if b[i] == 0x7D { i += 1; return .object(o) }
+            if b[i] == 0x7D {
+                i += 1
+                // 按出现顺序逐个写入（重复键后者覆盖、位置取首次出现，与逐个 o[k] = v 相同）
+                let n = pairStack.count - base
+                var o = JSObject(minimumCapacity: n)
+                for j in base..<pairStack.count { o[pairStack[j].0] = pairStack[j].1 }
+                pairStack.removeLast(n)
+                return .object(o)
+            }
             throw fail("expected ',' or '}'")
         }
     }
 
     private mutating func array() throws -> JSValue {
         i += 1
-        var a: [JSValue] = []
         ws()
-        if i < b.count, b[i] == 0x5D { i += 1; return .array(a) }
+        if i < b.count, b[i] == 0x5D { i += 1; return .array([]) }
+        let base = itemStack.count
         while true {
             ws()
-            a.append(try value())
+            let v = try value()
+            itemStack.append(v)
             ws()
             guard i < b.count else { throw fail("unexpected end") }
             if b[i] == 0x2C { i += 1; continue }
-            if b[i] == 0x5D { i += 1; return .array(a) }
+            if b[i] == 0x5D {
+                i += 1
+                let a = Array(itemStack[base..<itemStack.count])
+                itemStack.removeLast(itemStack.count - base)
+                return .array(a)
+            }
             throw fail("expected ',' or ']'")
         }
     }
@@ -116,7 +135,21 @@ public struct JSONParser {
 
     private mutating func string() throws -> String {
         i += 1
-        var out = [UInt8]()
+        let start = i
+        // 常见情形：没有转义、没有控制字符——结果就是引号之间的原字节，直接解码，不另建缓冲。
+        // （与下面逐字节拼 out 再解码是同一串字节、同一种解码。）遇到「\」或控制字符就带着已扫过的前缀转去逐字节处理，
+        // 出错的位置也与逐字节处理相同（同一个 i）。
+        while i < b.count {
+            let c = b[i]
+            if c == 0x22 {
+                let s = String(decoding: b[start..<i], as: UTF8.self)
+                i += 1
+                return s
+            }
+            if c == 0x5C || c < 0x20 { break }
+            i += 1
+        }
+        var out = [UInt8](b[start..<i])
         while true {
             guard i < b.count else { throw fail("unterminated string") }
             let c = b[i]
@@ -158,19 +191,33 @@ public struct JSONParser {
 
     private mutating func number() throws -> Double {
         let start = i
-        if i < b.count, b[i] == 0x2D { i += 1 }
+        var negative = false
+        if i < b.count, b[i] == 0x2D { negative = true; i += 1 }
         guard i < b.count, b[i] >= 0x30 && b[i] <= 0x39 else { throw fail("bad number") }
+        let intStart = i
         if b[i] == 0x30 { i += 1 } else { while i < b.count, b[i] >= 0x30 && b[i] <= 0x39 { i += 1 } }
+        let intEnd = i
+        var integer = true
         if i < b.count, b[i] == 0x2E {
+            integer = false
             i += 1
             guard i < b.count, b[i] >= 0x30 && b[i] <= 0x39 else { throw fail("bad fraction") }
             while i < b.count, b[i] >= 0x30 && b[i] <= 0x39 { i += 1 }
         }
         if i < b.count, b[i] == 0x65 || b[i] == 0x45 {
+            integer = false
             i += 1
             if i < b.count, b[i] == 0x2B || b[i] == 0x2D { i += 1 }
             guard i < b.count, b[i] >= 0x30 && b[i] <= 0x39 else { throw fail("bad exponent") }
             while i < b.count, b[i] >= 0x30 && b[i] <= 0x39 { i += 1 }
+        }
+        // 不超过 15 位的整数（< 10^15 < 2^53）：每个整数都能精确表示，Double(text) 的正确舍入结果就是它本身，
+        // 直接累加，不建字串、不走 strtod。「-0」得 −0（与 Double("-0") 同）。
+        if integer && intEnd - intStart <= 15 {
+            var v: Int64 = 0
+            for j in intStart..<intEnd { v = v &* 10 &+ Int64(b[j] &- 0x30) }
+            let d = Double(v)
+            return negative ? -d : d
         }
         let text = String(decoding: b[start..<i], as: UTF8.self)
         guard let d = Double(text) else { throw fail("bad number") }
@@ -212,7 +259,39 @@ public enum JSONWriter {
 
     static let hex: [Character] = Array("0123456789abcdef")
 
+    /// stringify(a) 与 stringify(b) 是否逐字节相同，不真的拼出字串。JSON 文本的解析唯一，所以逐层比「各自会写成什么」：
+    /// 有限数写最短往返串（不同的有限数串不同，±0 都写「0」）⇔ JS ===；非有限数写「null」；字符串的转义逐码点一一对应 ⇔ 原串逐字节相同；
+    /// 数组逐元素；对象按 keys 序逐个比键与值。
+    static func sameText(_ a: JSValue, _ b: JSValue) -> Bool {
+        switch (a, b) {
+        case (.number(let x), .number(let y)): return x.isFinite ? (y.isFinite && x == y) : !y.isFinite
+        case (.number(let x), .null), (.null, .number(let x)): return !x.isFinite
+        case (.null, .null): return true
+        case (.bool(let x), .bool(let y)): return x == y
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
+        case (.array(let x), .array(let y)):
+            if x.count != y.count { return false }
+            for i in 0..<x.count where !sameText(x[i], y[i]) { return false }
+            return true
+        case (.object(let x), .object(let y)):
+            if x.count != y.count { return false }
+            let kx = x.keys, ky = y.keys
+            for i in 0..<kx.count {
+                guard utf8Equal(kx[i], ky[i]), let vx = x[kx[i]], let vy = y[ky[i]], sameText(vx, vy) else { return false }
+            }
+            return true
+        default: return false
+        }
+    }
+
     public static func quote(_ s: String, into out: inout String) {
+        // 没有要转义的码点（" \ 与 U+0000–U+001F；UTF-8 里这些字节只会是它们自己）时逐码点原样追加 = 整串追加
+        if !s.utf8.contains(where: { $0 == 0x22 || $0 == 0x5C || $0 < 0x20 }) {
+            out += "\""
+            out += s
+            out += "\""
+            return
+        }
         out += "\""
         for u in s.unicodeScalars {
             switch u.value {
@@ -242,6 +321,9 @@ public enum JSNumber {
         if x == 0 { return "0" } // 含 −0
         if x.isInfinite { return x < 0 ? "-Infinity" : "Infinity" }
         if x < 0 { return "-" + toString(-x) }
+        // 小于 2^53 的整数：相邻整数都能精确表示，比它短的十进制串只能是别的整数，所以最短往返串就是它自己的十进制数字，
+        // n = 位数 ≤ 16 落在「k ≤ n ≤ 21」那一支（数字 + 补零）——正是它的十进制写法。
+        if x < 9_007_199_254_740_992, x.rounded(.towardZero) == x { return String(Int64(x)) }
         let (digits, n) = shortest(x)
         let k = digits.count
         if k <= n && n <= 21 { return digits + String(repeating: "0", count: n - k) }

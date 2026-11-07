@@ -15,7 +15,7 @@ final class InkPickTests: XCTestCase {
     func inMonth(_ month: String) -> [JSValue] { JING.filter { ($0["localDay"]?.stringValue ?? "").hasPrefix(month + "-") } }
     func hasInkOf(_ st: JSValue) -> InkPick.HasInk { { InkPick.storedInkPresent(st, $0, timeZone: sixTimeZone) } }
 
-    // test/core/ink-pick.test.mjs: pickInkRecord: preference direction — first scans early to late, last scans late to early; skips records without ink
+    // pickInkRecord: preference direction — first scans early to late, last scans late to early; skips records without ink
     func testPickInkRecordPreferenceDirectionFirstScansEarlyToLateLastScansLateToEarlySkipsRecordsWithoutInk() {
         let hasInk = inkIn43(["r2", "r3"])
         XCTAssertEqual(InkPick.pickInkRecord(JING, prefer: s43("first"), hasInk: hasInk)?["id"], s43("r2"))
@@ -27,7 +27,7 @@ final class InkPickTests: XCTestCase {
         XCTAssertEqual(InkPick.pickInkRecord(JING, prefer: s43("last"), hasInk: { _ in true })?["id"], s43("r4"))
     }
 
-    // test/core/ink-pick.test.mjs: pickInkRecord: nothing with ink in the period gives null; empty / bad input gives null; a throwing hasInk counts as no ink
+    // pickInkRecord: nothing with ink in the period gives null; empty / bad input gives null; a throwing hasInk counts as no ink
     func testPickInkRecordNothingWithInkInThePeriodGivesNullEmptyBadInputGivesNullAThrowingHasInkCountsAsNoInk() {
         XCTAssertNil(InkPick.pickInkRecord(JING, prefer: s43("first"), hasInk: { _ in false }))
         XCTAssertNil(InkPick.pickInkRecord([], hasInk: { _ in true }))
@@ -40,7 +40,7 @@ final class InkPickTests: XCTestCase {
         XCTAssertEqual(InkPick.pickInkRecord(JING, prefer: s43("last"), hasInk: bomb)?["id"], s43("r3"))
     }
 
-    // test/core/ink-pick.test.mjs: pickRecordInPeriod: no ink anywhere in the period gives the preferred-direction record with inked=false (shown honestly as no ink)
+    // pickRecordInPeriod: no ink anywhere in the period gives the preferred-direction record with inked=false (shown honestly as no ink)
     func testPickRecordInPeriodNoInkAnywhereInThePeriodGivesThePreferredDirectionRecordWithInkedFalse() {
         func check(_ r: (record: JSValue?, inked: Bool), _ record: JSValue?, _ inked: Bool, line: UInt = #line) {
             XCTAssertEqual(r.record, record, line: line)
@@ -52,7 +52,7 @@ final class InkPickTests: XCTestCase {
         check(InkPick.pickRecordInPeriod([], prefer: s43("first"), hasInk: { _ in true }), nil, false)
     }
 
-    // test/core/ink-pick.test.mjs: D42 example: jing, September (first) = 9-22; August = its own August one; ink outside the period never stands in
+    // D42 example: jing, September (first) = 9-22; August = its own August one; ink outside the period never stands in
     func testD42ExampleJingSeptemberFirstIs922AugustIsItsOwnAugustOneInkOutsideThePeriodNeverStandsIn() {
         let hasInk = hasInkOf(state)
         XCTAssertEqual(InkPick.pickRecordInPeriod(inMonth("2026-09"), prefer: s43("first"), hasInk: hasInk).record?["id"], s43("r4"), "9-01 recycled, so 9-22")
@@ -65,7 +65,7 @@ final class InkPickTests: XCTestCase {
         XCTAssertNil(InkPick.pickInkRecord(inMonth("2026-09"), prefer: s43("first"), hasInk: hasInkOf(aug)))
     }
 
-    // test/core/ink-pick.test.mjs: storedInkPresent: looks the record up in the per-month table (inkId first), never decodes; empty strokes or missing table give false
+    // storedInkPresent: looks the record up in the per-month table (inkId first), never decodes; empty strokes or missing table give false
     func testStoredInkPresentLooksTheRecordUpInThePerMonthTableInkIdFirstNeverDecodesEmptyStrokesOrMissingTableGiveFalse() {
         func present(_ st: JSValue?, _ r: JSValue?) -> Bool { InkPick.storedInkPresent(st, r, timeZone: sixTimeZone) }
         XCTAssertTrue(present(state, JING[0]))
@@ -80,7 +80,7 @@ final class InkPickTests: XCTestCase {
         XCTAssertTrue(InkPick.inkHasStrokes(J("{\"s\":[[1,2,3]]}")))
     }
 
-    // test/core/ink-pick.test.mjs: performance: 3000 chars x 4 records pick with one table lookup per candidate and no decoding
+    // performance: 3000 chars x 4 records pick with one table lookup per candidate and no decoding
     func testPerformance3000CharsX4RecordsPickWithOneTableLookupPerCandidateAndNoDecoding() {
         var records: [JSValue] = []
         var inkMonth = JSObject()

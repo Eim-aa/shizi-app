@@ -1,6 +1,6 @@
 import UIKit
 
-// B3.7：旧版本的记录（网页 src/ui/screens/detail/photos.js，1:1 移植；视图模型 src/session/views/detail.js photoView，App API view.detail-photo）。
+// B3.7：旧版本的记录（照网页版 1:1 移植；视图模型 photoView，App API view.detail-photo）。
 // 只读：不写任何东西。全页强制深色（网页 .t-dark：令牌在页内取深色一套，D43）：本页的 overrideUserInterfaceStyle 固定 .dark，颜色照常取 ShiziTokens.dynamicColor。
 // 版式：页头「‹」+ 标题「「X」的旧记录」；3:4 照片（contain，笺底 field）；底部小标题「旧记录」+ 两行说明。照片没了（恢复了别的备份）时框里只留「旧版本拍下的照片」。
 

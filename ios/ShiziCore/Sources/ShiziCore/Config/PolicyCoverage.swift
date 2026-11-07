@@ -1,7 +1,7 @@
 import Foundation
 
 // policy 的 P 编号登记检查（scripts/verify_copy.mjs checkPolicySource 的 Swift 对应）：每个导出与每个嵌套键都带一个已在 03 表登记的 P 编号。
-// JS 一侧扫 policy.js 源码里的注释；Swift 一侧读生成的 policy-meta.json（同一次扫描的结果）再做同样的判定，
+// JS 一侧扫 policy 源码里的注释；Swift 一侧读生成的 policy-meta.json（同一次扫描的结果）再做同样的判定，
 // 这样「检查本身会抓到坏数据」也能在 Swift 里测（把登记表改坏，应当报错）。
 
 public enum PolicyCoverage {

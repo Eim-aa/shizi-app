@@ -141,3 +141,263 @@ final class WebInkTests: XCTestCase {
         XCTAssertEqual(v.pageStrokes.first?.vertices, want2)
     }
 }
+
+// MARK: - 书写中一笔的每帧几何：量测（BENCH）
+
+/// 书写中一笔逐帧长大时，每帧重建墨迹几何的耗时（CI 日志里 grep BENCH）。只打印、不断言时间。
+///   BENCH ink live n=<原始点数> median=…ms max=…ms floats=<这一帧的顶点 Float 数>
+/// 模拟：Pencil 120Hz（8.33ms 一个合并点）、螺旋一笔 400 点（约 2.5 单位 / 点，带压力），每帧另带 2 个预测点；
+/// 每帧调一次产品书写面用的同一入口，取 n 附近 10 帧（n − 9 … n）的中位数 / 最大值。
+enum WebInkBench {
+    /// 螺旋一笔（345 单位格，中心起笔向外绕两圈），第 i 个点。
+    static func spiral(_ i: Int, of count: Int) -> InkRawPoint {
+        let u = Double(i) / Double(count - 1)
+        let a = u * 4 * Double.pi, r = 20 + 120 * u
+        var q = InkRawPoint(x: 172 + r * cos(a), y: 172 + r * sin(a), t: 1000 + Double(i) * 1000 / 120)
+        q.p = 0.35 + 0.2 * sin(u * 9)
+        return q
+    }
+
+    static func stroke(_ count: Int = 400) -> [InkRawPoint] { (0..<count).map { spiral($0, of: count) } }
+
+    /// 第 i 帧（已有 i 个原始点）的预测点：沿同一条曲线往前 1、2 个点。
+    static func predicted(after i: Int, of count: Int) -> [InkRawPoint] {
+        (i..<(i + 2)).map { j in
+            var q = spiral(j, of: count)
+            q.predicted = true
+            return q
+        }
+    }
+
+    static func ms(_ from: UInt64, _ to: UInt64) -> Double { Double(to - from) / 1e6 }
+
+    static func report(_ name: String, _ frames: [Double], floats: [Int], at ns: [Int]) {
+        for n in ns where n <= frames.count {
+            let w = frames[max(0, n - 10)..<n].sorted()
+            print(String(format: "BENCH \(name) n=%ld median=%.3fms max=%.3fms floats=%ld", n, w[w.count / 2], w.last ?? 0, floats[n - 1]))
+        }
+    }
+}
+
+final class WebInkLiveBenchTests: XCTestCase {
+    /// 产品书写面每帧的入口（增量 WebInk.LiveStroke）→ BENCH ink live；整笔重算的参照（NativeInkStrokeMesh.live）→ BENCH ink live-full。
+    func testLiveMeshCostPerFrameAsTheStrokeGrows() throws {
+        let k = try WebInkFixture.params()
+        let count = 400
+        let all = WebInkBench.stroke(count)
+        var raw: [InkRawPoint] = []
+        var frames: [Double] = [], floats: [Int] = []
+        var fullFrames: [Double] = [], fullFloats: [Int] = []
+        var live = WebInk.LiveStroke()
+        for i in 1...count {
+            raw.append(all[i - 1])
+            let pre = WebInkBench.predicted(after: i, of: count)
+            let t0 = DispatchTime.now().uptimeNanoseconds
+            live.update(raw: raw, predicted: pre, params: k)
+            let t1 = DispatchTime.now().uptimeNanoseconds
+            frames.append(WebInkBench.ms(t0, t1))
+            floats.append(live.stableUsed + live.tailVertices.count)
+            var v: [Float] = []
+            let t2 = DispatchTime.now().uptimeNanoseconds
+            NativeInkStrokeMesh.live(raw: raw, predicted: pre, params: k, into: &v)
+            let t3 = DispatchTime.now().uptimeNanoseconds
+            fullFrames.append(WebInkBench.ms(t2, t3))
+            fullFloats.append(v.count)
+        }
+        WebInkBench.report("ink live", frames, floats: floats, at: [50, 100, 200, 300, 400])
+        WebInkBench.report("ink live-full", fullFrames, floats: fullFloats, at: [50, 100, 200, 300, 400])
+        XCTAssertEqual(floats, fullFloats)
+    }
+}
+
+// MARK: - 书写中一笔的增量几何 = 整笔重算（逐位）
+
+/// 可复现的随机数（测试用，固定种子）。
+struct WebInkTestRNG: RandomNumberGenerator {
+    var state: UInt64
+    mutating func next() -> UInt64 {
+        state = state &* 6364136223846793005 &+ 1442695040888963407
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xbf58476d1ce4e5b9
+        z = (z ^ (z >> 27)) &* 0x94d049bb133111eb
+        return z ^ (z >> 31)
+    }
+}
+
+@MainActor
+final class WebInkLiveStrokeTests: XCTestCase {
+    /// 整笔重算：raw + 预测点（时间夹成单调，同 NativeInkView.append）→ buildStroke → triangles。
+    private func full(_ raw: [InkRawPoint], _ predicted: [InkRawPoint], final: Bool, _ k: WebInkParams) -> [Float] {
+        var pts = raw
+        for q in predicted { NativeInkView.append(q, to: &pts) }
+        var v: [Float] = []
+        WebInk.triangles(WebInk.buildStroke(pts, final: final, params: k).points, into: &v)
+        return v
+    }
+
+    private func bits(_ v: [Float]) -> [UInt32] { v.map(\.bitPattern) }
+
+    /// 录下来的笔（金标准的原始点）+ 随机笔（采样间隔有 0 / 抖动 / 倒退，压力有无 / 0 混杂，偶有坏点）。
+    private func strokes() throws -> [(String, [InkRawPoint])] {
+        let doc = try WebInkFixture.doc()
+        var out: [(String, [InkRawPoint])] = []
+        for c in try XCTUnwrap(doc["cases"] as? [[String: Any]]) where (c["final"] as? Bool) == true {
+            out.append((c["id"] as? String ?? "?", WebInkFixture.raw(try XCTUnwrap(c["raw"] as? [[NSNumber]]))))
+        }
+        out.append(("spiral-400", WebInkBench.stroke(400)))
+        var rng = WebInkTestRNG(state: 20261104)
+        for n in 0..<40 {
+            let count = Int.random(in: 1...160, using: &rng)
+            let pencil = Bool.random(using: &rng)
+            var x = Double.random(in: 40...300, using: &rng), y = Double.random(in: 40...300, using: &rng), t = 1000.0
+            var s: [InkRawPoint] = []
+            for _ in 0..<count {
+                let dts: [Double] = [0, 0, 1000.0 / 240, 1000.0 / 120, 1000.0 / 60, Double.random(in: 0...30, using: &rng), -3]
+                t += dts[Int.random(in: 0..<dts.count, using: &rng)]
+                if Double.random(in: 0..<1, using: &rng) < 0.9 {
+                    x += Double.random(in: -6...6, using: &rng)
+                    y += Double.random(in: -6...6, using: &rng)
+                }
+                var q = InkRawPoint(x: x, y: y, t: t)
+                if pencil {
+                    let r = Int.random(in: 0..<3, using: &rng)
+                    q.p = r == 0 ? nil : r == 1 ? 0 : Double.random(in: 0...1, using: &rng)
+                }
+                if n % 10 == 3, Int.random(in: 0..<25, using: &rng) == 0 { q.x = .nan } // 坏点：合并时丢弃
+                if n % 10 == 7, Int.random(in: 0..<25, using: &rng) == 0 { q.t = .nan } // 坏时间：用上一点的时间
+                NativeInkView.append(q, to: &s)
+            }
+            out.append(("random-\(n)", s))
+        }
+        return out
+    }
+
+    /// 每个前缀长度、有无预测点、书写中与抬笔（final）：增量的顶点与整笔重算逐个 Float 位相同。
+    func testIncrementalLiveMeshIsBitIdenticalToTheFullRebuild() throws {
+        let k = try WebInkFixture.params()
+        var frames = 0, finals = 0
+        for (id, stroke) in try strokes() {
+            for withPredicted in [false, true] {
+                var live = WebInk.LiveStroke()
+                var raw: [InkRawPoint] = []
+                for (i, q) in stroke.enumerated() {
+                    raw.append(q)
+                    var pre: [InkRawPoint] = []
+                    if withPredicted, let l = raw.last {
+                        // 两个预测点：第二个时间早于第一个（夹成同一时刻、按零时间差合并）
+                        pre = [InkRawPoint(x: l.x + 3, y: l.y + 1, t: l.t + 8, p: l.p, predicted: true),
+                               InkRawPoint(x: l.x + 6, y: l.y + 2, t: l.t + 5, p: l.p, predicted: true)]
+                    }
+                    live.update(raw: raw, predicted: pre, params: k)
+                    XCTAssertEqual(bits(live.vertices), bits(full(raw, pre, final: false, k)), "\(id) n=\(i + 1) predicted=\(withPredicted) live")
+                    XCTAssertEqual(live.vertexCount * 2, live.vertices.count)
+                    frames += 1
+                    if !withPredicted {
+                        // 抬笔（在这一刻的副本上接着算 final），之后原来的那份照样接着写
+                        var lifted = live
+                        lifted.update(raw: raw, predicted: [], params: k, final: true)
+                        XCTAssertEqual(bits(lifted.vertices), bits(full(raw, [], final: true, k)), "\(id) n=\(i + 1) final")
+                        lifted.update(raw: raw, predicted: pre, params: k)
+                        XCTAssertEqual(bits(lifted.vertices), bits(full(raw, pre, final: false, k)), "\(id) n=\(i + 1) live after final")
+                        finals += 1
+                    }
+                }
+            }
+        }
+        print("[shizi] live-stroke equivalence: \(frames) live frames, \(finals) lifts, all bit-identical")
+    }
+
+    /// 同一个增量状态换一笔 / 换参数 / 原始点整笔换了（换算书写面）：从头来，结果仍与整笔重算相同。
+    func testIncrementalLiveMeshStartsOverWhenTheStrokeIsNotAnAppend() throws {
+        let k = try WebInkFixture.params()
+        var live = WebInk.LiveStroke()
+        let a = WebInkBench.stroke(120)
+        live.update(raw: Array(a.prefix(80)), predicted: [], params: k)
+        let g0 = live.generation
+        // 换一笔（首点不同）
+        let b = a.map { q in var r = q; r.x += 7; return r }
+        live.update(raw: Array(b.prefix(50)), predicted: [], params: k)
+        XCTAssertEqual(bits(live.vertices), bits(full(Array(b.prefix(50)), [], final: false, k)))
+        XCTAssertNotEqual(live.generation, g0)
+        // 点数变少
+        live.update(raw: Array(b.prefix(20)), predicted: [], params: k)
+        XCTAssertEqual(bits(live.vertices), bits(full(Array(b.prefix(20)), [], final: false, k)))
+        // 换参数
+        var thicker = k
+        thicker.base *= 1.5
+        live.update(raw: Array(b.prefix(60)), predicted: [], params: thicker)
+        XCTAssertEqual(bits(live.vertices), bits(full(Array(b.prefix(60)), [], final: false, thicker)))
+        // 上次的末点被改（不是在后面追加）
+        var c = Array(b.prefix(60))
+        c[59].y += 3
+        c.append(b[60])
+        live.update(raw: c, predicted: [], params: thicker)
+        XCTAssertEqual(bits(live.vertices), bits(full(c, [], final: false, thicker)))
+        // clear 之后
+        live.clear()
+        live.update(raw: Array(a.prefix(3)), predicted: [], params: k)
+        XCTAssertEqual(bits(live.vertices), bits(full(Array(a.prefix(3)), [], final: false, k)))
+    }
+
+    /// 几何的写法改了（不再每段建临时数组、Catmull-Rom 不再拷首尾重复的数组）：与原先的写法逐位相同。
+    func testTrianglesAndCatmullRomMatchTheFormerCode() throws {
+        let k = try WebInkFixture.params()
+        for (id, stroke) in try strokes() {
+            for final in [false, true] {
+                let pts = WebInk.buildStroke(stroke, final: final, params: k).points
+                var v: [Float] = []
+                WebInk.triangles(pts, into: &v)
+                XCTAssertEqual(bits(v), bits(Self.formerTriangles(pts)), "\(id) final=\(final)")
+            }
+            let m = WebInk.mergeSameTime(stroke)
+            XCTAssertEqual(WebInk.catmullRom(m, step: k.step), Self.formerCatmullRom(m, step: k.step), id)
+        }
+    }
+
+    /// 原先的 triangles（逐字保留作对照）。
+    static func formerTriangles(_ points: [WebInkPoint]) -> [Float] {
+        var out: [Float] = []
+        guard let first = points.first, points.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else { return out }
+        func half(_ q: WebInkPoint) -> Double { max(0.5, (q.w.isFinite && q.w > 0 ? q.w : 0) / 2) }
+        WebInk.appendDisc(x: first.x, y: first.y, r: half(first), into: &out)
+        guard points.count > 1 else { return out }
+        for i in 1..<points.count {
+            let a = points[i - 1], b = points[i]
+            let dx = b.x - a.x, dy = b.y - a.y
+            let length = hypot(dx, dy)
+            if length == 0 { continue }
+            let ra = half(a), rb = half(b)
+            let nx = -dy / length, ny = dx / length
+            let q = [a.x + nx * ra, a.y + ny * ra, b.x + nx * rb, b.y + ny * rb, b.x - nx * rb, b.y - ny * rb, a.x - nx * ra, a.y - ny * ra].map(Float.init)
+            out += [q[0], q[1], q[2], q[3], q[4], q[5], q[0], q[1], q[4], q[5], q[6], q[7]]
+            WebInk.appendDisc(x: b.x, y: b.y, r: rb, into: &out)
+        }
+        return out
+    }
+
+    /// 原先的 catmullRom（逐字保留作对照）。
+    static func formerCatmullRom(_ points: [WebInk.Sample], step: Double) -> [WebInk.Sample] {
+        guard points.count >= 2 else { return points }
+        var out: [WebInk.Sample] = []
+        // swiftlint:disable:next force_unwrapping
+        let P = [points.first!] + points + [points.last!]
+        @inline(__always) func lerp(_ a: Double, _ b: Double, _ u: Double) -> Double { a + (b - a) * u }
+        for i in 1..<(P.count - 2) {
+            let a = P[i - 1], b = P[i], c = P[i + 1], d = P[i + 2]
+            let n = max(1, Int((hypot(c.x - b.x, c.y - b.y) / step).rounded(.up)))
+            let hasP = WebInk.hasPressure(b.p) || WebInk.hasPressure(c.p)
+            for j in 0..<n {
+                let u = Double(j) / Double(n)
+                let u2 = u * u, u3 = u2 * u
+                let x = 0.5 * (2 * b.x + (-a.x + c.x) * u + (2 * a.x - 5 * b.x + 4 * c.x - d.x) * u2 + (-a.x + 3 * b.x - 3 * c.x + d.x) * u3)
+                let y = 0.5 * (2 * b.y + (-a.y + c.y) * u + (2 * a.y - 5 * b.y + 4 * c.y - d.y) * u2 + (-a.y + 3 * b.y - 3 * c.y + d.y) * u3)
+                var q = WebInk.Sample(x: x, y: y, t: lerp(b.t, c.t, u))
+                if hasP { q.p = lerp(b.p ?? 0, c.p ?? 0, u) }
+                out.append(q)
+            }
+        }
+        // swiftlint:disable:next force_unwrapping
+        out.append(points.last!)
+        return out
+    }
+}

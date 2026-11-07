@@ -1,6 +1,6 @@
 import Foundation
 
-// src/store/store.js 的 1:1 移植（B4.4）：单例状态 + commit 事务 + 订阅（01-架构设计 §4）。
+// 1:1 移植自原 JS 版（B4.4）：单例状态 + commit 事务 + 订阅（01-架构设计 §4）。
 //
 // commit(label, mutate, reclaim:, replace:) → {ok:true, keys, recovered} | {ok:false, error:{kind, label, …}}，步骤照 JS：
 //   草稿（按域拷贝）→ mutate(&draft, &ctx) → 脏键（序列化后与上次落盘的字串比）→ 形状校验 → 写前估算回收 → storage.writeAll
@@ -33,6 +33,14 @@ public final class Store: ScheduleStore {
     public private(set) var blocked: JSObject?
     public private(set) var corruptNotice: JSObject?
     public private(set) var usage: JSObject?
+    /// 原生（App 注入）：设备剩余空间的读数（字节；量不到 = nil）。挂上之后 usage.level 按 DeviceSpaceRule 判
+    /// （真实剩余空间 + 真写盘撞满），不再按估算总量 / quotaBytes；没挂（nil，缺省）= 网页 / JS 金样口径，与原来逐字节相同。
+    /// 每次 refreshUsage（每次提交发布后）都会读一次：App 一侧自己缓存（NativeStore.swift DeviceFreeSpace）。
+    public var deviceAvailableBytes: (() -> Double?)?
+    /// 原生口径的阈值（缺省 policy.nativeStorage，P57）。
+    public var deviceSpaceRule: DeviceSpaceRule = .policy
+    /// 最近一次写盘撞满（write 失败、kind 'quota'；原生 = SQLITE_FULL → E_FULL）且之后还没有提交写成功过。只有原生口径读它。
+    public private(set) var writeFull = false
     public private(set) var lastRepair: JSObject?
     public let backendInfo: JSObject
     public private(set) var inkSchema: JSObject?
@@ -69,7 +77,7 @@ public final class Store: ScheduleStore {
         case (.null, .null): return true
         case (.bool(let x), .bool(let y)): return x == y
         case (.number(let x), .number(let y)): return x == y
-        case (.string(let x), .string(let y)): return x.utf8.elementsEqual(y.utf8)
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
         case (.array(let x), .array(let y)):
             if x.count != y.count { return false }
             for i in 0..<x.count where !same(x[i], y[i]) { return false }
@@ -101,6 +109,57 @@ public final class Store: ScheduleStore {
             return true
         default:
             return same(a, b)
+        }
+    }
+
+    /// same，另加捷径：两边是同一块存储（写时复制的副本、都没改过）就直接算相同（任何一层）。
+    /// 与 same 只在「共享的子值里有 NaN」时不同（same 认为 NaN ≠ NaN）；只给 plan 用，理由见 unchanged。
+    static func sameOrShared(_ a: JSValue, _ b: JSValue) -> Bool {
+        switch (a, b) {
+        case (.null, .null): return true
+        case (.bool(let x), .bool(let y)): return x == y
+        case (.number(let x), .number(let y)): return x == y
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
+        case (.array(let x), .array(let y)):
+            if x.count != y.count { return false }
+            if sameRepresentation(x, y) { return true }
+            for i in 0..<x.count where !sameOrShared(x[i], y[i]) { return false }
+            return true
+        case (.object(let x), .object(let y)):
+            if x.count != y.count { return false }
+            if x.sharesStorage(with: y) { return true }
+            let kx = x.keys, ky = y.keys
+            for i in 0..<kx.count {
+                guard UTF16Order.eq(kx[i], ky[i]), let vx = x[kx[i]], let vy = y[ky[i]], sameOrShared(vx, vy) else { return false }
+            }
+            return true
+        default: return false
+        }
+    }
+
+    /// plan 的「这个键的值没动过」：与 shallowEqual(lastValues[key], value) 结论相同时照用；只在共享子值里有 NaN 时可能
+    /// 说「没动过」而 shallowEqual 说「动过」——那时 plan 走 shallowEqual 那条路也是序列化后与 lastRaw 逐字节相同、不写，
+    /// 结果一样（见 plan）。顶层对象键序与上次不同时退回 shallowEqual 本身（那条路的序列化与 lastRaw 不再必然相同）。
+    static func unchanged(_ a: JSValue?, _ b: JSValue?) -> Bool {
+        guard let a = a, let b = b else { return a == nil && b == nil }
+        switch (a, b) {
+        case (.array(let x), .array(let y)):
+            if x.count != y.count { return false }
+            if sameRepresentation(x, y) { return true }
+            for i in 0..<x.count where !sameOrShared(x[i], y[i]) { return false }
+            return true
+        case (.object(let x), .object(let y)):
+            if x.count != y.count { return false }
+            if x.sharesStorage(with: y) { return true }
+            let kx = x.keys, ky = y.keys
+            var ordered = true
+            for i in 0..<kx.count {
+                if ordered && !UTF16Order.eq(kx[i], ky[i]) { ordered = false }
+                guard let vx = x[kx[i]], let vy = y[kx[i]], sameOrShared(vx, vy) else { return false }
+            }
+            return ordered || shallowEqual(a, b)
+        default:
+            return sameOrShared(a, b)
         }
     }
 
@@ -253,7 +312,13 @@ public final class Store: ScheduleStore {
 
     @discardableResult
     public func refreshUsage() -> JSObject? {
-        usage = try? storage.estimateUsage(budgets)
+        let estimate = try? storage.estimateUsage(budgets)
+        // QA 夹具 setUsage（usageOverride）照原样报：界面取证要能造出 warn / full
+        if let read = deviceAvailableBytes, storage.usageOverride == nil {
+            usage = Budget.deviceUsage(estimate ?? JSObject([("total", .number(0)), ("byBucket", .object(JSObject()))]), availableBytes: read(), writeFull: writeFull, rule: deviceSpaceRule)
+        } else {
+            usage = estimate
+        }
         return usage
     }
 
@@ -265,16 +330,25 @@ public final class Store: ScheduleStore {
 
     // MARK: 读
 
-    private func readState() -> (next: JSObject, raws: KeyMap<String>, legacy: KeyMap<JSValue>) {
+    func readState() -> (next: JSObject, raws: KeyMap<String>, legacy: KeyMap<JSValue>) {
         var next = Store.emptyState()
         var raws = KeyMap<String>()
         var monthTables = KeyMap<JSValue>()
         var recordTables = KeyMap<JSObject>()
+        // repair 刚对同一份原文 parseAndValidate 过：原文逐字节相同就用它的结果（parseAndValidate 只取决于 key 与原文），不同或没有就照常解析校验。
+        let parsedByRepair = storage.takeRepairParsed()
         let all = (try? storage.readAll(Schema.v2Prefix)) ?? []
         for (key, rawOpt) in all {
             guard let spec = Schema.specForKey(key), let domain = spec.domain, let raw = rawOpt else { continue }
-            guard case .ok(let value) = Schema.parseAndValidate(key: key, raw: .string(raw)) else { continue }
+            let value: JSValue
+            if let hit = parsedByRepair[key], utf8Equal(hit.raw, raw) {
+                value = hit.value
+            } else {
+                guard case .ok(let v) = Schema.parseAndValidate(key: key, raw: .string(raw)) else { continue }
+                value = v
+            }
             raws[key] = raw
+            validatedValues[key] = value
             if spec.id == "inkRecord" {
                 let p = Schema.parseInkRecordKey(key)!
                 var t = recordTables[p.month] ?? JSObject()
@@ -306,12 +380,12 @@ public final class Store: ScheduleStore {
         return (next, raws, legacy)
     }
 
-    private func inkSchemaReport(schema: Int, legacyMonths: Int) -> JSObject {
+    func inkSchemaReport(schema: Int, legacyMonths: Int) -> JSObject {
         JSObject([("schema", .number(Double(schema))), ("legacyMonths", .number(Double(legacyMonths))), ("migrated", .number(0)), ("records", .number(0)), ("failed", .null)])
     }
 
     /// ink schema 1 → 2：把旧月键逐月改成单条键（每月一个事务；失败这个月回滚、停止、记诊断）。
-    private func migrateInkSchema() -> JSObject {
+    func migrateInkSchema() -> JSObject {
         let started = now()
         let months = UTF16Order.sorted(legacyInk.keys)
         var report = inkSchemaReport(schema: months.isEmpty ? 2 : 1, legacyMonths: months.count)
@@ -394,6 +468,8 @@ public final class Store: ScheduleStore {
         if let q = report["quarantined"]?.arrayValue, !q.isEmpty {
             corruptNotice = JSObject([("keys", .array(q.map { $0["key"] ?? .null }))])
         }
+        validatedValues = KeyMap()
+        childTexts = [:]
         let (next, raws, legacy) = readState()
         state = next
         lastRaw = raws
@@ -416,20 +492,24 @@ public final class Store: ScheduleStore {
         var entries: [(String, String?)] = []
         var raws = KeyMap<String>()
         var error: (kind: String, key: String, reason: String)?
+        /// 算这个 plan 用的 stateToEntries(draft)；之后草稿又被改过（回收没回收到东西也可能动草稿）就置 nil。
+        /// publish 发布的正是这个草稿时，它就是 publish 要重算的 lastValues（见 publish）。
+        var next: KeyMap<JSValue>?
     }
 
     private func plan(_ draft: JSObject, convertAll: Bool) -> Plan {
         let next = stateToEntries(draft, legacy: convertAll ? nil : legacyInk)
         var p = Plan()
+        p.next = next
         for (key, value) in next.entries {
-            if let last = lastRaw[key], Store.shallowEqual(lastValues[key], value) {
+            if let last = lastRaw[key], Store.unchanged(lastValues[key], value) {
                 p.raws[key] = last
                 continue
             }
-            let raw = JSONWriter.stringify(value)
+            let raw = stringify(key, value)
             p.raws[key] = raw
             if rawEq(lastRaw[key], raw) { continue }
-            if let err = Schema.validateValue(key: key, value: value) {
+            if let err = validate(key, value) {
                 p.error = ("shape", key, err)
                 return p
             }
@@ -437,6 +517,114 @@ public final class Store: ScheduleStore {
         }
         for key in lastRaw.keys where !next.has(key) { p.entries.append((key, nil)) }
         return p
+    }
+
+    // MARK: 校验与序列化的增量做法（结果与整值的 Schema.validateValue / JSONWriter.stringify 逐字相同）
+
+    /// 每个键上一次「整值校验通过」的值：读盘时 parseAndValidate 通过的，或 plan 里 validate 通过的。
+    /// 「validateValue(key, 这个值) == nil」是关于这个值本身的事实，永不过期；这里持有它，它的存储也就不会被回收重用。
+    var validatedValues = KeyMap<JSValue>()
+    /// 键 → 子键 → (子值, 它的 JSON 文本)：上次在 plan 里序列化这个键时各子值的文本（持有子值，理由同上）。
+    private var childTexts = [JSKey: [JSKey: (value: JSValue, text: String)]]()
+
+    /// 两个值显然是同一个值：容器是同一块存储；数逐位、串逐字节相同。true ⇒ 校验结论、序列化文本都相同。
+    static func samePayload(_ a: JSValue, _ b: JSValue) -> Bool {
+        switch (a, b) {
+        case (.null, .null): return true
+        case (.bool(let x), .bool(let y)): return x == y
+        case (.number(let x), .number(let y)): return x.bitPattern == y.bitPattern
+        case (.string(let x), .string(let y)): return utf8Equal(x, y)
+        case (.array(let x), .array(let y)): return sameRepresentation(x, y)
+        case (.object(let x), .object(let y)): return x.sharesStorage(with: y)
+        default: return false
+        }
+    }
+
+    /// 校验是「逐条独立」的映射的键（Schema.keySpecs 里 validate 只是 checkMap(x, 只由键决定的 path, keyOk, each)：
+    /// 每条只看自己的子键与子值、报第一条错）。改 keySpecs 里这几项的校验时要一并看这里。
+    static let entryLocalMaps: Set<String> = ["sched", "wordOff", "photos", "ink"]
+
+    /// = Schema.validateValue(key: key, value: value)；通过时记下这个值。
+    func validate(_ key: String, _ value: JSValue) -> String? {
+        let err = Store.validate(key, value, previous: validatedValues[key])
+        if err == nil { validatedValues[key] = value }
+        return err
+    }
+
+    /// = Schema.validateValue(key: key, value: value)，利用同一个键上一次整值校验通过的值 previous 只校验变了的部分：
+    /// · 逐条独立的映射：checkMap 按 keys 序逐条查、报第一条错；与 previous 同子键且同一个值的那条当时查过没错（查法只看子键与子值），
+    ///   现在也没错——所以第一条错一定在其余各条里，按原来的次序只查它们（子集按原序插入，keys 序不变；path 只由键决定），结论相同。
+    /// · records 月表（数组）且 previous 是它逐元素相同的前缀（追加）：前缀里每条的 validateRecord 与递增检查只看前缀，当时都过了；
+    ///   从前缀之后照 Schema.validateRecordList 的同一个循环接着查（prev 接前缀最后一条的序号），结论相同。
+    /// 其余一律整值校验。
+    static func validate(_ key: String, _ value: JSValue, previous: JSValue?) -> String? {
+        guard let prev = previous, let spec = Schema.specForKey(key) else { return Schema.validateValue(key: key, value: value) }
+        if entryLocalMaps.contains(spec.id), case .object(let v) = value, case .object(let p) = prev {
+            var changed = JSObject()
+            for (k, e) in v.entries {
+                if let pe = p[k], samePayload(pe, e) { continue }
+                changed[k] = e
+            }
+            return Schema.validateValue(key: key, value: .object(changed))
+        }
+        if spec.id == "records", case .array(let v) = value, case .array(let p) = prev, v.count >= p.count,
+           !(0..<p.count).contains(where: { !samePayload(v[$0], p[$0]) }) {
+            let month = Schema.monthOfRecordsKey(key)
+            var last = p.isEmpty ? 0.0 : Schema.serialOf(v[p.count - 1]["id"]?.stringValue ?? "")
+            for i in p.count..<v.count {
+                let r = v[i]
+                if let err = Schema.validateRecord(r, path: key + "[" + String(i) + "]", month: month) { return err }
+                let serial = Schema.serialOf(r["id"]?.stringValue ?? "")
+                if serial <= last { return Schema.fail(key + "[" + String(i) + "].id", "ids must be strictly ascending") }
+                last = serial
+            }
+            return nil
+        }
+        return Schema.validateValue(key: key, value: value)
+    }
+
+    /// = JSONWriter.stringify(value)。大的对象 / 数组按子值拼：JSONWriter 写对象 = 「{」+ 按 keys 序的「"键":子值文本」以「,」相连 +「}」，
+    /// 数组同理，子值文本就是 stringify(子值)；与上次同一个子值（samePayload）的文本直接沿用。
+    func stringify(_ key: String, _ value: JSValue) -> String {
+        let jk = JSKey(s: key)
+        switch value {
+        case .object(let o) where o.count >= 16:
+            let old = childTexts[jk] ?? [:]
+            var memo = [JSKey: (value: JSValue, text: String)](minimumCapacity: o.count)
+            var out = "{"
+            for (n, e) in o.entries.enumerated() {
+                if n > 0 { out += "," }
+                JSONWriter.quote(e.key, into: &out)
+                out += ":"
+                let ck = JSKey(s: e.key)
+                let text: String
+                if let hit = old[ck], Store.samePayload(hit.value, e.value) { text = hit.text } else { text = JSONWriter.stringify(e.value) }
+                out += text
+                memo[ck] = (e.value, text)
+            }
+            out += "}"
+            childTexts[jk] = memo
+            return out
+        case .array(let a) where a.count >= 16:
+            let old = childTexts[jk] ?? [:]
+            var memo = [JSKey: (value: JSValue, text: String)](minimumCapacity: a.count)
+            var out = "["
+            for (n, e) in a.enumerated() {
+                if n > 0 { out += "," }
+                // 子键只为命中：记录按 id，其余按下标；沿用与否只看 samePayload
+                let ck: JSKey
+                if case .string(let id)? = e["id"] { ck = JSKey(s: "id:" + id) } else { ck = JSKey(s: "#" + String(n)) }
+                let text: String
+                if let hit = old[ck], Store.samePayload(hit.value, e) { text = hit.text } else { text = JSONWriter.stringify(e) }
+                out += text
+                memo[ck] = (e, text)
+            }
+            out += "]"
+            childTexts[jk] = memo
+            return out
+        default:
+            return JSONWriter.stringify(value)
+        }
     }
 
     private func projectedTotal(_ entries: [(String, String?)]) -> Double {
@@ -524,10 +712,22 @@ public final class Store: ScheduleStore {
         return (written, nil)
     }
 
+    /// sizesOf 的键分类（1 = records 月键、2 = ink 存储键、0 = 其它）按键记住：只看键本身（纯函数），每次提交都要对全部键各分一次。
+    private var keyKinds = [JSKey: UInt8]()
+
     private func sizesOf(_ raws: KeyMap<String>) -> (records: Double, ink: Double) {
         var r = 0.0, i = 0.0
+        if keyKinds.count > 2 * raws.count + 1024 { keyKinds = [:] }
         for (k, raw) in raws.entries {
-            if Schema.isRecordsKey(k) { r += Budget.entryBytes(k, raw) } else if Schema.isInkStorageKey(k) { i += Budget.entryBytes(k, raw) }
+            let jk = JSKey(s: k)
+            let kind: UInt8
+            if let known = keyKinds[jk] {
+                kind = known
+            } else {
+                kind = Schema.isRecordsKey(k) ? 1 : Schema.isInkStorageKey(k) ? 2 : 0
+                keyKinds[jk] = kind
+            }
+            if kind == 1 { r += Budget.entryBytes(k, raw) } else if kind == 2 { i += Budget.entryBytes(k, raw) }
         }
         return (r, i)
     }
@@ -544,11 +744,15 @@ public final class Store: ScheduleStore {
                 notify(JSObject([("type", .string("status"))]))
                 return JSObject([("kind", .string("blocked")), ("key", .null), ("reason", .string(e.message))])
             }
+            if e.kind == "quota" { writeFull = true }
             return JSObject([("kind", .string(e.kind ?? "unknown")), ("key", Store.opt(e.key)), ("reason", .string(e.messageOrString))])
         }
     }
 
-    private func publish(_ draft: JSObject, _ raws: KeyMap<String>, _ nextSerial: Double, _ info: JSObject) {
+    /// entries：算出 raws 的那个 plan 的 next（草稿之后没再改过时）。它等于 stateToEntries(draft, legacy: 剪过的 legacyInk)：
+    /// plan 保留旧月键 ⇔ raws 里有那个月键 ⇔ 剪完 legacyInk 还留着那个月（且旧表、草稿都没变，shallowEqual 结论相同）；
+    /// 其余月 plan 拆成单条键，剪完的 legacyInk 里也没有它，同样拆。convertAll（legacy nil）时剪完的 legacyInk 不含草稿里的任何月，同。
+    private func publish(_ draft: JSObject, _ raws: KeyMap<String>, _ nextSerial: Double, _ info: JSObject, entries: KeyMap<JSValue>? = nil) {
         state = draft
         lastRaw = raws
         for month in legacyInk.keys where !raws.has(Schema.inkKey(month)) { legacyInk[month] = nil }
@@ -556,7 +760,7 @@ public final class Store: ScheduleStore {
             s["schema"] = .number(2)
             inkSchema = s
         }
-        lastValues = stateToEntries(state, legacy: legacyInk)
+        lastValues = entries ?? stateToEntries(state, legacy: legacyInk)
         serial = nextSerial
         refreshUsage()
         notify(info)
@@ -570,7 +774,7 @@ public final class Store: ScheduleStore {
         var p = plan(draft, convertAll: replace)
         if let e = p.error { return Store.errorResult(e.kind, label, [("key", .string(e.key)), ("reason", .string(e.reason))]) }
         if p.entries.isEmpty {
-            publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array([]))] + tag))
+            publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array([]))] + tag), entries: p.next)
             return .object(JSObject([("ok", .bool(true)), ("keys", .array([])), ("recovered", .array([]))]))
         }
         var recovered: [JSValue] = []
@@ -583,6 +787,8 @@ public final class Store: ScheduleStore {
                     Store.syncMonths(&draft)
                     p = plan(draft, convertAll: replace)
                     if let e = p.error { return Store.errorResult(e.kind, label, [("key", .string(e.key)), ("reason", .string(e.reason))]) }
+                } else {
+                    p.next = nil
                 }
             }
         }
@@ -602,6 +808,8 @@ public final class Store: ScheduleStore {
                 p = plan(draft, convertAll: replace)
                 if let e = p.error { return Store.errorResult(e.kind, label, [("key", .string(e.key)), ("reason", .string(e.reason))]) }
                 failure = write(p.entries, label)
+            } else {
+                p.next = nil
             }
         }
         if let f = failure {
@@ -609,7 +817,8 @@ public final class Store: ScheduleStore {
             return Store.errorResult(f["kind"]!.stringValue!, label, [("key", f["key"] ?? .null), ("reason", f["reason"] ?? .null), ("recoveredAttempted", .bool(!recovered.isEmpty))])
         }
         let keys: [JSValue] = p.entries.map { .string($0.0) }
-        publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array(keys)), ("recovered", .array(recovered))] + tag))
+        writeFull = false // 这次真的写进去了（空提交不算：没写过盘，证明不了有空间）
+        publish(draft, p.raws, nextSerial, JSObject([("type", .string("commit")), ("label", .string(label)), ("keys", .array(keys)), ("recovered", .array(recovered))] + tag), entries: p.next)
         return .object(JSObject([("ok", .bool(true)), ("keys", .array(keys)), ("recovered", .array(recovered))]))
     }
 

@@ -25,7 +25,7 @@ enum NativeBezier {
 // MARK: 弹层 / 确认框的时刻（R9-B）
 
 /// open 回包 motion.overlay（交互规范 T0：T-sheet 进 280 ease.out / 退 220 ease.in，遮罩 200 / 180；T-confirm 进 200 由 0.96 放大淡入 / 退 180 淡出；
-/// 减少动态效果一律 reduce 淡化）与下滑关闭阈值（gesture，与网页 Sheet.js createSheetDrag 同一组）。缺项：时长 0（不做动画），阈值取左缘返回同一组常量。
+/// 减少动态效果一律 reduce 淡化）与下滑关闭阈值（gesture，与网页 createSheetDrag 同一组）。缺项：时长 0（不做动画），阈值取左缘返回同一组常量。
 struct NativeOverlaySpec {
     var sheetIn = 0.0, sheetOut = 0.0, scrimIn = 0.0, scrimOut = 0.0, confirmIn = 0.0, confirmOut = 0.0, reduce = 0.0, snap = 0.0
     var confirmFrom: CGFloat = 1
@@ -74,7 +74,7 @@ protocol NativeSheetSizing: AnyObject {
     func preferredHeight(width: CGFloat, safeBottom: CGFloat) -> CGFloat
 }
 
-/// 底部弹层的呈现（网页 Sheet.js：满宽贴底、上两角 24、max-height 88%、遮罩 --scrim；点遮罩 = 关）。
+/// 底部弹层的呈现（网页：满宽贴底、上两角 24、max-height 88%、遮罩 --scrim；点遮罩 = 关）。
 final class NativeSheetPresentation: UIPresentationController {
     let scrim = UIView()
     var onScrimTap: (() -> Void)?

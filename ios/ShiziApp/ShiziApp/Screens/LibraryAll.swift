@@ -1,16 +1,16 @@
 import UIKit
 
-// B3.8 原生字库子页 · 全部字页（网页 src/ui/screens/library/all.js，1:1 移植；视图模型 src/session/views/library-all.js allModel，
+// B3.8 原生字库子页 · 全部字页（照网页版 1:1 移植；视图模型 allModel，
 // App API view.library-all / library.all.start）。
 // 屏名 ⇄ 类：library-all ⇄ ShiziScreen_library_all。推入页。
 //
-// 版式按网页 CSS 逐项排（.sz-all* / wall.js 的 Glyph / Legend / Sheet.js），数值全部取 ShiziTokens：
+// 版式按网页 CSS 逐项排（.sz-all* / 墙的 Glyph / Legend / 底部弹层），数值全部取 ShiziTokens：
 //   页头「已练汉字」+ 尾端文字按钮「排序 · 筛选」；正文：查字框（吸顶、命中时右侧「在 {月}」）→ 分组（组名 + 字数 + 墙格；拼音排序每格下标拼音）
 //   → 收起的月份 →「看这些字 ›」；底栏：主按钮「练这些字」。
-// 「排序 · 筛选」是底部弹层（网页 Sheet.js；原生用一个呈现出来的原生控制器）。
+// 「排序 · 筛选」是底部弹层（网页；原生用一个呈现出来的原生控制器）。
 
 @objc(ShiziScreen_library_all)
-final class LibraryAllScreen: ShiziScreenViewController {
+final class LibraryAllScreen: ShiziScreenViewController, UIScrollViewDelegate {
     struct Cell: Decodable {
         struct Rec: Decodable { let id: String }
         let char: String
@@ -97,15 +97,23 @@ final class LibraryAllScreen: ShiziScreenViewController {
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     }
 
+    /// 墙上的一格：按钮（字形图 / 读屏名 / 点按；拼音标签、朱点、命中圈在按钮里）+ 墨迹小图（与按钮同级、压在按钮上面）。
+    @MainActor
+    final class CellSlot {
+        let button = ShiziLineButton(type: .custom)
+        let ink = LibraryInkView()
+        let py = UILabel()
+        /// 上次按哪一格（墙上的序号）、哪一次渲染（renderGeneration）配的内容；都没变时重排只重摆框。
+        var index = -1
+        var generation = -1
+    }
+
     /// 一个分组（网页 .sz-all__group：组名 + 字数 + 墙格）。
     final class GroupView: UIView {        let headButton = ShiziLineButton(type: .custom) // 按月排时组名是可点的（网页 .sz-all__head.sz-btn）
         let headView = UIView() // 其余排序时组名是一行文字
         let nameLabel = UILabel()
         let countLabel = UILabel()
         let cellsMarker = UIView()
-        var cellButtons: [ShiziLineButton] = []
-        var inkViews: [LibraryInkView] = []
-        var pyLabels: [UILabel] = []
 
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -121,12 +129,43 @@ final class LibraryAllScreen: ShiziScreenViewController {
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     }
 
-    /// 网页量出来的值（B3.8）：组头的高、说明句（pretty）的折行点、页头尾端按钮的宽、弹层排序键的折行点（见 web-metrics.js）。
+    /// 网页量出来的值（B3.8）：组头的高、说明句（pretty）的折行点、页头尾端按钮的宽、弹层排序键的折行点。
     struct WebMetrics: Decodable {
         let headHeights: [Double?]?
         let note: [Int]?
         let menuWidth: Double?
         let sortLines: [[Int]?]?
+    }
+
+    /// 墙的排版结果：每组、每格的框（纯几何，排版时一次算完全部；视图按它摆）。
+    struct WallLayout {
+        struct GroupBox {
+            /// 组在 content 里的框（网页 .sz-all__group）。
+            var frame: CGRect
+            /// 组头的高（没有组头 = 0）；墙格（cellsMarker）在组里的上沿与高。
+            var headH: CGFloat
+            var gridTop: CGFloat
+            var gridH: CGFloat
+            /// 组名 / 字数在组头里的框。
+            var nameFrame: CGRect
+            var countFrame: CGRect
+            /// 这一组第一格在 cells 里的序号、格数。
+            var firstCell: Int
+            var cellCount: Int
+        }
+        var groups: [GroupBox] = []
+        /// 格宽（整面墙一样宽）。
+        var cellW: CGFloat = 0
+        /// 每格在所在组的墙格（cellsMarker）里的框；按组、组里按格的顺序排平。
+        var cells: [CGRect] = []
+        /// 每格在 content 里的框（= 组的原点 + 墙格的上沿 + 格在墙格里的框）。
+        var cellsInContent: [CGRect] = []
+        /// 每格属于第几组。
+        var cellGroup: [Int] = []
+        /// 每格的数据（排这一版时的模型）。
+        var cellData: [Cell] = []
+        /// 最后一组的下沿（content 坐标）。
+        var bottom: CGFloat = 0
     }
 
     // 正文
@@ -147,9 +186,30 @@ final class LibraryAllScreen: ShiziScreenViewController {
     private var model: View?
     /// 网页量出来的值（组头的高 / 折行点 / 按钮宽）。
     private var webMetrics: WebMetrics?
-    /// 每组的格子（点格子看详情时按同一个序号找那个字）。
-    private var groupCells: [[Cell]] = []
-    private var inkStrokes: [String: [[LibraryInkView.Point]]] = [:]
+    /// 回包 ink（按需解码：只解建出来的格子的记录）。
+    private let inkStore = LibraryInkStore()
+    /// 第几次渲染（render 一次加一）：格子的内容（拼音 / 读屏名 / 墨迹）按渲染配，框按排版配。
+    private var renderGeneration = 0
+    /// 此刻的 wall（格子的数据与框）是按第几次渲染的模型排出来的：layoutBody 在 setItems 之前设成 renderGeneration。
+    /// 格子内容按它记（不按 renderGeneration）：渲染之后、排版之前来的滚动建格子用的还是旧 wall 的数据，不能记成新的一次渲染。
+    private var wallGeneration = -1
+    /// 可见框上下各多建几屏高的格子。2.5 屏：冻结的逐屏基线里最深的格子（all-pinyin XXXL：内容里 2357.5pt，可视区 768pt）
+    /// 要在打开时就建出来（取证连屏外滚得到的元素一起记），需要 ≥ 2.07 屏。
+    static let overscanViewports: CGFloat = 2.5
+    /// 墙上的格子：只建可见框 ± overscan 里的（ShiziLazyCells）。序号 = wall.cells 的序号。
+    private(set) lazy var cells = ShiziLazyCells<CellSlot>(
+        make: { [unowned self] _ in self.makeCell() },
+        attach: { [unowned self] s, i, following in self.attachCell(s, i, following) },
+        detach: { s in
+            s.button.isHighlighted = false
+            s.button.removeFromSuperview()
+            s.ink.removeFromSuperview()
+        },
+        configure: { [unowned self] s, i in self.configureCell(s, i) })
+    /// 最近一次排版算出的全部组 / 格的框。
+    private(set) var wall = WallLayout()
+    /// 墙格的字形图（每次排版都要给每格一张；输入没变就用上次那张）。
+    private let glyphCache = LibraryGlyphCache()
     private var sort: String?
     private var filter: String?
     private var fold: [String: Bool]?
@@ -179,7 +239,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
     /// 右槽槽宽（文字按钮两侧各 −4）。
     var trailSlotWidth: CGFloat { max(44, trailButtonWidth - 8) }
 
-    /// AX 档右槽按钮的高（网页 components/ax.js：文字按钮 min-height = max(44px, calc(1.3em + 12px))）。
+    /// AX 档右槽按钮的高（网页：文字按钮 min-height = max(44px, calc(1.3em + 12px))）。
     var trailHeight: CGFloat { axLayout ? LibraryCommon.axTextButtonHeight(fontSize: metrics.value("fs15")) : 44 }
 
     override func viewDidLoad() {
@@ -211,6 +271,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         wire(listButton) { page in (page as? LibraryAllScreen)?.openList() }
         wire(goButton) { page in (page as? LibraryAllScreen)?.start() }
         findInput.addTarget(self, action: #selector(findChanged), for: .editingChanged)
+        scroll.delegate = self
     }
 
     // MARK: 视图
@@ -226,7 +287,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         let m = try ShiziDecode.value(raw, as: View.self)
         model = m
         if let payload = lastPayload, let ink = payload["ink"] as? [String: Any] {
-            inkStrokes = (try? ShiziDecode.value(ink, as: [String: [[LibraryInkView.Point]]].self)) ?? [:]
+            inkStore.load(ink)
         }
         if let payload = lastPayload, let met = payload["metrics"] {
             webMetrics = try? ShiziDecode.value(met, as: WebMetrics.self)
@@ -291,7 +352,6 @@ final class LibraryAllScreen: ShiziScreenViewController {
         NativeType.set(findMiss, m.find.miss.text, font: mt.font(13), color: color("ink3"), line: mt.line("lh13"))
         findMiss.isHidden = m.find.miss.text.isEmpty
         // 分组
-        groupCells = m.groups.map { $0.cells }
         syncGroups(m)
         // 收起的月份
         syncClosed(m)
@@ -318,7 +378,8 @@ final class LibraryAllScreen: ShiziScreenViewController {
             gv.nameLabel.accessibilityIdentifier = "native-library-all-group-name"
             gv.countLabel.accessibilityIdentifier = "native-library-all-group-count"
             gv.cellsMarker.accessibilityIdentifier = "native-library-all-cells"
-            gv.cellsMarker.isUserInteractionEnabled = false
+            // 墙格容器要接点按：格子按钮是它的子视图，关掉它的 isUserInteractionEnabled 会让命中测试整片跳过（真手指点格子没反应）。
+            // 墨格 / 拼音各自关了点按，点按落到下面的格子按钮上。
             groupViews.append(gv)
             content.addSubview(gv)
             wire(gv.headButton) { [weak gv] page in (page as? LibraryAllScreen)?.foldGroup(gv) }
@@ -349,64 +410,138 @@ final class LibraryAllScreen: ShiziScreenViewController {
             gv.headButton.composed = [group.name.text, group.count.text].joined(separator: " ")
             gv.headButton.lineFont = mt.font(15)
             gv.headButton.setTitleColor(color("ink1"), for: .normal)
-            // 格子
-            while gv.cellButtons.count < group.cells.count {
-                let b = ShiziLineButton(type: .custom)
-                b.accessibilityIdentifier = "native-library-all-cell"
-                let ink = LibraryInkView()
-                let py = UILabel()
-                py.isUserInteractionEnabled = false
-                gv.cellsMarker.addSubview(b)
-                gv.cellsMarker.addSubview(ink)
-                gv.cellButtons.append(b)
-                gv.inkViews.append(ink)
-                gv.pyLabels.append(py)
-                b.addSubview(py)
-                wire(b) { [weak b] page in (page as? LibraryAllScreen)?.openCell(b) }
-            }
-            while gv.cellButtons.count > group.cells.count {
-                gv.cellButtons.removeLast().removeFromSuperview()
-                gv.inkViews.removeLast().removeFromSuperview()
-                gv.pyLabels.removeLast().removeFromSuperview()
-            }
-            for (ci, cell) in group.cells.enumerated() {
-                let b = gv.cellButtons[ci]
-                let inkView = gv.inkViews[ci]
-                let pyLabel = gv.pyLabels[ci]
-                pyLabel.numberOfLines = 1
-                if let py = cell.py, !py.isEmpty {
-                    NativeType.set(pyLabel, py, font: mt.font(11), color: color("ink2"), align: .center, line: mt.line("lh11"))
-                    pyLabel.isHidden = false
-                } else {
-                    pyLabel.isHidden = true
-                }
-                // 有本人的笔迹就画墨，没墨才画标准字形（网页 wall.js 的 Glyph：墨迹有就画墨、没有就画字形）
-                let inked = hasInk(cell)
-                var parts: [String] = []
-                if !inked { parts.append(cell.char) }
-                if let py = cell.py, !py.isEmpty { parts.append(py) }
-                b.composed = parts.joined(separator: " ")
-                b.lineFont = mt.font(15)
-                b.setTitleColor(color("ink1"), for: .normal)
-                b.accessibilityLabel = cellLabel(cell)
-                b.iconSize = .zero
-                b.setImage(nil, for: .normal)
-                inkView.isHidden = true
-                inkView.strokes = []
-                if !inked {
-                    let tone = cell.tone ?? 3
-                    let glyphColor = cell.kind == "hollow" ? color("ink4") : color(wallToken(tone))
-                    b.setImage(LibraryGlyph.image(cell.char, size: 0, face: 0.8, color: glyphColor, hollow: cell.kind == "hollow"), for: .normal)
-                } else if let rid = cell.record?.id, let strokes = inkStrokes[rid], !strokes.isEmpty {
-                    inkView.strokes = strokes
-                    inkView.ink = color(wallToken(cell.tone ?? 3))
-                    inkView.isHidden = false
-                }
-            }
+        }
+        // 格子在排版时按框建 / 配（layoutBody → updateCells）；这一次渲染的内容要重配
+        renderGeneration += 1
+    }
+
+    /// 第 i 格放进它那一组的墙格：插在 following（下一个已建好的格子）前面，同一组里按序号排（按钮、墨迹小图紧挨着）。
+    /// 已经在这一组的墙格里就不动（同一组里留下来的格子之间的先后本来就按序号）。
+    private func attachCell(_ s: CellSlot, _ i: Int, _ following: CellSlot?) {
+        guard i < wall.cellGroup.count else { return }
+        let gi = wall.cellGroup[i]
+        guard gi < groupViews.count else { return }
+        let marker = groupViews[gi].cellsMarker
+        if s.button.superview === marker, s.ink.superview === marker { return }
+        if let f = following, f.button.superview === marker {
+            marker.insertSubview(s.button, belowSubview: f.button)
+        } else {
+            marker.addSubview(s.button)
+        }
+        marker.insertSubview(s.ink, aboveSubview: s.button)
+    }
+
+    /// 按第 i 格配：内容（换了格子或有新的渲染）+ 框（每次排版）。池子里拿出来的格子带着上一格的状态，内容与框里的每一样都重设。
+    private func configureCell(_ s: CellSlot, _ i: Int) {
+        guard i < wall.cellData.count else { return }
+        let cell = wall.cellData[i]
+        if s.index != i || s.generation != wallGeneration {
+            configureCellContent(s, cell)
+            s.index = i
+            s.generation = wallGeneration
+        }
+        configureCellLayout(s, cell, frame: wall.cells[i], cellW: wall.cellW)
+    }
+
+    /// 按此刻的滚动位置建 / 收格子（排版后、滚动时）。外观按本页的（滚动回调里 UITraitCollection.current 不一定是本页的）。
+    func updateCells() {
+        cells.overscan = max(0, scroll.bounds.height) * Self.overscanViewports
+        let visible = scroll.bounds
+        traitCollection.performAsCurrent { cells.update(visible: visible) }
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView === scroll, isViewLoaded else { return }
+        // 渲染过、还没排版：wall 是旧模型的，等排版（已经标了 setNeedsLayout）按新的 wall 建
+        guard wallGeneration == renderGeneration else { return }
+        updateCells()
+        // 滚动时新建的格子的字形图也进了缓存（一轮 = 一次排版，滚动不排版）：这一轮攒到建出来的格子数的两倍（至少 256 张）就收一轮；
+        // 收掉的图还在格子上显示着，只是下一次排版重配时要重画（与现画的逐字节相同）。留两倍：滚过一屏多之后再排版（查字框打字）多半还命中
+        if glyphCache.count > max(256, 2 * cells.liveIndices.count) { glyphCache.endPass() }
+    }
+
+    /// 新建一格（按钮里放拼音标签；点按 → 这一格的字的详情）。
+    private func makeCell() -> CellSlot {
+        let s = CellSlot()
+        s.button.accessibilityIdentifier = "native-library-all-cell"
+        s.py.isUserInteractionEnabled = false
+        s.button.addSubview(s.py)
+        wire(s.button) { [weak b = s.button] page in (page as? LibraryAllScreen)?.openCell(b) }
+        return s
+    }
+
+    /// 一格的内容：拼音、读屏名、墨迹（有就画墨）或标准字形的颜色。框与字形图在 configureCellLayout。
+    private func configureCellContent(_ s: CellSlot, _ cell: Cell) {
+        let mt = metrics
+        let b = s.button, inkView = s.ink, pyLabel = s.py
+        pyLabel.numberOfLines = 1
+        if let py = cell.py, !py.isEmpty {
+            NativeType.set(pyLabel, py, font: mt.font(11), color: color("ink2"), align: .center, line: mt.line("lh11"))
+            pyLabel.isHidden = false
+        } else {
+            pyLabel.isHidden = true
+        }
+        // 有本人的笔迹就画墨，没墨才画标准字形（网页的 Glyph：墨迹有就画墨、没有就画字形）
+        let inked = hasInk(cell)
+        var parts: [String] = []
+        if !inked { parts.append(cell.char) }
+        if let py = cell.py, !py.isEmpty { parts.append(py) }
+        b.composed = parts.joined(separator: " ")
+        b.lineFont = mt.font(15)
+        b.setTitleColor(color("ink1"), for: .normal)
+        b.accessibilityLabel = cellLabel(cell)
+        b.iconSize = .zero
+        b.setImage(nil, for: .normal)
+        // 墨迹只设一次（以前先清空再设回同一份，墨迹小图每次重拉都整张重画）
+        var cellStrokes: [[LibraryInkView.Point]] = []
+        if inked, let strokes = inkOf(cell), !strokes.isEmpty { cellStrokes = strokes }
+        inkView.strokes = cellStrokes
+        inkView.isHidden = cellStrokes.isEmpty
+        if !inked {
+            let tone = cell.tone ?? 3
+            let glyphColor = cell.kind == "hollow" ? color("ink4") : color(wallToken(tone))
+            b.setImage(LibraryGlyph.image(cell.char, size: 0, face: 0.8, color: glyphColor, hollow: cell.kind == "hollow"), for: .normal)
+        } else if !cellStrokes.isEmpty {
+            inkView.ink = color(wallToken(cell.tone ?? 3))
         }
     }
 
-    /// 多久没写 → 墙色（网页 wall.js 的 TONE_COLOR_VARS：wall1…wall4）。
+    /// 一格的框（墙格坐标）、字形图（按格宽）、墨迹小图的框、朱点与命中圈。
+    private func configureCellLayout(_ s: CellSlot, _ cell: Cell, frame: CGRect, cellW: CGFloat) {
+        let mt = metrics
+        let b = s.button, inkView = s.ink
+        let cx = frame.minX, cy = frame.minY
+        b.frame = frame
+        if !hasInk(cell) {
+            b.iconSize = CGSize(width: cellW, height: cellW)
+            b.iconAtLeading = true
+            b.iconAtTop = true
+            b.iconCentered = false
+            let tone = cell.tone ?? 3
+            let glyphColor = cell.kind == "hollow" ? color("ink4") : color(wallToken(tone))
+            b.setImage(glyphCache.image(cell.char, size: cellW, face: 0.8, color: glyphColor, hollow: cell.kind == "hollow"), for: .normal)
+        } else {
+            b.iconSize = .zero
+            b.iconAtTop = false
+            b.setImage(nil, for: .normal)
+        }
+        inkView.frame = CGRect(x: cx + cellW * 0.04, y: cy + cellW * 0.04, width: cellW * 0.92, height: cellW * 0.92)
+        // 写错过的朱点（网页 .sz-lib__mark：右 9% 上 9%，6pt 圆）与查找命中的圈（.sz-all__ring：内缩 1pt、2pt 内描边）
+        let mark = b.viewWithTag(9001) ?? { let v = UIView(); v.tag = 9001; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
+        mark.isHidden = cell.kind != "wrong"
+        mark.backgroundColor = color("zhu")
+        mark.layer.cornerRadius = 3
+        mark.frame = CGRect(x: cellW * 0.91 - 6, y: cellW * 0.09, width: 6, height: 6)
+        let ring = b.viewWithTag(9002) ?? { let v = UIView(); v.tag = 9002; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
+        ring.isHidden = !cell.hit
+        ring.layer.cornerRadius = mt.value("r-work")
+        ring.layer.borderWidth = 2
+        ring.layer.borderColor = color("ink1").resolvedColor(with: traitCollection).cgColor
+        ring.frame = CGRect(x: 1, y: 1, width: cellW - 2, height: cellW - 2)
+        s.py.frame = CGRect(x: 0, y: cellW - 2, width: cellW, height: mt.line("lh11"))
+    }
+
+    /// 多久没写 → 墙色（网页的 TONE_COLOR_VARS：wall1…wall4）。
     private func wallToken(_ tone: Int) -> String {
         switch tone {
         case 0: return "wall1"
@@ -416,13 +551,19 @@ final class LibraryAllScreen: ShiziScreenViewController {
         }
     }
 
-    /// 这一格有没有本人的笔迹（网页 wall.js 的 Glyph：有墨就画墨、没墨才画标准字形）。
+    /// 这一格有没有本人的笔迹（网页的 Glyph：有墨就画墨、没墨才画标准字形）。
     private func hasInk(_ cell: Cell) -> Bool {
-        guard cell.kind == "ink", let rid = cell.record?.id else { return false }
-        return !(inkStrokes[rid] ?? []).isEmpty
+        guard cell.kind == "ink", cell.record?.id != nil else { return false }
+        return !(inkOf(cell) ?? []).isEmpty
     }
 
-    /// 格子给读屏的名字（网页 wall.js 的 cellLabel）。
+    /// 这一格的记录的笔画（回包 ink 里没有这条记录 = nil）。
+    private func inkOf(_ cell: Cell) -> [[LibraryInkView.Point]]? {
+        guard let rid = cell.record?.id, inkStore.has(rid) else { return nil }
+        return inkStore.strokes(rid)
+    }
+
+    /// 格子给读屏的名字（网页的 cellLabel）。
     private func cellLabel(_ cell: Cell) -> String {
         let status: String
         if cell.kind == "hollow" { status = t("R-A02.filterCustomUnwritten") }
@@ -431,7 +572,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         return t("X-LIBHOME.cellAria", ["char": cell.char, "status": status])
     }
 
-    /// 新旧档 → 文案键（网页 wall.js 的 TONE_KEYS）。
+    /// 新旧档 → 文案键（网页的 TONE_KEYS）。
     static func toneKey(_ tone: Int) -> String {
         switch tone {
         case 0: return "X-LIBHOME.tone0"
@@ -465,25 +606,25 @@ final class LibraryAllScreen: ShiziScreenViewController {
         closedMarker.isHidden = m.closed.isEmpty
     }
 
-    private func mt_font15() -> UIFont { metrics.font(15) }
-
     // MARK: 动作
+    /// 输入法闸门（与查询页 Query.editingChanged 同）：拼音还在组字（markedTextRange 不为空）时还不是要找的字，不重拉；
+    /// 选定 / 取消组字时会再来一次 editingChanged，那时按定下的文字找。文字没变也不重拉。
     @objc private func findChanged() {
+        let text = findInput.text ?? ""
+        findPlaceholder.isHidden = !text.isEmpty
+        guard findInput.markedTextRange == nil else { return }
+        guard text != find else { return }
         markStateChange()
-        find = findInput.text ?? ""
-        findPlaceholder.isHidden = !(findInput.text ?? "").isEmpty
+        find = text
         reload()
     }
 
-    /// 点格子 → 单字详情（网页 all.js 的 openDetail）。
+    /// 点格子 → 单字详情（网页的 openDetail）。
     private func openCell(_ b: ShiziLineButton?) {
         guard let b else { return }
         var char = ""
-        for (gi, gv) in groupViews.enumerated() {
-            guard let idx = gv.cellButtons.firstIndex(where: { $0 === b }), gi < groupCells.count else { continue }
-            let cells = groupCells[gi]
-            if idx < cells.count { char = cells[idx].char }
-        }
+        // 建出来的格子里找这个按钮是第几格，字取这一格配的数据（同一份 wall）
+        if let i = cells.index(where: { $0.button === b }), i < wall.cellData.count { char = wall.cellData[i].char }
         guard !char.isEmpty else { return }
         Task { @MainActor [weak self] in
             guard let engine = self?.stage?.engine else { return }
@@ -500,7 +641,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         }
     }
 
-    /// 展开 / 收起一个月份（网页 all.js 的 onFold）。
+    /// 展开 / 收起一个月份（网页的 onFold）。
     private func foldGroup(_ gv: GroupView?) {
         guard let gv, let m = model else { return }
         guard let gi = groupViews.firstIndex(where: { $0 === gv }), gi < m.groups.count else { return }
@@ -522,7 +663,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         reload()
     }
 
-    /// 「练这些字」（网页 all.js 的 onGo → startAllGroup）。
+    /// 「练这些字」（网页的 onGo → startAllGroup）。
     private func start() {
         guard let m = model, let go = m.go else { return }
         Task { @MainActor [weak self] in
@@ -597,75 +738,24 @@ final class LibraryAllScreen: ShiziScreenViewController {
             findbarH += mt.space(2) + mt.line("lh13")
         }
         y = top + findbarH + mt.space(4) // 查字框的下沿 + .sz-all 的 gap s4
-        // 分组（网页 .sz-all__group：组头 + gap s2 + 墙格；组头没有的组只有墙格）
-        let cellW = width / CGFloat(max(1, m.cols))
-        var groupIndex = 0
-        for group in m.groups {
-            guard groupIndex < groupViews.count else { break }
-            let gv = groupViews[groupIndex]
-            groupIndex += 1
-            if groupIndex > 1 { y += mt.space(4) } // .sz-all 的 gap s4（组与组之间）
-            let groupTop = y + mt.space(1) // 组的上外边距 s1
-            let isHead = group.head
-            let isFoldButton = isHead && group.fold == "open"
-            let headH: CGFloat = isHead ? (webHeadHeight(groupIndex - 1) ?? groupHeadHeight(isButton: isFoldButton)) : 0
-            let gridTop = headH > 0 ? headH + mt.space(2) : 0
-            // 墙格
-            let pyH = group.cells.first?.py != nil ? mt.line("lh11") : 0
-            let cellH = cellW + (pyH > 0 ? pyH + mt.space(1) - 2 : 0)
-            let rows = Int(ceil(Double(group.cells.count) / Double(max(1, m.cols))))
-            let gridH = CGFloat(rows) * cellH
-            gv.frame = CGRect(x: x, y: groupTop, width: width, height: gridTop + gridH)
-            gv.headView.frame = CGRect(x: 0, y: 0, width: width, height: headH)
-            gv.headButton.frame = CGRect(x: 0, y: 0, width: width, height: headH)
-            let countW = LibraryCommon.textWidth(group.count.text, mt.fontTabular(15))
-            gv.nameLabel.frame = CGRect(x: 0, y: 0, width: width, height: mt.line("lh22"))
-            // 字数与组名同一条基线（网页 .sz-all__head 是 flex + align-items:baseline）
-            let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
-            let nameBaseline = (mt.line("lh22") - (nameFont.ascender - nameFont.descender)) / 2 + nameFont.ascender
-            let countFont = mt.font(15)
-            let countBaseline = (mt.line("lh15") - (countFont.ascender - countFont.descender)) / 2 + countFont.ascender
-            gv.countLabel.frame = CGRect(x: width - countW, y: nameBaseline - countBaseline, width: countW, height: mt.line("lh15"))
-            gv.cellsMarker.frame = CGRect(x: 0, y: gridTop, width: width, height: gridH)
-            for (ci, cell) in group.cells.enumerated() where ci < gv.cellButtons.count {
-                let b = gv.cellButtons[ci]
-                let inkView = gv.inkViews[ci]
-                let col = ci % max(1, m.cols)
-                let row = ci / max(1, m.cols)
-                let cx = CGFloat(col) * cellW
-                let cy = CGFloat(row) * cellH
-                b.frame = CGRect(x: cx, y: cy, width: cellW, height: cellH)
-                if !hasInk(cell) {
-                    b.iconSize = CGSize(width: cellW, height: cellW)
-                    b.iconAtLeading = true
-                    b.iconAtTop = true
-                    b.iconCentered = false
-                    let tone = cell.tone ?? 3
-                    let glyphColor = cell.kind == "hollow" ? color("ink4") : color(wallToken(tone))
-                    b.setImage(LibraryGlyph.image(cell.char, size: cellW, face: 0.8, color: glyphColor, hollow: cell.kind == "hollow"), for: .normal)
-                } else {
-                    b.iconSize = .zero
-                    b.iconAtTop = false
-                    b.setImage(nil, for: .normal)
-                }
-                inkView.frame = CGRect(x: cx + cellW * 0.04, y: cy + cellW * 0.04, width: cellW * 0.92, height: cellW * 0.92)
-                // 写错过的朱点（网页 .sz-lib__mark：右 9% 上 9%，6pt 圆）与查找命中的圈（.sz-all__ring：内缩 1pt、2pt 内描边）
-                let mark = b.viewWithTag(9001) ?? { let v = UIView(); v.tag = 9001; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
-                mark.isHidden = cell.kind != "wrong"
-                mark.backgroundColor = color("zhu")
-                mark.layer.cornerRadius = 3
-                mark.frame = CGRect(x: cellW * 0.91 - 6, y: cellW * 0.09, width: 6, height: 6)
-                let ring = b.viewWithTag(9002) ?? { let v = UIView(); v.tag = 9002; v.isUserInteractionEnabled = false; b.addSubview(v); return v }()
-                ring.isHidden = !cell.hit
-                ring.layer.cornerRadius = mt.value("r-work")
-                ring.layer.borderWidth = 2
-                ring.layer.borderColor = color("ink1").resolvedColor(with: traitCollection).cgColor
-                ring.frame = CGRect(x: 1, y: 1, width: cellW - 2, height: cellW - 2)
-                let pyLabel = gv.pyLabels[ci]
-                pyLabel.frame = CGRect(x: 0, y: cellW - 2, width: cellW, height: mt.line("lh11"))
-            }
-            y = groupTop + gridTop + gridH
+        // 分组（网页 .sz-all__group：组头 + gap s2 + 墙格；组头没有的组只有墙格）：先把全部组 / 格的框算好，再按框摆
+        let wall = wallLayout(m, width: width, x: x, top: y)
+        self.wall = wall
+        for (gi, box) in wall.groups.enumerated() where gi < groupViews.count {
+            let gv = groupViews[gi]
+            gv.frame = box.frame
+            gv.headView.frame = CGRect(x: 0, y: 0, width: width, height: box.headH)
+            gv.headButton.frame = CGRect(x: 0, y: 0, width: width, height: box.headH)
+            gv.nameLabel.frame = box.nameFrame
+            gv.countLabel.frame = box.countFrame
+            gv.cellsMarker.frame = CGRect(x: 0, y: box.gridTop, width: width, height: box.gridH)
         }
+        // 格子：只建 / 配可见框 ± overscan 里的（滚动时 scrollViewDidScroll 再补；排版收尾时滚动区定了高再核一次）
+        wallGeneration = renderGeneration
+        cells.setItems(wall.cellsInContent)
+        updateCells()
+        y = wall.bottom
+        glyphCache.endPass()
         // 收起的月份（网页 .sz-all__closed：上外边距 s2、顶边 0.5 分隔线）
         if !m.closed.isEmpty {
             let monthH = max(52, mt.line("lh15") + LibraryCommon.hair)
@@ -705,6 +795,60 @@ final class LibraryAllScreen: ShiziScreenViewController {
         bodyMarker.frame = CGRect(x: x, y: top, width: width, height: max(0, min(y - top, avail)))
         layoutFooter(width: width, x: x)
         return y
+    }
+
+    /// 全部组 / 格的框（网页 .sz-all__group：组的上外边距 s1、组与组之间 gap s4；组头 + gap s2 + 墙格，组头没有的组只有墙格）。
+    /// 只算数，不碰视图；top = 第一组之前的 y（content 坐标），x / width = 页边与正文宽。
+    func wallLayout(_ m: View, width: CGFloat, x: CGFloat, top: CGFloat) -> WallLayout {
+        let mt = metrics
+        var out = WallLayout()
+        let cols = max(1, m.cols)
+        let cellW = width / CGFloat(cols)
+        out.cellW = cellW
+        let total = m.groups.reduce(0) { $0 + $1.cells.count }
+        out.cells.reserveCapacity(total)
+        out.cellsInContent.reserveCapacity(total)
+        out.cellGroup.reserveCapacity(total)
+        out.cellData.reserveCapacity(total)
+        // 组头里字数与组名同一条基线（网页 .sz-all__head 是 flex + align-items:baseline）：各组一样，先算好
+        let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
+        let nameBaseline = (mt.line("lh22") - (nameFont.ascender - nameFont.descender)) / 2 + nameFont.ascender
+        let countFont = mt.font(15)
+        let countBaseline = (mt.line("lh15") - (countFont.ascender - countFont.descender)) / 2 + countFont.ascender
+        var y = top
+        for (gi, group) in m.groups.enumerated() {
+            if gi > 0 { y += mt.space(4) } // .sz-all 的 gap s4（组与组之间）
+            let groupTop = y + mt.space(1) // 组的上外边距 s1
+            let isHead = group.head
+            let isFoldButton = isHead && group.fold == "open"
+            let headH: CGFloat = isHead ? (webHeadHeight(gi) ?? groupHeadHeight(isButton: isFoldButton)) : 0
+            let gridTop = headH > 0 ? headH + mt.space(2) : 0
+            // 墙格
+            let pyH = group.cells.first?.py != nil ? mt.line("lh11") : 0
+            let cellH = cellW + (pyH > 0 ? pyH + mt.space(1) - 2 : 0)
+            let rows = Int(ceil(Double(group.cells.count) / Double(cols)))
+            let gridH = CGFloat(rows) * cellH
+            let countW = LibraryCommon.textWidth(group.count.text, mt.fontTabular(15))
+            let frame = CGRect(x: x, y: groupTop, width: width, height: gridTop + gridH)
+            out.groups.append(WallLayout.GroupBox(
+                frame: frame, headH: headH, gridTop: gridTop, gridH: gridH,
+                nameFrame: CGRect(x: 0, y: 0, width: width, height: mt.line("lh22")),
+                countFrame: CGRect(x: width - countW, y: nameBaseline - countBaseline, width: countW, height: mt.line("lh15")),
+                firstCell: out.cells.count, cellCount: group.cells.count))
+            let originX = frame.minX, originY = frame.minY + gridTop
+            for (ci, cell) in group.cells.enumerated() {
+                let col = ci % cols
+                let row = ci / cols
+                let r = CGRect(x: CGFloat(col) * cellW, y: CGFloat(row) * cellH, width: cellW, height: cellH)
+                out.cells.append(r)
+                out.cellsInContent.append(r.offsetBy(dx: originX, dy: originY))
+                out.cellGroup.append(gi)
+                out.cellData.append(cell)
+            }
+            y = groupTop + gridTop + gridH
+        }
+        out.bottom = y
+        return out
     }
 
     /// 网页 .sz-all__head 的高：名字（宋体 fs22 / 行高 lh22）与计数（黑体 fs15）基线对齐后的行盒。
@@ -757,6 +901,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
         // 基类按自己的页头高度重设了滚动区 → 再摆回网页的口径
         kit.layoutHeader(trailButtonWidth: trailButtonWidth, trailSlotWidth: trailSlotWidth)
         kit.adjustScroll(hasFooter: hasFooter)
+        updateCells() // 滚动区的高到这里才定（底栏让出之后）
     }
 
     /// 系统字号档的连续倍率（网页 --k）。
@@ -779,7 +924,7 @@ final class LibraryAllScreen: ShiziScreenViewController {
     }
 }
 
-/// 「排序 · 筛选」弹层（网页 components/Sheet.js + all.js 的 AllMenuSheet：标题 + 完成 / 排序三键 / 筛选项 / 图例 / 说明句）。
+/// 「排序 · 筛选」弹层（网页版的 AllMenuSheet：标题 + 完成 / 排序三键 / 筛选项 / 图例 / 说明句）。
 /// 原生这边是一个呈现出来的控制器（网页那边是遮罩栈里的一层）；控制器的根视图就是面板。
 final class LibraryAllMenuController: UIViewController, UIViewControllerTransitioningDelegate, NativeSheetSizing {
     var onSort: ((String) -> Void)?
@@ -973,7 +1118,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         // 页头：标题（fs17 / lh17s）与「完成」（文字按钮；AX 档最小高 = max(44, 1.3em + 12)）
         let doneH = LibraryCommon.isAX ? LibraryCommon.axTextButtonHeight(fontSize: mt.value("fs15")) : mt.hit
         m.head = max(mt.line("lh17s"), doneH)
-        // 排序三键：键里的字按 WebKit 口径折行（网页 Button.js 的字可折行），三键取最高的那个
+        // 排序三键：键里的字按 WebKit 口径折行（网页的字可折行），三键取最高的那个
         if showSort {
             let bw = (innerW - 6) / CGFloat(max(1, sorts.count))
             var lines = 1
@@ -1055,7 +1200,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                 b.frame = CGRect(x: 3 + CGFloat(i) * bw, y: 3, width: bw - 0.05, height: sortH) // 少 0.05pt：三键首尾相接，取证按 0.1pt 取整会量出 0.1pt 的重叠
                 // 按钮里的字（原生按钮不画字，字放在子视图里）
                 let l = sortLabels[i]
-                // 网页 Button.js 的字按词折行；原生按同样的折行点换行（行数与网页一致）
+                // 网页的字按词折行；原生按同样的折行点换行（行数与网页一致）
                 let lines = LibraryText.webWrap(s.label.text, font: mt.font(15), width: bw)
                 l.numberOfLines = 0
                 NativeType.set(l, lines.joined(separator: "\n"), font: mt.font(15), color: s.active ? color("ink1") : color("ink2"), align: .center, line: mt.line("lh15"))
@@ -1216,7 +1361,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
                 l.frame = CGRect(x: cx + item.0 - item.1, y: cy, width: item.1, height: lineH)
                 let sw = legendSwatches[i]
                 if i < 4 {
-                    // 网页 wall.js 的 Swatch：viewBox 40×14 里的一笔横（宽 20 高 7，缩放 0.5）
+                    // 网页的 Swatch：viewBox 40×14 里的一笔横（宽 20 高 7，缩放 0.5）
                     sw.backgroundColor = .clear
                     sw.frame = CGRect(x: cx, y: cy + (lineH - 7) / 2, width: 20, height: 7)
                     let shape: CAShapeLayer
@@ -1253,7 +1398,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
         }
     }
 
-    /// 网页 wall.js Swatch 的 path（viewBox 40×14）。
+    /// 网页 Swatch 的 path（viewBox 40×14）。
     static let swatchPath: UIBezierPath = {
         let p = UIBezierPath()
         p.move(to: CGPoint(x: 1.5, y: 7.6))

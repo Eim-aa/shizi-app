@@ -1,6 +1,6 @@
 import UIKit
 
-// 年报（B3.9；网页 ui/screens/mine/annual.js 的原生版）。
+// 年报（B3.9；网页的原生版）。
 //
 // 版式（网页 .sz-ann）：卷首（「二〇二六」宋 34 / 42 → 「这一年，你拾回三十六个字。」17 / 26 → 今年第一个字（132 的格 + 「今年首字」+ 日期））
 //   → 每月一段（上边一条发丝线、月名宋 22 + 右侧「{n} 字」、8 列 45 的格、无格线、墨内边 9%；点一段进那个月的字帖）
@@ -9,25 +9,27 @@ import UIKit
 //
 // 「调整图片 / 保存图片」在原生这边直接开原生图片预览（B3.11：NativeImagePreviewController + image.* op，与结果页同一条路）。
 //
-// 文案与数据来自会话层（src/session/views/mine-sub.js annualView → App API view.annual）；本页不写汉字与数值。
+// 文案与数据来自会话层（annualView → App API view.annual）；本页不写汉字与数值。
 
 @objc(ShiziScreen_annual)
-final class AnnualScreen: ShiziScreenViewController {
+final class AnnualScreen: ShiziScreenViewController, UIScrollViewDelegate {
     struct View: Decodable {
         struct Cell: Decodable {
             let ch: String
-            let ink: ShiziInkBox?
+            var ink: ShiziInkBox?
             let mode: String
             let tag: String
             let day: String
             let recordId: String
             let label: ShiziCopyRef
+            /// 墨迹键（view.annual 带 lazyInk 时有墨迹的格才有；这时 ink 是 null，墨迹按需用 view.annual.ink 取）。
+            let inkKey: String?
         }
         struct First: Decodable {
             let char: String
             let day: String
             let recordId: String
-            let ink: ShiziInkBox?
+            var ink: ShiziInkBox?
             let label: ShiziCopyRef
             let date: ShiziCopyRef
         }
@@ -38,20 +40,20 @@ final class AnnualScreen: ShiziScreenViewController {
             let name: ShiziCopyRef
             let count: ShiziCopyRef
             let aria: ShiziCopyRef
-            let cells: [Cell]
+            var cells: [Cell]
         }
         struct Side: Decodable {
             let recordId: String
             let day: String
-            let ink: ShiziInkBox?
+            var ink: ShiziInkBox?
             let label: ShiziCopyRef
             let date: ShiziCopyRef
         }
         struct Twice: Decodable {
             let char: String
             let title: ShiziCopyRef
-            let first: Side
-            let last: Side
+            var first: Side
+            var last: Side
         }
         let today: String
         let year: Int
@@ -63,9 +65,9 @@ final class AnnualScreen: ShiziScreenViewController {
         let days: Int
         let coverYear: String
         let coverLine: ShiziCopyRef
-        let first: First?
-        let months: [Month]
-        let twice: Twice?
+        var first: First?
+        var months: [Month]
+        var twice: Twice?
         let emptyTitle: ShiziCopyRef
         let emptyBody: ShiziCopyRef
         let emptyGlyph: ShiziCopyRef
@@ -94,10 +96,60 @@ final class AnnualScreen: ShiziScreenViewController {
     private let hairline: CGFloat = 1.0 / 3.0
     private let textBtnPad: CGFloat = 4
 
-    /// 不进取证的装饰视图（格的内框、发丝线）按 tag 找，不存成员（成员名会被取证当元素）。
+    /// 不进取证的装饰视图（格的内框、发丝线）与月段的格网容器按 tag 找，不存成员（成员名会被取证当元素）。
     private static let insetFrameTag = 9931
     private static let twiceHairTag = 9932
     private static let monthHairTag = 9933
+    static let monthGridTag = 9934
+
+    /// 月段格网里的一格：格（容器，不进读屏）+ 本人墨（有墨迹时）+ 衬底字（没有墨迹时，画在墨的内框里）。
+    @MainActor
+    final class CellSlot {
+        let cell = UIView()
+        let ink = ShiziPointsInkView()
+        let glyph = NativeGlyphView()
+        /// 上次按哪一格（grid 的序号）、哪一次渲染的数据（gridGeneration）配的内容；都没变时重排只重摆框。
+        var index = -1
+        var generation = -1
+
+        init() {
+            cell.isAccessibilityElement = false
+            // 不吃点按：点到格子上时命中的就是段按钮本身（交给按钮的 touchUpInside，不靠普通子视图往上传）
+            cell.isUserInteractionEnabled = false
+            // 墨到了视口附近才画：由页面的滚动回调统一判（不是每格一个 contentOffset 的 KVO）
+            ink.watchesScroll = false
+            cell.addSubview(ink)
+            cell.addSubview(glyph)
+        }
+    }
+
+    /// 每月一段的排版结果：每段、每格的框（纯几何，排版时一次算完全部；视图按它摆）。
+    struct MonthsLayout {
+        struct MonthBox {
+            /// 段按钮在 content 里的框（上边一条发丝线 + 上内边距 + 月名一行 + 间距 + 格网 + 下边距）。
+            var frame: CGRect
+            /// 月名 / 字数在按钮里的框（基线对齐的一行）。
+            var nameFrame: CGRect
+            var countFrame: CGRect
+            /// 这一段第一格在 cells 里的序号、格数。
+            var firstCell: Int
+            var cellCount: Int
+        }
+        var months: [MonthBox] = []
+        /// 列数（AX 档 6，其余 8）与格边长（整页一样）。
+        var cols = 8
+        var cellSide: CGFloat = 0
+        /// 每格在所在段的格网容器里的框（格网容器铺满段按钮，坐标同按钮）；按段、段里按格的顺序排平。
+        var cells: [CGRect] = []
+        /// 每格在 content 里的框（= 段的原点 + 格在按钮里的框）。
+        var cellsInContent: [CGRect] = []
+        /// 每格属于第几段。
+        var cellMonth: [Int] = []
+        /// 每格的数据（排这一版时的模型）。
+        var cellData: [View.Cell] = []
+        /// 最后一段的下沿（content 坐标）。
+        var bottom: CGFloat = 0
+    }
 
     // 视图（成员名 / accessibilityIdentifier 是 QA 取证的语义键：keys/annual.mjs）
     let bodyMarker = UIView()
@@ -122,7 +174,30 @@ final class AnnualScreen: ShiziScreenViewController {
     private let firstInk = ShiziPointsInkView()
     private let firstGlyph = NativeGlyphView()
     private var monthButtons: [ShiziRowButton] = []
-    private var monthCells: [[UIView]] = []
+    /// 最近一次排版算出的全部段 / 格的框。
+    private(set) var grid = MonthsLayout()
+    /// 第几次渲染（renderModel 一次加一）：格子的内容按渲染配，框按排版配。
+    private var renderGeneration = 0
+    /// 此刻的 grid（格子的数据与框）是按第几次渲染的模型排出来的：layoutBody 在 setItems 之前设成 renderGeneration。
+    /// 格子内容按它记（不按 renderGeneration）：渲染之后、排版之前建的格子用的还是旧 grid 的数据，不能记成新的一次渲染。
+    private var gridGeneration = -1
+    /// 可见框上下各多建几屏高（且至少几行格子）的格子。2.5 屏：冻结的逐屏基线里最深的月段格子
+    /// （annual-report AX5：格的上沿在内容里 1725.3pt，可视区 534.3pt）要在打开时就建出来（取证连屏外滚得到的墨格一起记），需要 > 2.23 屏
+    /// （2.5 屏 = 1335.8pt，余 144.8pt）；8 行：可视区很矮时也至少多建 8 行。
+    static let overscanViewports: CGFloat = 2.5
+    static let overscanRows: CGFloat = 8
+    /// 月段的格子：只建可见框 ± overscan 里的（ShiziLazyCells）。序号 = grid.cells 的序号。
+    private(set) lazy var cells = ShiziLazyCells<CellSlot>(
+        make: { _ in CellSlot() },
+        attach: { [unowned self] s, i, following in self.attachCell(s, i, following) },
+        detach: { s in s.cell.removeFromSuperview() },
+        configure: { [unowned self] s, i in self.configureCell(s, i) })
+    /// 墨色 / 衬底字色：外观（浅 / 深）没变、且浅 / 深两套解析出来都没变时一直用同一个对象（color(_:) 每次新建一个动态色；
+    /// 同一个对象 → 墨视图 / 衬底字不必重画）。外观一变就换新的对象：建出来的格子随这次渲染重配、全部重画，池子里的格子下次配时重画。
+    private var handColor: UIColor?
+    private var underColor: UIColor?
+    /// 上面两个颜色对象是在哪个外观下定的。
+    private var colorStyle: UIUserInterfaceStyle?
     private var twiceTitle = UILabel()
     private var twiceFirstCell = UIView()
     private var twiceLastCell = UIView()
@@ -134,6 +209,44 @@ final class AnnualScreen: ShiziScreenViewController {
     private var sealPath: [[Any]] = []
     /// 每一段对应哪个月份（按钮按下时按对象取）。
     private var monthKeys: [ObjectIdentifier: String] = [:]
+
+    // 月段格的墨迹按需取（view.annual 带 lazyInk：月段的格只带 inkKey，墨迹由 view.annual.ink 分批取）。
+    // 每次排版 / 滚动（updateCells）之后，建出来的格子里缺墨迹的键并成一次请求（同一轮主线程里的几次 updateCells 只发一次，
+    // 一次至多 AnnualInkDecode.batch 个键，离可见框近的先取）；取回的在后台队列上解，回到主线程记进 inkCache 并配给还是那一格的格子。
+    // 墨迹到之前，格子与「墨还没到视口附近」一模一样：墨视图在、没有点（什么也不画）、衬底字藏着；到了之后与整份回包逐像素相同。
+
+    /// 第几份回包（render 解出一份新收到的回包时加一）：取来的墨迹、在路上的请求都按它记，回包换了就作废、清空。
+    private(set) var payloadGeneration = 0
+    /// apply 收到了一份新的回包、还没在 render 里解出来（外观切换的重新渲染用的是同一份回包，不算新的）。
+    private var freshPayload = false
+    /// 此刻的 model 是第几份回包的（render 设）；此刻的 grid 是第几份回包的（layoutBody 与 gridGeneration 一起设）。
+    private var renderPayload = -1
+    private var gridPayload = -1
+    /// 这份回包里取到的墨迹：inkKey → 笔画（[] = 取到了、没有可画的）。整页一直留着（滚走再滚回来不再取），回包换了清空。
+    private(set) var inkCache: [String: [[ShiziInkPoint]]] = [:]
+    /// 上一份（及更早还没换掉的）回包取到的墨迹：新回包来了先拿它垫着画（重拉 / changed 推送 / 回到年报时墨不闪成空的），
+    /// 照样按新回包重取（missingInkKeys 不看它、inkPending 照样等重取的到）；建出来的格子的墨都重取到了、或再来一份回包时扔掉。
+    private(set) var provisionalInk: [String: [[ShiziInkPoint]]] = [:]
+    /// 上次按哪一组建出来的格子（序号范围、个数）、哪一版 grid / 回包数过缺的键：没变就不再数（滚动的每一帧）。
+    private struct InkLiveSignature: Equatable {
+        var first: Int
+        var last: Int
+        var count: Int
+        var grid: Int
+        var payload: Int
+    }
+    private var inkCheckedLive: InkLiveSignature?
+    /// 在路上的键。
+    private var inkInFlight = Set<String>()
+    /// 取不到的键（引擎回 ok:false：不可用 / 重载中）：这份回包里不再取（引擎重新就绪、数据变了会整页重拉，换一份回包）。
+    private var inkFailed = Set<String>()
+    /// 这一轮主线程里已经排了一次取。
+    private var inkFetchQueued = false
+    /// 取墨迹的通道（测试注入）；nil = 经 stage 的引擎发 view.annual.ink。
+    var inkFetcher: (@MainActor ([String]) async -> [String: Any])?
+    /// 发出去的请求（每次的键；只留最近 64 次，测试 / 诊断用）与次数。
+    private(set) var inkRequestLog: [[String]] = []
+    private(set) var inkRequestCount = 0
 
     override func viewDidLoad() {
         bodyMarker.accessibilityIdentifier = "native-annual-body"
@@ -159,6 +272,8 @@ final class AnnualScreen: ShiziScreenViewController {
             content.addSubview(v)
         }
         for v in [yearLabel, headLabel, firstLabel, firstDate, emptyTitle, emptyBody] as [UIView] { content.addSubview(v) }
+        // 墨到了视口附近才画：页面的滚动回调统一判（scrollViewDidScroll → refreshInkNear）
+        for v in [firstInk, twiceFirstInk, twiceLastInk] { v.watchesScroll = false }
         firstCell.addSubview(firstInk)
         firstCell.addSubview(firstGlyph)
         firstCell.addSubview(firstCanvas)
@@ -209,17 +324,138 @@ final class AnnualScreen: ShiziScreenViewController {
         wire(nextButton) { page in (page as? AnnualScreen)?.pickYear(1) }
         super.viewDidLoad()
         setTitle(t("X-MINE.annual"))
+        scroll.delegate = self
     }
 
     override var watchedDomains: [String]? { ["records", "ink"] }
 
+    /// 重拉 view.annual 时带上 lazyInk（打开时由 AppHostIO.view 带）：月段的格只要 inkKey，墨迹按需取。
+    override var reloadArgs: [String: Any] {
+        var a = params
+        a[AnnualInkDecode.viewFlag] = true
+        return a
+    }
+
+    /// QA 取证：建出来的格子的墨迹都到了才算好（NativeQAHarness.qaWaitContent；到了之后的重画由取证前的落定等）。
+    override var pendingContent: Bool { inkPending }
+
     // MARK: 视图
 
+    override func apply(payload: [String: Any]) {
+        // 一份新的回包（外观切换的重新渲染不经这里）：取来的墨迹等它在 render 里解出来再作废
+        if (payload["ok"] as? Bool) == true, payload["view"] != nil { freshPayload = true }
+        super.apply(payload: payload)
+    }
+
     override func render(view raw: Any) throws {
-        let m = try ShiziDecode.value(raw, as: View.self)
+        let m = try Self.decodeView(raw)
+        if freshPayload {
+            freshPayload = false
+            startInkPayload()
+        }
+        renderPayload = payloadGeneration
         model = m
         if let s = (raw as? [String: Any])?["seal"] as? [[Any]] { sealPath = s }
         renderModel(m)
+    }
+
+    // MARK: 回包 view → View
+
+    /// 回包 view → View；解不了就 throw（同以前的 ShiziDecode.value(raw, as: View.self)）。
+    /// 每格墨迹 ink = {points: [笔, …]}，一笔有两种形状（ShiziCore AnnualInkWire，同字库页 LibraryInkWire）：平铺 [步长, x, y, (w), …]，
+    /// 或每点一个 {x, y, w?}。任何输入解出来都 = 把平铺展开成旧形状（expandInk）再整份经 ShiziDecode.value 解出来的，逐位相同。
+    /// 先走 decodeViewDirect：墨迹直接从字典 / 数组读（LibraryInkView.decodeInkDirect，不经 JSON 往返），只有去掉墨迹的 view 经 ShiziDecode.value；
+    /// 它不认得的一律交回原路。
+    static func decodeView(_ raw: Any) throws -> View {
+        if let direct = decodeViewDirect(raw) { return direct }
+        return try ShiziDecode.value(expandInk(raw), as: View.self)
+    }
+
+    /// 墨迹所在的格：今年首字 first.ink、每月一段 months[i].cells[j].ink、卷尾 twice.first / last.ink（键是本函数自己起的名）。
+    /// 每格的 ink 只收 null / 缺省，或只有 points 一个键的字典、points 是数组、其中旧形状的点只有 x / y / w 三个键
+    /// （ShiziInkPoint 的 t / p 由原路解；引擎现在不发），笔画交 LibraryInkView.decodeInkDirect；去掉墨迹的 view 经 ShiziDecode.value 解，
+    /// 再把笔画放回各格（t / p = nil，同原路解没有 t / p 的点）。哪一步不行 → nil（调用方走原路）。
+    static func decodeViewDirect(_ raw: Any) -> View? {
+        guard var root = raw as? [String: Any] else { return nil }
+        var ink: [String: Any] = [:]
+        var ok = true
+        /// 一格（含 ink 键的字典）：收下它的笔画、ink 换成 null。
+        func take(_ holder: Any, _ key: String) -> Any {
+            guard ok, var h = holder as? [String: Any] else { return holder }
+            guard let box = h["ink"], !(box is NSNull) else { return holder }
+            guard let o = box as? [String: Any], o.count == 1, let strokes = o["points"] as? [Any], onlyXYW(strokes) else {
+                ok = false
+                return holder
+            }
+            ink[key] = strokes
+            h["ink"] = NSNull()
+            return h
+        }
+        if let f = root["first"] { root["first"] = take(f, "f") }
+        if let ms = root["months"] as? [Any] {
+            var outMonths: [Any] = []
+            outMonths.reserveCapacity(ms.count)
+            for (i, mRaw) in ms.enumerated() {
+                guard var mo = mRaw as? [String: Any], let cells = mo["cells"] as? [Any] else {
+                    outMonths.append(mRaw)
+                    continue
+                }
+                var outCells: [Any] = []
+                outCells.reserveCapacity(cells.count)
+                for (j, c) in cells.enumerated() { outCells.append(take(c, "m\(i).\(j)")) }
+                mo["cells"] = outCells
+                outMonths.append(mo)
+            }
+            root["months"] = outMonths
+        }
+        if var t = root["twice"] as? [String: Any] {
+            if let s = t["first"] { t["first"] = take(s, "tf") }
+            if let s = t["last"] { t["last"] = take(s, "tl") }
+            root["twice"] = t
+        }
+        guard ok, let strokes = LibraryInkView.decodeInkDirect(ink), var m = try? ShiziDecode.value(root, as: View.self) else { return nil }
+        func box(_ key: String) -> ShiziInkBox? {
+            guard let ss = strokes[key] else { return nil }
+            return ShiziInkBox(points: ss.map { s in s.map { ShiziInkPoint(x: $0.x, y: $0.y, w: $0.w, t: nil, p: nil) } })
+        }
+        if m.first != nil { m.first?.ink = box("f") }
+        for i in m.months.indices {
+            for j in m.months[i].cells.indices { m.months[i].cells[j].ink = box("m\(i).\(j)") }
+        }
+        if m.twice != nil {
+            m.twice?.first.ink = box("tf")
+            m.twice?.last.ink = box("tl")
+        }
+        return m
+    }
+
+    /// 旧形状的点（字典）只有 x / y / w 键；平铺的笔（头一个是数）不看（由 decodeInkDirect 认）。
+    private static func onlyXYW(_ strokes: [Any]) -> Bool { AnnualInkDecode.onlyXYW(strokes) }
+
+    /// 原路（ShiziDecode.value）只认旧形状：每格 ink.points 里平铺的笔展开成每点一个 {x, y, w?}（LibraryInkView.expandFlat，值原样搬）；别的原样留着。
+    static func expandInk(_ raw: Any) -> Any {
+        guard var root = raw as? [String: Any] else { return raw }
+        if let f = root["first"] { root["first"] = expandSlot(f) }
+        if let ms = root["months"] as? [Any] {
+            root["months"] = ms.map { mRaw -> Any in
+                guard var mo = mRaw as? [String: Any], let cells = mo["cells"] as? [Any] else { return mRaw }
+                mo["cells"] = cells.map { expandSlot($0) }
+                return mo
+            }
+        }
+        if var t = root["twice"] as? [String: Any] {
+            if let s = t["first"] { t["first"] = expandSlot(s) }
+            if let s = t["last"] { t["last"] = expandSlot(s) }
+            root["twice"] = t
+        }
+        return root
+    }
+
+    private static func expandSlot(_ holder: Any) -> Any {
+        guard var h = holder as? [String: Any], var box = h["ink"] as? [String: Any], let pts = box["points"] else { return holder }
+        box["points"] = LibraryInkView.expandFlat(["p": pts])["p"] ?? pts
+        h["ink"] = box
+        return h
     }
 
     private func setSong(_ l: UILabel, _ text: String, size: CGFloat, weight: UIFont.Weight = .regular, color c: UIColor, line: CGFloat? = nil) {
@@ -243,6 +479,16 @@ final class AnnualScreen: ShiziScreenViewController {
 
     private func renderModel(_ m: View) {
         let mt = metrics
+        // 格子在排版时按框建 / 配（layoutBody → updateCells）；这一次渲染的内容要重配
+        renderGeneration += 1
+        // 外观切换（基类 traitCollectionDidChange → 重新渲染）时不沿用旧的颜色对象：不单靠 UIKit 自己重画
+        let style = traitCollection.userInterfaceStyle
+        let sameStyle = style == colorStyle
+        let hand = sameStyle ? Self.keep(handColor, color("hand")) : color("hand")
+        let under = sameStyle ? Self.keep(underColor, color("under")) : color("under")
+        handColor = hand
+        underColor = under
+        colorStyle = style
         // 空态
         let isEmpty = m.empty
         bodyMarker.isHidden = false
@@ -292,7 +538,7 @@ final class AnnualScreen: ShiziScreenViewController {
                 firstInk.isHidden = false
                 firstInk.points = ink.points
                 firstInk.pad = 0.12 // 网页 CellCanvas 缺省 INK_PAD
-                firstInk.inkColor = color("hand")
+                firstInk.inkColor = hand
                 firstInk.widthScale = ShiziInkScale.scale(firstSide, 1 - 2 * 0.12)
                 firstGlyph.isHidden = true
             } else {
@@ -314,9 +560,10 @@ final class AnnualScreen: ShiziScreenViewController {
         }
         // 每月一段
         if monthButtons.count != m.months.count {
+            // 格子先收进池子（它们在旧按钮的格网里）；排版时按新的 grid 放进新按钮
+            cells.removeAll()
             monthButtons.forEach { $0.removeFromSuperview() }
             monthButtons = []
-            monthCells = []
             for _ in m.months {
                 let b = ShiziRowButton(frame: .zero)
                 // 每段上边一条发丝线（网页 .sz-ann__month 的 border-top）：按钮里的子视图不进取证
@@ -324,6 +571,13 @@ final class AnnualScreen: ShiziScreenViewController {
                 hair.tag = Self.monthHairTag
                 hair.isUserInteractionEnabled = false
                 b.addSubview(hair)
+                // 格网容器：铺满按钮（格子的框照旧是按钮坐标，一位不差），格子按序号放在里面；不画东西、不进读屏（按钮本身是读屏元素）。
+                // 不吃点按（连同里面的格子）：段按钮上哪里都是按钮自己命中，点按直接走按钮的 touchUpInside
+                let gridView = UIView()
+                gridView.tag = Self.monthGridTag
+                gridView.isAccessibilityElement = false
+                gridView.isUserInteractionEnabled = false
+                b.addSubview(gridView)
                 content.addSubview(b)
                 monthButtons.append(b)
                 let key = ObjectIdentifier(b)
@@ -331,7 +585,6 @@ final class AnnualScreen: ShiziScreenViewController {
                     guard let page = page as? AnnualScreen else { return }
                     page.openMonth(page.monthKeys[key] ?? "")
                 }
-                monthCells.append([])
             }
         }
         for (i, sec) in m.months.enumerated() {
@@ -349,42 +602,7 @@ final class AnnualScreen: ShiziScreenViewController {
             // 按钮自己的字色（网页 .sz-ann__month：color:inherit = ink1）
             b.setTitleColor(color("ink1"), for: .normal)
             b.viewWithTag(Self.monthHairTag)?.backgroundColor = color("line")
-            // 每一段里的格子
-            let cols = axLayout ? 6 : 8
-            let cellSide: CGFloat = axLayout ? floor((view.bounds.width - 40) / 6) : min(45, floor((view.bounds.width - 40) / 8))
-            if monthCells[i].count != sec.cells.count {
-                monthCells[i].forEach { $0.removeFromSuperview() }
-                monthCells[i] = sec.cells.map { c in
-                    let cell = UIView()
-                    cell.isAccessibilityElement = false
-                    let ink = ShiziPointsInkView()
-                    ink.pad = 0.09
-                    ink.inkColor = color("hand")
-                    cell.addSubview(ink)
-                    let g = NativeGlyphView()
-                    g.char = c.ch
-                    g.color = color("under")
-                    g.padRatio = 0.06
-                    cell.addSubview(g)
-                    b.addSubview(cell)
-                    return cell
-                }
-            }
-            for (j, c) in sec.cells.enumerated() {
-                let cell = monthCells[i][j]
-                let ink = cell.subviews.first as? ShiziPointsInkView
-                let glyph = cell.subviews.last as? NativeGlyphView
-                glyph?.char = c.ch
-                if let box = c.ink, c.mode == "hand" {
-                    ink?.isHidden = false
-                    ink?.points = box.points
-                    ink?.widthScale = ShiziInkScale.scale(cellSide, 1 - 2 * 0.09)
-                    glyph?.isHidden = true
-                } else {
-                    ink?.isHidden = true
-                    glyph?.isHidden = false
-                }
-            }
+            // 每一段里的格子：排版时只建 / 配可见框 ± overscan 里的（layoutBody → updateCells；内容按 gridGeneration 记）
         }
         // 卷尾：同一个字，两次
         if let twice = m.twice {
@@ -392,8 +610,8 @@ final class AnnualScreen: ShiziScreenViewController {
             twiceTitle.accessibilityLabel = twice.title.text
             twiceFirstCell.backgroundColor = color("sheet")
             twiceLastCell.backgroundColor = color("sheet")
-            twiceFirstInk.inkColor = color("hand")
-            twiceLastInk.inkColor = color("hand")
+            twiceFirstInk.inkColor = hand
+            twiceLastInk.inkColor = hand
             twiceFirstInk.widthScale = ShiziInkScale.scale(twiceSide, 1 - 2 * 0.12)
             twiceLastInk.widthScale = ShiziInkScale.scale(twiceSide, 1 - 2 * 0.12)
             twiceFirstInk.pad = 0.12
@@ -438,6 +656,243 @@ final class AnnualScreen: ShiziScreenViewController {
         b.titleLabel?.font = NativeType.compose(size: metrics.value("fs15"), weight: .regular)
         b.backgroundColor = .clear
         b.setImage(icon.image(color(enabled ? "ink2" : "ink4"), size: 18), for: .normal)
+    }
+
+    /// 段按钮里的格网容器。
+    private func monthGrid(_ b: UIView) -> UIView? { b.viewWithTag(Self.monthGridTag) }
+
+    /// 颜色没变（浅 / 深两套解析出来的都是同一个颜色）就留着原来的对象。ShiziTokens.dynamicColor 的动态色只按 userInterfaceStyle 取两套之一，
+    /// 两套都相同 = 在任何外观下都相同（缺令牌时的 .label 同理：两边都是它）。
+    static func keep(_ old: UIColor?, _ new: UIColor) -> UIColor {
+        guard let old else { return new }
+        for style in [UIUserInterfaceStyle.light, .dark] {
+            let t = UITraitCollection(userInterfaceStyle: style)
+            if !old.resolvedColor(with: t).isEqual(new.resolvedColor(with: t)) { return new }
+        }
+        return old
+    }
+
+    /// 第 i 格放进它那一段的格网：插在 following（下一个已建好的格子）前面，同一段里按序号排。已经在这一段的格网里就不动
+    /// （同一段里留下来的格子之间的先后本来就按序号）。
+    private func attachCell(_ s: CellSlot, _ i: Int, _ following: CellSlot?) {
+        guard i < grid.cellMonth.count else { return }
+        let mi = grid.cellMonth[i]
+        guard mi < monthButtons.count, let g = monthGrid(monthButtons[mi]) else { return }
+        if s.cell.superview === g { return }
+        if let f = following, f.cell.superview === g {
+            g.insertSubview(s.cell, belowSubview: f.cell)
+        } else {
+            g.addSubview(s.cell)
+        }
+    }
+
+    /// 按第 i 格配：内容（换了格子或有新的渲染）+ 框（每次排版）。池子里拿出来的格子带着上一格的状态，内容与框里的每一样都重设。
+    private func configureCell(_ s: CellSlot, _ i: Int) {
+        guard i < grid.cellData.count else { return }
+        if s.index != i || s.generation != gridGeneration {
+            // 换了一格用：墨回到「还没到视口附近」（同新建的一格；按新的位置再判，屏外的不提前画）
+            if s.index != i { s.ink.resetNear() }
+            configureCellContent(s, grid.cellData[i])
+            s.index = i
+            s.generation = gridGeneration
+        }
+        configureCellLayout(s, frame: grid.cells[i], side: grid.cellSide)
+    }
+
+    /// 按此刻的滚动位置建 / 收格子（排版后、滚动时），再让墨按此刻的位置判要不要画。外观按本页的。
+    /// 可见框按底栏让出之后的滚动区算（settledScrollHeight）：基类排版时先把滚动区设成整高、再调 layoutBody，
+    /// 本页的 viewDidLayoutSubviews 才让出底栏（layoutFooter）。以前 layoutBody 里这一次按那一刻的整高建，每次排版都多建几行、
+    /// 紧接着又收掉，那几格的墨迹键还排了一次取（到时按收掉之后的格子数，什么也不取），inkPending 因此在每次排版之后白白为真一轮
+    /// （例：切外观的那次排版之后）。排完版、滚动时两者相同；画面不变（多建的那几格在提交之前就收掉了）。
+    func updateCells() {
+        var visible = scroll.bounds
+        visible.size.height = settledScrollHeight()
+        cells.overscan = max(max(0, visible.height) * Self.overscanViewports, Self.overscanRows * grid.cellSide)
+        traitCollection.performAsCurrent { cells.update(visible: visible) }
+        refreshInkNear()
+        requestMissingInk()
+    }
+
+    /// 以前每块墨各自 KVO contentOffset 做的事：到了视口附近就画（建出来的格子 + 今年首字 + 卷尾两格）。
+    private func refreshInkNear() {
+        for i in cells.liveIndices { cells.slot(at: i)?.ink.refreshNear() }
+        firstInk.refreshNear()
+        twiceFirstInk.refreshNear()
+        twiceLastInk.refreshNear()
+    }
+
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        guard scrollView === scroll, isViewLoaded else { return }
+        // 渲染过、还没排版：grid 是旧模型的，等排版（已经标了 setNeedsLayout）按新的 grid 建；墨照旧按位置判
+        guard gridGeneration == renderGeneration else {
+            refreshInkNear()
+            return
+        }
+        updateCells()
+    }
+
+    /// 一格的内容：衬底字、有墨迹就画墨（网页 paintCellContent：hand 且有墨 → 墨；否则衬底字）、墨与衬底字的颜色与内边。
+    /// 框与线宽在 configureCellLayout。格子可能是别的格用过的：内容的每一样都重设（与原来一模一样的值不重画）。
+    private func configureCellContent(_ s: CellSlot, _ c: View.Cell) {
+        let hand = handColor ?? color("hand"), under = underColor ?? color("under")
+        s.ink.pad = 0.09 // 网页年报月段的 INK_PAD
+        s.ink.inkColor = hand
+        if s.glyph.color !== under { s.glyph.color = under }
+        if s.glyph.padRatio != 0.06 { s.glyph.padRatio = 0.06 }
+        s.glyph.char = c.ch
+        if let box = c.ink, c.mode == "hand" {
+            s.ink.isHidden = false
+            s.ink.points = box.points
+            s.glyph.isHidden = true
+        } else if c.mode == "hand", let key = c.inkKey {
+            // 墨迹按需取：到之前墨视图在、没有点（与「墨还没到视口附近」一样什么也不画）；到了由 applyArrivedInk 补上点列
+            s.ink.isHidden = false
+            s.ink.points = fetchedInk(key)
+            s.glyph.isHidden = true
+        } else {
+            s.ink.isHidden = true
+            s.glyph.isHidden = false
+        }
+    }
+
+    // MARK: 墨迹按需取
+
+    /// grid 里这个键此刻该画的墨迹：这份回包取到的；还没取到 → 上一份回包取到的（垫着，重取到了就换上）；都没有 → 没有点。
+    /// grid 还是旧回包排出来的（渲染了、还没排版）→ 只有垫着的那份（旧 grid 的键取的就是旧回包的墨迹）。
+    private func fetchedInk(_ key: String) -> [[ShiziInkPoint]] {
+        guard gridPayload == payloadGeneration else { return provisionalInk[key] ?? [] }
+        return inkCache[key] ?? provisionalInk[key] ?? []
+    }
+
+    /// 换了一份回包：取到的墨迹挪去垫着（provisionalInk，之前垫着还没换掉的照留、被它盖住的以新的为准），在路上的请求作废
+    /// （回来时按回包代丢掉），按新回包重取。
+    private func startInkPayload() {
+        payloadGeneration += 1
+        if !inkCache.isEmpty { provisionalInk.merge(inkCache) { _, fresh in fresh } }
+        inkCache = [:]
+        inkInFlight = []
+        inkFailed = []
+        inkCheckedLive = nil
+    }
+
+    /// 建出来的格子里用到的墨迹键都按这份回包重取到了：垫着的那份不再用得上，扔掉。
+    private func dropProvisionalIfFresh() {
+        guard !provisionalInk.isEmpty, inkInFlight.isEmpty, gridPayload == payloadGeneration else { return }
+        for i in cells.liveIndices where i < grid.cellData.count {
+            let c = grid.cellData[i]
+            if c.mode == "hand", c.ink == nil, let k = c.inkKey, inkCache[k] == nil { return }
+        }
+        provisionalInk = [:]
+    }
+
+    /// 建出来的格子里等墨迹的（这份回包的 grid、hand、没有内联墨迹、有 inkKey、还没取到、不在路上、没取失败）的键，
+    /// 按格离可见框中线由近到远排（先取看得见的），同一个键只算一次。
+    func missingInkKeys() -> [String] {
+        guard gridPayload == payloadGeneration else { return [] }
+        let mid = scroll.bounds.midY
+        var picked: [(distance: CGFloat, key: String)] = []
+        var seen = Set<String>()
+        for i in cells.liveIndices where i < grid.cellData.count {
+            let c = grid.cellData[i]
+            guard c.mode == "hand", c.ink == nil, let k = c.inkKey, inkCache[k] == nil, !inkInFlight.contains(k), !inkFailed.contains(k), seen.insert(k).inserted else { continue }
+            let f = i < grid.cellsInContent.count ? grid.cellsInContent[i] : CGRect.zero
+            picked.append((distance: abs(f.midY - mid), key: k))
+        }
+        picked.sort { $0.distance < $1.distance }
+        return picked.map { $0.key }
+    }
+
+    /// 建出来的格子里墨迹还没全到（请求排着 / 在路上、渲染了还没排版、或有该取还没取的）。QA 取证等它为假再取。
+    var inkPending: Bool {
+        if inkFetchQueued || !inkInFlight.isEmpty { return true }
+        if model != nil, renderPayload != gridPayload { return true }
+        return !missingInkKeys().isEmpty
+    }
+
+    /// 有缺墨迹的格子就排一次取（下一轮主线程：同一轮里的几次排版 / 滚动并成一次）。
+    /// 建出来的格子（序号范围、个数）与 grid / 回包的版次都没变时不再数（滚动的每一帧大多如此）；force = 墨迹刚到（可能有在路上时新建的格子）。
+    private func requestMissingInk(force: Bool = false) {
+        let live = cells.liveIndices
+        let sig = InkLiveSignature(first: live.first ?? -1, last: live.last ?? -1, count: live.count, grid: gridGeneration, payload: gridPayload == payloadGeneration ? payloadGeneration : -1)
+        if !force, sig == inkCheckedLive { return }
+        inkCheckedLive = sig
+        guard !inkFetchQueued, !missingInkKeys().isEmpty else { return }
+        inkFetchQueued = true
+        DispatchQueue.main.async { [weak self] in self?.fetchMissingInk() }
+    }
+
+    /// 此刻缺的键（按此刻建出来的格子重新数）分批发出去。
+    private func fetchMissingInk() {
+        inkFetchQueued = false
+        let keys = missingInkKeys()
+        guard !keys.isEmpty else { return }
+        let gen = payloadGeneration
+        var start = 0
+        while start < keys.count {
+            let chunk = Array(keys[start..<min(keys.count, start + AnnualInkDecode.batch)])
+            start += AnnualInkDecode.batch
+            inkInFlight.formUnion(chunk)
+            inkRequestCount += 1
+            inkRequestLog.append(chunk)
+            if inkRequestLog.count > 64 { inkRequestLog.removeFirst(inkRequestLog.count - 64) }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let reply = await self.fetchInk(chunk)
+                self.inkReplied(reply, keys: chunk, generation: gen)
+            }
+        }
+    }
+
+    private func fetchInk(_ keys: [String]) async -> [String: Any] {
+        if let f = inkFetcher { return await f(keys) }
+        guard let engine = stage?.engine else { return ["ok": false, "error": ["kind": "unavailable"]] }
+        return await engine.raw("view.annual.ink", ["keys": keys])
+    }
+
+    /// 回包到了：回包代不对（这页已经换了一份回包）→ 丢掉；失败 → 这几个键这份回包里不再取；成功 → 在后台队列上解，解完回主线程记下。
+    private func inkReplied(_ reply: [String: Any], keys: [String], generation gen: Int) {
+        guard gen == payloadGeneration else { return }
+        guard (reply["ok"] as? Bool) == true, let ink = reply["ink"] as? [String: Any] else {
+            inkInFlight.subtract(keys)
+            inkFailed.formUnion(keys)
+            ShiziProbe.log("annual: view.annual.ink failed (\((reply["error"] as? [String: Any])?["kind"] ?? "?")) for \(keys.count) keys")
+            return
+        }
+        let done: ([String: [[ShiziInkPoint]]]) -> Void = { [weak self] decoded in self?.inkDecoded(decoded, keys: keys, generation: gen) }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let decoded = AnnualInkDecode.decode(ink, keys: keys)
+            DispatchQueue.main.async { done(decoded) }
+        }
+    }
+
+    /// 解好的墨迹（主线程）：回包代还对就记进缓存、配给此刻还是那一格的格子，再看有没有在路上时新建出来、还缺墨迹的格子。
+    private func inkDecoded(_ decoded: [String: [[ShiziInkPoint]]], keys: [String], generation gen: Int) {
+        guard gen == payloadGeneration else { return }
+        inkInFlight.subtract(keys)
+        for k in keys { inkCache[k] = decoded[k] ?? [] }
+        applyArrivedInk(Set(keys))
+        requestMissingInk(force: true)
+        dropProvisionalIfFresh()
+    }
+
+    /// 建出来的格子里用到这几个键的：格子此刻配的还是这一格（序号、grid 的版次都对）、grid 是这份回包的，才换上点列。
+    private func applyArrivedInk(_ keys: Set<String>) {
+        guard gridPayload == payloadGeneration else { return }
+        for i in cells.liveIndices where i < grid.cellData.count {
+            guard let s = cells.slot(at: i), s.index == i, s.generation == gridGeneration else { continue }
+            let c = grid.cellData[i]
+            guard c.mode == "hand", c.ink == nil, let k = c.inkKey, keys.contains(k), let pts = inkCache[k] else { continue }
+            s.ink.points = pts
+        }
+    }
+
+    /// 一格的框（格网坐标 = 按钮坐标）、墨铺满格（ShiziPointsInkView 自己留 9% 内边）、衬底字画在同一个内框里
+    /// （网页 paintCellContent：cellInkBox 再 paintOutline）、线宽按格边长。
+    private func configureCellLayout(_ s: CellSlot, frame: CGRect, side: CGFloat) {
+        s.cell.frame = frame
+        s.ink.frame = s.cell.bounds
+        s.glyph.frame = s.cell.bounds.insetBy(dx: side * 0.09, dy: side * 0.09)
+        s.ink.widthScale = ShiziInkScale.scale(side, 1 - 2 * 0.09)
     }
 
     // MARK: 动作
@@ -491,6 +946,12 @@ final class AnnualScreen: ShiziScreenViewController {
         let bx = x - 4
         let bw = width + 8
         if m.empty {
+            // 空态没有月段：格子都收进池子
+            self.grid = MonthsLayout()
+            gridGeneration = renderGeneration
+            gridPayload = renderPayload
+            cells.setItems([])
+            updateCells()
             layoutEmpty(bx: bx, bw: bw, top: top)
             let bodyH = max(0, scroll.bounds.height - top - mt.space(8))
             bodyMarker.frame = CGRect(x: bx, y: top, width: bw, height: bodyH)
@@ -532,47 +993,28 @@ final class AnnualScreen: ShiziScreenViewController {
             firstLabel.frame = CGRect(x: sideX, y: sideBottom - dateH - 4 - labelH, width: sideW, height: labelH)
             y += blockH + firstBottom
         }
-        // 每月一段
+        // 每月一段：先把全部段 / 格的框算好，再按框摆
         let cols = axLayout ? 6 : 8
         let cellSide: CGFloat = axLayout ? floor((view.bounds.width - 40) / 6) : min(45, floor((view.bounds.width - 40) / 8))
-        for (i, sec) in m.months.enumerated() {
+        let layout = monthsLayout(m, bx: bx, bw: bw, top: y, cols: cols, cellSide: cellSide)
+        self.grid = layout
+        for (i, box) in layout.months.enumerated() where i < monthButtons.count {
             let b = monthButtons[i]
-            // 上边一条发丝线 + 上内边距 14
-            let top0 = y + hairline + monthPadTop
-            // 月名与字数（基线对齐的一行）
-            let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
-            // WebKit 的 flex 行把小数行盒向上包整（XXXL 的 40.5 → 41），否则每月累计少 1pt。
-            let nameLine = ceil(mt.value("lh22"))
-            let countFont = NativeType.compose(size: mt.value("fs13"), weight: .regular)
-            let countLine = mt.line("lh13")
-            let na = ShiziFlex.text(nameFont, line: nameLine)
-            let ca = ShiziFlex.text(countFont, line: countLine)
-            let row = ShiziFlex.baselineRow([(box: nameLine, ascent: na.ascent), (box: countLine, ascent: ca.ascent)])
-            let nameW = ceil(ShiziMineText.width(b.label.text ?? "", font: nameFont))
-            let headHeight = row.height
-            // 格网
-            let gridTop = top0 + headHeight + monthHeadGap
-            let rows = Int(ceil(Double(sec.cells.count) / Double(cols)))
-            for (j, cell) in monthCells[i].enumerated() {
-                let col = j % cols
-                let row = j / cols
-                // 格子在段按钮里（按钮的坐标：按钮从 (bx, y) 起）
-                cell.frame = CGRect(x: CGFloat(col) * cellSide, y: gridTop - y + CGFloat(row) * cellSide, width: cellSide, height: cellSide)
-                // 墨铺满格（ShiziPointsInkView 自己留 9% 内边）；衬底字画在同一个内框里（网页 paintCellContent：cellInkBox 再 paintOutline）
-                cell.subviews.forEach { $0.frame = cell.bounds }
-                cell.subviews.last?.frame = cell.bounds.insetBy(dx: cellSide * 0.09, dy: cellSide * 0.09)
-            }
-            let gridH = CGFloat(rows) * cellSide
-            let h = hairline + monthPadTop + headHeight + monthHeadGap + gridH + monthGridGap
-            b.frame = CGRect(x: bx, y: y, width: bw, height: h)
+            b.frame = box.frame
             b.viewWithTag(Self.monthHairTag)?.frame = CGRect(x: 0, y: 0, width: bw, height: hairline)
+            monthGrid(b)?.frame = b.bounds
             // 按钮里的两段字：月名在左、字数在右，基线对齐（网页 .sz-ann__mhead：space-between + baseline）
-            b.label.frame = CGRect(x: 0, y: hairline + monthPadTop + row.tops[0], width: nameW, height: nameLine)
+            b.label.frame = box.nameFrame
             // 字数右对齐到版心的右缘（网页 space-between 的右端）：取证按按钮里全部文字的并集，右缘要对齐版心
             b.valueLabel.textAlignment = .right
-            b.valueLabel.frame = CGRect(x: 0, y: hairline + monthPadTop + row.tops[1], width: bw, height: countLine)
-            y += h
+            b.valueLabel.frame = box.countFrame
         }
+        // 格子：只建 / 配可见框 ± overscan 里的（滚动时 scrollViewDidScroll 再补；排版收尾时滚动区定了高再核一次）
+        gridGeneration = renderGeneration
+        gridPayload = renderPayload
+        cells.setItems(layout.cellsInContent)
+        updateCells()
+        y = layout.bottom
         // 卷尾：同一个字，两次
         if m.twice != nil {
             content.viewWithTag(Self.twiceHairTag)?.frame = CGRect(x: bx, y: y, width: bw, height: hairline)
@@ -614,7 +1056,61 @@ final class AnnualScreen: ShiziScreenViewController {
         return y
     }
 
-    /// 空态（网页 components/EmptyState.js：笺面纸的空格子 + 标题 + 说明）。
+    /// 全部段 / 格的框（网页 .sz-ann__month：上边一条发丝线 + 上内边距 14、月名与字数基线对齐的一行、间距 10、cols 列的格网、下边距 28）。
+    /// 只算数，不碰视图；top = 第一段的上沿（content 坐标），bx / bw = 正文的左缘与宽。
+    func monthsLayout(_ m: View, bx: CGFloat, bw: CGFloat, top: CGFloat, cols: Int, cellSide: CGFloat) -> MonthsLayout {
+        let mt = metrics
+        var out = MonthsLayout()
+        out.cols = cols
+        out.cellSide = cellSide
+        let total = m.months.reduce(0) { $0 + $1.cells.count }
+        out.cells.reserveCapacity(total)
+        out.cellsInContent.reserveCapacity(total)
+        out.cellMonth.reserveCapacity(total)
+        out.cellData.reserveCapacity(total)
+        // 月名（宋 22 / 500）与字数（黑 13）基线对齐的一行：各段一样，先算好
+        let nameFont = NativeType.song(size: mt.value("fs22"), weight: .medium)
+        // WebKit 的 flex 行把小数行盒向上包整（XXXL 的 40.5 → 41），否则每月累计少 1pt。
+        let nameLine = ceil(mt.value("lh22"))
+        let countFont = NativeType.compose(size: mt.value("fs13"), weight: .regular)
+        let countLine = mt.line("lh13")
+        let na = ShiziFlex.text(nameFont, line: nameLine)
+        let ca = ShiziFlex.text(countFont, line: countLine)
+        let row = ShiziFlex.baselineRow([(box: nameLine, ascent: na.ascent), (box: countLine, ascent: ca.ascent)])
+        let headHeight = row.height
+        var y = top
+        for (i, sec) in m.months.enumerated() {
+            // 上边一条发丝线 + 上内边距 14
+            let top0 = y + hairline + monthPadTop
+            // 月名的宽（按钮里的月名标签就是这段字：renderModel 按 sec.name 设）
+            let nameW = ceil(ShiziMineText.width(sec.name.text, font: nameFont))
+            // 格网
+            let gridTop = top0 + headHeight + monthHeadGap
+            let rows = Int(ceil(Double(sec.cells.count) / Double(cols)))
+            let gridH = CGFloat(rows) * cellSide
+            let h = hairline + monthPadTop + headHeight + monthHeadGap + gridH + monthGridGap
+            out.months.append(MonthsLayout.MonthBox(
+                frame: CGRect(x: bx, y: y, width: bw, height: h),
+                nameFrame: CGRect(x: 0, y: hairline + monthPadTop + row.tops[0], width: nameW, height: nameLine),
+                countFrame: CGRect(x: 0, y: hairline + monthPadTop + row.tops[1], width: bw, height: countLine),
+                firstCell: out.cells.count, cellCount: sec.cells.count))
+            for (j, c) in sec.cells.enumerated() {
+                let col = j % cols
+                let r = j / cols
+                // 格子在段按钮里（按钮的坐标：按钮从 (bx, y) 起）
+                let f = CGRect(x: CGFloat(col) * cellSide, y: gridTop - y + CGFloat(r) * cellSide, width: cellSide, height: cellSide)
+                out.cells.append(f)
+                out.cellsInContent.append(f.offsetBy(dx: bx, dy: y))
+                out.cellMonth.append(i)
+                out.cellData.append(c)
+            }
+            y += h
+        }
+        out.bottom = y
+        return out
+    }
+
+    /// 空态（网页：笺面纸的空格子 + 标题 + 说明）。
     private func layoutEmpty(bx: CGFloat, bw: CGFloat, top: CGFloat) {
         let mt = metrics
         // 网页 .sz-page__body 的下内边距（s8）不算进正文
@@ -653,7 +1149,7 @@ final class AnnualScreen: ShiziScreenViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         if axLayout {
-            // AX 档：网页的页头折成两行（components/ax.js）——第一行「‹」+「调整图片 ›」，第二行页标题
+            // AX 档：网页的页头折成两行——第一行「‹」+「调整图片 ›」，第二行页标题
             // （本页的页标题是可见的 h1：盒高 = 一行字 + 下内边距 6，字从盒顶往上溢出一点）
             let row1 = axHeaderRowHeight()
             let row1Bottom = view.safeAreaInsets.top + row1
@@ -662,6 +1158,7 @@ final class AnnualScreen: ShiziScreenViewController {
         }
         layoutHeaderTrail()
         layoutFooter()
+        updateCells() // 滚动区的高到这里才定（底栏让出之后）
     }
 
     private func layoutHeaderTrail() {
@@ -693,17 +1190,78 @@ final class AnnualScreen: ShiziScreenViewController {
         }
     }
 
+    /// 底栏的高（layoutFooter 与 settledScrollHeight 同一个算法）。
+    private func footerHeight() -> CGFloat {
+        let mt = metrics
+        let safeBottom = max(mt.space(6), view.safeAreaInsets.bottom)
+        let btnH = max(mt.value("btn-h"), mt.hit)
+        return mt.space(3) + btnH + safeBottom
+    }
+
+    /// 底栏让出之后滚动区的高（= layoutFooter 设的：底栏顶 − 滚动区的上沿）。上沿：一般由基类排版先定好；
+    /// AX 档由 viewDidLayoutSubviews 里的 applyAxHeader 挪到页头底（safeTop + 第一行 + 标题行，同那里的算法），这里先按它算。
+    private func settledScrollHeight() -> CGFloat {
+        var top = scroll.frame.minY
+        if axLayout {
+            let titleRow = titleLabel.frame.height + 6
+            top = view.safeAreaInsets.top + axHeaderRowHeight() + titleRow
+        }
+        return max(0, view.bounds.height - footerHeight() - top)
+    }
+
     private func layoutFooter() {
         let mt = metrics
         let w = view.bounds.width
-        let safeBottom = max(mt.space(6), view.safeAreaInsets.bottom)
         let btnH = max(mt.value("btn-h"), mt.hit)
-        let footerH = mt.space(3) + btnH + safeBottom
+        let footerH = footerHeight()
         let footerTop = view.bounds.height - footerH
         footerView.frame = CGRect(x: 0, y: footerTop, width: w, height: footerH)
         footerView.backgroundColor = color("paper")
         scroll.frame = CGRect(x: scroll.frame.minX, y: scroll.frame.minY, width: w, height: max(0, footerTop - scroll.frame.minY))
         saveButton.frame = CGRect(x: mt.gutter, y: mt.space(3), width: w - 2 * mt.gutter, height: btnH)
         saveLive.frame = CGRect(x: 19, y: mt.space(3), width: 1, height: 1)
+    }
+}
+
+/// 年报月段格的墨迹按需取里与页面无关的那一半：参数名、一批几个键、取回的墨迹怎么解（不属于主线程：解码在后台队列上做）。
+enum AnnualInkDecode {
+    /// view.annual 的参数：带上它，月段的格只给 inkKey（ShiziCore MineSubView.annualView(lazyInk:)）。
+    static let viewFlag = "lazyInk"
+    /// 年报的屏名（AppHostIO.view 打开年报时带上 viewFlag）。
+    static let screen = "annual"
+    /// 一次 view.annual.ink 取几个键：不超过引擎的上限 AnnualInkWire.maxBatch（256；测试核对）。
+    static let batch = 200
+
+    /// 旧形状的点（字典）只有 x / y / w 键；平铺的笔（头一个是数）不看（由 LibraryInkView.decodeRecordDirect 认）。
+    static func onlyXYW(_ strokes: [Any]) -> Bool {
+        for s in strokes {
+            guard let a = s as? [Any], !(a.first is NSNumber) else { continue }
+            for p in a {
+                guard let o = p as? [String: Any] else { continue }
+                for k in o.keys where k != "x" && k != "y" && k != "w" { return false }
+            }
+        }
+        return true
+    }
+
+    /// view.annual.ink 的回包 ink（{键: ink.points | null}）里 keys 这几个 → 笔画（回包里没有的键 = 空）。
+    static func decode(_ ink: [String: Any], keys: [String]) -> [String: [[ShiziInkPoint]]] {
+        var out: [String: [[ShiziInkPoint]]] = [:]
+        out.reserveCapacity(keys.count)
+        for k in keys { out[k] = strokes(ink[k] ?? NSNull()) }
+        return out
+    }
+
+    /// 一格的 ink.points → 笔画，= 整份回包里这一格经 AnnualScreen.decodeView 解出来的（逐位）：
+    /// 能直接读（只有 x / y / w 的点、平铺的笔，同 decodeViewDirect 的那一格）→ 直接读，t / p = nil；
+    /// 否则展开平铺后经 ShiziDecode.value（原路）。null → 空；原路也解不了（数不是有限数等）→ 空
+    /// （不画：以前这样的格让整份回包解不了、整页不出来，现在只这一格空着）。
+    static func strokes(_ raw: Any) -> [[ShiziInkPoint]] {
+        if raw is NSNull { return [] }
+        if let a = raw as? [Any], onlyXYW(a), let ss = LibraryInkView.decodeRecordDirect(a) {
+            return ss.map { s in s.map { ShiziInkPoint(x: $0.x, y: $0.y, w: $0.w, t: nil, p: nil) } }
+        }
+        let expanded: Any = LibraryInkView.expandFlat(["p": raw])["p"] ?? raw
+        return (try? ShiziDecode.value(expanded, as: [[ShiziInkPoint]].self)) ?? []
     }
 }

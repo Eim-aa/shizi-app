@@ -1,6 +1,6 @@
 import Foundation
 
-// src/session/views/mine-sub.js. Line starts preserve the injected provider
+// Mine sub-page views. Line starts preserve the injected provider
 // contract; actual text measurement belongs to the renderer.
 public enum MineSubView {
     typealias V = ViewSupport
@@ -19,11 +19,16 @@ public enum MineSubView {
         var out = JSObject([("ch", ch), ("ink", .null), ("mode", mode), ("tag", JS.truthy(tag) ? tag! : .string("")), ("day", JS.truthy(day) ? day! : .string("")), ("recordId", r?["id"] ?? .string("")), ("recordDay", r?["localDay"] ?? .string(""))])
         var c = out; c["record"] = r ?? .null; out["label"] = try cellLabelRef(.object(c), dates: dates); return out
     }
-    static func monthCells(_ state: JSValue, month: String, policy: JSValue, dates: Dates) throws -> JSValue {
-        try ImageSelection.imagePlan(state, scope: V.obj([("kind", .string("month")), ("month", .string(month))]), inkOf: { try DetailView.builtInk(state, record: $0, dates: dates) }, maxChars: Int(JS.number(policy["imageMaxChars"])), monthPick: policy["monthSheetPick"]?.stringValue ?? "first", dates: dates)
+    /// ink：这次回答共用的 builtInk 记忆（RecordInkMemo.builtInk(state, dates:)），缺省现建一个；imagePlan 的 hasInk（挑有墨迹的那一次）与取点共用它，每条记录只解一次。
+    /// 回 {cells, days}：= imagePlan(month)（inkOf = builtInk）的这两项（ImageSelection.monthPlanCells；这里只读这两项，不再为整份计划分页、拼 drawn）。
+    /// rows：同一次回答里共用的 ImageSelection.monthRows(state)（年报每月），缺省现平铺。
+    static func monthCells(_ state: JSValue, month: String, policy: JSValue, dates: Dates, ink memo: RecordInkMemo? = nil, rows: [JSValue]? = nil) throws -> JSValue {
+        let ink = memo ?? RecordInkMemo.builtInk(state, dates: dates)
+        let r = try ImageSelection.monthPlanCells(state, month: month, inkOf: { try ink.get($0) }, monthPick: policy["monthSheetPick"]?.stringValue ?? "first", rows: rows, dates: dates)
+        return V.obj([("cells", .array(r.cells)), ("days", r.days)])
     }
-    static func displayMonth(_ state: JSValue, month: String, policy: JSValue, block: Bool, dates: Dates) throws -> JSValue {
-        let r = try monthCells(state, month: month, policy: policy, dates: dates), raw = r["cells"]?.arrayValue ?? []
+    static func displayMonth(_ state: JSValue, month: String, policy: JSValue, block: Bool, dates: Dates, ink: RecordInkMemo? = nil) throws -> JSValue {
+        let r = try monthCells(state, month: month, policy: policy, dates: dates, ink: ink), raw = r["cells"]?.arrayValue ?? []
         if block && raw.isEmpty { return .null }
         var cells = try raw.enumerated().map { i, c -> JSValue in
             var out = try cellModel(c["ch"]!, record: c["record"], mode: c["mode"]!, day: c["day"], tag: c["tag"], dates: dates)
@@ -35,27 +40,31 @@ public enum MineSubView {
         var out = JSObject([("month", .string(month)), ("monthNum", .number(mn)), ("cells", .array(cells)), ("n", .number(Double(n))), ("days", r["days"] ?? .number(0)), ("under", .bool(cells.contains { $0["mode"] == .string("under") }))])
         out["kuan"] = n > 0 ? try Copy.tRef(KuanView.kuanRef(JSObject([("month", .string(month)), ("n", .number(Double(n)))]), now: 0, dates: dates)) : .string("")
         out["cols"] = .number(Double(ImageLayout.sheetColumns(n)))
-        if block { out["folded"] = .bool(V.recordIndex(state, dates: dates).folded[month] != nil); out["title"] = V.ref("R-P02.sheetTitle", V.obj([("month", .number(mn))])) }
+        // = recordIndex(state).folded[month] != nil：索引只收 records 里 folded === true 的月（键逐码点，与直接取这个月相同），不必为一个布尔值重建整个索引
+        if block { out["folded"] = .bool(state["records"]?[month]?["folded"] == .bool(true)); out["title"] = V.ref("R-P02.sheetTitle", V.obj([("month", .number(mn))])) }
         out["seal"] = try CoreResources.load("view-seal")
         if !block { out["lines"] = V.obj([("sub", ViewLineStarts.starts("month-sub", V.ref("X-MINE.sheetOrder")))]) }; return .object(out)
     }
     public static func monthView(_ state: JSValue, month: String, policy: JSValue, dates: Dates) throws -> JSValue { try displayMonth(state, month: month, policy: policy, block: false, dates: dates) }
-    public static func monthSheetOf(_ state: JSValue, month: String, policy: JSValue, dates: Dates) throws -> JSValue { try displayMonth(state, month: month, policy: policy, block: true, dates: dates) }
+    public static func monthSheetOf(_ state: JSValue, month: String, policy: JSValue, dates: Dates) throws -> JSValue { try monthSheetOf(state, month: month, policy: policy, dates: dates, ink: nil) }
+    static func monthSheetOf(_ state: JSValue, month: String, policy: JSValue, dates: Dates, ink: RecordInkMemo?) throws -> JSValue { try displayMonth(state, month: month, policy: policy, block: true, dates: dates, ink: ink) }
     public static func sheetGeometry(_ n: Int, width: Double) -> JSValue {
         if n == 0 { return V.obj([("n", .number(0)), ("cols", .number(0)), ("rows", .number(0)), ("c", .number(0)), ("W", .number(0)), ("H", .number(0)), ("lastW", .number(0)), ("full", .bool(true)), ("cells", .array([]))]) }
         let cols = ImageLayout.sheetColumns(n), rows = Int(ceil(Double(n)/Double(cols))), c = floor(min(110, width/Double(cols))), last = n-(rows-1)*cols
         return V.obj([("n", .number(Double(n))), ("cols", .number(Double(cols))), ("rows", .number(Double(rows))), ("c", .number(c)), ("W", .number(Double(cols)*c)), ("H", .number(Double(rows)*c)), ("lastW", .number(Double(last)*c)), ("full", .bool(last == cols)), ("cells", .array((0..<n).map { i in V.obj([("x", .number(Double(i%cols)*c)), ("y", .number(Double(i/cols)*c)), ("col", .number(Double(i%cols))), ("row", .number(Double(i/cols)))]) }))])
     }
     public static func recordsView(_ state: JSValue, today: String, _ a: JSObject, dates: Dates) throws -> JSValue {
-        let policy = V.policy(a["policy"]), m = try V.recordsModel(state, today: today, month: a["month"], day: a["day"], policy: policy, dates: dates)
+        let policy = V.policy(a["policy"]), m = try V.recordsModel(state, today: today, month: a["month"], day: a["day"], policy: policy, dates: dates, withSheet: false) // m["sheet"] 这里不读
         let calendar = m["calendar"]!.arrayValue!.map { c -> JSValue in
             let b = JS.truthy(c["blank"])
             return V.obj([("key", c["key"]!), ("blank", .bool(b)), ("day", b ? .string("") : c["day"]!), ("n", b ? .number(0) : c["n"]!), ("has", .bool(!b && JS.truthy(c["has"]))), ("today", .bool(!b && JS.truthy(c["today"]))), ("future", .bool(!b && JS.truthy(c["future"])))])
         }
+        // 选中日的格与下面的月报块共用一份 builtInk 记忆（同一条记录常在两处都出现）
+        let ink = RecordInkMemo.builtInk(state, dates: dates)
         var selected: JSValue = .null
         if let s = m["selected"], JS.truthy(s) {
             let cells = try s["items"]!.arrayValue!.map { it -> JSValue in
-                let pts = try DetailView.builtInk(state, record: it["record"], dates: dates)
+                let pts = try ink.get(it["record"])
                 var c = try cellModel(it["char"]!, record: it["record"], mode: .string(pts != nil ? "hand" : "under"), day: s["day"], tag: .string(""), dates: dates)
                 c["key"] = .string("d-"+JS.string(it["char"])); c["ink"] = pts.map { V.obj([("points", $0)]) } ?? .null
                 var label = c; label["record"] = it["record"]; c["label"] = try dayCellLabelRef(.object(label), dates: dates); return .object(c)
@@ -64,7 +73,7 @@ public enum MineSubView {
         }
         let has = JS.truthy(m["recordDays"]), title = V.ref(has ? "R-P01.monthDays" : "X-MINE.monthNone", V.obj(has ? [("month", m["monthNum"]!), ("n", m["recordDays"]!)] : [("month", m["monthNum"]!)])), legend = V.ref(has ? "R-P01.legend" : "R-P04.empty")
         let dayList = try m["dayList"]!.arrayValue!.map { r -> JSValue in V.obj([("day", r["day"]!), ("n", r["n"]!), ("today", r["today"]!), ("label", V.ref(JS.truthy(r["n"]) ? "X-MINE.axDayRow" : "X-MINE.axDayRowPaper", V.obj(JS.truthy(r["n"]) ? [("date", try dayTextRef(r["day"]!, dates: dates)), ("n", r["n"]!)] : [("date", try dayTextRef(r["day"]!, dates: dates))])))]) }
-        let sheet = try monthSheetOf(state, month: JS.string(m["month"]), policy: policy, dates: dates)
+        let sheet = try monthSheetOf(state, month: JS.string(m["month"]), policy: policy, dates: dates, ink: ink)
         var out = JSObject()
         for k in ["today", "month", "year", "monthNum", "current", "prev", "next"] { out[k] = m[k] }
         out["monthHead"] = monthHeadRef(m["monthNum"]!); out["yearText"] = .string(JS.string(m["year"])); out["title"] = title; out["legend"] = legend; out["weekdays"] = V.ref("X-MINE.weekdays"); out["calendar"] = .array(calendar); out["recordDays"] = m["recordDays"]; out["dayList"] = .array(dayList); out["selected"] = selected; out["sheet"] = sheet
@@ -72,17 +81,46 @@ public enum MineSubView {
         out["seal"] = try CoreResources.load("view-seal"); out["lines"] = V.obj([("title", ViewLineStarts.starts("records-title", title)), ("legend", ViewLineStarts.starts("records-legend", legend)), ("dayRows", .array(dayList.map { ViewLineStarts.starts("records-axrow", $0["label"]!) })), ("paperday", JS.truthy(selected) ? ViewLineStarts.starts("records-paperday", selected["paperNote"]!) : .null), ("daylistTitle", JS.truthy(selected) ? ViewLineStarts.starts("records-daylist-title", selected["title"]!) : .null), ("sheetNote", JS.number(sheet["n"]) > 0 && JS.truthy(sheet["under"]) ? ViewLineStarts.starts("records-sheet-note", V.ref("X-WORK.monthUnderNote")) : .null)])
         return .object(out)
     }
-    public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, dates: Dates) throws -> JSValue {
-        let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, dates: dates)
-        func points(_ r: JSValue?) throws -> JSValue { try DetailView.builtInk(state, record: r, dates: dates).map { V.obj([("points", $0)]) } ?? .null }
-        func cell(_ ch: JSValue, _ r: JSValue?) throws -> JSValue { let p = try points(r); var c = try cellModel(ch, record: r, mode: .string(JS.truthy(p) ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates); c["ink"] = p; return .object(c) }
+    /// inkWire = App 回包（view.annual）：每格 ink.points 按 AnnualInkWire 发（平铺；x / y / w 与 DetailView.builtInk 逐位相同）。
+    /// 缺省（false）= 原样（ViewOps 的 view.annual-page 与网页对照的回包不变）。
+    /// lazyInk（只与 inkWire 一起有效；App 年报页 view.annual 带 lazyInk: true）：月段的格不带墨迹——ink 是 null，有墨迹的格多一个 inkKey
+    /// （AnnualInkWire.key：「月|id」），页面按需用 view.annual.ink 取。别的一概不变：mode（hand / under）、label、格的顺序与个数、今年首字与卷尾两格的墨迹。
+    /// 把每格的 ink 换成 {points: view.annual.ink 取回的}（null → null）、去掉 inkKey，就是不带 lazyInk 的那份，逐字节相同（AnnualLazyInkTests）。
+    public static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, lazyInk: Bool = false, dates: Dates) throws -> JSValue {
+        try annualView(state, today: today, year: year, policy: policy, inkWire: inkWire, lazyInk: lazyInk, dates: dates, index: V.recordIndex(state, dates: dates))
+    }
+    /// index：调用方已用同一 state / dates 建好的 recordIndex（MineSubAPI 挑缺省年份时建的那个）。
+    package static func annualView(_ state: JSValue, today: String, year: JSValue?, policy: JSValue, inkWire: Bool = false, lazyInk: Bool = false, dates: Dates, index: ViewSupport.RecordIndex) throws -> JSValue {
+        // 年报每月的成员要算两遍（模型里数成员、这里取格），全量平铺一次给它们共用
+        let rows = ImageSelection.monthRows(state)
+        let m = try AnnualView.annualModel(state, today: today, year: year, policy: policy, hasInk: nil, dates: dates, index: index, rows: rows)
+        // 首字、每月的格（含 monthCells 里挑墨迹与取点）、两次对比共用一份墨迹记忆：每条记录的墨迹只解一次。
+        // inkWire：记的是 AnnualInkWire.built（平铺的 ink.points）。它与 DetailView.builtInk 同样只取决于 state.ink[月][id]、
+        // 同时为 nil、同处抛同一个错，所以 monthCells 里 imagePlan 判有无墨迹（只看是不是 nil）的结果不变；月段的格只取 ch / record 与格数，墨迹在下面 cell 里另取。
+        let ink = inkWire ? RecordInkMemo(timeZone: dates.timeZone, { (r: JSValue?) throws -> JSValue? in try AnnualInkWire.built(state, record: r, dates: dates) }) : RecordInkMemo.builtInk(state, dates: dates)
+        // lazyInk：月段的格只问「AnnualInkWire.built 会不会非 nil」（DetailView.builtInkPresent：解码、不重采样、不建点；同真假、同处抛同一个错），
+        // 记的是 present（非 nil 的占位 = 一笔一个点的数组：monthCells 里 imagePlan 判有无墨迹只看它是不是有非空一笔的数组，月段的格不读它的值）。
+        let present: RecordInkMemo? = inkWire && lazyInk ? RecordInkMemo(timeZone: dates.timeZone, { (r: JSValue?) throws -> JSValue? in try DetailView.builtInkPresent(state, record: r, dates: dates) ? AnnualInkWire.presentMark : nil }) : nil
+        func points(_ r: JSValue?) throws -> JSValue { try ink.get(r).map { V.obj([("points", $0)]) } ?? .null }
+        func cell(_ ch: JSValue, _ r: JSValue?) throws -> JSValue {
+            if let present {
+                let has = try present.get(r) != nil
+                var c = try cellModel(ch, record: r, mode: .string(has ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates)
+                // ink 留着 cellModel 给的 null（键序不变）；有墨迹的格给墨迹键。有墨迹就一定有墨迹位置（built 非 nil ⇒ state.ink[月][id] 在）；万一没有，照旧带上墨迹
+                if has {
+                    if let key = AnnualInkWire.key(r, timeZone: dates.timeZone) { c["inkKey"] = .string(key) } else { c["ink"] = try points(r) }
+                }
+                return .object(c)
+            }
+            let p = try points(r); var c = try cellModel(ch, record: r, mode: .string(JS.truthy(p) ? "hand" : "under"), day: .string(""), tag: .string(""), dates: dates); c["ink"] = p; return .object(c)
+        }
         var first: JSValue = .null
         if let f = m["first"], JS.truthy(f) {
             let p = try points(f["record"]), ch = f["char"]!, date = try dayTextRef(f["day"]!, dates: dates)
             first = V.obj([("char", ch), ("day", f["day"]!), ("recordId", f["record"]?["id"] ?? .string("")), ("ink", p), ("label", V.ref(JS.truthy(p) ? "X-ANNUAL.firstInk" : "X-ANNUAL.firstNoInk", V.obj([("char", ch)]))), ("date", JS.truthy(p) ? V.ref("R-M06.inkDate", V.obj([("date", date)])) : date)])
         }
         let months = try m["months"]!.arrayValue!.map { month -> JSValue in
-            let r = try monthCells(state, month: JS.string(month["month"]), policy: policy, dates: dates), raw = r["cells"]?.arrayValue ?? [], n = JSValue.number(Double(raw.count)), mn = month["monthNum"]!
+            let r = try monthCells(state, month: JS.string(month["month"]), policy: policy, dates: dates, ink: present ?? ink, rows: rows), raw = r["cells"]?.arrayValue ?? [], n = JSValue.number(Double(raw.count)), mn = month["monthNum"]!
             return V.obj([("month", month["month"]!), ("monthNum", mn), ("n", n), ("name", V.ref("X-WORK.annualMonthName", V.obj([("month", mn)]))), ("count", V.ref("X-WORK.annualMonthCount", V.obj([("n", n)]))), ("aria", V.ref("X-WORK.annualMonthAria", V.obj([("month", mn), ("n", n)]))), ("cells", .array(try raw.map { try cell($0["ch"]!, $0["record"]) }))])
         }
         var twice: JSValue = .null

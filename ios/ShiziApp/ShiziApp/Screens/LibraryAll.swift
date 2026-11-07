@@ -931,7 +931,7 @@ final class LibraryAllMenuController: UIViewController, UIViewControllerTransiti
     var onChip: ((String) -> Void)?
     var onDone: (() -> Void)?
 
-    private let scroll = UIScrollView()
+    private let scroll = ShiziScrollView()
     private let head = UIView()
     private let titleLabel = UILabel()
     private let doneButton = ShiziLineButton(type: .custom)

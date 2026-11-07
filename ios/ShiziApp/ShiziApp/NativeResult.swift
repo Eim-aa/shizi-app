@@ -325,7 +325,7 @@ final class NativeResultViewController: UIViewController, UIGestureRecognizerDel
     private let shareButton = UIButton(type: .custom)
     private let headerLabel = UILabel()
     // 正文
-    private let scroll = UIScrollView()
+    private let scroll = ShiziScrollView()
     /// 内容滚到底栏下面时底栏上沿的发丝线（网页 .sz-page__foot[data-under]，D49）
     private let footHair = UIView()
     private let titleLabel = UILabel()

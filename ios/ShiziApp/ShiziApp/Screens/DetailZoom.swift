@@ -113,7 +113,7 @@ final class DetailZoomSheet: UIViewController, UIViewControllerTransitioningDele
     /// 退场完成时叫一次（页面等它退完再开下一张放大弹层）。
     var onDismissed: (() -> Void)?
 
-    private let scroll = UIScrollView()
+    private let scroll = ShiziScrollView()
     private let titleLabel = UILabel()
     private let doneButton = NativeTextButton(type: .custom)
     private let card = DetailSquare()

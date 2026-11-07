@@ -130,7 +130,8 @@ extension RootViewController {
     func qaContentPending() -> Bool {
         var pages = stage.screens
         if let root = stage.rootScreen { pages.append(root) }
-        return pages.contains { $0.isViewLoaded && $0.view.window != nil && $0.pendingContent }
+        // 墨的位图在后台画（ShiziInkRaster）：没画完的格子是空的，截图要等
+        return ShiziInkRaster.isBusy || pages.contains { $0.isViewLoaded && $0.view.window != nil && $0.pendingContent }
     }
 
     /// 等页面按需取的内容都到了（最多 timeout 秒；到不了照样往下取证，取证结果会与基线不同而暴露出来）。
@@ -562,6 +563,8 @@ extension RootViewController {
                     else if min(fd.width, fd.height) >= 8 { place(v, fd, ["kind": "image"], &cells) } // 大图（笔迹图、照片）当格比
                 }
                 if cls.contains("Ink") || cls.contains("Glyph") { place(v, f, ["kind": "ink", "class": cls], &cells) }
+                // 本人墨视图里显示位图的模板图视图是它的内部实现：不另当一格大图（墨格就是它自己）
+                if v is ShiziPointsInkView { return }
                 if let l = v as? UILabel, let t = l.text, t.count == 1, let u = t.unicodeScalars.first, (0x3400...0x9FFF).contains(u.value) || (0xF900...0xFAFF).contains(u.value), l.font.pointSize >= 24 {
                     let tr = l.textRect(forBounds: l.bounds, limitedToNumberOfLines: 1)
                     let tx = l.textAlignment == .center ? (l.bounds.width - tr.width) / 2 : (l.textAlignment == .right ? l.bounds.width - tr.width : tr.minX)

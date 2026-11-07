@@ -76,7 +76,7 @@ final class NativeChangeSheetViewController: UIViewController, UIViewControllerT
     private(set) var failed = false
     private var busy = false
 
-    private let scroll = UIScrollView()
+    private let scroll = ShiziScrollView()
     private let titleLabel = UILabel()
     private let cancelButton = NativeTextButton(type: .system)
     private let mineCard = UIView()

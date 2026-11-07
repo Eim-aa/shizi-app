@@ -627,7 +627,7 @@ final class QueryScreen: ShiziScreenViewController {
     let doneButton = NativeTextButton(type: .custom)
     let queryBody = UIView()
     let inputField = UITextField()
-    let scrollArea = UIScrollView()
+    let scrollArea = ShiziScrollView()
     let scrollContent = UIView()
     let notesBox = UIView()
     let rowsBox = UIView()

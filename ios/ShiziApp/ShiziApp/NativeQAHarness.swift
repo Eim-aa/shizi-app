@@ -130,7 +130,8 @@ extension RootViewController {
     func qaContentPending() -> Bool {
         var pages = stage.screens
         if let root = stage.rootScreen { pages.append(root) }
-        return pages.contains { $0.isViewLoaded && $0.view.window != nil && $0.pendingContent }
+        // 墨的位图在后台画（ShiziInkRaster）：没画完的格子是空的，截图要等
+        return ShiziInkRaster.isBusy || pages.contains { $0.isViewLoaded && $0.view.window != nil && $0.pendingContent }
     }
 
     /// 等页面按需取的内容都到了（最多 timeout 秒；到不了照样往下取证，取证结果会与基线不同而暴露出来）。
